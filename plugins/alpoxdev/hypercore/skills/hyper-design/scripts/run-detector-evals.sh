@@ -2,13 +2,26 @@
 # Run the detector eval cases against the static detector and report per-case agreement.
 set -euo pipefail
 
-RD_DEFAULT_CASES='skills/hyper-design/assets/evals/detector-cases.jsonl'
-RD_DETECTOR='skills/hyper-design/scripts/detect-slop.sh'
+RD_SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+RD_SKILL_DIR=$(dirname -- "$RD_SCRIPT_DIR")
+RD_DEFAULT_CASES="$RD_SKILL_DIR/assets/evals/detector-cases.jsonl"
+RD_DETECTOR="$RD_SCRIPT_DIR/detect-slop.sh"
 RD_USAGE='Usage: bash run-detector-evals.sh [--cases <cases.jsonl>] [--json]'
 
 rd_fail() {
   printf '%s\n' "$(jq -cn --arg error "$1" '{ok: false, error: $error}')" >&2
   exit 2
+}
+
+# rd_case_path <path> resolves one case row's path against the base chosen once after
+# argument parsing: the skill folder for the bundled case file, whose rows are
+# skill-relative, and the caller's own base otherwise. An absolute path is never
+# rewritten.
+rd_case_path() {
+  case $1 in
+    /*) printf '%s\n' "$1" ;;
+    *) printf '%s\n' "${RD_BASE:+$RD_BASE/}$1" ;;
+  esac
 }
 
 rd_main() {
@@ -31,6 +44,12 @@ rd_main() {
     return 0
   fi
   [ -f "$cases" ] || rd_fail "ENOENT: no such file or directory, open '$cases'"
+  # Choose the row base once. The bundled case file ships skill-relative rows, so it
+  # resolves against the skill folder from any working directory or install location.
+  # Any other case file keeps the caller's own base, including a row that names a file
+  # which also exists inside the package.
+  RD_BASE="$RD_SKILL_DIR"
+  if ! [ "$cases" -ef "$RD_DEFAULT_CASES" ]; then RD_BASE=''; fi
   work=$(mktemp "${TMPDIR:-/tmp}/slop-evals.XXXXXX")
   while IFS= read -r line || [ -n "$line" ]; do
     total=$((total + 1))
@@ -52,11 +71,20 @@ rd_main() {
     fi
     id=$(printf '%s' "$case_json" | jq -r '.id')
     target=$(printf '%s' "$case_json" | jq -r '.target')
+    target=$(rd_case_path "$target")
     expect_error=$(printf '%s' "$case_json" | jq -r 'if has("expectError") and .expectError == true then "1" else "0" end')
     extra_args=$(printf '%s' "$case_json" | jq -r 'if (.args | type) == "array" then .args[] else empty end')
     if [ -n "$extra_args" ]; then
+      _pending_flag=''
       while IFS= read -r _extra; do
         [ -n "$_extra" ] || continue
+        case ${_pending_flag:-} in
+          --config|--baseline) _extra=$(rd_case_path "$_extra") ;;
+        esac
+        case $_extra in
+          --config|--baseline) _pending_flag=$_extra ;;
+          *) _pending_flag='' ;;
+        esac
         set -- "$@" "$_extra"
       done <<EOF
 $extra_args

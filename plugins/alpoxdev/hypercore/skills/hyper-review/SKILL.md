@@ -4,13 +4,15 @@ description: "Use this skill when a change that already exists needs a verdict -
 compatibility: "Needs file read and search over the reviewed tree, git, and a shell for the project's own build, test, and run commands. The independent reviewer lane needs a subagent capability; without it the leader applies the rubric itself and records `review: self`. Rendered or remote surfaces need the browser, credentials, or hardware they use, and a row that cannot be exercised is reported as unproven with the exact blocker. No bundled script."
 ---
 
-@rules/context-and-identity.md
-@rules/qa-matrix.md
-@rules/review-checklist.md
-@rules/test-quality.md
-@rules/code-smells.md
-@rules/verdicts.md
-@rules/fix-protocol.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/context-and-identity.md](rules/context-and-identity.md)
+- [rules/qa-matrix.md](rules/qa-matrix.md)
+- [rules/review-checklist.md](rules/review-checklist.md)
+- [rules/test-quality.md](rules/test-quality.md)
+- [rules/code-smells.md](rules/code-smells.md)
+- [rules/verdicts.md](rules/verdicts.md)
+- [rules/fix-protocol.md](rules/fix-protocol.md)
 
 # Hyper Review
 

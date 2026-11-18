@@ -1,6 +1,6 @@
 # Render pipeline
 
-Five commands turn the source into every format. Run them from the skill folder; each is deterministic and depends only on the bundled assets plus a headless browser.
+Run the commands from the target project. Set `SKILL_DIR` to the installed folder containing `SKILL.md` for bundled assets. Use `jq` to read the layout record produced by the browser.
 
 Relative image paths resolve against the output directory, not the scratch directory: put every figure file in `$OUT` before step 4. A figure left beside the source renders a `false` entry in `images` and a blank box in every format.
 
@@ -19,8 +19,9 @@ Relative image paths resolve against the output directory, not the scratch direc
 A Chromium-family browser in headless mode does HTML, PDF, and page images. Find one before authoring, so a machine without one is known up front.
 
 ```bash
-RT="skills/hyper-report/assets/runtime"
-for c in chrome-headless-shell chromium chromium-browser; do command -v "$c"; done
+# Discovery is by name and by cache pattern. A pinned Playwright build path
+# (chromium_headless_shell-1208/…) exists only on the machine that downloaded it.
+for c in chrome-headless-shell chromium chromium-browser google-chrome google-chrome-stable microsoft-edge; do command -v "$c"; done
 find "$HOME/Library/Caches/ms-playwright" "$HOME/.cache/ms-playwright" \
   -maxdepth 4 -type f -name 'chrome-headless-shell' -perm -u+x 2>/dev/null | sort -r | head -1
 ls "/Applications/Chromium.app/Contents/MacOS/Chromium" \
@@ -37,19 +38,27 @@ command -v sips magick convert textutil
 
 ## 3. The block
 
-Set four variables and run the block. `SRC` is the authored source, `SLUG` is the output stem, `OUT` is the output directory, `THEME` is a theme name.
+Set five variables and run the block. `SKILL_DIR` is the absolute path of the skill folder that holds `SKILL.md`, because the bundled assets are read from there and not from the working directory. `SRC` is the authored source, `SLUG` is the output stem, `OUT` is the output directory, `THEME` is a theme name.
 
 ```bash
 set -euo pipefail
+SKILL_DIR="/absolute/path/to/hyper-report"   # folder holding SKILL.md
 SRC=".hyper/report/onboarding/report.md"
 OUT=".hyper/report/onboarding"
 SLUG="report"
 THEME="civic"
-RT="skills/hyper-report/assets/runtime"
-BROWSER="$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell"
+RT="$SKILL_DIR/assets/runtime"
+[ -f "$RT/markdown.awk" ] && [ -f "$RT/assemble.awk" ] \
+  || { printf 'RUNTIME_MISSING: %s does not hold the bundled assets\n' "$SKILL_DIR" >&2; exit 3; }
+# Use the renderer found in §2. A pinned Playwright build path only exists on the
+# machine that downloaded it, so discovery here is by name, with BROWSER exported
+# from §2 taking precedence.
+BROWSER="${BROWSER:-$(command -v chrome-headless-shell || command -v chromium || command -v chromium-browser || command -v google-chrome || true)}"
+[ -x "$BROWSER" ] || { printf 'BROWSER_MISSING: export BROWSER to a Chromium-family binary\n' >&2; exit 3; }
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/hyper-report.XXXXXX")
 
 mkdir -p "$OUT" "$WORK"
+OUT=$(CDPATH='' cd -- "$OUT" && pwd)   # the file:// URLs in steps 4-6 need an absolute path
 
 # 1. frontmatter -> meta.tsv, body without frontmatter
 awk -v out="$WORK" '
@@ -88,16 +97,16 @@ awk -v tpl="$RT/report.html" -v body="$WORK/body.html" -v css="$RT/report.css" \
 STATE=$(grep -o 'data-report-state="[^"]*"' "$WORK/dom.html" | head -1 \
   | sed -e 's/^data-report-state="//' -e 's/"$//' \
   -e 's/&quot;/"/g' -e 's/&amp;/\&/g' -e 's/&lt;/</g' -e 's/&gt;/>/g')
-printf '%s\n' "$STATE" | jq .
+printf '%s\n' "$STATE"
 
 # 5. PDF
 "$BROWSER" --headless --disable-gpu --no-sandbox --no-pdf-header-footer \
   --virtual-time-budget=40000 --print-to-pdf="$OUT/$SLUG.pdf" "file://$OUT/$SLUG.html"
 
 # 6. one PNG per page at 2x
-PAGES=$(printf '%s' "$STATE" | jq -r .pages)
-W=$(printf '%s' "$STATE" | jq -r .pageWidth)
-H=$(printf '%s' "$STATE" | jq -r .pageHeight)
+PAGES=$(jq -er '.pages | numbers | select(. > 0)' <<<"$STATE")
+W=$(jq -er '.pageWidth | numbers | select(. > 0)' <<<"$STATE")
+H=$(jq -er '.pageHeight | numbers | select(. > 0)' <<<"$STATE")
 mkdir -p "$OUT/$SLUG"
 i=1
 while [ "$i" -le "$PAGES" ]; do

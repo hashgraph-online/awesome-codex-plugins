@@ -3,15 +3,15 @@ Stack guide inside `hyper-architecture` for Electron. Read it when `rules/stack-
 - Scope: Use this guide when building, auditing, restructuring, or reviewing an Electron desktop application whose renderer uses React and TypeScript with Tailwind CSS v4, TanStack Router file-based routing, and TanStack Query, built with electron-vite or Electron Forge's Vite plugin — process boundaries, the preload bridge and typed IPC, window and protocol setup, security settings and fuses, renderer routing and data, packaging, signing, updates, testing, or performance. Do not use it for a Tauri app, a browser-only Vite app, NW.js, or a documentation summary with no project work.
 - Runtime needs: The target's `package.json` and lockfile, `electron.vite.config.*` or `forge.config.*`, the packager config, `src/main/`, `src/preload/`, and the renderer entry. Version claims use the dated snapshot in `references/official/electron/electron-2026-11-08.md`; packaging and performance claims need a packaged build.
 
-@architecture-rules.md
-@../../rules/electron/project-structure.md
-@../../rules/electron/processes-and-ipc.md
-@../../rules/electron/security.md
-@../../rules/electron/renderer.md
-@../../rules/electron/packaging.md
-@../../rules/electron/testing.md
-@../../rules/electron/performance.md
-@../../references/official/electron/electron-2026-11-08.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/electron/project-structure.md](../../rules/electron/project-structure.md)
+- [../../rules/electron/processes-and-ipc.md](../../rules/electron/processes-and-ipc.md)
+- [../../rules/electron/security.md](../../rules/electron/security.md)
+- [../../rules/electron/renderer.md](../../rules/electron/renderer.md)
+- [../../rules/electron/packaging.md](../../rules/electron/packaging.md)
+- [../../rules/electron/testing.md](../../rules/electron/testing.md)
+- [../../rules/electron/performance.md](../../rules/electron/performance.md)
+- [../../references/official/electron/electron-2026-11-08.md](../../references/official/electron/electron-2026-11-08.md)
 
 # Electron Architecture
 

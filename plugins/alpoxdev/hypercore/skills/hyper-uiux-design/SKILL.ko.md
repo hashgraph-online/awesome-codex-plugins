@@ -4,9 +4,11 @@ description: "사용자가 앱이나 웹 화면 디자인을 요청했고 실제
 compatibility: Markdown 전용이며 번들 스크립트가 없습니다. `.hyper/uiux-design/` 아래 파일 읽기·쓰기가 필요하고, 이미지는 런타임이 이미 노출한 이미지 도구로 hyper-imagegen을 거쳐서만 만듭니다. HTML 단계는 스크린샷 비교에 런타임이 이미 가진 브라우저만 씁니다. 브라우저가 없으면 HTML은 쓰고 일치 점검을 건너뛰었다고 보고합니다. 레퍼런스 읽기는 이미 쓸 수 있는 웹 읽기 기능을 씁니다. 이미지 도구가 없으면 브리프를 저장하고 끝내고, 웹 읽기가 없으면 사용자가 준 레퍼런스를 씁니다. 도구를 설치하거나 레퍼런스 사이트에 로그인하거나 API 키를 쓰지 않습니다.
 ---
 
-@rules/reference-use.ko.md
-@rules/mockup-workflow.ko.md
-@rules/mockup-is-evidence.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/reference-use.ko.md](rules/reference-use.ko.md)
+- [rules/mockup-workflow.ko.md](rules/mockup-workflow.ko.md)
+- [rules/mockup-is-evidence.ko.md](rules/mockup-is-evidence.ko.md)
 
 # Hyper UIUX Design
 

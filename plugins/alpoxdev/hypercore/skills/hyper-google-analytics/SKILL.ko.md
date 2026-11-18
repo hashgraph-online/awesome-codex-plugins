@@ -4,9 +4,11 @@ description: "[Hyper] 사용자가 이미 있는 Google Analytics 4 설정을 �
 compatibility: 파일 읽기, 검색, 수정과 curl이 있는 셸이 필요합니다. 리포트와 속성 설정 읽기에는 `analytics.readonly` 범위의 애플리케이션 기본 자격 증명이나 `GOOGLE_APPLICATION_CREDENTIALS`가 필요하고 클라우드 프로젝트에서 Data API와 Admin API가 켜져 있어야 합니다. 속성 쓰기에는 `analytics.edit`과 속성 Editor 권한이 더 필요합니다. 그 자격 증명이 없으면 실행은 그 단계에서 멈추며 계정, 속성, 자격 증명을 스스로 만들지 않습니다.
 ---
 
-@rules/ga-workflow.md
-@rules/safety-gates.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/ga-workflow.md](rules/ga-workflow.md)
+- [rules/safety-gates.md](rules/safety-gates.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Google Analytics
 

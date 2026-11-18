@@ -22,7 +22,7 @@ description: Helps with skills.
 나은 예:
 
 ```yaml
-description: Use this skill when the user asks to create or refactor a reusable Codex skill folder, including SKILL.md trigger wording, rules, references, scripts, assets, and validation checks. Do not use for generic documentation that is not a skill.
+description: Use this skill when the user asks to create or refactor a reusable agent skill folder, including SKILL.md trigger wording, rules, references, scripts, assets, and validation checks. Do not use for generic documentation that is not a skill.
 ```
 
 설명은 **3인칭**으로 씁니다. 이 필드는 시스템 프롬프트에 주입되며, 인칭이 흔들리는 설명("I can help

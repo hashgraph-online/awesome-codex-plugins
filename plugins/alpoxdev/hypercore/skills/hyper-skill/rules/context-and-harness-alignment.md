@@ -8,7 +8,7 @@ Use this rule when creating or refactoring skills that affect agent behavior, to
 
 Every non-trivial skill should make these fields discoverable from `SKILL.md` or directly linked rules:
 
-| Field | Skill-maker question | Pass condition |
+| Field | Authoring question | Pass condition |
 |---|---|---|
 | Intent | What outcome does this skill own? | The job is one sentence and not a persona claim |
 | Scope | What files, resources, or outputs may it create or edit? | Included and excluded targets are explicit |
@@ -59,10 +59,10 @@ Define risk depth as `smoke`, `targeted`, `standard`, `thorough`, or `high-stake
 
 A prose readback is useful, but it is not enough when the skill changes how agents choose tools, sources, or side effects.
 
-For `hyper-skill` package updates, use the deterministic validator and JSONL eval fixture:
+For `hyper-skill` package updates, set `skill_dir` to the installed folder containing `SKILL.md`. Run its deterministic validator against its bundled eval fixture:
 
 ```bash
-bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root skills/hyper-skill --evals skills/hyper-skill/assets/evals/hyper-skill-cases.jsonl --json
+bash "$skill_dir/scripts/validate-hyper-skill.sh" --root "$skill_dir" --evals "$skill_dir/assets/evals/hyper-skill-cases.jsonl" --json
 ```
 
 Pair the happy path with missing-context or tool-failure handling, adversarial retrieval/unsafe-action rejection, known regressions, malformed-input rejection, no stray docs, bilingual behavioral parity, and non-future official-source dates.
@@ -218,7 +218,7 @@ When the delegation is fan-out with a join - several workers whose results are m
 
 ## 12. Completion Report
 
-Skill-maker final reports should map claims to evidence:
+Skill authoring final reports should map claims to evidence:
 
 ```markdown
 Changed:

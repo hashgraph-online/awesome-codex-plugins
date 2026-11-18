@@ -4,10 +4,12 @@ description: "사용자가 엑셀 워크북(.xlsx, .xlsm)을 읽거나 분석하
 compatibility: 표준 라이브러리만 쓰는 Python 3.8+에서 동작합니다. 번들 스크립트 중 제3자 패키지가 필요한 것은 없습니다. .xlsx/.xlsm/.xltx 패키지를 직접 읽습니다.
 ---
 
-@rules/workflow.ko.md
-@rules/preservation.ko.md
-@rules/verification.ko.md
-@rules/failure-modes.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/workflow.ko.md](rules/workflow.ko.md)
+- [rules/preservation.ko.md](rules/preservation.ko.md)
+- [rules/verification.ko.md](rules/verification.ko.md)
+- [rules/failure-modes.ko.md](rules/failure-modes.ko.md)
 
 # Hyper Excel
 

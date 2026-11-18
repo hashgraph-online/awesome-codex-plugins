@@ -29,7 +29,7 @@
 - a description grown past the per-entry limit while being optimized, without re-checking the limit
 - an assertion that passes in **both** the with-skill and without-skill arms, which inflates the pass rate without reflecting the skill's value
 - a `grading.json` record with `passed: true` and no **evidence string**
-- execution results kept inside the shipped skill folder instead of under `.omo/evidence/`
+- execution results kept inside the shipped skill folder instead of under `.hyper/evidence/`
 - a skill that restates what the agent already does reliably, which is cost without benefit
 - `allowed-tools` presented as a permission boundary rather than a convenience grant
 - a runtime-only frontmatter field (`disable-model-invocation`, `when_to_use`, `agents/openai.yaml`) that carries part of the contract unlabelled, so the skill behaves differently on another runtime (SK-P-3)
@@ -95,7 +95,7 @@ When one of these appears:
 |---|---|
 | The seven risk-tier rows with their severity labels, and version pinning with re-review | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise> |
 | The with/without arms and the evidence string behind the both-arms and `grading.json` anti-patterns | <https://agentskills.io/skill-creation/evaluating-skills> |
-| Results kept outside the skill folder, behind the `.omo/evidence/` anti-pattern | <https://agentskills.io/skill-creation/evaluating-skills> |
+| Results kept outside the skill folder, behind the `.hyper/evidence/` anti-pattern | <https://agentskills.io/skill-creation/evaluating-skills> |
 | The removal test behind the "restates what the agent already does" anti-pattern | <https://agentskills.io/skill-creation/best-practices> |
 | `allowed-tools` as a permissive grant rather than a boundary | <https://code.claude.com/docs/en/skills> |
 | Manual-only switches, runtime-only extension fields, and the hard error for non-spec fields on upload | <https://code.claude.com/docs/en/skills> |

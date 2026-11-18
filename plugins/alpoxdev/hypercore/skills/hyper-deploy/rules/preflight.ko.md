@@ -4,15 +4,15 @@
 
 ## 1. Scripts
 
-대상 루트에서 실행합니다. 대상이 하위 디렉터리면 경로를 맞추거나 절대 경로를 씁니다.
+대상 루트에서 실행합니다. 대상이 하위 디렉터리면 경로를 맞추거나 절대 경로를 씁니다. `<skill-dir>`는 이 스킬이 설치된 폴더이며, 제작 저장소에서는 `skills/hyper-deploy`이고 다른 프로젝트에서는 설치된 스킬 폴더입니다. 한 번 정해 재사용합니다.
 
 | Script | Purpose |
 |---|---|
-| `bash skills/hyper-deploy/scripts/stack-detect.sh` | 감지한 스택(`node`, `rust`, `python`)을 출력하고, 지원 스택이 없으면 `1`로 끝납니다 |
-| `bash skills/hyper-deploy/scripts/deploy-check.sh [--parallel\|--sequential]` | 전체 증명: 품질 점검에 빌드를 더하고, 기본은 동시 실행입니다 |
-| `bash skills/hyper-deploy/scripts/lint-check.sh` | 스택별 품질 점검 |
-| `bash skills/hyper-deploy/scripts/build-run.sh` | 스택별 빌드 단계 |
-| `bash skills/hyper-deploy/scripts/pm-detect.sh` | Node 패키지 매니저 감지(`npm`/`yarn`/`pnpm`/`bun`) |
+| `bash <skill-dir>/scripts/stack-detect.sh` | 감지한 스택(`node`, `rust`, `python`)을 출력하고, 지원 스택이 없으면 `1`로 끝납니다 |
+| `bash <skill-dir>/scripts/deploy-check.sh [--parallel\|--sequential]` | 전체 증명: 품질 점검에 빌드를 더하고, 기본은 동시 실행입니다 |
+| `bash <skill-dir>/scripts/lint-check.sh` | 스택별 품질 점검 |
+| `bash <skill-dir>/scripts/build-run.sh` | 스택별 빌드 단계 |
+| `bash <skill-dir>/scripts/pm-detect.sh` | Node 패키지 매니저 감지(`npm`/`yarn`/`pnpm`/`bun`) |
 
 결과 읽기:
 
@@ -63,7 +63,7 @@
   "stacks": ["node"],
   "max_fix_attempts": 3,
   "phase_history": [{ "phase": "detect", "status": "complete", "evidence": "stack-detect.sh output", "updated_at": "ISO-8601" }],
-  "baseline": { "command": "bash skills/hyper-deploy/scripts/deploy-check.sh", "exit_code": 1, "summary": "PRE_DEPLOY_SUMMARY executed=2 skipped=1" },
+  "baseline": { "command": "bash <skill-dir>/scripts/deploy-check.sh", "exit_code": 1, "summary": "PRE_DEPLOY_SUMMARY executed=2 skipped=1" },
   "failure_groups": [{ "id": "node-typecheck", "stack": "node", "command": "npm run typecheck", "priority": 1, "owner": "leader", "status": "open", "attempts": 0, "evidence": "exact failure excerpt" }],
   "fixes": [],
   "validation_history": [],

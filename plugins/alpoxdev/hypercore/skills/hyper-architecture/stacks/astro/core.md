@@ -3,14 +3,14 @@ Stack guide inside `hyper-architecture` for Astro. Read it when `rules/stack-det
 - Scope: Use this guide when the user asks to build, audit, or restructure an Astro project, or to move an existing site onto Astro, and the work touches page routing, the rendering mode or adapter, islands and framework integrations, content collections, Actions, middleware, sessions, environment variables, route caching, testing, or build performance. It enforces current official Astro behavior (7.x, snapshot dated 2026-11-07) plus labelled Hypercore conventions. Do not use it for a Vite app that has no Astro dependency, a Next.js, TanStack Start, Expo, or Lynx app, a standalone Hono server, or a copy-only edit that crosses no architecture boundary.
 - Runtime needs: Works best with repository inspection, official Astro docs verification against `references/official/astro/astro-2026-11-07.md`, and direct code edits in Astro projects.
 
-@architecture-rules.md
-@../../rules/astro/project-structure.md
-@../../rules/astro/rendering-and-islands.md
-@../../rules/astro/content.md
-@../../rules/astro/actions-middleware-env.md
-@../../rules/astro/testing.md
-@../../rules/astro/performance.md
-@../../references/official/astro/astro-2026-11-07.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/astro/project-structure.md](../../rules/astro/project-structure.md)
+- [../../rules/astro/rendering-and-islands.md](../../rules/astro/rendering-and-islands.md)
+- [../../rules/astro/content.md](../../rules/astro/content.md)
+- [../../rules/astro/actions-middleware-env.md](../../rules/astro/actions-middleware-env.md)
+- [../../rules/astro/testing.md](../../rules/astro/testing.md)
+- [../../rules/astro/performance.md](../../rules/astro/performance.md)
+- [../../references/official/astro/astro-2026-11-07.md](../../references/official/astro/astro-2026-11-07.md)
 
 # Astro Architecture Enforcement
 
@@ -56,7 +56,7 @@ This skill is self-contained. Do not block on other skills or external orchestra
 | Tools | Local search, read, edit, and validation commands; gate migrations, credential access, production side effects, adapter swaps, and broad rewrites. |
 | Loop | No optimization loop. After a remediation pass, allow at most two verify-repair iterations against the gates for the touched surface, and stop when the checklist passes or a blocker is reported. |
 | Output | Korean architecture finding or implementation summary with rule labels, changed files, validation evidence, remaining risks, and official-versus-Hypercore distinctions. |
-| Verification | Run `astro check` plus the touched surface's checks from `rules/astro/testing.md`; run `bash skills/hyper-architecture/scripts/validate-architecture.sh` when this skill folder itself changes. |
+| Verification | Run `astro check` plus the touched surface's checks from `rules/astro/testing.md`; run `bash "$skill_dir/scripts/validate-architecture.sh"` when this skill folder itself changes. |
 | Stop condition | Stop after the stack and rendering mode are known, applicable gates pass or are reported as blockers, and validation evidence is recorded. |
 
 </instruction_contract>

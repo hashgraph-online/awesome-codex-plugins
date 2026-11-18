@@ -3,14 +3,14 @@
 - 범위: Astro 프로젝트를 만들거나 점검하거나 구조를 바꿀 때, 또는 기존 사이트를 Astro로 옮길 때 사용합니다. 페이지 라우팅, 렌더링 모드와 어댑터, 아일랜드와 프레임워크 통합, 콘텐츠 컬렉션, Actions, 미들웨어, 세션, 환경 변수, 라우트 캐싱, 테스트, 빌드 성능을 건드리는 작업이 대상입니다. 현재 공식 Astro 동작(7.x, 2026-11-07 스냅숏)과, 그와 구분해 표시한 Hypercore 관례를 함께 강제합니다. Astro 의존성이 없는 Vite 앱, Next.js·TanStack Start·Expo·Lynx 앱, 단독 Hono 서버, 아키텍처 경계를 건드리지 않는 문구만 고치는 편집에는 쓰지 않습니다.
 - 실행 조건: 저장소를 살펴보고 `references/official/astro/astro-2026-11-07.md`로 공식 Astro 문서를 확인하며 Astro 프로젝트의 코드를 직접 고칠 때 가장 잘 맞습니다.
 
-@architecture-rules.ko.md
-@../../rules/astro/project-structure.ko.md
-@../../rules/astro/rendering-and-islands.ko.md
-@../../rules/astro/content.ko.md
-@../../rules/astro/actions-middleware-env.ko.md
-@../../rules/astro/testing.ko.md
-@../../rules/astro/performance.ko.md
-@../../references/official/astro/astro-2026-11-07.ko.md
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/astro/project-structure.ko.md](../../rules/astro/project-structure.ko.md)
+- [../../rules/astro/rendering-and-islands.ko.md](../../rules/astro/rendering-and-islands.ko.md)
+- [../../rules/astro/content.ko.md](../../rules/astro/content.ko.md)
+- [../../rules/astro/actions-middleware-env.ko.md](../../rules/astro/actions-middleware-env.ko.md)
+- [../../rules/astro/testing.ko.md](../../rules/astro/testing.ko.md)
+- [../../rules/astro/performance.ko.md](../../rules/astro/performance.ko.md)
+- [../../references/official/astro/astro-2026-11-07.ko.md](../../references/official/astro/astro-2026-11-07.ko.md)
 
 # Astro Architecture Enforcement
 
@@ -56,7 +56,7 @@ Astro 의존성이 없는 Vite 프로젝트, 다른 앱 프레임워크, 단독 
 | Tools | 로컬 검색, 읽기, 편집, 검증 명령을 씁니다. 마이그레이션, 자격 증명 접근, 프로덕션 부작용, 어댑터 교체, 광범위한 재작성에는 게이트를 둡니다. |
 | Loop | 최적화 루프는 없습니다. 교정 패스 뒤 손댄 영역의 게이트에 대해 검증-수리 반복을 최대 두 번 허용하고, 체크리스트를 통과하거나 막힌 지점을 보고하면 멈춥니다. |
 | Output | 규칙 라벨, 변경한 파일, 검증 근거, 남은 위험, 공식과 Hypercore의 구분을 담은 한국어 아키텍처 판정이나 구현 요약. |
-| Verification | `astro check`와 `rules/astro/testing.md`의 손댄 영역 검사를 돌리고, 이 스킬 폴더 자체를 고쳤으면 `bash skills/hyper-architecture/scripts/validate-architecture.sh`를 실행합니다. |
+| Verification | `astro check`와 `rules/astro/testing.md`의 손댄 영역 검사를 돌리고, 이 스킬 폴더 자체를 고쳤으면 `bash "$skill_dir/scripts/validate-architecture.sh"`를 실행합니다. |
 | Stop condition | 스택과 렌더링 모드를 확인했고, 적용되는 게이트를 통과했거나 막힌 지점으로 보고했고, 검증 근거를 남긴 상태에서 멈춥니다. |
 
 </instruction_contract>

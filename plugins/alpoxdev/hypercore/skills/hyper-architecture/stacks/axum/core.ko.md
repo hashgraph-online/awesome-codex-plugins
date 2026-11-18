@@ -3,23 +3,23 @@
 - 범위: Axum(Rust) HTTP 서버 아키텍처를 만들거나 검토하거나 재구성하거나 감사할 때 사용합니다. 프로젝트와 모듈 구조, Router 조립, handler와 extractor, tower 및 tower-http 미들웨어, 요청 검증, SQLx 영속성과 마이그레이션, 오류 처리, OpenAPI/Swagger 계약, 테스트, tokio 서버 부트스트랩을 다룹니다. Actix Web, Rocket, Poem, warp 같은 Axum이 아닌 Rust 프레임워크, 클라이언트 전용 Rust 코드, 아키텍처 경계를 넘지 않는 문구만의 수정, Hypercore 규약 없이 공식 crate 기본값만 원하는 요청에는 사용하지 않습니다.
 - 실행 조건: Axum 프로젝트가 있거나 새로 만들어 달라는 요청이 필요합니다. 버전과 API 주장에는 공식 axum, tower, tower-http, sqlx, utoipa, validator 문서와 로컬 Cargo.toml·Cargo.lock 확인이 필요합니다. 내장 스크립트는 없고, cargo check, cargo clippy, 프로젝트 테스트가 검증 수단입니다.
 
-@architecture-rules.md
-@../../rules/axum/project-structure.md
-@../../rules/axum/routes.md
-@../../rules/axum/handlers.md
-@../../rules/axum/middleware.md
-@../../rules/axum/validation.md
-@../../rules/axum/database.md
-@../../rules/axum/openapi.md
-@../../rules/axum/errors.md
-@../../rules/axum/testing.md
-@../../rules/axum/platform.md
-@../../rules/axum/conventions.md
-@../../references/official/axum/axum-docs.md
-@../../references/official/axum/tower-docs.md
-@../../references/official/axum/sqlx-docs.md
-@../../references/official/axum/utoipa-docs.md
-@../../references/official/axum/ecosystem-docs.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/axum/project-structure.md](../../rules/axum/project-structure.md)
+- [../../rules/axum/routes.md](../../rules/axum/routes.md)
+- [../../rules/axum/handlers.md](../../rules/axum/handlers.md)
+- [../../rules/axum/middleware.md](../../rules/axum/middleware.md)
+- [../../rules/axum/validation.md](../../rules/axum/validation.md)
+- [../../rules/axum/database.md](../../rules/axum/database.md)
+- [../../rules/axum/openapi.md](../../rules/axum/openapi.md)
+- [../../rules/axum/errors.md](../../rules/axum/errors.md)
+- [../../rules/axum/testing.md](../../rules/axum/testing.md)
+- [../../rules/axum/platform.md](../../rules/axum/platform.md)
+- [../../rules/axum/conventions.md](../../rules/axum/conventions.md)
+- [../../references/official/axum/axum-docs.md](../../references/official/axum/axum-docs.md)
+- [../../references/official/axum/tower-docs.md](../../references/official/axum/tower-docs.md)
+- [../../references/official/axum/sqlx-docs.md](../../references/official/axum/sqlx-docs.md)
+- [../../references/official/axum/utoipa-docs.md](../../references/official/axum/utoipa-docs.md)
+- [../../references/official/axum/ecosystem-docs.md](../../references/official/axum/ecosystem-docs.md)
 
 # Axum 아키텍처 강제
 

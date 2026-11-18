@@ -4,9 +4,11 @@ description: "요청이 서로 의존하는 여러 목표로 이루어져 있고
 compatibility: "bash 3.2+, jq 1.6+, 커밋이 최소 하나 있는 git 작업 트리, .hyper/loop/<slug>/ 쓰기 권한이 필요하다. scripts/verify-loop-state.sh는 작성에 필수가 아니지만 지문을 계산하고 비교하는 유일한 지원 수단이다."
 ---
 
-@rules/goal-and-criteria.md
-@rules/evidence-binding.md
-@rules/run-resume-and-gate.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/goal-and-criteria.md](rules/goal-and-criteria.md)
+- [rules/evidence-binding.md](rules/evidence-binding.md)
+- [rules/run-resume-and-gate.md](rules/run-resume-and-gate.md)
 
 # Hyper Loop
 

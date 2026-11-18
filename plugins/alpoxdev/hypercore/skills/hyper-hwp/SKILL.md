@@ -4,10 +4,12 @@ description: "Use this skill when the document to read, fill, edit, or produce i
 compatibility: Needs the rhwp CLI v0.9.0 or newer (Rust binary; no Python, Node, or Hangul installation required) plus bash 3.2+ for the bundled probe. Rendering to PDF, SVG, or PNG needs a Skia build of rhwp and a Korean webfont downloaded once into ~/.cache/rhwp/webfonts. A missing or older binary is reported as a prerequisite, never installed silently.
 ---
 
-@rules/rhwp-command-map.md
-@rules/edit-safety.md
-@rules/gongmunseo.md
-@rules/verification.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/rhwp-command-map.md](rules/rhwp-command-map.md)
+- [rules/edit-safety.md](rules/edit-safety.md)
+- [rules/gongmunseo.md](rules/gongmunseo.md)
+- [rules/verification.md](rules/verification.md)
 
 # Hyper HWP
 

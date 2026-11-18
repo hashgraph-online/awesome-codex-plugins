@@ -4,10 +4,12 @@ description: "Use this skill when the user asks to read, analyze, create, or mod
 compatibility: Python 3.8+ using only the standard library; no third-party package is required for any bundled script. Reads .xlsx/.xlsm/.xltx packages directly.
 ---
 
-@rules/workflow.md
-@rules/preservation.md
-@rules/verification.md
-@rules/failure-modes.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/workflow.md](rules/workflow.md)
+- [rules/preservation.md](rules/preservation.md)
+- [rules/verification.md](rules/verification.md)
+- [rules/failure-modes.md](rules/failure-modes.md)
 
 # Hyper Excel
 

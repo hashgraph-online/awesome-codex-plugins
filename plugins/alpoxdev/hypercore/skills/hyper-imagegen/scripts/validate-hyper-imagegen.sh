@@ -906,9 +906,9 @@ audit_package() { # root
   finding="$(jq -cn -r --arg t "$text" 'if ($t | test("<!--\\s*hyper-imagegen-provider-claim:"; "i")) then "E_PROVIDER_LEDGER" else empty end')"
   [ -n "$finding" ] && errors+=("$finding")
   ko="$(cat "$root/SKILL.ko.md")"
-  for file in '@rules/capability-and-output.ko.md' '@rules/prompt-compilation.ko.md' '@references/visual-direction.ko.md' '@references/prompt-crafting.ko.md' '@references/runtime-capability-and-drift.ko.md'; do
+  for file in rules/capability-and-output.ko.md rules/prompt-compilation.ko.md references/visual-direction.ko.md references/prompt-crafting.ko.md references/runtime-capability-and-drift.ko.md; do
     case "$ko" in
-      *"$file"*) ;;
+      *"]($file)"*|*"@$file"*) ;;
       *) errors+=("E_KO_LINK:$file") ;;
     esac
   done
@@ -1147,7 +1147,7 @@ throw_error() {
 }
 
 main() {
-  local root="" evals="skills/hyper-imagegen/assets/evals/hyper-imagegen-cases.jsonl" self=0 evals_specified=0
+  local root="" evals="$PACKAGE_ROOT/assets/evals/hyper-imagegen-cases.jsonl" self=0 evals_specified=0
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --self-test) self=1 ;;
@@ -1175,7 +1175,11 @@ main() {
     throw_error "$PARSE_ERROR"
   fi
   rows="$PARSE_ROWS"
-  aggregate="$(validate_all_rows "$rows")"
+  if [ "$evals" -ef "$PACKAGE_ROOT/assets/evals/hyper-imagegen-cases.jsonl" ]; then
+    aggregate="$(cd "$PACKAGE_ROOT" && validate_all_rows "$rows")"
+  else
+    aggregate="$(validate_all_rows "$rows")"
+  fi
   while IFS= read -r line; do
     [ -n "$line" ] && errors+=("$line")
   done < <(printf '%s' "$aggregate" | jq -r '.errors[]')

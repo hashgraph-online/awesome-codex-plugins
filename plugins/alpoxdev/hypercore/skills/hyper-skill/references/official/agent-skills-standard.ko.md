@@ -1,4 +1,4 @@
-# Skill-Maker를 위한 Agent Skills 표준 참조
+# Agent Skills 표준 참조
 
 ## Contents
 
@@ -107,7 +107,7 @@
   멈춥니다.
 - implication_for_hyper_skill: 짝지은 실행과 증거 문자열, 사람 피드백 기록이 핵심입니다. 증거
   문자열 없는 `passed: true`는 기록이 아닙니다. 이 저장소는 파일 이름은 유지하되 결과를
-  `.omo/evidence/` 아래에 둡니다(`rules/resource-placement.md` §8).
+  `.hyper/evidence/` 아래에 둡니다(`rules/resource-placement.md` §8).
 
 ## 스킬 설명 최적화
 

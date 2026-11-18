@@ -4,8 +4,10 @@ description: "Use this skill when a user, client, or planner sends a change requ
 compatibility: Requires repository inspection, search, editing, and local verification command capabilities; no network access, bundled script, or other skill is required.
 ---
 
-@rules/change-mapping.md
-@rules/interpretation-gate.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/change-mapping.md](rules/change-mapping.md)
+- [rules/interpretation-gate.md](rules/interpretation-gate.md)
 
 # Hyper Feedback
 

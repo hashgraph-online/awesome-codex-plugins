@@ -4,9 +4,11 @@ description: "Use this skill when the user asks to install Google Tag Manager on
 compatibility: Needs file read, search, edit, and a shell. The bundled scripts need bash 3.2+, jq 1.6+, and curl for live-page checks. Rendered-page verification needs a browser-automation capability; container reads and writes through the Tag Manager API need a credential the user already provided. Without them the run stops at the step that needs them and says so.
 ---
 
-@rules/gtm-workflow.md
-@rules/safety-gates.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/gtm-workflow.md](rules/gtm-workflow.md)
+- [rules/safety-gates.md](rules/safety-gates.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Google Tag Manager
 

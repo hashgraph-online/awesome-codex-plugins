@@ -4,8 +4,10 @@ description: "Use this skill when the user asks to draw, diagram, visualize, or 
 compatibility: Needs bash 3.2+, jq, and one Chromium-family browser binary (Playwright chrome-headless-shell, Chromium, Chrome, Edge, or Brave). Graph types need elkjs 0.12.1, downloaded once from cdn.jsdelivr.net with a pinned SHA-256 into ~/.cache/hyper-diagram (or HYPER_DIAGRAM_ELK). Delivered HTML opens offline.
 ---
 
-@rules/diagram-selection.md
-@rules/render-and-verify.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/diagram-selection.md](rules/diagram-selection.md)
+- [rules/render-and-verify.md](rules/render-and-verify.md)
 
 # Hyper Diagram
 

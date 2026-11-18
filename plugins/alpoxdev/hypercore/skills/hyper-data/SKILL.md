@@ -4,10 +4,12 @@ description: "Use this skill when the user asks a question about a dataset - a C
 compatibility: Needs a shell for the bundled probe (bash 3.2+ and jq), read access to the dataset, and one usable engine - a Python 3 interpreter with duckdb or polars installed, the duckdb CLI, or the standard library for small exact files. Missing engines are reported as prerequisites, never installed by this skill. A chart needs matplotlib installed.
 ---
 
-@rules/engine-selection.md
-@rules/placement.md
-@rules/query-evidence.md
-@rules/charts.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/engine-selection.md](rules/engine-selection.md)
+- [rules/placement.md](rules/placement.md)
+- [rules/query-evidence.md](rules/query-evidence.md)
+- [rules/charts.md](rules/charts.md)
 
 # Hyper Data
 

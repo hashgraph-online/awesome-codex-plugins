@@ -4,11 +4,13 @@ description: "[Hyper] Use this skill when the user wants interface design work t
 compatibility: Needs file read, search, and edit over the target project and write access for `.hyper/design/`. Static detection and report validation need bash 3.2+ and jq 1.6+. Rendered checks use a browser capability that is already available and are reported as static-only when none exists; the skill never installs a browser, a font, or a dependency.
 ---
 
-@rules/workflow.md
-@rules/design-direction.md
-@rules/craft-floor.md
-@rules/delivery-gate.md
-@rules/validation-and-reporting.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/workflow.md](rules/workflow.md)
+- [rules/design-direction.md](rules/design-direction.md)
+- [rules/craft-floor.md](rules/craft-floor.md)
+- [rules/delivery-gate.md](rules/delivery-gate.md)
+- [rules/validation-and-reporting.md](rules/validation-and-reporting.md)
 
 # Hyper Design
 

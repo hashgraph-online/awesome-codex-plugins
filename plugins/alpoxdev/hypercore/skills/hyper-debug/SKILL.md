@@ -4,10 +4,12 @@ description: "Use this skill when a reported runtime failure - a stack trace, a 
 compatibility: Needs file read, search, edit, and a shell to run the reproduction and the runtime's own checks. The failing program must be runnable in this environment; when it is not, the run reports the missing access instead of a cause. No bundled script, and no network access beyond what the reproduction itself needs.
 ---
 
-@rules/working-loop.md
-@rules/hypotheses-and-escalation.md
-@rules/flaky-triage.md
-@rules/fix-and-proof.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/working-loop.md](rules/working-loop.md)
+- [rules/hypotheses-and-escalation.md](rules/hypotheses-and-escalation.md)
+- [rules/flaky-triage.md](rules/flaky-triage.md)
+- [rules/fix-and-proof.md](rules/fix-and-proof.md)
 
 # Hyper Debug
 

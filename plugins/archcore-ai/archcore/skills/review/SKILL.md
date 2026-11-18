@@ -6,7 +6,7 @@ description: "The pre-merge review of a branch in a project that records its spe
 
 # /archcore:review
 
-Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. A plain branch review also checks a matching `plan` for completion and continues into closeout when one exists. On the default branch, the scope is the work the upstream does not hold yet plus the uncommitted changes; with an empty diff, the skill asks for a scope. A branch review also selects durable context — the claims of the change a later reader needs from `.archcore/` — and writes the units the user authorizes through their owning instruments, per `skills/_shared/durable-context-selection.md`. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, `actualize.fix` removes shipped and abandoned plans the branch did not match in one confirmed batch, and it may remove a long-stale draft of any other type under a per-document confirmation — all via `mcp__archcore__remove_document`.
+Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. A plain branch review also checks a matching `plan` for completion and continues into closeout when one exists. On the default branch, the scope is the work the upstream does not hold yet plus the uncommitted changes; with an empty diff, the skill asks for a scope. A branch review also selects durable context — the claims of the change a later reader needs from `.archcore/` — and writes the units the user authorizes through their owning instruments, per `skills/_shared/durable-context-selection.md`. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, and `actualize.fix` removes shipped and abandoned plans the branch did not match and long-stale drafts the user keeps in its one confirmed batch — all via `mcp__archcore__remove_document`.
 
 Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
 records the present state — including work that shipped without a plan — and
@@ -91,6 +91,8 @@ Over the branch scope, check both directions:
 1. Changed code versus the documents that claim it — search for documents that reference the changed paths, modules, or names; read each match with `mcp__archcore__get_document`; compare its claims against the changed code.
 2. Changed documents versus the code they describe — for each changed `.archcore/` document, read the referenced code and compare.
 
+3. Run the corpus check once over the documents directions 1 and 2 read, per actualize check 4 with its version gate (`archcore check <document> ...` on a supporting engine), and decide its findings by that check's table; a `spec-wrong` or `code-wrong` result is a drift signal.
+
 Each conflict finding carries exactly one verdict: `spec-wrong` (the document is stale), `code-wrong` (the code violates a document that still stands), or `ok` (the pair matches on inspection). Cite the evidence — changed files, modification dates, content markers — with every non-`ok` verdict. WHEN the code contradicts an accepted document, report an authority conflict per `skills/_shared/verdict-contract.md` and give the verdict after the user's decision.
 
 On capture wording, skip plan matching and closeout; run the durable-context selection over the scope and continue at the Result section.
@@ -123,8 +125,8 @@ The durable-context selection follows `skills/_shared/durable-context-selection.
 ## Delegation
 
 - The `archcore-auditor` agent collects findings read-only: document inventory, relation graph, drift and coverage signals. The agent never questions the user (a subagent MUST NOT conduct an interview, per `skills/_shared/elicitation-contract.md`) and never writes.
-- Before delegating to the `archcore-auditor` agent, pass the absolute plugin root — the directory two levels above this `SKILL.md` — and the output of `bin/check-references`, which the agent cannot run without a shell. The agent reads `skills/_shared/relation-authoring.md` under that root, and `skills/_shared/tracks/actualize.md` under the same root.
-- The main thread confirms every fix with the user and applies it via `mcp__archcore__update_document`, one document at a time, per the `actualize.fix` gate; the hung-plan batch is that gate's one list-level confirmation. The review skill MUST NOT edit code on this path — it reports a `code-wrong` finding without fixing it.
+- Before delegating to the `archcore-auditor` agent, pass the absolute plugin root — the directory two levels above this `SKILL.md` — and the output of actualize check 4 — `archcore check`, or `check-references` on an older engine — which the agent cannot run without a shell. The agent reads `skills/_shared/relation-authoring.md` under that root, and `skills/_shared/tracks/actualize.md` under the same root.
+- The main thread confirms the fix batch with the user once and applies each confirmed line via `mcp__archcore__update_document` or `mcp__archcore__remove_document`, per the `actualize.fix` gate. The review skill MUST NOT edit code on this path — it reports a `code-wrong` finding without fixing it.
 
 ## Result
 

@@ -3,22 +3,22 @@ Stack guide inside `hyper-architecture` for TanStack Start. Read it when `rules/
 - Scope: Use this skill when reviewing or changing an existing TanStack Start/Router project architecture, especially routes, loaders, server functions, importProtection, SSR/hydration, and nested shared folders such as src/modules, src/lib, or src/integrations. Do not use for generic React/Vite projects or docs-only summaries.
 - Runtime needs: Works best with repo inspection, official TanStack Start/Router docs verification, and direct code edits in TanStack Start applications.
 
-@architecture-rules.md
-@../../rules/tanstack-start/project-structure.md
-@../../rules/tanstack-start/routes.md
-@../../rules/tanstack-start/services.md
-@../../rules/tanstack-start/hooks.md
-@../../rules/tanstack-start/import-protection.md
-@../../rules/tanstack-start/middleware.md
-@../../rules/tanstack-start/execution-model.md
-@../../rules/tanstack-start/server-routes.md
-@../../rules/tanstack-start/ssr-hydration.md
-@../../rules/tanstack-start/platform.md
-@../../rules/tanstack-start/conventions.md
-@../../rules/tanstack-start/validation.md
-@../../references/official/tanstack-start/tanstack-start-2026-11-04.md
-@../../references/official/tanstack-start/tanstack-router-2026-11-04.md
-@../../references/official/tanstack-start/current-docs-2026-11-04.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/tanstack-start/project-structure.md](../../rules/tanstack-start/project-structure.md)
+- [../../rules/tanstack-start/routes.md](../../rules/tanstack-start/routes.md)
+- [../../rules/tanstack-start/services.md](../../rules/tanstack-start/services.md)
+- [../../rules/tanstack-start/hooks.md](../../rules/tanstack-start/hooks.md)
+- [../../rules/tanstack-start/import-protection.md](../../rules/tanstack-start/import-protection.md)
+- [../../rules/tanstack-start/middleware.md](../../rules/tanstack-start/middleware.md)
+- [../../rules/tanstack-start/execution-model.md](../../rules/tanstack-start/execution-model.md)
+- [../../rules/tanstack-start/server-routes.md](../../rules/tanstack-start/server-routes.md)
+- [../../rules/tanstack-start/ssr-hydration.md](../../rules/tanstack-start/ssr-hydration.md)
+- [../../rules/tanstack-start/platform.md](../../rules/tanstack-start/platform.md)
+- [../../rules/tanstack-start/conventions.md](../../rules/tanstack-start/conventions.md)
+- [../../rules/tanstack-start/validation.md](../../rules/tanstack-start/validation.md)
+- [../../references/official/tanstack-start/tanstack-start-2026-11-04.md](../../references/official/tanstack-start/tanstack-start-2026-11-04.md)
+- [../../references/official/tanstack-start/tanstack-router-2026-11-04.md](../../references/official/tanstack-start/tanstack-router-2026-11-04.md)
+- [../../references/official/tanstack-start/current-docs-2026-11-04.md](../../references/official/tanstack-start/current-docs-2026-11-04.md)
 
 # TanStack Start Architecture Enforcement
 

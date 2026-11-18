@@ -4,10 +4,12 @@ description: "[Hyper] Use this skill when the user asks for multi-source, cited 
 compatibility: Works best with live search or fetch tools, official-doc access, GitHub or repo search, local file search, a local shell for execution checks, and optional bounded subagent or background-agent support for independent research lanes.
 ---
 
-@rules/research-workflow.md
-@rules/expansion-and-convergence.md
-@rules/claim-verification.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/research-workflow.md](rules/research-workflow.md)
+- [rules/expansion-and-convergence.md](rules/expansion-and-convergence.md)
+- [rules/claim-verification.md](rules/claim-verification.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Research Skill
 

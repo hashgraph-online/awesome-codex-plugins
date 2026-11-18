@@ -5,12 +5,15 @@
 # sibling, code fences balance, guides stay within their size caps, eval fixtures and
 # JSON setup templates parse.
 #
-# Usage: bash skills/hyper-architecture/scripts/validate-architecture.sh [--root <skill-dir>]
-# Run from the repository root. Requires bash 3.2+ and jq 1.6+.
+# Usage: bash <skill-dir>/scripts/validate-architecture.sh [--root <skill-dir>]
+# Defaults to the project package when present, then the installed package. Requires bash 3.2+ and jq 1.6+.
 # Prints one JSON summary on success (exit 0); prints every failure to stderr (exit 1).
 set -euo pipefail
 
-root_arg='skills/hyper-architecture'
+root_arg=skills/hyper-architecture
+if [ ! -d "$root_arg" ]; then
+  root_arg=$(dirname -- "${BASH_SOURCE[0]}")/..
+fi
 while [ "$#" -gt 0 ]; do
   case $1 in
     --root)

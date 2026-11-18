@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validates a repository-local skill package (default: skills/hyper-skill).
+# Validates the project skill when present, otherwise the installed skill package.
 #
 # Port of the former Bun validator. Runs on macOS /bin/bash 3.2 and on Linux bash 4/5 with POSIX
 # utilities plus jq. `set -e` is deliberately omitted: every check must run and report what it found,
@@ -217,7 +217,10 @@ json_line_array() {
 # ---------------------------------------------------------------------------
 
 ROOT_ARG="skills/hyper-skill"
-EVALS_ARG="skills/hyper-skill/assets/evals/hyper-skill-cases.jsonl"
+if [ ! -d "$ROOT_ARG" ]; then
+  ROOT_ARG=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+fi
+EVALS_ARG="$ROOT_ARG/assets/evals/hyper-skill-cases.jsonl"
 JSON_OUT=0
 REQUIRE_SELF_CONTAINMENT=0
 HELP=0
@@ -282,12 +285,12 @@ done
 
 print_help() {
   cat <<'EOF'
-Usage: bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root <dir> --evals <jsonl> [--json]
+Usage: bash <skill-dir>/scripts/validate-hyper-skill.sh [--root <dir>] [--evals <jsonl>] [--json]
 
 Validates the repository-local hyper-skill package with bash and jq only.
 
 Options:
-  --root <dir>     Skill root directory. Defaults to skills/hyper-skill.
+  --root <dir>     Skill root. Defaults to the project skills/hyper-skill, then the installed package.
   --evals <file>   JSONL eval cases. Defaults to assets/evals/hyper-skill-cases.jsonl.
   --json           Emit structured JSON.
   --require-self-containment
@@ -774,10 +777,13 @@ uri_decode() {
     tags_ko=$WORK/tags.ko
     grep -iE '^</?[a-z][a-z0-9_]*>[[:space:]]*$' "$en" | tr '[:upper:]' '[:lower:]' > "$tags_en"
     grep -iE '^</?[a-z][a-z0-9_]*>[[:space:]]*$' "$ko" | tr '[:upper:]' '[:lower:]' > "$tags_ko"
-    links_en=$WORK/atlinks.en
-    links_ko=$WORK/atlinks.ko
-    sed -n 's/^@\([^[:space:]]*\.md\)[[:space:]]*$/\1/p' "$en" | sed -E 's/\.ko\.md$/.md/' > "$links_en"
-    sed -n 's/^@\([^[:space:]]*\.md\)[[:space:]]*$/\1/p' "$ko" | sed -E 's/\.ko\.md$/.md/' > "$links_ko"
+    links_en=$WORK/support-links.en
+    links_ko=$WORK/support-links.ko
+    support_links() {
+      LC_ALL=C sed -nE 's/^@[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p; s/^- \[[^]]+\]\(([^:()[:space:]#]+\.md)\)[[:space:]]*$/\1/p' "$1" | sed 's/\.ko\.md$/.md/'
+    }
+    support_links "$en" > "$links_en"
+    support_links "$ko" > "$links_ko"
     tags=0
     if cmp -s "$tags_en" "$tags_ko"; then tags=1; fi
     support=0

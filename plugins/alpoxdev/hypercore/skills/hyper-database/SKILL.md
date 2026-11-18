@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when the user asks for database work - desi
 compatibility: Needs file read and search over the target repository and write access for `.hyper/database/`. The bundled detector needs bash 3.2+ and jq 1.6+. Running EXPLAIN, a migration linter, or a restore test needs the engine's own client against a local or disposable database; production access stays gated in the skill's own contract.
 ---
 
-@rules/engine-detection.md
-@rules/database-workflow.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/engine-detection.md](rules/engine-detection.md)
+- [rules/database-workflow.md](rules/database-workflow.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Database
 

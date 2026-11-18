@@ -3,15 +3,15 @@
 - 범위: 제품 표면이 명령줄 바이너리, WebAssembly 모듈, Model Context Protocol 서버, 라이브러리 crate인 Rust crate를 만들거나 검토하거나 재구성하거나 감사할 때 사용합니다. crate와 모듈 배치, 오류와 로깅 정책, CLI 인자 파싱과 출력 계약, WASM 타깃과 바인딩 선택, MCP 도구와 전송 배선, 테스트, 측정된 릴리스 작업을 다룹니다. Axum HTTP 서버, Tauri `src-tauri` crate, 라우터가 읽지 않은 `Cargo.toml`만이 신호인 crate, 아키텍처 경계를 넘지 않는 문구만의 수정, Hypercore 규약 없이 공식 crate 기본값만 원하는 요청에는 사용하지 않습니다.
 - 실행 조건: 대상의 `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` 또는 `.cargo/config.toml`, 그리고 소스 트리가 있을 때 그것들입니다. 버전과 API 주장에는 `references/official/rust/rust-crates-2026-11-07.md`의 날짜가 붙은 스냅숏이 필요합니다. `cargo check`, `cargo clippy`, `cargo test`, 프로젝트 자체 빌드 명령이 검증 수단이고 내장 스크립트는 없습니다.
 
-@architecture-rules.md
-@../../rules/rust/crate-layout.md
-@../../rules/rust/errors-and-logging.md
-@../../rules/rust/cli.md
-@../../rules/rust/wasm.md
-@../../rules/rust/mcp-server.md
-@../../rules/rust/testing.md
-@../../rules/rust/performance.md
-@../../references/official/rust/rust-crates-2026-11-07.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/rust/crate-layout.md](../../rules/rust/crate-layout.md)
+- [../../rules/rust/errors-and-logging.md](../../rules/rust/errors-and-logging.md)
+- [../../rules/rust/cli.md](../../rules/rust/cli.md)
+- [../../rules/rust/wasm.md](../../rules/rust/wasm.md)
+- [../../rules/rust/mcp-server.md](../../rules/rust/mcp-server.md)
+- [../../rules/rust/testing.md](../../rules/rust/testing.md)
+- [../../rules/rust/performance.md](../../rules/rust/performance.md)
+- [../../references/official/rust/rust-crates-2026-11-07.md](../../references/official/rust/rust-crates-2026-11-07.md)
 
 # Rust Crate 아키텍처
 

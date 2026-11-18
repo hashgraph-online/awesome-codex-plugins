@@ -3,21 +3,21 @@
 - 범위: 기존 Next.js 프로젝트를 점검하거나 고치거나 확장할 때 사용합니다. 특히 App Router 작업이나 App Router 마이그레이션에서 Server/Client 경계, 데이터와 캐시 최신성, mutation, Route Handler, Proxy, env와 플랫폼 설정, 공유 폴더 배치를 건드리는 경우가 대상입니다. 현재 공식 Next.js 동작과, 그와 구분해 표시한 Hypercore 관례를 함께 강제합니다. 일반 React 아키텍처, Remix나 TanStack Start 프로젝트, 아키텍처 경계를 건드리지 않는 문구만 고치는 편집에는 쓰지 않습니다.
 - 실행 조건: Next.js 애플리케이션에서 저장소를 살펴보고 공식 Next.js 문서를 확인하며 직접 코드를 고칠 때 가장 잘 맞습니다.
 
-@architecture-rules.ko.md
-@../../rules/nextjs/routes.ko.md
-@../../rules/nextjs/project-structure.ko.md
-@../../rules/nextjs/execution-model.ko.md
-@../../rules/nextjs/data-fetching.ko.md
-@../../rules/nextjs/server-actions.ko.md
-@../../rules/nextjs/route-handlers.ko.md
-@../../rules/nextjs/services.ko.md
-@../../rules/nextjs/hooks.ko.md
-@../../rules/nextjs/db.ko.md
-@../../rules/nextjs/platform.ko.md
-@../../rules/nextjs/validation.ko.md
-@../../references/official/nextjs/current-docs-2026-11-04.ko.md
-@../../references/official/nextjs/nextjs-docs.ko.md
-@../../references/official/nextjs/drizzle-docs.ko.md
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/nextjs/routes.ko.md](../../rules/nextjs/routes.ko.md)
+- [../../rules/nextjs/project-structure.ko.md](../../rules/nextjs/project-structure.ko.md)
+- [../../rules/nextjs/execution-model.ko.md](../../rules/nextjs/execution-model.ko.md)
+- [../../rules/nextjs/data-fetching.ko.md](../../rules/nextjs/data-fetching.ko.md)
+- [../../rules/nextjs/server-actions.ko.md](../../rules/nextjs/server-actions.ko.md)
+- [../../rules/nextjs/route-handlers.ko.md](../../rules/nextjs/route-handlers.ko.md)
+- [../../rules/nextjs/services.ko.md](../../rules/nextjs/services.ko.md)
+- [../../rules/nextjs/hooks.ko.md](../../rules/nextjs/hooks.ko.md)
+- [../../rules/nextjs/db.ko.md](../../rules/nextjs/db.ko.md)
+- [../../rules/nextjs/platform.ko.md](../../rules/nextjs/platform.ko.md)
+- [../../rules/nextjs/validation.ko.md](../../rules/nextjs/validation.ko.md)
+- [../../references/official/nextjs/current-docs-2026-11-04.ko.md](../../references/official/nextjs/current-docs-2026-11-04.ko.md)
+- [../../references/official/nextjs/nextjs-docs.ko.md](../../references/official/nextjs/nextjs-docs.ko.md)
+- [../../references/official/nextjs/drizzle-docs.ko.md](../../references/official/nextjs/drizzle-docs.ko.md)
 
 # Next.js Architecture Enforcement
 
@@ -60,7 +60,7 @@
 | Tools | 로컬 검색·읽기·편집·검증 명령을 쓰고, API가 달라졌을 수 있으면 현재 공식 문서를 확인합니다. 파괴적 마이그레이션, 자격 증명, 프로덕션 부작용, 광범위한 일괄 수정은 게이트를 둡니다. |
 | Loop | 없습니다. 요청마다 강제 절차를 한 번만 돌리고, 사용자가 다시 요청할 때만 새로 시작합니다. |
 | Output | 규칙 분류, 변경한 파일, 검증 근거, 남은 위험, 날짜를 붙인 공식 문서 모호성 메모를 담은 한국어 아키텍처 판단이나 리뷰. |
-| Verification | 수정한 영역에 해당하는 `rules/nextjs/validation.ko.md` 검사를 돌리고, 이 스킬 폴더를 고쳤으면 `bash skills/hyper-architecture/scripts/validate-architecture.sh`를 실행합니다. |
+| Verification | 수정한 영역에 해당하는 `rules/nextjs/validation.ko.md` 검사를 돌리고, 이 스킬 폴더를 고쳤으면 `bash "$skill_dir/scripts/validate-architecture.sh"`를 실행합니다. |
 | Stop condition | 프로젝트 모드를 확인했고, 적용되는 안전 게이트를 통과했고, 로컬 관례를 적용했거나 미뤘고, 검증 근거를 남겼고, 남은 API 차이에 날짜와 출처를 붙인 상태에서 멈춥니다. |
 
 </instruction_contract>
@@ -120,7 +120,7 @@ Boundary examples:
 
 ## Available scripts
 
-`scripts/validate-architecture.sh`는 이 스킬 폴더 자체를 검사합니다. 모든 스택 가이드가 규칙 묶음과 함께 있는지, Markdown의 로컬 경로가 실제로 있는지, 영어 파일마다 한국어 짝 파일이 있는지, 코드 펜스가 맞는지, 가이드가 크기 상한 안에 있는지, eval fixture가 해석되는지 확인합니다. 저장소 루트에서 `bash skills/hyper-architecture/scripts/validate-architecture.sh`로 실행하고(bash 3.2 이상, jq 1.6 이상), JSON 요약을 출력하며 실패하면 0이 아닌 종료 코드를 냅니다.
+`scripts/validate-architecture.sh`는 이 스킬 폴더 자체를 검사합니다. 모든 스택 가이드가 규칙 묶음과 함께 있는지, Markdown의 로컬 경로가 실제로 있는지, 영어 파일마다 한국어 짝 파일이 있는지, 코드 펜스가 맞는지, 가이드가 크기 상한 안에 있는지, eval fixture가 해석되는지 확인합니다. 설치한 스킬 폴더를 `skill_dir`로 지정한 뒤 `bash "$skill_dir/scripts/validate-architecture.sh"`로 실행하고(bash 3.2 이상, jq 1.6 이상), JSON 요약을 출력하며 실패하면 0이 아닌 종료 코드를 냅니다.
 
 </skill_architecture>
 
@@ -271,7 +271,7 @@ Boundary examples:
 - 강제 기본값 네 가지: 공식 문서가 로컬 관례보다 우선, `app/`에는 App Router 규칙이 기본, App Router UI에서 시작한 쓰기는 Server Action, 모든 Server Action을 외부에서 닿는 POST 진입점으로 취급.
 - 모든 판정을 게이트 행과 연결하고 BLOCKED 또는 WARNING으로 표시. 저장소 로컬 관례는 그렇게 표시.
 - 손댄 영역에 해당하는 4단계 검사의 근거.
-- 이 스킬 폴더 자체를 고쳤을 때 `bash skills/hyper-architecture/scripts/validate-architecture.sh` 실행.
+- 이 스킬 폴더 자체를 고쳤을 때 `bash "$skill_dir/scripts/validate-architecture.sh"` 실행.
 
 </required>
 

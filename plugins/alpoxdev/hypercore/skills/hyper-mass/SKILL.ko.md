@@ -4,8 +4,10 @@ description: '[Hyper] 사용자가 의존 관계가 있는 다중 에이전트 �
 compatibility: "subagent나 background agent 기능이 있고, 런타임이 제공하면 네이티브 workflow 또는 DAG 엔진이 있을 때 가장 잘 동작합니다. 실행 상태, handoff 파일, 근거 확인을 위한 로컬 셸도 필요합니다. subagent가 없으면 리더가 각 노드를 직접 실행하며, 병렬성이 사라진다는 점을 기록해야 합니다."
 ---
 
-@rules/graph-planning.ko.md
-@rules/run-and-recovery.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/graph-planning.ko.md](rules/graph-planning.ko.md)
+- [rules/run-and-recovery.ko.md](rules/run-and-recovery.ko.md)
 
 # Hyper Mass Skill
 
@@ -256,4 +258,4 @@ compatibility: "subagent나 background agent 기능이 있고, 런타임이 제�
 
 ### 근거 등급
 
-이 절차는 이 패키지가 직접 각색한 것입니다. 원본 스킬은 고정한 commit에서 읽었습니다. OmO 전용 장치(SDK, eval cell workflow proxy, category 이름, 제품 전용 CLI)는 기능 중립적인 표현으로 바꿨고, 위의 숫자 상한은 업스트림 기본값이 아니라 패밀리 계약과 저장소의 루프 규칙에서 가져왔습니다.
+이 절차는 위에 고정한 출처를 이 패키지가 직접 각색한 것이며, 기능 중립적인 표현으로 썼습니다. 숫자 상한은 업스트림 기본값이 아니라 패밀리 계약과 저장소의 루프 규칙에서 가져왔습니다.

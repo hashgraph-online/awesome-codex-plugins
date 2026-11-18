@@ -21,7 +21,7 @@
 
 ## Readiness
 
-`bash skills/hyper-deploy/scripts/deploy-check.sh`의 `PRE_DEPLOY_SUMMARY executed=<n> skipped=<m>`, 종료 코드 <code>. 건너뛴 게이트: <이름 - 사유>.
+`bash <skill-dir>/scripts/deploy-check.sh`의 `PRE_DEPLOY_SUMMARY executed=<n> skipped=<m>`, 종료 코드 <code>. 건너뛴 게이트: <이름 - 사유>.
 
 ## Actions
 

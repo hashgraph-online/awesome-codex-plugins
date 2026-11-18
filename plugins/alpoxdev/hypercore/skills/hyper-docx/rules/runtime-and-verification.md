@@ -1,6 +1,6 @@
 # Runtime and Verification
 
-What this machine can actually do, how to prove a document is right, and how to say what was not proven.
+What the machine in use can actually do, how to prove a document is right, and how to say what was not proven.
 
 ## 1. Probe before claiming
 
@@ -15,7 +15,7 @@ What this machine can actually do, how to prove a document is right, and how to 
 | `png_preview` | LibreOffice or QuickLook (`qlmanage`) | no preview image |
 | `docx_to_text` | `textutil` on macOS, otherwise the standard library reader | the built-in `text` command always works |
 
-The probe finds the browser in the Playwright cache (`~/Library/Caches/ms-playwright`, `~/.cache/ms-playwright`) and in the usual application paths. Result on 2026-11-13 on this machine: Python 3.9.6, a Playwright `chrome-headless-shell`, `textutil`, `qlmanage`, and `sips`; no LibreOffice. So `pdf_render` yes, `docx_to_pdf` no.
+The probe finds the browser in the Playwright cache (`~/Library/Caches/ms-playwright`, `~/.cache/ms-playwright`), by name on `PATH`, and in the usual application paths. One recorded probe on 2026-11-13 returned Python 3.9.6, a Playwright `chrome-headless-shell`, `textutil`, `qlmanage`, and `sips`, with no LibreOffice — `pdf_render` available and `docx_to_pdf` blocked. That record describes the authoring machine, so run `doctor` on yours and read its output rather than assuming either result.
 
 Never install a package or an application to make a check possible. A missing capability is reported, not solved by the skill.
 
@@ -23,7 +23,7 @@ Never install a package or an application to make a check possible. A missing ca
 
 | Surface | What it proves | What it does not |
 |---|---|---|
-| Word or Pages opened the file | the file opens without a repair prompt, fields evaluate | nothing on this machine; needs the user |
+| Word or Pages opened the file | the file opens without a repair prompt, fields evaluate | the skill cannot produce it; needs the user or a Word install |
 | LibreOffice conversion to PDF | the package parses in a second, independent office engine | not Word's layout engine |
 | HTML render printed to PDF | content, page box, margins, table widths, indents, page breaks | not Word's line breaking or font shaping |
 | Page image from the PDF | the reader sees what the spec described | a proof of appearance, not of Word fidelity |
@@ -51,7 +51,7 @@ Never install a package or an application to make a check possible. A missing ca
 
 ## 4. Independent read
 
-A second reader catches what a self-check cannot: a missing part, a broken relationship, a style the reader ignores. On this machine:
+A second reader catches what a self-check cannot: a missing part, a broken relationship, a style the reader ignores. Run whichever of these the machine provides:
 
 ```bash
 textutil -convert txt -stdout out.docx | head -40      # macOS, always present

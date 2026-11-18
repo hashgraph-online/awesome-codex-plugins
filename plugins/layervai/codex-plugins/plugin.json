@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "qurl",
+  "version": "1.1.10",
+  "description": "Share an app running on your machine privately from Codex with qURL, by email invitation, email sign-in, review, approved passkeys or contract: no deploy, no account, no API key.",
+  "author": {
+    "name": "LayerV",
+    "url": "https://layerv.ai"
+  },
+  "homepage": "https://qurl.link",
+  "repository": "https://github.com/layervai/codex-plugins",
+  "license": "MIT",
+  "keywords": [
+    "qurl",
+    "share",
+    "localhost",
+    "private",
+    "crid",
+    "invite",
+    "passkey"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "qURL",
+        "shortDescription": "Share local apps privately",
+        "longDescription": "Share an app, API or site running on your machine with a person or another agent, privately, without deploying it or opening a port. No account, API key or signup. Choose who can open it: email invitations, email sign-in, review, approved passkeys or a contract with your backend. Includes the qURL agent skill and three commands: $qurl:share, $qurl:approve and $qurl:access. Requires local execution on the computer running the app and the qURL CLI. The plugin installs the CLI from LayerV\u2019s official release when needed. The publisher computer and app must stay running.",
+        "developerName": "LayerV",
+        "category": "Productivity",
+        "websiteURL": "https://layerv.ai",
+        "defaultPrompt": [
+          "Share the app I'm working on privately with qURL."
+        ],
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/logo.png",
+        "supportURL": "https://layerv.ai/contact",
+        "privacyPolicyURL": "https://layerv.ai/privacy",
+        "termsOfServiceURL": "https://layerv.ai/terms"
+      },
+      "requires_local_executor": true
+    }
+  }
+}

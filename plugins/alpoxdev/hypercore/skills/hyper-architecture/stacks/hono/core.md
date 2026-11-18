@@ -3,20 +3,20 @@ Stack guide inside `hyper-architecture` for Hono. Read it when `rules/stack-dete
 - Scope: Use this skill when the user asks to build, audit, or restructure a Hono application, or to introduce Hono into an existing codebase, and the work touches app composition, route modules, middleware, validation, database or ORM boundaries, Drizzle, migrations, error handling, OpenAPI/Swagger, testing, or typed RPC. It enforces Hono architecture rules/hono before code changes. Do not use it for non-Hono frameworks, copy-only edits that cross no architecture boundary, or requests that want official Hono defaults with no Hypercore conventions.
 - Runtime needs: Works best with repo inspection, official Hono docs verification, and direct code edits in Hono applications.
 
-@architecture-rules.md
-@../../rules/hono/project-structure.md
-@../../rules/hono/routes.md
-@../../rules/hono/handlers.md
-@../../rules/hono/middleware.md
-@../../rules/hono/validation.md
-@../../rules/hono/database.md
-@../../rules/hono/openapi.md
-@../../rules/hono/errors.md
-@../../rules/hono/testing-rpc.md
-@../../rules/hono/platform.md
-@../../rules/hono/conventions.md
-@../../references/official/hono/hono-docs.md
-@../../references/official/hono/drizzle-docs.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/hono/project-structure.md](../../rules/hono/project-structure.md)
+- [../../rules/hono/routes.md](../../rules/hono/routes.md)
+- [../../rules/hono/handlers.md](../../rules/hono/handlers.md)
+- [../../rules/hono/middleware.md](../../rules/hono/middleware.md)
+- [../../rules/hono/validation.md](../../rules/hono/validation.md)
+- [../../rules/hono/database.md](../../rules/hono/database.md)
+- [../../rules/hono/openapi.md](../../rules/hono/openapi.md)
+- [../../rules/hono/errors.md](../../rules/hono/errors.md)
+- [../../rules/hono/testing-rpc.md](../../rules/hono/testing-rpc.md)
+- [../../rules/hono/platform.md](../../rules/hono/platform.md)
+- [../../rules/hono/conventions.md](../../rules/hono/conventions.md)
+- [../../references/official/hono/hono-docs.md](../../references/official/hono/hono-docs.md)
+- [../../references/official/hono/drizzle-docs.md](../../references/official/hono/drizzle-docs.md)
 
 # Hono Architecture Enforcement
 

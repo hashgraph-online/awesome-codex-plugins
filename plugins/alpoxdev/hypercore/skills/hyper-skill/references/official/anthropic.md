@@ -1,4 +1,4 @@
-# Anthropic Official References for Skill-Maker
+# Anthropic Official References
 
 ## Contents
 

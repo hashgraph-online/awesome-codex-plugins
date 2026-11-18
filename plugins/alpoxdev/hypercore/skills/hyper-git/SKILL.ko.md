@@ -2,15 +2,16 @@
 name: hyper-git
 description: "[Hyper] 사용자가 Git 또는 GitHub 저장소 작업을 검증된 결과까지 끝내 달라고 요청할 때 이 스킬을 사용합니다. 변경 커밋과 푸시(현재 세션 변경, 전체 변경, `&&`로 구분한 브랜치 전파 포함), Git 워크트리 생성·진입·목록·삭제·복구, GitHub 이슈 읽기·등록·댓글·닫기·이슈에서 브랜치 만들기, 브랜치 모델 선택과 풀 리퀘스트 생성, 브랜치 병합과 푸시를 다룹니다. 기존 `/git-maker`, `/git-worktree` 호출도 처리합니다. 푸시 없는 로컬 커밋만, 이력 재작성, 릴리스 태깅, CI 작성, 컨테이너나 VM 격리에는 사용하지 않습니다."
 license: MIT
-allowed-tools: Bash
-compatibility: Bash 3.2 이상(macOS 또는 Linux), `git worktree`를 지원하는 git, 번들 스크립트가 쓰는 표준 POSIX 도구(find, sort, mktemp)가 필요합니다. 이슈 모드와 워크플로 모드에는 인증된 GitHub CLI(`gh`)가 필요합니다. `allowed-tools`는 Claude Code에서 Bash를 미리 허용하는 확장 필드이며, 다른 런타임은 이 필드를 무시하고 이 계약도 이 필드에 의존하지 않습니다.
+compatibility: Bash 3.2 이상(macOS 또는 Linux), `git worktree`를 지원하는 git, 번들 스크립트가 쓰는 표준 POSIX 도구(find, sort, mktemp)가 필요합니다. 이슈 모드와 워크플로 모드에는 인증된 GitHub CLI(`gh`)가 필요합니다.
 ---
 
-@rules/commit-and-push-policy.md
-@rules/worktree-lifecycle.md
-@rules/issue-workflow.md
-@rules/branch-workflow.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/commit-and-push-policy.md](rules/commit-and-push-policy.md)
+- [rules/worktree-lifecycle.md](rules/worktree-lifecycle.md)
+- [rules/issue-workflow.md](rules/issue-workflow.md)
+- [rules/branch-workflow.md](rules/branch-workflow.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Git
 

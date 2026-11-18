@@ -4,8 +4,10 @@ description: "사용자가 아키텍처, 플로차트, 데이터 흐름, 시퀀�
 compatibility: bash 3.2+, jq, Chromium 계열 브라우저 실행 파일 하나(Playwright chrome-headless-shell, Chromium, Chrome, Edge, Brave)가 필요합니다. 그래프 타입은 elkjs 0.12.1이 필요하며 cdn.jsdelivr.net에서 한 번 받아 SHA-256을 확인한 뒤 ~/.cache/hyper-diagram(또는 HYPER_DIAGRAM_ELK)에 둡니다. 전달한 HTML은 오프라인에서 열립니다.
 ---
 
-@rules/diagram-selection.ko.md
-@rules/render-and-verify.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/diagram-selection.ko.md](rules/diagram-selection.ko.md)
+- [rules/render-and-verify.ko.md](rules/render-and-verify.ko.md)
 
 # Hyper Diagram
 

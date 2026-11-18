@@ -4,11 +4,13 @@ description: "[Hyper] Use this skill when the user asks to create or edit one ra
 compatibility: Requires an observed image-generation or image-editing capability. A runtime's exposed image tool (ChatGPT's native tool, or an agent or MCP image tool) may deliver its returned artifact directly; filesystem persistence additionally requires observed secure writing. Runs standalone in fileless runtimes; the bundled validator needs bash 3.2+ and jq 1.6+. Includes are package-relative.
 ---
 
-@rules/capability-and-output.md
-@rules/prompt-compilation.md
-@references/runtime-capability-and-drift.md
-@references/prompt-crafting.md
-@references/visual-direction.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/capability-and-output.md](rules/capability-and-output.md)
+- [rules/prompt-compilation.md](rules/prompt-compilation.md)
+- [references/runtime-capability-and-drift.md](references/runtime-capability-and-drift.md)
+- [references/prompt-crafting.md](references/prompt-crafting.md)
+- [references/visual-direction.md](references/visual-direction.md)
 
 # Hyper Imagegen
 
@@ -183,7 +185,7 @@ Write the report in Korean unless the user asked otherwise. Keep rendered text, 
 - [ ] Invocation count and ordered attempt history match what actually ran, at most two invocations.
 - [ ] The terminal is one of the five, with the persisted relative path and digest or the native returned-artifact record it requires.
 - [ ] No visual, rendered-text, constraint, or series claim appears without inspection evidence, and caveats name what stayed unverified.
-- [ ] `bash skills/hyper-imagegen/scripts/validate-hyper-imagegen.sh --root skills/hyper-imagegen` passes, and `assets/evals/hyper-imagegen-cases.jsonl` still covers the routes this file states.
+- [ ] `bash scripts/validate-hyper-imagegen.sh --root .` passes from this skill's folder, or `--root <skill folder>` passes from anywhere, and `assets/evals/hyper-imagegen-cases.jsonl` still covers the routes this file states.
 
 </validation>
 

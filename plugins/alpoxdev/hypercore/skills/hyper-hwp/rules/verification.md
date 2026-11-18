@@ -72,7 +72,7 @@ A `blocked` report carries the failing command, its exit code, and the first lin
 
 ## 5. What must not be claimed
 
-- That a document opens correctly in the Hangul application. It is not installed here and no command proves it.
+- That a document opens correctly in the Hangul application. The skill does not assume that application is installed, and no bundled command proves it.
 - That a converted HWP3 file is still HWP3.
 - That the layout matches Hangul's own pagination. rhwp renders with its own engine; line breaks can differ.
 - That an edit is safe because the roundtrip passed; the roundtrip proves the format, not the intent.

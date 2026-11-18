@@ -1,6 +1,6 @@
 # 렌더 파이프라인
 
-명령 다섯 개가 원본을 모든 형식으로 바꾼다. 스킬 폴더에서 실행하며, 각 명령은 결정적이고 패키지에 포함된 자산과 헤드리스 브라우저에만 의존한다.
+작업 대상 프로젝트에서 아래 명령을 실행합니다. `SKILL_DIR`에는 설치한 `SKILL.md`가 있는 폴더를 지정합니다. 번들 자산은 이 폴더에서 읽고 브라우저가 기록한 레이아웃 값은 `jq`로 확인합니다.
 
 상대 그림 경로는 임시 폴더가 아니라 출력 디렉터리 기준으로 풀린다. 그림 파일은 4단계 전에 모두 `$OUT`에 둔다. 원본 옆에 둔 그림은 `images`에 `false`로 잡히고 모든 형식에서 빈 상자로 나온다.
 
@@ -19,8 +19,9 @@
 Chromium 계열 브라우저를 헤드리스 모드로 쓰면 HTML, PDF, 페이지 이미지를 모두 만들 수 있다. 작성 전에 하나를 찾아 두어, 없는 기기를 미리 알 수 있게 한다.
 
 ```bash
-RT="skills/hyper-report/assets/runtime"
-for c in chrome-headless-shell chromium chromium-browser; do command -v "$c"; done
+# 이름과 캐시 패턴으로 찾는다. chromium_headless_shell-1208/… 같은 고정 Playwright 빌드
+# 경로는 내려받은 기기에만 있다.
+for c in chrome-headless-shell chromium chromium-browser google-chrome google-chrome-stable microsoft-edge; do command -v "$c"; done
 find "$HOME/Library/Caches/ms-playwright" "$HOME/.cache/ms-playwright" \
   -maxdepth 4 -type f -name 'chrome-headless-shell' -perm -u+x 2>/dev/null | sort -r | head -1
 ls "/Applications/Chromium.app/Contents/MacOS/Chromium" \
@@ -37,19 +38,26 @@ command -v sips magick convert textutil
 
 ## 3. 실행 블록
 
-변수 네 개를 정하고 블록을 실행한다. `SRC`는 작성한 원본, `SLUG`은 출력 파일 이름의 뿌리, `OUT`은 출력 디렉터리, `THEME`은 테마 이름이다.
+변수 다섯 개를 정하고 블록을 실행한다. `SKILL_DIR`은 `SKILL.md`가 있는 스킬 폴더의 절대 경로다. 포함된 자산을 작업 디렉터리가 아니라 그 폴더에서 읽기 때문이다. `SRC`는 작성한 원본, `SLUG`은 출력 파일 이름의 뿌리, `OUT`은 출력 디렉터리, `THEME`은 테마 이름이다.
 
 ```bash
 set -euo pipefail
+SKILL_DIR="/absolute/path/to/hyper-report"   # SKILL.md가 있는 폴더
 SRC=".hyper/report/onboarding/report.md"
 OUT=".hyper/report/onboarding"
 SLUG="report"
 THEME="civic"
-RT="skills/hyper-report/assets/runtime"
-BROWSER="$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell"
+RT="$SKILL_DIR/assets/runtime"
+[ -f "$RT/markdown.awk" ] && [ -f "$RT/assemble.awk" ] \
+  || { printf 'RUNTIME_MISSING: %s에 포함된 자산이 없습니다\n' "$SKILL_DIR" >&2; exit 3; }
+# 2절에서 찾은 렌더러를 쓴다. 고정된 Playwright 빌드 경로는 내려받은 기기에만 있으므로
+# 여기서는 이름으로 찾고, 2절에서 export한 BROWSER가 있으면 그것을 우선한다.
+BROWSER="${BROWSER:-$(command -v chrome-headless-shell || command -v chromium || command -v chromium-browser || command -v google-chrome || true)}"
+[ -x "$BROWSER" ] || { printf 'BROWSER_MISSING: Chromium 계열 실행 파일 경로를 BROWSER로 export한다\n' >&2; exit 3; }
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/hyper-report.XXXXXX")
 
 mkdir -p "$OUT" "$WORK"
+OUT=$(CDPATH='' cd -- "$OUT" && pwd)   # 4~6단계의 file:// URL에는 절대 경로가 필요하다
 
 # 1. frontmatter -> meta.tsv, body without frontmatter
 awk -v out="$WORK" '
@@ -88,16 +96,16 @@ awk -v tpl="$RT/report.html" -v body="$WORK/body.html" -v css="$RT/report.css" \
 STATE=$(grep -o 'data-report-state="[^"]*"' "$WORK/dom.html" | head -1 \
   | sed -e 's/^data-report-state="//' -e 's/"$//' \
   -e 's/&quot;/"/g' -e 's/&amp;/\&/g' -e 's/&lt;/</g' -e 's/&gt;/>/g')
-printf '%s\n' "$STATE" | jq .
+printf '%s\n' "$STATE"
 
 # 5. PDF
 "$BROWSER" --headless --disable-gpu --no-sandbox --no-pdf-header-footer \
   --virtual-time-budget=40000 --print-to-pdf="$OUT/$SLUG.pdf" "file://$OUT/$SLUG.html"
 
 # 6. one PNG per page at 2x
-PAGES=$(printf '%s' "$STATE" | jq -r .pages)
-W=$(printf '%s' "$STATE" | jq -r .pageWidth)
-H=$(printf '%s' "$STATE" | jq -r .pageHeight)
+PAGES=$(jq -er '.pages | numbers | select(. > 0)' <<<"$STATE")
+W=$(jq -er '.pageWidth | numbers | select(. > 0)' <<<"$STATE")
+H=$(jq -er '.pageHeight | numbers | select(. > 0)' <<<"$STATE")
 mkdir -p "$OUT/$SLUG"
 i=1
 while [ "$i" -le "$PAGES" ]; do

@@ -67,7 +67,7 @@ Write `.hyper/issues/<slug>/batch.md` from `references/batch-manifest.md`. It ca
 The hand-off applies when the trigger table in `SKILL.md` says so: issue numbers by default, or a record or selection condition with work words. It never applies with `--from-hyper`, `--no-run`, `--draft-only`, or when no kept issue exists.
 
 1. Confirm the manifest exists on disk and at least one lane is runnable. A batch whose every lane is blocked ends at the manifest with the blockers reported.
-2. Load the installed `hyper` skill by name in the same session. Pass this request, filled in, in English:
+2. Load the installed `hyper` skill by name in the same session, or read `../hyper/SKILL.md` beside this skill's own folder where skills are plain files. Pass this request, filled in, in English:
 
    ```text
    Implement the issue batch fixed in .hyper/issues/<slug>/batch.md.

@@ -1,4 +1,4 @@
-# Agent Skills Standard References for Skill-Maker
+# Agent Skills Standard References
 
 ## Contents
 
@@ -109,7 +109,7 @@ record what each vendor adds on top.
   improving meaningfully.
 - implication_for_hyper_skill: the paired run, the evidence string, and the human feedback record are
   the load-bearing parts; a `passed: true` with no evidence string is not a record. This repository keeps
-  the filenames but puts results under `.omo/evidence/` (`rules/resource-placement.md` §8).
+  the filenames but puts results under `.hyper/evidence/` (`rules/resource-placement.md` §8).
 
 ## Optimizing Skill Descriptions
 

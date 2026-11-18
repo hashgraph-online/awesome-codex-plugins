@@ -4,13 +4,15 @@ description: "이미 존재하는 변경을 판정해야 할 때 사용한다. d
 compatibility: "검토 대상 트리에 대한 파일 읽기·검색, git, 그리고 프로젝트 자체의 빌드·테스트·실행 명령을 위한 셸이 필요합니다. 독립 리뷰어 레인에는 서브에이전트 기능이 필요하고, 없으면 리더가 직접 루브릭을 적용하고 `review: self`로 기록합니다. 렌더링 화면이나 원격 환경은 그 화면이 쓰는 브라우저, 자격 증명, 하드웨어가 필요하며, 실행할 수 없는 행은 정확한 막는 요인과 함께 입증 안 됨으로 보고합니다. 번들 스크립트는 없습니다."
 ---
 
-@rules/context-and-identity.md
-@rules/qa-matrix.md
-@rules/review-checklist.md
-@rules/test-quality.md
-@rules/code-smells.md
-@rules/verdicts.md
-@rules/fix-protocol.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/context-and-identity.md](rules/context-and-identity.md)
+- [rules/qa-matrix.md](rules/qa-matrix.md)
+- [rules/review-checklist.md](rules/review-checklist.md)
+- [rules/test-quality.md](rules/test-quality.md)
+- [rules/code-smells.md](rules/code-smells.md)
+- [rules/verdicts.md](rules/verdicts.md)
+- [rules/fix-protocol.md](rules/fix-protocol.md)
 
 # Hyper Review
 

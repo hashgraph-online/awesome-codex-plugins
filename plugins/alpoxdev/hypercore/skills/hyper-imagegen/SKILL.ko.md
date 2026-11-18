@@ -4,11 +4,13 @@ description: "[Hyper] 사용자가 래스터 이미지 하나를 생성 또는 �
 compatibility: 관찰된 이미지 생성 또는 편집 기능이 필요합니다. 런타임에 노출된 이미지 도구(ChatGPT 네이티브 도구, 에이전트나 MCP 이미지 도구)는 반환 산출물을 직접 전달할 수 있으며, 파일 시스템 저장에는 관찰된 안전 쓰기가 추가로 필요합니다. 파일리스 런타임에서도 독립 동작하며 동봉한 검증기에는 bash 3.2+와 jq 1.6+가 필요합니다. include는 패키지 상대 경로만 사용합니다.
 ---
 
-@rules/capability-and-output.ko.md
-@rules/prompt-compilation.ko.md
-@references/runtime-capability-and-drift.ko.md
-@references/prompt-crafting.ko.md
-@references/visual-direction.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/capability-and-output.ko.md](rules/capability-and-output.ko.md)
+- [rules/prompt-compilation.ko.md](rules/prompt-compilation.ko.md)
+- [references/runtime-capability-and-drift.ko.md](references/runtime-capability-and-drift.ko.md)
+- [references/prompt-crafting.ko.md](references/prompt-crafting.ko.md)
+- [references/visual-direction.ko.md](references/visual-direction.ko.md)
 
 # Hyper Imagegen
 
@@ -183,7 +185,7 @@ compatibility: 관찰된 이미지 생성 또는 편집 기능이 필요합니�
 - [ ] 호출 횟수와 순서가 있는 시도 이력이 실제 실행과 일치하고, 호출은 최대 두 번입니다.
 - [ ] 종료 상태가 다섯 중 하나이며, 요구되는 저장 상대 경로와 다이제스트 또는 네이티브 반환 산출물 기록을 포함합니다.
 - [ ] 검사 증거 없이 시각·렌더링 문구·제약·시리즈 결과를 주장하지 않았고, 미검증 항목을 caveat로 밝혔습니다.
-- [ ] `bash skills/hyper-imagegen/scripts/validate-hyper-imagegen.sh --root skills/hyper-imagegen`가 통과하고, `assets/evals/hyper-imagegen-cases.jsonl`이 이 파일이 밝힌 경로를 계속 다룹니다.
+- [ ] 스킬 폴더에서 `bash scripts/validate-hyper-imagegen.sh --root .`를 실행해 통과합니다. 다른 폴더에서는 검증 스크립트와 `--root`에 설치 폴더 기준 전체 경로를 지정합니다. `assets/evals/hyper-imagegen-cases.jsonl`이 이 문서에 적힌 실행 경로를 검증합니다.
 
 </validation>
 

@@ -4,8 +4,10 @@ description: "[Hyper] Use this skill when the user asks for architecture, projec
 compatibility: Needs file read and search over the target repository. Stack guides may need the official framework docs and local manifest inspection for current version claims; setup and performance work runs the project's own package manager or cargo commands. The bundled validator needs bash 3.2+ and jq 1.6+.
 ---
 
-@rules/stack-detection.md
-@rules/work-tracks.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/stack-detection.md](rules/stack-detection.md)
+- [rules/work-tracks.md](rules/work-tracks.md)
 
 # Hyper Architecture
 
@@ -68,7 +70,7 @@ Do not use it when:
 | Tools | File read and search over the repository, editing for change requests, the project's package manager or `cargo` for setup and measurement, and the verification commands each file names. A missing capability is named, never invented. |
 | Loop | No loop for routing or track choice: each is one deterministic pass. The performance track runs a bounded measure-change-measure loop, at most three changes per target, keeping a change only when the measurement improves and every check still passes. A stack guide may define its own bounded loop. |
 | Output | A one-line routing decision in Korean per target (stack, deciding evidence, guide), one Korean status line per target and track, then the work and output each track defines. |
-| Verification | The deciding evidence is quoted from a file that was actually read, the guide read matches the routing table row, each track's own verification ran (stack guide checklist; format, lint, and type checks for setup; the repeated measurement for performance), and `bash skills/hyper-architecture/scripts/validate-architecture.sh` passes whenever this skill folder changes. |
+| Verification | The deciding evidence is quoted from a file that was actually read, the guide read matches the routing table row, each track's own verification ran (stack guide checklist; format, lint, and type checks for setup; the repeated measurement for performance), and `bash "<installed skill directory>/scripts/validate-architecture.sh"` passes whenever this skill folder changes. |
 | Stop condition | Every chosen track finished with its verification evidence, or the run stopped with the reason: unsupported stack, unresolved conflict, missing stack for a new project, a failed track gate, or a stack guide's own stop. |
 
 </instruction_contract>
@@ -213,7 +215,7 @@ Phase rules:
 - [ ] The chosen tracks match the request words in `rules/work-tracks.md`, and they ran in the fixed order.
 - [ ] Unsupported, conflicting, and unknown cases stop with the stated reason instead of routing.
 - [ ] Every chosen track's own validation was completed, and every performance change has a before and after number.
-- [ ] When this skill folder changes, `bash skills/hyper-architecture/scripts/validate-architecture.sh` passes and the cases in `assets/evals/` still match this contract.
+- [ ] When this skill folder changes, `bash "<installed skill directory>/scripts/validate-architecture.sh"` passes and the cases in `assets/evals/` still match this contract.
 
 </validation>
 

@@ -4,7 +4,9 @@ description: "[Hyper] 프로젝트나 패키지 README.md, 저장소 AGENTS.md�
 compatibility: 파일 읽기와 파일 편집 기능이 필요하고, readme·agents-md 모드에서는 저장소 검색도 필요합니다. 출처 민감한 작업에는 승인된 검색 기능이 더 필요합니다. 쓸 수 없는 선택 기능은 건너뛰고 보고하며, 결과에 꼭 필요한 기능을 쓸 수 없으면 완료를 막습니다.
 ---
 
-@rules/mode-routing.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/mode-routing.ko.md](rules/mode-routing.ko.md)
 
 # Hyper Documentation
 

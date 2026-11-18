@@ -3,15 +3,15 @@
 - 범위: 기존 Vite + TanStack Router 프로젝트의 아키텍처를 검토하거나 변경할 때 사용합니다. 라우트, loader, validateSearch, service, hook, Vite와 TanStack Router 플랫폼 설정, `src/lib`나 `src/services` 같은 중첩 공유 폴더가 대상입니다. TanStack Start 프로젝트나 TanStack Router가 없는 일반 Vite 앱에는 쓰지 않습니다.
 - 실행 조건: Vite 애플리케이션에서 저장소를 살펴보고 공식 Vite·TanStack Router 문서를 확인하며 직접 코드를 고칠 때 가장 잘 맞습니다. 번들 검사기는 bash 3.2 이상과 jq 1.6 이상이 필요합니다.
 
-@architecture-rules.ko.md
-@../../rules/vite/conventions.ko.md
-@../../rules/vite/routes.ko.md
-@../../rules/vite/services.ko.md
-@../../rules/vite/hooks.ko.md
-@../../rules/vite/execution-model.ko.md
-@../../rules/vite/platform.ko.md
-@../../rules/vite/validation.ko.md
-@../../references/official/vite/current-docs-2026-11-04.ko.md
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/vite/conventions.ko.md](../../rules/vite/conventions.ko.md)
+- [../../rules/vite/routes.ko.md](../../rules/vite/routes.ko.md)
+- [../../rules/vite/services.ko.md](../../rules/vite/services.ko.md)
+- [../../rules/vite/hooks.ko.md](../../rules/vite/hooks.ko.md)
+- [../../rules/vite/execution-model.ko.md](../../rules/vite/execution-model.ko.md)
+- [../../rules/vite/platform.ko.md](../../rules/vite/platform.ko.md)
+- [../../rules/vite/validation.ko.md](../../rules/vite/validation.ko.md)
+- [../../references/official/vite/current-docs-2026-11-04.ko.md](../../references/official/vite/current-docs-2026-11-04.ko.md)
 
 # Vite + TanStack Router Architecture Enforcement
 
@@ -55,7 +55,7 @@
 | Tools | 로컬 검색·읽기·편집·검증 명령을 쓰고, API가 달라졌을 수 있으면 현재 공식 문서를 확인합니다. 광범위한 라우트 마이그레이션, 자격 증명 접근, SSR 도입, 프로덕션 부작용은 게이트를 둡니다. |
 | Loop | 최적화 루프는 없습니다. 아키텍처 패스 뒤 `rules/vite/validation.md`의 손댄 영역 검사에 대고 검증-수리를 최대 두 번 돌립니다. 변경이 손댄 범위 안에 있고 그 검사를 통과할 때만 남기고, 5단계 체크리스트를 통과하거나 블로커를 보고하면 멈춥니다. |
 | Output | 규칙 분류, 변경한 파일, 검증 근거, 남은 위험, 날짜를 붙인 공식 문서 모호성 메모를 담은 한국어 아키텍처 판단이나 리뷰. |
-| Verification | 손댄 영역에 해당하는 `rules/vite/validation.ko.md` 검사를 돌리고, 이 스킬 폴더를 고쳤으면 `bash skills/hyper-architecture/scripts/validate-architecture.sh`를 실행합니다. |
+| Verification | 손댄 영역에 해당하는 `rules/vite/validation.ko.md` 검사를 돌리고, 이 스킬 폴더를 고쳤으면 `bash "$skill_dir/scripts/validate-architecture.sh"`를 실행합니다. |
 | Stop condition | 프로젝트 모드를 확인했고, 적용되는 안전 게이트를 통과했고, Hypercore 관례를 적용했거나 분명히 미뤘고, 검증 근거를 남겼고, 남은 API 차이에 날짜와 출처를 붙인 상태에서 멈춥니다. |
 
 </instruction_contract>
@@ -109,7 +109,7 @@ Boundary examples:
 
 - `scripts/validate-architecture.sh`
   - Purpose: 이 스킬 폴더 자체를 검사합니다. 모든 스택 가이드와 규칙 묶음, Markdown 로컬 경로, 영어/한국어 짝 파일, 코드 펜스 균형, 가이드 크기 상한, eval fixture 해석을 확인합니다.
-  - Usage: 저장소 루트에서 `bash skills/hyper-architecture/scripts/validate-architecture.sh`.
+  - Usage: 설치한 스킬 폴더를 `skill_dir`로 지정한 뒤 `bash "$skill_dir/scripts/validate-architecture.sh"`.
   - Requires: bash 3.2 이상, jq 1.6 이상.
   - Output: `ok`, 줄 수, 파일 수, 실행한 검사 이름을 담은 JSON 요약. 실패하면 0이 아닌 종료 코드.
 
@@ -149,7 +149,7 @@ Boundary examples:
 
 <support_file_read_order>
 
-코드 변경이나 판정 전에 `stacks/vite/architecture-rules.md`를, 그다음 손댄 영역의 주제 파일을 읽습니다. 플러그인, env, 라우트 트리, search, loader 동작이 버전에 민감할 때만 공식 스냅숏을, 완료를 선언하기 전에 `rules/vite/validation.md`를 읽습니다. 이 스킬 폴더를 고친 뒤에는 `bash skills/hyper-architecture/scripts/validate-architecture.sh`를 실행합니다.
+코드 변경이나 판정 전에 `stacks/vite/architecture-rules.md`를, 그다음 손댄 영역의 주제 파일을 읽습니다. 플러그인, env, 라우트 트리, search, loader 동작이 버전에 민감할 때만 공식 스냅숏을, 완료를 선언하기 전에 `rules/vite/validation.md`를 읽습니다. 이 스킬 폴더를 고친 뒤에는 `bash "$skill_dir/scripts/validate-architecture.sh"`를 실행합니다.
 
 </support_file_read_order>
 
@@ -264,7 +264,7 @@ Routes -> Services -> External API
 - 손댄 파일 라우트마다 `export const Route = createFileRoute(...)`.
 - search params는 `validateSearch`로 검증하고(Zod 4는 스키마 직접, Zod 3은 `zodValidator`), loader 프리페치는 `queryClient.query({ ...options, staleTime: 'static' })`로 보내며, loader는 공개 안전과 SSR 안전을 유지.
 - 모든 판정을 게이트 행과 연결하고 BLOCKED 또는 WARNING으로 표시하며 저장소 로컬 관례는 그렇게 표시. 검증 근거는 손댄 영역에 해당하는 5단계 검사에서 가져옴.
-- 이 스킬 폴더 자체를 고쳤을 때 `bash skills/hyper-architecture/scripts/validate-architecture.sh` 실행.
+- 이 스킬 폴더 자체를 고쳤을 때 `bash "$skill_dir/scripts/validate-architecture.sh"` 실행.
 
 </required>
 

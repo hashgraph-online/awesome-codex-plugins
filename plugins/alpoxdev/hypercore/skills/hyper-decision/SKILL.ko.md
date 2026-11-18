@@ -4,8 +4,10 @@ description: "사용자가 소프트웨어에 decision API를 쓰려 할 때 사
 compatibility: 오프라인 요청 검사기를 돌릴 때만 bash 3.2 이상과 jq가 있으면 됩니다. 네트워크와 제공자 API 키는 승인된 실호출이나 문서 갱신에만 필요합니다. 스크립트 없이 파일 기반 런타임에서도 동작합니다.
 ---
 
-@rules/modes-and-routing.ko.md
-@rules/safety-and-boundaries.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/modes-and-routing.ko.md](rules/modes-and-routing.ko.md)
+- [rules/safety-and-boundaries.ko.md](rules/safety-and-boundaries.ko.md)
 
 # Hyper Decision
 

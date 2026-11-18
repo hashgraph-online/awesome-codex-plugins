@@ -3,15 +3,15 @@ Stack guide inside `hyper-architecture` for Rust crates that are not Axum server
 - Scope: Use this guide when building, auditing, restructuring, or reviewing a Rust crate whose product surface is a command-line binary, a WebAssembly module, a Model Context Protocol server, or a library crate. It covers crate and module layout, error and logging policy, CLI argument parsing and output contracts, WASM target and binding choices, MCP tool and transport wiring, tests, and measured release work. Do not use it for an Axum HTTP server, a Tauri `src-tauri` crate, a crate whose only signal is a `Cargo.toml` the router has not read, copy-only edits that cross no architecture boundary, or requests that want official crate defaults with no Hypercore conventions.
 - Runtime needs: The target's `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` or `.cargo/config.toml`, and source tree when they exist. Version and API claims need the dated snapshot in `references/official/rust/rust-crates-2026-11-07.md`. `cargo check`, `cargo clippy`, `cargo test`, and the project's own build command are the verification surface; no bundled script exists.
 
-@architecture-rules.md
-@../../rules/rust/crate-layout.md
-@../../rules/rust/errors-and-logging.md
-@../../rules/rust/cli.md
-@../../rules/rust/wasm.md
-@../../rules/rust/mcp-server.md
-@../../rules/rust/testing.md
-@../../rules/rust/performance.md
-@../../references/official/rust/rust-crates-2026-11-07.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/rust/crate-layout.md](../../rules/rust/crate-layout.md)
+- [../../rules/rust/errors-and-logging.md](../../rules/rust/errors-and-logging.md)
+- [../../rules/rust/cli.md](../../rules/rust/cli.md)
+- [../../rules/rust/wasm.md](../../rules/rust/wasm.md)
+- [../../rules/rust/mcp-server.md](../../rules/rust/mcp-server.md)
+- [../../rules/rust/testing.md](../../rules/rust/testing.md)
+- [../../rules/rust/performance.md](../../rules/rust/performance.md)
+- [../../references/official/rust/rust-crates-2026-11-07.md](../../references/official/rust/rust-crates-2026-11-07.md)
 
 # Rust Crate Architecture
 

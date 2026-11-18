@@ -1,6 +1,6 @@
 # Agent Parallelism
 
-Use this rule when the commit mode of `hyper-git` is active and the dirty tree is complex enough that Claude Code or Codex subagents can reduce analysis time without touching git state.
+Use this rule when the commit mode of `hyper-git` is active and the dirty tree is complex enough that the runtime's subagents can reduce analysis time without touching git state.
 
 ## When To Delegate
 
@@ -33,9 +33,8 @@ Do not spawn agents for a single obvious one-file or one-group commit; coordinat
 
 ## Runtime Notes
 
-- Claude Code: use task-specific subagents for independent lanes and coordinate results through the lead agent.
-- Codex: use native/project-local subagents when available for bounded read-only lanes.
-- Project-local agent definitions may be added later under `.claude/agents/` or `.codex/agents/`, but this skill must not depend on home/global agent directories.
+- Use the runtime's own subagent or task mechanism for independent lanes and coordinate results through the lead agent. A runtime that names its feature differently, such as Claude Code's subagents or Codex's project-local agents, keeps the same lane boundaries.
+- Project-local agent definitions may live in the runtime's own project directory, but this skill must not depend on home or global agent directories.
 - If the runtime cannot spawn subagents, use the same lane checklist manually in the main context.
 
 ## Delegation Prompt Templates

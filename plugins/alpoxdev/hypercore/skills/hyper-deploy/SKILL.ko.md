@@ -4,9 +4,11 @@ description: "[Hyper] 사용자가 앱이나 서비스를 배포하거나, 첫 �
 compatibility: 파일 읽기, 검색, 수정과 셸이 필요합니다. 번들 준비 점검 스크립트는 bash 3.2+와 jq 1.6+, 로컬 Node.js·Rust·Python 도구 체인이 필요합니다. 배포에는 대상 자체의 CLI(railway, wrangler나 cf, compose와 buildx를 갖춘 docker, kamal, ssh)와 사용자가 환경에 이미 제공한 자격 증명이 필요하며, 없으면 실행은 그 단계에서 멈춥니다.
 ---
 
-@rules/deploy-workflow.md
-@rules/safety-gates.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/deploy-workflow.md](rules/deploy-workflow.md)
+- [rules/safety-gates.md](rules/safety-gates.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Deploy
 

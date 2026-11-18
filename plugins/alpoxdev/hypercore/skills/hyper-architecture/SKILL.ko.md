@@ -4,8 +4,10 @@ description: "[Hyper] Next.js App Router, TanStack Start, Vite + TanStack Router
 compatibility: 대상 저장소의 파일 읽기·검색이 필요합니다. 현재 버전에 관한 주장은 스택 가이드에 따라 공식 프레임워크 문서와 로컬 manifest 확인이 필요할 수 있고, 셋업·성능 작업은 프로젝트의 패키지 매니저나 cargo 명령을 실행합니다. 번들 검증 스크립트는 bash 3.2+와 jq 1.6+가 필요합니다.
 ---
 
-@rules/stack-detection.md
-@rules/work-tracks.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/stack-detection.md](rules/stack-detection.md)
+- [rules/work-tracks.md](rules/work-tracks.md)
 
 # Hyper Architecture
 
@@ -68,7 +70,7 @@ compatibility: 대상 저장소의 파일 읽기·검색이 필요합니다. 현
 | Tools | 저장소 파일 읽기·검색, 변경 요청일 때의 파일 수정, 셋업과 측정을 위한 프로젝트 패키지 매니저나 `cargo`, 각 파일이 지정한 검증 명령입니다. 없는 기능은 이름을 밝히며 지어내지 않습니다. |
 | Loop | 라우팅과 트랙 선택에는 루프가 없고 각각 한 번의 결정적 판단입니다. 성능 트랙은 대상마다 최대 세 번의 측정-변경-측정 루프를 돌며, 측정치가 나아지고 모든 검사가 통과할 때만 변경을 남깁니다. 스택 가이드는 자체 제한 루프를 둘 수 있습니다. |
 | Output | 대상마다 한국어 한 줄 라우팅 결정(스택, 결정 근거, 가이드), 대상과 트랙마다 한국어 상태 한 줄, 그 뒤에 각 트랙이 정한 작업과 결과물입니다. |
-| Verification | 결정 근거가 실제로 읽은 파일에서 인용되었고, 읽은 가이드가 라우팅 표의 행과 일치하며, 각 트랙의 검증(스택 가이드 체크리스트, 셋업의 포맷·린트·타입 검사, 성능의 반복 측정)을 실행했고, 이 스킬 폴더가 바뀌면 `bash skills/hyper-architecture/scripts/validate-architecture.sh`가 통과합니다. |
+| Verification | 결정 근거가 실제로 읽은 파일에서 인용되었고, 읽은 가이드가 라우팅 표의 행과 일치하며, 각 트랙의 검증(스택 가이드 체크리스트, 셋업의 포맷·린트·타입 검사, 성능의 반복 측정)을 실행했고, 이 스킬 폴더가 바뀌면 `bash "<설치한 스킬 폴더>/scripts/validate-architecture.sh"`가 통과합니다. |
 | Stop condition | 고른 트랙이 모두 검증 근거와 함께 끝나거나, 사유(지원 밖 스택, 해결되지 않은 충돌, 새 프로젝트의 스택 미지정, 트랙 게이트 실패, 스택 가이드 자체의 정지)와 함께 멈춥니다. |
 
 </instruction_contract>
@@ -213,7 +215,7 @@ Phase 규칙:
 - [ ] 고른 트랙이 `rules/work-tracks.md`의 요청 문구와 맞고 정해진 순서로 실행되었습니다.
 - [ ] 지원 밖, 충돌, 알 수 없음 경우는 라우팅하지 않고 사유와 함께 멈춥니다.
 - [ ] 고른 트랙마다 자체 검증을 마쳤고 모든 성능 변경에 전후 수치가 있습니다.
-- [ ] 이 스킬 폴더가 바뀌면 `bash skills/hyper-architecture/scripts/validate-architecture.sh`가 통과하고, `assets/evals/`의 케이스가 이 계약과 여전히 맞습니다.
+- [ ] 이 스킬 폴더가 바뀌면 `bash "<설치한 스킬 폴더>/scripts/validate-architecture.sh"`가 통과하고, `assets/evals/`의 케이스가 이 계약과 여전히 맞습니다.
 
 </validation>
 

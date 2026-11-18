@@ -4,9 +4,11 @@ description: "사용자가 웹 프런트엔드 코드를 만들거나 고치거�
 compatibility: 대상 프로젝트에 대한 파일 읽기·검색·편집과 프로젝트 자체의 빌드·테스트 명령이 필요합니다. 렌더링 확인은 이미 쓸 수 있는 브라우저 기능을 쓰고, 없으면 정적 확인만 했다고 보고하며, 브라우저·드라이버·의존성을 설치하지 않습니다. 프로젝트 소스와 `.hyper/frontend/` 아래에만 씁니다.
 ---
 
-@rules/layout-and-states.ko.md
-@rules/motion-and-interaction.ko.md
-@rules/rendered-verification.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/layout-and-states.ko.md](rules/layout-and-states.ko.md)
+- [rules/motion-and-interaction.ko.md](rules/motion-and-interaction.ko.md)
+- [rules/rendered-verification.ko.md](rules/rendered-verification.ko.md)
 
 # Hyper Frontend
 

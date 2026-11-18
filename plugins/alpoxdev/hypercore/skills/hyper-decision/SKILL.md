@@ -4,8 +4,10 @@ description: "Use this skill when the user wants a decision API in software: a m
 compatibility: Optional bash 3.2 or newer with jq to run the offline request checker; network and a provider API key only for explicitly approved live calls or doc refreshes; runs without scripts in fileless runtimes.
 ---
 
-@rules/modes-and-routing.md
-@rules/safety-and-boundaries.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/modes-and-routing.md](rules/modes-and-routing.md)
+- [rules/safety-and-boundaries.md](rules/safety-and-boundaries.md)
 
 # Hyper Decision
 

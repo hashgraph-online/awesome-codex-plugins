@@ -4,8 +4,10 @@ description: "사용자, 고객사, 기획자가 제품 언어로 변경 요청(
 compatibility: 저장소 탐색, 검색, 편집, 로컬 검증 명령 capability가 필요하다. 네트워크 접근, bundled script, 다른 스킬은 필요하지 않다.
 ---
 
-@rules/change-mapping.md
-@rules/interpretation-gate.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/change-mapping.md](rules/change-mapping.md)
+- [rules/interpretation-gate.md](rules/interpretation-gate.md)
 
 # Hyper Feedback
 

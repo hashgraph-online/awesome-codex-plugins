@@ -4,10 +4,12 @@ description: "읽거나, 채우거나, 고치거나, 새로 만들어야 할 문
 compatibility: rhwp CLI v0.9.0 이상(Rust 바이너리, Python·Node·한글 설치 불필요)과 함께 제공되는 프로브를 돌릴 bash 3.2+가 필요합니다. PDF·SVG·PNG 렌더링에는 Skia 빌드와 한 번 내려받아 ~/.cache/rhwp/webfonts에 두는 한글 웹폰트가 필요합니다. 바이너리가 없거나 낮은 버전이면 전제 조건으로 보고하며 이 스킬이 임의로 설치하지 않습니다.
 ---
 
-@rules/rhwp-command-map.ko.md
-@rules/edit-safety.ko.md
-@rules/gongmunseo.ko.md
-@rules/verification.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/rhwp-command-map.ko.md](rules/rhwp-command-map.ko.md)
+- [rules/edit-safety.ko.md](rules/edit-safety.ko.md)
+- [rules/gongmunseo.ko.md](rules/gongmunseo.ko.md)
+- [rules/verification.ko.md](rules/verification.ko.md)
 
 # Hyper HWP
 

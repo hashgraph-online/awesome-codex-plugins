@@ -36,19 +36,23 @@ pp_fail() { # <name> <message> — a check failure after artifacts were written
   PP_CHECKS=$(printf '%s' "$PP_CHECKS" | jq -c --arg code "$1" --arg message "$2" '. + [{code: $code, message: $message}]')
 }
 
+# Browser discovery is by name and by cache pattern, never by a pinned
+# Playwright build number: a build-1208 path exists only on the machine that
+# downloaded it. HYPER_PPTX_BROWSER wins over everything.
 pp_candidates() {
-  printf '%s\n' \
-    "${HYPER_PPTX_BROWSER:-}" \
-    "$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell" \
-    "$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-x64/chrome-headless-shell" \
-    "$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1207/chrome-headless-shell-mac-arm64/chrome-headless-shell" \
-    "$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1206/chrome-headless-shell-mac-arm64/chrome-headless-shell" \
-    "$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1205/chrome-headless-shell-mac-arm64/chrome-headless-shell" \
-    "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+  local name dir
+  if [ -n "${HYPER_PPTX_BROWSER:-}" ]; then printf '%s\n' "$HYPER_PPTX_BROWSER"; fi
+  for name in chrome-headless-shell chromium chromium-browser google-chrome google-chrome-stable microsoft-edge brave-browser; do
+    command -v "$name" 2>/dev/null || true
+  done
+  for dir in "$HOME/Library/Caches/ms-playwright" "$HOME/.cache/ms-playwright"; do
+    [ -d "$dir" ] || continue
+    find "$dir" -maxdepth 4 -type f -name 'chrome-headless-shell' -perm -u+x 2>/dev/null | sort -r
+    find "$dir" -maxdepth 6 -type f \( -name 'Chromium' -o -name 'chrome' \) -perm -u+x -path '*chromium-*' 2>/dev/null | sort -r
+  done
+  printf '%s\n' "/Applications/Chromium.app/Contents/MacOS/Chromium" \
     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
-    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
-    "$(command -v chromium 2>/dev/null || true)" \
-    "$(command -v chromium-browser 2>/dev/null || true)"
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 }
 
 pp_find_browser() {

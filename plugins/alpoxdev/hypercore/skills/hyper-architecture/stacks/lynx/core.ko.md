@@ -3,14 +3,14 @@
 - Scope: ReactLynx로 rendering하고 Lynx dual-thread engine 위에서 Rspeedy로 build하는 Lynx application을 만들거나, 감사하거나, 재구성하거나, 검토할 때 사용합니다. folder 구조, main thread/background 분리, element와 CSS, host data, native module, host app embedding, engine version compatibility, test, 성능이 대상입니다. React DOM app, React Native나 Expo app, 또는 `react` dependency만 있고 `@lynx-js/react`가 없는 repository에는 사용하지 않습니다.
 - Runtime needs: target의 `package.json`, `lynx.config.*`, `tsconfig.json`, 그리고 repository에 있다면 native host project가 필요합니다. 현재 version 주장에는 `references/official/lynx/lynx-2026-11-07.md`의 날짜가 있는 snapshot이 필요할 수 있고, 측정한 성능 주장에는 device나 Lynx DevTool session이 필요합니다.
 
-@architecture-rules.md
-@../../rules/lynx/project-structure.md
-@../../rules/lynx/threading.md
-@../../rules/lynx/ui-and-data.md
-@../../rules/lynx/native-and-platform.md
-@../../rules/lynx/testing.md
-@../../rules/lynx/performance.md
-@../../references/official/lynx/lynx-2026-11-07.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/lynx/project-structure.md](../../rules/lynx/project-structure.md)
+- [../../rules/lynx/threading.md](../../rules/lynx/threading.md)
+- [../../rules/lynx/ui-and-data.md](../../rules/lynx/ui-and-data.md)
+- [../../rules/lynx/native-and-platform.md](../../rules/lynx/native-and-platform.md)
+- [../../rules/lynx/testing.md](../../rules/lynx/testing.md)
+- [../../rules/lynx/performance.md](../../rules/lynx/performance.md)
+- [../../references/official/lynx/lynx-2026-11-07.md](../../references/official/lynx/lynx-2026-11-07.md)
 
 # Lynx Architecture
 

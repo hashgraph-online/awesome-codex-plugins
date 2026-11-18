@@ -1,4 +1,4 @@
-# OpenAI Official References for Skill-Maker
+# OpenAI Official References
 
 ## Contents
 

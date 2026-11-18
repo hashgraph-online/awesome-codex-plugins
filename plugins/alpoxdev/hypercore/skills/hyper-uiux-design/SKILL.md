@@ -4,9 +4,11 @@ description: "Use this skill when the user asks to design an app or web screen a
 compatibility: Markdown only, with no bundled script. Needs file read and write under `.hyper/uiux-design/`, and renders images only through hyper-imagegen with the image tool the runtime already exposes. The HTML stage needs only a browser the runtime already has for the screenshot comparison; without one the HTML is written and the match check is skipped and reported. Reference reading uses a web read capability that is already available. Without an image tool the run ends with saved briefs; without web reading it uses references the user supplies. It never installs a tool, logs in to a reference site, or uses an API key.
 ---
 
-@rules/reference-use.md
-@rules/mockup-workflow.md
-@rules/mockup-is-evidence.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/reference-use.md](rules/reference-use.md)
+- [rules/mockup-workflow.md](rules/mockup-workflow.md)
+- [rules/mockup-is-evidence.md](rules/mockup-is-evidence.md)
 
 # Hyper UIUX Design
 

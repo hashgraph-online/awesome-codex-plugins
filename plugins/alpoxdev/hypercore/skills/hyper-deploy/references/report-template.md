@@ -21,7 +21,7 @@ Use this reference when writing `.hyper/deploy/<slug>/report.md`. Keep the `##` 
 
 ## Readiness
 
-`PRE_DEPLOY_SUMMARY executed=<n> skipped=<m>` from `bash skills/hyper-deploy/scripts/deploy-check.sh`, exit <code>. Skipped gates: <name - reason>.
+`PRE_DEPLOY_SUMMARY executed=<n> skipped=<m>` from `bash <skill-dir>/scripts/deploy-check.sh`, exit <code>. Skipped gates: <name - reason>.
 
 ## Actions
 

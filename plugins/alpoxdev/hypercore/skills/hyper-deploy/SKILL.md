@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when the user asks to deploy an app or serv
 compatibility: Needs file read, search, edit, and a shell. The bundled readiness scripts need bash 3.2+ and jq 1.6+ and a local Node.js, Rust, or Python toolchain. Deploying needs the target's own CLI (railway, wrangler or cf, docker with compose and buildx, kamal, or ssh) and a credential the user already provided in the environment; without them the run stops at the step that needs them.
 ---
 
-@rules/deploy-workflow.md
-@rules/safety-gates.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/deploy-workflow.md](rules/deploy-workflow.md)
+- [rules/safety-gates.md](rules/safety-gates.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Deploy
 

@@ -4,12 +4,12 @@
   <img src="assets/readme/hypercore-agent-skills.webp" alt="Hypercore Agent Skills — Build once. Run anywhere." width="100%">
 </p>
 
-> Claude Code · Codex · Cursor · Antigravity에서 그대로 쓰는 한국어 우선 AI 에이전트 스킬 모음.
+> 파일을 읽는 AI 에이전트에서 사용할 수 있는 한국어 우선 스킬 모음입니다.
 
-Hypercore는 코드베이스 분석부터 릴리스까지의 반복 작업을 한 번에 줄여주는 38개 스킬을 한 패키지로 제공합니다. 각 스킬은 트리거, 워크플로, 검증 게이트가 명시되어 있어 어떤 CLI에서 호출해도 같은 의도로 동작합니다.
+Hypercore는 코드베이스 분석부터 릴리스까지의 반복 작업을 한 번에 줄여주는 39개 스킬을 한 패키지로 제공합니다. 각 스킬은 트리거, 워크플로, 검증 게이트가 명시되어 있어 어떤 CLI에서 호출해도 같은 의도로 동작합니다.
 
-- **설치 경로 두 가지**: 모든 런타임은 `npx skills`, Claude Code는 마켓플레이스 플러그인으로도 설치합니다. 한 환경에는 한 경로만 씁니다([선택 기준](#claude-code-플러그인-마켓플레이스)).
-- **다중 CLI**: Claude Code, Codex, Cursor, Antigravity에서 동일하게 사용.
+- **설치 경로**: 설치 도구가 지원하는 에이전트는 `npx skills`로 설치합니다. Claude Code와 Cursor의 플러그인도 같은 스킬 폴더를 사용합니다.
+- **파일로 직접 실행**: 전용 스킬 명령이 없는 에이전트에는 사용할 스킬의 `SKILL.md` 경로를 알려줍니다.
 - **한국어 우선**: 모든 스킬에 한국어 사양이 정렬되어 있으며 영어 원본도 함께 유지.
 - **검증 가능한 결과물**: 각 스킬은 evidence/validation/stop-condition 계약을 따라 결과를 남깁니다.
 
@@ -32,9 +32,11 @@ omp, Horon, jcode는 `npx skills`의 agent 대상 표에 없어 `-a omp`처럼 �
 | Horon | `npx skills add alpoxdev/hypercore -a codex` | omp와 같은 이유로 `-a codex`를 씁니다. 프로젝트 `.agents/skills` 사본을 Horon이 읽는 것을 확인했습니다(2026-11-10) |
 | pi | `npx skills add alpoxdev/hypercore -a pi` | `npx skills` 표준 대상. 프로젝트 `.agents/skills`에 설치 |
 | jcode | `npx skills add alpoxdev/hypercore -a codex` | omp·Horon과 같은 프로젝트 `.agents/skills` 경로. jcode의 로딩은 이 기기에 없어 미확인(`not_run`) |
-| 기타 | `npx skills add alpoxdev/hypercore -g` | CLI가 지원하는 agent에 한함 |
+| 기타 | 설치 도구가 지원하면 `npx skills add alpoxdev/hypercore`, 그 밖에는 스킬 폴더의 `SKILL.md`를 직접 엽니다. | 파일로 실행할 때는 `rules/`, `references/`, `assets/` 등 스킬 폴더 전체가 필요합니다. |
 
 스킬별 실행 호환은 아래 [스킬 카탈로그](#스킬-카탈로그)의 **호환** 컬럼 또는 각 `SKILL.md`의 `compatibility` 필드에서 확인합니다.
+
+스킬을 자동으로 찾지 못하는 환경에서는 `skills/<이름>/SKILL.md`를 열고 본문이 지정하는 시점에 상대 링크를 따라갑니다. 스킬 폴더를 별도로 설치했다면 그 폴더의 `SKILL.md`에서 시작합니다. 예를 들어 `bash scripts/…`가 번들 스크립트를 가리키면 설치된 스킬 폴더에서 스크립트의 전체 경로를 구하고, 작업 대상 프로젝트에서 `bash "<스크립트 전체 경로>"`로 실행합니다. 브라우저나 독립 검토가 필요한 작업은 각 스킬의 `compatibility`와 검증 절차를 따릅니다.
 
 ## Claude Code 플러그인 (마켓플레이스)
 
@@ -43,7 +45,7 @@ omp, Horon, jcode는 `npx skills`의 agent 대상 표에 없어 `-a omp`처럼 �
 ```bash
 claude plugin marketplace add alpoxdev/hypercore
 claude plugin install hypercore@alpoxdev            # 기본 scope는 user. 프로젝트에 고정하려면 --scope project
-claude plugin details hypercore                     # Skills (38) 확인
+claude plugin details hypercore                     # Skills (39) 확인
 claude plugin update hypercore@alpoxdev
 claude plugin uninstall hypercore@alpoxdev
 claude plugin marketplace remove alpoxdev           # 마켓플레이스와 그 플러그인을 함께 제거
@@ -65,7 +67,7 @@ claude plugin marketplace remove alpoxdev           # 마켓플레이스와 그 
 |---|---|
 | Claude Code만 쓰고 버전 단위 업데이트·제거를 `claude plugin`으로 관리하고 싶다 | 플러그인 |
 | Codex, Cursor, Antigravity도 함께 쓰거나 같은 설치를 여러 agent에 맞추고 싶다 | `npx skills` |
-| 스킬 일부만 고르거나(`--skill hyper-git`) 프로젝트마다 다르게 설치하고 싶다 | `npx skills` (플러그인은 스킬 38개를 통째로 설치) |
+| 스킬 일부만 고르거나(`--skill hyper-git`) 프로젝트마다 다르게 설치하고 싶다 | `npx skills` (플러그인은 스킬 39개를 통째로 설치) |
 | 스킬을 `/hyper-git`처럼 접두어 없이 부르고 싶다 | `npx skills` |
 
 한 경로에서 다른 경로로 옮길 때는 먼저 기존 설치를 제거합니다. `npx skills`에서 플러그인으로 옮기려면 아래 [설치 및 수명주기](#설치-및-수명주기)의 `remove`로 hypercore 스킬을 지운 뒤 위 플러그인 명령을 실행합니다. 플러그인에서 `npx skills`로 옮기려면 `claude plugin uninstall hypercore@alpoxdev`를 실행한 뒤 아래 설치 절차를 따릅니다.
@@ -165,6 +167,7 @@ cp -R hypercore/skills/hyper-git your-project/.claude/skills/
 /hyper-pdf "<작업>"     # PDF를 텍스트·표·이미지·양식 필드·메타데이터로 읽고, HTML이나 JSON 스펙에서 한국어 계약서·청구서·보고서를 만들고, 병합·분할·회전·워터마크·암호화·OCR·접근성 태그를 검사까지
 /hyper-loop "<목표들>"  # 서로 의존하는 여러 목표를 기준별 증거와 작업 트리 지문으로 묶어 끝까지 실행, 코드가 바뀌면 증거를 stale로 표시하고 최종 게이트로 마감
 /hyper-debug "<실패>"    # 스택 트레이스·실패하는 테스트·크래시·가끔 실패하는 테스트를 재현하고 토글로 원인을 증명, 요청하면 최소 수정까지
+/hyper-tdd "5만 원 이상 무료 배송을 테스트부터 구현해줘"  # 기존 검사가 놓치는 경계 동작을 실패로 확인한 뒤 구현
 /hyper-review "<대상>"  # 지정한 diff·브랜치·PR·작업 트리를 리뷰하고 통과·실패·판정 불가로 판정. 기본은 파일을 고치지 않고, 수정까지 요청할 때만 블로커를 고침
 /hyper-cleanup "<작업>"  # 동작을 바꾸지 않고 코드·테스트·주석의 군더더기를 분류해 삭제·재사용·플랫폼·제자리 단순화 사다리로 정리하고, 지운 테스트마다 복원한 변이로 증명
 ```
@@ -236,7 +239,7 @@ flowchart LR
 
 | 스킬 | 설명 | 호환 |
 |------|------|------|
-| `hyper-skill` | 유지보수하기 쉬운 Codex/AI 에이전트 스킬 생성 및 리팩터링 | All |
+| `hyper-skill` | 재사용할 에이전트 스킬을 만들거나 기존 스킬의 지침, 예제, 검증 절차를 정리합니다. | All |
 | `hyper-documentation` | 요청한 산출물에 맞춰 다섯 모드 중 하나로 작업: `readme`(코드베이스 기반 README), `agents-md`(영어 `AGENTS.md` + 한국어 `AGENTS.ko.md`, `CLAUDE.md`는 만들지 않음), `prompt`(재사용 프롬프트·템플릿/팩·eval 픽스처), `docs`(AI가 읽기 좋은 문서·런북·룰 팩), `memory`(에이전트 메모리 파일: 색인·주제 파일 구조, 크기 예산, 저장 금지 항목, 갱신·만료·삭제 규칙) | All |
 | `hyper-prd` | 웹·iOS·Android·데스크톱 PRD를 `prd.md` 한 파일로 작성·갱신·검토 — 규모별 질문 상한, EARS 테스트 가능한 요구사항, 인수 시나리오, 핸드오프 블록 | All |
 | `hyper-report` | 완성된 문서로서의 보고서(브리핑·업무·리서치·제안·상태·분석·1쪽 요약)를 Markdown 정본 하나에서 HTML·인쇄 PDF·쪽별 PNG/JPG·DOCX·Markdown으로 렌더. 대상·결정을 먼저 고정하고 모든 수치와 주장을 출처에 묶으며, 표·그림이 독자를 위해 쓰일 때만 넣고 쪽 나눔·넘침·그림 잘림을 측정해 확인 | bash 3.2+ & awk; Chromium 계열 헤드리스 브라우저(HTML·PDF·PNG), `sips` 또는 ImageMagick(JPG), `textutil`(DOCX) |
@@ -281,6 +284,7 @@ flowchart LR
 | `hyper-browsing` | 평범한 요청으로 안 열리는 페이지의 내용을 tier 0 공식 엔드포인트 → 1 헤드리스 요청 격자 → 2 아카이브 사본 → 3 자체 브라우저 → 4 연결 브라우저 순서로 가져오고, HTTP 200을 성공으로 보지 않는 네 증명 층과 출처 표시(`live`·`api`·`reader`·`snapshot`·`rendered`)로 검증해 `.hyper/browsing/` 보고서에 시도 기록과 다이제스트를 남김. 로그인 벽·유료 벽·CAPTCHA 풀이·쿠키 복사·프록시는 사용자가 요청해도 경계를 보고 | curl 셸; jq·curl_cffi·yt-dlp·브라우저 자동화는 선택(없으면 해당 tier `skipped`) |
 | `hyper-feedback` | 사용자·고객사·기획자의 변경 요청(피드백, 불만, 티켓, 회의 메모, 문구)을 원자 항목으로 나누고, 복제본·로케일·다른 채널·테스트·문서까지 9개 영향 위치 점검표로 수정할 곳을 모두 찾아 바로 반영·검증. 해석이 크게 갈리거나 되돌릴 수 없는 변경일 때만 묻고, 스키마·라우트·API 계약처럼 직접 수정 범위를 넘는 항목은 `.hyper/feedback/`에 브리프로 남김 | All |
 | `hyper-debug` | 스택 트레이스·실패하는 테스트·크래시·잘못된 출력·가끔 실패하는 테스트를 가장 작은 재현부터 잡고, 서로 다른 축의 가설 2개 이상을 구별하는 관찰로 좁혀 원인을 토글(넣으면 실패, 빼면 통과)로 증명. 요청하면 빨강→초록 순서로 최소 수정, 넣었던 계측은 모두 제거. 재시도 래퍼·sleep 늘리기·격리·테스트 삭제는 금지 수정으로 막고 `.hyper/debug/` 기록 저장 | All |
+| `hyper-tdd` | AI가 테스트를 작성하기 전에 기대값의 근거와 기존 검사가 놓칠 결함을 확인합니다. 기능은 실패→통과→정리 순서로 구현하고, 테스트만 요청하면 구현을 보존합니다. | 프로젝트 테스트 실행기 |
 | `hyper-review` | 이미 있는 변경(diff·커밋 범위·브랜치·PR·작업 트리)을 리뷰하고 판정함. 리더가 실제 표면에서 QA 매트릭스를 채우고 독립 읽기 전용 리뷰어 한 명이 여덟 항목 루브릭·테스트 품질 게이트·냄새 트리거를 적용하며, 판정을 내용 정체성(`HEAD`+diff·미추적 파일 SHA-256)에 묶어 이후 변경을 stale로 표시. 기본은 파일을 고치지 않고, 명시적으로 요청할 때만 확인된 블로커를 수정. `.hyper/review/` 보고서 저장 | All |
 | `hyper-cleanup` | 이미 동작하는 코드의 동작 보존 정리. 아홉 가지 슬롭 분류와 분류별 KEEP 예외로 후보를 이름 붙이고, 삭제·재사용·플랫폼·제자리 단순화 사다리에 배치하며, 첫 수정 전에 기준 명령으로 동작을 잠그고, 지운 테스트나 합친 테스트마다 소스 변이를 넣어 판정한 뒤 SHA-256으로 바이트 동일 복원을 확인. `.hyper/cleanup/` 보고서를 `Result:` 줄로 마감 | bash 3.2+ & jq; 변이 증명은 `shasum` |
 | `hyper-design` | 새 화면 디자인, 기존 UI 리디자인, 히어로·데모용 연출 화면(mockup), AI형 generic 패턴 점검·정리를 디자인 브리프·생동감 다이얼→정석 수치(WCAG 2.2·플랫폼·KRDS)와 대비 계산→정적 검출기→독립 검토→증거 기반 납품 게이트 순서로 처리하고 `.hyper/design/`에 브리프와 보고서 저장 | Bash 3.2+ & jq 1.6+; browser optional |
@@ -310,7 +314,7 @@ flowchart LR
 | `hyper-pdf` | PDF를 읽고·만들고·고치고·검증. 텍스트·표·이미지·양식 필드·메타데이터를 추출하고, HTML 경로(Chromium, CSS 그대로·구조 트리)와 JSON 스펙 경로(브라우저 없이 결정적 배치)로 한국어 계약서·청구서·보고서를 만들며, 병합·분할·회전·워터마크·스탬프·암호화·복호화·양식 채우기·평탄화·OCR을 처리. 글꼴 임베딩·언어 태그·Type3 대체·구조 트리·스캔 쪽을 `check`가 코드로 보고하고, 렌더한 쪽과 추출 텍스트로 눈과 글자를 함께 확인 | macOS 11+(PDFKit·CoreGraphics·CoreText·Vision), bash 3.2+; HTML 경로만 Chromium 계열 브라우저 1개 필요 |
 | `hyper-decision` | 글 대신 타입 판단(예/아니오 확률, 선택, 점수, 이미지 상자)을 돌려주는 decision API(TypeSafe Jev, OpenAI Decisions, Perplexity, Liquid, Cloudflare Clef, Vercel AI SDK·AI Gateway, OpenRouter, 범용 LLM 에뮬레이션)용 적합성 판정, 방언별 질문, 호출 코드, 요청 템플릿, 평가 계획, 라벨 전용 LLM 호출 감사, 경로 설정. 경로를 네 층으로 나눠 확률을 돌려주는지 밝히고 방언별 오프라인 요청 검사기로 확인 | bash 3.2+ · jq (선택); 네트워크와 API 키는 승인된 실호출에만 |
 
-총 38개 스킬. 기획·마케팅·비즈니스용 스킬(blog-maker, instagram-card-maker, korean-writer, storyboard-maker, tone-manner-maker)은 [Hypercore Business](https://github.com/alpoxdev/hypercore-business)로 옮겼습니다. 새 스킬은 `skills/<이름>/` 디렉터리를 추가하기만 하면 됩니다 — 자세한 형태는 [스킬 만들기](#스킬-만들기) 참고.
+총 39개 스킬. 기획·마케팅·비즈니스용 스킬(blog-maker, instagram-card-maker, korean-writer, storyboard-maker, tone-manner-maker)은 [Hypercore Business](https://github.com/alpoxdev/hypercore-business)로 옮겼습니다. 새 스킬은 `skills/<이름>/` 디렉터리를 추가하기만 하면 됩니다 — 자세한 형태는 [스킬 만들기](#스킬-만들기) 참고.
 
 ## 시나리오 예시
 
@@ -356,7 +360,7 @@ hypercore/
 ├── assets/                # 플러그인 아이콘, README 이미지 등 저장소 수준 정적 asset
 ├── instructions/          # 프로젝트 LLM 작업 베이스 (context/harness/loop/graph/mcp/sourcing/validation 등)
 ├── scripts/               # source/lifecycle/plugin manifest 검증 및 보조 스크립트
-└── skills/                # 38개 스킬의 단일 원본 (각 폴더에 SKILL.md / SKILL.ko.md)
+└── skills/                # 39개 스킬의 단일 원본 (각 폴더에 SKILL.md / SKILL.ko.md)
 ```
 
 스킬 한 개의 표준 구조:

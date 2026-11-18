@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when the user wants Model Context Protocol 
 compatibility: Needs file read, search, and edit over the target repository and write access for `.hyper/mcp/`. Building and verifying need the target language toolchain (Node.js 22.19+ for the MCP Inspector, or the project's own runtime). Live web access is optional and used only to recheck a volatile fact. Publishing, OAuth logins, and running third-party servers stay gated in the skill's own contract.
 ---
 
-@rules/mcp-workflow.md
-@rules/mcp-rules.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/mcp-workflow.md](rules/mcp-workflow.md)
+- [rules/mcp-rules.md](rules/mcp-rules.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper MCP
 

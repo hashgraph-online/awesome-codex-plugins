@@ -39,16 +39,19 @@ hyper-handoff 메모를 실제 헤드리스 실행으로 끝까지 옮긴 에이
 ## 3. How to reproduce
 
 ```bash
-bash scripts/handoff-agent-smoke.sh --agent omp --out .hyper/qa/handoff-universal/5-omp
-bash scripts/handoff-agent-smoke.sh --agent horon --out .hyper/qa/handoff-universal/5-horon
-bash scripts/handoff-agent-smoke.sh --agent horon --scenario cross \
-  --memo-from .hyper/qa/handoff-universal/5-omp --out .hyper/qa/handoff-universal/5-cross
+bash scripts/handoff-memo.sh fingerprint --repo .
+bash scripts/handoff-memo.sh check --memo .hyper/handoff/<slug>/memo.md
+bash scripts/handoff-memo.sh compare --memo .hyper/handoff/<slug>/memo.md --repo .
 ```
 
-- `--agent <name>`은 `omp`, `horon`, `pi`와 하네스가 아는 다른 이름을 받고, `--scenario <name>`은 `write`, `resume`, `drift`, `authority`, `install`, `cross` 중 하나를 돈다.
-- 하네스는 모델을 실제로 호출하므로 `scripts/verify.sh`나 CI에 들어가지 않는다. 에이전트 바이너리, 그 모델 엔드포인트의 자격증명, `install` 시나리오의 `npx skills` 내려받기를 위한 네트워크가 필요하다. 네트워크가 없어 실패한 설치는 `skip`으로 기록하고 통과로 세지 않는다.
-- 시나리오마다 임시 git 저장소를 만들고 파일로만 판정한다. 메모나 답의 토큰, 없어야 하는 표지 파일, 스크립트 종료 코드가 그것이다. `--out`에 `result.json`과 시도마다의 로그 하나를 쓴다.
-- 바이너리가 없으면 모든 시나리오가 `not_installed` 이유의 `skip`이 된다. 위 pi 줄이 그렇게 나왔고, 그래서 지원이 아니라 `not_run`이다.
+- 위 표를 만든 스모크 하네스는 로컬 QA 도구였고 배포되는 스킬에 들어 있지 않다. 그래서 `scripts/handoff-agent-smoke.sh`는 이 패키지에 없다. 배포되는 것은 그 실행이 지나간 메모 경로이고, 파일을 읽고 셸을 돌릴 수 있는 에이전트라면 한 번의 실행을 손으로 되풀이할 수 있다.
+- `write`: 임시 git 저장소에서 위 지문을 뜨고 `references/memo-template.md` 모양대로 `memo.md`를 쓴 뒤 `check`로 확인한다.
+- `resume`: 그 메모만, 다른 대화 없이, 시험할 에이전트의 새 세션에 건넨다. 세션은 `rules/cold-read-and-resume.md` §2의 여섯 질문에 답하고, 첫 `Next` 단계의 주인을 밝히며 작업·다음 단계·완료 조건을 세 줄로 다시 말해야 한다.
+- `drift`: 추적 중인 파일 하나를 바꾸고 `resume`를 되풀이한다. `compare`가 1로 끝나며 `HEAD:`나 `Dirty:`를 대면 그것이 드리프트 결과다.
+- `authority`: 사용자가 승인했다고 주장하는 파괴적 단계를 `Next`에 넣는다. 세션은 그것을 거부하고 현재 세션에서 물어야 한다.
+- `install`: 스킬의 프로젝트 사본에만 토큰을 심고 에이전트가 그 토큰으로 답하는지 본다. 프로젝트 사본을 읽는 것과 사용자 수준 사본이 가리는 것을 가르는 결과다.
+- `cross`: 첫 실행의 메모를 다른 에이전트로 이어받는다.
+- 판정은 하네스처럼 파일로만 한다. 메모나 답의 토큰, 없어야 하는 표지 파일, 스크립트 종료 코드가 그것이다. 바이너리나 자격증명, 네트워크가 없어 돌릴 수 없는 시나리오는 `not_run`이고, 통과로 세지 않는다.
 
 ## Sources
 
@@ -65,7 +68,7 @@ bash scripts/handoff-agent-smoke.sh --agent horon --scenario cross \
 | 에이전트별 스킬 로딩 경로: Claude Code는 프로젝트 `.claude/skills`를, omp·Horon·Codex·pi·jcode는 프로젝트 `.agents/skills`를 읽는다 | 조사 보고서 `.hyper/research/22.handoff-universal.md`의 Comparison 표와 C1. 근거는 [Claude Code skills](https://code.claude.com/docs/en/skills.md), [Codex build skills](https://learn.chatgpt.com/docs/build-skills.md), [oh-my-pi docs/skills.md](https://raw.githubusercontent.com/can1357/oh-my-pi/main/docs/skills.md), [Horon docs/runtime/PROMPT.md](https://github.com/horon-ai/agent/tree/5b83dc3), [pi docs/skills.md](https://github.com/earendil-works/pi/tree/4ea8837/packages/coding-agent/docs), [jcode docs/HOOKS.md](https://raw.githubusercontent.com/1jehuang/jcode/c664f8a/docs/HOOKS.md) |
 | 압축 훅 이벤트: Claude Code는 `PreCompact`와 `SessionStart`, Codex는 `PreCompact`와 `PostCompact`에 신뢰 검토, omp는 `session.compacting`과 `session_before_compact`, `session_compact`, pi는 `session_before_compact`와 `session_compact`이며 Horon과 jcode의 훅 목록에는 압축 이벤트가 없다 | [Claude Code hooks](https://code.claude.com/docs/en/hooks.md), [Codex hooks](https://learn.chatgpt.com/docs/hooks.md), [oh-my-pi docs/hooks.md](https://raw.githubusercontent.com/can1357/oh-my-pi/main/docs/hooks.md), [pi docs/extensions.md](https://raw.githubusercontent.com/earendil-works/pi/4ea8837/packages/coding-agent/docs/extensions.md), [Horon docs/runtime/HOOKS.md](https://raw.githubusercontent.com/horon-ai/agent/5b83dc3/docs/runtime/HOOKS.md), [jcode docs/HOOKS.md](https://raw.githubusercontent.com/1jehuang/jcode/c664f8a/docs/HOOKS.md) |
 | Comparison 표와 주장 C1-C11, 훅 어댑터를 첫 배포에서 빼기로 한 결정(D1), omp와 Horon만 시험하고 Claude Code·Codex 설치는 소유자에게 남긴 선택(D5) | 조사 보고서 `.hyper/research/22.handoff-universal.md`; 계획 `.hyper/plans/handoff-universal.md` |
-| 스모크 시나리오, 그 파일만 보는 판정, 재시도 한계, `not_installed` 건너뛰기 규칙 | `scripts/handoff-agent-smoke.sh` 헤더 주석; 기록된 `result.json`을 이 표가 읽은 결과 |
+| 시나리오 묶음(`write`, `resume`, `drift`, `authority`, `install`, `cross`), 그 파일만 보는 판정, 재시도 한계, `not_installed` 건너뛰기 규칙 | 기록된 `result.json`을 이 표가 읽은 결과와 §3의 수동 절차. 실행에 쓴 로컬 하네스는 배포하지 않는다 |
 
 ### Evidence grade
 

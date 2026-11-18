@@ -244,7 +244,7 @@ sudo make uninstall
 ```
 
 All three Ubuntu LTS releases record a live-VM run of <!-- fig:lts_story_total -->79<!-- /fig --> stories from the Ubuntu
-suite (which has since grown to <!-- fig:stories_ubuntu floor=10 -->90+<!-- /fig -->), and each run has a replay twin that reproduces it: 22.04, 24.04 and 26.04
+suite (which has since grown to <!-- fig:stories_ubuntu floor=10 -->100+<!-- /fig -->), and each run has a replay twin that reproduces it: 22.04, 24.04 and 26.04
 all at <!-- fig:lts_story_rate -->79/79<!-- /fig -->, every twin serving every call with zero misses. The runs are in
 `tests/evidence/story-runs/`. The suite grew from 50 when every Debian-only
 action got a story, `GetHostState` first.

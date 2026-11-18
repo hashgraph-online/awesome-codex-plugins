@@ -4,9 +4,11 @@ description: "Use this skill when the user explicitly asks for adversarial multi
 compatibility: "Needs file read and search for grounding, write access for `.hyper/debate/` and `.hyper/plans/`, and a shell for read-only inspection. Parallel subagents are optional: with them each perspective runs as its own child; without them the five perspectives run sequentially in one context and the run reports the debate as reduced. No bundled script and no network access."
 ---
 
-@rules/rounds.md
-@rules/perspectives.md
-@rules/approval-and-plan.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/rounds.md](rules/rounds.md)
+- [rules/perspectives.md](rules/perspectives.md)
+- [rules/approval-and-plan.md](rules/approval-and-plan.md)
 
 # Hyper Debate
 

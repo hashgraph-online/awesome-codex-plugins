@@ -4,7 +4,9 @@ description: "[Hyper] Use this skill when the user asks to create, refactor, or 
 compatibility: Requires file-reading and file-editing capabilities, plus repository search for the readme and agents-md modes. Source-sensitive work also requires an approved retrieval capability; unavailable optional capabilities are skipped and reported, while unavailable outcome-critical capabilities block completion.
 ---
 
-@rules/mode-routing.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/mode-routing.md](rules/mode-routing.md)
 
 # Hyper Documentation
 

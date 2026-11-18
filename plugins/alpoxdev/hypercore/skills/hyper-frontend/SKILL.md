@@ -4,9 +4,11 @@ description: "Use this skill when the user wants web frontend code built, fixed,
 compatibility: Needs file read, search, and edit over the target project and its own build and test commands. Rendered checks use a browser capability that is already available and are reported as static-only when none exists; the skill never installs a browser, a driver, or a dependency. Writes only under the project's source and `.hyper/frontend/`.
 ---
 
-@rules/layout-and-states.md
-@rules/motion-and-interaction.md
-@rules/rendered-verification.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/layout-and-states.md](rules/layout-and-states.md)
+- [rules/motion-and-interaction.md](rules/motion-and-interaction.md)
+- [rules/rendered-verification.md](rules/rendered-verification.md)
 
 # Hyper Frontend
 

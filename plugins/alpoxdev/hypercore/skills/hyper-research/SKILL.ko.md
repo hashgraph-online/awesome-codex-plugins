@@ -4,10 +4,12 @@ description: "[Hyper] 사용자가 여러 출처를 종합한 인용 기반 조�
 compatibility: 라이브 검색이나 페이지 열람 도구, 공식 문서 접근, GitHub나 저장소 검색, 로컬 파일 검색, 실행 확인용 로컬 셸, 독립 research lane을 위한 범위 제한 subagent나 background agent 지원이 있을 때 가장 잘 동작합니다.
 ---
 
-@rules/research-workflow.ko.md
-@rules/expansion-and-convergence.ko.md
-@rules/claim-verification.ko.md
-@rules/validation.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/research-workflow.ko.md](rules/research-workflow.ko.md)
+- [rules/expansion-and-convergence.ko.md](rules/expansion-and-convergence.ko.md)
+- [rules/claim-verification.ko.md](rules/claim-verification.ko.md)
+- [rules/validation.ko.md](rules/validation.ko.md)
 
 # Hyper Research Skill
 

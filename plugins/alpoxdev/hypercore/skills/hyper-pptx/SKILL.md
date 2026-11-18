@@ -4,9 +4,11 @@ description: "Use this skill when the user asks to build, edit, or read a PowerP
 compatibility: Needs bash 3.2+, jq, zip, unzip, xmllint, perl, and one Chromium-family browser binary (Playwright chrome-headless-shell, Chromium, Chrome, Edge, or Brave) for the preview, slide images, PDF, and layout checks. No Python, Node, or office suite is required, and nothing is installed.
 ---
 
-@rules/deck-narrative.md
-@rules/layout-and-typography.md
-@rules/render-and-verify.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/deck-narrative.md](rules/deck-narrative.md)
+- [rules/layout-and-typography.md](rules/layout-and-typography.md)
+- [rules/render-and-verify.md](rules/render-and-verify.md)
 
 # Hyper PPTX
 

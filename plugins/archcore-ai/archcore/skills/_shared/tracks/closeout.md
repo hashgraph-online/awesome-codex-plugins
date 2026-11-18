@@ -137,8 +137,7 @@ not apply on this track.
   - trigger: a document update awaits its per-document confirmation.
   - taxonomy: Terminology & Consistency, Misc / Placeholders from
     `skills/_shared/coverage-taxonomy.md`. [assumption]
-  - budget: 1 question per document awaiting an update [assumption] —
-    mirrors the `actualize.fix` per-document confirmation rule.
+  - budget: 1 question per document awaiting an update [assumption].
 - Produces: none — the gate updates existing documents via
   `update_document`; it creates no document.
 - Exit checks:

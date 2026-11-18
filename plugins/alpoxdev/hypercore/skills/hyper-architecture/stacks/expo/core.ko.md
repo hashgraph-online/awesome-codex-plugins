@@ -3,13 +3,13 @@
 - 범위: React Native, Expo, Expo Router, TypeScript로 확장 가능한 Android/iOS 앱 architecture를 생성·검토·refactor할 때 사용합니다. project structure, routing, feature boundary, native config, data/state, platform code, validation을 포함합니다. Expo 없는 bare React Native, web-only React, 문서 요약에는 사용하지 않습니다.
 - 실행 조건: Expo 프로젝트 또는 Expo 프로젝트 생성 요청이 필요하며, 최신 API 주장은 공식 Expo/React Native 문서와 로컬 package 확인이 필요할 수 있습니다.
 
-@architecture-rules.ko.md
-@../../rules/expo/project-structure.ko.md
-@../../rules/expo/routing-and-navigation.ko.md
-@../../rules/expo/data-state-and-boundaries.ko.md
-@../../rules/expo/native-platform-and-security.ko.md
-@../../references/official/expo/expo-react-native-2026-11-04.ko.md
-@../../rules/expo/testing-and-validation.ko.md
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/expo/project-structure.ko.md](../../rules/expo/project-structure.ko.md)
+- [../../rules/expo/routing-and-navigation.ko.md](../../rules/expo/routing-and-navigation.ko.md)
+- [../../rules/expo/data-state-and-boundaries.ko.md](../../rules/expo/data-state-and-boundaries.ko.md)
+- [../../rules/expo/native-platform-and-security.ko.md](../../rules/expo/native-platform-and-security.ko.md)
+- [../../references/official/expo/expo-react-native-2026-11-04.ko.md](../../references/official/expo/expo-react-native-2026-11-04.ko.md)
+- [../../rules/expo/testing-and-validation.ko.md](../../rules/expo/testing-and-validation.ko.md)
 
 # Expo Architecture
 

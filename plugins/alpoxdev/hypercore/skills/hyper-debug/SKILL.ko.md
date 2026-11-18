@@ -4,10 +4,12 @@ description: "보고된 런타임 실패(스택 트레이스, 실패한 테스�
 compatibility: 파일 읽기·검색·편집과 재현 및 런타임 자체 검사를 돌릴 셸 capability가 필요하다. 실패하는 프로그램이 이 환경에서 실행돼야 하며, 실행할 수 없으면 원인 대신 빠진 접근을 보고한다. bundled script는 없고, 재현 자체가 필요로 하는 것 외의 네트워크 접근도 없다.
 ---
 
-@rules/working-loop.md
-@rules/hypotheses-and-escalation.md
-@rules/flaky-triage.md
-@rules/fix-and-proof.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/working-loop.md](rules/working-loop.md)
+- [rules/hypotheses-and-escalation.md](rules/hypotheses-and-escalation.md)
+- [rules/flaky-triage.md](rules/flaky-triage.md)
+- [rules/fix-and-proof.md](rules/fix-and-proof.md)
 
 # Hyper Debug
 

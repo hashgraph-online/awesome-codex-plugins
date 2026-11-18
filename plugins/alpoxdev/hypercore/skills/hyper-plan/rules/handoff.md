@@ -25,7 +25,7 @@ Pass the resulting delivery flag through, whether the user gave a flag or a phra
 
 A landing policy is not a delivery mode. When the user named one (`--land cherry-pick`, "linear history", "cherry-pick으로 반영"), keep `Delivery:` at its value, write `Landing: <merge|cherry-pick>` on the plan's `## Commit strategy` line, and pass the policy to the execution handoff beside the delivery flag. The three `## Handoff` lines never gain a landing line.
 
-Continue by invoking the execution skill in this same session, without ending the turn: load `hyper-execute` through the runtime's skill mechanism (or read its `SKILL.md` where skills are plain files) and follow it from its first phase with the slug and the delivery flag. Record `Auto-execute: yes` in the plan before switching. Only when that skill is not installed in this session, stop with `Auto-execute: no (execution skill not installed)` and print the exact invocation `hyper-execute <slug>` plus the delivery flag so the user can run it.
+Continue by invoking the execution skill in this same session, without ending the turn: load `hyper-execute` through the runtime's skill mechanism or, where skills are plain files, read its `SKILL.md` beside this skill's own folder in the same installation, `../hyper-execute/SKILL.md`, and follow it from its first phase with the slug and the delivery flag. Record `Auto-execute: yes` in the plan before switching. Only when neither route reaches that skill, stop with `Auto-execute: no (execution skill not installed)`, print the exact invocation `hyper-execute <slug>` plus the delivery flag so the user can run it, and name the install command `npx skills add alpoxdev/hypercore --skill hyper-execute`.
 
 ## 3. Opt-Out and Delivery Words
 

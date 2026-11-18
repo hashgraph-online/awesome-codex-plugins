@@ -4,9 +4,11 @@ description: "[Hyper] 사용자가 이미 작성된 작업 계획을 끝까지 �
 compatibility: git worktree 지원, 저장소 자체의 테스트·타입 검사·린트·빌드 명령을 실행할 셸, 웨이브마다 워크트리 하나를 둘 디스크 공간이 필요합니다. 위임과 독립 검증에는 subagent 기능이 필요하고, 없으면 각 워커 작업을 여기서 순차 실행하며 검증은 결정적 검사와 기록된 단서로 대체합니다.
 ---
 
-@rules/execution-loop.ko.md
-@rules/worktree-and-delivery.ko.md
-@rules/verification-gates.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/execution-loop.ko.md](rules/execution-loop.ko.md)
+- [rules/worktree-and-delivery.ko.md](rules/worktree-and-delivery.ko.md)
+- [rules/verification-gates.ko.md](rules/verification-gates.ko.md)
 
 # Hyper Execute Skill
 
@@ -247,4 +249,4 @@ hyper-execute [plan-slug] [--worktree <absolute-path>] [--land <merge|cherry-pic
 
 ### 근거 등급
 
-이 절차는 이 패키지가 고정한 commit에서 읽은 원본 스킬을 직접 각색한 것입니다. 원본의 하네스 전용 장치(연속 실행 파일, subagent 도구 이름, 카테고리 어휘, 브라우저·터미널 도우미)는 git, 셸, 선택적 subagent만 있으면 도는 중립적 표현으로 바꿨습니다. 상한과 정지 규칙은 원본 기본값이 아니라 이 패키지가 고른 값입니다.
+이 절차는 이 패키지가 고정한 commit에서 읽은 원본 스킬을 직접 각색한 것이며, git, 셸, 선택적 subagent가 있는 런타임이면 어디서든 돌도록 기능 중립적인 표현으로 썼습니다. 상한과 정지 규칙은 원본 기본값이 아니라 이 패키지가 고른 값입니다.

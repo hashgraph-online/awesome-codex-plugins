@@ -2,7 +2,9 @@
 # Run the report/waiver/rendered-evidence contract cases and report per-case exit-code agreement.
 set -euo pipefail
 
-RC_DEFAULT_CASES='skills/hyper-design/assets/evals/contract-cases.jsonl'
+RC_SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+RC_SKILL_DIR=$(dirname -- "$RC_SCRIPT_DIR")
+RC_DEFAULT_CASES="$RC_SKILL_DIR/assets/evals/contract-cases.jsonl"
 RC_USAGE='Usage: bash run-contract-evals.sh [--cases <cases.jsonl>] [--json]'
 
 rc_fail() {
@@ -10,12 +12,23 @@ rc_fail() {
   exit 2
 }
 
+# rc_case_path <path> resolves one case row's path against the base chosen once after
+# argument parsing: the skill folder for the bundled case file, whose rows are
+# skill-relative, and the caller's own base otherwise. An absolute path is never
+# rewritten.
+rc_case_path() {
+  case $1 in
+    /*) printf '%s\n' "$1" ;;
+    *) printf '%s\n' "${RC_BASE:+$RC_BASE/}$1" ;;
+  esac
+}
+
 # rc_command_script <command> prints the script that implements one contract command.
 rc_command_script() {
   case "$1" in
-    report) printf 'skills/hyper-design/scripts/validate-report.sh' ;;
-    waiver) printf 'skills/hyper-design/scripts/validate-waivers.sh' ;;
-    rendered) printf 'skills/hyper-design/scripts/collect-rendered-evidence.sh' ;;
+    report) printf '%s\n' "$RC_SCRIPT_DIR/validate-report.sh" ;;
+    waiver) printf '%s\n' "$RC_SCRIPT_DIR/validate-waivers.sh" ;;
+    rendered) printf '%s\n' "$RC_SCRIPT_DIR/collect-rendered-evidence.sh" ;;
     *) return 1 ;;
   esac
 }
@@ -40,6 +53,12 @@ rc_main() {
     return 0
   fi
   [ -f "$cases" ] || rc_fail "ENOENT: no such file or directory, open '$cases'"
+  # Choose the row base once. The bundled case file ships skill-relative rows, so it
+  # resolves against the skill folder from any working directory or install location.
+  # Any other case file keeps the caller's own base, including a row that names a file
+  # which also exists inside the package.
+  RC_BASE="$RC_SKILL_DIR"
+  if ! [ "$cases" -ef "$RC_DEFAULT_CASES" ]; then RC_BASE=''; fi
   work=$(mktemp "${TMPDIR:-/tmp}/slop-contracts.XXXXXX")
   while IFS= read -r line || [ -n "$line" ]; do
     total=$((total + 1))
@@ -65,6 +84,7 @@ rc_main() {
     fi
     id=$(printf '%s' "$case_json" | jq -r '.id')
     input=$(printf '%s' "$case_json" | jq -r '.input')
+    input=$(rc_case_path "$input")
     expected=$(printf '%s' "$case_json" | jq -r '.expectedExit')
     if [ "$command" = report ]; then flag='--report'; else flag='--input'; fi
     extra=()

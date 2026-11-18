@@ -1,6 +1,6 @@
 # 런타임과 검증
 
-이 기계가 실제로 할 수 있는 일, 문서가 옳다는 것을 증명하는 방법, 증명하지 못한 것을 말하는 방법을 정합니다.
+지금 쓰는 기계가 실제로 할 수 있는 일, 문서가 옳다는 것을 증명하는 방법, 증명하지 못한 것을 말하는 방법을 정합니다.
 
 ## 1. 주장 전에 확인
 
@@ -15,7 +15,7 @@
 | `png_preview` | LibreOffice 또는 QuickLook(`qlmanage`) | 미리보기 이미지 없음 |
 | `docx_to_text` | macOS의 `textutil`, 없으면 표준 라이브러리 리더 | 내장 `text` 명령은 항상 동작 |
 
-프로브는 브라우저를 Playwright 캐시(`~/Library/Caches/ms-playwright`, `~/.cache/ms-playwright`)와 일반 애플리케이션 경로에서 찾습니다. 2026-11-13 이 기계의 결과는 Python 3.9.6, Playwright `chrome-headless-shell`, `textutil`, `qlmanage`, `sips`가 있고 LibreOffice가 없음입니다. 그래서 `pdf_render`는 되고 `docx_to_pdf`는 안 됩니다.
+프로브는 브라우저를 Playwright 캐시(`~/Library/Caches/ms-playwright`, `~/.cache/ms-playwright`), `PATH`의 이름, 일반 애플리케이션 경로에서 찾습니다. 2026-11-13에 기록한 프로브 하나는 Python 3.9.6, Playwright `chrome-headless-shell`, `textutil`, `qlmanage`, `sips`가 있고 LibreOffice가 없었습니다. 그래서 그때는 `pdf_render`가 되고 `docx_to_pdf`가 안 됐습니다. 이 기록은 저작한 기계의 상태이므로, 지금 기계에서는 `doctor`를 실행해 출력을 읽고 두 결과 중 하나를 가정하지 않습니다.
 
 검사를 가능하게 하려고 패키지나 애플리케이션을 설치하지 않습니다. 빠진 능력은 해결 대상이 아니라 보고 대상입니다.
 
@@ -23,7 +23,7 @@
 
 | 표면 | 증명하는 것 | 증명하지 않는 것 |
 |---|---|---|
-| 워드나 Pages가 파일을 열었다 | 복구 요청 없이 열리고 필드가 계산됨 | 이 기계에서는 아무것도. 사용자가 필요 |
+| 워드나 Pages가 파일을 열었다 | 복구 요청 없이 열리고 필드가 계산됨 | 스킬이 만들 수 없음. 사용자나 워드 설치본이 필요 |
 | LibreOffice의 PDF 변환 | 별도의 독립 오피스 엔진이 패키지를 파싱함 | 워드의 배치 엔진은 아님 |
 | HTML 렌더를 인쇄한 PDF | 내용, 쪽 상자, 여백, 표 폭, 들여쓰기, 페이지 나눔 | 워드의 줄 나눔과 글꼴 조형 |
 | PDF에서 뽑은 쪽 이미지 | 스펙이 서술한 것을 독자가 봄 | 워드 충실도의 증명은 아님 |
@@ -51,7 +51,7 @@
 
 ## 4. 독립 읽기
 
-두 번째 리더가 자기 검사로 잡지 못하는 것을 잡습니다. 빠진 파트, 깨진 관계, 리더가 무시하는 스타일이 그렇습니다. 이 기계에서는 이렇게 합니다.
+두 번째 리더가 자기 검사로 잡지 못하는 것을 잡습니다. 빠진 파트, 깨진 관계, 리더가 무시하는 스타일이 그렇습니다. 기계에 있는 것 중에서 골라 실행합니다.
 
 ```bash
 textutil -convert txt -stdout out.docx | head -40      # macOS. 항상 있음

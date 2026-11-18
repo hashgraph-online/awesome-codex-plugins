@@ -1,4 +1,4 @@
-# Skill-Maker를 위한 Anthropic 공식 참조
+# Anthropic 공식 참조
 
 ## Contents
 

@@ -4,7 +4,7 @@
 
 ## 1. 단계 계약
 
-런타임의 스킬 기능으로 각 단계 스킬을 불러오고(스킬이 일반 파일이면 그 `SKILL.md`를 읽고) 첫 단계부터 따릅니다. 실행 안의 모든 일은 그 단계가 소유합니다.
+런타임의 스킬 기능으로 각 단계 스킬을 불러오거나, 스킬이 일반 파일이면 같은 설치본에서 이 스킬 폴더 옆의 단계 `SKILL.md`(예: `../<stage>/SKILL.md`)를 읽고 첫 단계부터 따릅니다. 실행 안의 모든 일은 그 단계가 소유합니다.
 
 | Stage | Request passed to the stage | Artifact that must exist before the next stage | Passed forward |
 |---|---|---|---|

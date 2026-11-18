@@ -140,7 +140,7 @@ The fixtures above are inputs. The **results** of running them live outside the 
 
 These are normative.
 
-- SK-E-1: Keep execution results **outside the skill folder**, under `.omo/evidence/<skill>/iteration-N/`. A shipped skill does not carry its own run history.
+- SK-E-1: Keep execution results **outside the skill folder**, under `.hyper/evidence/<skill>/iteration-N/`. A shipped skill does not carry its own run history.
 - SK-E-2: Every run leaves `timing.json` (tokens and wall time) and `grading.json` (per-assertion pass/fail **plus the evidence string**). A `passed: true` with no evidence string is not evidence.
 - SK-E-3: Run each execution in an **independent session**. Reusing one session lets the earlier run's context contaminate the next.
 - SK-E-4: Check mechanical assertions (valid JSON, row counts, file existence) with a **script**, not a judge.
@@ -150,7 +150,7 @@ These are normative.
 The layout:
 
 ```text
-.omo/evidence/<skill>/iteration-N/
+.hyper/evidence/<skill>/iteration-N/
 ├── benchmark.json
 ├── feedback.json
 └── eval-<case>/

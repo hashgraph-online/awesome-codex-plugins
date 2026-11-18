@@ -4,11 +4,13 @@ description: "Use this skill when someone asks to clean up, delete, or consolida
 compatibility: Needs file read, search, edit, a shell, and the project's own test or check command. The bundled scripts need bash 3.2 or newer, jq, and `shasum` for the mutation proof. Bundled scan and proof run offline; the proof only runs the test command the caller names.
 ---
 
-@rules/categories.md
-@rules/existence-ladder.md
-@rules/behavior-lock.md
-@rules/test-junk.md
-@rules/correction-and-report.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/categories.md](rules/categories.md)
+- [rules/existence-ladder.md](rules/existence-ladder.md)
+- [rules/behavior-lock.md](rules/behavior-lock.md)
+- [rules/test-junk.md](rules/test-junk.md)
+- [rules/correction-and-report.md](rules/correction-and-report.md)
 
 # Hyper Cleanup
 

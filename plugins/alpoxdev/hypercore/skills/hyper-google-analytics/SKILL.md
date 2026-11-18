@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when the user asks to audit an existing Goo
 compatibility: Needs file read, search, edit, and a shell with curl for the live-page check. Reading reports and property configuration needs application default credentials or `GOOGLE_APPLICATION_CREDENTIALS` with the `analytics.readonly` scope and the Data API and Admin API enabled on the cloud project; property writes additionally need `analytics.edit` and property Editor access. Without those credentials the run stops at the step that needs them and never creates an account, a property, or a credential by itself.
 ---
 
-@rules/ga-workflow.md
-@rules/safety-gates.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/ga-workflow.md](rules/ga-workflow.md)
+- [rules/safety-gates.md](rules/safety-gates.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Google Analytics
 

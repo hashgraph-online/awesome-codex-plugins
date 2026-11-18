@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when a web page or platform the user needs 
 compatibility: Needs a shell with curl and file write access for `.hyper/browsing/`. jq, python3 with curl_cffi, yt-dlp, and a browser-automation capability are optional; each tier that needs a missing one is marked `skipped` with the reason, never simulated. Network access is required. Login, CAPTCHA solving, proxies, and bulk collection stay gated in the skill's own contract.
 ---
 
-@rules/access-ladder.md
-@rules/access-policy.md
-@rules/evidence-and-report.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/access-ladder.md](rules/access-ladder.md)
+- [rules/access-policy.md](rules/access-policy.md)
+- [rules/evidence-and-report.md](rules/evidence-and-report.md)
 
 # Hyper Browsing
 

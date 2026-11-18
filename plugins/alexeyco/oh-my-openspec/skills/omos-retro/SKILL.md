@@ -11,8 +11,9 @@ description: "Retrospect a finished run via $oh-my-openspec:omos-retro — compi
 
 # omos-retro
 
-Mine the current session for defects in the plugin's own prompts. Read-only:
-this command never edits anything — findings are for a future PR.
+Review the current run for defects in the plugin's prompts and for process
+friction or verification gaps visible in its evidence. Read-only: this command
+never edits anything — findings are for a future change.
 
 ## Flow
 
@@ -24,12 +25,16 @@ From the current session, assemble exactly:
   `$oh-my-openspec:omos-archive`) and
   their targets;
 - every role dispatch: role, one-line task, final report verbatim;
-- friction lines: `BLOCKED:`, `FAIL`, `NEEDS-FIX`, re-dispatches, extra
-  critic/verify rounds, user corrections ("no, I meant…");
+- every scenario verification result and task completion/defer status present
+  in the role reports, including `NO-REGRESSION-TEST:` evidence;
+- process evidence verbatim: repeated `BLOCKED:` or `FAIL` outcomes,
+  re-dispatches, extra critic/verify rounds, `PLAN DIVERGENCE:` reports,
+  user approvals or corrections, and unresolved scenario/task gaps;
 - `git diff --stat` at the end of the run.
 
-Keep the bundle raw — quoted lines, not your paraphrase of them. The
-retrospector's findings must be quotable from it.
+Keep the bundle raw and ordered — quoted lines and reports, not your
+paraphrase. Include only events and gaps evidenced by this run's artifacts;
+the retrospector's findings must be quotable from the bundle.
 
 ### 2. Dispatch
 
@@ -49,6 +54,7 @@ edits), not an action of this command.
 - Never edit `agents/`, `skills/`, `core/`, or any project file from this
   command.
 - The bundle is the only evidence: do not feed the retrospector
-  interpretations, and do not fill gaps from memory.
+  interpretations, and do not fill gaps from memory. Prompt and process
+  findings share the eight-finding limit.
 - An empty run (no role dispatches) → say so and stop; do not invent a
   session to analyze.

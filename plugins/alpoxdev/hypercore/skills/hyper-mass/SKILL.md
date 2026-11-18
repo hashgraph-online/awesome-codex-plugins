@@ -4,8 +4,10 @@ description: '[Hyper] Use this skill when the user asks for dependency-ordered m
 compatibility: "Works best with a subagent or background-agent capability and, when present, a native workflow or DAG engine; a local shell for run state, handoff files, and evidence checks. Without subagents the leader runs each node itself, which removes parallelism and must be recorded."
 ---
 
-@rules/graph-planning.md
-@rules/run-and-recovery.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/graph-planning.md](rules/graph-planning.md)
+- [rules/run-and-recovery.md](rules/run-and-recovery.md)
 
 # Hyper Mass Skill
 
@@ -256,4 +258,4 @@ Phase rules:
 
 ### Evidence grade
 
-The procedure is this package's own adaptation. The upstream skills were read at the pinned commit; their OmO-only machinery (its SDK, eval-cell workflow proxy, category names, and product-specific CLI) was replaced with capability-neutral wording, and the numeric caps above come from the family contract and the repository's loop rules rather than from the upstream defaults.
+The procedure is this package's own adaptation of the sources pinned above, written in capability-neutral wording. The numeric caps come from the family contract and the repository's loop rules, not from upstream defaults.

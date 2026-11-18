@@ -3,15 +3,15 @@ Electron을 위한 `hyper-architecture` 안의 stack guide입니다. `rules/stac
 - Scope: React와 TypeScript, Tailwind CSS v4, TanStack Router file-based routing, TanStack Query로 renderer를 만들고 electron-vite 또는 Electron Forge의 Vite plugin으로 build하는 Electron desktop application을 만들거나, 감사하거나, 재구성하거나, 검토할 때 사용합니다. process 경계, preload bridge와 typed IPC, window와 protocol 설정, 보안 설정과 fuse, renderer routing과 data, packaging, signing, update, test, 성능이 대상입니다. Tauri app, browser-only Vite app, NW.js, 또는 project 작업이 없는 문서 요약에는 사용하지 않습니다.
 - Runtime needs: target의 `package.json`과 lockfile, `electron.vite.config.*` 또는 `forge.config.*`, packager config, `src/main/`, `src/preload/`, renderer entry가 필요합니다. version 주장에는 `references/official/electron/electron-2026-11-08.md`의 날짜가 있는 snapshot을 사용하고, packaging과 성능 주장에는 패키징한 빌드가 필요합니다.
 
-@architecture-rules.md
-@../../rules/electron/project-structure.md
-@../../rules/electron/processes-and-ipc.md
-@../../rules/electron/security.md
-@../../rules/electron/renderer.md
-@../../rules/electron/packaging.md
-@../../rules/electron/testing.md
-@../../rules/electron/performance.md
-@../../references/official/electron/electron-2026-11-08.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/electron/project-structure.md](../../rules/electron/project-structure.md)
+- [../../rules/electron/processes-and-ipc.md](../../rules/electron/processes-and-ipc.md)
+- [../../rules/electron/security.md](../../rules/electron/security.md)
+- [../../rules/electron/renderer.md](../../rules/electron/renderer.md)
+- [../../rules/electron/packaging.md](../../rules/electron/packaging.md)
+- [../../rules/electron/testing.md](../../rules/electron/testing.md)
+- [../../rules/electron/performance.md](../../rules/electron/performance.md)
+- [../../references/official/electron/electron-2026-11-08.md](../../references/official/electron/electron-2026-11-08.md)
 
 # Electron Architecture
 

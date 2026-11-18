@@ -1,7 +1,7 @@
 ---
 name: hyper-report
 description: "Use this skill when the user asks for a report as a finished document rather than a chat answer: a briefing, business or research report, proposal, status or analysis write-up, or one-page summary. It fixes audience and decision up front, keeps every number and claim traceable to a source, and renders one authored Markdown source into HTML, print PDF, per-page PNG/JPG images, DOCX, or Markdown, with tables and figures where they carry the reader. Do not use it for slide decks, spreadsheet workbooks, single generated images, or reports that only need to live in chat."
-compatibility: "Rendering needs a Chromium-family headless browser (chrome-headless-shell, Chromium, or Edge) for HTML, PDF, and page images; JPG conversion needs sips (macOS) or ImageMagick; DOCX needs textutil (macOS). The Markdown-to-HTML, pagination, and layout-check pipeline needs only bash 3.2+, awk, and the bundled runtime assets. Missing renderers are detected and reported, never installed."
+compatibility: "Authoring needs file read and write. HTML assembly uses bash 3.2+, awk, and bundled assets. Rendered layout checks, PDF, and page images use a Chromium-family headless browser and jq. JPG conversion needs sips or ImageMagick, and DOCX conversion needs textutil on macOS. Report missing tools."
 ---
 
 <output_language>

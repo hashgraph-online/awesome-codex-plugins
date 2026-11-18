@@ -3,13 +3,13 @@ Stack guide inside `hyper-architecture` for Expo. Read it when `rules/stack-dete
 - Scope: Use this skill when creating, reviewing, or refactoring scalable Android and iOS app architecture with React Native, Expo, Expo Router, and TypeScript, including project structure, routing, feature boundaries, native configuration, data/state, platform code, and validation. Do not use for bare React Native projects without Expo, web-only React apps, or docs-only summaries.
 - Runtime needs: Requires an Expo project or an explicit request to create one; current API claims may require official Expo and React Native documentation plus local package inspection.
 
-@architecture-rules.md
-@../../rules/expo/project-structure.md
-@../../rules/expo/routing-and-navigation.md
-@../../rules/expo/data-state-and-boundaries.md
-@../../rules/expo/native-platform-and-security.md
-@../../references/official/expo/expo-react-native-2026-11-04.md
-@../../rules/expo/testing-and-validation.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/expo/project-structure.md](../../rules/expo/project-structure.md)
+- [../../rules/expo/routing-and-navigation.md](../../rules/expo/routing-and-navigation.md)
+- [../../rules/expo/data-state-and-boundaries.md](../../rules/expo/data-state-and-boundaries.md)
+- [../../rules/expo/native-platform-and-security.md](../../rules/expo/native-platform-and-security.md)
+- [../../references/official/expo/expo-react-native-2026-11-04.md](../../references/official/expo/expo-react-native-2026-11-04.md)
+- [../../rules/expo/testing-and-validation.md](../../rules/expo/testing-and-validation.md)
 
 # Expo Architecture
 

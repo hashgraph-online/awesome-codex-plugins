@@ -26,10 +26,10 @@ Use this reference when creating or reviewing the result workspace for an SEO au
 
 Create this directory at the repository root, not inside the skill folder.
 
-Canonical generated assets:
+Canonical generated assets, where `<skill-dir>` is the folder this skill is installed in (`skills/hyper-seo` inside the authoring repository, the installed skill folder elsewhere):
 
-- template: `skills/hyper-seo/assets/dashboard-template.html`
-- renderer: `skills/hyper-seo/scripts/render-dashboard.sh`
+- template: `<skill-dir>/assets/dashboard-template.html`
+- renderer: `<skill-dir>/scripts/render-dashboard.sh`
 - renderer runtime: bash 3.2+ with `jq`
 
 ## `results.json`
@@ -248,7 +248,7 @@ window.__SEO_RESULTS__ = { /* same content as results.json */ };
 
 ## `dashboard.html`
 
-Copy it from `skills/hyper-seo/assets/dashboard-template.html`.
+Copy it from `<skill-dir>/assets/dashboard-template.html`.
 
 Required behavior:
 
@@ -303,7 +303,7 @@ Canonical phase order: `scope` → `measurement` → `technical` → `platform_p
 3. Add findings to `results.json` as each phase completes.
 4. After all phases finish, set `status` to `complete` and calculate `overall_grade`.
 4-1. In Optimize mode, populate `score_history`, `best_run`, and `validator`, then record the evidence for the highest score or plateau.
-5. Run `bash scripts/render-dashboard.sh <artifact-dir>` to generate `dashboard.html` and `results.js`.
+5. Run `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>` to generate `dashboard.html` and `results.js`.
 6. Write `report.md` and `sources.md` as well.
 7. Open `dashboard.html` in a browser if the runtime is safe.
 
@@ -336,7 +336,7 @@ Apply the thresholds below to the weighted score.
 ### Render Order
 
 ```bash
-bash skills/hyper-seo/scripts/render-dashboard.sh .hyper/seo/my-site
+bash <skill-dir>/scripts/render-dashboard.sh .hyper/seo/my-site
 open .hyper/seo/my-site/dashboard.html
 ```
 

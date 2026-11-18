@@ -6,7 +6,8 @@ so `hyper-skill` stays self-contained, and it is a summary rather than a copy: w
 base disagree, the base wins. The pin lets a reader tell a stale snapshot from drift, because the base
 moves on its own schedule.
 
-It was reconciled against the base on 2026-11-04.
+This file was reconciled against the base on 2026-11-04, and again on 2026-11-19 for one change: the
+evidence directory path now reads `.hyper/evidence/`. The rest still reflects the 2026-11-03 working tree.
 
 The copy names no other skill (`rules/self-containment.md`, SK-S-2).
 
@@ -113,7 +114,7 @@ that probes nothing new adds calls rather than evidence.
 - Run each case twice by default - once with the skill and once without it, or against a previous version.
   A deterministic skill that cannot produce the artifact without itself is the recorded exception.
 - When improving an existing skill, snapshot it first and use that snapshot as the baseline (`old_skill/`).
-- Keep execution results **outside** the skill folder, under `.omo/evidence/<skill>/iteration-N/`, with
+- Keep execution results **outside** the skill folder, under `.hyper/evidence/<skill>/iteration-N/`, with
   `timing.json` and `grading.json` per run and `feedback.json` per iteration. Fixtures stay in
   `assets/evals/`; a packaged tool's own case file is added only when that tool is used, and kept in sync.
 

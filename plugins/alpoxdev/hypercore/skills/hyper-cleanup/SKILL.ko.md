@@ -4,11 +4,13 @@ description: "이미 동작하는 저장소에서 코드, 테스트, 주석, 군
 compatibility: 파일 읽기·검색·편집, 셸, 프로젝트 자체의 테스트나 검사 명령이 필요하다. bundled script는 bash 3.2 이상과 jq, 변이 증명에는 `shasum`이 필요하다. 스캔과 증명은 오프라인에서 돌고, 증명은 호출자가 지정한 테스트 명령만 실행한다.
 ---
 
-@rules/categories.md
-@rules/existence-ladder.md
-@rules/behavior-lock.md
-@rules/test-junk.md
-@rules/correction-and-report.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/categories.md](rules/categories.md)
+- [rules/existence-ladder.md](rules/existence-ladder.md)
+- [rules/behavior-lock.md](rules/behavior-lock.md)
+- [rules/test-junk.md](rules/test-junk.md)
+- [rules/correction-and-report.md](rules/correction-and-report.md)
 
 # Hyper Cleanup
 

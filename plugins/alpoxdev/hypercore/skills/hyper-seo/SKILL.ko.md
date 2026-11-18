@@ -4,8 +4,10 @@ description: "[Hyper] 사용자가 이름이 지정된 대상의 SEO, AEO, GEO, 
 compatibility: 라이브 웹 접근, 브라우저 점검, 로컬 소스 검색, 가능한 경우 Lighthouse나 Core Web Vitals 데이터, 리포트 산출물 쓰기 권한이 있으면 가장 잘 동작합니다.
 ---
 
-@rules/seo-workflow.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/seo-workflow.md](rules/seo-workflow.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper SEO
 
@@ -19,7 +21,7 @@ compatibility: 라이브 웹 접근, 브라우저 점검, 로컬 소스 검색, 
 | 범위 | 대상 분류, 측정 방법 선택, 온페이지·기술·콘텐츠·Core Web Vitals·AEO·GEO·LLMO 평가, 새 사이트 세팅 계획, 점수 산정, 발견 사항, 개선안, 리포트 워크스페이스를 담당한다. 감사 대상 밖의 구현, 릴리스 게이트, 페이지·제품 디자인, 허락받지 않은 소유자 자격 증명 기반 계정 작업, 대상 사이트나 콘텐츠 집합이 없는 광범위한 시장 조사는 담당하지 않는다. |
 | 권한 | 시스템/하네스와 사용자 지시 > 감사 대상 자체 파일과 라이브 관측 > 공식 플랫폼 문서 > 이 스킬 > 휴리스틱 선호. 도구·lab·synthetic·heuristic 관측은 공식 요구사항으로 승격하지 않는다. |
 | 근거 | 점수를 매기기 전에 대상 자체 파일, 렌더된 페이지, 라이브 응답을 읽고, 모든 critical·warning 발견 사항에 명령 출력·URL·파일 경로·probe 결과를 붙인다. 확인할 수 없는 점검은 `unknown`, 해당 없는 점검은 `not-applicable`로 기록하고, 점수·순위·포함·인용을 지어내지 않는다. |
-| 도구 | 사용 가능한 읽기/검색/브라우저 도구를 쓰고, 대시보드는 `bash scripts/render-dashboard.sh <artifact-dir>`로 렌더한다. 웹 검색, 브라우저 점검, 필드 Core Web Vitals, Search Console, AI 인용 probe는 실제로 사용 가능할 때만 쓰고, 없으면 능력 한계와 더 낮은 등급의 대체 방법을 밝힌다. |
+| 도구 | 사용 가능한 읽기/검색/브라우저 도구를 쓰고, 대시보드는 `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`로 렌더한다. 웹 검색, 브라우저 점검, 필드 Core Web Vitals, Search Console, AI 인용 probe는 실제로 사용 가능할 때만 쓰고, 없으면 능력 한계와 더 낮은 등급의 대체 방법을 밝힌다. |
 | 루프 | optimize 모드 전용으로 `audit -> 수정 또는 개선안 -> re-audit`을 유한하게 반복하며 기본 예산은 3회다. 피드백은 비교 가능한 재감사 증거, 지표는 `unknown`·`not-applicable` 카테고리를 제외한 100점 점수, 가드는 비교 가능한 카테고리 회귀 없음과 증거 등급 승격 없음, 중단은 목표 달성·예산 소진·정체·가드 실패·외부 자격 증명이나 사업 판단이 필요한 시점이다. |
 | 출력 | `.hyper/seo/[slug]/`에 `results.json`, `results.js`, `dashboard.html`, `report.md`, `sources.md`, complex·optimize 모드의 `flow.json`을 둔다. simple·setup 모드는 `report.md`와 `sources.md`가 최소다. `sources.md`는 URL, 날짜, 적용 주장, 증거 등급, 한계를 적는 출처 원장이다. |
 | 검증 | 완료 시 `rules/validation.md`를 적용한다. 모든 critical·warning 발견 사항에 증거가 있고, 점수는 관측 증거에서 나오며 `unknown`·`not-applicable`을 명시적으로 처리하고, optimize 모드는 기준선·평가자·예산·가드·폐기한 반복·중단 사유·비교 가능한 최고 검증 결과를 기록한다. 패키지 변경 시에는 집중 코퍼스 검증기, 저장소 표준 게이트, 패키지 테스트를 함께 실행한다. |
@@ -116,7 +118,7 @@ compatibility: 라이브 웹 접근, 브라우저 점검, 로컬 소스 검색, 
 - Rules: [rules/seo-workflow.md](rules/seo-workflow.md)가 단계 절차와 optimize 루프를, [rules/validation.md](rules/validation.md)가 완료 게이트를 소유합니다.
 - References: [references/seo-fundamentals.md](references/seo-fundamentals.md)(E-E-A-T, Core Web Vitals, 스키마), [references/aeo-geo-guide.md](references/aeo-geo-guide.md)(AEO, GEO, LLMO), [references/seo-checklist.md](references/seo-checklist.md)(점검 항목), [references/site-setup.md](references/site-setup.md)(setup 모드), [references/artifact-spec.md](references/artifact-spec.md)(워크스페이스와 `results.json` 스키마).
 - Assets: 한국어·영어 리포트 템플릿, 대시보드 템플릿, trigger와 행동 사례를 담은 `assets/evals/`.
-- Script: `bash scripts/render-dashboard.sh <artifact-dir>`는 Bash 3.2+와 jq가 필요하고, 대시보드 템플릿을 복사해 `results.json`을 `results.js`에 넣고 `dashboard.html`을 씁니다. payload 구조가 잘못되면 문제가 된 `results.json` 필드를 밝히고 0이 아닌 값으로 종료합니다.
+- Script: `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`는(여기서 `<skill-dir>`는 이 스킬이 설치된 폴더다) Bash 3.2+와 jq가 필요하고, 대시보드 템플릿을 복사해 `results.json`을 `results.js`에 넣고 `dashboard.html`을 씁니다. payload 구조가 잘못되면 문제가 된 `results.json` 필드를 밝히고 0이 아닌 값으로 종료합니다.
 
 </skill_architecture>
 
@@ -226,7 +228,7 @@ simple 모드는 `report.md`와 `sources.md`가 최소입니다. complex나 opti
 
 새 리포트는 기본적으로 [assets/report.template.ko.md](assets/report.template.ko.md)를 씁니다. 영어가 명시적으로 필요할 때만 [assets/report.template.md](assets/report.template.md)를 씁니다.
 
-모은 근거로 `results.json`을 먼저 쓰고, 로컬 브라우저에서 바로 보도록 `results.js`를 만들고, `bash scripts/render-dashboard.sh <artifact-dir>`로 `dashboard.html`을 렌더한 뒤 `report.md`와 `sources.md`를 씁니다. `sources.md`는 출처 원장으로, 외부나 공식 주장마다 URL, 접근일이나 게시일, 적용 주장, 증거 등급, 범위·가용성 한계를 적습니다.
+모은 근거로 `results.json`을 먼저 쓰고, 로컬 브라우저에서 바로 보도록 `results.js`를 만들고, `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`로 `dashboard.html`을 렌더한 뒤 `report.md`와 `sources.md`를 씁니다. `sources.md`는 출처 원장으로, 외부나 공식 주장마다 URL, 접근일이나 게시일, 적용 주장, 증거 등급, 범위·가용성 한계를 적습니다.
 
 complex나 optimize 모드에서 `flow.json`은 `scope` → `measurement` → `technical` → `platform_policy` → `onpage` → `content` → `aeo` → `geo` → `report` 순서로 단계를 추적합니다.
 

@@ -4,13 +4,15 @@ description: "Use this skill when the user asks to read, extract from, or produc
 compatibility: Needs macOS 11+ with the PDFKit, CoreGraphics, CoreText, and Vision frameworks, and bash 3.2+. The HTML path additionally needs one Chromium-family binary; without it that path reports blocked and the layout-spec path still runs. No Python, no qpdf, no poppler, no LibreOffice, no external service.
 ---
 
-@rules/korean-typesetting.md
-@rules/extraction.md
-@rules/html-to-pdf.md
-@rules/ocr.md
-@rules/accessibility.md
-@rules/verification.md
-@rules/research-notes.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/korean-typesetting.md](rules/korean-typesetting.md)
+- [rules/extraction.md](rules/extraction.md)
+- [rules/html-to-pdf.md](rules/html-to-pdf.md)
+- [rules/ocr.md](rules/ocr.md)
+- [rules/accessibility.md](rules/accessibility.md)
+- [rules/verification.md](rules/verification.md)
+- [rules/research-notes.md](rules/research-notes.md)
 
 # Hyper PDF
 

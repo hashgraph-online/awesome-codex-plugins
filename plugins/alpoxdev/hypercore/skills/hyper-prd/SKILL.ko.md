@@ -4,10 +4,12 @@ description: "[Hyper] 웹, iOS, 안드로이드, 데스크톱 제품의 PRD(제�
 compatibility: 저장소와 기존 문서 맥락을 읽으려면 파일 읽기와 검색이, `.hyper/prd/` 쓰기에는 쓰기 가능한 작업 디렉터리가 필요하다. 네트워크, 트래커, 하위 에이전트는 필요 없다. 선택 단계인 맥락 없는 독자 테스트는 하위 에이전트를 쓸 수 있을 때만 실행한다.
 ---
 
-@rules/intake-and-questions.md
-@rules/requirements-writing.md
-@rules/validation.md
-@references/prd-template.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/intake-and-questions.md](rules/intake-and-questions.md)
+- [rules/requirements-writing.md](rules/requirements-writing.md)
+- [rules/validation.md](rules/validation.md)
+- [references/prd-template.md](references/prd-template.md)
 
 # Hyper PRD Skill
 

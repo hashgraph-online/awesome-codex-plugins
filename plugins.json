@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-18",
-  "total": 438,
+  "total": 439,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -3695,6 +3695,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/questionpunk/codex-plugin/HEAD/plugins/questionpunk/plugin.json"
+    },
+    {
+      "name": "qURL",
+      "url": "https://github.com/layervai/codex-plugins",
+      "owner": "layervai",
+      "repo": "codex-plugins",
+      "description": "Share a running local app with approved people or agents from Codex through OpenNHP identity-first access, without deployment, a publisher account or a public inbound app port.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/layervai/codex-plugins/HEAD/plugins/qurl/plugin.json"
     },
     {
       "name": "Read Image",

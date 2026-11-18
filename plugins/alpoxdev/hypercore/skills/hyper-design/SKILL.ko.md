@@ -4,11 +4,13 @@ description: "[Hyper] AI가 만든 것처럼 보이면 안 되는 인터페이�
 compatibility: 대상 프로젝트에 대한 파일 읽기·검색·편집과 `.hyper/design/` 쓰기 권한이 필요하다. 정적 검출과 보고서 검증에는 bash 3.2+와 jq 1.6+가 필요하다. 렌더 검사는 이미 사용 가능한 브라우저 기능을 쓰고, 없으면 static-only로 보고한다. 이 스킬은 브라우저, 폰트, 의존성을 설치하지 않는다.
 ---
 
-@rules/workflow.md
-@rules/design-direction.md
-@rules/craft-floor.md
-@rules/delivery-gate.md
-@rules/validation-and-reporting.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/workflow.md](rules/workflow.md)
+- [rules/design-direction.md](rules/design-direction.md)
+- [rules/craft-floor.md](rules/craft-floor.md)
+- [rules/delivery-gate.md](rules/delivery-gate.md)
+- [rules/validation-and-reporting.md](rules/validation-and-reporting.md)
 
 # Hyper Design
 

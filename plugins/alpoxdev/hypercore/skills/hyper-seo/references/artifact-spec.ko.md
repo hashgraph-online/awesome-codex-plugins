@@ -26,10 +26,10 @@ SEO 감사 실행의 결과 워크스페이스를 만들거나 검토할 때 이
 
 이 디렉터리는 스킬 폴더 안이 아니라 저장소 루트에 만든다.
 
-정식 생성 자산:
+정식 생성 자산(`<skill-dir>`는 이 스킬이 설치된 폴더이며, 제작 저장소에서는 `skills/hyper-seo`이고 다른 프로젝트에서는 설치된 스킬 폴더다):
 
-- template: `skills/hyper-seo/assets/dashboard-template.html`
-- renderer: `skills/hyper-seo/scripts/render-dashboard.sh`
+- template: `<skill-dir>/assets/dashboard-template.html`
+- renderer: `<skill-dir>/scripts/render-dashboard.sh`
 - renderer runtime: bash 3.2+와 `jq`
 
 ## `results.json`
@@ -248,7 +248,7 @@ window.__SEO_RESULTS__ = { /* results.json과 동일한 내용 */ };
 
 ## `dashboard.html`
 
-`skills/hyper-seo/assets/dashboard-template.html`에서 복사한다.
+`<skill-dir>/assets/dashboard-template.html`에서 복사한다.
 
 필수 동작:
 
@@ -303,7 +303,7 @@ Canonical 단계 순서: `scope` → `measurement` → `technical` → `platform
 3. 각 phase 완료 시 `results.json`에 findings를 추가한다.
 4. 모든 phase 완료 후 `status`를 `complete`로 설정하고 `overall_grade`를 계산한다.
 4-1. Optimize mode에서는 `score_history`, `best_run`, `validator`를 채우고 최고 점수 또는 plateau 근거를 기록한다.
-5. `bash scripts/render-dashboard.sh <artifact-dir>`를 실행해 `dashboard.html`과 `results.js`를 생성한다.
+5. `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`를 실행해 `dashboard.html`과 `results.js`를 생성한다.
 6. `report.md`와 `sources.md`도 작성한다.
 7. 런타임이 안전하면 `dashboard.html`을 브라우저에서 연다.
 
@@ -336,7 +336,7 @@ overall_score = Σ(category_score × category_weight) / Σ(category_weight)
 ### 렌더 순서
 
 ```bash
-bash skills/hyper-seo/scripts/render-dashboard.sh .hyper/seo/my-site
+bash <skill-dir>/scripts/render-dashboard.sh .hyper/seo/my-site
 open .hyper/seo/my-site/dashboard.html
 ```
 

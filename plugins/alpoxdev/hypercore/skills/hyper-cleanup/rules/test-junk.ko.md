@@ -65,9 +65,11 @@
 
 행마다 소유자를 바이트 단위로 되돌리고, 변이는 절대 커밋하지 않습니다. 그 복원을 `scripts/mutation-proof.sh`가 합니다.
 
+다음 예시는 작업 대상 프로젝트에서 실행합니다. `skill_dir`에는 설치한 `SKILL.md`가 있는 폴더의 전체 경로를 지정합니다.
+
 ```sh
-bash scripts/mutation-proof.sh --file src/pricing.ts --find 'if (total > 0)' --replace 'if (total >= 0)' --test 'npm test -- pricing'
-bash scripts/mutation-proof.sh --file src/pricing.ts --find 'a' --replace 'b' --test 'npm test -- pricing' --json
+bash "$skill_dir/scripts/mutation-proof.sh" --file src/pricing.ts --find 'if (total > 0)' --replace 'if (total >= 0)' --test 'npm test -- pricing'
+bash "$skill_dir/scripts/mutation-proof.sh" --file src/pricing.ts --find 'a' --replace 'b' --test 'npm test -- pricing' --json
 ```
 
 스크립트는 판정 하나를 냅니다. 변이가 들어간 상태에서 테스트가 실패하면 `caught`, 통과하면 `survived`입니다. 보고 전에 파일을 복원하고 SHA-256을 비교하므로 `survived` 판정도 트리를 깨끗하게 남깁니다. 종료 코드 0은 판정과 무관하게 증명이 돌았다는 뜻이고, 2는 사용법이나 대상 오류, 3은 복원을 확인하지 못했으며 백업 경로를 출력합니다. `--find`는 정확히 한 번 나와야 하며, 한 실행에 변이 하나를 유지합니다.
@@ -79,9 +81,9 @@ bash scripts/mutation-proof.sh --file src/pricing.ts --find 'a' --replace 'b' --
 `scripts/scan-test-junk.sh`는 정적 읽기로 보이는 분류를 보고합니다. 그 발견은 원장의 후보이고 삭제가 아닙니다.
 
 ```sh
-bash scripts/scan-test-junk.sh tests/ src/pricing.test.ts
-bash scripts/scan-test-junk.sh tests/ --json
-bash scripts/scan-test-junk.sh --self-test
+bash "$skill_dir/scripts/scan-test-junk.sh" tests/ src/pricing.test.ts
+bash "$skill_dir/scripts/scan-test-junk.sh" tests/ --json
+bash "$skill_dir/scripts/scan-test-junk.sh" --self-test
 ```
 
 | 코드 | 잡는 것 |

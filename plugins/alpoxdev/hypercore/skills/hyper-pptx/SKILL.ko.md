@@ -4,9 +4,11 @@ description: "사용자가 파워포인트 덱을 만들거나, 고치거나, �
 compatibility: bash 3.2+, jq, zip, unzip, xmllint, perl과 Chromium 계열 브라우저 실행 파일 하나(Playwright chrome-headless-shell, Chromium, Chrome, Edge, Brave)가 필요합니다. 브라우저는 미리보기, 슬라이드 이미지, PDF, 배치 검사에 씁니다. Python, Node, 오피스 제품은 필요 없고 아무것도 설치하지 않습니다.
 ---
 
-@rules/deck-narrative.ko.md
-@rules/layout-and-typography.ko.md
-@rules/render-and-verify.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/deck-narrative.ko.md](rules/deck-narrative.ko.md)
+- [rules/layout-and-typography.ko.md](rules/layout-and-typography.ko.md)
+- [rules/render-and-verify.ko.md](rules/render-and-verify.ko.md)
 
 # Hyper PPTX
 

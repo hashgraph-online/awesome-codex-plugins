@@ -3,20 +3,20 @@
 - 범위: Hono 애플리케이션을 만들거나 점검하거나 구조를 바꿀 때, 또는 기존 코드베이스에 Hono를 도입할 때 사용합니다. 앱 구성, 라우트 모듈, 미들웨어, 검증, 데이터베이스와 ORM 경계, Drizzle, 마이그레이션, 오류 처리, OpenAPI/Swagger, 테스트, 타입이 붙은 RPC를 건드리는 작업이 대상입니다. 코드를 바꾸기 전에 Hono 아키텍처 규칙을 강제합니다. Hono가 아닌 프레임워크, 아키텍처 경계를 건드리지 않는 문구 편집, Hypercore 관례 없이 공식 Hono 기본값만 원하는 요청에는 쓰지 않습니다.
 - 실행 조건: Hono 애플리케이션에서 저장소를 살펴보고 공식 Hono 문서를 확인하며 직접 코드를 고칠 때 가장 잘 맞습니다.
 
-@architecture-rules.ko.md
-@../../rules/hono/project-structure.ko.md
-@../../rules/hono/routes.ko.md
-@../../rules/hono/handlers.ko.md
-@../../rules/hono/middleware.ko.md
-@../../rules/hono/validation.ko.md
-@../../rules/hono/database.ko.md
-@../../rules/hono/openapi.ko.md
-@../../rules/hono/errors.ko.md
-@../../rules/hono/testing-rpc.ko.md
-@../../rules/hono/platform.ko.md
-@../../rules/hono/conventions.ko.md
-@../../references/official/hono/hono-docs.ko.md
-@../../references/official/hono/drizzle-docs.ko.md
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/hono/project-structure.ko.md](../../rules/hono/project-structure.ko.md)
+- [../../rules/hono/routes.ko.md](../../rules/hono/routes.ko.md)
+- [../../rules/hono/handlers.ko.md](../../rules/hono/handlers.ko.md)
+- [../../rules/hono/middleware.ko.md](../../rules/hono/middleware.ko.md)
+- [../../rules/hono/validation.ko.md](../../rules/hono/validation.ko.md)
+- [../../rules/hono/database.ko.md](../../rules/hono/database.ko.md)
+- [../../rules/hono/openapi.ko.md](../../rules/hono/openapi.ko.md)
+- [../../rules/hono/errors.ko.md](../../rules/hono/errors.ko.md)
+- [../../rules/hono/testing-rpc.ko.md](../../rules/hono/testing-rpc.ko.md)
+- [../../rules/hono/platform.ko.md](../../rules/hono/platform.ko.md)
+- [../../rules/hono/conventions.ko.md](../../rules/hono/conventions.ko.md)
+- [../../references/official/hono/hono-docs.ko.md](../../references/official/hono/hono-docs.ko.md)
+- [../../references/official/hono/drizzle-docs.ko.md](../../references/official/hono/drizzle-docs.ko.md)
 
 # Hono Architecture Enforcement
 

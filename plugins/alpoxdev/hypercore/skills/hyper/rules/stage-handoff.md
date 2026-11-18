@@ -4,7 +4,7 @@
 
 ## 1. Stage Contracts
 
-Load each stage skill through the runtime's skill mechanism (or read its `SKILL.md` where skills are plain files) and follow it from its first phase. The stage owns everything inside its run.
+Load each stage skill through the runtime's skill mechanism or, where skills are plain files, read that stage's `SKILL.md` beside this skill's own folder in the same installation, as in `../<stage>/SKILL.md`, and follow it from its first phase. The stage owns everything inside its run.
 
 | Stage | Request passed to the stage | Artifact that must exist before the next stage | Passed forward |
 |---|---|---|---|

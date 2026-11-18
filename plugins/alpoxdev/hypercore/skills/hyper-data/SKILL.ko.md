@@ -4,10 +4,12 @@ description: "사용자가 데이터셋(CSV, Parquet, JSON, 데이터베이스 �
 compatibility: bundled 프로브를 실행할 셸(bash 3.2+, jq), 데이터셋 읽기 권한, 그리고 쓸 수 있는 엔진 하나가 필요합니다. duckdb나 polars가 설치된 Python 3 인터프리터, duckdb CLI, 작은 정확한 파일이면 표준 라이브러리로 충분합니다. 없는 엔진은 전제 조건으로 보고하며 이 스킬이 설치하지 않습니다. 차트에는 matplotlib이 필요합니다.
 ---
 
-@rules/engine-selection.ko.md
-@rules/placement.ko.md
-@rules/query-evidence.ko.md
-@rules/charts.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/engine-selection.ko.md](rules/engine-selection.ko.md)
+- [rules/placement.ko.md](rules/placement.ko.md)
+- [rules/query-evidence.ko.md](rules/query-evidence.ko.md)
+- [rules/charts.ko.md](rules/charts.ko.md)
 
 # Hyper Data
 

@@ -3,23 +3,23 @@ Stack guide inside `hyper-architecture` for Axum. Read it when `rules/stack-dete
 - Scope: Use this skill when building, reviewing, restructuring, or auditing an Axum (Rust) HTTP server architecture: project and module structure, Router composition, handlers and extractors, tower and tower-http middleware, request validation, SQLx persistence and migrations, error handling, OpenAPI/Swagger contracts, testing, and tokio server bootstrap. Do not use it for non-Axum Rust frameworks such as Actix Web, Rocket, Poem, or warp, for client-only Rust code, for copy-only edits that cross no architecture boundary, or for requests that want official crate defaults with no Hypercore conventions.
 - Runtime needs: Requires an Axum project or an explicit request to create one. Version and API claims need the official axum, tower, tower-http, sqlx, utoipa, and validator documentation plus local Cargo.toml and Cargo.lock inspection. No bundled script; `cargo check`, `cargo clippy`, and the project test suite are the verification surface.
 
-@architecture-rules.md
-@../../rules/axum/project-structure.md
-@../../rules/axum/routes.md
-@../../rules/axum/handlers.md
-@../../rules/axum/middleware.md
-@../../rules/axum/validation.md
-@../../rules/axum/database.md
-@../../rules/axum/openapi.md
-@../../rules/axum/errors.md
-@../../rules/axum/testing.md
-@../../rules/axum/platform.md
-@../../rules/axum/conventions.md
-@../../references/official/axum/axum-docs.md
-@../../references/official/axum/tower-docs.md
-@../../references/official/axum/sqlx-docs.md
-@../../references/official/axum/utoipa-docs.md
-@../../references/official/axum/ecosystem-docs.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/axum/project-structure.md](../../rules/axum/project-structure.md)
+- [../../rules/axum/routes.md](../../rules/axum/routes.md)
+- [../../rules/axum/handlers.md](../../rules/axum/handlers.md)
+- [../../rules/axum/middleware.md](../../rules/axum/middleware.md)
+- [../../rules/axum/validation.md](../../rules/axum/validation.md)
+- [../../rules/axum/database.md](../../rules/axum/database.md)
+- [../../rules/axum/openapi.md](../../rules/axum/openapi.md)
+- [../../rules/axum/errors.md](../../rules/axum/errors.md)
+- [../../rules/axum/testing.md](../../rules/axum/testing.md)
+- [../../rules/axum/platform.md](../../rules/axum/platform.md)
+- [../../rules/axum/conventions.md](../../rules/axum/conventions.md)
+- [../../references/official/axum/axum-docs.md](../../references/official/axum/axum-docs.md)
+- [../../references/official/axum/tower-docs.md](../../references/official/axum/tower-docs.md)
+- [../../references/official/axum/sqlx-docs.md](../../references/official/axum/sqlx-docs.md)
+- [../../references/official/axum/utoipa-docs.md](../../references/official/axum/utoipa-docs.md)
+- [../../references/official/axum/ecosystem-docs.md](../../references/official/axum/ecosystem-docs.md)
 
 # Axum Architecture Enforcement
 

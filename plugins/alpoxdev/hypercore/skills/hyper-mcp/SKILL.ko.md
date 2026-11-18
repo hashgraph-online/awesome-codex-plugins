@@ -4,9 +4,11 @@ description: "[Hyper] 사용자가 Model Context Protocol(MCP) 작업을 처음�
 compatibility: 대상 저장소의 파일 읽기, 검색, 수정 권한과 `.hyper/mcp/` 쓰기 권한이 필요합니다. 빌드와 검증에는 대상 언어 도구 체인이 필요합니다(MCP Inspector를 쓰려면 Node.js 22.19+ 또는 프로젝트 자체 런타임). 실시간 웹 접근은 선택 사항이며 변하기 쉬운 사실을 다시 확인할 때만 씁니다. 공개, OAuth 로그인, 제3자 서버 실행은 이 스킬 자체 계약에서 계속 제한합니다.
 ---
 
-@rules/mcp-workflow.md
-@rules/mcp-rules.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/mcp-workflow.md](rules/mcp-workflow.md)
+- [rules/mcp-rules.md](rules/mcp-rules.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper MCP
 

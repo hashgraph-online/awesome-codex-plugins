@@ -3,16 +3,16 @@
 - 범위: Vite, React, TanStack Router 파일 기반 라우팅, TanStack Query로 만든 Tauri v2 데스크톱 앱을 도입하거나 검토하거나 변경할 때 사용합니다. 패키징된 Vite SPA, IPC, capability, 보안 경계를 강제합니다. 웹 전용 React/Vite 작업이나 문서 요약만 하는 요청에는 쓰지 않습니다.
 - 실행 조건: 정적 Vite 프런트엔드를 쓰는 Tauri v2, React, `@tanstack/router-plugin/vite`를 쓰는 TanStack Router v1, TanStack Query v5에 맞습니다. Vite가 정적 SPA 자산을 묶고, TanStack Router가 생성된 파일 기반 라우트를 소유하며, TanStack Query가 비동기 데이터 캐시와 최신성을 소유하고, Tauri Rust command가 네이티브 권한을 유지합니다.
 
-@architecture-rules.ko.md
-@../../rules/tauri/project-structure.ko.md
-@../../rules/tauri/platform.ko.md
-@../../rules/tauri/tauri-ipc.ko.md
-@../../rules/tauri/security.ko.md
-@../../rules/tauri/router-query.ko.md
-@../../rules/tauri/testing.ko.md
-@../../references/official/tauri/tauri-v2-2026-11-04.ko.md
-@../../references/official/tauri/tanstack-vite-react-2026-11-04.ko.md
-@../../assets/evals/tauri-cases.jsonl
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/tauri/project-structure.ko.md](../../rules/tauri/project-structure.ko.md)
+- [../../rules/tauri/platform.ko.md](../../rules/tauri/platform.ko.md)
+- [../../rules/tauri/tauri-ipc.ko.md](../../rules/tauri/tauri-ipc.ko.md)
+- [../../rules/tauri/security.ko.md](../../rules/tauri/security.ko.md)
+- [../../rules/tauri/router-query.ko.md](../../rules/tauri/router-query.ko.md)
+- [../../rules/tauri/testing.ko.md](../../rules/tauri/testing.ko.md)
+- [../../references/official/tauri/tauri-v2-2026-11-04.ko.md](../../references/official/tauri/tauri-v2-2026-11-04.ko.md)
+- [../../references/official/tauri/tanstack-vite-react-2026-11-04.ko.md](../../references/official/tauri/tanstack-vite-react-2026-11-04.ko.md)
+- [../../assets/evals/tauri-cases.jsonl](../../assets/evals/tauri-cases.jsonl)
 
 # Tauri Architecture
 

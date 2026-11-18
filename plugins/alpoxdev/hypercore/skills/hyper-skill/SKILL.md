@@ -1,17 +1,19 @@
 ---
 name: hyper-skill
-description: "Use this skill when the user asks to create or refactor a reusable Codex skill folder, including SKILL.md trigger wording, instruction contracts, rules, references, scripts, assets, and validation checks. Do not use for generic documentation that is not a skill."
+description: "Use this skill when the user asks to create or refactor a reusable agent skill folder, including SKILL.md trigger wording, instruction contracts, rules, references, scripts, assets, and validation checks. Do not use for generic documentation that is not a skill."
 compatibility: Works best with read/edit/write and shell search tools for skill analysis, example gathering, and validation checks; running a bundled script needs bash 3.2+ and jq.
 ---
 
-@rules/self-containment.md
-@rules/skill-anatomy.md
-@rules/trigger-design.md
-@rules/progressive-disclosure.md
-@rules/resource-placement.md
-@rules/context-and-harness-alignment.md
-@rules/validation-and-iteration.md
-@rules/anti-patterns.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/self-containment.md](rules/self-containment.md)
+- [rules/skill-anatomy.md](rules/skill-anatomy.md)
+- [rules/trigger-design.md](rules/trigger-design.md)
+- [rules/progressive-disclosure.md](rules/progressive-disclosure.md)
+- [rules/resource-placement.md](rules/resource-placement.md)
+- [rules/context-and-harness-alignment.md](rules/context-and-harness-alignment.md)
+- [rules/validation-and-iteration.md](rules/validation-and-iteration.md)
+- [rules/anti-patterns.md](rules/anti-patterns.md)
 
 # Hyper Skill
 
@@ -72,7 +74,7 @@ State every boundary by the output shape, never by naming the artifact's other o
 
 Positive requests:
 
-- "Create a Codex skill for reviewing SQL migrations."
+- "Create a skill for reviewing SQL migrations."
 - "Refactor this browser QA skill so the trigger and validation stop misfiring."
 - "Standardize this skill folder so `SKILL.md`, rules, and references are split correctly."
 - "스킬 폴더를 새로 만들고 검증 규칙까지 넣어줘."
@@ -112,7 +114,7 @@ Use this layering model by default:
 - Core skill: durable instructions for what the skill does, when to use it, how to operate, and how to stop.
 - Rules: reusable policy, decision criteria, validation checklists, and anti-patterns.
 - References: detailed knowledge loaded only when needed, including official or provider-sensitive guidance.
-- Scripts: `bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root <skill-dir> --evals <cases.jsonl> --require-self-containment --json` checks metadata, required sections, direct links, bilingual parity, sources, and eval rows. It needs bash 3.2+ and jq, prints JSON findings, and exits non-zero while an error remains.
+- Scripts: `bash <this-skill-folder>/scripts/validate-hyper-skill.sh --root <target-skill-dir> --evals <cases.jsonl> --require-self-containment --json` checks metadata, required sections, direct links, bilingual parity, sources, and eval rows. It needs bash 3.2+ and jq, prints JSON findings, and exits non-zero while an error remains. The script sits beside this file, so resolve it from the folder this skill is installed in; this repository keeps it at `skills/hyper-skill/scripts/validate-hyper-skill.sh`.
 - Assets: output resources and eval fixtures, each with an explicit usage and failure path.
 
 Do not overload the core `SKILL.md` with information that belongs in rules, references, scripts, or assets.
@@ -268,7 +270,7 @@ Must-pass thresholds:
 - [ ] Eval coverage includes normal, missing-context/tool-failure, boundary, adversarial retrieval or unsafe-action, and known-regression behavior; recommended corpus size remains risk-proportional.
 - [ ] English/Korean parity is checked structurally and with equivalent behavioral cases, not file presence alone.
 - [ ] External source metadata uses absolute non-future dates and keeps reviewed, cited, unsupported, stale, and conflicting claims distinguishable.
-- [ ] Run `bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root skills/<skill-name> --evals skills/<skill-name>/assets/evals/<skill-name>-cases.jsonl --require-self-containment --json` from the repository root and confirm zero errors. The eval file it reads is the package's own, never the validator's default.
+- [ ] Run `bash <this-skill-folder>/scripts/validate-hyper-skill.sh --root <target-skill-dir> --evals <target-skill-dir>/assets/evals/<skill-name>-cases.jsonl --require-self-containment --json` and confirm zero errors. In this repository the skill folder is `skills/hyper-skill` and the target is `skills/<skill-name>`. The eval file it reads is the package's own, never the validator's default.
 - [ ] The self-containment part of that run reported zero cross-skill findings; a user-directed exception is passed with `--allow <sibling-name>` and recorded.
 - [ ] The package works from its own folder alone: every needed detail lives in its own `rules/`, `references/`, `scripts/`, or `assets/`, and repository instruction documents are read only when they exist.
 - [ ] Happy-path validation is paired with malformed-input rejection and provider-date/no-stray-doc regression checks.
@@ -293,5 +295,4 @@ Must-pass thresholds:
 
 ### Evidence grade
 
-This core is a contract summary; the normative detail and its graded sources live in `rules/`. The `description` and the top of this file are
-deliberately unchanged: the repository's descriptions already exceed the Codex fallback listing budget (`rules/trigger-design.md`), and an unchanged head keeps cached reuse intact.
+This core is a contract summary; the normative detail and its graded sources live in `rules/`. The `description` and the top of this file are the loaded head: edit them deliberately and in batches (`rules/resource-placement.md` §8a), and keep the combined description length within the tightest listing budget of the runtimes the package targets (`rules/trigger-design.md`).

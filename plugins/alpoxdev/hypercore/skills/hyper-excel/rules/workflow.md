@@ -26,7 +26,7 @@ Two requests can combine: "매출 요약 만들어줘" on an existing file is `i
    - `build`: write a JSON spec first so the structure is reviewable, then build.
    - `recalc`: after any build that wrote formulas, so readers that do not calculate see values.
 4. **Verify.** `verify` for anything with formulas; for a patch, the tool already proves untouched parts by digest and rejects on mismatch. Re-`inspect` the output.
-5. **Read back.** Prefer an installed independent reader (`openpyxl` under `uv run --with openpyxl`) to confirm a third party opens the file. If no reader exists, say the read-back was limited to this toolchain's parser.
+5. **Read back.** Open the workbook with an independent spreadsheet application or reader available in the current environment, such as `openpyxl`. If none is available, report that only the bundled parser read the result.
 6. **Report** in the shape below.
 
 ## Report shape

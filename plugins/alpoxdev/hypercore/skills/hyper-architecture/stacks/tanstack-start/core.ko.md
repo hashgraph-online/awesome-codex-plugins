@@ -3,22 +3,22 @@
 - 범위: 기존 TanStack Start/Router 프로젝트의 아키텍처를 검토하거나 변경할 때 사용합니다. 라우트, loader, server function, importProtection, SSR과 hydration, `src/modules`, `src/lib`, `src/integrations` 같은 중첩 공유 폴더가 대상입니다. 일반 React/Vite 프로젝트나 문서 요약만 하는 요청에는 쓰지 않습니다.
 - 실행 조건: TanStack Start 애플리케이션에서 저장소를 살펴보고 공식 TanStack Start/Router 문서를 확인하며 직접 코드를 고칠 때 가장 잘 맞습니다.
 
-@architecture-rules.ko.md
-@../../rules/tanstack-start/project-structure.ko.md
-@../../rules/tanstack-start/routes.ko.md
-@../../rules/tanstack-start/services.ko.md
-@../../rules/tanstack-start/hooks.ko.md
-@../../rules/tanstack-start/import-protection.ko.md
-@../../rules/tanstack-start/middleware.ko.md
-@../../rules/tanstack-start/execution-model.ko.md
-@../../rules/tanstack-start/server-routes.ko.md
-@../../rules/tanstack-start/ssr-hydration.ko.md
-@../../rules/tanstack-start/platform.ko.md
-@../../rules/tanstack-start/conventions.ko.md
-@../../rules/tanstack-start/validation.ko.md
-@../../references/official/tanstack-start/tanstack-start-2026-11-04.ko.md
-@../../references/official/tanstack-start/tanstack-router-2026-11-04.ko.md
-@../../references/official/tanstack-start/current-docs-2026-11-04.ko.md
+- [architecture-rules.ko.md](architecture-rules.ko.md)
+- [../../rules/tanstack-start/project-structure.ko.md](../../rules/tanstack-start/project-structure.ko.md)
+- [../../rules/tanstack-start/routes.ko.md](../../rules/tanstack-start/routes.ko.md)
+- [../../rules/tanstack-start/services.ko.md](../../rules/tanstack-start/services.ko.md)
+- [../../rules/tanstack-start/hooks.ko.md](../../rules/tanstack-start/hooks.ko.md)
+- [../../rules/tanstack-start/import-protection.ko.md](../../rules/tanstack-start/import-protection.ko.md)
+- [../../rules/tanstack-start/middleware.ko.md](../../rules/tanstack-start/middleware.ko.md)
+- [../../rules/tanstack-start/execution-model.ko.md](../../rules/tanstack-start/execution-model.ko.md)
+- [../../rules/tanstack-start/server-routes.ko.md](../../rules/tanstack-start/server-routes.ko.md)
+- [../../rules/tanstack-start/ssr-hydration.ko.md](../../rules/tanstack-start/ssr-hydration.ko.md)
+- [../../rules/tanstack-start/platform.ko.md](../../rules/tanstack-start/platform.ko.md)
+- [../../rules/tanstack-start/conventions.ko.md](../../rules/tanstack-start/conventions.ko.md)
+- [../../rules/tanstack-start/validation.ko.md](../../rules/tanstack-start/validation.ko.md)
+- [../../references/official/tanstack-start/tanstack-start-2026-11-04.ko.md](../../references/official/tanstack-start/tanstack-start-2026-11-04.ko.md)
+- [../../references/official/tanstack-start/tanstack-router-2026-11-04.ko.md](../../references/official/tanstack-start/tanstack-router-2026-11-04.ko.md)
+- [../../references/official/tanstack-start/current-docs-2026-11-04.ko.md](../../references/official/tanstack-start/current-docs-2026-11-04.ko.md)
 
 # TanStack Start Architecture Enforcement
 

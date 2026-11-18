@@ -1,11 +1,13 @@
 ---
 name: hyper-issue
 description: "Use this skill when the user wants a confirmed finding or a piece of decided work recorded as an implementation-ready issue, wants a fixed batch of open issues selected and grouped into disjoint work lanes, or names issue numbers such as `#1~3` to run as a batch. It investigates only enough to make the issue self-contained, writes the issue in English for a fresh agent with a machine-readable scope block, produces a batch manifest, and hands the lanes to the hyper orchestrator when work should follow. Do not use for implementing the work itself, for general documentation, or for a plan file."
-compatibility: Needs an authenticated issue-tracker CLI (for example a GitHub CLI) for reading and writing issues, file read and search for evidence, and a writable working directory for `.hyper/issues/`. The lane hand-off needs the ability to load the installed `hyper` skill by name. Without a write-capable tracker it drafts the issue body to disk and records the missing capability; without the `hyper` skill it stops at the manifest and reports the install command.
+compatibility: Needs an authenticated issue-tracker CLI (for example a GitHub CLI) for reading and writing issues, file read and search for evidence, and a writable working directory for `.hyper/issues/`. The lane hand-off needs the installed `hyper` skill, loaded by name or read as `../hyper/SKILL.md` beside this skill's own folder. Without a write-capable tracker it drafts the issue body to disk and records the missing capability; without `hyper` it stops at the manifest and reports the install command.
 ---
 
-@rules/issue-contract.md
-@rules/batch-selection.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/issue-contract.md](rules/issue-contract.md)
+- [rules/batch-selection.md](rules/batch-selection.md)
 
 # Hyper Issue Skill
 

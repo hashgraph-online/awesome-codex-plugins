@@ -4,10 +4,12 @@ description: "[Hyper] Use this skill when the user wants a product requirements 
 compatibility: Needs file read and search for repository and existing-document context, and a writable working directory for `.hyper/prd/`. No network, tracker, or subagent is required; the optional no-context reader test runs only when a subagent is available.
 ---
 
-@rules/intake-and-questions.md
-@rules/requirements-writing.md
-@rules/validation.md
-@references/prd-template.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/intake-and-questions.md](rules/intake-and-questions.md)
+- [rules/requirements-writing.md](rules/requirements-writing.md)
+- [rules/validation.md](rules/validation.md)
+- [references/prd-template.md](references/prd-template.md)
 
 # Hyper PRD Skill
 

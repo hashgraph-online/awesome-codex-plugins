@@ -7,7 +7,6 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "2.0.0"
 ---
 
 Continue working on a change by creating the next artifact.
@@ -69,7 +68,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    **If all planning artifacts are complete (`isPlanningComplete: true`, or legacy `isComplete: true`)**:
    - Congratulate the user
    - Show final status including the schema used
-   - Suggest: "Planning is complete! You can now implement this change. Once implementation and any tracked work are complete, archive it."
+   - Suggest: "Planning is complete! Review the plan before starting implementation."
    - STOP
 
    ---

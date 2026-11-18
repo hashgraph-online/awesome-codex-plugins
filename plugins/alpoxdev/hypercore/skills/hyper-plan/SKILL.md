@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when the user asks to plan a change before 
 compatibility: Works best with file read and search tools, a shell for read-only inspection, and a writable working directory for `.hyper/`. Optional subagent support enables parallel exploration and independent review; without it the skill runs deterministic structural checks and records the caveat.
 ---
 
-@rules/planning-workflow.md
-@rules/plan-review.md
-@rules/handoff.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/planning-workflow.md](rules/planning-workflow.md)
+- [rules/plan-review.md](rules/plan-review.md)
+- [rules/handoff.md](rules/handoff.md)
 
 # Hyper Plan Skill
 
@@ -242,4 +244,4 @@ Phase rules:
 
 ### Evidence grade
 
-The procedure is this package's own adaptation of the upstream planner, rewritten for the family contract: the upstream interview gate, external review services, and script-scaffolded artifacts were replaced by a recorded approval step, capability-neutral review, and a copy-ready template. The caps are this package's chosen bounds, not validated optima.
+The procedure is this package's own adaptation of the upstream planner, rewritten for the family contract around a recorded approval step and a copy-ready template. The caps are this package's chosen bounds, not validated optima.

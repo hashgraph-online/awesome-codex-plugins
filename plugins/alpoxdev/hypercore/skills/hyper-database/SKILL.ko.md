@@ -4,9 +4,11 @@ description: "[Hyper] 사용자가 데이터베이스 작업을 요청할 때 �
 compatibility: 대상 저장소의 파일 읽기와 검색 권한, `.hyper/database/` 쓰기 권한이 필요합니다. 번들 감지 스크립트는 bash 3.2+와 jq 1.6+가 필요합니다. EXPLAIN, 마이그레이션 린터, 복구 시험을 실행하려면 로컬이나 일회용 DB에 붙는 엔진 자체 클라이언트가 필요합니다. 운영 DB 접근은 이 스킬 자체 계약에서 계속 제한합니다.
 ---
 
-@rules/engine-detection.md
-@rules/database-workflow.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/engine-detection.md](rules/engine-detection.md)
+- [rules/database-workflow.md](rules/database-workflow.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Database
 

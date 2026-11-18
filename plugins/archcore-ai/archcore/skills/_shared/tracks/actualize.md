@@ -58,28 +58,53 @@ unavailable, skip the code-drift check and run cascade and temporal only.
    than 30 days old; `accepted` documents containing TODO, FIXME, or TBD
    markers; plans whose phase descriptions reference past dates; `rejected`
    documents still targeted by active `implements` or `depends_on` relations.
-4. **Reference resolution.** Run the reference helper once, independent of
-   the diff; it needs a shell and git, not the scoped diff:
+4. **Mechanical facts.** Settle the claims a lookup can settle, once per
+   review and independent of the diff, over the scope's documents (no
+   argument: every document):
 
-   ```sh
-   "${CLAUDE_SKILL_DIR:-<absolute dir of the executing SKILL.md>}/../../bin/check-references" "<project root>" [<scope path> ...]
-   ```
+   1. IF the executor has a shell, THEN run
+      `"${CLAUDE_SKILL_DIR:-<absolute dir of the executing SKILL.md>}/../../bin/cli-gte" 0.15.7`.
+      Do not compare versions in prose.
+   2. IF the result is `yes`, THEN run `archcore check [<scope document or directory> ...]`.
+   3. IF the result is `no` or `__NO_CLI__`, THEN run
+      `"${CLAUDE_SKILL_DIR:-<absolute dir of the executing SKILL.md>}/../../bin/check-references" "<project root>" [<scope path> ...]`,
+      read its `unresolved` and `line-anchor` lines as `unresolved_path` and
+      `line_anchor`, and report once: "The full corpus check requires Archcore
+      CLI 0.15.7; checked paths and line anchors only."
+   4. IF the executor has no shell, THEN use the output the calling skill
+      supplied; IF there is none, THEN report the check as not run.
+   5. Decide each finding by the table below, in the order the check gives —
+      a live claim before history, an `accepted` document before a draft, a
+      `normative` line before prose — from the finding's `line`. The check
+      already searched every scanned file: do not search the code again for a
+      `missing_identifier`, `missing_string`, or `unresolved_path`, and open
+      the document only when `line` alone does not settle the claim. Do not
+      read every document to find more findings.
 
-   Pass the scope's directories or documents as extra arguments when the
-   scope is narrower than the project.
+   | Kind | Verdict |
+   |---|---|
+   | `unresolved_path` | `ok` for a `plan`, `rfc`, `idea`, or `prd` naming a file to create, a line that says it is historical, or another repository's path; a moved path (`moved to`) is `spec-wrong` with the new path; `glob-matches-nothing` is `spec-wrong` with a glob that matches; otherwise `spec-wrong` |
+   | `missing_identifier`, `missing_string` | `spec-wrong` when the line claims this project has, calls, or shows the thing — a platform or third-party API the project MUST call and never calls included; `ok` when it names a rejected alternative, sample data, or an API the line only compares against. With `historical: true` the line narrates a removal: a cut candidate, not drift |
+   | `draft_cited_by_code` | a shipped-draft candidate; check 6 judges these documents first |
+   | `duplicate_text` | read both lines: values that disagree are a cross-document conflict, `spec-wrong` on the side the code contradicts; the same statement twice is a cut candidate in the document that does not own it |
+   | `restated_code` | a cut candidate |
+   | `dangling_code_citation`, `line_anchor` | observations |
 
-   Read only its `unresolved` lines — document, path, last commit or
-   `never-tracked`, new path or `-`; do not read every document to find
-   paths. Label a line `ok` when the document is a `plan`, `rfc`, `idea`, or
-   `prd` naming a file to create, when the document labels itself historical
-   or pinned to a revision, or when the path belongs to another repository.
-   For every other line, look for the file once by name (`Glob`): label it
-   `ok` when the cited file exists elsewhere and the sentence still fits, and
-   `spec-wrong` otherwise. IF the executor has no shell, THEN use
-   the output the calling skill supplied, or report the check as not run.
-5. **Line anchors.** Read the helper's `line-anchor` lines, one per document
-   with its count (`skills/_shared/precision-rules.md` Rule 9). Each is an
-   observation.
+   6. Report every finding on an `accepted` document that is not
+      `historical`, and every `draft_cited_by_code` document by name: one line
+      with its kind, document, subject, and verdict, an `ok` included. Group
+      the other findings by kind with counts.
+   7. Name each kind under `skipped` as not checked. Report each `omitted`
+      count — the findings past the cap of 40 per kind — as it is; never
+      extrapolate.
+5. **Cut test.** A cut candidate leaves the document when its every fact is
+   `code-says` in the sense of `skills/_shared/tracks/describe.md` (describe
+   rule 2): a file list, a prop or field list, a signature, a step-by-step walk
+   through code, a changelog line, a removal narrative. It stays when it
+   carries a `code-cannot-say` fact: a reason, a rejected alternative, a
+   constraint no test or linter enforces, production knowledge, a contract
+   clause no test covers, or a graded obligation a `rule` or `spec` states.
+   Cut only the code-says part, never the whole document for one line.
 6. **Shipped draft.** For each `draft` `adr`, `spec`, `rule`, `doc`, or
    `guide` in scope that the current branch did not create or change, verify
    its sampled claims (Deep check 1 selection). Flag it `spec-wrong` when at
@@ -107,14 +132,18 @@ unavailable, skip the code-drift check and run cascade and temporal only.
 
 **Deep checks.** WHEN the request asks for a full documentation audit ("audit
 all docs", "full audit", "deep review"), also run these, within one budget:
-at most 20 documents, chosen in proportion to the document count of each
-type, and at most 3 claims per document.
+at most 20 documents and at most 3 claims per document. Choose `accepted`
+`rule`, `cpat`, and `spec` documents first, since they bind the code; fill the
+rest in proportion to the document count of each type.
 
-1. **Claim sampling.** In each chosen document, take the first 3 checkable
-   claims in document order. A claim is one sentence or one table row that
-   states one fact the code can confirm: a path, an exported name, or a
-   literal value such as a version, a limit, a TTL, or a route. Verify each
-   against the code. A claim the document pins to a revision is checked at
+1. **Claim sampling.** The corpus check already settled paths, names, and
+   quoted strings; sample what it cannot settle. In each chosen document,
+   take up to 3 checkable claims, in this order of preference: a prohibition
+   or an exclusive ownership ("MUST NOT", "only X may"), which one search for
+   the forbidden call or the other writer can refute; a literal value such as
+   a version, a limit, a TTL, a key list, or a route; then a stated behavior.
+   A claim is one sentence or one table row that states one fact the code can
+   confirm. Verify each against the code. A claim the document pins to a revision is checked at
    that revision. A claim about another repository, a past event, or a
    result that needs a tool re-run is unverifiable, not failed. Each failed claim is a drift finding. Report held, failed, and
    unverifiable counts per type with the sample size; the share describes the
@@ -148,12 +177,18 @@ definitions in `skills/_shared/verdict-contract.md`. Track mapping: cascade
 and temporal findings that need a document change land on `spec-wrong`.
 [assumption] The source protocol scored severity (critical / cascade /
 temporal), not direction; the direction split is this track's mapping.
-Observations — line anchors, the sampled claim counts, type fitness, and
-relation candidates — carry no verdict and do not enter the fix budget.
+Observations — line anchors, dangling code citations, the sampled claim
+counts, type fitness, and relation candidates — carry no verdict and do not
+enter the fix budget. A cut candidate that passes the cut test is a `cut`
+line in the fix batch.
 
 ## Fix forms
 
-Offer fixes one document at a time, in the source's forms:
+Offer every fix in one batch: one line per document with each proposed change
+(the verdict, the edit or the cut, the evidence), and one confirmation for the
+list, recommended answer "apply all"; the user strikes the lines to keep as
+they are. A status change to `accepted` names the document in its own line, so
+striking it keeps the draft. The forms per finding:
 
 - Code drift, `spec-wrong`: read the current code; propose the document
   update that matches it. For an `adr` whose decision the code no longer
@@ -163,27 +198,26 @@ Offer fixes one document at a time, in the source's forms:
   discrepancies; propose the reconciling update.
 - Temporal, `spec-wrong`: propose a status change or TODO-marker removal via
   `update_document`; for an `rfc`, name `/archcore:document <rfc title>` to
-  resolve it instead of a status change; when the user chooses removal of a long-stale draft,
-  use `remove_document` under the same per-document confirmation.
+  resolve it instead of a status change; offer the removal of a long-stale
+  draft as a line of the batch, and call `remove_document` after the batch
+  confirmation.
   [assumption] Removal derives from the source report's "consider accepting
   or removing" guidance for long-stale drafts; the source fix flow itself
   used only `update_document`.
-- Reference resolution, `spec-wrong`: propose the new path when the helper
-  names one; otherwise propose rewriting the claim against the code that
-  replaced it, or removing it.
+- Mechanical facts, `spec-wrong`: propose the new path or name when the check
+  or one search finds it; otherwise propose rewriting the claim against the
+  code that replaced it, or removing it.
+- Cut: remove the code-says part and keep the rest; replace a removed list
+  with one `@path` when the reader needs the location.
 - Shipped draft, `spec-wrong`: propose `accepted`; apply it only after the
   user accepts that document by name.
-- Hung plans, `spec-wrong`: one batch, not one question per plan — a list
-  with one line per plan (filename, `shipped` or `abandoned`, the evidence)
-  and one confirmation for the list, recommended answer "remove all"; the
-  user strikes the lines to keep. Call `remove_document` per remaining plan
-  and report each with the commit that still carries the file; name an
-  uncommitted plan as unrecoverable before asking. The batch is the one
-  exception to the per-document confirmation: a plan holds no canon, git
-  keeps the file, and dozens of hung plans at one question each exhaust the
-  budget before the first removal. Residue a `shipped` plan still carries —
-  an open decision, a repeated procedure — goes in its line as a note; the
-  batch creates no document.
+- Hung plans, `spec-wrong`: one line per plan in the same batch (filename,
+  `shipped` or `abandoned`, the evidence), recommended answer "remove". Call
+  `remove_document` per remaining plan and report each with the commit that
+  still carries the file; name an uncommitted plan as unrecoverable before
+  asking. Residue a `shipped` plan still carries — an open decision, a
+  repeated procedure — goes in its line as a note; the batch creates no
+  document.
 - Cross-document conflict and failed claim, `spec-wrong`: propose the edit
   that matches the code.
 - Observations: list them after the verdicts. Offer a fix only when the user
@@ -230,18 +264,17 @@ Offer fixes one document at a time, in the source's forms:
 
 ### gate: actualize.fix
 
-- Purpose: Apply user-confirmed document fixes for `spec-wrong` findings; report `code-wrong` findings without touching code.
+- Purpose: Apply the user-confirmed fix batch — `spec-wrong` fixes, cuts, hung-plan removals; report `code-wrong` findings without touching code.
 - Entry conditions:
-  - skip_when: no finding is labeled `spec-wrong` — report the `code-wrong` and `ok` findings and exit the track.
+  - skip_when: no finding is labeled `spec-wrong` and no cut passed the cut test — report the `code-wrong` and `ok` findings and exit the track.
   - `actualize.verdict` passed its blocking exit checks.
 - Elicitation knobs:
   - trigger: a `spec-wrong` finding awaits its fix confirmation.
   - taxonomy: Terminology & Consistency, Misc / Placeholders from `skills/_shared/coverage-taxonomy.md`. [assumption]
-  - budget: 1 question per document carrying a `spec-wrong` finding, plus 1 for the hung-plan batch [assumption] — the source rule is "always confirm each fix with the user before applying, one document at a time"; the per-gate maximum equals the count of such documents; the hung-plan batch is the exception and costs one question for the whole list.
+  - budget: 1 — the whole fix batch, hung plans and cuts included, is one confirmation; a fix the user strikes is declined, not asked again.
 - Produces: none — the gate updates existing documents via `update_document`; it creates no document.
 - Exit checks:
-  - blocking: every `update_document` call was preceded by the user's confirmation of that document's fix.
-  - blocking: every `remove_document` call on a `plan` followed the one batch confirmation and targeted a plan the user did not strike.
+  - blocking: every `update_document` and `remove_document` call followed the batch confirmation and applies a line the user did not strike.
   - blocking: the executing skill modified no code file.
   - advisory: every `code-wrong` finding appears in the final report with its evidence.
 - Next: exit — report applied fixes, declined fixes, and `code-wrong` findings.

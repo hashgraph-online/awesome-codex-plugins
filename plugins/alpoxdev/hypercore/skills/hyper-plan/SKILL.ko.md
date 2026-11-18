@@ -4,9 +4,11 @@ description: "[Hyper] 사용자가 구현 전에 변경 계획을 요청할 때 
 compatibility: 파일 읽기와 검색 도구, 읽기 전용 점검용 셸, `.hyper/`를 쓸 수 있는 작업 디렉터리가 있으면 가장 잘 동작합니다. 선택적으로 subagent를 쓸 수 있으면 병렬 탐색과 독립 리뷰가 가능하고, 없으면 결정적 구조 점검을 실행하고 그 한계를 기록합니다.
 ---
 
-@rules/planning-workflow.ko.md
-@rules/plan-review.ko.md
-@rules/handoff.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/planning-workflow.ko.md](rules/planning-workflow.ko.md)
+- [rules/plan-review.ko.md](rules/plan-review.ko.md)
+- [rules/handoff.ko.md](rules/handoff.ko.md)
 
 # Hyper Plan Skill
 
@@ -242,4 +244,4 @@ compatibility: 파일 읽기와 검색 도구, 읽기 전용 점검용 셸, `.hy
 
 ### 근거 등급
 
-이 절차는 이 패키지가 원본 기획자를 패밀리 계약에 맞게 다시 쓴 것입니다. 원본의 인터뷰 게이트, 외부 리뷰 서비스, 스크립트로 만드는 산출물은 기록형 승인 단계, 기능 중립 리뷰, 복사해서 쓰는 템플릿으로 바꿨습니다. 상한은 검증된 최적값이 아니라 이 패키지가 고른 범위입니다.
+이 절차는 이 패키지가 원본 기획자를 패밀리 계약에 맞게 다시 쓴 것이며, 기록형 승인 단계와 복사해서 쓰는 템플릿을 중심으로 구성했습니다. 상한은 검증된 최적값이 아니라 이 패키지가 고른 범위입니다.

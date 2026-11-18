@@ -3,16 +3,16 @@ Stack guide inside `hyper-architecture` for Tauri. Read it when `rules/stack-det
 - Scope: Use this skill when adopting, reviewing, or changing a Tauri v2 desktop application using Vite, React, TanStack Router file-based routing, and TanStack Query. It enforces packaged-Vite-SPA, IPC, capability, and security boundaries; do not use it for generic web-only React/Vite work or documentation-only summaries.
 - Runtime needs: Tauri v2 with a static Vite frontend, React, TanStack Router v1 with @tanstack/router-plugin/vite, and TanStack Query v5. Vite packages the static SPA assets; TanStack Router owns generated file-based routing; TanStack Query owns asynchronous data cache and freshness; Tauri Rust commands retain native authority.
 
-@architecture-rules.md
-@../../rules/tauri/project-structure.md
-@../../rules/tauri/platform.md
-@../../rules/tauri/tauri-ipc.md
-@../../rules/tauri/security.md
-@../../rules/tauri/router-query.md
-@../../rules/tauri/testing.md
-@../../references/official/tauri/tauri-v2-2026-11-04.md
-@../../references/official/tauri/tanstack-vite-react-2026-11-04.md
-@../../assets/evals/tauri-cases.jsonl
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/tauri/project-structure.md](../../rules/tauri/project-structure.md)
+- [../../rules/tauri/platform.md](../../rules/tauri/platform.md)
+- [../../rules/tauri/tauri-ipc.md](../../rules/tauri/tauri-ipc.md)
+- [../../rules/tauri/security.md](../../rules/tauri/security.md)
+- [../../rules/tauri/router-query.md](../../rules/tauri/router-query.md)
+- [../../rules/tauri/testing.md](../../rules/tauri/testing.md)
+- [../../references/official/tauri/tauri-v2-2026-11-04.md](../../references/official/tauri/tauri-v2-2026-11-04.md)
+- [../../references/official/tauri/tanstack-vite-react-2026-11-04.md](../../references/official/tauri/tanstack-vite-react-2026-11-04.md)
+- [../../assets/evals/tauri-cases.jsonl](../../assets/evals/tauri-cases.jsonl)
 
 # Tauri Architecture
 

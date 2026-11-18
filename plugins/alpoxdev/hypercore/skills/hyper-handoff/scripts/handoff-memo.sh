@@ -324,7 +324,7 @@ hm_self_memo() { # <path> <sha> <branch> <dirty>
 - Revision: 1
 - Status: open
 - Written: 2026-11-10 10:00 KST
-- Written by: omp on test-machine
+- Written by: test runner on test-machine
 - HEAD: $2 ($3)
 - Dirty: $4
 - Resumed: none

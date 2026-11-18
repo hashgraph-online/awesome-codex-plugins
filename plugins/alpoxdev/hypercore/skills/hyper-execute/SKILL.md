@@ -4,9 +4,11 @@ description: "[Hyper] Use this skill when the user asks to run an existing writt
 compatibility: Needs git with worktree support, a shell for the repository's own test, typecheck, lint, and build commands, and disk space for one worktree per wave. Delegation and independent verification need subagent capability; without it each worker task runs sequentially here and verification degrades to deterministic checks with a recorded caveat.
 ---
 
-@rules/execution-loop.md
-@rules/worktree-and-delivery.md
-@rules/verification-gates.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/execution-loop.md](rules/execution-loop.md)
+- [rules/worktree-and-delivery.md](rules/worktree-and-delivery.md)
+- [rules/verification-gates.md](rules/verification-gates.md)
 
 # Hyper Execute Skill
 
@@ -247,4 +249,4 @@ Phase rules:
 
 ### Evidence grade
 
-The procedure is this package's own adaptation of the upstream skill read at the pinned commit. The upstream harness-specific machinery - its continuer file, its subagent tool names, its category vocabulary, and its browser and terminal helpers - was replaced with capability-neutral wording so the package runs on any runtime with git, a shell, and optional subagents. The caps and stop rules are this package's choices, not upstream defaults.
+The procedure is this package's own adaptation of the upstream skill read at the pinned commit, written in capability-neutral wording so the package runs on any runtime with git, a shell, and optional subagents. The caps and stop rules are this package's choices, not upstream defaults.

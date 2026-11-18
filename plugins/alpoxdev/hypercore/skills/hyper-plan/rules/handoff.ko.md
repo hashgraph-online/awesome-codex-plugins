@@ -25,7 +25,7 @@
 
 반영 정책은 전달 방식이 아닙니다. 사용자가 정책을 말했으면(`--land cherry-pick`, "선형 이력", "cherry-pick으로 반영") `Delivery:`는 그대로 두고 계획의 `## Commit strategy` 줄에 `Landing: <merge|cherry-pick>`을 적으며, 그 정책을 전달 플래그와 나란히 실행 인계로 넘깁니다. `## Handoff` 세 줄에 반영 줄을 더하지 않습니다.
 
-턴을 끝내지 않고 같은 세션에서 실행 스킬을 호출해 이어갑니다. 런타임의 스킬 기능으로 `hyper-execute`를 불러오고(스킬이 일반 파일인 환경에서는 그 `SKILL.md`를 읽고), slug와 전달 플래그를 넘겨 첫 단계부터 따릅니다. 넘어가기 전에 계획에 `Auto-execute: yes`를 기록합니다. 그 스킬이 이 세션에 설치되어 있지 않을 때만 `Auto-execute: no (execution skill not installed)`로 멈추고, 사용자가 직접 실행할 수 있도록 정확한 호출 `hyper-execute <slug>`와 전달 플래그를 출력합니다.
+턴을 끝내지 않고 같은 세션에서 실행 스킬을 호출해 이어갑니다. 런타임의 스킬 기능으로 `hyper-execute`를 불러오거나, 스킬이 일반 파일이면 같은 설치본에서 이 스킬 폴더 옆의 `../hyper-execute/SKILL.md`를 읽고, slug와 전달 플래그를 넘겨 첫 단계부터 따릅니다. 넘어가기 전에 계획에 `Auto-execute: yes`를 기록합니다. 어느 경로로도 그 스킬에 닿지 않을 때만 `Auto-execute: no (execution skill not installed)`로 멈추고, 사용자가 직접 실행할 수 있도록 정확한 호출 `hyper-execute <slug>`와 전달 플래그를 출력하며, 설치 명령 `npx skills add alpoxdev/hypercore --skill hyper-execute`를 함께 밝힙니다.
 
 ## 3. 거부와 전달 단어
 

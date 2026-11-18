@@ -2,15 +2,16 @@
 name: hyper-git
 description: "[Hyper] Use this skill when the user asks for Git or GitHub repository work carried to a verified result: committing and pushing changes (including current-session or all changes and `&&`-separated branch propagation), creating, entering, listing, removing, or repairing Git worktrees, reading, filing, commenting on, closing, or branching from GitHub issues, or choosing a branching model, opening a pull request, and merging branches with a push. It also answers legacy `/git-maker` and `/git-worktree` invocations. Do not use it for local-only commits with no push, history rewriting, release tagging, CI authoring, or container or VM isolation."
 license: MIT
-allowed-tools: Bash
-compatibility: Requires Bash 3.2+ (macOS or Linux), git with `git worktree`, and the standard POSIX utilities the bundled scripts use (find, sort, mktemp). The issue and workflow modes need an authenticated GitHub CLI (`gh`). `allowed-tools` is a Claude Code extension that pre-approves Bash there; other runtimes ignore it and nothing in this contract depends on it.
+compatibility: Requires Bash 3.2+ (macOS or Linux), git with `git worktree`, and the standard POSIX utilities the bundled scripts use (find, sort, mktemp). The issue and workflow modes need an authenticated GitHub CLI (`gh`).
 ---
 
-@rules/commit-and-push-policy.md
-@rules/worktree-lifecycle.md
-@rules/issue-workflow.md
-@rules/branch-workflow.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/commit-and-push-policy.md](rules/commit-and-push-policy.md)
+- [rules/worktree-lifecycle.md](rules/worktree-lifecycle.md)
+- [rules/issue-workflow.md](rules/issue-workflow.md)
+- [rules/branch-workflow.md](rules/branch-workflow.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Git
 

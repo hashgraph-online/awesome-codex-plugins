@@ -1,4 +1,4 @@
-# Skill-Maker를 위한 OpenAI 공식 참조
+# OpenAI 공식 참조
 
 ## Contents
 

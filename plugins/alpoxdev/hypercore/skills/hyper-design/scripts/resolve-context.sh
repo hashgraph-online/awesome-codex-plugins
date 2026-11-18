@@ -47,6 +47,14 @@ resolve_context() {
     [ "$current" = "$cwd" ] && break
     current=$(dirname -- "$current")
   done
+  # The ancestor walk stops at the working directory, so it collects nothing when
+  # the target sits outside it. Read the target scope's own context files instead,
+  # otherwise the same file scanned from another directory loses its design context
+  # and reports a different exception status. `first` is 0 only when the walk ran.
+  if [ "$first" = 1 ]; then
+    add_input "$scope/DESIGN.md"
+    add_input "$scope/PRODUCT.md"
+  fi
   if [ -d "$target" ]; then
     while IFS= read -r path; do
       [ -n "$path" ] || continue

@@ -4,9 +4,11 @@ description: "[Hyper] 사용자에게 필요한 웹 페이지나 플랫폼을 �
 compatibility: curl이 있는 셸과 `.hyper/browsing/` 쓰기 권한이 필요합니다. jq, curl_cffi가 있는 python3, yt-dlp, 브라우저 자동화 기능은 선택 사항이며, 없는 기능이 필요한 단계는 흉내 내지 않고 사유와 함께 `skipped`로 표시합니다. 네트워크 접근이 필요합니다. 로그인, CAPTCHA 풀이, 프록시, 대량 수집은 이 스킬 자체 계약에서 계속 제한합니다.
 ---
 
-@rules/access-ladder.md
-@rules/access-policy.md
-@rules/evidence-and-report.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/access-ladder.md](rules/access-ladder.md)
+- [rules/access-policy.md](rules/access-policy.md)
+- [rules/evidence-and-report.md](rules/evidence-and-report.md)
 
 # Hyper Browsing
 

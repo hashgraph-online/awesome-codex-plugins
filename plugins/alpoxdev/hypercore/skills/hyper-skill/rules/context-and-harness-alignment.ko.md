@@ -9,7 +9,7 @@
 
 비사소한 스킬은 다음 필드를 `SKILL.md`나 직접 연결된 규칙에서 찾을 수 있게 해야 합니다.
 
-| 필드 | hyper-skill 질문 | 통과 조건 |
+| 필드 | 작성 질문 | 통과 조건 |
 |---|---|---|
 | Intent | 이 스킬이 소유하는 결과는 무엇인가? | 직업이 한 문장이고 페르소나 주장이 아닙니다 |
 | Scope | 어떤 파일, 자원, 출력을 만들거나 편집할 수 있는가? | 포함·제외 대상이 명시적입니다 |
@@ -61,10 +61,10 @@
 
 산문 낭독은 유용하지만, 스킬이 에이전트의 도구·출처·부작용 선택을 바꿀 때는 충분하지 않습니다.
 
-`hyper-skill` 패키지 갱신에는 결정적 검증기와 JSONL 평가 픽스처를 씁니다.
+`hyper-skill` 패키지를 수정했으면 `skill_dir`에 `SKILL.md`가 있는 설치 폴더를 지정하고 번들 검증기로 평가 사례를 확인합니다.
 
 ```bash
-bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root skills/hyper-skill --evals skills/hyper-skill/assets/evals/hyper-skill-cases.jsonl --json
+bash "$skill_dir/scripts/validate-hyper-skill.sh" --root "$skill_dir" --evals "$skill_dir/assets/evals/hyper-skill-cases.jsonl" --json
 ```
 
 해피 패스와 함께 누락 컨텍스트·도구 실패 처리, 적대적 검색·위험 동작 거부, 알려진 회귀, 형식 불량

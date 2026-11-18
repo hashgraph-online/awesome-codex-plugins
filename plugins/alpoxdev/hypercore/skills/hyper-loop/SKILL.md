@@ -4,9 +4,11 @@ description: "Use this skill when a request is several goals that depend on each
 compatibility: "Needs bash 3.2+, jq 1.6+, and git with at least one commit in the target worktree, plus write access to .hyper/loop/<slug>/. scripts/verify-loop-state.sh is optional to author but is the only supported way to compute and compare the fingerprint."
 ---
 
-@rules/goal-and-criteria.md
-@rules/evidence-binding.md
-@rules/run-resume-and-gate.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/goal-and-criteria.md](rules/goal-and-criteria.md)
+- [rules/evidence-binding.md](rules/evidence-binding.md)
+- [rules/run-resume-and-gate.md](rules/run-resume-and-gate.md)
 
 # Hyper Loop
 

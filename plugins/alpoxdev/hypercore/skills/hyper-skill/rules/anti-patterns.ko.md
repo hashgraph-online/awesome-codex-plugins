@@ -29,7 +29,7 @@
 - 길이 한도를 다시 확인하지 않고 항목 한도를 넘겨 키운 설명
 - 스킬 있음·없음 **양쪽** 조건에서 통과해, 스킬의 가치를 반영하지 않고 통과율만 부풀리는 단언
 - **증거 문자열** 없이 `passed: true`만 있는 `grading.json` 기록
-- 배포되는 스킬 폴더 안에 둔 실행 결과 (`.omo/evidence/` 아래가 아니라)
+- 배포되는 스킬 폴더 안에 둔 실행 결과 (`.hyper/evidence/` 아래가 아니라)
 - 에이전트가 이미 안정적으로 하는 일을 다시 적는 스킬, 즉 이익 없는 비용
 - 편의를 위한 부여가 아니라 권한 경계로 제시한 `allowed-tools`
 - 계약의 일부를 표시 없이 떠안은 런타임 전용 frontmatter 필드(`disable-model-invocation`, `when_to_use`, `agents/openai.yaml`) 때문에 다른 런타임에서 스킬이 다르게 동작하는 것(SK-P-3)
@@ -98,7 +98,7 @@
 |---|---|
 | 심각도 표시가 있는 위험 등급 일곱 행, 재검토가 따르는 버전 고정 | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise> |
 | 양쪽 조건과 증거 문자열, 그 뒤에 있는 양쪽 조건·`grading.json` 안티패턴 | <https://agentskills.io/skill-creation/evaluating-skills> |
-| 스킬 폴더 밖에 두는 결과, 그 뒤에 있는 `.omo/evidence/` 안티패턴 | <https://agentskills.io/skill-creation/evaluating-skills> |
+| 스킬 폴더 밖에 두는 결과, 그 뒤에 있는 `.hyper/evidence/` 안티패턴 | <https://agentskills.io/skill-creation/evaluating-skills> |
 | "에이전트가 이미 하는 일을 다시 적는" 안티패턴의 근거인 제거 시험 | <https://agentskills.io/skill-creation/best-practices> |
 | 경계가 아니라 허용적 부여로서의 `allowed-tools` | <https://code.claude.com/docs/en/skills> |
 | 수동 전용 스위치, 런타임 전용 확장 필드, 업로드 시 비명세 필드에 대한 하드 오류 | <https://code.claude.com/docs/en/skills> |

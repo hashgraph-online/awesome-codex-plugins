@@ -1,17 +1,19 @@
 ---
 name: hyper-skill
-description: 사용자가 재사용 가능한 Codex 스킬 폴더를 만들거나 리팩터링해 달라고 요청할 때 사용합니다. `SKILL.md` 트리거 문구, instruction contract, `rules/`, `references/`, `scripts/`, `assets/`, 검증 검사를 다룹니다. 스킬이 아닌 일반 문서 작업에는 사용하지 않습니다.
+description: 사용자가 재사용 가능한 에이전트 스킬 폴더를 만들거나 리팩터링해 달라고 요청할 때 사용합니다. `SKILL.md` 트리거 문구, instruction contract, `rules/`, `references/`, `scripts/`, `assets/`, 검증 검사를 다룹니다. 스킬이 아닌 일반 문서 작업에는 사용하지 않습니다.
 compatibility: 스킬 분석, 예시 수집, 검증 점검을 하려면 읽기·수정·쓰기 도구와 셸 검색 도구가 있는 환경이 좋습니다. 번들 스크립트를 실행하려면 bash 3.2+와 jq가 필요합니다.
 ---
 
-@rules/self-containment.ko.md
-@rules/skill-anatomy.ko.md
-@rules/trigger-design.ko.md
-@rules/progressive-disclosure.ko.md
-@rules/resource-placement.ko.md
-@rules/context-and-harness-alignment.ko.md
-@rules/validation-and-iteration.ko.md
-@rules/anti-patterns.ko.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/self-containment.ko.md](rules/self-containment.ko.md)
+- [rules/skill-anatomy.ko.md](rules/skill-anatomy.ko.md)
+- [rules/trigger-design.ko.md](rules/trigger-design.ko.md)
+- [rules/progressive-disclosure.ko.md](rules/progressive-disclosure.ko.md)
+- [rules/resource-placement.ko.md](rules/resource-placement.ko.md)
+- [rules/context-and-harness-alignment.ko.md](rules/context-and-harness-alignment.ko.md)
+- [rules/validation-and-iteration.ko.md](rules/validation-and-iteration.ko.md)
+- [rules/anti-patterns.ko.md](rules/anti-patterns.ko.md)
 
 # Hyper Skill
 
@@ -72,7 +74,7 @@ compatibility: 스킬 분석, 예시 수집, 검증 점검을 하려면 읽기·
 
 Positive requests:
 
-- "SQL 마이그레이션 리뷰용 Codex 스킬을 만들어줘."
+- "SQL 마이그레이션 리뷰용 스킬을 만들어줘."
 - "브라우저 QA 스킬이 엉뚱하게 걸리니까 트리거 문구와 검증을 다시 잡아줘."
 - "이 스킬 폴더를 표준에 맞춰 `SKILL.md`, rules, references 역할을 제대로 나눠줘."
 - "스킬 폴더를 새로 만들고 검증 규칙까지 넣어줘."
@@ -112,7 +114,7 @@ Boundary requests:
 - 코어 스킬: 스킬이 무엇을 하고, 언제 쓰며, 어떻게 실행하고, 언제 멈추는지에 대한 지속 지침.
 - Rules: 반복되는 정책, 판단 기준, 검증 체크리스트, 안티패턴.
 - References: 필요할 때만 읽는 상세 지식. 공식 문서나 공급자에 민감한 지침을 포함한다.
-- Scripts: `bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root <skill-dir> --evals <cases.jsonl> --require-self-containment --json`가 메타데이터, 필수 섹션, 직접 링크, 한영 일치, 출처, 평가 행을 검사한다. bash 3.2+와 jq가 필요하고, JSON 결과를 출력하며, 오류가 남아 있으면 0이 아닌 코드로 끝난다.
+- Scripts: `bash <이 스킬 폴더>/scripts/validate-hyper-skill.sh --root <대상 스킬 디렉터리> --evals <cases.jsonl> --require-self-containment --json`가 메타데이터, 필수 섹션, 직접 링크, 한영 일치, 출처, 평가 행을 검사한다. bash 3.2+와 jq가 필요하고, JSON 결과를 출력하며, 오류가 남아 있으면 0이 아닌 코드로 끝난다. 스크립트는 이 파일 옆에 있으므로 이 스킬이 설치된 폴더에서 경로를 잡는다. 이 저장소에서는 `skills/hyper-skill/scripts/validate-hyper-skill.sh`다.
 - Assets: 출력 자원과 평가 픽스처. 각각 사용법과 실패 경로를 밝힌다.
 
 rules, references, scripts, assets에 둘 내용을 코어 `SKILL.md`에 몰아넣지 않는다.
@@ -268,7 +270,7 @@ rules, references, scripts, assets에 둘 내용을 코어 `SKILL.md`에 몰아�
 - [ ] 평가 범위가 정상, 맥락 누락·도구 실패, 경계, 적대적 검색·위험한 동작, 알려진 회귀를 포함하고, 권장 분량은 위험도에 비례한다.
 - [ ] 영어·한국어 일치를 파일 존재만이 아니라 구조와 동등한 동작 케이스로 확인했다.
 - [ ] 외부 출처 메타데이터가 미래가 아닌 절대 날짜를 쓰고, 확인한 주장, 인용한 주장, 근거 없는 주장, 오래된 주장, 상충하는 주장을 구분한다.
-- [ ] `bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root skills/<skill-name> --evals skills/<skill-name>/assets/evals/<skill-name>-cases.jsonl --require-self-containment --json`를 저장소 루트에서 실행해 오류가 0건인지 확인했다. 읽는 평가 파일은 언제나 패키지 자신의 것이고 검증기 기본값이 아니다.
+- [ ] `bash <이 스킬 폴더>/scripts/validate-hyper-skill.sh --root <대상 스킬 디렉터리> --evals <대상 스킬 디렉터리>/assets/evals/<skill-name>-cases.jsonl --require-self-containment --json`를 실행해 오류가 0건인지 확인했다. 이 저장소에서는 스킬 폴더가 `skills/hyper-skill`, 대상이 `skills/<skill-name>`이다. 읽는 평가 파일은 언제나 패키지 자신의 것이고 검증기 기본값이 아니다.
 - [ ] 그 실행의 자기완결 검사에서 다른 스킬 참조가 0건이었다. 사용자 지시 예외는 `--allow <형제 이름>`으로 넘기고 기록했다.
 - [ ] 패키지가 자기 폴더만으로 동작한다. 필요한 내용이 모두 자기 `rules/`, `references/`, `scripts/`, `assets/`에 있고, 저장소 지침 문서는 있을 때만 읽는다.
 - [ ] 정상 경로 검증과 함께 잘못된 입력 거부, 공급자 날짜, 불필요한 문서 없음 회귀 검사를 했다.
@@ -294,4 +296,5 @@ rules, references, scripts, assets에 둘 내용을 코어 `SKILL.md`에 몰아�
 ### 증거 등급
 
 이 코어는 계약 요약이고, 규범적 세부와 등급이 붙은 출처는 `rules/`에 있다. `description`과 이 파일의 앞부분은
-일부러 바꾸지 않았다. 저장소의 설명을 모두 합치면 이미 Codex 대체 목록 예산을 넘고(`rules/trigger-design.md`), 앞부분을 그대로 두면 캐시된 재사용이 유지되기 때문이다.
+로드되는 앞부분이므로, 갱신마다 손대지 말고 의도적으로 모아 고친다(`rules/resource-placement.md` §8a). 설명 전체
+길이는 패키지가 겨냥하는 런타임 중 가장 빡빡한 목록 예산 안에 둔다(`rules/trigger-design.md`).

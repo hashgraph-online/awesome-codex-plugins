@@ -4,15 +4,15 @@ Use this rule in `preflight` mode and for the readiness step of `deploy`. It own
 
 ## 1. Scripts
 
-Run from the target root; if the target is a subdirectory, keep the paths correct or use absolute paths.
+Run from the target root; if the target is a subdirectory, keep the paths correct or use absolute paths. `<skill-dir>` is the folder this skill is installed in, which is `skills/hyper-deploy` inside the authoring repository and the installed skill folder in any other project; resolve it once and reuse it.
 
 | Script | Purpose |
 |---|---|
-| `bash skills/hyper-deploy/scripts/stack-detect.sh` | Prints detected stacks (`node`, `rust`, `python`); exit `1` when none is supported |
-| `bash skills/hyper-deploy/scripts/deploy-check.sh [--parallel\|--sequential]` | Full proof: quality checks plus build, concurrent by default |
-| `bash skills/hyper-deploy/scripts/lint-check.sh` | Stack-specific quality checks |
-| `bash skills/hyper-deploy/scripts/build-run.sh` | Stack-specific build phase |
-| `bash skills/hyper-deploy/scripts/pm-detect.sh` | Node package manager detection (`npm`/`yarn`/`pnpm`/`bun`) |
+| `bash <skill-dir>/scripts/stack-detect.sh` | Prints detected stacks (`node`, `rust`, `python`); exit `1` when none is supported |
+| `bash <skill-dir>/scripts/deploy-check.sh [--parallel\|--sequential]` | Full proof: quality checks plus build, concurrent by default |
+| `bash <skill-dir>/scripts/lint-check.sh` | Stack-specific quality checks |
+| `bash <skill-dir>/scripts/build-run.sh` | Stack-specific build phase |
+| `bash <skill-dir>/scripts/pm-detect.sh` | Node package manager detection (`npm`/`yarn`/`pnpm`/`bun`) |
 
 Reading the result:
 
@@ -63,7 +63,7 @@ For Medium, Complex, and Laned shapes, keep `.hyper/deploy/<slug>/flow.json`, up
   "stacks": ["node"],
   "max_fix_attempts": 3,
   "phase_history": [{ "phase": "detect", "status": "complete", "evidence": "stack-detect.sh output", "updated_at": "ISO-8601" }],
-  "baseline": { "command": "bash skills/hyper-deploy/scripts/deploy-check.sh", "exit_code": 1, "summary": "PRE_DEPLOY_SUMMARY executed=2 skipped=1" },
+  "baseline": { "command": "bash <skill-dir>/scripts/deploy-check.sh", "exit_code": 1, "summary": "PRE_DEPLOY_SUMMARY executed=2 skipped=1" },
   "failure_groups": [{ "id": "node-typecheck", "stack": "node", "command": "npm run typecheck", "priority": 1, "owner": "leader", "status": "open", "attempts": 0, "evidence": "exact failure excerpt" }],
   "fixes": [],
   "validation_history": [],

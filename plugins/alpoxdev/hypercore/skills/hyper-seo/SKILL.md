@@ -4,8 +4,10 @@ description: "[Hyper] Use this skill when the user asks for an SEO, AEO, GEO, or
 compatibility: Works best with live web access, browser inspection, local source search, Lighthouse or Core Web Vitals data when available, and read/write access for report artifacts.
 ---
 
-@rules/seo-workflow.md
-@rules/validation.md
+Open the rules as directed below. Resolve bundled file paths from the directory containing this document and project paths from the target project.
+
+- [rules/seo-workflow.md](rules/seo-workflow.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper SEO
 
@@ -19,7 +21,7 @@ compatibility: Works best with live web access, browser inspection, local source
 | Scope | Owns target classification, measurement-method selection, on-page/technical/content/Core Web Vitals/AEO/GEO/LLMO assessment, new-site setup planning, scoring, findings, recommendations, and the report workspace. Does not own implementation outside the audited target, release gating, page or product design, account actions that need the owner's credentials unless permitted, or broad market research that has no target site or content set. |
 | Authority | System/harness and user instructions > the audited target's own files and live observations > official platform documentation > this skill > heuristic preference. A tool, lab, synthetic, or heuristic observation is never promoted to an official requirement. |
 | Evidence | Read the target's own files, rendered pages, and live responses before scoring, and cite the command, URL, file path, or probe result behind every critical and warning finding. Record unavailable checks as `unknown` and irrelevant checks as `not-applicable`; never invent a score, a ranking, an inclusion, or a citation. |
-| Tools | Use available read/search/browser tools, and render the dashboard with `bash scripts/render-dashboard.sh <artifact-dir>`. Web search, browser inspection, field Core Web Vitals, Search Console, or an AI citation probe are used only when actually available; when one is missing, state the capability limit and fall back to the strongest lower-grade method. |
+| Tools | Use available read/search/browser tools, and render the dashboard with `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`. Web search, browser inspection, field Core Web Vitals, Search Console, or an AI citation probe are used only when actually available; when one is missing, state the capability limit and fall back to the strongest lower-grade method. |
 | Loop | Optimize mode only: a bounded `audit -> fix or recommendation -> re-audit` cycle, default budget three iterations. Feedback = comparable re-audit evidence; metric = the 100-point score with `unknown` and `not-applicable` categories excluded; guard = no comparable-category regression and no evidence-grade promotion; stop = target reached, budget spent, plateau, guard failure, or work that needs external credentials or a business decision. |
 | Output | `.hyper/seo/[slug]/` holding `results.json`, `results.js`, `dashboard.html`, `report.md`, `sources.md`, and `flow.json` for complex or optimize mode; simple and setup modes keep `report.md` and `sources.md` as the minimum. `sources.md` is a source ledger of URL, date, applicable claim, evidence class, and limitation. |
 | Verification | Apply `rules/validation.md` at completion: every critical or warning finding carries evidence, scores derive from observed evidence with `unknown` and `not-applicable` handled explicitly, and optimize mode records baseline, evaluator, budget, guards, discarded iterations, stop reason, and the best comparable verified result. Package changes additionally run the focused corpus validator, the repository standard gate, and the package tests. |
@@ -116,7 +118,7 @@ A request with no target site, page, or content set is not this trigger.
 - Rules: [rules/seo-workflow.md](rules/seo-workflow.md) owns the phases and the optimize loop; [rules/validation.md](rules/validation.md) owns the completion gates.
 - References: [references/seo-fundamentals.md](references/seo-fundamentals.md) (E-E-A-T, Core Web Vitals, schema), [references/aeo-geo-guide.md](references/aeo-geo-guide.md) (AEO, GEO, LLMO), [references/seo-checklist.md](references/seo-checklist.md) (scan items), [references/site-setup.md](references/site-setup.md) (setup mode), [references/artifact-spec.md](references/artifact-spec.md) (workspace and `results.json` schema).
 - Assets: the Korean and English report templates, the dashboard template, and `assets/evals/`, the trigger and behavior cases.
-- Script: `bash scripts/render-dashboard.sh <artifact-dir>` needs Bash 3.2+ and jq; it copies the dashboard template, embeds `results.json` into `results.js`, writes `dashboard.html`, and exits non-zero naming the offending `results.json` field when the payload is structurally invalid.
+- Script: `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`, where `<skill-dir>` is the folder this skill is installed in, needs Bash 3.2+ and jq; it copies the dashboard template, embeds `results.json` into `results.js`, writes `dashboard.html`, and exits non-zero naming the offending `results.json` field when the payload is structurally invalid.
 
 </skill_architecture>
 
@@ -226,7 +228,7 @@ Follow [references/artifact-spec.md](references/artifact-spec.md) for the file s
 
 For new reports, use [assets/report.template.ko.md](assets/report.template.ko.md) by default. Use [assets/report.template.md](assets/report.template.md) only when English is explicitly required.
 
-Write `results.json` from gathered evidence first, generate `results.js` for direct local viewing, render `dashboard.html` with `bash scripts/render-dashboard.sh <artifact-dir>`, then write `report.md` and `sources.md`. `sources.md` is a source ledger: for every external or official claim, record its URL, accessed or published date, applicable claim, evidence class, and any scope/availability limitation.
+Write `results.json` from gathered evidence first, generate `results.js` for direct local viewing, render `dashboard.html` with `bash <skill-dir>/scripts/render-dashboard.sh <artifact-dir>`, then write `report.md` and `sources.md`. `sources.md` is a source ledger: for every external or official claim, record its URL, accessed or published date, applicable claim, evidence class, and any scope/availability limitation.
 
 For complex or optimize mode, `flow.json` tracks phases in order: `scope` → `measurement` → `technical` → `platform_policy` → `onpage` → `content` → `aeo` → `geo` → `report`.
 

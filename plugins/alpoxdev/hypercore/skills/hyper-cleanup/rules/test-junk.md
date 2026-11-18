@@ -65,9 +65,11 @@ Break the production owner, then run the candidate and its named keeper on the u
 
 The owner is restored byte for byte after every row, and no mutation is ever committed. That restore is what `scripts/mutation-proof.sh` does.
 
+Run these examples from the target project. Set `skill_dir` to the directory containing the installed `SKILL.md`.
+
 ```sh
-bash scripts/mutation-proof.sh --file src/pricing.ts --find 'if (total > 0)' --replace 'if (total >= 0)' --test 'npm test -- pricing'
-bash scripts/mutation-proof.sh --file src/pricing.ts --find 'a' --replace 'b' --test 'npm test -- pricing' --json
+bash "$skill_dir/scripts/mutation-proof.sh" --file src/pricing.ts --find 'if (total > 0)' --replace 'if (total >= 0)' --test 'npm test -- pricing'
+bash "$skill_dir/scripts/mutation-proof.sh" --file src/pricing.ts --find 'a' --replace 'b' --test 'npm test -- pricing' --json
 ```
 
 The script prints one verdict: `caught` when the test failed with the mutation in place, `survived` when it passed. It restores the file and compares the SHA-256 before it reports, so a `survived` verdict still leaves the tree clean. Exit 0 means the proof ran, whether the verdict was caught or survived; exit 2 is a usage or target error; exit 3 means the restore could not be verified and the backup path is printed. `--find` must occur exactly once, which keeps one run to one mutation.
@@ -79,9 +81,9 @@ The script prints one verdict: `caught` when the test failed with the mutation i
 `scripts/scan-test-junk.sh` reports the classes a static read can see. Its findings are candidates for the ledger, never cuts.
 
 ```sh
-bash scripts/scan-test-junk.sh tests/ src/pricing.test.ts
-bash scripts/scan-test-junk.sh tests/ --json
-bash scripts/scan-test-junk.sh --self-test
+bash "$skill_dir/scripts/scan-test-junk.sh" tests/ src/pricing.test.ts
+bash "$skill_dir/scripts/scan-test-junk.sh" tests/ --json
+bash "$skill_dir/scripts/scan-test-junk.sh" --self-test
 ```
 
 | Code | What it flags |

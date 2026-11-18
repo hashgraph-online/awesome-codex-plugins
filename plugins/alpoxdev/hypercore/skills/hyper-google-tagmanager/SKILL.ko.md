@@ -4,9 +4,11 @@ description: "사용자가 웹사이트에 Google Tag Manager 설치를 요청�
 compatibility: 파일 읽기, 검색, 편집, 셸이 필요합니다. 번들 스크립트는 bash 3.2+, jq 1.6+, 실서비스 페이지 확인용 curl이 필요합니다. 렌더링된 페이지 검증에는 브라우저 자동화 기능이 필요하고, Tag Manager API를 통한 컨테이너 읽기와 쓰기에는 사용자가 이미 제공한 자격 증명이 필요합니다. 이것이 없으면 필요한 단계에서 멈추고 그 사실을 밝힙니다.
 ---
 
-@rules/gtm-workflow.md
-@rules/safety-gates.md
-@rules/validation.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/gtm-workflow.md](rules/gtm-workflow.md)
+- [rules/safety-gates.md](rules/safety-gates.md)
+- [rules/validation.md](rules/validation.md)
 
 # Hyper Google Tag Manager
 

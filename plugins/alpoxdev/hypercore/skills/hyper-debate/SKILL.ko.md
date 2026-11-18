@@ -4,9 +4,11 @@ description: "사용자가 결정 완결형 계획 전에 다섯 고정 관점�
 compatibility: 근거 수집용 파일 읽기·검색, `.hyper/debate/`와 `.hyper/plans/` 쓰기, 읽기 전용 점검용 셸 capability가 필요하다. 병렬 하위 에이전트는 선택 사항이다. 있으면 관점마다 별도 자식으로 돌고, 없으면 다섯 관점을 한 문맥에서 순차로 돌리며 토론이 축소됐다고 보고한다. bundled script는 없고 네트워크 접근도 없다.
 ---
 
-@rules/rounds.md
-@rules/perspectives.md
-@rules/approval-and-plan.md
+아래 규칙은 본문의 읽기 순서에 따라 엽니다. 스킬에 포함된 파일 경로는 이 문서가 있는 폴더를 기준으로 해석하고 작업 대상 경로는 프로젝트를 기준으로 해석합니다.
+
+- [rules/rounds.md](rules/rounds.md)
+- [rules/perspectives.md](rules/perspectives.md)
+- [rules/approval-and-plan.md](rules/approval-and-plan.md)
 
 # Hyper Debate
 

@@ -63,7 +63,7 @@ A session that concluded "no image tool" and rendered with code instead, while a
 
 Two runtime facts decide what step 2 looks like, and both are checked rather than assumed:
 
-- **A server enabled after the session started has no tool in this session's list.** The library and the session's tool list are different things: enabling a server for the runtime does not retroactively add its tools to a running session. Re-check the library (`magpie library mcp show <name>`) and the session's exposed tools before concluding anything.
+- **A server enabled after the session started has no tool in this session's list.** The library and the session's tool list are different things: enabling a server for the runtime does not retroactively add its tools to a running session. Re-check the runtime's MCP server list through whatever command its own MCP manager exposes, and re-check the session's exposed tools, before concluding anything.
 - **The runtime's own MCP endpoint is reachable even then.** When the gateway process that fronts the runtime's MCP servers is the one that also routes to the session, a JSON-RPC call to that endpoint starts the same server and runs the same tool. That is not an API-key script: it is the same server, with the same credentials the runtime already holds, called one layer lower. Record which endpoint answered and what the call returned.
 
 What is never acceptable is replacing the image step with a locally written rendering path. If the endpoint refuses, the terminal is the one the skill defines, and the notes say what refused and why.

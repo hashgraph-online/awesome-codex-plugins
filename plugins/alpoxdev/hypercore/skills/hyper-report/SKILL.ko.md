@@ -1,7 +1,7 @@
 ---
 name: hyper-report
 description: "Use this skill when the user asks for a report as a finished document rather than a chat answer: a briefing, business or research report, proposal, status or analysis write-up, or one-page summary. It fixes audience and decision up front, keeps every number and claim traceable to a source, and renders one authored Markdown source into HTML, print PDF, per-page PNG/JPG images, DOCX, or Markdown, with tables and figures where they carry the reader. Do not use it for slide decks, spreadsheet workbooks, single generated images, or reports that only need to live in chat."
-compatibility: "렌더링에는 HTML·PDF·페이지 이미지를 위한 Chromium 계열 헤드리스 브라우저(chrome-headless-shell, Chromium, Edge)가 필요하다. JPG 변환에는 sips(macOS)나 ImageMagick이, DOCX에는 textutil(macOS)이 필요하다. Markdown→HTML 변환, 페이지 나눔, 레이아웃 점검 파이프라인은 bash 3.2+, awk, 그리고 패키지에 포함된 런타임 자산만 있으면 동작한다. 없는 렌더러는 감지해 보고하며, 설치하지 않는다."
+compatibility: "보고서 작성에는 파일 읽기와 쓰기가 필요합니다. HTML 조립에는 bash 3.2+, awk, 번들 자산이 필요합니다. 렌더 결과 검증과 PDF·페이지 이미지 생성에는 Chromium 계열 브라우저와 jq가 필요합니다. JPG 변환에는 sips 또는 ImageMagick, DOCX 변환에는 macOS의 textutil이 필요합니다. 없는 도구는 보고합니다."
 ---
 
 <output_language>

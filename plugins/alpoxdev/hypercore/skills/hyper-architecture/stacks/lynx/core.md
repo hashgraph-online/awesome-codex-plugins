@@ -3,14 +3,14 @@ Stack guide inside `hyper-architecture` for Lynx. Read it when `rules/stack-dete
 - Scope: Use this guide when building, auditing, restructuring, or reviewing a Lynx application that renders with ReactLynx and builds with Rspeedy on the Lynx dual-thread engine — folder structure, the main-thread/background split, elements and CSS, host data, native modules, host-app embedding, engine-version compatibility, testing, or performance. Do not use it for React DOM apps, React Native or Expo apps, or a repository whose only React signal is a `react` dependency with no `@lynx-js/react`.
 - Runtime needs: The target's `package.json`, `lynx.config.*`, `tsconfig.json`, and the native host project when one is in the repository. Current version claims may need the dated snapshot in `references/official/lynx/lynx-2026-11-07.md`, and a device or Lynx DevTool session for any measured performance claim.
 
-@architecture-rules.md
-@../../rules/lynx/project-structure.md
-@../../rules/lynx/threading.md
-@../../rules/lynx/ui-and-data.md
-@../../rules/lynx/native-and-platform.md
-@../../rules/lynx/testing.md
-@../../rules/lynx/performance.md
-@../../references/official/lynx/lynx-2026-11-07.md
+- [architecture-rules.md](architecture-rules.md)
+- [../../rules/lynx/project-structure.md](../../rules/lynx/project-structure.md)
+- [../../rules/lynx/threading.md](../../rules/lynx/threading.md)
+- [../../rules/lynx/ui-and-data.md](../../rules/lynx/ui-and-data.md)
+- [../../rules/lynx/native-and-platform.md](../../rules/lynx/native-and-platform.md)
+- [../../rules/lynx/testing.md](../../rules/lynx/testing.md)
+- [../../rules/lynx/performance.md](../../rules/lynx/performance.md)
+- [../../references/official/lynx/lynx-2026-11-07.md](../../references/official/lynx/lynx-2026-11-07.md)
 
 # Lynx Architecture
 
