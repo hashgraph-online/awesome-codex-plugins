@@ -142,6 +142,10 @@ have accepted the action before its reply was lost. Check the server state
 before submitting again. Read retries and one authentication/crumb refresh after
 a 401/403 response remain enabled.
 
+For older runs, pass `nextCursor` from `jk run ls --json` back with `--cursor`.
+If Jenkins history changes during a page request and the command reports an
+error, retry with the same cursor.
+
 ### Multiple selections in build parameters
 
 For an Extended Choice checkbox (`PT_CHECKBOX`) or multi-select

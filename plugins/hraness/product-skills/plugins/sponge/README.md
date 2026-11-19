@@ -10,7 +10,7 @@ questions from them. It also covers saving and annotating reading when you ask.
 Install Sponge with Node.js `>=24.20.0`:
 
 ```sh
-npm install --global @hraness/sponge@0.41.1
+npm install --global @hraness/sponge@0.81.0
 ```
 
 The task below uses a library that contains saved articles or PDFs. Follow the

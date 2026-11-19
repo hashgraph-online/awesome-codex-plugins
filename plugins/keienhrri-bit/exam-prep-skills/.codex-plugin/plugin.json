@@ -1,0 +1,29 @@
+{
+  "name": "exam-prep-skills",
+  "version": "0.1.3",
+  "description": "考研备考 skill：讲题、交卷判分、阶段复盘、学习记录归档、每日资料包、PDF 报告排版。",
+  "author": {
+    "name": "keienhrri-bit",
+    "url": "https://github.com/keienhrri-bit"
+  },
+  "homepage": "https://github.com/keienhrri-bit/exam-prep-skills",
+  "repository": "https://github.com/keienhrri-bit/exam-prep-skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "onboardingSkill": "./skills/kaoyan-setup/SKILL.md",
+  "interface": {
+    "displayName": "Exam Prep Skills · 考研备考",
+    "shortDescription": "Exam prep: tutor, grading, reviews, PDF reports",
+    "longDescription": "Tutor that makes you try first, a verifiable grading pipeline (photo, transcript, human check, rubric grading, one independent regrade), checkpoint reviews, study-log archiving, daily packs and a fixed Markdown-to-PDF report pipeline with layout checks.",
+    "developerName": "keienhrri-bit",
+    "category": "Education",
+    "capabilities": [
+      "Instructions"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "defaultPrompt": [
+      "用 kaoyan-setup 帮我建一个备考工作区。"
+    ]
+  }
+}

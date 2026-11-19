@@ -9,24 +9,34 @@ description: >
   sentence is the trigger — code.grep covers exact literals too. NOT for
   repos loom hasn't indexed (a code.search that abstains on everything is
   the tell), and NOT for your own uncommitted files (grep those; pass your
-  diff to code.impact for blast radius).
-disable-model-invocation: true
+  diff to code.impact for blast radius). NOT for LOCAL-FIRST sessions.
 ---
 
 # loom-code — the indexed answer before the grep reflex
 
-Loom holds a compiler-grade index of this codebase (symbols, call graph,
-tests, PR history), served as MCP tools. One call replaces a grep plus
-several whole-file reads and returns what grep cannot see: resolved callers,
-blast radius, the tests that reach a function. The `loom-code-shunt` hook
+If the startup primer says LOCAL-FIRST, use local grep/Read; the code guard
+stands down. Use Loom only when asked about upstream, naming the indexed commit.
+
+Loom indexes this codebase (symbols, call graph,
+tests, PR history), served as MCP tools. Choose the operation that answers the question; do not call tools just to
+show use. Static callers and impact can be lower bounds. The `loom-code-shunt` hook
 enforces the substitutions mechanically (a symbol grep or a bulk read in an
 indexed repo is denied with the answer or the tool to call).
+
+If a hook or the current prompt already supplied sufficient evidence, use it
+without repeating the lookup. Skip code retrieval for memory-only questions,
+ordinary chat and self-contained tasks. Use memory tools for saved decisions.
+If the needed code tool is deferred, use client tool discovery (ToolSearch in
+Claude Code). A definition does not supply its callers. Retrieve the missing
+evidence, then stop. Quoting an identifier or error in a code question does not
+make it a literal-search request.
 
 ## The tools (MCP names)
 
 | Question | Call |
 |---|---|
 | where is X defined / its signature and doc | `loom_code_symbol` (`name`) |
+| what could changing X affect | `loom_code_impact` (`name`, or the current diff) |
 | who calls X | `loom_code_callers`, or `loom_code_symbol` with `uses_brief: true` |
 | a concept with no greppable keyword ("where do we retry s3 uploads") | `loom_code_search` |
 | an exact literal or error string | `loom_code_grep` (each hit with its enclosing symbol) |
@@ -36,9 +46,7 @@ indexed repo is denied with the answer or the tool to call).
 | a bundle for a task (symbols, callers, tests, history) | `loom_code_context_pack` |
 
 Pass `namespace` when the session primer names it. The MCP code tools infer
-`org` from the token. For your own UNCOMMITTED files, grep. In a repository
-the index does not cover, grep —
-the abstentions will tell you.
+`org` from the token. Grep UNCOMMITTED or unindexed files; abstention permits local fallback.
 
 ## Reading a result
 
@@ -46,13 +54,13 @@ the abstentions will tell you.
   synonyms more than once — grep instead.
 - `as_of` names the indexed commit. Line numbers are that commit's; when the
   session primer says your checkout is behind, report them as the index's.
-- Caller and impact counts are floors: dynamic dispatch is invisible to any
-  static tier. A structural claim ("nothing calls X") needs `loom_code_callers`
+- Caller and impact counts are floors: static evidence may miss dynamic calls.
+  A structural claim ("nothing calls X") needs `loom_code_callers`
   evidence, not a hunch.
 
 ## Stop rules
 
-- One clear hit plus one focused read of the returned span is enough; do not
+- Read a returned span only to close a specific evidence gap; do not
   chain callers + impact + history as a ritual.
 - If two loom calls in a row did not move you forward, grep.
 

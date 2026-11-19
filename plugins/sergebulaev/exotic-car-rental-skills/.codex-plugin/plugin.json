@@ -1,7 +1,7 @@
 {
   "name": "exotic-car-rental-skills",
   "description": "6 Claude Code and Codex skills for renting exotic and luxury cars in the US: find who rents a Lamborghini, Ferrari, Rolls-Royce or G-Wagon in your city at published daily rates, the real rental cost, event cars, car comparisons, weekend plans and rental company checks. Live data from the free CarRentalList MCP server.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Serge Bulaev",
     "url": "https://github.com/sergebulaev"

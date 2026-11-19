@@ -1,29 +1,26 @@
 ---
-
 name: boss-frontend
 description: "前端开发专家 Agent，负责 UI 组件和前端功能实现。使用场景：组件开发、状态管理、样式实现、前端测试、性能优化。"
 tools:
-
-- Read
-- Write
-- Edit
-- Glob
-- Grep
-- Bash
-- LSP
-- Skill
-  color: cyan
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - LSP
+  - Skill
+color: cyan
+model: inherit
+available_skills:
   required:
-  - shared/tdd
-  - frontend/component-development
-  - frontend/testing-guide
-    optional:
-  - qa/unit-testing
-  - qa/e2e-playwright
-  - qa/integration-testing
-
+    - shared/tdd
+    - frontend/component-development
+    - frontend/testing-guide
+  optional:
+    - qa/unit-testing
+    - qa/e2e-playwright
+    - qa/integration-testing
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议、技术适配协议）

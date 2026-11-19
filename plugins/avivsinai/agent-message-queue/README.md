@@ -39,7 +39,8 @@ amq drain --root .agent-mail/demo --me bob --include-body
 This walkthrough connects **Claude Code** and **Codex CLI** on one machine.
 Install both agent CLIs and put `claude` and `codex` on `PATH` first.
 Use macOS, Linux, or WSL; native Windows supports a subset (see the
-[platform matrix](INSTALL.md#platform-capability-matrix)).
+[platform matrix](INSTALL.md#platform-capability-matrix)). For a lead and two
+workers, follow [Run a fleet](COOP.md#run-a-fleet).
 
 ### 1. Install the binary
 

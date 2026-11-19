@@ -1,5 +1,4 @@
 ---
-
 name: boss:qa
 description: "从测试开始：QA 执行核心用户路径测试与质量门禁，默认自动续跑部署环节。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep

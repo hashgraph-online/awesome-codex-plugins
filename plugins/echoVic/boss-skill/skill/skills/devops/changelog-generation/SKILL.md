@@ -1,5 +1,4 @@
 ---
-
 name: devops/changelog-generation
 description: 自动生成 CHANGELOG，基于 git 提交历史和 pipeline 产物信息，遵循 Conventional Commits 和 Keep a Changelog 规范
 version: 1.0.0
@@ -8,15 +7,13 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- devops/deployment-process
-  triggers:
-- 部署成功完成后
-- 需要生成版本变更日志时
-- 发布新版本时
-  metadata:
+  - devops/deployment-process
+triggers:
+  - 部署成功完成后
+  - 需要生成版本变更日志时
+  - 发布新版本时
+metadata:
   internal: true
-
 ---
 
 # CHANGELOG 自动生成

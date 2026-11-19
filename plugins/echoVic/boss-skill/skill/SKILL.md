@@ -1,32 +1,27 @@
 ---
-
 name: boss
 description: |
-专家小队：带硬性质量契约的执行型虚拟研发团队。8 个专业角色（PM、架构师、UI 设计师、Tech Lead、Scrum Master、前端、后端、QA、DevOps）可从任意环节切入，默认自动跑完后续流程。每个角色有硬性要求 + 禁止清单，产物驱动，可追溯。
+  专家小队：带硬性质量契约的执行型虚拟研发团队。8 个专业角色（PM、架构师、UI 设计师、Tech Lead、Scrum Master、前端、后端、QA、DevOps）可从任意环节切入，默认自动跑完后续流程。每个角色有硬性要求 + 禁止清单，产物驱动，可追溯。
 
-Triggers（完整流程）: 'boss mode', '/boss', '全自动开发', '从需求到部署', '帮我做一个', 'build this', '全流程', '自动化开发', '一键开发'
+  Triggers（完整流程）: 'boss mode', '/boss', '全自动开发', '从需求到部署', '帮我做一个', 'build this', '全流程', '自动化开发', '一键开发'
 
-Triggers（单环节切入，自动续跑后续）:
+  Triggers（单环节切入，自动续跑后续）:
+  - /boss:pm — 从需求分析开始
+  - /boss:architect — 从架构设计开始
+  - /boss:ui — 从 UI 设计开始
+  - /boss:review — 从技术评审开始
+  - /boss:tasks — 从任务拆解开始
+  - /boss:dev — 从开发开始
+  - /boss:qa — 从测试开始
+  - /boss:ship — 只做部署
 
-- /boss:pm — 从需求分析开始
-- /boss:architect — 从架构设计开始
-- /boss:ui — 从 UI 设计开始
-- /boss:review — 从技术评审开始
-- /boss:tasks — 从任务拆解开始
-- /boss:dev — 从开发开始
-- /boss:qa — 从测试开始
-- /boss:ship — 只做部署
-
-Does NOT trigger:
-
-- 单文件修改或简单 bug 修复（直接编辑即可）
-- 纯代码阅读或解释（使用 read 工具）
-- 极小事（预计 <30 分钟人工可完成）
-
-version: 5.0.4
+  Does NOT trigger:
+  - 单文件修改或简单 bug 修复（直接编辑即可）
+  - 纯代码阅读或解释（使用 read 工具）
+  - 极小事（预计 <30 分钟人工可完成）
+version: 5.0.5
 license: MIT
 user-invocable: true
-
 ---
 
 # Boss — 专家小队

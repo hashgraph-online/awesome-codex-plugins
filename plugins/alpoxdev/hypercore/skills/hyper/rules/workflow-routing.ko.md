@@ -14,6 +14,8 @@
 
 계획 없는 한 곳 수정(오타, 문자열 하나, 설정 값 하나), 커밋만 하는 요청, PRD나 와이어프레임 패키지, 구조를 그린 다이어그램, 질문은 범위 밖입니다. 라우팅하지 않습니다. PRD 패키지는 `hyper-prd`, 다이어그램은 `hyper-diagram`이 맡고, 두 스킬은 이 패키지가 단계로 쓰지 않는 별도 스킬입니다.
 
+§2에 단계 신호가 없고 그 제외 조건에도 맞지 않는 결과물은 새 단계가 아니라 스킬로 안내합니다. 런타임 카탈로그의 설명에서 그 결과물에 맞는 독립 스킬을 찾고, 그 스킬의 `SKILL.md`에서 결과물과 제외 범위를 확인한 뒤 그 스킬의 시작 조건에 맞춰 사용자에게 직접 안내합니다. 그 스킬은 이 체인 밖에 둡니다. 단계 신호 표, 단계 순서, 체인 레시피, 네 단계 상한 어디에도 더하지 않고, 이 패키지가 여기서 실행하지도 않습니다.
+
 ## 2. 단계 신호
 
 신호가 하나 있을 때만 그 단계를 더합니다. 라우팅 줄에 그 신호를 인용합니다.
@@ -40,12 +42,12 @@
 | `hyper-imagegen` | 요청한 결과물 전부가 새 이미지 한 장, 제공한 이미지 한 장의 편집, 바로 쓸 수 있는 이미지 프롬프트 하나입니다 | 요청 문구, 그리고 있으면 제공한 편집 원본이나 참고 자료 경로 |
 | `hyper-plan` | Build 작업이 여러 파일이나 단계를 건드리거나, Report 작업이 계획을 요청합니다. 대립형 요청을 사용자가 직접 밝히지 않았을 때입니다 | 요청 문구 |
 | `hyper-debate` | 사용자가 대립형·다관점·악마의 대변인 계획을 직접 요청합니다. "여러 관점으로 따져보고 계획", "찬반으로 붙여서 계획", "반대 의견까지 붙여서 계획", "adversarial planning", "devil's advocate plan", "red team this plan", "debate it then plan"이 그 표현입니다. 이번 턴의 사용자 문장에 그 표현이 있어야 하고, 어려운 문제라고만 말한 요청은 일반 계획입니다 | 요청 문구 중 대립형 선택을 밝힌 표현 |
-| `hyper-execute` | 첫 단계일 때만: `.hyper/plans/` 아래 계획 파일이 이미 있고 사용자가 실행이나 재개를 원합니다 | 읽은 계획 경로 |
+| `hyper-execute` | 체인이 이 단계로 시작할 때만: `.hyper/plans/` 아래 계획 파일이 이미 있고 사용자가 실행이나 재개를 원합니다. 계획 체인 안에서는 계획 단계가 스스로 잇는 다음 단계이므로 거기서는 따로 고르지 않습니다 | 읽은 계획 경로 |
 | `hyper-mass` | 사용자가 의존성 그래프, DAG, "의존성 그래프", "단계별 병렬"을 요청하거나, 일부가 먼저 끝나야 다른 일이 시작되는 여러 작업이 있고 계획 파일을 원하지 않습니다 | 요청 문구 |
 | `hyper-loop` | 요청이 서로 의존하는 여러 목표를 모두 끝내는 일이고, 목표마다 새 증거가 필요한 수락 기준이 있습니다("목표 여러 개 끝까지", "이 목표들 다 끝날 때까지 돌려", "keep going until every goal passes"). 또는 `.hyper/loop/<slug>/` 아래 멈춘 루프를 재개합니다 | 요청 문구, 또는 읽은 `.hyper/loop/<slug>/goals.json` 경로 |
-| `hyper-skill` | 요청한 결과물이 재사용 스킬 폴더입니다. 새 스킬, 또는 기존 스킬의 트리거, 계약, 리소스, 검증 리팩터링 | 요청 문구, 그리고 이미 있으면 대상 `skills/<name>/SKILL.md` |
+| `hyper-skill` | 요청한 결과물이 재사용 스킬 폴더입니다. 새 스킬, 또는 기존 스킬의 트리거, 계약, 리소스, 검증 리팩터링. 평범한 스킬 폴더 요청은 이 단계 하나로 처리하고, 사용자가 자기 말로 계획을 함께 요청했을 때만 체인이 계획 단계로 가서 지목한 스킬을 계획 행에 배치합니다(§3) | 요청 문구, 그리고 이미 있으면 대상 `skills/<name>/SKILL.md` |
 | `hyper-documentation` | 요청한 결과물이 새로 만들거나 리팩터링하는 문서 산출물입니다. README, `AGENTS.md`, AI가 읽기 좋은 문서(지침 베이스, 에이전트 가이드, 런북, 스펙, 규칙 묶음), 재사용 프롬프트 산출물(역할·시스템·에이전트 프롬프트, 프롬프트 템플릿이나 팩, 프롬프트 평가 픽스처) | 요청 문구, 그리고 이미 있으면 대상 경로 |
-| `hyper-git` | 전달하지 않는 꼬리(`hyper-skill`, `hyper-documentation`, `hyper-feedback`, `hyper-debug`, `hyper-loop`, 또는 마지막 구축 단계인 `hyper-database`, `hyper-mcp`, `hyper-decision`, `hyper-design`, `hyper-frontend`, `hyper-google-analytics`, `hyper-google-tagmanager`) 뒤에서 사용자가 커밋과 푸시, 또는 지정 브랜치로 병합과 푸시를 요청합니다. 위 꼬리 뒤(`fixed`로 끝난 디버그, `complete`로 끝난 루프 포함)에서는 PR도 해당합니다. 단 `hyper-database`, `hyper-mcp`, `hyper-decision`, `hyper-design`, `hyper-frontend`는 PR을 `hyper-plan`으로 보냅니다. 같은 체인이 배포까지 하면 `hyper-deploy` 앞에서 실행합니다. `hyper-imagegen` 뒤에는 붙지 않습니다. 그 산출물은 전달된 이미지이거나 git이 무시하는 `.hyper/imagegen/` 파일이기 때문입니다. `hyper-deploy` 뒤에도 붙지 않습니다 | 전달 문구와 지정한 대상 브랜치 |
+| `hyper-git` | 전달하지 않는 꼬리(`hyper-skill`, `hyper-documentation`, `hyper-feedback`, `hyper-debug`, `hyper-loop`, 또는 마지막 구축 단계인 `hyper-database`, `hyper-mcp`, `hyper-decision`, `hyper-design`, `hyper-frontend`, `hyper-google-analytics`, `hyper-google-tagmanager`) 뒤에서 사용자가 커밋과 푸시, 또는 지정 브랜치로 병합과 푸시를 요청합니다. 위 꼬리 뒤(`fixed`로 끝난 디버그, `complete`로 끝난 루프 포함)에서는 PR도 해당합니다. 단 `hyper-database`, `hyper-mcp`, `hyper-decision`, `hyper-design`, `hyper-frontend`는 PR을 `hyper-plan`으로 보냅니다. 같은 체인이 배포까지 하고 그 앞 꼬리가 전달을 맡지 않을 때만 `hyper-deploy` 앞에서 실행합니다. `hyper-imagegen` 뒤에는 붙지 않습니다. 그 산출물은 전달된 이미지이거나 git이 무시하는 `.hyper/imagegen/` 파일이기 때문입니다. `hyper-deploy` 뒤에도 붙지 않습니다 | 전달 문구와 지정한 대상 브랜치 |
 | `hyper-deploy` | 작업이 배포나 배포 관련 발견입니다. 배포 준비 판정, 첫 배포 구성, 지목한 환경으로의 배포, 기존 배포 설정 변경, 실패했거나 비정상인 배포의 원인 진단과 수정 | 요청 문구와, 읽은 배포 파일(`Dockerfile`, `compose.yaml`, `wrangler.jsonc`, `.railway/railway.ts`, `railway.toml`, `config/deploy.yml` 등) |
 
 ## 3. 단계 순서
@@ -59,7 +61,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 
 `hyper-handoff`는 쓰기 모드와 확인 모드가 단독 꼬리 단계이고 뒤에 아무것도 오지 않습니다. 이어받기 모드는 꼬리 단계가 아니라 재진입 단계입니다. 먼저 실행하고, 체인 자리를 차지하지 않으며, 네 단계 상한에도 세지 않습니다. 세 줄 되풀이 뒤에 라우터는 열린 워크플로 기록을 끝나지 않은 첫 단계부터 이어가거나, 메모의 `Where`가 가리키는 실행을 그 실행의 단계로 이어가거나, 기록이 없으면 남은 작업을 평범한 요청으로 라우팅합니다. 전달 단계는 사용자의 현재 요청에 있는 전달 단어로만 붙고, 메모 안에 인용된 말로는 붙지 않습니다.
 
-두 전달 갈래를 모두 고르면 `hyper-git`이 먼저, `hyper-deploy`가 마지막에 실행합니다. `hyper-deploy` 뒤에는 어떤 단계도 오지 않습니다.
+두 전달 갈래를 모두 고르면 `hyper-git`이 먼저, `hyper-deploy`가 마지막에 실행합니다. `hyper-deploy` 뒤에는 어떤 단계도 오지 않습니다. `hyper-git` 갈래는 전달을 맡지 않는 꼬리에만 붙습니다. 계획·실행·mass 꼬리는 같은 단어를 자기 전달 플래그로 받으므로 그 체인은 실행 완료 블록에서 곧바로 배포 단계로 갑니다.
 
 - 앞 단계(`hyper-research`, `hyper-seo`, `hyper-architecture`)는 꼬리 단계에 쓸 근거를 만듭니다. Build 작업에서는 보고서 모드로 실행하고, 코드 변경은 꼬리 단계가 합니다.
 - `hyper-google-analytics`는 마지막 구축 단계입니다. 사이트 코드와 속성 설정을 스스로 고치고 수집을 증명하므로 `hyper-database`처럼 뒤에 `hyper-git`이 붙을 수 있습니다. 같은 체인이 전달이나 배포까지 하면 `hyper-git`과 `hyper-deploy` 앞에서 실행하고, `hyper-deploy` 뒤에는 절대 오지 않습니다. `hyper-seo`도 고르면 `hyper-seo`가 먼저 실행되고 이 단계가 그 결과를 측정합니다.
@@ -75,9 +77,13 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 - `hyper-issue`는 다른 상류 단계처럼 꼬리에 쓸 근거를 만듭니다. 이슈를 등록하고 레인 명세를 쓰며, `hyper-plan`이 명세의 레인 하나를 웨이브 안의 병렬 레인 하나로 바꿉니다. 등록 단어나 이슈 번호가 있으면 기본으로 `hyper-plan`까지 이어지므로, 레인을 실행하고 전달한 뒤에야 실행이 끝납니다. 기록만 원하는 단어("등록만", "이슈만", "작업은 하지 마", "manifest only")가 있을 때만 `hyper-issue`가 마지막 단계입니다.
 - `hyper-issue`가 직접 넘긴 요청(`.hyper/issues/<slug>/batch.md`를 지목하고 이슈 단계가 끝났다고 밝힘)은 `hyper-issue`를 다시 실행하지 않습니다. 1단계를 명세 경로와 함께 `done`으로 기록하고 `hyper-plan`에서 시작합니다.
 - 그 밖의 경우 꼬리 단계는 정확히 하나입니다. `hyper-plan`(스스로 `hyper-execute`로 이어지며, 대립형 선택을 밝힌 요청에서는 `hyper-debate`가 이를 대신함), `hyper-mass`, 기준이 있는 여러 의존 목표에 대한 `hyper-loop`, 동작 보존 정리에 대한 `hyper-cleanup`, 데이터셋을 계산해 얻는 답에 대한 `hyper-data`, 기존 계획에 대한 `hyper-execute` 단독, 스킬 폴더에 대한 `hyper-skill`, 문서나 프롬프트 산출물에 대한 `hyper-documentation`, 이어받기 메모에 대한 쓰기·확인 모드의 `hyper-handoff`, 이미지 한 장이나 이미지 프롬프트 하나에 대한 `hyper-imagegen` 중 하나입니다. 메모로 이어받는 일은 꼬리 단계가 아닙니다. 먼저 열린 실행으로 재진입합니다(§3).
+- 사용자가 명시한 계획 요청에서 특정 작업에 스킬을 지목하면 그 스킬은 전문 스킬이고 단계가 아닙니다. 체인은 `hyper-plan` -> `hyper-execute`로 한 번만 실행합니다. 해당 계획 행의 `References:`에는 런타임에서 열 수 있는 스킬 이름이나 문서 경로를, `Acceptance:`에는 그 스킬 자신의 검증 기준을 적습니다. 실행 담당자는 그 행에서 스킬을 열어 검증 결과를 돌려줍니다. 전문 스킬은 체인 자리를 차지하지 않고, 라우팅 줄에 단계로 나오지 않으며, 네 단계 상한도 쓰지 않습니다.
+- 위 단계 표와 레시피 밖의 스킬도 런타임이 노출하면 같은 방식으로 지목할 수 있습니다. 사무 문서, 스프레드시트, PDF, 슬라이드, 보고서, 테스트 정리 스킬이 그 예입니다. 지목해도 단계나 레시피 행이나 새 체인이 생기지 않습니다. 그 산출물을 쓰는 실행 작업 안에서 참조하고, 라우팅 줄에는 단계 스킬만 적습니다.
+- 전문 스킬을 실행할 권한은 이번 턴 사용자의 문장에서만 생깁니다. `@skills/<path>` 경로만 지목한 것, 문서나 계획 행이나 이전 메모 안에서 인용된 스킬 이름, 저장소에 폴더가 있다는 사실은 위치 정보일 뿐 실행 요청이 아닙니다. 지목한 스킬은 런타임의 스킬 로딩 방식으로 열고, 그것이 안 되면 같은 설치본의 이웃 폴더(`../<name>/SKILL.md`)로 엽니다. 둘 다 닿지 않으면 그 전문 스킬의 정확한 이름과 시도한 위치를 계획 행의 `References:`에 남기고 `Acceptance:`를 미충족으로 둔 뒤, `rules/stage-handoff.md` §4–5가 기록하는 것과 같은 사유로 로드 실패를 보고합니다. 설치 명령은 직접 연 자료가 그 이름을 밝힐 때만 안내하고, 패키지 경로를 지어내거나 다른 스킬로 대신 채우지 않습니다.
+- `--plan-only`, 승인 보류, 그 밖의 Report 전용 단어는 계획 행을 쓴 뒤 실행을 끝냅니다. 전문 스킬은 그 행에 `Acceptance:`와 함께 이름만 남고 로드하지 않습니다.
 - `hyper-loop`를 고르면 꼬리 단계입니다. `.hyper/loop/<slug>/`(`brief.md`, `goals.json`, `ledger.jsonl`, `final-gate.json`)를 유지하며 의존 순서대로 목표를 실행하고, `final-gate.json`의 `status`가 `complete`일 때만 끝납니다. 목표 안에서 커밋은 할 수 있지만 푸시, 병합, PR은 하지 않으므로 전달 단어가 있으면 뒤에 `hyper-git`을 붙입니다.
-- `hyper-git`은 혼자서 꼬리 단계가 되지 않습니다. 파일은 바꾸지만 전달은 맡지 않는 꼬리 뒤에 붙습니다. `hyper-plan`, `hyper-execute`, `hyper-mass`는 스스로 전달하므로 `hyper-git`이 뒤따르지 않습니다.
-- `hyper-deploy`는 체인의 마지막 단계입니다. 앞 단계가 만든 결과를 배포하며, 뒤에 `hyper-git`이 붙지 않습니다. 사용자가 커밋·푸시·병합 전달까지 요청했으면 `hyper-git`이 `hyper-deploy` 앞에 실행합니다.
+- `hyper-git`은 혼자서 꼬리 단계가 되지 않습니다. 파일은 바꾸지만 전달은 맡지 않는 꼬리 뒤에 붙습니다. `hyper-plan`, `hyper-execute`, `hyper-mass`는 스스로 전달하므로 같은 요청이 배포까지 해도 `hyper-git`이 뒤따르지 않습니다.
+- `hyper-deploy`는 체인의 마지막 단계입니다. 앞 단계가 만든 결과를 배포하며, 뒤에 어떤 단계도 오지 않습니다. 전달을 맡지 않는 꼬리 뒤에서 커밋·푸시·병합 단어가 있으면 `hyper-git`을 `hyper-deploy` 바로 앞에 둡니다. 계획이 전달까지 맡는 체인에서는 같은 단어를 그 단계의 전달 플래그로 받고 `hyper-git` 단계를 더하지 않습니다.
 - 같은 요청이 코드까지 바꾸면 코드 체인을 먼저 실행하고, `hyper-deploy` 단계는 실행 완료 블록 뒤에 시작합니다. 아직 완성되지 않은 트리가 아니라 끝난 변경을 배포하기 위해서입니다.
 - Report 작업에서는 요청한 마지막 단계에서 체인이 끝납니다. 계획을 요청한 Report 작업은 `--plan-only`로 `hyper-plan`에서 끝납니다.
 - 서로 다른 핵심 단계를 최대 네 개까지 실행하며 다음처럼 셉니다.
@@ -158,6 +164,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 | 기존 계획 실행이나 재개 | `hyper-execute` |
 | 스킬 폴더를 새로 만들거나 리팩터링 | `hyper-skill` |
 | 최신 공식 문서에 기대는 스킬 폴더("최신 규격", "latest spec") | `hyper-research` -> `hyper-skill` |
+| 계획을 명시적으로 요청하면서 전문 스킬도 지목("계획 세우고 `<specialist>`로 마무리까지", "plan it and have `<specialist>` finish the deliverable") | `hyper-plan` -> `hyper-execute`. 전문 스킬은 계획 행의 `References:`와 `Acceptance:`에 배치하고 체인에는 전문 스킬 단계를 두지 않습니다. 계획 전용 단어가 있으면 계획 행에서 끝납니다 |
 | README, `AGENTS.md`, 문서, 규칙 묶음, 재사용 프롬프트, 템플릿, 팩, 프롬프트 평가 픽스처, 에이전트 메모리 파일(`MEMORY.md`, 메모리 뱅크, 교훈 파일)을 새로 만들거나 리팩터링 | `hyper-documentation` |
 | 최신 외부 출처나 공급자 지침에 기대는 문서나 프롬프트 | `hyper-research` -> `hyper-documentation` |
 | 스킬 폴더, 문서, MCP, decision API, 인터페이스, 프런트엔드, 데이터베이스, GA4 분석, GTM, 변경 요청 반영, 디버그, 루프 뒤 커밋과 푸시("커밋하고 푸시까지") | 그 체인 -> 커밋 모드의 `hyper-git` |
@@ -169,7 +176,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 | 배포 구성이 없는 저장소의 첫 구성과 비프로덕션 배포 | `setup` 모드의 `hyper-deploy` 뒤에 그 단계의 `deploy` 단계 |
 | 기존 배포의 환경 변수·헬스 체크·플랫폼 설정을 바꾸고 다시 배포 | `change` 모드의 `hyper-deploy` 뒤에 그 단계의 `deploy` 단계 |
 | 저장소와 이 스킬의 대상 안내서가 다루지 않는 플랫폼에 배포 | `hyper-research` -> `hyper-deploy` |
-| 코드를 바꾸고 배포까지("기능 고치고 배포까지", "Fix the bug and deploy it to staging") | `hyper-plan` -> `hyper-deploy`. 계획 단계가 스스로 `hyper-execute`로 이어지고, 배포 단계는 그 실행 완료 블록 뒤에 시작합니다 |
+| 코드를 바꾸고 배포까지("기능 고치고 배포까지", "Fix the bug and deploy it to staging") | `hyper-plan` -> `hyper-deploy`. 계획 단계가 스스로 `hyper-execute`로 이어지고, 배포 단계는 그 실행 완료 블록 뒤에 시작합니다. 같은 요청의 커밋·푸시·병합 단어는 계획 단계의 전달 플래그로 받으므로 Git 전달 단계를 더하지 않습니다 |
 
 `hyper-plan`이 들어간 행은 Report 작업이 아니면 `hyper-execute`로 이어집니다.
 
@@ -182,8 +189,8 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 - `hyper-mass`와 `hyper-plan`은 한 체인에서 함께 실행하지 않습니다. 명시 신호가 있을 때만 `hyper-mass`를 고르고, 아니면 `hyper-plan`을 고릅니다.
 - `hyper-loop`는 `hyper-plan`, `hyper-mass`, `hyper-execute`와 한 체인에서 함께 실행하지 않습니다. 요청이 목표마다 기준을 둔 여러 목표를 모두 끝내라고 할 때 `hyper-loop`를 고릅니다. 결과물 하나는 `hyper-plan`, 의존 그래프를 명시한 단계는 `hyper-mass`로 갑니다.
 - 루프 작업의 전달 단어는 루프 단계가 `complete`로 끝난 뒤 `hyper-git`으로 갑니다. `blocked`나 `paused`로 끝난 루프 뒤에는 `hyper-git`을 시작하지 않습니다.
-- `hyper-skill`과 `hyper-plan`은 한 체인에서 함께 실행하지 않습니다. 요청한 결과물이 스킬 폴더면 `hyper-skill`을 고릅니다. 계획 파일은 그 단계의 입력이 아닙니다.
-- `hyper-documentation`은 `hyper-plan`과 한 체인에서 함께 실행하지 않습니다. 주된 결과물로 고릅니다. README, `AGENTS.md`, 문서, 재사용 프롬프트 산출물은 모드를 스스로 고르는 `hyper-documentation`, 스킬 폴더는 `hyper-skill`입니다.
+- 평범한 스킬 폴더 요청은 `hyper-skill` 단독으로 처리하고, 계획 파일은 그 단계의 입력이 아닙니다. 사용자가 한 요청에서 계획을 함께 요청하고 그 스킬을 지목하면 체인은 `hyper-plan`에 머물러 그 실행 단계로 이어지고, 그 스킬은 체인 단계가 아니라 계획 행에 배치합니다(§3). "계획 세우고 이 스킬 고쳐줘", "plan it, then build the skill"이 그 한 가지 형태이고, 계획이라는 말이 없는 스킬 폴더 요청은 `hyper-skill`에 남습니다.
+- 평범한 문서 요청은 `hyper-documentation` 단독으로 처리하고 그 단계가 모드를 스스로 고릅니다. 같은 전문 스킬 처리가 적용됩니다. 계획을 명시적으로 요청하면서 문서 스킬도 지목하면 `hyper-plan`에 머물러 그 실행 단계로 이어지고, 그 스킬은 계획 행에 배치합니다(§3). 그 밖에는 주된 결과물로 고릅니다. README, `AGENTS.md`, 문서, 재사용 프롬프트 산출물은 `hyper-documentation`, 스킬 폴더는 `hyper-skill`입니다.
 - `hyper-mcp`와 `hyper-skill`은 한 체인에서 함께 실행하지 않습니다. 요청한 결과물이 스킬 폴더면 MCP에 관한 스킬이라도 `hyper-skill`을 고릅니다.
 - `hyper-decision`과 `hyper-skill`은 한 체인에서 함께 실행하지 않습니다. 요청한 결과물이 스킬 폴더면 결정 모델에 관한 스킬이라도 `hyper-skill`을 고릅니다. 모더레이션 정책, 분류기 프롬프트, 결정 모델에 관한 문서는 `hyper-documentation`으로 갑니다.
 - 분류기 학습, 모델 파인튜닝, 데이터셋 파이프라인 구축 요청은 `hyper-decision` 작업이 아니며 기존 행대로 보냅니다. 타입 판단을 돌려주는 모델 호출이 결과물이거나 감사 대상일 때만 `hyper-decision`을 붙입니다.
@@ -197,7 +204,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 - `hyper-frontend`는 `hyper-skill`, `hyper-documentation`, `hyper-imagegen`과 한 체인에서 함께 실행하지 않습니다. 스킬 폴더, 문서, 이미지 한 장은 각자의 단계로 갑니다. 네이티브 앱 UI(SwiftUI, UIKit, Compose)는 `hyper-frontend` 작업이 아니며 `hyper-design`과 기존 행대로 보냅니다.
 - 브라우저에서 보이는 깨진 레이아웃, 넘침, 흔들리는 컨트롤, 끊기는 애니메이션은 `hyper-frontend`로 가고, 스택 트레이스, 실패한 테스트, 크래시는 `hyper-debug`, 문구나 동작에 대한 제품 언어의 변경 요청은 `hyper-feedback`으로 갑니다.
 - 프런트엔드 작업에 전달 단어("PR까지", "ship")가 있으면 `hyper-frontend`를 `verify` 모드로 `hyper-plan` 앞에 둡니다. 전달은 계획과 실행 단계만 맡기 때문입니다. 커밋·푸시 단어는 프런트엔드 단계 뒤에 `hyper-git`을 붙입니다.
-- `hyper-imagegen`은 `hyper-plan`, `hyper-mass`, `hyper-skill`, `hyper-documentation`, `hyper-design`과 한 체인에서 함께 실행하지 않습니다. 주된 결과물로 고릅니다. 이미지 한 장이나 이미지 프롬프트 하나는 `hyper-imagegen`, 그림이 들어간 인터페이스는 `hyper-design`, 이미지용 재사용 프롬프트 팩이나 템플릿은 `hyper-documentation`으로 갑니다. 이미지 분석이나 평가는 `hyper` 작업이 아닙니다.
+- `hyper-imagegen`은 `hyper-mass`, `hyper-skill`, `hyper-documentation`, `hyper-design`과 한 체인에서 단계로 함께 실행하지 않고, 이미지 한 장이 필요한 계획 요청은 그 스킬을 계획 행에 배치합니다(§3). 단계로 더하지 않습니다. 주된 결과물로 고릅니다. 이미지 한 장이나 이미지 프롬프트 하나는 `hyper-imagegen`, 그림이 들어간 인터페이스는 `hyper-design`, 이미지용 재사용 프롬프트 팩이나 템플릿은 `hyper-documentation`으로 갑니다. 이미지 분석이나 평가는 `hyper` 작업이 아닙니다.
 - `hyper-imagegen` 단계가 `awaiting_input`으로 끝나면 질문 하나를 이미 했으므로 체인은 그 자리에서 멈추고 답을 받으면 재개합니다.
 - `hyper-feedback`은 `hyper-skill`, `hyper-documentation`, `hyper-imagegen`, `hyper-mass`, `hyper-design`과 한 체인에서 함께 실행하지 않습니다. 생김새가 핵심인 요청("리디자인", "AI 티 안 나게")은 `hyper-design`, 스킬 폴더나 문서에 대한 변경 요청은 그 단계, 의존 그래프를 명시한 요청은 `hyper-mass`로 갑니다.
 - 제품 언어로 쓴 변경 요청은 한 항목이 스키마, 라우트, API 변경을 필요로 해도 `hyper-feedback`으로 갑니다. 그 단계가 예산 안 항목을 반영하고 나머지는 `brief.md`로 `hyper-plan`에 넘깁니다. `hyper-architecture`나 `hyper-database`는 사용자가 그 점검을 이름이나 말로 요청했을 때만 앞에 붙입니다.
@@ -225,7 +232,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 - `hyper-database`와 다른 구축 꼬리(`hyper-mcp`, `hyper-decision`, `hyper-design`, `hyper-frontend`)를 함께 골랐다면 작업이 여러 모듈에 걸친 것입니다. 각 단계를 보고서 모드(리뷰, 점검, `design`, `brief-only`, `verify`)로 실행하고 체인을 `hyper-plan`에서 끝냅니다.
 - 데이터베이스 작업에 전달 단어("PR까지", "ship")가 있으면 `hyper-database`를 리뷰 모드로 `hyper-plan` 앞에 둡니다. 전달은 계획과 실행 단계만 맡기 때문입니다.
 - `hyper-git`은 `hyper-plan`, `hyper-execute`, `hyper-mass`와 한 체인에서 함께 실행하지 않습니다. 같은 단어를 그 단계들의 전달 플래그가 이미 받습니다. 다른 단계 없이 Git만 원하는 요청(커밋, 워크트리, 병합만)은 `hyper` 작업이 아닙니다. 이슈 기록은 `hyper-issue`로 갑니다.
-- `hyper-deploy`는 자신이 배포할 코드를 바꾸는 꼬리 단계보다 먼저 실행하지 않고, 뒤에 어떤 단계도 붙지 않습니다. 순서상 마지막 단계이기 때문입니다. 커밋·푸시·병합 전달까지 요청한 작업은 `hyper-git`을 `hyper-deploy` 바로 앞에 둡니다.
+- `hyper-deploy`는 자신이 배포할 코드를 바꾸는 꼬리 단계보다 먼저 실행하지 않고, 뒤에 어떤 단계도 붙지 않습니다. 순서상 마지막 단계이기 때문입니다. 전달을 맡지 않는 꼬리 뒤에서 커밋·푸시·병합 전달까지 요청한 작업은 `hyper-git`을 `hyper-deploy` 바로 앞에 둡니다. 계획이 전달까지 맡는 작업은 같은 단어를 그 단계의 전달 플래그로 받습니다. 전달을 스스로 마치는 체인에는 Git 전달 단계가 붙지 않습니다.
 - `hyper-deploy`와 `hyper-documentation`은 주된 결과물로 가릅니다. 실제로 실행하는 배포나 그 수정은 `hyper-deploy`, 배포 런북·안내서·체크리스트처럼 문서로 쓰는 것은 `hyper-documentation`입니다.
 - `hyper-deploy`와 `hyper-skill`은 한 체인에서 함께 실행하지 않습니다. 배포에 관한 스킬 폴더는 `hyper-skill`로 갑니다.
 - 한 곳만 고치고 아무것도 배포하지 않는 CI 워크플로 파일 수정은 `hyper` 작업이 아닙니다. 이 체인 밖의 한 곳 수정입니다. CI가 배포하도록 만드는 요청은 플랫폼 설정과 배포 명령을 맡는 `hyper-deploy`로 갑니다.
@@ -249,7 +256,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 | 전달하지 않는 꼬리 뒤의 "<branch>, <branch>에 머지하고 푸시", "merge into dev and main" | 그 대상을 지정 순서대로 받는 `hyper-git` 전달 단계 |
 | 데이터베이스·MCP·decision API·인터페이스 외 전달하지 않는 꼬리 뒤의 "PR까지" | 워크플로 모드(PR)의 `hyper-git` 전달 단계 |
 
-코드 변경 체인에서 "배포까지"의 동률 처리: "배포까지"는 두 뜻을 함께 가집니다. 그래서 두 뜻을 모두 반영합니다. 계획 단계는 `--ship`(병합 전달)을 받고 체인은 꼬리 뒤에 `hyper-deploy`를 더합니다. 배포 단계는 실행 완료 블록 뒤에만 시작하므로 ship 전달이 먼저 끝나고, 그다음 병합된 결과에 배포를 실행합니다. 사용자가 플랫폼 언급 없이 ship 전달만 뜻하면("머지까지") `--ship`만 넘기고 `hyper-deploy`를 건너뜁니다. 병합 없이 배포만 뜻하면("배포만") `--ship` 없이 `hyper-deploy`만 실행합니다.
+코드 변경 체인에서 "배포까지"의 동률 처리: "배포까지"는 두 뜻을 함께 가집니다. 그래서 두 뜻을 모두 반영합니다. 계획 단계는 `--ship`(병합 전달)을 받고 체인은 꼬리 뒤에 `hyper-deploy`를 더합니다. 배포 단계는 실행 완료 블록 뒤에만 시작하므로 ship 전달이 먼저 끝나고, 그다음 병합된 결과에 배포를 실행합니다. 그 체인에는 Git 전달 단계를 더하지 않습니다. 계획·실행·mass 단계는 자기 전달 플래그로 전달을 마치고, Git 단계는 전달을 맡지 않는 꼬리 뒤에만 붙습니다. 사용자가 플랫폼 언급 없이 ship 전달만 뜻하면("머지까지") `--ship`만 넘기고 `hyper-deploy`를 건너뜁니다. 병합 없이 배포만 뜻하면("배포만") `--ship` 없이 `hyper-deploy`만 실행합니다.
 
 ## 7. 애매함
 
@@ -278,5 +285,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 | 단계 스킬, 동반 스킬, 오케스트레이터 역할 | user instruction, 2026-11-06(오케스트레이터 역할); `hyper-deploy`를 더한 사용자 지시, 2026-11-07; `hyper-feedback`을 더한 사용자 지시, 2026-11-07; `hyper-decision`을 더한 사용자 지시, 2026-11-08; `hyper-google-analytics`를 더한 사용자 지시, 2026-11-08; `hyper-debug`를 더한 사용자 지시, 2026-11-09(이슈 #22); `hyper-loop`를 더한 사용자 지시, 2026-11-09(이슈 #21); `hyper-data`를 더한 사용자 지시, 2026-11-09(이슈 #25); `hyper-google-tagmanager`를 더한 사용자 지시, 2026-11-09(hyper 라우팅 갱신); `hyper-frontend`를 더한 사용자 지시, 2026-11-09(이슈 #46); `hyper-handoff`를 더한 사용자 지시, 2026-11-10; `hyper-debate`를 더한 사용자 지시, 2026-11-10(이슈 #26); `hyper-review`를 더한 사용자 지시, 2026-11-10(이슈 #23); `hyper-cleanup`을 더한 사용자 지시, 2026-11-10(이슈 #24); 웹 조사형 리서치에 `hyper-browsing`을 붙인 사용자 지시, 2026-11-07 |
 | 각 단계의 트리거, 결과물, 제외 범위. `hyper-mass`가 계획 파일 실행을 제외하고 `hyper-execute`가 기존 계획을 요구한다는 점 포함 | 이 저장소의 각 단계 스킬 `SKILL.md`, 2026-11-06 |
 | 전달 단어, 계획만·승인 보류 단어, 계획에서 실행으로 자동 연결 | 이 저장소의 계획 스킬 handoff 규칙, 2026-11-06 |
+| 명시한 계획 요청에서의 전문 스킬 배치(계획 행 `References:`와 `Acceptance:`에 지목한 스킬을 적고, `@skills/` 경로나 인용된 이름은 위치 정보로만 쓰며, 계획 전용이면 스킬을 로드하지 않고 끝내는 규칙) | 2026-11-19 사용자 지시, 그리고 `rules/stage-handoff.md` §2의 계획-실행 단계 |
+| 단계 표 밖의 결과물을 그 스킬의 `SKILL.md`를 확인한 뒤 독립 카탈로그 스킬로 안내하고, 그 스킬을 단계로 등록하지 않는 규칙 | 2026-11-19 사용자 지시 |
 | 단계 순서, 네 단계 상한, 레시피, 동률 처리 | 이 패키지가 고른 설계이며 검증된 최적값이 아님 |
 | 이어받기 쓰기·확인 모드를 뒤에 아무것도 오지 않는 꼬리로 두고, 이어받기 모드를 체인과 네 단계 상한 밖의 재진입 단계로 두는 규칙, 재개 대상 탐색 순서(지목한 메모, 열린 메모, 워크플로 기록, 실행 상태), 현재 요청의 전달 단어로만 전달 단계를 붙이는 규칙 | 이 패키지가 고른 설계이며 검증된 최적값이 아님 |

@@ -53,6 +53,13 @@ If it answers *"what behavior can consumers rely on right now"*, it is a spec.
    non-normative example block (≤ 5 lines, Given/When/Then) anchoring the most
    load-bearing behavior; an example past that allowance belongs in a linked `scenario`
    (`skills/_shared/scenario-contract.md`, `scenario depends_on spec`).
+   WHEN the spec is specified ahead of code at `sdd.design`, Conformance MUST
+   carry a **check map**: one line per Normative Behavior and Failure Behavior
+   clause, `- <n>: <test name or command>` for Normative Behavior clause n and
+   `- F<n>: …` for Failure Behavior clause n. The check map names checks only;
+   the proof commit belongs to the plan task per `skills/_shared/plan-contract.md`.
+   A spec captured after code MAY carry a check map; a spec without one stays
+   conformant. The check map stays outside the body cap.
 
 ## Notation
 

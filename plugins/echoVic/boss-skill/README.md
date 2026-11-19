@@ -36,17 +36,17 @@ Restart DeepSeek Harness, create a session and pick **Boss Expert Squad**.
 
 Each slash command is an entry point that auto-runs the downstream stages:
 
-| Command | Starts at | Runs through |
-| --- | --- | --- |
-| `/boss` | PM | the full chain → ship |
-| `/boss:pm` | PM | Architect → … → Ship |
-| `/boss:architect` | Architect | UI → … → Ship |
-| `/boss:ui` | UI Designer | Review → … → Ship |
-| `/boss:review` | Tech Lead | Tasks → … → Ship |
-| `/boss:tasks` | Scrum Master | Dev → QA → Ship |
-| `/boss:dev` | Frontend / Backend | QA → Ship |
-| `/boss:qa` | QA | Ship |
-| `/boss:ship` | DevOps | ends the chain |
+| Command           | Starts at          | Runs through          |
+| ----------------- | ------------------ | --------------------- |
+| `/boss`           | PM                 | the full chain → ship |
+| `/boss:pm`        | PM                 | Architect → … → Ship  |
+| `/boss:architect` | Architect          | UI → … → Ship         |
+| `/boss:ui`        | UI Designer        | Review → … → Ship     |
+| `/boss:review`    | Tech Lead          | Tasks → … → Ship      |
+| `/boss:tasks`     | Scrum Master       | Dev → QA → Ship       |
+| `/boss:dev`       | Frontend / Backend | QA → Ship             |
+| `/boss:qa`        | QA                 | Ship                  |
+| `/boss:ship`      | DevOps             | ends the chain        |
 
 The full chain is `pm → architect → ui → review → tasks → dev → qa → ship`. Stop it by saying "stop", "only do this step", or passing `--stop-after <stage>`.
 
@@ -97,11 +97,11 @@ request → clarify (unless --quick)
 
 Beyond the per-role contracts, real commands decide each gate and the verdict is recorded in the stage artifact:
 
-| Gate | Stage | Checks |
-| --- | --- | --- |
-| 0 (code quality) | after dev, before QA | typecheck and lint pass, no high-severity dependency vulnerabilities |
-| 1 (testing) | after QA, before deploy | unit and integration tests pass, coverage ≥ 70%, no P0/P1 bugs, E2E written |
-| 2 (performance) | before web deploy | Lighthouse ≥ 80, API P99 < 500 ms (web projects) |
+| Gate             | Stage                   | Checks                                                                      |
+| ---------------- | ----------------------- | --------------------------------------------------------------------------- |
+| 0 (code quality) | after dev, before QA    | typecheck and lint pass, no high-severity dependency vulnerabilities        |
+| 1 (testing)      | after QA, before deploy | unit and integration tests pass, coverage ≥ 70%, no P0/P1 bugs, E2E written |
+| 2 (performance)  | before web deploy       | Lighthouse ≥ 80, API P99 < 500 ms (web projects)                            |
 
 If you don't need a traceable `.boss/` folder, you probably don't need the full pipeline; use a single role instead.
 

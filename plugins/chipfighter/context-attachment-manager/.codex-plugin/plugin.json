@@ -1,6 +1,6 @@
 {
   "name": "codex-attachment-manager",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "For Codex tasks with many images: earlier images go out as short placeholders instead of being sent again with every message, the model fetches the original back by its ID (also after compaction), and the prompt cache keeps working.",
   "author": {
     "name": "chipfighter"

@@ -41,7 +41,9 @@ codex plugin marketplace add arvkonstantin/herdr-codex-subagents
 codex plugin add herdr-codex-subagents@herdr-codex-subagents
 ```
 
-Start a new Codex session inside Herdr. Open `/hooks`, review the five plugin hooks, and trust them.
+Start a new Codex session inside Herdr or Herdr Desktop. Open `/hooks`, review the five plugin
+hooks, and trust them. In Desktop, launch Codex from the app menu or run `codex --no-daemon` in
+a Desktop terminal so hooks inherit that terminal's identity.
 
 For a local checkout, replace the GitHub repository in the first command with its absolute path.
 
@@ -59,7 +61,8 @@ trust them before using subagent panes.
 
 ## What it does
 
-- Keeps the parent in the left half and tiles subagent viewers in the right half without moving focus.
+- Keeps the parent in the left half and tiles subagent viewers in the right half.
+- Keeps focus in terminal Herdr and restores it after a split in the active Desktop tab.
 - Streams a compact view of each subagent's local Codex rollout.
 - Reopens the matching viewer when Codex interacts with an existing subagent.
 - Tracks the exact `agent_id` to `pane_id` relationship and closes the matching pane on completion.
@@ -90,7 +93,9 @@ tracked viewers after a session ends or before a parent pane is reused.
 
 ## Requirements
 
-- [Herdr](https://herdr.dev) with the `pane split`, `pane run`, and `pane close` commands.
+- [Herdr](https://herdr.dev) with the `pane split`, `pane run`, and `pane close` commands,
+  or a running [Herdr Desktop](https://github.com/herdrdev/herdr-app) window with
+  `herdr-app` on `PATH`. Verified pane behavior with Desktop `0.1.16` and herdr-core `0.1.21`.
 - Codex CLI with lifecycle hooks and native subagents. Tested with Codex CLI `0.160.1`
   and Herdr `0.9.3`.
 - Python `3.10` or newer.
@@ -98,9 +103,9 @@ tracked viewers after a session ends or before a parent pane is reused.
 
 ## Safety and privacy
 
-The plugin activates only when `HERDR_ENV=1` and the parent pane can be resolved. Splits use
-`--no-focus`, and cleanup refuses to close a pane whose ID matches the parent. Rollout files are read
-locally and are never modified or transmitted.
+The plugin requires a resolvable parent pane. It uses `HERDR_ENV=1` and `HERDR_PANE_ID` in
+terminal Herdr, or maps `HC_TERMINAL_ID` to its pane in Herdr Desktop. Cleanup refuses to close a
+pane whose ID matches the parent. Rollout files are read locally.
 
 ## Configuration
 

@@ -1,5 +1,4 @@
 ---
-
 name: devops/deployment-process
 description: 部署流程与CI/CD配置，包含部署平台选择、部署策略和环境管理
 version: 2.2.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要配置部署流程时
-- 需要设置CI/CD时
-- 需要选择部署平台时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要配置部署流程时
+  - 需要设置CI/CD时
+  - 需要选择部署平台时
+metadata:
   internal: true
-
 ---
 
 # 部署流程与 CI/CD

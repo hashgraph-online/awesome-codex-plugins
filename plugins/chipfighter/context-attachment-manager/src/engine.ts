@@ -21,6 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 // build and version are missing on engines from before v0.1-3.
 export type Health = { ok: true; service: string; pid: number; startedAt: string; port: number; build?: string | null; version?: string | null; routingVersion?: number; routingPort?: number };
 export type EngineState = "running" | "started" | "replaced" | "failed";
+export type EngineBindFailure = { port: number; host: string; code: string };
 
 export function isEngineHealth(value: unknown): value is Health {
   const health = value as Partial<Health> | null;
@@ -88,10 +89,12 @@ export function shouldReplace(running: Health, own: { build: string | null; vers
 // Detached and hidden, so it outlives whoever asked for it (a plugin server instance, the CLI). Its working folder is
 // not the plugin's: Windows will not delete a folder a running process works in, and Codex replaces the plugin's
 // folder on every update and removes it on uninstall.
-export function spawnEngine(port = DEFAULT_PORT, extraArgs: string[] = [], dir = here): number | undefined {
-  const child = spawn(process.execPath, [join(dir, "proxy.ts"), "--port", String(port), ...extraArgs], { cwd: tmpdir(), detached: true, stdio: "ignore", windowsHide: true });
+function spawnEngine(port: number, extraArgs: string[] = [], dir = here) {
+  const child = spawn(process.execPath, [join(dir, "proxy.ts"), "--port", String(port), ...extraArgs], {
+    cwd: tmpdir(), detached: true, stdio: ["ignore", "ignore", "ignore", "ipc"], windowsHide: true,
+  });
   child.unref();
-  return child.pid;
+  return child;
 }
 
 // An engine from v0.1-3 on stops listening at once and exits after its open requests; an older one does not know the
@@ -110,7 +113,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // The build of each runtime folder, read again once for every different build a running engine reports.
 const knownBuilds = new Map<string, { build: string | null; against: string | null | undefined }>();
 
-export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean; client?: string } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health }> {
+export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean; client?: string } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health; bindFailure?: EngineBindFailure }> {
   const port = options.port ?? DEFAULT_PORT;
   const dir = options.dir ?? here;
   const existing = await engineHealth(port, 800, options.client);
@@ -125,14 +128,23 @@ export async function ensureEngine(options: { port?: number; waitMs?: number; ex
     for (let i = 0; i < 20 && (await engineHealth(port, 300))?.pid === existing.pid; i++) await sleep(150);
     replaced = existing;
   }
-  spawnEngine(port, options.extraArgs, dir);
-  const deadline = Date.now() + (options.waitMs ?? 8000);
-  while (Date.now() < deadline) {
-    await sleep(150);
-    const health = await engineHealth(port);
-    if (health && health.pid !== replaced?.pid) return { state: replaced ? "replaced" : "started", health, replaced };
+  const child = spawnEngine(port, options.extraArgs, dir);
+  let spawnFailed = false;
+  let bindFailure: EngineBindFailure | undefined;
+  child.on("error", () => { spawnFailed = true; });
+  child.on("message", (message) => { bindFailure = message as EngineBindFailure; });
+  try {
+    const deadline = Date.now() + (options.waitMs ?? 8000);
+    while (Date.now() < deadline) {
+      await sleep(150);
+      const health = await engineHealth(port);
+      if (health && health.pid !== replaced?.pid) return { state: replaced ? "replaced" : "started", health, replaced };
+      if (bindFailure || spawnFailed) break;
+    }
+    return { state: "failed", health: null, replaced, bindFailure };
+  } finally {
+    if (child.connected) child.disconnect();
   }
-  return { state: "failed", health: null, replaced };
 }
 
 // `tasklist /FO CSV /NH` prints one quoted CSV row per process, or an INFO line when nothing matches.

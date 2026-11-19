@@ -1,5 +1,4 @@
 ---
-
 name: pm/requirement-penetration
 description: 深度挖掘用户需求的方法论，通过5W2H追问和需求分层模型，识别显性、隐性、潜在和惊喜需求
 version: 1.0.0
@@ -9,13 +8,11 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 用户提出新功能需求时
-- 需要理解用户真实意图时
-- 开始PRD编写前的需求分析阶段
-  metadata:
+  - 用户提出新功能需求时
+  - 需要理解用户真实意图时
+  - 开始PRD编写前的需求分析阶段
+metadata:
   internal: true
-
 ---
 
 # 需求穿透方法论

@@ -1,6 +1,6 @@
 {
   "name": "herdr-codex-subagents",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Show Codex subagents in disposable, non-focusing Herdr panes.",
   "author": {
     "name": "Konstantin Aristov",

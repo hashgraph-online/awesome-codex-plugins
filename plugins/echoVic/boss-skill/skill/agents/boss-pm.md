@@ -1,28 +1,25 @@
 ---
-
 name: boss-pm
 description: "需求分析 Agent，将原始诉求穿透为分层需求（显性/隐性/潜在/惊喜），产出带验收标准与优先级依据的 PRD。"
 tools:
-
-- Read
-- Write
-- Glob
-- Grep
-- WebSearch
-- WebFetch
-- Task
-- Skill
-  color: purple
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - WebSearch
+  - WebFetch
+  - Task
+  - Skill
+color: purple
+model: inherit
+available_skills:
   required:
-  - pm/requirement-penetration
-  - pm/prd-writing
-    optional:
-  - pm/competitive-analysis
-  - pm/user-research
-  - pm/strategic-review
-
+    - pm/requirement-penetration
+    - pm/prd-writing
+  optional:
+    - pm/competitive-analysis
+    - pm/user-research
+    - pm/strategic-review
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）

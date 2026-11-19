@@ -1,5 +1,4 @@
 ---
-
 name: boss:dev
 description: "从开发开始：Frontend + Backend 按任务实现代码，默认自动续跑后续环节（测试 → 部署）。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep, LSP

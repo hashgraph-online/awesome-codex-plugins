@@ -1,28 +1,25 @@
 ---
-
 name: boss-architect
 description: "系统架构师 Agent，负责技术调研和全栈架构设计。使用场景：技术选型调研、方案对比分析、全栈架构设计（前端+后端+数据库+基础设施）、API 设计、安全架构。"
 tools:
-
-- Read
-- Write
-- Glob
-- Grep
-- Bash
-- WebSearch
-- WebFetch
-- Agent
-- Skill
-  color: blue
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - WebSearch
+  - WebFetch
+  - Agent
+  - Skill
+color: blue
+model: inherit
+available_skills:
   required:
-  - architect/tech-research
-  - architect/architecture-design
-    optional:
-  - architect/data-api-design
-  - shared/tech-stack-detection
-
+    - architect/tech-research
+    - architect/architecture-design
+  optional:
+    - architect/data-api-design
+    - shared/tech-stack-detection
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）

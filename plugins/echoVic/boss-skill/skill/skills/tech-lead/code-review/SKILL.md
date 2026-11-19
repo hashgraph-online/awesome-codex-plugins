@@ -1,5 +1,4 @@
 ---
-
 name: tech-lead/code-review
 description: 代码审查方法论，基于 Google Code Review、Clean Code、SOLID 等业界实践，提供分阶段审查流程、严重度分级、常见反模式识别与可执行反馈写法
 version: 2.0.0
@@ -8,20 +7,18 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要审查代码时
-- 需要评估代码质量时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要审查代码时
+  - 需要评估代码质量时
+metadata:
   internal: true
   references:
-  - "Google Code Review Developer Guide: https://google.github.io/eng-practices/review/"
-  - "Clean Code (Robert C. Martin)"
-  - "SOLID Principles: https://en.wikipedia.org/wiki/SOLID"
-  - "OWASP Top 10: https://owasp.org/www-project-top-ten/"
-  - "Code Review Checklist (standard/go): https://github.com/mre/idiomatic-go"
-
+    - "Google Code Review Developer Guide: https://google.github.io/eng-practices/review/"
+    - "Clean Code (Robert C. Martin)"
+    - "SOLID Principles: https://en.wikipedia.org/wiki/SOLID"
+    - "OWASP Top 10: https://owasp.org/www-project-top-ten/"
+    - "Code Review Checklist (standard/go): https://github.com/mre/idiomatic-go"
 ---
 
 # 代码审查方法论

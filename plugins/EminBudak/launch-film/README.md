@@ -1,3 +1,5 @@
+<img src=".github/assets/icon.svg" alt="" width="72" height="72">
+
 # launch-film
 
 A 20 to 40 second launch film made from a product's own website or App Store page: its real logo, colors, fonts and screens, set in motion with music and sound effects.

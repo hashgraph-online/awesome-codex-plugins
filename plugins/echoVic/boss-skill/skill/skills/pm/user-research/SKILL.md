@@ -1,5 +1,4 @@
 ---
-
 name: pm/user-research
 description: 用户研究方法，通过用户画像和用户旅程图，深入理解目标用户的特征、需求和行为
 version: 1.0.0
@@ -9,13 +8,11 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 需要明确目标用户时
-- 需要理解用户行为和场景时
-- 设计用户体验流程时
-  metadata:
+  - 需要明确目标用户时
+  - 需要理解用户行为和场景时
+  - 设计用户体验流程时
+metadata:
   internal: true
-
 ---
 
 # 用户研究方法论

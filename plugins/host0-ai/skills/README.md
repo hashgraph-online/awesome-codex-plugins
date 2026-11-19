@@ -66,7 +66,7 @@ The first publish starts a device login: the agent shows a link and a short code
 - **Versions and one-click restore**, cookieless analytics, and a readable URL whenever you rename it.
 - **Any file or folder**: a static site, a single HTML page, a PDF, images, video, Markdown.
 
-There is a free plan. Docs: [host0.ai/docs](https://host0.ai/docs).
+Plans and prices: [host0.ai/pricing](https://host0.ai/pricing). Docs: [host0.ai/docs](https://host0.ai/docs).
 
 ## Skills
 

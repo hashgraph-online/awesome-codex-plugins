@@ -1,5 +1,4 @@
 ---
-
 name: boss:tasks
 description: "从任务拆解开始：Scrum Master 将架构/需求拆分为可执行任务，默认自动续跑后续环节（开发 → 测试 → 部署）。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep

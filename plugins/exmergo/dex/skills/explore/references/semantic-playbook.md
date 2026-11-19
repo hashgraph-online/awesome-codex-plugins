@@ -217,6 +217,23 @@ statically with no Cube server. `list` reads the same shape as anywhere else:
   server holds another model than the repository. A refusal naming a
   pre-aggregation means Cube would answer from a rollup table; query members it
   does not cover.
+- **`--api` hands execution to Cube.** The Cube server runs the query over
+  `/v1/load` with its own warehouse connection, so it answers on any warehouse
+  Cube supports (Databricks, ClickHouse and Trino included, which `--local`
+  refuses), with no estimate and no ceiling: `execution: vendor`, a `cost guard
+  unavailable` warning and `cost.paradigm: hosted` on every result. Prefer
+  `--local` where the connector is supported and spend matters. The PII gate
+  still runs first, and a Cube Core still has to serve the repository's model.
+- **On Cube Cloud (`deployment: cube_cloud`) the catalog is the deployment's.**
+  `list` and the default query read Cube Cloud's compiled model, which can
+  include JS, Jinja and `extends` definitions the files only name, but carries
+  no relation or column (declared in `unavailable`), and omits primary keys and
+  private members. Every result says it was not checked against the repository;
+  to hold the deployment to the reviewed files, pass `--local`, which has Cube
+  Cloud render and Dex execute, and refuses a deployment whose members, kinds,
+  aggregations, filters, member SQL, joins or tables differ from the files.
+  `CUBE_API_TOKEN` must be exported (never in config); a host that is not
+  `*.cubecloudapp.dev` / `*.cubecloud.dev` needs `DEX_CUBE_ALLOWED_HOSTS`.
 
 ## When the layer is Databricks Metric Views
 

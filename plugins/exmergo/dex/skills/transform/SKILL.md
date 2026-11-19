@@ -653,6 +653,11 @@ a field, flag, or macro you need is not described here.
   dropping, redacting or replacing it. Check presence and types with metadata
   and rows with permitted aggregates; keep protected examples out of the diff
   and the report. Redaction needs an applicable instruction or contract.
+- A model the plan creates is stamped with the PII metadata of the flagged
+  columns it passes through (`config.meta.contains_pii`, `pii_category`), with or
+  without a declaration. Relay `data.pii_metadata`: an `unresolved` column (a
+  hash, a concatenation) or a `disagreement` is a person's call, never yours to
+  settle by editing the stamp away.
 - A model pass-through does not authorize a seed export. If the transformation
   itself is prohibited or unsupported, report that limitation without bypassing
   a privacy or dev-target guard. Only a human clears a PII flag.
@@ -661,7 +666,12 @@ a field, flag, or macro you need is not described here.
   looked at: detection reads names and types, never values, so it cannot see
   personal data under a neutral column name.
 - A seed whose header looks like personal data is refused; the refusal names the
-  `pii_overrides` entry a human can add to `.dex/config.yml`. Recommend it. If the
+  `pii_overrides` entry a human can add to `.dex/config.yml`. On a seed file the
+  plan creates, a header-name flag exactly at the threshold (a `*_note` column
+  read as free text, never a column a profile flagged) warns with the same entry
+  instead. Relay the warning and ask the user to review that column's values
+  before applying; never read them yourself, since they may be personal data.
+  Recommend it. If the
   user agrees, propose it with `dex config set pii_overrides '<list>'` (the whole
   list, existing entries included: read them with `dex config get pii_overrides`)
   and let them confirm the diff; never confirm it yourself.

@@ -57,6 +57,10 @@ That's Layer 1. The payoff shows up the *next* time your agent starts — it rea
 
 ## See it work — the andon cord catching a false "done"
 
+![Andon's claim-check hook warning on a "done" claim that has no verification entry](assets/demo-false-done.png)
+
+*Shortened output of the 30-second demo below. Run it to see the full message.*
+
 The claim-check hook detects some completion phrases and checks their verification entries. In block mode, a failed check returns a block decision.
 
 The example below runs the hook in **warn** mode with no verification entry. Its response asks for evidence; it does not establish whether the agent performed the work. Promote to **block** only after checking its behavior on your work. See [HOOK_INSTALL.md](HOOK_INSTALL.md).
@@ -262,7 +266,7 @@ By default, Andon's hook asks one question: does a "done" have a recent same-ses
 
 I came up in manufacturing — 15 years, up to production manager — where the discipline was Lean and Six Sigma: you investigate why a defect occurred and put a countermeasure in place. Now I run my own work on a fleet of AI agents, and when the same mistakes kept recurring I ported that discipline to them. This repo is that system, stripped of my private work — it stands on a lot of [other people's tools](docs/stand-on-these-shoulders.md).
 
-If a pattern here saves you a session, I'd like to hear what you stripped, kept, or added — open an issue. More of what I build is at **[github.com/PrimeFoldTools](https://github.com/PrimeFoldTools)**.
+If a pattern here saves you a session, I'd like to hear what you stripped, kept, or added — open an issue. More of what I build is at **[github.com/PrimeFoldTools](https://github.com/PrimeFoldTools)**. The case study and mistakes log behind this repo are in [verification-discipline](https://github.com/PrimeFoldTools/verification-discipline). The record of my work is at [collinnerdahl.com/proof](https://collinnerdahl.com/proof.html).
 
 **Status:** Stripped from the system I run daily, so it gets fixed when it breaks. Solo-maintained — issues and PRs welcome (I read them), no enterprise SLAs. Fork freely.
 

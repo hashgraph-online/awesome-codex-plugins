@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img" aria-label="Moli">
+  <rect width="64" height="64" rx="14" fill="#0d1117"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#58a6ff" stroke-width="5"/>
+  <path d="M13 32h38M32 13c8 7 12 13 12 19S40 44 32 51c-8-7-12-13-12-19S24 20 32 13Z" fill="none" stroke="#d2a8ff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="40" cy="25" r="4" fill="#3fb950"/>
+</svg>

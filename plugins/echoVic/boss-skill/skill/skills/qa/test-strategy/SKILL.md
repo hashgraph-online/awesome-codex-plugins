@@ -1,5 +1,4 @@
 ---
-
 name: qa/test-strategy
 description: 测试策略与测试金字塔原则，定义测试优先级、风险驱动测试、测试类型决策、环境与数据策略
 version: 2.0.0
@@ -8,14 +7,12 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 开始测试工作时
-- 需要制定测试计划时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 开始测试工作时
+  - 需要制定测试计划时
+metadata:
   internal: true
-
 ---
 
 # 测试策略与测试金字塔

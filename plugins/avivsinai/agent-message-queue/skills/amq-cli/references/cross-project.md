@@ -82,7 +82,9 @@ agent instance; process it normally.
 
 ## Reply Routing
 
-Cross-project messages carry `reply_to` (handle@session) and `reply_project` (project name). When you receive a cross-project message:
+Cross-project messages carry `reply_project` and `reply_to`. The latter is
+`handle@session` for a named session and the bare handle for a base-root sender.
+To answer, use the message ID:
 
 ```bash
 amq reply --id "<msg_id>" --body "got it"

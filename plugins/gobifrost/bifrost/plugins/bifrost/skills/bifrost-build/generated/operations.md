@@ -187,3 +187,16 @@ caller's own items.
 | `workspace.files.editor.folder.create` | — | — | `repository.readwrite` |
 | `workspace.files.editor.delete` | — | — | `repository.readwrite` |
 | `workspace.files.editor.rename` | — | — | `repository.readwrite` |
+| `identityproviders.domains.list` | — | — | `identityproviders.read` |
+| `identityproviders.domains.create` | — | — | `identityproviders.readwrite` |
+| `identityproviders.domains.verify` | — | — | `identityproviders.readwrite` |
+| `identityproviders.domains.delete` | — | — | `identityproviders.readwrite` |
+| `identityproviders.list` | — | — | `identityproviders.read` |
+| `identityproviders.create` | — | — | `identityproviders.readwrite` |
+| `identityproviders.get` | — | — | `identityproviders.read` |
+| `identityproviders.update` | — | — | `identityproviders.readwrite` |
+| `identityproviders.delete` | — | — | `identityproviders.readwrite` |
+| `identityproviders.token.rotate` | — | — | `identityproviders.readwrite` |
+| `identityproviders.groups.list` | — | — | `identityproviders.read` |
+| `identityproviders.groups.map` | — | — | `identityproviders.readwrite`, `roleassignments.readwrite` |
+| `identityproviders.groups.unmap` | — | — | `identityproviders.readwrite` |

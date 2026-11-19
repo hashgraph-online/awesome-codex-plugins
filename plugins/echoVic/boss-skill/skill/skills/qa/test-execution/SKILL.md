@@ -1,5 +1,4 @@
 ---
-
 name: qa/test-execution
 description: 测试执行方法，包含测试框架检测、覆盖率门禁、多框架结果解析、失败分级、增量测试选择、并行执行策略
 version: 2.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要执行测试时
-- 需要验证测试覆盖率时
-- 需要解析测试结果时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要执行测试时
+  - 需要验证测试覆盖率时
+  - 需要解析测试结果时
+metadata:
   internal: true
-
 ---
 
 # 测试执行方法

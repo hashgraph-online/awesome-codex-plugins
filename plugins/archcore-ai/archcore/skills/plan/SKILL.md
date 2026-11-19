@@ -41,6 +41,7 @@ Apply in this order:
 |---|---|
 | No arguments, one draft with a state block this command resumes | Resume it at its earliest incomplete gate |
 | No arguments, several such drafts | Resume rule 10 in `skills/_shared/gate-contract.md` |
+| No arguments, no such draft, and one draft proof-tracked plan per `skills/_shared/plan-contract.md` that is not fully proven | Report its frontier tasks, proven and open, and its **Waiting on** bullets; IF every frontier task is proven, THEN expand the next phase per "The frontier" in that contract; then go to Step 6 |
 | No arguments, a clear request in the session or one unfinished plan | Offer a start menu of at most four items, each with the evidence that names it, the recommended item first |
 | No arguments and no reliable signal | Ask one question — what outcome to plan; a dirty branch alone is not a target |
 | The first word is a type slug | The explicit type request per `explicit-type-request-wins.adr`; a leading `research` requests the type `research` |
@@ -127,7 +128,7 @@ plugin root to the assistant. The assistant reads
 
 WHEN the selection produced a `plan` document:
 
-1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call.
+1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call. A proof-tracked task carries them in its `files` line per `skills/_shared/plan-contract.md`.
 2. WHEN grounding surfaced no file or module for a task, state that no target was found for that task. Do not guess a path.
 3. Confirm the plan carries its `## Declared Delta` section per sequencing rule 9 of `skills/_shared/delta-routing.md`.
 
@@ -139,7 +140,7 @@ or the selection line names the follow-ups.
 WHEN a blocking exit check stopped the selection, skip this step and go to Result.
 Otherwise, offer exactly two exits and let the user choose:
 
-- **Implement now** — start on the mapped task list, first phase first, against the files mapped in Step 5.
+- **Implement now** — start on the mapped task list, first phase first, against the files mapped in Step 5. For a proof-tracked plan, take the first unchecked frontier task; check each task per "Checking a task" in `skills/_shared/plan-contract.md`.
 - **Stop here** — the draft documents and relations stay in `.archcore/`; a later `/archcore:plan` invocation resumes any draft that still carries a state block.
 
 ## Result

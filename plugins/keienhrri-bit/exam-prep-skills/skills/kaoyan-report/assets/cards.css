@@ -1,0 +1,36 @@
+/* 解析集、订正册的题卡。块级写法 ::: you / err / sol / pts / mem / pit / chk 由 pandoc 转成 <div class="…">。 */
+
+/* 题头：<div class="ch"><span class="no">1</span><span class="tt">题干简述</span><span class="sc"><b>9</b> / 15</span></div> */
+.ch { display: flex; align-items: baseline; gap: 7pt; margin: 16pt 0 6pt; padding-bottom: 3pt;
+      border-bottom: 1.1pt solid var(--ink); break-after: avoid; font-family: var(--sans); }
+.ch .no { font-size: 15pt; font-weight: 700; color: var(--ink); }
+.ch .tt { font-size: 10.5pt; font-weight: 700; }
+.ch .tag { margin-left: 0; }
+.ch .sc { margin-left: auto; font-size: 9pt; color: var(--ink2); white-space: nowrap; }
+.ch .sc b { font-size: 14pt; color: var(--ink); }
+
+div.q, div.you, div.err, div.sol, div.pts, div.mem, div.pit, div.chk, div.ans { padding: 5pt 9pt 3pt; margin: 0 0 6pt; border-radius: 2pt; }
+div.q::before, div.you::before, div.err::before, div.sol::before, div.pts::before, div.mem::before, div.pit::before, div.chk::before {
+  display: block; font-family: var(--sans); font-size: 7.8pt; font-weight: 700;
+  color: var(--ink2); margin-bottom: 2pt; letter-spacing: 0.3pt; }
+div.q   { background: #f3f2ee; break-inside: avoid; }
+div.q::before { content: "题面"; }
+div.you { border-left: 2.4pt solid #898781; background: #fafaf8; font-family: var(--kai); break-inside: avoid; }
+div.you::before { content: "你的作答"; }
+div.err { border-left: 2.4pt solid #c23535; background: #fbefef; break-inside: avoid; }
+div.err::before { content: "错在哪一步"; color: #a32626; }
+div.sol { border-left: 2.4pt solid var(--accent); padding-bottom: 4pt; }
+div.sol::before { content: "标准解答"; color: var(--accent); }
+div.pts { border-left: 2.4pt solid #c3c2b7; background: #fafaf8; font-size: 8.8pt; break-inside: avoid; }
+div.pts::before { content: "评分点"; }
+div.mem { border-left: 2.4pt solid #1baf7a; background: #eef7f2; break-inside: avoid; }
+div.mem::before { content: "要记住的"; color: #0e6b47; }
+div.pit { border-left: 2.4pt solid #eda100; background: #fdf6e6; break-inside: avoid; }
+div.pit::before { content: "易错点"; color: #8a5a00; }
+div.chk { border-left: 2.4pt solid #2a78d6; background: #f2f6fc; break-inside: avoid; }
+div.chk::before { content: "自查"; color: #1d5aa3; }
+div.ans { font-size: 8.6pt; color: var(--ink2); background: #f3f2ee; break-inside: avoid; }
+div.mem ul, div.pit ul { margin: 0 0 3pt; }
+div.q p:last-child, div.you p:last-child, div.err p:last-child, div.sol p:last-child, div.pts p:last-child,
+div.mem p:last-child, div.pit p:last-child, div.chk p:last-child { margin-bottom: 3pt; }
+div.sol .katex-display { margin: 3pt 0 5pt; }

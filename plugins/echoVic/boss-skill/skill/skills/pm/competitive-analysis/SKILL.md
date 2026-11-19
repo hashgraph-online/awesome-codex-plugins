@@ -1,5 +1,4 @@
 ---
-
 name: pm/competitive-analysis
 description: 竞品调研和分析方法，通过系统性分析竞品的功能、体验和策略，发现差异化机会
 version: 1.0.0
@@ -9,13 +8,11 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 需要了解市场竞争格局时
-- 寻找产品差异化机会时
-- 验证需求假设时
-  metadata:
+  - 需要了解市场竞争格局时
+  - 寻找产品差异化机会时
+  - 验证需求假设时
+metadata:
   internal: true
-
 ---
 
 # 竞品调研与分析方法论

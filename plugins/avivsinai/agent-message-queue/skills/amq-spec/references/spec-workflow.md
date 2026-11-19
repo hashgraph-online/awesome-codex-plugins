@@ -63,11 +63,9 @@ amq send --to "<partner>" --kind brainstorm \
 ```bash
 # 1) Research first; do not read partner research from the thread yet
 
-# 2) Submit your findings
-amq send --to "<partner>" --kind brainstorm \
-  --labels workflow:spec,phase:research \
-  --thread "spec/<topic>" --subject "Research: <topic>" \
-  --body "<your findings>"
+# 2) Use the kickoff ID from your drain and put your findings in $findings.
+amq reply --id "$kickoff_message_id" --kind brainstorm \
+  --labels workflow:spec,phase:research,done --body "$findings"
 
 # 3) Then read the full thread
 amq thread --id "spec/<topic>" --include-body
@@ -98,11 +96,12 @@ amq send --to "<partner>" --kind review_request \
 
 ## Phase 4: Review (partner)
 
+Set `draft_message_id` to the draft request ID from your drain and put your
+review in `review_feedback`.
+
 ```bash
-amq send --to "<partner>" --kind review_response \
-  --labels workflow:spec,phase:review \
-  --thread "spec/<topic>" --subject "Review: <topic>" \
-  --body "<review feedback>"
+amq reply --id "$draft_message_id" --kind review_response \
+  --labels workflow:spec,phase:review --body "$review_feedback"
 ```
 
 The main agent revises and re-sends the draft if needed. An optional
@@ -120,7 +119,7 @@ amq send --to "<partner>" --kind decision \
 The main agent synthesizes the final plan, presents it in chat, and sends the
 approval request to the human handle on a `gate/<topic>` thread. That gate, not
 the `phase:decision` message, is the approval: nobody implements until the human
-answers on it. Human-handle seeding and guardrails are in
+answers on it. The owner handle and approval procedure are described in
 [operator gates](https://github.com/avivsinai/agent-message-queue/blob/main/skills/amq-cli/references/operations.md#operator-gates).
 
 ```bash

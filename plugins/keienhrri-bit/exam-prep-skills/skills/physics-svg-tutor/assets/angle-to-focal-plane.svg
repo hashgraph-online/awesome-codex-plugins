@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 410" role="img" aria-labelledby="title desc">
+  <title id="title">同倾角平行光经过透镜后会聚到后焦平面</title>
+  <desc id="desc">从左上方向右下方进入的三条互相平行的光线经透镜会聚在后焦平面 P 点。中间的光线通过光心，i 是它与光轴的夹角。P 距焦点 F 的距离是 rho，焦距是 f。</desc>
+  <rect width="720" height="410" fill="#f8fafc"/>
+  <text x="26" y="36" font-family="Noto Sans CJK SC, sans-serif" font-size="22" fill="#1b293d" font-weight="bold">图 1｜方向变位置：透镜焦平面几何</text>
+  <line x1="28" y1="215" x2="698" y2="215" stroke="#657487" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="36" y="205" font-family="Noto Sans CJK SC, sans-serif" font-size="17" fill="#586779">光轴</text>
+  <path d="M360 76 Q330 215 360 354 Q390 215 360 76 Z" fill="#a2d8eb" fill-opacity=".42" stroke="#4687a3" stroke-width="3"/>
+  <text x="336" y="58" font-family="Noto Sans CJK SC, sans-serif" font-size="18" fill="#27667f">透镜 L</text>
+  <line x1="590" y1="63" x2="590" y2="361" stroke="#9d73b6" stroke-width="5"/>
+  <text x="525" y="386" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#7c4c96">后焦平面</text>
+  <line x1="60" y1="186" x2="360" y2="145" stroke="#d78251" stroke-width="3.8"/>
+  <line x1="60" y1="256" x2="360" y2="215" stroke="#bb594d" stroke-width="4.4"/>
+  <line x1="60" y1="326" x2="360" y2="285" stroke="#d78251" stroke-width="3.8"/>
+  <path d="M360 145 L590 183 M360 215 L590 183 M360 285 L590 183" fill="none" stroke="#3483b0" stroke-width="3.6"/>
+  <circle cx="590" cy="183" r="7" fill="#bf5664"/>
+  <circle cx="590" cy="215" r="5" fill="#547088"/>
+  <text x="607" y="179" font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#b04755">P</text>
+  <text x="608" y="223" font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#394b60">F</text>
+  <line x1="659" y1="183" x2="659" y2="215" stroke="#2c3847" stroke-width="2"/>
+  <path d="M653 189 L659 183 L665 189 M653 209 L659 215 L665 209" stroke="#2c3847" fill="none" stroke-width="1.8"/>
+  <text x="671" y="206" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#2c3847">ρ</text>
+  <line x1="360" y1="351" x2="590" y2="351" stroke="#657487" stroke-width="1.8"/>
+  <path d="M360 343 V359 M590 343 V359" stroke="#657487" stroke-width="1.8"/>
+  <text x="468" y="345" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#41566d">f</text>
+  <path d="M360 215 L285 215" stroke="#b0b9c2" stroke-dasharray="4 4" stroke-width="1.5"/>
+  <path d="M309 215 A51 51 0 0 1 309.5 222" fill="none" stroke="#b55951" stroke-width="2.5"/>
+  <text x="300" y="242" font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#ae5049">i</text>
+  <text x="25" y="394" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#607184">教学示意：小角度、理想薄透镜近似；图中角度与尺寸非比例。</text>
+</svg>

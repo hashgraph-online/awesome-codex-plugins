@@ -16,10 +16,10 @@ a plugin vulnerability: report it at https://brewpage.app/report-abuse.
 ## What the plugin does
 
 - Sends content only to `https://brewpage.app` (REST API and the remote MCP server at `/mcp`).
-- Needs no credential. Each publish returns a management link and an owner token for
-  that page. The skill gives the user the management link with the page link (it is
-  private: anyone who has it can edit or delete the page) and writes the owner token to
-  `./brewpage-history.md` (mode 600, git-ignored); the token is shown when the user asks,
-  or at once if that file cannot be written. Neither is posted publicly.
+- Anonymous publishing needs no credential. The runner can save owner proof in
+  `./brewpage-history.md` (mode `0600`, git-ignored) and keeps ordinary output
+  reader-facing. Deliver management links and owner keys through a verified owner-only
+  channel. If owner history cannot be saved after publication, use the protected
+  recovery receipt. Signed-in MCP calls use the client's account access.
 - An unlisted link is not private: anyone who has the link can open the page.
   Never publish secrets, credentials or personal data.

@@ -1,0 +1,49 @@
+{
+  "name": "plinth",
+  "version": "0.17.0",
+  "description": "Publish, update and share HTML artifacts and Markdown documents on Plinth: the Plinth MCP server plus a skill with its publishing rules",
+  "author": {
+    "name": "Aconite Software & Investments, Lda.",
+    "url": "https://aconite.io"
+  },
+  "homepage": "https://github.com/mr0b0t0/plinth/blob/main/docs/agents.md",
+  "repository": "https://github.com/mr0b0t0/plinth",
+  "license": "MIT",
+  "keywords": [
+    "artifacts",
+    "html",
+    "publishing",
+    "sharing",
+    "mcp"
+  ],
+  "hooks": [],
+  "interface": {
+    "displayName": "Plinth",
+    "shortDescription": "Publish and share HTML pages",
+    "longDescription": "Plinth gives the pages and documents your agent makes a lasting home. Ask for a report, dashboard, prototype or memo, and the agent publishes it to your Plinth account as an artifact with its own link. New artifacts are private: only you and the people you add can open them. Every change is a new version at the same link, so nothing is overwritten and any earlier version can be restored. People you share an artifact with can leave comments; the agent reads them, makes the change, replies and resolves the thread. Plinth is open source (MIT): use the hosted instance at plinth.aconite.io, or run your own.",
+    "developerName": "Aconite Software & Investments, Lda.",
+    "category": "Productivity",
+    "capabilities": [
+      "Publish HTML pages and Markdown documents",
+      "Update artifacts as new versions",
+      "Control who can view each artifact",
+      "Read and answer comments",
+      "Read and write a page's shared data"
+    ],
+    "websiteURL": "https://plinth.aconite.io",
+    "supportURL": "https://github.com/mr0b0t0/plinth/issues",
+    "privacyPolicyURL": "https://plinth.aconite.io/legal/privacy",
+    "termsOfServiceURL": "https://plinth.aconite.io/legal/terms",
+    "defaultPrompt": [
+      "Make a one-page HTML summary of this project's status and publish it on Plinth.",
+      "Turn these meeting notes into a Plinth document and give me the link.",
+      "Read the comments on my latest Plinth artifact and make the requested changes."
+    ],
+    "brandColor": "#8F5A2A",
+    "brandColorDark": "#D39A62",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

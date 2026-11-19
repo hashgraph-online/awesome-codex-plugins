@@ -14,6 +14,7 @@
 <p align="center">
   <a href="https://cursor.com/en/install-mcp?name=youtube-transcript&config=eyJ1cmwiOiJodHRwczovL2dldHlvdXR1YmV0cmFuc2NyaXB0LmNvbS9hcGkvbWNwIn0="><img alt="Install in Cursor" src="https://img.shields.io/badge/Cursor-Install_MCP-000000?style=for-the-badge&logo=cursor&logoColor=white"/></a>
   <a href="https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22youtube-transcript%22%2C%22url%22%3A%22https%3A%2F%2Fgetyoutubetranscript.com%2Fapi%2Fmcp%22%7D"><img alt="Install in VS Code" src="https://img.shields.io/badge/VS_Code-Install_MCP-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white"/></a>
+  <a href="https://kiro.dev/launch/mcp/add?name=youtube-transcript&amp;config=%7B%22url%22%3A%22https%3A%2F%2Fgetyoutubetranscript.com%2Fapi%2Fmcp%22%2C%22disabled%22%3Afalse%2C%22autoApprove%22%3A%5B%5D%7D"><img alt="Add to Kiro" src="https://kiro.dev/images/add-to-kiro.svg" height="28"/></a>
 </p>
 
 <p align="center">
@@ -599,6 +600,8 @@ Base URL: `https://getyoutubetranscript.com/api/v1`
 - 🌐 **Website:** [getyoutubetranscript.com](https://getyoutubetranscript.com/?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp)
 - 🔑 **Dashboard:** [getyoutubetranscript.com/dashboard](https://getyoutubetranscript.com/dashboard?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp)
 - 🧩 **Agent Skill version:** [tubeagentkit/youtube-transcript-skills](https://github.com/tubeagentkit/youtube-transcript-skills)
+- 🔒 **Privacy policy:** [getyoutubetranscript.com/privacy-policy](https://getyoutubetranscript.com/privacy-policy)
+- 💬 **Support:** [getyoutubetranscript.com/contact](https://getyoutubetranscript.com/contact)
 
 ## Disclosure
 

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "figureatlas"
+version = "2.0.0"
+description = "300 verified figure types for papers, slides, posters, and video frames."
+readme = "README.md"
+authors = [
+    { name = "TardisBooo & DeepTutor Team", email = "i_chenshaobo@163.com" }
+]
+license = { text = "MIT" }
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Multimedia :: Graphics :: Presentation",
+]
+keywords = [
+    "visualization", "manim", "scienceplots", "plotneuralnet", "pyvista", 
+    "observable", "agents", "antigravity", "skills", "slides", "remotion"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "playwright>=1.40.0",
+    "pytest>=7.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/TardisBooo/figureatlas"
+Repository = "https://github.com/TardisBooo/figureatlas.git"
+Issues = "https://github.com/TardisBooo/figureatlas/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scientific_visual_studio*"]

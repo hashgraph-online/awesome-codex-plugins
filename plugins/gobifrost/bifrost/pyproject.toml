@@ -60,6 +60,10 @@ dependencies = [
     "webauthn>=2.7.1",  # WebAuthn/Passkeys support
     "authlib>=1.9.5",  # OIDC relying party: JWKS + id_token claim validation
     "altcha>=2.1.0",  # Self-hosted proof-of-work protection for public forms
+    # SCIM 2.0 (RFC 7643/7644) resource, PatchOp and filter models for the
+    # identity-provider provisioning endpoint. Pre-1.0: pinned to a minor line.
+    "scim2-models>=0.12.4,<0.13",
+    "dnspython>=2.8.0",  # DNS TXT verification of organization domain claims
 
     # =========================================================================
     # Configuration
@@ -199,4 +203,6 @@ dev = [
     # still declares watchdog for laptop installs.
     "debugpy",  # Remote debugging (VS Code attach)
     "watchdog",  # File watching for hot reload (watchmedo command)
+    # RFC 7643/7644 compliance checks against the SCIM endpoint (e2e suite)
+    "scim2-tester>=0.6.4,<0.7",
 ]

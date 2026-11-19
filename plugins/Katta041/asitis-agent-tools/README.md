@@ -1,6 +1,8 @@
 # AsItIs for Claude Code
 
-**Keep markdown and agent steering files byte-clean.** From [AsItIs](https://asitis.app/?ref=claude-plugin), the markdown editor that never rewrites your file. Nothing changes unless you change it.
+A read-only linter for the files that steer coding agents: CLAUDE.md, AGENTS.md, SKILL.md, Cursor rules, Copilot instructions and memory files. It shows what each agent loads when a session starts in a folder, roughly what that costs in tokens, and where hidden comments or invisible characters sit. It doesn't write to your files and makes no network calls.
+
+It runs in Claude Code (and in Cowork sessions on your own computer), because the linter is a local MCP server started with `node`. In claude.ai chat that server doesn't run, so the commands have nothing to call there.
 
 | Part | What it does |
 |---|---|
@@ -18,6 +20,10 @@
 
 Requires Claude Code and Node 22.13 or later on your `PATH` (the server and hook run with `node`).
 
+If you're reading this in Claude's plugin directory, add it from there. It goes on your claude.ai account and Claude Code loads it as `asitis@synced` the next time you start it (signed in with that account). If you already installed `asitis@asitis` from GitHub, Claude Code keeps using that copy and skips the synced one.
+
+To install from GitHub instead:
+
 ```bash
 claude plugin marketplace add Katta041/asitis-agent-tools
 claude plugin install asitis@asitis
@@ -25,7 +31,7 @@ claude plugin install asitis@asitis
 
 Inside a session, `/plugin marketplace add Katta041/asitis-agent-tools` and `/plugin install asitis@asitis` do the same. Then start a new session and run `/asitis:md-lint` to lint the project's steering files, or `/asitis:md-budget` to see what they cost in tokens.
 
-To update, run `claude plugin marketplace update asitis`, then `claude plugin update asitis@asitis`, and restart Claude Code. To remove it, run `claude plugin uninstall asitis@asitis`.
+To update a GitHub install, run `claude plugin marketplace update asitis`, then `claude plugin update asitis@asitis`, and restart Claude Code. To remove it, run `claude plugin uninstall asitis@asitis`. A directory install updates by itself; to turn it off in Claude Code, run `claude plugin disable asitis@synced`.
 
 From a local clone of [the repository](https://github.com/Katta041/asitis-agent-tools), pass the clone's folder instead: `claude plugin marketplace add ./asitis-agent-tools`. To try it for one session without installing, run `claude --plugin-dir ./asitis-agent-tools/plugins/asitis`.
 
@@ -37,6 +43,7 @@ The same folder installs as a Codex plugin: `codex plugin marketplace add Katta0
 |---|---|
 | `asitis-mcp: AsItIs needs Node 22.13 or later; you have 20.18.0. ...` | Install a current Node from [nodejs.org](https://nodejs.org) and restart Claude Code. (Run without the plugin's launcher, older Node prints only `node: bad option: --permission`.) |
 | `asitis-mcp: Refusing your home folder ...` | Start Claude Code in a project folder, not in your home folder. |
+| `Linted 0 files` or `No steering files found` | The project is the folder Claude Code was started in. Start it at the repository root, or the CLAUDE.md and AGENTS.md files above that folder won't be found. |
 | `asitis-mcp: Node's permission model will not let the server read the root folder ...` | Only when you run the server by hand: list the project folder in `--allow-fs-read` and drop any folder inside it. The plugin does this for you. |
 
 ## Privacy
@@ -44,12 +51,12 @@ The same folder installs as a Codex plugin: `codex plugin marketplace add Katta0
 - No network. The server and the hook make no connections, collect nothing and send nothing.
 - No writes. The server has no write tool and no write code; the hook only reads the file it is asked about. `/asitis:md-fix` edits a file only after you accept the fix, through Claude's own Edit tool.
 - Markdown only, unless you ask. `/asitis:md-lint` reads steering files and `.asitisrc.json`. With `skills` it also reads the scripts in skill folders; with `config` it reads `.claude/settings.json`, `.mcp.json`, `.cursor/mcp.json`, `.cursor/cli.json`, `.vscode/mcp.json` and `.gemini/settings.json`, files named `.gitignore`, the first 4 KB of `<uuid>.jsonl` files (to spot committed transcripts), and `package.json` and Makefile files for the script and target names `dead-command` checks. `.claude/settings.local.json` needs `config-local`, and `~/.claude.json` is never read. A repo's `.asitisrc.json` cannot turn these scans on for you.
-- The server runs under Node's permission model: `node --permission` with read access to this plugin and your project folder only, and no write or child-process rights. Node enforces that, not just our code. Node blocks network access too from version 25; on Node 22.13 to 24 the no-network guarantee rests on the code, which contains no network calls. A small launcher (`server/launch.mjs`, about 110 lines, no dependencies) checks the Node version and starts the server with those flags; it reads no files and makes no connections.
+- The server runs under Node's permission model: `node --permission` with read access to this plugin and your project folder only, and no write or child-process rights. Node enforces that, not just our code. Node blocks network access too from version 25; on Node 22.13 to 24 the no-network guarantee rests on the code, which contains no network calls. A small launcher (`server/launch.mjs`, about 140 lines, no dependencies) checks the Node version, takes the project folder from `CLAUDE_PROJECT_DIR` (which Claude Code sets), and starts the server with those flags; it reads no files and makes no connections.
 - Tool results go into Claude's context and so reach Anthropic like the rest of your session. That is Claude Code's traffic, not ours.
 
 ## Pinned server
 
-The server is not fetched from npm at runtime. `server/asitis-mcp.mjs` is the exact `@asitis/mcp` build for this plugin version (one file, zero dependencies), `server/asitis.mjs` is the CLI from the same build, and `server/VERSION` records the version and both SHA-256 values. A test fails if the file differs from a fresh build or if the versions disagree. [`server/THIRD_PARTY_NOTICES.md`](https://github.com/Katta041/asitis-agent-tools/blob/main/plugins/asitis/server/THIRD_PARTY_NOTICES.md) lists the bundled open-source licences.
+The server is not fetched from npm at runtime. `server/asitis-mcp.mjs` is the exact `@asitis/mcp` build for this plugin version (one file, zero dependencies), `server/asitis.mjs` is the CLI from the same build, and `server/VERSION` records the version and both SHA-256 values. A test fails if the file differs from a fresh build or if the versions disagree. Both files are minified esbuild bundles; the readable TypeScript source is in [`packages/mcp/src`](https://github.com/Katta041/asitis-agent-tools/tree/main/packages/mcp/src), and `npm run sync-plugin` rebuilds them byte for byte. [`server/THIRD_PARTY_NOTICES.md`](https://github.com/Katta041/asitis-agent-tools/blob/main/plugins/asitis/server/THIRD_PARTY_NOTICES.md) lists the bundled open-source licences.
 
 ## Guard hook
 
@@ -104,9 +111,7 @@ The plugin works with no setup, so installing it asks nothing. To change a defau
 | Variable | Default | Effect |
 |---|---|---|
 | `ASITIS_GUARD_MODE` | `ask` | `ask`, `deny` or `off` for the guard hook. |
-| `ASITIS_MCP_FOOTER` | off | Set to `1` to end the first tool result of each session with one line linking to asitis.app. Before 0.2.5 this line was on by default. |
-
-Before 0.2.1 these were plugin options (`guard_mode`, `footer`) set with `/plugin configure`. Claude Code reports every plugin option the user has not saved as "not yet set" at install, even one with a default, so 0.2.1 reads environment variables instead. If you set either option, set the variable instead.
+| `ASITIS_MCP_FOOTER` | off | Set to `1` to end the first tool result of each session with one line linking to asitis.app. |
 
 ## Develop
 

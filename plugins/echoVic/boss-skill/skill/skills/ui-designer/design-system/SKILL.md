@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/design-system
 description: 设计系统方法论，基于 Refactoring UI、Material Design 3、HIG、Laws of UX、WCAG 等开源设计原则，指导如何建立有设计方向、可落地的设计令牌体系
 version: 2.0.0
@@ -9,21 +8,19 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 开始UI设计时
-- 需要定义视觉规范时
-- 确保设计一致性时
-  metadata:
+  - 开始UI设计时
+  - 需要定义视觉规范时
+  - 确保设计一致性时
+metadata:
   internal: true
   references:
-  - "Refactoring UI (Steve Schoger & Adam Wathan): https://www.refactoringui.com/"
-  - "Material Design 3: https://m3.material.io/"
-  - "Apple Human Interface Guidelines: https://developer.apple.com/design/human-interface-guidelines/"
-  - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
-  - "Ant Design: https://ant.design/docs/spec/introduce"
-  - "Carbon Design System (IBM): https://carbondesignsystem.com/"
-  - "WCAG 2.1: https://www.w3.org/WAI/WCAG21/quickref/"
-
+    - "Refactoring UI (Steve Schoger & Adam Wathan): https://www.refactoringui.com/"
+    - "Material Design 3: https://m3.material.io/"
+    - "Apple Human Interface Guidelines: https://developer.apple.com/design/human-interface-guidelines/"
+    - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
+    - "Ant Design: https://ant.design/docs/spec/introduce"
+    - "Carbon Design System (IBM): https://carbondesignsystem.com/"
+    - "WCAG 2.1: https://www.w3.org/WAI/WCAG21/quickref/"
 ---
 
 # 设计系统方法论

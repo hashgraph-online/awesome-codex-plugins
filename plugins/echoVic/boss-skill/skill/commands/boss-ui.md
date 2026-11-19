@@ -1,5 +1,4 @@
 ---
-
 name: boss:ui
 description: "从 UI 设计开始：UI Designer 产出 ui-spec.md + ui-design.json，默认自动续跑后续环节（评审 → 任务 → 开发 → 测试 → 部署）。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep

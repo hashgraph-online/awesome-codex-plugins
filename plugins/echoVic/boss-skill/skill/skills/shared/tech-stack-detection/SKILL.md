@@ -1,5 +1,4 @@
 ---
-
 name: shared/tech-stack-detection
 description: 检测项目技术栈的通用方法，通过分析配置文件识别语言、框架、工具链
 version: 1.0.0
@@ -9,13 +8,11 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 需要了解项目技术栈时
-- 技术选型前需要检测现有技术时
-- 生成框架特定的代码或配置时
-  metadata:
+  - 需要了解项目技术栈时
+  - 技术选型前需要检测现有技术时
+  - 生成框架特定的代码或配置时
+metadata:
   internal: true
-
 ---
 
 # 技术栈检测方法

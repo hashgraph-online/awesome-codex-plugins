@@ -1,5 +1,4 @@
 ---
-
 name: boss
 description: "专家小队完整流程入口。从需求分析开始，自动跑完所有环节：PM → Architect → UI → Tech Lead → Scrum Master → Frontend/Backend → QA → DevOps。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch

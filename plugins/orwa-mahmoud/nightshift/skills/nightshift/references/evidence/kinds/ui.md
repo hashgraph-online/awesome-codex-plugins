@@ -10,7 +10,7 @@ An item that changes what a person sees: a page, a layout, a control, or a flow 
 
 ## How to generate
 
-Use the widths the item names. When it names none, use 375 and 1280. Capture before and after at each width, in light and in dark. Save each PNG in the item's evidence folder, `receipts/<NN>-<slug>-<id>/`, as `before-<width>-<theme>.png` and `after-<width>-<theme>.png`. For a flow of more than one step, also save a short recording in that folder as `flow.mp4`.
+Use the widths the item names. When it names none, use 375 and 1280. Capture before and after at each width, in light and in dark. Capture the viewport at that width at 1× scale; capture the full page only when the item is about the whole page. Save each PNG in the item's evidence folder, `receipts/<NN>-<slug>-<id>/`, as `before-<width>-<theme>.png` and `after-<width>-<theme>.png`. For a flow of more than one step, also save a short recording in that folder as `flow.mp4`. Keep only the named files: delete retakes and extra captures before the tick.
 
 ## How to verify
 

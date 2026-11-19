@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-netlify
 description: Netlify 部署方法论，使用 netlify CLI 部署前端应用、静态站点和 Serverless Functions
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Netlify 时
-- 项目是静态站点或前端 SPA 时
-- 需要 Serverless Functions 时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Netlify 时
+  - 项目是静态站点或前端 SPA 时
+  - 需要 Serverless Functions 时
+metadata:
   internal: true
-
 ---
 
 # Netlify 部署

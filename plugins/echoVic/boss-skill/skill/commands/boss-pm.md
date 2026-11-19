@@ -1,5 +1,4 @@
 ---
-
 name: boss:pm
 description: "从需求分析开始：PM 需求穿透产出 PRD，默认自动续跑后续所有环节（架构 → UI → 评审 → 任务 → 开发 → 测试 → 部署）。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch

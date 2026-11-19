@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="preview-lab-spec" content="4">
+<title>Preview Lab</title>
+<style>
+/* BRAND:START default — set these to the project's tokens (keep the names), then change "default" to the project name */
+:root{--bg:#f6f6f8;--fg:#141416;--surface:#fff;--muted:#5f5f69;--line:#dcdce3;--accent:#4f46e5;--on-accent:#fff;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;
+  --radius:10px;--font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+:root[data-theme=dark]{--bg:#09090c;--fg:#f2f2f6;--surface:#1e1e26;--muted:#ababb7;--line:#454552;--accent:#8b93ff;--on-accent:#0c0c0f;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171}
+/* BRAND:END */
+:root{color-scheme:light;--h:2.25rem;--hs:1.9rem;--r:calc(var(--radius)*.7)}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--fg) 28%,transparent) transparent}[hidden]{display:none!important}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--fg) 24%,transparent);border:2px solid transparent;border-radius:99px;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--fg) 42%,transparent)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,textarea,input,select{font:inherit;color:inherit;margin:0}
+/* one control system: buttons, selects and inputs share height, border, radius and vertical centering */
+button,select,input[type=text],input[type=number]{height:var(--h);border:1px solid var(--line);border-radius:var(--r);padding:0 .8rem;font-size:.9rem;line-height:1;vertical-align:middle}
+button{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;background:var(--surface);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s,transform .1s}
+button:hover{border-color:var(--muted)}button:active{transform:scale(.97)}button:disabled{opacity:.5;cursor:default}
+select{appearance:none;cursor:pointer;background-color:var(--surface);padding-right:1.9rem;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 52%,calc(100% - 8.5px) 52%;background-size:4.5px 4.5px;background-repeat:no-repeat}
+input[type=text],input[type=number],textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r)}
+textarea{padding:.6rem .75rem;line-height:1.45;resize:vertical;display:block}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sm,.tools button,.tools select,.tools input{height:var(--hs);font-size:.82rem;padding:0 .65rem}.tools select{padding-right:1.7rem}
+.pill{border-radius:99px}
+.primary{background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:600}.primary:hover{filter:brightness(1.08);border-color:transparent}
+.ghost{background:transparent;border-color:transparent;color:var(--muted)}.ghost:hover{color:var(--fg);border-color:var(--line)}
+[aria-pressed=true].tog,.pill[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+kbd{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;font:600 11px/1 ui-monospace,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;color:var(--muted);vertical-align:middle}
+.hint{font-size:.82rem;color:var(--muted);margin:0}
+.badge,.st{display:inline-flex;align-items:center;gap:.25rem;height:20px;padding:0 8px;border-radius:99px;line-height:1;white-space:nowrap;flex:none;vertical-align:middle}
+.badge{font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);white-space:nowrap}
+.dotted{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.bar{max-width:1400px;margin:auto;padding:.7rem 1.25rem;display:flex;gap:1rem;align-items:center}
+.brand{display:flex;gap:.7rem;align-items:center;min-width:0;flex:1}.brand>div{min-width:0}
+.brand h1,.brand p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:800;flex:none;overflow:hidden}
+.logo.img{background:none;color:var(--accent)}.logo img,.logo svg{width:100%;height:100%;object-fit:contain}
+.brand h1{font-size:1.02rem;margin:0;line-height:1.3}.brand h1 .badge{margin-left:.4rem}.brand p{margin:0;color:var(--muted);font-size:.84rem}
+.progress{display:flex;align-items:center;gap:.6rem;font-size:.84rem;color:var(--muted);white-space:nowrap}
+.meter{width:110px;height:6px;border-radius:9px;background:var(--line);overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.filters{display:flex;gap:.35rem;flex-wrap:wrap}.filters small{opacity:.65}
+.actions{display:flex;gap:.4rem;align-items:center;flex:none}
+
+main{max-width:1400px;margin:auto;padding:1.25rem 1.25rem 2rem}
+.lead{display:flex;flex-direction:column;gap:.9rem;margin-bottom:1.6rem}
+.lead .row{display:flex;gap:.6rem 1rem;align-items:center;flex-wrap:wrap}
+.lead .meta-r{font-size:.84rem;color:var(--muted)}
+.rnotes{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:.8rem .9rem}
+.rnotes textarea{min-height:2.6rem;background:var(--bg)}.rnotes .label{margin-bottom:.45rem}
+.ro-note{white-space:pre-wrap;font-size:.92rem}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:1.5rem 1rem 2.5rem}footer a{color:inherit;font-weight:600}footer a:hover{color:var(--accent)}
+footer i{font-style:normal;color:var(--bad)}
+section{margin:1.1rem 0 2.2rem}
+section h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 .8rem;display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}
+section h2 small{font-weight:400;letter-spacing:0;text-transform:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
+.card{all:unset;cursor:pointer;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 30px -14px rgb(0 0 0/.35);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card[data-status=approved]{border-color:color-mix(in srgb,var(--ok) 60%,var(--line))}.card[data-status=changes]{border-color:color-mix(in srgb,var(--warn) 60%,var(--line))}
+.card{box-shadow:0 1px 2px rgb(0 0 0/.06)}:root[data-theme=dark] .card{box-shadow:0 1px 3px rgb(0 0 0/.7)}
+.thumb{position:relative;aspect-ratio:16/10;background:color-mix(in srgb,var(--fg) 6%,var(--surface));overflow:hidden;border-bottom:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.thumb img.whole,.strip img.whole{object-fit:scale-down;object-position:center;padding:6%}
+.thumb iframe{width:400%;height:400%;transform:scale(.25);transform-origin:0 0;border:0;pointer-events:none;background:#fff}
+.st{font-size:.72rem;font-weight:600;border:1px solid var(--line)}
+.st.c-approved{background:color-mix(in srgb,var(--ok) 16%,var(--surface));border-color:color-mix(in srgb,var(--ok) 50%,var(--line))}
+.st.c-changes{background:color-mix(in srgb,var(--warn) 16%,var(--surface));border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.c-approved{color:var(--ok)}.c-changes{color:var(--warn)}
+.meta{padding:.7rem .85rem;display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:20px}.mrow b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:.35rem .6rem;flex-wrap:wrap;min-height:22px}.sub>*{display:inline-flex;align-items:center;height:22px;line-height:1}.sub>:empty{display:none}
+.rb{gap:.3rem;padding:0 8px;border-radius:99px;font-weight:700;font-size:.72rem;border:1px solid color-mix(in srgb,currentColor 35%,transparent)}.rb svg{width:12px;height:12px;flex:none}
+.empty{text-align:center;color:var(--muted);padding:5rem 1rem}
+
+#dlg{border:0;padding:0;width:100vw;height:100dvh;max-width:none;max-height:none;background:var(--bg);color:var(--fg)}
+dialog::backdrop{background:rgb(0 0 0/.55)}
+.detail{display:grid;grid-template-columns:1fr 370px;height:100%}.detail:focus{outline:none}
+.stage{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{display:flex;align-items:center;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs{display:flex;gap:.3rem;flex:none;max-width:100%;flex-wrap:wrap}
+.tools{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;margin-left:auto}.tools input{width:5.5rem}.tools a{color:var(--accent);font-size:.82rem;padding:0 .3rem}
+.vw{position:relative;flex:1;min-height:0}
+.view{position:absolute;inset:0;display:grid;padding:1rem 3.5rem;overflow:auto}
+.canvas{position:relative;line-height:0;margin:auto}.view.actual .canvas{margin:0 auto}
+.canvas img{display:block;max-width:calc(100vw - 490px);max-height:calc(100dvh - 200px);border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35);user-select:none}
+.view.actual .canvas img{max-width:none;max-height:none}
+.frame{position:relative;overflow:hidden;border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35);background:#fff}
+.frame iframe{border:0;transform-origin:0 0;display:block}
+.overlay{position:absolute;inset:0;cursor:crosshair;touch-action:none}.live .overlay{pointer-events:none}
+.live.annotate .overlay{pointer-events:auto;background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.area{position:absolute;height:auto;padding:0;border:2px solid var(--accent);border-radius:4px;background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:0 0 0 1px rgb(255 255 255/.7)}
+.area:hover{background:color-mix(in srgb,var(--accent) 24%,transparent);border-color:var(--accent)}
+.area span{position:absolute;top:-11px;left:-11px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 11px/22px var(--font);text-align:center;box-shadow:0 1px 4px rgb(0 0 0/.35)}
+.area.draft{pointer-events:none}
+.area.rec{border:2px dashed var(--warn);background:color-mix(in srgb,var(--warn) 5%,transparent);box-shadow:none}.area.rec:hover,.area.rec.hot{background:color-mix(in srgb,var(--warn) 16%,transparent);border-style:solid;border-color:var(--warn)}
+.area.rec span{background:var(--warn);color:var(--surface);width:auto;min-width:22px;padding:0 5px;border-radius:99px}
+#close{position:fixed;top:.55rem;right:.8rem;z-index:6;width:36px;height:36px;padding:0;border-radius:50%;font-size:1rem;color:var(--fg);box-shadow:0 2px 8px rgb(0 0 0/.15)}
+.pbody h3{padding-right:2.8rem}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;padding:0;font-size:1.2rem;z-index:2}.nav.prev{left:.6rem}.nav.next{right:.6rem}
+.strip{display:flex;gap:.5rem;padding:.6rem 1rem;border-top:1px solid var(--line);overflow-x:auto;scroll-snap-type:x mandatory}
+.strip button{white-space:normal;flex:0 0 auto;width:84px;height:54px;padding:0;overflow:hidden;scroll-snap-align:center;opacity:.55;position:relative;font-size:.72rem}
+.strip button[aria-current=true]{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+.strip img{width:100%;height:100%;object-fit:cover;object-position:top}
+.dot{position:absolute;bottom:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--line);border:1px solid var(--surface)}
+.panel{border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+.pbody{flex:1;overflow:auto;padding:1.1rem;display:flex;flex-direction:column;gap:1rem}
+.pbody h3{margin:0;font-size:1.15rem;line-height:1.3}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;font-size:.78rem;color:var(--muted)}.chips>span:not(.badge){display:inline-flex;align-items:center;height:22px;border:1px solid var(--line);border-radius:99px;padding:0 8px;line-height:1}
+.prev-box{border:1px dashed var(--line);border-radius:var(--r);padding:.6rem .75rem;font-size:.86rem;display:flex;flex-direction:column;gap:.2rem}
+.prev-box b{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.verdict button{--c:var(--ok);height:auto;justify-content:flex-start;gap:.6rem;padding:.65rem .7rem;text-align:left;color:var(--fg);
+  border-color:color-mix(in srgb,var(--c) 40%,var(--line));background:color-mix(in srgb,var(--c) 8%,var(--surface))}
+.verdict [data-s=changes]{--c:var(--warn)}
+.verdict i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;font:700 15px/1 var(--font);color:var(--c);background:color-mix(in srgb,var(--c) 20%,transparent)}
+.verdict span{display:flex;flex-direction:column;gap:3px;flex:1;line-height:1.15;font-weight:600}.verdict small{font-weight:400;font-size:.75rem;color:var(--muted)}
+.verdict button:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface))}
+.verdict [aria-pressed=true],.verdict [aria-pressed=true]:hover{background:var(--c);border-color:var(--c);color:var(--surface);box-shadow:0 6px 18px -8px var(--c)}
+.verdict [aria-pressed=true] i{background:var(--surface);color:var(--c)}.verdict [aria-pressed=true] small,.verdict [aria-pressed=true] kbd{color:inherit;border-color:currentColor}
+.label{font-size:.74rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.35rem;display:flex;justify-content:space-between}
+.areas{display:flex;flex-direction:column;gap:.4rem;margin:0;padding:0;list-style:none}
+.areas li{display:flex;gap:.4rem;align-items:center}.areas .n{flex:0 0 22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 11px/22px var(--font);text-align:center}
+.areas button{width:var(--h);padding:0}
+.recs{display:flex;flex-direction:column;gap:.45rem}
+.rec{display:flex;gap:.6rem;align-items:flex-start;font-size:.88rem;line-height:1.4;padding:.6rem .65rem;border:1px solid var(--line);border-left:3px solid var(--sev,var(--line));border-radius:var(--r);background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s}
+.rec:hover,.rec.hot{border-color:var(--sev,var(--muted))}.rec:has(input:checked){background:color-mix(in srgb,var(--accent) 8%,var(--surface));border-color:var(--accent)}
+.rec input{margin:.15rem 0 0;width:16px;height:16px;flex:none;accent-color:var(--accent)}.rec input:disabled+span{opacity:.85}
+.rhead{display:flex;align-items:center;gap:.35rem;margin-bottom:.2rem;flex-wrap:wrap}.rtype{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.rnum{font:700 .68rem/18px var(--font);height:18px;padding:0 6px;border-radius:99px;background:var(--warn);color:var(--surface);margin-left:auto}
+.recbar{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.45rem}.recbar .label{margin:0;display:block}
+.flash{animation:flash 1.2s}@keyframes flash{0%,40%{box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 45%,transparent)}}
+.sev{display:inline-flex;align-items:center;height:18px;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:0 7px;border-radius:99px}
+.sev-high{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.sev-medium{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}.sev-low{background:var(--line);color:var(--muted)}
+.pfoot{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.75rem 1.1rem;border-top:1px solid var(--line)}
+.modal{width:min(560px,calc(100vw - 2rem));border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem;background:var(--surface);color:var(--fg);box-shadow:0 20px 60px -20px rgb(0 0 0/.5)}
+.modal h2{margin:0 0 .2rem;font-size:1.05rem}.modal textarea{margin:.8rem 0}.modal .row{display:flex;justify-content:flex-end}
+.toast{position:fixed;bottom:1.25rem;left:50%;transform:translate(-50%,150%);opacity:0;background:var(--fg);color:var(--bg);padding:.6rem 1rem;border-radius:99px;font-size:.9rem;transition:transform .25s,opacity .25s;z-index:20}
+.toast.show{transform:translate(-50%,0);opacity:1}
+.done{position:fixed;inset:0;display:grid;place-items:center;text-align:center;background:var(--bg);z-index:30;padding:2rem}
+.done i{font-size:3rem;font-style:normal;color:var(--accent)}.done h2{margin:.3rem 0}.done p{color:var(--muted)}
+@media (max-width:860px){.detail{display:block;height:auto}.vw{flex:none;height:60dvh}.panel{border-left:0;border-top:1px solid var(--line)}
+  .top,.pfoot{position:sticky;z-index:3}.top{top:0;background:var(--bg);padding-right:3.6rem}.pfoot{bottom:0;background:var(--surface)}
+  .view{padding:.75rem 2.8rem}.canvas img{max-width:calc(100vw - 6rem);max-height:calc(60dvh - 1.5rem)}.meter,.nl{display:none}.bar,main{padding-left:1rem;padding-right:1rem}}
+@media (max-width:600px){.bar{gap:.5rem}.progress,.brand p,#copy{display:none}.actions{gap:.15rem}.actions .ghost{padding:0 .55rem}.grid{grid-template-columns:1fr}
+  .top{padding:.5rem 3.4rem .5rem .75rem;gap:.35rem}.top kbd{display:none}.verdict button{padding:.6rem .55rem}.verdict kbd{display:none}.pfoot .hint:nth-child(2){display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand"><div class="logo" id="logo" aria-hidden="true"></div><div><h1 id="title">Preview Lab</h1><p id="subtitle"></p></div></div>
+  <div class="progress" aria-live="polite"><div class="meter"><i id="meter"></i></div><span id="count"></span></div>
+  <div class="actions">
+    <button class="ghost" id="theme"></button>
+    <button class="ghost" id="copy"></button>
+    <button class="primary" id="send"></button>
+  </div>
+</div></header>
+<main id="main"></main>
+<footer id="foot"></footer>
+
+<dialog id="dlg">
+  <button id="close">✕</button>
+  <div class="detail" tabindex="-1" autofocus>
+    <div class="stage">
+      <div class="top"><div class="tabs" role="group" id="tabs"></div><div class="tools" id="tools"></div>
+        <button class="ghost sm notesBtn"></button></div>
+      <div class="vw"><button class="nav prev" id="prev">‹</button>
+        <div class="view" id="view"><div class="canvas" id="canvas"></div></div>
+        <button class="nav next" id="next">›</button></div>
+      <div class="strip" id="strip"></div>
+    </div>
+    <aside class="panel"><div class="pbody" id="panel"></div>
+      <div class="pfoot"><span class="hint" id="pos"></span><span class="hint"><kbd>←</kbd> <kbd>→</kbd> <kbd>A</kbd> <kbd>C</kbd> <kbd>Esc</kbd></span>
+        <button class="primary" id="nextBtn"></button></div></aside>
+  </div>
+</dialog>
+<dialog id="out" class="modal"><form method="dialog">
+  <p class="hint" id="outHint"></p><textarea id="outText" rows="12" readonly aria-labelledby="outHint"></textarea>
+  <div class="row"><button class="primary" id="outDone"></button></div>
+</form></dialog>
+<dialog id="notes" class="modal"><form method="dialog">
+  <h2 id="notesTitle"></h2><p class="hint" id="notesHint"></p>
+  <textarea id="general" class="gen" rows="6" aria-labelledby="notesTitle"></textarea>
+  <div class="row"><button class="primary" id="notesDone"></button></div>
+</form></dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* BRAND:START — set with "pl.mjs brand": name, logo (inline <svg…> or image URL; empty = initial letter), lang,
+   and copy, which overrides any key of STR below (translate or re-voice the lab there and nowhere else) */
+const BRAND = {"name":"","logo":"","lang":"en","copy":{}};
+/* BRAND:END */
+const STR = {
+  send: 'Send feedback', copy: 'Copy as prompt', sent: 'Sent. Your agent has it.', sentHint: 'Keep this tab open: the next round loads here.',
+  empty: 'Nothing to review yet. Your agent will add items here.', loadError: 'Could not load the lab. Ask your agent to start it again.',
+  reviewed: 'reviewed', filter: 'Filter', all: 'All', todo: 'To review', isNew: 'New', updated: 'Updated',
+  approve: 'Approve', approveHint: 'Looks good', changes: 'Changes', changesHint: 'Needs work', approved: 'Approved',
+  round: 'Round', complete: 'complete · beta', views: 'views', live: 'Live', recs: 'tips', rec1: 'tip', other: 'Other', items: 'Items', review: 'Review',
+  notes: 'Notes', notesTitle: 'Notes for this round', notesHint: 'For everything at once: overall impressions, or other screens, states or sizes you want to see next.',
+  notesPh: 'e.g. Spacing feels tight everywhere. Also show me the empty states.', notesDone: 'Done', noNotes: 'No notes.',
+  current: 'current', wasSent: 'sent', notSent: 'not sent', readOnly: 'Already sent: read-only.', madeWith: 'Made with', heart: 'love',
+  lastRound: 'Last round', commented: 'Commented', verdict: 'Verdict',
+  comment: 'Comment', commentPh: 'What should change?', areas: 'Areas', areaHint: 'Drag on the image to mark an area.',
+  areaHintLive: 'Press Annotate, then drag on the page to mark an area.', areaNote: 'Note', deleteArea: 'Delete area', area: 'Area',
+  recsTitle: 'Recommendations', recsHint: 'Tick the ones to apply', applied: 'applied', applyAll: 'Apply all', applyNone: 'Clear', rec: 'Recommendation', next: 'Next →', close: 'Close', prevItem: 'Previous item', nextItem: 'Next item', item: 'Review item',
+  fit: 'Fit', actual: '100%', annotate: 'Annotate', rotate: 'Rotate', custom: 'Custom', openLive: 'Open ↗', device: 'Device', width: 'Width (px)', zoom: 'Zoom',
+  theme: 'Theme', system: 'System', light: 'Light', dark: 'Dark',
+  confirmSend: '{n} not reviewed yet. Send anyway?', copied: 'Copied. Paste it into your agent chat.', copyManual: 'Copy this text and paste it into your agent chat.', sendCopy: 'Copy feedback',
+  offline: 'Agent not reachable. Feedback copied: paste it into the chat.',
+};
+const T = { ...STR, ...BRAND.copy };
+const DATA = window.PL_DATA; // set by "pl.mjs export": a self-contained file with no server behind it
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+const ST = { approved: { label: T.approve, hint: T.approveHint, done: T.approved, icon: '✓', key: 'a', color: 'ok' },
+  changes: { label: T.changes, hint: T.changesHint, done: T.changes, icon: '✎', key: 'c', color: 'warn' } };
+const DEVICES = [{ label: 'Mobile', w: 390, h: 844 }, { label: 'Tablet', w: 820, h: 1180 }, { label: 'Laptop', w: 1280, h: 800 }, { label: 'Desktop', w: 1440, h: 900 }];
+let M, items = [], st, KEY, cur = -1, tab = 0, filter = 'all', sig = '', view = 0, past = null, ro = false; // view: the round on screen; past rounds are read-only
+let fit = true, dev = { w: 390, h: 844 }, zoom = 0; // zoom 0 = fit to stage
+
+document.documentElement.lang = BRAND.lang || 'en';
+$('#send').textContent = DATA ? T.sendCopy : T.send; $('#copy').textContent = T.copy; $('#copy').hidden = !!DATA; $('#nextBtn').textContent = T.next;
+$('#notesTitle').textContent = T.notesTitle; $('#notesHint').textContent = T.notesHint; $('#general').placeholder = T.notesPh; $('#notesDone').textContent = $('#outDone').textContent = T.notesDone; $('#outHint').textContent = T.copyManual;
+$('#dlg').setAttribute('aria-label', T.item);
+$('#foot').innerHTML = `${esc(T.madeWith)} <i role="img" aria-label="${esc(T.heart)}">♥</i> · <a href="https://github.com/dbalas/preview-lab" target="_blank" rel="noopener">Preview Lab</a>`;
+$('#close').setAttribute('aria-label', T.close); $('#close').title = `${T.close} (Esc)`; $('#prev').setAttribute('aria-label', T.prevItem); $('#next').setAttribute('aria-label', T.nextItem);
+const logo = $('#logo');
+if (BRAND.logo.trim().startsWith('<svg')) { logo.classList.add('img'); logo.innerHTML = BRAND.logo; }
+else if (BRAND.logo) { logo.classList.add('img'); logo.innerHTML = `<img src="${esc(BRAND.logo)}" alt="">`; }
+
+/* theme: system → light → dark; data-theme always holds the resolved theme */
+const THEMES = ['system', 'light', 'dark'], TICON = { system: '◐', light: '☀', dark: '☾' }, mq = matchMedia('(prefers-color-scheme: dark)');
+function theme(t) { ls.set('pl:theme', t); document.documentElement.dataset.theme = t === 'system' ? (mq.matches ? 'dark' : 'light') : t;
+  $('#theme').innerHTML = `${TICON[t]}<span class="nl">${esc(T[t])}</span>`; $('#theme').setAttribute('aria-label', `${T.theme}: ${T[t]}`); }
+theme(THEMES.includes(ls.get('pl:theme')) ? ls.get('pl:theme') : 'system');
+mq.addEventListener('change', () => (ls.get('pl:theme') || 'system') === 'system' && theme('system'));
+$('#theme').onclick = () => theme(THEMES[(THEMES.indexOf(ls.get('pl:theme') || 'system') + 1) % 3]);
+
+/* data: re-read when the tab regains focus, so items the agent adds show up */
+async function load() {
+  if (DATA) { await 0; return M || render(DATA); } // after this script has finished defining everything
+  try {
+    const txt = await (await fetch('manifest.json', { cache: 'no-store' })).text();
+    if (txt === sig) return; sig = txt; render(JSON.parse(txt));
+  } catch { if (!M) $('#main').innerHTML = `<p class="empty">${esc(T.loadError)}</p>`; }
+}
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && load());
+load();
+
+function render(m) {
+  const openId = $('#dlg').open ? items[cur]?.id : null, now = m.round || 1, hist = m.history || [];
+  if (M?.round !== now) view = now; // a new round (or the first load) shows the current one
+  M = m; past = view === now ? null : hist.find(h => h.round === view); if (!past) view = now; ro = !!past;
+  const R = past || m; items = R.items || [];
+  KEY = `pl:${m.project}:r${view}`;
+  if (ro) st = { general: past.feedback?.general || '', items: Object.fromEntries((past.feedback?.items || []).map(f => [f.id, { ...f }])) };
+  else { try { st = JSON.parse(ls.get(KEY)) || {}; } catch { st = {}; } }
+  st.items ||= {};
+  const name = R.title || m.title || BRAND.name || m.project || 'Preview Lab';
+  document.title = `${name} · Preview Lab`;
+  if (!logo.classList.contains('img')) logo.textContent = (BRAND.name || m.project || 'P').trim()[0].toUpperCase();
+  $('#title').innerHTML = `${esc(name)}${m.mode === 'complete' ? ` <span class="badge">${esc(T.complete)}</span>` : ''}`;
+  $('#subtitle').textContent = R.subtitle || '';
+  const when = h => h.feedback?.submittedAt ? `${T.wasSent} ${new Date(h.feedback.submittedAt).toLocaleDateString(BRAND.lang || undefined, { day: 'numeric', month: 'short' })}` : T.notSent;
+  const rounds = hist.length ? `<select id="roundSel" class="sm" aria-label="${esc(T.round)}">${[...hist, { round: now }].reverse().map(h => `<option value="${h.round}" ${h.round === view ? 'selected' : ''}>${esc(T.round)} ${h.round} · ${esc(h.round === now ? T.current : when(h))}</option>`).join('')}</select>` : '';
+  const notes = ro ? `<div class="ro-note ${st.general ? '' : 'hint'}">${esc(st.general || T.noNotes)}</div>`
+    : `<textarea id="rnotes" class="gen" rows="2" placeholder="${esc(T.notesPh)}" aria-label="${esc(T.notesTitle)}">${esc(st.general || '')}</textarea>`;
+  const lead = `<div class="lead"><div class="row">${rounds}${ro ? `<span class="meta-r">${esc(T.readOnly)}</span>` : ''}<div class="filters" role="group" id="filters" aria-label="${esc(T.filter)}"></div></div>
+    <div class="rnotes"><div class="label"><span>${esc(T.notesTitle)}</span></div>${notes}</div></div>`;
+  $('#general').value = st.general || ''; $('#general').readOnly = ro;
+  if (!items.length) { $('#main').innerHTML = lead + `<p class="empty">${esc(T.empty)}</p>`; refresh(); return; }
+  const cats = [...(R.categories || m.categories || [])], known = new Set(cats.map(c => c.id));
+  const catOf = i => known.has(i.category) ? i.category : '__other';
+  if (items.some(i => !known.has(i.category))) cats.push({ id: '__other', label: cats.length ? T.other : T.items });
+  const order = cats.map(c => c.id);
+  items = items.map((it, n) => ({ it, n })).sort((a, b) => order.indexOf(catOf(a.it)) - order.indexOf(catOf(b.it)) || a.n - b.n).map(x => x.it);
+  $('#main').innerHTML = lead + cats.map(c => {
+    const list = items.map((it, n) => [it, n]).filter(([it]) => catOf(it) === c.id);
+    return list.length ? `<section data-cat><h2>${esc(c.label)} <small>${list.length}</small>${c.description ? `<small>· ${esc(c.description)}</small>` : ''}</h2>
+      <div class="grid">${list.map(([it, n]) => card(it, n)).join('')}</div></section>` : '';
+  }).join('');
+  refresh();
+  const at = id => items.findIndex(i => i.id === id); // the open item is tracked by id: indexes shift when items are added
+  if (openId) at(openId) >= 0 ? show(at(openId), true) : $('#dlg').close();
+  else if (location.hash && at(location.hash.slice(1)) >= 0) show(at(location.hash.slice(1)));
+}
+
+const tagOf = it => view > 1 ? (it.added === view ? 'isNew' : it.updated === view ? 'updated' : '') : '';
+function card(it, n) {
+  const s = it.shots?.[0], nviews = (it.shots?.length || 0) + (it.url ? 1 : 0), tag = tagOf(it);
+  return `<button class="card" data-n="${n}">
+    <div class="thumb">${s ? `<img src="${esc(s.src)}" alt="" loading="lazy">` : it.url ? `<iframe src="${esc(it.url)}" loading="lazy" tabindex="-1" title="" aria-hidden="true"></iframe>` : ''}</div>
+    <div class="meta"><div class="mrow"><b>${esc(it.title)}</b><span class="st" hidden></span></div><span class="sub">${tag ? `<span class="badge">${esc(T[tag])}</span>` : ''}${it.route ? `<code>${esc(it.route)}</code>` : ''}${nviews > 1 ? `<span>${nviews} ${esc(T.views)}</span>` : it.url && !s ? `<span>${esc(T.live)}</span>` : ''}
+      ${recPill(it.recommendations)}<span class="cm"></span></span></div></button>`;
+}
+
+// Draft for one item. Defaults also heal drafts saved by older templates (unknown statuses are dropped).
+const S = it => { const d = st.items[it.id] = { status: '', comment: '', areas: [], accepted: [], ...st.items[it.id] }; if (!ST[d.status]) d.status = ''; return d; };
+const save = () => ro || ls.set(KEY, JSON.stringify(st));
+const color = s => `var(--${ST[s]?.color || 'line'})`;
+const SEV = { high: 'bad', medium: 'warn', low: 'muted' }, RANK = { high: 0, medium: 1, low: 2 };
+const bySev = recs => [...(recs || [])].sort((a, b) => (RANK[a.severity] ?? 3) - (RANK[b.severity] ?? 3));
+// The card's recommendations pill takes the color of the most severe one.
+const recPill = recs => recs?.length ? `<span class="rb sev-${esc(bySev(recs)[0].severity)}" title="${esc(T.recsTitle)}"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9zm-2 12h4v1.2a.8.8 0 0 1-.8.8H6.8a.8.8 0 0 1-.8-.8z"/></svg>${recs.length} ${esc(recs.length === 1 ? T.rec1 : T.recs)}</span>` : '';
+function recCount() {
+  const recs = items[cur]?.recommendations || [], n = S(items[cur]).accepted.length, c = $('#recCount'); if (!c) return;
+  c.textContent = `${n} / ${recs.length} ${T.applied}`; if ($('#recAll')) $('#recAll').textContent = n === recs.length ? T.applyNone : T.applyAll;
+}
+const FILTERS = { all: () => true, todo: s => !s.status, isNew: (s, it) => tagOf(it) === 'isNew', updated: (s, it) => tagOf(it) === 'updated',
+  changes: s => s.status === 'changes', approved: s => s.status === 'approved' };
+
+function refresh() {
+  const count = k => items.filter(it => FILTERS[k](S(it), it)).length, done = items.length - count('todo');
+  $('#meter').style.width = items.length ? (100 * done / items.length) + '%' : 0;
+  $('#count').textContent = `${done} / ${items.length} ${T.reviewed}`; $('#send').disabled = !items.length; $('#send').hidden = ro;
+  $$('.notesBtn').forEach(b => b.innerHTML = `✎<span class="nl">${esc(T.notes)}</span>${st.general?.trim() ? '<i class="dotted"></i>' : ''}`);
+  // All and To review are always there; the others appear once they match something.
+  const shown = Object.keys(FILTERS).filter(k => k === 'all' || k === 'todo' || count(k));
+  if (!shown.includes(filter)) filter = 'all';
+  $('#filters').innerHTML = shown.map(k => `<button class="pill sm" data-f="${k}" aria-pressed="${k === filter}">${esc(T[k])}<small>${count(k)}</small></button>`).join('');
+  $$('.card').forEach(el => {
+    const it = items[el.dataset.n], s = S(it), b = el.querySelector('.st');
+    el.dataset.status = s.status;
+    b.hidden = !s.status; b.className = 'st c-' + s.status;
+    b.textContent = s.status ? `${ST[s.status].icon} ${ST[s.status].done}` : '';
+    el.setAttribute('aria-label', `${T.review} ${it.title}${b.textContent ? ` (${b.textContent})` : ''}`);
+    const notes = (s.comment ? 1 : 0) + s.areas.length;
+    el.querySelector('.cm').textContent = notes ? `💬 ${notes}` : '';
+    el.hidden = !FILTERS[filter](s, it);
+  });
+  $$('section[data-cat]').forEach(sec => sec.hidden = !sec.querySelector('.card:not([hidden])'));
+}
+
+/* detail */
+const views = it => [...(it.shots || []).map(s => ({ ...s, kind: 'shot' })), ...(it.url ? [{ label: T.live, kind: 'live', src: it.url }] : [])];
+// Areas on the live page only make sense at the size they were marked at.
+const viewLabel = () => { const v = views(items[cur])[tab]; return v.kind === 'live' ? `Live ${dev.w}×${dev.h}` : v.label; };
+function show(n, keepTab) {
+  if (!items.length) return;
+  cur = (n + items.length) % items.length; const it = items[cur], s = S(it), vs = views(it);
+  if (!keepTab || tab >= vs.length) tab = 0;
+  $('#tabs').innerHTML = vs.map((x, k) => `<button class="pill sm" aria-pressed="${k === tab}" data-k="${k}">${esc(x.label)}</button>`).join('');
+  if (!$('#dlg').open) $('#dlg').showModal(); // open first: the live frame is sized from the visible stage
+  $('#strip').innerHTML = items.map((x, k) => `<button data-k="${k}" aria-current="${k === cur}" aria-label="${esc(x.title)}">${x.shots ? `<img src="${esc(x.shots[0].src)}" alt="">` : esc(x.title)}<i class="dot" style="background:${color(S(x).status)}"></i></button>`).join('');
+  $('#strip').children[cur]?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  drawStage(it, vs[tab]); // after the strip: the live frame is sized from the space left
+  const cat = ((past || M).categories || []).find(c => c.id === it.category), recs = bySev(it.recommendations), p = it.previous, tag = tagOf(it);
+  $('#panel').innerHTML = `<h3>${esc(it.title)}</h3>
+    <div class="chips">${tag ? `<span class="badge">${esc(T[tag])}</span>` : ''}${cat ? `<span>${esc(cat.label)}</span>` : ''}${it.route ? `<span>${esc(it.route)}</span>` : ''}</div>
+    ${it.note ? `<p class="hint">${esc(it.note)}</p>` : ''}
+    ${p ? `<div class="prev-box"><b>${esc(T.lastRound)}</b><div class="c-${esc(p.status)}">${esc(ST[p.status]?.done || T.commented)}</div>${p.comment ? `<div>${esc(p.comment)}</div>` : ''}${(p.areas || []).filter(a => a.note).map((a, k) => `<div class="hint">${k + 1}. ${esc(a.note)}</div>`).join('')}</div>` : ''}
+    <div class="verdict" role="group" aria-label="${esc(T.verdict)}">${Object.entries(ST).map(([k, v]) => `<button data-s="${k}" aria-pressed="${s.status === k}" ${ro ? 'disabled' : ''}><i aria-hidden="true">${v.icon}</i><span>${esc(v.label)}<small>${esc(v.hint)}</small></span><kbd>${v.key.toUpperCase()}</kbd></button>`).join('')}</div>
+    ${recs.length ? `<div><div class="recbar"><span class="label">${esc(T.recsTitle)} · <span id="recCount"></span></span>${ro ? '' : `<button class="ghost sm" id="recAll"></button>`}</div>${ro ? "" : `<p class="hint" style="margin-bottom:.45rem">${esc(T.recsHint)}</p>`}
+      <div class="recs">${recs.map((r, k) => `<label class="rec" data-rk="${k}" style="--sev:var(--${SEV[r.severity] || 'line'})"><input type="checkbox" data-r="${esc(r.id)}" ${s.accepted.includes(r.id) ? 'checked' : ''} ${ro ? 'disabled' : ''}>
+        <span><span class="rhead"><span class="sev sev-${esc(r.severity)}">${esc(r.severity)}</span><span class="rtype">${esc(r.type)}</span>${r.area ? `<span class="rnum" title="${esc(r.shot || vs[0]?.label || '')}">R${k + 1}</span>` : ''}</span>${esc(r.text)}</span></label>`).join('')}</div></div>` : ''}
+    <div><label class="label" for="comment">${esc(T.comment)}</label><textarea id="comment" rows="3" placeholder="${esc(T.commentPh)}" ${ro ? 'readonly' : ''}>${esc(s.comment)}</textarea></div>
+    <div><div class="label"><span>${esc(T.areas)}</span><span id="areacount"></span></div><ul class="areas" id="areas"></ul><p class="hint" id="areahint"></p></div>
+`;
+  listAreas(); recCount();
+  $('#pos').textContent = `${cur + 1} / ${items.length}`;
+}
+
+function drawStage(it, v) {
+  const c = $('#canvas'), view = $('#view'), live = v?.kind === 'live';
+  view.classList.toggle('actual', !live && !fit);
+  c.className = 'canvas' + (live ? ' live' : '');
+  if (live) {
+    const z = zoom || Math.min(1, (view.clientWidth - 112) / dev.w, (view.clientHeight - 32) / dev.h);
+    c.innerHTML = `<div class="frame" style="width:${dev.w * z}px;height:${dev.h * z}px"><iframe src="${esc(v.src)}" title="${esc(it.title)}" style="width:${dev.w}px;height:${dev.h}px;transform:scale(${z})"></iframe><div class="overlay" id="overlay"></div></div>`;
+  } else if (v) {
+    c.innerHTML = `<img src="${esc(v.src)}" alt="${esc(it.title)} – ${esc(v.label)}" draggable="false"><div class="overlay" id="overlay"></div>`;
+    // 100% means real CSS pixels: a 2x capture is shown at half its pixel width.
+    const img = c.firstChild, size = () => { img.style.width = fit ? '' : img.naturalWidth / (v.scale || 1) + 'px'; };
+    img.complete ? size() : img.addEventListener('load', size);
+  } else c.innerHTML = '';
+  const devs = M.devices || DEVICES;
+  $('#tools').innerHTML = live
+    ? `<select id="dev" aria-label="${esc(T.device)}">${devs.map((d, k) => `<option value="${k}" ${d.w === dev.w && d.h === dev.h ? 'selected' : ''}>${esc(d.label)} ${d.w}×${d.h}</option>`).join('')}<option value="custom" ${devs.some(d => d.w === dev.w && d.h === dev.h) ? '' : 'selected'}>${esc(T.custom)} ${dev.w}×${dev.h}</option></select>
+       <input type="number" id="w" min="200" max="3840" value="${dev.w}" aria-label="${esc(T.width)}"><button id="rot" title="${esc(T.rotate)}" aria-label="${esc(T.rotate)}">↻</button>
+       <select id="zoom" aria-label="${esc(T.zoom)}"><option value="0">${esc(T.fit)}</option>${[.5, .75, 1].map(z => `<option value="${z}" ${zoom === z ? 'selected' : ''}>${z * 100}%</option>`).join('')}</select>
+       <button class="tog" id="annotate" aria-pressed="false">${esc(T.annotate)}</button><a href="${esc(v.src)}" target="_blank" rel="noopener">${esc(T.openLive)}</a>`
+    : v ? `<button class="tog" id="fit" aria-pressed="${fit}">${esc(T.fit)}</button><button class="tog" id="actual" aria-pressed="${!fit}">${esc(T.actual)}</button>` : '';
+  drawAreas();
+}
+
+const box = a => `left:${a.x}%;top:${a.y}%;width:${a.w}%;height:${a.h}%`;
+function drawAreas() {
+  const it = items[cur], s = S(it), label = viewLabel(), o = $('#overlay'); if (!o) return;
+  const first = views(it)[0]?.label, recAreas = bySev(it.recommendations).map((r, k) => ({ ...r, k })).filter(r => r.area && (r.shot || first) === label);
+  o.innerHTML = s.areas.map((a, k) => a.shot === label ? `<button class="area" style="${box(a)}" data-a="${k}" aria-label="${esc(T.area)} ${k + 1}"><span>${k + 1}</span></button>` : '').join('')
+    + recAreas.map(r => `<button class="area rec" style="${box(r.area)}" data-rk="${r.k}" title="${esc(r.text)}" aria-label="${esc(T.rec)} R${r.k + 1}"><span>R${r.k + 1}</span></button>`).join('');
+}
+function listAreas() {
+  const s = S(items[cur]), live = views(items[cur])[tab]?.kind === 'live';
+  $('#areas').innerHTML = s.areas.map((a, k) => `<li><span class="n">${k + 1}</span><input type="text" data-a="${k}" value="${esc(a.note)}" placeholder="${esc(T.areaNote)} · ${esc(a.shot)}" aria-label="${esc(T.areaNote)} ${k + 1}" ${ro ? 'readonly' : ''}><button class="ghost" ${ro ? 'hidden' : ''} data-del="${k}" aria-label="${esc(T.deleteArea)} ${k + 1}">✕</button></li>`).join('');
+  $('#areacount').textContent = s.areas.length || '';
+  $('#areahint').textContent = s.areas.length || ro ? '' : live ? T.areaHintLive : T.areaHint;
+}
+function setStatus(k, auto) {
+  if (ro) return;
+  const s = S(items[cur]); s.status = auto ? s.status || k : s.status === k ? '' : k; save(); refresh();
+  $$('.verdict button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === s.status));
+  const dot = $('#strip').children[cur]?.querySelector('.dot'); if (dot) dot.style.background = color(s.status);
+  if (!auto && s.status === 'approved' && cur < items.length - 1) setTimeout(() => show(cur + 1), 180); // approving moves on
+}
+
+/* events */
+// Thumbnails crop tall screens from the top, but show wide or small images (components) whole.
+document.addEventListener('load', e => { const i = e.target; if (i.matches?.('.thumb img, .strip img')) i.classList.toggle('whole', i.naturalWidth / i.naturalHeight > 1.75 || i.naturalWidth < i.clientWidth); }, true);
+$('#main').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) show(+c.dataset.n); });
+$('#main').addEventListener('click', e => { const b = e.target.closest('#filters button'); if (b) { filter = b.dataset.f; refresh(); } });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) { tab = +b.dataset.k; show(cur, true); } });
+$('#strip').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) show(+b.dataset.k); });
+$('#prev').onclick = () => show(cur - 1); $('#next').onclick = () => show(cur + 1);
+$('#nextBtn').onclick = () => cur < items.length - 1 ? show(cur + 1) : ($('#dlg').close(), $('#send').focus());
+$('#close').onclick = () => $('#dlg').close();
+$('#dlg').addEventListener('close', () => $(`.card[data-n="${cur}"]`)?.focus());
+$$('.notesBtn').forEach(b => b.onclick = () => { $('#notes').showModal(); $('#general').focus(); });
+// the round notes live in the content and in the detail's Notes dialog: one value, two fields
+document.addEventListener('input', e => { if (!e.target.classList.contains('gen')) return; st.general = e.target.value; $$('.gen').forEach(t => t !== e.target && (t.value = st.general)); save(); });
+$('#main').addEventListener('change', e => { if (e.target.id === 'roundSel') { view = +e.target.value; filter = 'all'; render(M); scrollTo(0, 0); } });
+$('#notes').addEventListener('close', refresh);
+const restage = () => { const it = items[cur]; drawStage(it, views(it)[tab]); };
+$('#tools').addEventListener('click', e => {
+  const id = e.target.closest('button')?.id;
+  if (id === 'fit' || id === 'actual') { fit = id === 'fit'; restage(); }
+  else if (id === 'rot') { dev = { w: dev.h, h: dev.w }; restage(); }
+  else if (id === 'annotate') { const on = e.target.getAttribute('aria-pressed') !== 'true'; e.target.setAttribute('aria-pressed', on); $('#canvas').classList.toggle('annotate', on); }
+});
+$('#tools').addEventListener('change', e => {
+  const t = e.target, devs = M.devices || DEVICES;
+  if (t.id === 'dev' && t.value !== 'custom') dev = { w: devs[t.value].w, h: devs[t.value].h };
+  if (t.id === 'w') dev = { w: Math.max(200, Math.min(3840, +t.value || dev.w)), h: dev.h };
+  if (t.id === 'zoom') zoom = +t.value;
+  restage();
+});
+addEventListener('resize', () => $('#dlg').open && views(items[cur])[tab]?.kind === 'live' && !zoom && restage());
+// Areas: drag on the overlay to draw a box (stored in % of the view); a plain click marks a small box around the point.
+let drag = null;
+const clamp = v => Math.min(1, Math.max(0, v)), r1 = v => Math.round(v * 10) / 10;
+const rect = e => { const { r, x, y } = drag, x1 = clamp((x - r.left) / r.width), y1 = clamp((y - r.top) / r.height), x2 = clamp((e.clientX - r.left) / r.width), y2 = clamp((e.clientY - r.top) / r.height);
+  return { x: Math.min(x1, x2) * 100, y: Math.min(y1, y2) * 100, w: Math.abs(x2 - x1) * 100, h: Math.abs(y2 - y1) * 100 }; };
+$('#canvas').addEventListener('pointerdown', e => {
+  if (ro || e.target.id !== 'overlay' || e.button) return;
+  drag = { r: e.target.getBoundingClientRect(), x: e.clientX, y: e.clientY, el: document.createElement('div') };
+  drag.el.className = 'area draft'; e.target.append(drag.el); e.target.setPointerCapture(e.pointerId); e.preventDefault();
+});
+$('#canvas').addEventListener('pointermove', e => { if (drag) drag.el.style.cssText = box(rect(e)); });
+$('#canvas').addEventListener('pointerup', e => {
+  if (!drag) return;
+  let b = rect(e); const { r } = drag; drag.el.remove(); drag = null;
+  if (b.w * r.width < 800 && b.h * r.height < 800) { // a click, not a drag: a 48px square around the point
+    const w = 4800 / r.width, h = 4800 / r.height;
+    b = { x: Math.min(100 - w, Math.max(0, b.x - w / 2)), y: Math.min(100 - h, Math.max(0, b.y - h / 2)), w, h };
+  }
+  const s = S(items[cur]); s.areas.push({ shot: viewLabel(), x: r1(b.x), y: r1(b.y), w: r1(b.w), h: r1(b.h), note: '' });
+  setStatus('changes', true); save(); refresh(); drawAreas(); listAreas(); $('#areas').lastElementChild.querySelector('input').focus();
+});
+$('#canvas').addEventListener('click', e => {
+  const a = e.target.closest('.area[data-a]'); if (a) return $(`#areas input[data-a="${a.dataset.a}"]`)?.focus();
+  const r = e.target.closest('.area.rec'); if (!r) return;
+  const card = $(`.rec[data-rk="${r.dataset.rk}"]`); card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+});
+// Hovering a recommendation lights up its marker, and the other way round. Its marker may be on another view: switch to it.
+const hot = (k, on) => $$(`[data-rk="${k}"]`).forEach(x => x.classList.toggle('hot', on));
+for (const el of ['#panel', '#canvas']) {
+  $(el).addEventListener('pointerover', e => { const x = e.target.closest('[data-rk]'); if (x) hot(x.dataset.rk, true); });
+  $(el).addEventListener('pointerout', e => { const x = e.target.closest('[data-rk]'); if (x) hot(x.dataset.rk, false); });
+}
+// Touch: swipe sideways on the empty stage (not on the image, where it draws) to move between items.
+let swipe = null;
+$('#view').addEventListener('pointerdown', e => { swipe = e.pointerType === 'touch' && e.target.id !== 'overlay' ? { x: e.clientX, y: e.clientY } : null; });
+$('#view').addEventListener('pointerup', e => {
+  if (!swipe || !fit) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
+  if (Math.abs(dx) > 60 && Math.abs(dy) < 50) show(cur + (dx < 0 ? 1 : -1));
+});
+$('#panel').addEventListener('click', e => {
+  const b = e.target.closest('.verdict button'); if (b) return setStatus(b.dataset.s);
+  if (e.target.closest('.rnum')) { e.preventDefault(); const it = items[cur], r = bySev(it.recommendations)[+e.target.closest('.rec').dataset.rk], k = views(it).findIndex(v => v.label === (r.shot || views(it)[0].label)); if (k >= 0 && k !== tab) { tab = k; show(cur, true); } return; }
+  if (e.target.id === 'recAll') { const s = S(items[cur]), all = items[cur].recommendations.map(r => r.id); s.accepted = s.accepted.length === all.length ? [] : all; if (s.accepted.length) setStatus('changes', true); save(); refresh(); return show(cur, true); }
+  const d = e.target.closest('[data-del]'); if (d) { S(items[cur]).areas.splice(+d.dataset.del, 1); save(); refresh(); drawAreas(); listAreas(); }
+});
+$('#panel').addEventListener('input', e => {
+  const s = S(items[cur]), t = e.target;
+  if (t.id === 'comment') { s.comment = t.value; if (t.value) setStatus('changes', true); }
+  else if (t.dataset.a) s.areas[+t.dataset.a].note = t.value;
+  else if (t.dataset.r) { s.accepted = $$('.recs input:checked').map(x => x.dataset.r); if (s.accepted.length) setStatus('changes', true); recCount(); }
+  save(); refresh();
+});
+document.addEventListener('keydown', e => {
+  if (!$('#dlg').open || $('.modal[open]') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { if (e.key === 'Escape') { document.activeElement.blur(); e.preventDefault(); } return; }
+  const k = e.key.toLowerCase();
+  if (k === 'arrowright') show(cur + 1); else if (k === 'arrowleft') show(cur - 1);
+  else if (k >= '1' && k <= '9') { if (+k <= views(items[cur]).length) { tab = +k - 1; show(cur, true); } } // 1-9: switch view
+  else { const hit = Object.keys(ST).find(s => ST[s].key === k); if (hit) setStatus(hit); }
+});
+
+/* output: the markdown is for the agent, so it stays in English whatever the lab language */
+function payload() {
+  return { project: M.project, mode: M.mode || 'visual', round: view, submittedAt: new Date().toISOString(), general: st.general || '',
+    items: items.map(i => { const { status, comment, areas, accepted } = S(i); return { id: i.id, title: i.title, status, comment, areas, accepted }; }) };
+}
+function markdown(fb) {
+  const by = s => fb.items.filter(i => i.status === s);
+  const L = [`# Preview Lab feedback: ${fb.project || ''} · round ${fb.round} (${fb.mode})`,
+    `${by('approved').length} approved · ${by('changes').length} changes · ${by('').length} unreviewed`];
+  if (fb.general.trim()) L.push(`**General:** ${fb.general.trim()}`);
+  if (by('approved').length) L.push(`**Approved:** ${by('approved').map(i => i.title).join(', ')}`);
+  for (const i of fb.items) {
+    const it = items.find(x => x.id === i.id), declined = i.status === 'changes' ? (it?.recommendations || []).filter(r => !i.accepted.includes(r.id)).map(r => r.id) : [];
+    if (!(i.status === 'changes' || i.comment.trim() || i.areas.length || i.accepted.length || declined.length)) continue;
+    L.push('', `## ${i.title} [${i.id}] — ${i.status || 'comment'}`);
+    if (i.comment.trim()) L.push(i.comment.trim());
+    i.areas.forEach((a, n) => L.push(`- Area ${n + 1} (${a.shot} @ x ${a.x}%, y ${a.y}%, ${a.w}×${a.h}%): ${a.note || '(no note)'}`));
+    i.accepted.forEach(id => { const r = it?.recommendations?.find(x => x.id === id); L.push(`- Apply rec ${id}${r ? ` [${r.type}/${r.severity}]: ${r.text}` : ''}`); });
+    if (declined.length) L.push(`- Declined recs: ${declined.join(', ')}`);
+  }
+  return L.join('\n') + '\n';
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2800); }
+// No clipboard access (blocked, or an insecure page): show the text to copy by hand.
+async function copy(msg = T.copied) {
+  const md = markdown(payload());
+  try { await navigator.clipboard.writeText(md); toast(msg); } catch { $('#outText').value = md; $('#out').showModal(); $('#outText').select(); }
+}
+$('#copy').onclick = () => copy();
+$('#send').onclick = async () => {
+  const fb = payload(), todo = fb.items.filter(i => !i.status).length;
+  if (todo && !confirm(T.confirmSend.replace('{n}', todo))) return;
+  if (DATA) return copy();
+  $('#send').disabled = true;
+  try {
+    const r = await fetch('feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...fb, markdown: markdown(fb) }) });
+    if (!r.ok) throw 0;
+  } catch { $('#send').disabled = false; return copy(T.offline); }
+  ls.set(KEY, null);
+  $('#dlg').close();
+  document.body.insertAdjacentHTML('beforeend', `<div class="done" role="alert"><div><i>✓</i><h2>${esc(T.sent)}</h2><p>${esc(T.sentHint)}</p></div></div>`);
+  // The server stops after a send. When the agent serves the next round, this same tab picks it up.
+  history.replaceState(null, '', location.pathname);
+  setInterval(async () => { try { if ((await fetch('manifest.json', { cache: 'no-store' })).ok) location.reload(); } catch {} }, 2000);
+};
+</script>
+</body>
+</html>

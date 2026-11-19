@@ -562,6 +562,21 @@ it as `execution` (`dex` or `vendor`).
   grouping is `--group-by orders.ordered_at__month`; `--where` is Cube's JSON
   filter (`'{"member": "orders.status", "operator": "equals", "values":
   ["paid"]}'`).
+  `--api` has the Cube server execute over `/v1/load` instead,
+  `execution: vendor`, on any warehouse Cube supports: no `--confirm`, a
+  `cost guard unavailable` warning on every result, and the same PII gate before
+  anything is sent; a Cube Core is still held to the files first.
+  `scripts/setup_cube_dev.sh --execute` starts a Core that can execute.
+- `semantic.deployment: cube_cloud` (with `vendor: cube`) is the same files on
+  Cube Cloud. Cube Cloud executes by default, and `list` reads the deployment's
+  compiled `/v1/meta` (JS, Jinja and `extends` answered; no `relation` or
+  `column`, declared in `unavailable`; primary keys and private members absent),
+  with `definition_source: cube_cloud` and a warning that it was not checked
+  against the files. `--local` has Cube Cloud render and Dex execute, catalog
+  and checks from the files. `semantic.cube.url` (or `DEX_CUBE_URL`) is the
+  deployment's REST API base, with no default; the token is `CUBE_API_TOKEN`
+  from the environment, sent only to `*.cubecloudapp.dev` / `*.cubecloud.dev`
+  over https or a host named in `DEX_CUBE_ALLOWED_HOSTS`.
 - `semantic.vendor: databricks` reads the Databricks Metric View YAML files
   named in `semantic.databricks.files` statically (needs the `[metric-views]`
   extra; no workspace connection, nothing deployed), each validated by Dex's own

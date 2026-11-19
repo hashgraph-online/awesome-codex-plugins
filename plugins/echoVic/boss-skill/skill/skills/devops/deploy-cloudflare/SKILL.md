@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-cloudflare
 description: Cloudflare 部署方法论，使用 wrangler CLI 部署 Cloudflare Pages（前端/静态站点）和 Workers（Serverless 边缘函数）
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Cloudflare 时
-- 项目需要边缘计算（Workers）时
-- 项目是静态站点或前端 SPA 时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Cloudflare 时
+  - 项目需要边缘计算（Workers）时
+  - 项目是静态站点或前端 SPA 时
+metadata:
   internal: true
-
 ---
 
 # Cloudflare 部署

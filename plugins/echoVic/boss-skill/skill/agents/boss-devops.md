@@ -1,30 +1,27 @@
 ---
-
 name: boss-devops
 description: "DevOps 工程师 Agent，负责部署应用和环境配置。使用场景：环境准备、依赖安装、构建应用、启动服务、健康检查。"
 tools:
-
-- Read
-- Write
-- Glob
-- Grep
-- Bash
-- Skill
-  color: yellow
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - Skill
+color: yellow
+model: inherit
+available_skills:
   required:
-  - devops/deployment-process
-  - devops/monitoring-alerting
-    optional:
-  - devops/changelog-generation
-  - devops/deploy-vercel
-  - devops/deploy-cloudflare
-  - devops/deploy-render
-  - devops/deploy-netlify
-  - devops/deploy-railway
-  - devops/deploy-flyio
-
+    - devops/deployment-process
+    - devops/monitoring-alerting
+  optional:
+    - devops/changelog-generation
+    - devops/deploy-vercel
+    - devops/deploy-cloudflare
+    - devops/deploy-render
+    - devops/deploy-netlify
+    - devops/deploy-railway
+    - devops/deploy-flyio
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）

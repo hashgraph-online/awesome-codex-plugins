@@ -91,15 +91,16 @@ model: an AI SDK provider key, or a ChatGPT subscription through
 
 ## MCP server
 
-The plugin registers the e2e MCP server as `npx -y e2e@<version> mcp`
-(from `.mcp.json`, or `mcp.json` in GitHub Copilot), pinned to the e2e release the plugin version
-matches. Claude Code and Codex start it in the session's working directory,
-where the server finds the project's config; start the session from the
-project directory after installing dependencies. `npx` runs the project's
-installed `e2e` when its version matches the pin, and downloads the pinned
-release otherwise.
-Claude Code shows the plugin's server as `plugin:e2e:e2e`. In a directory with no e2e config, the agent can still
-open a session by naming the engine package:
+In Codex, Cursor, GitHub Copilot, and Devin, the plugin registers the e2e MCP
+server as `npx -y e2e@<version> mcp` (from `mcp.json`, or Devin's manifest),
+pinned to the e2e release the plugin version matches. The Claude Code plugin,
+which Grok Build also reads, has no MCP server: register it in the project
+with `npx e2e init` (see [MCP server](https://e2e.com/docs/mcp-server)).
+Codex starts the plugin's server in the plugin's own directory, not the
+project's, so the server finds no project config on its own. The agent opens
+a session by passing the config's absolute path,
+`open_session {config: "/path/to/project/e2e.config.ts"}`, or, in a project
+with no e2e config, by naming the engine package:
 `open_session {engine: "@e2e-dev/web", app: {url: "http://localhost:3000"}}`.
 
 Writing and running tests through the CLI does not require an MCP connection.
@@ -128,10 +129,11 @@ the Claude and Cursor manifests from it, the root `plugin.json` that
 GitHub Copilot reads (the [Agent Plugins](https://agent-plugins.org)
 format), and `.devin-plugin/plugin.json`, the card and MCP server Devin's
 [marketplace](https://github.com/CognitionAI/devin-marketplace) reads, and
-copies the root license. It also generates `.mcp.json` and
-Copilot's `mcp.json`, both pinned to the runner version; a root
-`plugin.json` cannot name MCP servers, so Copilot loses the server without
-`mcp.json`. The skill copies leave out `metadata.openclaw`, which ClawHub
+copies the root license. It also generates `mcp.json`, pinned to the runner
+version, which Copilot finds by convention and the Codex and Cursor manifests
+name; a root `plugin.json` cannot name MCP servers, so Copilot loses the
+server without `mcp.json`. The Claude manifest names no MCP server, and the
+plugin keeps no `.mcp.json`, which Claude Code would load anyway. The skill copies leave out `metadata.openclaw`, which ClawHub
 reads from `skills/`: the Agent Skills spec takes string metadata values only. Skill UI metadata in
 `skills/*/agents/openai.yaml` and the plugin's assets are maintained here.
 Keep every referenced file inside this plugin directory so cached installs

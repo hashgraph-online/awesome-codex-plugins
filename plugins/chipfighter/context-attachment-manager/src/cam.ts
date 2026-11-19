@@ -5,7 +5,7 @@
 // installed copy starts, and only then points Codex at the engine. uninstall goes the other way round. Either way
 // Codex is never left pointed at an engine that nothing would start.
 // v0.1-5: setup, run from the copy Codex installed (the install scripts do this after Codex's own command line added
-// the plugin), points Codex at the engine and starts it. The settings themselves are switched in setup.ts.
+// the plugin), starts the engine and then points Codex at it. The settings themselves are switched in setup.ts.
 // v0.1-14: it speaks the system language (messages.ts); status shows the language the panel reported.
 // v0.11: connect <platform> [--base-url URL], for a platform using the core alone (ADAPTERS.md).
 // Input: install [--port N] | setup [--port N] | uninstall | status | connect <platform> [--base-url URL] |
@@ -32,7 +32,7 @@ import type { PanelState } from "./panel/panel-state.ts";
 import { dataDir, selectionDirOf } from "./core/paths.ts";
 import { preservingPluginCache } from "./adapters/codex/plugin-cache.ts";
 import { backupConfig, connectDirectly, planEngine, readConfig, readEnv, useEngine } from "./adapters/codex/setup.ts";
-import { readRoute, registerRoute, routeBaseUrl, validateBaseUrl } from "./core/routes.ts";
+import { readRoute, registerRoute, routeBaseUrl, routingPort, validateBaseUrl } from "./core/routes.ts";
 import { applyEdits, undoEdits } from "./core/config-edit.ts";
 import { CORE_PLATFORMS, corePlatformOf, detectPlatform } from "./platforms.ts";
 
@@ -153,6 +153,22 @@ function migrateSelections(): number {
   return moved;
 }
 
+async function activateEngine(port: number, options: { dir?: string; force?: boolean } = {}) {
+  const secondPort = routingPort(port);
+  try { planEngine(port); } catch (error) { throw localized(error); }
+  const engine = await ensureEngine({ port, ...options });
+  if (!engine.health) {
+    const detail = engine.bindFailure
+      ? t("cli.engineBindFailed", engine.bindFailure)
+      : t("cli.engineNotReady", { port, secondPort });
+    console.error(t("cli.engineSetupFailed", { detail }));
+    process.exitCode = 1;
+    return null;
+  }
+  // Read the current settings again before applying the plan. Starting the engine can take several seconds.
+  try { return { engine, plan: useEngine(port) }; } catch (error) { throw localized(error); }
+}
+
 async function main(): Promise<void> {
   migrateDataOnce(); // v0.1-15: Windows moved the data folder
   const [command, threadId, ...ids] = process.argv.slice(2);
@@ -164,6 +180,7 @@ async function main(): Promise<void> {
     const cli = findCodexCli();
     if (!cli) throw new Error(t("cli.noCli"));
     // A conflict with the user's own settings stops everything before anything changes.
+    routingPort(port);
     try { planEngine(port); } catch (error) { throw localized(error); }
     backupConfig();
     const steps: string[] = [];
@@ -180,21 +197,22 @@ async function main(): Promise<void> {
     const test = await selfTest(installed);
     if (!test.ok) throw new Error(t("cli.selfTest.failed", { error: test.error ?? "" }));
     steps.push(t("cli.step.selfTest", { tools: test.tools.join(t("cli.list")) }));
-    const plan = useEngine(port);
-    const migrated = migrateSelections();
     // The installed copy runs the engine, as it will when Codex starts it; an engine of other code still running is
     // replaced (v0.4: also one of the same version, which a plugin service alone leaves running).
-    const engine = await ensureEngine({ port, dir: join(installed, "src"), force: true });
+    const activated = await activateEngine(port, { dir: join(installed, "src"), force: true });
+    if (!activated) return;
+    const { engine, plan } = activated;
+    const migrated = migrateSelections();
     console.log(JSON.stringify({ command, steps, configChanged: plan.configChanged, envChanged: plan.envChanged, notes: plan.notes, migratedSelections: migrated, dataDir: dataDir(), engine: engine.state, enginePid: engine.health?.pid ?? null, next: t("cli.next.install") }, null, 2));
     return;
   }
   if (command === "setup") {
     // Only once Codex has the plugin: otherwise nothing would start the engine after Codex restarts.
     if (!pluginStatus(readConfig()).installed || !existsSync(pluginCacheDir(pluginVersion()))) throw new Error(t("cli.notInstalled"));
-    let plan;
-    try { plan = useEngine(port); } catch (error) { throw localized(error); }
     // Started from this copy, which is the installed one when the install scripts run it.
-    const engine = await ensureEngine({ port });
+    const activated = await activateEngine(port);
+    if (!activated) return;
+    const { engine, plan } = activated;
     console.log(JSON.stringify({ command, configChanged: plan.configChanged, envChanged: plan.envChanged, notes: plan.notes, dataDir: dataDir(), engine: engine.state, enginePid: engine.health?.pid ?? null, next: t("cli.next.install") }, null, 2));
     return;
   }

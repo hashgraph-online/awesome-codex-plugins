@@ -52,7 +52,7 @@ Both read and write the same `~/.host0/credentials`, `~/.host0/device.json` and 
 | `--wait {seconds}` | `--timeout {seconds}` |
 | `publish.sh --pull --slug {slug} [dir]` | `host0 pull {slug} [dir]` |
 
-The CLI also manages apps, so you don't need raw curl for these: `host0 ls`, `inspect {app}`, `versions {app}`, `rollback {app} {n}`, `visibility {app} private|link|public`, `rename {app} [--slug s] [--name n]`, `share {app} {email…}` / `unshare {app} {email}`, `rm {app} --yes`, `analytics {app} [--period 7d]`, `records {app} [collection] [--export]`, `whoami`, `logout`, and `api {path} [-X METHOD] [-d json]` for anything else under `/api/v1`. `{app}` is a slug or an app id; `--json` prints the API's JSON body. The curl calls below are for the `publish.sh` path.
+The CLI also manages apps, so you don't need raw curl for these: `host0 ls`, `inspect {app}`, `versions {app}`, `rollback {app} {n}`, `visibility {app} private|link|public`, `rename {app} [--slug s] [--name n]`, `share {app} {email…}` / `unshare {app} {email}`, `rm {app} --yes`, `analytics {app} [--period 7d]`, `records {app} [collection] [--export]`, `domains {app}` (custom domains), `whoami`, `logout`, and `api {path} [-X METHOD] [-d json]` for anything else under `/api/v1`. `{app}` is a slug or an app id; `--json` prints the API's JSON body. The curl calls below are for the `publish.sh` path.
 
 ## Requirements
 
@@ -75,9 +75,9 @@ Add `--client {your-agent}` (e.g. `--client claude-ai`) when you're not Claude C
 
 With the CLI: `host0 deploy {dir|file} [--name "my app"]` — same flags, same output.
 
-Under the hood this is a three-step flow: manifest → upload files → finalize. The app is not live until finalize succeeds.
+Under the hood this is a three-step flow: manifest → upload files → finalize. The app is not live until finalize succeeds. Finalize is safe to repeat: if its answer got lost, send it again, and a deployment that already went live answers the same 200 with `already_live: true`. A `409 not_pending` means that deployment failed or was replaced: start a new publish.
 
-**File structure:** `index.html` must sit at the root of the directory you publish — the directory's contents become the site root. Publish `my-site/` where `my-site/index.html` exists, not a parent folder containing `my-site/`.
+**File structure:** `index.html` must sit at the root of the directory you publish — the directory's contents become the site root. Publish `my-site/` where `my-site/index.html` exists, not a parent folder containing `my-site/`. Don't put files under `.h0/`: host0 keeps `/.h0/*` on every app (sign-in, shared data, analytics), so the publish is refused (`bad_request`). Use another folder name.
 
 **Many pages:** every file keeps its path. `/about` serves `about.html` or `about/index.html` (a folder index gets its trailing slash: `/docs` → `/docs/`), and `/docs/guide` serves `docs/guide.html`, so links can use either form. A `404.html` at the root is served for missing pages. Without one, a missing page path serves `index.html`, so client-side routes in a single-page app deep-link.
 
@@ -190,6 +190,8 @@ host0 domains rm {app} blog.acme.com
 
 Or `POST {base}/api/v1/apps/{app_id}/domains` with `{"hostname":"blog.acme.com"}`, then `POST …/domains/blog.acme.com/verify`. Show the user the `dns_records` exactly as returned (a CNAME to `domains.host0.app` and a TXT at `_host0.<hostname>`) and tell them what `last_error` says. The status goes `pending` → `provisioning` → `active`, usually within minutes; only `active` serves. Never tell them the domain is live before `active`. Private apps, invites and shared records work there as usual.
 
+A domain follows whoever controls its DNS. Adding a hostname that is live on another host0 account isn't refused: it is added as `pending` with its own TXT value, nothing changes until that value is set, and then the domain serves this app. The other way round, when another account proves control of a domain's DNS, the domain moves to their app, and the user gets an email saying which domain, which of their apps, and when; the domain's row goes back to `pending` with a `note` and a new TXT value (the old one no longer works). To take it back, the user sets the new TXT value and you verify again. 409 `domain_taken` means another app of the same account has the hostname (its `app` field names it): remove it there first. A domain that stops serving because its CNAME moved away, or whose certificate wasn't issued within 7 days, also goes back to `pending` with a new TXT value: always show the `dns_records` from the latest answer, never ones you remember.
+
 ## Sharing
 
 Invite people by email with `host0 share {app} a@b.com` (CLI) or `POST /api/v1/apps/{app_id_or_slug}/shares` (body `{"emails": ["a@b.com"]}`); remove one with `host0 unshare {app} a@b.com` or `DELETE /api/v1/apps/{app_id_or_slug}/shares/{email}`.
@@ -231,7 +233,7 @@ This is how you build a small tool a team shares: a todo list, a ticket board, a
 - Field types: `string`, `number`, `boolean`, `json` (arbitrary object). Constraints: `required`, `default`, `maxLength`, `enum`.
 - The manifest is validated at deploy — a mistake fails the upload with the exact line to fix, before anything goes live. Read the message; it says what to change.
 - Adding a collection or an optional field is applied by the next publish. Removing a collection stops serving it but **keeps** its data (still exportable).
-- No `h0.json` → nothing changes: a plain site publishes exactly as before, and **an app that has collections keeps them**, so a redeploy of just the changed files is safe. To change the collections, publish an `h0.json` with all of them. To turn records off, publish `{"records": {}}` (the data is kept, still exportable). An `h0.json` must have a `records` key, and it's the only top-level key: anything else is refused with `invalid_manifest`.
+- No `h0.json` → nothing changes: a plain site publishes exactly as before, and **an app that has collections keeps them**, so a redeploy of just the changed files is safe. To change the collections, publish an `h0.json` with all of them. To turn records off, publish `{"records": {}}` (the data is kept, still exportable). An `h0.json` must have a `records` key, and it's the only top-level key: anything else is refused with `invalid_manifest`. Inside it, a collection takes only `fields` and `access`, and a field only `type`, `required`, `default`, `maxLength` and `enum`: any other key (a misspelt `access`, a `min` or `unique`) is refused too, so nothing you wrote is silently ignored.
 
 ### Shared or per-person? Ask first
 
@@ -374,6 +376,7 @@ setInterval(load, 4000);   // collaboration in v1 is polling
 - **Handle `401` on every call**, not just reads: the body carries `signin_url` and a `message` written for the visitor ("Sign in to add tickets.") — show that message as a link to `signin_url`.
 - **Show `message` on failure**: every error body has a human-readable `message`.
 - **PATCH only what changed** — that's what stops two people editing the same record from clobbering each other.
+- **Save when an edit is finished, not on every keystroke.** Writes by visitors the owner hasn't invited are limited per app, per hour: anonymous ones by network, signed-in ones by account (`GET {base}/api/v1` → `limits.records`). The owner and invited emails aren't limited. Over the limit a write answers `429 rate_limited` with `retry_after`: show its `message`.
 - **Read `created_by_email` off the envelope**, not out of `data`. It's `null` for readers who aren't the owner, an invited member or the record's author (anonymous visitors of a link app, signed-in strangers) — always render a fallback, or add a `name` field if strangers should see who wrote it.
 - Don't build a login screen or store passwords. Identity is `/.h0/me`, and access is the app's share list.
 
@@ -395,7 +398,7 @@ The Data tab of the app's dashboard page shows the same, with an export button p
 
 ### Fixing or removing records as the owner
 
-To seed or clean up an app's data (fix a typo, remove spam, clear a demo), the owner doesn't need to drive the app: `GET {base}/api/v1/apps/{app_id_or_slug}/records/tickets` lists the records with their ids, and these change one. The MCP tools `list_records`, `update_record` and `delete_record` and the Edit and Delete buttons on the dashboard's Data tab do the same. CLI: `host0 api /api/v1/apps/{app}/records/tickets/{id} -X PATCH -d '{"done": true}'`, or `-X DELETE`.
+To seed or clean up an app's data (fix a typo, remove spam, clear a demo), the owner doesn't need to drive the app: `GET {base}/api/v1/apps/{app_id_or_slug}/records/tickets` lists the records with their ids (newest first, 200 a page: `total` says how many there are, and `nextCursor` goes in `?cursor=` for the next page; CLI `host0 records {app} tickets --cursor <cursor>`; a collection name the app never declared is 404 `collection_not_found`), and these change one. The MCP tools `list_records`, `update_record` and `delete_record` and the Edit and Delete buttons on the dashboard's Data tab do the same. CLI: `host0 api /api/v1/apps/{app}/records/tickets/{id} -X PATCH -d '{"done": true}'`, or `-X DELETE`.
 
 ```bash
 # merge the fields into the record; null clears an optional field
@@ -438,7 +441,8 @@ The user signs in on host0 in **their own browser** and approves a short code. Y
 3. In the **same turn**, run `./scripts/publish.sh --login-wait` (CLI: `host0 login --wait`) (or the same publish command again). It waits up to 90s (`--wait {seconds}`; CLI `--timeout {seconds}`) for the approval, saves the key to `~/.host0/credentials` (chmod 600) and, for a publish, carries on to the live URL.
 4. Exit code 3 again means the user hasn't approved yet — run the same command again; **don't start a new login** (that would replace the code they're looking at). An expired code is replaced automatically, with a new link to show.
 5. `login_result.status=denied` (exit 1) — the user said no. Ask before starting another one.
-6. A publish that fails with `host0: the api key from … was rejected` (revoked, or saved from another account): a publish only starts a login when there's no key at all, so run `./scripts/publish.sh --login` yourself and continue from step 2 — the approved key replaces the saved one.
+6. `login_result.status=key_limit` (exit 1, `publish_result.error=api_key_limit_reached`): the user approved, but the account already has its limit of active API keys, so no key was issued. Give the user `login_result.keys_url` and ask them to revoke a key they no longer use there. Then run the same command again: the approval is kept, so they don't approve a second time. Don't start a new login and don't poll in a loop while you wait for them.
+7. A publish that fails with `host0: the API key from … was rejected` (revoked, or saved from another account): a publish only starts a login when there's no key at all, so run `./scripts/publish.sh --login` yourself and continue from step 2 — the approved key replaces the saved one.
 
 The raw REST pair, if you can run neither tool:
 
@@ -449,6 +453,7 @@ curl -sS --retry 3 --retry-all-errors {base}/api/v1/auth/device/token \
   -H "content-type: application/json" -d '{"device_code": "…"}'
 # every `interval` seconds: authorization_pending (400) → keep polling; slow_down (429) → use the new interval;
 # access_denied (403) / expired_token (410) → stop. approved → {"api_key":"h0_…","key_prefix":"…","email":"…"} exactly once.
+# api_key_limit_reached (403) → stop polling: the user revokes a key on `keys_url`, then poll once more with the same device_code.
 ```
 
 Save the returned key yourself, immediately (`mkdir -p ~/.host0 && printf '%s' "h0_…" > ~/.host0/credentials && chmod 600 ~/.host0/credentials`) and never echo it.
@@ -525,6 +530,7 @@ Read the `login_result.*` and `publish_result.*` lines from stderr (the CLI and 
 - Exit code 3 with `login_result.status=pending`: give the user `login_result.verification_url` as a link and `login_result.user_code`, say it expires in 10 minutes and that they should check the page shows the same code, then run the same command again.
 - `login_result.status=approved`: say "Signed in as `login_result.email`". The key is saved; it never goes into the conversation.
 - `login_result.status=denied`: the user denied it in the browser — ask before trying again.
+- `login_result.status=key_limit`: the account has its limit of active API keys. Ask the user to revoke one they no longer use on `login_result.keys_url`, then run the same command again; they won't need to approve again.
 
 - Always share `publish_result.url` from the current run — that is the live URL.
 - Say which version is live (`publish_result.version`). When `publish_result.previous_version` is set, add that they can say "roll back" to put version {previous_version} back — then restore it (see "Versions and rollback"), and confirm first, since it changes what everyone sees.
@@ -535,8 +541,9 @@ Read the `login_result.*` and `publish_result.*` lines from stderr (the CLI and 
 - **Offer to invite people, once.** When `publish_result.action=create` and the app is `private` or has an `h0.json`, end your message with one short question: "Want to invite anyone? Give me their emails." If the app has an `h0.json`, add that everyone invited works on the same shared data. When they give emails, run `host0 share {app} a@b.com` or `POST /api/v1/apps/{app}/shares` (see "Sharing") and report `invite_delivery`. Ask once per app: never on an update, never again after they pass, and not at all when they already named people (just invite them) or asked for `link` or `public` on an app without an `h0.json`, where the link is what they wanted.
 - When the publish fails with `public_app_limit_reached`: the files are live but the app kept its previous visibility; offer `--visibility link` instead.
 - When a publish fails, `publish_result.error` is the machine code (e.g. `file_too_large`, `deploy_too_large`, `storage_quota_exceeded`, `public_app_limit_reached`, `app_limit_reached`) — tell the user in plain words which limit was hit, using the script's message (it names the file and the numbers). When `publish_result.upgrade_url` is there too, follow "When an error has `upgrade_url`" below. When it's `plan_required`, follow "When the account has no plan" below instead.
+- When a publish fails with `deploy_rate_limited`: read the message. With `pending_deploys` in the error, this one app has too many deploys started and not finished: don't start another. The error lists them in `pending_deployments` (`deployment_id`, `created_at`, oldest first): cancel the ones you gave up on with `host0 api /api/v1/deployments/{deployment_id} -X DELETE` (or `DELETE {base}/api/v1/deployments/{deployment_id}`), or finalize one you meant to finish, then publish again. A slot is free as soon as one is cancelled; `retry_after` in the body is the exact wait if you do nothing (the `retry-after` header says at most an hour). Without `pending_deploys` it is the hourly cap for the whole account: tell the user and wait.
 - When `publish_result.action=create` and `publish_result.state_pruned` is above 0: say plainly that the cached app could not be reached with this key so a **new** app was created at a new URL, and offer to re-publish with `--slug <slug>` if they wanted the old one.
-- When a publish fails: if the run had just created the app, the script deletes it again so no empty app is left behind, and reports `publish_result.cleanup=deleted` (with `publish_result.cleanup_slug`). If `cleanup=failed`, retry the cleanup yourself with `host0 rm {cleanup_slug} --yes` or `DELETE {base}/api/v1/apps/{cleanup_slug}` — or tell the user the app name from `publish_result.cleanup_slug` and that the app's Settings tab in the dashboard has a delete button. No `cleanup*` line appears on a successful publish, or when the run updated an app it did not create.
+- When a publish fails: if the run had just created the app, the script deletes it again so no empty app is left behind, and reports `publish_result.cleanup=deleted` (with `publish_result.cleanup_slug`). If `cleanup=failed`, retry the cleanup yourself with `host0 rm {cleanup_slug} --yes` or `DELETE {base}/api/v1/apps/{cleanup_slug}` — or tell the user the app name from `publish_result.cleanup_slug` and that the app's Settings tab in the dashboard has a delete button. No `cleanup*` line appears on a successful publish, or when the run updated an app it did not create. When a publish to an existing app fails part-way, the script cancels the deployment it started and prints `host0: canceled the unfinished deploy (…) — {slug} is unchanged.`: the app keeps serving its last version, and nothing is left to clean up.
 - Mention the dashboard at the platform origin (e.g. `https://host0.ai/dashboard`) for managing apps in a browser.
 - Never point users at `.host0/state.json`.
 
@@ -552,7 +559,7 @@ Never retry the same publish in a loop — it fails the same way until something
 
 ## When the account has no plan
 
-A new account may have no plan yet. Then creating or deploying an app answers 402 `plan_required` (`publish_result.error=plan_required` from the script, with `publish_result.upgrade_url`; the CLI shows the same link). There's no free fix: tell the user their host0 account needs a plan before it can publish, that every plan starts with a 7-day free trial (the error's `message` has the current terms), and give them `upgrade_url` to open in their own browser to start it. When they say it's started, run the same publish again — once, not in a loop. Never start the trial or enter payment details for them.
+A new account may have no plan yet. Then creating or deploying an app answers 402 `plan_required` (`publish_result.error=plan_required` from the script, with `publish_result.upgrade_url`; the CLI shows the same link). There's no free fix: tell the user their host0 account needs a plan before it can publish, what the error's `message` says about the free trial (a first plan starts with one; `trial_days` is its length, 0 when the account already had its trial), and give them `upgrade_url` to open in their own browser to start it. When they say it's started, run the same publish again — once, not in a loop. Never start the trial or enter payment details for them.
 
 ## Important — never do these
 
@@ -580,7 +587,7 @@ A new account may have no plan yet. Then creating or deploying an app answers 40
 | `--base-url {url}` | API base (default: `https://host0.ai`) |
 | `--allow-nonhost0-base-url` | Allow sending auth to a non-default `--base-url` |
 | `--login` | Start a device login (or re-show the pending one) and exit 3 |
-| `--login-wait` | Wait for the user's approval, save the key, exit 0 (3 = still pending, 1 = denied) |
+| `--login-wait` | Wait for the user's approval, save the key, exit 0 (3 = still pending, 1 = denied, or approved while the account is at its limit of API keys) |
 | `--wait {seconds}` | How long `--login-wait` / a publish waits for the approval (default 90, or `$HOST0_LOGIN_WAIT_SECONDS`) |
 | `--no-login` | With no API key, fail instead of starting a device login |
 
@@ -596,4 +603,4 @@ Everything else — listing apps, app detail, shares, deployment status, version
 
 ## The host0 MCP server manages, it doesn't deploy
 
-This skill is how agents deploy to host0 — the MCP server has no deploy or create tool. (People can also publish by dropping files on their host0 dashboard in the browser, and upload a new version of an existing app by dropping files on its Versions tab.) If the user also has host0 connected as an MCP server (`{base}/mcp`), its tools manage apps that already exist: `list_apps`, `get_app`, `get_deploy_status`, `get_analytics`, `list_versions`, `restore_version`, `list_records`, `update_record`, `delete_record`, `set_visibility`, `rename_app`, `share`, `unshare`, and `delete_app` (deletes an app completely, live or not). Use whichever is at hand for those — they call the same service as the REST endpoints above. To put new files live, always use this skill — `host0 deploy` or `publish.sh`.
+This skill is how agents deploy to host0 — the MCP server has no deploy or create tool. (People can also publish by dropping files on their host0 dashboard in the browser, and upload a new version of an existing app by dropping files on its Versions tab.) If the user also has host0 connected as an MCP server (`{base}/mcp`), its tools manage apps that already exist: `list_apps`, `get_app`, `get_deploy_status`, `get_analytics`, `list_versions`, `restore_version`, `list_records`, `update_record`, `delete_record`, `set_visibility`, `rename_app`, `share`, `unshare`, `get_account`, the custom-domain tools (`list_domains`, `add_domain`, `verify_domain`, `remove_domain`), and `delete_app` (deletes an app completely, live or not). Use whichever is at hand for those — they call the same service as the REST endpoints above. To put new files live, always use this skill — `host0 deploy` or `publish.sh`.

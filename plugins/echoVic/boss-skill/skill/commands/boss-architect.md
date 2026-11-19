@@ -1,5 +1,4 @@
 ---
-
 name: boss:architect
 description: "从架构设计开始：Architect 产出全栈架构设计，默认自动续跑后续环节（UI → 评审 → 任务 → 开发 → 测试 → 部署）。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch

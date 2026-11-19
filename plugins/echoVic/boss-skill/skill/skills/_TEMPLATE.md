@@ -1,5 +1,4 @@
 ---
-
 name: {agent}/{skill-name}
 description: {一句话描述方法论的目的和适用场景}
 version: 1.0.0
@@ -9,9 +8,7 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- {触发场景描述}
-
+  - {触发场景描述}
 ---
 
 # {Skill标题}

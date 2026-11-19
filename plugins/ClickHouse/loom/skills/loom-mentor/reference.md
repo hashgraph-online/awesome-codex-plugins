@@ -29,6 +29,7 @@ hint to the user unless it changes what you are about to do.
 | find which commit or PR changed a behaviour between two versions | `code.bisect_candidates` (listed on the coding toolset): the PRs that first shipped in the failing release and touched the frames; then `code.blame_range`, `code.history` | reading `git log` end to end |
 | answer "has this test failure / crash / report been seen before" | `tracker.similar` (a report, an item number or a stack trace), `tracker.duplicate_check` (a draft issue → `duplicate_of` / `related` / `none`), `tracker.flaky` (a test name), `tracker.test_signal` (a test's own history) — `duplicate_check` is listed, the rest run through `loom_op`; `tracker.source.list` says whether the org has a tracker source | a memory row about the failure, or filing the issue blind |
 | keep a spec, runbook, report, review body, or anything over ~2 KB | `knowledge.upsert` (Markdown, `source_uri`) plus ONE one-paragraph `memory.set` row under the same key that says what it is and points at it; recall through `loom_search`, which fans out to documents | one `memory.set` holding the text |
+| add a Drive file/folder, Notion page/database or Linear project link to a source | `loom_op` help for `knowledge.source.list` and `knowledge.source.update`; select the caller's own connected source for that provider in the target namespace, then call update with `org`, `namespace`, its `name` and `add_links: [url]` | guessed credentials or a shared-source fallback |
 | keep a table of facts with identity (PRs by number, alerts by id, services) | `memory_schema.register` once (via loom_op), then `memory.record.write` per row — a later write folds field by field; `memory.record.query` / `memory.aggregate` count and group them | one memory row per item under `<prefix>-<id>` keys |
 | record a claim your agent established | `memory.set` — plain text, claim first, readable key `<scope>/<kind>/<id>`, facets in `tags`; a revision rewrites the SAME key (the `loom-memory` skill) | a JSON blob under a hash key |
 | keep your plan, a lease, a checklist, "where was I" | `working_memory.set` / `append` / `get` — small blocks read by key, never ranked or embedded, loaded first by `context.pack` | `memory.set` + `memory.get` in a loop |
@@ -43,6 +44,14 @@ hint to the user unless it changes what you are about to do.
 | do again something that worked | `procedure.match` on the new situation; `procedure.add` when a way of doing it proved out; `procedure.record_run` after | rediscovering the steps |
 | finish a task | `namespace.validate` for the namespace you wrote to (the Stop hook runs it for your keys); `code.test_gate` in an indexed repo (`loom-code`) | "done" |
 | recall abstains on facts you know you wrote | `namespace.audit`, then the `loom-optimize` skill | writing them again |
+
+For those links, first call `loom_op {op: "connection.list", arguments: {org}}`.
+Match `kind` (`gdrive`, `notion`, `linear`). If `connected` is false, check
+that entry's server-provided `connect_url` is a valid HTTP(S) link to this
+server's account dashboard for that kind, then return it unchanged for
+the owner to consent in the browser. Report a missing or invalid link;
+never construct one or claim consent. If no eligible source exists, ask
+the owner to select or register a connected source.
 
 ## What each hint code means, and what to do
 

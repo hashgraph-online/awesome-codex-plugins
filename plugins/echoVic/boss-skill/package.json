@@ -1,6 +1,6 @@
 {
   "name": "@blade-ai/boss-skill",
-  "version": "5.0.4",
+  "version": "5.0.5",
   "private": true,
   "description": "BMAD Harness Engineer — auditable multi-agent pipeline skill for coding agents. Distributed via skill marketplaces (Claude Code, Codex, skills.sh) — no npm install required.",
   "author": {
@@ -68,7 +68,8 @@
     "@vitest/coverage-v8": "^5.1.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0"

@@ -1,6 +1,6 @@
 {
   "name": "osmo",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "OsmO's AI makes real phone calls for you and answers calls to your number as your AI phone receptionist (answering service). Calls: find a business or a company's customer-care number, call it (or up to 5 numbers at once), book, reschedule or cancel, ask about hours, prices or stock, get through phone menus, wait on hold and pass on a message; then get the outcome, summary, transcript and a recording link. In apps that show cards (such as Claude) a live call card follows each call (up to 5 calls together in one card) with Call again and Schedule buttons; in Claude and ChatGPT a short call's result comes back in the same turn; scheduled calls use your own time zone. Every call is confirmed by you first. Receptionist: see who called and what they wanted, pause the AI, choose who is put through live, edit VIP and block lists and caller rules, switch the assistant or its language (English or Hindi), and read bookings, Facts and connection status. Sign in with your phone number; no API key. 50 free credits for new users in the US, Canada, UK and Australia (an answered call uses 3; unanswered calls are free) call businesses and toll-free numbers; calling your contacts, calling back callers, scheduling calls and the receptionist need an OsmO app plan.",
   "author": {
     "name": "OsmO AI",
@@ -20,7 +20,10 @@
     "appointments",
     "customer-service",
     "ai-receptionist",
-    "answering-service"
+    "answering-service",
+    "call-screening",
+    "spam-calls",
+    "reservations"
   ],
   "skills": "./skills/",
   "interface": {

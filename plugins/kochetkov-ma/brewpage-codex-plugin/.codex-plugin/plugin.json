@@ -1,7 +1,7 @@
 {
   "name": "brewpage",
-  "version": "0.1.1",
-  "description": "Publish HTML, Markdown, files and multi-file static sites from Codex to BrewPage, a hosted service that returns an HTTPS link with no account or API key; via the brewpage-publish skill and the BrewPage remote MCP server.",
+  "version": "0.2.1",
+  "description": "Prepare drafts, publish HTML, Markdown, JSON, files and static sites, and update BrewPage publications from Codex. Uses the connected BrewPage MCP server or the bundled HTTPS runner.",
   "author": {
     "name": "Maksim Kochetkov",
     "email": "info@brewpage.app",
@@ -24,7 +24,7 @@
   "interface": {
     "displayName": "BrewPage",
     "shortDescription": "Publish HTML, Markdown, files and sites to a shareable link",
-    "longDescription": "BrewPage turns something Codex produced (an HTML report, a Markdown document, a file or a small static site) into an HTTPS link. Publishing needs no account or API key. Pages are unlisted by default and expire after 1 to 30 days; the public namespace lists them in a gallery. The plugin bundles the brewpage-publish skill, which asks for namespace and password before upload, gives you the page link and its private management link and keeps owner tokens in a private local history file, and connects the BrewPage remote MCP server. BrewPage itself is a hosted, closed-source service; this plugin is MIT-licensed.",
+    "longDescription": "Prepare a local draft, share a finished artifact through BrewPage or update a specific publication. The plugin includes recipes for forms with saved visitor answers, custom domains and owner access. It uses BrewPage MCP when the available tools support the requested operation and the bundled HTTPS runner when permitted. Anonymous publishing needs no account or API key. Private management receipts go to the owner. BrewPage is a hosted, closed-source service. This plugin is MIT-licensed.",
     "developerName": "Maksim Kochetkov",
     "category": "Productivity",
     "capabilities": [

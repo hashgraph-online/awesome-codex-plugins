@@ -1,6 +1,6 @@
 {
   "name": "skill-check",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Warns when a skill is used while out of date. Reads metadata.version / metadata.source from SKILL.md, and knows Spec Kit projects and npx skills installs.",
   "author": {
     "name": "Louis Esterhuizen",

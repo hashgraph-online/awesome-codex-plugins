@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/component-specification
 description: UI 组件规范方法论，基于 Material Design 3、Ant Design、Carbon Design System 等开源组件库，定义组件解剖、变体决策、状态完备性与无障碍要求
 version: 2.0.0
@@ -8,21 +7,19 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- ui-designer/design-system
-  triggers:
-- 需要设计组件时
-- 需要定义组件规范时
-- 前端开发需要组件文档时
-  metadata:
+  - ui-designer/design-system
+triggers:
+  - 需要设计组件时
+  - 需要定义组件规范时
+  - 前端开发需要组件文档时
+metadata:
   internal: true
   references:
-  - "Material Design 3 Components: https://m3.material.io/components"
-  - "Ant Design Components: https://ant.design/components/overview"
-  - "Carbon Design System Components: https://carbondesignsystem.com/components/"
-  - "WAI-ARIA Authoring Practices: https://www.w3.org/WAI/ARIA/apg/"
-  - "Refactoring UI - Components: https://www.refactoringui.com/"
-
+    - "Material Design 3 Components: https://m3.material.io/components"
+    - "Ant Design Components: https://ant.design/components/overview"
+    - "Carbon Design System Components: https://carbondesignsystem.com/components/"
+    - "WAI-ARIA Authoring Practices: https://www.w3.org/WAI/ARIA/apg/"
+    - "Refactoring UI - Components: https://www.refactoringui.com/"
 ---
 
 # UI 组件规范方法论

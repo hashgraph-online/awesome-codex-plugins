@@ -1,6 +1,6 @@
 ---
 name: jk
-version: 0.0.46
+version: 0.0.47
 description: Manage Jenkins controllers with jk, including jobs, runs, logs, artifacts, credentials, nodes, queues, and plugins.
 metadata:
   short-description: Jenkins CLI for jobs, config, pipelines, and runs

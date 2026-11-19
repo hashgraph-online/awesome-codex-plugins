@@ -1,5 +1,4 @@
 ---
-
 name: scrum-master/task-breakdown
 description: 任务拆解方法，将需求拆解为可执行的开发任务
 version: 1.0.0
@@ -9,12 +8,10 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 需要拆解开发任务时
-- 需要估算工作量时
-  metadata:
+  - 需要拆解开发任务时
+  - 需要估算工作量时
+metadata:
   internal: true
-
 ---
 
 # 任务拆解方法

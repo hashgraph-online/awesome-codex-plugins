@@ -7,7 +7,7 @@ working time and token usage.
 
 - **Plan:** brainstorm in the plan room while your code stays read-only. The agent shapes the
   conversation into a punch list and offers evidence, an edge-case pass, a pre-mortem, and research.
-- **Execute:** work an agreed list, or give Hunt a goal and the hours. Thirty-two ready-made shifts
+- **Execute:** work an agreed list, or give Hunt a goal and the hours. Ready-made shifts
   mean you don't need a backlog. Decisions are parked with a default so the work keeps going.
 - **Review:** read the morning receipt, follow each item to its receipt, then archive the shift.
   Open items and unanswered decisions stay live for the next one.

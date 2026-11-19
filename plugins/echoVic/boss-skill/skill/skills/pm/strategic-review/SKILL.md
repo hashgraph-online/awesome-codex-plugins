@@ -1,5 +1,4 @@
 ---
-
 name: pm/strategic-review
 description: 从CEO/战略视角进行商业价值评审，评估市场契合度、ROI、竞争优势、风险和战略对齐
 version: 1.0.0
@@ -8,16 +7,14 @@ type: methodology
 user-invocable: true
 agent-invocable: true
 dependencies:
-
-- pm/competitive-analysis
-  triggers:
-- 用户请求战略评审或商业价值评估时
-- 使用 /boss-review 命令时
-- 需要从商业角度判断项目是否值得投入时
-- 产品方向存在争议需要高层决策时
-  metadata:
+  - pm/competitive-analysis
+triggers:
+  - 用户请求战略评审或商业价值评估时
+  - 使用 /boss-review 命令时
+  - 需要从商业角度判断项目是否值得投入时
+  - 产品方向存在争议需要高层决策时
+metadata:
   internal: true
-
 ---
 
 # 战略评审（Boss Review）

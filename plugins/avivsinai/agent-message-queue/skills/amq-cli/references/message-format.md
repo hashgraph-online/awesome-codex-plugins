@@ -53,7 +53,8 @@ Notes:
 - On macOS and Linux, publication into `inbox/new` is a no-replace rename: a
   colliding name keeps the existing file and the new attempt, rather than
   overwriting. Readers still scan only `new` and `cur`.
-- The CLI auto-fills `id`, `created`, and a default `thread` when not provided.
+- The CLI fills `id` and `created`. A single-recipient send defaults to the pair's
+  thread. Set `--thread` explicitly when sending to multiple recipients.
 - `reply_to`, `reply_project`, and `from_project` are transport metadata stamped by the CLI.
 - Delivery outcomes are tracked separately in consumer-local receipt files. `drained` means the consumer ingested the message; `dlq` means ingest failed and the message moved to DLQ.
 

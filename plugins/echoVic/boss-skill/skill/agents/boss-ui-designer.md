@@ -1,28 +1,25 @@
 ---
-
 name: boss-ui-designer
 description: "UI/UX 设计 Agent，将 PRD 转化为状态完备、令牌化、可无障碍访问的设计规范与机器可渲染的 ui-design.json。"
 tools:
-
-- Read
-- Write
-- Glob
-- Grep
-- WebFetch
-- Skill
-- Task
-- Bash
-  color: pink
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - WebFetch
+  - Skill
+  - Task
+  - Bash
+color: pink
+model: inherit
+available_skills:
   required:
-  - ui-designer/design-system
-  - ui-designer/component-specification
-    optional:
-  - ui-designer/interaction-specification
-  - ui-designer/design-variants
-  - ui-designer/html-prototype
-
+    - ui-designer/design-system
+    - ui-designer/component-specification
+  optional:
+    - ui-designer/interaction-specification
+    - ui-designer/design-variants
+    - ui-designer/html-prototype
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）

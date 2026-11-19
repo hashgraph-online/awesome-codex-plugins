@@ -1,5 +1,4 @@
 ---
-
 name: qa/e2e-playwright
 description: Playwright E2E 测试完整方法论，涵盖项目初始化、Page Object Model、认证复用、API Mock、视觉回归、多浏览器测试、CI 集成和调试技巧
 version: 1.0.0
@@ -8,16 +7,14 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要编写或执行 E2E 测试时
-- 需要配置 Playwright 测试环境时
-- 门禁要求 E2E 测试通过时
-- 需要视觉回归测试时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要编写或执行 E2E 测试时
+  - 需要配置 Playwright 测试环境时
+  - 门禁要求 E2E 测试通过时
+  - 需要视觉回归测试时
+metadata:
   internal: true
-
 ---
 
 # Playwright E2E 测试方法论

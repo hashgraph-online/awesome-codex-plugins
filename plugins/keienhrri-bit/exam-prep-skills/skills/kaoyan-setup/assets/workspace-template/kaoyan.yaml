@@ -1,0 +1,63 @@
+# 备考工作区配置。所有 kaoyan-* skill 开工前先读这一份；改了以后不用重启。
+# 路径都相对本文件所在的目录（工作区根目录），收件夹可以写绝对路径或 ~ 开头。
+# 尖括号和 YYYY-MM-DD 是占位符，kaoyan-setup 会问清后替换；其余是默认值，按你自己的情况改。
+
+exam:
+  name: <考试名称>           # 出现在报告页眉，如“考研”
+  date: YYYY-MM-DD           # 考试第一天，用来算倒计时
+  checkpoints:               # 阶段复盘的日子，建议每 2–4 周一次；到这些天才对表、调计划
+    - YYYY-MM-DD
+    - YYYY-MM-DD
+    - YYYY-MM-DD
+
+subjects:                    # 每科一项；dir 是这科的文件夹
+  - id: math
+    name: 数学
+    code: ""                 # 科目代码，可留空
+    dir: 10_数学
+  - id: english
+    name: 英语
+    code: ""
+    dir: 20_英语
+  - id: politics
+    name: 政治
+    code: ""
+    dir: 30_政治
+  - id: major
+    name: 专业课
+    code: ""
+    dir: 40_专业课
+
+inbox: ~/Downloads           # 答卷照片、导出的学习记录放这里；skill 只读它，用完的照片归档进科目目录
+
+records:                     # 公共记录放哪
+  daily: 00_总控/每日进度.md        # 每天一行：计划、完成情况、备注
+  status: 00_总控/状态卡.md         # 各科进度和最近成绩的一页摘要，阶段复盘只读这一份
+  decisions: 00_总控/决定.md        # 定下来的事，一条一行，带日期
+  lessons: 99_整理记录/lessons.md   # 纠错记一条，同一根因第 2 次才考虑立规则
+  changelog: 99_整理记录/变更记录.csv
+
+roles:                       # 谁来做；没有外援就保持默认，全部在 Claude Code 里完成
+  transcribe: subagent       # 答卷照片转录：subagent（插件自带的 transcriber）/ codex / main
+  regrade: subagent          # 独立复判：subagent（regrader）/ codex（另一家模型，更独立）/ none
+  audit: none                # 规划和长报告定稿前审一次：codex / subagent / none
+  long_writer: subagent      # 约 5000 字以上、不需要新推导的长稿：subagent（writer）/ main
+
+report:
+  header: 我的备考           # PDF 页眉左侧
+  author: ""                 # 写进 PDF 元数据，可留空
+
+archive:                     # 学习记录归档的去向；stage 由内容判断，判断不了就是“不确定”
+  log: 99_整理记录/学习记录归档日志.md
+  routes:
+    - subject: 数学
+      dest: 10_数学/B_学习记录
+    - subject: 英语
+      dest: 20_英语/B_学习记录
+    - subject: 政治
+      dest: 30_政治/B_学习记录
+    - subject: 专业课
+      stage: 二轮
+      dest: 40_专业课/B_学习记录/二轮
+    - subject: 专业课
+      dest: 40_专业课/B_学习记录/一轮

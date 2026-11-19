@@ -3,8 +3,7 @@
 `e2e mcp` serves a project's live app to a coding agent over MCP (stdio). The
 coding agent drives the app the way the testing agent does, writes a test
 as it walks the flow, and checks its locators and runs its lines before
-writing them. `run_tests` runs a test file or the whole suite as
-`npx e2e run` does and returns what it printed (topics `running` and
+writing them. Tests run with `npx e2e run` (topics `running` and
 `debugging`); to fix one failing test, a session can run it and stop on the
 screen where it failed.
 
@@ -19,8 +18,9 @@ screen where it failed.
 ## Setup
 
 The server ships with the project's `e2e` dependency. The e2e plugin for
-Claude Code, Codex, and Cursor registers it too, as `npx -y e2e@<version> mcp`, pinned to the plugin's release (it runs that release even when the project has another e2e version); with
-the plugin installed there is nothing to add. Otherwise `e2e init` offers to register it for Claude Code,
+Codex and Cursor registers it too, as `npx -y e2e@<version> mcp`, pinned to the plugin's release (it runs that release even when the project has another e2e version); with
+that plugin installed there is nothing to add. The Claude Code plugin does
+not register it. Otherwise `e2e init` offers to register it for Claude Code,
 Cursor, and Codex. Reuse an existing registration; when adding one, use the project's
 config so it starts in the project it drives. Install dependencies and start
 the MCP client in that directory so `npx` uses the installed e2e version. In a
@@ -71,7 +71,7 @@ target, no credentials, secrets, or project tools, and `engine` excludes
 `target`, `config`, and `test`. `ENGINE_NOT_INSTALLED` names the command that installs the package
 into `~/.e2e/engines`: run it, then open again. When you cannot run it, because
 the sandbox has no network or cannot write there, ask the user to run it or to
-allow it, and wait. `run_tests` and
+allow it, and wait. `e2e run` and
 `open_session {test}` still need a config, so set the project up before
 writing tests (topic `setup`). No model is needed: without the optional `ai` package, sessions
 open and the deterministic tools work. A test a session runs needs one only for
@@ -85,10 +85,9 @@ sets how many sessions may be open at once (default 4, 1 through 16; one on Bun)
 
 ## Tools
 
-Five tools, all on the server registered as `e2e`; everything a session can
+Four tools, all on the server registered as `e2e`; everything a session can
 do is a catalog behind `call`. Clients show them with the server name, such
-as `mcp__e2e__open_session` in Claude Code (`mcp__plugin_e2e_e2e__open_session`
-from the plugin); when another MCP server offers a
+as `mcp__e2e__open_session` in Claude Code; when another MCP server offers a
 tool with the same name, use the `e2e` server's.
 
 | Tool | Does |
@@ -97,7 +96,6 @@ tool with the same name, use the `e2e` server's.
 | `tools` | The catalog: one line per tool with its argument names (`?` marks optional), the first sentence of its description, and `[read-only]` where it changes nothing. `tools {tool}` shows the full description and the JSON Schema of its arguments. |
 | `call` | Runs one catalog tool: `call {tool: "tap", args: {target: "n42"}}`. Arguments are checked against the tool's schema first; a wrong one fails with `INVALID_ARGUMENT` naming the field. |
 | `close_session` | Saves a recording still running, ends the attempt, disposes the engine, stops the app processes the session started once no other session uses them. |
-| `run_tests` | Runs `e2e run` in its own process and returns its output: the command, the exit code, each test, the failure blocks, the summary. `files` takes `e2e run` positionals (`tests/checkout.e2e.ts:12`, a file, a directory, a glob); without it, every test runs. The other fields are `e2e run` flags in camelCase: `config`, `target`, `grep`, `grepInvert`, `tag`, `excludeTag`, `lastFailed`, `changedSince`, `headed`, `workers`, `retries`, `repeatEach`, `maxFailures`, `actionTimeout`, `noCache`, `updateSnapshots` (while fixing a test: `retries: 0, actionTimeout: 5000`). Needs no session. One run at a time (`RUNNER_BUSY`); cancelling the call interrupts the run. Exit 1 (a test failed) is a normal result; exit 2 and above is an error result. Output past 60,000 characters keeps its end; `.e2e/report.json` has every result. |
 
 The catalog, per session:
 
@@ -219,8 +217,7 @@ Resources: `e2e://guide` and `e2e://guide/<topic>` hold this skill.
    edit    + that line, in the assert block
    ```
 4. Run only that test:
-   `run_tests {files: ["tests/<feature>.e2e.ts:<line>"]}`, or
-   `npx e2e run tests/<feature>.e2e.ts:<line>` from the shell (SKILL.md,
+   `npx e2e run tests/<feature>.e2e.ts:<line>` (SKILL.md,
    "Rerunning a test while you fix it"). On a failure, fix from the run's failure block
    and the trace page (topic `debugging`), then rerun it the same way. To see a screen the evidence leaves out, go
    straight to it instead of walking the flow again from the start:
@@ -266,7 +263,7 @@ session runs the test and stops where it failed:
    loads the config and the test files fresh, so it runs the edited test
    from the start and stops on the next failure, or on the final screen.
 5. `close_session`, then confirm once with
-   `run_tests {files: ["tests/<feature>.e2e.ts:<line>"]}`.
+   `npx e2e run tests/<feature>.e2e.ts:<line>`.
 
 - `afterEach` hooks and fixture teardown wait for `close_session`; a failure
   there shows as a `Cleanup (afterEach)` line in its result.
@@ -278,7 +275,7 @@ session runs the test and stops where it failed:
   as `file:line`; none fails with `NO_TESTS`.
 - `SESSION_TEST_UNSUPPORTED`: a test in a serial group, a test that starts
   from a setup test's `session`, and a test that runs as several agents
-  can't run alone in a session. Fix those with `run_tests`.
+  can't run alone in a session. Fix those with `e2e run`.
 
 ## Rules
 
@@ -292,7 +289,7 @@ session runs the test and stops where it failed:
 - Nothing a session does is recorded as a test, and only a test it runs
   (`open_session {test}`) reads or writes the replay cache. A session is for
   looking and trying; the test is the file you write as you walk.
-- On the web, a session can stay open while `run_tests` or `e2e run` runs, unless the two
+- On the web, a session can stay open while `e2e run` runs, unless the two
   collide over the app. Read the target's `app`:
   - No `command` (the app runs elsewhere): both use that app.
   - A `url` on port `0`: the session and each run start their own copy of
@@ -337,5 +334,4 @@ session runs the test and stops where it failed:
   comes from a package every session shares; create it in the config or a
   file it imports by path. `UNKNOWN_TOOL`: the name is not in this session's
   catalog; the message lists what is. `TEST_AMBIGUOUS` and
-  `SESSION_TEST_UNSUPPORTED`: see Fixing a failing test. `RUNNER_BUSY`:
-  `run_tests` is already running a suite; wait for its result.
+  `SESSION_TEST_UNSUPPORTED`: see Fixing a failing test.

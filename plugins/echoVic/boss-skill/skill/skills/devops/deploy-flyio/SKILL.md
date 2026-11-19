@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-flyio
 description: Fly.io 部署方法论，使用 flyctl CLI 通过 Docker 部署全球边缘后端服务，支持任意语言、PostgreSQL、Redis、Volumes
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Fly.io 时
-- 项目使用 Docker 容器部署时
-- 需要全球边缘低延迟后端时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Fly.io 时
+  - 项目使用 Docker 容器部署时
+  - 需要全球边缘低延迟后端时
+metadata:
   internal: true
-
 ---
 
 # Fly.io 部署

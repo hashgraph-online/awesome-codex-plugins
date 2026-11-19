@@ -103,7 +103,7 @@ Every run, plain and salted, is in [`examples/`](https://github.com/modelsalt/mo
 
 ## How it works
 
-In a separate short run (with no Claude Code or Codex on the machine, in your own model's chat, over two tool calls), the model names the biggest open decisions in your request (the questions an expert would ask) and a range of answers to each, its usual one included. Randomness from outside the model picks one answer per question. Your model then does the request with those answers settled. More, and why simpler ways failed: [docs/how-it-works.md](https://github.com/modelsalt/model-salt/blob/main/docs/how-it-works.md).
+In a separate short run (with no Claude Code or Codex on the machine, in your own model's chat, over two tool calls), the model names the biggest open decisions in your request (the questions an expert would ask) and a range of answers to each, its usual one included. Randomness from outside the model picks one answer per question. Your model then does the request with those answers settled. The hosted server at modelsalt.com (the Claude Code plugin, the ChatGPT app, the Claude connector) works the other way round since 19 November 2026: your model writes the decisions and options openly in its reply and sends only how many options each has, and the server answers with one option number per decision. More, and why simpler ways failed: [docs/how-it-works.md](https://github.com/modelsalt/model-salt/blob/main/docs/how-it-works.md).
 
 ## Contributing
 
@@ -111,7 +111,7 @@ Found a prompt that still gives the same answer every time with Model Salt? [Ope
 
 ## Privacy
 
-Run with `npx` (or the Codex and Gemini plugins, or the MCPB bundle), Model Salt runs on your machine and never sends your prompts anywhere: it only asks public random sources for random bytes. The Claude Code plugin and the hosted endpoint run the same server at modelsalt.com instead, so your request and your model's reply to the exploring step go to modelsalt.com, where they are not stored or logged. Details: [Privacy policy](https://github.com/modelsalt/model-salt/blob/main/PRIVACY.md) and the [hosted privacy page](https://modelsalt.com/privacy).
+Run with `npx` (or the Codex and Gemini plugins, or the MCPB bundle), Model Salt runs on your machine and never sends your prompts anywhere: it only asks public random sources for random bytes. The Claude Code plugin and the hosted endpoint use the server at modelsalt.com instead. Since 19 November 2026 it is sent only how many options each open choice has (a list such as `[5, 5, 5, 5, 5]`), not your request, the options or anything else from the chat, and it stores and logs nothing of a call. Details: [Privacy policy](https://github.com/modelsalt/model-salt/blob/main/PRIVACY.md) and the [hosted privacy page](https://modelsalt.com/privacy).
 
 ## Licence
 

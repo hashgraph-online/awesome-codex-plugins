@@ -1,0 +1,24 @@
+{
+  "name": "abliterate",
+  "version": "0.2.4",
+  "description": "Security review of source changes before you push and on every PR, with known-vulnerability reachability and variant hunting.",
+  "author": {
+    "name": "andreaborio",
+    "url": "https://github.com/andreaborio"
+  },
+  "homepage": "https://abliterate.io",
+  "repository": "https://github.com/andreaborio/abliterate",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "code-review",
+    "vulnerabilities",
+    "sarif"
+  ],
+  "interface": {
+    "displayName": "abliterate",
+    "shortDescription": "Security review before you push",
+    "category": "Coding"
+  },
+  "skills": "./skills/"
+}

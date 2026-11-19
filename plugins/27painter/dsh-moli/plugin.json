@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "moli",
+  "version": "2.1.1",
+  "description": "Browser-backed web search, rendered fetches, screenshots, and PDFs through a local Moli engine.",
+  "author": {
+    "name": "27painter",
+    "url": "https://github.com/27painter"
+  },
+  "homepage": "https://github.com/27painter/dsh-moli",
+  "repository": "https://github.com/27painter/dsh-moli",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "mcp",
+    "moli",
+    "headless-browser",
+    "web-search"
+  ],
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "Moli Browser",
+        "shortDescription": "Browser-backed web search",
+        "longDescription": "Search the public web, fetch JavaScript-rendered pages, and create screenshots or PDFs through a local Moli headless browser.",
+        "developerName": "27painter",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Web search",
+          "Rendered web fetch",
+          "Screenshots",
+          "PDF capture"
+        ],
+        "websiteURL": "https://github.com/27painter/dsh-moli",
+        "defaultPrompt": [
+          "Search with Moli for current information",
+          "Fetch this JavaScript-rendered page with Moli",
+          "Capture this page as a PDF with Moli"
+        ],
+        "composerIcon": "./assets/composer-icon.svg",
+        "logo": "./assets/logo.svg"
+      }
+    }
+  }
+}

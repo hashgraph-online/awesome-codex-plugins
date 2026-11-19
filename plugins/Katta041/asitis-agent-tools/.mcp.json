@@ -5,11 +5,8 @@
       "args": [
         "${CLAUDE_PLUGIN_ROOT}/server/launch.mjs",
         "--permission",
-        "--allow-fs-read=${CLAUDE_PROJECT_DIR}",
         "--allow-fs-read=${CLAUDE_PLUGIN_ROOT}",
-        "${CLAUDE_PLUGIN_ROOT}/server/asitis-mcp.mjs",
-        "--root",
-        "${CLAUDE_PROJECT_DIR}"
+        "${CLAUDE_PLUGIN_ROOT}/server/asitis-mcp.mjs"
       ]
     }
   }

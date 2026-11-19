@@ -4,7 +4,7 @@
 
 ## 1. Stage Contracts
 
-Load each stage skill through the runtime's skill mechanism or, where skills are plain files, read that stage's `SKILL.md` beside this skill's own folder in the same installation, as in `../<stage>/SKILL.md`, and follow it from its first phase. The stage owns everything inside its run.
+Open the selected name through the runtime’s installed skill catalog, or open `../<stage>/SKILL.md` relative to this installed `hyper` folder. Check that the document’s `name` matches the selection. Resolve its bundled rules and assets from that document’s folder and project paths from the target project. If neither lookup opens the exact skill, use the unavailable-skill outcome in §4.
 
 | Stage | Request passed to the stage | Artifact that must exist before the next stage | Passed forward |
 |---|---|---|---|
@@ -42,6 +42,7 @@ Rules for every hand-off:
 - A `hyper-git` stage starts only after the previous stage's completion evidence passed; a failed validator never reaches delivery.
 - Pass upstream artifacts by path, and add at most three lines of the conclusion that the next stage needs. Do not paste whole reports.
 - Pass the user's constraints (scope limits, excluded paths, "커밋하지 말고") to every stage unchanged.
+- When the user requests a plan and names a specialist for a task, pass its role and verified locator to the planner. Require the affected plan row to carry the loadable name or document path in `References:` and the specialist’s verification in `Acceptance:`. The executor loads it for that row and returns its evidence. Plan-only and approval holds end after writing the row.
 - A `hyper-deploy` stage that follows a plan stage starts only after the execution completion block, so it receives the completion block as part of its request and deploys the delivered result rather than a tree still under change.
 
 Companion rules for `hyper-browsing` inside a `hyper-research` stage:
@@ -59,9 +60,13 @@ After the plan stage returns, read the plan's `## Handoff` lines:
 
 | `Auto-execute` value | Meaning | Next action |
 |---|---|---|
-| `yes` | Execution ran inside the plan stage | Check `.hyper/execute/<slug>/state.json`; `complete` finishes the chain, `active` or `paused` means execution is still running or stopped and its own report decides |
+| `yes` | The plan requests execution | Check the execution receipt below |
 | `no (plan only requested)` or `no (approval requested)` | The user asked to stop after the plan | Finish the chain as a Report job |
 | any other `no (...)` | The plan stage hit a hard stop | Stop the chain with that reason (§5) |
+
+For a fresh run, record the handoff time in the workflow record. Read `.hyper/execute/<slug>/state.json` and match `slug`, `main_root`, `plan_path` and `delivery` to this plan. Reject a `started_at` earlier than this handoff. Save the matched `started_at` and compare it on resume. For an older record without a timestamp, reconcile the plan with the executor ledger’s `run.started`. If the file is missing or the run cannot be identified, stop delivery and record the missing or conflicting evidence.
+
+For `active`, follow the existing run. For `paused` or `blocked`, record the reason and use the executor’s resume procedure. For `complete`, check the same run’s completion block and verification result, mark execution `done`, then advance to any already selected downstream stage. The router never launches a second execution.
 
 ## 3. Workflow Record
 
@@ -117,7 +122,7 @@ Stage status values: `pending`, `running`, `done`, `skipped`, `stopped`. Update 
 | `hyper-frontend` ends `blocked` | Mark `stopped` with the failing capture and its evidence from the report; a `hyper-git` or `hyper-plan` stage does not start |
 | `hyper-google-analytics` ends `exhausted`, `stopped-for-approval`, `delayed`, `blocked`, or `handoff`, or `hyper-google-tagmanager` ends `proposed`, `exhausted`, or `blocked` | Mark `stopped` with the proposed approval-gated actions, the failing check, or the blocker from the report; a `hyper-git` or `hyper-deploy` stage does not start, and "이어서" resumes at the same stage after the approval or the fix |
 | A stage stops for a user decision, a credential, a conflict, or a failed gate | Mark `stopped` and end the chain (§5) |
-| The stage skill is not installed or cannot be loaded | Mark `stopped`; report the chain and `npx skills add alpoxdev/hypercore --skill <stage>` |
+| A required stage or explicitly requested specialist cannot be loaded | Mark `stopped` and record its exact name and lookup location. For a packaged stage, report `npx skills add alpoxdev/hypercore --skill <stage>`. For an external specialist, name its verified source or request its installation location. |
 
 Never edit the stage's artifact to make it pass, never re-run a stopped stage with weaker inputs, and never continue past a stop that is not listed as a skip.
 

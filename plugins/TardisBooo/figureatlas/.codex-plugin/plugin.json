@@ -1,0 +1,36 @@
+{
+  "name": "figureatlas",
+  "version": "2.0.0",
+  "description": "300 verified figure types for papers, slides, posters, and video frames. Agents pick a figure id and export HTML or SVG.",
+  "author": {
+    "name": "TardisBooo",
+    "url": "https://github.com/TardisBooo"
+  },
+  "homepage": "https://github.com/TardisBooo/figureatlas",
+  "repository": "https://github.com/TardisBooo/figureatlas",
+  "license": "Apache-2.0",
+  "keywords": [
+    "scientific-visualization",
+    "academic-figures",
+    "codex",
+    "claude-code",
+    "cursor",
+    "dsh"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "FigureAtlas",
+    "shortDescription": "Pick one of 300 verified figure types and export HTML or SVG.",
+    "longDescription": "FigureAtlas is a catalog of 300 verified figure types for papers, slides, posters, and video frames. An agent picks one figure id and exports HTML or SVG.",
+    "developerName": "TardisBooo",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Pick a FigureAtlas figure for this paper panel",
+      "Export this figure as SVG for a single journal column"
+    ]
+  }
+}

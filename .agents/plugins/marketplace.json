@@ -20,6 +20,20 @@
       "icon": "./plugins/RBraga01/a-team/assets/icon.svg"
     },
     {
+      "name": "abliterate",
+      "displayName": "abliterate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/andreaborio/abliterate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Security review of source changes before a push or pull request, with attack-surface, sink and dependency-reachability evidence and SARIF output."
+    },
+    {
       "name": "actera",
       "displayName": "Actera",
       "source": {
@@ -1357,6 +1371,21 @@
       "icon": "./plugins/mirkobozzetto/espresso/assets/icon.svg"
     },
     {
+      "name": "exam-prep-skills",
+      "displayName": "exam-prep-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/keienhrri-bit/exam-prep-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Exam-prep plugin with nine skills: try-first tutoring, photo-to-report grading with rubric scoring and an independent regrade, checkpoint reviews and Markdown-to-PDF reports.",
+      "icon": "./plugins/keienhrri-bit/exam-prep-skills/assets/icon.svg"
+    },
+    {
       "name": "falsegreen-skill",
       "displayName": "falsegreen-skill",
       "source": {
@@ -1400,6 +1429,20 @@
       "category": "Development & Workflow",
       "description": "Eight Agent Skills for real Figma files, with Plugin API gotchas, a read-only preflight before any write, checks after the write and before handoff, and open comments turned into fixes with evidence.",
       "icon": "./plugins/thiagoxikota/figma-maxxing/assets/icon.png"
+    },
+    {
+      "name": "figureatlas",
+      "displayName": "FigureAtlas",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/figureatlas"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Pick one of 300 verified figure types for a paper, slide, poster, or video frame, then export HTML or SVG."
     },
     {
       "name": "frappe-agent",
@@ -1669,20 +1712,6 @@
       "category": "Development & Workflow",
       "description": "Setup skill that joins Codex to a team's shared Joxo project, where teammates' coding agents share one task board, decisions and handoffs.",
       "icon": "./plugins/JoxoAI/joxo/assets/icon.png"
-    },
-    {
-      "name": "kaoyan-study-skills",
-      "displayName": "kaoyan-study-skills",
-      "source": {
-        "source": "local",
-        "path": "./plugins/keienhrri-bit/kaoyan-study-skills"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Exam-prep plugin with nine skills: try-first tutoring, photo-to-report grading with rubric scoring and an independent regrade, checkpoint reviews and Markdown-to-PDF reports."
     },
     {
       "name": "keep-mac-awake",
@@ -2141,6 +2170,21 @@
       "category": "Development & Workflow",
       "description": "Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.",
       "icon": "./plugins/ouonet/praxis/assets/logo-mark.svg"
+    },
+    {
+      "name": "preview-lab",
+      "displayName": "Preview Lab",
+      "source": {
+        "source": "local",
+        "path": "./plugins/dbalas/preview-lab"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Review the screens Codex changed on screenshots and send approvals and marked areas back to the session.",
+      "icon": "./plugins/dbalas/preview-lab/docs/logo.svg"
     },
     {
       "name": "pro-launch",
@@ -4020,6 +4064,21 @@
       "icon": "./plugins/Rothschildiuk/context-pack/skills/context-pack/assets/context-pack-small.svg"
     },
     {
+      "name": "converter-studio",
+      "displayName": "Converter Studio",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tariksucu/converter-studio"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Convert video, audio, images, PDFs, documents, e-books, subtitles and archives between 67 formats through Converter Studio's hosted MCP server, with skills for whole folders, web-ready media and audio extraction, paid from account credits (13 free a day). Website: https://converter.studio",
+      "icon": "./plugins/tariksucu/converter-studio/assets/icon.svg"
+    },
+    {
       "name": "coolify",
       "displayName": "Coolify",
       "source": {
@@ -4272,6 +4331,21 @@
       "category": "Tools & Integrations",
       "description": "Saves a website's real logo files, colors, fonts and first screen as a brand kit your agent can read.",
       "icon": "./plugins/EminBudak/easybrandkit/assets/icon.svg"
+    },
+    {
+      "name": "edeka-shopping",
+      "displayName": "edeka-shopping",
+      "source": {
+        "source": "local",
+        "path": "./plugins/StardawnAI/german-grocery-plugins/plugins/edeka"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Shop EDEKA, E center and Marktkauf online markets in Germany for pickup: offers, basket from plain words, earliest slot, order after confirmation.",
+      "icon": "./plugins/StardawnAI/german-grocery-plugins/plugins/edeka/assets/icon.svg"
     },
     {
       "name": "education-agent-skills",
@@ -5078,6 +5152,21 @@
       "icon": "./plugins/luoz76070-art/MobiCodex/assets/icon.png"
     },
     {
+      "name": "moli",
+      "displayName": "Moli Browser",
+      "source": {
+        "source": "local",
+        "path": "./plugins/27painter/dsh-moli"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Local Codex MCP plugin for browser-backed web search, rendered page fetching, screenshots, and PDF capture through Moli.",
+      "icon": "./plugins/27painter/dsh-moli/assets/composer-icon.svg"
+    },
+    {
       "name": "moltnode",
       "displayName": "MoltNode by Chord",
       "source": {
@@ -5314,6 +5403,21 @@
       "icon": "./plugins/voygr-tech/placecall/assets/icon.png"
     },
     {
+      "name": "plinth",
+      "displayName": "Plinth",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mr0b0t0/plinth"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publish HTML pages and Markdown documents from Codex to a hosted or self-hosted Plinth, with versions, comments and per-artifact access control, through a remote MCP server and a skill.",
+      "icon": "./plugins/mr0b0t0/plinth/assets/icon.svg"
+    },
+    {
       "name": "plori",
       "displayName": "plori",
       "source": {
@@ -5457,21 +5561,6 @@
       "icon": "./plugins/questionpunk/codex-plugin/assets/questionpunk.svg"
     },
     {
-      "name": "qurl",
-      "displayName": "qURL",
-      "source": {
-        "source": "local",
-        "path": "./plugins/layervai/codex-plugins"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Share a running local app with approved people or agents from Codex through OpenNHP identity-first access, without deployment, a publisher account or a public inbound app port.",
-      "icon": "./plugins/layervai/codex-plugins/assets/logo.png"
-    },
-    {
       "name": "omnimodal",
       "displayName": "Read Image",
       "source": {
@@ -5559,6 +5648,21 @@
       "category": "Tools & Integrations",
       "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X through Revid's hosted MCP server.",
       "icon": "./plugins/tmakersas/revid-skills/assets/logo.png"
+    },
+    {
+      "name": "rewe-shopping",
+      "displayName": "rewe-shopping",
+      "source": {
+        "source": "local",
+        "path": "./plugins/StardawnAI/german-grocery-plugins/plugins/rewe"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Shop REWE in Germany for pickup: offers, basket from plain words, earliest slot, recipes to basket, order after confirmation.",
+      "icon": "./plugins/StardawnAI/german-grocery-plugins/plugins/rewe/assets/icon.svg"
     },
     {
       "name": "risk-desk",

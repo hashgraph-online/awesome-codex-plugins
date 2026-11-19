@@ -25,6 +25,8 @@ claude plugin marketplace add arcmira/mcp
 claude plugin install arcmira@arcmira
 ```
 
+Then type `/arcmira:try` for a first question, or `/arcmira:try OpenAI Codex` for a topic of your own. Each skill also runs as a command, such as `/arcmira:find-quotes`.
+
 Codex:
 
 ```sh
@@ -45,7 +47,7 @@ npx skills add arcmira/mcp
 
 ## Portable package
 
-This folder contains an [Agent Plugins 1.0.0](https://agent-plugins.org/) manifest, Streamable HTTP configuration in `mcp.json`, and eleven skills. The host-specific manifests use `.mcp.json` for their HTTP configuration.
+This folder contains an [Agent Plugins 1.0.0](https://agent-plugins.org/) manifest, Streamable HTTP configuration in `mcp.json`, eleven skills, and one Claude Code command in `commands/`. The host-specific manifests use `.mcp.json` for their HTTP configuration.
 
 Kiro 1.2.4 loaded the 0.10.4 package and all six skills, completed OAuth, discovered four MCP tools, and passed an account-status read. Research and transcript reads were not tested. The Kiro Powers catalog application is awaiting review.
 

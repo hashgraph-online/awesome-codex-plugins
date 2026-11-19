@@ -1,6 +1,6 @@
 ---
 name: hyper
-description: "[Hyper] Use this skill when the user wants a development job carried from start to finish - a feature, fix, refactor, migration, technology choice, search-visibility improvement, GA4 or GTM job, database, MCP, decision-API, UI design, restyle, or frontend work, a user, client, or planner change request, a runtime failure, a cleanup that keeps behavior, a dataset question, a multi-goal run, an image, deployment, a skill folder, a document, or a prompt - without naming one hyper stage skill, or invokes hyper by name. It picks the shortest chain of hyper stage skills from research through cleanup, data, handoff, plan, execute, mass, loop, skill, documentation, deploy, and Git delivery, runs them in order, and passes each stage's saved artifact to the next. Do not use it when the user names one hyper skill directly, or for a one-place edit with no plan, commit-only requests, PRD packages, diagrams, or general questions."
+description: "[Hyper] Use this skill when the user wants a development job carried from start to finish - a feature, fix, refactor, migration, technology choice, SEO or analytics job, database, MCP, decision API, UI design or frontend work, client or planner change request, runtime failure, behavior-preserving cleanup, dataset question, multi-goal run, image, deployment, skill folder, document, or prompt - without naming one hyper stage skill, or invokes hyper by name. It picks the shortest chain of hyper stage skills, runs each in order, and passes each stage's saved artifact to the next. Do not use it when one stage skill is named directly, or for a one-place edit, a commit-only request, a PRD package, a diagram, or a plain question."
 compatibility: Needs file read and search over the target repository and write access for `.hyper/workflows/`, plus one route to the stage skills: loading an installed skill by name, or reading the stage's `SKILL.md` beside this skill's own folder in the same installation, as in `../<stage>/SKILL.md`. Each stage brings its own requirements (git worktrees, subagents, live web). When neither route reaches a stage, it reports the chosen chain and that stage's install command instead of running it.
 ---
 
@@ -142,6 +142,7 @@ Positive requests:
 - "Review PR #412 against `dev` and tell me whether it can merge." -> `hyper-review` (review-only)
 - "작업 트리 리뷰하고 확인된 블로커만 고쳐줘." -> `hyper-review` (review-and-fix)
 - "src/pricing/에 아무도 안 부르는 도우미들 정리해줘. 동작은 그대로." -> `hyper-cleanup`, with `hyper-git` only when the request also carries delivery words
+- "hyper-plan으로 계획하고, 실행할 때 hyper-skill 규격대로 이 스킬 폴더를 고쳐서 dev, main에 반영해줘." -> `hyper-plan` -> `hyper-execute`, with `hyper-skill` opened once for that plan row and `dev`, `main` kept as the plan's delivery targets
 
 Negative requests:
 
@@ -166,46 +167,25 @@ Boundary requests:
 - "새 요금제 페이지 만들어줘. 디자인은 알아서." The look is the open question, so `hyper-design` owns it alone; `hyper-frontend` joins (after `hyper-design` in `brief-only` mode) only when the request also names layout, state, or motion behavior to build and prove in a browser.
 - "GA4에 맞춤 측정기준 만들고 GTM 컨테이너에서 그 값 보내게 태그도 고쳐줘." `hyper-google-analytics` -> `hyper-google-tagmanager`: the property setting comes first and the container sends to it; a GTM-only install or tag change runs `hyper-google-tagmanager` alone.
 - "Claude만 쓰는 저장소인데 분류에 확률이 필요해." `hyper-decision` owns it alone: the stage says that the Claude route returns no distribution and offers a review path or a native decision route, with no plan stage.
+- "계획만 세우고 구현은 나중에 hyper-skill로 해줘." `hyper-plan` with `--plan-only`: the row records `hyper-skill` and its acceptance gate, and no skill is opened for editing.
+- "`@skills/hyper-skill/` 참고해서 이 문서 정리해줘." The path is a hint, not authority to run that skill: the deliverable is a document, so `hyper-documentation` handles it and `hyper-skill` never runs.
 
 </activation_examples>
 
 <trigger_conditions>
 
-| Situation | Chain |
-|---|---|
-| Refactor or restructure in a supported stack | `hyper-architecture` -> `hyper-plan` -> `hyper-execute` |
-| New feature, fix, or multi-step build | `hyper-plan` -> `hyper-execute`, with `hyper-architecture` first when the change crosses an architecture boundary |
-| Explicit adversarial or devil's-advocate planning opt-in ("찬반으로 붙여서 계획", "여러 관점으로 따져보고 계획", "red team this plan", "debate it then plan") | `hyper-debate` -> `hyper-execute`, in place of `hyper-plan`; the two never run in one chain, and a hard problem without those words stays on `hyper-plan` |
-| Library or technology choice, or unfamiliar external API, followed by implementation | `hyper-research` -> `hyper-plan` -> `hyper-execute` |
-| Issues to register ("이슈 등록해줘", "이슈로 남겨줘", "register these as issues"), issue numbers (`#1~3`, `#4, #7`), or a condition over open issues | `hyper-issue` -> `hyper-plan` -> `hyper-execute` by default, so registration runs through the lanes to the end; `hyper-issue` alone only with record-only words ("등록만", "이슈만", "작업은 하지 마") |
-| A request handed over by `hyper-issue` that names `.hyper/issues/<slug>/batch.md` and says the issue stage is done | `hyper-plan` -> `hyper-execute`, with `hyper-issue` recorded as `done` |
-| Framework or major-version migration | `hyper-research` -> `hyper-architecture` -> `hyper-plan` -> `hyper-execute` |
-| SEO, AEO, or GEO audit with fixes implemented as a planned change | `hyper-seo` -> `hyper-plan` -> `hyper-execute` |
-| GA4 work: installing or fixing GA4 or the Google tag, auditing a property or its tag, changing property settings, analyzing report data, or diagnosing missing or wrong data | `hyper-google-analytics`, with `hyper-seo` first when the same request also asks for a search-visibility audit, and with `hyper-git` after it when the user asks for commit and push delivery |
-| Google Tag Manager work: installing GTM, auditing a GTM install or container export, changing container tags, triggers, variables, consent, or the dataLayer, verifying that tags fire, or diagnosing missing or duplicate tracking through GTM | `hyper-google-tagmanager`, with `hyper-google-analytics` first when the same request also changes GA4 property settings, and with `hyper-git` after it when the user asks for commit and push delivery |
-| Dependency-ordered multi-agent phase with no plan file wanted | `hyper-mass` |
-| Several dependent goals that must all finish, each with criteria that need fresh evidence, or a stopped loop resumed | `hyper-loop`, with `hyper-git` after it when the user asks for commit and push delivery |
-| A reusable skill folder created or refactored, optionally after provider-doc research | `hyper-skill`, with `hyper-research` first when the request depends on current external docs |
-| A README, `AGENTS.md`, AI-readable document, instruction base, runbook, rule pack, reusable prompt, prompt template, prompt pack, prompt eval fixture, or agent memory files (`MEMORY.md`, memory bank, lessons file) created or refactored | `hyper-documentation`, with `hyper-research` first when its claims depend on current external sources or provider guidance |
-| An MCP server, client, migration, security fix, or host MCP configuration | `hyper-mcp`, with `hyper-research` first when the server wraps an unfamiliar external API, and with `hyper-mcp` in audit mode before `hyper-plan` when the user asks for a PR or ship delivery or the change spans non-MCP modules |
-| A decision-API job: a model call that returns a typed judgment (yes/no probability, choice, score, box) instead of text, through TypeSafe Jev, OpenAI Decisions, another decision vendor, an AI SDK or gateway, or an emulation on a general LLM: a fit verdict, questions, a caller, a template, an eval plan, an audit of label-only calls, or route setup | `hyper-decision`, with `hyper-research` first when it depends on a vendor or route its references do not cover, and with `hyper-decision` in `design` or `audit` mode before `hyper-plan` when the user asks for a PR or ship delivery or the change rewires calls across the application |
-| A data model, schema, migration, slow query or index, engine choice, or database operations change (backup, replication, pooling, upgrade, security) | `hyper-database`, with `hyper-research` first when it depends on an engine or service the repository does not use yet, and with `hyper-database` in review mode before `hyper-plan` when the user asks for a PR or ship delivery or the change also needs application code |
-| A screen, page, or component designed or restyled, faux product UI, or a generic "AI look" removed | `hyper-design`, with `hyper-research` first when it depends on current external guidance, and with `hyper-design` in brief-only or audit mode before `hyper-plan` when the user asks for a PR or ship delivery or the change also needs non-UI work |
-| Frontend code built, fixed, matched to a screenshot or live page, or checked in a real browser: layout, overflow, responsive, state, or animation behavior | `hyper-frontend`, with `hyper-design` first in `brief-only` mode when the request also asks for a new look, and with `hyper-frontend` in `verify` mode before `hyper-plan` when the user asks for a PR or ship delivery or the change also needs API, data, or route work |
-| A change request in product language from the user, a client, or a planner (feedback, complaint, ticket, meeting notes, spec revision, new wording) against existing behavior | `hyper-feedback`; when it ends `handoff`, `hyper-plan` follows with its `brief.md` |
-| A runtime failure to explain or fix outside a deployment: a stack trace, a failing or intermittent test, a crash, or wrong output | `hyper-debug`; when it ends `handoff`, `hyper-plan` follows with its journal |
-| Code, tests, or comments to remove, simplify, deduplicate, or consolidate in a repository that already works, with the same observable behavior and the same public surface | `hyper-cleanup`; a request that really changes a public API, a signature, a dependency, or behavior is a different stage |
-| A question answered by computing over a dataset (a CSV, Parquet, or JSON file, or a spreadsheet or database export) | `hyper-data` alone; never followed by `hyper-git` |
-| A change that already exists to be reviewed: a named diff, commit range, branch, pull request, or the working tree, with review-only words such as "리뷰만", "판정만", "고치지는 마", "review this diff", "can this merge" | `hyper-review` in review-only mode alone, with no editing stage; review-and-fix only when the same request explicitly asks to repair the confirmed blockers |
-| Work that must continue from a short state memo: the context is nearly full, the session, agent, or machine is about to change, a handoff or continuation note is requested, or a memo is named to continue from | `hyper-handoff` in write or check mode alone, with nothing after it; a resume is a re-entry step that runs first and hands the remaining work to the open run at its first unfinished stage, and a delivery stage follows only on delivery words in the current request |
-| One new image, one edit of a supplied image, or one ready-to-use image prompt | `hyper-imagegen`, with `hyper-research` first when it depends on current external guidance or references; never followed by `hyper-git` |
-| A skill, document, MCP, decision-API, interface, frontend, database, GA4 analytics, tag manager, feedback, debug, or loop tail followed by commit-and-push or merge-and-push words, or a non-delivering tail followed by pull request words | the chain above, then `hyper-git` as the delivery stage |
-| A deployment readiness verdict, a first deployment setup, a deploy, a deployment configuration change, or a failed deployment to diagnose and fix | `hyper-deploy`, after the code chain when the same request also changes code, and never followed by `hyper-git` |
-| A plan file already exists and the user wants it run | `hyper-execute` |
-| Report-only research, audit, architecture review, or database review | The one matching stage alone |
-| Lint, format, or type tooling set up or unified, or build or runtime performance optimized in a supported stack | `hyper-architecture` alone |
+Job classes, per-stage signals, stage order, chain recipes, and tie-breaks belong to `rules/workflow-routing.md`, and each stage's request and artifact belong to `rules/stage-handoff.md`. This core keeps only the triggers that change what the core itself does: the shape of the chain, who opens a named skill, and where a chain stops.
 
-`rules/workflow-routing.md` owns the signals, the stage order, and the tie-breaks.
+| Trigger | What this skill does |
+|---|---|
+| The request names no stage skill, or calls `hyper` by name, for a development job one or more stages must finish | Choose the shortest chain over the stage map above in the fixed stage order and run every chosen stage; a job whose whole output one stage produces, such as a skill-folder refactor, stops at that stage |
+| The request names one stage skill directly with no plan, or asks only for a one-place edit, a commit, a PRD or wireframe package, a diagram, or a plain answer | Do not route: the named skill handles the request alone, and the rest are outside this package, as `routing_rule` states |
+| The request asks for a plan and names a specialist skill for the work ("계획 세운 뒤 hyper-skill 규격대로", "plan it, then implement with X") | Choose `hyper-plan` -> `hyper-execute`. The specialist is not a stage: the affected plan row carries its loadable name or document path in `References:` and its verification in `Acceptance:`, and the executor opens it once for that row. `--plan-only` or an approval hold ends after the row is written |
+| A skill is named by name, by `@skills/<path>`, or by a stage name | A path or a mention is a hint, not authority to run that skill. Resolve the exact name through the runtime's installed catalog or the `../<stage>/SKILL.md` beside this folder in the same installation, and check that its `name` matches. A missing file, a mismatched `name`, or a near-name substitute stops that part and reports the exact name and lookup location |
+| The request opts into adversarial planning in the user's own words ("찬반으로 붙여서 계획", "red team this plan") | Choose `hyper-debate` in place of `hyper-plan`; the two never run in one chain, and a hard problem without those words stays on `hyper-plan` |
+| Delivery or deploy words ("커밋하고 푸시", "dev, main에 머지·푸시", "PR까지", "ship", "배포까지") | Pass them to the stage that owns them. Add `hyper-git` only after a tail that does not deliver, never after `hyper-plan`, `hyper-execute`, or `hyper-mass`; add `hyper-deploy` as the last stage, starting only after the selected execution's completed run matches this request |
+| "이어서" / "continue" with a named memo, an open memo, a workflow record, or an unfinished execution | Resume in the lookup order the routing rules give, at the first unfinished stage, and invent no progress |
+| Report-only or plan-only words ("점검만", "리뷰만", "계획만", "고치지는 마") | Stop the chain at the stage those words name |
 
 </trigger_conditions>
 
@@ -239,10 +219,8 @@ Write the route line, stage status lines, questions, the workflow record, and th
 
 <support_file_read_order>
 
-1. This core, to confirm the request is a multi-stage or stage-backed development job.
-2. `rules/workflow-routing.md`, to choose the chain and the delivery mode.
-3. `rules/stage-handoff.md`, to write the workflow record and run the first stage.
-4. Each stage skill's own `SKILL.md`, loaded when its stage starts; it owns the stage from there.
+1. This core and the two rule files, read in the order `reference_routing` gives, before the route line is printed.
+2. Each stage skill's own `SKILL.md`, loaded when its stage starts; it owns the stage from there.
 
 </support_file_read_order>
 

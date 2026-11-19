@@ -2,7 +2,7 @@
   "mcpServers": {
     "asitis": {
       "command": "npx",
-      "args": ["--prefix=~/", "-y", "@asitis/mcp@0.4.5"]
+      "args": ["--prefix=~/", "-y", "@asitis/mcp@0.4.7"]
     }
   }
 }

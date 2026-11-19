@@ -51,8 +51,8 @@ Leader prepares commit -> user approves -> push
 
 ## Progress protocol
 
-When work starts, reply with `kind=status` and an ETA. Use `urgent` only for
-work that must interrupt the current activity.
+When work starts, reply with `kind=status` and an ETA. Use urgent priority for a
+time-critical verdict or unblocking request.
 
 Reply to the initiator, preserve the existing thread, send status at start and
 phase boundaries, and finish with changes and verification.
@@ -75,9 +75,10 @@ phase boundaries, and finish with changes and verification.
 
 ## Interrupts
 
-- Urgent messages labeled `interrupt` trigger an interrupt notice when wake is
-  running. The label never enables Ctrl+C by itself; real SIGINT requires the
-  explicit destructive opt-in `--interrupt-cmd ctrl-c`.
+- To request an interrupt notice, check the receiving wake's interrupt enablement,
+  priority and label with `amq wake config --me <handle>`. Use the configured
+  priority and label. Sending a real interrupt to the process requires the
+  separate, explicit `--interrupt-cmd ctrl-c` setting.
 - The default wake is a plain doorbell, so input injection can activate a
   focused permission or approval dialog. Payload text alone may match
   single-key shortcuts, so removing Enter is not safe. The dialog guard is

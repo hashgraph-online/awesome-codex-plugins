@@ -127,6 +127,8 @@ test.skip('later', async () => {});
 test.only('focus', async () => {});         // local only: CI fails with ONLY_IN_CI
 test.skipIf(process.platform === 'win32')('watcher', async () => {}); // condition read at collection: truthy registers it skipped, as { skip: true }
 test.runIf(process.env.CI)('ci only', { tags: ['ci'] }, async () => {}); // test.skipIf(!condition)
+test.each([{ user: 'Ada' }, { user: 'Grace' }])('signs in as $user', async ({ user }, { app }) => {}); // one test per row; rows that are all arrays are spread: (a, b, { app }), any other table passes each row whole; the fixtures are destructured after the row; titles take $key, %s, %i, %#
+test.for([['standard', '5.00']])('ships %s for %s', async ([speed, price], { app }) => {}); // test.each without the spread: (row, { app })
 test('conditional', async () => { test.skip(await onlyOneOrg(), 'nothing to switch to'); }); // throws: the body stops here, reported skipped; call it before the first step
 test('later', async () => { test.skip('waiting on the API'); }); // bare skip from the body
 test.fail('known gap', async () => {}); // expected to fail: a test failure passes it, a pass fails it with UNEXPECTED_PASS
@@ -179,7 +181,8 @@ reading `device`, `app`, or `screen` throws the reason.
 
 Fixtures are set up on demand. A test body, a hook, and a fixture function
 name what they use by destructuring their first parameter
-(`async ({ app, screen }) => {}`); `async (fixtures) => {}`, `async (_, use)`,
+(`async ({ app, screen }) => {}`), a `test.each` or `test.for` body the one
+after its row; `async (fixtures) => {}`, `async (_, use)`,
 a rest property, and a bound function (`fn.bind()`) are `COLLECTION_ERROR`, and a fixture that needs nothing
 takes `({}, use)`. A test sets up the `test.extend` fixtures its body and its
 `beforeEach` and `afterEach` hooks name, and the ones those fixtures name

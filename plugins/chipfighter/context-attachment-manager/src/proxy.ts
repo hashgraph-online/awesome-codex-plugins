@@ -42,7 +42,7 @@ import { migrateDataOnce } from "./core/migrate-data.ts";
 import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./core/paths.ts";
 import { recordRequest } from "./core/request-stats.ts";
 import { readRoute, registerRoute, routeBaseUrl, routingPort, validateBaseUrl, type Platform } from "./core/routes.ts";
-import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, engineHealth, versionOf, watchForClients } from "./engine.ts";
+import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, engineHealth, versionOf, watchForClients, type EngineBindFailure } from "./engine.ts";
 import { currentLang } from "./adapters/codex/language.ts";
 import { say } from "./core/messages.ts";
 import { headerOf } from "./core/platform.ts";
@@ -145,6 +145,7 @@ async function main(): Promise<void> {
   const portIndex = process.argv.indexOf("--port");
   const port = Number(portIndex >= 0 ? process.argv[portIndex + 1] : DEFAULT_PORT);
   const providerPort = routingPort(port);
+  let ready = false;
   // One engine per machine: a second start leaves the running one alone.
   const running = await engineHealth(port);
   if (running) {
@@ -198,50 +199,6 @@ async function main(): Promise<void> {
     for (const key of sentPrefixes.keys()) if (sentPrefixes.size > 50) sentPrefixes.delete(key);
   };
   log({ at: startedAt, event: "engine-start", pid: process.pid, port, build, version });
-  if (!process.argv.includes("--stay")) {
-    // v0.1-5: a plugin removed or turned off without 停用 leaves Codex pointed at an engine nothing will start again.
-    // Seen in two checks in a row (or once more as the engine exits, when Codex is gone and cannot be mid-write), Codex
-    // goes back to connecting directly from its next start; until then this engine keeps serving. On Windows the engine
-    // usually ends together with the plugin's MCP server, so there the panel's 停用 or the uninstall command does it.
-    let gone = 0;
-    const checkPlugin = (final: boolean) => {
-      try {
-        const state = pluginGone();
-        gone = state ? gone + 1 : 0;
-        if (!state || (!final && gone < 2) || !usesEngine()) return;
-        connectDirectly();
-        log({ at: new Date().toISOString(), event: "connect-directly", pid: process.pid, reason: `plugin ${state}` });
-      } catch (error) {
-        log({ at: new Date().toISOString(), event: "plugin-check-failed", pid: process.pid, error: String(error) });
-      }
-    };
-    // v0.11: a provider switcher (cc-switch) wrote its provider over the engine's address: Codex is pointed at the engine
-    // again, with a route to the provider the user picked (adapters/codex/setup.ts, keepRouted). Checked as soon as
-    // config.toml changes, at start, and with the plugin check.
-    const rerouted: number[] = [];
-    let lastRerouteError = "";
-    const reroute = (why: string) => {
-      const result = keepRouted(port, rerouted);
-      if (result.rerouted) log({ at: new Date().toISOString(), event: "codex-reroute", pid: process.pid, why });
-      if (result.error && result.error !== lastRerouteError) log({ at: new Date().toISOString(), event: "codex-reroute-failed", pid: process.pid, why, error: result.error });
-      lastRerouteError = result.error ?? "";
-    };
-    reroute("start");
-    let settling: NodeJS.Timeout | null = null;
-    try {
-      watch(codexHome(), (_event, name) => {
-        if (name !== "config.toml") return;
-        if (settling) clearTimeout(settling);
-        settling = setTimeout(() => { settling = null; reroute("config changed"); }, 1000);
-      }).unref();
-    } catch { /* no folder to watch yet: the periodic check still runs */ }
-    setInterval(() => { checkPlugin(false); reroute("check"); }, 15_000).unref();
-    watchForClients(() => {
-      checkPlugin(true);
-      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "no Codex or Claude Code process left, and no plugin service checked in" });
-      process.exit(0);
-    }, { lastClient: () => lastClient });
-  }
   // Open WebSocket connections per thread. Over WebSocket Codex only sends new items and the server keeps the rest,
   // so a thread with unchecked images must move to HTTP: its idle connections are closed, and its next upgrade gets 426.
   type Live = { client: Duplex; socket: net.Socket; last: number; closedForSelection: boolean; activeWhileUnchecked: boolean; path: string; identity: Json };
@@ -292,6 +249,7 @@ async function main(): Promise<void> {
 
   const onRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     if (req.url === "/__cam/health") {
+      if (!ready) { res.writeHead(503).end(); return; }
       if (req.headers["x-cam-client"]) lastClient = Date.now();
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, routingVersion: 1, routingPort: providerPort, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST, OPENAI_API_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
@@ -613,7 +571,7 @@ async function main(): Promise<void> {
   // Codex may resolve "localhost" to either loopback address, so listen on both (and only on loopback), one after the
   // other: an engine that loses a start race never holds half of the port. A busy port is tried again for a few
   // seconds, since an engine retiring for this one may still be letting go of it.
-  const listen = (host: string, listenPort: number, attempt = 0): Promise<boolean> => new Promise((resolve) => {
+  const listen = (host: string, listenPort: number, attempt = 0): Promise<EngineBindFailure | null> => new Promise((resolve) => {
     const allowed = (url: string) => url === "/__cam/health" || url.startsWith("/__cam/routes/") === (listenPort === providerPort);
     const server = http.createServer((req, res) => {
       if (allowed(req.url ?? "/")) { onRequest(req, res); return; }
@@ -629,21 +587,70 @@ async function main(): Promise<void> {
       if (error.code === "EADDRINUSE" && attempt < 20) { setTimeout(() => resolve(listen(host, listenPort, attempt + 1)), 150); return; }
       console.error(JSON.stringify({ host, error: String(error) }));
       // Loopback IPv6 may be missing; that is fine. A port another program holds is not.
-      resolve(host === "::1" && ["EAFNOSUPPORT", "EADDRNOTAVAIL"].includes(error.code ?? ""));
+      const code = error.code ?? "UNKNOWN";
+      resolve(host === "::1" && ["EAFNOSUPPORT", "EADDRNOTAVAIL"].includes(code) ? null : { port: listenPort, host, code });
     });
     server.listen(listenPort, host, () => {
       servers.push(server);
       server.on("error", (error) => console.error(JSON.stringify({ host, error: String(error) })));
       console.log(JSON.stringify({ listening: `http://${host.includes(":") ? `[${host}]` : host}:${listenPort}/${listenPort === providerPort ? "__cam/routes" : "backend-api/codex"}`, upstream: UPSTREAM_HOST, via: via ? `${via.host}:${via.port}` : "direct" }));
-      resolve(true);
+      resolve(null);
     });
   });
   // Bind the provider listener before advertising readiness on the legacy port. Older plugin copies never start
   // this listener, so they cannot misroute the persisted provider URLs after a mixed-version restart.
   for (const listenPort of [providerPort, port]) for (const host of ["127.0.0.1", "::1"]) {
-    if (await listen(host, listenPort)) continue;
-    log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: `port ${listenPort} unavailable on ${host}` });
-    process.exit(1);
+    const failure = await listen(host, listenPort);
+    if (!failure) continue;
+    log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: `port ${listenPort} unavailable on ${host}`, code: failure.code });
+    if (process.send && process.connected) process.send(failure, () => process.exit(1));
+    else process.exit(1);
+    return;
+  }
+  ready = true;
+  if (!process.argv.includes("--stay")) {
+    // v0.1-5: a plugin removed or turned off without 停用 leaves Codex pointed at an engine nothing will start again.
+    // Seen in two checks in a row (or once more as the engine exits, when Codex is gone and cannot be mid-write), Codex
+    // goes back to connecting directly from its next start; until then this engine keeps serving. On Windows the engine
+    // usually ends together with the plugin's MCP server, so there the panel's 停用 or the uninstall command does it.
+    let gone = 0;
+    const checkPlugin = (final: boolean) => {
+      try {
+        const state = pluginGone();
+        gone = state ? gone + 1 : 0;
+        if (!state || (!final && gone < 2) || !usesEngine()) return;
+        connectDirectly();
+        log({ at: new Date().toISOString(), event: "connect-directly", pid: process.pid, reason: `plugin ${state}` });
+      } catch (error) {
+        log({ at: new Date().toISOString(), event: "plugin-check-failed", pid: process.pid, error: String(error) });
+      }
+    };
+    // v0.11: a provider switcher (cc-switch) wrote its provider over the engine's address: Codex is pointed at the engine
+    // again, with a route to the provider the user picked (adapters/codex/setup.ts, keepRouted). Checked as soon as
+    // config.toml changes, at start, and with the plugin check.
+    const rerouted: number[] = [];
+    let lastRerouteError = "";
+    const reroute = (why: string) => {
+      const result = keepRouted(port, rerouted);
+      if (result.rerouted) log({ at: new Date().toISOString(), event: "codex-reroute", pid: process.pid, why });
+      if (result.error && result.error !== lastRerouteError) log({ at: new Date().toISOString(), event: "codex-reroute-failed", pid: process.pid, why, error: result.error });
+      lastRerouteError = result.error ?? "";
+    };
+    reroute("start");
+    let settling: NodeJS.Timeout | null = null;
+    try {
+      watch(codexHome(), (_event, name) => {
+        if (name !== "config.toml") return;
+        if (settling) clearTimeout(settling);
+        settling = setTimeout(() => { settling = null; reroute("config changed"); }, 1000);
+      }).unref();
+    } catch { /* no folder to watch yet: the periodic check still runs */ }
+    setInterval(() => { checkPlugin(false); reroute("check"); }, 15_000).unref();
+    watchForClients(() => {
+      checkPlugin(true);
+      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "no Codex or Claude Code process left, and no plugin service checked in" });
+      process.exit(0);
+    }, { lastClient: () => lastClient });
   }
 }
 

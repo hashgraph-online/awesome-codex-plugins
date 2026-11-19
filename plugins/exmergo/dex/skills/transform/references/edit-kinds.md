@@ -57,7 +57,10 @@ severity, and an analysis's description.
 A seed past the row or size limit is data rather than a lookup: load it into the
 warehouse and `source()` it. A seed whose header names a column that looks like
 personal data is refused, and the refusal names the `pii_overrides` entry a human
-can add.
+can add. A seed file the plan creates warns instead where the column's strongest
+flag is exactly at the threshold and comes from its header name alone (a `*_note`
+column read as free text), naming the same entry; a column a profile flagged, a
+rewrite of an existing seed, and any stronger flag still refuse.
 
 A singular test that names no `ref()` or `source()` is warned about, not refused:
 it runs against nothing and passes unconditionally.

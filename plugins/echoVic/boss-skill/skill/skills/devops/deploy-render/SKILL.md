@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-render
 description: Render 部署方法论，使用 render.yaml 蓝图和 Render CLI 部署全栈应用（Web 服务、Worker、静态站点、数据库）
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Render 时
-- 项目是全栈应用且需要数据库时
-- 项目使用 Docker 容器部署时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Render 时
+  - 项目是全栈应用且需要数据库时
+  - 项目使用 Docker 容器部署时
+metadata:
   internal: true
-
 ---
 
 # Render 部署

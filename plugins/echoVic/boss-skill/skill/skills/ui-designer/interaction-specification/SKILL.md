@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/interaction-specification
 description: 交互规范方法论，基于 Laws of UX、Material Design Motion、HIG 等开源原则，定义加载/空状态、反馈层级、微交互、手势与无障碍交互
 version: 2.0.0
@@ -8,21 +7,19 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- ui-designer/design-system
-  triggers:
-- 需要定义交互行为时
-- 需要处理边界情况时
-- 需要确保无障碍访问时
-  metadata:
+  - ui-designer/design-system
+triggers:
+  - 需要定义交互行为时
+  - 需要处理边界情况时
+  - 需要确保无障碍访问时
+metadata:
   internal: true
   references:
-  - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
-  - "Material Design Motion: https://m3.material.io/styles/motion"
-  - "Apple HIG - Motion: https://developer.apple.com/design/human-interface-guidelines/motion"
-  - "WAI-ARIA Authoring Practices: https://www.w3.org/WAI/ARIA/apg/"
-  - "Refactoring UI - Feedback: https://www.refactoringui.com/"
-
+    - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
+    - "Material Design Motion: https://m3.material.io/styles/motion"
+    - "Apple HIG - Motion: https://developer.apple.com/design/human-interface-guidelines/motion"
+    - "WAI-ARIA Authoring Practices: https://www.w3.org/WAI/ARIA/apg/"
+    - "Refactoring UI - Feedback: https://www.refactoringui.com/"
 ---
 
 # 交互规范方法论

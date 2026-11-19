@@ -1,5 +1,4 @@
 ---
-
 name: boss:ship
 description: "部署环节：DevOps 构建部署 + 上线前门禁 + 部署报告。专家小队终点环节。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep

@@ -1,0 +1,42 @@
+{
+  "name": "converter-studio",
+  "version": "1.1.0",
+  "description": "Convert files between 67 formats (video, audio, images, PDFs, documents, e-books, subtitles, archives) with Converter Studio: an MCP server plus skills for single files, whole folders, web-ready media and audio extraction.",
+  "author": {
+    "name": "Converter Studio",
+    "email": "support@converter.studio",
+    "url": "https://converter.studio"
+  },
+  "homepage": "https://converter.studio/developers",
+  "repository": "https://github.com/tariksucu/converter-studio",
+  "license": "MIT",
+  "keywords": [
+    "file-converter",
+    "video-converter",
+    "image-converter",
+    "pdf",
+    "audio",
+    "mcp",
+    "converter-studio"
+  ],
+  "interface": {
+    "displayName": "Converter Studio",
+    "shortDescription": "Convert files between 67 formats",
+    "longDescription": "Convert video, audio, images, PDFs, documents, e-books, subtitles and archives. Give a link or a file; get a download link back. Conversions use credits from your converter.studio account (free accounts get 13 a day).",
+    "developerName": "Converter Studio",
+    "category": "Productivity",
+    "websiteURL": "https://converter.studio/developers",
+    "privacyPolicyURL": "https://converter.studio/privacy",
+    "termsOfServiceURL": "https://converter.studio/terms",
+    "defaultPrompt": [
+      "Convert this HEIC photo to JPG",
+      "Turn this video into an MP3",
+      "Compress this PDF"
+    ],
+    "brandColor": "#FF5418",
+    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/icon.svg"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

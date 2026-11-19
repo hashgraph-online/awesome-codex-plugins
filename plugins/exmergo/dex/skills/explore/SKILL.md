@@ -486,6 +486,10 @@ fetches the engine's dependencies from PyPI or your configured index.
    `semantic.cube.url`: members are `cube.member`, a time grouping is
    `--group-by orders.ordered_at__month`, `--where` is Cube's JSON filter, and a
    stale-renderer refusal means the Cube server needs a restart, not a new query.
+   `--api` has the Cube server execute instead (`execution: vendor`, no cost
+   guard, said on the result); under `semantic.deployment: cube_cloud` that is
+   the default and the catalog is Cube Cloud's, while `--local` keeps Dex
+   executing and holds the deployment to the reviewed files.
    On a Snowflake Semantic View layer both run through Dex's own Snowflake
    connector as a `SEMANTIC_VIEW()` clause: tokens are the catalog's
    `view.table.member` (`view.metric` for a view-level metric), one view per

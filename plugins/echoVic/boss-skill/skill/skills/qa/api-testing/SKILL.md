@@ -1,5 +1,4 @@
 ---
-
 name: qa/api-testing
 description: API 接口测试方法论，覆盖 RESTful/GraphQL 接口的功能、边界、安全、契约测试，参考 Supertest、REST Assured 等开源实践
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要编写或执行 API 接口测试时
-- 需要验证 API 契约一致性时
-- 需要覆盖接口边界和安全场景时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要编写或执行 API 接口测试时
+  - 需要验证 API 契约一致性时
+  - 需要覆盖接口边界和安全场景时
+metadata:
   internal: true
-
 ---
 
 # API 接口测试方法论

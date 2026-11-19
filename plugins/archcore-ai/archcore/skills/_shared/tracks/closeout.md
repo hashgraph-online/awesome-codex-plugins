@@ -58,6 +58,7 @@ record shape, state rules, and execution rules:
   status value in the kernel means "completed and absorbed".
 - The executing skill MUST NOT edit a code file on this track.
 - The executing skill MUST NOT execute a feature file or an example on this track.
+  The one exception is the revert probe of `skills/_shared/plan-contract.md`.
   Readiness rests on a test-run report in the branch, a scenario body that
   records the confirmation, or the user's confirmation at the gate; the runtime
   infers none. Scope adds `scenario` and `journey` documents only when
@@ -97,7 +98,10 @@ not apply on this track.
   `creates` as `create`, `modifies` as `amend`, `retires` as `retire`,
   `decision` as an `adr` need; the route name and the size label carry no
   verdict. A document-versus-code direction takes
-  its label vocabulary from `skills/_shared/verdict-contract.md`.
+  its label vocabulary from `skills/_shared/verdict-contract.md`. WHEN the
+  scoped plan is proof-tracked per `skills/_shared/plan-contract.md`, judge
+  each checked task by its proof per "Proof verification" in that contract;
+  a legacy plan keeps the judgement above.
 - Entry conditions:
   - skip_when: the branch scope matches no `plan` document — the merge and
     accept gates run over the diff-matched documents alone.
@@ -115,6 +119,12 @@ not apply on this track.
     not-judgeable verdict cites the specific check attempted.
   - blocking: every unfulfilled verdict cites its evidence — the missing
     change, the failing check, or the absent file.
+  - blocking: WHEN the scoped plan is proof-tracked, a checked task that fails
+    "Proof verification" in `skills/_shared/plan-contract.md` is unfulfilled.
+  - blocking: WHEN the scoped plan is proof-tracked, a phase that holds only a
+    `Covers:` line is one unfulfilled task.
+  - advisory: each **Waiting on** bullet goes to `closeout.capture` and carries
+    no verdict.
   - blocking: WHEN the scoped plan carries a `## Declared Delta` section,
     every claim carries one verdict — confirmed by the diff, or missing with
     its evidence; an undeclared change found at this gate is appended to the

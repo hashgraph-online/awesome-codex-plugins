@@ -190,6 +190,9 @@ codex mcp login osmo
 
 ```sh
 openclaw skills install @getosmo/osmo-phone-calls
+# optional, one job each (same server, same sign-in):
+#   @getosmo/osmo-ai-receptionist, @getosmo/osmo-call-screening,
+#   @getosmo/osmo-customer-service-calls, @getosmo/osmo-book-by-phone
 openclaw mcp set osmo '{"url":"https://api.getosmo.app/mcp","transport":"streamable-http","auth":"oauth"}'
 openclaw mcp login osmo
 ```
@@ -342,6 +345,9 @@ service; its code is not in this repo.
 |---|---|
 | [`skills/osmo-phone-calls/SKILL.md`](skills/osmo-phone-calls/SKILL.md) | Agent Skill. Tells the AI to confirm before calling, report only what the call result says, and never ask for codes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-phone-calls). |
 | [`skills/osmo-ai-receptionist/SKILL.md`](skills/osmo-ai-receptionist/SKILL.md) | Agent Skill for the AI receptionist side: who called, pausing the AI, put-through, VIP and block lists, caller rules, assistant language, bookings, Facts. Changes are shown first and applied on a yes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-ai-receptionist). |
+| [`skills/osmo-call-screening/SKILL.md`](skills/osmo-call-screening/SKILL.md) | Agent Skill for screening calls to your own number: spam calls, missed calls, the caller's message instead of voicemail, block and VIP lists, caller rules. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-call-screening). |
+| [`skills/osmo-customer-service-calls/SKILL.md`](skills/osmo-customer-service-calls/SKILL.md) | Agent Skill for customer service calls: find a company's customer care number, get through the phone menu, wait on hold and bring back the answer. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-customer-service-calls). |
+| [`skills/osmo-book-by-phone/SKILL.md`](skills/osmo-book-by-phone/SKILL.md) | Agent Skill for booking by phone: restaurant reservations and appointments, made, moved or cancelled by a call. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-book-by-phone). |
 | [`.claude-plugin/`](.claude-plugin) | Claude Code plugin + marketplace (MCP server + skill) |
 | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin (MCP server + skill) |
 | [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json), [`mcp.json`](mcp.json) | Cursor plugin and MCP config |

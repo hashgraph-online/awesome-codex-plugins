@@ -372,16 +372,11 @@ process can deliberately repin or override it.
 
 ## Session Layout
 
-By default, the root is `.agent-mail` (from `.amqrc` or auto-detect). Use `--session` to create isolated subdirectories:
-
-```
-.agent-mail/              ← default root (configurable in `.amqrc`)
-.agent-mail/auth/         ← isolated session (via --session auth)
-.agent-mail/api/          ← isolated session (via --session api)
-```
-
-- `amq coop exec claude` → `AM_ROOT=.agent-mail/collab` (default session)
-- `amq coop exec --session auth claude` → `AM_ROOT=.agent-mail/auth`
+The project’s `.amqrc` selects its base root. With the usual `.agent-mail` base,
+`amq session create auth` creates `.agent-mail/auth`. Join it with
+`amq coop exec --session auth <harness>`. A bare `coop exec` uses the declared
+`default_session`, or `collab` when none is declared. See
+[session creation](https://github.com/avivsinai/agent-message-queue/blob/main/docs/session-routing.md#creation-and-backlog-discovery).
 
 The main env vars are `AM_ROOT` (where) + `AM_ME` (who). `coop exec` also sets
 `AM_BASE_ROOT` for cross-session resolution and `AM_SESSION` as the independent
@@ -520,16 +515,11 @@ classification do not special-case those strings.
 
 ### The human handle is `user`
 
-By convention the human/operator mailbox is `user`. AMQ reserves this handle for validation in configured projects, so `--to user` is accepted wherever the project has a configured agent list. New co-op projects include `user` in the default agent set. For a root created with an explicit `amq init --agents` list that omits `user`, initialize the mailbox layout before relying on human drain/receipt/DLQ ergonomics:
-
-```bash
-# Seed the human mailbox alongside the agents (one-time, per project)
-amq init --root .agent-mail --agents claude,codex,user
-# or, for a coop project:
-amq coop init --agents claude,codex,user
-```
-
-Throughout this section, `user` means "the conventional human handle." In configured projects it is warning-free for strict handle validation; in an explicitly seeded root, make sure the `agents/user/` mailbox exists before expecting a human to drain and reply from it.
+Use `user` for the owner mailbox. `amq init` and `amq coop init` create its
+mailbox directories even when an explicit agent list omits it. A configured
+project's effective roster includes the reserved handle. For an older root with
+missing mailbox directories, inspect `amq doctor --ops` and act on its reported
+repair.
 
 ### Raising a gate
 
@@ -547,7 +537,12 @@ amq send --to user --thread "gate/<topic>" --kind decision \
   --body "<what was completed; what the human should confirm or close>"
 ```
 
-The human answers on the **same** thread from their own terminal or client, e.g. `amq send --me user --to <agent> --thread gate/<topic> --kind answer --subject "APPROVED: <decision>" --body "<approval / answer text>"` (use `DENIED:` or `ANSWER:` for a rejection or a plain answer). Reusing the `gate/<topic>` thread is what lets a watcher pair the answer with the open gate and clear it.
+In the owner's terminal or client, select the original session and the exact
+question from `amq drain --include-body`. Set `question_id` to that ID and
+`decision` to the answer. Reply with
+`amq reply --id "$question_id" --kind answer --body "$decision"`. Use the owner
+identity for that terminal. Keep the approval, denial or other decision in the
+body.
 
 ### When NOT to raise a gate
 

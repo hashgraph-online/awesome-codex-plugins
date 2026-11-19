@@ -20,6 +20,10 @@ Jigs: small pages built on Bowmark and published for anyone to use. Each one run
 
 Your agent gets one tool for many live websites: it looks up the functions it needs (search, prices, availability, reading a page, and more), writes a short script, and Bowmark runs it and returns typed results. Reading the function library needs no key. Running a script needs a Bowmark account, which starts with a free $10: [create one at bowmark.ai](https://bowmark.ai/sign-up).
 
+**Try it.** Once Bowmark is connected, paste this into your agent:
+
+> Compare USPS and UPS prices to ship a 3 lb box of shoes from ZIP 94103 to ZIP 10001, and tell me which service is cheapest and what it costs right now.
+
 ## Install — Claude Code
 
 ```sh

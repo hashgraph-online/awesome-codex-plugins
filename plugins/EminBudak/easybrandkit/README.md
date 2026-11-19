@@ -1,3 +1,5 @@
+<img src=".github/assets/icon.svg" alt="" width="72" height="72">
+
 # easybrandkit
 
 Get a website's real logo files, colors, fonts and first screen, saved as a brand kit your coding agent can read.

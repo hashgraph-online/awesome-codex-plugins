@@ -1,5 +1,4 @@
 ---
-
 name: shared/tdd
 description: 测试驱动开发（TDD）方法论，Red-Green-Refactor 循环，先写失败测试再写实现
 version: 1.0.0
@@ -9,14 +8,12 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 实现新功能前
-- 修复 bug 前
-- 重构代码前
-- 任何行为变更前
-  metadata:
+  - 实现新功能前
+  - 修复 bug 前
+  - 重构代码前
+  - 任何行为变更前
+metadata:
   internal: true
-
 ---
 
 # 测试驱动开发（TDD）

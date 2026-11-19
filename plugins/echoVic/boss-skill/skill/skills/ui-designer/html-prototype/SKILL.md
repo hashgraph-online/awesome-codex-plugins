@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/html-prototype
 description: 可交互 HTML 原型，生成浏览器可打开的原型页面供用户查看和选择设计方案
 version: 1.0.0
@@ -8,15 +7,13 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- ui-designer/design-system
-  triggers:
-- 用户需要直观看到设计效果而非纯文字描述时
-- 存在多个设计变体需要用户对比选择时
-- 设计方向存在分歧，需要可视化决策时
-  metadata:
+  - ui-designer/design-system
+triggers:
+  - 用户需要直观看到设计效果而非纯文字描述时
+  - 存在多个设计变体需要用户对比选择时
+  - 设计方向存在分歧，需要可视化决策时
+metadata:
   internal: true
-
 ---
 
 # 可交互 HTML 原型

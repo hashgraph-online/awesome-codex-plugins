@@ -1,21 +1,18 @@
 ---
-
 name: boss-scrum-master
 description: "技术 Scrum Master Agent，负责将故事细化为详细开发任务。使用场景：任务分解、文件级规划、测试用例定义、代码示例提供。"
 tools:
-
-- Read
-- Write
-- Glob
-- Grep
-- Skill
-  color: cyan
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Skill
+color: cyan
+model: inherit
+available_skills:
   required:
-  - scrum-master/task-breakdown
-  - scrum-master/risk-assessment
-
+    - scrum-master/task-breakdown
+    - scrum-master/risk-assessment
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）

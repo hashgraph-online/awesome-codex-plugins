@@ -122,7 +122,8 @@ unavailable, skip the code-drift check and run cascade and temporal only.
    compare its tasks and `## Declared Delta` paths against the default branch
    resolved per `skills/_shared/branch-state.md`. Flag it:
    - `shipped` — every task is present on the default branch and nothing
-     remains open; cite the commits or paths that fulfil it.
+     remains open; cite the commits or paths that fulfil it. A phase that
+     holds only a `Covers:` line is open.
    - `abandoned` — last changed more than 60 days ago [assumption] and no path
      it names changed on the default branch since; cite the date and the
      paths checked.

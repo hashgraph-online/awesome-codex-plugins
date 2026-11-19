@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-railway
 description: Railway 部署方法论，使用 railway CLI 部署后端服务（Node.js、Python、Go、Java、Docker）和托管数据库（PostgreSQL、MySQL、Redis）
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 需要部署后端服务到 Railway 时
-- 项目需要托管数据库（PostgreSQL/MySQL/Redis）时
-- 项目是多语言后端应用时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署后端服务到 Railway 时
+  - 项目需要托管数据库（PostgreSQL/MySQL/Redis）时
+  - 项目是多语言后端应用时
+metadata:
   internal: true
-
 ---
 
 # Railway 部署

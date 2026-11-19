@@ -76,6 +76,20 @@ the models that read it.
 | `grain`, `population`, `assumptions` | model `config.meta.dex` |
 | `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references` | column `config.meta.dex` |
 
+A PII stamp is not a declaration field and never needs one: on a model the plan
+creates, every column that carries a flagged input through gets
+`config.meta.contains_pii` and `pii_category`, and the model `contains_pii`,
+whether or not the plan declares anything, in the same entry the declaration
+writes. That covers a column carried unchanged or under an alias, and one
+passed through a function that keeps its value (a cast, `lower`/`upper`/`trim`,
+`coalesce`, `min`/`max`, `any_value`, `lag`). A measuring aggregate
+(`measured`) and a constant standing in for a flagged column (`redacted`) are
+not stamped; a hash or any other expression is `unresolved`, warned about and
+left to a person. A hand-written mark is kept,
+and one saying the column is not PII is reported as a `disagreement` rather than
+overwritten. A model that already exists is reported under `data.pii_metadata`
+and its YAML is not written.
+
 Every test Dex renders carries `config: {meta: {disable_test_samples: true}}`,
 as does a `not_null` or `unique` that `maintain reconcile` adds,
 so where the Elementary package's test materialization runs (0.20.0 and later)
@@ -225,7 +239,7 @@ Each fact carries the `evidence` it rests on, and a fact the cache cannot suppor
 | `grain` | the `GROUP BY` keys when the model aggregates; otherwise a key the driving relation's profile *proved* unique, selected unchanged, with every join an equality on a key proven unique on its joined side. Any other join, a right or full join, a set operation or an `UNNEST` gives `{"value": null, "withheld": "<why>"}` |
 | `columns.<c>.from` | the upstream `relation.column` a column passes through from unchanged, followed through CTEs |
 | `columns.<c>.role` | `key` for a single-column drafted grain; `foreign_key`, with `references`, for a column carrying a join `explore relationships --verify` measured with no orphans. A join measured with orphans would fail the `relationships` test a `references` renders, so it is `references: {"value": null, "withheld": "<the orphan rate>"}` instead. Where the column joins cleanly to several relations (the raw table, its staging model, a dimension), a parent whose column is not unique and the model itself are passed over, a model of this project wins over a seed or snapshot and those over a raw table, and the model nearest this one in the project tree breaks a tie; `evidence` names the other clean parents. A warehouse that reports `STG_CUSTOMERS` resolves to the project's `stg_customers`. The joins read are the input column's; where those reach only raw tables (a staging model over a source, on a warehouse whose build lives in another schema) and the model is already built and profiled, the built relation's own clean joins are read instead, so `stg_orders.customer_id` references `stg_customers` |
-| `columns.<c>.pii` | the upstream column's PII flag, category and confidence |
+| `columns.<c>.pii` | the upstream column's PII flag, category and confidence. On a model the plan creates, the category (never the confidence) is also written as the column's `contains_pii` and `pii_category` stamp; see `data.pii_metadata` |
 | `columns.<c>.nullable` | `true` on the outer side of a left, right or full join whatever the upstream NULL rate; otherwise from the upstream NULL fraction |
 | `columns.<c>.additivity` | `semi_additive` where `explore profile --check-cumulative` found the upstream column never decreasing |
 | `columns.<c>.unit` | `fraction` for a non-integer column profiled entirely in 0 to 1; `percent` for one named like a percentage profiled in 0 to 100. A hypothesis, never a certified unit |

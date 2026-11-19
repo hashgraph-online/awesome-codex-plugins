@@ -1,5 +1,4 @@
 ---
-
 name: architect/architecture-design
 description: 系统架构设计方法论，包含架构模式选择、系统分层、目录结构设计
 version: 1.0.0
@@ -8,16 +7,14 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-- architect/tech-research
-  triggers:
-- 技术调研完成后
-- 需要设计系统架构时
-- 需要定义项目结构时
-  metadata:
+  - shared/tech-stack-detection
+  - architect/tech-research
+triggers:
+  - 技术调研完成后
+  - 需要设计系统架构时
+  - 需要定义项目结构时
+metadata:
   internal: true
-
 ---
 
 # 系统架构设计方法论

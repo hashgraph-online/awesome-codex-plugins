@@ -99,7 +99,7 @@ epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP 
 /plugin install epic@epicsagas
 ```
 
-Auto-installs the binary, skills, hooks, and the `harness-mem` MCP server in one step.
+Installs skills, hooks, and the `harness-mem` MCP server in one step. On the first session the plugin downloads the `epic` binary from the release matching the plugin version (pinned `v<version>` archive, sha256 checked against the `.sha256` file of the same release; a mismatch installs nothing) into `~/.local/bin`. It never runs a downloaded script. Hooks run `~/.local/bin/epic` by absolute path when it exists. If the `epic` on your PATH (brew, cargo, installer script, manual) is older than the plugin, the plugin installs the pinned copy into `~/.local/bin`, never modifies or downgrades the PATH one, and prints a one-line notice with the command to update your shell copy.
 
 ### Codex CLI
 
@@ -516,7 +516,7 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 | **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 25 | Live³ |
 | **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 25 | — |
 
-¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable) · ³ via `SubagentStart`/`SubagentStop`
+¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² SessionStart (resume) only. No guard, observe, polish or reflect yet (#404). A conversation resumed with `-c`/`--conversation` gets no resume context because agy fires SessionStart only for new conversations · ³ via `SubagentStart`/`SubagentStop`
 
 ### Codex specifics
 
@@ -737,6 +737,12 @@ These were considered for enhancement but kept as-is after evaluation:
 <summary>Plugin install path contains spaces or %</summary>
 
 Plugin install paths containing spaces or `%` are not supported by the hook launchers yet (#167, #265); install under a path without them.
+</details>
+
+<details>
+<summary>The plugin did not install the binary, or says epic is outdated</summary>
+
+The bootstrap installs only the archive pinned to the plugin version into `~/.local/bin` and verifies its sha256. On a checksum mismatch, a missing `.sha256`, or a missing `xz` it installs nothing, prints the reason on stderr, and retries that version after an hour. Install manually with the commands under Installation. An `epic` elsewhere on PATH is never replaced automatically (hooks use the `~/.local/bin` copy): update your shell copy with `brew upgrade epic-harness`, `cargo install epic-harness --locked --force`, the installer script under Installation (for a `~/.cargo/bin` copy from the installer script), or `epic update`. Make sure `~/.local/bin` is on your PATH for use outside the plugin hooks.
 </details>
 
 <details>

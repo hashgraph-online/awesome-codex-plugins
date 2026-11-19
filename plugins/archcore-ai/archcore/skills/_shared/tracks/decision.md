@@ -144,7 +144,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
   - blocking: every cascade document was created after a recorded user confirmation (request wording that names the cascade counts), never before.
   - blocking: every created cascade document carries its relation from the Produces list.
   - blocking: each created rule carries every section that `skills/_shared/rule-contract.md` requires; each created spec carries every section that `skills/_shared/spec-contract.md` requires.
-  - blocking: each created guide carries every section `skills/_shared/guide-contract.md` requires; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies; each created cpat covers What Changed, Why, Before, After, Scope.
+  - blocking: each created guide carries every section `skills/_shared/guide-contract.md` requires; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies, and its Tasks follow `skills/_shared/plan-contract.md`; each created cpat covers What Changed, Why, Before, After, Scope.
   - blocking: WHEN the architecture cascade creates a spec, the spec passes the user-owned choice check of `sdd.design` (`skills/_shared/tracks/sdd.md`) before the plan is created; a failed check keeps the spec's state block and creates no plan.
   - advisory: WHEN grounding surfaced a concrete file or module for a plan task, the created plan annotates that task with `@path` notation — parity with the plan skill's task-mapping step.
   - advisory: the closing report lists document paths, relation edges, and one recommended next action.

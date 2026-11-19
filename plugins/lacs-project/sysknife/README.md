@@ -335,6 +335,27 @@ policy, executes typed actions, writes the signed chain, and triggers
 atomic-host rollback (rpm-ostree) on failure. The trust boundary is
 mechanical: no shell strings cross the wire.
 
+### What happens when someone edits the audit log
+
+<p align="center">
+  <img src="assets/demo/audit-tamper.gif" alt="An agent plans six changes, the operator approves three reads, someone rewrites the ssh change in the SQLite file, and sysknife audit verify names the edited row" width="900"/>
+</p>
+
+<p align="center">
+  <em>A real recording: the daemon, the MCP server and <code>sysknife audit verify</code> are the
+  shipped binaries, and an LLM planned each request. An agent asked for six changes and only
+  the three reads were approved (a script plays the operator and answers yes to Low-risk steps).
+  Then someone rewrites the sshd change in the SQLite file
+  so it reads as a harmless query. <code>history</code> repeats the edit; <code>audit verify</code>
+  names the row, and the public key alone is enough to show it. The <code>NOTE</code> lines are cut
+  at the terminal width. <a href="assets/demo/README.md#audit-tamper-demo">How to regenerate it</a>.</em>
+</p>
+
+Deleting the newest rows is a different attack. Without an external checkpoint
+anchor a truncated chain still verifies, which is why the output carries that
+`NOTE`; [the audit chain](docs/the-audit-chain.md#limits-and-honest-scope) covers
+the anchor.
+
 ## Why not just X?
 
 | Tool | The gap |

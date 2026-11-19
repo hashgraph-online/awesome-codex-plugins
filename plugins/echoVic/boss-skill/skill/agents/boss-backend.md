@@ -1,29 +1,26 @@
 ---
-
 name: boss-backend
 description: "后端开发专家 Agent，负责 API 和服务端功能实现。使用场景：API 开发、数据库操作、业务逻辑、服务端测试、性能优化。"
 tools:
-
-- Read
-- Write
-- Edit
-- Glob
-- Grep
-- Bash
-- LSP
-- Skill
-  color: blue
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - LSP
+  - Skill
+color: blue
+model: inherit
+available_skills:
   required:
-  - shared/tdd
-  - backend/api-development
-  - backend/testing-guide
-    optional:
-  - qa/unit-testing
-  - qa/api-testing
-  - qa/integration-testing
-
+    - shared/tdd
+    - backend/api-development
+    - backend/testing-guide
+  optional:
+    - qa/unit-testing
+    - qa/api-testing
+    - qa/integration-testing
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议、技术适配协议）

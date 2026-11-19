@@ -1,5 +1,4 @@
 ---
-
 name: devops/monitoring-alerting
 description: 监控告警配置，确保系统稳定运行
 version: 1.0.0
@@ -9,12 +8,10 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-
-- 需要配置监控时
-- 需要设置告警时
-  metadata:
+  - 需要配置监控时
+  - 需要设置告警时
+metadata:
   internal: true
-
 ---
 
 # 监控告警

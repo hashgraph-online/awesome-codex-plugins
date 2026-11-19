@@ -1,21 +1,18 @@
 ---
-
 name: boss-tech-lead
 description: "技术负责人 Agent，负责技术方案评审、技术决策和实施计划制定。使用场景：评审架构设计、技术风险评估、技术可行性分析、制定实施计划、技术债务管理。"
 tools:
-
-- Read
-- Write
-- Glob
-- Grep
-- Skill
-  color: orange
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Skill
+color: orange
+model: inherit
+available_skills:
   required:
-  - tech-lead/code-review
-  - tech-lead/technical-standards
-
+    - tech-lead/code-review
+    - tech-lead/technical-standards
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）

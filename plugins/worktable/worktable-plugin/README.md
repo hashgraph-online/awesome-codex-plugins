@@ -36,10 +36,11 @@ self-hosted workspace, follow
 
 On a Pro, Max, Team or Enterprise plan, open **Plugins**, choose **Add**, then
 **Add marketplace**, and enter `worktable/worktable-plugin`. Add Worktable,
-then open the plugin's **Connectors** tab, connect Worktable and sign in. Claude
-updates it from this repository: choose **Check for updates**, or turn on
-**Sync automatically** once the Claude GitHub App has access. Skills need
-**Code execution** on in Claude's settings.
+then open the plugin's **Connectors** tab, connect Worktable and sign in. Skills
+need **Code execution** on in Claude's settings.
+
+Claude keeps the version you added until you update it. See
+[Update or remove](#update-or-remove).
 
 Uploading the plugin as a file works too, but an uploaded copy never updates.
 
@@ -69,6 +70,19 @@ agy plugin install https://github.com/worktable/worktable-plugin
 
 Then open `/plugin`, expand Worktable under **Installed**, and choose **Sign in**.
 
+### Copilot CLI and VS Code
+
+```text
+copilot plugin marketplace add worktable/worktable-plugin
+copilot plugin install worktable@worktable
+```
+
+Then run `/mcp` in Copilot CLI and sign in to `worktable`. VS Code loads the
+plugins Copilot CLI installs. In VS Code itself, run
+**Chat: Install Plugin from Source** and enter
+`https://github.com/worktable/worktable-plugin`, then start `worktable` from
+the MCP servers list and sign in.
+
 ### Gemini CLI
 
 ```text
@@ -91,8 +105,19 @@ then choose **Save** and **Connect**.
 
 The Gemini app takes one skill folder and never updates it. Download
 [worktable.tar](https://docs.worktable.dev/downloads/skills/gemini/worktable.tar),
-unpack it, and upload the `worktable` folder. It holds the Library check and
-names each workflow guide.
+unpack it, then open **Customize**, then **Skills**, and upload the `worktable`
+folder. It holds the Library check and names each workflow guide.
+
+### Pi
+
+Pi installs this repository as a package of its skills. Add Worktable's
+server and sign in, then install it:
+
+```text
+pi mcp add worktable --url https://app.worktable.cloud/api/mcp
+pi mcp login worktable
+pi install git:github.com/worktable/worktable-plugin
+```
 
 ### Kiro
 
@@ -133,11 +158,24 @@ provider processes prompts and tool traffic under its own terms.
 
 ## Update or remove
 
+In Claude on the web, on desktop and in Cowork, open **Plugins**, choose **Add
+plugin**, then **Manage marketplaces**. Open the menu beside
+`worktable/worktable-plugin` and choose **Check for updates**. The plugin's own
+page has no update button. **Sync automatically** in the same menu updates it
+without asking, once the Claude GitHub App has access to the repository.
+
 In Claude Code:
 
 ```text
 claude plugin update worktable@worktable
 claude plugin uninstall worktable@worktable
+```
+
+In Pi, the server and the package are separate, so remove both:
+
+```text
+pi remove git:github.com/worktable/worktable-plugin
+pi mcp remove worktable
 ```
 
 Other hosts manage packages through their plugin interface. Removing the plugin
@@ -153,3 +191,8 @@ This package uses the included [MIT License](LICENSE).
 This repository is generated from [`plugins/worktable`](https://github.com/worktable/worktable-dev/tree/main/plugins/worktable)
 in worktable-dev and updated on every change there. Report issues and propose
 changes in [worktable-dev](https://github.com/worktable/worktable-dev/issues).
+
+[`plugins/worktable-skills`](plugins/worktable-skills) holds Worktable Skills, the
+same skills without the Cloud connection, which Worktable's connect command
+installs in Claude Code, Codex, Copilot CLI, VS Code and Antigravity for a
+Worktable on a computer or server.

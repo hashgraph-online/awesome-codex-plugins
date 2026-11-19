@@ -1,0 +1,39 @@
+{
+  "name": "preview-lab",
+  "version": "0.4.1",
+  "description": "Fast UI/UX screen review for coding agents: capture, review in a branded lab, feedback straight back to the session.",
+  "author": {
+    "name": "dbalas"
+  },
+  "homepage": "https://github.com/dbalas/preview-lab",
+  "repository": "https://github.com/dbalas/preview-lab",
+  "license": "MIT",
+  "keywords": [
+    "ui",
+    "ux",
+    "design-review",
+    "accessibility",
+    "screenshots",
+    "visual-qa",
+    "feedback",
+    "agent-skills"
+  ],
+  "interface": {
+    "displayName": "Preview Lab",
+    "shortDescription": "Review UI changes on screenshots",
+    "developerName": "dbalas",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Let me review the screens you just changed.",
+      "Do a complete review of the checkout screens."
+    ],
+    "longDescription": "Review the UI your agent builds. The agent screenshots the screens it changed with the installed Chrome, Edge or Chromium and opens them in a local review page styled like your project. You approve each screen or mark areas to change, and the feedback comes back to the session as short markdown. Screens marked for changes come back in the next round. A complete review adds measured UX, UI and accessibility tips. Needs Node 18 or newer.",
+    "logo": "./docs/logo.svg",
+    "composerIcon": "./docs/logo.svg"
+  },
+  "skills": "./skills/"
+}

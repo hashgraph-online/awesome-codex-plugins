@@ -1,11 +1,10 @@
 ---
-
 name: frontend/component-development
 description: 前端组件开发方法论，包括组件设计原则、状态管理、样式实现和性能优化
 type: methodology
 agent: boss-frontend
 metadata:
-internal: true
+  internal: true
 ---
 
 # 前端组件开发方法论

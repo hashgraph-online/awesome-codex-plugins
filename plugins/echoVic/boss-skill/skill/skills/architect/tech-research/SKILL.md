@@ -1,5 +1,4 @@
 ---
-
 name: architect/tech-research
 description: 技术调研方法论，通过系统性调研和对比分析，为技术选型提供数据支持
 version: 1.0.0
@@ -8,15 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-
-- shared/tech-stack-detection
-  triggers:
-- 开始架构设计前
-- 需要技术选型时
-- 评估新技术方案时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 开始架构设计前
+  - 需要技术选型时
+  - 评估新技术方案时
+metadata:
   internal: true
-
 ---
 
 # 技术调研方法论
