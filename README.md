@@ -143,7 +143,6 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 
 ### Development & Workflow
 
-- [FigureAtlas](https://github.com/TardisBooo/figureatlas) - Pick one of 300 verified figure types for a paper, slide, poster, or video frame, then export HTML or SVG.
 
 <!-- pinned -->
 
@@ -246,6 +245,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [falsegreen-skill](https://github.com/vinicq/falsegreen-skill) - Finds tests that stay green when the code they cover is broken, applying six ordered judgments over Python, TypeScript, JavaScript, and Robot Framework suites in Codex CLI and Claude Code.
 - [fanout](https://github.com/Breadstick-Crumbs/fanout) - Tests parallel Codex and Claude Code sessions’ branches merged together before main, and stops two sessions doing the same task.
 - [Figma Maxxing](https://github.com/thiagoxikota/figma-maxxing) - Eight Agent Skills for real Figma files, with Plugin API gotchas, a read-only preflight before any write, checks after the write and before handoff, and open comments turned into fixes with evidence.
+- [FigureAtlas](https://github.com/TardisBooo/figureatlas) - Pick one of 300 verified figure types for a paper, slide, poster, or video frame, then export HTML or SVG.
 - [Flaky Detector](./plugins/mturac/flaky-detector) - Run a test command N times, report per-test flakiness %.
 - [Frappe Agent](https://github.com/Dkm0315/frappe-agent) - Frappe and ERPNext coding, customization, bench, and review intelligence for Codex.
 - [GCF Proxy](https://github.com/blackwell-systems/gcf-codex-plugin) - Save 71% on MCP tool call tokens by wrapping any server with GCF encoding, with session stats hook and setup skill.
