@@ -143,6 +143,8 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 
 ### Development & Workflow
 
+- [FigureAtlas](https://github.com/TardisBooo/figureatlas) - Pick one of 300 verified figure types for a paper, slide, poster, or video frame, then export HTML or SVG.
+
 <!-- pinned -->
 
 - [A Team](https://github.com/RBraga01/a-team) - A complete engineering team in one folder with 26 specialist agents, 20 workflow skills, an orchestrator, and quality gates; integration and hook support vary by coding platform.
