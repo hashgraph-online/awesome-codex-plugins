@@ -853,7 +853,7 @@ def _judge_audit_completed(phase_dir: str, outcome: _task_outcome.TaskOutcome) -
         write_outcome=None, exit_code=last.exit_code, files_touched=[],
         observed={}, duration_seconds=outcome.duration_seconds,
         reason=outcome.reason,
-        usage=outcome.usage if outcome.usage_reported else None,
+        usage=outcome.usage or None,
     )
 
 

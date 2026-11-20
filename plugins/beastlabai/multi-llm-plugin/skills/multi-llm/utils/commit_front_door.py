@@ -55,6 +55,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 from .cli_common import EXIT_ERROR as _EXIT_ERROR
 from .cli_common import EXIT_NEEDS_HUMAN as _EXIT_NEEDS_HUMAN
 from .cli_common import (
+    refuse_unsupported_batch_size,
     EXIT_OK as _EXIT_OK,
     record_error,
     dispatcher_prefix,
@@ -613,6 +614,10 @@ def _parse_door(mode: str, argv: Sequence[str], *, door: str) -> _Typed:
         if flag in parser._option_string_actions:  # noqa: SLF001
             placeholders += [flag, _PLACEHOLDER]
     namespace, extras = parser.parse_known_args(placeholders + list(argv))
+    if parser.get_default("max_batch_size") is not None:
+        # apply-commit-fixes: refused here, before the range is recorded,
+        # as the phase's own parse refuses it.
+        refuse_unsupported_batch_size(parser, namespace)
     forwarded, own = _split_door_tokens(argv, parser)
     _check_range_after_flags(door, argv, namespace, extras, parser, own)
     return _Typed(

@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+from datetime import datetime, timezone
 from typing import Any, Collection, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from ..process_state import process_cache
@@ -38,6 +39,7 @@ from .base import (
 from .result_envelope import (
     classify_api_error_status,
     describe_refused_envelope,
+    envelope_api_error_code,
     RESULT_ENVELOPE_SIGNATURE,
     parse_result_envelope,
     result_envelope_diagnostics,
@@ -124,6 +126,27 @@ WRITE_DENIED_TOOLS = ("Task",)
 # profile says once whether it wants it.
 PERMISSION_MODE_FLAG = "--permission-mode"
 PERMISSION_MODE_ACCEPT_EDITS = "acceptEdits"
+
+# Read slots start without the user's MCP servers
+# (docs/development/providers.md#claude-code-read-slots). A `generate` or
+# `agent-readonly` slot reads a document and answers; it needs no MCP tool, and
+# dropping a server only takes tools away, never a guard. It saves about 0.9 s
+# of start-up per slot. `agent-write` keeps them, because an implement batch may
+# need a tool the user configured.
+#
+# The user's hooks stay ON in every slot. A PreToolUse hook may be the one guard
+# a user put on a write, and neither read profile shuts out every write:
+# `generate` runs `--permission-mode acceptEdits` with no tool list, and
+# `agent-readonly`'s deny-list does not cover the tools that write without a
+# permission prompt (measured on 2.1.328: `EnterWorktree` created a worktree and
+# a branch, a durable `CronCreate` wrote `.claude/scheduled_tasks.json`). A
+# deny-list cannot prove a tool set closed while new tools keep shipping, so no
+# slot passes `--settings {"disableAllHooks":true}`.
+#
+# Optional flag through the shared help gate (`supports_flag`): a CLI whose help
+# lacks it gets today's argv without it and no warning, since nothing the run
+# relies on is lost. With no `--mcp-config`, it loads no MCP server at all.
+STRICT_MCP_FLAG = "--strict-mcp-config"
 
 # `--allowed-tools` / `--disallowed-tools` take `<tools...>`, so every
 # token after one of them — up to a separator — is part of its VALUE. The agent
@@ -524,21 +547,89 @@ JSON_SCHEMA_VERIFIED_AT = "2.1.227"
 #: however long the cap takes to reset.
 USAGE_LIMIT_TAG = "[USAGE_LIMIT]"
 
-#: The measured shape:
-#: ``You've reached your Fable limit. Switch to another model, or manage usage
-#: credits at claude.ai/settings/usage?from=cc_cli_limit_message, to
-#: continue.`` No ``API Error:`` prefix, no number, no "rate limit" — the text
-#: ladder reads nothing in it, which is why it is matched here against the
-#: vendor sentence and not added to a classifier table. ``usage limit`` is the
-#: wording the shared rate-limit table already carries for the same condition
-#: at other vendors. Lowercased before matching, like every marker table. A
-#: "resets at HH:MM" clause has not been measured on this CLI and is not
-#: parsed: an invented time would be worse than none.
+#: The measured shapes, all ``api_error_status: 429`` with no ``API Error:``
+#: prefix, no number and no "rate limit", so the text ladder reads nothing in
+#: them and they are matched here against the vendor sentence, not added to a
+#: classifier table:
+#:
+#: * ``You've reached your Fable limit. Switch to another model, or manage usage
+#:   credits at claude.ai/settings/usage?from=cc_cli_limit_message, to
+#:   continue.``
+#: * ``You're out of usage credits. Switch to another model, …``
+#: * ``You've hit your 5-hour limit · resets 3:50am (Europe/Zurich)`` (beside
+#:   ``"api_error": "usage_limit_reached"``) and ``You've hit your weekly limit ·
+#:   resets 6am (Europe/Zurich)``.
+#:
+#: ``usage limit`` is the wording the shared rate-limit table already carries
+#: for the same condition at other vendors. Lowercased before matching, like
+#: every marker table. The envelope's own code (:data:`USAGE_LIMIT_ERROR_CODES`)
+#: decides first where the CLI sends one.
 USAGE_LIMIT_MARKERS = (
     re.compile(r"\breached your\b.{0,40}\blimit\b"),
+    re.compile(r"\bhit your\b.{0,40}\blimit\b"),
     re.compile(r"\busage limit\b"),
     re.compile(r"\bmanage usage credits\b"),
+    re.compile(r"\bout of usage credits\b"),
 )
+
+#: The envelope's ``api_error`` values that name an account usage cap.
+USAGE_LIMIT_ERROR_CODES = frozenset({"usage_limit_reached"})
+
+#: The reset clause of a usage-cap sentence, kept verbatim (``resets 6am
+#: (Europe/Zurich)``, ``resets 3:50am (Europe/Zurich)``). It is a local clock
+#: time with no date, so no timestamp is ever computed from it: "6am" may be
+#: today or tomorrow, or six days away for a weekly limit, and an invented time
+#: is worse than none. Up to 40 characters of time and date, then an optional
+#: parenthesised zone; it stops at a ``·``, a full stop or the end.
+USAGE_LIMIT_RESET_CLAUSE = re.compile(
+    r"\bresets\s+[^\n\u00b7().;]{1,40}(?:\([^\n()]{1,64}\))?", re.IGNORECASE
+)
+
+
+def _rejected_reset_time(stdout: str) -> Optional[str]:
+    """The ``resetsAt`` of the last rejected ``rate_limit_event`` in ``stdout``,
+    as ISO 8601 UTC (``2026-11-17T19:00:00Z``), or ``None``.
+
+    Reads top-level events only: each line of a stream-json capture, or each
+    element of a JSON array (``--output-format json --verbose``). An event
+    quoted inside the model's text is a string, never an event. The status
+    values recorded are ``allowed`` and ``allowed_warning``; ``rejected`` is the
+    blocked one, and only it says the slot was stopped by the limit."""
+    text = (stdout or "").strip()
+    if "rate_limit_event" not in text:
+        return None
+    events: List[Any] = []
+    try:
+        whole = json.loads(text)
+    except ValueError:
+        whole = None
+    if isinstance(whole, list):
+        events = whole
+    elif isinstance(whole, dict):
+        events = [whole]
+    else:
+        for raw in text.splitlines():
+            try:
+                events.append(json.loads(raw))
+            except ValueError:
+                continue
+    found: Optional[str] = None
+    for event in events:
+        if not isinstance(event, dict) or event.get("type") != "rate_limit_event":
+            continue
+        info = event.get("rate_limit_info")
+        if not isinstance(info, dict) or info.get("status") != "rejected":
+            continue
+        when = info.get("resetsAt")
+        if isinstance(when, bool) or not isinstance(when, (int, float)):
+            continue
+        try:
+            stamp = datetime.fromtimestamp(when, tz=timezone.utc)
+        except (OverflowError, OSError, ValueError):
+            continue
+        found = stamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return found
+
 
 # The help read, its per-process cache, the flag-token regex and the warn-once
 # set that used to live here are **gone** — M14 absorbed them into the one
@@ -979,7 +1070,13 @@ class ClaudeCodeProvider(LLMProvider):
             timeout_s=timeout_s,
             schema=schema,
             permission_mode=PERMISSION_MODE_ACCEPT_EDITS,
+            read_slot=True,
         )
+
+    def _read_slot_argv(self) -> List[str]:
+        """The read slot's MCP-off flag, when the installed help documents it
+        (see :data:`STRICT_MCP_FLAG`, which also says why hooks stay on)."""
+        return [STRICT_MCP_FLAG] if self.supports_flag(STRICT_MCP_FLAG) else []
 
     def _render_argv(
         self,
@@ -989,8 +1086,15 @@ class ClaudeCodeProvider(LLMProvider):
         timeout_s: Optional[int] = None,
         schema: Optional[StructuredSchema] = None,
         permission_mode: Optional[str],
+        read_slot: bool,
     ) -> List[str]:
         """The one argv renderer every profile goes through.
+
+        ``read_slot`` is the other knob: ``True`` for ``generate`` and
+        ``agent-readonly``, which then start without the user's MCP servers
+        (:meth:`_read_slot_argv`; the user's hooks stay on in every profile),
+        ``False`` for ``agent-write``. Like ``permission_mode`` it is required,
+        so every profile says which it is.
 
         ``permission_mode`` is the single knob the three profiles disagree on,
         and it is a **parameter rather than a post-hoc splice or strip** so the
@@ -1014,6 +1118,7 @@ class ClaudeCodeProvider(LLMProvider):
         """
         # claude -p --output-format json [--json-schema <json>]
         #        --model <model> [--effort <effort>]
+        #        [--strict-mcp-config]
         #        [--permission-mode acceptEdits] [--fallback-model <m1,m2>]
         #        <prompt>
         base_model, effort = split_reasoning_effort(model, REASONING_EFFORTS)
@@ -1053,6 +1158,12 @@ class ClaudeCodeProvider(LLMProvider):
         ]
         if effort is not None:
             cmd += ["--effort", effort]
+        # Read slots only, ahead of the permission and fallback flags: the
+        # valueless `--strict-mcp-config` is then never the element before a
+        # positional, and it is not variadic, so the agent profiles' tool
+        # lists still follow it.
+        if read_slot:
+            cmd += self._read_slot_argv()
         # The splice point: in the policy region beside --model/--effort,
         # INSIDE build_command and ahead of the prompt append. That one position
         # makes all four rows right at once — generate on argv and on stdin, and
@@ -1159,6 +1270,7 @@ class ClaudeCodeProvider(LLMProvider):
                 timeout_s=timeout_s,
                 schema=schema,
                 permission_mode=PERMISSION_MODE_ACCEPT_EDITS,
+                read_slot=False,
             )
             return [
                 *cmd[:-1],
@@ -1175,7 +1287,7 @@ class ClaudeCodeProvider(LLMProvider):
             )
         cmd = self._render_argv(
             prompt, model, timeout_s=timeout_s, schema=schema,
-            permission_mode=None,
+            permission_mode=None, read_slot=True,
         )
         # _render_argv appends the prompt last; splice the policy in before it.
         return [
@@ -1640,6 +1752,38 @@ class ClaudeCodeProvider(LLMProvider):
         """:func:`result_envelope.result_envelope_diagnostics`."""
         return result_envelope_diagnostics(envelope, self.ENVELOPE_ANSWER_FIELDS)
 
+    def _is_usage_limit(self, stdout: str, line: Optional[str]) -> bool:
+        """Whether this refusal is the account's usage cap: the envelope's own
+        ``api_error`` code first, then the sentence (:data:`USAGE_LIMIT_MARKERS`)."""
+        if envelope_api_error_code(structural_stdout(stdout, self)) in USAGE_LIMIT_ERROR_CODES:
+            return True
+        lowered = (line or "").lower()
+        return any(marker.search(lowered) for marker in USAGE_LIMIT_MARKERS)
+
+    def usage_limit_reset(self, stdout: str, stderr: str) -> Optional[Dict[str, str]]:
+        """When a usage-capped slot's limit resets, as far as the CLI said.
+
+        ``clause``: the sentence's reset clause, verbatim, from a refusal that
+        names a usage cap (``resets 6am (Europe/Zurich)``); never a computed
+        time. ``at``: an exact UTC time from a ``rate_limit_event`` whose status
+        is ``rejected``, which carries ``resetsAt`` in epoch seconds. That event
+        is printed by ``--output-format stream-json`` (and the verbose JSON
+        array), never by the ``--output-format json`` the slots run, and was
+        never recorded at a block, so ``at`` is read where a capture carries one
+        and is otherwise absent. ``None``
+        when neither is there. ``stderr`` is unread, as everywhere here.
+        """
+        reset: Dict[str, str] = {}
+        line = describe_refused_envelope(structural_stdout(stdout, self))
+        if line is not None and self._is_usage_limit(stdout, line):
+            match = USAGE_LIMIT_RESET_CLAUSE.search(line)
+            if match:
+                reset["clause"] = match.group(0).strip().rstrip(",")
+        exact = _rejected_reset_time(stdout)
+        if exact:
+            reset["at"] = exact
+        return reset or None
+
     def describe_failure(self, stdout: str, stderr: str) -> Optional[str]:
         """The refusing envelope's own line, tagged when it names a usage cap.
 
@@ -1655,8 +1799,12 @@ class ClaudeCodeProvider(LLMProvider):
 
         :func:`result_envelope.describe_refused_envelope` renders ``HTTP 429:
         <sentence>``; this method prepends :data:`USAGE_LIMIT_TAG` when the
-        sentence matches :data:`USAGE_LIMIT_MARKERS`, because a usage cap and a
-        busy endpoint share the status code and differ in every remedy.
+        envelope's ``api_error`` is ``usage_limit_reached`` or the sentence
+        matches :data:`USAGE_LIMIT_MARKERS`, because a usage cap and a busy
+        endpoint share the status code and differ in every remedy. The reset
+        (:meth:`usage_limit_reset`) stays on the line: the sentence carries its
+        clause verbatim, and an exact time from a rejected rate-limit event is
+        appended.
 
         Diagnostics, never classification (the base hook's rule):
         :meth:`classify_failure` reads the same envelope for its own verdict and
@@ -1664,11 +1812,18 @@ class ClaudeCodeProvider(LLMProvider):
         deliberately unread: it has been empty on every capture.
         """
         line = describe_refused_envelope(structural_stdout(stdout, self))
+        reset = self.usage_limit_reset(stdout, stderr) or {}
         if line is None:
+            # A stream with a rejected rate-limit event and no single envelope.
+            if reset.get("at"):
+                return f"{USAGE_LIMIT_TAG} usage limit reached; resets at {reset['at']}"
             return None
-        lowered = line.lower()
-        if any(marker.search(lowered) for marker in USAGE_LIMIT_MARKERS):
-            return f"{USAGE_LIMIT_TAG} {line}"
+        if self._is_usage_limit(stdout, line):
+            line = f"{USAGE_LIMIT_TAG} {line}"
+        # The reset rides the line a person reads: the clause is already there,
+        # inside the CLI's own sentence; an exact time is appended.
+        if reset.get("at"):
+            line = f"{line} (resets at {reset['at']})"
         return line
 
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:

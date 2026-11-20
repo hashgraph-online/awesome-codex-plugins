@@ -9,6 +9,7 @@ structures by tracking bracket depth, handling strings correctly (not counting
 brackets inside "..."), and returning each structure individually.
 """
 
+import bisect
 import heapq
 import json
 import re
@@ -691,7 +692,31 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
         document. Shape preference serves an array first, and an object
         holding one (a write report's ``declined``) would otherwise give the
         executor a piece of the object its contract asks for (fix round 28).
+        A success carrying ``enclosing_syntax_error`` also carries
+        ``repaired`` when :func:`repair_document` mends that enclosing
+        document: ``{"data": …, "repairs": [<one line per change>]}``, where
+        ``data`` is what this function serves for the reply with the mended
+        document in place. ``data`` itself is still the fragment, so a caller
+        that does not ask for ``repaired`` reads exactly what it read before;
+        the review fan-out takes it (``llm_client.invoke_with_file_output``).
+        A served value that sits after a document opener which never closes
+        (:func:`_never_closed_opener`: a truncated reply) is such a piece
+        too, of the document from that opener to the end of the text, and
+        carries ``enclosing_syntax_error`` saying so; an opener in prose
+        (``The class "[[a-z]" is wrong.``) is not one. A failure (nothing
+        parsed at all) carries ``repaired`` when the first outermost document
+        :func:`repair_document` changes reads whole once mended; it is still
+        a failure, ``data`` ``None``, for every caller that does not ask.
+        Neither path offers ``repaired`` while another outermost document in
+        the reply still fails to parse (:func:`_another_broken_document`).
     """
+    return _extract(text, prefer_arrays, repair=True)
+
+
+def _extract(text: str, prefer_arrays: bool, *, repair: bool) -> Dict[str, Any]:
+    """:func:`extract_json_from_text`; *repair* offers ``repaired``. The
+    repaired reading is this function again with *repair* off, so a repair is
+    attempted once per reply, never on its own result."""
     text = text.strip()
 
     # Strategy 1: Code blocks - try both json-tagged and untagged.
@@ -759,10 +784,16 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
 
     def served(data: Any, span: Tuple[int, int]) -> Dict[str, Any]:
         result = {"success": True, "data": data}
-        if span in contained_spans:
-            error = _enclosing_document_error(text, span, every_span)
-            if error is not None:
-                result["enclosing_syntax_error"] = error
+        # Asked of every served span, top-level ones too: a document that
+        # never closes is no candidate, so what it holds is "top-level".
+        enclosing = _enclosing_document_span(text, span, every_span)
+        error = _document_error(text, enclosing) if enclosing is not None else None
+        if error is not None:
+            result["enclosing_syntax_error"] = error
+            if repair:
+                repaired = _repaired_reading(text, enclosing, prefer_arrays, every_span)
+                if repaired is not None:
+                    result["repaired"] = repaired
         return _with_only_object(result, text, every_span)
 
     # Strategy 3: Try parsing each candidate in rank order.
@@ -785,12 +816,20 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
         if rank in fallbacks:
             return served(*fallbacks[rank])
 
-    return {
+    failure: Dict[str, Any] = {
         "success": False,
         "error": "No valid JSON found in text",
         "raw": text,
         "data": None,
     }
+    # Nothing parsed, not even a piece: a model that left a trailing comma in
+    # every finding, or wrote one finding, has no fragment to serve, and that
+    # is no reason to skip the repair a fragment would have been offered.
+    if repair:
+        repaired = _first_repaired_reading(text, candidates, every_span, prefer_arrays)
+        if repaired is not None:
+            failure["repaired"] = repaired
+    return failure
 
 
 def _only_object(
@@ -886,7 +925,8 @@ def _enclosing_document_error(
     the *last* equal span rather than the served one (a document quoted again
     inside a wrapper later in the reply read as broken), and stopped matching
     once the caller completed the document in place. The enclosing document is
-    the **outermost** span around *span* that opens like one
+    :func:`_enclosing_document_span`'s: a document that never closes, else the
+    **outermost** span around *span* that opens like one
     (:data:`_DOCUMENT_OPENING`); a stray bracket in the prose is skipped, so a
     whole document between a ``{`` and a ``}`` of narration has no error. If
     that enclosing document parses, the served value is a piece of valid JSON
@@ -898,30 +938,468 @@ def _enclosing_document_error(
     the error, with ``<<HERE>>`` at the position and line breaks shown as
     spaces). Never raises.
     """
+    enclosing = _enclosing_document_span(text, span, every_span)
+    return _document_error(text, enclosing) if enclosing is not None else None
+
+
+def _document_error(
+    text: str, enclosing: Tuple[int, int, bool],
+) -> Optional[Dict[str, Any]]:
+    """:func:`_enclosing_document_error`'s dict for the document
+    :func:`_enclosing_document_span` found, or ``None`` when it parses. A
+    document that never closes says so in its ``message``: the parser's own
+    words name only where it stopped. Never raises."""
     try:
-        start, end = span
-        for outer_start, outer_end in every_span:
-            if outer_start >= start:
-                break  # position order: every encloser starts before the span
-            if outer_end < end or not _DOCUMENT_OPENING.match(text, outer_start, outer_end):
-                continue
-            outer = text[outer_start:outer_end]
-            try:
-                _loads_reply(outer)
-            except json.JSONDecodeError as exc:
-                before = outer[max(0, exc.pos - _SYNTAX_EXCERPT_BEFORE):exc.pos]
-                after = outer[exc.pos:exc.pos + _SYNTAX_EXCERPT_AFTER]
-                excerpt = re.sub(r"\s+", " ", f"{before}<<HERE>>{after}").strip()
-                return {
-                    "message": exc.msg,
-                    "line": exc.lineno,
-                    "column": exc.colno,
-                    "excerpt": excerpt,
-                }
-            return None
+        outer = text[enclosing[0]:enclosing[1]]
+        try:
+            _loads_reply(outer)
+        except json.JSONDecodeError as exc:
+            before = outer[max(0, exc.pos - _SYNTAX_EXCERPT_BEFORE):exc.pos]
+            after = outer[exc.pos:exc.pos + _SYNTAX_EXCERPT_AFTER]
+            excerpt = re.sub(r"\s+", " ", f"{before}<<HERE>>{after}").strip()
+            message = exc.msg
+            if enclosing[2]:
+                message = f"{message} (the document is never closed: the reply ends inside it)"
+            return {
+                "message": message,
+                "line": exc.lineno,
+                "column": exc.colno,
+                "excerpt": excerpt,
+            }
         return None
     except Exception:  # noqa: BLE001 - a diagnosis must never fail a dispatch
         return None
+
+
+def _enclosing_document_span(
+    text: str, span: Tuple[int, int], every_span: List[Tuple[int, int]]
+) -> Optional[Tuple[int, int, bool]]:
+    """``(start, end, never_closed)`` of the document *span* is a piece of, or
+    ``None``: the document :func:`_enclosing_document_error` diagnoses and
+    :func:`_repaired_reading` mends.
+
+    A document opened before *span* that never closes, with nothing but JSON
+    between its opener and *span* (:func:`_never_closed_opener`), runs to the
+    end of the reply, so it holds *span* and everything else after it: its
+    opener to the end of *text*.
+    Otherwise the outermost span around *span* that opens like a document
+    (:data:`_DOCUMENT_OPENING`). The first rule is the truncated reply's:
+    ``[{A}, {B}, {"title": "C", "descr`` serves finding B, which no balanced
+    span holds, and B alone is not the review.
+    """
+    start, end = span
+    opener = _never_closed_opener(text, every_span, before=start)
+    if opener is not None:
+        return opener, len(text), True
+    for outer_start, outer_end in every_span:
+        if outer_start >= start:
+            break  # position order: every encloser starts before the span
+        if outer_end < end or not _DOCUMENT_OPENING.match(text, outer_start, outer_end):
+            continue
+        return outer_start, outer_end, False
+    return None
+
+
+def _never_closed_opener(
+    text: str, every_span: List[Tuple[int, int]], *, before: int,
+) -> Optional[int]:
+    """The first document opener before *before* that never closes and whose
+    document reaches *before*, or ``None``.
+
+    An opener counts when it opens like a structure the model started
+    (:data:`_JSON_STRUCTURE_OPENING`: ``[{``, ``{"``, ``[[``, the openings
+    :func:`has_salvageable_json`'s clause 2 reads a truncation from, so an
+    ANSI ``[0m`` or a ``[docs]`` never does), starts no balanced run of its
+    own pair (its walk reaches the end of the reply), lies outside every
+    balanced span (one inside a closed document is that document's damage,
+    or a string's text, which the outermost-document rule of
+    :func:`_enclosing_document_span` already reads), and is followed by
+    nothing but JSON up to *before* (:func:`_first_prose_token`). The last
+    test is Fable review 2's N1: the reply ``The class "[[a-z]" is wrong.``
+    then a clean ``[]`` read the ``[[`` as a document the reply ends inside,
+    so the ``[]`` was a piece of it and a lone reviewer's clean answer was
+    refused (exit 3). A bracket in prose never holds what comes after it.
+
+    An opener turned down is passed for the next one at or after the prose
+    that turned it down: an opener before that point which the same reading
+    met between tokens would read on to the same prose, so the readings
+    never overlap and the search stays linear in the text. One the reading
+    met inside a string is skipped with them, a loss only when prose opens
+    a structure, quotes, and the real document follows inside that quote.
+
+    *every_span* is every balanced run of both pairs, in position order;
+    past the scan's budget only nested runs are missing, and those lie inside
+    a run that is kept. Never raises.
+    """
+    try:
+        index, furthest, resume = 0, -1, 0
+        for match in _JSON_STRUCTURE_OPENING.finditer(text):
+            position = match.start()
+            if position >= before:
+                return None
+            while index < len(every_span) and every_span[index][0] < position:
+                furthest = max(furthest, every_span[index][1])
+                index += 1
+            if (
+                position < resume or position < furthest
+                or _run_end(every_span, position) is not None
+            ):
+                continue
+            prose = _first_prose_token(text, position, before, every_span)
+            if prose is None:
+                return position
+            resume = prose
+        return None
+    except Exception:  # noqa: BLE001 - a diagnosis must never fail a dispatch
+        return None
+
+
+def _run_end(every_span: List[Tuple[int, int]], start: int) -> Optional[int]:
+    """The end of the balanced run that starts at *start*, or ``None``.
+    *every_span* is in position order, with at most one run per start."""
+    at = bisect.bisect_left(every_span, (start,))
+    if at < len(every_span) and every_span[at][0] == start:
+        return every_span[at][1]
+    return None
+
+
+#: A bare JSON value: a number, ``true``, ``false`` or ``null``, and the
+#: ``NaN`` and ``Infinity`` :func:`json.loads` reads too.
+_JSON_BARE_VALUE = re.compile(
+    r"-?(?:\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|Infinity)|true|false|null|NaN"
+)
+
+
+def _first_prose_token(
+    text: str, start: int, before: int, every_span: List[Tuple[int, int]],
+) -> Optional[int]:
+    """Where ``text[start:before]`` stops reading as the inside of one JSON
+    document, or ``None`` when it never does.
+
+    Read token by token, never by grammar: a missing comma or a stray closer
+    is damage to a document, not prose, and a truncated reply with either
+    must stay a truncation. What reads as JSON: whitespace, ``,`` ``:`` ``]``
+    ``}``, a string (:func:`_string_end`), a bare value
+    (:data:`_JSON_BARE_VALUE`), an opener that starts no balanced run (one
+    more level of the unclosed document), and a whole balanced run that opens
+    like a document (:data:`_DOCUMENT_OPENING`), skipped unread, broken or
+    not. Prose is only what is positively not JSON: a bare word, or a
+    balanced run that opens like prose (``[a-z]``, ``[see above]``). A string
+    still open at *before* holds the served value, so the document does too,
+    but only where a member's value stands, after a colon (a truncation cut
+    through a finding's text, ``"desc": "see rows[0] and``). Anywhere else
+    the quote is prose's: ``The token "{" is unexpected.`` opens a string
+    straight after the opener that nothing closes before *before*.
+    """
+    index = start
+    last = ""
+    while index < before:
+        char = text[index]
+        if char.isspace():
+            index += 1
+            continue
+        if char in ",:]}":
+            index += 1
+        elif char in "[{":
+            end = _run_end(every_span, index)
+            if end is None:
+                index += 1
+            elif _DOCUMENT_OPENING.match(text, index, end):
+                index = end
+            else:
+                return index
+        elif char == '"':
+            end = _string_end(text, index, before)
+            if end is None:
+                return None if last == ":" else index
+            index = end
+        else:
+            found = _SCALAR_END.search(text, index + 1, before)
+            end = found.start() if found else before
+            if not _JSON_BARE_VALUE.fullmatch(text, index, end):
+                return index
+            index = end
+        last = char
+    return None
+
+
+def _string_end(text: str, start: int, before: int) -> Optional[int]:
+    """The index just past the string that opens at ``text[start]``, or
+    ``None`` when it is still open at *before*.
+
+    A backslash escapes the next character, as in JSON. A closing quote with
+    a letter, digit or ``_`` glued to it is a quote the model left unescaped
+    (``"say "hi" there"``), not the end: from there the string ends only at a
+    quote followed, after any whitespace, by ``,`` ``:`` ``]`` ``}`` or by
+    *before*. Prose closes a quotation with a space or punctuation, so it
+    seldom takes that turn, and a truncated finding with an unescaped quote
+    in it stays a truncation instead of reading as prose.
+    """
+    close = start + 1
+    unescaped = False
+    while True:
+        while close < before and text[close] != '"':
+            close += 2 if text[close] == "\\" else 1
+        if close >= before:
+            return None
+        close += 1
+        if not unescaped:
+            if close < before and (text[close].isalnum() or text[close] == "_"):
+                unescaped = True
+                continue
+            return close
+        look = close
+        while look < before and text[look].isspace():
+            look += 1
+        if look >= before or text[look] in ",:]}":
+            return close
+
+
+def _outermost_documents(
+    text: str, every_span: List[Tuple[int, int]],
+) -> List[Tuple[int, int]]:
+    """The spans of *every_span* that open like a document
+    (:data:`_DOCUMENT_OPENING`) inside no other such span, in position order."""
+    outermost: List[Tuple[int, int]] = []
+    furthest = -1
+    for start, end in every_span:
+        if start < furthest:
+            continue  # inside an earlier document
+        if _DOCUMENT_OPENING.match(text, start, end):
+            outermost.append((start, end))
+            furthest = end
+    return outermost
+
+
+def _another_broken_document(
+    text: str, every_span: List[Tuple[int, int]], mended: Tuple[int, int],
+) -> bool:
+    """True when *text* holds an outermost document (:func:`_outermost_documents`)
+    other than the *mended* span that reads like a broken answer: it opens
+    like a structure (:data:`_JSON_STRUCTURE_OPENING`), names a field an
+    answer carries (:data:`_ANSWER_KEY`) and does not parse.
+
+    Fable review 2's N5: a reply of two arrays, each with a trailing comma,
+    served the last one mended and dropped the first, and the repair note did
+    not say so. Mending only one leaves the other unread, and mending both
+    leaves two answers for last-wins to choose between in silence (two valid
+    arrays do that too, but the model wrote those whole), so the mended
+    reading is refused instead and the attempt goes to retry and salvage
+    with the whole reply. Prose brackets are not answers: ``lines [12-15]``
+    and ``[see above]`` open like no structure, and ``[[:alpha:]]`` or a
+    code literal such as ``{"error": err}`` names no answer field. A
+    document that never closes is no span; one after the mended document is
+    a cut-off trailer, served past as on the clean path.
+    """
+    for start, end in _outermost_documents(text, every_span):
+        if (start, end) == mended:
+            continue
+        if not _JSON_STRUCTURE_OPENING.match(text, start, end):
+            continue
+        if not _ANSWER_KEY.search(text, start, end):
+            continue
+        try:
+            _loads_reply(text[start:end])
+        except _UNPARSED:
+            return True
+    return False
+
+
+def _repaired_reading(
+    text: str, enclosing: Tuple[int, ...], prefer_arrays: bool,
+    every_span: List[Tuple[int, int]],
+) -> Optional[Dict[str, Any]]:
+    """The reply read with its broken *enclosing* document mended, or ``None``.
+
+    *enclosing* starts with the document's ``(start, end)`` in *text*. The
+    document is mended in place (:func:`repair_document` keeps every
+    other character where it was) and the whole reply is read again by the
+    same rules, so what comes back is what the reply would have served had
+    the model written that document validly — a wrapper's array included.
+    ``None`` when nothing in it is :func:`repair_document`'s to mend, when
+    another outermost document of the reply still fails to parse
+    (:func:`_another_broken_document`: the mended one would win unsaid), or
+    when the mended reply still serves only a piece of a broken document (a
+    truncated one among them: a document that never closes stays broken).
+    *every_span* is the extractor's, every balanced run of *text*. Never
+    raises.
+    """
+    try:
+        start, end = enclosing[0], enclosing[1]
+        mended = repair_document(text[start:end])
+        if mended is None:
+            return None
+        if _another_broken_document(text, every_span, (start, end)):
+            return None
+        document, repairs = mended
+        reread = _extract(text[:start] + document + text[end:], prefer_arrays, repair=False)
+        if not reread.get("success") or "enclosing_syntax_error" in reread:
+            return None
+        return {"data": reread["data"], "repairs": repairs}
+    except Exception:  # noqa: BLE001 - an extra reading must never fail one
+        return None
+
+
+def _first_repaired_reading(
+    text: str, candidates: List[Tuple[int, int]],
+    every_span: List[Tuple[int, int]], prefer_arrays: bool,
+) -> Optional[Dict[str, Any]]:
+    """The reply read with its first mendable outermost document mended, for a
+    reply in which nothing parsed, or ``None``.
+
+    The outermost documents (:func:`_outermost_documents`) are tried in
+    *candidates*' order (the extractor's rank: shape, then last first), and
+    only the first one :func:`repair_document` changes is read again, so the
+    repair is attempted once per reply, as on the fragment path; it is
+    refused, as there, while another one still fails to parse. Never raises.
+    """
+    try:
+        outermost = set(_outermost_documents(text, every_span))
+        for span in candidates:
+            if span in outermost and repair_document(text[span[0]:span[1]]) is not None:
+                return _repaired_reading(text, span, prefer_arrays, every_span)
+        return None
+    except Exception:  # noqa: BLE001 - an extra reading must never fail one
+        return None
+
+
+#: Where a scalar (a number, ``true``, ``false``, ``null``, or stray text) ends
+#: in :func:`repair_document`'s walk.
+_SCALAR_END = re.compile(r'[\s{}\[\],:"]')
+
+#: The tokens after which a comma separates one value from the next.
+_VALUE_ENDS = frozenset({"string", "scalar", "close"})
+
+
+def repair_document(document: str) -> Optional[Tuple[str, List[str]]]:
+    """*document* with its unambiguous syntax damage blanked out, or ``None``
+    when there is none.
+
+    Two repairs, and nothing else, because each has exactly one reading and
+    drops nothing the model wrote:
+
+    * **a trailing comma**: a comma after a value that only whitespace
+      separates from the ``}`` or ``]`` closing its container (``"x": 1,}``).
+      A comma after anything but a value (``[,]``, ``{"a",}``, ``1,,]``) is
+      left, and the document still fails.
+    * **an empty key with no value**: ``""`` where an object's key goes, after
+      ``{`` or after a comma that follows a value, and before the object's
+      ``}``; it is removed with that comma. Measured 2026-11-18 on codex
+      ``gpt-6-luna``: a finding's last member was followed by ``,\\n ""\\n }``.
+      A *non-empty* key with no value is not repaired: it may be a field
+      whose value was lost, which only the model can say.
+
+    Each removed character becomes a space, so every other character keeps
+    its line and column, and the notes name each change by both (1-based,
+    within *document*). Everything else is the caller's: the result is
+    returned unparsed, and a document with any other damage — an unescaped
+    quote, a missing comma, single quotes, a truncation — still fails to
+    parse. Strings are walked as JSON strings (a backslash escapes the next
+    character), so nothing inside one is touched; an unterminated string or
+    a closer that does not match its opener ends the walk with ``None``.
+    """
+    # Blanked ranges, not a list of the document's characters: this runs on
+    # every reply in which nothing parsed, and a character list costs a
+    # pointer per character (``TestBalancedScanMemory``).
+    blanked: List[Tuple[int, int]] = []
+    changes: List[Tuple[int, str]] = []
+    stack: List[str] = []
+    # The last three significant tokens, as (kind, start, end): enough to tell
+    # a comma after a value from one after an opener, and a key from a value.
+    recent: List[Tuple[str, int, int]] = []
+
+    def push(token: Tuple[str, int, int]) -> None:
+        recent.append(token)
+        if len(recent) > 3:
+            del recent[0]
+
+    def blank(token: Tuple[str, int, int], what: Optional[str] = None) -> None:
+        blanked.append((token[1], token[2]))
+        if what is not None:
+            changes.append((token[1], what))
+
+    index = 0
+    length = len(document)
+    while index < length:
+        char = document[index]
+        if char == '"':
+            close = index + 1
+            while close < length and document[close] != '"':
+                close += 2 if document[close] == "\\" else 1
+            if close >= length:
+                return None
+            in_object = bool(stack) and stack[-1] == "{"
+            is_key = in_object and bool(recent) and recent[-1][0] in ("{", ",")
+            push(("key" if is_key else "string", index, close + 1))
+            index = close + 1
+            continue
+        if char.isspace():
+            index += 1
+            continue
+        if char in "{[":
+            stack.append(char)
+            push((char, index, index + 1))
+            index += 1
+            continue
+        if char in "}]":
+            if not stack or stack[-1] != ("{" if char == "}" else "["):
+                return None
+            last = recent[-1] if recent else None
+            if (
+                char == "}" and last is not None and last[0] == "key"
+                and last[2] - last[1] == 2
+            ):
+                before = recent[-2] if len(recent) >= 2 else None
+                if before is not None and before[0] == "{":
+                    blank(last, "removed an empty key with no value before '}'")
+                    recent[-1:] = []
+                elif (
+                    before is not None and before[0] == ","
+                    and len(recent) >= 3 and recent[-3][0] in _VALUE_ENDS
+                ):
+                    blank(last, "removed an empty key with no value, and the "
+                                "comma before it, before '}'")
+                    blank(before)
+                    recent[-2:] = []
+            last = recent[-1] if recent else None
+            if (
+                last is not None and last[0] == ","
+                and len(recent) >= 2 and recent[-2][0] in _VALUE_ENDS
+            ):
+                blank(last, f"removed a trailing comma before '{char}'")
+                recent.pop()
+            stack.pop()
+            push(("close", index, index + 1))
+            index += 1
+            continue
+        if char in ",:":
+            push((char, index, index + 1))
+            index += 1
+            continue
+        found = _SCALAR_END.search(document, index + 1)
+        end = found.start() if found else length
+        push(("scalar", index, end))
+        index = end
+    if not changes:
+        return None
+    changes.sort()
+    notes: List[str] = []
+    line, line_start, scanned = 1, 0, 0
+    for position, what in changes:
+        line += document.count("\n", scanned, position)
+        newline = document.rfind("\n", scanned, position)
+        if newline >= 0:
+            line_start = newline + 1
+        scanned = position
+        notes.append(f"line {line}, column {position - line_start + 1}: {what}")
+    pieces: List[str] = []
+    kept = 0
+    for start, end in sorted(blanked):  # tokens: never overlapping
+        pieces.append(document[kept:start])
+        pieces.append(" " * (end - start))
+        kept = end
+    pieces.append(document[kept:])
+    return "".join(pieces), notes
 
 
 def describe_syntax_error(error: Dict[str, Any]) -> str:
@@ -1018,6 +1496,13 @@ _ANSWER_FIELD_NAMES = frozenset(
         "anchor_text",
         "suggested_fix",
     }
+)
+
+#: A key :data:`_ANSWER_FIELD_NAMES` names, quoted, and its colon: how a
+#: broken answer still shows itself when it does not parse
+#: (:func:`_another_broken_document`).
+_ANSWER_KEY = re.compile(
+    r'"(?:%s)"\s*:' % "|".join(sorted(map(re.escape, _ANSWER_FIELD_NAMES)))
 )
 
 #: A JSON structure that was **started**: ``[`` or ``{`` followed by a token

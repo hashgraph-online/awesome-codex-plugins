@@ -1,0 +1,15 @@
+{
+  "name": "kling-ai-claude-plugin",
+  "version": "1.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Create and edit images, generate videos with Kling 4.0 or Kling 4.0 Flash when available, apply motion control, reuse Elements, and track tasks with Kling AI in Claude.",
+  "scripts": {
+    "check": "node scripts/verify-package.mjs",
+    "test": "node scripts/verify-package.mjs && node --test tests/package.test.mjs",
+    "verify": "node scripts/verify-package.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

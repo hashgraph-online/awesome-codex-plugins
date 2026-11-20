@@ -46,6 +46,7 @@ from .batch_reply import (
     SKIPPED_SECTION_HEADING,
 )
 from .check_records import batch_check_summary, batch_check_section
+from . import suppression_scan as _suppression_scan
 from .verification_lines import verification_line
 from .batch_prompt import CODE_WRITE_KINDS
 from .commit_spelling import commit_view
@@ -940,6 +941,11 @@ class ApplyPhaseReport:
             for heading, entries in not_applied_sections.items():
                 if entries:
                     lines += [f"## {heading}", ""] + entries + [""]
+            # What the batches added that quiets a check, for a person
+            # to read (docs/development/write-scheduler.md#suppressions-a-batch-added).
+            added = _suppression_scan.section_lines(_suppression_scan.from_rows(rows))
+            if added:
+                lines += added[1:] + [""]
         else:
             lines += ["(no batches were dispatched)", ""]
 

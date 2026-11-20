@@ -16,13 +16,13 @@
     "unicode",
     "terminal"
   ],
-  "homepage": "https://github.com/vladimirrott/claude-math",
+  "homepage": "https://github.com/agentsmith-tools/claude-math",
   "bugs": {
-    "url": "https://github.com/vladimirrott/claude-math/issues"
+    "url": "https://github.com/agentsmith-tools/claude-math/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vladimirrott/claude-math.git"
+    "url": "git+https://github.com/agentsmith-tools/claude-math.git"
   },
   "license": "MIT",
   "author": {

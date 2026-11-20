@@ -128,6 +128,14 @@ VERDICT_FIELDS: Dict[str, str] = {
         "skips a partial application"
     ),
     "skipped_items": "stamped",
+    "suppressions": (
+        "report only, never a verdict; a resume skip leaves them on the "
+        "earlier run's report row, which stands in for it"
+    ),
+    "suppressions_not_scanned": (
+        "report only, never a verdict; a resume skip leaves them on the "
+        "earlier run's report row, which stands in for it"
+    ),
 }
 
 

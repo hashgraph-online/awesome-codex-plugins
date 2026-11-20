@@ -301,6 +301,7 @@ class StateDoc(TypedDict, total=False):
     scope_policy: Dict[str, Any]
     scope_policy_runs: Dict[str, Any]
     apply_fix_batch_checks: Dict[str, Any]
+    apply_fix_scoped_check: Dict[str, Any]
     batch_snapshot_records: Dict[str, Any]
     dependency_overrides: Dict[str, Any]
     human_task_strategy: str

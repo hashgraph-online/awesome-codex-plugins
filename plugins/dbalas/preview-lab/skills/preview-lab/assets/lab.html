@@ -92,17 +92,18 @@ dialog::backdrop{background:rgb(0 0 0/.55)}
 .tools{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;margin-left:auto}.tools input{width:5.5rem}.tools a{color:var(--accent);font-size:.82rem;padding:0 .3rem}
 .vw{position:relative;flex:1;min-height:0}
 .view{position:absolute;inset:0;display:grid;padding:1rem 3.5rem;overflow:auto}
-.canvas{position:relative;line-height:0;margin:auto}.view.actual .canvas{margin:0 auto}
+.canvas{position:relative;line-height:0;margin:auto;transform-origin:0 0;--s:1}
+.view.pz{overflow:hidden;cursor:grab;touch-action:pan-y}.view.pz.zoomed{touch-action:none}.view.space .overlay{cursor:grab}.view.panning,.view.panning *{cursor:grabbing!important}.view.actual .canvas{margin:0 auto}
 .canvas img{display:block;max-width:calc(100vw - 490px);max-height:calc(100dvh - 200px);border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35);user-select:none}
 .view.actual .canvas img{max-width:none;max-height:none}
 .frame{position:relative;overflow:hidden;border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35);background:#fff}
 .frame iframe{border:0;transform-origin:0 0;display:block}
 .overlay{position:absolute;inset:0;cursor:crosshair;touch-action:none}.live .overlay{pointer-events:none}
 .live.annotate .overlay{pointer-events:auto;background:color-mix(in srgb,var(--accent) 6%,transparent)}
-.area{position:absolute;height:auto;padding:0;border:2px solid var(--accent);border-radius:4px;background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:0 0 0 1px rgb(255 255 255/.7)}
+.area{position:absolute;height:auto;padding:0;border:calc(2px / var(--s)) solid var(--accent);border-radius:4px;background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:0 0 0 1px rgb(255 255 255/.7)}
 .area:hover{background:color-mix(in srgb,var(--accent) 24%,transparent);border-color:var(--accent)}
-.area span{position:absolute;top:-11px;left:-11px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 11px/22px var(--font);text-align:center;box-shadow:0 1px 4px rgb(0 0 0/.35)}
-.area.draft{pointer-events:none}
+.area span{transform:scale(calc(1 / var(--s)));position:absolute;top:-11px;left:-11px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 11px/22px var(--font);text-align:center;box-shadow:0 1px 4px rgb(0 0 0/.35)}
+.area{pointer-events:none}.area span{pointer-events:auto;cursor:pointer} /* only the badge is a target: zoomed-in areas must not block drawing a new one */
 .area.rec{border:2px dashed var(--warn);background:color-mix(in srgb,var(--warn) 5%,transparent);box-shadow:none}.area.rec:hover,.area.rec.hot{background:color-mix(in srgb,var(--warn) 16%,transparent);border-style:solid;border-color:var(--warn)}
 .area.rec span{background:var(--warn);color:var(--surface);width:auto;min-width:22px;padding:0 5px;border-radius:99px}
 #close{position:fixed;top:.55rem;right:.8rem;z-index:6;width:36px;height:36px;padding:0;border-radius:50%;font-size:1rem;color:var(--fg);box-shadow:0 2px 8px rgb(0 0 0/.15)}
@@ -147,8 +148,7 @@ dialog::backdrop{background:rgb(0 0 0/.55)}
 .modal h2{margin:0 0 .2rem;font-size:1.05rem}.modal textarea{margin:.8rem 0}.modal .row{display:flex;justify-content:flex-end}
 .toast{position:fixed;bottom:1.25rem;left:50%;transform:translate(-50%,150%);opacity:0;background:var(--fg);color:var(--bg);padding:.6rem 1rem;border-radius:99px;font-size:.9rem;transition:transform .25s,opacity .25s;z-index:20}
 .toast.show{transform:translate(-50%,0);opacity:1}
-.done{position:fixed;inset:0;display:grid;place-items:center;text-align:center;background:var(--bg);z-index:30;padding:2rem}
-.done i{font-size:3rem;font-style:normal;color:var(--accent)}.done h2{margin:.3rem 0}.done p{color:var(--muted)}
+.done{text-align:center}.done i{font-size:3rem;font-style:normal;color:var(--accent);line-height:1}.done h2{margin:.3rem 0}.done .row{justify-content:center;margin-top:1rem}
 @media (max-width:860px){.detail{display:block;height:auto}.vw{flex:none;height:60dvh}.panel{border-left:0;border-top:1px solid var(--line)}
   .top,.pfoot{position:sticky;z-index:3}.top{top:0;background:var(--bg);padding-right:3.6rem}.pfoot{bottom:0;background:var(--surface)}
   .view{padding:.75rem 2.8rem}.canvas img{max-width:calc(100vw - 6rem);max-height:calc(60dvh - 1.5rem)}.meter,.nl{display:none}.bar,main{padding-left:1rem;padding-right:1rem}}
@@ -190,6 +190,9 @@ dialog::backdrop{background:rgb(0 0 0/.55)}
   <p class="hint" id="outHint"></p><textarea id="outText" rows="12" readonly aria-labelledby="outHint"></textarea>
   <div class="row"><button class="primary" id="outDone"></button></div>
 </form></dialog>
+<dialog id="sentDlg" class="modal done"><form method="dialog">
+  <i aria-hidden="true">✓</i><h2 id="sentTitle"></h2><p class="hint" id="sentHint"></p>
+  <div class="row"><button class="primary" id="sentDone"></button></div></form></dialog>
 <dialog id="notes" class="modal"><form method="dialog">
   <h2 id="notesTitle"></h2><p class="hint" id="notesHint"></p>
   <textarea id="general" class="gen" rows="6" aria-labelledby="notesTitle"></textarea>
@@ -203,7 +206,7 @@ dialog::backdrop{background:rgb(0 0 0/.55)}
 const BRAND = {"name":"","logo":"","lang":"en","copy":{}};
 /* BRAND:END */
 const STR = {
-  send: 'Send feedback', copy: 'Copy as prompt', sent: 'Sent. Your agent has it.', sentHint: 'Keep this tab open: the next round loads here.',
+  send: 'Send feedback', copy: 'Copy as prompt', sent: 'Sent. Your agent has it.', sentHint: 'Keep this tab open: the next round loads here. To change something, close this, edit and send again.', sentDone: 'OK',
   empty: 'Nothing to review yet. Your agent will add items here.', loadError: 'Could not load the lab. Ask your agent to start it again.',
   reviewed: 'reviewed', filter: 'Filter', all: 'All', todo: 'To review', isNew: 'New', updated: 'Updated',
   approve: 'Approve', approveHint: 'Looks good', changes: 'Changes', changesHint: 'Needs work', approved: 'Approved',
@@ -212,10 +215,10 @@ const STR = {
   notesPh: 'e.g. Spacing feels tight everywhere. Also show me the empty states.', notesDone: 'Done', noNotes: 'No notes.',
   current: 'current', wasSent: 'sent', notSent: 'not sent', readOnly: 'Already sent: read-only.', madeWith: 'Made with', heart: 'love',
   lastRound: 'Last round', commented: 'Commented', verdict: 'Verdict',
-  comment: 'Comment', commentPh: 'What should change?', areas: 'Areas', areaHint: 'Drag on the image to mark an area.',
+  comment: 'Comment', commentPh: 'What should change?', areas: 'Areas', areaHint: 'Drag on the image to mark an area. Pinch or Ctrl/⌘ + scroll to zoom; scroll, two fingers or Space + drag to pan.',
   areaHintLive: 'Press Annotate, then drag on the page to mark an area.', areaNote: 'Note', deleteArea: 'Delete area', area: 'Area',
   recsTitle: 'Recommendations', recsHint: 'Tick the ones to apply', applied: 'applied', applyAll: 'Apply all', applyNone: 'Clear', rec: 'Recommendation', next: 'Next →', close: 'Close', prevItem: 'Previous item', nextItem: 'Next item', item: 'Review item',
-  fit: 'Fit', actual: '100%', annotate: 'Annotate', rotate: 'Rotate', custom: 'Custom', openLive: 'Open ↗', device: 'Device', width: 'Width (px)', zoom: 'Zoom',
+  fit: 'Fit', actual: '100%', annotate: 'Annotate', rotate: 'Rotate', custom: 'Custom', openLive: 'Open ↗', device: 'Device', width: 'Width (px)', zoom: 'Zoom', zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Reset zoom',
   theme: 'Theme', system: 'System', light: 'Light', dark: 'Dark',
   confirmSend: '{n} not reviewed yet. Send anyway?', copied: 'Copied. Paste it into your agent chat.', copyManual: 'Copy this text and paste it into your agent chat.', sendCopy: 'Copy feedback',
   offline: 'Agent not reachable. Feedback copied: paste it into the chat.',
@@ -234,6 +237,7 @@ let fit = true, dev = { w: 390, h: 844 }, zoom = 0; // zoom 0 = fit to stage
 document.documentElement.lang = BRAND.lang || 'en';
 $('#send').textContent = DATA ? T.sendCopy : T.send; $('#copy').textContent = T.copy; $('#copy').hidden = !!DATA; $('#nextBtn').textContent = T.next;
 $('#notesTitle').textContent = T.notesTitle; $('#notesHint').textContent = T.notesHint; $('#general').placeholder = T.notesPh; $('#notesDone').textContent = $('#outDone').textContent = T.notesDone; $('#outHint').textContent = T.copyManual;
+$('#sentTitle').textContent = T.sent; $('#sentHint').textContent = T.sentHint; $('#sentDone').textContent = T.sentDone;
 $('#dlg').setAttribute('aria-label', T.item);
 $('#foot').innerHTML = `${esc(T.madeWith)} <i role="img" aria-label="${esc(T.heart)}">♥</i> · <a href="https://github.com/dbalas/preview-lab" target="_blank" rel="noopener">Preview Lab</a>`;
 $('#close').setAttribute('aria-label', T.close); $('#close').title = `${T.close} (Esc)`; $('#prev').setAttribute('aria-label', T.prevItem); $('#next').setAttribute('aria-label', T.nextItem);
@@ -265,7 +269,7 @@ function render(m) {
   if (M?.round !== now) view = now; // a new round (or the first load) shows the current one
   M = m; past = view === now ? null : hist.find(h => h.round === view); if (!past) view = now; ro = !!past;
   const R = past || m; items = R.items || [];
-  KEY = `pl:${m.project}:r${view}`;
+  KEY = `pl:${m.project}:${m.root || ""}:${m.session || ""}:r${view}`; // per lab: two sessions may serve on the same port
   if (ro) st = { general: past.feedback?.general || '', items: Object.fromEntries((past.feedback?.items || []).map(f => [f.id, { ...f }])) };
   else { try { st = JSON.parse(ls.get(KEY)) || {}; } catch { st = {}; } }
   st.items ||= {};
@@ -375,7 +379,7 @@ function show(n, keepTab) {
 
 function drawStage(it, v) {
   const c = $('#canvas'), view = $('#view'), live = v?.kind === 'live';
-  view.classList.toggle('actual', !live && !fit);
+  view.classList.toggle('actual', !live && !fit); view.classList.toggle('pz', !!v && !live); resetPZ();
   c.className = 'canvas' + (live ? ' live' : '');
   if (live) {
     const z = zoom || Math.min(1, (view.clientWidth - 112) / dev.w, (view.clientHeight - 32) / dev.h);
@@ -392,8 +396,9 @@ function drawStage(it, v) {
        <input type="number" id="w" min="200" max="3840" value="${dev.w}" aria-label="${esc(T.width)}"><button id="rot" title="${esc(T.rotate)}" aria-label="${esc(T.rotate)}">↻</button>
        <select id="zoom" aria-label="${esc(T.zoom)}"><option value="0">${esc(T.fit)}</option>${[.5, .75, 1].map(z => `<option value="${z}" ${zoom === z ? 'selected' : ''}>${z * 100}%</option>`).join('')}</select>
        <button class="tog" id="annotate" aria-pressed="false">${esc(T.annotate)}</button><a href="${esc(v.src)}" target="_blank" rel="noopener">${esc(T.openLive)}</a>`
-    : v ? `<button class="tog" id="fit" aria-pressed="${fit}">${esc(T.fit)}</button><button class="tog" id="actual" aria-pressed="${!fit}">${esc(T.actual)}</button>` : '';
-  drawAreas();
+    : v ? `<button class="tog" id="fit" aria-pressed="${fit}">${esc(T.fit)}</button><button class="tog" id="actual" aria-pressed="${!fit}">${esc(T.actual)}</button>
+       <button id="zout" aria-label="${esc(T.zoomOut)}" title="${esc(T.zoomOut)} (−)">−</button><button id="zpct" class="sm" title="${esc(T.zoomReset)} (0)">1×</button><button id="zin" aria-label="${esc(T.zoomIn)}" title="${esc(T.zoomIn)} (+)">+</button>` : '';
+  applyPZ(); drawAreas();
 }
 
 const box = a => `left:${a.x}%;top:${a.y}%;width:${a.w}%;height:${a.h}%`;
@@ -437,6 +442,8 @@ const restage = () => { const it = items[cur]; drawStage(it, views(it)[tab]); };
 $('#tools').addEventListener('click', e => {
   const id = e.target.closest('button')?.id;
   if (id === 'fit' || id === 'actual') { fit = id === 'fit'; restage(); }
+  else if (id === 'zin' || id === 'zout') zoomKey(id === 'zin' ? 1.25 : .8);
+  else if (id === 'zpct') resetPZ();
   else if (id === 'rot') { dev = { w: dev.h, h: dev.w }; restage(); }
   else if (id === 'annotate') { const on = e.target.getAttribute('aria-pressed') !== 'true'; e.target.setAttribute('aria-pressed', on); $('#canvas').classList.toggle('annotate', on); }
 });
@@ -450,11 +457,11 @@ $('#tools').addEventListener('change', e => {
 addEventListener('resize', () => $('#dlg').open && views(items[cur])[tab]?.kind === 'live' && !zoom && restage());
 // Areas: drag on the overlay to draw a box (stored in % of the view); a plain click marks a small box around the point.
 let drag = null;
-const clamp = v => Math.min(1, Math.max(0, v)), r1 = v => Math.round(v * 10) / 10;
+const clamp = v => Math.min(1, Math.max(0, v)), r1 = v => Math.round(v * 100) / 100; // 0.01%: still exact at 800% zoom
 const rect = e => { const { r, x, y } = drag, x1 = clamp((x - r.left) / r.width), y1 = clamp((y - r.top) / r.height), x2 = clamp((e.clientX - r.left) / r.width), y2 = clamp((e.clientY - r.top) / r.height);
   return { x: Math.min(x1, x2) * 100, y: Math.min(y1, y2) * 100, w: Math.abs(x2 - x1) * 100, h: Math.abs(y2 - y1) * 100 }; };
 $('#canvas').addEventListener('pointerdown', e => {
-  if (ro || e.target.id !== 'overlay' || e.button) return;
+  if (ro || e.target.id !== 'overlay' || e.button || pan || space) return;
   drag = { r: e.target.getBoundingClientRect(), x: e.clientX, y: e.clientY, el: document.createElement('div') };
   drag.el.className = 'area draft'; e.target.append(drag.el); e.target.setPointerCapture(e.pointerId); e.preventDefault();
 });
@@ -480,11 +487,55 @@ for (const el of ['#panel', '#canvas']) {
   $(el).addEventListener('pointerover', e => { const x = e.target.closest('[data-rk]'); if (x) hot(x.dataset.rk, true); });
   $(el).addEventListener('pointerout', e => { const x = e.target.closest('[data-rk]'); if (x) hot(x.dataset.rk, false); });
 }
+// Screenshots pan and zoom like a canvas. Marking areas keeps the plain gesture (mouse drag / one finger on the image).
+// Zoom: Ctrl/⌘ + wheel, trackpad or touch pinch, + − 0. Pan: wheel, drag the empty stage, Space + drag, middle button, two fingers.
+let pz = { s: 1, x: 0, y: 0 }, pan = null, space = false;
+const pts = new Map(), zoomed = () => pz.s !== 1 || pz.x || pz.y;
+function applyPZ() {
+  const c = $('#canvas'); c.style.transform = zoomed() ? `translate(${pz.x}px,${pz.y}px) scale(${pz.s})` : ''; c.style.setProperty('--s', pz.s);
+  $('#view').classList.toggle('zoomed', !!zoomed()); const z = $('#zpct'); if (z) z.textContent = +pz.s.toFixed(2) + '×';
+}
+function resetPZ() { pz = { s: 1, x: 0, y: 0 }; applyPZ(); }
+function zoomAt(f, px, py) { // keeps the point under (px, py) still; transform-origin is 0 0
+  const r = $('#canvas').getBoundingClientRect(), s = Math.min(8, Math.max(.25, pz.s * f)); f = s / pz.s;
+  pz = { s, x: pz.x + (px - r.left) * (1 - f), y: pz.y + (py - r.top) * (1 - f) }; applyPZ();
+}
+const zoomKey = f => { const r = $('#view').getBoundingClientRect(); zoomAt(f, r.left + r.width / 2, r.top + r.height / 2); };
+const span = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) });
+document.addEventListener('wheel', e => { // capture on the document: nothing on the stage can swallow it
+  if (!$('#view').classList.contains('pz') || !e.target.closest?.('#view')) return;
+  const k = e.deltaMode ? 16 : 1;
+  if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * k / 300), e.clientX, e.clientY);
+  else if (!fit || zoomed()) { pz.x -= e.deltaX * k; pz.y -= e.deltaY * k; applyPZ(); }
+  else return; // fitted and untouched: let the page scroll
+  e.preventDefault();
+}, { passive: false, capture: true });
+// Safari reports trackpad pinches as gesture events, not as Ctrl + wheel.
+let gs = 1;
+$('#view').addEventListener('gesturestart', e => { gs = 1; e.preventDefault(); });
+$('#view').addEventListener('gesturechange', e => { if ($('#view').classList.contains('pz')) { zoomAt(e.scale / gs, e.clientX, e.clientY); gs = e.scale; } e.preventDefault(); });
+// capture phase: runs before the area drawing on the overlay, so a second finger or a pan can take over
+$('#view').addEventListener('pointerdown', e => {
+  const v = $('#view'); if (!v.classList.contains('pz')) return;
+  pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pts.size === 2) { if (drag) { drag.el.remove(); drag = null; } swipe = null; pan = true; return; } // second finger: pinch, not a mark
+  const empty = e.target === v || e.target.id === 'canvas';
+  if (e.button === 1 || space || (empty && !e.button && (e.pointerType !== 'touch' || zoomed()))) { pan = true; v.classList.add('panning'); v.setPointerCapture(e.pointerId); e.preventDefault(); }
+}, true);
+$('#view').addEventListener('pointermove', e => {
+  const p = pts.get(e.pointerId); if (!p) return;
+  const two = pan && pts.size === 2, [a, b] = pts.values(), was = two && span(a, b), dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY; if (!pan) return;
+  if (two) { const now = span(a, b); pz.x += now.x - was.x; pz.y += now.y - was.y; zoomAt(was.d ? now.d / was.d : 1, now.x, now.y); }
+  else { pz.x += dx; pz.y += dy; applyPZ(); }
+}, true);
+for (const t of ['pointerup', 'pointercancel']) $('#view').addEventListener(t, e => { pts.delete(e.pointerId); if (!pts.size) { pan = null; $('#view').classList.remove('panning'); } }, true);
+addEventListener('keyup', e => { if (e.key === ' ') { space = false; $('#view').classList.remove('space'); } });
 // Touch: swipe sideways on the empty stage (not on the image, where it draws) to move between items.
 let swipe = null;
-$('#view').addEventListener('pointerdown', e => { swipe = e.pointerType === 'touch' && e.target.id !== 'overlay' ? { x: e.clientX, y: e.clientY } : null; });
+$('#view').addEventListener('pointerdown', e => { swipe = e.pointerType === 'touch' && e.target.id !== 'overlay' && !pan ? { x: e.clientX, y: e.clientY } : null; });
 $('#view').addEventListener('pointerup', e => {
-  if (!swipe || !fit) return;
+  if (!swipe || !fit || zoomed()) return;
   const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
   if (Math.abs(dx) > 60 && Math.abs(dy) < 50) show(cur + (dx < 0 ? 1 : -1));
 });
@@ -505,7 +556,9 @@ document.addEventListener('keydown', e => {
   if (!$('#dlg').open || $('.modal[open]') || e.metaKey || e.ctrlKey || e.altKey) return;
   if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { if (e.key === 'Escape') { document.activeElement.blur(); e.preventDefault(); } return; }
   const k = e.key.toLowerCase();
-  if (k === 'arrowright') show(cur + 1); else if (k === 'arrowleft') show(cur - 1);
+  if (k === ' ' && $('#view').classList.contains('pz') && !document.activeElement.closest('button,a')) { space = true; $('#view').classList.add('space'); e.preventDefault(); }
+  else if (k === '+' || k === '=') zoomKey(1.25); else if (k === '-') zoomKey(.8); else if (k === '0') resetPZ();
+  else if (k === 'arrowright') show(cur + 1); else if (k === 'arrowleft') show(cur - 1);
   else if (k >= '1' && k <= '9') { if (+k <= views(items[cur]).length) { tab = +k - 1; show(cur, true); } } // 1-9: switch view
   else { const hit = Object.keys(ST).find(s => ST[s].key === k); if (hit) setStatus(hit); }
 });
@@ -539,6 +592,7 @@ async function copy(msg = T.copied) {
   try { await navigator.clipboard.writeText(md); toast(msg); } catch { $('#outText').value = md; $('#out').showModal(); $('#outText').select(); }
 }
 $('#copy').onclick = () => copy();
+let poll;
 $('#send').onclick = async () => {
   const fb = payload(), todo = fb.items.filter(i => !i.status).length;
   if (todo && !confirm(T.confirmSend.replace('{n}', todo))) return;
@@ -549,11 +603,10 @@ $('#send').onclick = async () => {
     if (!r.ok) throw 0;
   } catch { $('#send').disabled = false; return copy(T.offline); }
   ls.set(KEY, null);
-  $('#dlg').close();
-  document.body.insertAdjacentHTML('beforeend', `<div class="done" role="alert"><div><i>✓</i><h2>${esc(T.sent)}</h2><p>${esc(T.sentHint)}</p></div></div>`);
-  // The server stops after a send. When the agent serves the next round, this same tab picks it up.
+  $('#dlg').close(); $('#send').disabled = false; $('#sentDlg').showModal();
+  // The server stops after a send, so sending again falls back to copying. When the agent serves the next round, this same tab picks it up.
   history.replaceState(null, '', location.pathname);
-  setInterval(async () => { try { if ((await fetch('manifest.json', { cache: 'no-store' })).ok) location.reload(); } catch {} }, 2000);
+  clearInterval(poll); poll = setInterval(async () => { try { if ((await fetch('manifest.json', { cache: 'no-store' })).ok) location.reload(); } catch {} }, 2000);
 };
 </script>
 </body>

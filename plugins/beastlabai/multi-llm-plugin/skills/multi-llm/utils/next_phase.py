@@ -644,7 +644,9 @@ def next_phase_commands(
         neither a workflow phase nor a composite, or the finished phase is not
         on record (the gate, *finished_mode* only). Otherwise a
         :class:`NextPhase`: the same phase with ``--resume`` when it is
-        ``in_progress``; else the first open required phase after it
+        ``in_progress``; the same phase, bare, when it is open with an owed
+        scoped check on its entry (``scoped_check_owed``); else the first
+        open required phase after it
         (``complete`` when none is left), with the open optional phases in
         between as ``optional_before``. A composite that is not the whole
         workflow (``improve-plan``, ``improve-code``) answers as the phase it
@@ -840,6 +842,15 @@ def next_phase_commands(
         # Reached only with the gate off: under it a stale start is "not on
         # record" and returned None above (exit 0 at a pending marker must
         # print nothing).
+        return command_answer(NextPhase(
+            phase=start, command=command_for(start), warning=warning_of(start),
+        ))
+    if is_open(start) and (phases.get(start) or {}).get("scoped_check_owed"):
+        # A full check its scoped batches deferred keeps the start open, a
+        # composite's last phase included: its own command settles it, bare
+        # for an earlier review's debt (`--resume` came above, as RESUME,
+        # for this review's), never a walk past it
+        # (docs/development/checks.md#scoped-batch-checks).
         return command_answer(NextPhase(
             phase=start, command=command_for(start), warning=warning_of(start),
         ))

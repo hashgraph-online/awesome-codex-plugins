@@ -74,6 +74,12 @@ class CodeFixBatch:
     executor_role: str = "agent"
     subagent_type: str = "general-purpose"
     total_chars: int = 0
+    #: The caps :meth:`is_full` and :meth:`can_add` hold this batch to: the
+    #: ``max_per_batch``/``max_chars`` of :func:`batch_code_fixes` (they read
+    #: the module constants until 2026-11-18, so both arguments had no
+    #: effect). Not serialized.
+    max_items: int = field(default=MAX_FIXES_PER_BATCH, repr=False, compare=False)
+    max_chars: int = field(default=MAX_DESCRIPTION_CHARS, repr=False, compare=False)
 
     @property
     def size(self) -> int:
@@ -86,7 +92,7 @@ class CodeFixBatch:
 
     @property
     def is_full(self) -> bool:
-        return self.size >= MAX_FIXES_PER_BATCH
+        return self.size >= self.max_items
 
     @property
     def priority_score(self) -> float:
@@ -110,7 +116,7 @@ class CodeFixBatch:
             return False
 
         desc_len = len(fix.get("description", fix.get("desc", "")))
-        if self.total_chars + desc_len > MAX_DESCRIPTION_CHARS:
+        if self.total_chars + desc_len > self.max_chars:
             return False
 
         return True
@@ -268,6 +274,10 @@ def batch_code_fixes(
     """
     if not fixes:
         return []
+    for name, value in (("max_per_batch", max_per_batch), ("max_chars", max_chars)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"{name} must be a positive integer, not {value!r}")
+    caps = {"max_items": max_per_batch, "max_chars": max_chars}
 
     batches: List[CodeFixBatch] = []
 
@@ -277,7 +287,7 @@ def batch_code_fixes(
 
     # Process high-risk fixes first (each in its own batch for safety)
     for fix in high_risk:
-        batch = CodeFixBatch(file_key=fix.get("file", "unknown"))
+        batch = CodeFixBatch(file_key=fix.get("file", "unknown"), **caps)
         batch.executor_role = determine_executor_role(fix)
         batch.subagent_type = determine_subagent_type(fix)
         batch.add(fix)
@@ -299,7 +309,7 @@ def batch_code_fixes(
         # Sort by line number for logical ordering
         file_fixes.sort(key=get_line_start)
 
-        current_batch = CodeFixBatch(file_key=file_path)
+        current_batch = CodeFixBatch(file_key=file_path, **caps)
         current_batch.executor_role = determine_executor_role(file_fixes[0])
         current_batch.subagent_type = determine_subagent_type(file_fixes[0])
 
@@ -311,7 +321,7 @@ def batch_code_fixes(
                 # Batch is full or would exceed limits - start new batch
                 if current_batch.size > 0:
                     batches.append(current_batch)
-                current_batch = CodeFixBatch(file_key=file_path)
+                current_batch = CodeFixBatch(file_key=file_path, **caps)
                 current_batch.executor_role = determine_executor_role(fix)
                 current_batch.subagent_type = determine_subagent_type(fix)
                 current_batch.add(fix)

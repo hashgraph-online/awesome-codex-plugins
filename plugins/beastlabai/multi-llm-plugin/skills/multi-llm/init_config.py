@@ -402,6 +402,12 @@ _DRIVER_COMMENTS = [
     "## test`), run once after a code-editing phase applied its batches. Left unset",
     "## the phase says so in one line rather than completing unchecked; a non-zero",
     "## exit rolls nothing back and ends the phase at exit 3.",
+    "## `batch_checks: scoped` (default `full`) has apply-code-fixes batches under",
+    "## --exec-subagents run a pytest `verify_command` narrowed to their own tests,",
+    "## then the full command once before the phase completes: for a slow suite.",
+    "## `subagent_idle_timeout_s` stops a write subagent that printed nothing for",
+    "## that long with no tool call running (codex only; 0 turns it off; a blank",
+    "## value keeps the base 900).",
 ]
 
 _PROGRESS_COMMENTS = [

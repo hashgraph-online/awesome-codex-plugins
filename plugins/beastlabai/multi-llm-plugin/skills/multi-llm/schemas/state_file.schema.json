@@ -116,8 +116,22 @@
           "grouped_sha256": { "type": "string" },
           "findings": { "type": "array", "items": { "type": "string" } },
           "listed": { "type": "object", "additionalProperties": { "type": "string" } },
+          "scoped": { "type": "object", "additionalProperties": { "type": "string" }, "description": "driver.batch_checks: scoped only: what the batch says the command it was told to run scoped to its tests did, kept apart from listed so it never reads as a run of the command as listed" },
           "note": { "type": "string", "description": "The batch's own words about its checks (its reply's check.note, fix round 28): shown, never read as a finding" }
         }
+      }
+    },
+    "apply_fix_scoped_check": {
+      "type": "object",
+      "description": "driver.batch_checks: scoped only: the full run of driver.verify_command that apply-code-fixes batches deferred when they ran it scoped to their tests. Written before the first scoped prompt is sent, with the phase's earlier completion dropped; while it stands apply-code-fixes cannot be recorded completed. Dropped only when that exact command passes in full, in the save that records the completion, and only while the record is still the one that run checked (its token); --fresh keeps it",
+      "required": ["command_sha256"],
+      "properties": {
+        "command_sha256": { "type": "string", "description": "SHA-256 of the exact command deferred to; only that string settles the record" },
+        "command": { "type": "string", "description": "The command, redacted and cut short, for display" },
+        "batches": { "type": "array", "items": { "type": "string" }, "description": "The batches that ran it scoped" },
+        "token": { "type": "string", "description": "New on every write of the record: a settlement drops the record only while state.json still holds the token it checked" },
+        "recorded_at": { "type": "string", "format": "date-time" },
+        "review_completed_at": { "type": "string", "description": "The code review's completion stamp at the last admission: the debt is that review cycle's, so a resume selects --resume only while the review on record still carries it" }
       }
     },
     "task_check_trees": {

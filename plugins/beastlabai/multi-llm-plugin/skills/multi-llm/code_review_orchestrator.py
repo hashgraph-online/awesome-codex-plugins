@@ -196,6 +196,7 @@ from utils.json_extractor import (
     sanitize_model_name,
 )
 from utils.llm_client import (
+    SALVAGE_TEXT_KEY,
     argv_prompt_bytes,
     describe_output_file,
     describe_usage,
@@ -3606,6 +3607,35 @@ class CodeSlot:
             self.tracker.failed(self.model_spec, error=error, source=source)
         return _review_lane.SlotResult(self.model_spec, False, payload=None, error=error)
 
+    def _request_salvage(
+        self, raw_content: str, output_file: str, **extra: Any,
+    ) -> None:
+        """Write this slot's salvage request and its materialized task, and
+        print both markers: the one request shape every ending that salvages
+        writes (*extra* adds ``failure`` on a run a deadline ended)."""
+        phase_dir, sanitized_model = self.phase_dir, self.sanitized_model
+        salvage_request = {
+            "model": self.model_spec,
+            "phase": "code_review",
+            "raw_output": raw_content,
+            "expected_type": "array",
+            "expected_schema": {
+                "fields": salvage_issue_fields(self.commit_record),
+                "optional_fields": list(_sp.SCOPE_FIELDS),
+                "importance_values": list(_importance.MODEL_VALUES),
+                "type_values": ["bug", "missing", "improvement", "style", "scope"]
+            },
+            "output_path": str(phase_dir / f"{sanitized_model}.json"),
+            "output_json_path": output_file,
+            "timestamp": datetime.now().isoformat(),
+            **extra,
+        }
+        salvage_path = phase_dir / f"salvage_{sanitized_model}.json"
+        with open(salvage_path, 'w', encoding='utf-8') as f:
+            json.dump(salvage_request, f, indent=2)
+        print(f"[SALVAGE_NEEDED] {salvage_path}")
+        emit_salvage_task(salvage_request, salvage_path, phase_dir, self.plan_path)
+
     def refused(self, reason: str) -> "_review_lane.SlotResult":
         # The gate `run_single_model` applies to the other review lanes, asked
         # here for the same reason and off the same once-per-run cache: this
@@ -3891,9 +3921,8 @@ class CodeSlot:
     def outcome(
         self, run: Any, violated: Optional[str], duration: float,
     ) -> "_review_lane.SlotResult":
-        model_spec, plan_path, display_name = self.model_spec, self.plan_path, self.display_name
-        phase_dir, log_file, sanitized_model = self.phase_dir, self.log_file, self.sanitized_model
-        commit_record = self.commit_record
+        model_spec, display_name = self.model_spec, self.display_name
+        phase_dir, log_file = self.phase_dir, self.log_file
         tracker = self.tracker
         # The last returned attempt's; `{}` when the first dispatch raised.
         result = run.result or {}
@@ -3971,30 +4000,12 @@ class CodeSlot:
             if salvageable and _review_lane.salvage_refused(str(phase_dir), model_spec):
                 pass  # a recovered phase: said there, and the model stays failed
             elif salvageable:
-                salvage_request = {
-                    "model": model_spec,
-                    "phase": "code_review",
-                    "raw_output": raw_content,
-                    "expected_type": "array",
-                    "expected_schema": {
-                        "fields": salvage_issue_fields(commit_record),
-                        "optional_fields": list(_sp.SCOPE_FIELDS),
-                        "importance_values": list(_importance.MODEL_VALUES),
-                        "type_values": ["bug", "missing", "improvement", "style", "scope"]
-                    },
-                    "output_path": str(phase_dir / f"{sanitized_model}.json"),
-                    "output_json_path": output_file,
-                    "timestamp": datetime.now().isoformat(),
-                    # `"failure": "timeout"` on a run a deadline ended, so the
-                    # executor refuses a salvaged `[]` from it (D4.5): a reviewer
-                    # killed mid-review never reported an empty review.
-                    **salvage_failure_fields(result),
-                }
-                salvage_path = phase_dir / f"salvage_{sanitized_model}.json"
-                with open(salvage_path, 'w', encoding='utf-8') as f:
-                    json.dump(salvage_request, f, indent=2)
-                print(f"[SALVAGE_NEEDED] {salvage_path}")
-                emit_salvage_task(salvage_request, salvage_path, phase_dir, plan_path)
+                # `"failure": "timeout"` on a run a deadline ended, so the
+                # executor refuses a salvaged `[]` from it (D4.5): a reviewer
+                # killed mid-review never reported an empty review.
+                self._request_salvage(
+                    raw_content, output_file, **salvage_failure_fields(result),
+                )
             elif timed_out and not raw_content.strip():
                 # A deadline, and no answer text at all: the adapter read its whole
                 # stream and found none (a reviewer killed while a tool ran, or
@@ -4025,6 +4036,8 @@ class CodeSlot:
 
         if result.get("misnamed_from"):
             report_misnamed_result(model_spec, result, phase_dir)
+        if result.get("json_repairs"):
+            _result_files.report_json_repairs(model_spec, result["json_repairs"], phase_dir)
         print(f"[{display_name}] Completed in {duration:.1f}s (source: {source})")
 
         # Get the parsed data from result
@@ -4070,27 +4083,7 @@ class CodeSlot:
                     f"Could not extract JSON from response: {raw_preview}", source=source,
                 )
 
-            salvage_request = {
-                "model": model_spec,
-                "phase": "code_review",
-                "raw_output": raw_content,
-                "expected_type": "array",
-                "expected_schema": {
-                    "fields": salvage_issue_fields(commit_record),
-                    "optional_fields": list(_sp.SCOPE_FIELDS),
-                    "importance_values": list(_importance.MODEL_VALUES),
-                    "type_values": ["bug", "missing", "improvement", "style", "scope"]
-                },
-                "output_path": str(phase_dir / f"{sanitized_model}.json"),
-                "output_json_path": output_file,
-                "timestamp": datetime.now().isoformat()
-            }
-            salvage_path = phase_dir / f"salvage_{sanitized_model}.json"
-            with open(salvage_path, 'w', encoding='utf-8') as f:
-                json.dump(salvage_request, f, indent=2)
-
-            print(f"[SALVAGE_NEEDED] {salvage_path}")
-            emit_salvage_task(salvage_request, salvage_path, phase_dir, plan_path)
+            self._request_salvage(raw_content, output_file)
             # Failed *for now*: a salvage subagent may repair this model's result
             # file minutes from now, and `main()` moves it out of `failed_models`
             # when it does. The map is the fan-out's record of what the fan-out saw,
@@ -4099,9 +4092,33 @@ class CodeSlot:
             return self._failed(
                 f"Could not extract JSON from response: {raw_preview}", source=source,
             )
-        return self._failed(
-            f"Expected JSON array, got {type(output_data).__name__}", source=source,
+        error_msg = f"Expected JSON array, got {type(output_data).__name__}"
+        # A whole answer of another shape: an object wrapping the array, or one
+        # finding where an array was asked for. Salvage repackages it, as the
+        # review base's `save_model_result` requests salvage for a reply that is
+        # not an array; this ending used to fail the model with no request, so a
+        # single reviewer stopped the run (exit 3) even under `--exec-subagents`
+        # (measured 2026-11-18, codex `gpt-6-luna`). A piece of a broken
+        # document, a truncated one included, never arrives here:
+        # `invoke_with_file_output` mends it or fails the attempt with the whole
+        # reply attached (docs/development/review-results.md, "Malformed result
+        # entries"). The request is written over the reply's text, which that
+        # reader attaches to an answer of this shape (`salvage_text`), not over
+        # the object it served: a reply of two objects served only the second.
+        details = result.get("details", {}) or {}
+        reply_text = salvage_source(details) if SALVAGE_TEXT_KEY in details else ""
+        raw_content = reply_text or (
+            json.dumps(output_data, indent=2, ensure_ascii=False)
+            if isinstance(output_data, dict) else ""
         )
+        salvageable = bool(raw_content) and has_salvageable_json(raw_content)
+        if salvageable and _review_lane.salvage_refused(str(phase_dir), model_spec):
+            pass  # a recovered phase: said there, and the model stays failed
+        elif salvageable:
+            self._request_salvage(raw_content, output_file)
+        else:
+            print(f"[{display_name}] {error_msg} — nothing to salvage")
+        return self._failed(error_msg, source=source)
 
     def raised(self, exc: Exception) -> Optional["_review_lane.SlotResult"]:
         # Left to `run_all_reviews`' slot wrapper, which records it with its
@@ -5616,6 +5633,17 @@ async def _main(argv: Optional[List[str]], run: PhaseRun) -> int:
         args, state, plan_path=plan_path,
     )
 
+    # `--dry-run-subagents` calls no model: the reviewer plan, then exit 0,
+    # before the boundary and anything past it that writes
+    # (docs/development/review-results.md#a-dry-runs-reviewer-plan).
+    if _review_lane.fanout_dry_run(args):
+        return _review_lane.preview_fanout(
+            args, model_specs, steps=code_slot_steps(),
+            mode=spell_mode("review-code", commit_view(state.state)),
+            phase_dir=str(get_phase_dir(plan_path, 'code-review')),
+            anchor=str(plan_path), project_root=get_project_root(str(plan_path)),
+        )
+
     detach_phase_dir, claim, scope, plan_bytes = _cross_detach_boundary(
         args, state, scope, plan_path=plan_path, model_specs=model_specs,
         plan_bytes=plan_bytes,
@@ -5980,11 +6008,14 @@ def _guard_phase_state(args: argparse.Namespace, plan_path: Path) -> Optional[Pi
     # pre-flight and saves (review fix 3, A1).
     detach_launcher = bool(getattr(args, "detach", False)) and not getattr(
         args, "internal_worker", False)
+    # A dry run writes no state either: it stops before the fan-out
+    # (`_review_lane.preview_fanout`).
+    writes_deferred = detach_launcher or _review_lane.fanout_dry_run(args)
     # First run on this plan: materialize `state.json` now, for the same
     # reason `review_orchestrator_base` does (the instructions' `util metrics
     # start --state-file` runs before the phase completes, and a standalone
     # review-code on a fresh plan used to find no file).
-    if not state_guard.state_file.exists() and not detach_launcher:
+    if not state_guard.state_file.exists() and not writes_deferred:
         state_guard.save()
     if not args.force and state_guard.phase_completion_is_stale("code-review"):
         # Implement completed after this review did, so the review judged an
@@ -6004,9 +6035,13 @@ def _guard_phase_state(args: argparse.Namespace, plan_path: Path) -> Optional[Pi
             document=document_label(state_guard.state)))
     elif args.force and state_guard.is_phase_completed("code-review"):
         state_guard.state.get("phases_completed", {}).pop("code-review", None)
-        if not detach_launcher:
+        if not writes_deferred:
             state_guard.save()
-        print("NOTE: Cleared previous phase completion (--force mode)")
+        if _review_lane.fanout_dry_run(args):
+            print("NOTE: --force would clear the previous phase completion "
+                  "(dry run: nothing changed)")
+        else:
+            print("NOTE: Cleared previous phase completion (--force mode)")
 
     # Secondary guard: detect partial completion (validation_tasks.json, grouped.json, etc.)
     # Under the phase lock, so no other run can be writing the files it judges
@@ -6095,6 +6130,12 @@ def _guard_partial_completion(
             # would have finished it: the HIGH groups recorded and the
             # `--fail-on-high` gate applied. The heal counts them from the
             # grouped.json that validation.json binds, or refuses (exit 3).
+            # A dry run records nothing, so it only says so.
+            if _review_lane.fanout_dry_run(args):
+                print(f"{_review_lane.DRY_RUN_PREFIX} this round's verdicts and "
+                      f"report are on disk: a real run records the completion "
+                      f"and calls no reviewer. Nothing was recorded.")
+                sys.exit(0)
             sys.exit(heal_unrecorded_completion(
                 phase_dir_check, state_guard, args, report_path=report_path_check,
                 plan_path=plan_path, validation_bytes=sealed_validation,

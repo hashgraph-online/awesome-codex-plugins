@@ -73,6 +73,7 @@ the models that read it.
 | a single-column `grain` | `unique` and `not_null` tests on that column |
 | `null_rule: never` | `not_null` on that column |
 | `foreign_key` with `references` | a `relationships` test (`arguments: {to, field}`) |
+| a fact a generated test checks, where `declarations.render_tests` turns it on | that generated test, tagged with its cadence ([below](#generated-tests-an-opt-in-switch-and-a-cadence-tag)) |
 | `grain`, `population`, `assumptions` | model `config.meta.dex` |
 | `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references` | column `config.meta.dex` |
 
@@ -158,6 +159,90 @@ test keeps failing, and the last run in which a claim was checked and passed.
   own, and removes it when the column starts accepting NULLs.
 - Neither dbt nor Elementary reads a `dex` key in a test's `meta`. Elementary
   copies a test's `meta` into its `dbt_tests` table, so the claim is also there.
+
+### Generated tests: an opt-in switch and a cadence tag
+
+The three tests above are the **built-ins**. They always render. A **generated
+test** is one Dex writes for a declared fact the built-ins cannot check: a
+composite grain, a population filter, a parent's population. Each kind arrives
+in its own release (#1452 onward), so this release renders none yet; the switch
+and the tag below are what every kind follows. Generated tests run in the
+project's production runs. Dex does not run those and the project pays for them,
+so two rules hold:
+
+- **They are opt-in.** `declarations.render_tests` in `.dex/config.yml` turns
+  them on. It is off by default.
+
+  | Setting | Renders |
+  |---|---|
+  | `false` (default) | the built-ins only |
+  | `true` | every generated test this release renders, kinds a later release adds included |
+  | `[dex_every_run]` | the generated tests of that cadence, to start with the cheap ones |
+  | `[dex_unique_combination, ...]` | the kinds it names, and no kind a later release adds |
+
+  A list can mix test names and cadences. A name this release does not render
+  turns nothing on: `dex config validate` reports it as `unknown_test_kind`, and
+  the file still loads, so a config written for a later release works on an
+  earlier one. `dex config set declarations.render_tests '[dex_every_run]'`
+  shows the diff and writes it on `--confirm`. Turning tests on is the
+  project's decision, not the agent's.
+- **Each carries a cadence tag**, written as a dbt tag beside the sampling flag
+  and the claim:
+
+  ```yaml
+  data_tests:
+    - dex_unique_combination:
+        arguments:
+          columns: [order_id, line_number]
+        config:
+          tags: [dex_every_run]
+          meta:
+            disable_test_samples: true
+            dex:
+              claim: c52a973cba4cda23
+  ```
+
+  `dex_every_run` marks a test cheap enough for every production run, and
+  `dex_scheduled` one that scans whole tables (an anti-join, a gap search). The
+  tag is fixed per kind, never chosen per project. An orchestrator runs them
+  apart: `dbt build --exclude tag:dex_scheduled` on every run, and
+  `dbt build --select tag:dex_scheduled` on its own schedule. The built-ins
+  carry no cadence tag, so they run with every build.
+
+A generated test checks the declaration as the entry states it once the plan's
+declaration is merged in, not only the facts the payload restates. Declaring a
+description alone renders the generated tests for a grain declared earlier, and
+on a project that turns the switch on after declaring its models,
+`transform declare` proposes the tests their declared facts imply (under the
+proposal's `fields.generated_tests`), with no fact restated.
+
+A generated test sits on the model entry (`data_tests:` beside `columns:`, or
+in the version's own item for a version label) or under the column it checks.
+Its claim tells two tests of one kind apart, so a model with two population
+filters gets two tests. A generated test already listed is left as written. It
+is matched by its claim, so a `name:` added by hand does not make Dex render it
+again, or by the same test with the same arguments, which dbt would build into
+the same node. A changed parameter is a new claim and renders a second test
+beside the first: remove the old one in review.
+
+Turning the switch off, or leaving a kind out of the list, renders no new
+generated test and **removes none**: a test in the YAML is the file's (#1350).
+Remove one by deleting it from the YAML.
+
+**`data.generated_tests`** on the plan (and on `transform declare`) lists every
+generated test the plan's declarations give, rendered or not:
+
+| Field | Meaning |
+|---|---|
+| `render_tests` | the setting as the plan read it |
+| `counts` | how many tests have each status |
+| `tests[]` | per test: `model`, `column` (`null` on the model entry), `test`, `cadence`, `claim`, `status` |
+
+`status` is `added` (rendered by this plan), `already_listed` (already in the
+YAML, so nothing changed), `not_rendered` (with `reason`: `render_tests_off`, or
+`kind_not_enabled` where a list leaves its kind out), or `listed_while_off` (in
+the YAML although the setting leaves its kind off; it stays). The key is absent
+when the declarations give no generated test.
 
 ### A versioned model
 

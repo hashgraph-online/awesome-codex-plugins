@@ -311,7 +311,7 @@ hosts:
     # one), so this rule buys consistency, not correctness: after it, the pin is
     # wrong only when the roster is. Whoever finds a dead id edits
     # `providers.yaml` and lets this line follow.
-    default_subagent_runner: "codex:gpt-6-astra"
+    default_subagent_runner: "codex:gpt-6.2-astra"
     subagent_tiers: null             # forbidden to carry a map: subagents != native
     runners:
       codex: {bundled: true, needs_auth: false, login_cmd: "",
@@ -531,11 +531,11 @@ hosts:
     package:
       registry: npm
       name: opencode-multi-llm
-      version: "0.1.9"
-      public_version: "0.1.8"
+      version: "0.1.10"
+      public_version: "0.1.9"
       config_key: plugin
       provides: [command, tool]
-      min_host_version: "1.19.5"   # the one supported opencode release (the
+      min_host_version: "1.19.6"   # the one supported opencode release (the
                                     # newest; `make opencode-bump` moves it with
                                     # every other pin), never a lower one that
                                     # might work: `engines` is a hard gate, and
@@ -747,6 +747,10 @@ hosts:
       # All nine registry criteria passed, including offline operation and
       # a 0.1.4 -> 0.1.8 upgrade executing the newly installed payload
       # (records/20261112T160945Z-opencode-release-network-check.json).
+      # RECHECKED 2026-11-15 for opencode-v0.1.9 on OpenCode 1.19.5.
+      # All nine registry criteria passed, including offline operation and
+      # a 0.1.8 -> 0.1.9 upgrade executing the newly installed payload
+      # (records/20261115T105854Z-opencode-release-network-check.json).
       package: verified
       invocation: verified
       # PROMOTED BY T10 (plans/next-phase-command.md), opencode 1.18.33,

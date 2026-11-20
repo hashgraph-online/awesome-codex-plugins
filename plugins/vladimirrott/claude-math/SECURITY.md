@@ -17,7 +17,7 @@ directory or execute untrusted code.
 
 Please report privately. Do not open a public issue for security reports.
 
-- Preferred: open a [GitHub security advisory](https://github.com/vladimirrott/claude-math/security/advisories/new).
+- Preferred: open a [GitHub security advisory](https://github.com/agentsmith-tools/claude-math/security/advisories/new).
 - Or email the maintainer at the address on the npm package page.
 
 You will get an acknowledgement within a few days. Once a fix is released, the

@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from . import check_records as _check_records
+from . import fresh_reset as _fresh_reset
 from . import human_task_plan as _human_task_plan
 from . import write_context as _write_context
 from . import write_outcomes as _write_outcomes
@@ -495,16 +496,20 @@ class ResumeEvidence:
         prompt = str(task.get("prompt") or "")
         if self._commit_guard() is not None:
             prompt = without_protected_clause(prompt)
-        payload = json.dumps(
-            {
-                "kind": self._ctx.kind,
-                "prompt": prompt,
-                "expected_ids": [str(i) for i in (task.get("expected_ids") or [])],
-                "declared_files": sorted(declared_file_set(task)),
-                "batch_index": int(task.get("batch_index", 0)),
-            },
-            sort_keys=True,
-        )
+        fields: Dict[str, Any] = {
+            "kind": self._ctx.kind,
+            "prompt": prompt,
+            "expected_ids": [str(i) for i in (task.get("expected_ids") or [])],
+            "declared_files": sorted(declared_file_set(task)),
+            "batch_index": int(task.get("batch_index", 0)),
+        }
+        # The phase's last `--fresh` reset (utils/fresh_reset.py): a result
+        # bound before it is made from other inputs. Absent until a reset is
+        # recorded, so the hash of a phase never reset is the one it always was.
+        reset = self.fresh_reset_stamp()
+        if reset:
+            fields["fresh_reset_at"] = reset
+        payload = json.dumps(fields, sort_keys=True)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def fingerprint_path(self) -> Path:
@@ -863,8 +868,28 @@ class ResumeEvidence:
             recorded_fp = str(verdict.get("inputs_fingerprint") or "")
             current_fp = self.task_fingerprint({**task, "batch_index": batch_index})
         else:
-            recorded_fp = self.load_fingerprints().get(task_id)
+            # The result's own verdict stamp wins over the fingerprint file:
+            # the stamp is written on the result itself, while the file is a
+            # separate write that only warns when it fails and then keeps an
+            # older entry under the same task id (a batch landed after a
+            # `--fresh` reset would read as bound before it).
+            stamped = (
+                str(verdict.get("inputs_fingerprint") or "")
+                if isinstance(verdict, dict) else ""
+            )
+            recorded_fp = stamped or self.load_fingerprints().get(task_id)
             current_fp = self.task_fingerprint(task)
+        if not recorded_fp and self.fresh_reset_stamp():
+            # After a `--fresh` reset, a result has to show it was bound
+            # since; a result with no binding at all is no evidence of this
+            # run's work.
+            self._ctx.log(
+                f"[write-subagents] {task_id}: {target.name} records no "
+                f"inputs binding, and this phase was reset with --fresh "
+                f"since its review — re-dispatching it rather than "
+                f"resuming it."
+            )
+            return False
         if recorded_fp and recorded_fp != current_fp:
             self._ctx.log(
                 f"[write-subagents] {task_id}: the inputs it was materialized "
@@ -899,7 +924,7 @@ class ResumeEvidence:
         if not isinstance(data, dict):
             return []
         written_at = stamp_or_mtime(data.get("written_at"), path)
-        reviewed_at = self.review_completed_at()
+        reviewed_at = self.cycle_cutoff()
         if predates_review(written_at, reviewed_at):
             self._ctx.log(
                 f"[write-subagents] the earlier {_write_reports.WRITE_BATCH_REPORT_FILENAME} "
@@ -914,6 +939,22 @@ class ResumeEvidence:
             row for row in (rows or [])
             if isinstance(row, dict) and row.get("task_id")
         ]
+
+    def fresh_reset_stamp(self) -> Optional[str]:
+        """The phase's last ``--fresh`` reset (:func:`utils.fresh_reset.reset_stamp`)."""
+        return _fresh_reset.reset_stamp(self._recorded_state(), self._ctx.kind)
+
+    def cycle_cutoff(self) -> Optional[datetime]:
+        """The later of :meth:`review_completed_at` and the phase's last
+        ``--fresh`` reset: what this phase's own evidence (report rows,
+        pre-batch snapshots) must not predate to be this run's."""
+        return _fresh_reset.cycle_cutoff(
+            self.review_completed_at(), self._recorded_state(), self._ctx.kind,
+        )
+
+    def _recorded_state(self) -> Any:
+        """The run's ``state.json`` dict, or ``None`` for a state-less caller."""
+        return getattr(getattr(self._ctx, "state", None), "state", None)
 
     def review_completed_at(self) -> Optional[datetime]:
         """When the review this apply phase applies last completed, or None

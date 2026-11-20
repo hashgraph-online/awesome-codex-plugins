@@ -1,84 +1,89 @@
-# 续跑链（Continuation Chain）
+# Stage modes and the continuation chain
 
-专家小队的默认行为：**从当前入口开始，自动跑完后续所有环节，除非用户主动叫停。**
-
-## 环节顺序
+## Stage order
 
 ```
 pm → architect → ui → review → tasks → dev → qa → ship
 ```
 
-## 续跑规则
+## Two modes
 
-| 当前环节  | 下一步    | 跳过条件                  |
-| --------- | --------- | ------------------------- |
-| pm        | architect | —                         |
-| architect | ui        | `--skip-ui` → 跳到 review |
-| ui        | review    | —                         |
-| review    | tasks     | —                         |
-| tasks     | dev       | —                         |
-| dev       | qa        | —                         |
-| qa        | ship      | —                         |
-| ship      | （终点）  | —                         |
+Every stage procedure in `commands/<stage>.md` runs in one of two modes.
 
-## 停调条件
+| Mode     | When                                                               | After the stage is verified             |
+| -------- | ------------------------------------------------------------------ | --------------------------------------- |
+| Stage    | The user invoked one stage (`/boss:review`, "run Boss QA on this") | Report, name the next entry, stop       |
+| Pipeline | The full pipeline, or a stage invoked with `--continue`            | Go to the next stage in the table below |
 
-遇到以下任一情况，停止续跑：
+Stage mode is the default. A stage invoked with `--stop-after <stage>` runs in pipeline mode up to and
+including that stage.
 
-1. 用户在对话中明确说"停"、"先到这"、"只做这一步"、"到 X 为止"
-2. 用户传入 `--stop-after <环节>` 参数
-3. 当前环节产出失败且无法修复
-4. 到达 `ship` 终点
+A stage is verified when the checker and the verifier both pass (`references/contract-verification.md`).
+An unverified stage never hands over to the next one.
 
-## 续跑执行流程
+## Next stage
 
-每个环节完成后：
+| Stage     | Next      | Skipped when                        |
+| --------- | --------- | ----------------------------------- |
+| pm        | architect | never                               |
+| architect | ui        | `--skip-ui` goes straight to review |
+| ui        | review    | never                               |
+| review    | tasks     | never                               |
+| tasks     | dev       | never                               |
+| dev       | qa        | never                               |
+| qa        | ship      | never                               |
+| ship      | end       | never                               |
 
-1. 检查是否命中停调条件 → 命中则停止，输出当前产物路径
-2. 未命中 → 按上表找到下一步环节
-3. 检查下一步的**输入前置条件**（见下节）是否满足
-4. 满足 → 执行下一步；不满足 → 尝试补齐或向用户确认后跳过
-5. 重复直到终点或停调
+## Stop conditions (pipeline mode)
 
-## 输入前置条件
+Stop, report what exists on disk, and name the next entry when any of these holds:
 
-每个环节执行前，检查其输入产物是否存在。不存在时的处理：
+1. The user says to stop, or to do only this step.
+2. The stage named by `--stop-after` is verified.
+3. A stage fails verification after two fix rounds, and the user has not waived the failure.
+4. A stage cannot produce its artifact.
+5. `ship` needs a yes for an action outside the working tree and the user has not given it.
+6. `ship` is done.
 
-| 环节      | 必需输入                       | 缺失时处理                                                              |
-| --------- | ------------------------------ | ----------------------------------------------------------------------- |
-| pm        | 用户需求描述                   | 向用户追问                                                              |
-| architect | `prd.md`                       | 可用用户直接描述的需求替代                                              |
-| ui        | `prd.md`                       | 可用用户直接描述的需求替代                                              |
-| review    | `architecture.md`              | 评审代码或向用户索要架构                                                |
-| tasks     | `plan.md`                      | 回退到 `tech-review.md` + `architecture.md`，或用用户直接描述的需求替代 |
-| dev       | `tasks.md` + `architecture.md` | 可用用户直接描述的需求替代                                              |
-| qa        | 可运行代码 + `prd.md`          | 无代码则提示先开发                                                      |
-| ship      | `qa-report.md`                 | 警告后可强制继续                                                        |
+## Inputs each stage needs
 
-**原则**：上游产物缺失时，可以用用户直接提供的需求替代，但必须在产物中标注来源。
+Check the inputs before a stage starts.
 
-## 产物路径规范
+| Stage     | Needs                            | When it is missing                                                    |
+| --------- | -------------------------------- | --------------------------------------------------------------------- |
+| pm        | the user's request               | Ask the user                                                          |
+| architect | `prd.md`                         | Use the request the user stated directly                              |
+| ui        | `prd.md`                         | Use the request the user stated directly                              |
+| review    | `architecture.md`                | Review the code path given, or the current branch's diff              |
+| tasks     | `plan.md`                        | Fall back to `tech-review.md` and `architecture.md`, then the request |
+| dev       | `tasks.md` and `architecture.md` | Use `prd.md`, then the request the user stated directly               |
+| qa        | runnable code                    | Without a PRD, test the user's description or the current branch diff |
+| ship      | `qa-report.md`                   | Warn that QA has not run; continue only if the user says so           |
 
-所有产物写入 `.boss/<feature-slug>/` 目录：
+When a stage works from the user's request in place of an upstream artifact, say so in the artifact.
 
-| 产物         | 路径                         | 产出环节  |
-| ------------ | ---------------------------- | --------- |
-| PRD          | `.boss/<f>/prd.md`           | pm        |
-| 架构         | `.boss/<f>/architecture.md`  | architect |
-| UI 规范      | `.boss/<f>/ui-spec.md`       | ui        |
-| UI 设计 JSON | `.boss/<f>/ui-design.json`   | ui        |
-| 技术评审     | `.boss/<f>/tech-review.md`   | review    |
-| 实施计划     | `.boss/<f>/plan.md`          | review    |
-| 任务拆解     | `.boss/<f>/tasks.md`         | tasks     |
-| QA 报告      | `.boss/<f>/qa-report.md`     | qa        |
-| 部署报告     | `.boss/<f>/deploy-report.md` | ship      |
+## Artifacts
 
-feature-slug 从用户输入归一化而来，简短英文 kebab-case。若用户直接指定 slug 则使用用户指定的。
+Everything goes under `.boss/<feature>/`.
 
-## 轻量门禁
+| Artifact                       | Stage     |
+| ------------------------------ | --------- |
+| `prd.md`                       | pm        |
+| `architecture.md`              | architect |
+| `ui-spec.md`, `ui-design.json` | ui        |
+| `tech-review.md`, `plan.md`    | review    |
+| `code-review.md`               | review    |
+| `tasks.md`                     | tasks     |
+| `qa-report.md`                 | qa        |
+| `deploy-report.md`             | ship      |
+| `verification.md`              | any stage |
 
-每个环节完成时，自检本环节的硬性要求是否满足（见各 Agent prompt 的"硬性要求"表）。不满足时：
+## Options shared by every entry
 
-1. 先尝试自行修复
-2. 无法修复时向用户报告，不进入下一环节
-3. 用户可选择强制跳过（跳过后续环节可能受影响）
+| Option                 | Effect                                                    |
+| ---------------------- | --------------------------------------------------------- |
+| `--continue`           | Pipeline mode from this stage to `ship`                   |
+| `--stop-after <stage>` | Pipeline mode from this stage through the named stage     |
+| `--skip-ui`            | Skip the UI stage                                         |
+| `--quick`              | Skip routine clarification                                |
+| `--lang <code>`        | Artifact language; the default is the user's own language |

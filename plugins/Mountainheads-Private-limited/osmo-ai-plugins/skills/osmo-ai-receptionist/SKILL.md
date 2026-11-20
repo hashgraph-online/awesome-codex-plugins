@@ -1,8 +1,8 @@
 ---
 name: osmo-ai-receptionist
-description: AI receptionist, AI phone receptionist and AI answering service for your phone number. Use when the user wants an AI phone receptionist or answering service that picks up their calls, screens spam, takes messages and booking requests, and tells them who called and why. Manage it from the AI app: see missed calls, summaries, transcripts and recordings, pause the AI, choose who is put through, edit VIP and block lists, add rules for specific callers (put through, take a message, block), switch the assistant or its language, check bookings and Facts, and call callers back at a time in their own time zone. Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan.
-version: 1.2.0
-metadata: {"openclaw":{"homepage":"https://getosmo.app","emoji":"☎️"}}
+description: "AI receptionist, AI phone receptionist and AI answering service for your phone number. Use when the user wants an AI phone receptionist or answering service that picks up their calls, screens spam, takes messages and booking requests, and tells them who called and why. Manage it from the AI app: see missed calls, summaries, transcripts and recordings, pause the AI, choose who is put through, edit VIP and block lists, add rules for specific callers (put through, take a message, block), switch the assistant or its language, check bookings and Facts, and call callers back at a time in their own time zone. Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan."
+version: 1.2.1
+metadata: {"homepage":"https://getosmo.app","emoji":"☎️"}
 ---
 
 # OsmO AI Receptionist
@@ -69,8 +69,8 @@ repeat it.
 3. **Receptionist settings** (`get_settings` / `update_settings`): who may be put through live
    (`transferMode`: never, contacts or anyone), pausing the AI (`isAiAnsweringPaused`), live-call
    alerts, letting saved contacts skip the AI, Android device screening, and the VIP and block
-   lists. Read the current settings first: `vipList` and `blockList` each replace the whole
-   stored list, so send the full new list. Show the exact change and apply it only after a yes.
+   lists. `vipList` and `blockList` each replace the whole stored list, so the update must list
+   every number to keep plus the change. Show the exact change and apply it only after a yes.
 4. **Assistant and language** (`get_assistant` / `update_assistant`): see which assistant answers
    and in which language, and switch to another assistant on offer or to English (`en`) or Hindi
    (`hi`). Preview first, apply on a yes. Names, the greeting and the voice are changed in the

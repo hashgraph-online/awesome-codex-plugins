@@ -185,6 +185,11 @@ HERMETIC_PROFILES = frozenset({PROFILE_GENERATE, PROFILE_AGENT_READONLY})
 #: `tempfile.mkdtemp` prefix, so a leaked directory is sweepable by name.
 HERMETIC_DIR_PREFIX = "multi-llm-opencode-"
 
+#: The config home a previewed slot holds (:meth:`OpenCodeProvider.hermetic_preview`):
+#: never a path anything is made at. ``--pure`` keys off a slot's home, and the
+#: home itself is an environment value, which a preview never composes.
+PREVIEW_CONFIG_HOME = "<opencode config home: made at dispatch>"
+
 #: Config-carrying variables an inherited environment may hold. Stripped while
 #: hermetic — except the one this adapter emits itself, when it emits it.
 #:
@@ -1927,8 +1932,8 @@ class OpenCodeProvider(LLMProvider):
     # `auth_list.<v>.json`, `debug_config.<v>.json`), and the tests then grade
     # the parser on the new captures. `make opencode-latest-check` says when
     # npm has a newer release than this one.
-    min_version = "1.19.5"
-    verified_version = "1.19.5"
+    min_version = "1.19.6"
+    verified_version = "1.19.6"
     #: What the below-floor refusal tells the user to run (never executed).
     upgrade_hint = "opencode upgrade {version}"
     #: T4.2 — the inclusive (floor, ceiling) opencode range in which
@@ -1985,7 +1990,7 @@ class OpenCodeProvider(LLMProvider):
     #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: ``run`` prints each
     #: auto-rejected permission on stderr with the model's own tool argument inside it (``!
     #: permission requested: external_directory (/rig/outside/*); auto-rejecting``,
-    #: tests/fixtures/opencode/capture/1.19.5), and that argument can carry a newline or the
+    #: tests/fixtures/opencode/capture/<pin>/), and that argument can carry a newline or the
     #: line's own closing words, so none of stderr is read for a batch-fatal verdict.
     LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_NONE
 
@@ -2340,9 +2345,10 @@ class OpenCodeProvider(LLMProvider):
             # T4.7: a slot with NO config home. `--pure`, the XDG redirect and
             # the stripped carriers all key off `config_home`, so none of them
             # is rendered; the rows are merged over the inherited content later,
-            # lazily, in `resolve_env` — never here, because this context is
-            # also entered by argv-only renderers (`--dry-run-subagents`) that
-            # must not spawn `opencode debug config`.
+            # lazily, in `resolve_env` — never here, because a context entered
+            # without composing an environment must not spawn `opencode debug
+            # config` (a `--dry-run-subagents` render enters `hermetic_preview`
+            # instead, which never reads it).
             token = _ACTIVE.set({
                 "config_home": None,
                 "config_content": None,
@@ -2371,6 +2377,41 @@ class OpenCodeProvider(LLMProvider):
         finally:
             _ACTIVE.reset(token)
             release_config_home()
+
+    @contextlib.contextmanager
+    def hermetic_preview(
+        self,
+        profile: str,
+        model: str = "",
+        *,
+        anchor: Optional[str] = None,
+    ) -> Iterator[Optional[str]]:
+        """:meth:`hermetic_dispatch`'s argv half, for a renderer that spawns
+        no model turn (``llm_client.preview_dispatch_context``,
+        ``--dry-run-subagents``).
+
+        The same refusal (a provider defined only in the user's own config)
+        and the same ``--pure``, and nothing made: the slot holds
+        :data:`PREVIEW_CONFIG_HOME` in place of a config home, so no directory
+        is created and no ``atexit`` sweep registered. No config content is
+        built either (it is an environment value), so the continue-loop key's
+        ``opencode --version`` read never runs. A non-hermetic slot renders
+        no ``--pure`` and yields ``None``: its merge rows are environment too
+        (docs/development/review-results.md#a-dry-runs-reviewer-plan).
+        """
+        if not hermetic_enabled(profile, anchor):
+            yield None
+            return
+        try:
+            self._hermetic_provider_block(model, anchor=anchor)
+        except _UnreconstructibleProvider as exc:
+            yield str(exc)
+            return
+        token = _ACTIVE.set({"config_home": PREVIEW_CONFIG_HOME, "config_content": None})
+        try:
+            yield None
+        finally:
+            _ACTIVE.reset(token)
 
     @staticmethod
     def _merge_agent(profile: str) -> Optional[str]:
@@ -2462,6 +2503,37 @@ class OpenCodeProvider(LLMProvider):
         )
         return []
 
+    @staticmethod
+    def _hermetic_provider_block(
+        model: str, *, anchor: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """The ``provider`` half of a hermetic slot's content, or ``None``.
+
+        The block ``providers.opencode.config_providers`` declares for the
+        model's provider prefix; ``None`` for a built-in provider. Raises
+        :class:`_UnreconstructibleProvider` for a provider defined only in the
+        user's own opencode config (the refusal :meth:`hermetic_dispatch` and
+        :meth:`hermetic_preview` both yield).
+        """
+        base_model, _effort = split_reasoning_effort(model or "", REASONING_EFFORTS)
+        prefix = base_model.split("/", 1)[0].strip() if "/" in base_model else ""
+        if not prefix:
+            return None
+        declared = _provider_block("opencode", anchor).get("config_providers")
+        if isinstance(declared, dict) and isinstance(declared.get(prefix), dict):
+            return {prefix: declared[prefix]}
+        if _user_defines_provider(prefix):
+            raise _UnreconstructibleProvider(
+                f"opencode provider {prefix!r} (from model {base_model!r}) is "
+                f"defined only in your own opencode config, which a hermetic run "
+                f"replaces — it would not resolve, so this slot is refused rather "
+                f"than dispatched into a silent model-resolution failure. Declare "
+                f"it under providers.opencode.config_providers (credentials "
+                f"excluded — they stay in auth.json), or set "
+                f"providers.opencode.hermetic: off to keep today's inheritance."
+            )
+        return None
+
     def _hermetic_config_content(
         self,
         model: str,
@@ -2493,23 +2565,7 @@ class OpenCodeProvider(LLMProvider):
         raise, before any permission row is merged, so a refused slot produces
         no content at all and claims no config home.
         """
-        provider_block: Optional[Dict[str, Any]] = None
-        base_model, _effort = split_reasoning_effort(model or "", REASONING_EFFORTS)
-        prefix = base_model.split("/", 1)[0].strip() if "/" in base_model else ""
-        if prefix:
-            declared = _provider_block("opencode", anchor).get("config_providers")
-            if isinstance(declared, dict) and isinstance(declared.get(prefix), dict):
-                provider_block = {prefix: declared[prefix]}
-            elif _user_defines_provider(prefix):
-                raise _UnreconstructibleProvider(
-                    f"opencode provider {prefix!r} (from model {base_model!r}) is "
-                    f"defined only in your own opencode config, which a hermetic run "
-                    f"replaces — it would not resolve, so this slot is refused rather "
-                    f"than dispatched into a silent model-resolution failure. Declare "
-                    f"it under providers.opencode.config_providers (credentials "
-                    f"excluded — they stay in auth.json), or set "
-                    f"providers.opencode.hermetic: off to keep today's inheritance."
-                )
+        provider_block = self._hermetic_provider_block(model, anchor=anchor)
 
         document: Dict[str, Any] = {}
         if provider_block is not None:

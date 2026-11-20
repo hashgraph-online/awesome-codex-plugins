@@ -42,7 +42,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 # Add parent dir to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -61,7 +61,10 @@ from utils.cli_common import (
 from modes import PREREQUISITE_PHASES, phase_from_selector, resolve as resolve_mode
 from utils import importance as _importance
 from utils import unattended as unattended_mod
-from utils.state_manager import StateManager, _parse_completion_time, predates_review
+from utils.state_manager import (
+    SCOPED_CHECK_PHASE, StateManager, _parse_completion_time, owed_scoped_check_in_state,
+    owed_scoped_check_is_current, predates_review,
+)
 from utils.output_handler import get_output_dir
 from utils import phase_walk
 from utils.phase_walk import DONE_STATUSES, OPTIONAL_PHASES  # noqa: F401 - re-exported
@@ -221,13 +224,42 @@ def apply_phase_in_progress(state: StateManager, phase: str) -> bool:
     any other word raises ``KeyError``. It does not ask whether *phase*
     itself is completed or skipped: ``status`` checks that first
     (``DONE_STATUSES``), and a caller that needs it asks the same.
+
+    A full check apply-code-fixes' scoped batches deferred under the review
+    completed now (``state_manager.owed_scoped_check_is_current``) is
+    progress too, before any batch is recorded: its ``--resume`` runs that
+    check. One deferred under an earlier review is not
+    (docs/development/checks.md#scoped-batch-checks).
     """
+    if (phase == SCOPED_CHECK_PHASE and owed_scoped_check_is_current(state.state)
+            and state.is_phase_completed(PHASE_PREREQUISITES[phase][0])):
+        return True
     pattern = APPLY_BATCH_ID_PATTERNS[phase]
     has_progress = state.is_phase_started(phase) or any(
         pattern.match(task_id) and status == "completed"
         for task_id, status in state.get_all_task_statuses().items()
     )
     return has_progress and not _apply_batches_predate_review(state, phase)
+
+
+def owed_scoped_check(state: StateManager, phase: str) -> Optional[Dict[str, Any]]:
+    """The full check apply-code-fixes batches deferred when they ran the
+    verify command scoped to their tests (``utils.scoped_checks``), when
+    *phase* is apply-code-fixes and one is on record; else ``None``.
+
+    While it stands the phase is never read as done:
+    :func:`_mark_in_progress_apply` marks a skip (recorded, or inferred from
+    a newer review with nothing to fix) or a completion ``in_progress``, so
+    the next step is its ``--resume``, which runs the check. A debt of the
+    review on record now is progress (:func:`apply_phase_in_progress`); one
+    of an earlier review leaves a ``pending`` phase pending (its bare run
+    settles the debt too; a ``--resume`` over a newer review would replay
+    an earlier cycle), and every entry names the debt
+    (docs/development/checks.md#scoped-batch-checks).
+    """
+    if phase != SCOPED_CHECK_PHASE:
+        return None
+    return owed_scoped_check_in_state(state.state)
 
 
 def scope_blocker_reason(state: StateManager, phase: str) -> Optional[str]:
@@ -1076,7 +1108,9 @@ def get_workflow_status(
        tasks and check findings;
     4. :func:`_mark_in_progress_apply`: an apply phase with progress on record
        is ``in_progress`` (unless its last dated run predates its review's
-       latest completion);
+       latest completion), and apply-code-fixes is, over a skip or a
+       completion, while a full check its scoped batches deferred is owed
+       (its line joins the notices);
     5. :func:`_task_groups_notice` and :func:`_scope_notices`: the notices
        about apply work left or deferred;
     6. ``suggested_next`` (:func:`utils.phase_walk.next_step`), picked once,
@@ -1095,6 +1129,9 @@ def get_workflow_status(
     _decorate_implement(state, phases)
     notices: List[str] = []
     _mark_in_progress_apply(state, phases)
+    owed_line = phases["apply-code-fixes"].get("scoped_check_owed")
+    if owed_line:
+        notices.append(owed_line)
     _task_groups_notice(phases, task_check, notices)
     _scope_notices(state, phases, notices)
     suggested_next = phase_walk.next_step(phases, order).phase
@@ -1337,8 +1374,31 @@ def _mark_in_progress_apply(state: StateManager, phases: Dict[str, dict]) -> Non
     (``_latest_phase_activity``), so an abandoned run from before a review
     re-run marks nothing either. The rule is :func:`apply_phase_in_progress`,
     which the composites' inferred ``--resume`` asks as well.
+
+    A full check apply-code-fixes' scoped batches deferred
+    (:func:`owed_scoped_check`) reopens a skip or a completion this payload
+    read before as ``pending``, and marks it ``in_progress`` only when it was
+    deferred under the review on record now; the entry carries the line that
+    says so (``scoped_check_owed``) whatever its status.
     """
     for phase in APPLY_BATCH_ID_PATTERNS:
+        owed = owed_scoped_check(state, phase)
+        if owed is not None:
+            # Over a skip recorded or inferred (a newer review with nothing
+            # to fix) and over a completion: the owed check comes first. A
+            # pending phase is resumed below only for a debt of this review
+            # (`apply_phase_in_progress`); else its bare run settles it.
+            # Imported here to keep full_workflow_orchestrator, which loads this module, light.
+            from utils.scoped_checks import owed_stop_line
+
+            # Reopened as pending, never straight to in_progress: only a debt
+            # of the review on record now (`apply_phase_in_progress`, below)
+            # makes it a resume. A debt an earlier review left, over a later
+            # skip, is a bare run's to settle: `--resume` would replay that
+            # earlier review's recorded decisions against this one's findings.
+            if phases[phase]["status"] in DONE_STATUSES:
+                phases[phase] = {"status": "pending"}
+            phases[phase]["scoped_check_owed"] = owed_stop_line(owed, state)
         if phases[phase]["status"] in DONE_STATUSES:
             continue
         if apply_phase_in_progress(state, phase):

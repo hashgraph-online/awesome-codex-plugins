@@ -201,12 +201,28 @@ target's `app`:
 | `environment` | `'test'`, `'staging'`, `'production'`; inferred from the host, labels the report and cache key. |
 | `identity` | Stable identity for cache and session keys when the origin changes per deploy (preview URLs). Defaults to the URL's origin and path, else `bundleId`, else `appPath`. |
 
-A Next.js 16 dev server blocks cross-origin requests to its dev resources, so
-a target that opens `127.0.0.1` or `[::1]` while `next dev` identifies as
-`localhost` never hydrates. Add the host to `allowedDevOrigins` in
-`next.config.ts` (`'127.0.0.1'`, or `'[::1]'` for the bracket form). A
-`localhost` target needs no entry, and a production `next start` target is
-unaffected.
+Next.js ([guide](https://e2e.com/docs/frameworks/nextjs)): set `app.command` to `next
+dev` locally and `next start` when `CI` is set (e2e reads `''`, `0`, and
+`false` as unset; read it the same way in the config), with `next build`
+before `e2e run` in CI; `reuseExisting: true` reuses a dev server already on
+the port, and `dev` and `start` must listen on the `app.url` port.
+
+- A Next.js 16 dev server blocks cross-origin requests to its dev resources,
+  so a target that opens `127.0.0.1` or `[::1]` (port `0` included) while
+  `next dev` identifies as `localhost` never hydrates. Add the host to
+  `allowedDevOrigins` in `next.config.ts` (`'127.0.0.1'`, or `'[::1]'` for
+  the bracket form). A `localhost` target needs no entry, and a production
+  `next start` target is unaffected.
+- The App Router renders an empty `role="alert"` route announcer on every
+  page, so `getByRole('alert')` matches it too: filter yours by text
+  (`.filter({ hasText: '...' })`).
+- When `next dev` recompiles during a run, its watcher reads `.e2e/`: keep
+  the `.e2e/` entries `init` adds to `.gitignore`, and with webpack set
+  `config.watchOptions.ignored` in `next.config.ts` to include
+  `'**/.e2e/**'` (keep `.git`, `.next`, `node_modules`, and any entry the
+  config already has).
+- A new app can start from the example:
+  `npx create-next-app --example https://github.com/e2e-inc/e2e/tree/main/examples/with-next my-app`.
 
 There is no `services` key in this version: it is an unknown key wherever it
 appears. Start dependency processes before the run, or have `app.command`

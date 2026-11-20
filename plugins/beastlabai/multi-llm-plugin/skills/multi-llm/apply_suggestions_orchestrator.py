@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.stream_bootstrap import bootstrap_streams
 from utils.apply_orchestrator_base import build_common_arg_parser
 from utils.apply_suggestion_phase import SuggestionApplyPhase
-from utils.cli_common import dispatcher_prefix
+from utils.cli_common import dispatcher_prefix, refuse_unsupported_batch_size
 from utils.suggestion_batcher import SuggestionBatch, format_batch_for_prompt
 
 
@@ -81,7 +81,9 @@ Bulk Approval Examples:
             include_internal_revalidation=True,
             include_mark_completed=True,
         )
-        return parser.parse_args(argv)
+        args = parser.parse_args(argv)
+        refuse_unsupported_batch_size(parser, args)
+        return args
 
     # ----------------------------------------------------------------
     # Phase hooks

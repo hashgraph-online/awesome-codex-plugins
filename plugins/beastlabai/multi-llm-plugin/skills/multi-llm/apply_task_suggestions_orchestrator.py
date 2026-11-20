@@ -27,7 +27,7 @@ from utils.apply_orchestrator_base import (
     OrchestratorError, build_common_arg_parser, target_backup_name,
 )
 from utils.apply_suggestion_phase import SuggestionApplyPhase
-from utils.cli_common import dispatcher_prefix
+from utils.cli_common import dispatcher_prefix, refuse_unsupported_batch_size
 from utils.apply_output_helpers import (
     build_skipped_output,
     write_and_emit_output,
@@ -126,7 +126,9 @@ Bulk Approval Examples:
             include_output_format=True,
             include_mark_completed=True,
         )
-        return parser.parse_args(argv)
+        args = parser.parse_args(argv)
+        refuse_unsupported_batch_size(parser, args)
+        return args
 
     # ----------------------------------------------------------------
     # Hooks
@@ -264,7 +266,7 @@ Bulk Approval Examples:
                 file=sys.stderr,
             )
         else:
-            if getattr(self.args, "fresh", False):
+            if self._fresh_start():
                 # `--fresh` re-stamps, but never over a rollback point: an
                 # earlier backup with other bytes is kept beside the new one.
                 kept = self.keep_backup_aside(tasks_backup_path, self.tasks_file)

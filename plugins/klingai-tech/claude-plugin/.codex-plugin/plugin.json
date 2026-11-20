@@ -1,0 +1,23 @@
+{
+  "name": "kling-ai-global-plugin",
+  "version": "1.3.0",
+  "description": "Official Kling AI Global Plugin for Claude Code. Generate and edit images, create videos, use motion control and Elements, and track tasks with Kling AI.",
+  "author": {
+    "name": "KLING AI Pte Ltd",
+    "url": "https://kling.ai/"
+  },
+  "homepage": "https://kling.ai/",
+  "repository": "https://github.com/klingai-tech/claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "kling",
+    "kling-ai",
+    "plugin",
+    "claude-code",
+    "image-generation",
+    "video-generation",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

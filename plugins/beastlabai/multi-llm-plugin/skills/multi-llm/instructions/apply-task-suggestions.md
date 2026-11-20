@@ -90,7 +90,7 @@ plans/todo/my-feature/
 - `--dry-run`: Show what batches would be processed without making changes
 - `--min-priority {low,medium,high}`: Minimum importance level to include (default: low = all valid suggestions)
 - `--no-batch`: Disable smart batching (process each suggestion separately)
-- `--max-batch-size N`: Maximum suggestions per batch (default: 4)
+- `--max-batch-size N`: Only the default (4) is accepted for now; any other value is a usage error, refused before anything runs (exit 3). It never took effect, and a stopped run resumed under another batch size would apply its finished batches a second time
 
 ### Scope Policy
 - `--scope-policy expand|preserve`: which validated task suggestions may be applied (D6 row 16, never asked). Pass it only when the user typed it. Left out, the apply keeps the policy on record for its review round: an earlier apply's typed override, else the review's, else `expand`. A typed value overrides the review's and is kept for this apply's later runs, `--resume` and `--mark-completed` included. Under `expand` nothing changes.
@@ -120,7 +120,7 @@ These options reduce manual review for items with `needs-human-decision` status:
 ### Resume/State Options
 
 - `--resume`: Resume from last checkpoint, skip already-processed items
-- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. Put tasks.md back at its pre-run bytes first, or every batch lands twice: copy it from `{phase}/tasks-backup.md` (tasks.md as this phase found it before its first batch; a resume keeps it); after an `--exec-subagents` run, `util restore-batch` can roll the batches back newest-first instead. The native loop keeps no rollback point per batch: its per-batch snapshot holds only the last bound batch's pre-batch bytes (the next batch replaces it), and `util restore-batch` has nothing of a native run's. Only after an `--exec-subagents` run is a target still carrying that run's edits refused (exit 3); after a native run, check tasks.md yourself. Earlier rollback points are kept aside, never overwritten.
+- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. A later run no longer resumes from the earlier runs' batch results either (a `--fresh --dry-run` resets too); with `--resume` beside it, `--fresh` does nothing. Never run `--fresh` while another run of this phase is going or starting: a detached or composite run that is already running is detected and refused (exit 3; abort it first, even with `--force` or `--if-not-running`), but a run in another terminal, or one started at the same moment, is not, and the batches it finishes would be applied again. Put tasks.md back at its pre-run bytes first, or every batch lands twice: copy it from `{phase}/tasks-backup.md` (tasks.md as this phase found it before its first batch; a resume keeps it); after an `--exec-subagents` run, `util restore-batch` can roll the batches back newest-first instead. The native loop keeps no rollback point per batch: its per-batch snapshot holds only the last bound batch's pre-batch bytes (the next batch replaces it), and `util restore-batch` has nothing of a native run's. Only after an `--exec-subagents` run is a target still carrying that run's edits refused (exit 3); after a native run, check tasks.md yourself. Earlier rollback points are kept aside, never overwritten.
 
 ### Batch Review Mode
 

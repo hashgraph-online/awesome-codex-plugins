@@ -209,6 +209,19 @@ def envelope_api_error_status(stdout: str) -> Any:
     return wrapper.get("api_error_status")
 
 
+def envelope_api_error_code(stdout: str) -> Optional[str]:
+    """The envelope's ``api_error`` code (claude-code's ``usage_limit_reached``),
+    or ``None`` when stdout is not one envelope or carries no string code.
+
+    The same whole-stdout read as :func:`envelope_api_error_status`; diagnostics
+    only, never a category."""
+    wrapper = _whole_envelope(stdout)
+    if wrapper is None:
+        return None
+    code = wrapper.get("api_error")
+    return code if isinstance(code, str) and code else None
+
+
 def is_clean_envelope(stdout: str) -> bool:
     """Whether stdout is one envelope the CLI itself reports as a clean run.
 

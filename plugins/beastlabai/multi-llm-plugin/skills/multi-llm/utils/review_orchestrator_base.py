@@ -5653,6 +5653,11 @@ class BaseSlot:
                 report_misnamed_result(
                     model_spec, result, get_phase_dir(Path(self.anchor), self.phase_name),
                 )
+            if result.get("json_repairs"):
+                _result_files.report_json_repairs(
+                    model_spec, result["json_repairs"],
+                    get_phase_dir(Path(self.anchor), self.phase_name),
+                )
             print(f"[{display_name}] Completed successfully in {duration:.1f}s (source: {source})")
             output_str = _answer_text(result.get("data"))
 
@@ -5660,6 +5665,11 @@ class BaseSlot:
                 "success": True, "output": output_str,
                 "error": None, "prompt": prompt,
                 "stdout": output_str, "stderr": stderr_text,
+                # The reply's text, when the reader kept it for an answer that
+                # is not an array (`invoke_with_file_output`): what
+                # `save_model_result` salvages over if the answer does not
+                # parse as a review, never the re-encoded object.
+                **salvage_text_fields(details),
                 "duration_seconds": duration, "model_spec": model_spec,
                 "source": source,
                 # The served model rides out with the answer it produced.
@@ -6725,7 +6735,11 @@ def save_model_result(
             wrapper, and the fourteen-odd test call sites — keeps working
             untouched and keeps today's behaviour exactly. Production callers
             build it with :func:`failure_output_from_result`, which owns the
-            stdout-then-stderr precedence.
+            stdout-then-stderr precedence. On a completed run whose ``output``
+            does not parse as a review, it is also what that branch's salvage
+            request is written over when given (the reply's text, which the
+            record carries as ``salvage_text`` for an answer that is not an
+            array; else ``output`` itself), and it is never parsed there either.
         failure: Keyword-only, the losing run's kind (the result dict's
             ``"failure"`` key, set by :func:`salvage_failure_fields`). Passed to
             the hard-failure branch's salvage request only, so a salvaged ``[]``
@@ -6861,7 +6875,13 @@ def save_model_result(
         # nothing. Unsalvageable is not fatal here either — the model stays
         # failed and D6 row 3 aggregates what the other slots returned — so the
         # error log below is written on both paths and only its wording moves.
-        salvageable = has_salvageable_json(output)
+        # Salvage reads the reply's text when the slot kept it (`failure_output`:
+        # the reader's `salvage_text` for an answer that is not an array), not
+        # `output`, the object re-encoded: an object is all the reader served,
+        # not all the reply held (a reply of two objects served the second).
+        # Never parsed here either; without it, `output` as before.
+        salvage_text = failure_output or output
+        salvageable = has_salvageable_json(salvage_text)
         if salvageable and not _review_lane.salvage_refused(phase_dir, model):
             # The same writer the hard-failure branch above uses, and the reason
             # it is a function: the two branches ask for salvage about different
@@ -6871,7 +6891,7 @@ def save_model_result(
             _write_salvage_request(
                 model=model,
                 sanitized_model=sanitized_model,
-                raw_output=output,
+                raw_output=salvage_text,
                 phase_dir=phase_dir,
                 phase_name=phase_name,
             )
@@ -8138,6 +8158,8 @@ async def _review_orchestration(
     # review lane").
     detach_launcher = bool(getattr(args, "detach", False)) and not getattr(
         args, "internal_worker", False)
+    # A dry run writes no state either: it stops before the fan-out, below.
+    dry_run = _review_lane.fanout_dry_run(args)
     # Materialize `state.json` on the phase's first run. Nothing
     # else writes it before the phase completes, so on a plan's first phase
     # the instructions' `util metrics start --state-file {plan}/state.json`
@@ -8146,15 +8168,19 @@ async def _review_orchestration(
     # host shrugged it off and the phase lost its ETA baseline. Written here,
     # after the completed-phase guard would have refused and before any
     # model runs, so the record of the run exists as soon as the run does.
-    if not detach_launcher:
+    if not (detach_launcher or dry_run):
         _ensure_state_file(state_guard)
     if state_guard.is_phase_completed(phase_name) and not args.force:
         sys.exit(report_already_completed(phase_name, phase_dir))
     elif args.force and state_guard.is_phase_completed(phase_name):
         state_guard.state.get("phases_completed", {}).pop(phase_name, None)
-        if not detach_launcher:
+        if not (detach_launcher or dry_run):
             state_guard.save()
-        print("NOTE: Cleared previous phase completion (--force mode)")
+        if dry_run:
+            print("NOTE: --force would clear the previous phase completion "
+                  "(dry run: nothing changed)")
+        else:
+            print("NOTE: Cleared previous phase completion (--force mode)")
 
     # Model selection, one rule for every review lane (D6 row 2).
     model_specs, unattended = _review_lane.select_review_models(
@@ -8198,6 +8224,17 @@ async def _review_orchestration(
     # would be the other honest fix; the number a reader wants here is the one
     # the excerpt limits are expressed in, which is characters.
     print(f"Loaded plan: {plan_path} ({len(plan_content)} chars)")
+
+    # `--dry-run-subagents` calls no model: the reviewer plan, then exit 0,
+    # before the backup, the boundary and anything else that writes
+    # (docs/development/review-results.md#a-dry-runs-reviewer-plan).
+    if dry_run:
+        sys.exit(_review_lane.preview_fanout(
+            args, model_specs, steps=base_slot_steps(),
+            mode=_modes().mode_for_script(orchestrator_script) or phase_name,
+            phase_dir=phase_dir, anchor=plan_path,
+            project_root=get_project_root(plan_path),
+        ))
 
     # Ensure output directories exist
     os.makedirs(out_dir, exist_ok=True)

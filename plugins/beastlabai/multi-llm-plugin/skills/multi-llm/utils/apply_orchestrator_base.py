@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import (
@@ -42,6 +43,7 @@ from .apply_output_helpers import (
     write_and_emit_output,
 )
 from .cli_common import (
+    EXIT_NEEDS_HUMAN,
     add_retired_flag,
     build_parent_parser,
     add_scope_policy_argument,
@@ -74,6 +76,7 @@ from .provider_registry import set_run_anchor
 from .report_parser import load_html_selections, merge_selections
 from .state_manager import (
     CURRENT_FORMAT_VERSION,
+    ScopedCheckOwedError,
     StateManager,
     _parse_completion_time,
     group_join_ids,
@@ -128,7 +131,10 @@ from . import review_orchestrator_base
 from . import review_round as _review_round
 from . import write_safety
 from . import write_batch_scheduler
+from . import fresh_reset
+from . import process_control
 from . import write_phase_bridge
+from . import scoped_checks as _scoped_checks
 from .commit_paths import document_label, read_commit_range, is_commit_brief
 from .known_checks import APPLY_FIX_BATCH_CHECKS_KEY
 from .subagent_tasks import file_content_hash
@@ -366,7 +372,11 @@ def build_common_arg_parser(
         "--max-batch-size",
         type=int,
         default=4,
-        help="Maximum suggestions per batch (default: 4)",
+        help=(
+            "Items per batch. Only the phase's default is accepted for now (4; "
+            "3 for apply-code-fixes): any other value is refused, see "
+            "cli_common.refuse_unsupported_batch_size"
+        ),
     )
 
     # --- Bulk Approval Options ---
@@ -1056,6 +1066,13 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         except SystemExit:
             # Allow sys.exit() calls to propagate (used by early-exit paths)
             raise
+        except ScopedCheckOwedError as e:
+            # The state writer refused a completion no gate settled
+            # (docs/development/checks.md#scoped-batch-checks): exit 3.
+            print(f"ERROR: {e.message}", file=sys.stderr)
+            record_error(e.message)
+            self._stop_error = e.message
+            return e.exit_code
         except Exception as e:
             self.logger.error(
                 "Unexpected error in %s: %s",
@@ -1214,6 +1231,8 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         if getattr(self.args, "mark_completed", False):
             self._refuse_unusable_state()
             state = StateManager(Path(self.plan_path))
+            # A full check scoped batches deferred runs (or refuses) first.
+            self._settle_scoped_check(state)
             state.mark_phase_completed(
                 self.confirmation_phase_name or self.phase_name
             )
@@ -1382,42 +1401,16 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         # (docs/development/write-scheduler.md#scope-policy-at-the-write-seam).
         self._resolve_scope_policy()
 
-        if getattr(self.args, "fresh", False) and not getattr(
-            self.args, "resume", False
-        ):
-            # Before anything is cleared: a target still carrying the previous
-            # run's edits would take every batch a second time, and the clear
-            # below is what a plain re-run needs to skip them.
-            refusal = self._fresh_target_refusal()
-            if refusal:
-                print(refusal, file=sys.stderr)
-                raise OrchestratorError(
-                    "Phase _setup, step 10: --fresh refused, the target still "
-                    "carries the previous run's edits",
-                    exit_code=3,
-                )
-
-        if getattr(self.args, "fresh", False):
-            print(
-                "[orchestrator] Fresh start requested, clearing previous progress...",
-                file=sys.stderr,
-            )
-            self.state.clear_human_decisions(self.phase_name)
-            self.state.clear_processed_items(self.phase_name)
-            self.state.clear_processing_progress(self.phase_name)
-            if self.write_kind == "apply_code_fixes":
-                # What the void run's batches reported about
-                # their own checks is no earlier batch of this run.
-                self.state.clear_key(APPLY_FIX_BATCH_CHECKS_KEY)
-            self.state.save()
-            # Clear prior changes history for a fresh start
-            prior_changes_file = Path(self.out_dir) / "prior_changes.jsonl"
-            if prior_changes_file.exists():
-                prior_changes_file.unlink()
-                print(
-                    "[orchestrator] Cleared prior changes history.",
-                    file=sys.stderr,
-                )
+        if self._fresh_start():
+            # A run of this phase that holds its lock (a detached worker, a
+            # composite's step) keeps landing batches bound to the inputs it
+            # loaded: a reset under it would void what it lands after, for the
+            # next run to apply again. A foreground apply in another terminal
+            # holds no lock, and a run started between this check and the
+            # reset's save is not seen either: the documented limit
+            # (docs/development/write-scheduler.md).
+            self._refuse_fresh_under_a_live_run()
+            self._fresh_reset()
 
         # Step 10c: this review's earlier materialization under another
         # policy (after `--fresh`, which clears the records it reads). Its
@@ -2510,12 +2503,15 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         word = self._scope_phase_word()
         blockers: List[Dict[str, Any]] = []
         if not self._scope_dry() and self.state is not None:
+            self._settle_scoped_check(self.state)
             _scope.record_scope_deferrals(self.state, word, self.scope_gate.deferred)
             self.state.mark_phase_completed(word)
             blockers = self._scope_close(self.state)
             if self.edits_the_plan and getattr(self.args, "resume", False):
                 self.state.refresh_plan_hash()
             self.state.save()
+            if not blockers:
+                self._announce_scoped_check_settled()
             if self.resume_dropped_groups:
                 self.print_native_tests_not_run()
         phase_dir = os.path.join(self.out_dir, self.phase_name)
@@ -3088,6 +3084,14 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         else:
             if task_file:
                 print(f"[WRITE_TASKS_FILE] {task_file}", file=sys.stderr)
+                # `driver.batch_checks: scoped` never narrows on this leg;
+                # one line says so, none when it is `full`.
+                notice = _scoped_checks.narrowing(
+                    self.write_kind, executor=False, anchor=self.plan_path,
+                    phase=self.confirmation_phase_name or self.phase_name,
+                ).line
+                if notice:
+                    print(f"[orchestrator] {notice}", file=sys.stderr)
                 # A native `--resume` promises to skip what already landed.
                 # A batch about to go out again whose `prior_changes_id` the
                 # log already holds for this phase, with no record
@@ -3102,6 +3106,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 output, output_path,
                 getattr(self, "_native_write_tasks", None) if task_file else None,
             )
+        self._announce_scoped_check_owed()
 
         # The native leg: the batches are now the host's to apply, so the phase
         # is recorded *started*, never completed — completion is the host's
@@ -3122,6 +3127,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 # same completion `--mark-completed` writes: a blocker a
                 # batch of this review declined (and `--resume` dropped)
                 # keeps the phase blocked, exit 3 below.
+                self._settle_scoped_check(self.state)
                 self.state.mark_phase_completed(word)
                 scope_blockers = self._scope_close(self.state)
                 # Under `--resume` the empty loop is what step 23 left after
@@ -3138,6 +3144,9 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             else:
                 self.state.mark_phase_started(word)
             self.state.save()
+            if not scope_blockers:
+                # Set only when the empty branch above ran the owed check.
+                self._announce_scoped_check_settled()
 
         # Step 34: Print summary
         try:
@@ -3383,6 +3392,104 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             exit_code=3,
         )
 
+    def _fresh_start(self) -> bool:
+        """Whether this run starts the phase over: ``--fresh`` without
+        ``--resume``, which wins over it everywhere (the clears, the backup
+        re-stamp and the scheduler's resume)."""
+        return bool(getattr(self.args, "fresh", False)) and not getattr(
+            self.args, "resume", False
+        )
+
+    def _cycle_cutoff(self) -> Optional[datetime]:
+        """The cutoff this phase's own evidence is dated against: the later of
+        the review's completion and the phase's last ``--fresh`` reset
+        (:func:`utils.fresh_reset.cycle_cutoff`)."""
+        return fresh_reset.cycle_cutoff(
+            self._review_completed_at(),
+            getattr(getattr(self, "state", None), "state", None),
+            getattr(self, "write_kind", ""),
+        )
+
+    def _fresh_reset(self) -> None:
+        """``--fresh``'s target refusal, reset and clears."""
+        # Before anything is cleared: a target still carrying the previous
+        # run's edits would take every batch a second time, and the clear
+        # below is what a plain re-run needs to skip them.
+        refusal = self._fresh_target_refusal()
+        if refusal:
+            print(refusal, file=sys.stderr)
+            raise OrchestratorError(
+                "Phase _setup, step 10: --fresh refused, the target still "
+                "carries the previous run's edits",
+                exit_code=3,
+            )
+        # `--resume` wins over `--fresh` here too (`_fresh_start`): clearing
+        # the processed records and the prior-changes log under a resume
+        # re-emitted a native run's recorded batches (2026-11-18).
+        print(
+            "[orchestrator] Fresh start requested, clearing previous progress...",
+            file=sys.stderr,
+        )
+        # The reset is stamped in the same save as the clears, so it happens
+        # whole or not at all (utils/fresh_reset.py): every result bound
+        # before it reads as made from other inputs, and the cycle cutoff
+        # moves to it.
+        fresh_reset.record_fresh_reset(self.state, self.write_kind or "")
+        self.state.clear_human_decisions(self.phase_name)
+        self.state.clear_processed_items(self.phase_name)
+        self.state.clear_processing_progress(self.phase_name)
+        if self.write_kind == "apply_code_fixes":
+            # What the void run's batches reported about
+            # their own checks is no earlier batch of this run.
+            self.state.clear_key(APPLY_FIX_BATCH_CHECKS_KEY)
+        self.state.save()
+        # Clear prior changes history for a fresh start
+        prior_changes_file = Path(self.out_dir) / "prior_changes.jsonl"
+        if prior_changes_file.exists():
+            prior_changes_file.unlink()
+            print(
+                "[orchestrator] Cleared prior changes history.",
+                file=sys.stderr,
+            )
+
+    def _refuse_fresh_under_a_live_run(self) -> None:
+        """Exit 3 when another live process holds this phase dir's lock.
+
+        ``--fresh`` resets the phase in ``_setup``, before this run takes the
+        lock; a run that holds it (a detached worker, a composite's step)
+        keeps landing batches bound to the inputs it loaded, and the reset
+        would void each of them for the next run, which applies them again.
+        Not refused: a process that holds the lock itself, and a detached
+        worker holding the lock its launcher handed it but not adopted yet
+        (``detach.handed_lock_is``, matched by file identity). A probe, not a
+        hold: the lock is taken and let go at once
+        (``process_control.lock_is_free``), retried past a ``status`` probe as
+        a run's entry is. Not seen: a foreground apply (it holds no lock) and
+        a run that takes the lock between this probe and the reset's save;
+        both are the documented limit.
+        """
+        phase_dir = os.path.join(self.out_dir, self.phase_name)
+        if _detach.holds_phase_lock(phase_dir):
+            return
+        path = _detach.lock_path(phase_dir)
+        if getattr(self.args, "internal_worker", False) and _detach.handed_lock_is(path):
+            return
+        for attempt in range(_detach.ENTRY_LOCK_ATTEMPTS):
+            if attempt:
+                time.sleep(_detach.ENTRY_LOCK_RETRY_S)
+            if process_control.lock_is_free(path):
+                return
+        holder = process_control.read_lock_holder(path) or {}
+        print(
+            _detach.phase_dir_busy_message(
+                phase_dir, holder, plan_file=self.plan_path, phase=self.phase_name),
+            file=sys.stderr,
+        )
+        raise OrchestratorError(
+            "Phase _setup, step 10: --fresh refused, another run holds the phase dir",
+            exit_code=3,
+        )
+
     def _fresh_target_refusal(self) -> Optional[str]:
         """Why ``--fresh`` must not run against the target as it is, or ``None``.
 
@@ -3520,7 +3627,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         backup_path = os.path.join(phase_dir, target_backup_name(self.phase_name))
         if (
             os.path.exists(backup_path)
-            and not getattr(self.args, "fresh", False)
+            and not self._fresh_start()
             and self._phase_has_recorded_progress(phase_dir)
         ):
             print(
@@ -3538,7 +3645,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         if kept:
             about = (
                 "the file --fresh is about to back up"
-                if getattr(self.args, "fresh", False)
+                if self._fresh_start()
                 else "the file this run is about to back up"
             )
             print(
@@ -3585,7 +3692,9 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         if getattr(self.args, "resume", False):
             return True
 
-        reviewed_at = self._review_completed_at()
+        # The review's completion, or the phase's last `--fresh` reset when
+        # that is later: what a reset declared void is no progress.
+        reviewed_at = self._cycle_cutoff()
 
         def this_cycle(stamped: Optional[datetime]) -> bool:
             return not predates_review(stamped, reviewed_at)
@@ -3747,9 +3856,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         # well, so a user who reverted the target and asked to start over got
         # exit 0 with every batch "already complete". `--resume` wins over
         # `--fresh` (the retry builder drops `--fresh` beside it, too).
-        fresh = bool(getattr(self.args, "fresh", False)) and not getattr(
-            self.args, "resume", False
-        )
+        fresh = self._fresh_start()
         try:
             scheduler = write_batch_scheduler.WriteBatchScheduler(SchedulerOptions(
                 tasks=tasks,
@@ -4639,6 +4746,68 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 self.plan_path,
             )
             return ""
+
+    def _settle_scoped_check(self, state: Any) -> None:
+        """Settle the full check apply-code-fixes batches deferred when they
+        ran the verify command scoped, before this orchestrator records the
+        phase completed itself (``scoped_checks.settle_owed_check``).
+
+        Nothing happens when none is owed, or for another phase. A pass drops
+        the record for the caller's save with the completion; anything else
+        prints why, puts its first line on the result line and exits 3 with
+        nothing recorded (docs/development/checks.md#scoped-batch-checks).
+        A dry run runs nothing: the state writer then refuses the completion.
+        """
+        if self.write_kind != "apply_code_fixes":
+            return
+        if getattr(self.args, "dry_run", False) or getattr(self.args, "dry_run_subagents", False):
+            return
+        settled = _scoped_checks.settle_owed_check(
+            state, plan_path=self.plan_path,
+            log=lambda line: print(line, file=sys.stderr),
+        )
+        if settled is None or settled.ok:
+            # A pass, for `_announce_scoped_check_settled` once it is saved.
+            self._scoped_settled = settled
+            return
+        for line in settled.lines:
+            print(line, file=sys.stderr)
+        record_error(settled.lines[0])
+        sys.exit(EXIT_NEEDS_HUMAN)
+
+    def _announce_scoped_check_settled(self) -> None:
+        """The ``[SCOPED_CHECK_SETTLED]`` line, on stderr, after an early
+        completion this orchestrator saved (the no-items exit, the
+        all-deferred exit, the native emit with no batch) settled an owed
+        full check by running it: that run is the phase's verification, so
+        the native host skips its step 7 and step 10
+        (``instructions/apply-code-fixes.md``). Nothing when none was owed,
+        and never from ``--mark-completed``, which is step 10 itself."""
+        settled = getattr(self, "_scoped_settled", None)
+        if settled is None or settled.verification is None:
+            return
+        print(f"[SCOPED_CHECK_SETTLED] "
+              f"{_scoped_checks.native_settled_line(settled.verification)}", file=sys.stderr)
+
+    def _announce_scoped_check_owed(self) -> None:
+        """The native emit's ``[SCOPED_CHECK_OWED]`` line, on stderr: an
+        earlier ``--exec-subagents`` run of apply-code-fixes left the full
+        run of the verify command owed (``scoped_checks``), so the host's
+        ``--mark-completed`` runs it and the host runs no verification of
+        its own after the loop (``instructions/apply-code-fixes.md``, steps
+        7 and 10). Also when the emit hands out no batch but leaves human
+        decisions to the host: the phase completes through the host's
+        ``--mark-completed`` then, so the host must not verify first. Nothing
+        when none is owed, for another phase, or when nothing at all is handed
+        out (that emit settles it itself)."""
+        if (self.write_kind != "apply_code_fixes" or self.state is None
+                or not (self.batches or self.needs_human)):
+            return
+        record = _scoped_checks.owed(self.state)
+        if record is None:
+            return
+        print(f"[SCOPED_CHECK_OWED] {_scoped_checks.native_owed_line(record, self.state)}",
+              file=sys.stderr)
 
     def print_native_tests_not_run(self) -> None:
         """``--mark-completed``'s ``[TESTS_NOT_RUN]`` line, for apply-code-fixes.

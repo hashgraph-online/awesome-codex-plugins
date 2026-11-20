@@ -1,6 +1,6 @@
 ---
 name: amq-lead
-version: 0.157.0 # x-release-please-version
+version: 0.158.0 # x-release-please-version
 description: "Lead an AMQ fleet when assigning work, checking stalled seats, reviewing a worker result, deciding whether to merge, running a retrospective, or escalating a decision to the owner. Not for sending one message (use amq-cli) or for reading the board alone (use amq-board)."
 metadata:
   short-description: The lead's loop for a fleet of agents on AMQ

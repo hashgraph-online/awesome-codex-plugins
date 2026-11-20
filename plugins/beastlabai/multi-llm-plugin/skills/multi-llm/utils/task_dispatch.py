@@ -51,6 +51,7 @@ from .llm_client import (
 )
 from .provider_registry import (
     get_provider,
+    get_subagent_idle_timeout,
     get_subagent_retries,
     get_subagent_timeout,
     parse_model_spec,
@@ -302,6 +303,9 @@ class DispatchPlan:
     schema: Any
     schema_phase: Optional[str]
     declined_marker: Optional[str]
+    #: ``driver.subagent_idle_timeout_s`` for a write kind, ``None`` for a read
+    #: kind or with the clock off (docs/development/delegation.md#an-idle-writer).
+    idle_timeout: Optional[int] = None
 
     @property
     def budget_kwargs(self) -> Dict[str, Any]:
@@ -515,7 +519,9 @@ def hook_context(
         "transport": lambda: plan.transport,
         "outcome": lambda: outcome,
         "result": lambda: reading.data,  # type: ignore[union-attr]
-        "exit_code": lambda: capture.exit_code,  # type: ignore[union-attr]
+        # The runner's own exit, never the plugin's idle stop
+        # (`dispatch_spawn.runner_exit_code`).
+        "exit_code": lambda: _dispatch_spawn.runner_exit_code(capture),
         # Not an `outcome` field: this one leaves the module through the
         # caller's callback, so no sink here can promise it is redacted on the
         # way out. Redacted at the source instead, fail-safe: a raising
@@ -923,6 +929,11 @@ def plan_dispatch(
     salvage_failure = _task_result.salvage_failure_of(task, phase_dir)
     effective_timeout = timeout or get_subagent_timeout(provider_name, anchor=anchor)
     budget = retries if retries is not None else get_subagent_retries(anchor=anchor)
+    # Writers only: a read kind's reply is retried whole, and its runners were
+    # never measured for it (docs/development/delegation.md#an-idle-writer).
+    idle_timeout = (
+        get_subagent_idle_timeout(anchor=anchor) if profile == PROFILE_AGENT_WRITE else None
+    )
 
     # The "the caller reads the flag before dispatch", on this lane and once
     # per dispatch — the schema file is read here, not per attempt, and the
@@ -961,7 +972,7 @@ def plan_dispatch(
         prompt=prompt, prefer_arrays=prefer_arrays,
         salvage_failure=salvage_failure, effective_timeout=effective_timeout,
         retries=budget, schema=schema, schema_phase=schema_phase,
-        declined_marker=declined_marker,
+        declined_marker=declined_marker, idle_timeout=idle_timeout,
     )
 
 
@@ -1048,6 +1059,11 @@ def spawn_attempt(
             # needs it.
             jail_request=plan.jail_request if plan.wrapping is not None else None,
             write_consent=plan.write_consent,
+            idle_timeout=plan.idle_timeout,
+            # A re-ask (rule 7, never rule 9's re-send of the batch) asks for
+            # the report alone: after an idle stop its one message is its
+            # reply (docs/development/delegation.md#an-idle-writer).
+            reask=state.repair is not None,
         )
     except (
         StructuredOutputUnavailable, structured_output.SchemaConfigError
@@ -1085,6 +1101,7 @@ def read_attempt(
     run with no usable result may get."""
     usage = _safe_parse_usage(plan.provider, capture)
     _dispatch_spawn._report_jail_outcome(plan.task_id, capture)
+    idle_note = _announce_idle_stop(plan, capture, attempt_index)
     data = None
     denied_line = getattr(capture, "jail_denied_line", None)
     if denied_line:
@@ -1138,10 +1155,49 @@ def read_attempt(
             )
             if reclassified is not None:
                 status, error = reclassified
+    if idle_note and status != STATUS_OK:
+        error = f"{idle_note}; {error}" if error else idle_note
     return AttemptReading(
         index=attempt_index, capture=capture, status=status, error=error,
         data=data, usage=usage,
     )
+
+
+def _announce_idle_stop(
+    plan: DispatchPlan, capture: Any, attempt_index: int,
+) -> Optional[str]:
+    """Say on the run's log that the idle timeout stopped this attempt, and
+    return the words its row adds when the stop was confirmed and the runner
+    had finished speaking (the reply is then read as after an exit), else
+    ``None``: a stop in mid-turn is a timeout, worded by
+    ``_classify_pre_parse`` (docs/development/delegation.md#an-idle-writer)."""
+    reason = getattr(capture, "idle_stop", None)
+    if not reason:
+        return None
+    note = _dispatch_spawn.idle_stop_note(capture)
+    if _dispatch_spawn.idle_stop_case(capture) == _task_outcome.IDLE_STOP_MID_TURN:
+        print(
+            f"[exec-subagents] {plan.task_id}: {plan.runner} (attempt "
+            f"{attempt_index}): {reason}; it went quiet in mid-turn, so it was "
+            f"stopped as at its per-task timeout and nothing it printed is "
+            f"read. What was applied is still decided by comparing the files "
+            f"with the pre-batch snapshot."
+        )
+        return None
+    if note is None:
+        print(
+            f"[exec-subagents] {plan.task_id}: {plan.runner} (attempt "
+            f"{attempt_index}): {reason}; it was stopped but could not be "
+            f"confirmed stopped, so nothing it printed is read."
+        )
+        return None
+    print(
+        f"[exec-subagents] {plan.task_id}: {plan.runner} (attempt "
+        f"{attempt_index}): {reason}; stopped it and reading what it printed. "
+        f"What was applied is still decided by comparing the files with the "
+        f"pre-batch snapshot."
+    )
+    return note
 
 
 def ask_about_reply(
@@ -1356,7 +1412,13 @@ def finish_ok(
         if not outcome.ok:
             _note_held_pipe(outcome, capture)
             return outcome
-    if capture.exit_code not in (0, None):
+    idle_note = _dispatch_spawn.idle_stop_note(capture)
+    if idle_note:
+        # The plugin's stop, not the runner's crash
+        # (docs/development/delegation.md#an-idle-writer).
+        idle_note = f"{idle_note}; its reply was schema-valid"
+        outcome.reason = f"{outcome.reason}; {idle_note}" if outcome.reason else idle_note
+    elif capture.exit_code not in (0, None):
         # Exit code is evidence, never the verdict: for a read
         # task a schema-valid result wins over a non-zero exit
         # (several CLIs exit non-zero on a warning while still
@@ -1679,6 +1741,7 @@ def _attempt_row(
         usage=reading.usage,
         capture_path=capture_path,
         repair=state.repair_tag,
+        idle_stop=_dispatch_spawn.idle_stop_case(capture),
     )
 
 
@@ -2190,10 +2253,22 @@ def _accumulate_usage(outcome: _task_outcome.TaskOutcome, usage: Optional[Dict[s
 
     A timed-out or rate-limited attempt still burned tokens, so it counts. Absent
     stays absent: a runner that reports nothing records duration only.
+
+    Only a token figure makes the task's usage *reported*. A count of tool
+    calls alone (a codex stream a stop cut short before ``turn.completed``, or
+    a finished turn with no usage block, ``{"tool_uses": N}``) is summed and
+    kept, but the task still counts under ``tasks_without_usage``: its tokens
+    were spent and not measured
+    (docs/development/delegation.md#tool-use-counts-on-the-executor-leg).
     """
     if not usage:
         return
-    outcome.usage_reported = True
+    if any(
+        isinstance(key, str) and key.endswith("_tokens")
+        and isinstance(value, (int, float)) and not isinstance(value, bool)
+        for key, value in usage.items()
+    ):
+        outcome.usage_reported = True
     totals = dict(outcome.usage or {})
     for key, value in usage.items():
         if isinstance(value, (int, float)) and not isinstance(value, bool):

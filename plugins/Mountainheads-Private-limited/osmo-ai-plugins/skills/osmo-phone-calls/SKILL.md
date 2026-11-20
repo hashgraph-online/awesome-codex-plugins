@@ -1,8 +1,8 @@
 ---
 name: osmo-phone-calls
-description: Phone call AI: make phone calls with AI. AI phone call skill: use when the user wants an AI to make a real phone call for them — call a business, shop, clinic, restaurant, helpline or one of their contacts; book, reschedule or cancel an appointment or reservation; reach customer service, get through the phone menu and wait on hold; call up to 5 numbers at once or schedule a call for later in the user's own time zone; follow each call live (a call card in apps that show cards) and bring back the answer with a summary, transcript and recording link, plus an offer to call again or schedule it. Also use to see who called the user's OsmO number, call them back, and run their AI receptionist. 50 free credits (US, Canada, UK, Australia) call businesses and toll-free numbers; calling contacts, call-backs and scheduling need an OsmO app plan. Not for SMS or email.
-version: 1.2.0
-metadata: {"openclaw":{"homepage":"https://getosmo.app","emoji":"📞"}}
+description: "Phone call AI: make phone calls with AI. AI phone call skill: use when the user wants an AI to make a real phone call for them — call a business, shop, clinic, restaurant, helpline or one of their contacts; book, reschedule or cancel an appointment or reservation; reach customer service, get through the phone menu and wait on hold; call up to 5 numbers at once or schedule a call for later in the user's own time zone; follow each call live (a call card in apps that show cards) and bring back the answer with a summary, transcript and recording link, plus an offer to call again or schedule it. Also use to see who called the user's OsmO number, call them back, and run their AI receptionist. 50 free credits (US, Canada, UK, Australia) call businesses and toll-free numbers; calling contacts, call-backs and scheduling need an OsmO app plan. Not for SMS or email."
+version: 1.2.1
+metadata: {"homepage":"https://getosmo.app","emoji":"📞"}
 ---
 
 # OsmO AI Phone Call

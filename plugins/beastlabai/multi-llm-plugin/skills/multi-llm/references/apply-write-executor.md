@@ -26,6 +26,14 @@ each skipped item with its status, group id and reason). On apply-code-fixes it 
 `driver.verify_command` once after the last batch (the core's step 7), records the
 result in `summary.md` and `.status.json`, and ends the phase at exit 3 when it fails.
 
+After each apply-code-fixes batch it also lists what the batch's edits added that
+quiets a check, one line on its log per suppression or skip marker (`# noqa`,
+`# type: ignore`, `eslint-disable`, a skipped test, ...) or changed lint or test
+configuration entry, read from the batch's pre-batch snapshot to the files it left.
+`summary.md` lists them under `## Check these: suppressions added` and the result's
+`notice` names them; they never fail a batch or change the exit code. Name them in your
+report so the user reads each one.
+
 ## Its flags
 
 - `--dry-run-subagents`: full preflight, **zero dispatch**. It renders the exact

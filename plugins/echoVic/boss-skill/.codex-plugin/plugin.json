@@ -1,7 +1,7 @@
 {
   "name": "boss",
-  "version": "5.0.5",
-  "description": "BMAD pipeline plugin for Codex with installer-managed hooks and shared Boss runtime behavior.",
+  "version": "5.1.0",
+  "description": "Expert-squad workflow for Codex: role agents from PM to DevOps, each held to a contract that an independent verifier checks.",
   "author": {
     "name": "echoVic",
     "email": "137844255@qq.com",
@@ -18,11 +18,10 @@
     "automation"
   ],
   "skills": "./skill/",
-  "hooks": "./skill/hooks/codex/hooks.json",
   "interface": {
     "displayName": "Boss",
     "shortDescription": "Auditable multi-agent engineering workflow for Codex.",
-    "longDescription": "Boss turns Codex into a structured engineering team with PM, architecture, implementation, QA, DevOps, runtime state, hooks, quality gates, and replayable delivery artifacts.",
+    "longDescription": "Boss turns Codex into a structured engineering team. Each role writes an artifact to .boss/<feature>/ and is held to a hard-requirement contract, checked by a script and an independent verifier. Run a single stage on an existing codebase or the full pipeline from requirements to shipping.",
     "developerName": "echoVic",
     "category": "Productivity",
     "capabilities": [
@@ -39,9 +38,9 @@
       "./boss-skill-promo.png"
     ],
     "defaultPrompt": [
-      "Use Boss to plan and implement this feature.",
+      "Use Boss to review the current branch.",
       "Run Boss QA on this project.",
-      "Review this code with Boss."
+      "Use Boss to build this feature end to end."
     ],
     "brandColor": "#171717"
   }

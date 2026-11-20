@@ -249,15 +249,18 @@ class PreBatchSnapshots:
         # the 2026-10-02 adversarial review). Set aside, never deleted.
         # `taken_before` applies the rule to the second, as the manifest is
         # stamped.
-        reviewed_at = self._evidence.review_completed_at()
+        # The phase's last `--fresh` reset moves the cutoff (utils/fresh_reset.py):
+        # a snapshot an earlier run took is not the rollback point of a run
+        # that started the phase over.
+        reviewed_at = self._evidence.cycle_cutoff()
         if existing is not None and existing.taken_before(reviewed_at):
             moved_to = existing.set_aside()
             self._ctx.log(
                 f"[write-subagents] {task_id}: the pre-batch snapshot under "
                 f"that id was taken at {existing.taken_at or 'an unknown time'}, "
-                f"before this phase's review completed "
-                f"({reviewed_at.isoformat(timespec='seconds')}), so it is a "
-                f"previous review cycle's rollback point; kept at {moved_to}."
+                f"before this phase's review completed or its last --fresh "
+                f"({reviewed_at.isoformat(timespec='seconds')}), so it is an "
+                f"earlier run's rollback point; kept at {moved_to}."
             )
             existing = None
         recorded_ids = (existing.expected_ids or []) if existing else []

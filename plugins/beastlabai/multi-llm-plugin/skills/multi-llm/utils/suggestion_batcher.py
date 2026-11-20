@@ -57,6 +57,12 @@ class SuggestionBatch:
     section_key: str = ""
     batch_type: str = "mixed"  # "deletion", "addition", "modification", "mixed"
     total_chars: int = 0
+    #: The caps :meth:`is_full` and :meth:`can_add` hold this batch to: the
+    #: ``max_per_batch``/``max_chars`` of :func:`group_suggestions_for_subagents`
+    #: (they read the module constants until 2026-11-18, so both arguments
+    #: had no effect). Not serialized.
+    max_items: int = field(default=MAX_SUGGESTIONS_PER_BATCH, repr=False, compare=False)
+    max_chars: int = field(default=MAX_DESCRIPTION_CHARS, repr=False, compare=False)
 
     @property
     def size(self) -> int:
@@ -64,7 +70,7 @@ class SuggestionBatch:
 
     @property
     def is_full(self) -> bool:
-        return self.size >= MAX_SUGGESTIONS_PER_BATCH
+        return self.size >= self.max_items
 
     @property
     def priority_score(self) -> float:
@@ -80,7 +86,7 @@ class SuggestionBatch:
             return False
 
         desc_len = len(suggestion.get("description", ""))
-        if self.total_chars + desc_len > MAX_DESCRIPTION_CHARS:
+        if self.total_chars + desc_len > self.max_chars:
             return False
 
         return True
@@ -293,6 +299,14 @@ def are_types_compatible(type1: str, type2: str) -> bool:
     return type1 in compatible_types and type2 in compatible_types
 
 
+def _caps(max_per_batch: int, max_chars: int) -> Dict[str, int]:
+    """The batch caps as :class:`SuggestionBatch` fields; each a positive int."""
+    for name, value in (("max_per_batch", max_per_batch), ("max_chars", max_chars)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"{name} must be a positive integer, not {value!r}")
+    return {"max_items": max_per_batch, "max_chars": max_chars}
+
+
 def group_suggestions_for_subagents(
     suggestions: List[Dict[str, Any]],
     max_per_batch: int = MAX_SUGGESTIONS_PER_BATCH,
@@ -319,6 +333,7 @@ def group_suggestions_for_subagents(
     """
     if not suggestions:
         return []
+    caps = _caps(max_per_batch, max_chars)
 
     batches: List[SuggestionBatch] = []
 
@@ -328,7 +343,8 @@ def group_suggestions_for_subagents(
 
     # Process deletions first (each in its own batch for safety)
     for deletion in deletions:
-        batch = SuggestionBatch(section_key=normalize_section_reference(deletion.get("reference", "")))
+        batch = SuggestionBatch(
+            section_key=normalize_section_reference(deletion.get("reference", "")), **caps)
         batch.add(deletion)
         batches.append(batch)
 
@@ -359,7 +375,7 @@ def group_suggestions_for_subagents(
         # Sort by importance within cluster (HIGH first)
         cluster.sort(key=lambda s: _importance.rank(s.get("importance")))
 
-        current_batch = SuggestionBatch(section_key=section_key)
+        current_batch = SuggestionBatch(section_key=section_key, **caps)
 
         for suggestion in cluster:
             # Check if we can add to current batch
@@ -377,13 +393,13 @@ def group_suggestions_for_subagents(
                         # Type mismatch - start new batch
                         if current_batch.size > 0:
                             batches.append(current_batch)
-                        current_batch = SuggestionBatch(section_key=section_key)
+                        current_batch = SuggestionBatch(section_key=section_key, **caps)
                         current_batch.add(suggestion)
             else:
                 # Batch is full or would exceed limits - start new batch
                 if current_batch.size > 0:
                     batches.append(current_batch)
-                current_batch = SuggestionBatch(section_key=section_key)
+                current_batch = SuggestionBatch(section_key=section_key, **caps)
                 current_batch.add(suggestion)
 
         # Don't forget the last batch

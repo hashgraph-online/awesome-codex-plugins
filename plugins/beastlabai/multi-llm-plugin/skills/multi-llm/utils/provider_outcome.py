@@ -22,7 +22,7 @@ from typing import Any, Callable, Collection, Dict, FrozenSet, List, Optional, T
 from . import process_capture
 from . import readonly_audit as _readonly_audit_mod
 from . import structured_output
-from .json_extractor import _ANSI_ESCAPE, looks_like_ndjson
+from .json_extractor import _ANSI_ESCAPE, has_salvageable_json, looks_like_ndjson
 from .providers.base import (
     CATEGORY_SANDBOX_UNAVAILABLE,
     SANDBOX_RUNG_LANDLOCK,
@@ -723,6 +723,36 @@ STREAM_STOP_KEY = "stream_stop"
 #: absent otherwise (docs/development/runtime.md#process-primitives).
 PIPE_HELD_KEY = "pipe_held"
 
+#: ``details`` key: when a failed slot's usage limit resets, as the adapter read
+#: it off the CLI's own output (``LLMProvider.usage_limit_reset``: a verbatim
+#: ``clause``, an exact ``at``), redacted; absent when the CLI said nothing
+#: (docs/development/providers.md#usage-limit-resets).
+USAGE_LIMIT_RESET_KEY = "usage_limit_reset"
+
+
+def _attach_usage_limit_reset(
+    details: Dict[str, Any], provider: Any, stdout: Optional[str], stderr: Optional[str]
+) -> None:
+    """Put the adapter's usage-limit reset on ``details``, when it read one.
+
+    Diagnostics under the never-raise rule of :func:`_attach_usage`: a hook
+    that raises or answers nothing leaves the key absent, never empty."""
+    hook = getattr(provider, "usage_limit_reset", None)
+    if hook is None:
+        return
+    try:
+        reset = hook(stdout or "", stderr or "")
+    except Exception:  # noqa: BLE001 - diagnostics must not break the run
+        return
+    if not isinstance(reset, dict):
+        return
+    kept = {
+        str(key): _redact(str(value)) for key, value in reset.items()
+        if isinstance(key, str) and isinstance(value, str) and value
+    }
+    if kept:
+        details[USAGE_LIMIT_RESET_KEY] = kept
+
 
 def rejected_answer_category(
     provider: Any, stdout: Optional[str], stderr: Optional[str]
@@ -739,6 +769,73 @@ def rejected_answer_category(
     """
     _, category = exit_zero_failure_category(provider, stdout, stderr)
     return category or STATUS_UNPARSEABLE
+
+
+def attach_rejected_answer_text(
+    details: Dict[str, Any], provider: Any, stdout: Optional[str]
+) -> None:
+    """Put an exit 0's text on ``details`` when the file-output layer rejects
+    the answer its parse served (``invoke_with_file_output``: a piece of a
+    broken JSON document), as the losing paths put theirs: ``stdout_excerpt``
+    and ``salvage_text``, by the same two helpers, so the redact-then-bound
+    rule is not spelled again. Without them a parse that "succeeded" left the
+    retry and the salvage gate nothing to read, and the model failed with its
+    whole review unread (measured 2026-11-18, codex ``gpt-6-luna``). A key
+    already on ``details`` is kept.
+    """
+    if "stdout_excerpt" not in details:
+        _attach_stdout_excerpt(details, stdout)
+    if SALVAGE_TEXT_KEY not in details:
+        _attach_salvage_text(details, provider, stdout)
+
+
+def attach_reply_salvage_text(details: Dict[str, Any], text: Optional[str]) -> None:
+    """Put the text an answer was read from on ``details['salvage_text']``,
+    redacted then bounded (:func:`_bound_salvage_text`), replacing what was
+    there.
+
+    ``invoke_with_file_output`` calls it for an answer of a shape no review
+    lane takes (an object, where an array was asked for), so the lane's
+    salvage request is written over the reply as the model wrote it, never
+    over the re-encoded object: an object is all the reader served, not all
+    the reply held (two documents, the second one served). *text* is the
+    result file's, or the adapter's answer text of stdout.
+    """
+    details[SALVAGE_TEXT_KEY] = _bound_salvage_text(_redact(text or "")).strip()
+
+
+def attach_stdout_reply_salvage_text(
+    details: Dict[str, Any], provider: Any, stdout: Optional[str],
+) -> None:
+    """:func:`attach_reply_salvage_text` for an answer read from stdout: the
+    adapter's answer text (its ``salvage_text`` hook, as on the losing paths),
+    else the whole stdout when the hook has no opinion."""
+    hook_text = _salvage_hook_text(provider, stdout)
+    attach_reply_salvage_text(details, stdout if hook_text is None else hook_text)
+
+
+def attach_broken_file_text(details: Dict[str, Any], text: Optional[str]) -> bool:
+    """Make a broken result file's text the salvage text when it holds an
+    answer to repair. True when it did.
+
+    ``invoke_with_file_output`` calls it when both channels failed and the
+    requested file held a document that does not parse (an unescaped quote
+    nothing mends, a truncation). The stdout text the salvage gate would read
+    otherwise (``salvage_text`` when present, else ``stdout_excerpt``) is
+    usually the model's prose about the file ("Written to …"), so the gate
+    found nothing and the review on disk was never read. The file wins over
+    stdout whatever stdout holds, as it does when both parse (a file the
+    model wrote is its deliberate answer, stdout a scrape): a stdout that
+    seems to hold an answer may be a clean result envelope, whose
+    ``permission_denials: []`` passes :func:`has_salvageable_json` around a
+    prose ``result``. ``stdout_excerpt`` stays the stdout's. Redacted then
+    bounded like every salvage text (:func:`_bound_salvage_text`).
+    """
+    file_text = _bound_salvage_text(_redact(text or "")).strip()
+    if not has_salvageable_json(file_text):
+        return False
+    details[SALVAGE_TEXT_KEY] = file_text
+    return True
 
 
 def _adapter_failure_category(
@@ -1118,6 +1215,7 @@ def outcome_from_capture(
             "model": model,
             "duration_seconds": capture.duration,
         }
+        _attach_usage_limit_reset(details, provider, stdout, stderr)
         result = {
             "success": False,
             "error": error_line,
@@ -1161,6 +1259,7 @@ def outcome_from_capture(
             classified, category = exit_zero_failure_category(
                 provider, stdout, stderr
             )
+            _attach_usage_limit_reset(details, provider, stdout, stderr)
 
     # F1: the jailed slot's read-back samples live state (the
     # home, other children still running), so it is taken where each path has

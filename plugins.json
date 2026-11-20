@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-20",
-  "total": 450,
+  "total": 454,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -98,6 +98,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/summationai/agent-retro/HEAD/plugins/agent-retro/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agent Session Lineage",
+      "url": "https://github.com/TardisBooo/agent-session-lineage",
+      "owner": "TardisBooo",
+      "repo": "agent-session-lineage",
+      "description": "View indexed Codex and Claude Code sessions and recorded handoff links on Windows using a local Möbius vault.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TardisBooo/agent-session-lineage/HEAD/plugins/mobius-connect/.codex-plugin/plugin.json"
     },
     {
       "name": "Agent Workflow System",
@@ -1191,6 +1201,26 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ariaxhan/kernel-claude/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Kling AI China Plugin",
+      "url": "https://github.com/klingai-tech/claude-plugin-cn",
+      "owner": "klingai-tech",
+      "repo": "claude-plugin-cn",
+      "description": "Official China-region OAuth MCP plugin for Claude and Gemini CLI, with image and video generation, Elements, motion-library browsing, and task tracking.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/klingai-tech/claude-plugin-cn/HEAD/plugin.json"
+    },
+    {
+      "name": "Kling AI Global Plugin",
+      "url": "https://github.com/klingai-tech/claude-plugin",
+      "owner": "klingai-tech",
+      "repo": "claude-plugin",
+      "description": "Official Global-region OAuth MCP plugin for Claude and Gemini CLI, with image and video generation, Elements, and task tracking.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/klingai-tech/claude-plugin/HEAD/plugin.json"
     },
     {
       "name": "Krypton",
@@ -2844,6 +2874,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/entropy-data/dataproduct-builder-dbt/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "DataXAPI",
+      "url": "https://github.com/data-x-api/skills",
+      "owner": "data-x-api",
+      "repo": "skills",
+      "description": "Market research from Codex through skills and a hosted MCP server: posts, comments, creators, trends, transcripts, ads and products on Douyin, Xiaohongshu (RedNote), WeChat, TikTok, YouTube, X and more, paid per call.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/data-x-api/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Dawn",

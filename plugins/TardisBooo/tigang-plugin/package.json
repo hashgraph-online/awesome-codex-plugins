@@ -4,6 +4,7 @@
   "private": true,
   "description": "成功提交或推送 Git 代码后，在回合结束时显示提肛运动提醒并累计本地次数。",
   "license": "MIT",
+  "exports": "./adapters/dsh/native.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/TardisBooo/tigang-plugin.git"
@@ -13,5 +14,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

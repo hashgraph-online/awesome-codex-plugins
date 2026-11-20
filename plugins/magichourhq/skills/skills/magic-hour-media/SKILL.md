@@ -1,6 +1,6 @@
 ---
 name: magic-hour-media
-description: Create, edit or retrieve media when Magic Hour is requested or configured and suitable. Animate an approved image directly, use a portrait plus audio for Talking Photo, or existing video plus audio for Lip Sync. Preserve an explicitly requested alternative provider and check the live interface's capabilities.
+description: Create, edit or retrieve media when Magic Hour is requested or configured and suitable. Animate an approved image, use a portrait plus audio for Talking Photo, match replacement audio with Lip Sync, or dub existing speech into a target language with Video Translator. Preserve an explicitly requested alternative provider and check the live interface's capabilities.
 license: MIT
 metadata:
   author: magichourhq
@@ -36,6 +36,7 @@ Use live tool schemas, or the [API documentation index](https://docs.magichour.a
 | Replace a whole character or transfer a performance | `replace_character_in_video`                           | `wait_for_video_project`       |
 | Generate video from a text description              | `create_video_from_text`                               | `wait_for_video_project`       |
 | Match existing video to supplied replacement audio  | `create_lip_sync_video`                                    | `wait_for_video_project`       |
+| Dub a clip’s original speech into a target language | `translate_video`                                          | `wait_for_video_project`       |
 | Animate a still portrait using supplied audio       | `create_talking_photo`                    | `wait_for_video_project`       |
 | Generate speech from text                           | Voice Generator MCP tool when exposed, otherwise API       | `wait_for_audio_project`       |
 | Read new text in an authorized sample voice         | Voice Cloner API or matching exposed MCP tool              | `wait_for_audio_project`       |
@@ -57,6 +58,14 @@ Speech routes are `POST /v1/ai-voice-generator` for a supported preset and `POST
 For full-person photo placement, distinguish Body Swap's `person_file_path` and `scene_file_path` from face-only replacement. For Video-to-Video, a custom prompt is ignored under the default prompt mode. Video Upscaler uses `upscale_video` in the renamed MCP catalog. Its underlying `POST /v1/ai-video-upscaler` API contract was checked October 25, 2026 UTC. Read the connected schema and [finishing guide](https://github.com/magichourhq/skills/blob/main/skills/magic-hour-video-editing/references/extend-upscale.md) for required inputs, paid-plan eligibility and completion handling. Music Video Generator's web scene-assembly workflow and Video Extender still need a separate support check; when no compatible endpoint is available, prepare the inputs and web handoff instead of inventing tools. The [complete use-case map](https://github.com/magichourhq/skills/blob/main/docs/use-cases.md) links those workflows.
 
 When installed, use `ai-video-generation` for a broad video request, `creator-video-remix` for a supplied reference format and `ai-media-quality-review` before final delivery. Use the other focused skill for image-to-video, face/body swap, text-to-video, image editing, talking video, character replace, music video, existing-video editing, product visuals, campaign kits, character consistency or thumbnails. Distinguish face-only identity changes from whole-character replacement, and a portrait's new speech from an existing video's performance. Do not require the user to memorize a skill name or install a companion just to finish a supported task. Reuse the current connection, project brief and accepted media; only ask for missing information that changes the output or authorization.
+
+## Translate an existing video
+
+Use `translate_video` when the user supplies a clip with speech and asks for another language. Pass a native ChatGPT attachment in `video`. Otherwise pass the uploaded `file_path` or a direct video file URL with a supported extension in `assets.video_file_path`. For the REST fallback, use `assets.video_file_path` with [`POST /v1/ai-video-translator`](https://docs.magichour.ai/api-reference/video-projects/ai-video-translator).
+
+Set `target_language` to a supported language name such as `Spanish`. Supply the segment’s end time as `end_seconds`. `start_seconds` defaults to `0`. The selected segment must be 1–30 seconds long. Use the full clip if it fits and the user has given no other range. If it is too long, ask which segment to translate.
+
+Keep the returned `id` and call `wait_for_video_project` with it, or poll `GET /v1/video-projects/{id}` in REST. If the wait times out, resume with the same ID. Once the status is `complete`, save the MP4 from the exact signed download URL and return the finished file or download link.
 
 ## Reuse saved media
 

@@ -408,7 +408,8 @@ def with_result_contract(
         "nothing needed changing.\n"
         + (CHECK_RESULT_CONTRACT if is_check_task(kind, task) else "")
         + (WRITE_CHECK_CONTRACT + (checks_section or "") if own_checks else "")
-        + (IMPLEMENT_WHICH_CHECKS if own_checks and kind == "implement" else "")
+        + (IMPLEMENT_WHICH_CHECKS + IMPLEMENT_NO_WEAKENING
+           if own_checks and kind == "implement" else "")
     )
     return (
         f"{contract.rstrip()}\n\n{BATCH_PROMPT_RULE}\n\n{prompt.rstrip()}\n\n"
@@ -504,6 +505,21 @@ IMPLEMENT_WHICH_CHECKS = (
     "is also a check another task of the plan exists to run, report it as "
     "asked: a finding that is the same one that task reports is recorded as "
     "that task's finding, not as this task's failure.\n"
+)
+
+
+#: Appended after :data:`IMPLEMENT_WHICH_CHECKS`: the rule an apply-code-fixes
+#: batch reads in its known-checks section (``known_checks.known_checks_section``),
+#: which an implement task is never sent. A suppression added to pass a check
+#: must carry its reason beside it; the ones added are listed for a person
+#: either way (``utils/suppression_scan.py``,
+#: docs/development/write-scheduler.md#suppressions-a-batch-added).
+IMPLEMENT_NO_WEAKENING = (
+    "\nNever make a check pass by weakening it (deleting or loosening an "
+    "assertion, skipping a test), and never add a lint, type-checker or "
+    "coverage suppression (`# noqa`, `# type: ignore`, a config ignore entry) "
+    "to make a check pass, unless the code is right as written and you add a "
+    "comment saying why.\n"
 )
 
 

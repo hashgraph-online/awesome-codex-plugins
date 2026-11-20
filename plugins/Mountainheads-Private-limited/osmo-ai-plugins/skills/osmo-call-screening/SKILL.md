@@ -1,8 +1,8 @@
 ---
 name: osmo-call-screening
 description: "Call screening AI for your own phone number: OsmO's AI answers the calls you forward to it, screens spam calls and robocalls, takes the message instead of voicemail, and tells you who called and why. Use when the user wants to screen calls, stop answering spam calls, see missed calls, read a caller's message, or block or let through specific numbers. From the AI app: list missed and screened calls with summaries, transcripts and recordings, edit the block list and VIP list, add rules for a caller (put through, take a message, block), pause the AI, choose who is put through live, and call a caller back. Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan."
-version: 1.0.0
-metadata: {"openclaw":{"homepage":"https://getosmo.app","emoji":"🛡️"}}
+version: 1.0.1
+metadata: {"homepage":"https://getosmo.app","emoji":"🛡️"}
 ---
 
 # OsmO Call Screening
@@ -70,8 +70,8 @@ repeat it.
    ▶ Play recording link. Lead with real callers and anything urgent; group the calls the summary
    marks as spam or sales.
 3. **Block or let through numbers** (`get_settings` / `update_settings`): `blockList` and `vipList`
-   each replace the whole stored list, so read the current settings first, then send the full new
-   list. Show the exact numbers added and removed, and apply only after a yes.
+   each replace the whole stored list, so the update must list every number to keep plus the
+   change. Show the exact numbers added and removed, and apply only after a yes.
 4. **Rules for one caller or company** (always put my doctor through, take a message from the
    delivery company, block this number): read `list_rules`, show the new or changed rule, apply on
    a yes with `add_rule`, `update_rule` or `delete_rule`. A rule about a person needs that person

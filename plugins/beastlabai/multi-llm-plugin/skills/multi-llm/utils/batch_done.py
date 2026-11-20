@@ -185,8 +185,10 @@ from .write_record import BatchFacts, record_batch_facts
 from .write_prompt import (
     MARKER_SNAPSHOT, SNAPSHOT_ROLES, WritePromptError, changed_since_bound,
     check_tree_fingerprint, completion_stamp, discard_check_tree,
-    load_write_task, record_completion_stamp,
+    load_write_task, record_completion_stamp, scan_bound_batch,
 )
+from .batch_suppressions import SUPPRESSION_MARKER, marker_lines
+from .suppression_scan import CHECK_THESE_HEADING
 from .write_verify import load_finalize_tracking
 
 
@@ -202,6 +204,7 @@ __all__ = [
     "ProtectedWriteRefused",
     "RESUME_REFUSED_MARKER",
     "STATUSES",
+    "SUPPRESSION_MARKER",
     "record_batch",
     "unrecorded_logged_batches",
     "resume_refusal_lines",
@@ -746,6 +749,16 @@ def record_batch(
             f"No state file at {target}: the phase's orchestrator writes it "
             f"when it emits its batches (pass --state-file if it lives elsewhere)."
         )
+    # The suppressions a code batch's edits added, against the base its
+    # `util write-prompt` recorded: report only, read before the state lock
+    # (docs/development/write-scheduler.md#suppressions-a-batch-added).
+    suppressions: List[Dict[str, Any]] = []
+    not_scanned: List[Dict[str, str]] = []
+    if kind in CODE_WRITE_KINDS and not checking and (status == "completed" or partial):
+        suppressions, not_scanned = scan_bound_batch(phase_dir, task_id, [
+            t for t in (document.get("batches") or document.get("tasks") or [])
+            if isinstance(t, dict)
+        ])
     # One lock from the read to the write: the host may record
     # same-batch tasks in parallel, and the census below takes seconds, so an
     # unlocked pair read the same file and the second write dropped the
@@ -866,6 +879,8 @@ def record_batch(
         "repeats_moved": {
             moved_id: merged for moved_id, (_own, merged) in record.repeats_moved.items()
         },
+        "suppressions": suppressions,
+        "suppressions_not_scanned": not_scanned,
     }
 
 
@@ -1670,11 +1685,40 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"the findings were accepted), or leave it and them "
             f"undone with --resume --human-task {task_id}=skip."
         )
+    for line in suppression_lines(written["task_id"], written.get("suppressions") or [],
+                                  written.get("suppressions_not_scanned") or []):
+        print(line)
     which = written.get("check_not_recorded")
     if which:
         # Advisory, so the host records it in the same turn.
         print(check_not_recorded_line(args, which, written.get("listed")))
     return 0
+
+
+def suppression_lines(
+    task_id: str, hits: List[Dict[str, Any]], not_scanned: List[Dict[str, str]],
+) -> List[str]:
+    """What the native host lists under the summary's suppressions heading:
+    one :data:`SUPPRESSION_MARKER` line per hit, the files the scan could not
+    read, and the sentence saying where they go. Report only: the batch's
+    record stands either way."""
+    lines = marker_lines(task_id, hits)
+    lines += [
+        f"{task_id}: {entry.get('path')} changed but was not scanned for "
+        f"suppressions ({entry.get('why')})."
+        for entry in not_scanned
+    ]
+    if lines:
+        heading = CHECK_THESE_HEADING.lstrip("# ")
+        lines.append(
+            f"List {'each ' + SUPPRESSION_MARKER + ' line' if hits else 'each such file'} "
+            f"in the phase's summary.md under \"## {heading}\" "
+            f"(its file:line, the marker, its reason or \"no reason given\", "
+            f"and {task_id}), and name them in your report. They do not fail "
+            f"{task_id}: a person reads each one and keeps it only where the "
+            f"code is right as written."
+        )
+    return lines
 
 
 if __name__ == "__main__":  # pragma: no cover

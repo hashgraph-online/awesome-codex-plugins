@@ -41,6 +41,17 @@ per-phase sections:
 - **A skipped phase is recorded skipped**, never left pending, so `status` and
   rerun logic never show an optional phase as perpetually outstanding.
 
+**`--dry-run-subagents` makes the run a preview of one phase.** Only the first
+phase that would run (the first one `state.json` does not record, past any it
+would record skipped) runs, with the flag: a review prints its reviewer plan and
+calls no model, an apply or implement renders its batches, a consolidation pass
+renders its batches without writing them. A phase that answers exit 2 (nothing
+to do, such as a review already completed) previews nothing, so the next phase
+is previewed instead, as a real run goes on past it. No later phase runs and
+nothing is recorded. When you drive the phases yourself, do the same: run that
+one phase's command with the flag in the foreground, report what it printed,
+and stop.
+
 ## Non-Interactive Mode (`--yes` / `--non-interactive`)
 
 By default, full mode still stops to ask you a few questions (model selection, `needs-human-decision` items, whether to review tasks). Passing **`--yes`** (alias **`--non-interactive`**) makes the entire workflow run **fully unattended — zero rendered questions** — by applying these effects to every phase:

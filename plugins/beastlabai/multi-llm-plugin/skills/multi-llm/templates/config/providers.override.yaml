@@ -144,6 +144,8 @@
 #       - gpt-5.6-terra-xhigh
 #       - gpt-5.6-luna-high
 #       - gemini-4-carbon-high
+#       - gemini-4-neon-high
+#       - gemini-4-hydrogen-high
 #       - gemini-3.8-flash-high
 #       - kimi-k3-high
 #       - kimi-k3-max
@@ -161,6 +163,8 @@
 #     default_timeout: 1200
 #     models:
 #       - gemini-4-carbon
+#       - gemini-4-neon
+#       - gemini-4-hydrogen
 #       - gemini-3.8-flash
 #       - gemini-3.5-flash-lite
 #       - gemini-flash-latest
@@ -184,17 +188,17 @@
 #       - opencode/big-pickle
 #       - opencode/nemotron-3.5-super-vl-free
 #       - google/gemini-4-carbon
-#       - openai/gpt-6.1-sol
-#       - openai/gpt-6-astra
+#       - openai/gpt-6.2-sol
+#       - openai/gpt-6.2-astra
 #       - openrouter/deepseek/deepseek-v4.1-flash-1017
 
 #   codex:
 #     default_timeout: 1800
 #     models:
-#       - gpt-6.1-sol
-#       - gpt-6.1-sol:xhigh
-#       - gpt-6-astra
-#       - gpt-6-astra:xhigh
+#       - gpt-6.2-sol
+#       - gpt-6.2-sol:xhigh
+#       - gpt-6.2-astra
+#       - gpt-6.2-astra:xhigh
 #       - gpt-6.1-terra
 #       - gpt-6-luna
 #     sandbox_fallback: auto
@@ -210,14 +214,15 @@
 #       - openrouter/minimax/minimax-m3.1-flash
 #       - openrouter/x-ai/grok-4.7
 #       - openrouter/xiaomi/mimo-v2.6-pro
-#       - openrouter/qwen/qwen3.8-max-0902:xhigh
+#       - openrouter/qwen/qwen4-max:xhigh
 #       - openrouter/tencent/hy4:high
 #       - openrouter/stepfun/step-5-preview:high
-#       - openrouter/openai/gpt-6-astra-pro
-#       - openai/gpt-6-astra
+#       - openrouter/openai/gpt-6.2-astra-pro
+#       - openai/gpt-6.2-astra
 #       - openrouter/nex-agi/nex-n2.6
 #       - openrouter/google/gemini-3.8-flash
 #       - openrouter/google/gemini-4-carbon
+#       - openrouter/google/gemini-4-neon
 #       - google/gemini-4-carbon
 #       - openrouter/deepseek/deepseek-v4-pro-0813
 #       - openrouter/anthropic/claude-sonnet-5.5
@@ -229,29 +234,29 @@
 #     max_concurrent: 2
 #     models:
 #       - openrouter/z-ai/glm-5.3
-#       - openrouter/moonshotai/kimi-k3
-#       - openrouter/openai/gpt-6-astra
+#       - openrouter/moonshotai/kimi-k3.1-pro
+#       - openrouter/openai/gpt-6.2-astra
 
 #   goose:
 #     default_timeout: 1200
 #     models:
 #       - openrouter/z-ai/glm-5.3
-#       - openrouter/moonshotai/kimi-k3
-#       - openrouter/openai/gpt-6-astra
+#       - openrouter/moonshotai/kimi-k3.1-pro
+#       - openrouter/openai/gpt-6.2-astra
 
 #   aider:
 #     default_timeout: 1200
 #     models:
 #       - openrouter/z-ai/glm-5.3
-#       - openrouter/moonshotai/kimi-k3
-#       - openrouter/openai/gpt-6-astra
+#       - openrouter/moonshotai/kimi-k3.1-pro
+#       - openrouter/openai/gpt-6.2-astra
 
 #   agy:
 #     default_timeout: 1200
 #     models:
-#       - Gemini 4 Argon (High)
-#       - Gemini 4 Argon (Medium)
-#       - Gemini 4 Argon (Low)
+#       - Gemini 4 Neon (High)
+#       - Gemini 4 Neon (Medium)
+#       - Gemini 4 Neon (Low)
 #       - Gemini 3.8 Flash (High)
 #       - Gemini 3.8 Flash (Medium)
 #       - Gemini 3.8 Flash (Low)
@@ -276,22 +281,21 @@
 #     default_timeout: 1200
 #     models:
 #       - openrouter/z-ai/glm-5.3
-#       - openrouter/moonshotai/kimi-k3
-#       - openrouter/openai/gpt-6-astra
+#       - openrouter/moonshotai/kimi-k3.1-pro
+#       - openrouter/openai/gpt-6.2-astra
 
 #   kimi:
 #     default_timeout: 1200
 #     max_concurrent: 2
 #     models:
 #       - moonshotai/kimi-k3.1-pro
-#       - moonshotai/kimi-k3
 
 #   qwen-code:
 #     default_timeout: 1200
 #     max_concurrent: 2
 #     models:
 #       - qwen/qwen3.8-27b
-#       - qwen/qwen3.8-max-0902
+#       - qwen/qwen4-max
 
 #   copilot:
 #     default_timeout: 1200
@@ -310,8 +314,8 @@
 #     models:
 #       - openrouter/openai/gpt-6-luna
 #       - openrouter/z-ai/glm-5.3
-#       - openrouter/moonshotai/kimi-k3
-#       - openrouter/openai/gpt-6-astra
+#       - openrouter/moonshotai/kimi-k3.1-pro
+#       - openrouter/openai/gpt-6.2-astra
 
 ## --- default_provider -------------------------------------------------------
 ## Provider used when a model spec has no `provider:` prefix (e.g. bare `opus`).
@@ -335,15 +339,23 @@
 ## test`), run once after a code-editing phase applied its batches. Left unset
 ## the phase says so in one line rather than completing unchecked; a non-zero
 ## exit rolls nothing back and ends the phase at exit 3.
+## `batch_checks: scoped` (default `full`) has apply-code-fixes batches under
+## --exec-subagents run a pytest `verify_command` narrowed to their own tests,
+## then the full command once before the phase completes: for a slow suite.
+## `subagent_idle_timeout_s` stops a write subagent that printed nothing for
+## that long with no tool call running (codex only; 0 turns it off; a blank
+## value keeps the base 900).
 # driver:
 #   subagent_runner: claude-code:sonnet
 #   subagent_runner_cheap: claude-code:haiku
 #   max_concurrent_subagents: 4
 #   max_concurrent_write_subagents: 1
 #   subagent_timeout_s: null
+#   subagent_idle_timeout_s: 900
 #   subagent_retries: 1
 #   verify_command: null
 #   verify_timeout_s: 600
+#   batch_checks: full
 #   write_paths:
 #     allow:
 #       - '**'
@@ -393,8 +405,8 @@ defaults:
 #     - kilocode:openrouter/z-ai/glm-5.3:max
 #     - kilocode:openrouter/minimax/minimax-m3.1-flash
 #     - kilocode:openrouter/xiaomi/mimo-v2.6-pro:high
-#     - kilocode:openrouter/qwen/qwen3.8-max-0902:xhigh
-#     - codex:gpt-6-astra:xhigh
+#     - kilocode:openrouter/qwen/qwen4-max:xhigh
+#     - codex:gpt-6.2-astra:xhigh
 #     - claude-code:claude-fable-5-2:high
 
   ## --- defaults.quick_models ------------------------------------------------
@@ -402,7 +414,7 @@ defaults:
   ## uncommenting rule as defaults.models.
   quick_models:
 #     - cursor-agent:grok-4.7-high
-#     - codex:gpt-6-astra:xhigh
+#     - codex:gpt-6.2-astra:xhigh
 #     - claude-code:claude-fable-5-2:high
 
   ## --- defaults.modes -------------------------------------------------------

@@ -34,10 +34,11 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from . import batch_prompt as _batch_prompt
 from . import check_records as _check_records
 from . import process_control as _process_control
+from . import scoped_checks as _scoped_checks
 from . import write_context as _write_context
 from .batch_ledger import touched_files
 from .cli_common import EXIT_NEEDS_HUMAN
-from .provider_registry import get_verify_command, get_verify_settings
+from .provider_registry import get_batch_check_settings, get_verify_command, get_verify_settings
 from .batch_reply import WRITE_APPLIED, WRITE_PARTIAL
 from .dispatch_spawn import _host_env_guards
 from .subagent_tasks import PHASE_BY_WRITE_KIND
@@ -127,6 +128,15 @@ class VerifyStep:
         """
         if self._ctx.kind not in _batch_prompt.CODE_WRITE_KINDS or self._ctx.dry_run or result.unverified:
             return []
+        owed = self.owed_scoped_check()
+        if owed is not None:
+            # Scoped batches deferred the full run: the stop says it is owed,
+            # whatever else ran (docs/development/checks.md#scoped-batch-checks).
+            result.unverified = _scoped_checks.owed_stop_line(owed, self._ctx.state)
+            headline = (result.stop or {}).get("headline")
+            if headline and result.unverified not in headline:
+                self._set_stop_headline(result.stop, tail=result.unverified)
+            return [result.unverified]
         if not self.phase_has_applied_batches(result):
             return []
         try:
@@ -177,11 +187,31 @@ class VerifyStep:
         """
         if self._ctx.kind not in _batch_prompt.CODE_WRITE_KINDS:
             return True
-        if not self.phase_has_applied_batches(result):
+        # A full run scoped batches deferred is owed whether or not an edit
+        # is on record: a no-op or all-declined last writer still owes it
+        # (docs/development/checks.md#scoped-batch-checks).
+        owed = self.owed_scoped_check()
+        if owed is None and not self.phase_has_applied_batches(result):
             return True
-        # One load for the command, its timeout and the layer named in the log
-        # (docs/development/providers.md#configuration-and-runner-resolution).
-        command, timeout, source = get_verify_settings(anchor=self._ctx.anchor)
+        if owed is None:
+            # One load for the command, its timeout and the layer named in
+            # the log (docs/development/providers.md#configuration-and-runner-resolution).
+            command, timeout, source = get_verify_settings(anchor=self._ctx.anchor)
+        else:
+            settings = get_batch_check_settings(anchor=self._ctx.anchor)
+            command, timeout, source = (
+                settings.command, settings.timeout, settings.command_layer)
+            settlement = _scoped_checks.settle_action(
+                owed, mode=settings.mode, command=command,
+                command_layer=settings.command_layer,
+            )
+            for note in settlement.notes:
+                self._ctx.log(f"[write-subagents] {note}")
+            if not settlement.run:
+                result.exit_code = EXIT_NEEDS_HUMAN
+                result.unverified = settlement.lines[0]
+                result.messages.extend([""] + settlement.lines)
+                return False
         if not command:
             self._ctx.log(
                 "[write-subagents] no driver.verify_command configured — "
@@ -222,16 +252,35 @@ class VerifyStep:
             "duration_seconds": round(duration, 1),
             "output_tail": redact_text(output).strip()[-VERIFY_TAIL_CHARS:],
         }
+        if owed is not None:
+            # The full run the scoped batches deferred, named so on every
+            # surface that reports this record.
+            batches = [str(item) for item in (owed.get("batches") or [])]
+            result.verification["scoped_batches"] = batches
+            result.verification["scoped_outcomes"] = _scoped_checks.scoped_outcomes(
+                self._ctx.state, batches)
         self._ctx.log(
             f"[write-subagents] verification ({source}): "
             f"`{result.verification['command']}` exited {exit_code} "
             f"in {duration:.1f}s"
         )
         if exit_code == 0:
+            if owed is not None:
+                # Dropped in memory now and saved with the completion that
+                # `_finalize` records next, in the same save.
+                _scoped_checks.discharge(self._ctx.state, owed)
             return True
         result.exit_code = EXIT_NEEDS_HUMAN
         result.messages.extend(self.verification_message(result))
         return False
+
+    def owed_scoped_check(self) -> Optional[Dict[str, Any]]:
+        """The full run apply-code-fixes batches deferred when they ran the
+        verify command scoped (``scoped_checks.owed``), or ``None``: always
+        ``None`` for another kind."""
+        if self._ctx.kind != _scoped_checks.KIND:
+            return None
+        return _scoped_checks.owed(self._ctx.state)
 
     def phase_has_applied_batches(
         self, result: Optional[Any] = None,
@@ -333,6 +382,11 @@ class VerifyStep:
             f"`{record.get('command', '')}` exited {record.get('exit_code')} "
             f"after {record.get('duration_seconds')}s",
         ]
+        if record.get("scoped_batches") is not None:
+            lines.append(
+                f"  - this was {_scoped_checks.scoped_note(record['scoped_batches'], record.get('scoped_outcomes'))}: "
+                f"a later batch can break a test an earlier batch's scoped run skipped"
+            )
         tail = str(record.get("output_tail") or "").strip()
         if tail:
             lines.append("Last output:")

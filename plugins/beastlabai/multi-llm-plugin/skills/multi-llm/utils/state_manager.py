@@ -126,6 +126,74 @@ def mark_phase_started_in_state(state: Dict[str, Any], phase: str) -> None:
     started[phase] = datetime.now().isoformat()
 
 
+#: ``state.json``'s record of the full ``driver.verify_command`` run that
+#: apply-code-fixes batches deferred when they ran it scoped to their tests
+#: (``utils.scoped_checks``, which owns it); present only while that run is
+#: owed. :func:`mark_phase_completed_in_state` refuses the phase while it stands.
+SCOPED_CHECK_OWED_KEY = "apply_fix_scoped_check"
+
+#: The phase :data:`SCOPED_CHECK_OWED_KEY` holds back, and the review whose
+#: completion stamp each admission copies into the record
+#: (``review_completed_at``): the cycle the debt belongs to.
+SCOPED_CHECK_PHASE = "apply-code-fixes"
+SCOPED_CHECK_REVIEW_PHASE = "code-review"
+
+
+class ScopedCheckOwedError(NeedsHuman):
+    """apply-code-fixes cannot be recorded completed: a full check its scoped
+    batches deferred is still owed (exit 3; :func:`mark_phase_completed_in_state`)."""
+
+
+def owed_scoped_check_in_state(state: Any) -> Optional[Dict[str, Any]]:
+    """The owed full run on record in the raw state dict *state*
+    (:data:`SCOPED_CHECK_OWED_KEY`, naming its command's SHA-256), or ``None``.
+    The one reading of the record: the completion writer below, the gates and
+    the composites all ask it."""
+    record = state.get(SCOPED_CHECK_OWED_KEY) if isinstance(state, dict) else None
+    if not isinstance(record, dict) or not record.get("command_sha256"):
+        return None
+    return record
+
+
+def owed_scoped_check_is_current(state: Any) -> bool:
+    """Whether the owed full run in the raw state dict *state* belongs to the
+    code review on record now: its last admission copied that review's
+    completion stamp (``review_completed_at``). ``False`` with no debt, no
+    review completion, or an admission made under an earlier one (a review
+    re-run since): that debt's batches are an earlier cycle's, so the apply
+    starts fresh rather than resuming (docs/development/checks.md#scoped-batch-checks).
+    """
+    record = owed_scoped_check_in_state(state)
+    completed = state.get("phases_completed") if record is not None else None
+    reviewed = completed.get(SCOPED_CHECK_REVIEW_PHASE) if isinstance(completed, dict) else None
+    admitted = record.get("review_completed_at") if record is not None else None
+    if not isinstance(reviewed, str) or not reviewed or not isinstance(admitted, str):
+        return False
+    if admitted == reviewed:
+        return True
+    parsed = _parse_completion_time(reviewed)
+    return parsed is not None and parsed == _parse_completion_time(admitted)
+
+
+def owed_scoped_check_token(record: Any) -> str:
+    """The token of one owed record: new on every write of it
+    (``scoped_checks.record_owed``), so a settlement can name the exact debt
+    it checked (:meth:`StateManager.discharge_scoped_check`); ``""`` when the
+    record carries none."""
+    return str(record.get("token") or "") if isinstance(record, dict) else ""
+
+
+#: The message of the refusal :meth:`StateManager.save` raises when its
+#: merged document holds a debt beside the completion this manager stamped.
+_OWED_AT_SAVE = (
+    "apply-code-fixes is NOT marked completed: a full check that batches "
+    "deferred when they ran driver.verify_command scoped to their tests was "
+    "recorded in state.json after this run read it, and it has not passed "
+    "yet. Re-run apply-code-fixes with --resume (or --mark-completed on the "
+    "native leg) to run it."
+)
+
+
 def mark_phase_completed_in_state(state: Dict[str, Any], phase: str) -> None:
     """``StateManager.mark_phase_completed``'s mutation on a raw state dict.
 
@@ -133,7 +201,18 @@ def mark_phase_completed_in_state(state: Dict[str, Any], phase: str) -> None:
     (``finalize_tracking``) that must not build a ``StateManager`` over a plan
     the native leg has just edited. The started record is cleared in the same
     write, so a phase is never both.
+
+    Raises :class:`ScopedCheckOwedError` (exit 3) for apply-code-fixes while a full check its
+    scoped batches deferred is owed (:data:`SCOPED_CHECK_OWED_KEY`): every
+    writer of that completion settles the check first, and one that did not
+    must not record it (docs/development/checks.md#scoped-batch-checks).
     """
+    if phase == SCOPED_CHECK_PHASE and owed_scoped_check_in_state(state) is not None:
+        raise ScopedCheckOwedError(
+            "apply-code-fixes is NOT marked completed: its batches ran "
+            "driver.verify_command scoped to their tests, and its full run "
+            "has not passed yet. Re-run apply-code-fixes with --resume to run it."
+        )
     if "phases_completed" not in state:
         state["phases_completed"] = {}
     state["phases_completed"][phase] = datetime.now().isoformat()
@@ -1562,6 +1641,66 @@ def _merge_tracked_files(
     _put(mine, key, merged)
 
 
+def _merge_owed_record(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any],
+    journal: Sequence[Tuple[str, ...]],
+) -> None:
+    """Merge :data:`SCOPED_CHECK_OWED_KEY`, the debt of scoped batch checks.
+
+    A settlement (``("discharge", key, token)`` in *journal*) drops the
+    record only while the file still holds the one it checked, by token: a
+    debt another writer recorded since (a new batch, or the same batch sent
+    again) stays. Two writers that each recorded batches against the same
+    command keep both batch lists. Otherwise it is one value, as any other
+    key (docs/development/checks.md#scoped-batch-checks).
+    """
+    key = SCOPED_CHECK_OWED_KEY
+    own, file = mine.get(key, _ABSENT), theirs.get(key, _ABSENT)
+    discharged = {
+        unit[2] for unit in journal
+        if len(unit) == 3 and unit[0] == "discharge" and unit[1] == key
+    }
+    if own is _ABSENT and discharged:
+        stale = file is _ABSENT or owed_scoped_check_token(file) in discharged
+        _put(mine, key, _ABSENT if stale else file)
+        return
+    written = ("key", key) in journal
+    if (written and isinstance(own, dict) and isinstance(file, dict)
+            and file != base.get(key, _ABSENT)):
+        if own.get("command_sha256") != file.get("command_sha256"):
+            # A run never defers two commands: the one on file stands.
+            _put(mine, key, file)
+            return
+        batches = [str(item) for item in (file.get("batches") or [])]
+        batches += [str(item) for item in (own.get("batches") or [])
+                    if str(item) not in batches]
+        _put(mine, key, {**own, "batches": batches})
+        return
+    _merge_whole(base, mine, theirs, (key,), touched=written)
+
+
+def _strip_owed_completion(
+    document: Dict[str, Any], journal: Iterable[Tuple[str, ...]],
+) -> bool:
+    """Drop :data:`SCOPED_CHECK_PHASE`'s completion from *document* (a merged
+    candidate) while a debt of scoped batch checks stands in it; returns
+    whether this manager stamped that completion (journaled
+    ``("completed", phase)``), which :meth:`StateManager.save` then refuses.
+
+    A completion it did not stamp is a stale one, the debt's own write
+    having reopened the phase: dropped quietly, so a save over such a file
+    repairs it. Replaces the map, never edits it in place (:func:`_put`).
+    """
+    if owed_scoped_check_in_state(document) is None:
+        return False
+    completed = document.get("phases_completed")
+    if not isinstance(completed, dict) or SCOPED_CHECK_PHASE not in completed:
+        return False
+    _put(document, "phases_completed",
+         {phase: value for phase, value in completed.items() if phase != SCOPED_CHECK_PHASE})
+    return ("completed", SCOPED_CHECK_PHASE) in set(journal)
+
+
 def _merge_state_into(
     base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any],
     touched: Iterable[Tuple[str, ...]] = (),
@@ -1573,7 +1712,9 @@ def _merge_state_into(
     *base* is the file as that manager last read or wrote it, and *touched*
     its journal: the units its mutators wrote since (``("task", id)``,
     ``("phase", name)``, ``("entry", key, id)``, ``("tracked", path)``,
-    ``("decomposition",)``, ``("plan",)``, ``("key", key)``). A unit counts
+    ``("decomposition",)``, ``("plan",)``, ``("key", key)``; and, read only
+    by the debt of scoped batch checks, ``("completed", name)`` and
+    ``("discharge", key, token)``). A unit counts
     as this manager's change when it is in the journal or differs from
     *base*; the units are listed in ``save()``'s docstring.
     """
@@ -1628,6 +1769,9 @@ def _merge_state_into(
     else:
         _merge_whole(base, mine, theirs, plan_change, touched=("plan",) in journal)
     done.update(task_maps, task_lists, phase_maps, decomposition, plan_change)
+    if SCOPED_CHECK_OWED_KEY not in done:
+        _merge_owed_record(base, mine, theirs, journal)
+        done.add(SCOPED_CHECK_OWED_KEY)
 
     for key in dict.fromkeys([*mine, *theirs, *base]):
         if key in done:
@@ -1985,6 +2129,15 @@ class StateManager:
         absent, unreadable or non-object file is written whole. Written by
         temp file + ``os.replace``.
 
+        The debt of scoped batch checks (:data:`SCOPED_CHECK_OWED_KEY`) has
+        its own rule (:func:`_merge_owed_record`): a settlement drops only the
+        record it checked, by token. The merged document is then held to
+        :func:`mark_phase_completed_in_state`'s rule: while it holds that
+        debt, apply-code-fixes' completion is left out of the write
+        (:func:`_strip_owed_completion`); when this manager stamped it, the
+        rest is written and adopted and :class:`ScopedCheckOwedError` (exit 3)
+        is raised after.
+
         The state lock is the innermost lock: a caller may hold its own
         (the scheduler's ``_effects_lock``), but nothing is taken while this
         one is held. A lock not free within ``state_file.STATE_LOCK_TIMEOUT_S``
@@ -2016,6 +2169,11 @@ class StateManager:
             )
             if current is not None:
                 _merge_state_into(self._baseline(), candidate, current, self._touched)
+            # The completion backstop, on the merged document and under the
+            # lock: a debt of scoped batch checks that another writer saved
+            # since this manager loaded is checked here, not in the stale
+            # view `mark_phase_completed` saw.
+            refused = _strip_owed_completion(candidate, self._touched)
             candidate["updated_at"] = datetime.now().isoformat()
             written = self._write_atomic(candidate)
         _adopt_document(self.state, candidate)
@@ -2026,6 +2184,10 @@ class StateManager:
         if not is_valid:
             # Log validation errors; the save has gone ahead
             warnings.warn(f"State validation warnings: {errors}")
+        if refused:
+            # Everything else this manager changed is written; only the
+            # completion was left out (docs/development/checks.md#scoped-batch-checks).
+            raise ScopedCheckOwedError(_OWED_AT_SAVE)
 
     def _read_current_text(self) -> Optional[str]:
         """``state.json``'s text as it is now, for :meth:`save`; ``None`` when
@@ -2642,6 +2804,9 @@ class StateManager:
         """
         mark_phase_completed_in_state(self.state, phase)
         self._touch("phase", phase)
+        # The completion itself, apart from the phase record's other writes:
+        # `save` refuses it, and only it, beside a debt the merge brings in.
+        self._touch("completed", phase)
         # `review_phase_completed` predates this general map and nothing ever
         # set it (F11): a fully completed review-plan phase left it `False`
         # forever, contradicting `phases_completed["review-plan"]` in the same
@@ -3200,6 +3365,23 @@ class StateManager:
         """Clear processing progress for a phase; an explicit reset
         (:meth:`clear_key`)."""
         self.clear_key(f"progress_{phase}")
+
+    def discharge_scoped_check(self, token: str) -> bool:
+        """Drop the debt of scoped batch checks whose full run passed: the
+        record with *token* (:func:`owed_scoped_check_token`), and only it.
+
+        :meth:`save` drops it from the file only while the file still holds
+        that record; a debt another writer recorded since stays, and the
+        completion saved beside it is then refused (:func:`_merge_owed_record`).
+        Returns ``False``, changing nothing, when this manager's own record
+        carries another token.
+        """
+        record = owed_scoped_check_in_state(self.state)
+        if record is not None and owed_scoped_check_token(record) != str(token):
+            return False
+        self.state.pop(SCOPED_CHECK_OWED_KEY, None)
+        self._touch("discharge", SCOPED_CHECK_OWED_KEY, str(token))
+        return True
 
     def clear_key(self, key: str) -> None:
         """Drop top-level *key* as an explicit reset (``--fresh``).

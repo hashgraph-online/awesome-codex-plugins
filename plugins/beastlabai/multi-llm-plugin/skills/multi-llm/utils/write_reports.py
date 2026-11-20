@@ -56,6 +56,7 @@ from .task_ledger import (
 from .text_clip import clip
 from .write_phase_bridge import WRITE_TASK_FILENAME
 from . import status_file as _status_file
+from . import suppression_scan as _suppression_scan
 from .manual_tasks import manual_close_note
 from .plan_updater import insert_implementation_summary_reference
 
@@ -457,6 +458,9 @@ class WriteReports:
                     ]
             lines.pop()
         lines += _check_records.batch_check_section(rows, heading=not findings_by_task)
+        # What the batches added that quiets a check, for a person to read
+        # (docs/development/write-scheduler.md#suppressions-a-batch-added).
+        lines += _suppression_scan.section_lines(_suppression_scan.from_rows(rows))
         touched: List[str] = []
         for row in rows:
             for path in row.get("files_touched") or []:
@@ -803,6 +807,10 @@ class WriteReports:
                                 # Moved, with no rollback point.
                                 **({"unrestorable": list(o.unrestorable)}
                                    if o.unrestorable else {}),
+                                # What its edits added that quiets a
+                                # check, for a detached run's notice.
+                                **({"suppressions": [dict(hit) for hit in o.suppressions]}
+                                   if o.suppressions else {}),
                                 # The rung, only when there was one.
                                 **({"sandbox_rung": self._dispatch_rungs[o.task_id]}
                                    if self._dispatch_rungs.get(o.task_id) else {}),

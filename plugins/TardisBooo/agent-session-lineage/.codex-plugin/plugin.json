@@ -1,0 +1,22 @@
+{
+  "name": "mobius-connect",
+  "version": "0.1.0",
+  "description": "Browse indexed AI coding sessions and inspect recorded session lineage in a local Möbius vault.",
+  "author": {
+    "name": "Tardis"
+  },
+  "repository": "https://github.com/TardisBooo/agent-session-lineage",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Session Lineage",
+    "shortDescription": "Browse indexed coding sessions and their recorded lineage.",
+    "longDescription": "List locally indexed Codex and Claude Code sessions and inspect recorded handoff links. The Windows preview uses the mobius-connect executable and a local Möbius vault.",
+    "developerName": "Tardis",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use $mobius-memory to list indexed sessions and show the recorded lineage for the session I select.",
+    "composerIcon": "./assets/icon.png"
+  },
+  "mcpServers": "./.mcp.json"
+}

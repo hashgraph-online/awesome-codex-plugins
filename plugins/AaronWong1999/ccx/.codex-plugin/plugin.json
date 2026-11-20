@@ -1,6 +1,6 @@
 {
   "name": "ccx",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "ccx: continue the same task in Claude, Codex and Antigravity. Needs the ccx app on this Mac: github.com/aaronwong1999/ccx",
   "author": {
     "name": "Aaron Wong",

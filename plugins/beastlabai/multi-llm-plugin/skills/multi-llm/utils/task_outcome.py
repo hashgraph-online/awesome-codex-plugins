@@ -135,6 +135,16 @@ class BatchFailed(ExecutorError):
 # Records
 # ---------------------------------------------------------------------------
 
+#: The words an attempt's row records as ``idle_stop`` when the idle timeout
+#: stopped its runner: it had finished speaking, and what it printed was read
+#: as after an exit; it went quiet in mid-turn, and the attempt was the timeout
+#: it would have been at the deadline; or the stop could not be confirmed
+#: (docs/development/delegation.md#an-idle-writer).
+IDLE_STOP_FINISHED = "finished_turn"
+IDLE_STOP_MID_TURN = "mid_turn"
+IDLE_STOP_UNCONFIRMED = "unconfirmed"
+
+
 @dataclass
 class Attempt:
     """One dispatch attempt of one task."""
@@ -150,6 +160,10 @@ class Attempt:
     #: rule 7) — :data:`REPAIR_SCHEMA_INVALID` — so the batch report says which
     #: attempt was the second question rather than a second try of the first.
     repair: Optional[str] = None
+    #: Set on an attempt the idle timeout stopped: one of
+    #: :data:`IDLE_STOP_FINISHED`, :data:`IDLE_STOP_MID_TURN` and
+    #: :data:`IDLE_STOP_UNCONFIRMED` (``dispatch_spawn.idle_stop_case``).
+    idle_stop: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         out: Dict[str, Any] = {
@@ -167,6 +181,8 @@ class Attempt:
             out["capture"] = self.capture_path
         if self.repair:
             out["repair"] = self.repair
+        if self.idle_stop:
+            out["idle_stop"] = self.idle_stop
         return out
 
 
@@ -184,6 +200,9 @@ class TaskOutcome:
     reason: Optional[str] = None
     duration_seconds: float = 0.0
     usage: Optional[Dict[str, Any]] = None
+    #: Whether some attempt reported a token figure (D3j). ``usage`` can hold a
+    #: tool count without one; the task then still counts under
+    #: ``tasks_without_usage`` (``task_dispatch._accumulate_usage``).
     usage_reported: bool = False
     skipped: bool = False
     #: The sha256 of the result bytes this dispatch persisted for the reply it
@@ -302,6 +321,16 @@ class TaskOutcome:
     #: the user's request when it kept the batch as it stood, ``{id:
     #: reason}`` (fix round 18). Never counted as applied.
     skipped_items: Dict[str, str] = field(default_factory=dict)
+    #: A code batch's suppressions: the suppression and skip markers and the
+    #: check configuration changes its edits added
+    #: (``suppression_scan.scan_changes`` hits, from its pre-batch snapshot to
+    #: the files it left; a batch kept at the user's request carries its
+    #: stopped run's). Report only: never read by a verdict
+    #: (docs/development/write-scheduler.md#suppressions-a-batch-added).
+    suppressions: List[Dict[str, Any]] = field(default_factory=list)
+    #: The files it changed that the scan could not read or failed on,
+    #: ``{path, why}``.
+    suppressions_not_scanned: List[Dict[str, str]] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -413,6 +442,13 @@ class TaskOutcome:
                 out["unapplied_ids"] = list(self.unapplied_ids)
             if self.skipped_items:
                 out["skipped_items"] = _batch_reply.declined_record(self.skipped_items)
+            if self.suppressions:
+                # Additive and only here, so a row with nothing to list is unchanged.
+                out["suppressions"] = [dict(hit) for hit in self.suppressions]
+            if self.suppressions_not_scanned:
+                out["suppressions_not_scanned"] = [
+                    dict(entry) for entry in self.suppressions_not_scanned
+                ]
             if self.summary:
                 out["summary"] = self.summary
             if self.snapshot_dir:
@@ -424,9 +460,11 @@ class TaskOutcome:
             out["returned_ids"] = list(self.returned_ids)
             out["sha256_before"] = dict(self.sha256_before)
             out["sha256_after"] = dict(self.sha256_after)
-        if self.usage_reported:
-            out["usage"] = dict(self.usage or {})
-        else:
+        if self.usage:
+            # A tool count with no token figure is kept beside the flag
+            # that says the tokens were not measured.
+            out["usage"] = dict(self.usage)
+        if not self.usage_reported:
             out["usage_reported"] = False
         if self.attempts:
             out["attempts"] = [a.to_dict() for a in self.attempts]
@@ -486,14 +524,15 @@ class BatchReport:
 
         Never a total that pretends to be complete: a batch mixing a
         usage-reporting runner with a duration-only one reports both numbers.
+        A task whose usage holds a tool count and no token figure counts as
+        missing, and its count is still summed.
         """
         totals: Dict[str, Any] = {}
         missing = 0
         for outcome in self.outcomes:
             if not outcome.usage_reported or not outcome.usage:
                 missing += 1
-                continue
-            for key, value in outcome.usage.items():
+            for key, value in (outcome.usage or {}).items():
                 if isinstance(value, (int, float)) and not isinstance(value, bool):
                     totals[key] = totals.get(key, 0) + value
         result: Dict[str, Any] = dict(totals)

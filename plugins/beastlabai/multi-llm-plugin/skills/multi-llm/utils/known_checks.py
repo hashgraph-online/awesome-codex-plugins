@@ -532,18 +532,59 @@ def _quoted(text: Any) -> str:
     return json.dumps(clip(normalized(text), EARLIER_FINDING_MAX_CHARS), ensure_ascii=False)
 
 
+#: How a batch told to run ``driver.verify_command`` scoped hears that the
+#: plugin runs none of the listed commands while it works (in place of "The
+#: plugin never runs them itself.": it runs that one in full at the end).
+_SCOPED_INTRO = "The plugin runs none of them for you while you work."
+
+
+def _scoped_paragraph(command: str, tests: Sequence[str]) -> List[str]:
+    """What a batch is told about the one command it runs scoped
+    (``utils.scoped_checks``): the plugin runs it in full at the end, so the
+    batch runs it followed only by the tests that cover its changes, the
+    ones the plugin found for its files (*tests*) among them."""
+    example = shown_command(" ".join([command, *tests]))
+    named = ", ".join(shown_command(test) for test in tests)
+    return [
+        f"{shown_command(command)} is the repository's driver.verify_command, "
+        "and the plugin itself runs it in full, once, after the last batch, "
+        "before this phase can complete. So do not run it in full: run it "
+        "scoped to your edits, as the same command, exactly as listed, "
+        "followed only by the test files (or test node ids) that cover the "
+        "code you changed. The plugin found these test files for the files "
+        f"you may change; include each of them: {named}. For example: "
+        f"{example}. Put that scoped command, as you ran it, in `ran`, and "
+        "its outcome under the listed command in `listed`. Report "
+        "`\"passed\"` only when pytest ran at least one test and every test "
+        "it ran passed: when it collects no test (it exits with code 5) or "
+        "skips every test it selects, report `\"not run\"` and say why in "
+        "`summary`. Run every other command above as it is written.",
+        "",
+    ]
+
+
 def known_checks_section(
     checks: Sequence[Tuple[str, str]],
     earlier: Sequence[Tuple[str, List[str]]] = (),
+    *,
+    scoped: Optional[str] = None,
+    scoped_tests: Sequence[str] = (),
 ) -> str:
     """The apply-code-fixes prompt section naming the known checks, or ``""``.
 
     *checks* is :func:`known_check_commands`; *earlier* is
     :func:`earlier_batch_check_failures`. Appended after the result contract's
     ``## Checks you ran``, whose ``check`` object it extends with ``listed``.
+
+    *scoped* is the listed command the batch runs narrowed to its tests
+    (``driver.batch_checks: scoped``, docs/development/checks.md#scoped-batch-checks),
+    *scoped_tests* the test files the plugin found for its files; ``None``
+    leaves the section as every batch was told before, byte for byte.
     """
     if not checks:
         return ""
+    if scoped is not None and scoped not in [command for command, _where in checks]:
+        scoped = None
     lines = [
         "",
         "## The repository's checks (run them after your edits)",
@@ -551,7 +592,9 @@ def known_checks_section(
         "This repository is known to have these check commands, each quoted "
         "exactly as found (in the repository's configuration, its package "
         "files, or the task list implement ran) and named by where it came "
-        "from. The plugin never runs them itself. After your edits, run each "
+        "from. " + (
+            _SCOPED_INTRO if scoped is not None else "The plugin never runs them itself."
+        ) + " After your edits, run each "
         "one from the repository root, as it is written here: inside your own "
         "sandbox when you have one, never as root (no `sudo`), and never one "
         "you judge unsafe to run, such as a command that would deploy, "
@@ -562,6 +605,8 @@ def known_checks_section(
     ]
     for command, where in checks:
         lines.append(f"- {shown_command(command)} ({where})")
+    if scoped is not None:
+        lines += [""] + _scoped_paragraph(scoped, scoped_tests)[:-1]
     lines += [
         "",
         "Report them in the `check` object above, with one more key, `listed`:",
@@ -587,7 +632,10 @@ def known_checks_section(
         "- Report a listed check that fails even when your fixes did not cause "
         "it. If it fails because of a change you made, put it right as part of "
         "your fixes. Never make a check pass by weakening it (deleting or "
-        "loosening an assertion, skipping a test); if a fix deliberately "
+        "loosening an assertion, skipping a test), and never add a lint, "
+        "type-checker or coverage suppression (`# noqa`, `# type: ignore`, a "
+        "config ignore entry) to make a check pass, unless the code is right "
+        "as written and you add a comment saying why; if a fix deliberately "
         "changes what a check tests, update the check to test the new "
         "behaviour and say so in `summary`.",
     ]
@@ -728,15 +776,20 @@ def set_batch_check_report_in_state(
     state: Dict[str, Any], task_id: str, *, prior_changes_id: Optional[str],
     findings: Optional[Sequence[str]], listed: Optional[Mapping[str, str]],
     grouped_sha256: Optional[str] = None, note: Optional[str] = None,
+    scoped: Optional[Mapping[str, str]] = None,
 ) -> None:
     """Record *task_id*'s own-check report (or clear it: no findings record
     and nothing listed); the key is dropped when the map empties.
     *grouped_sha256* is the batch's :func:`review_stamp`; *note* the
     batch's own words about its checks (its ``check.note``, fix round 28),
-    kept beside the report and never read as a finding."""
+    kept beside the report and never read as a finding. *scoped* is the
+    outcome of the command it was told to run scoped to its tests, kept as
+    ``scoped`` beside ``listed`` and only when there is one, so a scoped
+    pass never reads as a pass of the command as listed
+    (docs/development/checks.md#scoped-batch-checks)."""
     recorded = state.get(APPLY_FIX_BATCH_CHECKS_KEY)
     current = dict(recorded) if isinstance(recorded, dict) else {}
-    if findings is None and not listed:
+    if findings is None and not listed and not scoped:
         current.pop(str(task_id), None)
     else:
         current[str(task_id)] = {
@@ -744,6 +797,8 @@ def set_batch_check_report_in_state(
             "grouped_sha256": str(grouped_sha256 or ""),
             "findings": [str(item) for item in (findings or []) if str(item).strip()],
             "listed": {normalized(k): str(v) for k, v in (listed or {}).items()},
+            **({"scoped": {normalized(k): str(v) for k, v in scoped.items()}}
+               if scoped else {}),
             **({"note": str(note).strip()} if str(note or "").strip() else {}),
         }
     if current:
@@ -853,14 +908,29 @@ def checks_report(
         task_id: listed_check_outcomes(record.get("listed") or {})
         for task_id, record in batch_check_reports(state, tasks)
     }
+    # A command a batch ran scoped to its tests is named so, never as a run
+    # of the command as listed (docs/development/checks.md#scoped-batch-checks).
+    scoped_reports = {
+        task_id: listed_check_outcomes(record.get("scoped") or {})
+        for task_id, record in batch_check_reports(state, tasks)
+        if record.get("scoped")
+    }
     parts: List[str] = []
     ran = False
     for command, _where in checks:
         key = normalized(command)
         passed, failed, not_run, silent = [], [], [], []
+        scoped_passed, scoped_failed = [], []
         for task_id in finished:
             word = (reports.get(task_id) or {}).get(key)
-            if word == LISTED_PASSED:
+            scoped_word = (scoped_reports.get(task_id) or {}).get(key)
+            if word is None and scoped_word == LISTED_PASSED:
+                scoped_passed.append(task_id)
+            elif word is None and scoped_word == LISTED_FAILED:
+                scoped_failed.append(task_id)
+            elif word is None and scoped_word == LISTED_NOT_RUN:
+                not_run.append(task_id)
+            elif word == LISTED_PASSED:
                 passed.append(task_id)
             elif word == LISTED_FAILED:
                 failed.append(task_id)
@@ -873,6 +943,10 @@ def checks_report(
             said.append(f"passed in {_joined(passed)}")
         if failed:
             said.append(f"failed in {_joined(failed)}")
+        if scoped_passed:
+            said.append(f"passed scoped to its tests in {_joined(scoped_passed)}")
+        if scoped_failed:
+            said.append(f"failed scoped to its tests in {_joined(scoped_failed)}")
         if not_run:
             said.append(f"not run in {_joined(not_run)}")
         if silent:
@@ -881,6 +955,6 @@ def checks_report(
                 else f"not reported by {_joined(silent)}"
             )
         parts.append(f"{shown_command(command)}: {', '.join(said)}")
-        ran = ran or bool(passed or failed)
+        ran = ran or bool(passed or failed or scoped_passed or scoped_failed)
     text = (TALLY_RAN_LEAD if ran else TALLY_ASKED_LEAD) + "; ".join(parts) + "."
     return clip(text, max_chars), ran

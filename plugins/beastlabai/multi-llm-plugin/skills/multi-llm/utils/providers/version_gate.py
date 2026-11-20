@@ -3,7 +3,9 @@
 :func:`version_tuple` is the one parse-and-compare rule (:func:`version_newer`
 applies it to an installed version read); :func:`version_verdict`
 reads an adapter's floor and ceiling together; :func:`read_help_tokens` reads a
-CLI's help once per process for the flags an adapter gates. ``base`` re-exports
+CLI's help once per process for the flags an adapter gates, and
+:func:`read_cli_version` its version once per process for a gated config key the
+help cannot show. ``base`` re-exports
 every name here for reading (docs/development/providers.md#the-provider-base-modules).
 """
 
@@ -345,6 +347,8 @@ def reset_flag_gate_cache() -> None:
     """
     with _HELP_TOKENS_LOCK:
         _HELP_TOKENS.clear()
+    with _CLI_VERSIONS_LOCK:
+        _CLI_VERSIONS.clear()
     _GATE_WARNED.clear()
 
 
@@ -414,3 +418,57 @@ def read_help_tokens(
     with _HELP_TOKENS_LOCK:
         _HELP_TOKENS.setdefault(key, tokens)
         return _HELP_TOKENS[key]
+
+
+#: One version read per (resolved binary, version argv) per process, for a gate
+#: whose subject the help text cannot show (a config key, not a flag).
+_CLI_VERSIONS_LOCK = threading.Lock()
+_CLI_VERSIONS: Dict[Tuple[str, Tuple[str, ...]], str] = process_cache(
+    "utils.providers.version_gate._CLI_VERSIONS", lock=_CLI_VERSIONS_LOCK
+)
+
+
+def read_cli_version(
+    binary: str,
+    *,
+    version_argv: Tuple[str, ...],
+    parse: Any,
+    env: Optional[Mapping[str, str]] = None,
+) -> str:
+    """The version this binary reports, or ``""``, read once per process.
+
+    The help-token gate's twin for what ``--help`` never lists: a config key an
+    older build refuses outright (codex's ``agents.enabled``). ``parse`` is the
+    adapter's :meth:`LLMProvider.parse_version`. Same containment and failure
+    posture as :func:`read_help_tokens`: ``stdin=DEVNULL``, captured output,
+    :data:`GATE_PROBE_TIMEOUT_S`, the caller's composed environment, and any
+    failure is ``""`` (unread), which a caller must treat as "not supported".
+    """
+    key = (str(binary), tuple(version_argv))
+    with _CLI_VERSIONS_LOCK:
+        cached = _CLI_VERSIONS.get(key)
+    if cached is not None:
+        return cached
+
+    version = ""
+    try:
+        completed = subprocess.run(
+            [str(binary), *version_argv],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=GATE_PROBE_TIMEOUT_S,
+            env=dict(env) if env is not None else None,
+        )
+        if completed.returncode == 0:
+            parsed = parse(completed.stdout or "", completed.stderr or "")
+            if parsed and parsed != "unknown":
+                version = str(parsed)
+    except Exception:  # noqa: BLE001 - see read_help_tokens' failure posture
+        version = ""
+
+    with _CLI_VERSIONS_LOCK:
+        _CLI_VERSIONS.setdefault(key, version)
+        return _CLI_VERSIONS[key]

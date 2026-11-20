@@ -72,6 +72,7 @@ from utils.cli_common import (
     EXIT_NOTHING_TO_DO,
     EXIT_OK,
     active_result,
+    add_notice,
     add_scope_policy_argument,
     build_parent_parser,
     dispatcher_command,
@@ -118,6 +119,9 @@ WRITE_PHASE_DIRS: Dict[str, str] = {
 #: The fourth write phase. Its document is ``--output``, not a plan-dir file.
 IMPLEMENT_PHASE = "implement"
 
+#: The prefix of every line a dry run prints (``review_lane.DRY_RUN_PREFIX``).
+DRY_RUN_PREFIX = "[dry-run-subagents]"
+
 
 @dataclass
 class StepReport:
@@ -149,12 +153,20 @@ class Step:
         skippable: Whether a recorded completion/skip lets the driver pass over it
             (every real phase; never the advisory ones, which are cheap and
             idempotent).
+        command: ``() -> (mode word, argv after the plan)``, the phase
+            invocation :meth:`FullWorkflow.run_preview` runs under
+            ``--dry-run-subagents``; ``None`` for a step a dry run never runs.
+        pass_over: ``() -> reason or None``, read-only: why :attr:`run` would
+            pass over the step with no model call (the skip it records, or an
+            advisory pass that would not run), for the dry run's plan.
     """
 
     phase: str
     label: str
     run: Callable[[], Tuple[str, str, Optional[int]]]
     skippable: bool = True
+    command: Optional[Callable[[], Tuple[str, List[str]]]] = None
+    pass_over: Optional[Callable[[], Optional[str]]] = None
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +282,10 @@ class FullWorkflow:
         #: The cascade stage the steps that run now belong to
         #: (:attr:`StepReport.stage`); ``None`` outside a composite's cascade.
         self.report_stage: Optional[int] = None
+        #: Phases a dry run's plan passed over as a real run would record them
+        #: skipped (:meth:`run_preview`), read by :meth:`_recorded` as skipped
+        #: so a later step's decision sees what the real run would have recorded.
+        self._preview_skipped: List[str] = []
 
     # -- state ----------------------------------------------------------
     @property
@@ -283,13 +299,22 @@ class FullWorkflow:
         return StateManager(self.plan_path)
 
     def _recorded(self, phase: str) -> Optional[str]:
-        """``"completed"``/``"skipped"`` when *phase* is already accounted for."""
+        """``"completed"``/``"skipped"`` when *phase* is already accounted for
+        (a dry run's plan counts the skips it passed over, never written)."""
         state = self.state
         if state.is_phase_completed(phase):
             return "completed"
-        if state.is_phase_skipped(phase):
+        if state.is_phase_skipped(phase) or phase in self._preview_skipped:
             return "skipped"
         return None
+
+    def _scoped_check_owed(self, phase: str) -> bool:
+        """Whether *phase* is apply-code-fixes and a full check its scoped
+        batches deferred is on record (``scoped_checks.owed``)."""
+        # Imported here to keep full_workflow_orchestrator light.
+        from utils import scoped_checks
+
+        return phase == scoped_checks.PHASE and scoped_checks.owed(self.state.state) is not None
 
     def _record_skip(self, phase: str, reason: str) -> Tuple[str, str, Optional[int]]:
         """Record *phase* skipped, unless it is already recorded completed.
@@ -602,25 +627,52 @@ class FullWorkflow:
     # ------------------------------------------------------------------
     def steps(self) -> List[Step]:
         return [
-            Step("review-plan", "Phase 1: Review Plan", self.step_review_plan),
+            Step("review-plan", "Phase 1: Review Plan", self.step_review_plan,
+                 command=lambda: ("review-plan", self.step_argv("review-plan"))),
             Step("", "Phase 1b: Consolidation", self.step_consolidate,
-                 skippable=False),
+                 skippable=False,
+                 command=lambda: ("review-plan", self.step_argv("consolidate")),
+                 pass_over=self.consolidation_pass_over),
             Step("apply-suggestions", "Phase 2: Apply Suggestions",
-                 self.step_apply_suggestions),
+                 self.step_apply_suggestions,
+                 command=lambda: ("apply-suggestions",
+                                  self.step_argv("apply-suggestions"))),
             Step("generate-tasks", "Phase 3: Generate Tasks",
-                 self.step_generate_tasks),
-            Step("review-tasks", "Phase 3b: Review Tasks", self.step_review_tasks),
+                 self.step_generate_tasks,
+                 command=lambda: ("generate-tasks", self.generate_tasks_flags())),
+            Step("review-tasks", "Phase 3b: Review Tasks", self.step_review_tasks,
+                 command=lambda: ("review-tasks",
+                                  self.model_flags() + self.common_flags()),
+                 pass_over=self.review_tasks_pass_over),
             Step("apply-task-suggestions", "Phase 3c: Apply Task Suggestions",
-                 self.step_apply_task_suggestions),
-            Step("implement", "Phase 4: Implement", self.step_implement),
-            Step("code-review", "Phase 5: Review Code", self.step_review_code),
+                 self.step_apply_task_suggestions,
+                 command=lambda: ("apply-task-suggestions",
+                                  self.apply_flags() + self.common_flags()),
+                 pass_over=self.apply_task_suggestions_pass_over),
+            Step("implement", "Phase 4: Implement", self.step_implement,
+                 command=lambda: ("implement", self.implement_flags())),
+            Step("code-review", "Phase 5: Review Code", self.step_review_code,
+                 command=lambda: ("review-code", self.step_argv("review-code"))),
             Step("apply-code-fixes", "Phase 6: Apply Code Fixes",
-                 self.step_apply_code_fixes),
+                 self.step_apply_code_fixes,
+                 command=lambda: ("apply-code-fixes",
+                                  self.step_argv("apply-code-fixes")),
+                 pass_over=self.apply_code_fixes_pass_over),
         ]
 
     def step_review_plan(self) -> Tuple[str, str, Optional[int]]:
         code = self.run_mode("review-plan", self.step_argv("review-plan"))
         return self._verify("review-plan", code)
+
+    def consolidation_pass_over(self) -> Optional[str]:
+        """Why row 4's consolidation pass does not run, or ``None`` to run it:
+        not requested (attended, no ``--consolidate``), or under ``--yes`` not
+        recommended or already run on these groups."""
+        if self.args.consolidate:
+            return None
+        if not self.unattended:
+            return "not requested (--consolidate)"
+        return consolidation_skip_reason(self.plan_dir)
 
     def step_consolidate(self) -> Tuple[str, str, Optional[int]]:
         """Row 4: auto-run consolidation when review-plan recommended it.
@@ -632,12 +684,10 @@ class FullWorkflow:
         any other pending batch, but it cannot block a workflow whose next phase
         does not read consolidated output.
         """
+        reason = self.consolidation_pass_over()
+        if reason:
+            return SKIPPED, reason, None
         if not self.args.consolidate:
-            if not self.unattended:
-                return SKIPPED, "not requested (--consolidate)", None
-            reason = consolidation_skip_reason(self.plan_dir)
-            if reason:
-                return SKIPPED, reason, None
             unattended_mod.record_resolution(
                 str(self.run_dir),
                 unattended_mod.row(4).site_id,
@@ -659,6 +709,28 @@ class FullWorkflow:
         )
         return self._verify("apply-suggestions", code)
 
+    def _generate_tasks_force(self) -> bool:
+        """Whether ``--force`` travels to generate-tasks.
+
+        `full --force` re-runs phases; it never re-invokes the models — with one
+        exception, and it is the one the phase's own failure message names. A
+        `task_generation_result.json` a native invoker persisted can be
+        schema-invalid, and the resume branch re-consumes it forever: every
+        `--resume` *and* `--force` would fail identically at consume time while
+        the printed fix ("re-run with --force to re-dispatch") pointed at a flag
+        this driver swallowed. So when the phase has no recorded completion,
+        `--force` travels: there is no earlier progress a re-dispatch could
+        discard. Once it *is* recorded, force means "re-run the phase" again.
+        """
+        return bool(getattr(self.args, "force", False)) and (
+            self._recorded("generate-tasks") is None
+        )
+
+    def generate_tasks_flags(self) -> List[str]:
+        """The flags after the plan generate-tasks runs with (the step prints
+        them as its command; a dry run invokes the phase with them)."""
+        return [*self.common_flags(), *(["--force"] if self._generate_tasks_force() else [])]
+
     def step_generate_tasks(self) -> Tuple[str, str, Optional[int]]:
         """Phase 3, through ``generate_tasks_orchestrator`` — never an inlined prompt.
 
@@ -673,27 +745,14 @@ class FullWorkflow:
 
         child = argparse.Namespace(**vars(self.args))
         child.reaggregate = False
-        # `full --force` re-runs phases; it never re-invokes the models — with one
-        # exception, and it is the one the phase's own failure message names. A
-        # `task_generation_result.json` a native invoker persisted can be
-        # schema-invalid, and the resume branch re-consumes it forever: every
-        # `--resume` *and* `--force` would fail identically at consume time while
-        # the printed fix ("re-run with --force to re-dispatch") pointed at a flag
-        # this driver swallowed. So when the phase has no recorded completion,
-        # `--force` travels: there is no earlier progress a re-dispatch could
-        # discard. Once it *is* recorded, force means "re-run the phase" again.
-        child.force = bool(getattr(self.args, "force", False)) and (
-            self._recorded("generate-tasks") is None
-        )
+        child.force = self._generate_tasks_force()
         child.detach = False
         child.internal_worker = False
         # The resolved value, never the raw flag: a recorded choice reaches the
         # phase as an explicit one, exactly as `common_flags` spells it.
         choice = self.scope_policy_choice()
         child.scope_policy = choice[0] if choice is not None else None
-        extra = list(self.common_flags())
-        if child.force:
-            extra += ["--force"]
+        extra = self.generate_tasks_flags()
         print(f"\n$ {dispatcher_command('generate-tasks', self.plan_path, *extra)}")
         self._clear_next()
         try:
@@ -713,12 +772,18 @@ class FullWorkflow:
         # truth.
         return self._verify("generate-tasks", code)
 
+    def review_tasks_pass_over(self) -> Optional[str]:
+        """Row 12's skip reason, or ``None`` when review-tasks runs
+        (``--yes`` or ``--review-tasks``)."""
+        if not (self.unattended or self.args.review_tasks):
+            return "not requested (--review-tasks not passed)"
+        return None
+
     def step_review_tasks(self) -> Tuple[str, str, Optional[int]]:
         """Row 12: run it under ``--yes``/``--review-tasks``, else record the skip."""
-        if not (self.unattended or self.args.review_tasks):
-            return self._record_skip(
-                "review-tasks", "not requested (--review-tasks not passed)"
-            )
+        reason = self.review_tasks_pass_over()
+        if reason:
+            return self._record_skip("review-tasks", reason)
         if self.unattended and not self.args.review_tasks:
             unattended_mod.record_resolution(
                 str(self.run_dir),
@@ -730,6 +795,18 @@ class FullWorkflow:
         )
         return self._verify("review-tasks", code)
 
+    def apply_task_suggestions_pass_over(self) -> Optional[str]:
+        """The skip :meth:`step_apply_task_suggestions` records, or ``None``
+        when review-tasks left findings to apply."""
+        # The effective status (`_recorded`: a completion wins over a stale skip
+        # record), the precedence `get_workflow_status` uses too.
+        if self._recorded("review-tasks") == "skipped":
+            return "Skipped: review-tasks was not executed"
+        check = check_apply_task_suggestions_prerequisite(self.state, self.plan_dir)
+        if check.get("met"):
+            return f"Skipped: {check.get('reason', 'nothing to apply')}"
+        return None
+
     def step_apply_task_suggestions(self) -> Tuple[str, str, Optional[int]]:
         """The three-case conditional, answered by the existing counter.
 
@@ -738,19 +815,9 @@ class FullWorkflow:
         ``prerequisites.check_apply_task_suggestions_prerequisite`` already
         distinguishes them, so the decision is not re-derived here.
         """
-        state = self.state
-        # The effective status (`_recorded`: a completion wins over a stale skip
-        # record), the precedence `get_workflow_status` uses too.
-        if self._recorded("review-tasks") == "skipped":
-            return self._record_skip(
-                "apply-task-suggestions", "Skipped: review-tasks was not executed"
-            )
-        check = check_apply_task_suggestions_prerequisite(state, self.plan_dir)
-        if check.get("met"):
-            return self._record_skip(
-                "apply-task-suggestions",
-                f"Skipped: {check.get('reason', 'nothing to apply')}",
-            )
+        reason = self.apply_task_suggestions_pass_over()
+        if reason:
+            return self._record_skip("apply-task-suggestions", reason)
         code = self.run_mode(
             "apply-task-suggestions", self.apply_flags() + self.common_flags()
         )
@@ -761,15 +828,30 @@ class FullWorkflow:
         if blocked:
             print(blocked, file=sys.stderr)
             return FAILED, "prerequisites unmet (D6 row 6)", EXIT_NEEDS_HUMAN
-        extra = list(self.common_flags())
-        if getattr(self.args, "resume", False):
-            extra += ["--resume"]
-        code = self.run_mode("implement", extra)
+        code = self.run_mode("implement", self.implement_flags())
         return self._verify("implement", code)
+
+    def implement_flags(self) -> List[str]:
+        """The flags after the plan implement runs with."""
+        return [*self.common_flags(), *(["--resume"] if getattr(self.args, "resume", False) else [])]
 
     def step_review_code(self) -> Tuple[str, str, Optional[int]]:
         code = self.run_mode("review-code", self.step_argv("review-code"))
         return self._verify("code-review", code)
+
+    def apply_code_fixes_pass_over(self) -> Optional[str]:
+        """The skip :meth:`step_apply_code_fixes` records, or ``None`` when
+        code-review left something to fix (or a deferred full check is owed)."""
+        # A full check that scoped batches deferred is settled by the phase
+        # itself, never passed over with a skip
+        # (docs/development/checks.md#scoped-batch-checks).
+        if self._scoped_check_owed("apply-code-fixes"):
+            return None
+        if self._recorded("code-review") == "skipped":
+            return "Skipped: code-review was not executed"
+        if not _grouped_has_suggestions(self.plan_dir / "code-review" / "grouped.json"):
+            return "Skipped: code review produced zero actionable findings"
+        return None
 
     def step_apply_code_fixes(self) -> Tuple[str, str, Optional[int]]:
         """Run apply-code-fixes only when code-review left something to fix.
@@ -785,15 +867,9 @@ class FullWorkflow:
         asks too (``check_workflow_prerequisites._grouped_has_suggestions``), so
         the two cannot disagree.
         """
-        if self._recorded("code-review") == "skipped":
-            return self._record_skip(
-                "apply-code-fixes", "Skipped: code-review was not executed"
-            )
-        if not _grouped_has_suggestions(self.plan_dir / "code-review" / "grouped.json"):
-            return self._record_skip(
-                "apply-code-fixes",
-                "Skipped: code review produced zero actionable findings",
-            )
+        reason = self.apply_code_fixes_pass_over()
+        if reason:
+            return self._record_skip("apply-code-fixes", reason)
         code = self.run_mode(
             "apply-code-fixes", self.step_argv("apply-code-fixes")
         )
@@ -948,6 +1024,10 @@ class FullWorkflow:
         recorded itself.
         """
         recorded = self._recorded(step.phase)
+        if recorded is not None and self._scoped_check_owed(step.phase):
+            # Its full check is owed: the phase runs to settle it, over any
+            # completion or skip on record.
+            return None
         if recorded == "completed":
             # Imported here to keep full_workflow_orchestrator light.
             from utils import scope_apply
@@ -1118,6 +1198,8 @@ class FullWorkflow:
         return None
 
     def run(self) -> int:
+        if getattr(self.args, "dry_run_subagents", False):
+            return self.run_preview()
         self._record_scope_policy()
         failed = self.run_steps()
         if failed is not None:
@@ -1129,6 +1211,117 @@ class FullWorkflow:
         self.print_report()
         record_next(None)
         return EXIT_OK
+
+    def run_preview(self) -> int:
+        """``--dry-run-subagents``: preview the first phase that would dispatch, then stop.
+
+        The plan is :meth:`run_steps`' own decisions, read and never written:
+        a phase on record is passed over (:meth:`skip_reason`), and so is one
+        whose step would record a skip or not run (:attr:`Step.pass_over`;
+        such a skip counts as recorded for the steps after it, through
+        :meth:`_recorded`). The first step left runs its phase in this
+        process with the flags the real step gives it, ``--dry-run-subagents``
+        among them (:attr:`Step.command`), so it previews as that phase run
+        alone does: a review prints its reviewer plan and calls no model, an
+        apply or implement renders its batches, a consolidation pass renders
+        its batches without writing them. A phase that answers exit 2
+        (nothing to do: a review already completed, which ``--force`` does not
+        reach) is read as the real run reads it (:meth:`_preview_stop_on_exit_2`):
+        when that run would count it done, the walk goes on to the next step,
+        and that phase's notice is dropped. Nothing after the phase that
+        previewed runs, since each phase needs the real output of the one
+        before; the prerequisite gates' auto-run (:meth:`apply_runner`) never
+        fires. Nothing is recorded: no progress, no scope-policy choice, no
+        row-14 stop, no report. Exit 0 once a phase previewed (or every phase
+        is on record, passed over or had nothing to do, as a real run of a
+        finished workflow exits 0), else the phase's own exit, or 3 where a
+        real run would stop on an exit 2 nothing records
+        (docs/development/workflows.md#a-dry-run-previews-one-step).
+        """
+        mode = self.MODE_NAME
+        print(f"{DRY_RUN_PREFIX} {mode}: preview only. No model is called and "
+              f"nothing is recorded: the first phase that would run previews its "
+              f"own dispatches, and no later phase runs.")
+        first: Optional[Step] = None
+        nothing_to_do: List[str] = []
+        for step in self.steps():
+            if first is not None:
+                print(f"  {step.label}: skip (dry run: previews {first.label} only)")
+                continue
+            reason = None
+            if step.skippable and not self.planning_args().force:
+                said = self.skip_reason(step)
+                reason = f"already {said}" if said else None
+            if reason is None and step.pass_over is not None:
+                reason = step.pass_over()
+                if reason and step.phase:
+                    self._preview_skipped.append(step.phase)
+            if reason is None and step.command is None:  # pragma: no cover - table-guarded
+                reason = "no preview for this step"
+            if reason:
+                print(f"  {step.label}: skip ({reason})")
+                continue
+            print(f"  {step.label}: run")
+            print(f"\n=== {step.label} (preview) ===")
+            ctx = active_result()
+            notice = ctx.notice if ctx is not None else None
+            mode_word, argv = step.command()
+            code = self.run_mode(mode_word, argv)
+            if code == EXIT_NOTHING_TO_DO:
+                why = self._preview_stop_on_exit_2(step)
+                if why:
+                    print(f"{DRY_RUN_PREFIX} {mode}: {step.label}'s preview exited "
+                          f"{code}, but {why}, so a real run would stop at this "
+                          f"phase. Nothing was recorded.", file=sys.stderr)
+                    return EXIT_NEEDS_HUMAN
+                # A real run reads it as done and walks on; its "already
+                # completed" notice says nothing about the phase previewed.
+                if ctx is not None:
+                    ctx.notice = notice
+                nothing_to_do.append(step.label)
+                print(f"\n  {step.label}: nothing to do (exit {code}); a real run "
+                      f"reads it as done and goes on to the next step")
+                continue
+            if code != EXIT_OK:
+                print(f"{DRY_RUN_PREFIX} {mode}: {step.label}'s preview stopped with "
+                      f"exit {code}; its own output above says why. Nothing was "
+                      f"recorded.", file=sys.stderr)
+                return code
+            first = step
+        if first is None:
+            line = (f"{DRY_RUN_PREFIX} {mode}: every phase is already on record or "
+                    f"passed over{' or had nothing to do' if nothing_to_do else ''}; a real run "
+                    f"would dispatch none, and nothing was recorded.")
+            print(f"\n{line}")
+            add_notice(line)
+            record_next(None)
+            return EXIT_OK
+        names = (", ".join(nothing_to_do[:-1]) + " and " + nothing_to_do[-1]
+                 if len(nothing_to_do) > 1 else "".join(nothing_to_do))
+        after = f" ({names} had nothing to do)" if nothing_to_do else ""
+        line = (f"{DRY_RUN_PREFIX} {mode}: previewed {first.label}{after}; no later "
+                f"phase was previewed or run, and nothing was recorded. Run the same "
+                f"command without --dry-run-subagents to run it for real.")
+        print(f"\n{line}")
+        add_notice(f"{mode} previewed {first.label} only; no later phase ran.")
+        record_next(None)
+        return EXIT_OK
+
+    def _preview_stop_on_exit_2(self, step: Step) -> Optional[str]:
+        """Why a real run would stop on *step*'s exit 2, or ``None`` when it
+        reads it as done and walks on to the next step: :meth:`_verify`'s
+        reading, without its words or its recorded follow-up. The advisory
+        consolidation pass always walks on (its step passes any failure
+        over); a phase only when it left no batch unexecuted and
+        ``state.json`` records it completed or skipped."""
+        if not step.phase:
+            return None
+        pending = self._unexecuted_batches(step.phase)
+        if pending:
+            return f"{pending} batch(es) it emitted were never executed"
+        if self._recorded(step.phase) is None:
+            return f"state.json records no completion for '{step.phase}'"
+        return None
 
     # ------------------------------------------------------------------
     # Reporting
@@ -1297,6 +1490,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return EXIT_ERROR
 
     workflow = FullWorkflow(args)
+
+    # A preview calls no model and records nothing, so it runs here and never
+    # detaches (`cli_common.FOREGROUND_PREVIEW_FLAGS`), as improve-*'s does.
+    if getattr(args, "dry_run_subagents", False):
+        return workflow.run()
 
     # The detach boundary: after pre-flight (plan readable, flags parsed, run dir
     # created) and before the first phase runs, so a bad flag fails on the

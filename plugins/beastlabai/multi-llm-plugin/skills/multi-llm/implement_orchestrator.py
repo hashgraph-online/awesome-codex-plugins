@@ -67,6 +67,7 @@ from utils.state_manager import (
 from utils.git_utils import get_project_root
 from utils.provider_registry import set_run_anchor
 from utils import scope_policy_runs
+from utils import scoped_checks
 from utils import unattended as unattended_mod
 from utils.unattended import (
     HUMAN_TASK_STRATEGIES,
@@ -3377,6 +3378,13 @@ def emit_native(run: ImplementRun) -> Optional[int]:
         print(f"WARNING: write_tasks.json not written: {exc}", file=sys.stderr)
     else:
         print(f"[WRITE_TASKS_FILE] {write_task_file}", file=sys.stderr)
+        # `driver.batch_checks: scoped` narrows only apply-code-fixes on the
+        # executor leg; one line says so here, none when it is `full`.
+        notice = scoped_checks.narrowing(
+            "implement", executor=False, anchor=str(plan_path), phase="implement",
+        ).line
+        if notice:
+            print(f"[implement] {notice}", file=sys.stderr)
         # A native `--resume` promises to skip what already ran: a task the
         # implement log already holds and no record says finished is refused
         # rather than handed out a second time.

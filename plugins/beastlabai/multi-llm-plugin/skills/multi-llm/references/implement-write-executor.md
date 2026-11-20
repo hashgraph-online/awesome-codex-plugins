@@ -28,6 +28,14 @@ The executor runs steps 5 to 10 in Python, in one process:
   sections) and `insert_implementation_summary_reference`. A run that dispatched
   every batch and produced none of those is a **failed** run, not a partial one.
 
+After each task that edits files it lists what the task's edits added that quiets a
+check, one line on its log per suppression or skip marker (`# noqa`,
+`# type: ignore`, `eslint-disable`, a skipped test, ...) or changed lint or test
+configuration entry, read from the task's pre-batch snapshot to the files it left. The
+implementation summary lists them under `## Check these: suppressions added` and the
+result's `notice` names them; they never fail a task or change the exit code. Name them
+in your report so the user reads each one.
+
 ## On a stop
 
 A partial application halts at the batch boundary, keeps every pre-batch snapshot

@@ -55,7 +55,7 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 
 - [ ] 文件是否保存到了正确的 `.boss/<feature>/` 目录？
 - [ ] 文件名是否与规范一致？
-- [ ] 内容是否使用了中文（除非 `--lang en`）？
+- [ ] 内容语言是否与用户请求的语言一致（传了 `--lang` 则以它为准）？
 - [ ] 是否优先读取了 `.boss/templates/` 中的项目级模板？
 - [ ] 是否基于对应的 template 生成？
 - [ ] Markdown 产物是否包含 `## 摘要` section？

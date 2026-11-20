@@ -81,6 +81,9 @@ class BatchFacts:
     note: Optional[str] = None
     #: An apply-code-fixes batch's ``check.listed`` outcomes.
     listed: Optional[Mapping[str, str]] = None
+    #: The outcome of the command it was told to run scoped to its tests
+    #: (``driver.batch_checks: scoped``), apart from ``listed``.
+    scoped: Optional[Mapping[str, str]] = None
     #: Whether an apply-code-fixes batch's check report is written. ``False``
     #: only for a batch the executor refused before dispatch that it reads as
     #: done (``dispatched or kept or not ok``): no runner reported on it.
@@ -181,6 +184,7 @@ def record_batch_facts(
             findings=kept(facts.batch_check),
             listed=kept(facts.listed),
             note=kept(facts.note),
+            scoped=kept(facts.scoped),
         )
     if facts.kind in APPLY_WRITE_KINDS:
         record.items = record_batch_items_in_state(

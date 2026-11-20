@@ -1,8 +1,8 @@
 ---
 name: osmo-customer-service-calls
 description: "Customer service calls made for you: OsmO's AI finds a company's customer care or helpline number, calls it, gets through the phone menu, waits on hold in the queue, and asks your question or passes your message, so you skip the hold. Use when the user wants to call customer service or customer care at a bank, airline, mobile carrier, insurer, utility or delivery company — ask about a refund, an order, a bill, a booking or an account question — and get the answer back with a summary, transcript and recording link. Every call is previewed and placed only after the user says yes. 50 free credits (US, Canada, UK, Australia) call businesses and toll-free numbers; scheduling a call for later needs an OsmO app plan."
-version: 1.0.0
-metadata: {"openclaw":{"homepage":"https://getosmo.app","emoji":"🎧"}}
+version: 1.0.1
+metadata: {"homepage":"https://getosmo.app","emoji":"🎧"}
 ---
 
 # OsmO Customer Service Calls

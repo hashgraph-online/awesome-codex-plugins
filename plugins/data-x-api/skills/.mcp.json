@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dataxapi": {
+      "type": "http",
+      "url": "https://api.dataxapi.com/mcp"
+    }
+  }
+}

@@ -69,7 +69,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 from . import git_utils as _git_utils
 from . import known_checks as _known_checks
@@ -87,6 +87,7 @@ from . import stop_answers as _stop_answers  # noqa: F401 - `_MOVED` reads it
 from . import batch_prompt as _batch_prompt
 from . import write_outcomes as _write_outcomes
 from . import write_context as _write_context
+from . import scoped_checks as _scoped_checks
 from . import write_verify as _write_verify
 from . import write_sweep as _write_sweep
 from . import write_eta as _write_eta
@@ -99,6 +100,7 @@ from . import write_resume as _write_resume
 from . import write_grant as _write_grant
 from . import write_snapshots as _write_snapshots
 from . import write_dry_run as _write_dry_run
+from . import batch_suppressions as _batch_suppressions
 from .held_folder import write_in_plan_dir
 from .cli_common import EXIT_NEEDS_HUMAN, EXIT_OK
 from .batch_ledger import (
@@ -168,6 +170,7 @@ from .subagent_tasks import (
 )
 from .state_manager import (
     PROCESSED_LEG_EXECUTOR,
+    ScopedCheckOwedError,
 )
 from .write_safety import (
     AuditLog,
@@ -434,6 +437,7 @@ _MOVED: Dict[str, Tuple[str, ...]] = {
         "CHECK_RESULT_CONTRACT",
         "CODE_WRITE_KINDS",
         "DISPATCHED_PROMPTS_SUBDIR",
+        "IMPLEMENT_NO_WEAKENING",
         "IMPLEMENT_WHICH_CHECKS",
         "OWN_RUN_CONTEXT_PHASES",
         "RESULT_IDS_HEADING",
@@ -1052,6 +1056,20 @@ class WriteBatchScheduler:
         #: (`BatchPromptBuilder.known_checks_section`), which its reply's
         #: ``listed`` is read against (``_listed_outcomes``).
         self._told_checks: Dict[str, List[str]] = {}
+        #: ``task id -> the listed command its prompt told it to run scoped``
+        #: (``driver.batch_checks: scoped``, :meth:`_scoped_check_for`).
+        self._told_scoped: Dict[str, str] = {}
+        #: The tasks whose deferred full run this run recorded
+        #: (:meth:`_record_scoped_debt`), once per task.
+        self._owed_recorded: Set[str] = set()
+        #: ``task id -> the test files its scoped prompt named``, which its
+        #: reply's scoped run must include (``scoped_checks.backed_scoped``).
+        self._scoped_tests: Dict[str, Tuple[str, ...]] = {}
+        #: :meth:`_worktree_files`' one listing, in a 1-tuple once taken.
+        self._worktree_listing: Optional[Tuple[Optional[List[str]]]] = None
+        #: This run's ``scoped_checks.narrowing``, read when the run starts;
+        #: ``None`` until then, when no batch is told to narrow.
+        self._narrowing: Optional[_scoped_checks.Narrowing] = None
         #: The prompt each dispatch is sent and the copy kept of it
         #: (`batch_prompt_builder.BatchPromptBuilder`). The phase dir the
         #: copies go in is pinned now, before any batch of this run can
@@ -1062,6 +1080,8 @@ class WriteBatchScheduler:
             scope_policy=self.scope_policy,
             scope_baseline_id=self.scope_baseline_id,
             told_checks=self._told_checks,
+            scoped_check=self._late("_scoped_check_for"),
+            told_scoped=self._told_scoped,
         )
         try:
             self._prompts.pinned_phase_dir()
@@ -1168,6 +1188,9 @@ class WriteBatchScheduler:
         )
         #: What reading each reply's ``listed`` against ``_told_checks`` gave.
         self._listed_outcomes: Dict[str, Any] = {}
+        #: The part of it for the command the batch was told to run scoped
+        #: (``_told_scoped``), recorded under its own name.
+        self._scoped_outcomes: Dict[str, Any] = {}
         #: ``task id -> its outcomes so far`` (:meth:`_remember_outcome`).
         self._recorded_outcomes: Dict[str, List[TaskOutcome]] = {}
         #: Whether this run stamped implement's start (:meth:`_mark_implement_started`).
@@ -1559,6 +1582,15 @@ class WriteBatchScheduler:
     def _run(self) -> SchedulerResult:
         result = SchedulerResult(kind=self.kind, phase=self.phase)
         ordered = self.batches()
+        # `driver.batch_checks`: one line when it is `scoped`, saying whether
+        # this run's batches narrow and why not; nothing at all for `full`
+        # (docs/development/checks.md#scoped-batch-checks).
+        self._narrowing = _scoped_checks.narrowing(
+            self.kind, executor=self._executor_dispatch, anchor=self.anchor,
+            state=self.state, phase=self.phase,
+        )
+        if self._narrowing.line:
+            self.log(f"[write-subagents] {self._narrowing.line}")
         if self.resume and not self.dry_run:
             result.earlier_rows = self._evidence.earlier_report_rows()
 
@@ -2255,8 +2287,65 @@ class WriteBatchScheduler:
             self._sweep.abandon(task_id)
             self._grant.target_identity_before.pop(task_id, None)
             self._commit.watch_before.pop(task_id, None)
+        self._scan_suppressions(outcome, snapshot.directory)
         self._record_batch_effects(task, outcome, batch_index, result)
         return outcome
+
+    def _scan_suppressions(self, outcome: TaskOutcome, snapshot_dir: Optional[str]) -> None:
+        """Put on *outcome* the suppressions a code batch's edits added, and log them.
+
+        Report only: the scan reads the batch's pre-batch snapshot and the
+        files as the batch left them, before a later batch can change them,
+        and never decides the batch's outcome; a file it fails on is listed
+        as not scanned, and a scan that raises as a whole logs one line and
+        lists the batch's files as not scanned
+        (docs/development/write-scheduler.md#suppressions-a-batch-added).
+        """
+        if (self.kind not in _batch_prompt.CODE_WRITE_KINDS
+                or outcome.verification_only or not outcome.bytes_moved):
+            return
+        try:
+            found, unscanned = _batch_suppressions.executor_scan(
+                snapshot_dir, outcome.files_touched, outcome.unrestorable)
+        except Exception as exc:  # noqa: BLE001 - a report must not fail a batch
+            self.log(f"[write-subagents] {outcome.task_id}: suppression scan "
+                     f"did not run ({type(exc).__name__}: {exc})")
+            outcome.suppressions_not_scanned = _batch_suppressions.scan_failed(
+                [*outcome.files_touched, *outcome.unrestorable], exc)
+            return
+        outcome.suppressions = found
+        outcome.suppressions_not_scanned = unscanned
+        for line in _batch_suppressions.marker_lines(outcome.task_id, found):
+            self.log(line)
+
+    def _carry_suppressions(self, outcome: TaskOutcome, result: SchedulerResult) -> None:
+        """Put on a kept batch's *outcome* what the scan found when it stopped.
+
+        Its row replaces the stopped run's (:meth:`SchedulerResult.report_rows`),
+        so that row's hits are carried (``batch_suppressions.kept_scan``), never
+        scanned again: a scan now would read the files as the resume finds
+        them, and list edits made since the stop as the batch's. The stopped
+        row is the earlier run's row for the same items (:func:`_same_batch_row`),
+        since an apply kind's ids are positional.
+        """
+        if self.kind not in _batch_prompt.CODE_WRITE_KINDS:
+            return
+        mine = {"task_id": outcome.task_id, "expected_ids": list(outcome.expected_ids)}
+        try:
+            stopped = next(
+                (row for row in reversed(result.earlier_rows) if _same_batch_row(row, mine)),
+                None,
+            )
+            found, unscanned = _batch_suppressions.kept_scan(stopped, outcome.files_touched)
+            lines = _batch_suppressions.marker_lines(outcome.task_id, found)
+        except Exception as exc:  # noqa: BLE001 - a report must not fail a batch
+            self.log(f"[write-subagents] {outcome.task_id}: the suppressions found when it "
+                     f"stopped could not be read ({type(exc).__name__}: {exc})")
+            found, unscanned = _batch_suppressions.kept_scan(None, outcome.files_touched)
+            lines = []
+        outcome.suppressions, outcome.suppressions_not_scanned = found, unscanned
+        for line in lines:
+            self.log(line)
 
     def _keep_at_request(
         self, task: Dict[str, Any], batch_index: int, result: SchedulerResult,
@@ -2287,6 +2376,9 @@ class WriteBatchScheduler:
             duration_seconds=0.0, reason=outcome.reason, expected_ids=expected,
         )
         self._stamp_verdict(outcome)
+        # Its row replaces the stopped run's, so what the scan found when it
+        # stopped is carried onto it; it is not scanned again.
+        self._carry_suppressions(outcome, result)
         self._record_batch_effects(
             task, outcome, batch_index, result, dispatched=False, kept=True,
         )
@@ -2477,6 +2569,9 @@ class WriteBatchScheduler:
         self._grant.announce_rung(runner, batch_index)
 
         def before_attempt(context: Dict[str, Any]) -> None:
+            # A scoped batch's debt, on disk before its first spawn and after
+            # every refusal before it; a failed record refuses the batch.
+            self._record_scoped_debt(task_id)
             # The prompt this attempt really sends: a report re-ask (the
             # ladder's rule 7) sends its own, never the batch's instructions.
             sent = context.get("prompt") or prompt
@@ -2675,7 +2770,7 @@ class WriteBatchScheduler:
         # Whatever row decides it, a file-less implement task's verdict reads
         # VERIFIED or PARTIAL on every surface (`outcome_label`).
         outcome.verification_only = self._verification_only(snapshot)
-        self._record_reply_checks(task, outcome, result)
+        self._record_reply_checks(task, outcome, result, touched=list(observed))
         outcome.sha256_before = {
             relative: row.get("sha256_before") for relative, row in observed.items()
         }
@@ -2819,6 +2914,7 @@ class WriteBatchScheduler:
 
     def _record_reply_checks(
         self, task: Dict[str, Any], outcome: TaskOutcome, result: Any,
+        touched: Sequence[str] = (),
     ) -> None:
         """The checks a code batch's reply says it ran on its own edits, on
         the outcome: its findings, its own words about them (never
@@ -2846,9 +2942,36 @@ class WriteBatchScheduler:
                 _known_checks.reply_listed(result),
                 self._told_checks.get(outcome.task_id) or (),
             )
+            scoped_command = self._told_scoped.get(outcome.task_id)
+            if scoped_command is None:
+                self._listed_outcomes[outcome.task_id] = listed
+                outcome.batch_check = _known_checks.with_listed_failures(
+                    outcome.batch_check, listed,
+                )
+                return
+            # The command it was told to run scoped is a scoped run whatever
+            # its reply calls it: recorded apart, never as the command as
+            # listed (docs/development/checks.md#scoped-batch-checks).
+            listed, scoped = _scoped_checks.split_listed(listed, scoped_command)
+            # A scoped pass stands only with the run itself in the reply
+            # and no file every test reads changed; else it is "not run".
+            scoped, why = _scoped_checks.backed_scoped(
+                scoped, scoped_command, _scoped_checks.reply_ran(result),
+                touched, self.repo_root, self._scoped_tests.get(outcome.task_id, ()),
+            )
+            if why is not None:
+                self.log(
+                    f"[write-subagents] {outcome.task_id}: its scoped run of "
+                    f"{_scoped_checks.shown(scoped_command)} is recorded as not run: {why}."
+                )
             self._listed_outcomes[outcome.task_id] = listed
-            outcome.batch_check = _known_checks.with_listed_failures(
-                outcome.batch_check, listed,
+            self._scoped_outcomes[outcome.task_id] = scoped
+            failed = _known_checks.LISTED_FAILED
+            outcome.batch_check = _scoped_checks.with_scoped_failures(
+                _known_checks.with_listed_failures(outcome.batch_check, {
+                    **listed, **{c: w for c, w in scoped.items() if w != failed},
+                }),
+                scoped, failed,
             )
 
     def _log_undeclared(self, task_id: str, undeclared: _write_sweep.UndeclaredWrites) -> None:
@@ -3325,6 +3448,7 @@ class WriteBatchScheduler:
             batch_check_repeats=outcome.batch_check_repeats or {},
             note=outcome.batch_check_note,
             listed=self._listed_outcomes.get(task_id),
+            scoped=self._scoped_outcomes.get(task_id),
             reports_checks=dispatched or kept or not outcome.ok,
             declined=dict(outcome.declined or {}),
             skipped=dict(outcome.skipped_items or {}),
@@ -3652,6 +3776,87 @@ class WriteBatchScheduler:
             unverified=False, check_lines=False, summary=FULL_SUMMARY_LINE,
         )
 
+    def _scoped_check_for(
+        self, task: Dict[str, Any], told: List[str],
+    ) -> Optional[_scoped_checks.ScopedRun]:
+        """What apply-code-fixes batch *task* runs scoped to its tests (the
+        listed verify command and the test files known to cover its declared
+        files), or ``None``: every listed command as written.
+
+        Asked as its prompt is bound, after this run's narrowing
+        (:attr:`_narrowing`) and again of the configuration now: a command
+        changed since the run started is never narrowed. A batch that
+        changes a file every test is collected or configured by, or one with
+        a file no known test covers, runs the command in full, with one line
+        saying why (``scoped_checks.full_check_reason``). Records nothing:
+        the debt is written just before the narrowed prompt is sent
+        (:meth:`_record_scoped_debt`), past every check that can refuse the
+        batch first. A dry run narrows nothing
+        (docs/development/checks.md#scoped-batch-checks).
+        """
+        start = self._narrowing
+        if self.dry_run or start is None or start.command is None:
+            return None
+        task_id = str(task.get("task_id") or "")
+        now = _scoped_checks.narrowing(
+            self.kind, executor=self._executor_dispatch, anchor=self.anchor,
+            state=self.state, phase=self.phase,
+        )
+        if now.command != start.command or now.command not in told:
+            if now.line and now.line != start.line:
+                self.log(f"[write-subagents] {task_id}: {now.line}")
+            return None
+        declared = [relative_to_root(path, self.repo_root) for path in declared_file_set(task)]
+        why, tests = _scoped_checks.full_check_reason(
+            declared, self.repo_root, self._worktree_files())
+        if why is not None:
+            self.log(
+                f"[write-subagents] {task_id}: runs {_scoped_checks.shown(now.command)} "
+                f"in full, not scoped to its tests: {why}."
+            )
+            return None
+        self._scoped_tests[task_id] = tuple(tests)
+        return _scoped_checks.ScopedRun(now.command, tuple(tests))
+
+    def _worktree_files(self) -> Optional[List[str]]:
+        """The files git sees in the worktree, repository-relative, listed
+        once per run for :meth:`_scoped_check_for`; ``None`` when git cannot
+        answer."""
+        if self._worktree_listing is None:
+            stats = _git_utils.worktree_file_stats(self.repo_root)
+            self._worktree_listing = (None if stats is None else sorted(stats),)
+        return self._worktree_listing[0]
+
+    def _record_scoped_debt(self, task_id: str) -> None:
+        """Record, and save, the full run batch *task_id* defers when its
+        prompt runs the verify command scoped (``_told_scoped``); nothing for
+        any other batch. Called from the dispatch's ``before_attempt`` hook,
+        immediately before the first spawn: a batch refused earlier (the
+        commit recheck, the write policy, the runner preflight) owes nothing.
+
+        Raises ``ResultRejected`` when the record cannot be written: the
+        prompt is already narrowed, so the batch is refused with nothing
+        spawned rather than sent owing a run no record names
+        (docs/development/checks.md#scoped-batch-checks).
+        """
+        command = self._told_scoped.get(task_id)
+        if command is None or task_id in self._owed_recorded:
+            return
+        with self._effects_lock:
+            try:
+                if not _scoped_checks.record_owed(self.state, command, task_id):
+                    raise RuntimeError(
+                        "state.json already owes the full run of another command")
+                self.state.save()
+            except Exception as exc:  # noqa: BLE001 - refused, never sent unrecorded
+                raise ResultRejected(
+                    f"Task {task_id}: its prompt runs {_scoped_checks.shown(command)} "
+                    f"scoped to its tests, and the full run that defers could not "
+                    f"be recorded in state.json ({exc}). Nothing was dispatched.",
+                    STATUS_REJECTED,
+                ) from exc
+            self._owed_recorded.add(task_id)
+
     def _finalize(self, result: SchedulerResult) -> None:
         """``mark_phase_completed`` + tracking + summary + plan reference (D3n).
 
@@ -3714,17 +3919,25 @@ class WriteBatchScheduler:
                 and self.state.completion_predates(self.phase, review)
             )
         )
-        if not keeps_date:
-            self.state.mark_phase_completed(self.phase)
-        # F5: re-stamp `plan_hash` to what this run actually left on disk.
-        # Every batch's edit is already written by the time `_finalize`
-        # runs, so without this the *next* `StateManager` built on this
-        # plan reads the run's own edit as a human editing the plan
-        # mid-workflow and sets `plan_changed`, which
-        # `implement_orchestrator.py` reports as "Plan has changed since
-        # last session" for a change the plugin made.
-        self.state.refresh_plan_hash()
-        self.state.save()
+        try:
+            if not keeps_date:
+                self.state.mark_phase_completed(self.phase)
+            # F5: re-stamp `plan_hash` to what this run actually left on disk.
+            # Every batch's edit is already written by the time `_finalize`
+            # runs, so without this the *next* `StateManager` built on this
+            # plan reads the run's own edit as a human editing the plan
+            # mid-workflow and sets `plan_changed`, which
+            # `implement_orchestrator.py` reports as "Plan has changed since
+            # last session" for a change the plugin made.
+            self.state.refresh_plan_hash()
+            self.state.save()
+        except ScopedCheckOwedError as exc:
+            # The state writer refused the completion: a debt of scoped
+            # batch checks was saved since this run settled its own. The
+            # rest of the save is written; the phase stays open at exit 3
+            # (docs/development/checks.md#scoped-batch-checks).
+            self._refused_completion(result, exc)
+            return
         if self.kind in _batch_prompt.CODE_WRITE_KINDS:
             # Only a code phase records `tracked_files`: the planning
             # phases edit the plan and the task list, which are never
@@ -3751,6 +3964,21 @@ class WriteBatchScheduler:
         # or the next resume ran it again on files nobody touched.
         self._checks.restamp_check_trees(result)
         result.finalized = True
+
+    def _refused_completion(self, result: SchedulerResult, exc: ScopedCheckOwedError) -> None:
+        """``_finalize``'s ending when the state writer refused the phase's
+        completion over a debt saved since this run settled its own: exit 3,
+        not finalized, the stop naming the debt now on record, the summary
+        written as on a failed check."""
+        result.exit_code = EXIT_NEEDS_HUMAN
+        owed = self._verify.owed_scoped_check()
+        result.unverified = (
+            _scoped_checks.owed_stop_line(owed, self.state) if owed is not None else exc.message
+        )
+        result.messages.extend(["", f"ERROR: {exc.message}"])
+        if self.summary_file:
+            result.summary_file = self._reports.write_summary(result)
+            result.messages.append(f"Implementation summary: {result.summary_file}")
 
     def _reload_state(self) -> None:
         """Re-read `state.json` after an external writer touched it."""

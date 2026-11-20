@@ -1,6 +1,6 @@
 [project]
 name = "multi-llm"
-version = "0.1.9"
+version = "0.1.10"
 description = "Multi-LLM automation for plan review, task generation, implementation, and code review"
 requires-python = ">=3.10"
 dependencies = ["pyyaml>=6.0"]
@@ -16,6 +16,7 @@ markers = [
     "config_override: opts out of the autouse per-project config isolation fixture (tests that exercise override discovery/env themselves)",
     "model_catalog: opts out of the autouse stub that pins OpenCodeProvider.describe_unlisted_model to known=None (tests that drive the real `opencode models` read, or patch it themselves)",
     "debug_config: opts out of the autouse stub that answers `opencode debug config` with a failed read (tests that drive the reader themselves, with a fake binary or a patched spawn)",
+    "cli_version_read: opts out of the autouse stub that answers `LLMProvider.gate_version` with the adapter's own `verified_version` (tests that drive the version read behind a gated config key themselves, with a fake binary or a patched reader)",
     "sandbox_probe: opts out of the autouse guard that answers a real provider CLI's sandbox probe with `unknown` (tests that deliberately drive the developer's own `codex sandbox`)",
     "shell_probe: lets a test's own sandbox probes be shell text or a prefixed command line (`sh -c …`, `python -c`, `env …`, `timeout …`), which the autouse probe guard otherwise refuses because it cannot see which files that text runs (the gate's tests whose fake probes are `sh -c` scripts)",
     "slow: marks tests that drive several real orchestrator invocations end to end (the instruction-refactor golden guard); runs in CI, not deselected by default",

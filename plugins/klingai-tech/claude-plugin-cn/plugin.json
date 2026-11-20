@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "kling-ai-cn-plugin",
+  "version": "1.3.3",
+  "description": "Official Kling AI China plugin. Generate and edit images, create videos, use motion control and Elements, and track tasks with the Kling AI China service.",
+  "author": {
+    "name": "KLING AI Pte Ltd",
+    "url": "https://klingai.com/app"
+  },
+  "homepage": "https://klingai.com/app",
+  "repository": "https://github.com/klingai-tech/claude-plugin-cn",
+  "license": "MIT",
+  "keywords": [
+    "kling",
+    "kling-ai",
+    "plugin",
+    "claude-code",
+    "image-generation",
+    "video-generation",
+    "mcp",
+    "china"
+  ]
+}

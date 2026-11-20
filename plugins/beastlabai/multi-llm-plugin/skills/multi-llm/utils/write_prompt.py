@@ -127,6 +127,7 @@ from .check_records import (
     upstream_held_check,
 )
 from .batch_prompt import (
+    CODE_WRITE_KINDS,
     DISPATCHED_PROMPTS_SUBDIR,
     OWN_RUN_CONTEXT_PHASES,
     bind_prior_changes,
@@ -141,6 +142,7 @@ from .write_safety import (
 )
 from . import scope_apply as _scope
 from .check_tree import check_tree_exclusions
+from . import batch_suppressions as _batch_suppressions
 
 
 __all__ = [
@@ -159,6 +161,9 @@ __all__ = [
     "changed_since_bound",
     "discard_check_tree",
     "record_check_tree",
+    "record_scan_base",
+    "scan_base_path",
+    "scan_bound_batch",
     "held_by_check",
     "load_write_task",
     "ordering_warnings",
@@ -942,6 +947,99 @@ def changed_since_bound(
         path for path in set(before) | set(after)
         if before.get(path) != after.get(path) and path not in others
     )
+
+
+# ---------------------------------------------------------------------------
+# The suppression scan's base
+# ---------------------------------------------------------------------------
+#
+# The native leg takes no snapshot of a code batch, so the report-only
+# suppression scan has nothing to read a batch's own changes from. `util
+# write-prompt` records a scan base as it binds a code batch's prompt
+# (`batch_suppressions.native_base`), beside the prompt file and written as it
+# is, and `util batch-done` scans the batch against it
+# (docs/development/write-scheduler.md#suppressions-a-batch-added). The base
+# is kept, so a batch recorded again (the `[OWN_CHECK_NOT_RECORDED]` call)
+# lists the same hits; the next bind of the task replaces it.
+
+
+def scan_base_path(phase_dir: Path, task_id: str) -> Path:
+    """``{phase_dir}/prompts/{task_id}.scan.json``."""
+    return default_output_path(phase_dir, task_id).with_name(
+        f"{task_id}{_batch_suppressions.SCAN_BASE_SUFFIX}"
+    )
+
+
+def _pinned_root(phase_dir: Path) -> Optional[str]:
+    try:
+        root, problem = pin_repo_root(str(Path(os.path.abspath(str(phase_dir)))))
+    except Exception:  # noqa: BLE001 - report only: no root, no scan
+        return None
+    return None if root is None or problem else root
+
+
+def record_scan_base(
+    phase_dir: Path, task_id: str, task: Dict[str, Any],
+    pin: Optional["_prompt_files.PhasePin"] = None,
+) -> Optional[Path]:
+    """Record the scan base of a code batch whose prompt is being bound; the
+    path, or ``None`` when it cannot be taken (an earlier base is removed
+    then, so it never stands for this dispatch). Never raises."""
+    target = scan_base_path(phase_dir, task_id)
+    root = _pinned_root(phase_dir)
+    base = None
+    if root is not None:
+        taken = _tree_now(phase_dir)
+        tree = taken[1] if taken is not None and taken[0] == root else None
+        declared = [_repo_relative(path, root) for path in declared_file_set(task)]
+        try:
+            base = _batch_suppressions.native_base(root, declared, tree)
+        except Exception:  # noqa: BLE001 - report only: never refuse a bind
+            base = None
+    try:
+        with _prompt_files.PromptFolder.open(
+            pin or phase_dir_pin(phase_dir, identity=False)
+        ) as folder:
+            if base is None:
+                folder.remove(target.name)
+                return None
+            folder.write(target.name, json.dumps({"task_id": task_id, **base}))
+    except OSError:
+        return None
+    return target
+
+
+def scan_bound_batch(
+    phase_dir: Path, task_id: str, tasks: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
+    """``(hits, not scanned)`` for a native code batch, against the base its
+    bind recorded (:func:`record_scan_base`); nothing to list without one (a
+    prompt bound by hand or by an earlier version). *tasks* are the phase's
+    tasks: a file another of them declares is never this batch's, as
+    :func:`changed_since_bound` reads it. A file the scan fails on is listed
+    as not scanned, and a scan that raises as a whole lists the batch's
+    declared files so. Never raises."""
+    try:
+        base = json.loads(scan_base_path(phase_dir, task_id).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return [], []
+    root = _pinned_root(phase_dir)
+    if not isinstance(base, dict) or root is None or base.get("task_id") != task_id:
+        return [], []
+    taken = _tree_now(phase_dir)
+    tree = taken[1] if taken is not None and taken[0] == root else None
+    others = {
+        _repo_relative(path, root)
+        for task in tasks if isinstance(task, dict)
+        and str(task.get("task_id") or "") != task_id
+        for path in declared_file_set(task)
+    }
+    try:
+        return _batch_suppressions.native_scan(base, root, tree, others)
+    except Exception as exc:  # noqa: BLE001 - report only
+        declared = base.get("declared")
+        return [], _batch_suppressions.scan_failed(
+            declared if isinstance(declared, list) else [], exc)
 
 
 # ---------------------------------------------------------------------------
@@ -1963,6 +2061,10 @@ def _hand_out(
     if is_check_task(str(info.get("kind") or ""), task):
         # What `util batch-done` holds this check to: it changes no file.
         record_check_tree(Path(args.phase_dir), args.task_id, pin)
+    elif str(info.get("kind") or "") in CODE_WRITE_KINDS:
+        # What `util batch-done` scans this batch's suppressions against
+        # (report only).
+        record_scan_base(Path(args.phase_dir), args.task_id, task, pin)
 
     # The watched set as this batch is handed
     # out, what its `util batch-done` compares with. No-op without a guard.

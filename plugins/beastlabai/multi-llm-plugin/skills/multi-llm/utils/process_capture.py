@@ -61,6 +61,16 @@ The rules:
   stop would be acted on returns as it ended. A watch that raises is dropped
   and the wait runs to the deadline as before
   (docs/development/providers.md#a-cli-that-loops).
+* **Silence can end the wait early.** A lane that passes ``idle_s`` (the
+  executor, for a write dispatch whose adapter streams events while it works)
+  gets :class:`IdleStopped`, a ``TimeoutExpired``, once neither output pipe
+  delivered a byte for that long while the adapter's ``in_flight`` tracker
+  said no tool call was running. Not a :class:`StreamStopped`: the lane may
+  read what the CLI printed, as after an exit (when the adapter says it had
+  finished speaking), rather than record a failed run. The same
+  rules hold: nothing here kills anything, an exited CLI returns as it ended,
+  and a tracker that raises turns the clock off
+  (docs/development/delegation.md#an-idle-writer).
 
 How: right after the spawn, the capture takes the real pipe objects off the
 ``Popen`` (its ``stdin``/``stdout``/``stderr`` become ``None``) and drains the
@@ -160,6 +170,50 @@ class StreamStopped(subprocess.TimeoutExpired):
         return f"Command '{self.cmd}' was stopped by its stream watch: {self.reason}"
 
 
+#: An in-flight tracker: fed each stdout chunk the drain reads (bytes, in
+#: order, cut anywhere), it answers whether the CLI has a tool call running
+#: that may print nothing until it ends (a test suite in a shell), so that
+#: silence is not idleness (:meth:`LLMProvider.idle_watch`).
+InFlight = Callable[[bytes], bool]
+
+
+class IdleStopped(subprocess.TimeoutExpired):
+    """The wait ended because the CLI printed nothing for :attr:`idle_s`
+    seconds with no tool call in flight. A ``TimeoutExpired``, so the lane
+    stops the CLI through its timeout path; never a :class:`StreamStopped`,
+    whose lanes record a failed run without reading the output.
+    :attr:`reason` words it."""
+
+    def __init__(self, cmd: Any, timeout: Optional[float], reason: str, idle_s: float,
+                 output: Any = None, stderr: Any = None) -> None:
+        super().__init__(cmd, timeout, output=output, stderr=stderr)
+        self.reason = reason
+        self.idle_s = idle_s
+
+    def __str__(self) -> str:
+        return f"Command '{self.cmd}' was stopped as idle: {self.reason}"
+
+
+def idle_reason(idle_s: float) -> str:
+    """How an idle stop is worded on every surface that names it."""
+    return (f"the runner printed nothing for {idle_s:g}s with no tool call in "
+            f"flight (driver.subagent_idle_timeout_s)")
+
+
+def provider_idle_watch(provider: Any) -> Optional[InFlight]:
+    """A fresh in-flight tracker from *provider*'s ``idle_watch()``, or
+    ``None`` when it declares none (its stdout is not a live event stream, so
+    silence says nothing) or the call raises: no tracker, no idle clock."""
+    hook = getattr(provider, "idle_watch", None)
+    if not callable(hook):
+        return None
+    try:
+        tracker = hook()
+    except Exception:  # noqa: BLE001 - see the docstring
+        return None
+    return tracker if callable(tracker) else None
+
+
 def provider_watch(provider: Any) -> Optional[StreamWatch]:
     """A fresh stdout watch from *provider*'s ``stream_watch()``, or ``None``
     when it declares none or the call raises: a watch is never a reason for a
@@ -245,19 +299,57 @@ class _Tripwire:
             self.tripped.set()
 
 
+class _IdleClock:
+    """When either output pipe last delivered a byte, and the adapter's word on
+    whether a tool call is in flight; shared by the drains that feed it and the
+    wait that reads it, holding nothing of the capture. A tracker that raises
+    turns the clock off for good: an unread stream is never called idle."""
+
+    __slots__ = ("idle_s", "in_flight", "last", "busy", "off")
+
+    def __init__(self, idle_s: float, in_flight: InFlight) -> None:
+        self.idle_s = float(idle_s)
+        self.in_flight: Optional[InFlight] = in_flight
+        self.last = time.monotonic()
+        self.busy = False
+        self.off = False
+
+    def feed(self, chunk: bytes, stdout: bool) -> None:
+        self.last = time.monotonic()
+        tracker = self.in_flight
+        if not stdout or tracker is None:
+            return
+        try:
+            self.busy = bool(tracker(chunk))
+        except Exception:  # noqa: BLE001 - a tracker never stops the drain
+            self.in_flight = None
+            self.off = True
+
+    def expired(self) -> bool:
+        return (not self.off and not self.busy
+                and time.monotonic() - self.last >= self.idle_s)
+
+    def left(self) -> float:
+        """Seconds until the clock could expire, if nothing arrives."""
+        return max(0.0, self.idle_s - (time.monotonic() - self.last))
+
+
 class _Outlet:
     """One output pipe as its drain sees it: the pipe, where its bytes go, and
     its end of file. A drain holds this and nothing else; :meth:`detach` drops
-    the sink and the watch, after which what the drain reads is discarded."""
+    the sink, the watch and the idle clock, after which what the drain reads is
+    discarded."""
 
-    __slots__ = ("stream", "fd", "sink", "eof", "tripwire")
+    __slots__ = ("stream", "fd", "sink", "eof", "tripwire", "clock", "is_stdout")
 
-    def __init__(self, stream: Any, fd: int, sink: _Sink) -> None:
+    def __init__(self, stream: Any, fd: int, sink: _Sink, is_stdout: bool = False) -> None:
         self.stream = stream
         self.fd = fd
         self.sink: Optional[_Sink] = sink
         self.eof = threading.Event()
         self.tripwire: Optional[_Tripwire] = None
+        self.clock: Optional[_IdleClock] = None
+        self.is_stdout = is_stdout
 
     def take(self, chunk: bytes) -> None:
         sink = self.sink
@@ -266,10 +358,14 @@ class _Outlet:
         tripwire = self.tripwire
         if tripwire is not None:
             tripwire.feed(chunk)
+        clock = self.clock
+        if clock is not None:
+            clock.feed(chunk, self.is_stdout)
 
     def detach(self) -> None:
         self.sink = None
         self.tripwire = None
+        self.clock = None
 
     def finish(self) -> None:
         _close(self.stream)
@@ -490,6 +586,12 @@ class PipeCapture:
     drain reads; once it returns a reason, :meth:`communicate` raises
     :class:`StreamStopped` and :attr:`stream_stop` keeps the reason.
 
+    *idle_s* with *in_flight* (an :data:`InFlight` tracker; both or neither)
+    is the idle clock: once neither pipe delivered a byte for *idle_s* seconds
+    while the tracker's last answer was "nothing in flight", the first
+    :meth:`communicate` raises :class:`IdleStopped` and :attr:`idle_stop`
+    keeps its reason.
+
     *on_held* (a callable taking this capture, or ``None``) is the lane's stop
     for what the CLI left holding a pipe: called at most once, by the first
     :meth:`communicate` that sees the CLI exit, when a pipe is still held after
@@ -510,6 +612,8 @@ class PipeCapture:
         selectable: Optional[bool] = None,
         watch: Optional[StreamWatch] = None,
         on_held: Optional[Callable[["PipeCapture"], Any]] = None,
+        idle_s: Optional[float] = None,
+        in_flight: Optional[InFlight] = None,
     ) -> None:
         self.proc = proc
         self.max_bytes = max_bytes
@@ -535,6 +639,8 @@ class PipeCapture:
         self._announced: set = set()
         self._tripwire: Optional[_Tripwire] = None
         self._stream_stop: Optional[str] = None
+        self._clock: Optional[_IdleClock] = None
+        self._idle_stop: Optional[str] = None
         for name in _STREAMS:
             stream = getattr(proc, name, None)
             fd = None if stream is None else _fileno(stream)
@@ -542,7 +648,7 @@ class PipeCapture:
                 continue
             sink = _Sink(max_bytes)
             self._sinks[name] = sink
-            self._outlets[name] = _Outlet(stream, fd, sink)
+            self._outlets[name] = _Outlet(stream, fd, sink, is_stdout=name == "stdout")
             # Popen.communicate no longer reads this pipe, so it stops waiting
             # for the pipe's end of file and waits for the process instead.
             setattr(proc, name, None)
@@ -550,6 +656,13 @@ class PipeCapture:
             # Before the drain starts, so the watch sees the first byte.
             self._tripwire = _Tripwire(watch)
             self._outlets["stdout"].tripwire = self._tripwire
+        if idle_s and idle_s > 0 and in_flight is not None and "stdout" in self._outlets:
+            # Before the drain starts, so no byte goes uncounted; the clock
+            # starts at the spawn, so a CLI silent from its first second
+            # counts too.
+            self._clock = _IdleClock(idle_s, in_flight)
+            for outlet in self._outlets.values():
+                outlet.clock = self._clock
         stdin = getattr(proc, "stdin", None)
         if stdin is not None and _fileno(stdin) is not None:
             # Nor writes stdin: a survivor holding it unread would keep it
@@ -598,13 +711,20 @@ class PipeCapture:
         after the CLI had already exited stopped nothing."""
         return self._stream_stop
 
+    @property
+    def idle_stop(self) -> Optional[str]:
+        """The idle clock's reason when :meth:`communicate` ended the wait on
+        it (raising :class:`IdleStopped`), else ``None``."""
+        return self._idle_stop
+
     def communicate(self, input: Any = None, timeout: Optional[float] = None) -> Tuple[Any, Any]:
         """``proc.communicate(input=input, timeout=timeout)``, with the output
         from this capture for the pipes it drains and stdin fed by it.
 
         Raises ``TimeoutExpired`` carrying the output read so far when the
         process outlives *timeout*, or :class:`StreamStopped` (one) as soon as
-        the stdout watch asks for a stop; the pipes stay open and drained, so a
+        the stdout watch asks for a stop, or :class:`IdleStopped` once the
+        idle clock expired; the pipes stay open and drained, so a
         later call (after a stop) collects the rest. Raises what encoding
         *input* raised before anything is sent, and, once, a write error on
         stdin that ``communicate`` would not have ignored, unless a call already
@@ -628,6 +748,11 @@ class PipeCapture:
             if isinstance(exc, StreamStopped):
                 expired: subprocess.TimeoutExpired = StreamStopped(
                     exc.cmd, exc.timeout, exc.reason, output=output, stderr=stderr,
+                )
+            elif isinstance(exc, IdleStopped):
+                expired = IdleStopped(
+                    exc.cmd, exc.timeout, exc.reason, exc.idle_s,
+                    output=output, stderr=stderr,
                 )
             else:
                 expired = subprocess.TimeoutExpired(
@@ -679,19 +804,35 @@ class PipeCapture:
         A CLI that has already exited when the stop would be acted on returns
         as it ended: its exit decides, not the watch's verdict on steps it went
         on to finish (docs/development/providers.md#a-cli-that-loops).
+
+        The idle clock is read the same way, at most :data:`WATCH_POLL_S`
+        apart while it is live, and longer slices while it cannot expire yet
+        (docs/development/delegation.md#an-idle-writer).
         """
         tripwire = self._tripwire
-        if tripwire is None or self._timed_out:
+        clock = self._clock
+        if (tripwire is None and clock is None) or self._timed_out:
             return self._wait_exit(timeout, unreaped)
         deadline = None if timeout is None else time.monotonic() + timeout
         while True:
             # An exited CLI makes the slice below return at once.
-            if tripwire.tripped.is_set() and not self._exited(unreaped):
+            if (tripwire is not None and tripwire.tripped.is_set()
+                    and not self._exited(unreaped)):
                 self._stream_stop = tripwire.reason or "the stream watch asked for a stop"
                 self._announce_stop(timeout)
                 raise StreamStopped(getattr(self.proc, "args", None), timeout,
                                     self._stream_stop)
+            if clock is not None and clock.expired() and not self._exited(unreaped):
+                self._idle_stop = idle_reason(clock.idle_s)
+                raise IdleStopped(getattr(self.proc, "args", None), timeout,
+                                  self._idle_stop, clock.idle_s)
             step = WATCH_POLL_S
+            if tripwire is None and clock is not None:
+                # Only the clock is read: no need to wake before it could
+                # expire. A busy clock restarts on the byte that ends the tool
+                # call, so it cannot expire sooner than idle_s from now.
+                left = clock.idle_s if clock.busy else clock.left()
+                step = max(WATCH_POLL_S, min(left, 5.0))
             if deadline is not None:
                 step = max(0.0, min(step, deadline - time.monotonic()))
             try:

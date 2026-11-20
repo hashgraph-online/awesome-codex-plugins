@@ -221,6 +221,8 @@ to bare `python`.
 
    **IMPORTANT**: Pass `$PLAN_PATH` as given — the orchestrator resolves it to an OS-native absolute path itself (do NOT wrap it in `$(realpath ...)`; on Git for Windows that emits a POSIX `/c/...` path a native process cannot use). Use `--project` (not `--directory`).
 
+   **A dry run is one foreground call.** When the command carries `--dry-run-subagents` (in any spelling, such as `--dry-run-sub`), run it in the foreground with no log redirect and nothing detached: it prints each reviewer slot as the fan-out would dispatch it (provider, model, effort, sandbox, command line) and the path of `subagent_dry_run.json`, calls no model and records nothing. There is then no roster call, poll, salvage or validation to run: report what it printed and stop.
+
    **Run detached.** A detached run is not subject to your host's shell-command cap, so the orchestrator survives long multi-model runs. A host's own background mechanism has a time limit of its own, though: give that launch call the longest timeout the mechanism takes, as your host's *run detached* answer states, or the run is stopped mid-fan-out. `PYTHONUNBUFFERED=1` is required so Python streams output to the log instead of block-buffering it (block-buffering leaves the log empty for minutes when stdout is a non-TTY pipe) — and it is what puts each `[PROGRESS]` ticker line in the log *while* the run is still going, instead of all at once at the end. Launching is not the end of this step: poll while it runs (below), and when the loop ends read all markers and output paths **from `{plan}/code-review/orchestrator-run.log`**, not from terminal stdout.
 
    **Say which models, before the loop starts.** The launch says a fan-out began; it

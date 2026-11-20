@@ -550,7 +550,9 @@ def build_parent_parser(
     )
     # D3l: the recommended first unattended run on a new host, and what CI uses to
     # assert a shim's write path is sane without touching a real repo. Deliberately
-    # NOT implied by anything: it changes a run into a preflight.
+    # NOT implied by anything: it changes a run into a preflight, and a review's
+    # fan-out into its reviewer plan, since a reviewer is a model turn too
+    # (docs/development/review-results.md#a-dry-runs-reviewer-plan).
     group.add_argument(
         "--dry-run-subagents",
         action="store_true",
@@ -558,7 +560,11 @@ def build_parent_parser(
              "runner, render the exact argv, check prompt transport and size, "
              "apply the invocation profile, the write-concurrency admission check "
              "and driver.write_paths — then write "
-             "{phase}/subagent_dry_run.json and exit 0 having changed nothing.",
+             "{phase}/subagent_dry_run.json and exit 0 having changed nothing. "
+             "A review calls no model either: it stops before its reviewers "
+             "and prints each slot as it would be dispatched (provider, model, "
+             "effort, sandbox, argv); an improve composite and full preview "
+             "only the first step that would run.",
     )
     # D6a: consent to run unattended is not consent to stale input, so this is a
     # separate flag and `--yes` never implies it. Defined here rather than per
@@ -1700,6 +1706,60 @@ def replay_flags(mode: str, argv: Sequence[str]) -> List[str]:
     return drop_implied_judge_flag(mode, fold_judge_flag(out))
 
 
+def refuse_unsupported_batch_size(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Exit 2 (``parser.error``) on a ``--max-batch-size`` other than the phase's default.
+
+    The flag never took effect: both batchers read their module constants
+    (fixed 2026-11-18, ``SuggestionBatch.max_items``/``CodeFixBatch.max_items``),
+    so every batch held up to the default whatever was typed. Honouring it is
+    not safe yet. Resume evidence is keyed by the batch
+    (``write_resume.ResumeEvidence.task_fingerprint``), so a stopped run resumed
+    under another cap forms other batches from the same items, reads the landed
+    ones as never done, and applies them again (measured with ``--no-batch``:
+    tests/test_batch_layout_on_resume.py). Refused rather than ignored until a
+    resume can tell; the default is *parser*'s own, so apply-code-fixes' 3
+    holds there (and in the apply-commit-fixes front door, whose parser is
+    that one). Typing the default stays accepted. Here, below both, so the
+    front door can refuse before it writes anything.
+    """
+    default = parser.get_default("max_batch_size")
+    value = getattr(args, "max_batch_size", default)
+    if value != default:
+        parser.error(
+            f"--max-batch-size {value} is refused: this phase batches at most "
+            f"{default} items. The flag had no effect before (every batch held up "
+            f"to {default} whatever it was given), and another value is refused "
+            f"rather than ignored because a stopped run resumed under another "
+            f"batch size would apply its landed batches a second time. Drop the "
+            f"flag: the batches are the same as before."
+        )
+
+
+def _drop_batch_size(tokens: Sequence[Any]) -> List[Any]:
+    """*tokens* without ``--max-batch-size N`` / ``--max-batch-size=N``.
+
+    A run recorded before 2026-11-18 may carry a cap the apply phases ignored
+    then and refuse now (``apply_orchestrator_base.refuse_unsupported_batch_size``);
+    replayed, it would turn the run's resume into a refusal. Its batches were
+    the default ones, which a resume without the flag rebuilds.
+    """
+    out: List[Any] = []
+    skip = False
+    for token in tokens:
+        if skip:
+            skip = False
+            continue
+        text = str(token)
+        head, eq, _value = text.partition("=")
+        # An abbreviation argparse accepted (`--max-batch 2`) is the same flag;
+        # `--max-b` is the shortest no other apply option shares.
+        if head.startswith("--max-b") and _flag_matches(head, "--max-batch-size"):
+            skip = not eq
+            continue
+        out.append(token)
+    return out
+
+
 def current_replay_flags(
     stored: Any = None, *, mode: Optional[str] = None
 ) -> List[str]:
@@ -1719,7 +1779,7 @@ def current_replay_flags(
     if record and record.get("mode") and (mode is None or record["mode"] == mode):
         return replay_flags(str(record["mode"]), record.get("argv") or [])
     if isinstance(stored, (list, tuple)):
-        folded = fold_judge_flag(drop_answer_flags(stored))
+        folded = fold_judge_flag(drop_answer_flags(_drop_batch_size(stored)))
         # A list recorded before the judge flag was dropped from `--yes`
         # replays reads the same as one recorded after.
         return drop_implied_judge_flag(mode, folded) if mode else folded

@@ -44,6 +44,7 @@ from .batch_reply import (
     row_check_findings,
 )
 from .task_outcome import (
+    IDLE_STOP_MID_TURN,
     ExecutorError,
     ResultRejected,
     TaskOutcome,
@@ -220,8 +221,11 @@ class StopAccount:
             return (
                 "partial application (bytes moved, the batch did not finish)"
                 + (
-                    ": its runner ran past its time limit and was stopped, and "
-                    "what it changed is kept in place"
+                    (": its runner went quiet in mid-turn and was stopped at "
+                     "its idle timeout (driver.subagent_idle_timeout_s)"
+                     if self.stalled(outcome) else
+                     ": its runner ran past its time limit and was stopped")
+                    + ", and what it changed is kept in place"
                     if self.ran_out_of_time(outcome) else ""
                 )
                 + (f" — {summary}" if summary else "")
@@ -233,6 +237,25 @@ class StopAccount:
         """Whether the batch was killed at its time limit after its edits
         landed (``TaskOutcome.ran_out_of_time``)."""
         return bool(getattr(outcome, "ran_out_of_time", False))
+
+    @staticmethod
+    def stalled(outcome: TaskOutcome) -> bool:
+        """Whether that stop was the idle timeout's, of a runner gone quiet
+        in mid-turn (``Attempt.idle_stop``;
+        docs/development/delegation.md#an-idle-writer)."""
+        attempts = getattr(outcome, "attempts", None) or []
+        return bool(attempts) and attempts[-1].idle_stop == IDLE_STOP_MID_TURN
+
+    @staticmethod
+    def again_clause(stop: Mapping[str, Any]) -> str:
+        """What to do if a batch stopped with its edits kept stops the same
+        way again: a runner the idle timeout stopped in mid-turn needs
+        another model, not a longer time limit."""
+        if stop.get("idle_stalled"):
+            return ("if it goes quiet in mid-turn again, run it on another model "
+                    "(driver.subagent_idle_timeout_s is how long it may stay silent)")
+        return ("if it runs out of time again, raise driver.subagent_timeout_s or "
+                "run it on a faster model")
 
     def account_lines(self, result: Optional[Any]) -> List[str]:
         """Every task of the decomposition, by what became of it."""
@@ -419,9 +442,8 @@ class StopAccount:
                 "  - its edits are kept in place: resume this phase and it is "
                 "dispatched again on top of them to finish what is left, then "
                 "the ones never reached follow (or restore the batch with the "
-                "command above first, to start it over; if it runs out of time "
-                "again, raise driver.subagent_timeout_s or run it on a faster "
-                "model):"
+                "command above first, to start it over; "
+                f"{self.again_clause(stop)}):"
             )
             lines.append(f"        {resume}")
         elif any(o.files_touched for o in failed):
@@ -745,6 +767,10 @@ class StopAccount:
             self.ran_out_of_time(first)
         ):
             result.stop["timed_out"] = True
+            if self.stalled(first):
+                # Stopped by the idle timeout in mid-turn: a longer time
+                # limit is no remedy.
+                result.stop["idle_stalled"] = True
         unrestorable = sorted({p for o in failed for p in o.unrestorable})
         if unrestorable:
             result.stop["unrestorable"] = unrestorable
@@ -1427,8 +1453,7 @@ class StopAccount:
                 f"Its edits are kept in place. To go on: resume this phase, "
                 f"and {task_id} is dispatched again on top of them to finish "
                 f"what is left (or restore the batch first to start it over); "
-                f"if it runs out of time again, raise driver.subagent_timeout_s "
-                f"or run it on a faster model."
+                f"{self.again_clause(stop)}."
             )
         elif stop.get("bytes_moved", True):
             body.append(

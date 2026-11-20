@@ -1,6 +1,6 @@
 ---
 name: ai-video-generation
-description: Create finished AI videos when Magic Hour is requested or configured and suitable. Route approved images directly to motion, still portraits plus audio to Talking Photo, and existing video plus audio to Lip Sync. Preserve an explicitly requested alternative provider.
+description: Create finished AI videos when Magic Hour is requested or configured and suitable. Route approved images directly to motion, portraits plus audio to Talking Photo, video plus replacement audio to Lip Sync, and requests to dub a clip into another language to Video Translator. Preserve an explicitly requested alternative provider.
 license: MIT
 metadata:
   author: magichourhq
@@ -28,9 +28,12 @@ Check the existing spending limit before a paid call. If none exists, ask for on
 | Existing performance becomes a different whole character      | Character Replace                                       |
 | Portrait speaks supplied audio                                | Talking Photo                                           |
 | Existing speaker matches replacement audio                    | Lip Sync                                                |
+| Existing clip is dubbed into a target language                | Video Translator (`translate_video`)                     |
 | Existing footage changes style or setting                     | Video Editor or Video-to-Video                          |
 
 Read the matching focused skill when installed. Otherwise discover the live tool schema and follow the same boundaries. Do not ask a nontechnical user to select endpoint fields or models.
+
+For “Dub this attached video into Spanish,” use the clip’s original speech. Use the full clip if it is within the supported duration, or ask which segment to dub if it is too long. Call `translate_video` with the source clip, its time range and `target_language`. Pass the returned `id` to `wait_for_video_project` and reuse that ID after a timeout. When the project is complete, save the MP4 from the exact download URL.
 
 If the user names a saved character or reference, call `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with the matching type before asking for an upload or generating another anchor. Match the name, paginate with `next_cursor` as needed, and disambiguate multiple matches. Inspect the relevant `IMAGE`, `VIDEO` or `AUDIO` asset; pass its durable `file_path` to a compatible field, not the item ID or expiring preview URL. Supplied references remain authoritative.
 

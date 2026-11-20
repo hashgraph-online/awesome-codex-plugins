@@ -1,6 +1,7 @@
 """OpenAI Codex CLI provider implementation with NDJSON event stream parsing."""
 import json
 import os
+import re
 import shutil
 import sys
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
@@ -41,6 +42,8 @@ from .base import (
     canary_marker_shell_words,
     sandbox_rung_id,
     split_reasoning_effort,
+    version_tuple,
+    warn_gate_once,
 )
 from .parse_kit import fail, ok
 from .codex_stream_audit import audit_codex_stream
@@ -168,6 +171,38 @@ SANDBOX_FALLBACK_VALUE = "danger-full-access"
 #: plugins and are untouched. A codex too old to know the key ignores an unknown
 #: `features.*` key (see the legacy-landlock probe note below).
 PLUGINS_OFF_PAIR = ("-c", "features.plugins=false")
+
+#: A codex writer (`agent-write`) starts without subagent tools. A writer is
+#: already the plugin's subagent, and an agent it spawns runs outside the
+#: writer's timeout, its concurrency caps and its write audit: a multi-agent-v2
+#: spawn leaves no item at all in the parent's `--json` stream, so
+#: `codex_stream_audit` cannot see what the child wrote. The read-only profiles
+#: (`generate`, `agent-readonly`: reviewers, validators, ask) keep the tools, so a
+#: reviewer can hand exploration to a child and keep its own context small
+#: (user decision, 2026-11-19). What that costs: the same audit cannot see a
+#: child's writes there either, which matters where a read-only slot runs
+#: without an OS sandbox. codex holds the tools in two places
+#: (docs/development/providers.md#codex-subagent-tools):
+#:
+#: * v1 (`multi_agent_v1`, behind `tool_search`): `features.multi_agent=false`
+#:   removes it on every build from the floor up;
+#: * v2 (the `collaboration` namespace, chosen by the model's own metadata, which
+#:   every gpt-6 model selects): only `agents.enabled=false` removes it, and not
+#:   while `features.multi_agent_v2` is on, so that key is pinned off too.
+#:
+#: These two pairs are accepted by every build measured from 0.144.0 to 0.170.0.
+SUBAGENT_FEATURES_OFF = (
+    "-c", "features.multi_agent=false",
+    "-c", "features.multi_agent_v2=false",
+)
+
+#: The v2 switch, version-gated: at 0.144.0 `[agents]` is a map of roles and
+#: `agents.enabled=false` is a config-load error (exit 1, zero requests), while
+#: 0.146.0 accepts it. A config key is not in `--help`, so the gate reads the
+#: installed version (`LLMProvider.gate_version`); an unread or older version
+#: omits the pair with one WARN, and the writer keeps codex's v2 tools.
+AGENTS_OFF_PAIR = ("-c", "agents.enabled=false")
+AGENTS_OFF_MIN_VERSION = "0.146.0"
 
 #: The one `-c` key the landlock rung adds. codex-cli 0.155.1 still
 #: ships a second Linux sandbox backend, `[features] use_legacy_landlock`, which
@@ -737,7 +772,9 @@ def _sandbox_for(profile: str) -> str:
 #:
 #: The plugins-off pair sits before them for the same reason: a `-c` pair is never
 #: the last element before the prompt either, and `--skip-git-repo-check` stays the
-#: splice site the landlock rung's `-c` pair is measured against.
+#: splice site the landlock rung's `-c` pair is measured against. A writer's
+#: subagent-off pairs are spliced in by `CodexProvider._writer_subagents_off`
+#: right before `--ephemeral`, never after it.
 #:
 #: The sandbox value is `_sandbox_for(PROFILE_GENERATE)` rather than a literal:
 #: this head is what `build_command` — the `generate` path — renders, so this is
@@ -872,6 +909,180 @@ def _vendor_stdout(stdout: str) -> str:
                     continue
         kept.append(line)
     return "".join(kept) if parsed_any else stdout
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool calls in a codex stream: counted for the usage record, and tracked live
+# for the executor's idle timeout (docs/development/delegation.md#an-idle-writer).
+#
+# Vocabulary: `tests/fixtures/codex/0.156.1/SCHEMA.md`. Each tool action is an
+# `item.started` / `item.completed` pair with one id; a code-mode `exec` cell is
+# no item of its own, and the tools it calls are.
+# ─────────────────────────────────────────────────────────────────────────────
+
+#: The item types that are one tool call each, the unit the native leg's
+#: per-subagent ``tool_uses`` counts. ``todo_list`` is left out: codex folds
+#: every plan update into one item, so its calls cannot be counted one by one.
+CODEX_TOOL_ITEM_TYPES = frozenset({
+    "command_execution",
+    "file_change",
+    "mcp_tool_call",
+    "web_search",
+    "collab_tool_call",
+})
+
+#: The item types that never run a tool: the model's words and codex's own
+#: notices, and ``todo_list``, which stays open for a whole turn. Any other
+#: started item, a type a later codex adds included, counts as in flight.
+CODEX_NON_TOOL_ITEM_TYPES = frozenset({"agent_message", "reasoning", "todo_list", "error"})
+
+#: The longest line :class:`ToolsInFlight` parses whole. A longer one (a command
+#: whose ``aggregated_output`` is large) is read from its first
+#: :data:`IN_FLIGHT_HEAD` bytes only, which hold its event type, item id and
+#: item type; the rest is not kept.
+IN_FLIGHT_LINE_MAX = 64 * 1024
+IN_FLIGHT_HEAD = 512
+
+#: The head of an ``item.*`` line as codex serializes it (``type``, then
+#: ``item.id``, then ``item.type``), read only from a line too long to parse.
+_ITEM_LINE_HEAD = re.compile(
+    rb'^\{\s*"type"\s*:\s*"(item\.started|item\.completed|item\.updated)"\s*,'
+    rb'\s*"item"\s*:\s*\{\s*"id"\s*:\s*"([^"\\]{1,200})"\s*,'
+    rb'\s*"type"\s*:\s*"([a-z_]{1,64})"'
+)
+
+
+def _item_event(event: Any) -> Optional[Tuple[str, str, str]]:
+    """``(event type, item id, item type)`` of a parsed ``item.*`` event."""
+    if not isinstance(event, dict):
+        return None
+    kind = event.get("type")
+    item = event.get("item")
+    if not isinstance(kind, str) or not kind.startswith("item.") or not isinstance(item, dict):
+        return None
+    item_id, item_type = item.get("id"), item.get("type")
+    if not isinstance(item_id, str) or not isinstance(item_type, str):
+        return None
+    return kind, item_id, item_type
+
+
+class ToolsInFlight:
+    """The tool calls a running ``codex exec --json`` started and has not yet
+    completed, fed its stdout chunk by chunk: :meth:`CodexProvider.idle_watch`.
+
+    Called with each chunk, it returns whether any is open. An ``item.started``
+    of any type but :data:`CODEX_NON_TOOL_ITEM_TYPES` opens one; its
+    ``item.completed`` closes it; ``turn.completed`` and ``turn.failed`` close
+    all. A line it cannot read changes nothing, so a missed completion keeps the
+    idle clock off (the deadline then decides) rather than a missed start
+    letting it run under a working tool. An exec session still running at its
+    yield time stays open until it ends, so the clock waits for it too. Bounded:
+    the open ids and one partial line, of at most :data:`IN_FLIGHT_LINE_MAX`
+    bytes.
+    """
+
+    __slots__ = ("_open", "_partial", "_overlong")
+
+    def __init__(self) -> None:
+        self._open: set = set()
+        self._partial = bytearray()
+        self._overlong = False
+
+    def __call__(self, chunk: bytes) -> bool:
+        start = 0
+        while True:
+            end = chunk.find(b"\n", start)
+            if end < 0:
+                self._keep(chunk[start:])
+                break
+            self._keep(chunk[start:end])
+            self._line(bytes(self._partial), self._overlong)
+            self._partial.clear()
+            self._overlong = False
+            start = end + 1
+        return bool(self._open)
+
+    def _keep(self, piece: bytes) -> None:
+        if self._overlong:
+            return
+        self._partial += piece
+        if len(self._partial) > IN_FLIGHT_LINE_MAX:
+            del self._partial[IN_FLIGHT_HEAD:]
+            self._overlong = True
+
+    def _line(self, line: bytes, overlong: bool) -> None:
+        line = line.strip()
+        if not line:
+            return
+        found: Optional[Tuple[str, str, str]] = None
+        event: Any = None
+        if not overlong:
+            try:
+                event = json.loads(line)
+            except ValueError:
+                event = None
+            found = _item_event(event)
+        else:
+            head = _ITEM_LINE_HEAD.match(line)
+            if head is not None:
+                found = (head.group(1).decode(), head.group(2).decode("utf-8", "replace"),
+                         head.group(3).decode())
+        if found is None:
+            if isinstance(event, dict) and event.get("type") in ("turn.completed", "turn.failed"):
+                self._open.clear()
+            return
+        kind, item_id, item_type = found
+        if item_type in CODEX_NON_TOOL_ITEM_TYPES:
+            return
+        if kind == "item.started":
+            self._open.add(item_id)
+        elif kind == "item.completed":
+            self._open.discard(item_id)
+
+
+def finished_speaking(stdout: str, *, reask: bool = False) -> bool:
+    """Whether a ``codex exec --json`` stream the idle timeout stopped had
+    finished speaking: :meth:`CodexProvider.turn_finished`.
+
+    Read from codex's events only (a line that is no JSON object of
+    :data:`_CODEX_EVENT_TYPES` is skipped). True when the last event is
+    ``turn.completed``, or an ``item.completed`` of an ``agent_message`` with a
+    tool item (any started or completed item whose type is not one of
+    :data:`CODEX_NON_TOOL_ITEM_TYPES`) before it. Anything else is a stall in
+    mid-turn: a tool item last, a message with no tool item before it (an
+    opening preamble), a ``reasoning`` item, an ``error`` event or a
+    ``turn.failed`` after the message, or no event at all. Commentary between
+    two tool calls reads as finished when the stall follows it: the event
+    stream cannot tell it from a closing message
+    (docs/development/delegation.md#an-idle-writer).
+
+    On a report re-ask (*reask*), which runs no tool, a completed
+    ``agent_message`` last is finished with no tool item before it: there is
+    no tool call to wait for. Everything else above is still mid-turn.
+    """
+    tool_seen = False
+    last: Optional[Tuple[str, str]] = None
+    for line in (stdout or "").split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict) or event.get("type") not in _CODEX_EVENT_TYPES:
+            continue
+        found = _item_event(event)
+        if found is None:
+            last = (str(event["type"]), "")
+            continue
+        kind, _item_id, item_type = found
+        if item_type not in CODEX_NON_TOOL_ITEM_TYPES:
+            tool_seen = True
+        last = (kind, item_type)
+    if last == ("turn.completed", ""):
+        return True
+    return (tool_seen or reask) and last == ("item.completed", "agent_message")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1416,6 +1627,38 @@ class CodexProvider(LLMProvider):
             ]
         return [*_BASE_ARGV, *schema_argv, "--model", model, prompt]
 
+    def _writer_subagents_off(self, cmd: List[str]) -> List[str]:
+        """Splice :data:`SUBAGENT_FEATURES_OFF`, plus :data:`AGENTS_OFF_PAIR` where
+        the build takes it, into a writer's argv.
+
+        The pairs go right before the first ``--ephemeral``, so ``--sandbox``
+        keeps index 2, ``--skip-git-repo-check`` stays the last element of the
+        head and the prompt stays last. ``cmd`` is mutated in place and returned.
+        """
+        pairs = list(SUBAGENT_FEATURES_OFF)
+        if self._agents_off_supported():
+            pairs += list(AGENTS_OFF_PAIR)
+        at = cmd.index("--ephemeral")
+        cmd[at:at] = pairs
+        return cmd
+
+    def _agents_off_supported(self) -> bool:
+        """Whether the installed codex accepts ``agents.enabled`` (see
+        :data:`AGENTS_OFF_PAIR`). Unread or older: ``False`` and one WARN."""
+        version = self.gate_version()
+        if version and version_tuple(version) >= version_tuple(AGENTS_OFF_MIN_VERSION):
+            return True
+        installed = f"codex {version}" if version else "an unread codex version"
+        warn_gate_once(
+            ("codex", AGENTS_OFF_PAIR[1]),
+            f"[WARN] codex: {installed} is not known to accept "
+            f"`-c {AGENTS_OFF_PAIR[1]}` (accepted from {AGENTS_OFF_MIN_VERSION}; "
+            f"a config-load error at 0.144.0), so it is not passed. A model "
+            f"that selects codex's multi-agent v2 tools (every gpt-6 model) can "
+            f"still spawn subagents from a writer. Everything else is unchanged.",
+        )
+        return False
+
     def build_command_for_transport(
         self,
         prompt: str,
@@ -1625,6 +1868,11 @@ class CodexProvider(LLMProvider):
                 prompt, model, profile, timeout_s=timeout_s, schema=schema
             )
         cmd = self.build_command(prompt, model, timeout_s=timeout_s, schema=schema)
+        if profile == PROFILE_AGENT_WRITE:
+            # Writers only; the read-only profiles keep codex's subagent tools
+            # (see SUBAGENT_FEATURES_OFF). Spliced here and not in
+            # `_apply_sandbox`, which an agent leg passes through twice.
+            self._writer_subagents_off(cmd)
         return self._apply_sandbox(cmd, profile)
 
     @staticmethod
@@ -1811,8 +2059,21 @@ class CodexProvider(LLMProvider):
         object), never by position, and the **last** such event wins — the item
         stream the answer is recovered from carries no usage at all, so the two
         never interfere.
+
+        ``tool_uses`` is the number of distinct tool items the stream started
+        or completed (:data:`CODEX_TOOL_ITEM_TYPES`), so each call counts once,
+        one a stop cut short included. It is read off the same whole stdout the
+        executor's drain captured line by line, so it is the live count; it is
+        kept for a stream a stop cut short (no ``turn.completed``, so no
+        tokens), and a finished turn with no tool call reports ``0``. A
+        record holding the count alone is no token figure: the executor keeps
+        the count and still counts the task under ``tasks_without_usage``
+        (``task_dispatch._accumulate_usage``;
+        docs/development/delegation.md#tool-use-counts-on-the-executor-leg).
         """
         usage: Optional[Dict[str, Any]] = None
+        tools: set = set()
+        finished = False
         for line in (stdout or "").strip().split("\n"):
             line = line.strip()
             if not line:
@@ -1823,14 +2084,25 @@ class CodexProvider(LLMProvider):
                 continue
             if not isinstance(event, dict):
                 continue
+            item = _item_event(event)
+            if item is not None:
+                if item[2] in CODEX_TOOL_ITEM_TYPES and item[0] in (
+                        "item.started", "item.completed"):
+                    tools.add(item[1])
+                continue
+            if event.get("type") == "turn.completed":
+                finished = True
             if event.get("type") not in ("turn.completed", "token_count"):
                 continue
             candidate = event.get("usage")
             if isinstance(candidate, dict):
                 usage = candidate
 
+        counted: Dict[str, Any] = (
+            {"tool_uses": len(tools)} if tools or finished else {}
+        )
         if not usage:
-            return None
+            return counted or None
 
         def _num(key: str) -> Optional[Any]:
             value = usage.get(key)
@@ -1852,7 +2124,21 @@ class CodexProvider(LLMProvider):
             out["output_tokens"] = output_tokens + (reasoning or 0)
         if "input_tokens" in out and "output_tokens" in out:
             out["total_tokens"] = out["input_tokens"] + out["output_tokens"]
+        out.update(counted)
         return out or None
+
+    def idle_watch(self) -> "ToolsInFlight":
+        """``exec --json`` prints an event as each item starts and ends, so a
+        stream silent with no tool call open is a codex that stopped working:
+        the executor's idle timeout reads it (:class:`ToolsInFlight`;
+        docs/development/delegation.md#an-idle-writer)."""
+        return ToolsInFlight()
+
+    def turn_finished(self, stdout: str, *, reask: bool = False) -> bool:
+        """After an idle stop: whether the runner had finished speaking, so
+        what it printed is read as after an exit (:func:`finished_speaking`;
+        on a report re-ask its one message is its reply)."""
+        return finished_speaking(stdout, reask=reask)
 
     @staticmethod
     def _extract_json(text: str) -> Dict[str, Any]:

@@ -17,8 +17,8 @@
 
 根据 Agent 角色自动适用对应规则：
 
-- **文档类 Agent**（PM、Architect、UI Designer、Tech Lead、Scrum Master、QA、DevOps）：**所有输出必须使用中文**
-- **代码类 Agent**（Frontend、Backend）：**注释使用中文，代码使用英文**
+- **文档类 Agent**（PM、Architect、UI Designer、Tech Lead、Scrum Master、QA、DevOps）：**产物语言跟随用户请求所用的语言**；传入 `--lang <code>` 时以它为准。模板与本文件是中文，不代表产物必须是中文：章节标题和固定标签要译成产物语言，摘要章节用 `## 摘要` 或 `## Summary`
+- **代码类 Agent**（Frontend、Backend）：**注释语言跟随仓库已有注释的语言，新仓库跟随用户请求的语言；代码使用英文**
 
 ---
 

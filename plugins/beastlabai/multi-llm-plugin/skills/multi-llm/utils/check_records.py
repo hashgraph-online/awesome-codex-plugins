@@ -192,6 +192,16 @@ def write_result_notice(result: Any) -> Optional[str]:
     unverified = getattr(result, "unverified", None)
     if unverified:
         parts.append(str(unverified))
+    try:
+        # The suppressions the batches added: report only, never a stop.
+        # Imported here: `status` loads this module and never this notice.
+        from .suppression_scan import from_rows, notice_clause
+
+        added = notice_clause(from_rows(result.report_rows()))
+    except Exception:  # noqa: BLE001 - a notice is advisory
+        added = None
+    if added:
+        parts.append(added)
     return clip(join_clauses(parts), 1200) or None
 
 

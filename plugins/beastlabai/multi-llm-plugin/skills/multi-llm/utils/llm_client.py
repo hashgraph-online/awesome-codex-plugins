@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, FrozenSet, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, FrozenSet, Iterator, List, NamedTuple, Optional, Sequence, Tuple, Union
 
 from . import structured_output
 from . import process_control
@@ -37,7 +37,9 @@ from .providers.base import (
     StructuredOutputUnavailable,
     build_child_env,
     sandbox_rung_id,
+    split_reasoning_effort,
 )
+from .redact import redact_argv
 # What a run means — the result dict, its error codes and every `details` key
 # a child that ran carries — is read in `provider_outcome`. The names callers
 # have always read off this module are re-exported from it.
@@ -75,6 +77,10 @@ from .provider_outcome import (  # noqa: F401 - re-exported, see above
     _readonly_audit,
     _redact,
     _salvage_hook_text,
+    attach_broken_file_text,
+    attach_rejected_answer_text,
+    attach_reply_salvage_text,
+    attach_stdout_reply_salvage_text,
     generic_answer_text,
     outcome_from_capture,
     rejected_answer_category,
@@ -1455,27 +1461,32 @@ def _phase_schema(
     return schema, structured_marker
 
 
-def prepare_dispatch(
-    prompt: str,
+class DispatchTarget(NamedTuple):
+    """What one model spec resolves to before anything is built
+    (:func:`resolve_dispatch_target`)."""
+
+    provider: Any
+    provider_name: str
+    model: str
+    timeout: Any
+    transport: str
+
+
+def resolve_dispatch_target(
     model_spec: str,
     *,
     timeout: Optional[int] = None,
-    cwd: Optional[str] = None,
     prompt_transport: Optional[str] = None,
     anchor: Optional[Union[str, Path]] = None,
-    schema_phase: Optional[str] = None,
-    sandbox_fallback: Optional[str] = None,
-) -> Union[PreparedDispatch, Dict[str, Any]]:
-    """Everything :func:`invoke_with_provider` does before the spawn.
+) -> Union[DispatchTarget, Dict[str, Any]]:
+    """The provider, model, timeout and prompt transport a fan-out dispatch of
+    *model_spec* uses, or the refusal result when it cannot start (an unknown
+    or unavailable provider, an unsupported transport).
 
-    Resolves the provider, the timeout, the transport, the phase schema, the
-    plugin's jail grant, the argv and the child's environment, with the
-    arguments :func:`invoke_with_provider` documents. Returns the prepared
-    dispatch, or the refusal result when it cannot start (an unknown or
-    unavailable provider, an unsupported transport, a refused dispatch
-    context, a schema or read-only refusal, a Windows command line it will not
-    risk, a jail it cannot grant), with nothing spawned and every context
-    entered so far released.
+    The head of :func:`prepare_dispatch` and of :func:`preview_dispatch`, so a
+    dry run's reviewer plan resolves a spec exactly as the spawn does
+    (docs/development/review-results.md#a-dry-runs-reviewer-plan). It reads
+    the configuration and ``PATH`` and spawns nothing.
     """
     provider_name, model = parse_model_spec(model_spec, anchor=anchor)
     provider = get_provider(provider_name)
@@ -1512,9 +1523,6 @@ def prepare_dispatch(
     # Use provided timeout or provider's default
     effective_timeout = timeout or get_provider_timeout(provider_name, anchor=anchor)
 
-    # Build command using provider, resolving cmd[0] to an absolute path
-    # (and past any Windows .cmd/.bat npm shim, to a sibling .exe or the
-    # shim's `node <cli.js>` target — see _resolve_executable).
     transport = prompt_transport or provider.prompt_transport
     if transport != "argv" and not provider.supports_prompt_transport(transport):
         return {
@@ -1527,6 +1535,88 @@ def prepare_dispatch(
             "error_code": ERROR_SUBPROCESS_FAILED,
             "details": {"provider": provider_name, "model": model},
         }
+    return DispatchTarget(provider, provider_name, model, effective_timeout, transport)
+
+
+def render_dispatch_command(
+    provider: Any,
+    prompt: str,
+    model: str,
+    transport: str,
+    *,
+    timeout_s: Any,
+    schema: Any,
+    sandbox_fallback: Optional[str],
+    cwd: Optional[str],
+    jail_context: Optional[JailContext] = None,
+) -> Tuple[List[str], Optional[str], bool]:
+    """The adapter's argv for one fan-out dispatch, ``cmd[0]`` resolved to an
+    absolute path: ``(cmd, stdin_text, is_batch_shim)``.
+
+    The one ``build_command_for_transport`` call of the fan-out, shared by
+    :func:`prepare_dispatch` and :func:`preview_dispatch`. Raises what the
+    adapter raises (``StructuredOutputUnavailable``,
+    ``ReadOnlyInvocationRefused``); each caller turns that into its refusal.
+    """
+    # `timeout_s=effective_timeout` is L5's one call site: the number is
+    # already resolved here, so an adapter with an internal cutoff of its own
+    # (agy's `--print-timeout`) can hold it under the deadline this same call
+    # passes to `_run_provider_cli`, instead of hardcoding a value that has to
+    # be kept in sync by hand. Twelve of the thirteen adapters ignore it, and
+    # dropping the keyword restores every rendered argv byte-for-byte.
+    # `cwd=cwd` on the same terms `resolve_env` already takes it: these two
+    # hooks are the only ones that see the directory the child is really
+    # spawned in, and an adapter whose **argv** carries a workspace-scoped
+    # token needs it for the same reason an adapter's env delta does. omp is
+    # the one that does — it silently relocates to /tmp when its cwd is the
+    # user's home, with nothing on either channel to say so. `None` means
+    # "inherit this process's", which is what the adapter falls back to; the
+    # base composition ignores the keyword entirely, so seventeen adapters
+    # render argv byte-for-byte.
+    # `jail_context` only when set: the eight adapters that override this
+    # builder without the keyword are called exactly as before.
+    cmd, stdin_text = provider.build_command_for_transport(
+        prompt, model, transport, timeout_s=timeout_s, schema=schema,
+        sandbox_fallback=sandbox_fallback, cwd=cwd,
+        **({"jail_context": jail_context} if jail_context is not None else {}),
+    )
+    # Resolve cmd[0] to an absolute path (and past any Windows .cmd/.bat npm
+    # shim, to a sibling .exe or the shim's `node <cli.js>` target — see
+    # _resolve_executable).
+    launcher, is_batch_shim = _resolve_executable(cmd[0])
+    return [*launcher, *cmd[1:]], stdin_text, is_batch_shim
+
+
+def prepare_dispatch(
+    prompt: str,
+    model_spec: str,
+    *,
+    timeout: Optional[int] = None,
+    cwd: Optional[str] = None,
+    prompt_transport: Optional[str] = None,
+    anchor: Optional[Union[str, Path]] = None,
+    schema_phase: Optional[str] = None,
+    sandbox_fallback: Optional[str] = None,
+) -> Union[PreparedDispatch, Dict[str, Any]]:
+    """Everything :func:`invoke_with_provider` does before the spawn.
+
+    Resolves the provider, the timeout, the transport
+    (:func:`resolve_dispatch_target`), the phase schema, the plugin's jail
+    grant, the argv (:func:`render_dispatch_command`) and the child's
+    environment, with the arguments :func:`invoke_with_provider` documents.
+    Returns the prepared dispatch, or the refusal result when it cannot start
+    (an unknown or unavailable provider, an unsupported transport, a refused
+    dispatch context, a schema or read-only refusal, a Windows command line it
+    will not risk, a jail it cannot grant), with nothing spawned and every
+    context entered so far released.
+    """
+    target = resolve_dispatch_target(
+        model_spec, timeout=timeout, prompt_transport=prompt_transport, anchor=anchor,
+    )
+    if isinstance(target, dict):
+        return target
+    provider, provider_name, model = target.provider, target.provider_name, target.model
+    effective_timeout, transport = target.timeout, target.transport
     # The pre-dispatch read, and M7's one call site. `schema_phase=None`
     # skips all of it, so every existing caller renders the same argv it always
     # did. `schema_for_dispatch` is what consults `structured_output_support`:
@@ -1623,31 +1713,12 @@ def prepare_dispatch(
                 rung=jail_rung, request=request, tmpdir=tmpdir, cwd=repo_root,
             )
 
-        # `timeout_s=effective_timeout` is L5's one call site: the number is
-        # already resolved here, so an adapter with an internal cutoff of its own
-        # (agy's `--print-timeout`) can hold it under the deadline this same call
-        # passes to `_run_provider_cli`, instead of hardcoding a value that has to
-        # be kept in sync by hand. Twelve of the thirteen adapters ignore it, and
-        # dropping the keyword restores every rendered argv byte-for-byte.
         try:
-            # `cwd=cwd` on the same terms `resolve_env` already takes it, three
-            # lines below: these two hooks are the only ones that see the
-            # directory the child is really spawned in, and an adapter whose
-            # **argv** carries a workspace-scoped token needs it for the same
-            # reason an adapter's env delta does. omp is the one that does — it
-            # silently relocates to /tmp when its cwd is the user's home, with
-            # nothing on either channel to say so. `None` means "inherit this
-            # process's", which is what the adapter falls back to; the base
-            # composition ignores the keyword entirely, so seventeen adapters
-            # render argv byte-for-byte.
-            # `jail_context` only when set: the eight adapters that override
-            # this builder without the keyword are called exactly as before.
-            cmd, stdin_text = provider.build_command_for_transport(
-                prompt, model, transport, timeout_s=effective_timeout, schema=schema,
-                sandbox_fallback=sandbox_fallback, cwd=cwd,
-                **(
-                    {"jail_context": JailContext(jail.request, jail.tmpdir)}
-                    if jail is not None else {}
+            cmd, stdin_text, is_batch_shim = render_dispatch_command(
+                provider, prompt, model, transport, timeout_s=effective_timeout,
+                schema=schema, sandbox_fallback=sandbox_fallback, cwd=cwd,
+                jail_context=(
+                    JailContext(jail.request, jail.tmpdir) if jail is not None else None
                 ),
             )
         except (StructuredOutputUnavailable, ReadOnlyInvocationRefused) as exc:
@@ -1668,8 +1739,6 @@ def prepare_dispatch(
                     "retryable": False,
                 },
             }
-        launcher, is_batch_shim = _resolve_executable(cmd[0])
-        cmd = [*launcher, *cmd[1:]]
 
         if _IS_WINDOWS and transport == "argv":
             # Interim safeguard until the explicit `cmd /c` escaping path lands
@@ -1745,6 +1814,143 @@ def prepare_dispatch(
             cwd=cwd, schema=schema, structured_marker=structured_marker,
             jail=jail, start_time=start_time, cleanup=setup_cleanup.pop_all(),
         )
+
+
+@dataclass(frozen=True)
+class DispatchPreview:
+    """One fan-out dispatch as :func:`preview_dispatch` rendered it, unspawned.
+
+    ``model`` is the spec's model half as the adapter receives it, and
+    ``base_model``/``effort`` are that string split by the adapter's own
+    accepted ``:effort`` names (``effort`` is ``None`` when the spec names
+    none, and the CLI then uses its own default). ``executable`` is the
+    resolved CLI path (``argv[0]`` before any jail wrap), and ``argv`` the
+    whole command with secret-shaped values cut. ``refusal`` is set, with
+    ``argv`` ``None``, when the dispatch would be refused before its spawn.
+    """
+
+    provider_name: str
+    model: str
+    base_model: str
+    effort: Optional[str]
+    timeout: Any = None
+    transport: Optional[str] = None
+    executable: Optional[str] = None
+    argv: Optional[List[str]] = None
+    refusal: Optional[str] = None
+
+
+@contextlib.contextmanager
+def preview_dispatch_context(
+    provider: Any,
+    model: str,
+    profile: str,
+    *,
+    anchor: Optional[str] = None,
+):
+    """:func:`provider_dispatch_context`'s argv half, for a render that spawns
+    no model turn (``--dry-run-subagents``): the adapter's refusal and the
+    state its argv reads, and none of a dispatch's side effects.
+
+    It never calls ``note_dispatch`` (codex arms its trust bookkeeping there,
+    and the run's close-out then rewrites ``$CODEX_HOME/config.toml`` when it
+    finds an entry it did not see at arm time, a concurrent run's included),
+    opens no private-home scope, and enters no ``hermetic_dispatch`` (opencode
+    and fx make a config home there). An adapter whose argv reads its context
+    declares ``hermetic_preview`` with the same signature minus
+    ``runner_version`` (opencode: the same refusal and ``--pure``, no home);
+    one whose context scopes only its environment (fx's managed ``HOME``)
+    declares none and renders the same argv outside it, since a preview
+    composes no environment. Yields a :class:`DispatchContext`
+    (docs/development/review-results.md#a-dry-runs-reviewer-plan).
+    """
+    enter = getattr(provider, "hermetic_preview", None)
+    if not callable(enter):
+        yield DispatchContext()
+        return
+    with enter(profile, model, anchor=anchor) as refusal:
+        yield DispatchContext(refusal)
+
+
+def preview_dispatch(
+    prompt: str,
+    model_spec: str,
+    *,
+    timeout: Optional[int] = None,
+    cwd: Optional[str] = None,
+    anchor: Optional[Union[str, Path]] = None,
+    sandbox_fallback: Optional[str] = None,
+) -> DispatchPreview:
+    """:func:`prepare_dispatch`'s command for *model_spec*, built and never spawned.
+
+    The same head (:func:`resolve_dispatch_target`), the adapter context's
+    argv half (:func:`preview_dispatch_context`: the same refusal and the
+    same argv as :func:`provider_dispatch_context`) and the same build
+    (:func:`render_dispatch_command`), with the arguments a fan-out slot
+    passes, so a dry run shows the command the spawn would run
+    (docs/development/review-results.md#a-dry-runs-reviewer-plan). It creates
+    and writes nothing: no codex trust bookkeeping is armed, no provider
+    config home is made, no child environment is composed, and on the
+    plugin's jail rung the wrap is rendered with placeholder paths
+    (``landlock_dispatch.preview_wrap_argv``) and no scratch directory is
+    made. *prompt* is a placeholder: the real prompt is rendered per slot at
+    dispatch time.
+    """
+    provider_name, model = parse_model_spec(model_spec, anchor=anchor)
+    provider = get_provider(provider_name)
+    hook = getattr(provider, "_accepted_efforts", None)
+    try:
+        efforts = hook() if callable(hook) else ()
+    except Exception:  # noqa: BLE001 - a malformed ladder splits nothing
+        efforts = ()
+    base_model, effort = split_reasoning_effort(str(model or ""), efforts or ())
+    named = {
+        "provider_name": provider_name, "model": model,
+        "base_model": base_model, "effort": effort,
+    }
+
+    target = resolve_dispatch_target(model_spec, timeout=timeout, anchor=anchor)
+    if isinstance(target, dict):
+        return DispatchPreview(**named, refusal=str(target.get("error") or "refused"))
+    named.update(timeout=target.timeout, transport=target.transport)
+
+    jail_rung = None
+    request: Optional[JailRequest] = None
+    rung_id = sandbox_rung_id(sandbox_fallback)
+    if rung_id in _INCIDENTAL_RUNG_IDS:
+        jail_rung = _jail_rung(target.provider, rung_id)
+        if jail_rung is None:
+            return DispatchPreview(**named, refusal=(
+                f"{provider_name} declares no wrapping rung {rung_id!r} for "
+                f"this phase; the plugin's Landlock jail cannot be applied"
+            ))
+        request = JailRequest(
+            repo_root=os.path.realpath(cwd or os.getcwd()), kind=PROFILE_GENERATE,
+        )
+    try:
+        with preview_dispatch_context(
+            target.provider, target.model, PROFILE_GENERATE, anchor=anchor,
+        ) as dispatch:
+            if dispatch.refusal:
+                return DispatchPreview(**named, refusal=dispatch.refusal)
+            cmd, _stdin_text, _is_batch_shim = render_dispatch_command(
+                target.provider, prompt, target.model, target.transport,
+                timeout_s=target.timeout, schema=None,
+                sandbox_fallback=sandbox_fallback, cwd=cwd,
+                jail_context=(
+                    _landlock.preview_context(request) if request is not None else None
+                ),
+            )
+    except (StructuredOutputUnavailable, ReadOnlyInvocationRefused) as exc:
+        return DispatchPreview(**named, refusal=str(exc))
+    executable = cmd[0] if cmd else None
+    if jail_rung is not None:
+        cmd = _landlock.preview_wrap_argv(cmd, jail_rung, request)
+    # No prompt to elide: the placeholder stays readable. The pass still cuts
+    # any secret-shaped value an adapter put on argv.
+    return DispatchPreview(
+        **named, executable=executable, argv=redact_argv(cmd, ""),
+    )
 
 
 def _run_dispatch(prepared: PreparedDispatch) -> Capture:
@@ -2101,6 +2307,90 @@ def _is_valid_parsed_data(data: Any) -> bool:
     if isinstance(data, dict) and set(data.keys()) == {"raw"}:
         return False
     return True
+
+
+def _provider_of(model_spec: str, anchor: Optional[Union[str, Path]]) -> Any:
+    """*model_spec*'s adapter, or ``None`` when it cannot be resolved: read
+    only on a path that must not break over it (a failure's classification,
+    a salvage text)."""
+    try:
+        return get_provider(parse_model_spec(model_spec, anchor=anchor)[0])
+    except Exception:  # noqa: BLE001 - a failure path must not break here
+        return None
+
+
+#: What :func:`_channel_answer` returns for a reading that holds no answer.
+_NO_ANSWER: Tuple[Any, Tuple[str, ...]] = (None, ())
+
+#: The fields every record of both answer schemas requires and no nested
+#: structure carries (``schemas/review_suggestions.schema.json`` and
+#: ``schemas/code_review_issues.schema.json`` add ``type`` and ``reference``
+#: or ``file``, which a ``refs`` entry can carry too).
+_RECORD_FIELDS = frozenset({"title", "desc", "importance"})
+
+
+def _holds_records(data: Any) -> bool:
+    """Whether *data* is a non-empty array of records: every item an object
+    carrying :data:`_RECORD_FIELDS`."""
+    return isinstance(data, list) and bool(data) and all(
+        isinstance(item, dict) and _RECORD_FIELDS <= item.keys() for item in data
+    )
+
+
+def _channel_answer(read: Dict[str, Any]) -> Tuple[Any, Tuple[str, ...]]:
+    """``(data, repairs)``: the answer one channel's reading holds, and the
+    mechanical repairs it took (``()`` when it took none).
+
+    A reading is the file channel's (``json_extractor.read_json_from_file``)
+    or the adapter's parse of stdout. One that served a piece of a broken
+    document (``enclosing_syntax_error``: the extractor's clause 1, or a
+    document that never closes, the truncated reply) is read by what the
+    document was: the extractor's ``repaired`` reading when it could mend it
+    (a trailing comma, an empty key with no value), else the piece only when
+    it is an array of records (:func:`_holds_records`: a broken wrapper
+    around a whole findings array), else no answer. One finding of the
+    reply, a ``line_range`` out of one, or a finding's own ``refs`` array is
+    never the review (measured 2026-11-18, codex ``gpt-6-luna``: review-code
+    recorded its only reviewer failed with "Expected JSON array, got dict",
+    and review-plan would have saved an empty review; Fable review
+    2026-11-19: a truncated reply was salvaged from its second finding, and a
+    missing comma had a ``refs`` array saved as the review). A reading in
+    which nothing parsed answers only with its ``repaired`` reading (a
+    trailing comma in every finding leaves no piece to serve).
+    """
+    repaired = read.get("repaired")
+    mended = (
+        (repaired["data"], tuple(str(note) for note in repaired.get("repairs") or ()))
+        if isinstance(repaired, dict) and _is_valid_parsed_data(repaired.get("data"))
+        else None
+    )
+    if not read.get("success"):
+        return mended or _NO_ANSWER
+    data = read.get("data")
+    if not read.get("enclosing_syntax_error"):
+        return data, ()
+    if mended is not None:
+        return mended
+    if _holds_records(data):
+        return data, ()
+    return _NO_ANSWER
+
+
+def _malformed_note(read: Dict[str, Any]) -> str:
+    """Where a reading's broken document stops parsing, for an error line:
+    the position and the parser's message, never the model's text."""
+    error = read.get("enclosing_syntax_error") or {}
+    return (
+        f"malformed JSON at line {error.get('line')}, column {error.get('column')}: "
+        f"{error.get('message')}"
+    )
+
+
+def _repaired_source(source: str, repairs: Sequence[str]) -> str:
+    """The log's ``Result source:`` for an answer read after a repair."""
+    if not repairs:
+        return source
+    return f"{source} (JSON repaired: {'; '.join(repairs)})"
 
 
 # ---------------------------------------------------------------------------
@@ -2473,12 +2763,14 @@ def _adopt_misnamed_result(
     run_model_specs: Sequence[str],
     *,
     prefer_arrays: bool,
-) -> Optional[Tuple[Any, str]]:
+) -> Optional[Tuple[Any, str, Tuple[str, ...]]]:
     """Read and rename the one misnamed result this slot wrote (step 1b).
 
-    ``(data, the name it was written under)``, or ``None`` — no unambiguous
-    candidate, one that does not parse as a JSON array (the shape every review
-    asks for), or a rename that failed. The rename puts the file at the
+    ``(data, the name it was written under, repairs)``, or ``None`` — no
+    unambiguous candidate, one that does not parse as a JSON array (the shape
+    every review asks for; a broken one is read as :func:`_channel_answer`
+    reads it, so ``repairs`` names what was mended), or a rename that failed.
+    The rename puts the file at the
     requested name, so it is this model's file from here on and no glob can
     read it a second time as somebody else's.
 
@@ -2498,7 +2790,8 @@ def _adopt_misnamed_result(
         return None
     content, identity = opened
     read = parse_file_content(content, prefer_arrays=prefer_arrays)
-    if not read.get("success") or not isinstance(read.get("data"), list):
+    data, repairs = _channel_answer(read)
+    if not isinstance(data, list):
         return None
     try:
         os.replace(found, output_json_path)
@@ -2506,7 +2799,7 @@ def _adopt_misnamed_result(
         return None
     if not _result_files.is_same_regular_file(output_json_path, identity):
         return None
-    return read["data"], found.name
+    return data, found.name, repairs
 
 
 def invoke_with_file_output(
@@ -2727,18 +3020,46 @@ def invoke_with_file_output(
     else:
         file_result = json_extractor.read_json_from_file(output_json_path, prefer_arrays=prefer_arrays)
 
-    if file_result.get("success"):
+    # A file holding a broken document is read as `_channel_answer` reads it:
+    # mended, or no answer at all (the stdout channel may still have one). A
+    # file in which nothing parsed answers only when the repair mends it.
+    file_answer = _channel_answer(file_result)
+    if file_result.get("success") and file_answer is _NO_ANSWER:
+        file_result = {
+            "success": False,
+            "error": f"{output_json_path.name} holds {_malformed_note(file_result)}",
+            "source": "file_extraction_failed",
+            "data": None,
+        }
+
+    if file_answer is not _NO_ANSWER:
+        file_data, file_repairs = file_answer
+        file_source = (
+            file_result.get("source", "file") if file_result.get("success")
+            else "file_extracted"
+        )
+        file_details = result.get("details", {})
+        if not isinstance(file_data, list):
+            # An answer of a shape no review takes goes to salvage over the
+            # file as the model wrote it, never over the object alone.
+            opened = _result_files.read_regular_text(output_json_path)
+            if opened is not None:
+                file_details = dict(file_details)
+                attach_reply_salvage_text(file_details, opened[0])
         _finalize_file_output_log(
             log_file, deferred_log, result, model_spec, prompt,
             success=True, error=None,
-            result_source=file_result.get("source", "file"),
+            result_source=_repaired_source(file_source, file_repairs),
         )
         return {
             "success": True,
-            "data": file_result["data"],
-            "source": file_result.get("source", "file"),
+            "data": file_data,
+            "source": file_source,
             "output_file": str(output_json_path),
-            "details": result.get("details", {}),
+            # The mechanical repairs the answer took, for the slot to report
+            # (`result_files.report_json_repairs`); absent when it took none.
+            **({"json_repairs": list(file_repairs)} if file_repairs else {}),
+            "details": file_details,
         }
 
     # Step 1b: the requested file is missing (or only the previous round's), but
@@ -2751,10 +3072,11 @@ def invoke_with_file_output(
             prefer_arrays=prefer_arrays,
         )
         if adopted is not None:
-            data, wrote = adopted
+            data, wrote, repairs = adopted
             _finalize_file_output_log(
                 log_file, deferred_log, result, model_spec, prompt,
-                success=True, error=None, result_source=f"file (written as {wrote})",
+                success=True, error=None,
+                result_source=_repaired_source(f"file (written as {wrote})", repairs),
             )
             return {
                 "success": True,
@@ -2762,20 +3084,33 @@ def invoke_with_file_output(
                 "source": "file",
                 "output_file": str(output_json_path),
                 "misnamed_from": wrote,
+                **({"json_repairs": list(repairs)} if repairs else {}),
                 "details": result.get("details", {}),
             }
 
-    # Fall back to stdout parsing (the data parsed by the provider)
-    stdout_data = result.get("data")
+    # Fall back to stdout parsing (the data parsed by the provider), read as
+    # `_channel_answer` reads a broken document.
+    stdout_data, stdout_repairs = _channel_answer(result)
     if _is_valid_parsed_data(stdout_data):
+        stdout_details = result.get("details", {})
+        if not isinstance(stdout_data, list):
+            # As the file channel above: the reply's text, for the salvage an
+            # answer of this shape gets. An exit 0 always hands its capture
+            # back to this deferring caller.
+            stdout_details = dict(stdout_details)
+            attach_stdout_reply_salvage_text(
+                stdout_details, _provider_of(model_spec, anchor),
+                (deferred_log or {}).get("stdout"),
+            )
         # The log names the file it passed over: without it, a reader holding
         # the old `{model}.json` and this log cannot tell why it did not count.
         _finalize_file_output_log(
             log_file, deferred_log, result, model_spec, prompt,
             success=True, error=None,
-            result_source=(
+            result_source=_repaired_source(
                 f"stdout_fallback ({file_result['error']})"
-                if stale_file else "stdout_fallback"
+                if stale_file else "stdout_fallback",
+                stdout_repairs,
             ),
         )
         return {
@@ -2784,43 +3119,71 @@ def invoke_with_file_output(
             "source": "stdout_fallback",
             "output_file": str(output_json_path),
             "file_error": file_result.get("error"),
-            "details": result.get("details", {}),
+            **({"json_repairs": list(stdout_repairs)} if stdout_repairs else {}),
+            "details": stdout_details,
         }
 
     # Both failed. The returned `error` is the one string callers match; the
     # log also says when the file channel was the previous round's file, which
     # was never parsed at all.
     details = result.get("details", {})
-    if result.get("success") and FAILURE_CATEGORY_KEY not in details:
+    # The stdout parse served a piece of a broken document that nothing could
+    # mend: an unparseable answer, said with where the document breaks.
+    malformed = bool(result.get("success") and result.get("enclosing_syntax_error"))
+    if result.get("success") and (malformed or FAILURE_CATEGORY_KEY not in details):
         # The child exited 0 and its stdout parsed, but not into an answer
         # (`_is_valid_parsed_data`): the executor's verdict for the same
         # rejection, read off the capture the exit 0 handed back, so both
         # lanes' ladders agree
         # (docs/development/delegation.md#read-and-analyze-executor).
         held = deferred_log or {}
-        try:
-            provider = get_provider(parse_model_spec(model_spec, anchor=anchor)[0])
-            category = rejected_answer_category(
-                provider, held.get("stdout"), held.get("stderr")
-            )
-        except Exception:  # noqa: BLE001 - classification must not break a failure path
-            category = STATUS_UNPARSEABLE
-        details = {**details, FAILURE_CATEGORY_KEY: category}
+        details = dict(details)
+        provider = _provider_of(model_spec, anchor)
+        if FAILURE_CATEGORY_KEY not in details:
+            try:
+                category = rejected_answer_category(
+                    provider, held.get("stdout"), held.get("stderr")
+                )
+            except Exception:  # noqa: BLE001 - classification must not break a failure path
+                category = STATUS_UNPARSEABLE
+            details[FAILURE_CATEGORY_KEY] = category
+        if malformed:
+            # The whole reply, where the ladder's retry and both lanes'
+            # salvage gates read a losing run's text: a salvage request is
+            # then written over all of it, never over the piece served.
+            attach_rejected_answer_text(details, provider, held.get("stdout"))
+    if file_result.get("source") == "file_extraction_failed":
+        # The model wrote the requested file and nothing in it could be read
+        # (a document nothing mends, or none at all). When it holds an answer
+        # to repair, its text is what the ladder's retry and both lanes'
+        # salvage gates read, ahead of stdout (prose about the file, as a
+        # rule), as the file is read ahead of stdout above: the review on
+        # disk reaches salvage (Fable review 2026-11-19).
+        opened = _result_files.read_regular_text(output_json_path)
+        if opened is not None:
+            details = dict(details)
+            attach_broken_file_text(details, opened[0])
+    error = "JSON parsing failed from both file and stdout"
+    if malformed:
+        error = f"{error} (stdout: {_malformed_note(result)})"
     _finalize_file_output_log(
         log_file, deferred_log, result, model_spec, prompt,
         success=False,
         error=(
-            f"JSON parsing failed from both file and stdout ({file_result['error']})"
-            if stale_file else "JSON parsing failed from both file and stdout"
+            f"{error} ({file_result['error']})"
+            if stale_file else error
         ),
         result_source=None,
     )
     return {
         "success": False,
-        "error": "JSON parsing failed from both file and stdout",
+        "error": error,
         "error_code": ERROR_PARSE_ERROR,
         "file_error": file_result.get("error"),
-        "stdout_error": result.get("error", "No valid JSON in stdout"),
+        "stdout_error": (
+            _malformed_note(result) if malformed
+            else result.get("error", "No valid JSON in stdout")
+        ),
         "output_file": str(output_json_path),
         "details": details,
         "data": None,

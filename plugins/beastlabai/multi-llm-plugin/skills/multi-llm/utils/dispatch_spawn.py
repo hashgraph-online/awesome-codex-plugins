@@ -212,6 +212,17 @@ class _Capture:
     #: Set only with ``timed_out``: the adapter's stdout watch asked for the
     #: stop, and this is its reason (``process_capture.StreamStopped``).
     stream_stop: Optional[str] = None
+    #: The idle timeout stopped the runner, and this is its reason
+    #: (``process_capture.IdleStopped``). With the stop confirmed and the
+    #: runner done speaking (``LLMProvider.turn_finished``) the capture reads
+    #: as an exit (``timed_out`` false, ``exit_code`` the signal's) and what
+    #: the runner printed is parsed; stopped in mid-turn, or unconfirmed, it
+    #: stays ``timed_out``. :func:`idle_stop_case` names which
+    #: (docs/development/delegation.md#an-idle-writer).
+    idle_stop: Optional[str] = None
+    #: Set with a confirmed idle stop only: whether the adapter read the
+    #: runner as done speaking (``LLMProvider.turn_finished``).
+    idle_turn_finished: Optional[bool] = None
     #: The runner exited while a process it started still held its output
     #: pipe, and its process group was stopped as at a timeout before the
     #: dispatch returned (:func:`_stop_held_group`); ``pipe_held_verdict`` is
@@ -358,6 +369,8 @@ def _spawn(
     read_dirs: Sequence[str] = (),
     jail_request: Optional[JailRequest] = None,
     write_consent: Optional[WritePostureConsent] = None,
+    idle_timeout: Optional[float] = None,
+    reask: bool = False,
 ) -> _Capture:
     """Run one dispatch, materializing ``schema`` for the CLIs that take a file.
 
@@ -404,6 +417,7 @@ def _spawn(
         "transport": transport, "timeout": timeout, "cwd": cwd, "schema": schema,
         "anchor": anchor, "sandbox_fallback": sandbox_fallback,
         "read_dirs": read_dirs, "write_consent": write_consent,
+        "idle_timeout": idle_timeout, "reask": reask,
     }
     if wrap is None:
         return _spawn_with_schema(jail=None, **common)
@@ -461,6 +475,8 @@ def _spawn_child(
     read_dirs: Sequence[str] = (),
     jail: Optional[_JailSpawn] = None,
     write_consent: Optional[WritePostureConsent] = None,
+    idle_timeout: Optional[float] = None,
+    reask: bool = False,
 ) -> _Capture:
     """Run one dispatch: build argv for the profile, spawn, capture everything.
 
@@ -507,6 +523,7 @@ def _spawn_child(
             transport=transport, timeout=timeout, cwd=cwd, schema=schema,
             anchor=anchor, sandbox_fallback=sandbox_fallback,
             read_dirs=read_dirs, jail=jail, write_consent=write_consent,
+            idle_timeout=idle_timeout, reask=reask,
         )
 
 
@@ -550,6 +567,8 @@ def _spawn_in_context(
     read_dirs: Sequence[str] = (),
     jail: Optional[_JailSpawn] = None,
     write_consent: Optional[WritePostureConsent] = None,
+    idle_timeout: Optional[float] = None,
+    reask: bool = False,
 ) -> _Capture:
     """:func:`_spawn_child`'s body, inside the adapter's dispatch context.
 
@@ -581,6 +600,18 @@ def _spawn_in_context(
     :data:`WRITE_SCOPES_ON_RUNG`, or whose consent names one outside
     :data:`WRITE_SCOPES_BY_CONSENT` — raises :class:`SandboxBackstopViolation`
     before ``Popen``.
+
+    **Idle timeout**: ``idle_timeout`` seconds (``driver.subagent_idle_timeout_s``,
+    handed down for a write kind only) arm the capture's idle clock on an
+    ``agent-write`` dispatch whose adapter declares an in-flight tracker
+    (``LLMProvider.idle_watch``). Its stop is the timeout's own kill; once that
+    kill is confirmed, and the adapter reads the runner as done speaking
+    (``LLMProvider.turn_finished``), the capture reads as the runner's exit,
+    so its output is parsed and the write lane's report re-ask can follow. A
+    runner stopped in mid-turn stays a timeout
+    (docs/development/delegation.md#an-idle-writer). ``reask`` says the
+    attempt is a report re-ask, which runs no tool: the adapter then reads a
+    finished message as its reply (``LLMProvider.turn_finished``).
     """
     capture = _Capture()
     render: Dict[str, Any] = {}
@@ -742,10 +773,18 @@ def _spawn_in_context(
             # running: its group is stopped as at a timeout before this
             # dispatch returns, so the write lane's checks after it see every
             # write it made (docs/development/runtime.md#process-primitives).
+            # A write dispatch silent past its idle timeout is stopped the same
+            # way (docs/development/delegation.md#an-idle-writer).
+            in_flight = (
+                process_capture.provider_idle_watch(provider)
+                if idle_timeout and profile == PROFILE_AGENT_WRITE else None
+            )
             streams = process_capture.PipeCapture(
                 proc, max_bytes=_task_result.MAX_STREAM_BYTES, grace_s=TIMEOUT_DRAIN_S,
                 watch=process_capture.provider_watch(provider),
                 on_held=lambda _held: _stop_held_group(proc, pgid, job),
+                idle_s=idle_timeout if in_flight is not None else None,
+                in_flight=in_flight,
             )
             stdout, stderr = streams.communicate(input=stdin_text, timeout=timeout)
             capture.duration = time.time() - start
@@ -765,6 +804,22 @@ def _spawn_in_context(
             capture.stderr = stderr
             capture.capped_streams = streams.capped
             capture.stream_stop = streams.stream_stop
+            capture.idle_stop = streams.idle_stop
+            if (capture.idle_stop
+                    and process_control.unconfirmed_kill(capture.kill_verdict) is None):
+                # The plugin stopped a runner that had stopped working, and the
+                # whole tree is gone. A runner that had finished speaking is
+                # read as at its exit, never as a deadline loss (the manual
+                # kill's path, which ends in the report re-ask). One stopped in
+                # mid-turn stays the timeout it would have been at the
+                # deadline: its edits may be unfinished, so nothing it printed
+                # is read or re-asked. Unconfirmed, a survivor may still write,
+                # so the attempt stays a timeout and is never re-asked.
+                capture.idle_turn_finished = _idle_turn_finished(
+                    provider, capture, reask=reask)
+                if capture.idle_turn_finished:
+                    capture.timed_out = False
+                    capture.exit_code = proc.returncode
         except OSError as exc:
             _kill_timed_out(proc, pgid, job)
             _drain_after_kill(streams or proc, None)
@@ -1032,6 +1087,70 @@ def pipe_held_note(capture: Any) -> Optional[str]:
     return ("the runner exited while a process it started still held its output; "
             "its process group was stopped before the task's checks (kill verdict "
             f"{getattr(capture, 'pipe_held_verdict', None)})")
+
+
+def _idle_turn_finished(provider: Any, capture: _Capture, *, reask: bool = False) -> bool:
+    """Whether a runner the idle timeout stopped had finished speaking: the
+    adapter's ``turn_finished`` over the captured stdout, told whether the
+    attempt was a report re-ask (*reask*). Fails closed: a capped stdout (its
+    end is not what the runner last printed), an adapter with no answer and
+    a raise (a hook that takes no ``reask`` included) all read as a stop in
+    mid-turn."""
+    if "stdout" in capture.capped_streams:
+        return False
+    hook = getattr(provider, "turn_finished", None)
+    if not callable(hook):
+        return False
+    try:
+        return hook(capture.stdout or "", reask=reask) is True
+    except Exception:  # noqa: BLE001 - see the docstring
+        return False
+
+
+def idle_stopped(capture: Any) -> bool:
+    """Whether the idle timeout stopped the runner, the stop was confirmed
+    and the runner had finished speaking: the capture then reads as an exit
+    whose code is the plugin's own signal."""
+    return bool(getattr(capture, "idle_stop", None)) and not getattr(
+        capture, "timed_out", False)
+
+
+def idle_stop_case(capture: Any) -> Optional[str]:
+    """Which idle stop this attempt was, in the words its row records
+    (``task_outcome.IDLE_STOP_FINISHED``, ``IDLE_STOP_MID_TURN`` or
+    ``IDLE_STOP_UNCONFIRMED``), or ``None`` when the idle timeout did not
+    stop it."""
+    if not getattr(capture, "idle_stop", None):
+        return None
+    if idle_stopped(capture):
+        return _task_outcome.IDLE_STOP_FINISHED
+    if getattr(capture, "idle_turn_finished", None) is False:
+        return _task_outcome.IDLE_STOP_MID_TURN
+    return _task_outcome.IDLE_STOP_UNCONFIRMED
+
+
+def runner_exit_code(capture: Any) -> Optional[int]:
+    """The exit code the write lane judges a reply by: the runner's own, or
+    ``None`` after a confirmed idle stop of a runner that had finished
+    speaking, whose signal is the plugin's and no crash of the runner's. The
+    runner printed nothing for the whole timeout with no tool call running
+    and its last word was its reply, so no edit was under way, and its whole
+    tree was gone before the snapshot comparison, which sees every byte it
+    moved (docs/development/delegation.md#an-idle-writer). A stop in mid-turn
+    stays a timeout, whose code is ``None`` too, and is never parsed. The
+    attempt's own row keeps the real code."""
+    if idle_stopped(capture):
+        return None
+    return getattr(capture, "exit_code", None)
+
+
+def idle_stop_note(capture: Any) -> Optional[str]:
+    """The words an attempt's row adds after a confirmed idle stop of a
+    runner that had finished speaking, or ``None``."""
+    if not idle_stopped(capture):
+        return None
+    return (f"{capture.idle_stop}, so it was stopped (exit "
+            f"{getattr(capture, 'exit_code', None)}) and what it had printed was read")
 
 
 def _drain_after_kill(

@@ -100,10 +100,15 @@ cp hooks/tigang_core.js ~/.pi/agent/extensions/
 
 See **[adapters/pi/README.md](adapters/pi/README.md)**.
 
-### dsh (DeepSeek Harness)
+### DSH headless (DeepSeek Harness)
 
-Requires the community plugin `dsh-plugin-hooks`; merge `adapters/dsh/hooks.json` into `$DSH_HOME/hooks.json`.
-See **[adapters/dsh/README.md](adapters/dsh/README.md)**.
+```bash
+dsh plugin --profile headless add github:TardisBooo/tigang-plugin
+```
+
+On DSH 0.2.2-rc.1, the native bundle writes one reminder per turn to stderr after
+successful Git commits or pushes. The `--json` event stream stays on stdout.
+See the [DSH adapter guide](adapters/dsh/README.md) for setup and removal.
 
 > Which files each install path touches, and how to uninstall: see **[INSTALL.md](INSTALL.md)**.
 
@@ -160,7 +165,7 @@ tigang-plugin/
 │   └── tigang_hook.js       # entry script (detect / remind modes)
 ├── adapters/
 │   ├── codex/README.md      # Codex installation and migration
-│   ├── dsh/                 # dsh: dsh_detect.js / dsh_remind.js / hooks.json
+│   ├── dsh/                 # DSH headless bundle and manual adapter
 │   └── pi/tigang-reminder.ts# pi extension: tool_result detect + agent_settled render
 ├── commands/
 │   └── tigang-stats.md      # /tigang-stats — view your stats

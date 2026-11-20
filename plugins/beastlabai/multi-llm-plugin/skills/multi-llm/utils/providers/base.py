@@ -242,6 +242,8 @@ _MOVED: Dict[str, Tuple[str, ...]] = {
         "VERSION_UNREAD",
         "VersionVerdict",
         "_CEILING_VERSION_RE",
+        "_CLI_VERSIONS",
+        "_CLI_VERSIONS_LOCK",
         "_FLAG_TOKEN_RE",
         "_GATE_WARNED",
         "_HELP_TOKENS",
@@ -249,6 +251,7 @@ _MOVED: Dict[str, Tuple[str, ...]] = {
         "_upgrade_suffix",
         "_version_below",
         "_version_token",
+        "read_cli_version",
         "read_help_tokens",
         "reset_flag_gate_cache",
         "version_ceiling",
@@ -1374,6 +1377,52 @@ class LLMProvider(ABC):
         """
         return None
 
+    def idle_watch(self) -> Optional[Callable[[bytes], bool]]:
+        """A fresh in-flight tracker over one dispatch's stdout, or ``None``
+        (the default: the CLI's stdout is not a live event stream, so the
+        executor's idle timeout never runs for it).
+
+        Only the executor asks, once per ``agent-write`` attempt, when
+        ``driver.subagent_idle_timeout_s`` is set; the drain feeds the tracker
+        each stdout chunk (bytes, cut anywhere) and it answers whether a tool
+        call the CLI started has not finished yet. While it answers ``True``
+        silence is expected (a test suite in a shell prints nothing until it
+        ends); otherwise a CLI silent on both pipes for the timeout is stopped,
+        and what it printed is read as after an exit when :meth:`turn_finished`
+        says it had finished speaking. Declare one only for a
+        CLI that prints an event as each step ends, never for one that prints
+        its answer at exit (claude-code's ``--output-format json``), which a
+        timer would kill mid-work. A line it cannot read must leave its answer
+        unchanged, and an item it does not recognise must count as in flight.
+        It runs on the drain thread, must be cheap and bounded, and a raise
+        turns the clock off (docs/development/delegation.md#an-idle-writer).
+        An adapter that declares one also overrides :meth:`turn_finished`, or
+        every idle stop it gets stays a timeout.
+        """
+        return None
+
+    def turn_finished(self, stdout: str, *, reask: bool = False) -> bool:
+        """After a confirmed idle stop, whether the runner had finished
+        speaking, read from its captured *stdout*: its turn ended, or its
+        last word was a message after its last tool call. Only then is what
+        it printed read as after an exit, which lets the write lane's report
+        re-ask recover a prose reply. Otherwise the stop came in mid-turn,
+        and the attempt is the timeout it would have been at the deadline:
+        nothing is parsed or re-asked, and a batch that moved bytes is a
+        partial application.
+
+        *reask* is set when the attempt was a report re-ask: it was asked for
+        its report alone and runs no tool by design (one that moves a file is
+        failed by the re-ask's own guard), so a finished message as its last
+        word is its reply, with no tool call before it.
+
+        The default is ``False``: an adapter that cannot tell is read as
+        stopped mid-turn. Asked only after an idle stop, so only an adapter
+        that declares :meth:`idle_watch` needs it
+        (docs/development/delegation.md#an-idle-writer).
+        """
+        return False
+
     def parse_version(self, stdout: str, stderr: str) -> Optional[str]:
         """Recover the CLI version from ``version_cmd`` output (D3m).
 
@@ -1462,6 +1511,25 @@ class LLMProvider(ABC):
             return frozenset()
         return version_gate.read_help_tokens(
             binary, help_argv=tuple(self.help_argv), env=self.gate_probe_env()
+        )
+
+    def gate_version(self) -> str:
+        """The installed CLI's version, read once per process, or ``""``.
+
+        For a gated **config key**, which no help text lists: the version is the
+        only evidence a build accepts it. The binary is :meth:`gate_binary`'s,
+        the argv is :attr:`version_cmd`'s tail, the parse is
+        :meth:`parse_version`, the environment :meth:`gate_probe_env`. An
+        unresolvable binary, a failed spawn or an unparseable answer is ``""``,
+        which the caller reads as "not supported" (optional-key posture).
+        """
+        binary = self.gate_binary(runnable=True)
+        argv = tuple(self.version_cmd or ())
+        if not binary or not argv:
+            return ""
+        return version_gate.read_cli_version(
+            binary, version_argv=argv[1:], parse=self.parse_version,
+            env=self.gate_probe_env(),
         )
 
     def supports_flag(self, flag: str) -> bool:
@@ -1757,6 +1825,19 @@ class LLMProvider(ABC):
         Returns:
             A short description of the failure, or None when the provider has
             nothing to add beyond the exit code and stderr. None by default.
+        """
+        return None
+
+    def usage_limit_reset(self, stdout: str, stderr: str) -> Optional[Dict[str, str]]:
+        """When a failed slot's account usage limit resets, as the CLI said it.
+
+        Diagnostics, like :meth:`describe_failure`, and never a category: the
+        fan-out records it on ``details["usage_limit_reset"]``
+        (``provider_outcome``). The keys an override may return: ``clause``, the
+        CLI's own words verbatim (``resets 6am (Europe/Zurich)``), and ``at``,
+        an exact ISO 8601 UTC time the CLI gave as a timestamp. A time is never
+        computed from prose: a clock time without a date is not one instant.
+        ``None`` by default and whenever the CLI said nothing.
         """
         return None
 

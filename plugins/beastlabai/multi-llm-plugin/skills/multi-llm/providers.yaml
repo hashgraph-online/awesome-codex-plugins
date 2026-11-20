@@ -18,7 +18,7 @@
 # in a native CLI catalog. Most providers take an optional ":effort" suffix,
 # split on the LAST colon; an unknown suffix stays part of the model name.
 # Listing commands, effort rules: docs/configuration.md#provider-blocks.
-# Catalog refreshed 2026-11-12.
+# Catalog refreshed 2026-11-19.
 providers:
   claude-code:
     default_timeout: 1800
@@ -61,6 +61,8 @@ providers:
       - gpt-5.6-terra-xhigh
       - gpt-5.6-luna-high
       - gemini-4-carbon-high
+      - gemini-4-neon-high
+      - gemini-4-hydrogen-high
       - gemini-3.8-flash-high
       - kimi-k3-high
       - kimi-k3-max
@@ -80,6 +82,8 @@ providers:
     # and list the alias here (#provider-blocks).
     models:
       - gemini-4-carbon
+      - gemini-4-neon
+      - gemini-4-hydrogen
       - gemini-3.8-flash
       - gemini-3.5-flash-lite
       - gemini-flash-latest
@@ -122,8 +126,8 @@ providers:
       - opencode/big-pickle
       - opencode/nemotron-3.5-super-vl-free
       - google/gemini-4-carbon
-      - openai/gpt-6.1-sol
-      - openai/gpt-6-astra
+      - openai/gpt-6.2-sol
+      - openai/gpt-6.2-astra
       # Needs stored OpenRouter auth (`opencode auth login`). Leave it without
       # ":effort": a --variant hung the earlier V4 Flash, and this one is unprobed.
       - openrouter/deepseek/deepseek-v4.1-flash-1017
@@ -135,10 +139,10 @@ providers:
     # ":effort" -> -c model_reasoning_effort=: none, minimal, low, medium, high,
     # xhigh, max (ultra = max). Without one, ~/.codex/config.toml decides.
     models:
-      - gpt-6.1-sol
-      - gpt-6.1-sol:xhigh
-      - gpt-6-astra
-      - gpt-6-astra:xhigh
+      - gpt-6.2-sol
+      - gpt-6.2-sol:xhigh
+      - gpt-6.2-astra
+      - gpt-6.2-astra:xhigh
       - gpt-6.1-terra
       - gpt-6-luna
     # auto | contained | off: what codex's read-only phases do where its own
@@ -161,14 +165,15 @@ providers:
       - openrouter/minimax/minimax-m3.1-flash
       - openrouter/x-ai/grok-4.7
       - openrouter/xiaomi/mimo-v2.6-pro
-      - openrouter/qwen/qwen3.8-max-0902:xhigh
+      - openrouter/qwen/qwen4-max:xhigh
       - openrouter/tencent/hy4:high
       - openrouter/stepfun/step-5-preview:high
-      - openrouter/openai/gpt-6-astra-pro
-      - openai/gpt-6-astra
+      - openrouter/openai/gpt-6.2-astra-pro
+      - openai/gpt-6.2-astra
       - openrouter/nex-agi/nex-n2.6
       - openrouter/google/gemini-3.8-flash
       - openrouter/google/gemini-4-carbon
+      - openrouter/google/gemini-4-neon
       - google/gemini-4-carbon
       - openrouter/deepseek/deepseek-v4-pro-0813
       - openrouter/anthropic/claude-sonnet-5.5
@@ -183,8 +188,8 @@ providers:
     max_concurrent: 2
     models:
       - openrouter/z-ai/glm-5.3
-      - openrouter/moonshotai/kimi-k3
-      - openrouter/openai/gpt-6-astra
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
 
   goose:
     default_timeout: 1200
@@ -193,8 +198,8 @@ providers:
     # xhigh (ignored silently where goose sees no reasoning model).
     models:
       - openrouter/z-ai/glm-5.3
-      - openrouter/moonshotai/kimi-k3
-      - openrouter/openai/gpt-6-astra
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
 
   aider:
     default_timeout: 1200
@@ -203,18 +208,18 @@ providers:
     # minimal, low, medium, high, xhigh.
     models:
       - openrouter/z-ai/glm-5.3
-      - openrouter/moonshotai/kimi-k3
-      - openrouter/openai/gpt-6-astra
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
 
   agy:
     # Also sets agy's own --print-timeout (30 s under it).
     default_timeout: 1200
     # Exact display names from `agy models` (an unknown one is rejected).
-    # ":effort" -> --effort: low, medium, high, e.g. "Gemini 4 Argon (High):high".
+    # ":effort" -> --effort: low, medium, high, e.g. "Gemini 4 Neon (High):high".
     models:
-      - "Gemini 4 Argon (High)"
-      - "Gemini 4 Argon (Medium)"
-      - "Gemini 4 Argon (Low)"
+      - "Gemini 4 Neon (High)"
+      - "Gemini 4 Neon (Medium)"
+      - "Gemini 4 Neon (Low)"
       - "Gemini 3.8 Flash (High)"
       - "Gemini 3.8 Flash (Medium)"
       - "Gemini 3.8 Flash (Low)"
@@ -247,8 +252,8 @@ providers:
     # --thinking: off, minimal, low, medium, high, xhigh, max.
     models:
       - openrouter/z-ai/glm-5.3
-      - openrouter/moonshotai/kimi-k3
-      - openrouter/openai/gpt-6-astra
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
 
   kimi:
     default_timeout: 1200
@@ -257,7 +262,6 @@ providers:
     # ":effort": a third ":" segment is part of the id.
     models:
       - moonshotai/kimi-k3.1-pro
-      - moonshotai/kimi-k3
 
   qwen-code:
     default_timeout: 1200
@@ -266,7 +270,7 @@ providers:
     # ":effort": a stray suffix reaches the backend as part of the id.
     models:
       - qwen/qwen3.8-27b
-      - qwen/qwen3.8-max-0902
+      - qwen/qwen4-max
 
   copilot:
     default_timeout: 1200
@@ -293,8 +297,8 @@ providers:
     models:
       - openrouter/openai/gpt-6-luna
       - openrouter/z-ai/glm-5.3
-      - openrouter/moonshotai/kimi-k3
-      - openrouter/openai/gpt-6-astra
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
 
 
 # Default provider when model name doesn't include provider prefix
@@ -335,6 +339,13 @@ driver:
   max_concurrent_write_subagents: 1
   # null = the runner provider's `default_timeout`. A positive integer overrides it.
   subagent_timeout_s: null
+  # Seconds a WRITE subagent may print nothing, with no tool call running, before
+  # it is stopped and what it printed is read: an unreadable closing report after
+  # edits gets the one report re-ask, as for any runner that died. Not a cap on
+  # how long it works: a long test suite in its shell keeps the clock off. Only
+  # for runners that print events as they work (codex); claude-code prints its
+  # answer at exit, so it never has this timer. 0 turns it off.
+  subagent_idle_timeout_s: 900
   # Re-dispatches for TRANSPORT-shaped failures only (timeout, no parsed text,
   # parse_output failure). A result that parsed but failed schema validation is
   # never retried — that is a deterministic disagreement a retry would launder.
@@ -358,6 +369,13 @@ driver:
   # Wall-clock ceiling for the command above. Not optional and not inherited from
   # a provider — nothing else knows how long this repo's build takes.
   verify_timeout_s: 600
+  # How apply-code-fixes batches run `verify_command` under --exec-subagents:
+  # `full` (the default) has every batch run it as written. `scoped` has each
+  # batch run it narrowed to the tests of the files it changed, and the phase
+  # then owes one full run before it can complete. Worth it only for a slow
+  # suite; it applies to a pytest command only, and a later batch can break a
+  # test the narrowed runs skipped (the full run then stops the phase at exit 3).
+  batch_checks: full
   # The declared write policy for edit-capable dispatches, resolved against the
   # pinned repo root and enforced TWICE: pre-dispatch against the batch's declared
   # file set (refused before the runner starts) and post-run against the set the
@@ -443,19 +461,19 @@ defaults:
     - kilocode:openrouter/z-ai/glm-5.3:max
     - kilocode:openrouter/minimax/minimax-m3.1-flash
     - kilocode:openrouter/xiaomi/mimo-v2.6-pro:high
-    - kilocode:openrouter/qwen/qwen3.8-max-0902:xhigh
-    - codex:gpt-6-astra:xhigh
+    - kilocode:openrouter/qwen/qwen4-max:xhigh
+    - codex:gpt-6.2-astra:xhigh
     - claude-code:claude-fable-5-2:high
     #- grok:grok-4.6
     #- cline:openrouter/z-ai/glm-5.3
     #- goose:openrouter/z-ai/glm-5.3
     #- aider:openrouter/z-ai/glm-5.3
-    #- "agy:Gemini 4 Argon (High)"
+    #- "agy:Gemini 4 Neon (High)"
     #- pi:openrouter/z-ai/glm-5.3
     #- omp:openrouter/openai/gpt-6-luna
     #- muse:muse-wonder-1.0:xhigh
     #- kimi:moonshotai/kimi-k3.1-pro
-    #- qwen-code:qwen/qwen3.8-max-0902
+    #- qwen-code:qwen/qwen4-max
     #- copilot:openai/gpt-6-luna
     #- vibe:openai/gpt-6-luna
     #- fx:openai/gpt-6-luna
@@ -465,7 +483,7 @@ defaults:
   # Omit --quick to use the full defaults.models list, or pass --interactive to pick manually
   quick_models:
     - cursor-agent:grok-4.7-high
-    - codex:gpt-6-astra:xhigh
+    - codex:gpt-6.2-astra:xhigh
     - claude-code:claude-fable-5-2:high
 
   # Optional: only use defaults for specific modes

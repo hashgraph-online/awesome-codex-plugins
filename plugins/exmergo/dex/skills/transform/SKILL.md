@@ -465,7 +465,10 @@ fetches the engine's dependencies from PyPI or your configured index.
    (`vendor`: a MetricFlow model, or a SLayer, Cube, Metric View or Semantic View
    file stored as a second plan whose id is `plan_id`), already planned (`mode: included`) or offered with
    the commands that adopt it (`mode: proposed`), with every gap it could not
-   fill named and every declared field it could not carry in `not_carried`. When the user
+   fill named and every declared field it could not carry in `not_carried`. Relay
+   `data.generated_tests` where present: the tests beyond the built-ins that the
+   declaration renders, each with its cadence tag, only where the project's
+   `declarations.render_tests` turns them on. Never set that switch unasked. When the user
    wants models that already exist declared, run `transform declare <models>`
    (none selects every model, 25 per plan). It proposes only what each model's
    YAML does not state and lists every model it skipped; relay `data.skipped`

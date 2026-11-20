@@ -106,6 +106,16 @@ class SlotGuard:
         self._tree_before: Optional[_base.PorcelainSnapshot] = None
         self._mode_before: Optional[Dict[str, str]] = None
 
+    @staticmethod
+    def gate(provider_name: str, project_root: Optional[str]) -> _base.SandboxVerdict:
+        """The sandbox gate :meth:`begin` asks, alone: no snapshot, no line.
+
+        Blocking (it may spawn the adapter's model-free sandbox probe). A dry
+        run's reviewer plan reads it (``review_lane.plan_reviewer_slots``), so
+        the rung it shows is the one a slot would be dispatched on.
+        """
+        return _base.sandbox_refusal(provider_name, project_root)
+
     async def begin(self) -> Union[Refused, Ready]:
         """The gate, then the before-snapshots; call it before the dispatch.
 

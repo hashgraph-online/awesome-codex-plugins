@@ -22,6 +22,7 @@ from typing import Any, Collection, Dict, List, Optional, Set, Tuple, Union
 
 from . import check_records as _check_records
 from . import known_checks as _known_checks
+from . import scoped_checks as _scoped_checks
 from .task_ledger import COMPLETED_MANUAL_REASON
 from .text_clip import plain_line
 from .provider_registry import get_verify_command
@@ -395,13 +396,21 @@ def verification_line(result: Any) -> str:
     record = getattr(result, "verification", None)
     if not isinstance(record, dict):
         unverified = getattr(result, "unverified", None)
+        if isinstance(unverified, str) and unverified.startswith(_scoped_checks.OWED_LEAD):
+            # Configured, deferred by scoped batches and not run in full yet
+            # (docs/development/checks.md#scoped-batch-checks).
+            return f"not run. {unverified}"
         return "not configured (`driver.verify_command` is unset)" + (
             f". {unverified}" if unverified else ""
         )
     verdict = "pass" if record.get("exit_code") == 0 else (
         f"FAIL (exit {record.get('exit_code')})"
     )
+    scoped = record.get("scoped_batches")
     return (
         f"`{record.get('command', '')}` — {verdict}, "
         f"{record.get('duration_seconds')}s"
+    ) + (
+        f" ({_scoped_checks.scoped_note(scoped, record.get('scoped_outcomes'))})"
+        if isinstance(scoped, list) else ""
     )

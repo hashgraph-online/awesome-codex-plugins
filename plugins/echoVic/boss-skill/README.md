@@ -10,7 +10,7 @@
 
 > Part of the AtomGit G-Star Incubation Program. GitHub is the canonical repository; AtomGit is an automatically synchronized mirror. Please open issues and pull requests on [GitHub](https://github.com/echoVic/boss-skill).
 
-**Boss is an expert-squad workflow for coding agents.** It turns one agent into a structured engineering team: PM, Architect, UI Designer, Tech Lead, Scrum Master, Frontend, Backend, QA and DevOps. Unlike prompt-only agent teams, Boss enforces a hard quality contract per role, produces replayable artifacts and chains the stages automatically — start anywhere and it runs the rest until you say stop.
+**Boss is an expert-squad workflow for coding agents.** It turns one agent into a structured engineering team: PM, Architect, UI Designer, Tech Lead, Scrum Master, Frontend, Backend, QA and DevOps. Each role works to a hard quality contract and writes its result to disk, and an independent verifier checks the contract instead of the author. Run one role on the code you already have, such as a review of the current branch, or the whole pipeline from an idea to a pull request.
 
 Boss works with Claude Code, Codex, OpenClaw, Antigravity, Hermes and DeepSeek Harness.
 
@@ -26,29 +26,32 @@ Restart DeepSeek Harness, create a session and pick **Boss Expert Squad**.
 
 ## Why Boss
 
-- **Hard quality contracts**: each role has a non-negotiable requirements table (a PRD needs Given-When-Then scenarios, an architecture must compare two options, QA must record verified or honestly-unverified evidence). A failed contract blocks the next stage unless you override it.
+- **Useful on existing code**: `/boss:review` reviews the current branch's diff, `/boss:qa` tests it and `/boss:ship` opens the pull request. Each command does its one stage and stops.
+- **Hard quality contracts**: each role has a non-negotiable requirements table (a PRD needs Given-When-Then scenarios, an architecture must compare two options, QA must record the command and exit code behind every claim).
+- **The author does not grade its own work**: a script checks what a script can decide, then a separate verifier agent judges the rest and quotes its evidence. A failed contract blocks the next stage unless you waive it.
 - **Artifact-driven**: every stage writes a real file under `.boss/<feature>/`; progress is judged by what is on disk, not by what the agent claims.
-- **Continuation chain**: start at any stage and Boss auto-runs every downstream stage until `ship`.
 - **TDD by default**: development stages write a failing test first, watch it go RED, then make it GREEN with the minimum code.
-- **Local by default**: no telemetry and no remote proxy; the only network surface is an opt-in loopback preview server on `127.0.0.1`.
+- **Local by default**: no telemetry and no remote proxy. Boss pushes, opens a pull request or deploys only when you run `ship` or say yes.
 
 ## Expert squad commands
 
-Each slash command is an entry point that auto-runs the downstream stages:
+Each command runs one stage, verifies it and stops, naming the next command:
 
-| Command           | Starts at          | Runs through          |
-| ----------------- | ------------------ | --------------------- |
-| `/boss`           | PM                 | the full chain → ship |
-| `/boss:pm`        | PM                 | Architect → … → Ship  |
-| `/boss:architect` | Architect          | UI → … → Ship         |
-| `/boss:ui`        | UI Designer        | Review → … → Ship     |
-| `/boss:review`    | Tech Lead          | Tasks → … → Ship      |
-| `/boss:tasks`     | Scrum Master       | Dev → QA → Ship       |
-| `/boss:dev`       | Frontend / Backend | QA → Ship             |
-| `/boss:qa`        | QA                 | Ship                  |
-| `/boss:ship`      | DevOps             | ends the chain        |
+| Command           | Role               | Writes                                                         |
+| ----------------- | ------------------ | -------------------------------------------------------------- |
+| `/boss:pm`        | PM                 | `prd.md`                                                       |
+| `/boss:architect` | Architect          | `architecture.md`                                              |
+| `/boss:ui`        | UI Designer        | `ui-spec.md`, `ui-design.json`                                 |
+| `/boss:review`    | Tech Lead          | `code-review.md` for a diff, or `tech-review.md` and `plan.md` |
+| `/boss:tasks`     | Scrum Master       | `tasks.md`                                                     |
+| `/boss:dev`       | Frontend / Backend | code and tests                                                 |
+| `/boss:qa`        | QA                 | `qa-report.md`                                                 |
+| `/boss:ship`      | DevOps             | a pull request, or a deployment with `--deploy`                |
+| `/boss:verify`    | Verifier           | `verification.md` for the artifacts that already exist         |
 
-The full chain is `pm → architect → ui → review → tasks → dev → qa → ship`. Stop it by saying "stop", "only do this step", or passing `--stop-after <stage>`.
+Add `--continue` to keep going down the chain, or `--stop-after <stage>` to stop at a later stage. The full chain is `pm → architect → ui → review → tasks → dev → qa → ship`; run all of it with `/boss:boss <request>` in Claude Code, or by asking Boss to build something end to end.
+
+In Claude Code these are real slash commands. On other agents, invoke the Boss skill and name the stage, for example "use Boss to review this branch".
 
 ## Quick start
 
@@ -69,17 +72,19 @@ npx skills add echoVic/boss-skill
 dsh plugin --profile desktop add dsh-boss-mode
 ```
 
-The cheapest first run is a read-only review against existing code: `/boss:review` writes `tech-review.md` and `plan.md` and touches nothing else. For a full pipeline:
+The cheapest first run is a read-only review of the branch you are on: `/boss:review` writes `.boss/<branch>/code-review.md` and changes no source file. For the full pipeline:
 
 ```text
-/boss Build a local personal todo app --skip-ui
+/boss:boss Build a local personal todo app --skip-ui
 ```
 
 `--skip-ui` skips UI design for API/CLI projects, and `--quick` skips routine clarification prompts.
 
-Artifacts live under `.boss/<feature>/`: `prd.md`, `architecture.md`, `ui-spec.md`, `ui-design.json`, `tech-review.md`, `plan.md`, `tasks.md`, `qa-report.md` and `deploy-report.md`. Each one starts with a summary so downstream agents read the conclusion first.
+Artifacts live under `.boss/<feature>/`: `prd.md`, `architecture.md`, `ui-spec.md`, `ui-design.json`, `tech-review.md`, `plan.md`, `code-review.md`, `tasks.md`, `qa-report.md`, `deploy-report.md` and `verification.md`. Each one starts with a summary so downstream agents read the conclusion first. They are written in the language of your request; `--lang <code>` overrides it.
 
 ## Workflow
+
+The full pipeline, with each stage verified before the next one starts:
 
 ```text
 request → clarify (unless --quick)
@@ -90,12 +95,12 @@ request → clarify (unless --quick)
   → Scrum Master: tasks.md
   → Frontend / Backend: TDD implementation
   → QA: qa-report.md
-  → DevOps: deploy-report.md
+  → DevOps: pull request or deployment, deploy-report.md
 ```
 
 ## Quality gates
 
-Beyond the per-role contracts, real commands decide each gate and the verdict is recorded in the stage artifact:
+Each stage's contract is checked twice: `skill/scripts/check-artifacts.mjs` applies the rules a script can decide, and the verifier agent judges the rest. Beyond the contracts, real commands decide each gate and the verdict is recorded in the stage artifact:
 
 | Gate             | Stage                   | Checks                                                                      |
 | ---------------- | ----------------------- | --------------------------------------------------------------------------- |
@@ -107,16 +112,19 @@ If you don't need a traceable `.boss/` folder, you probably don't need the full 
 
 ## Security and privacy
 
-Boss is local-first and makes no outbound requests by default. Release provenance lives in `.agents/plugins/provenance.json` and pins the repository URL, source commit, publisher and manifest digests; verify it with `npm run provenance:verify`. The full data and network boundary is in [PRIVACY.md](./PRIVACY.md).
+Boss is local-first and makes no outbound requests by default; `ship` pushes or deploys only when you run it or confirm it. Release provenance lives in `.agents/plugins/provenance.json` and pins the repository URL, source commit, publisher and manifest digests; verify it with `npm run provenance:verify`. The full data and network boundary is in [PRIVACY.md](./PRIVACY.md).
 
 ## Evals
 
-Captured transcripts are scored without starting a real LLM:
+Three layers check Boss itself:
 
 ```bash
-npm run evals
-npm run evals:release   # adds release-evidence and pipeline-compliance checks
+npm run test:install-smoke   # loads the repo through the skills CLI and `claude plugin validate`
+npm run evals                # scores captured transcripts; no model is called
+npm run evals:agent          # runs evals/ against a real Claude Code agent (uses API credit)
 ```
+
+`npm run evals:agent` wraps [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals). Its cases check that a small edit does not trigger Boss, that a stage stops when it is done, that a review edits no source file, and that verification reports a broken contract. The same suite runs weekly in `.github/workflows/skill-behavior.yml` once an `ANTHROPIC_API_KEY` secret is set.
 
 ## Development
 
@@ -130,7 +138,7 @@ npm run typecheck
 npm test
 ```
 
-Other useful scripts: `npm run test:skills` (skill behaviour only), `npm run evals`, `npm run lint` (Biome). Releases use `npm run release -- patch|minor|major|<version>`; the script checks for a clean worktree, runs typecheck, lint and tests, then syncs versions, commits, tags and pushes. See [CONTRIBUTING.md](./CONTRIBUTING.md) and [docs/dsh-release.md](./docs/dsh-release.md).
+Other useful scripts: `npm run test:skills` (transcript parsing), `npm run test:contracts` (the artifact checker), `npm run lint` (Biome). Releases use `npm run release -- patch|minor|major|<version>`; the script checks for a clean worktree, runs typecheck, lint and tests, then syncs versions, commits, tags and pushes. See [CONTRIBUTING.md](./CONTRIBUTING.md) and [docs/dsh-release.md](./docs/dsh-release.md).
 
 ## Design
 

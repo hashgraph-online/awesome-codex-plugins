@@ -20,7 +20,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from . import cli_common
 from . import host_capabilities as caps
 from . import structured_output
-from .llm_client import provider_dispatch_context
+from .llm_client import preview_dispatch_context
 from .provider_registry import (
     get_provider,
     parse_model_spec,
@@ -218,19 +218,20 @@ def _preview_argv(
 
     A preview whose argv differs from the real argv is worth less than its own
     output implies, so this is deliberately :func:`_spawn` / :func:`_spawn_child`
-    minus the ``Popen``: the same two context managers, in the same order, around
-    the same adapter call.
+    minus the ``Popen``: the dispatch context's argv half and the same schema
+    sidecar, in the same order, around the same adapter call.
 
-    * **The dispatch context first** (M4/§2.3). An adapter that contains its own
-      config layering renders a flag and an env redirect that only mean anything
-      together — opencode's ``--pure`` pairs with its ``XDG_CONFIG_HOME``
-      redirect and neither is emitted outside an active context — so rendering
-      here without entering it would preview an argv no dispatch ever runs. The
-      ``with`` is also the ``finally`` half of that lifecycle: the context is
-      refcounted and its shared temp directory is removed when the last user
-      leaves, so a preview cleans up exactly as a dispatch does. A refusal comes
-      back as a *reason*, not an argv — the same refusal the real spawn would
-      have taken on its spawn rung, minus the child.
+    * **The dispatch context's argv half first**
+      (``llm_client.preview_dispatch_context``). An adapter that contains its
+      own config layering renders a flag that only means anything beside its
+      env redirect — opencode's ``--pure`` pairs with its ``XDG_CONFIG_HOME``
+      redirect and is emitted only inside a context — so rendering here with no
+      context would preview an argv no dispatch ever runs. The preview half
+      renders that flag and makes nothing: no config home, no codex trust
+      bookkeeping (whose close-out would rewrite ``$CODEX_HOME/config.toml``),
+      since a dry run changes nothing of the user's. A refusal comes back as a *reason*, not
+      an argv — the same refusal the real spawn would have taken on its spawn
+      rung, minus the child.
     * **The sidecar second** (§4.2.1), for the adapters whose structured-output
       transport is a file: codex refuses a schema whose file is unreadable
       *before* it returns any argv, so a preview that passed the unmaterialized
@@ -270,10 +271,7 @@ def _preview_argv(
             argv = provider.apply_sandbox_fallback(argv, profile, rung)
         return argv
 
-    with provider_dispatch_context(
-        provider, model, profile, anchor=anchor,
-        runner_version=_dispatch_spawn._preflight_version(provider),
-    ) as dispatch:
+    with preview_dispatch_context(provider, model, profile, anchor=anchor) as dispatch:
         if dispatch.refusal:
             return None, dispatch.refusal
         if schema is not None and getattr(

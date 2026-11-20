@@ -645,6 +645,28 @@ def prepare_consolidation_tasks(
         )
 
 
+def preview_consolidation_tasks(
+    groups: List[Dict[str, Any]],
+    section_groups: Dict[str, List[int]],
+    phase_dir: str,
+    plan_file: str,
+    prompt_budget: Optional[PromptBudget] = None,
+) -> Dict[str, Any]:
+    """The document :func:`prepare_consolidation_tasks` writes, built and never written.
+
+    For ``--consolidate --dry-run-subagents``, which writes nothing but its
+    dry-run record: no ``consolidation_tasks.json``, no prompt sidecars, no
+    host index, and the phase dir is not created. The batches are the ones a
+    real run materializes, prompts included, and each keeps the
+    ``prompt_path`` it would get; nothing is at that path
+    (docs/development/workflows.md#a-dry-run-previews-one-step).
+    """
+    return _consolidation_document(
+        groups, section_groups, phase_dir, plan_file, prompt_budget,
+        write_sidecars=False,
+    )
+
+
 def _prepare_consolidation_tasks(
     groups: List[Dict[str, Any]],
     section_groups: Dict[str, List[int]],
@@ -654,12 +676,52 @@ def _prepare_consolidation_tasks(
 ) -> Dict[str, Any]:
     """:func:`prepare_consolidation_tasks`, inside the phase's views lock."""
 
-    phase_path = Path(phase_dir)
-    tasks_path = phase_path / "consolidation_tasks.json"
+    tasks_path = Path(phase_dir) / "consolidation_tasks.json"
     # The host index describes the task file this call replaces: it goes before
     # a sidecar changes, and is rebuilt from the file once that is written
     # (docs/development/delegation.md#the-host-index).
     invalidate_host_index(str(tasks_path))
+
+    tasks_metadata = _consolidation_document(
+        groups, section_groups, phase_dir, plan_file, prompt_budget,
+        write_sidecars=True,
+    )
+
+    # Write consolidation_tasks.json
+    tasks_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(tasks_path, "w", encoding="utf-8") as f:
+        json.dump(tasks_metadata, f, indent=2)
+    refresh_host_index(str(tasks_path))
+
+    logger.info(
+        "Prepared %d consolidation batches across %d sections "
+        "(%d singleton sections)",
+        len(tasks_metadata["batches"]),
+        len(section_groups) - len(tasks_metadata["singleton_sections"]),
+        len(tasks_metadata["singleton_sections"]),
+    )
+
+    return tasks_metadata
+
+
+def _consolidation_document(
+    groups: List[Dict[str, Any]],
+    section_groups: Dict[str, List[int]],
+    phase_dir: str,
+    plan_file: str,
+    prompt_budget: Optional[PromptBudget],
+    *,
+    write_sidecars: bool,
+) -> Dict[str, Any]:
+    """The consolidation task document: the batches, then the envelope.
+
+    *write_sidecars* writes each batch's prompt file before the envelope is
+    built (validation's sidecar rule: on a failed write every batch loses its
+    ``prompt_path``, and the envelope is built from what is left); a preview
+    passes ``False`` and writes nothing.
+    """
+
+    phase_path = Path(phase_dir)
 
     # Pre-compute group_ids for all groups
     group_ids = consolidation_group_ids(groups)
@@ -748,13 +810,14 @@ def _prepare_consolidation_tasks(
 
     # The prompt files a native host hands its subagents, written beside the
     # batches (validation's sidecar rule: all or none, `prompt` stays the source).
-    validation.write_prompt_sidecars(
-        batches, str(phase_path),
-        stale_glob=CONSOLIDATION_PROMPT_TEMPLATE.format(index="*"),
-    )
+    if write_sidecars:
+        validation.write_prompt_sidecars(
+            batches, str(phase_path),
+            stale_glob=CONSOLIDATION_PROMPT_TEMPLATE.format(index="*"),
+        )
 
     # Build the tasks metadata
-    tasks_metadata: Dict[str, Any] = make_task_file(
+    return make_task_file(
         kind="consolidation",
         tasks=batches,
         inputs=inputs,
@@ -770,22 +833,6 @@ def _prepare_consolidation_tasks(
             "replay_flags": cli_common.current_replay_flags(mode="review-plan"),
         },
     )
-
-    # Write consolidation_tasks.json
-    tasks_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(tasks_path, "w", encoding="utf-8") as f:
-        json.dump(tasks_metadata, f, indent=2)
-    refresh_host_index(str(tasks_path))
-
-    logger.info(
-        "Prepared %d consolidation batches across %d sections "
-        "(%d singleton sections)",
-        len(batches),
-        len(section_groups) - len(singleton_sections),
-        len(singleton_sections),
-    )
-
-    return tasks_metadata
 
 
 # ---------------------------------------------------------------------------

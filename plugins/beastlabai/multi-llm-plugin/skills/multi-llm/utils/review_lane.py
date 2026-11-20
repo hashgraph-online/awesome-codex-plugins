@@ -11,6 +11,8 @@ the other (docs/development/review-results.md, "The shared review lane"):
   selection and the opening checkpoint of its round, and
   :func:`check_cascade_stage`, the pre-flight of a cascade stage's hidden
   ``--cascade-stage-file`` (review-plan and review-code);
+* :func:`preview_fanout`, the reviewer plan a ``--dry-run-subagents`` fan-out
+  prints in place of calling its reviewers;
 * :class:`SlotResult`, one model slot's outcome, the shape :func:`run_slot`
   returns and both fan-outs close over;
 * :func:`close_fanout`, what follows a fan-out up to grouping: each slot's
@@ -56,11 +58,13 @@ from . import cascade_provenance as _cascade_provenance
 from .atomic_io import read_back_text
 from . import detach as _detach
 from . import held_folder as _held_folder
+from . import host_capabilities
 from . import interactive as _interactive
 from . import result_files as _result_files
 from . import review_round as _review_round
 from . import run_record as _run_record
 from . import run_registry as _run_registry
+from . import runner_selection
 from . import scope_policy as _sp
 from . import scope_round as _scope_round
 from . import status_file as _status_file
@@ -69,7 +73,8 @@ from . import unattended as _unattended
 from .json_extractor import generate_output_path
 from .progress_tracker import DEADLINE_ERROR, PhaseProgress
 from .provider_outcome import SALVAGE_TEXT_KEY
-from .llm_client import SALVAGE_FAILURE_KEY
+from .providers.base import SANDBOX_RUNG_UNSANDBOXED
+from .llm_client import SALVAGE_FAILURE_KEY, preview_dispatch, resolve_dispatch_target
 from .schema_validator import drop_non_record_entries
 from .state_manager import CURRENT_FORMAT_VERSION, load_groups_payload, save_groups_payload
 from .subagent_tasks import TaskFileError
@@ -512,6 +517,206 @@ def select_review_models(args: Any, *, mode: str, anchor: str) -> Tuple[List[str
     except _interactive.ModelSelectionError as e:
         sys.exit(e.exit_code)
     return model_specs, unattended
+
+
+# ---------------------------------------------------------------------------
+# A dry run's reviewer plan (--dry-run-subagents on a fan-out)
+# ---------------------------------------------------------------------------
+
+#: The prefix of every line a dry run prints, on the read half, the write
+#: half and the fan-out alike.
+DRY_RUN_PREFIX = "[dry-run-subagents]"
+
+#: What a reviewer plan's argv shows in place of the prompt: the real one is
+#: rendered per slot at dispatch time, from the plan or the diff.
+REVIEWER_PROMPT_PLACEHOLDER = "<reviewer prompt>"
+
+#: The ``kind`` a fan-out's ``subagent_dry_run.json`` records: its tasks are
+#: the reviewers, never materialized subagent tasks.
+REVIEWER_PLAN_KIND = "review_fanout"
+
+
+def fanout_dry_run(args: Any) -> bool:
+    """Whether this fan-out only previews its reviewers (``--dry-run-subagents``).
+
+    A dry run calls no model: the reviewers are model turns, and the flag
+    promises none (docs/development/review-results.md#a-dry-runs-reviewer-plan).
+    """
+    return bool(getattr(args, "dry_run_subagents", False))
+
+
+def _sandbox_words(verdict: Any) -> str:
+    """The slot's sandbox in words, never a ``[SANDBOX_*]`` marker: those name
+    a slot that ran, and the closing summaries count them."""
+
+    if verdict.refused:
+        return f"would be refused before dispatch: {verdict.reason}"
+    if not verdict.rung:
+        return "the adapter's own (no fallback rung)"
+    if verdict.rung == SANDBOX_RUNG_UNSANDBOXED:
+        return f"fallback rung `{verdict.rung}`: no sandbox at all (uncontained)"
+    if verdict.incidental:
+        return f"fallback rung `{verdict.rung}`: the plugin's own Landlock jail"
+    return f"fallback rung `{verdict.rung}` (contained)"
+
+
+def plan_reviewer_slots(
+    model_specs: Sequence[str],
+    *,
+    steps: "SlotSteps",
+    anchor: str,
+    project_root: Optional[str],
+    timeout: Optional[int],
+) -> List[Dict[str, Any]]:
+    """Each reviewer slot as the fan-out would dispatch it, nothing spawned but probes.
+
+    Per spec, the slot's own steps in their order: the provider and model
+    (``llm_client.resolve_dispatch_target``, the spawn's head), the slot
+    guard's sandbox gate (``SlotGuard.gate``, from the lane's *steps*, which
+    may run the adapter's model-free sandbox self-test, as a subagent dry run's
+    preflight does), then the command (``llm_client.preview_dispatch``, the
+    spawn's own build with a placeholder prompt, on the rung the gate chose).
+    *timeout* is the run's ``--timeout``, ``None`` for the provider's own.
+    Returns one record per slot, in roster order, for ``subagent_dry_run.json``.
+    """
+    slots: List[Dict[str, Any]] = []
+    for spec in model_specs:
+        target = resolve_dispatch_target(spec, timeout=timeout, anchor=anchor)
+        # An unknown or missing CLI is refused before the gate, so it costs no probe.
+        verdict = (
+            None if isinstance(target, dict)
+            else steps.slot_guard.gate(target.provider_name, project_root)
+        )
+        rung = (
+            steps.sandbox_fallback_kwargs(verdict)
+            if verdict is not None and not verdict.refused else {}
+        )
+        preview = preview_dispatch(
+            REVIEWER_PROMPT_PLACEHOLDER, spec, timeout=timeout, cwd=project_root,
+            anchor=anchor, **rung,
+        )
+        if verdict is not None and verdict.refused:
+            preview = replace(preview, refusal=verdict.reason)
+        record: Dict[str, Any] = {
+            "spec": spec,
+            "provider": preview.provider_name,
+            "model": preview.base_model,
+            "effort": preview.effort,
+            "timeout_s": preview.timeout,
+            "transport": preview.transport,
+            "executable": preview.executable,
+            "sandbox": None if verdict is None else {
+                "verdict": verdict.verdict, "rung": verdict.rung,
+                "incidental": bool(verdict.incidental),
+                "words": _sandbox_words(verdict),
+            },
+            "argv": preview.argv,
+            "would_dispatch": preview.refusal is None,
+        }
+        if preview.refusal is not None:
+            record["reason"] = preview.refusal
+        slots.append(record)
+    return slots
+
+
+def _subagent_runner(anchor: str) -> Dict[str, str]:
+    """The runner the round's subagent tasks would take under
+    ``--exec-subagents``, and the key and layer that supplied it: the
+    executor's own resolution (``runner_selection.resolve_task_runner_source``)
+    for a ``full``-tier task that names no model, which is what every
+    validation and salvage task is."""
+
+    try:
+        spec, key = runner_selection.resolve_task_runner_source(
+            {"task_id": "", "model_hint": "auto", "capability_tier": "full"},
+            anchor=anchor,
+        )
+    except Exception as exc:  # noqa: BLE001 - a preview reports, never raises
+        return {"spec": "", "key": f"unresolved: {exc}"}
+    return {"spec": spec, "key": key}
+
+
+def preview_fanout(
+    args: Any,
+    model_specs: Sequence[str],
+    *,
+    steps: "SlotSteps",
+    mode: str,
+    phase_dir: str,
+    anchor: str,
+    project_root: Optional[str],
+) -> int:
+    """``--dry-run-subagents`` on a review fan-out: print the reviewer plan and stop.
+
+    Called in the foreground, after model selection and the read-only
+    pre-flight and before the detach boundary, so a ``--detach`` launch
+    previews too and nothing past the boundary runs. It prints each slot
+    (:func:`plan_reviewer_slots`), the runner the round's subagent tasks would
+    take, and what ran and what did not; writes the same as
+    ``{phase}/subagent_dry_run.json`` (kind :data:`REVIEWER_PLAN_KIND`); and
+    returns exit 0. *steps* is the lane's :class:`SlotSteps` (its slot's
+    gate and rung kwargs). No reviewer runs, so there are no findings: the
+    validation tasks a real round builds from them cannot be previewed here
+    (docs/development/review-results.md#a-dry-runs-reviewer-plan).
+    """
+
+    host_id = host_capabilities.resolve_host_id(explicit=getattr(args, "host", None))
+    slots = plan_reviewer_slots(
+        model_specs, steps=steps, anchor=anchor, project_root=project_root,
+        timeout=getattr(args, "timeout", None) or None,
+    )
+    runner = _subagent_runner(anchor)
+    print("")
+    print(f"{DRY_RUN_PREFIX} {mode}: reviewer plan, {len(slots)} slot(s); host: {host_id}; "
+          f"cwd: {project_root or os.getcwd()}")
+    for index, slot in enumerate(slots, 1):
+        print(f"  {index}. {slot['spec']}")
+        print(f"     provider: {slot['provider']}  model: {slot['model']}  "
+              f"effort: {slot['effort'] or '(none: the CLI default)'}"
+              + (f"  timeout: {slot['timeout_s']}s" if slot["timeout_s"] else ""))
+        if slot["executable"]:
+            print(f"     runner: {slot['executable']} (the provider CLI this process "
+                  f"spawns, `generate` profile; not a host subagent)")
+        if slot["sandbox"] is not None:
+            print(f"     sandbox: {slot['sandbox']['words']}")
+        if slot["would_dispatch"]:
+            print(f"     argv: {' '.join(slot['argv'] or [])}")
+        else:
+            print(f"     would not dispatch: {slot.get('reason')}")
+    print(f"{DRY_RUN_PREFIX} subagent stages (validation, salvage) run under "
+          f"--exec-subagents on {runner['spec'] or '?'} ({runner['key']}); "
+          f"without it, on the host's own subagents.")
+    print(f"{DRY_RUN_PREFIX} nothing ran: no reviewer was called and nothing was "
+          f"recorded. A real run calls each slot above (a resumed round skips a "
+          f"slot whose result it already holds); its validation tasks are built "
+          f"from their findings, so they cannot be previewed before a review "
+          f"exists (after a review that left validation pending, "
+          f"`--reaggregate --dry-run-subagents` previews them).")
+
+    path = os.path.join(phase_dir, "subagent_dry_run.json")
+    try:
+        os.makedirs(phase_dir, exist_ok=True)
+        failure_capture._atomic_write_json(path, {
+            "dry_run_version": 1,
+            "kind": REVIEWER_PLAN_KIND,
+            "phase": mode,
+            "host": host_id,
+            "cwd": project_root,
+            "reviewers": slots,
+            "subagent_runner": runner,
+            "tasks": [],
+        })
+    except OSError as exc:  # the printed plan stands without its copy
+        print(f"Warning: could not write {path}: {exc}", file=sys.stderr)
+    else:
+        print(f"{DRY_RUN_PREFIX} {path}")
+        cli_common.record_artifact(path)
+    cli_common.record_notice(
+        f"Dry run: {len(slots)} reviewer slot(s) previewed; no model was called "
+        f"and nothing was recorded."
+    )
+    cli_common.record_next(None)
+    return 0
 
 
 def _cascade_stage_path(args: Any) -> Optional[str]:

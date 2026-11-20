@@ -1,8 +1,8 @@
 ---
 name: osmo-book-by-phone
 description: "Book by phone with AI: OsmO's AI calls restaurants, salons, clinics, dentists, garages and other local businesses to make a reservation or book an appointment for you, or to reschedule or cancel one. Use when the user wants a table booked, an appointment made or moved, or a quick question asked by phone (opening hours, prices, stock, an order). OsmO finds the business's number on Google Maps, previews the call, calls only after the user says yes, and brings back whether it was booked, with a summary, transcript and recording link. Up to 5 places can be called at once to find a free slot. 50 free credits (US, Canada, UK, Australia) call businesses; scheduling a call for later needs an OsmO app plan."
-version: 1.0.0
-metadata: {"openclaw":{"homepage":"https://getosmo.app","emoji":"📅"}}
+version: 1.0.1
+metadata: {"homepage":"https://getosmo.app","emoji":"📅"}
 ---
 
 # OsmO Book by Phone

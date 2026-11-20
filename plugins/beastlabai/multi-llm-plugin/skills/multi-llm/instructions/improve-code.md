@@ -144,6 +144,14 @@ Read its exit code here; section 3's rule covers only the phase steps:
   `[CASCADE_CONFLICT]` the flag, both values and the two ways out. There is no
   `[IMPROVE_RERUN]` to give: none has been printed (section 3), because nothing ran.
 
+**`--dry-run-subagents` in the flags lines makes the run a preview.** Section 1 then
+plans one `run` step, and every step after it reads `skip (dry run: previews step <i>
+only)`. Run that one step as its core words it, with its flags line as printed: the
+phase previews what it would dispatch, calls no model and records nothing (a review
+returns in its one foreground call with its reviewer plan). Then report what it
+printed and stop: no later step runs, and section 3's done check and section 4's file
+reads do not apply.
+
 ### 2. Run each `run` step, in order
 
 For step 1 and step 2, when its `[IMPROVE_STEP]` line reads `run`: load that phase's
@@ -186,7 +194,7 @@ While you run it:
 | Phase core | Run | Skip |
 | --- | --- | --- |
 | `review-code.md` | steps 1–7: model selection from the flags line, the base ref and scope as the flags line gives them, Resume Detection (not on `[IMPROVE_STEP_FRESH] 1`), the detached launch, the roster call and the poll loop, salvage and its reaggregate, validation, `--reaggregate` and its `util metrics finish` | step 8 and the *Post-Fix Workflow*, which run only under `--apply-fixes`, a flag no flags line carries; that workflow's step 6 is the core's report, which section 4 gives instead |
-| `apply-code-fixes.md` | steps 1–10: the orchestrator with the flags line, the decision summary, the batch loop, the judge's decisions, step 7's verification, step 8's summary report at `{plan}/apply-fixes/summary.md` with its `util metrics report` and `util report regenerate-decisions` calls, step 9's `## Code Fixes Applied` section in the plan, and step 10's `--mark-completed` once the loop reached its end | the *Then report to the user* paragraph after step 10 |
+| `apply-code-fixes.md` | steps 1–10: the orchestrator with the flags line, the decision summary, the batch loop, the judge's decisions, step 7's verification, step 8's summary report at `{plan}/apply-fixes/summary.md` with its `util metrics report` and `util report regenerate-decisions` calls, step 9's `## Code Fixes Applied` section in the plan, and step 10's `--mark-completed` once the loop reached its end (after a `[SCOPED_CHECK_SETTLED]` line, neither step 7 nor step 10: that core says why) | the *Then report to the user* paragraph after step 10 |
 
 On a host that adds `--exec-subagents` the apply finishes in its one orchestrator
 call, run detached as that core's step 2 says, writing `summary.md` and the decision
@@ -256,7 +264,9 @@ stage line). Run the cascade like this:
 A step is done when the last call of its phase's own mode exits `0` or `2`: the
 review's `--reaggregate` (or, with no validation owed, the run its poll loop ended
 on), and the apply's `--mark-completed` (or, under `--exec-subagents`, the `status` poll
-that finds its detached orchestrator call finished), never a `util` call after it.
+that finds its detached orchestrator call finished), never a `util` call after it. After a
+`[SCOPED_CHECK_SETTLED]` line there is no `--mark-completed`: the apply's last call is the
+orchestrator call that printed it.
 
 For steps 1 and 2, on exit `1` or `3`, or when the phase core stopped under its own
 rules (row 14):

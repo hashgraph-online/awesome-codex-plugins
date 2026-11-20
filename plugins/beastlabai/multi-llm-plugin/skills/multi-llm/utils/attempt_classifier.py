@@ -85,6 +85,35 @@ def _classify_pre_parse(capture: _dispatch_spawn._Capture) -> Tuple[str, str]:
                 line += (f"; it could not be confirmed stopped (kill verdict {verdict}, "
                          f"pid {pid}): {reason}, so it may still be running")
             return STATUS_RUNNER_ERROR, line
+        idle = getattr(capture, "idle_stop", None)
+        if idle and getattr(capture, "idle_turn_finished", None) is False:
+            # A confirmed stop of a runner the adapter did not read as done
+            # speaking (`LLMProvider.turn_finished`): its last word a tool
+            # call, a lone opening message, something after its reply (a
+            # `reasoning` item, an `error`, a `turn.failed`), no event at
+            # all, or an output the adapter could not read to its end (cut
+            # at the capture's cap, no hook, a raise). Its edits may be
+            # unfinished, so it is the timeout it would have been at the
+            # deadline, only sooner. Nothing it printed is read or re-asked,
+            # and a write batch that moved bytes is a partial application.
+            # The words claim only what holds for every one of those
+            # (docs/development/delegation.md#an-idle-writer).
+            return STATUS_TIMEOUT, (
+                f"{idle}, in mid-turn: no completed turn or closing reply was "
+                f"found in its output, so it was stopped as at its per-task "
+                f"timeout and nothing it printed was read"
+            )
+        if idle:
+            # An idle stop reads as an exit only once confirmed
+            # (`dispatch_spawn`); here it was not, so nothing it printed is
+            # read and nothing is re-asked while it may still write. Not
+            # rung 2: it did not run out of time
+            # (docs/development/delegation.md#an-idle-writer).
+            return STATUS_RUNNER_ERROR, (
+                f"{idle}, so it was stopped, but it could not be confirmed stopped "
+                f"(kill verdict {verdict}, pid {pid}): "
+                f"{reason or 'unconfirmed kill'}, so it may still be running"
+            )
         if reason is not None:
             return STATUS_TIMEOUT, (
                 f"the runner exceeded its per-task timeout and could not be "

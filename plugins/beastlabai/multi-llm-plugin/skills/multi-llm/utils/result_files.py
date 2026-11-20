@@ -720,6 +720,38 @@ def misnamed_result_note(model_spec: str, wrote: str, expected: str) -> str:
     )
 
 
+#: How many of a repaired answer's changes the note names one by one.
+_JSON_REPAIRS_NAMED = 5
+
+
+def json_repairs_note(model_spec: str, repairs: Sequence[str]) -> str:
+    """The one sentence a slot says when its answer was read after a
+    mechanical repair (``json_extractor.repair_document``), naming the
+    changes by line and column within the answer's document."""
+    shown = [plain_line(str(change)) for change in repairs[:_JSON_REPAIRS_NAMED]]
+    more = len(repairs) - len(shown)
+    listed = "; ".join(shown) + (f"; and {more} more" if more > 0 else "")
+    return (
+        f"{model_spec}'s answer was not valid JSON; read it after a mechanical "
+        f"repair ({len(repairs)} change{'' if len(repairs) == 1 else 's'}: {listed})"
+    )
+
+
+def report_json_repairs(
+    model_spec: str, repairs: Sequence[str], phase_dir: os.PathLike | str,
+) -> str:
+    """Say that a slot's answer was read after a mechanical JSON repair (both
+    review lanes, beside ``report_misnamed_result``): one ``[JSON_REPAIRED]``
+    line on stdout and the same sentence in ``.status.json``'s
+    ``result_notes`` (the report's ``**Result files:**`` line) and
+    ``progress.notes``, so a repaired answer is never read silently.
+    Returns the sentence."""
+    note = json_repairs_note(model_spec, repairs)
+    print(f"[JSON_REPAIRED] {note}")
+    append_result_note(phase_dir, note)
+    return note
+
+
 def set_aside_note(
     name: str, target: str, recorded_specs: Sequence[str],
     *, rename_failed: Optional[str] = None,

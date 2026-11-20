@@ -80,7 +80,8 @@ from .output_handler import (
     phase_dir_path,
 )
 from .state_manager import (
-    StateManager, _parse_completion_time, predates_review,
+    SCOPED_CHECK_PHASE, StateManager, _parse_completion_time, owed_scoped_check_in_state,
+    predates_review,
 )
 from . import commit_spelling
 from .commit_spelling import step_word
@@ -169,6 +170,35 @@ STEP_LOCK_RETRY_S = 0.025
 RUN = "run"
 SKIP = "skip"
 AFTER_REVIEW = "after-review"
+
+#: The prefix of every line a dry run prints (``review_lane.DRY_RUN_PREFIX``).
+DRY_RUN_PREFIX = "[dry-run-subagents]"
+
+
+def dry_run_preview(args: argparse.Namespace) -> bool:
+    """Whether this composite only previews (``--dry-run-subagents``).
+
+    A preview runs the first step that would run, with the flag, and no step
+    after it: each later step needs the real output of the one before
+    (docs/development/workflows.md#a-dry-run-previews-one-step).
+    """
+    return bool(getattr(args, "dry_run_subagents", False))
+
+
+def dry_run_skip_reason(index: str) -> str:
+    """The reason a step after a dry run's previewed step *index* reads."""
+    return f"dry run: previews step {index} only"
+
+
+def dry_run_cascade_note() -> str:
+    """What a dry run says in place of planning a cascade, which it never does:
+    planning a stage records it."""
+    return (
+        f"NOTE: {DRY_RUN_PREFIX} a cascade is not planned by a dry run, since "
+        f"planning a stage records it; this previews one plain round instead, and "
+        f"under --cascade each of its reviewers reviews alone, as one stage, in "
+        f"the order listed."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +410,8 @@ class Records:
         apply_word_at: That same record's stamp, as recorded.
         apply_predates_review: ``completion_predates(apply, review)``.
         apply_in_progress: ``apply_phase_in_progress``: progress of the review
-            on record, the inferred ``--resume``'s condition.
+            on record (an owed scoped check of that review included), the
+            inferred ``--resume``'s condition.
         requested_scope: The typed ``--files``/``--files-from`` scope, made
             repo-relative by the phase's own reader; ``None`` when no scope flag
             is typed, and for ``--files-from -``, which is never read here.
@@ -411,6 +442,11 @@ class Records:
         round_apply_policy: The policy the round's apply last ran under: its
             recorded ``apply_policy``, else its ``review_policy``; ``None``
             with no round record.
+        scoped_check_owed: The apply is apply-code-fixes and a full check its
+            scoped batches deferred is on record (``scoped_checks.owed``):
+            the apply runs to settle it, whatever its records say; with
+            ``--resume`` only when that debt is the review's on record now
+            (:attr:`apply_in_progress`).
     """
 
     mode: str
@@ -436,6 +472,7 @@ class Records:
     scope_deferrals: int = 0
     round_apply_policy: Optional[str] = None
     scope_blockers: int = 0
+    scoped_check_owed: bool = False
 
 
 def _header_changed(mode: str, document: Dict[str, Any]) -> bool:
@@ -613,6 +650,10 @@ def read_records(
         apply_in_progress=prereq.apply_phase_in_progress(state, apply_phase),
         recorded_scope=recorded_scope,
         header_changed=_header_changed(row.name, document),
+        scoped_check_owed=(
+            apply_phase == SCOPED_CHECK_PHASE
+            and owed_scoped_check_in_state(document) is not None
+        ),
         **_scope_policy_records(row.name, document, review_phase, apply_phase),
     )
 
@@ -690,7 +731,9 @@ def skip_reason(
 
     An apply runs when, in this order: its review runs (that review will be
     newer than any apply record, so neither leg reads ``state.json`` again
-    after step 1); it is started and not finished; it has neither record; or
+    after step 1); a full check its scoped batches deferred is owed
+    (:attr:`Records.scoped_check_owed`, docs/development/checks.md#scoped-batch-checks);
+    it is started and not finished; it has neither record; or
     every record of it predates the review; or a typed ``--scope-policy``
     releases the round's scope deferrals (:func:`releases_deferrals`).
     Otherwise it is passed over with the word of its newer record.
@@ -704,6 +747,8 @@ def skip_reason(
         return "completed"
     if step == apply:
         if skip_reason(mode, review, args, records) is None:
+            return None
+        if records.scoped_check_owed:
             return None
         if records.apply_started or records.apply_word is None:
             return None
@@ -1141,7 +1186,9 @@ def plan_steps(mode: str, args: argparse.Namespace, records: Records) -> List[St
     rewrites them. Under ``[ALREADY_COMPLETE]`` (every step passed over) there
     is no ``1b``. A cascade stage's namespace (``cascade_stage_file`` set)
     plans ``1b`` as ``skip (cascade)``: the per-round table is the cascade's
-    summary, and the pass can still be run by hand on the live review.
+    summary, and the pass can still be run by hand on the live review. Under
+    ``--dry-run-subagents`` every step after the first ``run`` one reads
+    ``skip (dry run: previews step <i> only)`` (:func:`_dry_run_plan`).
     """
     row = _row(mode)
     review, apply = row.sequence
@@ -1187,7 +1234,29 @@ def plan_steps(mode: str, args: argparse.Namespace, records: Records) -> List[St
             else:
                 plans.append(StepPlan(index, word, RUN,
                                       _apply_reason(mode, args, records), False, flags))
+    if dry_run_preview(args):
+        return _dry_run_plan(plans)
     return plans
+
+
+def _dry_run_plan(plans: List[StepPlan]) -> List[StepPlan]:
+    """*plans* with every step after the first ``run`` one passed over.
+
+    A dry run previews one step, the first that runs: each later step (the
+    consolidation pass after a review, the apply after its review) needs the
+    real output of the one before, which a preview does not produce.
+    """
+    first = next((plan for plan in plans if plan.decision == RUN), None)
+    if first is None:
+        return plans
+    at = plans.index(first)
+    return plans[:at + 1] + [
+        plan if plan.decision == SKIP else StepPlan(
+            plan.index, plan.step, SKIP, dry_run_skip_reason(first.index),
+            False, plan.flags,
+        )
+        for plan in plans[at + 1:]
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -2231,6 +2300,8 @@ class ImproveWorkflow(fwo.FullWorkflow):
             if outcome is not None:
                 return outcome
             self._checked = True
+        if dry_run_preview(self.args):
+            return self.run_preview()
         if takes_cascade(self.row.name):
             # Imported here: the cascade module imports this one (a load-time cycle).
             from . import improve_cascade
@@ -2243,6 +2314,66 @@ class ImproveWorkflow(fwo.FullWorkflow):
                 return self.run_cascade()
         self.announce()
         return super().run()
+
+    # -- the dry run ----------------------------------------------------------------
+    def run_preview(self) -> int:
+        """``--dry-run-subagents``: preview the first step that would run, then stop.
+
+        The step is :func:`plan_steps`' first ``run`` one, the plan ``util
+        improve-steps`` prints on the native leg, run in this process with its
+        own flags, ``--dry-run-subagents`` among them, so it previews as that
+        phase run alone does: a review prints its reviewer plan and calls no
+        model, an apply renders its batches. No later step runs, since each
+        needs the real output of the one before; a cascade is never planned,
+        since planning a stage records it. Nothing is recorded: no progress,
+        no scope-policy choice, no row-14 stop. Exit 0 once the step
+        previewed, or the step's own exit when it refused
+        (docs/development/workflows.md#a-dry-run-previews-one-step).
+        """
+        mode = self.row.name
+        print(f"{DRY_RUN_PREFIX} {mode}: preview only. No model is called and "
+              f"nothing is recorded: the first step that would run previews its "
+              f"own dispatches, and no later step runs.")
+        if takes_cascade(mode):
+            # Imported here: the cascade module imports this one (a load-time cycle).
+            from . import improve_cascade
+
+            try:
+                cascading = improve_cascade.applies(self.plan_path, mode, self.args)
+            except improve_cascade.CascadeRefusal as exc:
+                return improve_cascade.refusal_exit(exc)
+            if cascading:
+                print(dry_run_cascade_note())
+        self.announce()
+        plans = plan_steps(mode, self.planning_args(), self.records)
+        for plan in plans:
+            name = "consolidation" if plan.step == CONSOLIDATE else _step_word(mode, plan.step)
+            said = f" ({plan.reason})" if plan.reason else ""
+            print(f"  Step {plan.index}: {name} {plan.decision}{said}")
+        first = next((plan for plan in plans if plan.decision == RUN), None)
+        if first is None:  # pragma: no cover - preflight answers a finished run first
+            return self.already_complete()
+        # The consolidation pass is review-plan's `--consolidate`, which
+        # previews its batches without writing them
+        # (`review_plan_orchestrator.consolidation_preview`).
+        word = self.row.sequence[0] if first.step == CONSOLIDATE else first.step
+        name = "consolidation" if first.step == CONSOLIDATE else _step_word(mode, word)
+        print(f"\n=== Step {first.index}: {name} (preview) ===")
+        code = self.run_mode(word, self.step_argv(first.step))
+        if code not in (EXIT_OK, EXIT_NOTHING_TO_DO):
+            print(f"{DRY_RUN_PREFIX} {mode}: step {first.index}'s preview stopped "
+                  f"with exit {code}; its own output above says why. Nothing was "
+                  f"recorded.", file=sys.stderr)
+            return code
+        line = (f"{DRY_RUN_PREFIX} {mode}: previewed step {first.index} "
+                f"({name}); no later step was previewed or run, "
+                f"and nothing was recorded. Run the same command without "
+                f"--dry-run-subagents to run it for real.")
+        print(f"\n{line}")
+        add_notice(f"{mode} previewed step {first.index} ({name}) "
+                   f"only; no later step ran.")
+        record_next(None)
+        return EXIT_OK
 
     # -- the cascade --------------------------------------------------------------
     def run_cascade(self) -> int:
@@ -2602,6 +2733,11 @@ def entry_point(mode: str, argv: Optional[Sequence[str]] = None) -> int:
     workflow = ImproveWorkflow(
         args, mode, records=read.get("records"), checked=checked
     )
+
+    # A preview calls no model and records nothing, so it runs here and never
+    # detaches (`cli_common.FOREGROUND_PREVIEW_FLAGS`).
+    if dry_run_preview(args):
+        return workflow.run()
 
     # Imported here: `status` and `util next-command` import this module and need none of it.
     from .review_orchestrator_base import maybe_detach

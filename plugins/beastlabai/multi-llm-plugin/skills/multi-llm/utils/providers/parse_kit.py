@@ -4,8 +4,8 @@
 (docs/development/providers.md#reading-a-capture):
 
 * a success, ``{"success": True, "data": <the answer>}``, plus what the shared
-  extractor adds (``enclosing_syntax_error``, ``only_object``) or an adapter
-  adds (``raw`` carrying the answer text);
+  extractor adds (``enclosing_syntax_error``, ``repaired``, ``only_object``)
+  or an adapter adds (``raw`` carrying the answer text);
 * a failure, ``{"success": False, "error": <sentence>, "raw": <text>,
   "data": None}``, plus an adapter's own keys after those four
   (``incomplete``, ``error_code``, diagnostics).

@@ -758,9 +758,10 @@ def _write_result_notice(views: Sequence[Dict[str, Any]]) -> Optional[str]:
     """The write mirror's own notice parts over every view, or ``None``.
 
     A code batch whose own check failed after its edits
-    (``write_subagents.tasks[].batch_check_findings``) and the line saying
-    nothing ran the repository's tests (``write_subagents.unverified``) —
-    what the worker recorded on its own result line, which a detached caller
+    (``write_subagents.tasks[].batch_check_findings``), the line saying
+    nothing ran the repository's tests (``write_subagents.unverified``) and
+    the suppressions the batches added (``write_subagents.tasks[].suppressions``)
+    — what the worker recorded on its own result line, which a detached caller
     never sees. Read from the run's own mirror, so it describes that run.
     """
     return clip(join_clauses(_write_result_notice_parts(views)), 1200) or None
@@ -787,6 +788,15 @@ def _write_result_notice_parts(views: Sequence[Dict[str, Any]]) -> List[str]:
         unverified = mirror.get("unverified")
         if isinstance(unverified, str) and unverified and unverified not in parts:
             parts.append(unverified)
+        # The suppressions its batches added (report only).
+        rows = [row for row in mirror.get("tasks") or [] if isinstance(row, dict)]
+        if any(row.get("suppressions") for row in rows):
+            # Imported here: only for a mirror that lists some, so `status` stays light.
+            from .suppression_scan import from_rows, notice_clause
+
+            added = notice_clause(from_rows(rows))
+            if added and added not in parts:
+                parts.append(added)
     return parts
 
 
@@ -1926,5 +1936,12 @@ def _mirror_text(key: str, mirror: Any) -> List[str]:
         verdict = "passed" if verification.get("exit_code") == 0 else (
             f"FAILED (exit {verification.get('exit_code')})"
         )
-        parts.append(f"verification {verdict}: `{verification['command']}`")
+        scoped = verification.get("scoped_batches")
+        note = ""
+        if isinstance(scoped, list):
+            # Imported here: only a scoped run's record carries the field, and
+            # the status path stays as light as it was without one.
+            from .scoped_checks import scoped_note
+            note = f" ({scoped_note(scoped, verification.get('scoped_outcomes'))})"
+        parts.append(f"verification {verdict}: `{verification['command']}`{note}")
     return parts

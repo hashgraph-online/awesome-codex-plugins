@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import os
 import threading
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from . import batch_prompt as _batch_prompt
 from . import check_records as _check_records
@@ -37,6 +37,10 @@ class BatchPromptBuilder:
     Built once per run by the scheduler. *told_checks* is the scheduler's
     ``_told_checks`` (``task id -> the known check commands its prompt
     listed``), filled here and read by the reply's classification.
+    *scoped_check* (``driver.batch_checks: scoped``) is asked, per task, for
+    the ``scoped_checks.ScopedRun`` it runs narrowed, or ``None``; its
+    command is kept in *told_scoped*, which the scheduler reads to record
+    the debt just before the narrowed prompt is sent.
     """
 
     def __init__(
@@ -47,12 +51,16 @@ class BatchPromptBuilder:
         scope_policy: Optional[str],
         scope_baseline_id: Optional[str],
         told_checks: Dict[str, List[str]],
+        scoped_check: Optional[Callable[[Dict[str, Any], List[str]], Any]] = None,
+        told_scoped: Optional[Dict[str, str]] = None,
     ) -> None:
         self._ctx = ctx
         self._plan_file = plan_file
         self._scope_policy = scope_policy
         self._scope_baseline_id = scope_baseline_id
         self._told_checks = told_checks
+        self._scoped_check = scoped_check
+        self._told_scoped = told_scoped if told_scoped is not None else {}
         #: Fix round 17: the phase dir the dispatched prompts are kept in,
         #: pinned (``prompt_files.pin_phase_dir``) before any batch of this
         #: run can replace it — a jailed repo-wide batch can write the phase
@@ -136,7 +144,16 @@ class BatchPromptBuilder:
         except Exception:  # noqa: BLE001 - advisory: the batch is still dispatched
             checks, earlier = [], []
         self._told_checks[task_id] = [command for command, _where in checks]
-        return _known_checks.known_checks_section(checks, earlier)
+        scoped = (
+            self._scoped_check(task, self._told_checks[task_id])
+            if self._scoped_check is not None and checks else None
+        )
+        if scoped is None:
+            self._told_scoped.pop(task_id, None)
+            return _known_checks.known_checks_section(checks, earlier)
+        self._told_scoped[task_id] = scoped.command
+        return _known_checks.known_checks_section(
+            checks, earlier, scoped=scoped.command, scoped_tests=scoped.tests)
 
     def pinned_phase_dir(self) -> "_prompt_files.PhasePin":
         """The phase dir as pinned for the prompt files (fix round 17): its

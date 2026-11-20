@@ -94,7 +94,7 @@ plans/todo/my-feature/
 - `--min-priority {low,medium,high}`: Minimum importance level to include (default: low = all valid fixes)
 - `--include-low`: [DEPRECATED] No longer needed, low is now default. Use `--min-priority` to filter.
 - `--no-batch`: Disable smart batching (process each fix separately)
-- `--max-batch-size N`: Maximum fixes per batch (default: 3)
+- `--max-batch-size N`: Only the default (3) is accepted for now; any other value is a usage error, refused before anything runs (exit 3). It never took effect, and a stopped run resumed under another batch size would apply its finished batches a second time
 - `--base-ref REF`: Git ref to use for diffs (default: from state file)
 
 ### Scope Policy
@@ -136,7 +136,7 @@ A run with `--revalidate` or `--revalidate-model` stops at a revalidation marker
 ### Resume/State Options
 
 - `--resume`: Resume from last checkpoint, skip already-processed items
-- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. Put the files the previous run's batches edited back first, or every batch lands twice: after an `--exec-subagents` run, `util restore-batch` rolls the batches back newest-first; the native loop takes no snapshot of them, so undo its batches by hand (`git diff -- <the files>` shows their edits, together with any other uncommitted edit to the same files). This phase edits no single target file, so nothing checks for you that the previous run's edits are gone. Earlier rollback points are kept aside, never overwritten.
+- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. A later run no longer resumes from the earlier runs' batch results either (a `--fresh --dry-run` resets too); with `--resume` beside it, `--fresh` does nothing. Never run `--fresh` while another run of this phase is going or starting: a detached or composite run that is already running is detected and refused (exit 3; abort it first, even with `--force` or `--if-not-running`), but a run in another terminal, or one started at the same moment, is not, and the batches it finishes would be applied again. Put the files the previous run's batches edited back first, or every batch lands twice: after an `--exec-subagents` run, `util restore-batch` rolls the batches back newest-first; the native loop takes no snapshot of them, so undo its batches by hand (`git diff -- <the files>` shows their edits, together with any other uncommitted edit to the same files). This phase edits no single target file, so nothing checks for you that the previous run's edits are gone. Earlier rollback points are kept aside, never overwritten.
 - `--skip-human-review`: [DEPRECATED] Use `--skip-all-human` instead
 
 ### Batch Review Mode
@@ -284,6 +284,7 @@ For each batch (index N, starting at 1) returned by the orchestrator, you MUST:
    When the reply's `declined` lists fixes (each `{"id", "reason"}`), add `--declined "{id}={reason}"` for each, with `--status completed`: each prints a `[BATCH_DECLINED]` line — list that fix in the summary under `## Declined by their batch (not applied)`, with its id and reason (never under `## Applied Fixes`, not even marked "Not applied"), and name it in your report; it is never counted as applied. `--skipped {id}` records a fix the user chose to skip (above) the same way, as `[BATCH_SKIPPED]`, listed under `## Skipped at your request (not applied)`.
    When the batch's reply carries a `check` object — naming in `ran` the checks its subagent ran on its own edits (a test, a build, a syntax check) — record it with the `--own-check` flags the rules in `references/own-check.md` give for that object, the reading the `--exec-subagents` leg applies to the same reply, with `--status completed`: `--own-check passed`, `--own-check findings` and one `--finding "{finding}"` per entry they list, or `--own-check none` (it ran no check, which is not a pass); never `--check`, which records only an implement check task's verdict (`batch-done` refuses it here). A recorded `--own-check findings` prints a `[BATCH_CHECK_FAILED]` line: the fixes stay applied and the loop goes on, but the phase is not a clean success — list the batch in the summary's `## Check Findings` (step 8) and say in your report that its check fails.
    When that `check` also carries `listed` (the repository's known checks the prompt asked it to run, each mapped to `passed`, `failed` or `not run`), add `--listed-check "{command}={outcome}"` for each entry, the command exactly as the reply wrote it: the next batch's prompt and the tests line in step 7 read it. A command it lists as `failed` is a failing check like a `--finding`.
+   A `completed` record also scans what the batch's edits added, against the files as `util write-prompt` found them when it bound the batch: it prints one `[SUPPRESSION_ADDED] {task.task_id}: {file}:{line} {marker} — reason: {its reason} (or `no reason given`): {the line}` line per suppression or skip marker the batch added (`# noqa`, `# type: ignore`, `# pragma: no cover`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `//nolint`, a skipped or xfailed test) and per lint, type-checker or test configuration entry it changed, then one sentence saying where they go. They change nothing about the batch's record and never stop the loop: list each one in the summary's `## Check these: suppressions added` (step 8), with the batch that added it, and name them in your report, so the user reads each one.
 
 7. **Append to prior changes (only after verification)** — This step runs **only** after step 4 has confirmed success or clean failure. It must **never** run for partially-applied batches. Pass the summary via stdin:
    ```bash
@@ -348,7 +349,24 @@ Context line for individual review display: `File: {file}, Type: {type}`
 
 ### 7. Run Verification
 
-After all fixes are applied, run **the repository's `driver.verify_command`, if one
+**If step 2 printed a `[SCOPED_CHECK_SETTLED] …` line (on stderr), skip this step and step
+10.** The orchestrator handed out no batch, ran in full the `driver.verify_command` that
+earlier `--exec-subagents` batches of this phase ran scoped to their tests
+(`driver.batch_checks: scoped`), saw it pass and recorded the phase completed itself. That run
+is this phase's verification: run neither `driver.verify_command` nor any check in its place,
+and no `--mark-completed`. In step 8's summary write the Verification line as `passed in full
+(run by the orchestrator)`, with the command and the time the line names.
+
+**If step 2 printed a `[SCOPED_CHECK_OWED] …` line (on stderr), run nothing here.** An
+earlier `--exec-subagents` run of this phase ran `driver.verify_command` scoped to each
+batch's tests (`driver.batch_checks: scoped`) and deferred its full run, so step 10's
+`--mark-completed` runs that exact command in full, once, and its outcome is this phase's
+verification. Run neither `driver.verify_command` as it reads now nor any check in its
+place: a second full run would only repeat it, and a command changed since is one the
+batches never deferred to. In step 8's summary write the Verification line as `owed: run by
+--mark-completed`, and report the outcome step 10 prints.
+
+Otherwise, after all fixes are applied, run **the repository's `driver.verify_command`, if one
 is configured** — the check this repo declares for itself in `.multi-llm/providers.yaml`
 (`pnpm typecheck && pnpm lint:fix` in a pnpm/TypeScript repo, `cargo check`, `make test`,
 whatever it says). Run it once, from the repository root, exactly as written. Do **not**
@@ -444,6 +462,17 @@ step 6. Its batch heading above ends "applied, its check fails".)
 ### apply-fix-batch-1: a check it ran fails
 - node tests/race.test.mjs: AssertionError: …
 
+## Check these: suppressions added
+
+(Only when `util batch-done` printed a `[SUPPRESSION_ADDED]` line in step 6, or said
+a changed file was not scanned. One bullet per line, in batch order: its file and
+line, the marker, its reason or **no reason given**, the batch, and the line itself.
+None of them failed the run; the user reads each one.)
+
+The batches added these suppression or skip markers, or changed this lint, type-checker or test configuration. None of them failed the run. Read each one: keep it only where the code is right as written and the reason holds. A line number is where the line was when its batch finished.
+
+- `src/depot/pickups.py:36` `# noqa: PLR0913` — **no reason given** — apply-fix-batch-4 — `def schedule_pickup(  # noqa: PLR0913`
+
 ## Decided by the judge agent (N)
 
 judge: {judge}
@@ -509,11 +538,15 @@ See: [Applied Fixes Report](./my-feature/apply-fixes/summary.md)
 
 ### 10. Mark Phase Completed
 
-**Run this only if step 5's batch loop reached the end** — every batch dispatched, every batch verified in step 5.4, and step 7's verification run. Then mark the apply-code-fixes phase as completed in state.json:
+**Skip this step after a `[SCOPED_CHECK_SETTLED]` line in step 2**: the orchestrator already recorded the phase completed, after the full run that line reports (step 7).
+
+**Run this only if step 5's batch loop reached the end** — every batch dispatched, every batch verified in step 5.4, and step 7's verification run (or, after a `[SCOPED_CHECK_OWED]` line, left to this command). Then mark the apply-code-fixes phase as completed in state.json:
 
 ```bash
 uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-code-fixes --plan-file "$PLAN_PATH" --mark-completed
 ```
+
+After a `[SCOPED_CHECK_OWED]` line in step 2 (an earlier `--exec-subagents` run of this phase ran `driver.verify_command` scoped to each batch's tests, under `driver.batch_checks: scoped`), this command first runs that command in full, which can take as long as the test suite; it is the phase's verification run. If it fails, or `driver.verify_command` changed since, it exits 3 with the phase not completed and says why: report that as a stop, with the command and the output it printed.
 
 **Do NOT run it if the loop stopped early** — a clean failure you aborted on, a partial application you surfaced for human review (step 5.4), or an interrupted run. The phase must stay *incomplete* in those cases, because that record is what tells a later `--resume`, `--full` run or grader that the fixes were actually applied. A stopped loop simply never reaches this step; there is nothing else to do to leave the phase open.
 

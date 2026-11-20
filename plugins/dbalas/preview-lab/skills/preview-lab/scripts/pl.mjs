@@ -51,7 +51,23 @@ const setLab = dir => {
   P = { manifest: join(lab, 'manifest.json'), index: join(lab, 'index.html'), feedback: join(lab, 'feedback.json'), md: join(lab, 'feedback.md'),
     server: join(lab, 'server.json'), shots: join(lab, 'shots'), inbox: join(lab, 'inbox') };
 };
-setLab(flags.lab || (flags['in-project'] || exists(IN_PROJECT) ? IN_PROJECT : join(HOME, `${slug(basename(root))}-${sha(root, 6)}`)));
+// Sessions: a lab belongs to the agent session that writes it, so two sessions on one checkout never overwrite each other's items or shots.
+// Another session gets its own lab next to it (<lab>--<id>); it takes the shared one over only when that is unclaimed, or idle for a day and not served.
+const SESSION = flags.session || process.env.PREVIEW_LAB_SESSION || process.env.CLAUDE_CODE_SESSION_ID || 'anonymous'; // agents without an id share one
+const SID = SESSION && sha(SESSION, 12), IDLE = 24 * 3600e3;
+const serving = dir => { try { process.kill(readJson(join(dir, 'server.json')).pid, 0); return true; } catch { return false; } };
+function forSession(base) {
+  if (!SID) return base;
+  const own = `${base}--${SID.slice(0, 6)}`;
+  if (exists(own)) return own;
+  try {
+    const f = join(base, 'manifest.json'), owner = readJson(f).session;
+    if (owner && owner !== SID && (Date.now() - fs.statSync(f).mtimeMs < IDLE || serving(base))) return own;
+  } catch {} // no lab there yet
+  return base;
+}
+const BASE = flags['in-project'] || exists(IN_PROJECT) ? IN_PROJECT : join(HOME, `${slug(basename(root))}-${sha(root, 6)}`);
+setLab(flags.lab || forSession(BASE));
 
 const commands = { init, status, upgrade, brand, contrast: contrastCmd, export: exportLab, add, recapture, remove, round, feedback, clean: () => { const m = load(); clean(m, true); brief(m); }, reset, serve, stop, help };
 
@@ -62,7 +78,7 @@ function load() {
   m.items ||= [];
   return m;
 }
-function save(m) { fs.writeFileSync(P.manifest + '.tmp', JSON.stringify(m, null, 1)); fs.renameSync(P.manifest + '.tmp', P.manifest); }
+function save(m) { if (SID) m.session = SID; fs.writeFileSync(P.manifest + '.tmp', JSON.stringify(m, null, 1)); fs.renameSync(P.manifest + '.tmp', P.manifest); }
 const indexState = html => !html ? 'missing' : specOf(html) !== SPEC ? 'outdated' : /BRAND:START default/.test(html) ? 'unbranded' : 'ok';
 const readIndex = () => (exists(P.index) ? fs.readFileSync(P.index, 'utf8') : '');
 
@@ -80,10 +96,11 @@ function init() {
   let note;
   try { create(); } catch (e) {
     if (!['EACCES', 'EPERM', 'EROFS'].includes(e.code) || flags.lab || lab === IN_PROJECT) throw e;
-    setLab(IN_PROJECT); create(); // sandboxed harness: fall back to the project folder
+    setLab(forSession(IN_PROJECT)); create(); // sandboxed harness: fall back to the project folder
     note = 'home folder not writable: the lab lives in <project>/.preview-lab/ (git-ignored)';
   }
   const pruned = prune();
+  if (!note && SID && lab.endsWith(`--${SID.slice(0, 6)}`)) note = 'another session is using this checkout\'s main lab: this session has its own, so neither overwrites the other';
   status({ ...(pruned ? { pruned } : {}), ...(note ? { note } : {}) });
 }
 
@@ -100,7 +117,7 @@ function create() {
   save(m);
   if (lab.startsWith(root + sep) && git('rev-parse', '--git-dir')) { // in-project lab: keep it out of git
     const gi = join(root, '.gitignore'), cur = exists(gi) ? fs.readFileSync(gi, 'utf8') : '';
-    if (!/^\/?\.preview-lab\/?$/m.test(cur)) fs.appendFileSync(gi, (cur && !cur.endsWith('\n') ? '\n' : '') + '.preview-lab/\n');
+    if (!/^\/?\.preview-lab\*\/?$/m.test(cur)) fs.appendFileSync(gi, (cur && !cur.endsWith('\n') ? '\n' : '') + '.preview-lab*/\n'); // * : session labs too
   }
 }
 
@@ -112,10 +129,11 @@ function siblingIndex() {
     .filter(x => indexState(x.html) === 'ok').sort((a, b) => b.t - a.t);
   return hits[0]?.html;
 }
-// Labs whose checkout no longer exists (deleted worktrees, removed projects) are garbage.
+// Labs whose checkout no longer exists (deleted worktrees, removed projects) are garbage, and so are other sessions' labs untouched for 14 days.
 function prune() {
   let n = 0;
-  for (const x of otherLabs()) if (x.m.root && !exists(x.m.root)) { fs.rmSync(x.dir, { recursive: true, force: true }); n++; }
+  const old = d => basename(d).includes('--') && Date.now() - fs.statSync(join(d, 'manifest.json')).mtimeMs > 14 * 24 * 3600e3 && !serving(d);
+  for (const x of otherLabs()) if ((x.m.root && !exists(x.m.root)) || old(x.dir)) { fs.rmSync(x.dir, { recursive: true, force: true }); n++; }
   return n;
 }
 
@@ -465,7 +483,8 @@ function help() {
   stop                      stop a running lab server
   round [--keep N]          archive this round (read-only in the lab; the last 5 are kept), drop approved items, start the next one
   clean | reset             delete unreferenced files | empty the lab (keeps its code)
-options: --project <dir>  --lab <dir>     env: PREVIEW_LAB_HOME (default ~/.preview-lab), PREVIEW_LAB_CHROME`);
+options: --project <dir>  --lab <dir>  --session <id>
+env: PREVIEW_LAB_HOME (default ~/.preview-lab), PREVIEW_LAB_CHROME, PREVIEW_LAB_SESSION (else CLAUDE_CODE_SESSION_ID): labs are per session`);
 }
 
 // Dispatch last: every helper above is defined by now.

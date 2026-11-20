@@ -55,7 +55,11 @@ same checks it hands off instead, with no step block::
 its only writer on this leg. ``--force`` without ``--cascade`` over an
 unfinished cascade hands off too (abandoning it is a write), and its
 ``[IMPROVE_RERUN]`` is today's plain one: the call it names abandons the
-cascade and plans one plain round. ``improve_cascade.peek``'s refusals
+cascade and plans one plain round. Under ``--dry-run-subagents`` nothing is
+handed off: the plain round is planned with a ``NOTE:`` line
+(``improve_workflow.dry_run_cascade_note``), and ``plan_steps`` passes over
+every step after its first ``run`` one, the single step the executor leg's
+preview runs too. ``improve_cascade.peek``'s refusals
 (``[CASCADE_CONFLICT]``) print here, on stderr, with nothing on stdout, and a
 finished cascade's command typed again is ``[ALREADY_COMPLETE]``, exit 2
 (docs/development/workflows.md, "A cascade (``--cascade``)").
@@ -421,6 +425,7 @@ def build_plan(
     finished: bool,
     plan_path: Path,
     host_id: str,
+    extra_notices: Sequence[str] = (),
 ) -> StepsPlan:
     """The plan for *records*: the notices, every step block, then the end line.
 
@@ -428,7 +433,8 @@ def build_plan(
     without its ``--host`` pair (the phase core's launch step takes that from
     the host's dispatcher command): what the executor leg forwards, less that
     one pair. Under ``[ALREADY_COMPLETE]`` there is no ``1b`` and no
-    continuation.
+    continuation. *extra_notices* follow the scope notices (a dry run's
+    cascade note).
     """
     tail = tuple(iw.cross_cutting_flags(args, include_host=False))
     steps = tuple(
@@ -454,7 +460,10 @@ def build_plan(
         mode=mode,
         plan=args.plan,
         already_complete=already,
-        notices=tuple(plain_line(n) for n in iw.scope_notices(mode, args, records)),
+        notices=tuple(
+            plain_line(n)
+            for n in [*iw.scope_notices(mode, args, records), *extra_notices]
+        ),
         steps=steps,
         rerun=rerun,
         rerun_argv=rerun_argv,
@@ -719,12 +728,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             cascading = _cascading(mode, args, plan_path)
         except improve_cascade.CascadeRefusal as exc:
             return improve_cascade.refusal_exit(exc)
-    if cascading is not None:
+    if cascading is not None and not iw.dry_run_preview(args):
         plan = cascade_handoff(mode, args, argv, plan_path, host_id, cascading=cascading)
     else:
+        # A dry run never hands a cascade off (planning a stage records it):
+        # it plans one plain round, whose first step alone runs, as the
+        # executor leg's preview does.
         plan = build_plan(
             mode, args, records(), finished=finished, plan_path=plan_path,
             host_id=host_id,
+            extra_notices=(iw.dry_run_cascade_note(),) if cascading else (),
         )
     if args.json:
         print(json.dumps(as_json(plan), indent=2))

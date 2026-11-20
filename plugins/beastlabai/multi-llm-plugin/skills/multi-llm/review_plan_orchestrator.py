@@ -45,6 +45,7 @@ from utils.provider_registry import (
 from utils.consolidation import (
     pre_group_by_section,
     prepare_consolidation_tasks,
+    preview_consolidation_tasks,
     merge_consolidation_results,
     generate_consolidated_json,
     generate_consolidated_report,
@@ -63,7 +64,9 @@ from utils.review_orchestrator_base import (
     derive_prefix,
 )
 from utils import status_file as _status_file
+from utils.git_utils import get_project_root
 from utils.output_handler import _compute_file_hash
+from utils.task_file_runner import dry_run_report
 
 # Prompt template filename
 REVIEW_PROMPT_FILE = "plan_review.txt"
@@ -280,6 +283,10 @@ def consolidate_mode(phase_dir: str, plan_path: str, args=None) -> None:
 
     section_groups = pre_group_by_section(groups, validation)
 
+    if args is not None and getattr(args, "dry_run_subagents", False):
+        consolidation_preview(groups, section_groups, phase_dir, plan_path)
+        return
+
     tasks_metadata = prepare_consolidation_tasks(
         groups, section_groups, phase_dir, plan_path
     )
@@ -353,6 +360,43 @@ def consolidate_mode(phase_dir: str, plan_path: str, args=None) -> None:
     print(f"  {reaggregate_cmd}")
 
 
+def consolidation_preview(
+    groups: List[Dict], section_groups: Dict[str, List[int]], phase_dir: str,
+    plan_path: str,
+) -> None:
+    """``--consolidate --dry-run-subagents``: render each consolidation batch's
+    command, start no child, and write nothing but the dry-run record.
+
+    The batches are built as a real pass builds them
+    (``consolidation.preview_consolidation_tasks``) and never written: no
+    ``consolidation_tasks.json``, no prompt sidecars, no host index, so a
+    composite whose previewed step is this pass records nothing, as its
+    closing line says. ``task_file_runner.dry_run_report`` renders the
+    commands and writes ``{phase}/subagent_dry_run.json``, the record every
+    dry run leaves. No marker is printed: there is no task file for anyone
+    to run (docs/development/workflows.md#a-dry-run-previews-one-step).
+    """
+    document = preview_consolidation_tasks(groups, section_groups, phase_dir, plan_path)
+    total = document["total_batches"]
+    print(f"Sections with 2+ groups: {len([s for s in section_groups.values() if len(s) >= 2])}")
+    print(f"Singleton sections: {len(document.get('singleton_sections', {}))}")
+    print(f"Batches: {total}")
+    if total == 0:
+        print("[dry-run-subagents] consolidation: no section needs it (all "
+              "singletons), so a real pass dispatches nothing; nothing was written.")
+        return
+    report = dry_run_report(
+        os.path.join(phase_dir, "consolidation_tasks.json"),
+        phase_dir=phase_dir, phase="review-plan", document=document,
+        anchor=plan_path, cwd=get_project_root(plan_path),
+    )
+    print(f"[dry-run-subagents] {report} — every consolidation command rendered, "
+          f"no child started. Nothing else was written: a real pass writes "
+          f"consolidation_tasks.json and its prompt files, then prints its marker.")
+    cli_common.record_artifact(report)
+    cli_common.record_next(None)
+
+
 def consolidate_dry_run_mode(phase_dir: str, plan_path: str) -> None:
     """Show consolidation stats without running subagents."""
     grouped_path = os.path.join(phase_dir, "grouped.json")
@@ -376,7 +420,8 @@ def consolidate_dry_run_mode(phase_dir: str, plan_path: str) -> None:
 
     section_groups = pre_group_by_section(groups, validation)
 
-    tasks_metadata = prepare_consolidation_tasks(
+    # Built, never written: a dry run leaves the phase dir as it found it.
+    tasks_metadata = preview_consolidation_tasks(
         groups, section_groups, phase_dir, plan_path
     )
 

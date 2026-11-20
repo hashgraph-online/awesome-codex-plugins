@@ -82,6 +82,7 @@ Branding lives only inside the two `/* BRAND:START … BRAND:END */` blocks, so 
 
 **Tools**:
 - For shots: **Fit** and **100%** (true size, see `scale`).
+- Shots pan and zoom like a canvas (CSS `transform` on the canvas, origin `0 0`, 25%–800%): the toolbar's − / % / + buttons (always work, even where the browser keeps Ctrl + wheel), Ctrl/⌘ + wheel (listened for on the document in the capture phase), trackpad or touch pinch (Safari: gesture events) and `+` `−` `0` zoom at the pointer; wheel, dragging the empty stage, Space + drag, the middle button and two fingers pan. A plain drag or one finger on the image still marks an area; a second finger cancels the draft. Areas stay in % of the image (2 decimals, exact at 800%), so they survive any zoom. Only an area's number badge takes the pointer (`pointer-events`), so a zoomed-in area never blocks drawing a new one. Fit, 100% and changing view reset it.
 - For the Live tab: device presets from `devices` (or Mobile 390×844, Tablet 820×1180, Laptop 1280×800, Desktop 1440×900), a custom width, rotate, zoom (Fit, 50%, 75%, 100%), an **Annotate** toggle that puts the area overlay over the page, and an **Open ↗** link for pages that refuse to be embedded. Scale the iframe with `transform`, and size it only after the dialog is open.
 
 **Keyboard and touch**: `←` `→` move between items, `1`–`9` switch views, `A` `C` set the status, `Esc` blurs a field or closes the dialog. Ignore shortcuts while typing. A sideways swipe on the empty stage moves between items (on the image it draws).
@@ -98,7 +99,7 @@ Branding lives only inside the two `/* BRAND:START … BRAND:END */` blocks, so 
   "markdown": "<feedback.md text>" }
 ```
 
-- On 200: clear the drafts and show a full-screen "sent" state that polls `manifest.json` every 2 seconds and reloads when it answers again. The server stops after a send, so an answer means the next round is being served, and the same tab carries on.
+- On 200: clear the drafts and show a "sent" modal (closable, so the user can keep editing; sending again then falls back to copying, since the server is gone) and poll `manifest.json` every 2 seconds and reloads when it answers again. The server stops after a send, so an answer means the next round is being served, and the same tab carries on.
 - On failure: copy `markdown` to the clipboard and tell the user to paste it into the chat. **Copy as prompt** does the same thing at any time. When the clipboard is blocked, show the text in a dialog to copy by hand.
 
 ### markdown (token-lean; omit empty parts)

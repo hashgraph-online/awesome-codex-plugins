@@ -8,7 +8,7 @@
 
 以下内容适合放入同一轮流水线的共享 prefix 缓存，所有 subagent 复用，不需要每次重复展开全文：
 
-- 输出语言：文档类 Agent 使用中文；代码类 Agent 注释中文、代码英文。
+- 输出语言：文档类 Agent 的产物跟随用户请求的语言（`--lang` 优先）；代码类 Agent 注释跟随仓库已有语言、代码英文。
 - 产物优先级：项目模板 > Skill 内置模板 > Agent Prompt 兜底格式。
 - 状态块：所有 Agent 必须用 `DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED / REVISION_NEEDED` 报告。
 - 执行中会话层：使用 `ask / challenge / propose / request_change / escalate / huddle / resolve`；每条会话都必须 anchored，并在收敛后 materialize 为 single-owner todo 或正式修订循环。
