@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs Node 20 or newer to run the bundled economy check script.
 metadata:
   author: moonetix
-  version: "1.3.5"
+  version: "1.3.6"
 ---
 
 # Design a reward economy

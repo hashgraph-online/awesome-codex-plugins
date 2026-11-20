@@ -3205,6 +3205,20 @@
       "icon": "./plugins/Abhigyan-Shekhar/Waggle-mcp/assets/waggle-icon.png"
     },
     {
+      "name": "wavegrain",
+      "displayName": "Wavegrain",
+      "source": {
+        "source": "local",
+        "path": "./plugins/wavegrain/wavegrain-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Makes TikTok slideshows and Instagram carousels in your brand's style through the hosted Wavegrain MCP server, with a content calendar and posting you confirm."
+    },
+    {
       "name": "wingman",
       "displayName": "Wingman",
       "source": {
@@ -4271,6 +4285,21 @@
       "icon": "./plugins/hraness/product-skills/plugins/dawn/assets/icon.png"
     },
     {
+      "name": "dchub",
+      "displayName": "DC Hub",
+      "source": {
+        "source": "local",
+        "path": "./plugins/azmartone67/dchub-mcp-server"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "The orchestration layer for data center and energy intelligence: call execute_plan first for data center, colocation, energy, fiber, site selection and capacity questions, with the Data Center Power Index (DCPI) at https://dchub.cloud/mcp.",
+      "icon": "./plugins/azmartone67/dchub-mcp-server/dchub-logo.png"
+    },
+    {
       "name": "deed-page",
       "displayName": "deed.page",
       "source": {
@@ -5296,6 +5325,21 @@
       },
       "category": "Tools & Integrations",
       "description": "AI news tracking skill that monitors 80+ entities across 6 sources (Reddit, HN, GitHub, Hugging Face, arXiv, X) and generates scored daily reports with infographics and message digests."
+    },
+    {
+      "name": "nia-teams-agent-bridge",
+      "displayName": "Nia Teams Agent Bridge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/nia-teams/agent-bridge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill for connecting the local Codex CLI to Nia Teams group chats via the separately installed nia-codex bridge, with two-way messaging and human approval of tool requests.",
+      "icon": "./plugins/nia-teams/agent-bridge/assets/icon.svg"
     },
     {
       "name": "notfair",

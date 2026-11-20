@@ -15,7 +15,7 @@ import { prisma } from '@/lib/db';
 import { periodCredits, postEntry, toRow } from '@/lib/subscriptions';
 
 export const runtime = 'nodejs';
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-10-28.endive' as Stripe.LatestApiVersion });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-11-18.endive' as Stripe.LatestApiVersion });
 const SUBSCRIPTION_EVENTS = new Set([
   'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted',
   'invoice.paid', 'invoice.payment_failed',
@@ -96,7 +96,7 @@ import Stripe from 'stripe';
 import { pool, withTransaction } from '../db.js';
 import { periodCredits, postEntry, toRow } from '../subscriptions.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-10-28.endive' });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-11-18.endive' });
 export const router = express.Router();
 
 router.post('/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb' }), async (req, res, next) => {
@@ -176,7 +176,7 @@ from .models import Subscription, SubscriptionEvent
 from .subscriptions import period_credits, post_entry, to_row
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-stripe.api_version = "2026-10-28.endive"
+stripe.api_version = "2026-11-18.endive"
 KEEPS_ACCESS = ("active", "trialing", "past_due")
 
 
@@ -276,7 +276,7 @@ class StripeWebhookController extends Controller
             return response()->json(['received' => true]);
         }
         $fetchedAt = (int) floor(microtime(true) * 1000);
-        $stripe = new StripeClient(['api_key' => config('services.stripe.secret'), 'stripe_version' => '2026-10-28.endive']);
+        $stripe = new StripeClient(['api_key' => config('services.stripe.secret'), 'stripe_version' => '2026-11-18.endive']);
         $sub = $stripe->subscriptions->retrieve($subscriptionId); // an exception answers 500 and Stripe retries
 
         DB::transaction(function () use ($event, $object, $sub, $fetchedAt, $subscriptions) {

@@ -8,7 +8,7 @@ What Stripe's documentation said on the date at the end of this file, for granti
 
 ## API version
 
-The current version is `2026-10-28.endive`. Since `2025-03-31.basil`:
+The current version, on 2026-11-20, is `2026-11-18.endive`. Since `2025-03-31.basil`:
 
 - `current_period_start` and `current_period_end` are on the subscription items (`items.data[].current_period_end`), not on the subscription.
 - An invoice names its subscription in `parent.subscription_details.subscription` (check `parent.type` is `subscription_details`), with `parent.subscription_details.metadata`, a snapshot of the subscription's metadata when the invoice was finalized. `invoice.subscription` is gone.
@@ -112,6 +112,7 @@ Stripe Entitlements attaches features to products and keeps active entitlements 
 - https://docs.stripe.com/billing/subscriptions/build-subscriptions
 - https://docs.stripe.com/webhooks
 - https://docs.stripe.com/upgrades
+- https://docs.stripe.com/changelog/endive
 - https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end
 - https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects
 - https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices

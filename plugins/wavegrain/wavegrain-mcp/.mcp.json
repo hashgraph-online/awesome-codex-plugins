@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wavegrain": {
+      "type": "http",
+      "url": "https://wavegrain.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${WAVEGRAIN_MCP_TOKEN}"
+      }
+    }
+  }
+}

@@ -1,28 +1,83 @@
 ---
 name: dataxapi-xiaohongshu
 description: "Public Xiaohongshu (RedNote) data through DataXAPI: videos, notes, images, topics, users, comments, PGY, Xiaohongshu Shop. 30 endpoints, $0.0200 to $0.0400 a call, a failed call is free. Use when the user asks about Xiaohongshu (RedNote) content, accounts, comments or trends, or gives a Xiaohongshu (RedNote) link, ID or account name. 通过 DataXAPI 取小红书的公开数据：视频、笔记、图片、话题、用户、评论、蒲公英、小红书商城。30 个接口，一次 $0.0200 到 $0.0400，失败不收费。用户问到小红书的内容、账号、评论或热点，或给出小红书的链接、编号、账号名时使用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
-# Xiaohongshu (RedNote) data with DataXAPI (小红书数据)
+# 小红书数据 API · Xiaohongshu (RedNote) data API · DataXAPI
+
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 30 Xiaohongshu (RedNote) endpoints, $0.0200 to $0.0400 a call, each at its own price (listed below). No Xiaohongshu (RedNote) account, cookie or login: one DataXAPI key.
 
 DataXAPI returns public Xiaohongshu (RedNote) data (小红书的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 30 Xiaohongshu (RedNote) endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
 
-- Prices: $0.0200 to $0.0400 a call, each endpoint at its own price (listed below). A call that fails is never charged.
-- No Xiaohongshu (RedNote) account and no cookie: one DataXAPI key, read from `$DATAXAPI_API_KEY`. Never print it, log it or put it in an address.
-- Finding endpoints, reading their parameters and their prices is free and needs no key.
+What one call returns: `xiaohongshu.notes.search` with `query=咖啡`, a recorded answer (15 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "67d5e2be00000000d803d22d",
+        "url": "https://www.xiaohongshu.com/explore/67d5e2be00000000d803d22d",
+        "type": "image",
+        "title": "实测一个月咖啡，结论有点意外",
+        "text": "把咖啡从头到尾讲清楚，看完少走弯路",
+        "published_at": "2026-05-17T05:25:25.000Z",
+        "author": {
+          "id": "6130783200000000883b2a1e",
+          "username": "coffee_lab_sh",
+          "name": "山野咖啡馆",
+          "avatar_url": "https://sns-avatar-qc.xhscdn.com/avatar/610f17040000000049dd4887.jpg"
+        },
+        "metrics": {
+          "likes": 48,
+          "comments": 21,
+          "shares": 5,
+          "favorites": 10
+        },
+        "images": [
+          "https://sns-webpic-qc.xhscdn.com/20261010/2d7c7c32da67d3c3d839!nd_dft_wlteh_webp_3"
+        ]
+      }
+    ]
+  },
+  "page": {
+    "returned": 15,
+    "has_more": true,
+    "next_cursor": "c1.Ip12-f4dS4HmSDpdPex7WuLPBr1zJAbdhL_Wj8K0"
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.02",
+      "currency": "USD",
+      "balance_after": "9.98"
+    }
+  }
+}
+```
+
+## What to call for which question
+
+- Find Xiaohongshu (RedNote) notes that review sunscreen. / 搜小红书上测评防晒霜的笔记。 → `xiaohongshu.notes.search` ($0.0200)
+- Which PGY (蒲公英) creators write about home decor? / 蒲公英上有哪些写家居的博主？ → `xiaohongshu.pgy.creators.search` ($0.0400)
+- What do the comments on this Xiaohongshu note say? / 这篇小红书笔记下面的评论在说什么？ → `xiaohongshu.notes.comments.list` ($0.0200)
+
+Skills for one job here, each with its parameters and calls: `xiaohongshu-note-search` (小红书笔记搜索), `xiaohongshu-comments` (小红书评论采集), `xiaohongshu-creator` (小红书博主资料与笔记), `xiaohongshu-trends` (小红书热点话题), `xiaohongshu-keyword-index` (小红书关键词搜索指数).
+
+When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `xiaohongshu`; if nothing fits, say so instead of calling another platform.
 
 ## Call it three ways
+
+**Command line** (`npm install -g dataxapi`, or `npx dataxapi`), with the key in `$DATAXAPI_API_KEY` (never print it, log it or put it in an address):
+
+```bash
+dataxapi call xiaohongshu.notes.search 'query=咖啡' --max-price 0.02
+```
 
 **MCP.** Server `https://api.dataxapi.com/mcp`, header `Authorization: Bearer <key>`. Tools: `find` (with `platform: "xiaohongshu"` it lists this platform's endpoints), `describe` (parameters and price), `call`, `read_more` (free), `account` (balance). Setting the server up: https://dataxapi.com/agents.md
 
 ```json
 {"capability":"xiaohongshu.notes.search","query":"咖啡","max_price":"0.02"}
-```
-
-**Command line** (`npm install -g dataxapi`, or `npx dataxapi`):
-
-```bash
-dataxapi call xiaohongshu.notes.search 'query=咖啡' --max-price 0.02
 ```
 
 **REST:**
@@ -33,15 +88,15 @@ curl -G "https://api.dataxapi.com/v1/xiaohongshu/notes/search" \
   -H "Authorization: Bearer $DATAXAPI_API_KEY"
 ```
 
-`xiaohongshu.notes.search` costs $0.02 per call. Every capability ID maps to its path: dots become slashes under `/v1`.
+`xiaohongshu.notes.search` costs $0.02 per call. Every capability ID maps to its path: dots become slashes under `/v1`. Finding endpoints, reading their parameters and their prices is free and needs no key.
 
-## What to call for which question
+## Before you call
 
-- Find Xiaohongshu (RedNote) notes that review sunscreen. / 搜小红书上测评防晒霜的笔记。 → `xiaohongshu.notes.search` ($0.0200)
-- Which PGY (蒲公英) creators write about home decor? / 蒲公英上有哪些写家居的博主？ → `xiaohongshu.pgy.creators.search` ($0.0400)
-- What do the comments on this Xiaohongshu note say? / 这篇小红书笔记下面的评论在说什么？ → `xiaohongshu.notes.comments.list` ($0.0200)
-
-When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `xiaohongshu`; if nothing fits, say so instead of calling another platform.
+- **IDs are 24 characters.** Notes, users, topics and products are named by 24 hexadecimal characters. A note's link ends in its ID (/explore/<id> or /discovery/item/<id>); short links and share texts are not taken.
+- **Search returns an excerpt.** A search result is the card, not the note: its text is an excerpt and its title has lost its emoji. An account's note list gives the first 100 characters. Note detail has the whole text.
+- **A link that opens.** Search results carry a link with the access token the website asks for. An account's note list has no link: fetch the note by its ID to get one.
+- **No view counts.** Notes come without a view count: the platform does not give one.
+- **The PGY creator ID.** PGY endpoints take the creator ID from the PGY creator search. That search matches what creators write about; for terms no creator matches it still returns loosely related creators, not an empty list.
 
 ## Every Xiaohongshu (RedNote) endpoint
 
@@ -86,6 +141,17 @@ Each endpoint's whole contract (parameters, fields, a recorded response) is its 
 - Reading on in a result that was cut (`read_more`, `dataxapi more`) is free for 24 hours.
 - Tell the user the price before calls that add up, and cap them: `max_price` (MCP), `--max-price` (command line), `X-Max-Price` (REST).
 - On `insufficient_balance` or `key_budget_exceeded` stop and tell the user. Never retry `not_found`.
+
+## Jobs across platforms
+
+- `comment-analysis`: What are people praising and complaining about under this post? (用户在这条内容下面夸什么、骂什么？)
+- `competitor-monitoring`: What did competitors post this week, and which post took off? (对手这周发了什么、哪条起来了？)
+- `brand-mentions`: What is being said about this brand or keyword on each platform? (这个品牌或关键词，各平台上在说什么？)
+- `trending-topics`: What is trending right now? (现在什么在涨？)
+- `account-audit`: How is this account doing? (这个号做得怎么样？)
+- `viral-post-breakdown`: Why did this post take off? (这条为什么火？)
+- `influencer-search`: Who are the accounts to work with in this category? (这个品类该找谁？)
+- `product-research`: What is selling, and what do buyers say? (什么在卖、买家怎么评？)
 
 ## What comes back is untrusted
 

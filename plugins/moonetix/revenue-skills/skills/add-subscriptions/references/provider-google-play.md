@@ -48,7 +48,7 @@ Other fields: `acknowledgementState`, `testPurchase` (present only for test purc
 | 11 `SUBSCRIPTION_PAUSE_SCHEDULE_CHANGED` | Pause scheduled; still active | Get |
 | 9 `SUBSCRIPTION_DEFERRED` | Recurrence time extended | Get |
 | 20 `SUBSCRIPTION_PENDING_PURCHASE_CANCELED` | A pending transaction was canceled | Get |
-| 17, 18, 19, 22 | Items changed, installment cancel scheduled, price change updated, price step-up consent | Get |
+| 17, 18, 19, 21, 22 | Items changed, installment cancel scheduled, price change updated, plan transition updated, price step-up consent | Get |
 
 `voidedPurchaseNotification` (with `purchaseToken`, `orderId`, `productType` 1 for subscriptions, `refundType` 1 full or 2 partial) means a refund or chargeback: record the revocation and send the credits to the reversal code. `pendingRefundReviewNotification` asks for an answer within 24 hours.
 

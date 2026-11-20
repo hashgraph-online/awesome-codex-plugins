@@ -418,6 +418,15 @@ nothing comes back as a note. The catalog is capped, with every cut counted in
 `elided` and named in `notes`; `elided` is always present, so all zeros and no
 cap notes means this is the whole layer. `--full` lifts the caps.
 
+The local backend reads the compiled `semantic_manifest.json`, which
+`transform apply` leaves alone. When a semantic YAML file is newer than it, every
+local `list`, `values` and `query` result warns with the file and `dbt parse`,
+and so does a refusal of an unknown metric or dimension or a query that fails to
+resolve, so a metric applied a moment ago is not mistaken for a typo. Run
+`dbt parse` and read again. The check sees only newer files that parse and still
+declare `semantic_models` or `metrics`, so no warning does not prove the manifest
+current.
+
 
 Example envelope for `explore semantic list --metric orders` (fields unset on an
 element are omitted rather than null):

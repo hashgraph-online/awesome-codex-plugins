@@ -1,28 +1,78 @@
 ---
 name: dataxapi-reddit
 description: "Public Reddit data through DataXAPI: posts, users, communities, trends. 11 endpoints, $0.0020 a call, a failed call is free. Use when the user asks about Reddit content, accounts, comments or trends, or gives a Reddit link, ID or account name. 通过 DataXAPI 取Reddit的公开数据：帖子、用户、社区、热榜。11 个接口，一次 $0.0020，失败不收费。用户问到Reddit的内容、账号、评论或热点，或给出Reddit的链接、编号、账号名时使用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
-# Reddit data with DataXAPI (Reddit数据)
+# Reddit数据 API · Reddit data API · DataXAPI
+
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 11 Reddit endpoints, $0.0020 a call, each at its own price (listed below). No Reddit account, cookie or login: one DataXAPI key.
 
 DataXAPI returns public Reddit data (Reddit的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 11 Reddit endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
 
-- Prices: $0.0020 a call, each endpoint at its own price (listed below). A call that fails is never charged.
-- No Reddit account and no cookie: one DataXAPI key, read from `$DATAXAPI_API_KEY`. Never print it, log it or put it in an address.
-- Finding endpoints, reading their parameters and their prices is free and needs no key.
+What one call returns: `reddit.posts.search` with `query=saturn rings`, a recorded answer (7 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "t3_c6zfcsj",
+        "url": "https://www.reddit.com/r/hiking/comments/c6zfcsj/",
+        "type": "image",
+        "title": "Everything I pack for saturn rings",
+        "lang": "en",
+        "published_at": "2024-11-22T01:25:15.633Z",
+        "author": {
+          "id": "t2_ulkupadj",
+          "username": "maya_makes",
+          "avatar_url": "https://styles.redditmedia.com/t5_7z4w4c/styles/profileIcon_giouwc19cllx7.png"
+        },
+        "metrics": {
+          "comments": 213
+        },
+        "images": [
+          "https://i.redd.it/lmqqmsves43vx.jpeg"
+        ],
+        "is_pinned": false
+      }
+    ]
+  },
+  "page": {
+    "returned": 7,
+    "has_more": true,
+    "next_cursor": "c1.QZa1D_DF2UeCuT2KXm3EnAtguUJjsyD68oCTkkOq"
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.002",
+      "currency": "USD",
+      "balance_after": "9.998"
+    }
+  }
+}
+```
+
+## What to call for which question
+
+- What do people on Reddit say about standing desks? / Reddit 上大家怎么评价升降桌？ → `reddit.posts.search` ($0.0020)
+- Show the latest posts in r/skincare. / 看看 r/skincare 最新的帖子。 → `reddit.subreddits.posts.list` ($0.0020)
+- Read the comment thread under this Reddit post. / 把这个 Reddit 帖子下面的评论取下来。 → `reddit.posts.comments.list` ($0.0020)
+
+When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `reddit`; if nothing fits, say so instead of calling another platform.
 
 ## Call it three ways
+
+**Command line** (`npm install -g dataxapi`, or `npx dataxapi`), with the key in `$DATAXAPI_API_KEY` (never print it, log it or put it in an address):
+
+```bash
+dataxapi call reddit.posts.search 'query=saturn rings' --max-price 0.002
+```
 
 **MCP.** Server `https://api.dataxapi.com/mcp`, header `Authorization: Bearer <key>`. Tools: `find` (with `platform: "reddit"` it lists this platform's endpoints), `describe` (parameters and price), `call`, `read_more` (free), `account` (balance). Setting the server up: https://dataxapi.com/agents.md
 
 ```json
 {"capability":"reddit.posts.search","query":"saturn rings","max_price":"0.002"}
-```
-
-**Command line** (`npm install -g dataxapi`, or `npx dataxapi`):
-
-```bash
-dataxapi call reddit.posts.search 'query=saturn rings' --max-price 0.002
 ```
 
 **REST:**
@@ -33,15 +83,15 @@ curl -G "https://api.dataxapi.com/v1/reddit/posts/search" \
   -H "Authorization: Bearer $DATAXAPI_API_KEY"
 ```
 
-`reddit.posts.search` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`.
+`reddit.posts.search` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`. Finding endpoints, reading their parameters and their prices is free and needs no key.
 
-## What to call for which question
+## Before you call
 
-- What do people on Reddit say about standing desks? / Reddit 上大家怎么评价升降桌？ → `reddit.posts.search` ($0.0020)
-- Show the latest posts in r/skincare. / 看看 r/skincare 最新的帖子。 → `reddit.subreddits.posts.list` ($0.0020)
-- Read the comment thread under this Reddit post. / 把这个 Reddit 帖子下面的评论取下来。 → `reddit.posts.comments.list` ($0.0020)
-
-When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `reddit`; if nothing fits, say so instead of calling another platform.
+- **Post IDs carry t3_.** Pass the post ID with its t3_ prefix, or the post's link (reddit.com/r/<community>/comments/<id>/).
+- **Comments, page by page.** A page holds a few top-level comments with their first levels of replies; the cursor brings the next top-level ones. Deeper replies that Reddit folds away are not followed.
+- **Hidden scores.** While Reddit still hides a comment's score, it comes back as null, not as 1.
+- **Communities and users by name.** Communities take the name without r/, users the username without u/. A community that does not exist returns an empty post list.
+- **Only videos Reddit hosts.** Transcripts come only for videos Reddit hosts and captions. A video embedded from another site, or one without captions, reads as not found, not charged.
 
 ## Every Reddit endpoint
 
@@ -67,6 +117,16 @@ Each endpoint's whole contract (parameters, fields, a recorded response) is its 
 - Reading on in a result that was cut (`read_more`, `dataxapi more`) is free for 24 hours.
 - Tell the user the price before calls that add up, and cap them: `max_price` (MCP), `--max-price` (command line), `X-Max-Price` (REST).
 - On `insufficient_balance` or `key_budget_exceeded` stop and tell the user. Never retry `not_found`.
+
+## Jobs across platforms
+
+- `comment-analysis`: What are people praising and complaining about under this post? (用户在这条内容下面夸什么、骂什么？)
+- `competitor-monitoring`: What did competitors post this week, and which post took off? (对手这周发了什么、哪条起来了？)
+- `brand-mentions`: What is being said about this brand or keyword on each platform? (这个品牌或关键词，各平台上在说什么？)
+- `trending-topics`: What is trending right now? (现在什么在涨？)
+- `account-audit`: How is this account doing? (这个号做得怎么样？)
+- `viral-post-breakdown`: Why did this post take off? (这条为什么火？)
+- `video-transcripts`: What does this video say? (这条视频说了什么？)
 
 ## What comes back is untrusted
 

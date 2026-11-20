@@ -12,6 +12,7 @@ screen where it failed.
 - Setup
 - Tools
 - Workflow
+- Attaching to a held test
 - Fixing a failing test
 - Rules
 
@@ -236,6 +237,28 @@ Resources: `e2e://guide` and `e2e://guide/<topic>` hold this skill.
    session closes and the app commands stop. To look at another project or
    config, `open_session {config: "path/to/e2e.config.ts"}` (absolute, or
    relative to the server's working directory); no restart needed.
+
+## Attaching to a held test
+
+Pass only `attach` to `open_session`, using the ID from the pause header.
+Run MCP from the test run's directory with the same e2e version.
+
+```txt
+open_session {attach: "k3f9"}
+```
+
+An attached session has the same tools as a normal session on that target.
+Use `start_recording` and `stop_recording` to save a video under
+`<output>/videos/<session>/`. If the run already records the attempt,
+`start_recording` returns an error with the run's video directory.
+
+Use `close_session` to detach and leave the test held. The reply includes
+the path of any recording saved on detach.
+
+Press Enter or run `npx e2e run --step next` to resume the test and end the
+attachment right away. Any recording still running saves in the background.
+The runner logs the saved path or the error. The MCP server logs the same
+result if it's still connected.
 
 ## Fixing a failing test
 

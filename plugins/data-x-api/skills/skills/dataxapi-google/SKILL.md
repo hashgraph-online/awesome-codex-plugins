@@ -1,28 +1,69 @@
 ---
 name: dataxapi-google
 description: "Public Google Ads data through DataXAPI: ad library, advertisers. 3 endpoints, $0.0020 a call, a failed call is free. Use when the user asks about Google Ads content, accounts, comments or trends, or gives a Google Ads link, ID or account name. 通过 DataXAPI 取Google 广告的公开数据：广告库、广告主。3 个接口，一次 $0.0020，失败不收费。用户问到Google 广告的内容、账号、评论或热点，或给出Google 广告的链接、编号、账号名时使用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
-# Google Ads data with DataXAPI (Google 广告数据)
+# Google 广告数据 API · Google Ads data API · DataXAPI
+
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 3 Google Ads endpoints, $0.0020 a call, each at its own price (listed below). No Google Ads account, cookie or login: one DataXAPI key.
 
 DataXAPI returns public Google Ads data (Google 广告的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 3 Google Ads endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
 
-- Prices: $0.0020 a call, each endpoint at its own price (listed below). A call that fails is never charged.
-- No Google Ads account and no cookie: one DataXAPI key, read from `$DATAXAPI_API_KEY`. Never print it, log it or put it in an address.
-- Finding endpoints, reading their parameters and their prices is free and needs no key.
+What one call returns: `google.advertisers.ads.list` with `id=AR16735076323512287233`, a recorded answer (40 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "AR14547762939695648498/CR16461126525097854516",
+        "url": "https://adstransparency.google.com/advertiser/AR14547762939695648498/creative/CR1646112652…",
+        "format": "image",
+        "advertiser": {
+          "id": "AR15686017776974616421",
+          "name": "Lumen Outdoor"
+        },
+        "first_shown_at": "2023-07-11T16:20:02.000Z",
+        "last_shown_at": "2026-10-12T21:35:00.000Z"
+      }
+    ]
+  },
+  "page": {
+    "returned": 40,
+    "has_more": true,
+    "next_cursor": "c1.1CWjCp9ZBAq_fgH7qoredLVGrA5b_HMkWHgRd8A0"
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.002",
+      "currency": "USD",
+      "balance_after": "9.998"
+    }
+  }
+}
+```
+
+## What to call for which question
+
+- Which ads is this advertiser running on Google? / 这个广告主在 Google 上投了哪些广告？ → `google.advertisers.ads.list` ($0.0020)
+- Find the advertiser behind this brand in Google's ads transparency center. / 在 Google 广告透明度中心里找这个品牌的广告主。 → `google.advertisers.search` ($0.0020)
+- Show the details of this Google ad. / 看这条 Google 广告的详情。 → `google.ads.get` ($0.0020)
+
+When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `google`; if nothing fits, say so instead of calling another platform.
 
 ## Call it three ways
+
+**Command line** (`npm install -g dataxapi`, or `npx dataxapi`), with the key in `$DATAXAPI_API_KEY` (never print it, log it or put it in an address):
+
+```bash
+dataxapi call google.advertisers.ads.list id=AR16735076323512287233 --max-price 0.002
+```
 
 **MCP.** Server `https://api.dataxapi.com/mcp`, header `Authorization: Bearer <key>`. Tools: `find` (with `platform: "google"` it lists this platform's endpoints), `describe` (parameters and price), `call`, `read_more` (free), `account` (balance). Setting the server up: https://dataxapi.com/agents.md
 
 ```json
 {"capability":"google.advertisers.ads.list","id":"AR16735076323512287233","max_price":"0.002"}
-```
-
-**Command line** (`npm install -g dataxapi`, or `npx dataxapi`):
-
-```bash
-dataxapi call google.advertisers.ads.list id=AR16735076323512287233 --max-price 0.002
 ```
 
 **REST:**
@@ -33,15 +74,15 @@ curl -G "https://api.dataxapi.com/v1/google/advertisers/ads/list" \
   -H "Authorization: Bearer $DATAXAPI_API_KEY"
 ```
 
-`google.advertisers.ads.list` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`.
+`google.advertisers.ads.list` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`. Finding endpoints, reading their parameters and their prices is free and needs no key.
 
-## What to call for which question
+## Before you call
 
-- Which ads is this advertiser running on Google? / 这个广告主在 Google 上投了哪些广告？ → `google.advertisers.ads.list` ($0.0020)
-- Find the advertiser behind this brand in Google's ads transparency center. / 在 Google 广告透明度中心里找这个品牌的广告主。 → `google.advertisers.search` ($0.0020)
-- Show the details of this Google ad. / 看这条 Google 广告的详情。 → `google.ads.get` ($0.0020)
-
-When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `google`; if nothing fits, say so instead of calling another platform.
+- **The advertiser ID.** An advertiser is named by AR and a string of digits; the advertiser search finds it by name, in the US when no region is named.
+- **The ad ID.** An ad is named by the advertiser's ID and the creative's joined by a slash (AR…/CR…), as in its link adstransparency.google.com/advertiser/AR…/creative/CR….
+- **What the ad list leaves out.** An advertiser's ad list gives format, dates and a picture; what an ad says, where it leads and its video come from the ad detail.
+- **Gaps the center leaves.** The impressions range is null where the center does not publish it. Where an ad names its destination as a bare domain, it is kept as written in `ext.variations`.
+- **Empty is not “not found”.** An advertiser ID nobody has returns an empty ad list.
 
 ## Every Google Ads endpoint
 

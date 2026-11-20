@@ -1,6 +1,6 @@
 {
   "name": "revenue-skills",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "private": true,
   "description": "Agent skills that find and fix the bugs that cost an app money.",
   "license": "MIT",

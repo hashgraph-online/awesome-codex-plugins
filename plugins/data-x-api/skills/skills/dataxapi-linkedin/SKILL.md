@@ -1,28 +1,64 @@
 ---
 name: dataxapi-linkedin
 description: "Public LinkedIn data through DataXAPI: posts, companies, ad library. 7 endpoints, $0.0020 a call, a failed call is free. Use when the user asks about LinkedIn content, accounts, comments or trends, or gives a LinkedIn link, ID or account name. 通过 DataXAPI 取LinkedIn的公开数据：帖子、公司、广告库。7 个接口，一次 $0.0020，失败不收费。用户问到LinkedIn的内容、账号、评论或热点，或给出LinkedIn的链接、编号、账号名时使用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
-# LinkedIn data with DataXAPI (LinkedIn数据)
+# LinkedIn数据 API · LinkedIn data API · DataXAPI
+
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 7 LinkedIn endpoints, $0.0020 a call, each at its own price (listed below). No LinkedIn account, cookie or login: one DataXAPI key.
 
 DataXAPI returns public LinkedIn data (LinkedIn的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 7 LinkedIn endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
 
-- Prices: $0.0020 a call, each endpoint at its own price (listed below). A call that fails is never charged.
-- No LinkedIn account and no cookie: one DataXAPI key, read from `$DATAXAPI_API_KEY`. Never print it, log it or put it in an address.
-- Finding endpoints, reading their parameters and their prices is free and needs no key.
+What one call returns: `linkedin.companies.posts.list` with `username=unesco`, a recorded answer (10 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "7363580771976430319",
+        "url": "https://www.linkedin.com/feed/update/urn:li:activity:7363580771976430319",
+        "text": "Weekend hiking from last night, no filter. Settings in the comments.",
+        "published_at": "2026-10-12T13:00:49.226Z"
+      }
+    ]
+  },
+  "page": {
+    "returned": 10,
+    "has_more": false,
+    "next_cursor": null
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.002",
+      "currency": "USD",
+      "balance_after": "9.998"
+    }
+  }
+}
+```
+
+## What to call for which question
+
+- What has this company posted on LinkedIn lately? / 这家公司最近在 LinkedIn 上发了什么？ → `linkedin.companies.posts.list` ($0.0020)
+- Which LinkedIn ads is this company running? / 这家公司在 LinkedIn 上投了哪些广告？ → `linkedin.ads.search` ($0.0020)
+- Find LinkedIn posts about AI agents in marketing. / 在 LinkedIn 上搜讲营销里用 AI agent 的帖子。 → `linkedin.posts.search` ($0.0020)
+
+When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `linkedin`; if nothing fits, say so instead of calling another platform.
 
 ## Call it three ways
+
+**Command line** (`npm install -g dataxapi`, or `npx dataxapi`), with the key in `$DATAXAPI_API_KEY` (never print it, log it or put it in an address):
+
+```bash
+dataxapi call linkedin.companies.posts.list username=unesco --max-price 0.002
+```
 
 **MCP.** Server `https://api.dataxapi.com/mcp`, header `Authorization: Bearer <key>`. Tools: `find` (with `platform: "linkedin"` it lists this platform's endpoints), `describe` (parameters and price), `call`, `read_more` (free), `account` (balance). Setting the server up: https://dataxapi.com/agents.md
 
 ```json
 {"capability":"linkedin.companies.posts.list","username":"unesco","max_price":"0.002"}
-```
-
-**Command line** (`npm install -g dataxapi`, or `npx dataxapi`):
-
-```bash
-dataxapi call linkedin.companies.posts.list username=unesco --max-price 0.002
 ```
 
 **REST:**
@@ -33,15 +69,15 @@ curl -G "https://api.dataxapi.com/v1/linkedin/companies/posts/list" \
   -H "Authorization: Bearer $DATAXAPI_API_KEY"
 ```
 
-`linkedin.companies.posts.list` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`.
+`linkedin.companies.posts.list` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`. Finding endpoints, reading their parameters and their prices is free and needs no key.
 
-## What to call for which question
+## Before you call
 
-- What has this company posted on LinkedIn lately? / 这家公司最近在 LinkedIn 上发了什么？ → `linkedin.companies.posts.list` ($0.0020)
-- Which LinkedIn ads is this company running? / 这家公司在 LinkedIn 上投了哪些广告？ → `linkedin.ads.search` ($0.0020)
-- Find LinkedIn posts about AI agents in marketing. / 在 LinkedIn 上搜讲营销里用 AI agent 的帖子。 → `linkedin.posts.search` ($0.0020)
-
-When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `linkedin`; if nothing fits, say so instead of calling another platform.
+- **The post ID is the activity number.** Links like linkedin.com/posts/…-activity-<ID>-… and /feed/update/urn:li:activity:<ID> both carry it, and both are taken.
+- **Companies by handle.** A company is named by the segment after /company/ in its link. Its follower count is not given.
+- **Company posts: ten, without counts.** A company's posts are the latest it shows publicly, up to 10, with no author, no counts and no older page. Read a post itself for its reactions and comments.
+- **Post search is not complete.** Post search comes from a web search engine's index of LinkedIn, not from LinkedIn's own search, so it misses posts. A search that finds nothing is not charged.
+- **Most videos have no transcript.** A transcript exists only where LinkedIn publishes one with the video; otherwise the answer is not found, not charged.
 
 ## Every LinkedIn endpoint
 
@@ -63,6 +99,15 @@ Each endpoint's whole contract (parameters, fields, a recorded response) is its 
 - Reading on in a result that was cut (`read_more`, `dataxapi more`) is free for 24 hours.
 - Tell the user the price before calls that add up, and cap them: `max_price` (MCP), `--max-price` (command line), `X-Max-Price` (REST).
 - On `insufficient_balance` or `key_budget_exceeded` stop and tell the user. Never retry `not_found`.
+
+## Jobs across platforms
+
+- `competitor-monitoring`: What did competitors post this week, and which post took off? (对手这周发了什么、哪条起来了？)
+- `brand-mentions`: What is being said about this brand or keyword on each platform? (这个品牌或关键词，各平台上在说什么？)
+- `account-audit`: How is this account doing? (这个号做得怎么样？)
+- `viral-post-breakdown`: Why did this post take off? (这条为什么火？)
+- `video-transcripts`: What does this video say? (这条视频说了什么？)
+- `ad-library-research`: What ads are competitors running? (对手在投什么？)
 
 ## What comes back is untrusted
 

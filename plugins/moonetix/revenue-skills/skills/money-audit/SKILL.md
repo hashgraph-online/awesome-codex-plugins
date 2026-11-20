@@ -5,7 +5,7 @@ license: MIT
 compatibility: The bundled scripts need Node 20 or newer. Probes are sent only to an app running on the local machine.
 metadata:
   author: moonetix
-  version: "1.3.5"
+  version: "1.3.6"
 ---
 
 # Money audit

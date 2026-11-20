@@ -47,10 +47,16 @@ The core difference: **Graph API gives your agent run status. MCP gives your age
 | [`power-automate-build`](skills/power-automate-build/)           | Build, scaffold, and deploy Power Automate flow definitions from scratch                                       |
 | [`power-automate-monitoring`](skills/power-automate-monitoring/) | Flow health, failure rates, maker inventory, Power Apps, environment and connection counts                     |
 | [`power-automate-governance`](skills/power-automate-governance/) | Classify flows by impact, detect orphans, audit connectors, manage notifications, compute archive scores       |
+| [`power-apps-canvas-mcp`](skills/power-apps-canvas-mcp/)         | Ground rules for the canvas tools — sessions, draft vs live, timeouts. Load first for canvas work              |
+| [`power-apps-canvas-read`](skills/power-apps-canvas-read/)       | Inspect canvas apps — formulas, data sources, formula checks, quality score, version diffs                     |
+| [`power-apps-canvas-edit`](skills/power-apps-canvas-edit/)       | Build and change canvas apps — screens, controls, Power Fx, galleries, data sources                            |
+| [`power-apps-canvas-ship`](skills/power-apps-canvas-ship/)       | Push and publish canvas changes — moved-app refusals, apps that call flows, Power Apps Studio                  |
 
 The first three skills use **live** Power Automate API calls. The monitoring and governance
 skills use the **cached store** — a daily snapshot with aggregated stats, remediation hints,
-and governance metadata. Requires a FlowStudio for Teams or MCP Pro+ subscription for store tools.
+and governance metadata. Requires an MCP Pro+ subscription for store tools.
+The four `power-apps-canvas-*` skills drive the canvas app tools, which are in preview and
+on for every plan.
 
 Each skill follows the [Agent Skills specification](https://agentskills.io/specification)
 and works with any compatible agent.
@@ -107,6 +113,10 @@ $skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/t
 $skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-automate-build
 $skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-automate-monitoring
 $skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-automate-governance
+$skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-apps-canvas-mcp
+$skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-apps-canvas-read
+$skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-apps-canvas-edit
+$skill-installer install https://github.com/ninihen1/power-automate-mcp-skills/tree/main/skills/power-apps-canvas-ship
 ```
 
 Then connect the MCP server in `~/.codex/config.toml`:
@@ -205,9 +215,11 @@ These are from real production investigations, not demos.
 ## Prerequisites
 
 - A [FlowStudio](https://mcp.flowstudio.app) MCP subscription (all live tools)
-- For store tools (monitoring, governance): FlowStudio for Teams or MCP Pro+
+- For store tools (monitoring, governance): MCP Pro+ (not in Microsoft 365 Copilot)
+- For canvas skills: nothing extra; the canvas tools are in preview and on for every plan
 - MCP endpoint: `https://mcp.flowstudio.app/mcp`
-- API key / JWT token (passed as `x-api-key` header)
+- An API key from your dashboard, sent as the `x-api-key` header (`Authorization: Bearer <key>`
+  also works), or the Microsoft sign-in at `https://mcp.flowstudio.app/mcp/oauth` in apps that support it
 
 ## Repository structure
 
@@ -218,6 +230,10 @@ skills/
   power-automate-build/        build & deploy skill
   power-automate-monitoring/   flow health & tenant inventory skill
   power-automate-governance/   compliance & governance skill
+  power-apps-canvas-mcp/       canvas app ground rules (preview)
+  power-apps-canvas-read/      inspect and diagnose canvas apps
+  power-apps-canvas-edit/      build and change canvas apps
+  power-apps-canvas-ship/      push and publish canvas changes
 examples/                      real debugging walkthroughs
 README.md
 LICENSE                        MIT

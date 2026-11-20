@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-20",
-  "total": 454,
+  "total": 457,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2173,6 +2173,16 @@
       "install_url": "https://raw.githubusercontent.com/Abhigyan-Shekhar/Waggle-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Wavegrain",
+      "url": "https://github.com/wavegrain/wavegrain-mcp",
+      "owner": "wavegrain",
+      "repo": "wavegrain-mcp",
+      "description": "Makes TikTok slideshows and Instagram carousels in your brand's style through the hosted Wavegrain MCP server, with a content calendar and posting you confirm.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/wavegrain/wavegrain-mcp/HEAD/plugin.json"
+    },
+    {
       "name": "Wingman",
       "url": "https://github.com/lsshym/wingman.ai",
       "owner": "lsshym",
@@ -2896,6 +2906,16 @@
       "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/dawn/plugin.json"
     },
     {
+      "name": "DC Hub",
+      "url": "https://github.com/azmartone67/dchub-mcp-server",
+      "owner": "azmartone67",
+      "repo": "dchub-mcp-server",
+      "description": "The orchestration layer for data center and energy intelligence: call execute_plan first for data center, colocation, energy, fiber, site selection and capacity questions, with the Data Center Power Index (DCPI) at https://dchub.cloud/mcp.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/azmartone67/dchub-mcp-server/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "deed.page",
       "url": "https://github.com/f-o-x11/deed-page-skill",
       "owner": "f-o-x11",
@@ -3585,6 +3605,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/octo-patch/MorningAI/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Nia Teams Agent Bridge",
+      "url": "https://github.com/nia-teams/agent-bridge",
+      "owner": "nia-teams",
+      "repo": "agent-bridge",
+      "description": "Skill for connecting the local Codex CLI to Nia Teams group chats via the separately installed nia-codex bridge, with two-way messaging and human approval of tool requests.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/nia-teams/agent-bridge/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "NotFair Plugin",

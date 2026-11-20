@@ -18,8 +18,9 @@ license: MIT
 ## Ground rules
 
 - **What to show is the caller's decision.** This skill never chooses, filters, suggests or adds captures. Show exactly the items you, the calling agent, decide to provide. If the user asks to see something, capture it with your own judgment.
+- **Any format, screenshots by default.** Screens, pages and components are reviewed as screenshots. When the thing to review is something else (copy, a README or changelog, an email template, a recording, a PDF), pass the file itself in `shots`: don't screenshot it. Markdown is rendered, text shown as is, HTML and PDF embedded, video played.
 - **One lab per checkout, reused.** Its code (`index.html`) starts as the base template, is branded once with `$PL brand`, then reused. Git worktrees of the same repo keep separate items but share the branding. **Sessions never collide:** the lab belongs to the agent session that writes it (`CLAUDE_CODE_SESSION_ID`, or set `PREVIEW_LAB_SESSION` / `--session <id>` in other agents). Another session on the same checkout gets its own lab (`init` says so) and cannot overwrite this one's items or shots; it takes the main lab over only when that one is idle for a day and not being served.
-- **Always clean.** The lab lives outside the project (`~/.preview-lab/<project>-<hash>/`; `PREVIEW_LAB_HOME` replaces `~/.preview-lab`) and holds only its code, `manifest.json`, the shots the manifest references and the latest feedback. `pl.mjs` deletes everything else, and deletes labs whose checkout is gone. A successful `add` also empties the inbox, so keep nothing there you want to reuse. Never write lab files anywhere else. If the home folder is not writable, `init` falls back to `<project>/.preview-lab/` (git-ignored) and says so.
+- **Always clean.** The lab lives outside the project (`~/.preview-lab/<project>-<hash>/`; `PREVIEW_LAB_HOME` replaces `~/.preview-lab`) and holds only its code, `manifest.json`, the shots the manifest references and the latest feedback. `pl.mjs` deletes everything else. **Labs expire on their own:** any lab untouched for 7 days and not being served is deleted (session labs, labs whose checkout is gone) or emptied with its branding kept (a checkout's main lab, including the one `init` opens, which then says so in `note`). `init` applies this every time; `$PL prune` runs it now, `$PL prune --all` expires every other lab not being served at once. A successful `add` also empties the inbox, so keep nothing there you want to reuse. Never write lab files anywhere else. If the home folder is not writable, `init` falls back to `<project>/.preview-lab/` (git-ignored) and says so.
 - **The user's prompt wins.** Mode, grouping, language, location (`init --in-project`), layout changes: map them onto pl commands, the items JSON or lab code edits.
 - **Mode**: `visual` (default) collects feedback only. Use `complete` (beta) when the user asks for a complete, full or expert review, an audit, recommendations, or what you would improve: you also write `recommendations` per item. Set it with `"mode"` at the top of the items JSON, and read `references/complete-mode.md` before you start.
 
@@ -74,7 +75,7 @@ An item needs at least one of:
 
 | Field | Meaning |
 |---|---|
-| `shots` | Images you already have from any tool (simulator, device, design export). `src` is relative to the JSON file; files in `inbox` are moved in. |
+| `shots` | Files you already have from any tool. Images (`png jpg webp gif avif svg`; simulator, device, design export), video (`mp4 m4v webm mov`), `html`/`htm` (sandboxed), `pdf`, markdown (`md`, rendered) and text (`txt json csv log`). `src` is relative to the JSON file; files in `inbox` are moved in. |
 | `capture` | A recipe pl runs with the installed Chrome, Edge or Chromium. Stored on the item so `recapture` can replay it. |
 | `url` | Adds a **Live** tab that embeds the running page, with responsive tools. Keep that server running during the review. |
 
@@ -114,7 +115,7 @@ Never leave a blocking `serve` in the foreground: a tool-call timeout would kill
 
 The feedback (`$PL feedback` or the serve output) is short markdown:
 - statuses: `approved` or `changes` (none = not reviewed)
-- areas: `<view> @ x, y, w×h` in % of the whole shot image (full height for full-page shots), measured from its top-left corner, plus a note; areas on the live page include the device size. To see what one points at, open `<lab>/shots/<id>--<view>-*.png`.
+- areas: `<view> @ x, y, w×h` in % of the whole shot image (full height for full-page shots; for markdown and text, of the whole rendered document; for video, HTML and PDF, of the visible frame), measured from its top-left corner, plus a note; areas on the live page include the device size. To see what one points at, open `<lab>/shots/<id>--<view>-*.png`.
 - `General`: the round's notes for everything, which may ask for other screens, states or sizes; capture those with your judgment
 - `Apply rec`: accepted recommendations; `Declined recs`: do not suggest those again
 

@@ -4,7 +4,7 @@ The contract that `assets/lab.html` (the base template) already fulfills. `pl.mj
 
 ## Hard rules
 
-- One file: `index.html` with inline CSS and JS, vanilla only. No dependencies, CDNs or build step. Stay under 56 KB.
+- One file: `index.html` with inline CSS and JS, vanilla only. No dependencies, CDNs or build step. Stay under 72 KB.
 - Keep `<meta name="preview-lab-spec" content="4">` in `<head>`.
 - Read data from `window.PL_DATA` when it exists (a file made by `pl.mjs export`: screenshots inlined, no server, no history; **Send** becomes **Copy feedback**). Otherwise read it with `fetch('manifest.json', {cache:'no-store'})`. Fetch it again on `visibilitychange` → visible and re-render while keeping drafts, so items the agent adds appear without a reload. Track the open item by id, not by index.
 - Escape every manifest string before it goes into HTML.
@@ -39,6 +39,7 @@ Branding lives only inside the two `/* BRAND:START … BRAND:END */` blocks, so 
 ```
 
 - An item has `shots`, a `url`, or both. With both, show shots first and add a **Live** tab.
+- A shot without `type` is an image. `type` is set by `pl.mjs` for other files: `video` (player), `html` (iframe, `sandbox="allow-scripts"`), `pdf` (iframe), `md` (rendered by a small built-in renderer: headings, nested and task lists, aligned tables, quotes, code, links, emphasis) and `text` (`<pre>`). These views have no pan/zoom: they get the Live tab's **Annotate** toggle and **Open ↗**. Cards show a video frame, a scaled HTML frame or the type name; the strip shows the title.
 - `scale` is the device pixel ratio of a shot. The 100% view shows it at `naturalWidth / scale`.
 - Approved items never reach the next round: `pl.mjs round` removes them.
 - `history`: every finished round, archived by `pl.mjs round` with its items, shots and the feedback that was sent (no `feedback` if none was). Only the last 5 are kept by default. The lab shows each one read-only.

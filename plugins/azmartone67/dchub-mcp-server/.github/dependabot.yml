@@ -1,0 +1,65 @@
+# Dependabot: keep SHA-pinned workflow actions and the exact-pinned dependency
+# manifests current. Monthly + grouped so it opens a few PRs, not dozens.
+# No workflow here arms auto-merge on Dependabot PRs; each one is reviewed
+# and merged like any other PR.
+#
+# Only releases at least 14 days old are proposed (cooldown, 2026-11-02): a hijacked or broken
+# release is usually caught upstream within days. Security updates are not delayed by it.
+#
+# Major versions are never proposed (owner decision 2026-10-16: #988 mcp 2.x,
+# #990 hono 2, #991 express 5 were closed); a major migration is its own PR.
+# The packages that shape the served tool catalog (MCP SDK, zod, ajv) are kept
+# out of the minor/patch group: #989 bumped zod inside the group and changed
+# the frozen /mcp/claude and /mcp/chatgpt catalogs. They still open, one PR
+# each, so a catalog change is always a deliberate review.
+#
+# zod is ignored outright (owner 2026-10-16, #995 closed): 4.4.2 -> 4.6.7 changed
+# the generated JSON schemas and broke the frozen directory catalog while the
+# ChatGPT directory review is open. Bump zod by hand, with the catalog regenerated.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directories: ["/", "/npm-launcher"]
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+        exclude-patterns:
+          - "@modelcontextprotocol/*"
+          - "zod"
+          - "zod-*"
+          - "ajv"
+          - "ajv-*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "zod"
+      - dependency-name: "zod-*"
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

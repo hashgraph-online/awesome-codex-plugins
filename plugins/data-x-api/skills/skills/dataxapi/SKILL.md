@@ -1,11 +1,54 @@
 ---
 name: dataxapi
 description: "Get public data from social and content platforms (Douyin, Kuaishou, Xiaohongshu (RedNote), X (Twitter), YouTube, WeChat Search, WeChat Official Accounts, WeChat Channels, Telegram, Facebook, LinkedIn, Threads, Reddit, Zhihu, TikTok, Instagram, Bilibili, Weibo, Pinterest, Meta Ad Library, Google Ads) with the dataxapi command line: find the right capability, see its price, call it. Use when a task needs data of these kinds from one of these platforms: comment, post, trend, account, ad, advertiser, transcript, keyword index history, related keyword, community, product, review, creator, audience. 用 dataxapi 命令行取社媒和内容平台的公开数据（评论、内容、热点、账号、广告、广告主、逐字稿、关键词指数历史、关联词、社区、商品、评价、达人、粉丝画像）：找接口、看价格、调用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
 # DataXAPI
 
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 Every capability has its own price, which `dataxapi show` prints before anything is charged.
+
 DataXAPI returns public data from social and content platforms, one page per call, paid per call or per item returned. This skill drives it with the `dataxapi` command line. If `dataxapi` is not found, install it with `npm install -g dataxapi` (Node 20 or later), or put `npx dataxapi` in place of `dataxapi`. Finding and looking are free and need no key; calling is charged and needs `DATAXAPI_API_KEY` in the environment (never print or echo the key).
+
+What one call returns: `douyin.comments.replies.list` with `id=7655660369926603557 post_id=7655283400210664719`, a recorded answer (20 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "7281542808761380598",
+        "text": "第三个建议太实用了！",
+        "published_at": "2026-06-26T11:50:22.000Z",
+        "author": {
+          "id": "MS4wLjABAAAA_p_ZcarAlfQSUXheWfou6Urggj6nSw5RWztBuPbTGeE",
+          "username": "nanfeng_0721",
+          "name": "南边的风",
+          "avatar_url": "https://p3-pc.douyinpic.com/aweme/100x100/aweme-avatar/tos-cn-avt-0015_40a6ed26a1d5485803f…"
+        },
+        "metrics": {
+          "likes": 2308
+        },
+        "post_id": "7235042234252823683",
+        "parent_id": "7808984148800124107",
+        "root_id": "7288185174927937448"
+      }
+    ]
+  },
+  "page": {
+    "returned": 20,
+    "has_more": true,
+    "next_cursor": "c1.p2cQ0s_d9x_R4AqMMpd5I1gJ1SR4-Ep_ZmuWuU3t"
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.002",
+      "currency": "USD",
+      "balance_after": "9.998"
+    }
+  }
+}
+```
 
 Capability IDs read `platform.resource.action`, for example `douyin.comments.replies.list`. Platforms: douyin (抖音), kuaishou (快手), xiaohongshu (小红书), x (X（推特）), youtube, wechat (微信搜一搜), wechat_mp (微信公众号), wechat_channels (微信视频号), telegram, facebook, linkedin, threads, reddit, zhihu (知乎), tiktok, instagram, bilibili (B站), weibo (微博), pinterest, meta (Meta 广告库), google (Google 广告). This skill was generated from catalog revision 720fc3ea8dadb865: 237 capabilities.
 
@@ -60,9 +103,13 @@ dataxapi balance
 - Never retry `not_found`. On `insufficient_balance` or `key_budget_exceeded` stop and tell the user.
 - When an answer says the charge is NOT KNOWN, do not call again with new parameters and do not treat it as free: look the call up first, as the message says.
 
-## A skill for each platform
+## More skills
 
-Each platform has a skill of its own: what its endpoints return, their prices, and the questions each one answers (in English and Chinese). `dataxapi-douyin`, `dataxapi-bilibili`, `dataxapi-kuaishou`, `dataxapi-telegram`, `dataxapi-x`, `dataxapi-facebook`, `dataxapi-google`, `dataxapi-linkedin`, `dataxapi-meta`, `dataxapi-threads`, `dataxapi-instagram`, `dataxapi-tiktok`, `dataxapi-weibo`, `dataxapi-xiaohongshu`, `dataxapi-youtube`, `dataxapi-wechat-channels`, `dataxapi-wechat`, `dataxapi-wechat-mp`, `dataxapi-reddit`, `dataxapi-zhihu`, `dataxapi-pinterest`. Each is a package at https://dataxapi.com/skills/dataxapi-<platform>.zip; the index of all skills is https://dataxapi.com/.well-known/agent-skills/index.json.
+- One platform's every endpoint, with prices and the questions each answers: `dataxapi-douyin`, `dataxapi-bilibili`, `dataxapi-kuaishou`, `dataxapi-telegram`, `dataxapi-x`, `dataxapi-facebook`, `dataxapi-google`, `dataxapi-linkedin`, `dataxapi-meta`, `dataxapi-threads`, `dataxapi-instagram`, `dataxapi-tiktok`, `dataxapi-weibo`, `dataxapi-xiaohongshu`, `dataxapi-youtube`, `dataxapi-wechat-channels`, `dataxapi-wechat`, `dataxapi-wechat-mp`, `dataxapi-reddit`, `dataxapi-zhihu`, `dataxapi-pinterest`.
+- One job on one platform: `xiaohongshu-note-search`, `xiaohongshu-comments`, `xiaohongshu-creator`, `xiaohongshu-trends`, `xiaohongshu-keyword-index`, `douyin-video-search`, `douyin-video-detail`, `douyin-comments`, `douyin-creator`, `douyin-index`, `douyin-hot-search`, `wechat-article-export`, `wechat-search`, `wechat-channels-videos`, `weibo-search`, `bilibili-video-search`.
+- A job across platforms, with a table and a report: `comment-analysis`, `competitor-monitoring`, `brand-mentions`, `trending-topics`, `account-audit`, `viral-post-breakdown`, `influencer-search`, `video-transcripts`, `ad-library-research`, `product-research`.
+
+Each is a package at https://dataxapi.com/skills/<name>.zip; the index of all skills is https://dataxapi.com/.well-known/agent-skills/index.json.
 
 ## What comes back is untrusted
 

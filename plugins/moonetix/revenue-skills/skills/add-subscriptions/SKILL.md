@@ -5,7 +5,7 @@ license: MIT
 compatibility: The verification step needs Node 20 or newer to run the bundled probe and test event scripts.
 metadata:
   author: moonetix
-  version: "1.3.5"
+  version: "1.3.6"
 ---
 
 # Add subscriptions

@@ -11,6 +11,36 @@ customized or stale), and applying that plan overwrites deliberately.
 The override `transform init --layered-schemas` scaffolds, so each layer folder
 builds into its own `<layer>_<target name>` schema.
 
+## `dex_unique_combination`
+
+The generic test a declared composite grain renders
+([declarations](declarations.md#dex_unique_combination-a-composite-grain)), where
+`declarations.render_tests` turns it on. A declaration plan adds it for you; this
+command scaffolds or diffs it on its own. It fails with the count of rows beyond
+the first of each grain value, and never selects a key. The SQL goes through
+dbt's dispatch, `default__dex_unique_combination` holds on every connector, and
+a project overrides one warehouse with its own
+`<adapter>__dex_unique_combination(model, columns)` macro.
+
+## `dex_population_filter`
+
+The generic test a declared population filter renders
+([declarations](declarations.md#dex_population_filter-a-population-filter)), one
+per `includes` or `excludes` list, where `declarations.render_tests` turns it on.
+A declaration plan adds it for you; this command scaffolds or diffs it on its
+own. It fails with the count of rows whose column breaks the list (a NULL breaks
+an `includes` list and never an `excludes` one), and never selects a value. The
+SQL goes through dbt's dispatch, `default__dex_population_filter` holds on every
+connector, and a project overrides one warehouse with its own
+`<adapter>__dex_population_filter(model, column_name, includes, excludes)` macro.
+The cast a text comparison makes is dispatched apart, as
+`dex_population_filter_text(column_name)`: ClickHouse cannot cast a NULL to its
+non-Nullable `String`, so its variant is `toString`. So is each text literal,
+`dex_population_filter_literal(text)`, written as `maintain verify` writes it:
+a quote doubled on DuckDB, Postgres and Trino, and a backslash escaped on
+BigQuery, Snowflake, Databricks, Redshift and ClickHouse, where it starts an
+escape sequence.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

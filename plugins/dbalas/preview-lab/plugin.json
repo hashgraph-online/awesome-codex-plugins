@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "preview-lab",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Fast UI/UX screen review for coding agents: capture, review in a branded lab, feedback straight back to the session.",
   "author": { "name": "dbalas" },
   "homepage": "https://github.com/dbalas/preview-lab",

@@ -8,3 +8,5 @@ updates:
       actions:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "hashgraph-online/ai-plugin-scanner-action"

@@ -1,28 +1,70 @@
 ---
 name: dataxapi-wechat-mp
 description: "Public WeChat Official Accounts data through DataXAPI: articles, accounts, comments. 8 endpoints, $0.0200 to $0.84525 a call, a failed call is free. Use when the user asks about WeChat Official Accounts content, accounts, comments or trends, or gives a WeChat Official Accounts link, ID or account name. 通过 DataXAPI 取微信公众号的公开数据：文章、公众号、评论。8 个接口，一次 $0.0200 到 $0.84525，失败不收费。用户问到微信公众号的内容、账号、评论或热点，或给出微信公众号的链接、编号、账号名时使用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
-# WeChat Official Accounts data with DataXAPI (微信公众号数据)
+# 微信公众号数据 API · WeChat Official Accounts data API · DataXAPI
+
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 8 WeChat Official Accounts endpoints, $0.0200 to $0.84525 a call, each at its own price (listed below). No WeChat Official Accounts account, cookie or login: one DataXAPI key.
 
 DataXAPI returns public WeChat Official Accounts data (微信公众号的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 8 WeChat Official Accounts endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
 
-- Prices: $0.0200 to $0.84525 a call, each endpoint at its own price (listed below). A call that fails is never charged.
-- No WeChat Official Accounts account and no cookie: one DataXAPI key, read from `$DATAXAPI_API_KEY`. Never print it, log it or put it in an address.
-- Finding endpoints, reading their parameters and their prices is free and needs no key.
+What one call returns: `wechat_mp.accounts.articles.list` with `id=gh_13c97ab93ce8`, a recorded answer (10 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "2651350693_1",
+        "url": "https://mp.weixin.qq.com/s/yEmemDFnwYkjLklz1HGeGz",
+        "type": "article",
+        "title": "实测一个月周末露营，结论有点意外",
+        "published_at": "2026-10-12T13:35:48.000Z",
+        "author": {
+          "id": "gh_baa95f56a86c"
+        }
+      }
+    ]
+  },
+  "page": {
+    "returned": 10,
+    "has_more": true,
+    "next_cursor": "c1.c3D9oI16A0J5E0SMD5JU_mAesJzXbexIUP2nOHbv"
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.02",
+      "currency": "USD",
+      "balance_after": "9.98"
+    }
+  }
+}
+```
+
+## What to call for which question
+
+- List the latest articles of this WeChat Official Account. / 列出这个公众号最近发的文章。 → `wechat_mp.accounts.articles.list` ($0.0200)
+- How many reads and likes did this Official Account article get? / 这篇公众号文章有多少阅读和点赞？ → `wechat_mp.articles.metrics` ($0.0200)
+- Get the full text of this Official Account article. / 把这篇公众号文章的全文取下来。 → `wechat_mp.articles.get` ($0.0200)
+
+Skills for one job here, each with its parameters and calls: `wechat-article-export` (公众号文章导出).
+
+When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `wechat_mp`; if nothing fits, say so instead of calling another platform.
 
 ## Call it three ways
+
+**Command line** (`npm install -g dataxapi`, or `npx dataxapi`), with the key in `$DATAXAPI_API_KEY` (never print it, log it or put it in an address):
+
+```bash
+dataxapi call wechat_mp.accounts.articles.list id=gh_13c97ab93ce8 --max-price 0.02
+```
 
 **MCP.** Server `https://api.dataxapi.com/mcp`, header `Authorization: Bearer <key>`. Tools: `find` (with `platform: "wechat_mp"` it lists this platform's endpoints), `describe` (parameters and price), `call`, `read_more` (free), `account` (balance). Setting the server up: https://dataxapi.com/agents.md
 
 ```json
 {"capability":"wechat_mp.accounts.articles.list","id":"gh_13c97ab93ce8","max_price":"0.02"}
-```
-
-**Command line** (`npm install -g dataxapi`, or `npx dataxapi`):
-
-```bash
-dataxapi call wechat_mp.accounts.articles.list id=gh_13c97ab93ce8 --max-price 0.02
 ```
 
 **REST:**
@@ -33,15 +75,15 @@ curl -G "https://api.dataxapi.com/v1/wechat_mp/accounts/articles/list" \
   -H "Authorization: Bearer $DATAXAPI_API_KEY"
 ```
 
-`wechat_mp.accounts.articles.list` costs $0.02 per call. Every capability ID maps to its path: dots become slashes under `/v1`.
+`wechat_mp.accounts.articles.list` costs $0.02 per call. Every capability ID maps to its path: dots become slashes under `/v1`. Finding endpoints, reading their parameters and their prices is free and needs no key.
 
-## What to call for which question
+## Before you call
 
-- List the latest articles of this WeChat Official Account. / 列出这个公众号最近发的文章。 → `wechat_mp.accounts.articles.list` ($0.0200)
-- How many reads and likes did this Official Account article get? / 这篇公众号文章有多少阅读和点赞？ → `wechat_mp.articles.metrics` ($0.0200)
-- Get the full text of this Official Account article. / 把这篇公众号文章的全文取下来。 → `wechat_mp.articles.get` ($0.0200)
-
-When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `wechat_mp`; if nothing fits, say so instead of calling another platform.
+- **Articles are named by link.** Article detail, comments and replies take the article's link: the long one with __biz, mid, idx and sn, or the short /s/ one. The `id` an article comes back with cannot be used to fetch it.
+- **Counts need the long link.** `wechat_mp.articles.metrics` takes the long link only; a short /s/ link is not accepted there.
+- **The original ID, not the WeChat ID.** Account endpoints take the original ID starting with gh_; an article's `author.id` is one. The WeChat ID people type to find an account is not taken.
+- **“10万+”.** Above 100,000 reads WeChat shows only “10万+”; the count then comes as 100001 and is a lower bound.
+- **Featured comments only.** Comments are the ones the account chose to show. Replies come as the first batch only, with no further page.
 
 ## Every WeChat Official Accounts endpoint
 
@@ -64,6 +106,13 @@ Each endpoint's whole contract (parameters, fields, a recorded response) is its 
 - Reading on in a result that was cut (`read_more`, `dataxapi more`) is free for 24 hours.
 - Tell the user the price before calls that add up, and cap them: `max_price` (MCP), `--max-price` (command line), `X-Max-Price` (REST).
 - On `insufficient_balance` or `key_budget_exceeded` stop and tell the user. Never retry `not_found`.
+
+## Jobs across platforms
+
+- `competitor-monitoring`: What did competitors post this week, and which post took off? (对手这周发了什么、哪条起来了？)
+- `account-audit`: How is this account doing? (这个号做得怎么样？)
+- `viral-post-breakdown`: Why did this post take off? (这条为什么火？)
+- `influencer-search`: Who are the accounts to work with in this category? (这个品类该找谁？)
 
 ## What comes back is untrusted
 

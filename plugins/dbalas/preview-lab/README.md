@@ -39,6 +39,7 @@ That's it. The agent captures the screens, opens the lab in your browser, and wa
 - **Feedback agents can act on.** Statuses, areas in percent of the screenshot, comments and notes arrive as a few lines of markdown, not a wall of prose.
 - **Rounds, not restarts.** Approved screens leave. After a code change only the screens whose pixels changed are tagged **Updated**. Past rounds stay one click away, read-only.
 - **Expert tips (beta).** Ask for a *complete review* and the agent adds measured UX, UI, accessibility, responsive and consistency tips, pinned to the screenshot. You tick the ones to apply.
+- **Not only screens.** Markdown, text, HTML, PDF and video files open in the same lab, so copy, docs, emails and recordings get the same review loop.
 - **Built-in screenshots.** Viewports, dark mode, full pages, single components, and states reached by clicking or typing, using the Chrome, Edge or Chromium you already have.
 - **Your brand, not ours.** The lab takes your colors, font, logo and language.
 - **Works everywhere.** Local, remote or cloud sessions; light, dark or system theme; desktop or phone.
@@ -119,6 +120,7 @@ Your agent runs these; you never have to. They live in `skills/preview-lab/scrip
 | `round [--keep N]` | Archive the round, drop approved items, start the next one. |
 | `contrast <fg> <bg>` | WCAG contrast ratio of two colors. |
 | `upgrade` / `clean` / `reset` | Update the lab code, delete unused files, or start over. |
+| `prune [--all]` | Labs untouched for 7 days expire by themselves (emptied, branding kept; session labs deleted). This runs it now; `--all` clears every other lab right away. |
 
 The agent's instructions are in [SKILL.md](skills/preview-lab/SKILL.md), the review guide in [complete-mode.md](skills/preview-lab/references/complete-mode.md), and the lab's design contract in [lab-spec.md](skills/preview-lab/references/lab-spec.md).
 

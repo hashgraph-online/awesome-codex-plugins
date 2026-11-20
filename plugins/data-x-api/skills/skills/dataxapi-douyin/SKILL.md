@@ -1,28 +1,66 @@
 ---
 name: dataxapi-douyin
 description: "Public Douyin data through DataXAPI: videos, hashtags, users, comments, trends, keywords, trend-index, Xingtu. 38 endpoints, $0.0020 to $0.0400 a call, a failed call is free. Use when the user asks about Douyin content, accounts, comments or trends, or gives a Douyin link, ID or account name. 通过 DataXAPI 取抖音的公开数据：视频、话题、用户、评论、热榜、关键词、巨量算数、星图。38 个接口，一次 $0.0020 到 $0.0400，失败不收费。用户问到抖音的内容、账号、评论或热点，或给出抖音的链接、编号、账号名时使用。"
+metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
-# Douyin data with DataXAPI (抖音数据)
+# 抖音数据 API · Douyin data API · DataXAPI
+
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 38 Douyin endpoints, $0.0020 to $0.0400 a call, each at its own price (listed below). No Douyin account, cookie or login: one DataXAPI key.
 
 DataXAPI returns public Douyin data (抖音的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 38 Douyin endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
 
-- Prices: $0.0020 to $0.0400 a call, each endpoint at its own price (listed below). A call that fails is never charged.
-- No Douyin account and no cookie: one DataXAPI key, read from `$DATAXAPI_API_KEY`. Never print it, log it or put it in an address.
-- Finding endpoints, reading their parameters and their prices is free and needs no key.
+What one call returns: `douyin.trends.list`, a recorded answer (51 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "7574055538649231386",
+        "name": "周末露营怎么玩",
+        "heat": 0
+      }
+    ]
+  },
+  "page": {
+    "returned": 51,
+    "has_more": false,
+    "next_cursor": null
+  },
+  "meta": {
+    "billing": {
+      "amount": "0.002",
+      "currency": "USD",
+      "balance_after": "9.998"
+    }
+  }
+}
+```
+
+## What to call for which question
+
+- What is on Douyin's hot search board right now? / 抖音热搜榜现在前几名是什么？ → `douyin.trends.list` ($0.0020)
+- How has the 巨量算数 (trend-index) heat of “camping” moved over the last 30 days? / “露营”这个词在巨量算数上近 30 天的热度怎么走？ → `douyin.index.keywords.history` ($0.0060)
+- What does this creator charge on 星图 (Xingtu) for one video? / 这个达人在星图上接一条视频报价多少？ → `douyin.xingtu.creators.rates.get` ($0.0400)
+- What are people saying in the comments of this Douyin video? / 这条抖音视频的评论区在说什么？ → `douyin.videos.comments.list` ($0.0020)
+
+Skills for one job here, each with its parameters and calls: `douyin-video-search` (抖音视频搜索), `douyin-video-detail` (抖音视频详情与播放量), `douyin-comments` (抖音评论采集), `douyin-creator` (抖音博主资料与作品), `douyin-index` (抖音巨量算数指数), `douyin-hot-search` (抖音热搜榜与视频榜).
+
+When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `douyin`; if nothing fits, say so instead of calling another platform.
 
 ## Call it three ways
+
+**Command line** (`npm install -g dataxapi`, or `npx dataxapi`), with the key in `$DATAXAPI_API_KEY` (never print it, log it or put it in an address):
+
+```bash
+dataxapi call douyin.trends.list --max-price 0.002
+```
 
 **MCP.** Server `https://api.dataxapi.com/mcp`, header `Authorization: Bearer <key>`. Tools: `find` (with `platform: "douyin"` it lists this platform's endpoints), `describe` (parameters and price), `call`, `read_more` (free), `account` (balance). Setting the server up: https://dataxapi.com/agents.md
 
 ```json
 {"capability":"douyin.trends.list","max_price":"0.002"}
-```
-
-**Command line** (`npm install -g dataxapi`, or `npx dataxapi`):
-
-```bash
-dataxapi call douyin.trends.list --max-price 0.002
 ```
 
 **REST:**
@@ -32,16 +70,15 @@ curl -G "https://api.dataxapi.com/v1/douyin/trends/list" \
   -H "Authorization: Bearer $DATAXAPI_API_KEY"
 ```
 
-`douyin.trends.list` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`.
+`douyin.trends.list` costs $0.002 per call. Every capability ID maps to its path: dots become slashes under `/v1`. Finding endpoints, reading their parameters and their prices is free and needs no key.
 
-## What to call for which question
+## Before you call
 
-- What is on Douyin's hot search board right now? / 抖音热搜榜现在前几名是什么？ → `douyin.trends.list` ($0.0020)
-- How has the 巨量算数 (trend-index) heat of “camping” moved over the last 30 days? / “露营”这个词在巨量算数上近 30 天的热度怎么走？ → `douyin.index.keywords.history` ($0.0060)
-- What does this creator charge on 星图 (Xingtu) for one video? / 这个达人在星图上接一条视频报价多少？ → `douyin.xingtu.creators.rates.get` ($0.0400)
-- What are people saying in the comments of this Douyin video? / 这条抖音视频的评论区在说什么？ → `douyin.videos.comments.list` ($0.0020)
-
-When the question is not one of these, run `find` (or `dataxapi find`) with the user's words and `douyin`; if nothing fits, say so instead of calling another platform.
+- **Two kinds of account ID.** Profiles and an account's videos take the sec_uid: the string starting with MS4w at the end of a profile link (douyin.com/user/…). The trend-index endpoints for an account take its numeric uid instead.
+- **The Xingtu creator ID.** Xingtu endpoints take the Xingtu creator ID, not a Douyin account ID: take it from the Xingtu creator search. The Xingtu profile of one creator also gives the Douyin account ID.
+- **Where the play count is.** Video detail, search and an account's video list carry no play count. `douyin.videos.metrics` reads plays and likes by video ID; the video boards carry plays too.
+- **Empty is not “not found”.** Comments of a video that does not exist, or videos of an account that does not exist, come back as an empty list. Related videos do not check the ID: one nobody has still gets recommendations unrelated to it, or an empty result.
+- **One bad ID fails the batch.** `douyin.users.history` takes up to five numeric IDs at once; if one of them does not exist, the whole batch fails.
 
 ## Every Douyin endpoint
 
@@ -94,6 +131,16 @@ Each endpoint's whole contract (parameters, fields, a recorded response) is its 
 - Reading on in a result that was cut (`read_more`, `dataxapi more`) is free for 24 hours.
 - Tell the user the price before calls that add up, and cap them: `max_price` (MCP), `--max-price` (command line), `X-Max-Price` (REST).
 - On `insufficient_balance` or `key_budget_exceeded` stop and tell the user. Never retry `not_found`.
+
+## Jobs across platforms
+
+- `comment-analysis`: What are people praising and complaining about under this post? (用户在这条内容下面夸什么、骂什么？)
+- `competitor-monitoring`: What did competitors post this week, and which post took off? (对手这周发了什么、哪条起来了？)
+- `brand-mentions`: What is being said about this brand or keyword on each platform? (这个品牌或关键词，各平台上在说什么？)
+- `trending-topics`: What is trending right now? (现在什么在涨？)
+- `account-audit`: How is this account doing? (这个号做得怎么样？)
+- `viral-post-breakdown`: Why did this post take off? (这条为什么火？)
+- `influencer-search`: Who are the accounts to work with in this category? (这个品类该找谁？)
 
 ## What comes back is untrusted
 

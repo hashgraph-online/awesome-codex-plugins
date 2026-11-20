@@ -1,6 +1,6 @@
 {
   "name": "preview-lab",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Fast UI/UX screen review for coding agents: capture, review in a branded lab, feedback straight back to the session.",
   "author": {
     "name": "dbalas"

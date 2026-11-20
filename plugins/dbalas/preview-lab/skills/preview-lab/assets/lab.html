@@ -96,6 +96,13 @@ dialog::backdrop{background:rgb(0 0 0/.55)}
 .view.pz{overflow:hidden;cursor:grab;touch-action:pan-y}.view.pz.zoomed{touch-action:none}.view.space .overlay{cursor:grab}.view.panning,.view.panning *{cursor:grabbing!important}.view.actual .canvas{margin:0 auto}
 .canvas img{display:block;max-width:calc(100vw - 490px);max-height:calc(100dvh - 200px);border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35);user-select:none}
 .view.actual .canvas img{max-width:none;max-height:none}
+.canvas.doc{line-height:1.6}.doc video,.doc .docf{display:block;max-width:calc(100vw - 490px);max-height:calc(100dvh - 200px);border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35)}
+.doc video{background:#000}.doc .docf{width:calc(100vw - 490px);height:calc(100dvh - 200px);border:0;background:#fff}
+.doc .md{width:min(780px,calc(100vw - 490px));padding:1.6rem 2.2rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere}
+.md>:first-child{margin-top:0}.md pre{white-space:pre-wrap;padding:.8rem 1rem;border-radius:6px;background:color-mix(in srgb,var(--fg) 6%,transparent);font-size:.85em}.md pre.raw{padding:0;background:none}
+.md .tbl{overflow-x:auto;margin:1em 0}.md table{border-collapse:collapse;min-width:100%;font-size:.92em}.md th,.md td{border:1px solid var(--line);padding:.4rem .65rem;text-align:left;vertical-align:top}.md th{background:color-mix(in srgb,var(--fg) 6%,transparent)}
+.md li.task{list-style:none;margin-left:-1.3em}.md li>ul,.md li>ol{margin:.2em 0}.md :not(pre)>code{padding:.1em .35em;border-radius:4px;background:color-mix(in srgb,var(--fg) 8%,transparent);font-size:.9em}.md blockquote{margin:0;padding-left:1rem;border-left:3px solid var(--line);color:var(--muted)}.md img{max-width:100%}.md a{color:var(--accent)}
+.ftype{display:grid;place-items:center;height:100%;font:700 1.4rem var(--font);letter-spacing:.08em;color:var(--muted)}.thumb video{width:100%;height:100%;object-fit:cover}
 .frame{position:relative;overflow:hidden;border-radius:8px;box-shadow:0 8px 40px -12px rgb(0 0 0/.35);background:#fff}
 .frame iframe{border:0;transform-origin:0 0;display:block}
 .overlay{position:absolute;inset:0;cursor:crosshair;touch-action:none}.live .overlay{pointer-events:none}
@@ -151,7 +158,7 @@ dialog::backdrop{background:rgb(0 0 0/.55)}
 .done{text-align:center}.done i{font-size:3rem;font-style:normal;color:var(--accent);line-height:1}.done h2{margin:.3rem 0}.done .row{justify-content:center;margin-top:1rem}
 @media (max-width:860px){.detail{display:block;height:auto}.vw{flex:none;height:60dvh}.panel{border-left:0;border-top:1px solid var(--line)}
   .top,.pfoot{position:sticky;z-index:3}.top{top:0;background:var(--bg);padding-right:3.6rem}.pfoot{bottom:0;background:var(--surface)}
-  .view{padding:.75rem 2.8rem}.canvas img{max-width:calc(100vw - 6rem);max-height:calc(60dvh - 1.5rem)}.meter,.nl{display:none}.bar,main{padding-left:1rem;padding-right:1rem}}
+  .view{padding:.75rem 2.8rem}.canvas img,.doc video,.doc .docf{max-width:calc(100vw - 6rem);max-height:calc(60dvh - 1.5rem)}.doc .docf{width:calc(100vw - 6rem);height:calc(60dvh - 1.5rem)}.doc .md{width:calc(100vw - 6rem);padding:1rem 1.2rem}.meter,.nl{display:none}.bar,main{padding-left:1rem;padding-right:1rem}}
 @media (max-width:600px){.bar{gap:.5rem}.progress,.brand p,#copy{display:none}.actions{gap:.15rem}.actions .ghost{padding:0 .55rem}.grid{grid-template-columns:1fr}
   .top{padding:.5rem 3.4rem .5rem .75rem;gap:.35rem}.top kbd{display:none}.verdict button{padding:.6rem .55rem}.verdict kbd{display:none}.pfoot .hint:nth-child(2){display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -306,7 +313,7 @@ const tagOf = it => view > 1 ? (it.added === view ? 'isNew' : it.updated === vie
 function card(it, n) {
   const s = it.shots?.[0], nviews = (it.shots?.length || 0) + (it.url ? 1 : 0), tag = tagOf(it);
   return `<button class="card" data-n="${n}">
-    <div class="thumb">${s ? `<img src="${esc(s.src)}" alt="" loading="lazy">` : it.url ? `<iframe src="${esc(it.url)}" loading="lazy" tabindex="-1" title="" aria-hidden="true"></iframe>` : ''}</div>
+    <div class="thumb">${s ? thumb(s) : it.url ? `<iframe src="${esc(it.url)}" loading="lazy" tabindex="-1" title="" aria-hidden="true"></iframe>` : ''}</div>
     <div class="meta"><div class="mrow"><b>${esc(it.title)}</b><span class="st" hidden></span></div><span class="sub">${tag ? `<span class="badge">${esc(T[tag])}</span>` : ''}${it.route ? `<code>${esc(it.route)}</code>` : ''}${nviews > 1 ? `<span>${nviews} ${esc(T.views)}</span>` : it.url && !s ? `<span>${esc(T.live)}</span>` : ''}
       ${recPill(it.recommendations)}<span class="cm"></span></span></div></button>`;
 }
@@ -349,6 +356,54 @@ function refresh() {
 }
 
 /* detail */
+// Shots are images by default; pl.mjs sets `type` on other files: video, html, pdf, md, text.
+const thumb = s => !s.type ? `<img src="${esc(s.src)}" alt="" loading="lazy">` : s.type === 'video' ? `<video src="${esc(s.src)}#t=0.1" muted preload="metadata" tabindex="-1"></video>`
+  : s.type === 'html' ? `<iframe src="${esc(s.src)}" sandbox loading="lazy" tabindex="-1" title="" aria-hidden="true"></iframe>` : `<span class="ftype">${esc(s.type.toUpperCase())}</span>`;
+const annot = v => v && (v.kind === 'live' || !!v.type); // views marked with the Annotate toggle instead of directly
+// Small markdown renderer: headings, nested and task lists, tables (with alignment), quotes, fenced code, hr, links, images, emphasis.
+function md(src) {
+  const link = (t, u) => /^(https?:|mailto:|#)/i.test(u) ? `<a href="${u}" target="_blank" rel="noopener">${t}</a>` : t;
+  const inl = x => esc(x).split(/(`[^`]+`)/).map((p, k) => k % 2 ? `<code>${p.slice(1, -1)}</code>` : p // nothing is formatted inside code spans
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, a, u) => /^https?:/i.test(u) ? `<img alt="${a}" src="${u}">` : a).replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, t, u) => link(t, u))
+    .replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, '<b>$1$2</b>').replace(/~~([^~]+)~~/g, '<s>$1</s>').replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?![\w*])/g, '$1<i>$2</i>')).join('');
+  const L = src.replace(/\r/g, '').replace(/\t/g, '    ').split('\n'), out = [], li = /^\s*([-*+]|\d+[.)])\s+/, ind = x => x.match(/^ */)[0].length; const hr = /^\s*([-*_])(\s*\1){2,}\s*$/;
+  const sep = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/, isTable = i => L[i].includes('|') && sep.test(L[i + 1] || '') && cells(L[i]).length === cells(L[i + 1]).length;
+  const stop = i => /^(#{1,6}\s|```|>)/.test(L[i]) || li.test(L[i]) || isTable(i);
+  const cells = x => x.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
+  const list = i => { // one list level; deeper-indented items nest inside the item above
+    const n = ind(L[i]), ol = /^\s*\d/.test(L[i]), same = j => li.test(L[j] || '') && ind(L[j]) === n && /^\s*\d/.test(L[j]) === ol, start = parseInt(L[i].trim(), 10), items = [];
+    while (i < L.length && same(i)) { // a different marker type starts a new list
+      let t = L[i++].replace(li, ''), sub = '';
+      while (i < L.length && L[i].trim() && !li.test(L[i]) && ind(L[i]) > n) t += ' ' + L[i++].trim(); // wrapped text
+      while (i < L.length && li.test(L[i]) && ind(L[i]) > n) { const [h, j] = list(i); sub += h; i = j; }
+      const task = /^\[([ xX])\]\s+/.exec(t);
+      items.push(task ? `<li class="task"><input type="checkbox" disabled ${task[1] === ' ' ? '' : 'checked'}> ${inl(t.slice(task[0].length))}${sub}</li>` : `<li>${inl(t)}${sub}</li>`);
+      if (i < L.length && !L[i].trim() && (same(i + 1) || li.test(L[i + 1] || '') && ind(L[i + 1]) > n)) i++; // a blank line inside a loose list
+    }
+    return [ol ? `<ol${start !== 1 ? ` start="${start}"` : ''}>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`, i];
+  };
+  for (let i = 0; i < L.length;) {
+    const l = L[i]; let m, b = [];
+    if (/^\s*```/.test(l)) { while (++i < L.length && !/^\s*```/.test(L[i])) b.push(L[i]); i++; out.push(`<pre><code>${esc(b.join('\n'))}</code></pre>`); }
+    else if ((m = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/.exec(l))) { out.push(`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`); i++; }
+    else if (hr.test(l)) { out.push('<hr>'); i++; }
+    else if (isTable(i)) {
+      const al = cells(L[i + 1]).map(c => /^:-+:$/.test(c) ? 'center' : /-:$/.test(c) ? 'right' : /^:/.test(c) ? 'left' : '');
+      const row = (x, t) => `<tr>${al.map((a, k) => cells(x)[k] ?? '').map((c, k) => `<${t}${al[k] ? ` style="text-align:${al[k]}"` : ''}>${inl(c)}</${t}>`).join('')}</tr>`, head = row(l, 'th');
+      for (i += 2; i < L.length && L[i].includes('|') && L[i].trim(); i++) b.push(row(L[i], 'td'));
+      out.push(`<div class="tbl"><table><thead>${head}</thead><tbody>${b.join('')}</tbody></table></div>`);
+    }
+    else if (li.test(l)) { const [h, j] = list(i); out.push(h); i = j; }
+    else if (/^\s*>/.test(l)) { while (i < L.length && /^\s*>/.test(L[i])) b.push(L[i++].replace(/^\s*>\s?/, '')); out.push(`<blockquote>${md(b.join('\n'))}</blockquote>`); }
+    else if (l.trim()) {
+      do b.push(L[i++]); while (i < L.length && L[i].trim() && !stop(i) && !hr.test(L[i]) && !/^\s*=+\s*$/.test(L[i]));
+      const t = inl(b.join('\n')).replace(/\n/g, ' '), st = /^\s*(=+|-+)\s*$/.exec(L[i] || ''); // text underlined with === or --- is a heading
+      if (st) { const h = st[1][0] === '=' ? 1 : 2; out.push(`<h${h}>${t}</h${h}>`); i++; } else out.push(`<p>${t}</p>`);
+    }
+    else i++;
+  }
+  return out.join('');
+}
 const views = it => [...(it.shots || []).map(s => ({ ...s, kind: 'shot' })), ...(it.url ? [{ label: T.live, kind: 'live', src: it.url }] : [])];
 // Areas on the live page only make sense at the size they were marked at.
 const viewLabel = () => { const v = views(items[cur])[tab]; return v.kind === 'live' ? `Live ${dev.w}×${dev.h}` : v.label; };
@@ -358,7 +413,7 @@ function show(n, keepTab) {
   if (!keepTab || tab >= vs.length) tab = 0;
   $('#tabs').innerHTML = vs.map((x, k) => `<button class="pill sm" aria-pressed="${k === tab}" data-k="${k}">${esc(x.label)}</button>`).join('');
   if (!$('#dlg').open) $('#dlg').showModal(); // open first: the live frame is sized from the visible stage
-  $('#strip').innerHTML = items.map((x, k) => `<button data-k="${k}" aria-current="${k === cur}" aria-label="${esc(x.title)}">${x.shots ? `<img src="${esc(x.shots[0].src)}" alt="">` : esc(x.title)}<i class="dot" style="background:${color(S(x).status)}"></i></button>`).join('');
+  $('#strip').innerHTML = items.map((x, k) => `<button data-k="${k}" aria-current="${k === cur}" aria-label="${esc(x.title)}">${x.shots && !x.shots[0].type ? `<img src="${esc(x.shots[0].src)}" alt="">` : esc(x.title)}<i class="dot" style="background:${color(S(x).status)}"></i></button>`).join('');
   $('#strip').children[cur]?.scrollIntoView({ block: 'nearest', inline: 'center' });
   drawStage(it, vs[tab]); // after the strip: the live frame is sized from the space left
   const cat = ((past || M).categories || []).find(c => c.id === it.category), recs = bySev(it.recommendations), p = it.previous, tag = tagOf(it);
@@ -378,12 +433,18 @@ function show(n, keepTab) {
 }
 
 function drawStage(it, v) {
-  const c = $('#canvas'), view = $('#view'), live = v?.kind === 'live';
-  view.classList.toggle('actual', !live && !fit); view.classList.toggle('pz', !!v && !live); resetPZ();
-  c.className = 'canvas' + (live ? ' live' : '');
+  const c = $('#canvas'), view = $('#view'), live = v?.kind === 'live', doc = !live && !!v?.type, ov = '<div class="overlay" id="overlay"></div>';
+  view.classList.toggle('actual', !live && !doc && !fit); view.classList.toggle('pz', !!v && !live && !doc); resetPZ();
+  c.className = 'canvas' + (live || doc ? ' live' : '') + (doc ? ' doc' : '');
   if (live) {
     const z = zoom || Math.min(1, (view.clientWidth - 112) / dev.w, (view.clientHeight - 32) / dev.h);
     c.innerHTML = `<div class="frame" style="width:${dev.w * z}px;height:${dev.h * z}px"><iframe src="${esc(v.src)}" title="${esc(it.title)}" style="width:${dev.w}px;height:${dev.h}px;transform:scale(${z})"></iframe><div class="overlay" id="overlay"></div></div>`;
+  } else if (doc) {
+    const t = v.type, src = esc(v.src);
+    c.innerHTML = (t === 'video' ? `<video src="${src}" controls playsinline></video>` : t === 'html' ? `<iframe class="docf" src="${src}" sandbox="allow-scripts" title="${esc(it.title)}"></iframe>`
+      : t === 'pdf' ? `<iframe class="docf" src="${src}" title="${esc(it.title)}"></iframe>` : '<div class="md"></div>') + ov;
+    const box = c.querySelector('.md'); // markdown and text are read and rendered here, so the overlay covers the whole document
+    if (box) fetch(v.src).then(r => r.ok ? r.text() : Promise.reject()).then(x => { box.innerHTML = t === 'md' ? md(x) : `<pre class="raw">${esc(x)}</pre>`; }).catch(() => { box.textContent = '⚠ ' + v.src; });
   } else if (v) {
     c.innerHTML = `<img src="${esc(v.src)}" alt="${esc(it.title)} – ${esc(v.label)}" draggable="false"><div class="overlay" id="overlay"></div>`;
     // 100% means real CSS pixels: a 2x capture is shown at half its pixel width.
@@ -391,7 +452,8 @@ function drawStage(it, v) {
     img.complete ? size() : img.addEventListener('load', size);
   } else c.innerHTML = '';
   const devs = M.devices || DEVICES;
-  $('#tools').innerHTML = live
+  $('#tools').innerHTML = doc ? `<button class="tog" id="annotate" aria-pressed="false">${esc(T.annotate)}</button>${v.src.startsWith('data:') ? '' : `<a href="${esc(v.src)}" target="_blank" rel="noopener">${esc(T.openLive)}</a>`}` // browsers block opening data: URLs
+    : live
     ? `<select id="dev" aria-label="${esc(T.device)}">${devs.map((d, k) => `<option value="${k}" ${d.w === dev.w && d.h === dev.h ? 'selected' : ''}>${esc(d.label)} ${d.w}×${d.h}</option>`).join('')}<option value="custom" ${devs.some(d => d.w === dev.w && d.h === dev.h) ? '' : 'selected'}>${esc(T.custom)} ${dev.w}×${dev.h}</option></select>
        <input type="number" id="w" min="200" max="3840" value="${dev.w}" aria-label="${esc(T.width)}"><button id="rot" title="${esc(T.rotate)}" aria-label="${esc(T.rotate)}">↻</button>
        <select id="zoom" aria-label="${esc(T.zoom)}"><option value="0">${esc(T.fit)}</option>${[.5, .75, 1].map(z => `<option value="${z}" ${zoom === z ? 'selected' : ''}>${z * 100}%</option>`).join('')}</select>
@@ -409,7 +471,7 @@ function drawAreas() {
     + recAreas.map(r => `<button class="area rec" style="${box(r.area)}" data-rk="${r.k}" title="${esc(r.text)}" aria-label="${esc(T.rec)} R${r.k + 1}"><span>R${r.k + 1}</span></button>`).join('');
 }
 function listAreas() {
-  const s = S(items[cur]), live = views(items[cur])[tab]?.kind === 'live';
+  const s = S(items[cur]), live = annot(views(items[cur])[tab]);
   $('#areas').innerHTML = s.areas.map((a, k) => `<li><span class="n">${k + 1}</span><input type="text" data-a="${k}" value="${esc(a.note)}" placeholder="${esc(T.areaNote)} · ${esc(a.shot)}" aria-label="${esc(T.areaNote)} ${k + 1}" ${ro ? 'readonly' : ''}><button class="ghost" ${ro ? 'hidden' : ''} data-del="${k}" aria-label="${esc(T.deleteArea)} ${k + 1}">✕</button></li>`).join('');
   $('#areacount').textContent = s.areas.length || '';
   $('#areahint').textContent = s.areas.length || ro ? '' : live ? T.areaHintLive : T.areaHint;
@@ -533,7 +595,7 @@ for (const t of ['pointerup', 'pointercancel']) $('#view').addEventListener(t, e
 addEventListener('keyup', e => { if (e.key === ' ') { space = false; $('#view').classList.remove('space'); } });
 // Touch: swipe sideways on the empty stage (not on the image, where it draws) to move between items.
 let swipe = null;
-$('#view').addEventListener('pointerdown', e => { swipe = e.pointerType === 'touch' && e.target.id !== 'overlay' && !pan ? { x: e.clientX, y: e.clientY } : null; });
+$('#view').addEventListener('pointerdown', e => { swipe = e.pointerType === 'touch' && e.target.id !== 'overlay' && !e.target.closest('.doc') && !pan ? { x: e.clientX, y: e.clientY } : null; });
 $('#view').addEventListener('pointerup', e => {
   if (!swipe || !fit || zoomed()) return;
   const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
@@ -552,12 +614,15 @@ $('#panel').addEventListener('input', e => {
   else if (t.dataset.r) { s.accepted = $$('.recs input:checked').map(x => x.dataset.r); if (s.accepted.length) setStatus('changes', true); recCount(); }
   save(); refresh();
 });
+const typing = () => document.activeElement.matches('textarea,select,input:not([type=checkbox],[type=radio])');
+// the stage preventDefaults pointerdown (to draw/pan), which would keep a field focused and swallow the arrow keys
+$('#view').addEventListener('pointerdown', () => typing() && document.activeElement.blur(), true);
 document.addEventListener('keydown', e => {
   if (!$('#dlg').open || $('.modal[open]') || e.metaKey || e.ctrlKey || e.altKey) return;
-  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { if (e.key === 'Escape') { document.activeElement.blur(); e.preventDefault(); } return; }
+  if (typing()) { if (e.key === 'Escape') { document.activeElement.blur(); e.preventDefault(); } return; }
   const k = e.key.toLowerCase();
   if (k === ' ' && $('#view').classList.contains('pz') && !document.activeElement.closest('button,a')) { space = true; $('#view').classList.add('space'); e.preventDefault(); }
-  else if (k === '+' || k === '=') zoomKey(1.25); else if (k === '-') zoomKey(.8); else if (k === '0') resetPZ();
+  else if (/^[+=0-]$/.test(k)) { if ($('#view').classList.contains('pz')) k === '0' ? resetPZ() : zoomKey(k === '-' ? .8 : 1.25); } // only screenshots zoom
   else if (k === 'arrowright') show(cur + 1); else if (k === 'arrowleft') show(cur - 1);
   else if (k >= '1' && k <= '9') { if (+k <= views(items[cur]).length) { tab = +k - 1; show(cur, true); } } // 1-9: switch view
   else { const hit = Object.keys(ST).find(s => ST[s].key === k); if (hit) setStatus(hit); }
