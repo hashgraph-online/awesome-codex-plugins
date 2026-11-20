@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sponge",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Save articles and PDFs to a reading library captured by a computer you control. Highlight passages, keep notes, and find ideas through search or your coding agent.",
   "author": {
     "name": "Hraness",

@@ -1,0 +1,20 @@
+{
+  "name": "candor",
+  "interface": {
+    "displayName": "Candor"
+  },
+  "plugins": [
+    {
+      "name": "candor-finance",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Finance"
+    }
+  ]
+}

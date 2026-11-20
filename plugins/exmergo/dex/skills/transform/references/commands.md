@@ -1133,6 +1133,11 @@ flipped boundary, a dropped or negated filter, a swapped join type, a removed
 `CASE` branch, an inverted ratio, a shifted window frame, `sum` for `max`), runs
 the model's own tests against each, and reports which defects nothing caught.
 
+- A versioned model is measured one version at a time: name it `<model>.v<N>`,
+  as `transform declare` does. The bare name measures the version an
+  unversioned `ref()` resolves to (`latest_version`), with a warning, and
+  `data.model` names the version measured; its record and its downstream
+  routing are that version's alone (#1374).
 - Read `data.counts`, then the survivors, listed first. Each carries `defect` (what
   would now be wrong) and `suggested_test` (the test that would catch it).
 - Each survivor's `equivalence.status` says which test to suggest, and

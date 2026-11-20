@@ -28,6 +28,8 @@ Claude Code:
 /plugin install host0 --marketplace host0-ai/skills
 ```
 
+The Claude Code plugin lives in [`plugins/host0`](plugins/host0). Its skill publishes with the [host0 CLI](https://host0.ai/docs#cli), so install that first.
+
 Codex:
 
 ```bash

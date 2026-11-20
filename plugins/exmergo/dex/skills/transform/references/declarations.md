@@ -165,9 +165,10 @@ test keeps failing, and the last run in which a claim was checked and passed.
 The three tests above are the **built-ins**. They always render. A **generated
 test** is one Dex writes for a declared fact the built-ins cannot check: a
 composite grain, a population filter, a parent's population. Each kind arrives
-with its own issue (#1452 onward); this release renders two,
-[`dex_unique_combination`](#dex_unique_combination-a-composite-grain) and
-[`dex_population_filter`](#dex_population_filter-a-population-filter). The switch
+with its own issue (#1452 onward); this release renders three,
+[`dex_unique_combination`](#dex_unique_combination-a-composite-grain),
+[`dex_population_filter`](#dex_population_filter-a-population-filter) and
+[`dex_parent_population`](#dex_parent_population-a-parents-population). The switch
 and the tag below are what every kind follows. Generated tests run in the
 project's production runs. Dex does not run those and the project pays for them,
 so two rules hold:
@@ -238,14 +239,15 @@ generated test the plan's declarations give, rendered or not:
 |---|---|
 | `render_tests` | the setting as the plan read it |
 | `counts` | how many tests have each status |
-| `tests[]` | per test: `model`, `column` (`null` on the model entry), `test`, `cadence`, `claim`, `status` |
+| `tests[]` | per test: `model`, `column` (`null` on the model entry), `test`, `cadence`, `claim`, `variant` where a kind renders several tests on one model (`includes` or `excludes` for a population filter, `missing` or `unexpected` for a parent), `status` |
 
 `status` is `added` (rendered by this plan), `already_listed` (already in the
 YAML, so nothing changed), `not_rendered` (with `reason`: `render_tests_off`,
 `kind_not_enabled` where a list leaves its kind out, `dialect_unsupported`
 where the kind is on but not proved on the configured connector, or
-`column_not_output` for a column test whose column the model's SQL provably
-does not output), or
+`column_not_output` for a test reading a column the model's SQL provably does
+not output: the column it sits under, or a model-level test's grain or parent
+key), or
 `listed_while_off` (in the YAML although the setting leaves its kind off; it
 stays). The key is absent when the declarations give no generated test.
 
@@ -329,6 +331,82 @@ Its macro reaches the project as `dex_unique_combination`'s does:
 `macros/dex_population_filter.sql` (the
 [shipped macro](macros.md#dex_population_filter)) as a `macro_sql` diff where
 neither the project nor the plan defines the test.
+
+#### `dex_parent_population`: a parent's population
+
+A declared `population.parent` (`{model: dim_customers, key: {customer_id:
+customer_id}}`) makes two claims, and each renders as its own
+`dex_parent_population` test on the model entry, told apart by `direction`,
+tagged `dex_scheduled`, on every connector:
+
+```yaml
+data_tests:
+  - dex_parent_population:
+      arguments:
+        parent: ref('dim_customers')
+        key: {customer_id: customer_id}
+        direction: missing
+        filters:
+          - column: status
+            excludes: [churned]
+      config:
+        tags: [dex_scheduled]
+        meta:
+          disable_test_samples: true
+          dex:
+            claim: 9e42f60ca3504a9b
+  - dex_parent_population:
+      arguments:
+        parent: ref('dim_customers')
+        key: {customer_id: customer_id}
+        direction: unexpected
+      config:
+        tags: [dex_scheduled]
+        meta:
+          disable_test_samples: true
+          dex:
+            claim: 5791377c25b05705
+```
+
+Two tests rather than one with a summed count, so each `failures` is the count
+of one `maintain verify` finding, a repair of one direction is not hidden by
+the other, and Elementary keeps each direction's history apart. One entry in
+`render_tests` (`dex_parent_population`, or `dex_scheduled`) turns both on. Both
+are anti-joins over the model and the parent whole, hence the scheduled
+cadence. They agree with `maintain verify`:
+
+- **`missing`**: an eligible parent key with no row in the model. dbt's
+  `failures` is `parent_population_missing`'s `missing_parents`.
+- **`unexpected`**: a key in the model the parent does not have. dbt's
+  `failures` is `parent_population_unexpected`'s `unexpected_keys`.
+- **Distinct keys.** Both count keys, not rows: a key the model holds twice is
+  one key. A key with a NULL component is no key on either side.
+- **The eligible parents.** The declaration's `population.filters` scope which
+  parent keys are owed, as `maintain verify` scopes them: each filter applies
+  to the parent where the parent has its column, with the comparison
+  `dex_population_filter` makes (an `excludes` list keeps a parent whose column
+  is NULL, an `includes` list does not). The `unexpected` direction reads every
+  parent key, since a key the whole parent lacks is unexpected whatever a filter
+  says, so the filters ride on the `missing` test only.
+- **A filter the parent cannot evaluate is skipped.** Where the parent has no
+  column of the filter's name (read from the parent's metadata when the test
+  runs), the filter does not apply, as in `maintain verify`. There the finding
+  drops to `medium` and says some missing parents may be exclusions the count
+  cannot see; the test has no severity to lower, so it fails with the same
+  count. Declare the filter on a column the parent carries, or bring the column
+  into the parent. Where the metadata read finds nothing (an ephemeral parent),
+  every filter applies.
+- **Counts only.** Each test returns its count, never a key.
+
+The parent is written as a `ref()` (`ref('dim_customers', v=2)` for a version
+label), so dbt orders the test after the parent and resolves a seed, a snapshot
+or an installed package's model as it resolves any ref. A key column the
+model's SQL provably does not output renders neither test (`column_not_output`);
+a plan writing such a model is already refused for the key. Its macro reaches
+the project as the others' do: `macros/dex_parent_population.sql` (the
+[shipped macro](macros.md#dex_parent_population)) as a `macro_sql` diff where
+neither the project nor the plan defines the test. A parent drafted by Dex
+(`drafted.population_parent`) is never written, so it renders no test.
 
 ### A versioned model
 

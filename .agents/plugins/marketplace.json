@@ -2066,6 +2066,20 @@
       "icon": "./plugins/orwa-mahmoud/nightshift/assets/nightshift-logo.png"
     },
     {
+      "name": "notibuddy",
+      "displayName": "notibuddy",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yourbit-network/notibuddy"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "End-to-end encrypted native screens, syntax-highlighted code diffs, forms, Live Activities, encrypted file handoff, and device-signed approval gates on iPhone and Apple Watch for Codex."
+    },
+    {
       "name": "dude-toldya",
       "displayName": "Off the Wall",
       "source": {
@@ -3795,6 +3809,21 @@
       "category": "Tools & Integrations",
       "description": "Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI.",
       "icon": "./plugins/CALLE-AI/call-e-integrations/assets/CALL-E-Icon-Black.svg"
+    },
+    {
+      "name": "candor-finance",
+      "displayName": "Candor Finance",
+      "source": {
+        "source": "local",
+        "path": "./plugins/candorsystems/candor-finance"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Hosted personal finance MCP server and skills that let Codex work from your US bank, card, loan, and investment accounts, keep goals and a budget across sessions, and run a weekly review, with read-only bank access and no tools that move money.",
+      "icon": "./plugins/candorsystems/candor-finance/assets/logo.svg"
     },
     {
       "name": "canvas-apps-plugin-codex",
@@ -5663,6 +5692,21 @@
       "category": "Tools & Integrations",
       "description": "Pronounce developer jargon out loud: an MCP server (lookup/search) and skill backed by a 1,721-entry sourced dictionary with IPA, audio, and cited pronunciations for kubectl, nginx, YAML, JWT, and more.",
       "icon": "./plugins/anzy-renlab-ai/pronounce/assets/icon.svg"
+    },
+    {
+      "name": "publora-skills",
+      "displayName": "Publora Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/publora/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Nine skills that let Codex draft, schedule and publish posts to LinkedIn, X, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon and Telegram through the Publora MCP server.",
+      "icon": "./plugins/publora/skills/assets/icon.png"
     },
     {
       "name": "qatom",

@@ -1,0 +1,21 @@
+Candor Finance Agent Package License
+
+Copyright (c) 2026 Candor Systems, Inc. All rights reserved.
+
+The contents of this package are made available for installation and use with
+the Candor service. No permission is granted to copy, modify, redistribute,
+sublicense, sell, or create derivative works from this package except as
+expressly authorized in writing by Candor Systems, Inc.
+
+This license does not apply to the generated
+`openclaw/skills/candor-finance/` subtree. That subtree is distributed under
+the scoped MIT-0 license included within it so ClawHub can host and redistribute
+the OpenClaw skill without changing the license of any other package artifact.
+
+This license also does not apply to the generated `cursor/` subtree. That
+subtree is distributed under the scoped MIT license included within it because
+the Cursor Marketplace, which serves Grok Bot, lists only open-source plugins.
+
+This package is provided "AS IS", without warranty of any kind, express or
+implied, including warranties of merchantability, fitness for a particular
+purpose, and noninfringement.

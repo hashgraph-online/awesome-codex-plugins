@@ -29,6 +29,8 @@ If you already added the server with `mcp add`, remove it first. If you keep bot
 
 Ask for a job that needs a phone, for example "Open Settings on the phone and turn on dark mode." The agent reads the screen as a numbered text list and taps by number.
 
+With more than one device connected, set `PHONEDRIVER_DEVICE` to a device id (`phonedriver devices` lists them) in the environment you start the agent from, or ask the agent to call `devices` with `use` to switch for the rest of the session.
+
 ## Safety
 
 - A tap that pays, orders, transfers money or deletes an account is held until you approve it.

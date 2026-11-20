@@ -1,6 +1,6 @@
 {
   "name": "claude-bulkhead",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Claude Code hooks for a machine shared by many sessions and subagents",
   "keywords": [
     "claude-code",

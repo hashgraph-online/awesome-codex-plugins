@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-20",
-  "total": 457,
+  "total": 460,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1403,6 +1403,16 @@
       "install_url": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/HEAD/plugins/nightshift/.codex-plugin/plugin.json"
     },
     {
+      "name": "notibuddy",
+      "url": "https://github.com/yourbit-network/notibuddy",
+      "owner": "yourbit-network",
+      "repo": "notibuddy",
+      "description": "End-to-end encrypted native screens, syntax-highlighted code diffs, forms, Live Activities, encrypted file handoff, and device-signed approval gates on iPhone and Apple Watch for Codex.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/yourbit-network/notibuddy/HEAD/plugins/codex/notibuddy/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Off the Wall",
       "url": "https://github.com/toranalytics/off-the-wall",
       "owner": "toranalytics",
@@ -2573,6 +2583,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/CALLE-AI/call-e-integrations/HEAD/packages/codex-plugin/plugin/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Candor Finance",
+      "url": "https://github.com/candorsystems/candor-finance",
+      "owner": "candorsystems",
+      "repo": "candor-finance",
+      "description": "Hosted personal finance MCP server and skills that let Codex work from your US bank, card, loan, and investment accounts, keep goals and a budget across sessions, and run a weekly review, with read-only bank access and no tools that move money.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/candorsystems/candor-finance/HEAD/plugin.json"
     },
     {
       "name": "Canvas Apps Plugin Codex",
@@ -3835,6 +3855,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/anzy-renlab-ai/pronounce/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Publora Skills",
+      "url": "https://github.com/publora/skills",
+      "owner": "publora",
+      "repo": "skills",
+      "description": "Nine skills that let Codex draft, schedule and publish posts to LinkedIn, X, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon and Telegram through the Publora MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/publora/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Qatom",

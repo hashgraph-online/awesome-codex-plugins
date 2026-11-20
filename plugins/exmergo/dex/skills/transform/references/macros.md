@@ -41,6 +41,25 @@ a quote doubled on DuckDB, Postgres and Trino, and a backslash escaped on
 BigQuery, Snowflake, Databricks, Redshift and ClickHouse, where it starts an
 escape sequence.
 
+## `dex_parent_population`
+
+The generic test a declared parent population renders
+([declarations](declarations.md#dex_parent_population-a-parents-population)),
+twice per declared `population.parent`, once per `direction` (`missing`,
+`unexpected`), where `declarations.render_tests` turns it on. A declaration plan
+adds it for you; this command scaffolds or diffs it on its own. It fails with
+the count of distinct eligible parent keys the model lacks (`missing`) or of
+distinct model keys the parent lacks (`unexpected`), and never selects a key.
+The `filters` argument scopes the eligible parents, each applied where the
+parent has its column, read from the parent's metadata when the test runs. The
+SQL goes through dbt's dispatch, `default__dex_parent_population` holds on every
+connector, and a project overrides one warehouse with its own
+`<adapter>__dex_parent_population(model, parent, key, direction, filters)`
+macro. The text cast and the text literal of a filter comparison are dispatched
+apart, as `dex_parent_population_text(column_name)` and
+`dex_parent_population_literal(text)`, written per warehouse as
+`dex_population_filter`'s are.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

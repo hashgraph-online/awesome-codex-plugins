@@ -1,0 +1,20 @@
+{
+  "name": "publora-skills",
+  "interface": {
+    "displayName": "Publora Skills"
+  },
+  "plugins": [
+    {
+      "name": "publora-skills",
+      "source": {
+        "source": "local",
+        "path": "./.codex-marketplace/publora-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
