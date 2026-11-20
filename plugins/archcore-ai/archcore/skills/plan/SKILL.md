@@ -117,6 +117,24 @@ inside the draft artifact (with the `claims:` field this command adds), persist 
 and follow the resume rules on re-entry. Gate bodies, per-gate questions, and
 relation wiring live in the track files — do not restate them.
 
+WHEN an instrument creates a `plan`, write every task of its Tasks section in
+this form; `skills/_shared/plan-contract.md` holds the full rules:
+
+```markdown
+### Phase 1: <name>
+
+1. [ ] T1 <one imperative action, at most 17 words>
+
+   - files: @<path> for each file the task changes or creates
+   - covers: <spec slug>#<n> for each covered clause, or none
+   - done when: <one test name or command> <expected result>
+   - proof: —
+```
+
+Only the first unproven phase holds tasks. A later phase holds one line:
+`Covers: <clause references>; expand when Phase <n-1> is proven.` A condition
+outside the repository goes to `## Waiting on`, one bullet with `(owner: <who>)`.
+
 Before delegating research or evidence work, pass the current vocabulary probe
 result and absolute plugin root to the assistant. If the assistant returns
 `needs-vocabulary-probe`, run the helper and resume the same task.
@@ -128,7 +146,7 @@ plugin root to the assistant. The assistant reads
 
 WHEN the selection produced a `plan` document:
 
-1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call. A proof-tracked task carries them in its `files` line per `skills/_shared/plan-contract.md`.
+1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call. In a proof-tracked plan, put them in the task's `files` line.
 2. WHEN grounding surfaced no file or module for a task, state that no target was found for that task. Do not guess a path.
 3. Confirm the plan carries its `## Declared Delta` section per sequencing rule 9 of `skills/_shared/delta-routing.md`.
 

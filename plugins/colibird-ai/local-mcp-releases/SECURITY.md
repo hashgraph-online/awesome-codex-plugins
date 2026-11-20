@@ -4,7 +4,7 @@ LMCP exposes compatible app and service tools through MCP on macOS and Windows. 
 
 ## Repository and installers
 
-This public repository contains release documentation, the npm wrapper and configuration examples. The core binary is proprietary; see [LICENSE](LICENSE) for the separate terms for binaries and repository documentation/scripts.
+This public repository contains release documentation, the npm wrapper and configuration examples. The core binary is proprietary; see [LICENSE-BINARY.md](LICENSE-BINARY.md) for the binaries and [LICENSE](LICENSE) (MIT) for the repository documentation and scripts.
 
 Get current installers from the [official download page](https://www.local-mcp.com/download?ref=github-releases). Follow your operating system's signature and security checks and the current installation guide. Do not bypass a security warning based on a README claim.
 

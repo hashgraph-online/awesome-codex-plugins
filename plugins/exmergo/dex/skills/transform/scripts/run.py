@@ -602,6 +602,7 @@ def _envelope(
                 "ceiling": None,
                 "estimate_quality": None,
                 "unit": None,
+                "unpriced": None,
             },
             "warnings": warnings or [],
             "diffs": [],

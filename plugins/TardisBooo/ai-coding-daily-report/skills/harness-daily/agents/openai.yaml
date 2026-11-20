@@ -1,0 +1,3 @@
+interface:
+  display_name: AI Coding Daily Report
+  short_description: Generate a daily work report from local AI coding sessions

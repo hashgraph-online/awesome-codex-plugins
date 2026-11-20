@@ -1,0 +1,17 @@
+{
+  "name": "tigang-plugin",
+  "version": "1.3.0",
+  "private": true,
+  "description": "成功提交或推送 Git 代码后，在回合结束时显示提肛运动提醒并累计本地次数。",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TardisBooo/tigang-plugin.git"
+  },
+  "scripts": {
+    "test": "node tests/test_core.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

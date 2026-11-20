@@ -1,6 +1,6 @@
 ---
 name: edeka-shopping
-description: Shop at EDEKA online markets in Germany (EDEKA, E center and some Marktkauf stores on <market>.edeka.shop) for pickup - find a market by postal code, weekly offers, products and prices, basket by plain words, earliest pickup slot, and placing the order only after the person confirms total and slot. Use when the person wants to buy groceries at EDEKA, E center or Marktkauf, asks what is on offer there, or says things like "bei EDEKA einkaufen", "Angebote im E center", "Abholung bei EDEKA".
+description: Shop at EDEKA online markets in Germany (EDEKA, E center and some Marktkauf stores on <market>.edeka.shop) for pickup - find a market by postal code, weekly offers, products and prices, basket by plain words, earliest pickup slot, and placing the order only after the person confirms total and slot. Use when the person wants to buy groceries at EDEKA, E center or Marktkauf, asks what is on offer there, or says things like "bei EDEKA einkaufen", "Angebote im E center", "Was gibt's gerade beim Marktkauf?", "Abholung bei EDEKA".
 ---
 
 # EDEKA shopping
@@ -48,16 +48,36 @@ chmod +x "$dir/edeka-pp-cli.part"; mv "$dir/edeka-pp-cli.part" "$dir/edeka-pp-cl
 ```
 
 If the install folder is not on PATH, call the binary by its full path. If `checksums.txt`
-cannot be fetched, the EDEKA tool is not published yet: tell the person.
+cannot be fetched, tell the person the release is not reachable right now.
 Run the same steps again to update.
 
 ## 2. Find the market
 
-`edeka-pp-cli markets search <postal code or town> --json`. Only markets listed there
-can be ordered from online. If none serves the postal code exactly, results marked
+First run `edeka-pp-cli markets current --json`. If a market is already selected and the
+person did not name a different one, use it: "Was gibt's beim Marktkauf?" from someone
+whose selected market is a Marktkauf means that market. `current` returns only the
+subdomain; the list below or a `markets search` on its town tells you the chain.
+
+Otherwise `edeka-pp-cli markets search <postal code or town> --json`. Only markets listed
+there can be ordered from online. If none serves the postal code exactly, results marked
 `nearby: true` are the nearest ones (pickup there is possible). Ask the person which
 market, then `edeka-pp-cli markets select <subdomain> --json` (e.g. `doerflinger-ulm`,
-`ec-ulm-lehr`). Offers, search and slots work without login.
+`ec-ulm-lehr`). The choice is stored, so later questions go straight to it. Offers,
+search and slots work without login.
+
+**E center and Marktkauf** belong to EDEKA and sell online through the same
+`<market>.edeka.shop` sites; the market's `name` says which chain it is ("E center
+Ulm-Lehr", "Marktkauf Weil am Rhein"). The search takes a postal code or town, not a
+chain name, so when the person names only the chain ("beim Marktkauf", "im E center"),
+ask for their town or postal code, search, and pick the result whose name contains that
+chain.
+- Marktkauf has no online shop for the whole chain. Only three Marktkauf stores sell
+  online: `marktkauf-kirchheim` (Kirchheim am Neckar), `mk-weil-am-rhein` (Weil am Rhein)
+  and `suellau-moelln` (Marktkauf Mölln). About 22 E center stores sell online
+  (for example `ec-ulm-lehr`).
+- If the person's own Marktkauf or E center is not in the results, say so plainly
+  ("Dein Marktkauf in <Ort> hat keinen Online-Shop.") and offer the nearest online
+  markets from the search instead. Never pretend another market is theirs.
 
 ## 3. Connect the account (needed for basket and order)
 

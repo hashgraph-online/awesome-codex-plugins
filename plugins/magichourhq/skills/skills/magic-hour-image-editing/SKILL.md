@@ -1,17 +1,17 @@
 ---
 name: magic-hour-image-editing
-description: Edit an existing image with Magic Hour while protecting details outside the requested change. Use for background replacement, cleanup, relighting, recoloring or reframing when Magic Hour is requested or is the project's chosen provider. Requires a source image; not prompt-only creation.
+description: Edit an existing image or apply the same edit to a folder of images with Magic Hour. Use for background replacement, cleanup, relighting, recoloring or reframing when Magic Hour is requested or is the project's chosen provider. Protect details outside the requested change. Requires source images.
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # Magic Hour image editing
 
 Deliver the requested change without redesigning the source. A convincing image can still be a failed edit if it changes the subject's face, shape, label, or other protected detail.
 
-Infer the edit from the supplied image and plain-language request; recommend one treatment if needed. Choose technical settings yourself, reuse existing spending authorization and inspect the result before delivery. Do not insert draft approvals when the user delegated creative decisions. Show the image first and retain technical records in the project. For relighting, new backgrounds or difficult aspect ratios, read [faithful edits](references/faithful-edits.md).
+Infer the edit from the supplied image and plain-language request; recommend one treatment if needed. Choose technical settings yourself, reuse existing spending authorization and inspect the result before delivery. For a single image, do not insert draft approvals when the user delegated creative decisions. For a folder, follow the preview and approval steps below. Show the image first and retain technical records in the project. For relighting, new backgrounds or difficult aspect ratios, read [faithful edits](references/faithful-edits.md).
 
 ## Establish the edit boundary
 
@@ -61,3 +61,12 @@ If it fails, name the failure. Revise from the original when identity drifted; u
 | Floating object or retained old reflection                 | Describe the new contact surface and shadow/reflection treatment; keep unrelated details fixed.                       |
 
 Use the exact download URL, retrieve the same project if it expires, and save a durable file when requested. Return the edited image, project ID, and limitations. If you cannot inspect the image, say so rather than reporting it as verified.
+
+## Apply the same edit to a folder
+
+1. **Choose the inputs.** List the supported originals directly in the requested folder. Include subfolders only when requested and skip the output folder. Choose a separate output directory and a distinct destination for each original, including files with the same stem. Keep a local batch record there with the input list, destinations, edit instructions and settings, approvals, and each file's status. Save using the actual output format and preserve existing files.
+2. **Preview one original.** Use `get_account_info` and verify eligibility and the per-image price in the live [Image Editor schema](https://docs.magichour.ai/api-reference/openapi.json). Start with `model: flux-2-klein`, `resolution: 640px` and `image_count: 1` (5 credits at the documented settings). It keeps the source aspect ratio. If these settings cannot meet the requested detail or framing, or the price cannot be verified, pause before spending. Use existing authorization for the preview or ask before running it. Submit it using the per-file procedure below. Show the actual edit beside its source and get approval of the result.
+3. **Confirm the remaining cost.** Keep the accepted preview as that original's result. Confirm the exact price against the preview's `credits_charged` and current pricing. Show the remaining file count, credits per file and total credits for the remaining batch. If there are files left, get explicit approval of that spend and record it before submitting any of them. Get fresh approval if the approved inputs, edit, settings or price change.
+4. **Edit each file separately.** Use `get_upload_urls` and `edit_image` for each original with the approved prompt and settings. Pass only that original in `assets.image_file_paths`. Before submission, record a unique project `name` and mark the file as submitting. Save the returned job ID and charge immediately. Wait for that job, inspect the output against its own original, and save one accepted result per file.
+5. **Resume from the record.** Keep completed outputs. If a job ID exists, get the same project with `get_image_project` and recover its download if needed. If a submission might have gone through without a returned ID, check the original tool response and look for the exact recorded project name in the same account's creations if available. If the job cannot be confirmed, leave that file pending for reconciliation. A missing download or a timeout is not evidence that the job never ran. Continue with files known to be unsubmitted within the approved spend. Reconcile the prior submission and get approval before any new paid attempt for the same file.
+6. **Report the results.** List successful files with output paths and files that need attention with the reason and any known job IDs. Include credits charged when available, and call out unresolved charges separately.

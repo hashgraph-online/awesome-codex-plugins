@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="tigang-reminder logo: rear-view cat with an asterisk tail-mark">
+  <title>tigang-reminder logo</title>
+  <!-- sticker base -->
+  <circle cx="120" cy="120" r="112" fill="#FFF6EC"/>
+  <circle cx="120" cy="120" r="112" fill="none" stroke="#2D2A26" stroke-width="5"/>
+  <!-- tail: curls up on the right -->
+  <path d="M176 170 C 212 160, 224 122, 210 94 C 202 78, 186 76, 180 88 C 174 98, 184 106, 192 102"
+        fill="none" stroke="#F08C3A" stroke-width="16" stroke-linecap="round"/>
+  <!-- body (rear view) -->
+  <path d="M120 66 C 66 66, 40 108, 40 150 C 40 190, 74 208, 120 208 C 166 208, 200 190, 200 150 C 200 108, 174 66, 120 66 Z"
+        fill="#FFB25E" stroke="#2D2A26" stroke-width="5"/>
+  <!-- ears -->
+  <path d="M62 98 L 54 58 L 94 76 Z" fill="#FFB25E" stroke="#2D2A26" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M178 98 L 186 58 L 146 76 Z" fill="#FFB25E" stroke="#2D2A26" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M64 90 L 60 68 L 84 78 Z" fill="#E8794A"/>
+  <path d="M176 90 L 180 68 L 156 78 Z" fill="#E8794A"/>
+  <!-- back stripes -->
+  <path d="M98 82 q 22 -12 44 0" fill="none" stroke="#F08C3A" stroke-width="8" stroke-linecap="round"/>
+  <path d="M90 100 q 30 -13 60 0" fill="none" stroke="#F08C3A" stroke-width="8" stroke-linecap="round"/>
+  <!-- hind paws -->
+  <ellipse cx="86" cy="200" rx="17" ry="11" fill="#FFC98B" stroke="#2D2A26" stroke-width="5"/>
+  <ellipse cx="154" cy="200" rx="17" ry="11" fill="#FFC98B" stroke="#2D2A26" stroke-width="5"/>
+  <!-- asterisk mark (terracotta sunburst, organic spoke lengths) -->
+  <g transform="translate(120,150)" fill="#D97757">
+    <g transform="rotate(0)"><rect x="-4.5" y="-34" width="9" height="22" rx="4.5"/></g>
+    <g transform="rotate(45)"><rect x="-4.5" y="-31" width="9" height="20" rx="4.5"/></g>
+    <g transform="rotate(90)"><rect x="-4.5" y="-33" width="9" height="21" rx="4.5"/></g>
+    <g transform="rotate(135)"><rect x="-4.5" y="-30" width="9" height="19" rx="4.5"/></g>
+    <g transform="rotate(180)"><rect x="-4.5" y="-34" width="9" height="22" rx="4.5"/></g>
+    <g transform="rotate(225)"><rect x="-4.5" y="-31" width="9" height="20" rx="4.5"/></g>
+    <g transform="rotate(270)"><rect x="-4.5" y="-33" width="9" height="21" rx="4.5"/></g>
+    <g transform="rotate(315)"><rect x="-4.5" y="-30" width="9" height="19" rx="4.5"/></g>
+    <circle cx="0" cy="0" r="7"/>
+  </g>
+</svg>

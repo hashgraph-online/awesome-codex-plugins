@@ -547,6 +547,16 @@ Runs `dbt build` against a dev target, with a cost preflight first.
   before they choose a budget. Inside committed `budget.ceiling` and
   `budget.session_ceiling`, a build is confirmed with `--confirm` alone and needs
   no number from anyone.
+- `cost.unpriced` says the estimate is a floor (#1309): where the Elementary
+  package runs its hooks (`elementary_hooks`), its monitoring tests
+  (`elementary_monitoring_tests`, each with the `days_back` window it reads) or
+  its test materialization's failed-row count and sample query
+  (`elementary_test_extras`), none of which a compiled node shows. `data.unpriced`
+  holds the record and a warning per kind names the work. Tell the user the
+  estimate is a floor before they choose a budget: `budget.ceiling` admits the
+  build against the estimate, and the profile's per-statement cap bounds each
+  query, but nothing bounds the run's total, so the unpriced work can bill
+  beyond the ceiling.
 - A refusal over the ceiling carries a calibration line from `.dex/spend.jsonl`.
   Builds over-estimate most on a partitioned or clustered warehouse.
 - dbt runs with its working directory pinned to the project dir, so relative

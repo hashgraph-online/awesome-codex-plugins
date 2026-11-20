@@ -1,12 +1,6 @@
 ---
 name: runheed
 description: Error tracking your coding agent can read. Use when the user wants production errors from a Node.js or Python app delivered to Claude Code, Cursor, Codex or any MCP client so the agent can read the stack trace, fix it and mark it resolved. Also use when the user keeps pasting stack traces into chat, asks "what broke in production", or wants an error tracker with an MCP server.
-version: 1.0.0
-homepage: https://runheed.com
-pricing: https://runheed.com/pricing
-llms: https://runheed.com/llms.txt
-setup: https://runheed.com/SETUP.txt
-checkout: https://runheed.com/dashboard/start?plan={solo|pro|scale}&interval={month|year}&code=RUNHEED-AGENT
 ---
 
 # Runheed
@@ -60,14 +54,14 @@ The link signs the user in with an emailed one-time link and goes straight to St
 
 1. Ask the user to create a project at https://runheed.com/dashboard/projects and give you its DSN (runheed://pk_...@runheed.com/<project-id>). Store it as RUNHEED_DSN.
 2. Install the SDK:
-   - Node.js / TypeScript: `npm install https://runheed.com/dl/runheed-0.1.5.tgz` then `runheed.init({ dsn: process.env.RUNHEED_DSN })` in the earliest-loaded server file.
-   - Python: `pip install https://runheed.com/dl/runheed-0.1.5-py3-none-any.whl` then `runheed.init(dsn=os.environ["RUNHEED_DSN"])`, plus the framework hook: https://runheed.com/for/fastapi, https://runheed.com/for/django or https://runheed.com/for/flask (Celery task failures are reported on their own).
+   - Node.js / TypeScript: `npm install https://runheed.com/dl/runheed-0.1.7.tgz` then `runheed.init({ dsn: process.env.RUNHEED_DSN })` in the earliest-loaded server file.
+   - Python: `pip install https://runheed.com/dl/runheed-0.1.7-py3-none-any.whl` then `runheed.init(dsn=os.environ["RUNHEED_DSN"])`, plus the framework hook: https://runheed.com/for/fastapi, https://runheed.com/for/django or https://runheed.com/for/flask (Celery task failures are reported on their own).
    - Serverless (Vercel, Lambda, Netlify, Cloudflare) and Next.js: the Node.js SDK batches events for up to 5 seconds, so after reporting call `await runheed.flush()` before the handler returns (Python sends synchronously, no flush needed). Next.js: https://runheed.com/for/nextjs
    - The npm and PyPI releases are not out yet, so these commands install the same package files straight from runheed.com. Nothing else changes when the registry versions ship.
 3. Add the remote MCP server (https://runheed.com/api/mcp, OAuth sign-in, no key to copy):
    `claude mcp add --transport http runheed https://runheed.com/api/mcp`, then /mcp > runheed > Authenticate (the user signs in and clicks Allow).
    Without remote support: ask the user for an agent key from https://runheed.com/dashboard/settings (starts with al_) and run
-   `claude mcp add runheed --env RUNHEED_API_KEY=al_... -- npx -y https://runheed.com/dl/runheed-mcp-0.1.5.tgz`
+   `claude mcp add runheed --env RUNHEED_API_KEY=al_... -- npx -y https://runheed.com/dl/runheed-mcp-0.1.7.tgz`
    Other clients: https://runheed.com/connect
 4. Throw one test error, confirm it with runheed_get_recent, then remove the test code.
 

@@ -24,7 +24,7 @@ removal.
 > [raiw.cc](https://raiw.cc) runs this library as a hosted service, with the GPU
 > included and nothing to install. Visible mark and metadata removal at Standard
 > output up to 12 MP are free there; original resolution above 12 MP and invisible
-> watermark removal are paid.
+> watermark removal are paid. [Project page](https://wiltodelta.com/projects/raiw/) · by [Victor Kuznetsov](https://wiltodelta.com/).
 
 [![PyPI](https://img.shields.io/pypi/v/remove-ai-watermarks?logo=pypi&logoColor=white)](https://pypi.org/project/remove-ai-watermarks/)
 [![Python](https://img.shields.io/pypi/pyversions/remove-ai-watermarks?logo=python&logoColor=white)](https://pypi.org/project/remove-ai-watermarks/)
@@ -60,9 +60,10 @@ removal.
 | Remove visible marks, AI metadata, and opt-in video/audio invisible marks | `video all` | Depends on `--invisible` |
 | Strip AI metadata from video | `video metadata` | No |
 | Remove a registered visible AI mark from video | `video visible` | No |
+| Erase user-specified `(x, y, w, h)` regions across video frames | `video erase` / `erase` | No |
 | Process a directory of videos | `video batch` | Depends on mode |
-| Inspect and disrupt a known public VideoSeal/PixelSeal message (experimental) | `video message` | Optional |
-| Regenerate video pixels (`--profile auto`, calibrated SynthID, Seedance, or native CUDA `Wan 2.1`) | `video invisible` | Recommended |
+| Detect or disrupt public VideoSeal/PixelSeal/ChunkySeal video marks | `video message` (`detect` / `identify` / `remove`) | Optional |
+| Regenerate video pixels (`--profile auto`, calibrated SynthID, Seedance, or `Wan 2.1` on CUDA/MPS) | `video invisible` | Recommended |
 | Identify C2PA text/HTML wrappers, `VSRMark`, and Unicode steganography | `text identify` | No |
 | Strip C2PA text/HTML wrappers, `VSRMark`, and Unicode steganography | `text metadata` | No |
 | Regenerate unlocked prose for best-effort token-watermark removal | `text invisible` | Recommended |
@@ -79,10 +80,11 @@ optional Apple silicon MLX models through
 Both backends share the same acceptance guards; model output still needs factual
 review. See the [text CLI](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#identify-and-clean-text).
 
-Experimental public VideoSeal and PixelSeal known-message video checks and processing
+Experimental public VideoSeal, PixelSeal, and ChunkySeal video checks and processing
 use [`video message`](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#public-model-video-messages-experimental).
-They require an independently known encoder message and do not certify arbitrary
-unknown marks or provider deployments.
+Known-message checks and processing require an independently known encoder
+message; `video message detect` is a blind presence check. Neither certifies
+arbitrary unknown marks or provider deployments.
 
 Microsoft Paint and Photos InvisMark declarations are routed automatically to
 pixel regeneration. The `all` command removes both the hidden pixel watermark and
@@ -98,7 +100,7 @@ specialized Python API can inspect and disrupt the validated local
 | 10-provider source-export & model-version classification | `remove-ai-watermarks[source-classify]` |
 | Visible detection and removal | `remove-ai-watermarks[visible]` |
 | Visible video processing | `remove-ai-watermarks[video]` |
-| Public known-message VideoSeal/PixelSeal checks | `remove-ai-watermarks[video-detect]`, add `diffusion` for VAE |
+| Public VideoSeal/PixelSeal/ChunkySeal checks | `remove-ai-watermarks[video-detect]`, add `diffusion` for VAE |
 | Video SynthID removal | `remove-ai-watermarks[video,diffusion]` |
 | Audio sample processing and spectral disruption | `remove-ai-watermarks[audio]` |
 | Compatible public audio watermark detection (AudioSeal) | `remove-ai-watermarks[audio-detect]` |
@@ -236,8 +238,8 @@ without re-encoding and is allowed to reach its natural end; the video stream
 is transcoded because its pixels change. By default, a guarded optical-flow
 pass motion-aligns the preceding accepted fill and blends it only when the
 nearby source context agrees; use `--no-temporal-consistency` to disable it.
-The encoder preserves supported
-8-bit source chroma sampling, color tags, and MP4/MOV track timescale instead
+The encoder preserves supported 8-bit and 10-bit HDR (`yuv420p10le`, `bt2020nc`,
+`smpte2084`/`arib-std-b67`) source chroma sampling, color tags, and MP4/MOV track timescale instead
 of relying on ffmpeg's implicit raw-BGR defaults. Variable frame intervals are
 preserved through a timestamped in-memory NUT bridge instead of being flattened
 to the average frame rate. Non-zero source start timestamps are retained
@@ -254,8 +256,8 @@ four-point diamond and the legacy `Veo` text. Seedance covers the fixed boxed
 `MINIMAX | hailuo AI` label, and Kling AI covers the bottom-right `KLING AI` or
 `KlingAI` label with its version suffix. A completed encode is published
 atomically. No output is written when no stable mark is found.
-HDR, PQ/HLG, and greater-than-8-bit inputs are rejected before encoding rather
-than silently reduced through OpenCV's 8-bit BGR boundary.
+Unsupported pixel formats are rejected before encoding rather than silently
+reduced to 8-bit SDR.
 
 Apply the calibrated video-pixel SynthID-removal profile:
 
@@ -541,8 +543,9 @@ The skill refuses stock-agency and other third-party paid-asset marks. See
 
 ## MCP server
 
-`remove-ai-watermarks mcp` serves `identify`, `remove` and `batch` as Model
-Context Protocol tools over stdio, each a thin wrapper around one CLI command:
+`remove-ai-watermarks mcp` serves `identify`, `remove`, `batch`, and one tool per
+CLI command as Model Context Protocol tools over stdio, each a thin wrapper
+around one CLI command:
 
 ```json
 {"mcpServers": {"remove-ai-watermarks": {"command": "uvx", "args": ["--python", "3.12", "--with", "remove-ai-watermarks[all,text-draft]", "remove-ai-watermarks", "mcp"]}}}

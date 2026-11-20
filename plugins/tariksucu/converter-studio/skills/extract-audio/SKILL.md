@@ -40,7 +40,7 @@ Only text subtitles (SubRip, ASS, mov_text, WebVTT) convert to SRT. Picture-base
 
 ## 4. Without ffmpeg
 
-With the Converter Studio MCP tools, `convert` the video with `to: "mp3"`, `"m4a"`, `"wav"` or `"flac"`; subtitle files convert with `to: "srt"` or `"vtt"`. A video costs about 1 credit per 3 minutes at 1080p; tell the user before converting long recordings. Without either, https://converter.studio does it in the browser.
+With the Converter Studio MCP tools, `convert` the video with `to: "mp3"`, `"m4a"`, `"wav"` or `"flac"`; subtitle files convert with `to: "srt"` or `"vtt"`. Taking only the sound costs 1 credit per started hour of the recording (a video converted to another video costs about 1 credit per 3 minutes at 1080p). Without either, https://converter.studio does it in the browser.
 
 ## Report
 

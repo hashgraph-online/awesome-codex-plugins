@@ -36,7 +36,7 @@ export function outboundProxy(env = process.env, systemSetting = readSystemProxy
 export function readSystemProxy(): string | null {
   try {
     if (process.platform === "win32") {
-      const out = execFileSync("reg", ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"], { encoding: "utf8" });
+      const out = execFileSync("reg", ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"], { encoding: "utf8", windowsHide: true });
       if (!/ProxyEnable\s+REG_DWORD\s+0x1/.test(out)) return null;
       return /ProxyServer\s+REG_SZ\s+(\S+)/.exec(out)?.[1] ?? null;
     }

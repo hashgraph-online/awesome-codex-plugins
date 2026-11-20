@@ -258,6 +258,21 @@
       "icon": "./plugins/AgiFlow/ai-plugin/assets/icon.png"
     },
     {
+      "name": "harness-daily",
+      "displayName": "AI Coding Daily Report",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/ai-coding-daily-report"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Generates a Markdown work report from local AI coding sessions with your chosen writer CLI.",
+      "icon": "./plugins/TardisBooo/ai-coding-daily-report/assets/icon.svg"
+    },
+    {
       "name": "ai-sdlc",
       "displayName": "AI-Native SDLC Loop",
       "source": {
@@ -2187,6 +2202,21 @@
       "icon": "./plugins/dbalas/preview-lab/docs/logo.svg"
     },
     {
+      "name": "prewalk",
+      "displayName": "Prewalk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/prewalk"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Completes and verifies a first task, then hands the remaining work to a configured executor.",
+      "icon": "./plugins/TardisBooo/prewalk/assets/icon.svg"
+    },
+    {
       "name": "pro-launch",
       "displayName": "Pro Launch",
       "source": {
@@ -2865,6 +2895,21 @@
       "category": "Development & Workflow",
       "description": "Design, build and audit Telegram bot interfaces (texts, keyboards, colored buttons, streaming AI replies, Rich Messages, channel posts) with a skill updated for every Bot API release.",
       "icon": "./plugins/hlibsuslov/telegram-bot-ui/assets/icon.svg"
+    },
+    {
+      "name": "tigang-reminder",
+      "displayName": "Tigang Reminder",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/tigang-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Displays a Kegel break reminder after successful Git commits and pushes, with local counts.",
+      "icon": "./plugins/TardisBooo/tigang-plugin/docs/logo.svg"
     },
     {
       "name": "tmcra-memory",
@@ -6452,6 +6497,21 @@
       "category": "Tools & Integrations",
       "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
       "icon": "./plugins/prateeks367/voicemoat-skills/assets/icon.png"
+    },
+    {
+      "name": "waiting-gaming",
+      "displayName": "Waiting Gaming",
+      "source": {
+        "source": "local",
+        "path": "./plugins/paranoiadd/waiting-gaming"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Offline 2048 for Windows Codex with opt-in waiting invitations, saved game progress, and remembered window position.",
+      "icon": "./plugins/paranoiadd/waiting-gaming/assets/icon.svg"
     },
     {
       "name": "wakewire",

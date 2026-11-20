@@ -339,7 +339,7 @@ export function persistedEnv(name: string): string | null {
   if (process.platform !== "win32") return process.env[name] || process.env[name.toLowerCase()] || null;
   for (const key of ["HKCU\\Environment", "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"]) {
     try {
-      const out = execFileSync("reg", ["query", key, "/v", name], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+      const out = execFileSync("reg", ["query", key, "/v", name], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true });
       const match = out.match(new RegExp(`${name}\\s+REG_(?:EXPAND_)?SZ\\s+(.*)`, "i"));
       if (match) return match[1].trim();
     } catch { /* not set at this level */ }

@@ -46,6 +46,8 @@ bearer_token_env_var = "CONVERTER_STUDIO_API_KEY"
 
 **Gemini CLI**: `gemini extensions install https://github.com/tariksucu/converter-studio`, then `gemini extensions config converter-studio` to set the key.
 
+**Kiro**: [![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=converter-studio&config=%7B%22url%22%3A%22https%3A%2F%2Fconverter.studio%2Fapi%2Fmcp%22%2C%22headers%22%3A%7B%22Authorization%22%3A%22Bearer%20%24%7BCONVERTER_STUDIO_API_KEY%7D%22%7D%2C%22disabled%22%3Afalse%2C%22autoApprove%22%3A%5B%5D%7D) (reads the key from `CONVERTER_STUDIO_API_KEY`).
+
 **Cursor, VS Code, Windsurf and other MCP clients**: the URL `https://converter.studio/api/mcp` with the header `Authorization: Bearer <your key>`. Ready settings for each: [converter.studio/developers](https://converter.studio/developers).
 
 ## Tools

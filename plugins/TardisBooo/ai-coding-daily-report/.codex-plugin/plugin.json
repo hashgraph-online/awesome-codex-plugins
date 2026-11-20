@@ -1,0 +1,32 @@
+{
+  "name": "harness-daily",
+  "version": "0.1.1",
+  "description": "Turn local AI coding sessions into a daily work report with your chosen writer CLI.",
+  "author": {
+    "name": "TardisBooo"
+  },
+  "homepage": "https://github.com/TardisBooo/ai-coding-daily-report",
+  "repository": "https://github.com/TardisBooo/ai-coding-daily-report",
+  "license": "MIT",
+  "keywords": [
+    "daily-report",
+    "coding-sessions",
+    "developer-productivity"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI Coding Daily Report",
+    "shortDescription": "Generate a daily report from local AI coding sessions",
+    "longDescription": "Collect selected coding-session prompts locally and turn them into a Markdown work report with Grok Build, Claude Code, or Codex.",
+    "developerName": "TardisBooo",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Generate my AI coding work report for yesterday."
+    ]
+  }
+}

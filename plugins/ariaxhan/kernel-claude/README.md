@@ -1,4 +1,5 @@
 # KERNEL
+[![Kernel publisher badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Daria-han%252Fkernel%26metric%3Dpublisher%26style%3Dflat)](https://hol.org/registry/plugins/aria-han%2Fkernel)
 
 ## For agents
 

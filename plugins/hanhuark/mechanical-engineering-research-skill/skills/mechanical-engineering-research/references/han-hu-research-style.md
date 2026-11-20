@@ -48,6 +48,37 @@ A technical sentence should carry one dominant message. Parallel construction di
 
 **Diagnostic pass.** Before final submission, count `rather than`, `, not`, `not … but`, `instead of`, `because`, `so`, and `which is` across the document, and flag any clause-level series of three. Of these, only `rather than` carries a usable rate. The other frames appear in ordinary appositives and in legitimate contrasts, so read each one and rewrite only those that reject an alternative no reader proposed. A rate above roughly one `rather than` per 300 words, or any paragraph containing two clause-level triads, indicates that emphasis has been distributed instead of placed. Use [anti-formulaic-writing.md](anti-formulaic-writing.md) for the surface-prose patterns that accompany these constructions.
 
+## Paragraph Openers And The Skeleton Test
+
+The first sentence of a paragraph delivers that paragraph's central idea, and the last delivers its message or its handoff to the next. Read the openers and closers in sequence with nothing between them. The argument should survive that reduction, and each opener should connect to the preceding closer. Put the paragraphs in random order and a reader should be able to restore the original one.
+
+Failures the test catches:
+
+- **An opener that points backward at something buried in the previous paragraph.** "The distinction is consequential here" names a distinction the skeleton cannot supply, so the transition is broken even though the sentence is grammatical.
+- **An opener that announces that a comparison is possible.** "Figure 9e separates which quantity each feature follows" describes the act of looking. State the finding and let the figure pointer follow it in the next sentence.
+- **An opener carrying a leftover number.** A paragraph opening "Pooling the cases weakens every correlation, to 0.55" starts on the residue of the previous analysis. Its central idea is the scope of the result, which an opener such as "These correlations hold within a case and do not transfer across operating condition" states directly.
+- **An opener that forward-references what the paragraph never introduces.** Rewriting an opener creates this failure routinely: one new opening sentence referred to a maximum that the paragraph itself established three sentences later. Re-read the whole paragraph after every opener change.
+- **A closer that delivers a requirement, a list, or a disclaimer.** A closing sentence must deliver a message.
+
+Open with a purpose statement when a paragraph begins a new analysis, as in "To examine how vapor content and the operating threshold influence segmentation accuracy, Fig. 4 plots ...". One sentence then carries the transition and the description step together.
+
+## Defensive Qualification
+
+State the problem, what was done, and what was found. A manuscript is not a comprehensive book, and a catalog of what the work does not support belongs in neither the results nor the conclusions.
+
+Keep a statement when it changes what a result means and is made once. Cut it when it denies a claim no reader made, or restates a limit the manuscript already states elsewhere. Evidence-class verbs stay on real claims. The trailing "although X does not isolate Y" clause bolted onto "is consistent with" duplicates the verb and goes.
+
+Nearly always cuttable:
+
+- "This result does not imply that ..." and other denials of a claim nobody made.
+- A list of what a quantity is not.
+- The same limitation stated in the methods, again in the results, and again in the conclusions.
+- A result stated negatively. "does not demonstrate incremental information" becomes "adds no predictive accuracy for wall temperature beyond heat flux, mass flux, and inlet subcooling".
+
+A regular-expression pass over `does not`, `do not`, `cannot`, `is not`, `precludes`, and `unvalidated` collects the candidates, and each one is then judged against the rule rather than deleted wholesale. On one manuscript this reduced 23 flagged sentences to 5 and removed 235 words, and the 5 that survived were load-bearing.
+
+Defensive phrasing also generates reviewer confusion instead of preventing it. Two of four review comments on that manuscript landed on this register: "I do not understand this statement" against a compressed limitation clause, and "We can provide this" against a sentence listing what was unavailable.
+
 ## Reader-First Narrative
 
 For an abstract, introduction, conclusion, or other high-level passage, make the main story understandable before introducing a dense list of inputs, metrics, or acronyms. An informed reader outside the immediate specialty should be able to identify i) the problem, ii) what the work does, iii) what the main result is, and iv) why the result matters.
@@ -101,6 +132,20 @@ A revision that renames a model, a dataset, a metric, or a protocol must propaga
 - Prefer the name the figure, the table, and the methods section already print. A term that exists only in one paragraph of the results is a coined term, whether or not it was intended as one.
 - State an abbreviation at first use in the body, and check that the first use is the earliest one after restructuring moves paragraphs.
 
+## Terms The Reader Cannot Look Up
+
+A manuscript accumulates terms that no one decided to introduce. Sweep for them once the structure is final and classify each one before rewriting, since the right repair differs by class.
+
+- **Terms the whole paper runs on but never defines.** The most frequent words are the most exposed, since familiarity inside the project hides them. One manuscript indexed every result by `case` and `state`, 29 and 36 uses, and defined neither; the reader had to infer both from context, and the paper never explained why the optical count was 37 while the matched count was 36. Define such terms once where the objects are introduced, and let the definition resolve the arithmetic a reader would otherwise stumble over.
+- **One word carrying two unrelated technical senses.** `coverage` meant an area fraction in two sections and the fraction of a signal file that a window spans in a third, and neither sense was defined. Removing all eleven uses was shorter than defining two senses, and every replacement was a term the figures already printed.
+- **A term defined and then never used again.** It exists only to be defined. Delete the definition and name the quantity at its single point of use; one such term introduced in an instrumentation section became `a standard deviation`.
+- **Labels invented to carry a term that is leaving.** Group names such as `the low-area-fraction group` survive only to hold a departing word. Replace them with the grouping rule, as in `the nine images at vapor area fraction below 0.05`.
+- **Compressed nominal coinages.** `split audit`, `convention-limited values`, `experiment-held-out annotations`, `sequence-grouped images`, `onset state`, and `degradation range` each compress a procedure into a noun phrase that appears nowhere in the field's literature. Expand to the procedure itself, as in `the training and holdout images are also checked for shared source frames, by parsing the frame index in each filename`.
+- **Abbreviations expanded only in the nomenclature.** A reader meets the body out of order, so expand each one at its first appearance in the body as well. Check the entire list rather than the entries that look unfamiliar, since the omission is usually the one that felt too standard to verify; `RMSE` was expanded nowhere in one manuscript, the nomenclature included. Retire an abbreviation that is used once, since `critical heat flux` is barely longer than `CHF`.
+- **A named but unstated value.** `within the prescribed electrical-input tolerance` is a definition gap, not a style choice. Recover the value from the released reduction code, the instrument log, or the data-reduction script, confirm that nothing overrides it, state it in the manuscript, and tell the author which source supplied it. Do not invent the number and do not leave the phrase standing.
+
+Run the sweep as a scripted pass with one assertion per replacement, so that a phrase already altered by an earlier pass fails loudly instead of being skipped in silence, and end the pass with a count of each retired term to confirm that none survived.
+
 ## Edits That Move Text
 
 Consolidating limitations, reordering sections, or merging paragraphs breaks references that no spell checker reports.
@@ -123,6 +168,36 @@ When revising a manuscript to match this style, preserve the scientific evidence
 - Place each caveat near the claim it bounds. Identify the relevant unmeasured quantity, uncertain boundary, untested condition, or model-form limitation once, rather than repeating generic defensive qualifications throughout the manuscript.
 - Use two to four numbered conclusions for multi-result papers. Each conclusion should state the finding, physical interpretation, and bounded implication, not merely restate a section heading.
 - Do not resolve a substantive evidence gap by weakening prose alone. Identify the additional analysis, validation, or measurement required and preserve uncertainty and provenance in the final manuscript.
+
+## Measured Prose Targets
+
+The author's own edit of an AI-drafted manuscript is the calibration, and the measurements below are the check, in place of a judgment about whether a draft reads naturally. That edit cut the body by 24 percent, from 11,619 to 8,811 words, without removing a finding.
+
+| Quantity | Target, measured from the edited draft |
+|---|---|
+| Mean sentence length | 15.2 words |
+| Median sentence length | 15 words |
+| 90th-percentile sentence length | 32 words |
+| `which` and `that`, per 10,000 words | 75 |
+| `rather than`, per 10,000 words | 8 |
+| `because`, per 10,000 words | 0 |
+| `therefore`, per 10,000 words | 11 |
+| Semicolons, per 10,000 words | 1 |
+| Inline figure pointers such as `(Fig. 4a)`, per 10,000 words | 12 |
+| `respectively`, per 10,000 words | 9 |
+
+The draft rejected as convoluted ran a mean of 17.3 words per sentence, so a draft above roughly 18 is worse than the text already sent back. Measure before and after a style pass, and watch for trading one tic for another: a first pass that fixed sentence length pushed `therefore` from 17.8 to 26.6 per 10,000 words.
+
+**The six moves the edit makes, in order of payoff.**
+
+1. Collapse parallel measurements into one comparative sentence. Four sentences each carrying one number become one sentence carrying all four.
+2. Delete the justification sentence that opens a results paragraph, and open on the figure instead.
+3. Halve the relative clauses. A `, which ...` that explains becomes its own short sentence.
+4. Delete apparatus: sentences defending the experimental design instead of reporting a result, and digressions about which version of an analysis produced a number.
+5. Reduce captions to a subject noun phrase, `showing`, and the bare subfigure list.
+6. Lead the abstract with the contribution, and state each result as a finding instead of hanging it on `but`, `although`, or `while`.
+
+The edit cuts none of the findings, negative ones included. A data-leakage result, an accuracy collapse, and a failed transfer across surfaces all survive it. `rather than` survives wherever it marks a real technical contrast; its rate fell with the surrounding meta-commentary, and the construction itself was never hunted.
 
 ## Reviews Of Data, Software, And Benchmarks
 

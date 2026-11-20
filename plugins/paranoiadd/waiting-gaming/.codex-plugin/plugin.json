@@ -1,0 +1,25 @@
+{
+  "name": "waiting-gaming",
+  "version": "0.1.3",
+  "description": "Choose to play 2048 in a local window while waiting for a Codex turn.",
+  "repository": "https://github.com/paranoiadd/waiting-gaming",
+  "license": "MIT",
+  "author": {
+    "name": "paranoiadd"
+  },
+  "scripts": "./bin/",
+  "hooks": "./hooks/hooks.json",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "等待小游戏 · 2048",
+    "shortDescription": "等 Codex 回答时玩 2048",
+    "longDescription": "Offline 2048 for Windows Codex. A modeless invitation appears after four seconds in the captured foreground Codex window. Playing is opt-in. Progress and the last closed window position are saved locally. Requires trusted local lifecycle hooks. The game interface is in Chinese.",
+    "developerName": "paranoiadd",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Play offline 2048",
+      "Save local game progress"
+    ],
+    "category": "Productivity"
+  }
+}

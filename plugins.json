@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-19",
-  "total": 446,
+  "last_updated": "2026-11-20",
+  "total": 450,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -178,6 +178,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/AgiFlow/ai-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AI Coding Daily Report",
+      "url": "https://github.com/TardisBooo/ai-coding-daily-report",
+      "owner": "TardisBooo",
+      "repo": "ai-coding-daily-report",
+      "description": "Generates a Markdown work report from local AI coding sessions with your chosen writer CLI.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TardisBooo/ai-coding-daily-report/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "AI-Native SDLC Loop",
@@ -1483,6 +1493,16 @@
       "install_url": "https://raw.githubusercontent.com/dbalas/preview-lab/HEAD/plugin.json"
     },
     {
+      "name": "Prewalk",
+      "url": "https://github.com/TardisBooo/prewalk",
+      "owner": "TardisBooo",
+      "repo": "prewalk",
+      "description": "Completes and verifies a first task, then hands the remaining work to a configured executor.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TardisBooo/prewalk/HEAD/hosts/codex/plugin.json"
+    },
+    {
       "name": "Pro Launch",
       "url": "https://github.com/jack-reson8/pro-launch",
       "owner": "jack-reson8",
@@ -1941,6 +1961,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hlibsuslov/telegram-bot-ui/HEAD/plugin.json"
+    },
+    {
+      "name": "Tigang Reminder",
+      "url": "https://github.com/TardisBooo/tigang-plugin",
+      "owner": "TardisBooo",
+      "repo": "tigang-plugin",
+      "description": "Displays a Kegel break reminder after successful Git commits and pushes, with local counts.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TardisBooo/tigang-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "TMCRA Local Memory",
@@ -4365,6 +4395,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/prateeks367/voicemoat-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Waiting Gaming",
+      "url": "https://github.com/paranoiadd/waiting-gaming",
+      "owner": "paranoiadd",
+      "repo": "waiting-gaming",
+      "description": "Offline 2048 for Windows Codex with opt-in waiting invitations, saved game progress, and remembered window position.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/paranoiadd/waiting-gaming/HEAD/package/.codex-plugin/plugin.json"
     },
     {
       "name": "WakeWire",

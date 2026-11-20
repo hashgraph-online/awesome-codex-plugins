@@ -116,9 +116,10 @@ On a plain branch review, after step 2 and any actualize fixes:
 1. IF step 2 matched no `plan`, THEN skip closeout and run the durable-context selection.
 2. For each matched `plan`, run the closeout track (`skills/_shared/tracks/closeout.md`) with the step 1 branch boundary and that plan's scope pre-filled.
 3. Run `closeout.verify` even when the request contains no completion wording.
-4. Never infer completion from branch readiness alone. The track's plain-review entry rule decides which gates run after `closeout.verify`.
-5. IF matched plans exist but none reached `closeout.capture`, THEN run the durable-context selection over the branch scope, including the delivered units of each unfinished plan; the unfinished plan stays, and no removal is offered for it.
-6. Run the hung-plan check (actualize check 7) over every `plan` step 2 did not match and offer its batch per the actualize fix forms — on every branch review, with or without a drift signal, so a finished plan leaves the corpus without the user asking for staleness. No hung plan → one line: "No hung plans."
+4. IF a matched plan holds a `[ ] T<n>` or `[x] T<n>` task, THEN judge each checked task per "Proof verification" in `skills/_shared/plan-contract.md`; a checked task without `proof: <check> @ <sha>` is unfulfilled.
+5. Never infer completion from branch readiness alone. The track's plain-review entry rule decides which gates run after `closeout.verify`.
+6. IF matched plans exist but none reached `closeout.capture`, THEN run the durable-context selection over the branch scope, including the delivered units of each unfinished plan; the unfinished plan stays, and no removal is offered for it.
+7. Run the hung-plan check (actualize check 7) over every `plan` step 2 did not match and offer its batch per the actualize fix forms — on every branch review, with or without a drift signal, so a finished plan leaves the corpus without the user asking for staleness. No hung plan → one line: "No hung plans."
 
 The durable-context selection follows `skills/_shared/durable-context-selection.md`. It treats an ambiguously matched plan as no match, and it never selects a `journey`.
 

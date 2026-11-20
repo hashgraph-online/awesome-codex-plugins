@@ -689,7 +689,9 @@ a field, flag, or macro you need is not described here.
   Dex will not create a database itself.
 - On a billed connector the first call returns `needs_confirmation` with an
   estimate (`per_table_bytes` names which node drives it, and `upper_bounds`
-  names the incremental lines that will likely bill less).
+  names the incremental lines that will likely bill less). `cost.unpriced`
+  marks the estimate a floor where the Elementary package runs hooks or tests
+  no compiled node shows; say so when you relay the estimate.
 - When `.dex/config.yml` commits both `budget.ceiling` and
   `budget.session_ceiling` and the estimate fits `budget.ceiling`, re-issue with
   `--confirm` alone and let `budget.ceiling` bind. Do not pick a `--budget`

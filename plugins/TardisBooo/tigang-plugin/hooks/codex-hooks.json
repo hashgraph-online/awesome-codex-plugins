@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/hooks/tigang_hook.js\" detect",
+            "commandWindows": "node \"${PLUGIN_ROOT}/hooks/tigang_hook.js\" detect",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/hooks/tigang_hook.js\" remind",
+            "commandWindows": "node \"${PLUGIN_ROOT}/hooks/tigang_hook.js\" remind",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
