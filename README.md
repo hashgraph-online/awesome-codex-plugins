@@ -303,6 +303,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [PR Storyteller](./plugins/mturac/pr-storyteller) - PR title + body + test plan from commits and diff vs base branch.
 - [Praxis](https://github.com/ouonet/praxis) - Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.
 - [Preview Lab](https://github.com/dbalas/preview-lab) - Review the screens Codex changed on screenshots and send approvals and marked areas back to the session.
+- [Prewalk](https://github.com/TardisBooo/prewalk) - Completes and verifies a first task, then hands the remaining work to a configured executor.
 - [Pro Launch](https://github.com/jack-reson8/pro-launch) - Takes an app or product from idea to launch with phase gates for naming and domain checks, references, style frames, UI loop, GTM and shipping.
 - [Project Autopilot](https://github.com/AlexMi64/codex-project-autopilot) - Turn an idea into a structured project workflow with planning, execution, verification, and handoff.
 - [Proxmox Writing Style](https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill) - Unofficial skill that writes, edits, and reviews Proxmox VE, Proxmox Backup Server, and Proxmox Mail Gateway documentation with the rules of the Proxmox Technical Writing Style Guide.
