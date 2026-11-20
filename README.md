@@ -163,6 +163,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [AgentPack](https://github.com/vishal2612200/agentpack) - Ranks repo context for Codex with likely files, skill recommendations, agent rules, commands, warnings, and compact task-focused packs before editing.
 - [Agentry Observability](https://github.com/fr33dr4g0n/agentry-public) - Agent-native product analytics, error logging, and deploy attribution for coding agents through one HTTP API.
 - [AgiFlow](https://github.com/AgiFlow/ai-plugin) - Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.
+- [AI Coding Daily Report](https://github.com/TardisBooo/ai-coding-daily-report) - Generates a Markdown work report from local AI coding sessions with your chosen writer CLI.
 - [AI-Native SDLC Loop](https://github.com/ghiaog123/ai-native-sdlc) - Six-stage SDLC in committed Markdown where hooks enforce the loop at the tool-call level: an artifact gate refuses source writes no approved plan covers and keeps a change declared low-risk away from sensitive paths, with 8 skills and 2 read-only subagents.
 - [AIBoarding](https://github.com/gustavo-meilus/aiboarding) - Generate, maintain, compress, and audit standard AI-agent onboarding files with AGENTS.md, CLAUDE.md, drift tracking, and lifecycle hooks.
 - [Alcove](https://github.com/epicsagas/alcove) - Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards.
