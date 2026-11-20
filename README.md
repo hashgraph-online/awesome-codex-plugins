@@ -155,6 +155,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Agent Guard](https://github.com/JeongJaeSoon/agent-guard) - Local-by-default, no-telemetry hooks block or mask secret leaks in Claude Code and Codex, with opt-in PII filtering and Git/CI backstops.
 - [Agent Harness Skills](https://github.com/yfge/agent-harness-skills) - Designs agent-ready repository harnesses with entrypoints, validation surfaces, runtime evidence, delivery records, and atomic commit guidance.
 - [Agent Retro](https://github.com/summationai/agent-retro) - Weekly retro of how you use Codex and Claude Code: 12 animated slides of usage stats with four evidence-backed coaching tips, built locally from your own logs.
+- [Agent Session Lineage](https://github.com/TardisBooo/agent-session-lineage) - View indexed Codex and Claude Code sessions and recorded handoff links on Windows using a local Möbius vault.
 - [Agent Workflow System](https://github.com/1139030773-cmd/agent-workflow-system) - 一套中文AI工作流系统：7个协作技能 + 行为规范宪法 + 会话恢复机制，模糊目标→可执行任务，全生命周期引导。Codex & Claude Code 双平台，新手友好。
 - [AgentAvow Trust](https://github.com/AgentAvow/agentavow-codex-plugin) - Checks your MCP servers at session start and stops a `codex mcp add` or package install that reads Do not connect, with the reason and a signed 0-100 trust score.
 - [Agentic Readiness Assessment](https://github.com/exadel-inc/agentic-readiness-assessment) - Assess repository readiness for AI coding agents with an evidence-based scorecard and prioritized fixes.
