@@ -352,6 +352,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Team Skills Platform](https://github.com/Colin4k1024/tsp) - Role-based team delivery framework — Tech Lead-orchestrated 8-role system with 195+ skills, 27 specialist agents, 80+ commands, hooks, and ECC harness for Claude Code, Codex, and OpenCode.
 - [Telegram Bot UI](https://github.com/hlibsuslov/telegram-bot-ui) - Design, build and audit Telegram bot interfaces (texts, keyboards, colored buttons, streaming AI replies, Rich Messages, channel posts) with a skill updated for every Bot API release.
 - [Test Gap](./plugins/mturac/test-gap) - Find lines in your diff lacking test coverage (Cobertura, lcov, coverage.json).
+- [Tigang Reminder](https://github.com/TardisBooo/tigang-plugin) - Displays a Kegel break reminder after successful Git commits and pushes, with local counts.
 - [TODO Harvest](./plugins/mturac/todo-harvest) - TODO/FIXME/HACK scan with `git blame` author + age.
 - [TMCRA Local Memory](https://github.com/reshuibuduo/tmcra-plugin-codex) - Owner-local memory for Codex that recalls user and project evidence before each answer and carries source-attributed project context across sessions and supported agent tools.
 - [TNT House Risk-Data API](https://github.com/menantonio83-hue/codex-plugin-tnt-risk-api) - Solana token risk scoring for AI trading agents via MCP: safety score, insider wallet cluster detection, mint/freeze authority, honeypot risk, and LP-lock status in one call.
