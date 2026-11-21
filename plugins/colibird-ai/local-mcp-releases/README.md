@@ -10,7 +10,7 @@ Use it with **Claude, ChatGPT, Codex, Cursor** and other compatible MCP clients.
 
 **[Download for Mac or Windows →](https://www.local-mcp.com/download?ref=github-releases)** · **[Explore the product](https://www.local-mcp.com/en#explore)** · **[Setup guides](https://www.local-mcp.com/guides)**
 
-This repository contains release information, documentation and the npm wrapper. The core binary is proprietary; documentation and scripts have their own license — see [LICENSE](LICENSE).
+This repository contains release information, documentation and the npm wrapper. The source files in this repository are MIT-licensed ([LICENSE](LICENSE)); the LMCP binaries and installers in Releases are proprietary ([LICENSE-BINARY.md](LICENSE-BINARY.md)).
 
 ## More than one app's view of your information
 
@@ -146,6 +146,6 @@ See **[GitHub Releases](https://github.com/colibird-ai/local-mcp-releases/releas
 - Report a problem through LMCP's available feedback tools or **[open an issue](https://github.com/colibird-ai/local-mcp-releases/issues)**. Include OS and app version, and remove sensitive content from logs.
 - Request a feature through the available feedback tools or GitHub Issues.
 - Contact **[ctpo@colibird.co](mailto:ctpo@colibird.co)** for support; see [SECURITY.md](SECURITY.md) for vulnerabilities.
-- For current availability, see **[the website](https://www.local-mcp.com)**; for license terms, see [LICENSE](LICENSE).
+- For current availability, see **[the website](https://www.local-mcp.com)**; for license terms, see [LICENSE](LICENSE) (source files, MIT) and [LICENSE-BINARY.md](LICENSE-BINARY.md) (binaries).
 
 If LMCP helps you, **[star the repository](https://github.com/colibird-ai/local-mcp-releases)** to help others discover it.

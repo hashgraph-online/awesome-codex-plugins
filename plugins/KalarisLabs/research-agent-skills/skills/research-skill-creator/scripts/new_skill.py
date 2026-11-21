@@ -91,6 +91,7 @@ if __name__ == "__main__":
 
 
 def find_root(start: Path) -> Path:
+    """Find root."""
     for p in [start, *start.parents]:
         if (p / "skills").is_dir() and (p / "third_party" / "categories.yaml").is_file():
             return p
@@ -98,12 +99,14 @@ def find_root(start: Path) -> Path:
 
 
 def known_categories(root: Path) -> list[str]:
+    """Handle known categories."""
     text = (root / "third_party" / "categories.yaml").read_text(encoding="utf-8")
     block = text.split("categories:", 1)[1].split("\n\n", 1)[0]
-    return re.findall(r"^  ([a-z0-9-]+):", block, re.M)
+    return re.findall(r"^ {2}([a-z0-9-]+):", block, re.M)
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name")
     ap.add_argument("--category", required=True)

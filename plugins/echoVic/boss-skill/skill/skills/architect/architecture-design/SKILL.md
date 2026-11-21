@@ -1,5 +1,4 @@
 ---
-
 name: architect/architecture-design
 description: 系统架构设计方法论，包含架构模式选择、系统分层、目录结构设计
 version: 1.0.0
@@ -8,15 +7,14 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-- architect/tech-research
-  triggers:
-- 技术调研完成后
-- 需要设计系统架构时
-- 需要定义项目结构时
-  metadata:
+  - shared/tech-stack-detection
+  - architect/tech-research
+triggers:
+  - 技术调研完成后
+  - 需要设计系统架构时
+  - 需要定义项目结构时
+metadata:
   internal: true
-
 ---
 
 # 系统架构设计方法论
@@ -24,6 +22,7 @@ dependencies:
 ## 适用场景
 
 基于技术调研结论，设计完整的系统架构，包括：
+
 - 架构模式选择（单体/前后端分离/微服务）
 - 系统分层和模块划分
 - 目录结构设计
@@ -175,6 +174,7 @@ graph TB
 ### 4. 目录结构设计
 
 **重要原则**：
+
 1. **遵循框架惯例**：使用检测到的框架的标准目录结构
 2. **关注点分离**：业务逻辑、数据访问、API层清晰分离
 3. **测试并置**：测试文件与源码在同层或专用tests目录

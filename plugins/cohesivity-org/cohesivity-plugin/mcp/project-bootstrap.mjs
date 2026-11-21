@@ -50,7 +50,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "5.1.0";
+export const SERVER_VERSION = "5.1.1";
 const SERVER_INSTRUCTIONS =
   "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
   "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +

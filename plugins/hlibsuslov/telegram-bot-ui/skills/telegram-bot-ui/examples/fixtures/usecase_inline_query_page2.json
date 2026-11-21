@@ -1,0 +1,10 @@
+{
+  "update_id": 960003,
+  "inline_query": {
+    "id": "6000000000000960003",
+    "from": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+    "query": "coffee",
+    "offset": "3",
+    "chat_type": "supergroup"
+  }
+}

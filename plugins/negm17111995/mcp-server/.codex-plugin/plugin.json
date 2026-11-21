@@ -7,20 +7,18 @@
     "email": "info@maqami.co",
     "url": "https://maqami.co"
   },
-  "homepage": "https://mcp.maqami.co/",
+  "homepage": "https://maqami.co",
   "repository": "https://github.com/negm17111995/mcp-server",
   "license": "MIT",
   "keywords": [
     "travel",
+    "hotel",
     "hotels",
+    "flight",
     "flights",
-    "hotel-search",
-    "flight-search",
     "booking",
-    "mcp"
+    "trip"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "MAQAMI Travel",
     "shortDescription": "Search hotels and flights, book on MAQAMI",
@@ -40,5 +38,7 @@
     "privacyPolicyURL": "https://maqami.co/privacy-policy/",
     "termsOfServiceURL": "https://maqami.co/terms-of-service/",
     "supportURL": "https://github.com/negm17111995/mcp-server/issues"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

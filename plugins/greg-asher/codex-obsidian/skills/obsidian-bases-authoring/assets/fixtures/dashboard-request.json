@@ -1,0 +1,18 @@
+{
+  "folder": "Atlas/Work",
+  "schema": {"status": "text", "owner": "text", "due": "date", "hours": "number"},
+  "formulas": {
+    "weighted": {"left": "note.hours", "op": "*", "right": 2}
+  },
+  "views": [
+    {
+      "name": "Open work",
+      "where": [{"property": "note.status", "op": "!=", "value": "done"}],
+      "columns": ["file.name", "note.status", "note.owner", "note.due", "formula.weighted"],
+      "sort": [{"property": "note.due", "direction": "ASC"}],
+      "group": {"property": "note.status", "direction": "ASC"},
+      "summaries": {"formula.weighted": "Sum"}
+    },
+    {"name": "All work", "columns": ["file.name", "note.status", "note.hours"]}
+  ]
+}

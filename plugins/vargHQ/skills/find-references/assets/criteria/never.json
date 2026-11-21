@@ -1,0 +1,10 @@
+[
+ {
+  "id": "N2",
+  "core": true,
+  "question": "Is the flaw on the want card visible in this example? Name the region.",
+  "pass_example": "Yes, mid-centre",
+  "fail_example": "Not visible",
+  "ct_rule": "Too small"
+ }
+]

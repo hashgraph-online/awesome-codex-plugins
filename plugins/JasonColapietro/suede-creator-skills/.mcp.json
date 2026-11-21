@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "suede_skills_mcp": {
+      "title": "Suede AI Skills MCP",
+      "description": "Local read-only MCP access to every Suede skill: discovery, install options, visibility and code grading, SEO copy audits, and QA checklists.",
+      "cwd": "${CLAUDE_PLUGIN_ROOT}",
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/suede-skills-mcp.mjs",
+        "--profile",
+        "all"
+      ]
+    }
+  }
+}

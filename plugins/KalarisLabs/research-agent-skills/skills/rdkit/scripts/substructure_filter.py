@@ -20,6 +20,8 @@ except ImportError:
     print("Error: RDKit not installed. Install with: uv pip install rdkit")
     sys.exit(1)
 
+from _common import iter_molecules
+
 
 # Common SMARTS pattern libraries
 PATTERN_LIBRARIES = {
@@ -66,30 +68,7 @@ PATTERN_LIBRARIES = {
 
 def load_molecules(file_path, keep_props=True):
     """Load molecules from file."""
-    path = Path(file_path)
-
-    if not path.exists():
-        print(f"Error: File not found: {file_path}")
-        return []
-
-    molecules = []
-
-    if path.suffix.lower() in ['.sdf', '.mol']:
-        suppl = Chem.SDMolSupplier(str(path))
-    elif path.suffix.lower() in ['.smi', '.smiles', '.txt']:
-        suppl = Chem.SmilesMolSupplier(str(path), titleLine=False)
-    else:
-        print(f"Error: Unsupported file format: {path.suffix}")
-        return []
-
-    for idx, mol in enumerate(suppl):
-        if mol is None:
-            print(f"Warning: Failed to parse molecule {idx+1}")
-            continue
-
-        molecules.append(mol)
-
-    return molecules
+    return [mol for _, mol in iter_molecules(file_path)]
 
 
 def create_pattern_query(pattern_string):
@@ -252,10 +231,11 @@ def print_summary(total, filtered, match_info):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Filter molecules by substructure patterns',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"""
+        epilog="""
 Pattern libraries:
   --filter-type functional-groups    Common functional groups
   --filter-type rings               Ring systems
@@ -351,7 +331,7 @@ Examples:
         sys.exit(1)
 
     # Print filter configuration
-    print(f"\nFilter configuration:")
+    print("\nFilter configuration:")
     if include_patterns:
         print(f"  Include patterns: {len(include_patterns)}")
         if args.match_all:

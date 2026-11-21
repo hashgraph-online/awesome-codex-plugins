@@ -1,35 +1,62 @@
 #!/usr/bin/env python3
-"""Phase 3a — Merge per-task result files into <mpn>.json.
+"""Merge per-task result files into <mpn>.json.
 
 Reads <mpn>.plan.json + per-task wrapped result files, validates each `data`
 against the declared schema (using referencing.Registry for local $ref
 resolution), splices into the canonical extraction shape, and writes <mpn>.json.
 
-Failure semantics (Phase 3a):
+Failure semantics:
 - status:"complete" + schema-valid  → splice into top-level field.
 - status:"failed" OR schema-invalid → on first failure, mark task for retry
   (no auto re-dispatch — the dispatcher recipe handles re-run); on second
   failure, partial-merge with {"_extraction_failed": true, "reason": ...}.
 
 Stdlib + jsonschema + referencing (already dev deps). Requires jsonschema and
-referencing — hard imports, no fallback. The script's only purpose is schema
-validation; silent-pass on missing deps is dangerous.
+referencing — extraction_schema imports them when validation runs and raises
+RuntimeError when they are missing; no fallback. The script's only purpose is
+schema validation; silent-pass on missing deps is dangerous.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
+from extraction_schema import validate_against_schema
+
+_SKILL_PARENT = str(Path(__file__).resolve().parents[1])
+if _SKILL_PARENT not in sys.path:
+    sys.path.insert(0, _SKILL_PARENT)
+
+from datasheet_types.cache_reader import read_json_object, sanitize_mpn  # noqa: E402
+from distributor_core.manifest import write_json_atomic  # noqa: E402
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "skills/datasheets/schemas"
+SKILL_ROOT = Path(__file__).resolve().parents[1]          # skills/datasheets
+SCHEMA_DIR = SKILL_ROOT / "schemas"
+_LEGACY_PREFIX = "skills/datasheets/"
+
+
+def resolve_skill_resource(rel: str) -> Path:
+    """Map a resource reference to a path inside this skill.
+
+    Extraction plans persisted before v3 carry repo-relative strings such as
+    'skills/datasheets/schemas/base.schema.json'; a copied skill still owns
+    that file at SKILL_ROOT / 'schemas/base.schema.json'. Absolute paths pass
+    through unchanged (custom schema locations)."""
+    p = Path(rel)
+    if p.is_absolute():
+        return p
+    s = p.as_posix()
+    if s.startswith(_LEGACY_PREFIX):
+        s = s[len(_LEGACY_PREFIX):]
+    return SKILL_ROOT / s
+
+
 EXTRACTOR_SCHEMA_VERSION = "1.0"
 
 
@@ -42,53 +69,49 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _build_registry() -> "Registry":
-    """Build a referencing Registry so $ref between local schemas resolves."""
-    registry = Registry()
-    for schema_path in SCHEMA_DIR.glob("*.schema.json"):
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
-        uri = schema.get("$id")
-        if uri:
-            registry = registry.with_resource(uri, Resource.from_contents(schema))
-    return registry
-
-
-def _validate(data, schema: dict) -> "str | None":
-    """Return error message on failure, None on success."""
-    registry = _build_registry()
-    validator = Draft202012Validator(schema, registry=registry)
-    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
-    if not errors:
-        return None
-    e0 = errors[0]
-    path = "/".join(str(p) for p in e0.absolute_path) or "<root>"
-    return f"{path}: {e0.message}"
+_SAFE_TASK_ID = re.compile(r"[A-Za-z0-9_.\-]+")
 
 
 def _read_result(cache: Path, mpn: str, task_id: str) -> "dict | None":
-    p = cache / f"{mpn}.{task_id}.result.json"
-    if not p.exists():
-        return None
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+    if not _SAFE_TASK_ID.fullmatch(task_id) or task_id in (".", ".."):
         return {
             "task_id": task_id,
             "status": "failed",
-            "error": f"result file is not valid JSON: {exc}",
+            "error": "task id is not a safe file name component",
             "data": None,
         }
+    p = cache / f"{sanitize_mpn(mpn)}.{task_id}.result.json"
+    if not p.exists():
+        return None
+    result = read_json_object(p)
+    if result is None:
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": "result file is not a readable JSON object",
+            "data": None,
+        }
+    return result
 
 
-def _classify(result: "dict | None", schema: dict) -> "tuple[str, str | None]":
-    """Return ('complete'|'failed', error_message)."""
+def _classify(result: "dict | None", schema: dict,
+              pdf_sha256: "str | None" = None) -> "tuple[str, str | None]":
+    """Return ('complete'|'failed', error_message). A result must name the
+    PDF the plan was built from, so facts from another revision never merge."""
     if result is None:
         return "failed", "no result file found"
     if result.get("status") != "complete":
         return "failed", result.get("error") or "result file status != 'complete'"
-    err = _validate(result.get("data"), schema)
+    err = validate_against_schema(result.get("data"), schema)
     if err:
         return "failed", f"schema validation: {err}"
+    bound = result.get("pdf_sha256")
+    if not bound:
+        return "failed", ("result has no pdf_sha256, so it cannot be tied to the planned PDF; "
+                          "re-dispatch this task and copy pdf_sha256 from the plan into the wrapper")
+    if bound != pdf_sha256:
+        return "failed", (f"result is bound to PDF {bound}, not the planned PDF "
+                          f"{pdf_sha256}; re-dispatch this task")
     return "complete", None
 
 
@@ -122,7 +145,17 @@ def _splice_field(extraction: dict, task_id: str, role: str, data) -> None:
             cats.append(role)
 
 
-def _initial_extraction(plan: dict) -> dict:
+def _local_path(pdf_path: str, cache: Path) -> str:
+    """Return pdf_path relative to datasheets/ (the cache's parent) when the
+    PDF is inside it, so the extraction survives a copied or moved project;
+    otherwise pdf_path as given."""
+    try:
+        return Path(pdf_path).resolve().relative_to(cache.resolve().parent).as_posix()
+    except (OSError, RuntimeError, ValueError):
+        return pdf_path
+
+
+def _initial_extraction(plan: dict, cache: Path) -> dict:
     return {
         "schema_version": {"base": "1.0", "categories": {}},
         "source": {
@@ -131,7 +164,7 @@ def _initial_extraction(plan: dict) -> dict:
             "datasheet_revision": None,
             "datasheet_date": None,
             "source_url": None,
-            "local_path": plan["pdf_path"],
+            "local_path": _local_path(plan["pdf_path"], cache),
             "sha256": plan["pdf_sha256"],
             "page_count": None,
             "family_ref": None,
@@ -141,7 +174,7 @@ def _initial_extraction(plan: dict) -> dict:
             "extractor_scout": None,
             "extractor_schema_version": EXTRACTOR_SCHEMA_VERSION,
             "quality_score": None,
-            "plan_ref": f"{plan['mpn']}.plan.json",
+            "plan_ref": f"{sanitize_mpn(plan['mpn'])}.plan.json",
         },
         "base": {},
         "categories": [],
@@ -150,12 +183,8 @@ def _initial_extraction(plan: dict) -> dict:
 
 def _enrich_source_from_scout(extraction: dict, cache: Path, mpn: str) -> None:
     """Overlay scout metadata onto the source block. Silent on missing file."""
-    p = cache / f"{mpn}.scout.json"
-    if not p.exists():
-        return
-    try:
-        scout = json.loads(p.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+    scout = read_json_object(cache / f"{sanitize_mpn(mpn)}.scout.json")
+    if scout is None:
         return
     md = scout.get("metadata", {}) or {}
     src = extraction["source"]
@@ -196,15 +225,18 @@ def _record_outcome(
 
 
 def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
-    plan_path = cache / f"{mpn}.plan.json"
+    plan_path = cache / f"{sanitize_mpn(mpn)}.plan.json"
     if not plan_path.exists():
         print(f"error: plan not found at {plan_path}", file=sys.stderr)
         return 2
-    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    plan = read_json_object(plan_path)
+    if plan is None:
+        print(f"error: plan at {plan_path} is not a readable JSON object", file=sys.stderr)
+        return 2
     if plan["execution"]["started_at"] is None:
         plan["execution"]["started_at"] = _now_iso()
 
-    extraction = _initial_extraction(plan)
+    extraction = _initial_extraction(plan, cache)
     _enrich_source_from_scout(extraction, cache, mpn)
 
     failed_tasks: list[tuple[dict, str]] = []
@@ -213,10 +245,10 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
     for task in plan["tasks"]:
         tid = task["task_id"]
         role = task["subagent_role"]
-        schema_path = REPO_ROOT / task["schema"]
+        schema_path = resolve_skill_resource(task["schema"])
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         result = _read_result(cache, mpn, tid)
-        status, err = _classify(result, schema)
+        status, err = _classify(result, schema, plan.get("pdf_sha256"))
 
         # Track attempt count — start from any prior recorded attempts.
         prior = next(
@@ -227,7 +259,7 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
         if status == "complete":
             _splice_field(extraction, tid, role, result["data"])
             task["status"] = "complete"
-            task["result_ref"] = f"{mpn}.{tid}.result.json"
+            task["result_ref"] = f"{sanitize_mpn(mpn)}.{tid}.result.json"
             _record_outcome(plan, tid, attempts, "complete", None)
             sv = result.get("schema_version")
             if sv and role not in ("base", "pinout"):
@@ -240,11 +272,11 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
     if schema_versions:
         extraction["schema_version"]["categories"].update(schema_versions)
 
-    # Phase 3a failure/retry policy.
+    # Failure/retry policy.
     if failed_tasks and not retry_failed:
         # First merge with failures: write plan state, exit nonzero.
         # Caller re-dispatches failed tasks, then re-runs with --retry-failed.
-        plan_path.write_text(json.dumps(plan, indent=2, sort_keys=True))
+        write_json_atomic(plan_path, plan, sort_keys=True)
         for task, err in failed_tasks:
             print(f"failed: {task['task_id']}: {err}", file=sys.stderr)
         print(
@@ -272,7 +304,7 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
             _record_outcome(plan, tid, 2, "partial", err)
 
     try:
-        sys.path.insert(0, str(REPO_ROOT / "skills/datasheets/scripts"))
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
         from datasheet_score import score_v14_extraction
         extraction["extraction"]["quality_score"] = score_v14_extraction(extraction)["score"]
     except Exception as exc:  # noqa: BLE001
@@ -280,9 +312,9 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
         extraction["extraction"]["quality_score"] = None
     plan["execution"]["completed_at"] = _now_iso()
 
-    out_path = cache / f"{mpn}.json"
-    out_path.write_text(json.dumps(extraction, indent=2, sort_keys=True))
-    plan_path.write_text(json.dumps(plan, indent=2, sort_keys=True))
+    out_path = cache / f"{sanitize_mpn(mpn)}.json"
+    write_json_atomic(out_path, extraction, sort_keys=True)
+    write_json_atomic(plan_path, plan, sort_keys=True)
     print(f"{mpn}: merged → {out_path}")
     return 0
 
@@ -315,4 +347,10 @@ def main(argv: "list[str] | None" = None) -> int:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

@@ -1,4 +1,4 @@
 interface:
   display_name: "GrayMatter Context"
-  short_description: "Compile bounded task context with retrieval receipts"
-  default_prompt: "Compile relevant GrayMatter context for this task."
+  short_description: "Load relevant rules and context before starting work"
+  default_prompt: "Use $graymatter-context to load relevant invariants and context before this task."

@@ -23,6 +23,13 @@ import {
   parseGoalProgressUpdateState,
 } from "../../contracts/src/update-state-runtime.js";
 import {
+  type GoalProgressLocaleCatalogPayload,
+  hasGoalProgressLocaleCatalog,
+  isGoalProgressLocaleCatalogPayload,
+  registerGoalProgressLocaleCatalog,
+  resolveGoalProgressLocaleCatalogKey,
+} from "../../renderer/src/locale-core.js";
+import {
   type CodexHostPlatform,
   type CodexNativeGoalLocatorRegistry,
   type CodexVisibleThreadRejectionReason,
@@ -142,6 +149,7 @@ export interface GoalProgressPageMountInput {
   readonly bridgeNonce?: string;
   readonly bridgeBindingName?: string;
   readonly uiPreference: GoalProgressUiPreference;
+  readonly localeCatalog?: GoalProgressLocaleCatalogPayload;
 }
 
 export interface GoalProgressPageHostApi {
@@ -151,6 +159,7 @@ export interface GoalProgressPageHostApi {
   mount(input: unknown): SidecarMountResult | GoalProgressPageHostFailure;
   update(viewModel: unknown): SidecarMountResult | GoalProgressPageHostFailure;
   setUpdateState(updateState: unknown): SidecarMountResult | GoalProgressPageHostFailure;
+  setLocaleCatalog(catalog: unknown): { readonly ok: boolean; readonly key: string | null };
   unmount(): SidecarMountResult | GoalProgressPageHostFailure;
   health(): GoalProgressPageHealthResult;
 }
@@ -274,6 +283,7 @@ function parseMountInput(value: unknown): GoalProgressPageMountInput | null {
     value.updateState === null || value.updateState === undefined
       ? null
       : parseGoalProgressUpdateState(value.updateState);
+  const localeCatalog = value.localeCatalog;
   if (
     (platform !== "macos" && platform !== "windows") ||
     typeof appVersion !== "string" ||
@@ -286,7 +296,8 @@ function parseMountInput(value: unknown): GoalProgressPageMountInput | null {
         !/^[A-Za-z0-9_-]{32}$/u.test(bridgeNonce) ||
         bridgeBindingName !== `${GOAL_PROGRESS_UI_INTENT_BINDING_PREFIX}${bridgeNonce}`)) ||
     uiPreference === null ||
-    (value.updateState !== null && value.updateState !== undefined && updateState === null)
+    (value.updateState !== null && value.updateState !== undefined && updateState === null) ||
+    (localeCatalog !== undefined && !isGoalProgressLocaleCatalogPayload(localeCatalog))
   ) {
     return null;
   }
@@ -298,6 +309,7 @@ function parseMountInput(value: unknown): GoalProgressPageMountInput | null {
     ...(bridgeNonce === undefined ? {} : { bridgeNonce }),
     ...(bridgeBindingName === undefined ? {} : { bridgeBindingName }),
     uiPreference,
+    ...(localeCatalog === undefined ? {} : { localeCatalog }),
   };
 }
 
@@ -496,6 +508,9 @@ class GoalProgressPageHost implements GoalProgressPageHostApi {
       this.#stopRuntime();
       return failure(this.#document, "invalid-input");
     }
+    if (parsed.localeCatalog) {
+      registerGoalProgressLocaleCatalog(parsed.localeCatalog.key, parsed.localeCatalog.messages);
+    }
     const current = this.#configuration;
     const sameView =
       current?.viewModel.contractId === parsed.viewModel.contractId &&
@@ -509,7 +524,7 @@ class GoalProgressPageHost implements GoalProgressPageHostApi {
       : parsed;
     this.#startObserver();
     this.#lastReconcileCause = "initial-mount";
-    return this.#reconcile();
+    return this.#withMissingLocaleCatalog(this.#reconcile());
   }
 
   update(viewModel: unknown): SidecarMountResult | GoalProgressPageHostFailure {
@@ -525,7 +540,7 @@ class GoalProgressPageHost implements GoalProgressPageHostApi {
       viewModel,
     };
     this.#lastReconcileCause = "view-model-update";
-    return this.#reconcile();
+    return this.#withMissingLocaleCatalog(this.#reconcile());
   }
 
   setUpdateState(updateState: unknown): SidecarMountResult | GoalProgressPageHostFailure {
@@ -541,6 +556,14 @@ class GoalProgressPageHost implements GoalProgressPageHostApi {
       updateState: parsed,
     };
     return this.#controller?.setUpdateState(parsed) ?? failure(this.#document, "not-configured");
+  }
+
+  setLocaleCatalog(catalog: unknown): { readonly ok: boolean; readonly key: string | null } {
+    if (!isGoalProgressLocaleCatalogPayload(catalog)) {
+      return { ok: false, key: null };
+    }
+    const registered = registerGoalProgressLocaleCatalog(catalog.key, catalog.messages);
+    return { ok: registered, key: registered ? catalog.key : null };
   }
 
   unmount(): SidecarMountResult | GoalProgressPageHostFailure {
@@ -1002,6 +1025,23 @@ class GoalProgressPageHost implements GoalProgressPageHostApi {
       layout: this.#controller?.diagnostics() ?? this.#lastLayoutDiagnostics,
     };
   }
+
+  #withMissingLocaleCatalog<T extends SidecarMountResult | GoalProgressPageHostFailure>(
+    result: T,
+  ): T {
+    const rawLocale =
+      this.#document.documentElement?.lang ||
+      this.#document.defaultView?.navigator?.language ||
+      "en";
+    const catalogKey = resolveGoalProgressLocaleCatalogKey(rawLocale);
+    if (!catalogKey || hasGoalProgressLocaleCatalog(catalogKey)) {
+      return result;
+    }
+    return {
+      ...result,
+      missingLocaleCatalogKey: catalogKey,
+    };
+  }
 }
 
 function isInstalledApi(value: unknown): value is GoalProgressPageHostApi {
@@ -1013,6 +1053,7 @@ function isInstalledApi(value: unknown): value is GoalProgressPageHostApi {
     typeof value.mount === "function" &&
     typeof value.update === "function" &&
     typeof value.setUpdateState === "function" &&
+    typeof value.setLocaleCatalog === "function" &&
     typeof value.unmount === "function" &&
     typeof value.health === "function"
   );

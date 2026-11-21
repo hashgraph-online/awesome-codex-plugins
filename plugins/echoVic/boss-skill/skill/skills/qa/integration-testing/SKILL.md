@@ -1,5 +1,4 @@
 ---
-
 name: qa/integration-testing
 description: 集成测试方法论，验证模块间协作、数据库交互、服务间调用，参考 Testcontainers、Testing Library、WireMock 等开源实践
 version: 1.0.0
@@ -8,15 +7,14 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要验证模块间协作时
-- 需要测试数据库真实交互时
-- 需要测试服务间调用时
-- 需要验证前端组件与 API 集成时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要验证模块间协作时
+  - 需要测试数据库真实交互时
+  - 需要测试服务间调用时
+  - 需要验证前端组件与 API 集成时
+metadata:
   internal: true
-
 ---
 
 # 集成测试方法论
@@ -446,6 +444,7 @@ beforeEach(async () => {
 ## 7. 检查清单
 
 后端集成测试：
+
 - [ ] 使用真实数据库（Testcontainers 或测试 DB）
 - [ ] 不 mock Repository/数据访问层
 - [ ] 每个测试独立（数据隔离）
@@ -454,6 +453,7 @@ beforeEach(async () => {
 - [ ] 验证跨模块调用链完整
 
 前端集成测试：
+
 - [ ] 使用 MSW mock API，不 mock 内部组件
 - [ ] 验证组件 + 状态管理 + API 调用链
 - [ ] 覆盖成功和失败场景

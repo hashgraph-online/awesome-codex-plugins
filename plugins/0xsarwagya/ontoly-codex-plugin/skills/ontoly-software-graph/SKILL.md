@@ -1,17 +1,17 @@
 ---
 name: ontoly-software-graph
-description: Use Ontoly Software Graph evidence, CLI reports, MCP, and official Ontoly Agent Skills before searching source files when reviewing architecture, dependencies, request flows, configuration, impact, or security-sensitive ownership.
+description: Use Ontoly Software Graph evidence, CLI reports, MCP, and official Ontoly Agent Skills before searching source files when reviewing architecture, dependencies, request flows, configuration, impact, or security-sensitive ownership in JavaScript, TypeScript, Python, or Go repositories.
 ---
 
 # Ontoly Software Graph
 
-Use this skill when the user asks Codex to understand a TypeScript repository's architecture, dependency graph, request flow, service ownership, configuration usage, impact radius, package topology, or security-sensitive code paths.
+Use this skill when the user asks Codex to understand a JavaScript, TypeScript, Python, or Go repository's architecture, dependency graph, request flow, service ownership, configuration usage, impact radius, package topology, or security-sensitive code paths.
 
 Ontoly is a deterministic Software Graph compiler. It does not answer questions with AI. It builds graph evidence that Codex can query before falling back to source search.
 
 ## Workflow
 
-1. Check whether `.ontoly/SoftwareGraph.json` exists.
+1. Check whether a graph exists: `ontoly-output/SoftwareGraph.json` (written by `ontoly build`) or `.ontoly/SoftwareGraph.json` (written by `ontoly analyze`). Queries read whichever is newer.
 2. If the graph is missing or stale, ask before installing dependencies or writing generated graph files. Then run:
 
    ```bash
@@ -29,11 +29,12 @@ Ontoly is a deterministic Software Graph compiler. It does not answer questions 
 4. Prefer Ontoly graph queries before repository-wide source search:
 
    ```bash
+   pnpm ontoly evidence "<question>"
+   pnpm ontoly search <concept>
    pnpm ontoly architecture --json
-   pnpm ontoly report dependencies --format markdown
-   pnpm ontoly report routes --format markdown
-   pnpm ontoly query impact <node-id>
+   pnpm ontoly impact <node-id-or-query>
    pnpm ontoly trace <node-id-or-name>
+   pnpm ontoly report routes --format markdown
    ```
 
 5. Start Ontoly MCP when the environment supports MCP-backed tools:
@@ -69,13 +70,11 @@ Never claim certainty beyond Ontoly evidence. If graph coverage is incomplete, s
 
 ## Official Ontoly Skills
 
-Ontoly publishes task-specific Agent Skills in its own repository. To inspect or install them with the open `skills` CLI:
+Ontoly publishes 14 task-specific Agent Skills in its own repository: architecture-review, codebase-onboarding, configuration-analysis, dead-code-analysis, dependency-analysis, documentation, framework-analysis, impact-analysis, migration-analysis, performance-analysis, refactoring, request-tracing, sdk-generation, and security-review. To inspect or install them with the open `skills` CLI:
 
 ```bash
 npx skills add 0xsarwagya/ontoly --list
-npx skills add 0xsarwagya/ontoly --skill architecture-review
 npx skills add 0xsarwagya/ontoly --skill impact-analysis
-npx skills add 0xsarwagya/ontoly --skill request-tracing
 ```
 
 Use those official skills when the task maps directly to one of their workflows.

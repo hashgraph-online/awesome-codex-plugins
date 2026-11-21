@@ -1,5 +1,7 @@
 # Localization parity — finite — objective key drift in an existing localization system
 
+## When to use
+
 Missing, unused, or structurally inconsistent localization keys reported by tooling or proved by
 comparison inside a localization system the repository already uses. Language judgment remains
 with a human.
@@ -12,6 +14,8 @@ Supported only when the project already has locale catalogs plus an established 
 type system, or canonical source locale. If localization is absent or no source of truth can be
 identified, this shift is unsupported and must not start.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **Localization parity — repair objective key drift without inventing translations.**

@@ -1,0 +1,50 @@
+{
+  "name": "sofya-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Sofya. Web search, fetch, extract, and deep research for AI agents.",
+  "type": "module",
+  "bin": {
+    "sofya-mcp": "build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sofya",
+    "web-search",
+    "fetch",
+    "extract",
+    "research",
+    "ai-agents",
+    "claude"
+  ],
+  "homepage": "https://sofya.co",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sofya-ai/sofya-mcp.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/yargs": "^17.0.32",
+    "typescript": "^5.3.3"
+  }
+}

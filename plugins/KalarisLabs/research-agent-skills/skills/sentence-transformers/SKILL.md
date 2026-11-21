@@ -278,5 +278,5 @@ index = VectorStoreIndex.from_documents(documents)
 ## Related skills
 
 - `chroma`: Open-source embedding database for AI applications.
-- `pinecone`: Guides use of Pinecone, a managed serverless vector database, through its Python client and the LangChain and LlamaIndex integrations.
 - `qdrant-vector-search`: High-performance vector similarity search engine for RAG and semantic search.
+- `pinecone`: Guides use of Pinecone, a managed serverless vector database, through its Python client and the LangChain and LlamaIndex integrations.

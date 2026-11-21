@@ -1,0 +1,89 @@
+# Track B packaging (docs/distribution_plan.md). Track A never needs this file:
+# the checkout still runs as `python -m harness` / `python scripts/x.py`.
+[build-system]
+requires = ["hatchling>=1.24", "hatch-fancy-pypi-readme>=24.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "manuwright"
+dynamic = ["version", "readme"]
+description = "Verification engine for AI-assisted medical manuscript writing"
+license = "CC-BY-4.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Sang-Min Park" }]
+keywords = ["medical writing", "academic writing", "manuscript", "citations", "claude code", "codex", "gemini cli", "research tools"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Text Processing",
+]
+dependencies = ["python-docx>=1.1.0", "requests>=2.31.0", "pypdf>=4.0"]
+
+[project.urls]
+Homepage = "https://github.com/grotyx/Academic_writing_c_claudecode"
+Documentation = "https://github.com/grotyx/Academic_writing_c_claudecode/blob/main/docs/manual.md"
+Changelog = "https://github.com/grotyx/Academic_writing_c_claudecode/blob/main/CHANGELOG.md"
+Issues = "https://github.com/grotyx/Academic_writing_c_claudecode/issues"
+
+[project.optional-dependencies]
+figures = ["matplotlib>=3.7"]
+
+[project.scripts]
+manuwright = "manuwright.cli:main"
+
+# PyPI shows README.md; its relative links and images point at GitHub there.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|#)([^)]+)\)'
+replacement = '](https://github.com/grotyx/Academic_writing_c_claudecode/blob/main/\1)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = 'src="(?!https?://)([^"]+)"'
+replacement = 'src="https://raw.githubusercontent.com/grotyx/Academic_writing_c_claudecode/main/\1"'
+
+[tool.hatch.version]
+path = "harness/__init__.py"
+
+# Allowlist only: code plus the public runtime assets commands rely on.
+# Never PDFs, profile/, Style anchors, drafts, data, results or review records.
+[tool.hatch.build.targets.wheel]
+packages = ["manuwright"]
+exclude = ["**/__pycache__", "**/*.pyc"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"harness" = "manuwright/harness"
+"scripts" = "manuwright/scripts"
+"Style/terminology.md" = "manuwright/Style/terminology.md"
+"Style/style_guide.md" = "manuwright/Style/style_guide.md"
+"profile/example_authors.md" = "manuwright/profile/example_authors.md"
+"WORKFLOW.md" = "manuwright/WORKFLOW.md"
+"THIRD_PARTY_NOTICES.md" = "manuwright/THIRD_PARTY_NOTICES.md"
+"docs" = "manuwright/docs"
+"review/gates/_TEMPLATE.GATE.md" = "manuwright/review/gates/_TEMPLATE.GATE.md"
+# Agent adapters: the installed engine folder doubles as the plugin/marketplace root.
+"skills" = "manuwright/skills"
+"hooks" = "manuwright/hooks"
+".claude-plugin" = "manuwright/.claude-plugin"
+".codex-plugin" = "manuwright/.codex-plugin"
+".agents/plugins" = "manuwright/.agents/plugins"
+"gemini-extension.json" = "manuwright/gemini-extension.json"
+"plugin.json" = "manuwright/plugin.json"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["pyproject.toml", "README.md", "manuwright", "harness", "scripts",
+                "Style/terminology.md", "Style/style_guide.md", "profile/example_authors.md", "WORKFLOW.md", "THIRD_PARTY_NOTICES.md", "docs", "review/gates/_TEMPLATE.GATE.md",
+                "skills", "hooks", ".claude-plugin", ".codex-plugin", ".agents/plugins", "gemini-extension.json", "plugin.json"]
+exclude = ["**/__pycache__", "**/*.pyc"]

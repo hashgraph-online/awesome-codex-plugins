@@ -2,7 +2,7 @@
 name: cometchat-android-v6-core
 description: "Foundational rules for the CometChat Android UI Kit v6 — the two UI cohorts and their artifacts, credentials via the gitignored assets settings file, initFromSettings → login → render ordering, the component map, and the production-ready core chat surface. Read this first for any Android CometChat task. Triggers: CometChat Android setup, Kotlin chat UI kit, Jetpack Compose chat."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views) OR com.cometchat:chatuikit-compose-android ^6 (Jetpack Compose) — 6.0.x, verified 6.0.5; com.cometchat:chat-sdk-android ^5 (5.0.x); optional com.cometchat:calls-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views) OR com.cometchat:chatuikit-compose-android ^6 (Jetpack Compose) — 6.1.x, verified 6.1.1; com.cometchat:chat-sdk-android ^5 (5.0.x; 6.1.1 pins 5.0.7); optional com.cometchat:calls-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.1.0"
@@ -10,9 +10,9 @@ metadata:
 ---
 
 > **Ground truth:** `com.cometchat:chatuikit-{kotlin,compose}-android@6` + catalog `android-v6.json`
-> (287 public symbols, generated from the INSTALLED 6.0.5 source) + `features.android-v6.json`.
+> (293 public symbols, generated from the 6.1.1 source, cross-checked against the AARs) + `features.android-v6.json`.
 > Official docs: <https://www.cometchat.com/docs/ui-kit/android/overview> · scoped index
-> `…/ui-kit/android/llms-android-v6.md`. Verify every symbol against the catalog; fetch signatures
+> `.../ui-kit/android/llms-android-v6.md`. Verify every symbol against the catalog; fetch signatures
 > from docs (`references/docs-map.md`); never trust memory.
 >
 > ⚠️ **ONE kit, TWO cohorts.** `chatuikit-kotlin-android` (XML Views) and `chatuikit-compose-android`
@@ -22,7 +22,7 @@ metadata:
 > that migration is `cometchat-android-v6-migration`.
 >
 > ⚠️ **Some docs snippets are ahead of / behind the shipped kit.** Where a baked signature here differs
-> from a docs page, the baked one was verified against the installed 6.0.5 source (gap logged
+> from a docs page, the baked one was verified against the installed 6.0.5 source and re-checked on 6.1.1 (gap logged
 > internally). Compile before you trust a docs fence.
 
 <!-- core is the companion the other android v6 skills read; it has no Companion block of its own. -->
@@ -37,19 +37,12 @@ metadata:
 // settings.gradle.kts → dependencyResolutionManagement.repositories
 maven("https://dl.cloudsmith.io/public/cometchat/cometchat/maven/")
 
-// app/build.gradle.kts — repo/exclude/compileOptions are COHORT-NEUTRAL (the duplicate-class
-// collision comes via chatuikit-core-android, which BOTH cohorts pull); only the artifact differs
-configurations.all {
-    // REQUIRED — without it the first build fails at dexing with ~40
-    // "Duplicate class org.jetbrains.annotations.*" errors (docs getting-started-{kotlin,jetpack}).
-    exclude(group = "org.jetbrains", module = "annotations-java5")
-}
-
-// gradle.properties — REQUIRED, both lines (why: dexing dup-class; references/troubleshooting.md):
-//   android.useAndroidX=true   android.enableJetifier=true
+// app/build.gradle.kts — cohort-neutral; only the artifact differs. 6.1.1 needs NO annotations-java5
+// exclude and NO Jetifier (verified: both cohorts, +/- calls-sdk). 6.0.x needs both: references/troubleshooting.md.
+// gradle.properties — REQUIRED:  android.useAndroidX=true
 
 dependencies {
-    implementation("com.cometchat:chatuikit-kotlin-android:6.0.5")
+    implementation("com.cometchat:chatuikit-kotlin-android:6.1.1")
     // implementation("com.cometchat:calls-sdk-android:5.0.4")   // only for voice/video
 }
 android {
@@ -59,16 +52,17 @@ android {
 // JVM 11 (Kotlin 2.2+ rejects kotlinOptions{}). Fully-qualified: a mid-file .kts import won't compile.
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11) } }
 ```
-**Theme kit views under a `CometChatTheme.DayNight`-derived theme — REQUIRED (Views), not cosmetic.**
-Kit views resolve `?attr/cometchat*` at inflate time; outside such a theme the FIRST kit view crashes
-(`IllegalArgumentException`/`InflateException` on `?attr/cometchatPrimaryColor` — verified on device).
+**Theme kit views under a `CometChatTheme.DayNight`-derived theme (Views).** On 6.0.x the FIRST kit
+view outside one crashes (`InflateException` on `?attr/cometchatPrimaryColor`, verified on device);
+6.1.1 falls back to the kit theme (`CometChatThemedContext.kt`, source-checked), but your branding
+still only reaches the kit through a derived theme.
 **Greenfield** → re-parent app-wide: `<style name="AppTheme" parent="CometChatTheme.DayNight" />` +
 `<application android:theme="@style/AppTheme">`. **Brownfield** (app HAS its own theme) → do NOT
 re-parent (`CometChatTheme.DayNight` parents MaterialComponents, so Material3-only host attrs stop
 resolving — you'd break their screens); scope a derived style to the chat Activities (manifest
 `android:theme`) + `ContextThemeWrapper` for fragment/tab-embedded views — recipe: `kotlin-placement` Placement 2.
 
-Compose cohort: swap the artifact for `com.cometchat:chatuikit-compose-android:6.0.5` and use `buildFeatures { compose = true }` + the Kotlin Compose plugin. **Build floors — all forced by the transitive `androidx.core:core:1.18.0` and all failing with the SAME opaque `checkDebugAarMetadata` error, so bump them together:** **minSdk 28 · compileSdk 36 · AGP ≥ 8.9.1 · Gradle ≥ 8.11 · Kotlin ≥ 2.1** (exact error strings + fixes in `-troubleshooting`; verified on device). `chatuikit-core-android` and `chat-sdk-android` arrive transitively — never add the UI Kit twice, and never mix a v5 `chat-uikit-android` into the tree (**version_conflict — STOP**).
+Compose cohort: swap the artifact for `com.cometchat:chatuikit-compose-android:6.1.1` and use `buildFeatures { compose = true }` + the Kotlin Compose plugin. **Build floors — all forced by the transitive `androidx.core:core:1.18.0` and all failing with the SAME opaque `checkDebugAarMetadata` error, so bump them together:** **minSdk 28 · compileSdk 36 · AGP ≥ 8.9.1 · Gradle ≥ 8.11 · Kotlin ≥ 2.1** (exact error strings + fixes in `-troubleshooting`; verified on device). `chatuikit-core-android` and `chat-sdk-android` arrive transitively — never add the UI Kit twice, and never mix a v5 `chat-uikit-android` into the tree (**version_conflict — STOP**).
 
 ## Setup & credentials (essentials — full detail: `references/setup-credentials.md`)
 1. **Detect the project AND pick the cohort — never guess.** `npx @cometchat/skills detect --json`
@@ -80,7 +74,7 @@ Compose cohort: swap the artifact for `com.cometchat:chatuikit-compose-android:6
    choice the user cannot cheaply undo. If `existing_cometchat` is true, resolve `version_conflict`
    FIRST (v4/v5 kit present ⇒ STOP + offer `cometchat-android-v6-migration`). Decision table +
    signals: `references/setup-credentials.md` §1.
-2. **Credentials — OFFER to fetch from the dashboard FIRST**, never default to "paste it yourself": (a) load the CometChat CLI on demand (`npx @cometchat/skills-cli@3 auth login`, `provision list --json` → ask which app, `provision use --app-id <id> --json`); or (b) manual paste from Dashboard → Your App → Credentials. Ask & wait — never guess.
+2. **Credentials — OFFER to fetch from the dashboard FIRST**, never default to "paste it yourself": (a) fetch through the CometChat MCP — `cometchat_whoami` (connected + signed in?), `cometchat_list_apps` (ask which EXISTING app), `cometchat_get_app_credentials`; or (b) manual paste from Dashboard → Your App → Credentials. Ask & wait — never guess.
 3. **Write `app/src/main/assets/cometchat-settings.json`** (the file `initFromSettings` reads) and **gitignore it**:
 ```json
 { "appId": "APP_ID", "region": "REGION", "credentials": { "authKey": "AUTH_KEY" },
@@ -110,7 +104,7 @@ CometChatUIKit.initFromSettings(this, object : CometChat.CallbackListener<String
         if (CometChatUIKit.getLoggedInUser() == null) {
             CometChatUIKit.login(uid, object : CometChat.CallbackListener<User>() {
                 // ⚠️ inside this object, `this` is the LISTENER, not the Activity — navigating
-                // with `Intent(this, …)` does not compile. Qualify it: `this@YourActivity`.
+                // with `Intent(this, ...)` does not compile. Qualify it: `this@YourActivity`.
                 override fun onSuccess(user: User) {
                     startActivity(Intent(this@MainActivity, ConversationActivity::class.java)); finish()
                 }
@@ -121,7 +115,7 @@ CometChatUIKit.initFromSettings(this, object : CometChat.CallbackListener<String
     override fun onError(e: CometChatException?) { /* render an error state; do NOT open chat */ }
 })
 ```
-Init once (Application or a splash gate), never per Activity. **Which UID?** `login()` needs a user that ALREADY exists — never invent one; take it from Dashboard → Users (fresh apps seed `cometchat-uid-1…`). Prod → `loginWithAuthToken`. Detail: `references/lifecycle.md`.
+Init once (Application or a splash gate), never per Activity. **Which UID?** `login()` needs a user that ALREADY exists — never invent one; take it from Dashboard → Users (fresh apps seed `cometchat-uid-1...`). Prod → `loginWithAuthToken`. Detail: `references/lifecycle.md`.
 
 ## Sizing — fill the parent, handle insets and the keyboard
 The kit fills the box you give it — a collapsed surface is a HOST sizing defect, never a kit bug. Four invariants (full recipe: `references/layout.md`):
@@ -149,15 +143,15 @@ The closed list of shipped components lives in `references/component-props.md`
 (and `catalogs/android-v6.json` is the oracle). Emit ONLY symbols that appear there.
 
 ## Import paths
-`…kotlin.presentation.<area>.ui.<Component>` — **except the 3 calling components (no `.ui`)** and
-formatters (`…kotlin.shared.formatters.*`). Full table: `references/component-props.md`.
+`...kotlin.presentation.<area>.ui.<Component>` — **except the 3 calling components (no `.ui`)** and
+formatters (`...kotlin.shared.formatters.*`). Full table: `references/component-props.md`.
 
 ## Callback names — Views uses `setOnX(...)`, Compose uses `onX =`
 Same component, same intent, different wiring. Full signature table (verified vs 6.0.5):
 `references/component-props.md` § Callback shapes.
 
 > ⚠️ **Docs drift — trust `references/component-props.md`, not the docs pages** for callback
-> shapes (the 3-arg thread callback and `setParentMessage` on the list are both wrong upstream).
+> shapes (the 3-arg thread callback and `setParentMessage(id)` on the list are both wrong upstream).
 
 ## Golden path — the production-ready core surface (Kotlin XML Views)
 The default for an unscoped "add chat". **One screen per Activity with a real back stack** — never a web-style two-pane split. Host Activities must be lifecycle-aware (`AppCompatActivity`/`ComponentActivity`/`FragmentActivity`) and manifest-registered.
@@ -203,7 +197,7 @@ class MessageActivity : AppCompatActivity() {
 
         header.setBackButtonVisibility(View.VISIBLE)   // the callback is inert without this
         header.setOnBackPress { finish() }
-        list.setOnThreadRepliesClick { parent ->                 // ONE arg (verified vs 6.0.5)
+        list.setOnThreadRepliesClick { parent ->                 // ONE arg (verified vs 6.1.1)
             startActivity(Intent(this, ThreadActivity::class.java).apply {
                 putExtra("raw_json", parent.rawMessage.toString())
                 user?.let { putExtra("user", it) }; group?.let { putExtra("group", it) }
@@ -272,12 +266,12 @@ Reuse existing navigation/theme/auth; add files + wiring only. Leave header call
 > ⚠️ **Compose "Auto — follow OS" (the default theming) is a CORE obligation, NOT automatic.** Unlike
 > Views (`CometChatTheme.DayNight`) and iOS, the Compose kit ignores the device dark setting unless you
 > wrap the gate + NavHost + every kit screen in `CometChatTheme(colorScheme = if (isSystemInDarkTheme())
-> darkColorScheme() else lightColorScheme()){ … }` (from `com.cometchat.uikit.compose.theme.*`) — no
+> darkColorScheme() else lightColorScheme()){ ... }` (from `com.cometchat.uikit.compose.theme.*`) — no
 > wrapper ⇒ light defaults (verified; RULES.md §Ordering-invariants). This bare follow-OS wrapper is
 > core; brand tokens are `cometchat-android-v6-compose-customization` §Theming.
 
 ## Deep references (load only when the task needs them)
-- `references/setup-credentials.md` — detect, cohort, version_conflict, the CLI credential fetch, the settings file, UID rules.
+- `references/setup-credentials.md` — detect, cohort, version_conflict, the credential fetch through the CometChat MCP, the settings file, UID rules.
 - `references/lifecycle.md` — where to init, the login guard, auth-token prod path, logout, config changes.
 - `references/layout.md` — the ONE mobile sizing standard (fill · insets · IME · no reflow · scroll containment).
 - `references/component-props.md` — baked per-cohort signatures for the four drop-ins + the request-builder hooks.
@@ -293,6 +287,6 @@ Build + run → logcat shows init `onSuccess` then login `onSuccess` → convers
 
 ## Explain what you built (REQUIRED close)
 Tell the user briefly: **(1) what I wired** (3–5 bullets, NAME the files); **(2) decisions & why**, flagging dev-only AS dev-only (Auth Key → server token for prod; the `<uid>`; the cohort); **(3) what I did NOT touch** (additive — navigation/auth/styles intact). Then **offer these THREE options and WAIT — do NOT auto-continue:**
-- **① Add another feature** → check what's already wired, ASK which Dashboard extensions are enabled, suggest 3–4 gaps (calls · push · AI · notification feed · polls/stickers/translation). **Never suggest reactions or mentions — ON by default in v6.** → `cometchat-android-v6-features` / `-calls` / `-push`.
-- **② Customize theming** → ask for brand color / light-dark / Material3 design system → `cometchat-android-v6-{kotlin,compose}-customization`.
-- **③ Test it manually** → hand it back so they run it on a device.
+- **(1) Add another feature** → check what's already wired, ASK which Dashboard extensions are enabled, suggest 3–4 gaps (calls · push · AI · notification feed · polls/stickers/translation). **Never suggest reactions or mentions — ON by default in v6.** → `cometchat-android-v6-features` / `-calls` / `-push`.
+- **(2) Customize theming** → ask for brand color / light-dark / Material3 design system → `cometchat-android-v6-{kotlin,compose}-customization`.
+- **(3) Test it manually** → hand it back so they run it on a device.

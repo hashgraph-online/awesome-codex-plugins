@@ -1,0 +1,226 @@
+{
+  "id": "comment-callout",
+  "name": "Video comment callout",
+  "use": "A real viewer comment (plain, pinned, creator reply or reply sticker) over footage.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "Roboto",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Roboto"
+    }
+  ],
+  "rules": [
+    "Reply-to-comment videos are native on TikTok and Shorts [9][10]",
+    "Question in the first second, answer right after [3]",
+    "Real comments with permission or blurred handles [21]",
+    "Upper-middle placement, inside Shorts box [5]"
+  ],
+  "presets": [
+    {
+      "id": "comment-callout.comment",
+      "label": "Comment",
+      "look": "White card, avatar, handle, text, likes",
+      "params": {
+        "card": "#FFFFFF",
+        "text": "#212121",
+        "card_w_px": 840,
+        "radius_px": 32,
+        "pad_px": 36,
+        "avatar_px": 80,
+        "handle_px": 28,
+        "text_px": 36,
+        "line_height": 1.35,
+        "max_lines": 3,
+        "pos_y_px": [
+          360,
+          520
+        ],
+        "in_s": 0.4,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "scale_from": 0.92,
+        "avatar_pop": "back.out(1.7) 0.25 s",
+        "typewriter_cps": 30,
+        "typewriter_max_chars": 90,
+        "hold_after_text_s": 2.5,
+        "out_s": 0.25,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)"
+      },
+      "sources": [
+        14,
+        26,
+        27
+      ]
+    },
+    {
+      "id": "comment-callout.pinned",
+      "label": "Pinned",
+      "look": "Plus 'Pinned by @creator' line",
+      "params": {
+        "pinned_px": 26,
+        "pinned_opacity": 0.6
+      },
+      "sources": []
+    },
+    {
+      "id": "comment-callout.creator-reply",
+      "label": "Creator reply",
+      "look": "Indented reply with heart badge",
+      "params": {
+        "heart": "#FF0033",
+        "indent_px": 72,
+        "heart_pop_s": 0.3,
+        "heart_scale": [
+          0,
+          1.2,
+          1
+        ]
+      },
+      "sources": [
+        14
+      ]
+    },
+    {
+      "id": "comment-callout.reply-sticker",
+      "label": "Reply sticker",
+      "look": "Compact tilted sticker of the comment being answered",
+      "params": {
+        "sticker": "#FFFFFF",
+        "radius_px": 28,
+        "tilt_deg": -2,
+        "width_px": 760,
+        "text_px": 34
+      },
+      "sources": [
+        9,
+        10
+      ]
+    },
+    {
+      "id": "comment-callout.dark",
+      "label": "Dark",
+      "look": "Dark card for bright footage",
+      "params": {
+        "card": "rgba(33,33,33,0.92)",
+        "text": "#FFFFFF"
+      },
+      "sources": [
+        14
+      ]
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 3,
+      "name": "TikTok Ads Help: Creative best practices for performance ads",
+      "url": "https://ads.tiktok.com/help/article/creative-best-practices?lang=en"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 9,
+      "name": "YouTube Help: Reply to comments with Shorts",
+      "url": "https://support.google.com/youtube/answer/12816427"
+    },
+    {
+      "n": 10,
+      "name": "TikTok Newsroom: Reply to comments with video",
+      "url": "https://newsroom.tiktok.com/product-tutorial-reply-to-comments-with-video?lang=en"
+    },
+    {
+      "n": 14,
+      "name": "YouTube Brand Resources: Color",
+      "url": "https://brand.youtube/color/"
+    },
+    {
+      "n": 21,
+      "name": "FTC: Final rule banning fake reviews and testimonials (2024)",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 27,
+      "name": "GSAP source gsap-core.js (back/elastic defaults)",
+      "url": "https://github.com/greensock/GSAP/blob/master/src/gsap-core.js"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 41,
+      "name": "Google Fonts repo METADATA (licences)",
+      "url": "https://github.com/google/fonts"
+    }
+  ]
+}

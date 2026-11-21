@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.11,<3.15"
 # dependencies = []
 # ///
 """Thin PEP 723 wrapper that drives dex-core via the command contract.
@@ -36,6 +36,17 @@ it uv discovers whatever Python project the caller happens to be standing in, bu
 it, writes a `.venv/` and a `uv.lock` into their repo, and puts their dependencies on
 the engine's import path: dex would be leaving unreviewed artifacts in a repo it was
 asked only to read, and running against a closure it did not pin.
+
+The interpreter is uv's choice too, bounded to Python 3.11 to 3.14, the versions dex
+is tested on: by the `requires-python` above for this wrapper, and by
+SUPPORTED_PYTHON for the engine's own environment, which is a second uv invocation
+that would otherwise pick the newest Python installed. The ceiling is what lets a
+machine whose newest Python is 3.15 still run the skills: uv picks an installed 3.14
+or older, or downloads one, rather than building the warehouse clients from source
+on an interpreter they ship no wheels for (#1134). It sits here and not on the engine's
+own `requires-python`, because there it would make pip on 3.15 fall back to an older
+dex release rather than refuse. Raise it when the dependency stack ships wheels for
+the next Python; the `python-next` canary says when.
 
 `--warm` materializes that environment and exits without running a command, so the
 install can be paid once out of band instead of on the first caller's clock (see
@@ -74,7 +85,7 @@ from pathlib import Path
 # Rewritten by scripts/prepare_release.sh to the tagged version. The connector
 # extra is deliberately NOT part of this pin: it is chosen at runtime (see
 # _resolve_connector), so a release artifact is connector-neutral.
-DEX_CORE_VERSION = "1.16.3"
+DEX_CORE_VERSION = "1.18.1"
 
 # Connector id -> packaging extra. The engine's connector ids and the pyproject
 # extras share names, so this is the identity set today. An unknown or unset
@@ -284,8 +295,8 @@ _OSSIE_READING_COMMANDS = (
 # `semantic` extra even though they render nothing: without it the validation
 # degrades to a structural check and the command warns instead of refusing,
 # which is the failure #639 describes. The native document commands
-# (`semantic ossie ...`, `semantic slayer ...`) validate against their own
-# schemas and take their own extras, so they are not here.
+# (`semantic ossie ...`, `semantic slayer ...`, `semantic cube ...`) validate
+# against their own schemas and take their own extras, so they are not here.
 _SEMANTIC_AUTHORING_COMMANDS = (
     ("semantic", "define"),
     ("semantic", "update"),
@@ -307,6 +318,55 @@ _SLAYER_BACKED_GROUPS = ("maintain",)
 _SLAYER_BACKED_COMMANDS = (("explore", "semantic"), ("transform", "apply"))
 _SLAYER_BACKED_FLAG = "--use-project"
 _SLAYER_VENDOR = "slayer"
+
+# Cube follows the same config read for the same commands, though for the
+# opposite reason: its extra is light (the dialect engine every connector extra
+# already carries), and it is named explicitly so the commands that read a Cube
+# layer keep resolving what that layer needs as the extra grows. Cube renders a
+# metric query itself, so MetricFlow is never installed for a Cube `query` or
+# `values`. `semantic cube` always takes it, as `semantic slayer` does: authoring
+# validates a model file with the same port of Cube's rules the reader runs.
+_CUBE_COMMANDS = (("semantic", "cube"),)
+_CUBE_VENDOR = "cube"
+
+# Databricks Metric Views follow the same config read for the same commands, for
+# Cube's reason: `metric-views` is the dialect engine and nothing heavier, named
+# so the commands that read a Metric View layer keep resolving what it needs as
+# the extra grows. A Metric View query is SQL over the view, so MetricFlow is
+# never installed for one. (`databricks` is also a connector name; the
+# connector's extra is resolved from `connector:`, never from this.)
+# `semantic databricks` always takes it, as `semantic cube` does: authoring
+# validates a view file with the same port of the Metric View rules the reader
+# runs.
+_METRIC_VIEWS_COMMANDS = (("semantic", "databricks"),)
+_METRIC_VIEWS_VENDOR = "databricks"
+
+# Snowflake Semantic Views follow the same config read for the same commands,
+# for the same reason: `semantic-views` is the dialect engine and nothing
+# heavier. A Semantic View query is a `SEMANTIC_VIEW(...)` clause Snowflake runs,
+# so MetricFlow is never installed for one. (`snowflake` is also a connector
+# name; the connector's extra is resolved from `connector:`, never from this.)
+# `semantic snowflake` always takes it, as `semantic databricks` does: authoring
+# validates a view file with the same port of Snowflake's rules the reader runs.
+_SEMANTIC_VIEWS_COMMANDS = (("semantic", "snowflake"),)
+_SEMANTIC_VIEWS_VENDOR = "snowflake"
+
+# Under the deployments whose catalog is the warehouse's own deployed views
+# (Snowflake's `snowflake_account`, Databricks' `databricks_workspace`, #1364),
+# `explore relationships|map --use-hosted-semantic-layer` reads the layer too,
+# through the vendor's reader, so it takes the vendor's extra as `--use-project`
+# does. Only for those two vendors: under any other the flag reads dbt Cloud,
+# which needs no reader here, and SLayer's extra is too heavy to take for it.
+_HOSTED_LAYER_FLAG = "--use-hosted-semantic-layer"
+_READ_FROM_THE_WAREHOUSE = (_METRIC_VIEWS_VENDOR, _SEMANTIC_VIEWS_VENDOR)
+
+# The vendors that render a metric query without MetricFlow.
+_RENDERS_WITHOUT_METRICFLOW = (
+    _SLAYER_VENDOR,
+    _CUBE_VENDOR,
+    _METRIC_VIEWS_VENDOR,
+    _SEMANTIC_VIEWS_VENDOR,
+)
 
 
 def _positionals(argv: list[str]) -> list[str]:
@@ -336,8 +396,9 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     the validation degrades to a structural check, and the warning that says so
     reads like routine news, so the authoring commands take the `semantic` extra
     and the schemas actually run. The native document commands
-    (`semantic ossie ...`, `semantic slayer ...`) validate against their own
-    schemas and take their own extras.
+    (`semantic ossie ...`, `semantic slayer ...`, `semantic cube ...`,
+    `semantic databricks ...`) validate
+    against their own schemas and take their own extras.
 
     `explore semantic` needs the hosted client on any of its subcommands, which is
     an httpx and nothing heavier. It needs MetricFlow only where a statement might
@@ -358,7 +419,10 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     `semantic.vendor`, because it is too heavy to take on a guess (see
     `_SLAYER_COMMANDS`). The same read keeps MetricFlow out of a SLayer `query` or
     `values`: SLayer renders those itself, so `semantic` would be installed for
-    nothing.
+    nothing. `cube` follows the same read for the same commands (see
+    `_CUBE_VENDOR`), and keeps MetricFlow out the same way, and so do
+    `metric-views` (see `_METRIC_VIEWS_VENDOR`) and `semantic-views` (see
+    `_SEMANTIC_VIEWS_VENDOR`).
     """
 
     positionals = _positionals(argv)
@@ -371,15 +435,32 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
         group in _SLAYER_BACKED_GROUPS
         or command in _SLAYER_BACKED_COMMANDS
         or (group == "explore" and _SLAYER_BACKED_FLAG in argv)
+        or (
+            group == "explore"
+            and _HOSTED_LAYER_FLAG in argv
+            and vendor in _READ_FROM_THE_WAREHOUSE
+        )
     )
     if command in _SLAYER_COMMANDS or (vendor == _SLAYER_VENDOR and reads_layer):
         extras.append("slayer")
+    if command in _CUBE_COMMANDS or (vendor == _CUBE_VENDOR and reads_layer):
+        extras.append("cube")
+    if command in _METRIC_VIEWS_COMMANDS or (
+        vendor == _METRIC_VIEWS_VENDOR and reads_layer
+    ):
+        extras.append("metric-views")
+    if command in _SEMANTIC_VIEWS_COMMANDS or (
+        vendor == _SEMANTIC_VIEWS_VENDOR and reads_layer
+    ):
+        extras.append("semantic-views")
     if command in _SEMANTIC_AUTHORING_COMMANDS:
         extras.append("semantic")
     if command != ("explore", "semantic"):
         return extras
     mode = positionals[2] if len(positionals) > 2 else "list"
-    renders_with_metricflow = vendor != _SLAYER_VENDOR and "--api" not in argv
+    renders_with_metricflow = (
+        vendor not in _RENDERS_WITHOUT_METRICFLOW and "--api" not in argv
+    )
     if mode in _SEMANTIC_RENDERING_MODES and renders_with_metricflow:
         return [*extras, "semantic-api", "semantic"]
     return [*extras, "semantic-api"]
@@ -414,15 +495,29 @@ def _extras(argv: list[str]) -> list[str]:
     ]
 
 
+# The Pythons dex supports: the `requires-python` at the top of this file, which a
+# test holds equal to this. That header governs only this stdlib wrapper; the
+# engine runs in the environment _uv_run asks uv for, which picks its own
+# interpreter, so without the range there uv would build the engine on the newest
+# Python installed, 3.15 included, and fail on dependencies that ship no wheels
+# for it (#1134).
+SUPPORTED_PYTHON = ">=3.11,<3.15"
+
+
 def _uv_run(engine_spec: list[str], tail: list[str]) -> list[str]:
     """The single uv invocation this wrapper makes.
 
     `--no-project` is a correctness flag before it is a fast one: see the module
     docstring for what uv does to the caller's repo without it. The latency follows
     from the same thing, because installing the caller's project is far more work
-    than resolving the engine."""
+    than resolving the engine.
 
-    return ["uv", "run", "--no-project", *engine_spec, *tail]
+    `--python` bounds the engine's interpreter to SUPPORTED_PYTHON, unless the
+    caller set `UV_PYTHON`: an explicit interpreter is theirs to choose, and the
+    flag would silently override it."""
+
+    python = [] if os.environ.get("UV_PYTHON") else ["--python", SUPPORTED_PYTHON]
+    return ["uv", "run", "--no-project", *python, *engine_spec, *tail]
 
 
 def _child_env() -> dict[str, str]:
@@ -507,6 +602,7 @@ def _envelope(
                 "ceiling": None,
                 "estimate_quality": None,
                 "unit": None,
+                "unpriced": None,
             },
             "warnings": warnings or [],
             "diffs": [],

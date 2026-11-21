@@ -1,0 +1,20 @@
+{
+  "name": "deja-vu",
+  "interface": {
+    "displayName": "deja-vu"
+  },
+  "plugins": [
+    {
+      "name": "deja-vu",
+      "source": {
+        "source": "local",
+        "path": "./codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

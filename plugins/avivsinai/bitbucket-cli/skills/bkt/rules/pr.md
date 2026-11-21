@@ -43,6 +43,7 @@ bkt pr <command> [flags]
 | [edit](#bkt-pr-edit) | Edit a pull request | `--body`, `--description`, `--project`, `--remove-reviewer` |
 | [list](#bkt-pr-list) | List pull requests | `--limit`, `--mine`, `--project`, `--repo` |
 | [merge](#bkt-pr-merge) | Merge a pull request | `--close-source`, `--message`, `--project`, `--repo` |
+| [mergeability](#bkt-pr-mergeability) | Check whether a pull request can be merged *(Cloud)* | `--repo`, `--workspace` |
 | [publish](#bkt-pr-publish) | Mark a draft pull request as ready for review | `--project`, `--repo`, `--undo`, `--workspace` |
 | [reaction](#bkt-pr-reaction) | Manage comment reactions *(DC)* | — |
 | [reopen](#bkt-pr-reopen) | Reopen a declined pull request | `--project`, `--repo`, `--workspace` |
@@ -304,7 +305,7 @@ the source branch's latest commit. On Cloud, the source commit hash from the
 pull request is used.
 
 Exit codes in --wait mode: 0 = all passed, 1 = a build failed,
-8 = timed out with builds still pending.
+8 = timed out with builds still pending, 130 = interrupted.
 
 **Alias:** `builds`
 
@@ -727,7 +728,7 @@ bkt pr create [flags]
   bkt pr create --title "Add OAuth2 support" --description "Implements RFC 6749"
 
   # Create with reviewers and close source branch on merge
-  bkt pr create -t "Fix login bug" --reviewer alice --reviewer bob --close-source
+  bkt pr create --title "Fix login bug" --reviewer alice --reviewer bob --close-source
 
   # Create a draft pull request
   bkt pr create --title "WIP: new feature" --draft
@@ -1017,6 +1018,49 @@ bkt pr merge <id> [flags]
 
   # Merge using rebase fast-forward strategy and keep source branch
   bkt pr merge 42 --strategy rebase_fast_forward --close-source=false
+```
+
+## bkt pr mergeability
+
+Simulate Bitbucket Cloud's merge checks without attempting a merge.
+Mergeable is MERGEABLE, CONFLICTING, or UNKNOWN. Merge state is CLEAN,
+DIRTY (conflicts), BLOCKED (a blocking check), or UNKNOWN (incomplete checks).
+Structured output includes the complete checks and their blocking flags.
+
+CLEAN describes the checks available now; Bitbucket cannot evaluate every
+condition without an actual merge attempt. API failures print UNKNOWN and
+exit nonzero. Data Center is not supported.
+
+### Usage
+
+```
+bkt pr mergeability <id> [flags]
+```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--repo` |  | Repository slug override |
+| `--workspace` |  | Bitbucket Cloud workspace override |
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Bitbucket context name |
+| `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
+| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--json` |  | Output in JSON format when supported |
+| `--template` |  | Render output using Go templates |
+| `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+bkt pr mergeability 42
+  bkt pr mergeability 42 --json
+  bkt pr mergeability 42 --json --jq '{mergeable, mergeStateStatus}'
 ```
 
 ## bkt pr publish

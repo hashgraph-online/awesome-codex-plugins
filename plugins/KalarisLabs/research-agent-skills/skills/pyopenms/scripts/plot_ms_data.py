@@ -29,14 +29,18 @@ except ImportError:
     print("Error: pyopenms/matplotlib not installed. Install with: uv pip install pyopenms matplotlib")
     sys.exit(1)
 
+RT_LABEL = "Retention time (s)"
+
 
 def load_exp(path):
+    """Load exp."""
     exp = ms.MSExperiment()
     ms.FileHandler().loadExperiment(path, exp)
     return exp
 
 
 def plot_spectrum(args):
+    """Plot spectrum."""
     exp = load_exp(args.input)
     if args.rt is not None:
         spec = min((s for s in exp), key=lambda s: abs(s.getRT() - args.rt))
@@ -52,6 +56,7 @@ def plot_spectrum(args):
 
 
 def plot_tic(args):
+    """Plot tic."""
     exp = load_exp(args.input)
     rts, tic = [], []
     for s in exp:
@@ -62,13 +67,14 @@ def plot_tic(args):
         tic.append(float(inten.sum()) if len(inten) else 0.0)
     plt.figure(figsize=(10, 5))
     plt.plot(rts, tic, linewidth=1)
-    plt.xlabel("Retention time (s)")
+    plt.xlabel(RT_LABEL)
     plt.ylabel("Total ion current")
     plt.title("Total Ion Chromatogram")
     plt.tight_layout()
 
 
 def plot_featuremap(args):
+    """Plot featuremap."""
     fm = ms.FeatureMap()
     ms.FeatureXMLFile().load(args.input, fm)
     df = fm.get_df()
@@ -77,13 +83,14 @@ def plot_featuremap(args):
     sc = plt.scatter(df["rt"], df["mz"], s=sizes, c=np.log10(df["intensity"] + 1),
                      cmap="viridis", alpha=0.7)
     plt.colorbar(sc, label="log10(intensity)")
-    plt.xlabel("Retention time (s)")
+    plt.xlabel(RT_LABEL)
     plt.ylabel("m/z")
     plt.title(f"Feature map ({fm.size()} features)")
     plt.tight_layout()
 
 
 def plot_map2d(args):
+    """Plot map2d."""
     exp = load_exp(args.input)
     rts, mzs, ints = [], [], []
     for s in exp:
@@ -97,7 +104,7 @@ def plot_map2d(args):
     sc = plt.scatter(rts, mzs, c=np.log10(np.array(ints) + 1), s=2,
                      cmap="inferno", alpha=0.5)
     plt.colorbar(sc, label="log10(intensity)")
-    plt.xlabel("Retention time (s)")
+    plt.xlabel(RT_LABEL)
     plt.ylabel("m/z")
     plt.title("MS1 signal map")
     plt.tight_layout()
@@ -108,6 +115,7 @@ PLOTS = {"spectrum": plot_spectrum, "tic": plot_tic,
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Visualize MS data.")
     parser.add_argument("kind", choices=list(PLOTS), help="Plot type")
     parser.add_argument("input", help="Input file")

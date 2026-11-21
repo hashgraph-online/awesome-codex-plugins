@@ -34,6 +34,4 @@ All four are finite, so hours here are a cap rather than a requirement: six is a
 for the set, and the owner names the number. Guided may offer it as a preset line; it is
 not a card, and Automatic still composes from the entries themselves.
 
-**Adding an entry:** see [`catalog-recipe.md`](catalog-recipe.md) in this directory. An entry that
-does not declare its ending, its definition of done, and what it will never do is not reviewable,
-and will not be merged.
+**Adding an entry:** see [`catalog-recipe.md`](catalog-recipe.md) in this directory.

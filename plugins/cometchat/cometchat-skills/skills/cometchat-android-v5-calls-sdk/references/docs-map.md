@@ -6,12 +6,12 @@ The canonical doc channel is the **first-party CometChat docs MCP** — tools `s
 use them instead of a raw web fetch:**
 - **Find the page** → `search_cometchat_docs(query)` — e.g. `search_cometchat_docs("calls android join session")`.
 - **Read the page** → `fetch_cometchat_doc_page(path)` — pass the SAME `<path>` the tables below list; the MCP
-  resolves the `.md` twin and returns raw Markdown (read the **Kotlin** tab). A full `https://…/<path>` URL also works.
+  resolves the `.md` twin and returns raw Markdown (read the **Kotlin** tab). A full `https://.../<path>` URL also works.
 - **A whole feature/recipe** → `get_cometchat_implementation_bundle(...)` is **NON-AUTHORITATIVE** — curated
   STATIC recipes that can lag the live docs. Treat any bundle as a hint only: RECONCILE it against the
   `fetch_cometchat_doc_page` result + the catalog; never emit bundle code verbatim.
 
-**If the MCP tools are NOT connected:** add it (`claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp`, or reinstall/enable the plugin) and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (defined next).
+**If the MCP tools are NOT connected:** help the user add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (defined next).
 Either way the `<path>` catalog in this file is the source of truth for WHICH page — MCP-vs-fetch is only HOW.
 
 ## DOCS_BASE — the fetch FALLBACK entry point (⚠️ SWAP HERE to change environments)
@@ -29,7 +29,7 @@ Fetch:  {DOCS_BASE}/calls/android/overview.md
 > **⚠️ VERSION TRAP.** The **unversioned** `/calls/android/**` tree IS **v5** (matches the installed
 > `calls-sdk-android:5.0.x`). `/calls/v4/android/**` is the OLD v4 SDK (`startSession` / `CallSettingsBuilder`) —
 > never fetch it for a v5 build. The UI-Kit calling pages (`/ui-kit/android/calling-integration`, `call-buttons`,
-> `incoming-call`…) belong to `cometchat-android-v6-calls`, not this skill.
+> `incoming-call`...) belong to `cometchat-android-v6-calls`, not this skill.
 > **⚠️ MISSING PAGES return the docs HOME page, not a 404**: `/calls/android/permissions` and
 > `/calls/android/virtual-background` do NOT exist — a fetched page whose first heading is `# Home` is a miss.
 
@@ -47,7 +47,7 @@ Use it to discover any page not listed below (search for `/calls/android/`).
 | Login (uid + API key dev / auth token prod) · `getLoggedInUser` · `logout` · error codes | `/calls/android/authentication` |
 | `generateToken` + `joinSession` (meet-style) · container setup · error codes | `/calls/android/join-session` — ⚠️ its `SessionSettingsBuilder().setType(...)` is `setSessionType(...)` in the AAR |
 | **1:1 RINGING** — `initiateCall` · `CallListener` · accept/reject/cancel · join · **end call on BOTH SDKs** | `/calls/android/ringing` — ⚠️ FOREGROUND-only in auto socket mode (`/sdk/android/v5/connection-behaviour`: backgrounded ⇒ WebSocket dropped, no incoming/accept callbacks, no replay); background ringing = `/calls/android/voip-calling`; recipe + caller-side reconcile in `references/ringing.md` |
-| `SessionSettingsBuilder` — every option (`setSessionType`, `setLayout`, `setAudioMode`, `hide*Button`, `hideControlPanel`, `setIdleTimeoutPeriod`, `enableAutoStartRecording`, `setInitialCameraFacing`, …) | `/calls/android/session-settings` |
+| `SessionSettingsBuilder` — every option (`setSessionType`, `setLayout`, `setAudioMode`, `hide*Button`, `hideControlPanel`, `setIdleTimeoutPeriod`, `enableAutoStartRecording`, `setInitialCameraFacing`, ...) | `/calls/android/session-settings` |
 | Listeners (`SessionStatus` / `ParticipantEvent` / `MediaEvents` / `ButtonClick` / `Layout`) — full callback lists | `/calls/android/events` — ⚠️ `MediaEventsListener` has NO `onScreenShareStarted/Stopped`; screen-share callbacks are on `ParticipantEventListener` |
 | In-call actions on `CallSession` (mute/pause/switch camera/layout/audio mode/record/raise hand/pin/leave) | `/calls/android/actions` — ⚠️ `unMuteAudio`/`unPinParticipant` are `unmuteAudio`/`unpinParticipant`; `pinParticipant` takes `(uid, pid)` |
 | Call layouts (TILE / SIDEBAR / SPOTLIGHT) + `LayoutListener` | `/calls/android/call-layouts` — `SessionSettingsBuilder.setLayout` at join works; ⚠️ `CallSession.setLayout()` mid-call was a NO-OP in 5.0.4 (no `onCallLayoutChanged`) |
@@ -82,7 +82,7 @@ Use it to discover any page not listed below (search for `/calls/android/`).
 >   "uiKit": {}
 > }
 > ```
-> `appId` + `region` are REQUIRED (`ERROR_SETTINGS_FILE_MISSING_APPID` / `…_MISSING_REGION`); a missing asset is
+> `appId` + `region` are REQUIRED (`ERROR_SETTINGS_FILE_MISSING_APPID` / `..._MISSING_REGION`); a missing asset is
 > `ERROR_SETTINGS_FILE_NOT_FOUND`; the `callsSDK` block is optional host overrides (on-prem). The skills
 > **DEFAULT to `initFromSettings`** — the **ai-agent-only telemetry init** (persists `integrationSource="ai-agent"`),
 > **INTENTIONALLY undocumented** (`@nodoc`, same posture as `CometChatUIKit.initFromSettings` — DOCS-BACKLOG F4 / C1),
@@ -93,7 +93,7 @@ Use it to discover any page not listed below (search for `/calls/android/`).
 ## 1:1 RINGING (meet-style needs none of this) — the signaling layer is the CHAT SDK
 Meet-style (session-id "join a room") uses ONLY the Calls SDK (`generateToken` → `joinSession`). But
 **one-on-one ringing** (call a specific user, they get an incoming prompt, accept/reject) combines the
-**Chat SDK** (`com.cometchat:chat-sdk-android:5.0.5`, `com.cometchat.chat.*`) for signaling + the Calls SDK for media.
+**Chat SDK** (`com.cometchat:chat-sdk-android:5.0.7`, `com.cometchat.chat.*`) for signaling + the Calls SDK for media.
 
 **The COMPLETE, CURRENT recipe is ONE page — fetch it directly:**
 ```
@@ -103,7 +103,7 @@ That page (v5, Kotlin) carries the WHOLE flow, both sides: `CometChat.initiateCa
 CALL_TYPE_VIDEO), l)` (+ `(call, timeoutSec, l)`) → `CometChat.addCallListener(ID, object : CometChat.CallListener()
 { onIncomingCallReceived / onOutgoingCallAccepted / onOutgoingCallRejected / onIncomingCallCancelled /
 onCallEndedMessageReceived })` → `CometChat.acceptCall(sessionId, l)` / `rejectCall(sessionId, CALL_STATUS_REJECTED |
-CALL_STATUS_CANCELLED, l)` → `CometChatCalls.joinSession(call.sessionId, …)` on BOTH sides → hang-up =
+CALL_STATUS_CANCELLED, l)` → `CometChatCalls.joinSession(call.sessionId, ...)` on BOTH sides → hang-up =
 `CallSession.getInstance().leaveSession()` **and** `CometChat.endCall(sessionId, l)` (the peer's
 `onCallEndedMessageReceived` then leaves too; without `endCall` the log is incomplete).
 > **Chat SDK init + login come first** — `CometChat.initFromSettings(context, l)` → `CometChat.login(uid, authKey, l)`

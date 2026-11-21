@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "codex-quota-optimizer",
+  "version": "0.2.2",
+  "description": "A zero-friction Codex usage governor with task-aware routing, soft budgets, focused context, local audits, and layered verification.",
+  "author": {
+    "name": "Daniel Chen",
+    "url": "https://github.com/ctdaniel"
+  },
+  "homepage": "https://github.com/ctdaniel/codex-quota-optimizer",
+  "repository": "https://github.com/ctdaniel/codex-quota-optimizer",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "quota",
+    "usage-optimization",
+    "skills",
+    "developer-tools"
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "name": "quiver",
-  "version": "2.0.0",
-  "description": "Composable development lifecycle -- brainstorm, plan, execute, review, and hand over from idea to merged PR",
+  "version": "2.0.1",
+  "description": "Skills and agents for the feature cycle: brainstorm a spec, plan tasks, build with tests (in parallel worktrees for larger plans), run a multi-agent code review that checks each finding against the code, debug from hypotheses, write commit messages and PR descriptions, build UI from Figma, and hand over context between sessions",
   "author": {
     "name": "Yilmaz Yagiz Dokumaci"
   },

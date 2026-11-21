@@ -260,6 +260,7 @@ def create_plan(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan a QuTiP 5 solver configuration and model-specific numerical "
@@ -287,6 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     report = create_plan(args)
     emit_json(report, output=args.output, force=args.force)

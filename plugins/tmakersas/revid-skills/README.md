@@ -5,7 +5,7 @@ one-line idea into a finished short-form video — by calling the
 [**Revid MCP server**](https://www.revid.ai/mcp) (which wraps
 [Revid Public API v3](https://documenter.getpostman.com/view/36975521/2sBXcGEfaB)).
 
-**12 skills · works with Claude Code, OpenClaw, Codex, Cursor, Gemini CLI, and
+**13 skills · works with Claude Code, OpenClaw, Codex, Cursor, Gemini CLI, and
 any MCP-capable agent.**
 
 ## Install as a Claude plugin
@@ -44,6 +44,20 @@ add `https://www.revid.ai/api/mcp` under Settings, MCP. Both sign in with your R
 - 🧩 MCP server: <https://www.revid.ai/mcp>
 - 📦 ClawHub: <https://clawhub.ai/@api00>
 - 🛠 Source: this repo (MIT-licensed)
+
+---
+
+## Install with the skills CLI
+
+Works with Claude Code, Codex, Cursor, Gemini CLI, OpenCode and 40+ other agents
+([skills.sh/tmakersas/revid-skills](https://skills.sh/tmakersas/revid-skills)):
+
+```bash
+npx skills add tmakersas/revid-skills            # pick skills interactively
+npx skills add tmakersas/revid-skills --skill revid   # just the main Revid skill
+```
+
+Then add the MCP server (step 2 below) so the skills have tools to call.
 
 ---
 
@@ -108,10 +122,11 @@ The skill will scrape the URL, call `render_video` on the Revid MCP, poll
 
 ---
 
-## The 11 skills
+## The 13 skills
 
 | Skill | Input | Output | Revid workflow |
 |---|---|---|---|
+| [`revid`](skills/revid/SKILL.md) | Any video request | Routes to the right skill, or runs the general flow | all 36 MCP tools |
 | [`revid-api-foundations`](skills/revid-api-foundations/SKILL.md) | — *(read first)* | — | foundation |
 | [`revid-research-make-and-post`](skills/revid-research-make-and-post/SKILL.md) | Topic + a connected social account | Researched, finished and posted (or scheduled) video | `search_viral_videos` + `script-to-video` + `schedule_publish` |
 | [`revid-shopify-product-promo`](skills/revid-shopify-product-promo/SKILL.md) | Shopify / e-com product URL | 30–45 s 9:16 promo | `article-to-video` |
@@ -130,7 +145,7 @@ The skill will scrape the URL, call `render_video` on the Revid MCP, poll
 ## How a skill works
 
 Every `SKILL.md` is plain Markdown with YAML frontmatter — no SDK, no runtime
-lock-in. The shape is uniform across all 12:
+lock-in. The shape is uniform across all 13:
 
 ```markdown
 ---
@@ -158,7 +173,7 @@ tool, polls `get_project_status`, and returns the `videoUrl`.
 
 ```
 .
-├── skills/                  # the 11 SKILL.md skill folders
+├── skills/                  # the 13 SKILL.md skill folders
 │   └── <slug>/
 │       ├── SKILL.md         # the prompt agents load
 │       └── examples/        # runnable JSON payload + run.sh

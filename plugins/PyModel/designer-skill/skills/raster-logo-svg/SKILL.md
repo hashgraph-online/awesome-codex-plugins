@@ -21,11 +21,13 @@ Default to **embed** when a `.webp`, `.png`, or `.jpg` logo already exists and t
 ## Workflow
 
 1. **Source of truth** — keep the raster (e.g. `docs/logo.webp`). Do not delete it.
-2. **Generate SVG** — run the script from repo root or skill directory:
+2. **Generate SVG** — run the script bundled with this skill (`scripts/embed-logo.py`, relative to this SKILL.md; resolve it from wherever the skill is installed):
 
 ```bash
-python3 skills/raster-logo-svg/scripts/embed-logo.py docs/logo.webp -o docs/logo.svg -l "project-name"
+python3 <skill-dir>/scripts/embed-logo.py docs/logo.webp -o docs/logo.svg -l "project-name"
 ```
+
+The script refuses to overwrite an existing output; pass `--force` to regenerate one.
 
 Requires **ImageMagick** (`magick identify`) for dimensions. Install: `brew install imagemagick`.
 
@@ -82,7 +84,7 @@ Prefer **base64 embed** for portable `.svg` files.
 python3 skills/raster-logo-svg/scripts/embed-logo.py \
   docs/designer-skill-mcp-logo.webp \
   -o docs/designer-skill-mcp-logo.svg \
-  -l "designer-skill-mcp"
+  -l "designer-skill-mcp" --force   # run from this repo's root; the output already exists
 ```
 
 README uses `designer-skill-mcp-logo.webp`; plugin/icon paths can use the `.svg`.

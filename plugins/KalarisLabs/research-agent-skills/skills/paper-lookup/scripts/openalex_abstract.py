@@ -80,6 +80,7 @@ def works_from(payload: Any) -> list[dict[str, Any]]:
 
 
 def summarize(work: dict[str, Any]) -> dict[str, Any]:
+    """Summarize."""
     record: dict[str, Any] = {
         "id": work.get("id"),
         "doi": work.get("doi"),
@@ -107,6 +108,7 @@ def summarize(work: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Reconstruct readable abstracts from OpenAlex abstract_inverted_index payloads."
@@ -123,7 +125,20 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def emit_text(records: list[dict[str, Any]], output: str | None) -> None:
+    """Write the reconstructed abstracts as plain text blocks, or fail if there are none."""
+    blocks = [record["abstract"] for record in records if record["abstract"]]
+    if not blocks:
+        fail("no abstracts could be reconstructed from this payload")
+    text = "\n\n".join(blocks) + "\n"
+    if output:
+        Path(output).write_text(text, encoding="utf-8")
+    else:
+        sys.stdout.write(text)
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
 
     try:
@@ -138,24 +153,16 @@ def main(argv: list[str] | None = None) -> int:
     records = [summarize(work) for work in works]
 
     if args.text_only:
-        blocks = [record["abstract"] for record in records if record["abstract"]]
-        if not blocks:
-            fail("no abstracts could be reconstructed from this payload")
-        text = "\n\n".join(blocks) + "\n"
-        if args.output:
-            Path(args.output).write_text(text, encoding="utf-8")
-        else:
-            sys.stdout.write(text)
-        return 0
-
-    emit(
-        {
-            "count": len(records),
-            "with_abstract": sum(1 for r in records if r["abstract"]),
-            "works": records,
-        },
-        args.output,
-    )
+        emit_text(records, args.output)
+    else:
+        emit(
+            {
+                "count": len(records),
+                "with_abstract": sum(1 for r in records if r["abstract"]),
+                "works": records,
+            },
+            args.output,
+        )
     return 0
 
 

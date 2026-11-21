@@ -67,6 +67,7 @@ RESTRICTION_HINT = re.compile(r"does not allow|not allow downloading|restricted"
 
 
 def parse(xml_text: str) -> ET.Element:
+    """Parse."""
     try:
         return ET.fromstring(xml_text)
     except ET.ParseError as error:
@@ -101,6 +102,7 @@ def element_text(element: ET.Element) -> str:
     parts: list[str] = []
 
     def walk(node: ET.Element) -> None:
+        """Handle walk."""
         if node.tag in SKIP_TAGS:
             # Keep the tail: text following an <xref> continues the sentence.
             if node.tail:
@@ -123,6 +125,7 @@ def element_text(element: ET.Element) -> str:
 
 
 def section_title(section: ET.Element) -> str:
+    """Handle section title."""
     title = section.find("title")
     return element_text(title) if title is not None else ""
 
@@ -156,6 +159,7 @@ ID_TYPES = {"pmid": "pmid", "pmcid": "pmcid", "pmc": "pmcid", "doi": "doi"}
 
 
 def extract_metadata(article: ET.Element) -> dict[str, Any]:
+    """Extract metadata."""
     front = article.find("front")
     metadata: dict[str, Any] = {
         "title": None,
@@ -207,6 +211,7 @@ def extract_metadata(article: ET.Element) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Convert PMC/Europe PMC JATS XML to sectioned text. Exits 2 when the document "
@@ -241,57 +246,61 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def matches(section: dict[str, Any], wanted: list[str]) -> bool:
+    """Handle matches."""
     haystack = f"{section['title']} {section['sec_type'] or ''}".lower()
     return any(want in haystack for want in wanted)
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-
-    try:
-        xml_text = read_input(args.source)
-        root = parse(xml_text)
-        article = find_article(root)
-    except InputError as error:
-        fail(str(error))
-
-    metadata = extract_metadata(article)
-    body = article.find("body")
-
-    if body is None:
-        comments = comments_in(xml_text)
-        restriction = next((c for c in comments if RESTRICTION_HINT.search(c)), None)
-        payload = {
-            "full_text_available": False,
-            "reason": restriction
-            or "document has no <body> element and gave no stated reason",
-            "metadata": metadata,
-            "guidance": (
-                "This is metadata only, not full text. Do not present it as the article. "
-                "Try Europe PMC /{PMCID}/fullTextXML (returns 404 rather than a bodyless 200), "
-                "check the PMC OA Web Service for a downloadable package, or fall back to "
-                "Unpaywall/CORE for an open-access copy."
-            ),
-        }
-        if comments:
-            payload["xml_comments"] = comments
-        emit(payload, args.output)
-        if args.allow_metadata_only:
-            return 0
+def emit_metadata_only(
+    args: argparse.Namespace,
+    xml_text: str,
+    metadata: dict[str, Any],
+) -> None:
+    """Emit the metadata-only payload for a bodyless document; fail unless that is allowed."""
+    comments = comments_in(xml_text)
+    restriction = next((c for c in comments if RESTRICTION_HINT.search(c)), None)
+    payload = {
+        "full_text_available": False,
+        "reason": restriction
+        or "document has no <body> element and gave no stated reason",
+        "metadata": metadata,
+        "guidance": (
+            "This is metadata only, not full text. Do not present it as the article. "
+            "Try Europe PMC /{PMCID}/fullTextXML (returns 404 rather than a bodyless 200), "
+            "check the PMC OA Web Service for a downloadable package, or fall back to "
+            "Unpaywall/CORE for an open-access copy."
+        ),
+    }
+    if comments:
+        payload["xml_comments"] = comments
+    emit(payload, args.output)
+    if not args.allow_metadata_only:
         fail(
             "no <body> element: this document is metadata only, not full text"
             + (f" -- {restriction}" if restriction else ""),
             code=2,
         )
 
+
+def select_sections(sections: list[dict[str, Any]], spec: str) -> list[dict[str, Any]]:
+    """Keep the sections matching a comma-separated title/type filter, or fail."""
+    wanted = [part.strip().lower() for part in spec.split(",") if part.strip()]
+    selected = [section for section in sections if matches(section, wanted)]
+    if not selected:
+        available = ", ".join(s["title"] or s["sec_type"] or "(untitled)" for s in sections)
+        fail(f"no section matched {spec!r}; available: {available}")
+    return selected
+
+
+def emit_full_text(
+    args: argparse.Namespace,
+    metadata: dict[str, Any],
+    body: ET.Element,
+) -> None:
+    """Emit the (optionally filtered) article sections as JSON or plain text."""
     sections = collect_sections(body)
     if args.sections:
-        wanted = [part.strip().lower() for part in args.sections.split(",") if part.strip()]
-        selected = [section for section in sections if matches(section, wanted)]
-        if not selected:
-            available = ", ".join(s["title"] or s["sec_type"] or "(untitled)" for s in sections)
-            fail(f"no section matched {args.sections!r}; available: {available}")
-        sections = selected
+        sections = select_sections(sections, args.sections)
 
     if args.text_only:
         blocks = []
@@ -305,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.output).write_text(text, encoding="utf-8")
         else:
             sys.stdout.write(text)
-        return 0
+        return
 
     emit(
         {
@@ -317,6 +326,26 @@ def main(argv: list[str] | None = None) -> int:
         },
         args.output,
     )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface; failures exit through `fail`."""
+    args = build_parser().parse_args(argv)
+
+    try:
+        xml_text = read_input(args.source)
+        root = parse(xml_text)
+        article = find_article(root)
+    except InputError as error:
+        fail(str(error))
+
+    metadata = extract_metadata(article)
+    body = article.find("body")
+
+    if body is None:
+        emit_metadata_only(args, xml_text, metadata)
+    else:
+        emit_full_text(args, metadata, body)
     return 0
 
 

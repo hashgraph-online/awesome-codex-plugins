@@ -1,13 +1,13 @@
 {
   "name": "fxmacrodata",
-  "version": "1.0.1",
-  "description": "Official-source FX, macroeconomic and central-bank data: release calendars, indicator histories, policy rates, FX rates, COT positioning and commodities across 22 currencies.",
+  "version": "1.0.4",
+  "description": "Official-source FX, macroeconomic and central-bank data: release calendars, actual release times, indicator histories, policy rates, FX rates, COT positioning, commodities, release replays and FX backtests.",
   "author": {
     "name": "FXMacroData",
     "email": "info@fxmacrodata.com",
-    "url": "https://fxmacrodata.com"
+    "url": "https://fxmacrodata.com/?utm_source=codex&utm_medium=plugin_directory&utm_campaign=fxmacrodata_plugin&utm_content=author"
   },
-  "homepage": "https://fxmacrodata.com/documentation/mcp-server",
+  "homepage": "https://fxmacrodata.com/documentation/mcp-server?utm_source=codex&utm_medium=plugin_directory&utm_campaign=fxmacrodata_plugin&utm_content=homepage",
   "repository": "https://github.com/fxmacrodata/claude-plugin-fxmacrodata",
   "license": "MIT",
   "keywords": [
@@ -25,20 +25,21 @@
   "interface": {
     "displayName": "FXMacroData",
     "shortDescription": "Official macro releases, central-bank rates, release calendars and FX rates",
-    "longDescription": "Connects Codex to the hosted FXMacroData MCP server: indicator histories and latest prints with release timestamps and source links, scheduled release calendars, policy rates, FX rates, COT positioning and commodities for 22 currencies. USD data works without an API key.",
+    "longDescription": "Connects Codex to the hosted FXMacroData MCP server: indicator histories and latest prints with actual release times and source links, scheduled release calendars, policy rates, FX rates, COT positioning and commodities, plus release replays, spot FX backtests and a sourced history of maritime, sanctions and conflict-zone events. Data tools are read-only. Research tools save only your own research studies and simulated paper accounts. No tool places live orders, moves money or changes account settings. USD data works without an API key.",
     "developerName": "FXMacroData",
     "category": "Research",
     "capabilities": [
-      "Read"
+      "Read",
+      "Write"
     ],
-    "websiteURL": "https://fxmacrodata.com",
+    "websiteURL": "https://fxmacrodata.com/?utm_source=codex&utm_medium=plugin_directory&utm_campaign=fxmacrodata_plugin&utm_content=website",
     "brandColor": "#05131D",
     "composerIcon": "./assets/composer-icon.png",
     "logo": "./assets/icon.png",
     "defaultPrompt": [
-      "What US data is due this week?",
-      "Show US core CPI within the available public history window, with units and source links.",
-      "Show the latest available USD policy-rate observations and the next officially scheduled release."
+      "What was the latest US CPI reading, and when was it actually published?",
+      "Build a US macro briefing: rates, inflation, jobs and the releases due next.",
+      "Show the US release calendar for this week in my local time."
     ]
   }
 }

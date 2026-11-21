@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evo 2 Inference"
+  short_description: "Evo 2 install and inference workflows"
+  default_prompt: "Use $evo2-inference to help me install Evo 2, choose a checkpoint, or run forward, embedding, and generation workflows."

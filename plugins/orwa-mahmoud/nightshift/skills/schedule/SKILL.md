@@ -50,10 +50,9 @@ before the scheduled time, because start will not promote it.
 
 ## 3. Will the permissions hold?
 
-A scheduled run is headless and cannot answer a prompt. On Claude Code, if neither
-`$TASK_ROOT/.claude/settings.local.json` nor `$TASK_ROOT/.claude/settings.json` grants
-frictionless permissions, warn
-once. On Codex the grant travels in the command itself: pass the owner's Codex launch command, as
+A scheduled run is headless and cannot answer a prompt. On Claude Code, the preflight
+(`ns schedule --preflight`) checks the project's Claude Code settings for a frictionless permission
+grant; when it warns that none is granted, pass that warning on once. On Codex the grant travels in the command itself: pass the owner's Codex launch command, as
 the Codex host page (`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/hosts/codex.md`)
 spells it, through `--agent`. The generator's preflight warns when a Codex command carries no
 headless grant, and a Codex entry generated without one will stall on the first tool that asks.
@@ -67,7 +66,7 @@ stale markers and arms the shift.
 
 If `$NS/run/.shift-armed` already exists, stop here. This workspace has an active or stale shift,
 not merely queued work. Report that state and point the owner to Status (`/nightshift:status` on
-Claude Code, or ask Nightshift for status on Codex); do not tell them to create a STOP marker just
+Claude Code, or ask Nightshift for status on Codex); never suggest creating a STOP marker just
 to schedule the list. Continue only after the existing shift has been ended or its stale state has
 been diagnosed.
 

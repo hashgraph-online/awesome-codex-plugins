@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/html-prototype
 description: 可交互 HTML 原型，生成浏览器可打开的原型页面供用户查看和选择设计方案
 version: 1.0.0
@@ -8,14 +7,13 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
-- ui-designer/design-system
-  triggers:
-- 用户需要直观看到设计效果而非纯文字描述时
-- 存在多个设计变体需要用户对比选择时
-- 设计方向存在分歧，需要可视化决策时
-  metadata:
+  - ui-designer/design-system
+triggers:
+  - 用户需要直观看到设计效果而非纯文字描述时
+  - 存在多个设计变体需要用户对比选择时
+  - 设计方向存在分歧，需要可视化决策时
+metadata:
   internal: true
-
 ---
 
 # 可交互 HTML 原型
@@ -25,11 +23,13 @@ dependencies:
 当设计方案需要用户**直观看到**才能决策时，生成可交互的 HTML 原型页面，在浏览器中展示并让用户点击选择。
 
 **适用**：
+
 - 多设计变体需要用户对比选择
 - 布局/视觉方向需要用户确认
 - 复杂交互流程需要走查
 
 **不适用**：
+
 - 纯后端/API 项目
 - 用户已明确指定设计方向
 - 简单页面无需可视化确认
@@ -47,6 +47,7 @@ dependencies:
 > 接下来的设计方案如果能在浏览器里直观看到，会比纯文字描述更容易决策。我可以生成可交互的 HTML 原型页面，你打开本地链接就能看到效果并点击选择方案。需要开启吗？
 
 **这条消息必须独立发送**，不要和其他内容混在一起。等待用户回复。
+
 - 用户同意 → 继续步骤 2
 - 用户拒绝 → 跳过 HTML 原型，用文字描述 + JSON 交付
 
@@ -55,6 +56,7 @@ dependencies:
 在 `.boss/<feature>/prototype/` 目录下生成原型文件。
 
 **文件结构**：
+
 ```
 .boss/<feature>/prototype/
 ├── index.html          # 主页面：展示所有变体，可点击选择
@@ -288,6 +290,7 @@ function select(choice, name) {
 ```
 
 **线框图绘制原则**：
+
 - 用 `.mock-nav`、`.mock-card`、`.mock-btn`、`.mock-input` 等类搭建布局
 - 重点展示**结构和层次**，不需要像素级还原
 - 每个变体的预览要能体现出设计差异（布局、密度、导航方式等）

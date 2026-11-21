@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storyboard Board</title>
+<!--
+  varg-mockups storyboard board. One self-contained page: no build step, no network needed.
+
+  HOW TO FILL IT (for Claude):
+  1. Copy this file to <project>/boards/storyboard.html (or any name).
+  2. Edit ONLY the JSON in the script block with the id board-data below (or regenerate it from a script).
+     - img: a relative path ("stills/01a.jpg"), an https URL, or a data:image/jpeg;base64 URI.
+       Leave it "" to draw a sketch placeholder (sketch: wide | medium | close | insert | ots | card | sheet).
+     - Several entries in "variants" are shown side by side; the reviewer picks one.
+     - status is your own suggestion after self-QA ("pending", "approved", "fix", "rejected");
+       the reviewer's choice is kept in their browser and wins.
+     - Put the reason for a "fix" in "qa" so the reviewer sees what you already caught.
+     - Optional "audio": a music or VO file; frames with start/end get a "Play from here" button.
+  3. Bump "round" for every new version, so old notes do not mix with new ones.
+  4. Screenshot it headless and look at the PNG before you hand it over.
+  The frame markup keeps the HyperFrames storyboard classes (.frame, .title, .time, .words).
+-->
+<style>
+:root{
+  --bg:#f3f2ee; --card:#ffffff; --fg:#17181b; --muted:#62656c; --line:#dddcd6; --soft:#efeee9;
+  --accent:#d9480f; --accent-soft:#fdeee6; --on-accent:#ffffff;
+  --ok:#1d7a4c; --ok-soft:#e1f2e8; --fix:#985f00; --fix-soft:#f8eed8; --bad:#b42318; --bad-soft:#fbe7e4;
+  --ph-bg:#e7e5df; --ph-fill:#d6d3ca; --ph-ink:#8d8f95; --ph-sky:#eceae5;
+  --shadow:0 1px 2px rgba(20,20,20,.05),0 6px 24px -12px rgba(20,20,20,.18);
+  --ui:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e0f11; --card:#17181b; --fg:#ebecee; --muted:#9a9da4; --line:#2a2c31; --soft:#1f2125;
+    --accent:#ff7a45; --accent-soft:#3a1d10; --on-accent:#140803;
+    --ok:#5fd19b; --ok-soft:#12291d; --fix:#f0b54f; --fix-soft:#33270f; --bad:#ff8a7e; --bad-soft:#3a1714;
+    --ph-bg:#1c1e22; --ph-fill:#272a2f; --ph-ink:#5f636b; --ph-sky:#202227;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px -14px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e0f11; --card:#17181b; --fg:#ebecee; --muted:#9a9da4; --line:#2a2c31; --soft:#1f2125;
+  --accent:#ff7a45; --accent-soft:#3a1d10; --on-accent:#140803;
+  --ok:#5fd19b; --ok-soft:#12291d; --fix:#f0b54f; --fix-soft:#33270f; --bad:#ff8a7e; --bad-soft:#3a1714;
+  --ph-bg:#1c1e22; --ph-fill:#272a2f; --ph-ink:#5f636b; --ph-sky:#202227;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px -14px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14.5px/1.5 var(--ui);overflow-x:hidden}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+button,textarea,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:28px 72px;display:flex;flex-direction:column;gap:28px}
+@media (min-width:720px){.wrap{padding-inline:28px}}
+.eyebrow{font:500 11.5px/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono)}
+
+/* header */
+header{display:grid;gap:10px}
+h1{font-size:clamp(28px,4.6vw,46px);font-weight:800;letter-spacing:-.025em;line-height:1.04}
+.lede{color:var(--muted);max-width:76ch;font-size:15.5px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 11px;font:500 12.5px/1.4 var(--mono);white-space:nowrap}
+.pill b{font-weight:700}
+
+/* toolbar */
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+@media (min-width:720px){.bar{margin-inline:-28px;padding-inline:28px}}
+@media (max-width:600px){.bar{position:static}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;background:var(--card);padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:7px;padding:6px 10px;font-size:13px;cursor:pointer;color:var(--muted);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--soft);color:var(--fg);font-weight:600}
+.seg .n{font:600 11px/1 var(--mono);color:var(--muted)}
+.spacer{flex:1 1 auto}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--fg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:650}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn[aria-pressed="true"]{background:var(--soft);font-weight:600}
+.bar audio{height:34px;max-width:100%;flex:1 1 260px}
+.now{font:600 12px/1.2 var(--mono);color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* overview strip */
+.strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(118px,1fr);gap:8px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.strip a{display:grid;gap:5px;text-decoration:none;color:inherit;scroll-snap-align:start;min-width:0}
+.strip .tn{position:relative;border-radius:7px;overflow:hidden;border:1px solid var(--line);background:var(--ph-bg)}
+.strip .tn img,.strip .tn svg{display:block;width:100%;height:auto}
+.strip .cap{display:flex;gap:6px;align-items:center;font-size:12px;min-width:0}
+.strip .cap span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--line)}
+.dot.approved{background:var(--ok)} .dot.fix{background:var(--fix)} .dot.rejected{background:var(--bad)}
+.strip a:hover .tn{border-color:var(--fg)}
+
+/* look + anchors */
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px;box-shadow:var(--shadow);min-width:0}
+.panel h2{font-size:15px;font-weight:700}
+.panel .hint{color:var(--muted);font-size:13px}
+.lookline{font:12.5px/1.6 var(--mono);background:var(--soft);border-radius:8px;padding:10px 12px;overflow-wrap:anywhere}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{display:grid;gap:4px;font:11px/1.2 var(--mono);color:var(--muted);width:76px}
+.sw i{display:block;height:34px;border-radius:7px;border:1px solid var(--line)}
+.anchors{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.anchor{margin:0;display:grid;gap:6px;min-width:0}
+.anchor .tn{border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--ph-bg);cursor:zoom-in;padding:0;display:block;width:100%}
+.anchor .tn img,.anchor .tn svg{display:block;width:100%;height:auto}
+.anchor figcaption{font-size:12.5px;line-height:1.35}
+.anchor figcaption b{font-family:var(--mono);font-size:11.5px;margin-right:4px}
+
+/* section heads */
+.act{font:700 12px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);grid-column:1/-1;display:none;align-items:center;gap:10px;margin-top:6px}
+.list .act{display:flex}
+.actline{font:600 10.5px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.list .actline{display:none}
+.act::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* frames */
+.frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
+.frame{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);min-width:0;scroll-margin-top:84px;transition:border-color .15s}
+.frame[data-status="approved"]{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.frame[data-status="fix"]{border-color:color-mix(in srgb,var(--fix) 60%,var(--line))}
+.frame[data-status="rejected"]{border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.frame.playing{outline:2px solid var(--accent);outline-offset:-1px}
+.frame[hidden]{display:none}
+.media{position:relative;background:var(--ph-bg);display:grid;gap:2px}
+.media.multi{grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));background:var(--line)}
+.var{position:relative;margin:0;min-width:0;background:var(--ph-bg)}
+.var .shot{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;position:relative}
+.var img,.var svg{display:block;width:100%;height:auto;aspect-ratio:var(--ar)}
+.var img{object-fit:cover}
+.var .vlabel{position:absolute;right:8px;top:8px;display:flex;gap:6px;align-items:center;font:600 11px/1 var(--mono);background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--fg);border-radius:6px;padding:5px 7px;backdrop-filter:blur(4px)}
+.var .pick{position:absolute;right:8px;bottom:8px;font:600 11px/1 var(--mono);border:1px solid var(--line);background:color-mix(in srgb,var(--card) 88%,transparent);border-radius:6px;padding:5px 8px;cursor:pointer}
+.var.picked .pick{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.var.picked{box-shadow:inset 0 0 0 3px var(--accent)}
+.var.picked .shot{outline:3px solid var(--accent);outline-offset:-3px}
+.num{position:absolute;left:10px;top:10px;z-index:3;font:800 13px/1 var(--mono);background:var(--fg);color:var(--card);border-radius:7px;padding:6px 8px;letter-spacing:.02em}
+.guides .var .shot::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+   linear-gradient(to right,transparent calc(33.333% - .5px),rgba(255,255,255,.55) calc(33.333% - .5px),rgba(255,255,255,.55) calc(33.333% + .5px),transparent calc(33.333% + .5px),transparent calc(66.666% - .5px),rgba(255,255,255,.55) calc(66.666% - .5px),rgba(255,255,255,.55) calc(66.666% + .5px),transparent calc(66.666% + .5px)),
+   linear-gradient(to bottom,transparent calc(33.333% - .5px),rgba(255,255,255,.55) calc(33.333% - .5px),rgba(255,255,255,.55) calc(33.333% + .5px),transparent calc(33.333% + .5px),transparent calc(66.666% - .5px),rgba(255,255,255,.55) calc(66.666% - .5px),rgba(255,255,255,.55) calc(66.666% + .5px),transparent calc(66.666% + .5px));
+  mix-blend-mode:difference}
+.guides .var .shot::before{content:"";position:absolute;inset:var(--safe,8%);border:1px dashed rgba(255,80,40,.85);border-radius:2px;pointer-events:none;z-index:2}
+.body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:11px;min-width:0}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.title{font-size:16.5px;font-weight:750;letter-spacing:-.01em}
+.time{font:500 12px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.words{font-size:14.5px;line-height:1.5}
+.spec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:0}
+.spec div{background:var(--card);padding:6px 9px;min-width:0}
+.spec dt{font:500 10px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.spec dd{margin:2px 0 0;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere}
+@media (max-width:420px){.spec{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 11.5px/1 var(--mono);border:1px solid var(--line);border-radius:6px;padding:4px 7px;color:var(--muted);background:var(--soft);white-space:nowrap}
+.chip.ref::before{content:"ref ";opacity:.65}
+.qa{font-size:13px;line-height:1.45;border-radius:8px;padding:8px 10px;background:var(--soft);border-left:3px solid var(--muted)}
+.qa b{font:700 10.5px/1 var(--mono);text-transform:uppercase;letter-spacing:.07em;margin-right:6px}
+.qa.fix{background:var(--fix-soft);border-left-color:var(--fix)}
+.qa.approved{background:var(--ok-soft);border-left-color:var(--ok)}
+.qa.rejected{background:var(--bad-soft);border-left-color:var(--bad)}
+details.prompt{border:1px solid var(--line);border-radius:9px;background:var(--soft)}
+details.prompt summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;padding:7px 10px;font-size:12.5px;color:var(--muted)}
+details.prompt summary::-webkit-details-marker{display:none}
+details.prompt summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin-right:2px}
+details.prompt[open] summary::before{transform:rotate(45deg)}
+details.prompt summary .cost{margin-left:auto;font-family:var(--mono);font-size:11.5px}
+.ptext{padding:0 10px 10px;display:grid;gap:8px}
+.ptext p{font:12px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.ptext .pv{font:700 10.5px/1 var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.copy{justify-self:start;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:4px 9px;font:12px/1.2 var(--mono);cursor:pointer}
+.status{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.status button{border:0;border-right:1px solid var(--line);background:var(--card);padding:8px 4px;font-size:12.5px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.status button:last-child{border-right:0}
+.status button[aria-pressed="true"][data-s="pending"]{background:var(--soft);color:var(--fg);font-weight:650}
+.status button[aria-pressed="true"][data-s="approved"]{background:var(--ok-soft);color:var(--ok);font-weight:700}
+.status button[aria-pressed="true"][data-s="fix"]{background:var(--fix-soft);color:var(--fix);font-weight:700}
+.status button[aria-pressed="true"][data-s="rejected"]{background:var(--bad-soft);color:var(--bad);font-weight:700}
+.note{display:grid;gap:5px}
+.note label{font:500 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:flex;justify-content:space-between}
+.note .saved{text-transform:none;letter-spacing:0;color:var(--ok)}
+textarea{width:100%;min-height:64px;resize:vertical;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13.5px;line-height:1.45}
+textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.rowbtns{display:flex;gap:8px;flex-wrap:wrap}
+.note-print{display:none}
+
+/* list view: one row per shot, still left, log right */
+.list .frames{grid-template-columns:1fr}
+@media (min-width:820px){
+  .list .frame{display:grid;grid-template-columns:minmax(0,46%) minmax(0,1fr)}
+  .list .media{align-self:start}
+}
+
+/* footer */
+.overall{display:grid;gap:8px}
+footer{color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 18px;border-top:1px solid var(--line);padding-top:16px}
+footer button{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
+
+/* zoom dialog */
+dialog{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:14px;padding:0;max-width:min(96vw,1500px);width:auto}
+dialog::backdrop{background:rgba(6,7,9,.82)}
+.zoomgrid{display:grid;grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));gap:2px;background:var(--line)}
+.zoomgrid figure{margin:0;background:var(--ph-bg);position:relative}
+.zoomgrid img,.zoomgrid svg{display:block;width:100%;height:auto;max-height:80vh;object-fit:contain}
+.zoomgrid figcaption{position:absolute;left:10px;top:10px;font:600 12px/1 var(--mono);background:var(--card);border-radius:6px;padding:6px 8px}
+.dlgbar{display:flex;gap:10px;align-items:center;padding:10px 12px;font-size:13px}
+.dlgbar .spacer{flex:1}
+#mdtext{width:min(86vw,760px);min-height:50vh;font:12.5px/1.55 var(--mono);margin:0 12px 12px;width:calc(100% - 24px)}
+
+/* placeholder sketch */
+.ph .sky{fill:var(--ph-sky)} .ph .gnd{fill:var(--ph-fill)} .ph .ink{fill:none;stroke:var(--ph-ink);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+.ph .solid{fill:var(--ph-ink);opacity:.55} .ph .soft{fill:var(--ph-ink);opacity:.22} .ph .lbl{fill:var(--ph-ink);font:600 5px var(--mono);letter-spacing:.4px}
+.ph .hatch{stroke:var(--ph-ink);stroke-width:.35;opacity:.35}
+.media.multi .ph .lbl{display:none}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* print: a clean contact sheet with the reviewer's notes */
+@media print{
+  :root,:root[data-theme="dark"]{--bg:#fff;--card:#fff;--fg:#111;--muted:#555;--line:#ccc;--soft:#f3f3f3;--ph-bg:#eee;--ph-fill:#ddd;--ph-ink:#888;--ph-sky:#f2f2f2;--shadow:none;--accent:#d9480f;--ok:#1d7a4c;--ok-soft:#e1f2e8;--fix:#985f00;--fix-soft:#f8eed8;--bad:#b42318;--bad-soft:#fbe7e4;color-scheme:light}
+  @page{size:A4 landscape;margin:10mm}
+  body{font-size:11px;background:#fff}
+  .bar,.rowbtns,.copy,.pick,.status,textarea,footer,.strip,dialog,.note label,.overall .hint{display:none!important}
+  .note-print::before{content:"Note: ";font-weight:700}
+  .overall .note-print::before{content:""}
+  .wrap{padding:0;gap:12px;max-width:none}
+  h1{font-size:24px}
+  .frames{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .list .frames{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .list .frame{display:flex}
+  .frame{break-inside:avoid;box-shadow:none;border-radius:6px}
+  .frame[hidden]{display:flex!important}
+  .body{padding:8px 9px;gap:6px}
+  .note-print{display:block;font-size:11px;border-left:3px solid #999;padding-left:6px}
+  .note-print:empty{display:none}
+  .stamp{display:inline-block!important}
+  details.prompt{display:none}
+  .panel{box-shadow:none;break-inside:avoid}
+}
+.stamp{display:none;font:700 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;border:1px solid currentColor;border-radius:4px;padding:3px 5px}
+.stamp.approved{color:var(--ok)} .stamp.fix{color:var(--fix)} .stamp.rejected{color:var(--bad)} .stamp.pending{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<script type="application/json" id="board-data">
+{
+  "title": "Rain Run",
+  "project": "Example board · 30 s launch film for a waterproof backpack",
+  "round": 2,
+  "date": "2026-11-02",
+  "aspect": "16:9",
+  "lede": "Six key frames to approve before any video is generated. Every still is text-free; titles, the logo and the end card are added in the edit. Mark each frame, leave a note where something should change, then press Copy feedback and paste it into the chat.",
+  "audio": "",
+  "look": {
+    "line": "Handheld documentary camera, 35 mm lens, overcast late afternoon after rain, flat soft light, no direct sun, no golden hour. Wet asphalt, worn objects with scuffs and dirt. Muted palette: slate, wet concrete, one signal-orange accent. Natural skin, light film grain, no text, no logos.",
+    "palette": [["Slate","#3b4148"],["Wet concrete","#7d8186"],["Fog","#c9cdd0"],["Signal orange","#ff5a1f"],["Night","#15181c"]]
+  },
+  "anchors": [
+    {"id": "A1", "label": "Courier · character sheet", "img": "", "sketch": "sheet"},
+    {"id": "L1", "label": "Bike lane at dusk · location master", "img": "", "sketch": "wide"},
+    {"id": "P1", "label": "Backpack · product sheet", "img": "", "sketch": "insert"}
+  ],
+  "frames": [
+    {
+      "id": "01", "act": "Act 1 · Hook", "title": "Water hits the lens", "start": 0, "end": 2.5,
+      "words": "Extreme close-up: rain beads on the backpack's orange flap while the city blurs behind. One drop runs down the seam and stops.",
+      "spec": {"shot": "Extreme close-up", "lens": "100 mm macro", "move": "Locked, slow push", "light": "Overcast, streetlamp rim", "place": "L1", "cast": "P1"},
+      "refs": ["P1 sheet", "L1 master"], "sketch": "insert", "status": "approved",
+      "qa": "Seam and zip match the product sheet. No text on the flap.",
+      "variants": [
+        {"label": "A", "img": "", "model": "gpt_image_2_5", "credits": 23,
+         "prompt": "@image1 is the product sheet: same backpack, same orange flap, same seams. Extreme close-up of the flap in steady rain, beads of water on the coated fabric, one drop runs along the seam. Handheld macro, 100 mm, shallow focus, the city behind as soft grey shapes. Overcast evening light, a streetlamp rim on the wet fabric. No text, no logos, full-bleed, no borders."}
+      ]
+    },
+    {
+      "id": "02", "act": "Act 1 · Hook", "title": "The lane, empty", "start": 2.5, "end": 5,
+      "words": "Wide establishing shot of the bike lane from the master. Puddles, a bent bollard, a delivery van parked half on the kerb. Nobody in frame yet.",
+      "spec": {"shot": "Wide", "lens": "24 mm", "move": "Static", "light": "Overcast dusk", "place": "L1", "cast": "none"},
+      "refs": ["L1 master"], "sketch": "wide", "status": "pending",
+      "variants": [
+        {"label": "A", "img": "", "model": "nano_banana_2_1", "credits": 8, "prompt": "@image1 is the location master: keep the layout exactly. Same bike lane, camera at kerb height looking down the lane..."},
+        {"label": "B", "img": "", "model": "gpt_image_2_5", "credits": 23, "prompt": "@image1 is the location master: keep the layout exactly. Same bike lane, camera raised to head height..."}
+      ]
+    },
+    {
+      "id": "03", "act": "Act 2 · The ride", "title": "She pushes off", "start": 5, "end": 9,
+      "words": "Medium shot: the courier stands on the pedals, backpack high on her back, spray from the front wheel. Caught mid-move, never looking at the camera.",
+      "spec": {"shot": "Medium", "lens": "35 mm", "move": "Handheld follow", "light": "Overcast dusk", "place": "L1", "cast": "A1, P1"},
+      "refs": ["A1 sheet", "P1 sheet", "L1 master"], "sketch": "medium", "status": "fix",
+      "qa": "Two arms on the handlebar plus a third hand on the strap: regenerate from the master with the strap hand removed.",
+      "variants": [
+        {"label": "A", "img": "", "model": "nano_banana_2_1", "credits": 8, "prompt": "@image1 is the courier's character sheet: same face, hair and jacket. Create a new image, not a sheet. @image2 is the backpack. @image3 is the location master..."}
+      ]
+    },
+    {
+      "id": "04", "act": "Act 2 · The ride", "title": "Over the shoulder", "start": 9, "end": 13,
+      "words": "Over-the-shoulder from behind the courier: the lane opens into traffic lights, the backpack fills the left third, beaded with water.",
+      "spec": {"shot": "Over the shoulder", "lens": "28 mm", "move": "Handheld follow", "light": "Wet signal lights", "place": "L1", "cast": "A1, P1"},
+      "refs": ["A1 sheet", "P1 sheet"], "sketch": "ots", "status": "pending",
+      "variants": [
+        {"label": "A", "img": "", "model": "nano_banana_2_1", "credits": 8, "prompt": "Over-the-shoulder from behind the courier..."}
+      ]
+    },
+    {
+      "id": "05", "act": "Act 3 · Payoff", "title": "Dry inside", "start": 13, "end": 17,
+      "words": "Close-up: under a shop awning she opens the backpack. The laptop sleeve inside is dry. Her wet glove touches it once.",
+      "spec": {"shot": "Close-up", "lens": "50 mm", "move": "Locked", "light": "Shop window spill", "place": "Awning (from L1)", "cast": "A1, P1"},
+      "refs": ["A1 sheet", "P1 sheet", "L1 master"], "sketch": "close", "status": "pending",
+      "variants": [
+        {"label": "A", "img": "", "model": "gpt_image_2_5", "credits": 23, "prompt": "Close-up under a shop awning..."}
+      ]
+    },
+    {
+      "id": "06", "act": "Act 3 · Payoff", "title": "End card", "start": 17, "end": 20,
+      "words": "Built in code, not generated: wordmark, one line of copy and the URL over a dark, rain-streaked plate.",
+      "spec": {"shot": "Card", "lens": "-", "move": "Type in", "light": "-", "place": "-", "cast": "-"},
+      "refs": [], "sketch": "card", "status": "pending",
+      "qa": "No generation. Plate only; type is set in HTML.",
+      "variants": [
+        {"label": "A", "img": "", "model": "code", "credits": 0, "prompt": ""}
+      ]
+    }
+  ]
+}
+</script>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Board controls">
+    <div class="seg" id="filters" aria-label="Filter frames"></div>
+    <div class="seg" aria-label="Layout">
+      <button type="button" data-view="grid" aria-pressed="true">Grid</button>
+      <button type="button" data-view="list" aria-pressed="false">List</button>
+    </div>
+    <button type="button" class="btn" id="guidesBtn" aria-pressed="false" title="Rule of thirds and an 8% safe area">Guides</button>
+    <audio id="song" controls preload="metadata" hidden></audio>
+    <span class="now" id="now" hidden></span>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="themeBtn" title="Theme">Theme: auto</button>
+    <button type="button" class="btn" id="printBtn">Print</button>
+    <button type="button" class="btn primary" id="copyBtn">Copy feedback</button>
+  </div>
+
+  <nav class="strip" id="strip" aria-label="All frames"></nav>
+
+  <div class="two" id="lookRow"></div>
+
+  <main class="frames" id="frames"></main>
+
+  <section class="panel overall">
+    <h2>Overall notes</h2>
+    <p class="hint">Pacing, story, anything that is not about one frame.</p>
+    <textarea id="overall" placeholder="What should change across the whole board?"></textarea>
+    <div class="note-print" id="overallPrint"></div>
+  </section>
+
+  <footer>
+    <span id="savedInfo">Notes are saved in this browser only.</span>
+    <span>Press <b>Copy feedback</b> and paste it into the chat to send it.</span>
+    <button type="button" id="clearBtn">Clear my notes for this round</button>
+  </footer>
+</div>
+
+<dialog id="zoom" aria-label="Frame preview">
+  <div class="dlgbar"><b id="zoomTitle"></b><span class="spacer"></span><button type="button" class="btn" data-close>Close</button></div>
+  <div class="zoomgrid" id="zoomGrid"></div>
+</dialog>
+
+<dialog id="mdDlg" aria-label="Feedback as Markdown">
+  <div class="dlgbar"><b>Feedback as Markdown</b><span class="spacer"></span><span id="mdHint" class="hint"></span><button type="button" class="btn" data-close>Close</button></div>
+  <textarea id="mdtext" readonly></textarea>
+</dialog>
+
+<script>
+(() => {
+  const DATA = JSON.parse(document.getElementById("board-data").textContent);
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const STATUSES = [["pending","To review"],["approved","Approve"],["fix","Needs fix"],["rejected","Reject"]];
+  const LABEL = {pending:"Not reviewed", approved:"Approved", fix:"Needs fix", rejected:"Rejected"};
+  const [aw, ah] = String(DATA.aspect || "16:9").split(":").map(Number);
+  document.documentElement.style.setProperty("--ar", `${aw} / ${ah}`);
+
+  /* storage: per viewer, per round; never required */
+  const KEY = `varg-board:${DATA.storageKey || DATA.title}:r${DATA.round}`;
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (_) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (_) { return false; } },
+    del(k) { try { localStorage.removeItem(k); } catch (_) {} }
+  };
+  const S = store.get(KEY, {frames: {}, overall: ""});
+  const st = id => (S.frames[id] ||= {});
+  let saveOk = true;
+  const persist = () => { saveOk = store.set(KEY, S); $("#savedInfo").textContent = saveOk ? "Notes are saved in this browser only." : "This browser blocks storage: copy your feedback before closing the page."; };
+
+  /* theme */
+  const THEMES = ["auto","light","dark"];
+  const qp = new URLSearchParams(location.search);
+  let theme = THEMES.includes(qp.get("theme")) ? qp.get("theme") : store.get("varg-board:theme", "auto");
+  const applyTheme = () => {
+    if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
+    $("#themeBtn").textContent = "Theme: " + theme;
+  };
+  applyTheme();
+  $("#themeBtn").addEventListener("click", () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set("varg-board:theme", theme); applyTheme(); });
+
+  /* sketch placeholders: inline SVG, themed by CSS variables */
+  function sketch(kind, label) {
+    const W = 160, H = Math.round(160 * ah / aw);
+    const g = Math.round(H * 0.64), cx = W / 2;
+    const fig = (x, y, s) => `<circle class="solid" cx="${x}" cy="${y}" r="${4*s}"/><path class="solid" d="M${x-7*s} ${y+22*s} q0 -15 ${7*s} -16 q${7*s} 1 ${7*s} 16 z"/>`;
+    let art = "";
+    switch (kind) {
+      case "wide":
+        art = `<rect class="gnd" x="0" y="${g}" width="${W}" height="${H-g}"/>
+          <path class="soft" d="M0 ${g} L0 ${g-18} L14 ${g-18} L14 ${g-30} L30 ${g-30} L30 ${g-14} L44 ${g-14} L44 ${g-38} L58 ${g-38} L58 ${g} Z"/>
+          <path class="soft" d="M104 ${g} L104 ${g-26} L120 ${g-26} L120 ${g-44} L134 ${g-44} L134 ${g-20} L160 ${g-20} L160 ${g} Z"/>
+          <path class="ink" d="M${cx-6} ${g} L${cx-40} ${H}"/><path class="ink" d="M${cx+6} ${g} L${cx+40} ${H}"/>
+          <path class="ink" d="M0 ${g} H${W}"/>${fig(W*0.68, g-12, .45)}`; break;
+      case "medium":
+        art = `<rect class="gnd" x="0" y="${g+6}" width="${W}" height="${H-g}"/><path class="ink" d="M0 ${g+6} H${W}"/>
+          <circle class="solid" cx="${W*0.38}" cy="${H*0.36}" r="${H*0.12}"/>
+          <path class="solid" d="M${W*0.38-H*0.34} ${H} q0 ${-H*0.42} ${H*0.34} ${-H*0.46} q${H*0.34} ${H*0.04} ${H*0.34} ${H*0.46} z"/>
+          <rect class="soft" x="${W*0.38+H*0.2}" y="${H*0.52}" width="${H*0.22}" height="${H*0.3}" rx="3"/>`; break;
+      case "close":
+        art = `<circle class="solid" cx="${cx}" cy="${H*0.46}" r="${H*0.26}"/>
+          <path class="solid" d="M${cx-H*0.62} ${H} q0 ${-H*0.26} ${H*0.62} ${-H*0.3} q${H*0.62} ${H*0.04} ${H*0.62} ${H*0.3} z"/>
+          <path class="ink" d="M${cx-H*0.1} ${H*0.42} h${H*0.05} M${cx+H*0.05} ${H*0.42} h${H*0.05}"/>`; break;
+      case "insert":
+        art = `<rect class="gnd" x="0" y="${H*0.7}" width="${W}" height="${H*0.3}"/>
+          <rect class="solid" x="${cx-26}" y="${H*0.2}" width="52" height="${H*0.56}" rx="10"/>
+          <rect class="soft" x="${cx-20}" y="${H*0.26}" width="40" height="${H*0.18}" rx="5"/>
+          <ellipse class="soft" cx="${cx+34}" cy="${H*0.62}" rx="14" ry="7"/>`; break;
+      case "ots":
+        art = `<rect class="gnd" x="0" y="${g}" width="${W}" height="${H-g}"/><path class="ink" d="M0 ${g} H${W}"/>
+          ${fig(W*0.7, g-14, .6)}
+          <path class="solid" d="M-10 ${H} q4 ${-H*0.62} ${W*0.42} ${-H*0.62} q12 0 14 ${H*0.62} z" opacity=".75"/>`; break;
+      case "card":
+        art = `<rect x="0" y="0" width="${W}" height="${H}" fill="var(--ph-ink)" opacity=".18"/>
+          <rect class="solid" x="${cx-30}" y="${H*0.38}" width="60" height="${H*0.12}" rx="2"/>
+          <rect class="soft" x="${cx-36}" y="${H*0.56}" width="72" height="${H*0.05}" rx="1"/>
+          <rect class="soft" x="${cx-16}" y="${H*0.66}" width="32" height="${H*0.04}" rx="1"/>`; break;
+      case "sheet":
+        art = `${[0.16,0.36,0.56].map((p,i)=>`<circle class="solid" cx="${W*p}" cy="${H*0.28}" r="${H*0.07}"/><path class="solid" d="M${W*p-H*0.11} ${H*0.88} v${-H*0.42} q0 -6 ${H*0.11} -${H*0.12} q${H*0.11} 6 ${H*0.11} ${H*0.12} v${H*0.42} z" opacity="${1-i*0.15}"/>`).join("")}
+          <rect class="soft" x="${W*0.7}" y="${H*0.12}" width="${W*0.24}" height="${H*0.36}" rx="3"/><circle class="solid" cx="${W*0.82}" cy="${H*0.3}" r="${H*0.1}"/>
+          <rect class="soft" x="${W*0.7}" y="${H*0.54}" width="${W*0.24}" height="${H*0.34}" rx="3"/>`; break;
+      default:
+        art = `<path class="ink" d="M0 ${g} H${W}"/>`;
+    }
+    let hatch = "";
+    for (let x = -H; x < W; x += 9) hatch += `<path class="hatch" d="M${x} ${H} L${x+H} 0"/>`;
+    return `<svg class="ph" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label || kind)} placeholder" preserveAspectRatio="xMidYMid slice">
+      <rect class="sky" x="0" y="0" width="${W}" height="${H}"/>${hatch}${art}
+      <text class="lbl" x="${W-6}" y="${H-6}" text-anchor="end">${esc((kind||"frame").toUpperCase())} · PLACEHOLDER</text></svg>`;
+  }
+  const visual = (img, kind, alt) => img ? `<img src="${esc(img)}" alt="${esc(alt)}" loading="lazy" decoding="async">` : sketch(kind, alt);
+
+  /* header */
+  const frames = DATA.frames || [];
+  $("#eyebrow").textContent = [DATA.project, `Round ${DATA.round}`, DATA.date].filter(Boolean).join(" · ");
+  $("#title").textContent = DATA.title;
+  document.title = DATA.title + " Board";
+  $("#lede").textContent = DATA.lede || "";
+  const totalCredits = frames.reduce((a, f) => a + (f.variants || []).reduce((b, v) => b + (+v.credits || 0), 0), 0);
+  const stillCount = frames.reduce((a, f) => a + (f.variants || []).filter(v => v.model !== "code").length, 0);
+  const dur = frames.length && frames.at(-1).end != null ? frames.at(-1).end : null;
+  $("#meta").innerHTML = [
+    `<span class="pill"><b>${frames.length}</b> frames</span>`,
+    `<span class="pill">${esc(DATA.aspect || "16:9")}</span>`,
+    dur != null ? `<span class="pill">${(+dur).toFixed(1)} s</span>` : "",
+    `<span class="pill"><b>${stillCount}</b> stills · ~${totalCredits} credits</span>`
+  ].join("");
+
+  /* look + anchors */
+  const look = DATA.look, anchors = DATA.anchors || [];
+  let lookHtml = "";
+  if (look && (look.line || (look.palette || []).length)) {
+    lookHtml += `<section class="panel"><h2>Look</h2><p class="hint">The same look line goes into every prompt.</p>
+      ${look.line ? `<div class="lookline" id="lookline">${esc(look.line)}</div><button type="button" class="copy" data-copy="#lookline">Copy look line</button>` : ""}
+      ${(look.palette || []).length ? `<div class="swatches">${look.palette.map(([n, c]) => `<div class="sw"><i style="background:${esc(c)}"></i>${esc(n)}<br>${esc(c)}</div>`).join("")}</div>` : ""}
+    </section>`;
+  }
+  if (anchors.length) {
+    lookHtml += `<section class="panel"><h2>Anchors</h2><p class="hint">Frozen references. Every frame names the anchors it was made from.</p>
+      <div class="anchors">${anchors.map(a => `<figure class="anchor"><button type="button" class="tn" data-zoom-anchor="${esc(a.id)}" aria-label="Open ${esc(a.label)}">${visual(a.img, a.sketch || "sheet", a.label)}</button><figcaption><b>${esc(a.id)}</b>${esc(a.label)}</figcaption></figure>`).join("")}</div>
+    </section>`;
+  }
+  $("#lookRow").innerHTML = lookHtml;
+  if (!lookHtml) $("#lookRow").hidden = true;
+
+  /* frames */
+  const statusOf = f => st(f.id).status || f.status || "pending";
+  const pickOf = f => st(f.id).pick ?? (f.variants && f.variants.length > 1 ? null : 0);
+  const fmt = t => (t == null ? "" : (+t).toFixed(1));
+  let lastAct = null, html = "";
+  for (const f of frames) {
+    if (f.act && f.act !== lastAct) { html += `<h2 class="act">${esc(f.act)}</h2>`; lastAct = f.act; }
+    const vs = f.variants && f.variants.length ? f.variants : [{label: "A", img: "", model: "", credits: 0, prompt: ""}];
+    const multi = vs.length > 1;
+    const media = vs.map((v, i) => `<figure class="var" data-v="${i}">
+        <button type="button" class="shot" data-zoom="${esc(f.id)}" data-zv="${i}" aria-label="Open frame ${esc(f.id)}${multi ? " variant " + esc(v.label) : ""}">${visual(v.img, f.sketch, `${f.id} ${f.title}${multi ? " · " + v.label : ""}`)}</button>
+        ${multi ? `<span class="vlabel" title="${esc(v.model || "")}">${esc(v.label)}</span><button type="button" class="pick" data-pick="${esc(f.id)}" data-pv="${i}" aria-pressed="false">Pick ${esc(v.label)}</button>` : ""}
+      </figure>`).join("");
+    const spec = f.spec ? `<dl class="spec">${Object.entries(f.spec).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : "";
+    const refs = (f.refs || []).length ? `<div class="chips">${f.refs.map(r => `<span class="chip ref">${esc(r)}</span>`).join("")}</div>` : "";
+    const prompts = vs.filter(v => v.prompt);
+    const cost = vs.reduce((a, v) => a + (+v.credits || 0), 0);
+    const modelLine = [...new Set(vs.map(v => v.model).filter(Boolean))].join(", ");
+    const pblock = prompts.length || modelLine ? `<details class="prompt"><summary>${prompts.length ? (prompts.length > 1 ? "Prompts" : "Prompt") : "Model"}${modelLine ? " · " + esc(modelLine) : ""}<span class="cost">${cost ? "~" + cost + " cr" : ""}</span></summary>
+        <div class="ptext">${prompts.map((v, i) => `${prompts.length > 1 ? `<span class="pv">Variant ${esc(v.label)} · ${esc(v.model)}</span>` : ""}<p id="p-${esc(f.id)}-${i}">${esc(v.prompt)}</p><button type="button" class="copy" data-copy="#p-${esc(f.id)}-${i}">Copy prompt</button>`).join("") || `<p>Built in code. No generation.</p>`}</div></details>` : "";
+    const qa = f.qa ? `<p class="qa ${esc(f.status || "")}"><b>Check</b>${esc(f.qa)}</p>` : "";
+    const time = f.start != null ? `${fmt(f.start)} – ${fmt(f.end)} s` : (f.time || "");
+    html += `<article class="frame" id="f-${esc(f.id)}" data-id="${esc(f.id)}">
+      <div class="media${multi ? " multi" : ""}" style="--cols:${Math.min(vs.length, 3)}"><span class="num">${esc(f.id)}</span>${media}</div>
+      <div class="body">
+        ${f.act ? `<div class="actline">${esc(f.act)}</div>` : ""}<div class="head"><h3 class="title">${esc(f.id)}: ${esc(f.title)}</h3><span class="time">${esc(time)}</span><span class="stamp" data-stamp></span></div>
+        ${f.words ? `<p class="words">${esc(f.words)}</p>` : ""}
+        ${spec}${refs}${qa}${pblock}
+        <div class="status" role="group" aria-label="Status of frame ${esc(f.id)}">${STATUSES.map(([s, l]) => `<button type="button" data-s="${s}" data-frame="${esc(f.id)}" aria-pressed="false">${l}</button>`).join("")}</div>
+        <div class="note"><label for="n-${esc(f.id)}"><span>Note</span><span class="saved" data-saved></span></label>
+          <textarea id="n-${esc(f.id)}" data-note="${esc(f.id)}" placeholder="What should change in this frame?"></textarea>
+          <div class="note-print" data-note-print></div></div>
+        ${DATA.audio && f.start != null ? `<div class="rowbtns"><button type="button" class="btn" data-play="${f.start}">Play from here</button></div>` : ""}
+      </div></article>`;
+  }
+  $("#frames").innerHTML = html;
+
+  /* strip */
+  $("#strip").innerHTML = frames.map(f => {
+    const v = (f.variants || [])[0] || {};
+    return `<a href="#f-${esc(f.id)}" data-strip="${esc(f.id)}"><span class="tn">${visual(v.img, f.sketch, f.title)}</span><span class="cap"><i class="dot"></i><b class="mono">${esc(f.id)}</b><span>${esc(f.title)}</span></span></a>`;
+  }).join("");
+
+  /* state -> UI */
+  function paint(f) {
+    const el = document.getElementById("f-" + f.id), s = statusOf(f), p = pickOf(f), note = st(f.id).note || "";
+    el.dataset.status = s;
+    $$(".status button", el).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s)));
+    $$(".var", el).forEach(v => { const on = (f.variants || []).length > 1 && +v.dataset.v === p; v.classList.toggle("picked", on); const pb = $(".pick", v); if (pb) { pb.setAttribute("aria-pressed", String(on)); pb.textContent = on ? "Picked" : "Pick " + f.variants[+v.dataset.v].label; } });
+    const stamp = $("[data-stamp]", el); stamp.className = "stamp " + s; stamp.textContent = LABEL[s] + (p != null && (f.variants || []).length > 1 ? " · " + f.variants[p].label : "");
+    const ta = $("[data-note]", el); if (document.activeElement !== ta) ta.value = note;
+    $("[data-note-print]", el).textContent = note;
+    const dot = $(`[data-strip="${CSS.escape(f.id)}"] .dot`); if (dot) dot.className = "dot " + s;
+  }
+  function counts() {
+    const c = {all: frames.length, pending: 0, approved: 0, fix: 0, rejected: 0};
+    frames.forEach(f => c[statusOf(f)]++);
+    return c;
+  }
+  let filter = "all";
+  function paintFilters() {
+    const c = counts();
+    $("#filters").innerHTML = [["all","All"],["pending","To review"],["approved","Approved"],["fix","Needs fix"],["rejected","Rejected"]]
+      .map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${k === filter}">${l}<span class="n">${c[k]}</span></button>`).join("");
+    frames.forEach(f => { document.getElementById("f-" + f.id).hidden = !(filter === "all" || statusOf(f) === filter); });
+    $$(".act").forEach(h => { let n = h.nextElementSibling, any = false; while (n && !n.classList.contains("act")) { if (!n.hidden) any = true; n = n.nextElementSibling; } h.hidden = !any; });
+  }
+  const byId = Object.fromEntries(frames.map(f => [f.id, f]));
+  frames.forEach(paint); paintFilters();
+  $("#overall").value = S.overall || ""; $("#overallPrint").textContent = S.overall || "";
+
+  /* events */
+  const timers = {};
+  document.addEventListener("input", e => {
+    const t = e.target;
+    if (t.matches("[data-note]")) {
+      const id = t.dataset.note; st(id).note = t.value; clearTimeout(timers[id]);
+      timers[id] = setTimeout(() => { persist(); const el = document.getElementById("f-" + id); $("[data-note-print]", el).textContent = t.value; const s = $("[data-saved]", el); s.textContent = saveOk ? "saved" : "not saved"; setTimeout(() => s.textContent = "", 1400); }, 350);
+    } else if (t.id === "overall") { S.overall = t.value; $("#overallPrint").textContent = t.value; clearTimeout(timers._o); timers._o = setTimeout(persist, 350); }
+  });
+  document.addEventListener("click", e => {
+    const t = e.target.closest("button,a");
+    if (!t) { return; }
+    if (t.dataset.s && t.dataset.frame) { st(t.dataset.frame).status = t.dataset.s; persist(); paint(byId[t.dataset.frame]); paintFilters(); return; }
+    if (t.dataset.pick) { const f = byId[t.dataset.pick]; const s = st(f.id); s.pick = s.pick === +t.dataset.pv ? null : +t.dataset.pv; persist(); paint(f); return; }
+    if (t.dataset.filter) { filter = t.dataset.filter; paintFilters(); return; }
+    if (t.dataset.view) { document.body.classList.toggle("list", t.dataset.view === "list"); $$("[data-view]").forEach(b => b.setAttribute("aria-pressed", String(b === t))); store.set("varg-board:view", t.dataset.view); return; }
+    if (t.dataset.copy) { const node = $(t.dataset.copy); copyText(node.textContent, ok => { const o = t.textContent; t.textContent = ok ? "Copied" : "Select and copy"; if (!ok) selectNode(node); setTimeout(() => t.textContent = o, 1400); }); return; }
+    if (t.dataset.zoom) { openZoom(byId[t.dataset.zoom], +t.dataset.zv); return; }
+    if (t.dataset.zoomAnchor) { const a = anchors.find(x => x.id === t.dataset.zoomAnchor); $("#zoomTitle").textContent = `${a.id} · ${a.label}`; const g = $("#zoomGrid"); g.style.setProperty("--cols", 1); g.innerHTML = `<figure>${visual(a.img, a.sketch || "sheet", a.label)}</figure>`; $("#zoom").showModal(); return; }
+    if (t.dataset.play != null && t.dataset.play !== "") { const a = $("#song"); a.currentTime = +t.dataset.play; a.play().catch(() => {}); return; }
+    if (t.hasAttribute("data-close")) { t.closest("dialog").close(); return; }
+  });
+  $$("dialog").forEach(d => d.addEventListener("click", e => { if (e.target === d) d.close(); }));
+  function openZoom(f, vi) {
+    const vs = f.variants && f.variants.length ? f.variants : [{label: "A", img: ""}];
+    const show = vs.length > 1 ? vs : [vs[vi || 0]];
+    const g = $("#zoomGrid"); g.style.setProperty("--cols", Math.min(show.length, 3));
+    g.innerHTML = show.map(v => `<figure>${visual(v.img, f.sketch, f.title)}${vs.length > 1 ? `<figcaption>${esc(v.label)}${v.model ? " · " + esc(v.model) : ""}</figcaption>` : ""}</figure>`).join("");
+    $("#zoomTitle").textContent = `${f.id}: ${f.title}${vs.length > 1 ? " · variants side by side" : ""}`;
+    $("#zoom").showModal();
+  }
+  $("#guidesBtn").addEventListener("click", e => { const on = document.body.classList.toggle("guides"); e.currentTarget.setAttribute("aria-pressed", String(on)); });
+  if ((qp.get("view") || store.get("varg-board:view", "grid")) === "list") $('[data-view="list"]').click();
+  if (qp.get("guides") === "1") $("#guidesBtn").click();
+
+  /* audio transport */
+  if (DATA.audio) {
+    const a = $("#song"); a.src = DATA.audio; a.hidden = false; $("#now").hidden = false;
+    let cur = null;
+    a.addEventListener("timeupdate", () => {
+      const t = a.currentTime, f = frames.find(x => t >= x.start && t < x.end) || frames.at(-1);
+      $("#now").textContent = `${t.toFixed(1)} s · ${f.id}`;
+      if (cur !== f.id) { if (cur) document.getElementById("f-" + cur).classList.remove("playing"); document.getElementById("f-" + f.id).classList.add("playing"); cur = f.id; }
+    });
+  }
+
+  /* feedback as Markdown */
+  function markdown() {
+    const c = counts();
+    const lines = [`# Feedback: ${DATA.title}, round ${DATA.round}`, "",
+      `Approved ${c.approved} · Needs fix ${c.fix} · Rejected ${c.rejected} · Not reviewed ${c.pending}`, ""];
+    for (const f of frames) {
+      const s = statusOf(f), p = pickOf(f), note = (st(f.id).note || "").trim();
+      const pick = (f.variants || []).length > 1 ? (p != null ? `, pick ${f.variants[p].label}` : ", no variant picked") : "";
+      const time = f.start != null ? ` (${fmt(f.start)}–${fmt(f.end)} s)` : "";
+      lines.push(`- **${f.id} ${f.title}**${time}: ${LABEL[s].toUpperCase()}${pick}${note ? `\n  ${note.replace(/\n/g, "\n  ")}` : ""}`);
+    }
+    if ((S.overall || "").trim()) lines.push("", "## Overall", "", S.overall.trim());
+    return lines.join("\n");
+  }
+  function legacyCopy(text) {
+    try {
+      const t = document.createElement("textarea");
+      t.value = text; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+      document.body.appendChild(t); t.select(); const ok = document.execCommand("copy"); t.remove(); return ok;
+    } catch (_) { return false; }
+  }
+  function copyText(text, done) {
+    let settled = false;
+    const finish = ok => { if (!settled) { settled = true; done(ok); } };
+    if (legacyCopy(text)) return finish(true);
+    try {
+      navigator.clipboard.writeText(text).then(() => finish(true), () => finish(false));
+      setTimeout(() => finish(false), 900);
+    } catch (_) { finish(false); }
+  }
+  window.boardFeedback = markdown;
+  function selectNode(node) { try { const r = document.createRange(); r.selectNodeContents(node); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) {} }
+  $("#copyBtn").addEventListener("click", () => {
+    const md = markdown(), b = $("#copyBtn");
+    copyText(md, ok => {
+      if (ok) { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy feedback", 1600); }
+      else { $("#mdtext").value = md; $("#mdHint").textContent = "Select all and copy"; $("#mdDlg").showModal(); $("#mdtext").select(); }
+    });
+  });
+  $("#clearBtn").addEventListener("click", () => { if (!confirm("Clear your statuses, picks and notes for this round?")) return; S.frames = {}; S.overall = ""; store.del(KEY); frames.forEach(paint); paintFilters(); $("#overall").value = ""; $("#overallPrint").textContent = ""; });
+
+  /* print: show everything, open nothing interactive */
+  let prevFilter = "all";
+  addEventListener("beforeprint", () => { prevFilter = filter; filter = "all"; paintFilters(); });
+  addEventListener("afterprint", () => { filter = prevFilter; paintFilters(); });
+  $("#printBtn").addEventListener("click", () => print());
+})();
+</script>
+</body>
+</html>

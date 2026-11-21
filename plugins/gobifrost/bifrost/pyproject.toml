@@ -1,0 +1,222 @@
+# Bifrost API - FastAPI Stack
+#
+# Dependencies are declared here (PEP 621). pip-compile resolves them into
+# requirements.lock with --generate-hashes, and the Docker image installs from
+# the lock with --require-hashes (Scorecard Pinned-Dependencies).
+#
+# Dev-only packages (test/debug) live in [project.optional-dependencies]
+# "dev" and resolve into requirements-dev.lock (`pip-compile --extra dev`).
+# The production image installs requirements.lock only; dev/CI images install
+# the dev lock instead (it contains the full closure). Regen BOTH locks
+# together so their shared pins agree (issue #1379).
+#
+# Why pyproject.toml over the older requirements.txt: osv-scanner v1.9.2 (the
+# version Scorecard pins) reads bare `pkg` lines as "version 0.0.0" and matches
+# every historical CVE, producing dozens of false positives. With proper version
+# constraints declared here, scanners read the lock file correctly.
+
+[project]
+name = "bifrost-api"
+version = "0.1.0"
+description = "Bifrost - Open-source automation platform for Integration Services"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "AGPL-3.0" }
+authors = [{ name = "Jack Musick", email = "jack@gocovi.com" }]
+
+dependencies = [
+    # =========================================================================
+    # Web Framework
+    # =========================================================================
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart>=0.0.26",  # Form data handling (CVE fixes through 0.0.26)
+
+    # =========================================================================
+    # Database (PostgreSQL)
+    # =========================================================================
+    "sqlalchemy[asyncio]",
+    "asyncpg>=0.31.0",  # Async PostgreSQL driver (CVE-2024-25737 RCE fixed in 0.29.0)
+    "alembic",  # Database migrations
+    "greenlet",  # Required by SQLAlchemy async
+
+    # =========================================================================
+    # Message Queue (RabbitMQ)
+    # =========================================================================
+    "aio-pika>=9.6,<11",  # Recovers work an earlier release left in RabbitMQ (src/services/legacy_broker_drain.py)
+
+    # =========================================================================
+    # Cache & Sessions (Redis)
+    # =========================================================================
+    "redis",  # Includes async support (aioredis merged in v5.0)
+
+    # =========================================================================
+    # Authentication & Security
+    # =========================================================================
+    "pyjwt[crypto]",  # JWT tokens
+    "pwdlib[bcrypt]",  # Modern password hashing
+    "cryptography>=50.0.2",  # Encryption utilities
+    "pyotp",  # TOTP/HOTP for MFA
+    "webauthn>=2.7.1",  # WebAuthn/Passkeys support
+    "authlib>=1.9.5",  # OIDC relying party: JWKS + id_token claim validation
+    "altcha>=2.1.0",  # Self-hosted proof-of-work protection for public forms
+    # SCIM 2.0 (RFC 7643/7644) resource, PatchOp and filter models for the
+    # identity-provider provisioning endpoint. Pre-1.0: pinned to a minor line.
+    "scim2-models>=0.12.4,<0.13",
+    "dnspython>=2.8.0",  # DNS TXT verification of organization domain claims
+
+    # =========================================================================
+    # Configuration
+    # =========================================================================
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+    "packaging",  # PEP 440/SemVer-compatible CLI minimum-version comparisons
+    "keyring>=24.0",  # OS-native credential storage; SecretStorage pulled in transitively on Linux
+    "email-validator",  # Required by Pydantic for email validation
+
+    # =========================================================================
+    # Observability (OpenTelemetry) — traces + metrics to operator backends.
+    # Default off: telemetry initializes only when OTEL_EXPORTER_OTLP_ENDPOINT
+    # is set. See docs/architecture/otel-observability.md.
+    # =========================================================================
+    "opentelemetry-sdk",  # TracerProvider/MeterProvider; env config is explicit in telemetry.py
+    "opentelemetry-exporter-otlp-proto-http",  # OTLP/HTTP spans + metrics, no grpc dep
+    "opentelemetry-instrumentation-fastapi",  # Request spans (health endpoints excluded)
+    "opentelemetry-instrumentation-sqlalchemy",  # DB spans (statement capture audited, see telemetry.py)
+    "opentelemetry-instrumentation-asyncpg",  # AsyncPG driver spans
+    "opentelemetry-instrumentation-redis",  # Redis spans
+    "opentelemetry-instrumentation-httpx",  # Outbound HTTP spans
+    "opentelemetry-instrumentation-system-metrics",  # Runtime CPU/memory meters (pulls psutil)
+
+    # =========================================================================
+    # HTTP & Async
+    # =========================================================================
+    "httpx",  # Async HTTP client
+    "aiohttp>=3.13.5",  # Closes 20 CVEs incl. CVSS 9.1
+    "websockets",  # Worker remote-control channel (src/worker/remote) + CLI workflows execute
+
+    # =========================================================================
+    # Data Processing
+    # =========================================================================
+    "PyYAML",
+    "croniter",  # CRON expression parsing
+    "tzdata",  # IANA timezone data for zoneinfo in slim runtime images
+    "defusedxml>=0.7.1",  # Safe XML/SVG parsing — strips scripts/event-handlers from uploads
+    "Pillow",  # Decode, resize, and encode bounded entity-logo thumbnails
+    "CairoSVG",  # Rasterize sanitized SVG logos before thumbnail encoding
+    "reportlab>=4.4.0",  # Typed PDF artifacts through Platypus flow layout
+    "python-docx>=1.2.0",  # Typed DOCX artifacts
+    "openpyxl>=3.1.5",  # Typed XLSX artifacts
+    "jmespath>=1.0.1",  # Safe event subscription payload filters
+    "regex>=2024.11.6",  # Source search regex matching with a per-call timeout (ReDoS bound)
+
+    # =========================================================================
+    # Code Transformation
+    # =========================================================================
+    "libcst>=1.9.0",  # Concrete Syntax Tree for Python - preserves formatting when modifying code
+
+    # =========================================================================
+    # Templating
+    # =========================================================================
+    "jinja2",
+
+    # =========================================================================
+    # Git Integration
+    # =========================================================================
+    "PyGithub",
+    "GitPython>=3.1.62",  # Patched repository metadata discovery
+
+    # =========================================================================
+    # Background Jobs
+    # =========================================================================
+    "apscheduler",  # Scheduler
+
+    # =========================================================================
+    # Logging & Monitoring
+    # =========================================================================
+    "psutil",  # Process monitoring for worker heartbeats
+
+    # =========================================================================
+    # Object Storage (S3-compatible)
+    # =========================================================================
+    "awscrt==0.38.1",  # Official SigV4 signer/checksums for the narrow HTTPX S3 transport
+    "azure-storage-blob>=12.27,<13",  # Opt-in native Azure Blob transport
+    "azure-identity>=1.25,<2",  # Explicit managed identity (no developer credential fallback)
+
+    # =========================================================================
+    # LLM Providers (AI Agent System)
+    # =========================================================================
+    # Exact pins are intentional: the Harness API is still pre-1.0 and is the
+    # execution boundary for every Bifrost agent surface.
+    "pydantic-ai-slim[openai,anthropic,google,retries]==2.68.0",
+    "pydantic-ai-harness==0.68.0",
+    "pydantic-monty==1.6.0",  # Local language sandbox for Automatic CodeMode
+
+    # =========================================================================
+    # MCP (Model Context Protocol)
+    # =========================================================================
+    # Dynamic workflow schemas and HTTP transport binding use SDK registry
+    # hooks covered by protocol/refresh tests. Review those on SDK upgrades.
+    "mcp==2.3.0",
+    "jsonschema>=4.26.0,<5",  # Validate live gateway tool arguments
+
+    # =========================================================================
+    # Vector Store (Knowledge/RAG)
+    # =========================================================================
+
+    # =========================================================================
+    # CLI / TUI
+    # =========================================================================
+    "textual",  # TUI framework used by bifrost CLI (file_select, progress, sync, watch)
+
+    # =========================================================================
+    # Workspace validation and file matching (runtime — NOT dev-only)
+    # =========================================================================
+    # pathspec is imported by the API (solutions capture/workspace ignore
+    # specs) and by the shipped bifrost CLI (file filters), so it stays in
+    # the runtime closure. Kept here pending the textual/rich audit in #1381.
+    "ruff",  # Git sync preflight invokes the executable for Python lint warnings
+    "pathspec",
+
+    # =========================================================================
+    # Transitive deps with explicit version floors
+    # Pinned to silence OSV-Scanner static-analysis false positives — pip's
+    # resolver already lands on safe versions, but OSV reads requirements.txt
+    # as a lockfile and infers the lowest possible version. Explicit floors
+    # close the gap.
+    # =========================================================================
+    "Mako>=1.3.11",  # transitive (alembic) — 1.3.9 has CVE-2025-XXXX
+    "setuptools>=78.1.1",  # transitive (build) — multiple CVEs in older versions
+    "tqdm>=4.66.3",  # transitive (anthropic, openai, etc.)
+]
+
+
+# Dev-only dependencies: test/debug loop. Pinned in
+# requirements-dev.lock (compiled with `pip-compile --extra dev`, which
+# resolves the runtime closure PLUS this group so shared pins agree).
+# Dev/CI images install requirements-dev.lock; the production image installs
+# requirements.lock (runtime closure) only, so these never ship to external
+# workers. Regen BOTH locks together; see the regen command in the
+# dependabot-lockfile-regen workflow. Issue #1379.
+[project.optional-dependencies]
+dev = [
+    # Testing (test-runner image + CI lint; pytest-env is currently
+    # declared-but-unconfigured, kept for the suite that expects it)
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-env",
+    "pytest-timeout",  # Per-test timeout protection (catches infinite hangs)
+    # Debug / file-watching (dev-loop only:
+    # debugpy via `python -m debugpy` in debug compose, watchdog via
+    # `bifrost watch` / `solution dev` local commands and watchmedo in
+    # dev/debug compose). All shipped-image imports of watchdog are lazy, so
+    # the API/worker runtime and worker `bifrost <verb>` shell-outs work
+    # without it. The standalone CLI distribution (api/bifrost/pyproject.toml)
+    # still declares watchdog for laptop installs.
+    "debugpy",  # Remote debugging (VS Code attach)
+    "watchdog",  # File watching for hot reload (watchmedo command)
+    # RFC 7643/7644 compliance checks against the SCIM endpoint (e2e suite)
+    "scim2-tester>=0.6.4,<0.7",
+]

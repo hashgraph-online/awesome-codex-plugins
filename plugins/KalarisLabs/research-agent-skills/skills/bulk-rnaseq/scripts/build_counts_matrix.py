@@ -142,6 +142,7 @@ def build_from_featurecounts(counts_file: Path) -> pd.DataFrame:
 
 
 def write_outputs(counts: pd.DataFrame, output_dir: Path) -> None:
+    """Write outputs."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Drop all-zero genes (uninformative; pydeseq2 filters further).
@@ -168,6 +169,7 @@ def write_outputs(counts: pd.DataFrame, output_dir: Path) -> None:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )

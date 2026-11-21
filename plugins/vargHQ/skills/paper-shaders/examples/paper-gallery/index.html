@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+  Paper gallery: all 124 of Paper's built-in presets, 2 s each, full frame, in their own
+  colors and speeds, as shown on shaders.paper.design. One host and one WebGL context
+  (paperSequenceSource), so the length is not limited by Chrome's context cap.
+    node scripts/new-project.mjs ./paper-gallery --example paper-gallery
+    cd paper-gallery && npm run render -- --output paper-gallery.mp4
+  Image shaders get a poster and a logo drawn in code instead of Paper's sample photos.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <style>
+      :root {
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --display: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        color: #fff;
+      }
+      #stage {
+        position: absolute;
+        inset: 0;
+      }
+      #captions {
+        position: absolute;
+        inset: 0;
+      }
+      #caption {
+        position: absolute;
+        left: 64px;
+        bottom: 56px;
+        padding: 18px 26px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.62);
+        font: 700 40px/1.15 var(--display);
+        letter-spacing: -0.02em;
+      }
+      #caption small {
+        display: block;
+        margin-top: 6px;
+        font: 500 28px/1.2 var(--mono);
+        letter-spacing: 0;
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="gallery" data-start="0" data-duration="248" data-width="1920" data-height="1080" data-fps="30" data-no-timeline>
+      <div id="stage" class="clip" data-layout-allow-overflow data-composition-id="stage" data-start="0" data-duration="248" data-track-index="0" data-no-timeline></div>
+      <div id="captions" class="clip" data-start="0" data-duration="248" data-track-index="1">
+        <div id="caption"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as PS from "https://cdn.jsdelivr.net/npm/@paper-design/shaders@0.0.82/dist/index.js";
+      import { paperSequenceSource } from "./paper-preset.js";
+
+      const EACH = 2;
+      const IDS = ["paper-color-panels-default", "paper-color-panels-glass", "paper-color-panels-gradient", "paper-color-panels-opening", "paper-dithering-bugs", "paper-dithering-default", "paper-dithering-ripple", "paper-dithering-sine-wave", "paper-dithering-swirl", "paper-dithering-warp", "paper-dot-grid-default", "paper-dot-grid-tree-line", "paper-dot-grid-triangles", "paper-dot-grid-wallpaper", "paper-dot-orbit-bubbles", "paper-dot-orbit-default", "paper-dot-orbit-hallucinatory", "paper-dot-orbit-shine", "paper-fluted-glass-abstract", "paper-fluted-glass-default", "paper-fluted-glass-folds", "paper-fluted-glass-waves", "paper-gem-smoke-default", "paper-gem-smoke-fire", "paper-gem-smoke-fluorescent", "paper-gem-smoke-infrared", "paper-god-rays-default", "paper-god-rays-ether", "paper-god-rays-linear", "paper-god-rays-warp", "paper-grain-gradient-blob", "paper-grain-gradient-default", "paper-grain-gradient-dots", "paper-grain-gradient-ripple", "paper-grain-gradient-truchet", "paper-grain-gradient-wave", "paper-halftone-cmyk-default", "paper-halftone-cmyk-drops", "paper-halftone-cmyk-newspaper", "paper-halftone-cmyk-vintage", "paper-halftone-dots-default", "paper-halftone-dots-led-screen", "paper-halftone-dots-mosaic", "paper-halftone-dots-round-and-square", "paper-heatmap-default", "paper-heatmap-sepia", "paper-image-dithering-default", "paper-image-dithering-natural", "paper-image-dithering-noise", "paper-image-dithering-retro", "paper-lens-distortion-default", "paper-lens-distortion-duotone", "paper-lens-distortion-fisheye", "paper-lens-distortion-smoke", "paper-liquid-metal-backdrop", "paper-liquid-metal-default", "paper-liquid-metal-noir", "paper-liquid-metal-stripes", "paper-mesh-gradient-beach", "paper-mesh-gradient-default", "paper-mesh-gradient-ink", "paper-mesh-gradient-purple", "paper-metaballs-background", "paper-metaballs-default", "paper-metaballs-ink-drops", "paper-metaballs-solar", "paper-neuro-noise-bloodstream", "paper-neuro-noise-default", "paper-neuro-noise-ghost", "paper-neuro-noise-sensation", "paper-paper-texture-creased", "paper-paper-texture-default", "paper-paper-texture-flat", "paper-paper-texture-spread", "paper-perlin-noise-default", "paper-perlin-noise-moss", "paper-perlin-noise-nintendo-water", "paper-perlin-noise-worms", "paper-pulsing-border-circle", "paper-pulsing-border-default", "paper-pulsing-border-northern-lights", "paper-pulsing-border-solid-line", "paper-simplex-noise-bubblegum", "paper-simplex-noise-default", "paper-simplex-noise-first-contact", "paper-simplex-noise-spots", "paper-smoke-ring-cloud", "paper-smoke-ring-default", "paper-smoke-ring-line", "paper-smoke-ring-solar", "paper-spiral-default", "paper-spiral-droplet", "paper-spiral-jungle", "paper-spiral-swirl", "paper-static-mesh-gradient-1960s", "paper-static-mesh-gradient-default", "paper-static-mesh-gradient-sea", "paper-static-mesh-gradient-sunset", "paper-static-radial-gradient-cross-section", "paper-static-radial-gradient-default", "paper-static-radial-gradient-lo-fi", "paper-static-radial-gradient-radial", "paper-swirl-007", "paper-swirl-candy", "paper-swirl-default", "paper-swirl-opening", "paper-voronoi-bubbles", "paper-voronoi-cells", "paper-voronoi-default", "paper-voronoi-lights", "paper-warp-cauldron-pot", "paper-warp-default", "paper-warp-kelp", "paper-warp-live-ink", "paper-warp-nectar", "paper-warp-passion", "paper-water-abstract", "paper-water-default", "paper-water-slow-mo", "paper-water-streaming", "paper-waves-default", "paper-waves-groovy", "paper-waves-ride-the-wave", "paper-waves-tangled-up"];
+
+      // Heatmap reads light pixels as background, so its logo is dark on transparent.
+      const logo =
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">' +
+            '<path d="M104 120 L256 392 L408 120" fill="none" stroke="#000" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        );
+
+      // A colorful poster drawn in code, standing in for Paper's sample photos.
+      function poster() {
+        const c = document.createElement("canvas");
+        c.width = 1920;
+        c.height = 1080;
+        const g = c.getContext("2d");
+        const sky = g.createLinearGradient(0, 0, 0, 1080);
+        sky.addColorStop(0, "#1b1446");
+        sky.addColorStop(0.55, "#ff5315");
+        sky.addColorStop(1, "#ffd2b3");
+        g.fillStyle = sky;
+        g.fillRect(0, 0, 1920, 1080);
+        const sun = g.createRadialGradient(1300, 520, 20, 1300, 520, 300);
+        sun.addColorStop(0, "#fff6e8");
+        sun.addColorStop(1, "rgba(255,246,232,0)");
+        g.fillStyle = sun;
+        g.fillRect(0, 0, 1920, 1080);
+        g.fillStyle = "#070708";
+        g.beginPath();
+        g.moveTo(0, 1080);
+        g.lineTo(0, 760);
+        g.lineTo(420, 560);
+        g.lineTo(760, 720);
+        g.lineTo(1180, 480);
+        g.lineTo(1920, 820);
+        g.lineTo(1920, 1080);
+        g.closePath();
+        g.fill();
+        g.font = "900 200px system-ui, -apple-system, Helvetica, Arial, sans-serif";
+        g.fillStyle = "#ffffff";
+        g.fillText("varg", 120, 300);
+        return c.toDataURL("image/png");
+      }
+      const still = poster();
+      const LOGO_SHADERS = new Set(["Heatmap"]);
+      const STILL_SHADERS = new Set(["HalftoneDots", "HalftoneCmyk", "ImageDithering", "FlutedGlass", "LensDistortion", "Water", "PaperTexture"]);
+
+      const spaced = (name) => name.replace(/([a-z])([A-Z])/g, "$1 $2").replace("Cmyk", "CMYK");
+      const caption = document.getElementById("caption");
+      const presets = Promise.all(IDS.map((id) => fetch(`./presets/paper/${id}.json`).then((r) => r.json())));
+
+      window.__hyperframes.registerFrameSource(
+        paperSequenceSource(PS, document.getElementById("stage"), presets, {
+          each: EACH,
+          imageFor: (p) => (LOGO_SHADERS.has(p.shader) ? logo : STILL_SHADERS.has(p.shader) ? still : undefined),
+          onPreset: (p, i) => {
+            const name = p.label.replace(/ \(Paper .*\)$/, "");
+            caption.innerHTML = `${spaced(p.shader)} · ${name}<small>${String(i + 1).padStart(3, "0")}/${IDS.length}  speed ${p.motion.timeScale}</small>`;
+          },
+        }),
+      );
+    </script>
+  </body>
+</html>

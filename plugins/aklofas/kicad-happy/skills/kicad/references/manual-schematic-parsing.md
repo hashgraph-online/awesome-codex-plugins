@@ -129,18 +129,19 @@ KiCad schematics don't store netlists — connectivity is implicit through coord
 
 **Critical rules:**
 - **Y-axis inversion**: `absolute_Y = symbol_Y - pin_Y` (not `+`)
-- **Sheet isolation**: Each sheet has a separate coordinate space. Only global labels and power symbols connect across sheets. Local labels are scoped to their sheet.
+- **Sheet isolation**: Each sheet has a separate coordinate space. Only global labels and global power symbols connect across sheets. Local labels are scoped to their sheet.
 - **Junctions**: Wires crossing at a point only connect if there's an explicit `(junction (at X Y))`. T-junctions (wire endpoint touching mid-wire) also connect.
-- **Power symbols connect globally**: All instances of `GND`, `+3V3`, etc. are the same net regardless of sheet.
+- **Power symbols connect globally**: All instances of `GND`, `+3V3`, etc. are the same net regardless of sheet. The exception is a local power symbol (lib symbol `(power local)`), which joins only within its own sheet.
 
 ### Net Names
 
 Nets are named by (priority order):
-1. Power symbol name (e.g., `GND`, `+3V3`, `+5V`)
-2. Global label name
+1. Global label name
+2. Power symbol name (e.g., `GND`, `+3V3`)
 3. Local label name
 4. Hierarchical label name
-5. Unnamed (auto-generated `__unnamed_N`)
+5. Sheet pin name
+6. Unnamed (auto-generated `__unnamed_N`)
 
 ### Legacy Format
 
@@ -258,8 +259,9 @@ When verifying analyzer output (or your own manual parse) against the raw schema
 ### Component Count Validation
 
 1. Count all `(symbol (lib_id ...))` blocks after `(lib_symbols)` section
-2. Subtract power symbols (`#PWR`, `#FLG` references)
-3. Result should exactly match the analyzer's `component_count`
+2. Leave out power symbols and power flags (`#PWR`, `#FLG` references)
+3. Count each reference once: the units of a multi-unit part (U1A, U1B) are one component
+4. The result should match the analyzer's `statistics.total_components`
 
 ### Net Count Validation
 

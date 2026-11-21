@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trailer card</title>
+<link rel="icon" href="data:,">
+<!-- A title / end card for code-game-trailer. Use it as a director shot: { "card": "cards/card.html?title=...", "beats": 3 }.
+     Query: kicker, title, sub, foot (all optional text), accent (hex without #, default ff5315), bg (hex, default 030507),
+     embers=0 to switch the drifting embers off. The CSS animations and the canvas run on the recorder's virtual
+     clock, so every frame is exact. Change the font stack for your game; system fonts need no loading. -->
+<style>
+  :root { --accent: #ff5315; --bg: #030507; --ink: #f3ece2; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+  .wrap { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: "Avenir Next", "Futura", "Helvetica Neue", Arial, sans-serif; color: var(--ink); text-align: center;
+    background: radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%); }
+  .kicker { font-size: 2.2vh; letter-spacing: .62em; margin-left: .62em; font-weight: 600; color: var(--accent); opacity: 0; animation: up .9s .1s ease-out both; }
+  .title { font-size: 9.6vh; font-weight: 600; letter-spacing: .3em; margin: 2.4vh 0 0 .3em; animation: title 1.6s .15s cubic-bezier(.2,.7,.2,1) both; }
+  .line { height: .2vh; width: 0; background: var(--accent); box-shadow: 0 0 1.8vh var(--accent); margin: 3.2vh 0 2.8vh; animation: line 1s .45s ease-out both; }
+  .sub { font-size: 2.2vh; letter-spacing: .28em; opacity: 0; animation: up 1s .7s ease-out both; }
+  .foot { position: fixed; bottom: 6vh; left: 0; right: 0; font-size: 1.6vh; letter-spacing: .4em; opacity: 0; animation: fade 1s 1s ease-out both; }
+  @keyframes up { from { opacity: 0; transform: translateY(1.2vh); } to { opacity: .85; transform: none; } }
+  @keyframes title { from { opacity: 0; letter-spacing: .55em; filter: blur(1vh); } to { opacity: 1; letter-spacing: .3em; filter: blur(0); } }
+  @keyframes line { to { width: 38vh; } }
+  @keyframes fade { to { opacity: .55; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="wrap">
+  <div class="kicker" id="kicker"></div>
+  <div class="title" id="title"></div>
+  <div class="line"></div>
+  <div class="sub" id="sub"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+const q = new URLSearchParams(location.search);
+for (const k of ['kicker', 'title', 'sub', 'foot']) { const el = document.getElementById(k); el.textContent = q.get(k) || ''; if (!q.get(k)) el.style.display = 'none'; }
+if (q.get('accent')) document.documentElement.style.setProperty('--accent', '#' + q.get('accent'));
+if (q.get('bg')) document.documentElement.style.setProperty('--bg', '#' + q.get('bg'));
+const cv = document.getElementById('c'), x = cv.getContext('2d');
+cv.width = innerWidth; cv.height = innerHeight;
+const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+const embers = q.get('embers') === '0' ? [] : Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), r: .6 + Math.random() * 2.2, v: .02 + Math.random() * .05, p: Math.random() * 6.28 }));
+let t0 = null;
+function draw(t) {
+  if (t0 === null) t0 = t;
+  const s = (t - t0) / 1000;
+  x.clearRect(0, 0, cv.width, cv.height);
+  for (const e of embers) {
+    const y = ((e.y - s * e.v) % 1 + 1) % 1, px = (e.x + .015 * Math.sin(s * .8 + e.p)) * cv.width;
+    const a = Math.min(1, s / .8) * (.25 + .35 * Math.sin(s * 3 + e.p) ** 2) * Math.sin(y * Math.PI);
+    x.globalAlpha = a; x.fillStyle = accent; x.shadowColor = accent; x.shadowBlur = 12;
+    x.beginPath(); x.arc(px, y * cv.height, e.r * innerHeight / 1080, 0, 6.283); x.fill();
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

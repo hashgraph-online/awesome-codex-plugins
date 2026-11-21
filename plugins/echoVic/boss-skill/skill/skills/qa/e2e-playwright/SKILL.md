@@ -1,5 +1,4 @@
 ---
-
 name: qa/e2e-playwright
 description: Playwright E2E 测试完整方法论，涵盖项目初始化、Page Object Model、认证复用、API Mock、视觉回归、多浏览器测试、CI 集成和调试技巧
 version: 1.0.0
@@ -8,15 +7,14 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要编写或执行 E2E 测试时
-- 需要配置 Playwright 测试环境时
-- 门禁要求 E2E 测试通过时
-- 需要视觉回归测试时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要编写或执行 E2E 测试时
+  - 需要配置 Playwright 测试环境时
+  - 门禁要求 E2E 测试通过时
+  - 需要视觉回归测试时
+metadata:
   internal: true
-
 ---
 
 # Playwright E2E 测试方法论
@@ -739,6 +737,7 @@ npx playwright show-trace e2e/test-results/specs-auth-login-spec-ts/trace.zip
 ```
 
 Trace Viewer 提供：
+
 - 时间线上的每一步操作
 - DOM 快照
 - 网络请求日志
@@ -841,6 +840,7 @@ npx playwright test
 ## 12. 检查清单
 
 Agent 编写 E2E 测试时，对照以下清单确认完整性：
+
 - [ ] `playwright.config.ts` 已配置（baseURL、webServer、projects）
 - [ ] Page Object Model 已建立（每个核心页面一个 POM）
 - [ ] 定位器使用语义化方法（`getByRole` > `getByTestId` > CSS）
@@ -855,6 +855,7 @@ Agent 编写 E2E 测试时，对照以下清单确认完整性：
 ## 输出要求
 
 使用本方法论后，Agent 应产出：
+
 1. **`playwright.config.ts`**：完整配置
 2. **`e2e/pages/*.page.ts`**：Page Object Model
 3. **`e2e/specs/**/*.spec.ts`**：测试用例（覆盖关键路径）

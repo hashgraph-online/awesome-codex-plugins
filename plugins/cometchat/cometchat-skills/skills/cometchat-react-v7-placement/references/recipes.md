@@ -209,7 +209,7 @@ function CombinedChatApp({ callLogsAvailable = false }: { callLogsAvailable?: bo
           {s.tab === "users" && <CometChatUsers activeUser={s.user} onItemClick={(u) => dispatch({ t: "user", v: u })} />}
           {s.tab === "groups" && <CometChatGroups activeGroup={s.group} onItemClick={(g) => dispatch({ t: "group", v: g })} />}
           {/* Calls tab — GATE ON REAL AVAILABILITY, not merely "calling enabled" (AUDIT-063 + AUDIT-162).
-              `CometChatCallLogs` renders the kit's raw "OOPS! …" screen whenever call-logs are unavailable,
+              `CometChatCallLogs` renders the kit's raw "OOPS! ..." screen whenever call-logs are unavailable,
               and — verified live — it does so from its OWN INTERNAL error state WITHOUT THROWING, so an
               outer `CometChatErrorBoundary`/`fallbackView` CANNOT override it (fallbackView never fires).
               A `fallbackView` is therefore NOT the remedy here. Two facts to design around:

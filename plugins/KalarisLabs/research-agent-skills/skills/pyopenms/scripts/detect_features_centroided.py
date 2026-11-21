@@ -26,6 +26,7 @@ except ImportError:
 
 
 def detect_features(exp, mz_tol_ppm=10.0, charge_low=1, charge_high=4, min_spectra=7):
+    """Detect features."""
     exp.sortSpectra(True)
     exp.updateRanges()
     ff = ms.FeatureFinderAlgorithmPicked()
@@ -44,6 +45,7 @@ def detect_features(exp, mz_tol_ppm=10.0, charge_low=1, charge_high=4, min_spect
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Centroided/peptide feature detection.")
     parser.add_argument("input", help="Centroided mzML file")
     parser.add_argument("--out-features", help="Output featureXML (default: <input>.featureXML)")

@@ -1,0 +1,149 @@
+{
+  "slug": "sample-shortcuts-06",
+  "title": "SHORTCUTS #06: Housekeeping",
+  "url": "",
+  "published": "",
+  "series": "SHORTCUTS",
+  "cover": "covers/shortcuts-06.jpg",
+  "sample": true,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "Housekeeping"
+    },
+    {
+      "id": "s2",
+      "title": "Trending this week"
+    },
+    {
+      "id": "s3",
+      "title": "If you write long, a strategy for distribution"
+    },
+    {
+      "id": "s4",
+      "title": "The rules file"
+    },
+    {
+      "id": "s5",
+      "title": "Jev"
+    },
+    {
+      "id": "s6",
+      "title": "Instinct"
+    },
+    {
+      "id": "s7",
+      "title": "This week's trending repo"
+    }
+  ],
+  "items": [
+    {
+      "id": "s1-x",
+      "section": "s1",
+      "platform": "x",
+      "format": "post",
+      "label": "The 2% stat",
+      "copy": "a16z published State of Markets II, 100+ charts on the first half of 2026.\n\nOne stood out: as of April, only about 2% of US households were paying for an AI subscription.\n\nIf you're reading this, you're likely in that 2%, and it's easy to forget how small that is.",
+      "source": "First, a stat, a16z published State of Markets II, 100+ charts on the first half of 2026. One stood out: as of April, only about 2% of US households were paying for an AI subscription.\n\nIf you're reading this, you're likely in that 2%, and it's easy to forget how small that is. Learn these tools well now; it's still early."
+    },
+    {
+      "id": "s3-li",
+      "section": "s3",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: the unposted backlog",
+      "copy": "On October 1 the dashboard read 144 sections across my last 8 issues. 35 had been posted. 109 never had.\n\nThat's 76% of my work that only ever lived inside a newsletter.\n\nSHORTCUTS is mostly tools and methods that keep, so issues #01 through #06 are a stockpile.\n\nFull issue: [link]",
+      "source": "On October 1 the dashboard read 144 sections across my last 8 issues. 35 had been posted. 109 never had. That's 76% of my work that only ever lived inside a newsletter.\n\nSHORTCUTS is mostly tools and methods that keep, so issues #01 through #06 are a stockpile."
+    },
+    {
+      "id": "s3-x",
+      "section": "s3",
+      "platform": "x",
+      "format": "post",
+      "label": "The method in one line",
+      "copy": "Write for yourself, at length. Then let a tool find the hooks, break the piece down by platform, and hand you a plan and a checklist you can see.\n\nFull issue: [link]",
+      "source": "Write for yourself, at length. Then let a tool find the hooks, break the piece down by platform, and hand you a plan and a checklist you can see."
+    },
+    {
+      "id": "s3-xt",
+      "section": "s3",
+      "platform": "x",
+      "format": "thread",
+      "label": "4-post thread: X's small-account boost",
+      "copy": "1/ On September 30, X changed its ranking code to lift smaller accounts.\n\n2/ Under 50,000 followers, one eligible new post per feed load can be placed near the top of some feeds, but only in its first two hours and until it passes about 200 views.\n\n3/ Early reactions decide how far it goes from there, and X's ranking code weights a reply ten times a like.\n\n4/ So answer replies for those two hours.",
+      "source": "One timing note for X. On September 30, X changed its ranking code to lift smaller accounts. Under 50,000 followers, one eligible new post per feed load can be placed near the top of some feeds, but only in its first two hours and until it passes about 200 views.\n\nEarly reactions decide how far it goes from there, and X's ranking code weights a reply ten times a like. So answer replies for those two hours."
+    },
+    {
+      "id": "s3-note",
+      "section": "s3",
+      "platform": "substack",
+      "format": "note",
+      "label": "The dashboard",
+      "copy": "I'm a visual person, this changed my behavior. The dashboard shows every issue, section, and where each has been posted, with a tick and a link for logging. At a glance I can see my progress across each issue.",
+      "source": "I'm a visual person, this changed my behavior. The dashboard shows every issue, section, and where each has been posted, with a tick and a link for logging. At a glance I can see my progress across each issue."
+    },
+    {
+      "id": "s4-li",
+      "section": "s4",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: 15 of 394 rules",
+      "copy": "Of 394 rules, about 15 reached a session at startup.\n\nI found out the hard way, most of my rules never reached the agent at all.\n\nClaude caps what a hook can load at 10,000 characters; past that, the model gets a 2,000-character preview and a file path, the rest sits unread.\n\nIf you load anything into an agent at the start (a rules file, a project brief, a style guide), keep what a hook prints under 10,000 characters and put the rest somewhere the agent can search.\n\nFull issue: [link]",
+      "source": "I found out the hard way, most of my rules never reached the agent at all.\n\nThe problem is accumulation. The more your setup learns, the longer its instructions get. Claude caps what a hook can load at 10,000 characters; past that, the model gets a 2,000-character preview and a file path, the rest sits unread.\n\nOf 394 rules, about 15 reached a session at startup. Between July and late September, 41 of 111 retros, 37%, rediscovered a lesson already in the file. One lesson had been written down five separate times. 67% of the rules had never been cited once.\n\nIf you load anything into an agent at the start (a rules file, a project brief, a style guide), keep what a hook prints under 10,000 characters and put the rest somewhere the agent can search."
+    },
+    {
+      "id": "s4-x",
+      "section": "s4",
+      "platform": "x",
+      "format": "post",
+      "label": "Green lights on broken work",
+      "copy": "In one week I found four monitors saying everything was fine when it wasn't.\n\nA check that only confirms a job ran is not a check. Make it confirm the job delivered.",
+      "source": "Green lights on broken work. In one week I found four monitors saying everything was fine when it wasn't. One machine sat frozen for about 42 hours with every light green. A data collector reported success while every request was being refused. A check that only confirms a job ran is not a check. Make it confirm the job delivered."
+    },
+    {
+      "id": "s4-note",
+      "section": "s4",
+      "platform": "substack",
+      "format": "note",
+      "label": "The honest wait",
+      "copy": "Fixing delivery took a day. By next quarter I'll know the impact.",
+      "source": "Fixing delivery took a day. By next quarter I'll know the impact."
+    },
+    {
+      "id": "s5-li",
+      "section": "s5",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: what passed, what failed",
+      "copy": "Jev is a decision model, not a writer.\n\nI tested it on my own work over the past two weeks. One kind of task passed and three failed.\n\nWhy it failed: the information it needed can't be written. Taste lives in my head. Judgment needs context from elsewhere. A sorter can't go get it.\n\nEligibility lives in the listing and runs at volume, so it worked.\n\nFull issue: [link]",
+      "source": "Jev is a decision model, not a writer. TechCrunch called it a model for \"calibrated decisions\"; one developer called it \"a really smart switch statement.\" You give it an item (an email, a lead, a contract clause, a support ticket, a social post) and one of three kinds of question:\n\nI tested it on my own work over the past two weeks:\n\nWe tested the strongest against my own past data. One kind of task passed and three failed. Time after time, the answer was: don't use it here.\n\nWhy it failed: the information it needed can't be written. Taste lives in my head. Judgment needs context from elsewhere. A sorter can't go get it. Where it was confident, it was mostly on the easy calls I didn't need help with. Eligibility lives in the listing and runs at volume, so it worked."
+    },
+    {
+      "id": "s5-x",
+      "section": "s5",
+      "platform": "x",
+      "format": "post",
+      "label": "What it is",
+      "copy": "Jev is a decision model, not a writer.\n\nIt hands back the answer and a confidence number.\n\nEach decision costs a fraction of a cent and usually takes under a second.",
+      "source": "Jev is a decision model, not a writer. TechCrunch called it a model for \"calibrated decisions\"; one developer called it \"a really smart switch statement.\" You give it an item (an email, a lead, a contract clause, a support ticket, a social post) and one of three kinds of question:\n\nIt hands back the answer and a confidence number.\n\nEach decision costs a fraction of a cent and usually takes under a second. This is something best used on large databases and thousand of decisions."
+    },
+    {
+      "id": "s6-li",
+      "section": "s6",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: agentic buying",
+      "copy": "Instinct is a personal assistant you text or call.\n\n40% of users handed it a credit card within three weeks, Shinn said on Patrick O'Shaughnessy's podcast.\n\nWhen agents hold your card, can access your accounts and know your preferences to decide where you buy, it opens a whole new arms race for customer acquisition.\n\nIf you sell, your next customer may be an agent reading your page: price, stock, shipping and returns it can understand, or it moves on.\n\nFull issue: [link]",
+      "source": "Instinct is a personal assistant you text or call. Say \"I need to be in New York tonight\" and it books the flight, hotel and ride, updates your calendar and uses any travel credit you have. It also answers email, chases refunds and argues with customer support. It's invite-only, five invites per user (Fortune).\n\n40% of users handed it a credit card within three weeks, Shinn said on Patrick O'Shaughnessy's podcast.\n\nWhen agents hold your card, can access your accounts and know your preferences to decide where you buy, it opens a whole new arms race for customer acquisition.\n\nIf you sell, your next customer may be an agent reading your page: price, stock, shipping and returns it can understand, or it moves on. Making pages readable to AI agents and answer engines (often called AEO, answer engine optimization) is becoming a massive business."
+    },
+    {
+      "id": "s6-note",
+      "section": "s6",
+      "platform": "substack",
+      "format": "note",
+      "label": "The terms",
+      "copy": "From this week's SHORTCUTS:\n\nThe terms put the risk on you. What Instinct agrees to for you is \"binding on you as if entered into directly by you,\" so a nonrefundable booking it makes counts as one you made.",
+      "source": "The terms put the risk on you. What Instinct agrees to for you is \"binding on you as if entered into directly by you,\" so a nonrefundable booking it makes counts as one you made."
+    }
+  ]
+}

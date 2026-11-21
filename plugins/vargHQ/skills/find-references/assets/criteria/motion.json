@@ -1,0 +1,9 @@
+[
+ {
+  "id": "M4",
+  "question": "With these ordered frames, did the named element move first?",
+  "pass_example": "Title settles before background moves",
+  "fail_example": "Reverse",
+  "ct_rule": "Default answer. Drop this question if shuffled frames give the same answer"
+ }
+]

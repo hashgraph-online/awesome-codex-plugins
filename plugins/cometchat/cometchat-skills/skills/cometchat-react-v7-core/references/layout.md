@@ -40,7 +40,7 @@ fresh Vite/CRA/Next scaffold has the OPPOSITE problem — it CENTERS + width-cap
 `#root` (`max-width:1280px; margin:0 auto; padding:2rem; text-align:center` +
 `body{display:flex; place-items:center}`), gutter-boxing chat into a centered island with
 content clipping off the edge. **Watch for a WIDTH-PINNED root, not just `max-width`
-(AUDIT-035):** some scaffolds pin `#root { width: 1126px; margin: 0 auto; border-inline: … }`
+(AUDIT-035):** some scaffolds pin `#root { width: 1126px; margin: 0 auto; border-inline: ... }`
 — nulling only `max-width` leaves the fixed `width`, so the surface stays gutter-boxed on
 desktop AND overflows horizontally on a phone. Reset `width` (and `min-height`/`border`) too.
 Either way, RESET/PREPARE the root before the chat CSS — add what's missing AND undo the

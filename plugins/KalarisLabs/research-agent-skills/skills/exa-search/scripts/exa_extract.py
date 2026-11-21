@@ -48,6 +48,7 @@ class ExtractedDocument:
 
 
 def _build_contents(text: bool, highlights: bool) -> dict[str, Any]:
+    """Build contents."""
     contents: dict[str, Any] = {}
     if text:
         contents["text"] = True
@@ -60,6 +61,7 @@ def _build_contents(text: bool, highlights: bool) -> dict[str, Any]:
 
 
 def _to_typed(item: Any) -> ExtractedDocument:
+    """Handle to typed."""
     return ExtractedDocument(
         url=getattr(item, "url", ""),
         id=getattr(item, "id", None),
@@ -72,6 +74,7 @@ def _to_typed(item: Any) -> ExtractedDocument:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    """Run."""
     api_key = os.environ.get("EXA_API_KEY")
     if not api_key:
         print("EXA_API_KEY environment variable is not set.", file=sys.stderr)
@@ -92,6 +95,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(description="Extract content from URLs with Exa.")
     parser.add_argument("urls", nargs="+", help="One or more URLs to extract.")
     parser.add_argument("--text", action="store_true", help="Return full-text content.")
@@ -101,6 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     payload = run(args)
     text = json.dumps(payload, indent=2, ensure_ascii=False)

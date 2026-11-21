@@ -7,11 +7,23 @@
 
 set -e
 
-JSON_OUTPUT=false
-[[ "$1" == "--json" ]] && JSON_OUTPUT=true
+usage() {
+    echo "Usage: audit-oss-docs.sh [--json]"
+    echo "Reports which standard OSS documentation files exist in the current directory."
+    echo "  --json      print the report as JSON"
+    echo "  -h, --help  print this help"
+}
 
-# Colors (disabled for JSON output)
-if [[ "$JSON_OUTPUT" == "false" ]]; then
+JSON_OUTPUT=false
+case "${1:-}" in
+    "") ;;
+    --json) JSON_OUTPUT=true ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+esac
+
+# Colors (human output to a terminal only)
+if [[ "$JSON_OUTPUT" == "false" ]] && [[ -t 1 ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[0;33m'
@@ -81,11 +93,25 @@ detect_languages() {
 PROJECT_TYPE=$(detect_type)
 LANGUAGES=$(detect_languages)
 
+# GitHub reads CONTRIBUTING, CODE_OF_CONDUCT and SECURITY from the root,
+# docs/ or .github/; print the first path found
+find_community_file() {
+    local dir
+    for dir in "" docs/ .github/; do
+        if [[ -f "${dir}$1" ]]; then
+            echo "${dir}$1"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Tier 1: Required
 check_tier1() {
     local score=0
     local total=4
     local results=()
+    local name found
 
     if [[ -f LICENSE ]]; then
         results+=("LICENSE:pass")
@@ -101,19 +127,14 @@ check_tier1() {
         results+=("README.md:fail")
     fi
 
-    if [[ -f CONTRIBUTING.md ]]; then
-        results+=("CONTRIBUTING.md:pass")
-        ((score++))
-    else
-        results+=("CONTRIBUTING.md:fail")
-    fi
-
-    if [[ -f CODE_OF_CONDUCT.md ]]; then
-        results+=("CODE_OF_CONDUCT.md:pass")
-        ((score++))
-    else
-        results+=("CODE_OF_CONDUCT.md:fail")
-    fi
+    for name in CONTRIBUTING.md CODE_OF_CONDUCT.md; do
+        if found=$(find_community_file "$name"); then
+            results+=("$found:pass")
+            ((score++))
+        else
+            results+=("$name:fail")
+        fi
+    done
 
     echo "$score:$total:${results[*]}"
 }
@@ -123,9 +144,10 @@ check_tier2() {
     local score=0
     local total=5
     local results=()
+    local found
 
-    if [[ -f SECURITY.md ]]; then
-        results+=("SECURITY.md:pass")
+    if found=$(find_community_file SECURITY.md); then
+        results+=("$found:pass")
         ((score++))
     else
         results+=("SECURITY.md:fail")
@@ -341,15 +363,6 @@ else
 
     # Summary
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-    if [[ $T1_SCORE -lt $T1_TOTAL ]]; then
-        echo -e "${RED}  Status: INCOMPLETE - Missing required files${NC}"
-    elif [[ $T2_SCORE -lt 3 ]]; then
-        echo -e "${YELLOW}  Status: BASIC - Consider adding standard files${NC}"
-    elif [[ $T3_SCORE -lt 3 ]]; then
-        echo -e "${GREEN}  Status: STANDARD - Ready for public${NC}"
-    else
-        echo -e "${GREEN}  Status: COMPREHENSIVE - Well documented${NC}"
-    fi
     echo -e "  Total Score: ${TOTAL_SCORE}/${TOTAL_POSSIBLE}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 

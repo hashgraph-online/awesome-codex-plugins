@@ -1,0 +1,27 @@
+# Merge into the workspace root Cargo.toml.
+# Members opt in with:
+#
+#   [lints]
+#   workspace = true
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+# Group entries sit below individual lints (priority 0), so a per-lint
+# override always wins.
+all = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+# Allow-by-default groups: cherry-pick single lints instead of enabling the group.
+# pedantic = { level = "warn", priority = -1 }
+# nursery = { level = "warn", priority = -1 }
+
+dbg_macro = "deny"
+mem_forget = "warn"
+todo = "warn"
+unwrap_used = "warn"

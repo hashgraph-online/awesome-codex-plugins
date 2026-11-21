@@ -217,7 +217,7 @@ def collect_warnings(budget: dict[str, Any]) -> list[str]:
         if (
             item["type"] == "B"
             and item["distribution"] == "normal"
-            and item["divisor"] == 1.0
+            and math.isclose(item["divisor"], 1.0, rel_tol=0.0, abs_tol=0.0)
         ):
             warnings.append(
                 f"{item['label']}: a Type B component declared normal is divided by "
@@ -307,6 +307,7 @@ def render_markdown(budget: dict[str, Any]) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Combine stated uncertainty components into a GUM budget with "
@@ -333,6 +334,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     arguments = build_parser().parse_args(argv)
     try:
         if arguments.template:

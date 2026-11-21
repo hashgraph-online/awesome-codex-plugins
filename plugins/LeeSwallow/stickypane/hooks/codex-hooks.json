@@ -1,5 +1,5 @@
 {
-  "description": "At the start of a session, say whether the project has a board and what is on it. Claude Code uses hooks/claude-hooks.json.",
+  "description": "At the start of a session, say whether the project has a board and what is on it. Claude Code uses claude-hooks.json, beside this file.",
   "hooks": {
     "SessionStart": [
       {

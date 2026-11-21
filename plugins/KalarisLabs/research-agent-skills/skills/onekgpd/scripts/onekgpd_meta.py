@@ -32,11 +32,9 @@ for _ras_stream in (_ras_sys.stdout, _ras_sys.stderr):
 import argparse
 import gzip
 import json
-import os
-import sys
-import tempfile
 from pathlib import Path
-from typing import Any, NoReturn
+
+from _onekgpd_common import _emit, _fail, _split_csv
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -53,43 +51,6 @@ MAX_LIMIT = 3202        # MetaClient.java:49
 PREVIEW_ROWS = 10       # rows shown in a stdout summary preview
 
 _ABSENT = (None, "", "0")   # pid/mid "absent" sentinel values
-
-
-# ---------------------------------------------------------------------------
-# Small generic helpers (mirrors onekgpd_api.py; kept local to stay dnaerys-free)
-# ---------------------------------------------------------------------------
-
-
-def _fail(msg: str) -> NoReturn:
-    """Print a clean one-line message to stderr and exit non-zero."""
-    print(msg, file=sys.stderr)
-    sys.exit(1)
-
-
-def _split_csv(s: str) -> list[str]:
-    """Split a comma-separated value into a list of non-empty trimmed tokens."""
-    return [part.strip() for part in s.split(",") if part.strip()]
-
-
-def _save_json(data: Any, prefix: str, output_path: str | None = None) -> str:
-    """Write *data* as indented JSON to *output_path* or a temp file; return path."""
-    if output_path:
-        path = output_path
-        with open(path, "w") as fh:
-            json.dump(data, fh, indent=2)
-    else:
-        fd, path = tempfile.mkstemp(prefix=f"onekgpd_{prefix}_", suffix=".json", text=True)
-        with os.fdopen(fd, "w") as fh:
-            json.dump(data, fh, indent=2)
-    return path
-
-
-def _emit(data: Any, prefix: str, summary_lines: list[str], output: str | None) -> None:
-    """Save full JSON to a file and print the summary + saved-path line to stdout."""
-    path = _save_json(data, prefix, output)
-    for line in summary_lines:
-        print(line)
-    print(f"[*] Full JSON saved to {path}")
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +146,7 @@ def _population_stats(records_subset: list[dict]) -> dict[tuple, dict]:
 
 
 def _stats_obj(key: tuple, g: dict) -> dict:
+    """Handle stats obj."""
     return {
         "population_code": key[0],
         "population": key[1],
@@ -204,6 +166,7 @@ def _stats_obj(key: tuple, g: dict) -> dict:
 
 
 def cmd_sample_metadata(args) -> None:
+    """Run the sample metadata subcommand."""
     ids = _split_csv(args.samples)
     if not ids:
         _fail("Error: Parameter 'sampleIds' must not be null or empty")
@@ -246,6 +209,7 @@ def cmd_sample_metadata(args) -> None:
 
 
 def cmd_list_populations(args) -> None:
+    """Run the list populations subcommand."""
     records = _load_records()
     counts: dict[tuple, int] = {}
     for r in records:
@@ -275,6 +239,7 @@ def cmd_list_populations(args) -> None:
 
 
 def cmd_list_superpopulations(args) -> None:
+    """Run the list superpopulations subcommand."""
     records = _load_records()
     groups: dict[str, dict] = {}
     for r in records:
@@ -302,6 +267,7 @@ def cmd_list_superpopulations(args) -> None:
 
 
 def cmd_population_stats(args) -> None:
+    """Run the population stats subcommand."""
     vals = [v.strip() for v in args.populations if v.strip()]
     if not vals:
         _fail("Error: Parameter 'populations' must not be null or empty")
@@ -331,6 +297,7 @@ def cmd_population_stats(args) -> None:
 
 
 def cmd_superpopulation_summary(args) -> None:
+    """Run the superpopulation summary subcommand."""
     vals = [v.strip() for v in args.superpopulations if v.strip()]
     if not vals:
         _fail("Error: Parameter 'superpopulations' must not be null or empty")
@@ -379,6 +346,7 @@ def cmd_superpopulation_summary(args) -> None:
 
 
 def cmd_select_samples_by_population(args) -> None:
+    """Run the select samples by population subcommand."""
     pop = args.population.strip() if args.population and args.population.strip() else None
     sup = args.superpopulation.strip() if args.superpopulation and args.superpopulation.strip() else None
     if pop is None and sup is None:
@@ -401,6 +369,7 @@ def cmd_select_samples_by_population(args) -> None:
     sup_l = sup.lower() if sup is not None else None
 
     def match(r: dict) -> bool:
+        """Handle match."""
         if pop_l is not None and pop_l not in (r["pop"].lower(), r["Population"].lower()):
             return False
         if sup_l is not None and sup_l not in (r["reg"].lower(), r["region"].lower()):
@@ -434,6 +403,7 @@ def cmd_select_samples_by_population(args) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     conn = argparse.ArgumentParser(add_help=False)
     conn.add_argument(
         "--output",
@@ -479,6 +449,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         args.func(args)

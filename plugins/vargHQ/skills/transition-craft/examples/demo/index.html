@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>transition-craft preview</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Four transitions chained on one 120 BPM grid (beat = 0.5 s):
+        0.0 – 4.0   droste-recursive-zoom · monitor-push   (lands on the downbeat at 4.0)
+        4.0 – 7.0   shake-distort-cut · bass-hit           (cut 1 frame before the beat at 5.5)
+        7.0 – 10.2  tile-flip-mosaic · impact-center       (impact on the beat at 8.0)
+        10.2 – 13.8 bokeh-light-spot · warm-night          (cut under max blur on the beat at 11.5)
+      Each scene ends on exactly the frame the next one starts with, so the scene seams are invisible.
+    -->
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="13.8"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="droste"
+        data-composition-id="droste"
+        data-composition-src="compositions/droste.html"
+        data-start="0"
+        data-duration="4"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="shake"
+        data-composition-id="shake"
+        data-composition-src="compositions/shake.html"
+        data-start="4"
+        data-duration="3"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="tiles"
+        data-composition-id="tiles"
+        data-composition-src="compositions/tiles.html"
+        data-start="7"
+        data-duration="3.2"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="bokeh"
+        data-composition-id="bokeh"
+        data-composition-src="compositions/bokeh.html"
+        data-start="10.2"
+        data-duration="3.6"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

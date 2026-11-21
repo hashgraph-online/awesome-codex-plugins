@@ -160,9 +160,11 @@ class Reconciliation:
         return self.complete or self.stopped_at_limit
 
     def note(self, message: str) -> None:
+        """Handle note."""
         self.notes.append(message)
 
     def as_dict(self) -> dict[str, Any]:
+        """Handle as dict."""
         summary: dict[str, Any] = {
             "expected_total": self.expected,
             "retrieved_total": self.retrieved,

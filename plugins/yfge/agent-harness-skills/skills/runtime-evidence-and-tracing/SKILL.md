@@ -1,6 +1,7 @@
 ---
 name: runtime-evidence-and-tracing
 description: Use when connecting observed behavior, logs, metrics, request IDs, run IDs, screenshots, traces, external dependency results, or artifacts into a runtime evidence loop.
+license: MIT
 ---
 
 # Runtime Evidence And Tracing

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "marketplace": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "ru-marketplace-mcp",
+        "marketplace-mcp"
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "update_id": 100000005,
+  "widget_query": {
+    "id": "8123456789012340002",
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "message_id": 4243,
+    "chat_instance": "901234567890123456",
+    "type": {
+      "type": "sent_transaction",
+      "wallet": {
+        "address": "UQAsampleDeviceWallet0000000000000000000000000004",
+        "amount": "1250000000",
+        "public_key": "a3f1c0ffee00000000000000000000000000000000000000000000000000beef",
+        "state_init": "te6cckEBAQEAAgAAAEysuc0="
+      },
+      "msg_hash": "Zm9vYmFyX21zZ19oYXNoX2V4YW1wbGU="
+    },
+    "data": "paid:42"
+  }
+}

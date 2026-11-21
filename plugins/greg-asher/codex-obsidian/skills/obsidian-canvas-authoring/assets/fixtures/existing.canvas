@@ -1,0 +1,11 @@
+{
+  "x-extension": {"owner": "preserve", "revision": 3},
+  "nodes": [
+    {"id":"group-a","type":"group","x":-32,"y":-32,"width":424,"height":308,"label":"Decision","x-group":{"locked":true}},
+    {"id":"decision","type":"file","x":0,"y":0,"width":360,"height":244,"file":"Atlas/Decision.md","subpath":"#Decision"},
+    {"id":"next","type":"text","x":530,"y":0,"width":360,"height":244,"text":"Review\nConfirm next steps","x-card":[1,2]}
+  ],
+  "edges": [
+    {"id":"edge-a","fromNode":"decision","fromSide":"right","toNode":"next","toSide":"left","label":"Inferred · next","x-edge":true}
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "shot": "s04",
+  "scene": "loft",
+  "run": "A",
+  "take": 2,
+  "rank": 1,
+  "rank_reason": "cleanest eyes, no hand warp; beat take 1 pairwise",
+  "source": {
+    "url": "...",
+    "job": "...",
+    "route": "...",
+    "prompt_sha": "...",
+    "seed": null
+  },
+  "tech": {
+    "width": 1280,
+    "height": 720,
+    "fps": 24,
+    "frames": 49,
+    "duration": 2.042,
+    "codec": "h264",
+    "pix_fmt": "yuv420p",
+    "color_space": null,
+    "bit_mbps": 8.2,
+    "has_audio": false,
+    "keyframes": [0.0],
+    "extra_frame": true
+  },
+  "timeline": {
+    "edit_in": 2,
+    "edit_out": 46,
+    "head_handle": 2,
+    "tail_handle": 3,
+    "interior_cut_head": false
+  },
+  "camera": {
+    "planned": "MCU, slow push in",
+    "measured": {
+      "zoom_pct": -0.1,
+      "move": "static"
+    },
+    "matches_previz": false
+  },
+  "post": {
+    "free_rects": [
+      {
+        "t": 1.08,
+        "rect_pct": [62, 49, 33, 23],
+        "luma": 19
+      }
+    ],
+    "no_pin_ranges": [],
+    "track": {
+      "h_err_px": 0.12,
+      "f_inliers": 0.98,
+      "survive": 0.99,
+      "jitter_px": 0.02
+    }
+  },
+  "qc": {
+    "text_scan": "clean",
+    "passthrough": false,
+    "faces_ok": true
+  }
+}

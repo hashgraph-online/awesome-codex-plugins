@@ -82,6 +82,7 @@ def _required_true(
     field: str,
     errors: list[str],
 ) -> None:
+    """Record an error unless the named field is the boolean true."""
     try:
         if not require_bool(data.get(field), field):
             errors.append(f"{field} must be true")
@@ -89,10 +90,35 @@ def _required_true(
         errors.append(str(exc))
 
 
-def validate_process(data: dict[str, Any]) -> dict[str, Any]:
-    """Validate recorded process gates without asserting de-identification."""
-    errors: list[str] = []
-    warnings: list[str] = []
+_NESTED_KEY_SETS: tuple[tuple[str, Any], ...] = (
+    ("safe_harbor_identifiers", SAFE_HARBOR_KEYS),
+    (
+        "actual_knowledge_review",
+        {"completed_by_authorized_privacy_reviewer", "record_reference"},
+    ),
+    (
+        "expert_determination",
+        {
+            "completed_by_qualified_expert",
+            "expert_documentation_reference",
+            "anticipated_recipient_and_conditions_documented",
+        },
+    ),
+    ("synthetic_or_aggregate_rationale", {"origin_verified", "record_reference"}),
+    ("residual_risk_review", RESIDUAL_KEYS),
+    (
+        "review",
+        {
+            "privacy_legal_review",
+            "institutional_release_review",
+            "release_authorized",
+        },
+    ),
+)
+
+
+def _check_envelope(data: dict[str, Any], errors: list[str]) -> None:
+    """Validate the top-level keys, fixed status fields, and nested key sets."""
     try:
         require_exact_keys(data, TOP_LEVEL_FIELDS, "checklist")
         if data.get("schema_version") != "2.0":
@@ -100,46 +126,149 @@ def validate_process(data: dict[str, Any]) -> dict[str, Any]:
         if data.get("process_status") != "BLOCKED_NOT_ASSESSED":
             raise ValidationError("process_status must remain BLOCKED_NOT_ASSESSED")
         require_string(data.get("safety_notice"), "safety_notice", max_length=1000)
-        require_exact_keys(
-            data.get("safe_harbor_identifiers"),
-            SAFE_HARBOR_KEYS,
-            "safe_harbor_identifiers",
-        )
-        require_exact_keys(
-            data.get("actual_knowledge_review"),
-            {"completed_by_authorized_privacy_reviewer", "record_reference"},
-            "actual_knowledge_review",
-        )
-        require_exact_keys(
-            data.get("expert_determination"),
-            {
-                "completed_by_qualified_expert",
-                "expert_documentation_reference",
-                "anticipated_recipient_and_conditions_documented",
-            },
-            "expert_determination",
-        )
-        require_exact_keys(
-            data.get("synthetic_or_aggregate_rationale"),
-            {"origin_verified", "record_reference"},
-            "synthetic_or_aggregate_rationale",
-        )
-        require_exact_keys(
-            data.get("residual_risk_review"),
-            RESIDUAL_KEYS,
-            "residual_risk_review",
-        )
-        require_exact_keys(
-            data.get("review"),
-            {
-                "privacy_legal_review",
-                "institutional_release_review",
-                "release_authorized",
-            },
-            "review",
+        for name, keys in _NESTED_KEY_SETS:
+            require_exact_keys(data.get(name), keys, name)
+    except ValidationError as exc:
+        errors.append(str(exc))
+
+
+def _object_section(
+    data: dict[str, Any],
+    name: str,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    """Return a named object section, or record that it is not an object."""
+    section = data.get(name)
+    if not isinstance(section, dict):
+        errors.append(f"{name} must be an object")
+        return None
+    return section
+
+
+def _check_safe_harbor(data: dict[str, Any], errors: list[str]) -> None:
+    """Check Safe Harbor identifier statuses and the actual-knowledge review."""
+    statuses = data.get("safe_harbor_identifiers")
+    if not isinstance(statuses, dict):
+        errors.append("safe_harbor_identifiers must be an object")
+    else:
+        missing = sorted(set(SAFE_HARBOR_KEYS) - set(statuses))
+        extra = sorted(set(statuses) - set(SAFE_HARBOR_KEYS))
+        if missing:
+            errors.append(f"missing Safe Harbor categories: {missing}")
+        if extra:
+            errors.append(f"unexpected Safe Harbor categories: {extra}")
+        for key in SAFE_HARBOR_KEYS:
+            if statuses.get(key) not in CLEAR_STATUSES:
+                errors.append(f"safe_harbor_identifiers.{key} is not cleared")
+    actual = _object_section(data, "actual_knowledge_review", errors)
+    if actual is None:
+        return
+    try:
+        if not require_bool(
+            actual.get("completed_by_authorized_privacy_reviewer"),
+            "actual_knowledge_review.completed_by_authorized_privacy_reviewer",
+        ):
+            errors.append("authorized actual-knowledge review is required")
+        require_string(
+            actual.get("record_reference"),
+            "actual_knowledge_review.record_reference",
         )
     except ValidationError as exc:
         errors.append(str(exc))
+
+
+def _check_expert_determination(data: dict[str, Any], errors: list[str]) -> None:
+    """Check the documented Expert Determination gates."""
+    expert = _object_section(data, "expert_determination", errors)
+    if expert is None:
+        return
+    try:
+        if not require_bool(
+            expert.get("completed_by_qualified_expert"),
+            "expert_determination.completed_by_qualified_expert",
+        ):
+            errors.append("qualified Expert Determination is required")
+        require_string(
+            expert.get("expert_documentation_reference"),
+            "expert_determination.expert_documentation_reference",
+        )
+        if not require_bool(
+            expert.get("anticipated_recipient_and_conditions_documented"),
+            "expert_determination.anticipated_recipient_and_conditions_documented",
+        ):
+            errors.append("anticipated recipient and conditions must be documented")
+    except ValidationError as exc:
+        errors.append(str(exc))
+
+
+def _check_synthetic_rationale(
+    data: dict[str, Any],
+    data_scope: str,
+    errors: list[str],
+) -> None:
+    """Check the synthetic or aggregate scope and its origin rationale."""
+    if data_scope not in {"synthetic", "aggregate"}:
+        errors.append(
+            "not_applicable_synthetic_or_aggregate requires synthetic or aggregate scope"
+        )
+    rationale = _object_section(data, "synthetic_or_aggregate_rationale", errors)
+    if rationale is None:
+        return
+    try:
+        if not require_bool(
+            rationale.get("origin_verified"),
+            "synthetic_or_aggregate_rationale.origin_verified",
+        ):
+            errors.append("synthetic or aggregate origin must be verified")
+        require_string(
+            rationale.get("record_reference"),
+            "synthetic_or_aggregate_rationale.record_reference",
+        )
+    except ValidationError as exc:
+        errors.append(str(exc))
+
+
+def _check_method(data: dict[str, Any], data_scope: str, errors: list[str]) -> Any:
+    """Run the checks for the declared de-identification method and return it."""
+    method = data.get("method")
+    if method not in METHODS:
+        errors.append(f"method must be one of {sorted(METHODS)}")
+    elif method == "safe_harbor":
+        _check_safe_harbor(data, errors)
+    elif method == "expert_determination":
+        _check_expert_determination(data, errors)
+    else:
+        _check_synthetic_rationale(data, data_scope, errors)
+    return method
+
+
+def _check_residual_and_review(
+    data: dict[str, Any],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Check residual-risk statuses and the release-review gates."""
+    residual = _object_section(data, "residual_risk_review", errors)
+    if residual is not None:
+        for key in RESIDUAL_KEYS:
+            if residual.get(key) not in RESIDUAL_CLEAR_STATUSES:
+                errors.append(f"residual_risk_review.{key} is unresolved")
+
+    review = _object_section(data, "review", errors)
+    if review is None:
+        return
+    for field in ("privacy_legal_review", "institutional_release_review"):
+        if review.get(field) != "completed":
+            warnings.append(f"review.{field} remains required")
+    if review.get("release_authorized") is not False:
+        errors.append("review.release_authorized must remain false")
+
+
+def validate_process(data: dict[str, Any]) -> dict[str, Any]:
+    """Validate recorded process gates without asserting de-identification."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    _check_envelope(data, errors)
     if data.get("artifact_kind") != "deidentification_process_checklist":
         errors.append("artifact_kind must be deidentification_process_checklist")
     try:
@@ -156,100 +285,8 @@ def validate_process(data: dict[str, Any]) -> dict[str, Any]:
     ):
         _required_true(data, field, errors)
 
-    method = data.get("method")
-    if method not in METHODS:
-        errors.append(f"method must be one of {sorted(METHODS)}")
-    elif method == "safe_harbor":
-        statuses = data.get("safe_harbor_identifiers")
-        if not isinstance(statuses, dict):
-            errors.append("safe_harbor_identifiers must be an object")
-        else:
-            missing = sorted(set(SAFE_HARBOR_KEYS) - set(statuses))
-            extra = sorted(set(statuses) - set(SAFE_HARBOR_KEYS))
-            if missing:
-                errors.append(f"missing Safe Harbor categories: {missing}")
-            if extra:
-                errors.append(f"unexpected Safe Harbor categories: {extra}")
-            for key in SAFE_HARBOR_KEYS:
-                if statuses.get(key) not in CLEAR_STATUSES:
-                    errors.append(f"safe_harbor_identifiers.{key} is not cleared")
-        actual = data.get("actual_knowledge_review")
-        if not isinstance(actual, dict):
-            errors.append("actual_knowledge_review must be an object")
-        else:
-            try:
-                if not require_bool(
-                    actual.get("completed_by_authorized_privacy_reviewer"),
-                    "actual_knowledge_review.completed_by_authorized_privacy_reviewer",
-                ):
-                    errors.append("authorized actual-knowledge review is required")
-                require_string(
-                    actual.get("record_reference"),
-                    "actual_knowledge_review.record_reference",
-                )
-            except ValidationError as exc:
-                errors.append(str(exc))
-    elif method == "expert_determination":
-        expert = data.get("expert_determination")
-        if not isinstance(expert, dict):
-            errors.append("expert_determination must be an object")
-        else:
-            try:
-                if not require_bool(
-                    expert.get("completed_by_qualified_expert"),
-                    "expert_determination.completed_by_qualified_expert",
-                ):
-                    errors.append("qualified Expert Determination is required")
-                require_string(
-                    expert.get("expert_documentation_reference"),
-                    "expert_determination.expert_documentation_reference",
-                )
-                if not require_bool(
-                    expert.get("anticipated_recipient_and_conditions_documented"),
-                    "expert_determination.anticipated_recipient_and_conditions_documented",
-                ):
-                    errors.append("anticipated recipient and conditions must be documented")
-            except ValidationError as exc:
-                errors.append(str(exc))
-    elif method == "not_applicable_synthetic_or_aggregate":
-        if data_scope not in {"synthetic", "aggregate"}:
-            errors.append(
-                "not_applicable_synthetic_or_aggregate requires synthetic or aggregate scope"
-            )
-        rationale = data.get("synthetic_or_aggregate_rationale")
-        if not isinstance(rationale, dict):
-            errors.append("synthetic_or_aggregate_rationale must be an object")
-        else:
-            try:
-                if not require_bool(
-                    rationale.get("origin_verified"),
-                    "synthetic_or_aggregate_rationale.origin_verified",
-                ):
-                    errors.append("synthetic or aggregate origin must be verified")
-                require_string(
-                    rationale.get("record_reference"),
-                    "synthetic_or_aggregate_rationale.record_reference",
-                )
-            except ValidationError as exc:
-                errors.append(str(exc))
-
-    residual = data.get("residual_risk_review")
-    if not isinstance(residual, dict):
-        errors.append("residual_risk_review must be an object")
-    else:
-        for key in RESIDUAL_KEYS:
-            if residual.get(key) not in RESIDUAL_CLEAR_STATUSES:
-                errors.append(f"residual_risk_review.{key} is unresolved")
-
-    review = data.get("review")
-    if not isinstance(review, dict):
-        errors.append("review must be an object")
-    else:
-        for field in ("privacy_legal_review", "institutional_release_review"):
-            if review.get(field) != "completed":
-                warnings.append(f"review.{field} remains required")
-        if review.get("release_authorized") is not False:
-            errors.append("review.release_authorized must remain false")
+    method = _check_method(data, data_scope, errors)
+    _check_residual_and_review(data, errors, warnings)
 
     return {
         "tool": TOOL,
@@ -267,6 +304,7 @@ def validate_process(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check bounded JSON de-identification process documentation. "
@@ -280,6 +318,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         _, data = load_json_object(args.input_file)

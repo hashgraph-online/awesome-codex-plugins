@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+  One Paper Shaders preset as a full-frame background, with a headline over it.
+  Scaffold: node scripts/new-project.mjs ./my-video   (copies paper-preset.js and presets/)
+  Change the look by importing another preset; image presets take { image: "assets/logo.png" }.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ink: #ffffff;
+        --display: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #070708;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        font-family: var(--display);
+        color: var(--ink);
+      }
+      /* The shader canvas fills its host. Size the host, never the canvas. */
+      #bg {
+        position: absolute;
+        inset: 0;
+      }
+      #title {
+        position: absolute;
+        left: 120px;
+        bottom: 250px;
+        margin: 0;
+        font-size: 132px;
+        font-weight: 800;
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+      #sub {
+        position: absolute;
+        left: 124px;
+        bottom: 170px;
+        margin: 0;
+        font-size: 44px;
+        font-weight: 500;
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1920" data-height="1080" data-fps="30">
+      <!-- The frame source host: a timed clip with its own composition id and no GSAP timeline. -->
+      <div id="bg" class="clip" data-layout-allow-overflow data-composition-id="bg" data-start="0" data-duration="6" data-track-index="0" data-no-timeline></div>
+      <h1 id="title" class="clip" data-start="0" data-duration="6" data-track-index="1">Your headline here</h1>
+      <p id="sub" class="clip" data-start="0" data-duration="6" data-track-index="2">One line of supporting copy</p>
+    </div>
+
+    <script type="module">
+      // Pin the exact version: 0.0.x releases can change how a shader looks.
+      import * as PS from "https://cdn.jsdelivr.net/npm/@paper-design/shaders@0.0.82/dist/index.js";
+      import { paperFrameSource } from "./paper-preset.js";
+      import preset from "./presets/brand-mesh.json" with { type: "json" };
+
+      // HyperFrames calls render(seconds) for every frame it captures, in any order.
+      window.__hyperframes.registerFrameSource(paperFrameSource(PS, document.getElementById("bg"), preset));
+    </script>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#title", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.3);
+      tl.fromTo("#sub", { opacity: 0, y: 20 }, { opacity: 0.9, y: 0, duration: 0.6, ease: "power2.out" }, 0.7);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

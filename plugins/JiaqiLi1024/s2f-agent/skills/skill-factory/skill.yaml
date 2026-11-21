@@ -1,0 +1,54 @@
+schema_version: 1
+id: skill-factory
+title: Skill Factory
+path: skills/skill-factory
+status: active
+family: skilling-and-scaffolding
+tasks:
+  - skill-scaffold
+  - skill-registry-update
+  - skill-template-generation
+  - skill-validation
+triggers:
+  - skill-factory
+  - scaffold-skill
+  - create-skill
+  - generate-skill
+required_inputs:
+  - task-objective
+optional_inputs:
+  - output-dir
+  - runtime-context
+input_mappings:
+  - task-objective|query_tokens=scaffold,create,generate,build,skill,spec|script_flags=--spec
+  - output-dir|query_tokens=output,output-root,skills-dev,dev,stable|script_flags=--output-root
+  - runtime-context|query_tokens=overwrite,replace,regenerate,no-register,register|script_flags=--overwrite
+constraints:
+  - skill-id-must-be-lowercase-hyphen-case
+  - generated-skill-must-include-skill-md-skill-yaml-openai-yaml
+  - registry-update-is-append-only-by-default
+tools:
+  - scripts/create_skill_from_spec.py
+  - scripts/register_skill.py
+tool_contracts:
+  - tool: scripts/create_skill_from_spec.py
+    inputs:
+      - skill-spec-json
+    outputs:
+      - scaffolded-skill-directory
+    side_effects:
+      - creates-new-files
+    failure_codes:
+      - 1
+  - tool: scripts/register_skill.py
+    inputs:
+      - skill-id-and-registry-path
+    outputs:
+      - updated-registry-entry
+    side_effects:
+      - updates-registry-file
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-asks-to-build-new-skill-from-pattern
+  - prefer-when-repo-consistent-skill-scaffolding-is-required

@@ -26,8 +26,8 @@ from _common import (
 )
 
 
-FIELD_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,79}$")
-MATERIAL_ID_PATTERN = re.compile(r"^(?:mp|mvc)-[0-9]+$")
+FIELD_PATTERN = re.compile(r"^[A-Za-z]\w{0,79}$", re.ASCII)
+MATERIAL_ID_PATTERN = re.compile(r"^(?:mp|mvc)-\d+$")
 TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9.+\-()]+$")
 MAX_RESULTS = 100
 MAX_FIELDS = 20
@@ -311,6 +311,7 @@ def execute_query(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan a bounded Materials Project summary query. No network or "
@@ -358,6 +359,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         if args.limit > MAX_RESULTS:

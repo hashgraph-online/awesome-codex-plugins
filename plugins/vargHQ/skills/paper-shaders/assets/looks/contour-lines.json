@@ -1,0 +1,231 @@
+{
+  "id": "contour-lines",
+  "name": "Contour lines",
+  "use": "A topographic map whose terrain slowly reshapes, for data, travel, outdoor and strategy stories",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "contour-lines.signature",
+      "label": "Signature",
+      "look": "Bone lines on charcoal, brighter index contours",
+      "params": {
+        "engine": "custom-glsl",
+        "heightfield": "fbm(p*freq + vec2(0.0, t*drift)) + 0.35*fbm(p*freq*0.5 + 4.0*q)",
+        "fbmOctaves": 5,
+        "fbmGain": 0.5,
+        "lacunarity": 2.01,
+        "octaveRotationRad": 0.5,
+        "freq": 1.6,
+        "drift": 0.04,
+        "levels": 22,
+        "indexEvery": 5,
+        "minorWidthPx1080": 1.4,
+        "indexWidthPx1080": 2.8,
+        "aa": "de = abs(fract(h*levels+0.5)-0.5)/fwidth(h*levels); line = 1.0-smoothstep(w-0.75, w+0.75, de)",
+        "levelScroll": "h += 0.015*t  // lines march slowly uphill",
+        "minLineSpacingPx": 6,
+        "background": "#121212",
+        "minor": "#EDE6D866",
+        "index": "#EDE6D8"
+      },
+      "sources": [
+        21,
+        22,
+        23,
+        25,
+        34
+      ]
+    },
+    {
+      "id": "contour-lines.survey",
+      "label": "Survey",
+      "look": "USGS-style brown contours on map cream, heavier index lines",
+      "params": {
+        "engine": "custom-glsl",
+        "heightfield": "fbm(p*freq + vec2(0.0, t*drift)) + 0.35*fbm(p*freq*0.5 + 4.0*q)",
+        "fbmOctaves": 5,
+        "fbmGain": 0.5,
+        "lacunarity": 2.01,
+        "octaveRotationRad": 0.5,
+        "freq": 1.6,
+        "drift": 0.04,
+        "levels": 22,
+        "indexEvery": 5,
+        "minorWidthPx1080": 1.4,
+        "indexWidthPx1080": 2.8,
+        "aa": "de = abs(fract(h*levels+0.5)-0.5)/fwidth(h*levels); line = 1.0-smoothstep(w-0.75, w+0.75, de)",
+        "levelScroll": "h += 0.015*t  // lines march slowly uphill",
+        "minLineSpacingPx": 6,
+        "background": "#F3EBDC",
+        "minor": "#A0703F99",
+        "index": "#8B5A2B",
+        "labelFont": "IBM Plex Mono 500, 18 px at 1080p"
+      },
+      "sources": [
+        23,
+        34
+      ]
+    },
+    {
+      "id": "contour-lines.night",
+      "label": "Night",
+      "look": "Cyan contours on blue-black with a soft glow on index lines",
+      "params": {
+        "engine": "custom-glsl",
+        "heightfield": "fbm(p*freq + vec2(0.0, t*drift)) + 0.35*fbm(p*freq*0.5 + 4.0*q)",
+        "fbmOctaves": 5,
+        "fbmGain": 0.5,
+        "lacunarity": 2.01,
+        "octaveRotationRad": 0.5,
+        "freq": 1.6,
+        "drift": 0.04,
+        "levels": 22,
+        "indexEvery": 5,
+        "minorWidthPx1080": 1.4,
+        "indexWidthPx1080": 2.8,
+        "aa": "de = abs(fract(h*levels+0.5)-0.5)/fwidth(h*levels); line = 1.0-smoothstep(w-0.75, w+0.75, de)",
+        "levelScroll": "h += 0.015*t  // lines march slowly uphill",
+        "minLineSpacingPx": 6,
+        "background": "#050B14",
+        "minor": "#7FD4FF59",
+        "index": "#7FD4FF",
+        "glow": {
+          "radiusPx": 6,
+          "opacity": 0.35
+        }
+      },
+      "sources": [
+        23,
+        24
+      ]
+    },
+    {
+      "id": "contour-lines.blueprint",
+      "label": "Blueprint",
+      "look": "White contours and a 64 px grid on blueprint blue",
+      "params": {
+        "engine": "custom-glsl",
+        "heightfield": "fbm(p*freq + vec2(0.0, t*drift)) + 0.35*fbm(p*freq*0.5 + 4.0*q)",
+        "fbmOctaves": 5,
+        "fbmGain": 0.5,
+        "lacunarity": 2.01,
+        "octaveRotationRad": 0.5,
+        "freq": 1.6,
+        "drift": 0.04,
+        "levels": 22,
+        "indexEvery": 5,
+        "minorWidthPx1080": 1.4,
+        "indexWidthPx1080": 2.8,
+        "aa": "de = abs(fract(h*levels+0.5)-0.5)/fwidth(h*levels); line = 1.0-smoothstep(w-0.75, w+0.75, de)",
+        "levelScroll": "h += 0.015*t  // lines march slowly uphill",
+        "minLineSpacingPx": 6,
+        "background": "#1F4FA0",
+        "minor": "#E8F1FF66",
+        "index": "#E8F1FF",
+        "grid": {
+          "stepPx": 64,
+          "color": "#E8F1FF1F",
+          "widthPx": 1
+        }
+      },
+      "sources": [
+        23,
+        34
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 8,
+      "name": "Ksenia Kondrashova: fBm in polar coordinates",
+      "url": "https://x.com/uuuuuulala/status/1696846819244863949"
+    },
+    {
+      "n": 16,
+      "name": "Mirza Beig: domain-warp feedback",
+      "url": "https://x.com/TheMirzaBeig/status/1734567042882175412"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 21,
+      "name": "Inigo Quilez: Domain warping",
+      "url": "https://iquilezles.org/articles/warp/"
+    },
+    {
+      "n": 22,
+      "name": "Inigo Quilez: fBM",
+      "url": "https://iquilezles.org/articles/fbm/"
+    },
+    {
+      "n": 23,
+      "name": "Inigo Quilez: Distance estimation",
+      "url": "https://iquilezles.org/articles/distance/"
+    },
+    {
+      "n": 24,
+      "name": "Inigo Quilez: Palettes",
+      "url": "https://iquilezles.org/articles/palettes/"
+    },
+    {
+      "n": 25,
+      "name": "The Book of Shaders ch. 13 fBM",
+      "url": "https://thebookofshaders.com/13/"
+    },
+    {
+      "n": 34,
+      "name": "USGS: US Topo map symbol guide",
+      "url": "https://www.usgs.gov/ngp-standards-and-specifications/us-topo-map-symbol-guide"
+    }
+  ],
+  "paperFallback": {
+    "note": "Paper has no contour shader. For filled elevation bands (terraces) instead of lines use SimplexNoise with stepsPerColor 10 and softness 0.",
+    "paper": {
+      "shader": "SimplexNoise",
+      "motion": {
+        "timeScale": 0.3,
+        "frame": 0
+      },
+      "paper": {
+        "fit": "contain",
+        "scale": 0.6,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "originX": 0.5,
+        "originY": 0.5,
+        "worldWidth": 0,
+        "worldHeight": 0,
+        "colors": [
+          "#121212",
+          "#2A2A2A"
+        ],
+        "stepsPerColor": 10,
+        "softness": 0
+      }
+    }
+  }
+}

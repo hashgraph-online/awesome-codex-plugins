@@ -32,18 +32,7 @@ seam, not only implementation/tests. Keep unmet needs and dependencies explicit;
 project-wide goals do not authorize work outside this request. Reuse the
 existing scope/acceptance slots; no extra goal artifact is required.
 
-Escalate from Planless Slice Lane when the work adds a new owner, contract,
-schema, public API, architecture boundary, migration, persistence,
-security/permission, distribution/release surface, or an unclear verification
-boundary.
-
-# Writing Plans
-
-This skill turns approved requirements into a bounded, executable plan. The
-plan must answer: what changes, why code is necessary, which existing owner and
-files change, what stays compatible, what verifies the result, what risk
-remains, and what old path is retired or deliberately retained. A plan is
-method-pack guidance; it cannot grant authoritative completion.
+This plan is method-pack guidance, not authoritative completion.
 
 ## TDD Route Guard
 
@@ -83,10 +72,28 @@ unrelated dirty state, or explicit user/repository authority.
 **Default plan path:** `docs/aegis/plans/YYYY-MM-DD-<feature-name>.md`. Plans do
 not go in `work/`; user and repository authority override the default.
 
-Exception: use `Planless Slice Lane` when an existing parent plan/spec already
-owns the current tiny execution slice, or when the change is mechanical or
-bounded and needs no parent document. Do not save a new plan. Emit a compact
-`Slice Card`:
+## Planless Slice Lane
+
+Use `Planless Slice Lane` before writing or saving a plan when one of these
+entry conditions holds:
+
+- a parent spec or parent plan already defines the workstream, and the current
+  request is executing or refining one bounded task from that parent
+- the change is mechanical or bounded and needs no parent document (the
+  no-parent branch under `# Execute`)
+
+and both of these are true:
+
+- no new owner, contract, schema, public API, architecture boundary, migration,
+  persistence, security/permission, distribution/release surface, or unclear
+  verification boundary appears
+- the slice can be described by a `Slice Card`
+
+The lane preserves long-task continuity without turning execution bookkeeping
+into durable planning artifacts. A parent scope or acceptance mismatch returns
+to the parent plan/spec instead of spawning a micro-plan.
+
+Do not save a new plan. Emit a compact `Slice Card`:
 
 ```text
 Slice Card:
@@ -105,7 +112,7 @@ On the no-parent branch, `Parent plan/spec:` is `none — direct bounded request
 Workspace creation is lazy and follows project authority. The Aegis Method
 Pack repository must not create or ship a live `docs/aegis/` workspace. When a
 durable plan must initialize or update another project's workspace, read the
-workspace section of `expanded-planning-guidance.md`. It owns the
+`## Workspace Save Detail` section of `expanded-planning-guidance.md`. It owns the
 `<aegis-workspace-helper>` and `INDEX.md` command detail, not the decision to
 create a plan.
 
@@ -152,44 +159,28 @@ For interface/interaction work, compose `ui-ux-governance` and carry the accepte
 experience criteria and corresponding checks into affected tasks. Include API
 changes that alter visible states or recovery; keep backend-only work scoped.
 
-Read only the trigger-matched section of `expanded-planning-guidance.md`:
-
-- `## Baseline And Requirement Detail` when specific baseline acknowledgement
-  needs structure or requirement readiness is incomplete/disputed;
-- `## New-Surface And Architecture Detail` when a new surface or new owner needs
-  `Existence Check`, `AEGIS_MINIMALITY_REFERENCE`, `Architecture Integrity Lens`,
-  or `first-principles-review` detail before task decomposition;
-- `## Complexity Detail` when material file-size, mixed-owner, add-in-place,
-  adapter, fallback, or shared-core pressure appears;
-- `## Execution Readiness Detail` for a long-running, handoff-prone,
-  subagent-driven, high-risk architecture/contract/compatibility/retirement handoff;
-- `## Workspace Save Detail` only when saving requires workspace initialization
-  or `INDEX.md` updates;
-- `## Execution Route Detail` only when route evidence needs a structured
-  handoff; and
-- `## Expanded Plan Review` only for an independent high-risk or handoff-heavy
-  review.
-
-The direct triggers cover baseline readiness, new surface or new owner,
-complexity pressure, workspace persistence, and execution handoff. The
-reference supplies detail only. This main file owns routing, plan versus
-Planless selection, task blocking, and execution handoff.
-
-For a new surface, use `Existence Check` and
-`docs/current/AEGIS_MINIMALITY_REFERENCE.md` before tasks. Reuse an existing
-owner when it is sufficient. If owner, contract, responsibility overlap,
-higher-level simplification, fallback, or retirement remains risky, use the
-`Architecture Integrity Lens` and `first-principles-review` before task
-decomposition.
-
 For maintained source, screen file shape, owner fit, add-in-place risk, and a
 better boundary. With no pressure signal, a compact edit-in-place decision is
-enough. When pressure exists, load the expanded `Plan-Time Complexity Check`
-and `Complexity Budget`. An over-budget result must change the task boundary,
-add governance work, or stop for follow-up.
-
-For an ordinary medium/high handoff, state Intent Lock, Scope Fence, Baseline Lock, tests, and drift stop naturally. Load the expanded `Execution Readiness View` only for the auditable handoff triggers above. Neither form is a
+enough. For an ordinary medium/high handoff, state Intent Lock, Scope Fence, Baseline Lock, tests, and drift stop naturally. Load the expanded `Execution Readiness View` only for the auditable handoff triggers below. Neither form is a
 `GateDecision`, `PolicySnapshot`, approval gate, or completion authority.
+
+Read only the trigger-matched section of `expanded-planning-guidance.md`, never
+the whole file. This map owns conditional activation, not another planning pass.
+Do not load references merely to announce a route or describe a Planless slice.
+
+| Evidence trigger | Exact section and required action |
+| --- | --- |
+| Specific baseline acknowledgement needs structure, or requirement readiness is incomplete/disputed | `## Baseline And Requirement Detail`; retain the task-blocking Requirement Ready Check above |
+| A new surface or new owner is proposed | `## New-Surface And Architecture Detail`; run `Existence Check` and `docs/current/AEGIS_MINIMALITY_REFERENCE.md` before tasks, reusing an existing owner when sufficient |
+| Owner/contract, responsibility overlap, higher-level simplification, fallback or retirement remains risky | `## New-Surface And Architecture Detail`; use `Architecture Integrity Lens` and `first-principles-review` before decomposition |
+| Material file-size, mixed-owner, add-in-place, adapter, fallback or shared-core complexity pressure appears | `## Complexity Detail`; use `Plan-Time Complexity Check` and `Complexity Budget`. An over-budget result must change the boundary, add governance work, or stop for follow-up |
+| Long-running, handoff-prone, subagent-driven, high-risk architecture/contract/compatibility/retirement handoff | `## Execution Readiness Detail`; expand the existing plan inputs into the auditable readiness view |
+| Saving requires workspace initialization or `INDEX.md` updates | `## Workspace Save Detail` |
+| Execution-route evidence needs a structured handoff | `## Execution Route Detail` |
+| An independent high-risk or handoff-heavy review is needed | `## Expanded Plan Review` |
+
+The reference supplies detail only. This main file owns routing, plan versus
+Planless selection, task blocking, and execution handoff.
 
 If the plan must choose among deleting an old internal path, retaining a proven
 external compatibility boundary, or stopping for persistent-state
@@ -199,27 +190,6 @@ destructive execution.
 Preserve approved ADR signal preservation, source refs, alternatives,
 compatibility, and baseline-sync questions for completion; do not create
 accepted architecture memory from an unexecuted plan.
-
-## Planless Slice Lane
-
-Use `Planless Slice Lane` before writing or saving a plan when one of these
-entry conditions holds:
-
-- a parent spec or parent plan already defines the workstream, and the current
-  request is executing or refining one bounded task from that parent
-- the change is mechanical or bounded and needs no parent document (the
-  no-parent branch under `# Execute`)
-
-and both of these are true:
-
-- no new owner, contract, schema, public API, architecture boundary, migration,
-  persistence, security/permission, distribution/release surface, or unclear
-  verification boundary appears
-- the slice can be described by a `Slice Card`
-
-The lane preserves long-task continuity without turning execution bookkeeping
-into durable planning artifacts. A parent scope or acceptance mismatch returns
-to the parent plan/spec instead of spawning a micro-plan.
 
 ## Plan And Task Quality
 

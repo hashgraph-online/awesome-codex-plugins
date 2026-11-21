@@ -1,0 +1,32 @@
+# Constraints — {{TOOL_NAME}}
+
+Document all hard limits and conventions for {{TOOL_NAME}} workflows here.
+Replace every section below with verified values from the tool's documentation before using this skill.
+
+## Input Limits
+
+- Maximum sequence / window length: TODO (e.g. `131_072 bp`)
+- Minimum sequence length: TODO
+- Stride or step constraints: TODO (e.g. `length % 128 == 0`)
+- Batch size limits: TODO
+
+## Tokenization Rules
+
+- Tokenizer class: TODO (e.g. `AutoTokenizer.from_pretrained(...)`)
+- Vocabulary: TODO (e.g. single-nucleotide, 6-mer, BPE)
+- Special tokens and their positions: TODO
+- Ambiguous base handling: TODO (e.g. `N` is disallowed / mapped to mask token)
+
+## Coordinate Conventions
+
+- Coordinate system: TODO (0-based half-open, 1-based inclusive, etc.)
+- Output tensor length vs input span: TODO (e.g. output length = `ceil(input / 128)`)
+- How to map output positions back to genomic coordinates: TODO
+
+## Hardware Requirements
+
+- Minimum GPU VRAM for default model: TODO
+- Recommended GPU architecture: TODO
+- CPU-only feasibility: TODO (yes / no / slow)
+- Required CUDA version: TODO
+- Required additional libraries (e.g. Transformer Engine, Flash Attention): TODO

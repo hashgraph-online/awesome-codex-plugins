@@ -1,0 +1,81 @@
+{
+  "scenario": "r05-private-widget",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<!-- Order card widget (private chat). Profile 1. No network, no inputs.\n     State: chat_data = {\"o\":\"1042\",\"items\":[...],\"opt\":\"std\",\"st\":\"draft\"|\"confirmed\",\"r\":N}\n     Requests (1-64 bytes): \"ship:<std|fast>\", \"confirm\", \"sync\" -->\n<style>\nbody{margin:0;padding:0;font:inherit}\n.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}\nh3{margin:0 0 4px}\n.m{color:var(--tg-theme-hint-color);font-size:.9em}\nul{margin:6px 0;padding-left:1.2em}\n.t{display:flex;justify-content:space-between;font-weight:600;margin:6px 0}\n.o{display:flex;gap:8px;margin:8px 0}\n.o button{flex:1}\n.o button.on{background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}\n.s{min-height:1.3em;color:var(--tg-theme-hint-color);font-size:.9em}\n.s.e{color:var(--tg-theme-destructive-text-color)}\n.f{padding-right:max(12px,var(--tg-content-safe-area-corner-right));padding-left:max(12px,var(--tg-content-safe-area-corner-left))}\n.code{user-select:text;-webkit-user-select:text;font-family:monospace}\n</style>\n<div class=\"c\">\n<h3 id=\"h\"></h3>\n<div class=\"m\" id=\"sub\"></div>\n<ul id=\"items\"></ul>\n<div class=\"o\" id=\"opts\"></div>\n<div class=\"t\"><span id=\"tl\"></span><span id=\"tot\"></span></div>\n<button id=\"go\" style=\"width:100%\"></button>\n<div class=\"s f\" id=\"st\" aria-live=\"polite\"></div>\n</div>\n<script>\nvar W=window.TelegramWidget,L={en:{order:\"Order\",ship:\"Delivery\",std:\"Standard\",fast:\"Express\",total:\"Total\",confirm:\"Confirm order\",done:\"Confirmed\",wait:\"Sending…\",snap:\"As of\",err:{NOT_ALLOWED:\"Open the bot to change this order.\",BUSY:\"One moment…\",RATE_LIMITED:\"Too fast — try again in a few seconds.\",TIMEOUT:\"The bot didn't answer. Your order is unchanged.\",FAILED:\"Couldn't reach the bot.\",INVALID_ANSWER:\"Unexpected answer. Try again.\"}},ru:{order:\"Заказ\",ship:\"Доставка\",std:\"Обычная\",fast:\"Экспресс\",total:\"Итого\",confirm:\"Подтвердить заказ\",done:\"Подтверждён\",wait:\"Отправляю…\",snap:\"На момент\",err:{NOT_ALLOWED:\"Откройте бота, чтобы изменить заказ.\",BUSY:\"Секунду…\",RATE_LIMITED:\"Слишком быстро — повторите через пару секунд.\",TIMEOUT:\"Бот не ответил. Заказ не изменён.\",FAILED:\"Не удалось связаться с ботом.\",INVALID_ANSWER:\"Неожиданный ответ. Повторите.\"}}};\nvar T=L[(navigator.language||\"en\").slice(0,2)]||L.en,S=null,R=-1,busy=false;\nfunction $(i){return document.getElementById(i)}\nfunction parse(){try{var s=JSON.parse(W?W.chatData:null)}catch(e){s=null}if(s&&typeof s.r===\"number\"&&s.r>=R){S=s;R=s.r}}\nfunction money(c){return (c/100).toFixed(2)}\nfunction status(t,e){var n=$(\"st\");n.textContent=t||\"\";n.className=\"s f\"+(e?\" e\":\"\")}\nfunction render(){\n if(!S){$(\"h\").textContent=T.order;status(\"\");return}\n $(\"h\").textContent=T.order+\" #\"+S.o;\n $(\"sub\").textContent=W&&W.isForward?T.snap+\" \"+(S.at||\"\"):\"\";\n var ul=$(\"items\");ul.innerHTML=\"\";var sum=0;\n S.items.forEach(function(it){var li=document.createElement(\"li\");li.textContent=it.q+\" × \"+it.n;ul.appendChild(li);sum+=it.q*it.p});\n var ship=S.opt===\"fast\"?500:0;sum+=ship;\n var o=$(\"opts\");o.innerHTML=\"\";\n [\"std\",\"fast\"].forEach(function(k){var b=document.createElement(\"button\");b.textContent=T[k];b.className=S.opt===k?\"on\":\"\";b.disabled=S.st!==\"draft\"||busy;b.onclick=function(){ask(\"ship:\"+k)};o.appendChild(b)});\n $(\"tl\").textContent=T.total;$(\"tot\").textContent=\"$\"+money(sum);\n var g=$(\"go\");g.textContent=S.st===\"draft\"?T.confirm:T.done;g.disabled=S.st!==\"draft\"||busy;g.onclick=function(){ask(\"confirm\")};\n}\nfunction ask(data){\n if(!W||busy)return;busy=true;status(T.wait);render();\n W.request(data).then(function(a){busy=false;var r=null;try{r=JSON.parse(a.result)}catch(e){}\n  if(r&&r.ok){if(r.s&&r.r>R){S=r.s;R=r.r}status(\"\");if(data===\"confirm\")W.HapticFeedback.notificationOccurred(\"success\")}\n  else status((r&&r.msg)||T.err.FAILED,true);render()},\n function(e){busy=false;status(T.err[e.code]||T.err.FAILED,true);render()});\n}\nif(W){W.onEvent(\"chatDataChanged\",function(){parse();render()});W.onEvent(\"themeChanged\",render)}\nparse();render();\n// Background refresh is allowed only for the original in the private chat.\nif(W&&W.chatType===\"private\"&&!W.isForward&&!W.isPreview){W.request(\"sync\").then(function(a){try{var r=JSON.parse(a.result)}catch(e){r=null}if(r&&r.s&&r.r>R){S=r.s;R=r.r;render()}},function(){})}\nif(W)W.ready();\n</script>\n",
+        "chat_data": "{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"std\",\"st\":\"draft\",\"r\":0}",
+        "caption": "Order #1042 · $23.50 · Standard delivery",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Change in chat",
+                "callback_data": "order:1042:edit"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"fast\",\"st\":\"draft\",\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012345678",
+        "data": "{\"ok\":true,\"s\":{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"fast\",\"st\":\"draft\",\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012345680",
+        "data": "{\"ok\":true,\"s\":{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"fast\",\"st\":\"draft\",\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"fast\",\"st\":\"confirmed\",\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012345679",
+        "data": "{\"ok\":false,\"err\":\"busy\",\"r\":1}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"fast\",\"st\":\"confirmed\",\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012345690",
+        "data": "{\"ok\":true,\"s\":{\"o\":\"1042\",\"items\":[{\"q\":2,\"n\":\"Margherita\",\"p\":950},{\"q\":1,\"n\":\"Lemonade\",\"p\":450}],\"opt\":\"fast\",\"st\":\"confirmed\",\"r\":2},\"r\":2}"
+      }
+    }
+  ]
+}

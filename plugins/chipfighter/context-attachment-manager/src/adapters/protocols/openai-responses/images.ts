@@ -1,0 +1,220 @@
+// Purpose: P2 — find every image in a list of Responses items (a request's `input`, or a Codex rollout's response_items)
+// and describe it: a key that names the same occurrence in both places, its kind and name, and a content digest.
+// v0.2 — the source the panel filters by: the kind, except for the screenshots Codex desktop attaches to a comment on a
+// PDF page or a web page, told apart by the caption Codex writes before them. The text for the model does not use it.
+// v0.3 — an image our fetch tool returned carries, in the line before it, the id it is a copy of (thread-index.ts).
+// v0.11 — the Responses request format's reader (docs/v0.11/plan.md); the digest and kinds are the core's
+// (core/images.ts). The names and captions it reads are Codex's own; for another client they simply do not match.
+// Input: items as parsed JSON. Output: ImageRef[] in item order (pure, no I/O).
+
+import { baseName, fetchedIdIn, imageDigest, type ImageDigest, type ImageKind, type ImageSource } from "../../../core/images.ts";
+
+type Json = Record<string, any>;
+
+export type ImageRef = ImageDigest & {
+  key: string;
+  item: number;
+  // Index in the item's content/output array; null for a hosted image_generation_call result.
+  part: number | null;
+  // Codex's own `<image name=[Image #N] path="…">` and `</image>` parts around an upload, replaced together with it.
+  openTag: number | null;
+  closeTag: number | null;
+  kind: ImageKind;
+  // A hosted image_generation_call keeps its image in a required `result` field that cannot become text.
+  replaceable: boolean;
+  name: string | null;
+  label: string | null;
+  turnId: string | null;
+  source: ImageSource;
+  // A PDF comment screenshot's page (null when Codex does not say), and the PDF's file name when the message's comments
+  // name only one PDF.
+  pdfPage: number | null;
+  pdfName: string | null;
+  // v0.3: in a tool output, the id named by our fetch tool's line right before the image ("[图片 IMG-001 取回的原图｜…]").
+  fetchedId: string | null;
+};
+
+const OPEN_TAG = /^<image name=(\[Image #\d+\]) path="(.*)">$/s;
+// Codex desktop 26.924's own wording: the caption right before a comment's screenshot, and the line naming the PDF in
+// the comment's text. Worded otherwise, a screenshot counts as an upload, as it did before v0.2.
+const PDF_CAPTION = /^The next image shows (?:PDF page (\d+)|the PDF page) at the time of Comment \d+\./;
+const BROWSER_CAPTION = /^The next image (?:shows the browser page at the time of|is untrusted page evidence from the browser page for) Comment \d+\./;
+const PDF_PATH = /^PDF path: (.+)$/gm;
+
+function partDigest(part: Json): ImageDigest | null {
+  if (part?.type !== "input_image" && part?.type !== "output_image") return null;
+  if (typeof part.file_id === "string") return { contentId: `file:${part.file_id}`, mime: null, base64Chars: 0, width: null, height: null };
+  const inline = typeof part.image_url === "string" ? /^data:([^;,]+);base64,/.exec(part.image_url) : null;
+  return inline ? imageDigest(part, part.image_url.slice(inline[0].length), inline[1]) : null;
+}
+
+// v0.10.1 — reading the path of a view_image call in code-mode source, without running it.
+const IMAGE_FILE = /^[^\\/]+\.(?:png|jpe?g|gif|webp|bmp|tiff?|avif|heic)$/i;
+const CLOSE: Record<string, string> = { "{": "}", "(": ")", "[": "]" };
+const skipSpace = (source: string, i: number) => { while (i < source.length && /\s/.test(source[i])) i++; return i; };
+
+// A string literal at source[i] (a quote or a backtick): where it ends, and its text; a template's text is what follows
+// its last substitution ("" when it ends with one).
+function readString(source: string, i: number): { end: number; text: string } {
+  const quote = source[i];
+  let text = "";
+  for (let j = i + 1; j < source.length; j++) {
+    const ch = source[j];
+    if (ch === "\\") { text += source[j + 1] ?? ""; j++; }
+    else if (ch === quote) return { end: j + 1, text };
+    else if (quote === "`" && ch === "$" && source[j + 1] === "{") { j = skipBracket(source, j + 1) - 1; text = ""; }
+    else text += ch;
+  }
+  return { end: source.length, text };
+}
+
+// Past the bracket that closes the one at source[i], strings included.
+function skipBracket(source: string, i: number): number {
+  const open = [CLOSE[source[i]]];
+  for (let j = i + 1; j < source.length; j++) {
+    const ch = source[j];
+    if (ch === '"' || ch === "'" || ch === "`") j = readString(source, j).end - 1;
+    else if (CLOSE[ch]) open.push(CLOSE[ch]);
+    else if (ch === open.at(-1)) { open.pop(); if (!open.length) return j + 1; }
+  }
+  return source.length;
+}
+
+// The next comma at this level, or `end`.
+function nextComma(source: string, i: number, end: number): number {
+  for (let j = i; j < end; j++) {
+    const ch = source[j];
+    if (ch === '"' || ch === "'" || ch === "`") j = readString(source, j).end - 1;
+    else if (CLOSE[ch]) j = skipBracket(source, j) - 1;
+    else if (ch === ",") return j;
+  }
+  return end;
+}
+
+// The file name a path expression writes: its last string (p + "a.png", `${dir}/a.png`, join(dir, "a.png")). Null when
+// the name is not written (p + name, dir + "/" + f + ".png") or the path is one of several (a ? "x.png" : "y.png", ||).
+function writtenName(expression: string): string | null {
+  let last = "";
+  for (let i = 0; i < expression.length; i++) {
+    const ch = expression[i];
+    if (ch === '"' || ch === "'" || ch === "`") { const string = readString(expression, i); last = string.text; i = string.end - 1; }
+    else if (ch === "?" || ch === "|" || ch === "&") return null;
+  }
+  const name = baseName(last);
+  return IMAGE_FILE.test(name) ? name : null;
+}
+
+// The name of the image a view_image call at source[at] (just after its "(") views, from the `path` of its argument.
+function viewName(source: string, at: number): string | null {
+  let i = skipSpace(source, at);
+  if (source[i] !== "{") return null;
+  const end = skipBracket(source, i) - 1;
+  for (i++; i < end; i++) {
+    i = skipSpace(source, i);
+    let key = "";
+    if (source[i] === '"' || source[i] === "'") { const string = readString(source, i); key = string.text; i = string.end; }
+    else { const word = /^[\w$]+/.exec(source.slice(i, end))?.[0]; if (!word) return null; key = word; i += word.length; }
+    i = skipSpace(source, i);
+    const value = source[i] === ":" ? i + 1 : null;
+    const stop = nextComma(source, value ?? i, end);
+    if (key === "path") return value === null ? null : writtenName(source.slice(value, stop));
+    i = stop;
+  }
+  return null;
+}
+
+// A tool output's images get names from the call that produced them: view_image paths, or the saved-image hint
+// that Codex's image generation adds next to its result.
+function toolContext(call: Json | undefined, output: Json[]): { kind: ImageKind; names: (string | null)[] } {
+  const hints = output.flatMap((part) => (typeof part?.text === "string" ? [...part.text.matchAll(/Generated images are saved to .*? as (.+?\.png) by default/g)].map((m) => baseName(m[1])) : []));
+  if (hints.length) return { kind: "generated", names: hints };
+  if (!call) return { kind: "tool", names: [] };
+  if (call.type === "function_call") {
+    if (call.name === "view_image") {
+      try { return { kind: "view", names: [baseName(JSON.parse(call.arguments).path)] }; } catch { return { kind: "view", names: [] }; }
+    }
+    return { kind: /imagegen|image_gen/.test(call.name ?? "") ? "generated" : "tool", names: [] };
+  }
+  const source = String(call.input ?? "");
+  // One name per view_image call (not our cam_view_image), null where the code does not write it. Images our
+  // cam_view_image returned in the same code are copies, known by the line before them; the others follow the calls in
+  // order only when each call brought one image, otherwise which image is which is unknown.
+  const views = [...source.matchAll(/(?<![\w$])view_image\s*\(/g)].map((m) => viewName(source, m.index + m[0].length));
+  if (views.length || source.includes("view_image")) {
+    const viewed = output.flatMap((part, i) => (part?.type === "input_image" || part?.type === "output_image" ? [!fetchedIdIn(output[i - 1]?.type === "input_text" ? String(output[i - 1].text) : "")] : []));
+    if (views.length !== viewed.filter(Boolean).length) return { kind: "view", names: [] };
+    let next = 0;
+    return { kind: "view", names: viewed.map((own) => (own ? views[next++] : null)) };
+  }
+  return { kind: /image_gen|imagegen|generatedImage\(/.test(source) ? "generated" : "tool", names: [] };
+}
+
+// The PDF a message's comments are about, when they name only one.
+function onlyPdf(parts: Json[]): string | null {
+  const paths = new Set(parts.flatMap((part) => (part?.type === "input_text" && typeof part.text === "string" ? [...part.text.matchAll(PDF_PATH)].map((m) => m[1].trim()) : [])));
+  return paths.size === 1 ? baseName([...paths][0]) : null;
+}
+
+export function findImages(items: Json[]): ImageRef[] {
+  const calls = new Map<string, Json>();
+  const seenFallback = new Map<string, number>();
+  const refs: ImageRef[] = [];
+  items.forEach((item, index) => {
+    if (!item || typeof item !== "object") return;
+    if ((item.type === "function_call" || item.type === "custom_tool_call") && item.call_id) calls.set(item.call_id, item);
+    const turnId: string | null = item.internal_chat_message_metadata_passthrough?.turn_id ?? null;
+    const keyFor = (n: number, contentId: string) => {
+      if (typeof item.id === "string" && item.id) return `${item.id}#${n}`;
+      if (typeof item.call_id === "string" && item.call_id) return `${item.type}:${item.call_id}#${n}`;
+      const base = `${item.type}:${item.role ?? ""}:${turnId ?? ""}:${contentId}`;
+      const seen = seenFallback.get(base) ?? 0;
+      seenFallback.set(base, seen + 1);
+      return `${base}#${seen}`;
+    };
+
+    if (item.type === "image_generation_call" && typeof item.result === "string" && item.result) {
+      const found = imageDigest(item, item.result, "image/png");
+      refs.push({ ...found, key: keyFor(0, found.contentId), item: index, part: null, openTag: null, closeTag: null, kind: "generated", replaceable: false, name: null, label: null, turnId, source: "generated", pdfPage: null, pdfName: null, fetchedId: null });
+      return;
+    }
+    const field = item.type === "message" ? item.content : item.type === "function_call_output" || item.type === "custom_tool_call_output" ? item.output : null;
+    if (!Array.isArray(field)) return;
+    const context = item.type === "message" ? null : toolContext(calls.get(item.call_id), field);
+    // Read once per message, and only for one with a PDF comment screenshot.
+    let pdfName: string | null | undefined;
+    let n = 0;
+    field.forEach((part: Json, partIndex: number) => {
+      const found = partDigest(part);
+      if (!found) return;
+      const before = field[partIndex - 1]?.type === "input_text" ? String(field[partIndex - 1].text) : null;
+      const after = field[partIndex + 1]?.type === "input_text" ? String(field[partIndex + 1].text) : null;
+      const open = before !== null && (OPEN_TAG.test(before) || before === "<image>");
+      const close = open && after === "</image>";
+      const tag = before ? OPEN_TAG.exec(before) : null;
+      const kind: ImageKind = context?.kind ?? (item.role === "user" ? "upload" : "tool");
+      // A caption counts only as its own text part right before an image in the user's message.
+      const pdf = kind === "upload" ? before?.match(PDF_CAPTION) : null;
+      const source: ImageSource = pdf ? "pdf" : kind === "upload" && before !== null && BROWSER_CAPTION.test(before) ? "browser" : kind;
+      if (pdf && pdfName === undefined) pdfName = onlyPdf(field);
+      refs.push({
+        ...found,
+        key: keyFor(n, found.contentId),
+        item: index,
+        part: partIndex,
+        openTag: open ? partIndex - 1 : null,
+        closeTag: close ? partIndex + 1 : null,
+        kind,
+        replaceable: true,
+        name: tag ? baseName(tag[2]) : context?.names[n] ?? null,
+        label: tag ? tag[1] : null,
+        turnId,
+        source,
+        pdfPage: pdf?.[1] ? Number(pdf[1]) : null,
+        pdfName: pdf ? pdfName ?? null : null,
+        fetchedId: context && before !== null ? fetchedIdIn(before) : null,
+      });
+      n++;
+    });
+  });
+  return refs;
+}

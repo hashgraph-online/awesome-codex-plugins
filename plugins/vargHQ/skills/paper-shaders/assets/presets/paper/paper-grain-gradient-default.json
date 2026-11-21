@@ -1,0 +1,36 @@
+{
+  "id": "paper-grain-gradient-default",
+  "label": "Default (Paper GrainGradient)",
+  "shader": "GrainGradient",
+  "page": "https://shaders.paper.design/grain-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for GrainGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colors": [
+      "#7300ff",
+      "#eba8ff",
+      "#00bfff",
+      "#2a00ff"
+    ],
+    "softness": 0.5,
+    "intensity": 0.5,
+    "noise": 0.25,
+    "shape": "corners"
+  }
+}

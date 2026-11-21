@@ -10,6 +10,10 @@ Read only the section activated by current task evidence:
 - `Software Scenario Profiles` after the relevant scenario class is known.
 - `Documentation And Workspace Bootstrap` only after the Doc Necessity Gate
   selects a spec or project workspace artifact.
+- `Design Artifact Templates` only for the one conditional artifact the current
+  task evidence activates: baseline usage draft, requirement ready check,
+  existence check, product risk lens, plan-time complexity budget, prior-art and
+  reuse lens, or baseline role alignment.
 
 Do not load this file for route selection, first-turn clarification, route-away
 cases, or an active Grilling Mode interview.
@@ -22,6 +26,7 @@ cases, or an active Grilling Mode interview.
 - Spec Self-Review
 - BASELINE-GOVERNANCE.md Template
 - Initial Baseline Snapshot Template
+- Design Artifact Templates
 
 ## Design Probe
 
@@ -249,3 +254,162 @@ Status: `initial dual-baseline snapshot`
 ```
 
 Do not collapse this bootstrap into a generic checklist.
+
+## Design Artifact Templates
+
+Templates and artifact-specific follow-up rules for the conditional design
+artifacts named in `SKILL.md`. Routing, approval, and completion authority stay
+in `SKILL.md`.
+
+### Baseline Usage Draft
+
+Use a compact `BaselineUsageDraft` whenever the design direction depends on
+specific baseline docs or current-authority refs:
+
+```text
+BaselineUsageDraft:
+- Required baseline refs:
+- Delivered context refs:
+- Acknowledged before plan refs:
+- Cited in design refs:
+- Missing refs:
+- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
+```
+
+`Delivered context refs` is optional host-projected bookkeeping only. It is not
+authoritative proof that a host injected or the model internally consumed a
+context payload. The artifact exists to make baseline/context attention drift
+visible before the design is recommended or approved.
+
+### Requirement Ready Check
+
+Use a compact `Requirement Ready Check` before recommending a design when the
+requirement is not already confirmed and complete:
+
+```text
+Requirement Ready Check:
+- Requirement source refs:
+- Goals and scope refs:
+- User / scenario refs:
+- Requirement item refs:
+- Acceptance / verification criteria refs:
+- Open blocker questions:
+- Decision: ready | needs-source | needs-goal-alignment | needs-scenario | needs-acceptance-criteria | needs-clarification | needs-user-decision | blocked
+```
+
+Treat task intent, conversation, source documents, and agent inference as
+candidate requirement sources until project authority confirms them. If the
+decision is not `ready`, keep the design at proposal/spec clarification level;
+do not turn the gap into implementation tasks.
+
+### Existence Check
+
+**Existence Check:** Before recommending an approach that adds a new owner,
+skill, artifact, host adapter, fallback, compatibility path, workflow step, or
+benchmark metric, check whether it needs to exist. Use
+`docs/current/AEGIS_MINIMALITY_REFERENCE.md` as the reference. Do not force this
+onto ordinary feature design that reuses existing owners and artifacts.
+
+```text
+Existence Check:
+- Proposed new surface:
+- Existing owner / reuse candidate:
+- Why existing surface is insufficient:
+- Creation proof:
+- Entropy / retirement impact:
+- Decision: reuse-existing | add-with-proof | defer | reject | needs-first-principles-review
+```
+
+If the decision is `reuse-existing`, recommend the reuse path instead of a new
+surface. If the decision is `add-with-proof`, carry the proof, verification
+signal, and any retirement trigger into the design/spec.
+
+### Product Risk Lens
+
+**Product Risk Lens:** For ambiguous product, feature, UI, workflow, or
+architecture choices, add a compact review lens, not persona roleplay:
+
+```text
+Product Risk Lens:
+- Value:
+- Non-goals:
+- Trade-offs:
+- Decision needed:
+```
+
+This is a review lens, not persona output. It does not override baseline evidence,
+approved requirements, or current authority docs; it only makes the product risk
+and decision point visible before implementation.
+
+### Plan-Time Complexity Check And Complexity Budget
+
+**Plan-Time Complexity Check:** Before choosing an implementation direction for
+medium/high work, inspect the likely owner files and current shape. This is an
+advisory design pressure check, not a gate and not completion authority. Do not
+force it onto tiny low-risk edits.
+
+Use `using-aegis/references/complexity-governance.md` for the shared artifact
+classes, pressure-signal interpretation, and over-budget handling.
+
+```text
+Complexity Budget:
+- Artifact class:
+- Target files / artifacts:
+- Current pressure:
+- Projected post-change pressure:
+- Budget result: within-budget | at-risk | over-budget
+- Planned governance:
+
+Plan-Time Complexity Check:
+- Better file boundary:
+- Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
+```
+
+### Prior-Art And Reuse Lens
+
+**Prior-Art & Reuse Lens:** When a candidate approach would introduce a new
+mechanism, protocol, artifact shape, or nontrivial interaction pattern, check
+proven external practice before inventing one. This lens is behavior-triggered:
+research precedents when the direction is novel for the project, plausible
+approaches remain after internal reuse checks, or the domain sits outside
+current repository evidence. Do not run research ceremony for routine work that
+already maps to well-known framework patterns, and do not let an unavailable
+web/search tool stall approach selection.
+
+```text
+Prior-Art & Reuse Lens:
+- Searched precedents: <bounded sources; index-first summary; cite anchor per claim>
+- Adopt verbatim: <proven pattern + source>
+- Adapt with reason: <tailored part -> project constraint / non-negotiable it maps to>
+- Reject with reason: <project fact that makes the pattern inapplicable>
+- Degraded: <no web/search tooling -> external basis unknown; internal-only evidence stated>
+```
+
+Search results are evidence candidates, not prompt payload: summarize
+index-first and cite anchors instead of pasting raw pages. An "industry
+standard" claim without a citable anchor stays `unknown`. Every adapt/reject
+decision binds to a named project constraint or fact, not taste. The lens feeds
+only the approach recommendation; it stays advisory and grants no completion
+authority.
+
+### Baseline Role Alignment
+
+**Baseline Role Alignment:** When a question may involve both "what should be
+built" and "where it should live", keep requirement truth separate from
+architecture truth:
+
+```text
+Baseline Role Alignment:
+- Product / Requirement Baseline:
+- Architecture / Runtime Boundary Baseline:
+- Result: aligned | Design Defect | Implementation Drift | missing-authority | needs-clarification
+- scope: requirements | architecture | both
+- Next action:
+```
+
+Use `Design Defect` when the relevant requirement, design, or baseline is wrong.
+Use `Implementation Drift` when the work deviates from a correct unchanged
+baseline. `Architecture Defect` and `Architecture Drift` remain compatibility
+aliases for architecture-scoped `Design Defect` and architecture-scoped
+`Implementation Drift`. This is a review lens, not a runtime gate or completion
+authority.

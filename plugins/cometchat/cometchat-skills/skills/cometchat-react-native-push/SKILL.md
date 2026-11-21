@@ -11,7 +11,7 @@ metadata:
 
 > **Ground truth:** `@cometchat/chat-sdk-react-native@4` + catalog `rn-sdk-v4.json` +
 > `features.rn-v5.json` → `push-notifications`. Docs:
-> `/notifications/react-native-push-notifications-android` · `…-ios`.
+> `/notifications/react-native-push-notifications-android` · `...-ios`.
 > This skill is **docs-first** — fetch the current setup steps; do not bake a Firebase tutorial.
 
 ## Companion skills (read first)
@@ -64,7 +64,7 @@ because nothing fails at the time.
 ## VoIP / call notifications
 Calls need a **data-only** push plus a native dialer integration (CallKeep) so the device rings while
 the app is killed. That is a materially bigger build than message push, with its own iOS entitlements.
-Fetch `/notifications/react-native-push-notifications-android` and `…-ios` and follow them — do not
+Fetch `/notifications/react-native-push-notifications-android` and `...-ios` and follow them — do not
 improvise it.
 
 ## Why this cannot be smoke-tested

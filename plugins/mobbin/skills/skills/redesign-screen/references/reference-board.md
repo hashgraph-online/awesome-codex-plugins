@@ -1,0 +1,14 @@
+# The reference board
+
+The board shows the evidence behind the render: every screen a move cited, grouped by the problem it answered. It is built only on request, from the closing menu or when the user asks for the references as an image or a frame. [report.md](report.md) keeps each cited screen's `mobbin_url` and `image_url`, and says why a later board uses the files downloaded then.
+
+## The composition
+
+One composition, handed over as [report.md](report.md) hands over files. When the run read a collection, the reply that hands it over repeats the report's line on where the references came from. Title it for the target ("Mobbin references used in the paywall redesign"), with one line under the title saying how it is grouped.
+
+- **Grouped by problem**, in the problem list's order. Each group is headed by its entry's bold lead-in from the report and the problem it answered, in the scoping option's words. A screen appears once, under the first problem whose move cites it. If it also backs other problems, a short line says so ("also problems 2 and 4").
+- **After an explore run, grouped by variation**, in letter order. Each group is headed by its entry's name and what-it-does line, with its letter as the group's `label`. The axis line is the subtitle.
+- **Each screen** is the file downloaded from its `image_url`, at a readable size, never the inline search preview: that is a low-res copy for your own reading, and on the board it blurs the evidence. Under it goes the app name as a link to its `mobbin_url`, and one line naming the decision the move adopted from it (the take), in what-is-seen terms: "timeline, then one plan card carrying both prices". No mood words, no ranking, nothing the image does not show.
+- **Collections**, only when the run read the user's collections, even if a search joined them: each one's name and `mobbin_url`, shown as chips on the title line. Saves described in words are one chip, named as the user put it ("Saved Duolingo screens") and linking to All saved. A run built from a search alone leaves it out.
+- **Only the roll call.** Every screen on the board is on a References line under Changes, or under Variations after an explore run. Pool screens no move cited, dropped screens and unused screens stay off. The count in the title is the count on the board.
+- **Form.** When the source is a design file and the connected tool can write, the board is a frame beside the render, built with that tool to the template's layout. Otherwise it is the skill's `assets/reference-board.html`: copy it next to the downloaded images, fill in its JSON and change nothing else. Capture it, then embed its images, as [before-after-board.md](before-after-board.md) does for its board. The user's theme and type are never used: the board is a Mobbin document, not a screen in their product.

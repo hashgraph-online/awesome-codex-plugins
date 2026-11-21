@@ -1,0 +1,45 @@
+{
+  "name": "macbox",
+  "version": "0.6.2",
+  "description": "A real Mac for your coding agent: build, test, run, and tap through iOS apps on the iOS simulator, from any machine, including Linux and cloud sandboxes.",
+  "author": {
+    "name": "Opslane",
+    "email": "abhishek@macbox.build",
+    "url": "https://macbox.build"
+  },
+  "homepage": "https://macbox.build",
+  "repository": "https://github.com/opslane/macbox-agent",
+  "license": "MIT",
+  "keywords": [
+    "ios",
+    "xcode",
+    "simulator",
+    "swift",
+    "xctest",
+    "mobile",
+    "testing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "macbox",
+    "shortDescription": "A real Mac for iOS builds",
+    "longDescription": "macbox gives your agent a real Mac mini with the latest Xcode. Your agent builds your app, runs XCTest and UI tests (one PASS/FAIL line per test), takes screenshots, and launches the app on the iOS simulator, where it can read the screen and tap, type, and swipe to check its own work. Every running app gets a live link you can open to watch and use it too.\n\nWorks today: Xcode projects and workspaces, Swift packages, CocoaPods, XcodeGen. Not yet: code signing, TestFlight, React Native, Flutter.\n\nPricing: $0.05 per Mac minute, whole minutes only, so a job under a minute is free. New accounts get $10 of credit. The skill runs the macbox CLI, which sends your project's files to your own macOS VM to build them.",
+    "developerName": "Opslane",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://macbox.build",
+    "defaultPrompt": [
+      "Build this iOS app and run its tests on macbox",
+      "Run the app on macbox and check the login flow works",
+      "Take a screenshot of the app's first screen"
+    ],
+    "brandColor": "#4B9BFF",
+    "composerIcon": "./logo.png",
+    "logo": "./logo.png",
+    "screenshots": []
+  }
+}

@@ -1,0 +1,397 @@
+{
+  "scenario": "r03-multi-step-form",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 1 of 3\nChoose a pizza size or type it.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "S",
+                "callback_data": "f:F7:0:o:0"
+              }
+            ],
+            [
+              {
+                "text": "M",
+                "callback_data": "f:F7:0:o:1"
+              }
+            ],
+            [
+              {
+                "text": "L",
+                "callback_data": "f:F7:0:o:2"
+              }
+            ],
+            [
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:0:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 2 of 3\nSend a phone number for the courier.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "f:F7:1:back"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:1:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answered",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 2 of 3\nSend a phone number for the courier.\n⚠ That doesn't look like a phone number.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "f:F7:1:back"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:1:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answered",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q",
+        "text": "That step is already answered."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 3 of 3\nWhen should we deliver?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "ASAP",
+                "callback_data": "f:F7:2:o:0"
+              }
+            ],
+            [
+              {
+                "text": "In 1 hour",
+                "callback_data": "f:F7:2:o:1"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "f:F7:2:back"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:2:cancel"
+              }
+            ],
+            [
+              {
+                "text": "Submit",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1003,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answered",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 2 of 3\nSend a phone number for the courier.\nCurrent answer: +380 44 123 4567",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "f:F7:1:back"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:1:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answered",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 3 of 3\nWhen should we deliver?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "ASAP",
+                "callback_data": "f:F7:2:o:0"
+              }
+            ],
+            [
+              {
+                "text": "In 1 hour",
+                "callback_data": "f:F7:2:o:1"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "f:F7:2:back"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:2:cancel"
+              }
+            ],
+            [
+              {
+                "text": "Submit",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1005,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answered",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Step 3 of 3\nWhen should we deliver?\nCurrent answer: In 1 hour",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "ASAP",
+                "callback_data": "f:F7:2:o:0"
+              }
+            ],
+            [
+              {
+                "text": "In 1 hour",
+                "callback_data": "f:F7:2:o:1"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "f:F7:2:back"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "f:F7:2:cancel"
+              }
+            ],
+            [
+              {
+                "text": "Submit",
+                "callback_data": "f:F7:submit",
+                "style": "success"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1006,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answered",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1007,
+        "text": "Sent. Reference: ORD-1042",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Sent",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q2",
+        "text": "Already sent."
+      }
+    }
+  ]
+}

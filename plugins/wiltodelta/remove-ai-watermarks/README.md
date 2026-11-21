@@ -1,14 +1,15 @@
 # Remove AI Watermarks
 
-Remove AI provenance marks from images and video you generated yourself:
+Remove AI provenance marks from images, video, and audio you generated yourself:
 
 - known visible labels such as the Google Gemini sparkle watermark and vendor text marks;
 - invisible pixel watermarks through direct local-format disruption or diffusion regeneration;
+- compatible public audio watermarks, with source and saved-output decoder checks;
 - C2PA, EXIF, XMP, IPTC, and related AI metadata.
 
 | Before | After |
 | --- | --- |
-| ![Image with a visible Gemini watermark](demo_banana_before.png) | ![Image after visible watermark removal](demo_banana_after.png) |
+| ![Image with a visible Gemini watermark](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/demo_banana_before.png) | ![Image after visible watermark removal](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/demo_banana_after.png) |
 
 ```bash
 uv tool install "remove-ai-watermarks[visible]"   # CLI for visible marks and metadata
@@ -23,12 +24,12 @@ removal.
 > [raiw.cc](https://raiw.cc) runs this library as a hosted service, with the GPU
 > included and nothing to install. Visible mark and metadata removal at Standard
 > output up to 12 MP are free there; original resolution above 12 MP and invisible
-> watermark removal are paid.
+> watermark removal are paid. [Project page](https://wiltodelta.com/projects/raiw/) · by [Victor Kuznetsov](https://wiltodelta.com/).
 
 [![PyPI](https://img.shields.io/pypi/v/remove-ai-watermarks?logo=pypi&logoColor=white)](https://pypi.org/project/remove-ai-watermarks/)
 [![Python](https://img.shields.io/pypi/pyversions/remove-ai-watermarks?logo=python&logoColor=white)](https://pypi.org/project/remove-ai-watermarks/)
 [![Downloads](https://static.pepy.tech/badge/remove-ai-watermarks/month)](https://pepy.tech/project/remove-ai-watermarks)
-[![License](https://img.shields.io/pypi/l/remove-ai-watermarks?color=blue)](LICENSE)
+[![License](https://img.shields.io/pypi/l/remove-ai-watermarks?color=blue)](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/LICENSE)
 [![Tests](https://github.com/wiltodelta/remove-ai-watermarks/actions/workflows/test.yml/badge.svg)](https://github.com/wiltodelta/remove-ai-watermarks/actions/workflows/test.yml)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-db61a2?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/wiltodelta)
 [![skills.sh](https://skills.sh/b/wiltodelta/remove-ai-watermarks)](https://skills.sh/wiltodelta/remove-ai-watermarks)
@@ -39,26 +40,54 @@ removal.
 > responsible for how they use it. It does not target stock agency previews or
 > other watermarks that protect third party paid content. Some jurisdictions,
 > including China, restrict removing AI labels or supplying tools that do. See
-> [scope, safety, and legal notes](docs/legal-and-safety.md).
+> [scope, safety, and legal notes](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/legal-and-safety.md).
 
 ## Choose what you want to do
 
 | Goal | Command | GPU |
 | --- | --- | --- |
 | Find provenance signals and watermarks | `identify` | No |
-| Classify a photograph from pixels (opt-in, not provenance) | `classify` | No |
+| Classify likely AI provider and model version from pixels (opt-in, not provenance) | `classify-source` | No |
 | Remove known visible AI marks | `visible` | No |
 | Erase a region you select | `erase` | No |
 | Strip AI metadata | `metadata` | No |
 | Identify supported video provenance | `video identify` | No |
-| Remove visible marks and AI metadata from video | `video all` | No |
+| Inspect audio metadata and compatible public-model evidence | `audio identify` (`--scheme auto`, `audioseal`, `wavmark`, `perth`, `silentcipher`, `silentcipher16`, or `all`) | No |
+| Strip AI metadata from audio | `audio metadata` | No |
+| Process a detected compatible audio watermark and verify the saved file (`.wav`, `.flac`, `.mp3`, `.m4a`, `.ogg`, `.opus`) | `audio invisible` | No |
+| Strip AI metadata and optionally clean compatible audio watermarks | `audio all` / `audio batch` | No |
+| Process one or all audio tracks (`--all-streams`) while copying encoded video | `video audio` | No |
+| Remove visible marks, AI metadata, and opt-in video/audio invisible marks | `video all` | Depends on `--invisible` |
 | Strip AI metadata from video | `video metadata` | No |
 | Remove a registered visible AI mark from video | `video visible` | No |
+| Erase user-specified `(x, y, w, h)` regions across video frames | `video erase` / `erase` | No |
 | Process a directory of videos | `video batch` | Depends on mode |
-| Apply the calibrated video-pixel SynthID-removal profile | `video invisible` | Recommended |
+| Detect or disrupt public VideoSeal/PixelSeal/ChunkySeal video marks | `video message` (`detect` / `identify` / `remove`) | Optional |
+| Regenerate video pixels (`--profile auto`, calibrated SynthID, Seedance, or `Wan 2.1` on CUDA/MPS) | `video invisible` | Recommended |
+| Identify C2PA text/HTML wrappers, `VSRMark`, and Unicode steganography | `text identify` | No |
+| Strip C2PA text/HTML wrappers, `VSRMark`, and Unicode steganography | `text metadata` | No |
+| Regenerate unlocked prose for best-effort token-watermark removal | `text invisible` | Recommended |
+| Strip text provenance and optionally regenerate prose spans | `text all` | Depends on `--invisible` |
 | Regenerate an image to disrupt invisible watermarks | `invisible` | Required (CUDA) |
 | Run visible, invisible, and metadata removal | `all` | Recommended |
 | Process a directory | `batch` | Depends on mode |
+
+Install `remove-ai-watermarks[text]` for the default local Transformers text
+rewriter and its packaged language checker. Local text regeneration also supports
+optional Apple silicon MLX models through
+`remove-ai-watermarks[text-mlx]` and
+`--rewriter-backend mlx --rewriter-model /path/to/checkpoint`.
+An explicitly configured API rewriter is available through the
+[Python API](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/python-api.md#optional-api-text-rewriter) with
+`remove-ai-watermarks[text-api]`. The same extra connects the CLI to a
+locally served Ollama model. Review generated prose for factual fidelity.
+See the [text CLI](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#identify-and-clean-text).
+
+Experimental public VideoSeal, PixelSeal, and ChunkySeal video checks and processing
+use [`video message`](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#public-model-video-messages-experimental).
+Known-message checks and processing require an independently known encoder
+message; `video message detect` is a blind presence check. Neither certifies
+arbitrary unknown marks or provider deployments.
 
 Microsoft Paint and Photos InvisMark declarations are routed automatically to
 pixel regeneration. The `all` command removes both the hidden pixel watermark and
@@ -71,19 +100,24 @@ specialized Python API can inspect and disrupt the validated local
 | Need | Install |
 | --- | --- |
 | Metadata inspection and stripping | `remove-ai-watermarks` |
-| Photograph AI-versus-camera classification | `remove-ai-watermarks[classify]` |
 | 10-provider source-export & model-version classification | `remove-ai-watermarks[source-classify]` |
 | Visible detection and removal | `remove-ai-watermarks[visible]` |
 | Visible video processing | `remove-ai-watermarks[video]` |
+| Public VideoSeal/PixelSeal/ChunkySeal checks | `remove-ai-watermarks[video-detect]`, add `diffusion` for VAE |
 | Video SynthID removal | `remove-ai-watermarks[video,diffusion]` |
+| Audio sample processing and spectral disruption | `remove-ai-watermarks[audio]` |
+| Compatible public audio watermark detection (AudioSeal) | `remove-ai-watermarks[audio-detect]` |
+| Neural audio codec resynthesis (EnCodec / FocalCodec / DAC) | `remove-ai-watermarks[audio-codec]` |
 | Torch-free DWT-DCT detection | `remove-ai-watermarks[detect]` |
 | Direct local Paint InvisMark disruption | `remove-ai-watermarks[pixels]` |
 | Invisible image removal (needs CUDA) | `remove-ai-watermarks[qwen-zimage]` |
-| Every production feature available on the active Python | `remove-ai-watermarks[all]` |
+| Production removal and default classifier backends | `remove-ai-watermarks[all]` |
+| Optional OCR proposals for operator verification | `remove-ai-watermarks[text-draft]` |
 
 Lower-level and specialized extras include `pixels`, `heif`, `trustmark`,
-`migan`, `lama`, `diffusion`, `classify-onnx`, and `source-classify`. The
-[installation guide](docs/installation.md#feature-extras) documents their exact
+`migan`, `lama`, `diffusion`, `source-classify`, `audio-vocoder`,
+`audio-wavmark`, `audio-perth`, and `audio-silentcipher`. The
+[installation guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/installation.md#feature-extras) documents their exact
 dependency composition, Python compatibility, and model requirements.
 
 ## Quick start
@@ -100,21 +134,13 @@ Inspect an image:
 remove-ai-watermarks identify image.png
 ```
 
-To classify a photograph from pixels (AI versus camera, optional provider),
-install the extra and call `classify`. `identify` never starts it:
+For an abstaining, CPU-only 10-provider source-export and model-version
+classifier from pixels after metadata removal (`classify_source` and CLI
+`classify-source`), install `source-classify`. `identify` never runs it, and it
+is not a SynthID detector:
 
 ```bash
-uv tool install --force "remove-ai-watermarks[classify]"
-remove-ai-watermarks classify image.png
-```
-
-Guide: [photo pixel classification](docs/photo-classify.md).
-
-For a lightweight, abstaining 10-provider source-export and model-version
-signal after metadata removal (`classify_source` and CLI `classify-source`),
-use the separate API or CLI command. It is not a SynthID detector:
-
-```bash
+uv tool install --force "remove-ai-watermarks[source-classify]"
 remove-ai-watermarks classify-source image.png
 ```
 
@@ -122,16 +148,15 @@ remove-ai-watermarks classify-source image.png
 import remove_ai_watermarks as raiw
 
 result = raiw.classify_source("image.png")
-print(result.label, result.version_subfamily, result.reason)
+print(result.label, result.version_subfamily, result.synthetic_detected, result.confidence)
 ```
 
-Install `remove-ai-watermarks[source-classify]`. Guide:
-[source-pipeline classification](docs/source-classify.md).
+Guide: [source-pipeline classification](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/source-classify.md). Model card: [`wiltodelta/raiw-source-classify`](https://huggingface.co/wiltodelta/raiw-source-classify).
 
 Signed provenance is the supported route for SynthID and `identify` reads it.
 There is no local SynthID pixel detector in the package. Research on a
 periodic lattice expert is in `scripts/synthid_runtime/` and
-[synthid-detector-research.md](docs/synthid-detector-research.md).
+[synthid-detector-research.md](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/synthid-detector-research.md).
 
 For visible watermark removal, install the pixel dependencies:
 
@@ -183,11 +208,14 @@ remove-ai-watermarks video identify input.mp4
 remove-ai-watermarks video all input.mp4 -o clean.mp4
 ```
 
+`video identify` also names invisible watermark hints from metadata and provider
+policy. These are separate from pixel detection and per-file removal verification.
+
 `video all` removes a stable registered visible mark when present and always
 strips verified AI metadata. If neither signal is found, it still writes a
 same-container passthrough, so application callers get one predictable output
-contract. Proprietary invisible-video removal is excluded by default.
-`--invisible` opts into the lossy, oracle-certified video SynthID profile.
+contract. Proprietary invisible-video removal is excluded by default:
+`--invisible` opts into the lossy, oracle-certified video SynthID profile (with motion-compensated temporal stabilization enabled by default and `--keep-fps` to retain native frame rate), and `--audio-invisible` inspects and cleans compatible watermarked audio tracks in the same atomic pipeline.
 
 Process a directory with the same contract:
 
@@ -213,8 +241,8 @@ without re-encoding and is allowed to reach its natural end; the video stream
 is transcoded because its pixels change. By default, a guarded optical-flow
 pass motion-aligns the preceding accepted fill and blends it only when the
 nearby source context agrees; use `--no-temporal-consistency` to disable it.
-The encoder preserves supported
-8-bit source chroma sampling, color tags, and MP4/MOV track timescale instead
+The encoder preserves supported 8-bit and 10-bit HDR (`yuv420p10le`, `bt2020nc`,
+`smpte2084`/`arib-std-b67`) source chroma sampling, color tags, and MP4/MOV track timescale instead
 of relying on ffmpeg's implicit raw-BGR defaults. Variable frame intervals are
 preserved through a timestamped in-memory NUT bridge instead of being flattened
 to the average frame rate. Non-zero source start timestamps are retained
@@ -231,8 +259,8 @@ four-point diamond and the legacy `Veo` text. Seedance covers the fixed boxed
 `MINIMAX | hailuo AI` label, and Kling AI covers the bottom-right `KLING AI` or
 `KlingAI` label with its version suffix. A completed encode is published
 atomically. No output is written when no stable mark is found.
-HDR, PQ/HLG, and greater-than-8-bit inputs are rejected before encoding rather
-than silently reduced through OpenCV's 8-bit BGR boundary.
+Unsupported pixel formats are rejected before encoding rather than silently
+reduced to 8-bit SDR.
 
 Apply the calibrated video-pixel SynthID-removal profile:
 
@@ -279,10 +307,10 @@ remove-ai-watermarks invisible image.png -o clean.png \
   --text-manifest verified-lines.json --force
 ```
 
-See the [CLI guide](docs/cli.md#restore-operator-verified-text) for the manifest
+See the [CLI guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#restore-operator-verified-text) for the manifest
 schema, compatibility restrictions, and oracle caveats.
 
-See the [installation guide](docs/installation.md) for Homebrew, uv, optional
+See the [installation guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/installation.md) for Homebrew, uv, optional
 features, and development setup.
 
 ## Examples
@@ -302,10 +330,21 @@ uv run remove-ai-watermarks visible demo_banana_before.png \
 `qwen-zimage` is the default profile: a Qwen-Image-2512 Lightning pass under Canny
 ControlNet, followed by SAM-masked Z-Image repair of any detected face. The
 alternative, `sdxl-zimage`, swaps the global stage for SDXL and keeps the same face
-stage. A third profile, `chroma-zimage`, uses the Apache-2.0 Chroma1 global pass
-with its own flat vendor floors; see `docs/chroma1-engine-research.md` for the
-calibration. `--pipeline auto` picks sdxl-zimage for Google, chroma-zimage for
-Microsoft, and qwen-zimage otherwise. All are CUDA only.
+stage. `chroma-zimage` uses the Apache-2.0 Chroma1 global pass with its own flat
+vendor floors; see `docs/chroma1-engine-research.md` for the calibration. An opt-in
+profile, `qwen21-zimage`, swaps the global stage for Qwen-Image-2.1 (with
+`madebyollin/texture-fix-vae-for-qwen-image-2.1` and `Qwen-Image-2.1-Fun-Controlnet-Union`
+Canny); because `Qwen/Qwen-Image-2.1` is released under the Qwen Research License,
+`qwen21-zimage` is for non-commercial research, evaluation, and personal use only
+(not for commercial use). `--pipeline auto` picks sdxl-zimage for Google,
+chroma-zimage for Microsoft, and qwen-zimage otherwise, keeping `auto` commercial-safe.
+All are CUDA only.
+
+Since 0.57.0, `qwen21-zimage` includes bounded geometric alignment by default after the shared
+Qwen-2.1 global and face stages, accepting a result only when both source MSE and local LPIPS improve.
+It retains the Qwen Research License restrictions. Qualified text geometry can
+be supplied through the Python API; the CLI does not run automatic OCR. See
+[the fidelity profile](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#fidelity-profile) for limits and fallback behavior.
 
 ```bash
 uv tool install --force "remove-ai-watermarks[qwen-zimage]"
@@ -314,11 +353,11 @@ remove-ai-watermarks invisible image.png -o clean.png --force
 
 | OpenAI example before | OpenAI example after |
 | --- | --- |
-| [![OpenAI portrait grid before qwen-zimage](data/synthid/originals/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM.png)](data/synthid/originals/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM.png) | [![OpenAI portrait grid after qwen-zimage](docs/images/qwen-zimage/ChatGPT/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM_full_clean.png)](docs/images/qwen-zimage/ChatGPT/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM_full_clean.png) |
+| [![OpenAI portrait grid before qwen-zimage](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/data/synthid/originals/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM.png)](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/data/synthid/originals/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM.png) | [![OpenAI portrait grid after qwen-zimage](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/docs/images/qwen-zimage/ChatGPT/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM_full_clean.png)](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/docs/images/qwen-zimage/ChatGPT/ChatGPT%20Image%20May%2030,%202026,%2010_31_08%20AM_full_clean.png) |
 
 | Gemini example before | Gemini example after |
 | --- | --- |
-| [![Gemini sign before qwen-zimage](data/synthid/originals/Gemini_Generated_Image_633uuy633uuy633u.png)](data/synthid/originals/Gemini_Generated_Image_633uuy633uuy633u.png) | [![Gemini sign after qwen-zimage](docs/images/qwen-zimage/Gemini/Gemini_Generated_Image_633uuy633uuy633u_full_clean.png)](docs/images/qwen-zimage/Gemini/Gemini_Generated_Image_633uuy633uuy633u_full_clean.png) |
+| [![Gemini sign before qwen-zimage](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/data/synthid/originals/Gemini_Generated_Image_633uuy633uuy633u.png)](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/data/synthid/originals/Gemini_Generated_Image_633uuy633uuy633u.png) | [![Gemini sign after qwen-zimage](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/docs/images/qwen-zimage/Gemini/Gemini_Generated_Image_633uuy633uuy633u_full_clean.png)](https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/main/docs/images/qwen-zimage/Gemini/Gemini_Generated_Image_633uuy633uuy633u_full_clean.png) |
 
 These exact output files were checked with the matching provider verifiers. That
 result applies to these files, not to every seed, image, or future watermark
@@ -400,8 +439,8 @@ and several vendor specific signals. Optional decoders add support for open
 DWT-DCT watermarks and Adobe TrustMark.
 
 The exact support matrix, including important locale and detector limits, lives
-in [supported signals](docs/supported-signals.md). The
-[synthetic example gallery](data/fixtures/visible/README.md) carries one canonical
+in [supported signals](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/supported-signals.md). The
+[synthetic example gallery](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/data/fixtures/visible/README.md) carries one canonical
 sample for every registered image and video mark.
 
 ## How it works
@@ -423,8 +462,8 @@ a diffusion pipeline. Specialized callers can instead decode and disrupt the
 positively identified local Microsoft Paint format with much smaller pixel changes.
 Neither path can guarantee that every proprietary verifier will reject every output.
 
-See [supported signals](docs/supported-signals.md) and
-[known limitations](docs/known-limitations.md) for the full technical boundary.
+See [supported signals](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/supported-signals.md) and
+[known limitations](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/known-limitations.md) for the full technical boundary.
 
 ## Python API
 
@@ -453,6 +492,19 @@ print(complete.visual_invisible_action, complete.audio.watermark_status)
 batch = raiw.remove_video_batch("videos", "videos_clean")
 cleaned = raiw.remove_video_metadata("input.mp4")
 synthid_cleaned = raiw.remove_video_invisible("input.mp4", "synthid_clean.mp4")
+auto_cleaned = raiw.remove_video_invisible(
+    "input.mp4", "auto_clean.mp4", profile="auto"
+)  # routes ByteDance/Seedance vs SynthID and prefers CUDA Wan 2.1 when available
+seedance_experiment = raiw.remove_video_seedance_experimental(
+    "owned-label-cleaned.mp4", "seedance_clean.mp4", quality="delivery"
+)  # experimental pixel reconstruction; handle visible labels first
+seedance_complete = raiw.remove_video_all(
+    "input.mp4", "seedance-clean.mp4",
+    include_invisible=True, invisible_profile="seedance-experimental",
+)  # supported visible removal, then experimental reconstruction
+wan_synthid = raiw.remove_video_wan_experimental(
+    "owned-veo.mp4", "veo_wan_clean.mp4", profile="wan21-synthid-experimental"
+)  # optional CUDA 3D Wan 2.1 video diffusion at native resolution (multi-window >193 frames)
 print(synthid_cleaned.visual_invisible_action, synthid_cleaned.audio.watermark_status)
 visible = raiw.remove_video_visible("input.mp4", "clean.mp4")
 print(visible.mark)
@@ -469,7 +521,7 @@ The high level API accepts a file path or a BGR NumPy array. For path inputs it
 also reads provenance metadata, preserves alpha, and can strip AI metadata from
 the written result.
 
-See the [Python API guide](docs/python-api.md) for visible removal, the full
+See the [Python API guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/python-api.md) for visible removal, the full
 `remove_all` and `remove_batch` pipeline, provenance inspection, metadata
 stripping, and diffusion usage.
 
@@ -488,20 +540,21 @@ Claude Code can add this repository as a plugin marketplace:
 /plugin install remove-ai-watermarks@remove-ai-watermarks
 ```
 
-Codex reads the same skill through [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json).
+Codex reads the same skill through [`.codex-plugin/plugin.json`](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/.codex-plugin/plugin.json), Cursor through [`.cursor-plugin/plugin.json`](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/.cursor-plugin/plugin.json), and Gemini CLI through [`gemini-extension.json`](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/gemini-extension.json).
 The skill refuses stock-agency and other third-party paid-asset marks. See
-[the agent skill guide](docs/agent-skill.md).
+[the agent skill guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/agent-skill.md).
 
 ## MCP server
 
-`remove-ai-watermarks mcp` serves `identify`, `remove` and `batch` as Model
-Context Protocol tools over stdio, each a thin wrapper around one CLI command:
+`remove-ai-watermarks mcp` serves `identify`, `remove`, `batch`, and one tool per
+CLI command as Model Context Protocol tools over stdio, each a thin wrapper
+around one CLI command:
 
 ```json
-{"mcpServers": {"remove-ai-watermarks": {"command": "uvx", "args": ["remove-ai-watermarks", "mcp"]}}}
+{"mcpServers": {"remove-ai-watermarks": {"command": "uvx", "args": ["--python", "3.12", "--with", "remove-ai-watermarks[all,text-draft]", "remove-ai-watermarks", "mcp"]}}}
 ```
 
-See [the MCP server guide](docs/mcp-server.md).
+See [the MCP server guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/mcp-server.md).
 
 <!-- mcp-name: io.github.wiltodelta/remove-ai-watermarks -->
 
@@ -516,7 +569,7 @@ invisible removal.
 
 - A missing local signal means unknown, not clean. Proprietary pixel
   watermarks may remain after metadata has been stripped.
-  [What each path leaves behind](docs/known-limitations.md#what-each-path-leaves-behind)
+  [What each path leaves behind](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/known-limitations.md#what-each-path-leaves-behind)
   lists, per command, what may remain and how to check it.
 - Visible removal reconstructs a small region. Results depend on the background
   and selected fill backend.
@@ -573,20 +626,20 @@ rows.
 
 ## Documentation
 
-Start with the [documentation index](docs/index.md).
+Start with the [documentation index](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/index.md).
 
-- [Installation](docs/installation.md)
-- [CLI guide](docs/cli.md)
-- [Python API](docs/python-api.md)
-- [Supported signals](docs/supported-signals.md)
-- [Known limitations](docs/known-limitations.md)
-- [Scope, safety, and legal notes](docs/legal-and-safety.md)
-- [Module internals](docs/module-internals.md)
-- [Release and distribution](docs/release-and-distribution.md)
-- [Agent skill](docs/agent-skill.md)
+- [Installation](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/installation.md)
+- [CLI guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md)
+- [Python API](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/python-api.md)
+- [Supported signals](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/supported-signals.md)
+- [Known limitations](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/known-limitations.md)
+- [Scope, safety, and legal notes](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/legal-and-safety.md)
+- [Module internals](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/module-internals.md)
+- [Release and distribution](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/release-and-distribution.md)
+- [Agent skill](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/agent-skill.md)
 
 Research notes and historical experiments are listed separately in the
-[documentation index](docs/index.md). They explain past decisions but do not
+[documentation index](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/index.md). They explain past decisions but do not
 define the current public API.
 
 ## Contributing
@@ -598,12 +651,12 @@ uv sync --frozen --extra dev
 bash maintain.sh
 ```
 
-See [module internals](docs/module-internals.md) before changing a subsystem
+See [module internals](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/module-internals.md) before changing a subsystem
 with documented invariants. Report vulnerabilities as described in
-[SECURITY.md](SECURITY.md).
+[SECURITY.md](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/SECURITY.md).
 
 ## License
 
-[Apache 2.0](LICENSE). Copyright 2025-2026 wiltodelta.
+[Apache 2.0](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/LICENSE). Copyright 2025-2026 wiltodelta.
 
 Made by [Victor Kuznetsov](https://wiltodelta.com/).

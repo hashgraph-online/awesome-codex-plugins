@@ -5,6 +5,7 @@
 BMAD（Breakthrough Method of Agile AI-Driven Development）是一种突破性的敏捷 AI 驱动开发方法论，专为人机协作设计，通过专业化的 AI Agent 团队完成完整的软件开发生命周期。
 
 **核心特性**：
+
 - 专业化角色分工
 - 产物驱动的协作链
 - 三层质量门禁
@@ -43,6 +44,7 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 > `plan.md`（实施计划）由 Tech Lead 在评审通过后产出，定义模块划分、里程碑和任务拆解指引。Scrum Master 基于 `plan.md` 细化为文件级别的 `tasks.md`。
 
 **规则**：
+
 - 每个产物有明确的上游输入
 - 上游产物缺失时，可用用户直接描述的需求替代
 - `qa-report.md` 依赖代码 + `prd.md`（QA 需要对照 PRD 验收标准）
@@ -50,6 +52,7 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 ### 3. 专家小队
 
 区别于传统的分步确认模式，Boss 采用专家小队模式：
+
 - 可从任意环节切入（需求、架构、开发、测试、部署）
 - 默认自动续跑后续所有环节，除非用户主动叫停
 - 每个角色有硬性质量要求 + 禁止清单
@@ -64,6 +67,7 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 **目标**：将用户想法转化为可执行规格
 
 **参与 Agent**：
+
 - PM Agent → 创建 `prd.md`
 - Architect Agent → 设计 `architecture.md`（包含 API 契约定义）
 - UI Designer Agent → 创建 `ui-spec.md` 和 `ui-design.json`（可选，`--skip-ui` 时跳过）
@@ -73,12 +77,14 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 **目标**：将规格转化为可实施的开发计划
 
 **参与 Agent**：
+
 - Tech Lead Agent → 技术评审 + 实施计划，产出 `tech-review.md` + `plan.md`
 - Scrum Master Agent → 基于 `plan.md` 创建详细任务 `tasks.md`
 
 **串行执行**：Tech Lead 评审完成后，Scrum Master 才能拆解任务
 
 **Tech Lead 职责**（非故事分解）：
+
 - 评审架构设计的合理性
 - 识别技术风险和依赖
 - 可发起 `REVISION_NEEDED` 请求架构师修订
@@ -88,10 +94,12 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 **目标**：实现代码并持续验证
 
 **参与 Agent**：
+
 - Frontend Agent + Backend Agent → 并行实现代码
 - QA Agent → 对照 PRD 验收标准验证
 
 **工作模式**：
+
 1. 按任务顺序实现代码（前后端并行）
 2. 实现中允许 Agent 通过执行中会话层做点对点对齐或小范围 huddle
 3. 代码完成后 QA 进行验证
@@ -104,9 +112,11 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 **目标**：部署应用并生成报告
 
 **参与 Agent**：
+
 - DevOps Agent → 部署应用
 
 **产物**：
+
 - `deploy-report.md`
 - 可访问的 URL
 
@@ -125,12 +135,14 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 ### Gate 0 默认安全检查
 
 Gate 0 内置两类安全检查：
+
 1. **敏感信息扫描**（secrets-scan）：检测 AWS Key、Private Key、GitHub Token、OpenAI Key 等
 2. **不安全代码模式**（unsafe-patterns）：检测 `eval()`、`dangerouslySetInnerHTML`、`innerHTML =` 等
 
 ### 门禁判断标准
 
 问自己：
+
 - **如果现在把这个代码交给用户，他能正常使用吗？**
 - **核心流程有没有遗漏的测试？**
 - **有没有明显的性能或安全问题？**
@@ -201,6 +213,7 @@ Gate 0 内置两类安全检查：
 ### 修订循环
 
 当 Tech Lead 发现架构问题时：
+
 1. Tech Lead 输出 `REVISION_NEEDED`，指明 `revision_target` 和 `revision_reason`
 2. Architect 接收修订请求，针对性修改
 3. 修订最多 2 轮，避免无限循环
@@ -219,6 +232,7 @@ Gate 0 内置两类安全检查：
 ### 1. 需求描述
 
 好的需求描述应该包含：
+
 - 功能目标
 - 用户类型
 - 核心场景

@@ -22,5 +22,5 @@ The first stop when a Flutter integration renders wrong. Live page: `/ui-kit/flu
 | Presence/online status never updates | `subscribePresenceForAllUsers` false in settings | Set it `true` (default) |
 | Messages arrive only after reopening the screen | Socket not auto-connecting | `chatSDK.autoEstablishSocketConnection: true` |
 | Android build fails on minSdk | App below the real floor (the docs' 24 is too low) | `minSdk = 26` in `android/app/build.gradle.kts` — forced by `cometchat_calls_sdk`, a hard dependency of the kit |
-| iOS pod install fails | Deployment target too low (the docs' 13.0 is too low on 5.0.7) | `platform :ios, '15.1'` in `ios/Podfile`, then `pod install` |
+| iOS pod install fails | Deployment target too low (the docs' 13.0 is too low from calls SDK 5.0.7) | `platform :ios, '15.1'` in `ios/Podfile`, then `pod install` |
 | Everything breaks after upgrading from v5 | Mixed majors / removed v5 APIs | → `cometchat-flutter-v6-migration`; never mix majors |

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>{{TITLE}}</title>
+<link rel="stylesheet" href="katex/katex.min.css">
+<link rel="stylesheet" href="report.css">
+<link rel="stylesheet" href="extra.css">
+<link rel="stylesheet" href="cards.css">
+<style>
+@page {
+  size: A4;
+  margin: 17mm 15mm 15mm 15mm;
+  @top-left { content: "{{TITLE_CSS}}"; font-family: "Noto Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 7.5pt; color: #898781; }
+  @top-right { content: "{{DATE_CSS}}"; font-family: "Noto Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 7.5pt; color: #898781; }
+  @bottom-center { content: counter(page) " / " counter(pages); font-family: "Noto Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 7.5pt; color: #898781; }
+}
+@page :first { @top-left { content: none; } @top-right { content: none; } }
+</style>
+<script defer src="katex/katex.min.js"></script>
+<script defer src="katex/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  renderMathInElement(document.body, {
+    delimiters: [{left: "\\[", right: "\\]", display: true}, {left: "\\(", right: "\\)", display: false},
+                 {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}],
+    throwOnError: false
+  });
+  // 行内公式后紧跟的中文标点不另起一行
+  var P = "，。；：、）！？";
+  document.querySelectorAll(".katex").forEach(function (k) {
+    if (k.closest(".katex-display")) return;
+    var host = (k.parentNode && k.parentNode.tagName === "SPAN" && k.parentNode.childNodes.length === 1) ? k.parentNode : k;
+    var t = host.nextSibling;
+    if (!t || t.nodeType !== 3 || !t.data.length || P.indexOf(t.data[0]) < 0) return;
+    var w = document.createElement("span");
+    w.className = "nowrap";
+    host.parentNode.insertBefore(w, host);
+    w.appendChild(host);
+    w.appendChild(document.createTextNode(t.data[0]));
+    t.data = t.data.slice(1);
+  });
+});
+</script>
+</head>
+<body>
+<!--BODY-->
+</body>
+</html>

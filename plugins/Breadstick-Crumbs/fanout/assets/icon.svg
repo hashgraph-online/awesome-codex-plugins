@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -50 196 196" width="64" height="64" role="img" aria-label="fanout">
+  <g fill="none" stroke="#2f81f7" stroke-width="12" stroke-linecap="round">
+    <path d="M10 48 H186"/>
+    <path d="M34 48 C54 48 52 18 74 18 H122 C144 18 142 48 162 48"/>
+    <path d="M34 48 C54 48 52 78 74 78 H122 C144 78 142 48 162 48"/>
+  </g>
+  <g fill="#2f81f7">
+    <circle cx="34" cy="48" r="14"/>
+    <circle cx="162" cy="48" r="14"/>
+  </g>
+</svg>

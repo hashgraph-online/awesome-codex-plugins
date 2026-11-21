@@ -9,7 +9,7 @@
 | **Linear** | Equal credit to all touchpoints | Balanced overview | Over-credits low-impact touches |
 | **Time-Decay** | More credit to touches closer to conversion | Long sales cycles, B2B | Under-credits awareness |
 | **Position-Based (U-shape)** | 40% first, 40% last, 20% split among middle | Balanced with emphasis on intro/close | Somewhat arbitrary splits |
-| **Data-Driven** | ML model allocates based on actual impact | Large datasets (300+ conversions/month) | Requires significant data volume |
+| **Data-Driven** | ML model allocates based on actual impact | Accounts with steady conversion volume (Data volume decides how stable the model is; Google publishes no fixed minimum for data-driven attribution, so neither do we) | Unstable on thin data |
 | **Marketing Mix Modeling** | Econometric model using aggregate data | Budget allocation across channels | Slow, requires historical data |
 
 ---
@@ -17,13 +17,14 @@
 ## Model Selection Decision Tree
 
 ```
-START: How many conversions per month?
-├── < 300 → Use Position-Based or Time-Decay
-│   ├── Short sales cycle (< 7 days)? → Last-Click or Linear
-│   └── Long sales cycle (> 30 days)? → Time-Decay
-├── 300-1000 → Consider Data-Driven
-│   └── Is your analytics platform capable? → Use Data-Driven
-└── > 1000 → Use Data-Driven + MMM for budget planning
+START: Where is attribution computed?
+├── In GA4 or Google Ads → only data-driven and last click exist there
+│   ├── Steady conversion volume? → Data-driven, compared with last click
+│   └── Thin or lumpy volume? → Last click, and read data-driven as directional
+├── In your own warehouse or CRM → any model, including position-based and time-decay
+│   ├── Short sales cycle (< 7 days)? → Last-click or linear
+│   └── Long sales cycle (> 30 days)? → Time-decay or W-shaped (needs CRM stages)
+└── Budget planning across channels → add MMM; no click-path model answers that alone
 
 BUSINESS MODEL OVERRIDES:
 - eCommerce / DTC → Last-Click baseline, upgrade to Data-Driven when possible
@@ -55,8 +56,8 @@ BUSINESS MODEL OVERRIDES:
 
 ### Google Ads
 
-- **Default**: Last-click within Google Ads
-- **Data-driven**: Available in conversion settings when sufficient data
+- **Default**: Data-driven for most conversion actions ("The Data-driven model is the default attribution model for most conversion actions", support.google.com/google-ads/answer/6259715, undated, read 2026-10-27). Last click is still available; first click, linear, time decay and position-based are no longer supported
+- **Compare**: put data-driven beside last click to see which campaigns assist conversions
 - **Cross-campaign**: Attribution applies across Search, Display, YouTube, Shopping
 - **Recommendation**: Enable data-driven attribution, set appropriate conversion windows
 

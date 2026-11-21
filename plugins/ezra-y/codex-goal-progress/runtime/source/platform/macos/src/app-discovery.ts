@@ -214,14 +214,6 @@ export async function inspectCodexMacosApp(
     throw discoveryError("GOAL_PROGRESS_CODEX_APP_AUTHORITY_MISSING");
   }
 
-  const signatureVerification = await runner(SYSTEM_COMMANDS.codesign, [
-    "--verify",
-    "--deep",
-    "--strict",
-    realAppPath,
-  ]);
-  requireSuccessfulCommand(signatureVerification, "GOAL_PROGRESS_CODEX_APP_SIGNATURE_INVALID");
-
   const fileResult = await runner(SYSTEM_COMMANDS.file, ["-b", realExecutablePath]);
   const fileDescription = requireSuccessfulCommand(
     fileResult,

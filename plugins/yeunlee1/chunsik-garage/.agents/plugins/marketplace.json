@@ -1,0 +1,22 @@
+{
+  "name": "chunsik-garage",
+  "interface": {
+    "displayName": "Chunsik's Garage"
+  },
+  "plugins": [
+    {
+      "name": "chunsik-garage",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools",
+      "version": "0.5.0",
+      "description": "AQ checkup for Claude Code and Codex: scores how well you set up and use your AI coding tools, computed on your own PC."
+    }
+  ]
+}

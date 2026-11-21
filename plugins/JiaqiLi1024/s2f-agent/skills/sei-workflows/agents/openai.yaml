@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sei workflows"
+  short_description: "Sei chromatin-profile and sequence-class prediction workflows"
+  default_prompt: "Use $sei-workflows to help me with Sei chromatin-profile and sequence-class prediction workflows."

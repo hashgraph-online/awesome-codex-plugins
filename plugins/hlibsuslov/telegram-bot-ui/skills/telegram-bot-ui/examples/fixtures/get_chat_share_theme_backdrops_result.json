@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "result": {
+    "backdrops": [
+      {
+        "id": 7,
+        "name": "Midnight",
+        "colors": {
+          "center_color": 1185346,
+          "edge_color": 592137,
+          "symbol_color": 7239423,
+          "text_color": 16777215
+        }
+      }
+    ]
+  }
+}

@@ -24,6 +24,7 @@ export const INSTALL_MANIFEST_SCHEMA_VERSION = 1;
 
 export interface CodexInstallIdentity {
   readonly realAppPath: string;
+  readonly realExecutablePath?: string;
   readonly bundleId: string;
   readonly teamId: string;
 }
@@ -169,38 +170,14 @@ async function verifyReleaseFile(root: string, file: MacosReleaseFile): Promise<
   }
 }
 
-async function verifySha256Sums(
-  root: string,
-  expectedFiles: readonly MacosReleaseFile[],
-): Promise<void> {
-  const lines = (await readFile(resolve(root, "SHA256SUMS"), "utf8"))
-    .trim()
-    .split("\n")
-    .filter(Boolean);
-  const expected = new Map(expectedFiles.map((file) => [file.path, file.sha256]));
-  for (const line of lines) {
-    const match = /^([0-9a-f]{64}) {2}(.+)$/u.exec(line);
-    if (!match?.[1] || !match[2] || expected.get(match[2]) !== match[1]) {
-      throw new Error("GOAL_PROGRESS_RELEASE_SHA256_MANIFEST_INVALID");
-    }
-    expected.delete(match[2]);
-  }
-  if (expected.size !== 0) {
-    throw new Error("GOAL_PROGRESS_RELEASE_SHA256_MANIFEST_INCOMPLETE");
-  }
+export async function readReleaseManifest(root: string): Promise<ParsedReleaseManifest> {
+  const manifestPath = resolve(root, "manifest.json");
+  return parseReleaseManifest(JSON.parse(await readFile(manifestPath, "utf8")));
 }
 
 export async function readVerifiedRelease(root: string): Promise<ParsedReleaseManifest> {
-  const manifestPath = resolve(root, "manifest.json");
-  const manifest = parseReleaseManifest(JSON.parse(await readFile(manifestPath, "utf8")));
-  const manifestFile: MacosReleaseFile = {
-    path: "manifest.json",
-    bytes: (await stat(manifestPath)).size,
-    sha256: await fileSha256(manifestPath),
-  };
-  const files = Object.values(manifest.files);
-  await Promise.all(files.map((file) => verifyReleaseFile(root, file)));
-  await verifySha256Sums(root, [...files, manifestFile]);
+  const manifest = await readReleaseManifest(root);
+  await Promise.all(Object.values(manifest.files).map((file) => verifyReleaseFile(root, file)));
   return manifest;
 }
 

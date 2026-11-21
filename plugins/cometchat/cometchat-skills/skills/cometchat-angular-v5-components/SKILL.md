@@ -2,7 +2,7 @@
 name: cometchat-angular-v5-components
 description: "Choose, compose and customize CometChat Angular UI Kit components — the closed component list, real @Input/@Output names, view-slot overrides via ng-template, and the surfaces that have NO kit component and must be host-composed. Triggers: 'which components exist', 'customize the conversation list', 'custom message bubble', 'create a group', 'show banned members', 'swap the list item'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -69,7 +69,7 @@ The rule above covers what `<cometchat-message-list>` renders for you. A second 
 <cometchat-avatar [image]="user?.getAvatar()" [name]="user?.getName()"></cometchat-avatar>
 
 <!-- ❌ hand-rolled: needs your own fallback URL, ignores the theme, drifts from the kit -->
-<img [src]="user?.getAvatar() || 'https://…/astronaut.png'" class="my-avatar" />
+<img [src]="user?.getAvatar() || 'https://.../astronaut.png'" class="my-avatar" />
 ```
 
 A hand-rolled `<img>` is the common one. It forces you to invent a placeholder, it does not render initials when the user has no picture, and it ignores every avatar token in the theme. **Before styling a presentational element yourself, check this table** — and remember these are standalone components, so each one you use goes in the consuming component's `imports: []`.

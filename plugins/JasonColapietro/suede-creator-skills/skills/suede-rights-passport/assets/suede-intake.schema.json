@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:suede:rights-passport:suede-intake:0.2.0",
+  "title": "Suede Rights Passport Intake Manifest",
+  "description": "Structural schema for a Suede rights package. Validation is not rights clearance, registration, DDEX conformance, or C2PA verification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_type",
+    "generated_at",
+    "project",
+    "creator",
+    "parties",
+    "works",
+    "recordings",
+    "releases",
+    "assets",
+    "rights",
+    "rights_claims",
+    "licenses",
+    "third_party_material",
+    "consents",
+    "provenance",
+    "privacy",
+    "optimization",
+    "missing_information",
+    "risk_flags"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.2.0" },
+    "package_type": { "const": "suede-transfer-package" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "metadata_source": { "type": "string" },
+    "project": { "$ref": "#/$defs/project" },
+    "creator": { "$ref": "#/$defs/creator" },
+    "parties": { "type": "array", "items": { "$ref": "#/$defs/party" } },
+    "works": { "type": "array", "items": { "$ref": "#/$defs/work" } },
+    "recordings": { "type": "array", "items": { "$ref": "#/$defs/recording" } },
+    "releases": { "type": "array", "items": { "$ref": "#/$defs/release" } },
+    "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } },
+    "rights": { "$ref": "#/$defs/legacyRightsSummary" },
+    "rights_claims": { "type": "array", "items": { "$ref": "#/$defs/rightsClaim" } },
+    "licenses": { "type": "array", "items": { "$ref": "#/$defs/license" } },
+    "third_party_material": { "type": "array", "items": { "$ref": "#/$defs/thirdPartyMaterial" } },
+    "consents": { "type": "array", "items": { "$ref": "#/$defs/consent" } },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "privacy": { "$ref": "#/$defs/privacy" },
+    "optimization": { "type": "object" },
+    "missing_information": { "type": "array", "items": { "$ref": "#/$defs/missingInformation" } },
+    "risk_flags": { "type": "array", "items": { "$ref": "#/$defs/riskFlag" } }
+  },
+  "$defs": {
+    "status": {
+      "type": "string",
+      "enum": ["confirmed", "claimed", "unconfirmed", "disputed", "unknown"]
+    },
+    "identifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheme", "value", "status", "evidence_refs"],
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "enum": ["ISRC", "ISWC", "IPI_CAE", "ISNI", "UPC_EAN", "CATALOG_NUMBER", "PROPRIETARY"]
+        },
+        "value": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["title", "artist_name", "work_type", "description", "release_status", "public_urls"],
+      "properties": {
+        "title": { "type": "string" },
+        "artist_name": { "type": "string" },
+        "work_type": { "type": "string" },
+        "description": { "type": "string" },
+        "release_status": { "type": "string" },
+        "public_urls": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "creator": {
+      "type": "object",
+      "required": ["name", "email", "wallet_address", "organization", "confirmation_status"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "wallet_address": { "type": "string" },
+        "organization": { "type": "string" },
+        "confirmation_status": { "type": "string" }
+      }
+    },
+    "party": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "roles", "identifiers", "organization", "status", "evidence_refs", "privacy_classification"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^party-[A-Za-z0-9._-]+$" },
+        "name": { "type": "string", "minLength": 1 },
+        "roles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "identifiers": { "type": "array", "items": { "$ref": "#/$defs/identifier" } },
+        "organization": { "type": "string" },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } },
+        "privacy_classification": { "$ref": "#/$defs/privacyClass" }
+      }
+    },
+    "work": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "identifiers", "writer_party_ids", "publisher_party_ids", "status", "evidence_refs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^work-[A-Za-z0-9._-]+$" },
+        "title": { "type": "string", "minLength": 1 },
+        "identifiers": { "type": "array", "items": { "$ref": "#/$defs/identifier" } },
+        "writer_party_ids": { "type": "array", "items": { "type": "string" } },
+        "publisher_party_ids": { "type": "array", "items": { "type": "string" } },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "recording": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "asset_ids", "identifiers", "performer_party_ids", "master_owner_party_ids", "status", "evidence_refs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^recording-[A-Za-z0-9._-]+$" },
+        "title": { "type": "string", "minLength": 1 },
+        "asset_ids": { "type": "array", "items": { "type": "string" } },
+        "identifiers": { "type": "array", "items": { "$ref": "#/$defs/identifier" } },
+        "performer_party_ids": { "type": "array", "items": { "type": "string" } },
+        "master_owner_party_ids": { "type": "array", "items": { "type": "string" } },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "recording_ids", "identifiers", "label_party_id", "distributor_party_id", "release_date", "territories", "status", "evidence_refs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^release-[A-Za-z0-9._-]+$" },
+        "title": { "type": "string", "minLength": 1 },
+        "recording_ids": { "type": "array", "items": { "type": "string" } },
+        "identifiers": { "type": "array", "items": { "$ref": "#/$defs/identifier" } },
+        "label_party_id": { "type": ["string", "null"] },
+        "distributor_party_id": { "type": ["string", "null"] },
+        "release_date": { "type": ["string", "null"], "format": "date" },
+        "territories": { "type": "array", "items": { "type": "string" } },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["id", "relative_path", "category", "role", "mime_guess", "size_bytes", "sha256"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "relative_path": { "type": "string", "minLength": 1 },
+        "original_path": { "type": "string" },
+        "category": { "type": "string" },
+        "role": { "type": "string" },
+        "mime_guess": { "type": "string" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+        "notes": { "type": "string" }
+      }
+    },
+    "legacyRightsSummary": {
+      "type": "object",
+      "required": ["owner_claim", "ownership_status", "contributors_confirmed", "splits_confirmed", "contains_samples", "sample_clearance_status", "cover_or_interpolation", "license_restrictions"],
+      "properties": {
+        "owner_claim": { "type": "string" },
+        "ownership_status": { "type": "string" },
+        "contributors": { "type": "array" },
+        "contributors_confirmed": { "type": "boolean" },
+        "splits_confirmed": { "type": "boolean" },
+        "contains_samples": { "type": "string" },
+        "sample_clearance_status": { "type": "string" },
+        "cover_or_interpolation": { "type": "string" },
+        "license_restrictions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "rightsClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject_type", "subject_id", "right_type", "party_id", "share_percent", "territories", "start_date", "end_date", "status", "evidence_refs", "conflict_notes"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^claim-[A-Za-z0-9._-]+$" },
+        "subject_type": { "type": "string", "enum": ["work", "recording", "release"] },
+        "subject_id": { "type": "string" },
+        "right_type": { "type": "string", "enum": ["composition", "publishing", "mechanical", "performance", "synchronization", "master", "neighboring", "distribution", "other"] },
+        "party_id": { "type": "string" },
+        "share_percent": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "territories": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "start_date": { "type": ["string", "null"], "format": "date" },
+        "end_date": { "type": ["string", "null"], "format": "date" },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "conflict_notes": { "type": "string" }
+      }
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject_ids", "licensor_party_ids", "licensee_party_ids", "use_types", "media", "territories", "start_date", "end_date", "exclusive", "sublicensing", "revocable", "status", "restrictions", "evidence_refs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^license-[A-Za-z0-9._-]+$" },
+        "subject_ids": { "type": "array", "items": { "type": "string" } },
+        "licensor_party_ids": { "type": "array", "items": { "type": "string" } },
+        "licensee_party_ids": { "type": "array", "items": { "type": "string" } },
+        "use_types": { "type": "array", "items": { "type": "string" } },
+        "media": { "type": "array", "items": { "type": "string" } },
+        "territories": { "type": "array", "items": { "type": "string" } },
+        "start_date": { "type": ["string", "null"] },
+        "end_date": { "type": ["string", "null"] },
+        "exclusive": { "type": ["boolean", "null"] },
+        "sublicensing": { "type": "string", "enum": ["allowed", "prohibited", "unknown"] },
+        "revocable": { "type": ["boolean", "null"] },
+        "status": { "$ref": "#/$defs/status" },
+        "restrictions": { "type": "array", "items": { "type": "string" } },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "thirdPartyMaterial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "source", "subject_ids", "license_id", "status", "evidence_refs"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["sample", "interpolation", "cover", "beat", "loop", "visual", "other"] },
+        "source": { "type": "string" },
+        "subject_ids": { "type": "array", "items": { "type": "string" } },
+        "license_id": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "party_id", "scope", "media", "ai_use", "voice_likeness", "status", "evidence_refs"],
+      "properties": {
+        "id": { "type": "string" },
+        "party_id": { "type": "string" },
+        "scope": { "type": "string" },
+        "media": { "type": "array", "items": { "type": "string" } },
+        "ai_use": { "type": "string", "enum": ["allowed", "prohibited", "limited", "unknown"] },
+        "voice_likeness": { "type": "string", "enum": ["allowed", "prohibited", "limited", "unknown"] },
+        "status": { "$ref": "#/$defs/status" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_root", "creation_notes", "chain_of_custody", "registry_status", "content_credentials"],
+      "properties": {
+        "source_root": { "type": "string" },
+        "metadata_source": { "type": "string" },
+        "creation_notes": { "type": "string" },
+        "chain_of_custody": { "type": "array" },
+        "registry_status": { "type": "string" },
+        "content_credentials": { "type": "array", "items": { "$ref": "#/$defs/contentCredential" } }
+      }
+    },
+    "contentCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "kind", "manifest_reference", "verification_status", "verified_at", "evidence_refs"],
+      "properties": {
+        "asset_id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["sha256", "c2pa", "other"] },
+        "manifest_reference": { "type": ["string", "null"] },
+        "verification_status": { "type": "string", "enum": ["verified", "unverified", "failed", "not-checked"] },
+        "verified_at": { "type": ["string", "null"] },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "privacyClass": {
+      "type": "string",
+      "enum": ["public", "shared-with-recipient", "private-draft", "restricted", "do-not-share"]
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_classification", "field_rules", "redaction_required_before_external_share"],
+      "properties": {
+        "default_classification": { "$ref": "#/$defs/privacyClass" },
+        "field_rules": { "type": "array", "items": { "$ref": "#/$defs/privacyRule" } },
+        "redaction_required_before_external_share": { "type": "boolean" }
+      }
+    },
+    "privacyRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["json_pointer", "classification", "redaction_action", "reason"],
+      "properties": {
+        "json_pointer": { "type": "string", "pattern": "^/" },
+        "classification": { "$ref": "#/$defs/privacyClass" },
+        "redaction_action": { "type": "string", "enum": ["keep", "mask", "remove", "review"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "missingInformation": {
+      "type": "object",
+      "required": ["field", "question", "blocks", "severity"],
+      "properties": {
+        "field": { "type": "string" },
+        "question": { "type": "string" },
+        "blocks": { "type": "array", "items": { "type": "string" } },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] }
+      }
+    },
+    "riskFlag": {
+      "type": "object",
+      "required": ["label", "severity", "detail", "recommended_action"],
+      "properties": {
+        "label": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "unknown"] },
+        "detail": { "type": "string" },
+        "recommended_action": { "type": "string" }
+      }
+    }
+  }
+}

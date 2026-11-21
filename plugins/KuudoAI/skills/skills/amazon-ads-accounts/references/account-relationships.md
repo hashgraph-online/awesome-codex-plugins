@@ -4,60 +4,52 @@
 
 A manager account (`managerAccountId`, beginning with `amzn1.ads1.ma1.`) groups and grants access to advertiser accounts. It may also participate in a parent-child hierarchy with another manager account. It is distinct from both an advertiser account and a marketplace profile.
 
-This reference covers read-only relationship discovery. Association, disassociation, manager-account creation, and other mutations belong to an account-administration workflow and require their own confirmation rules.
+This reference covers read-only relationship discovery. Association, disassociation, manager-account creation, and other mutations are outside this skill.
 
 ## Choose the query
 
 | Question | Tool |
 |---|---|
-| “Which manager accounts can I access?” or “What do I manage?” | `manager_accounts-get_manager_accounts` |
-| “Which accounts are linked to this manager?” | `account_management-query_account_link` with the manager ID and `CHILD` |
-| “Which manager is above this advertiser account?” | `account_management-query_account_link` with the advertiser account ID and `PARENT` |
+| “Which manager accounts can I access?” or “What do I manage?” | `ac_getManagerAccountsForUser` |
+| “Which accounts are linked to this manager?” | `ac_getManagerAccountsForUser`, then `allv1_QueryAccountLink` with `CHILD` to confirm the list |
+| “Which manager is above this advertiser account?” | `ac_getManagerAccountsForUser`, then `allv1_QueryAccountLink` with `PARENT` to confirm the list |
 
 Check only the tool required for the question. If that tool is unavailable, explain which relationship cannot be resolved; unrelated missing account tools do not block the request.
 
 ## List manager accounts
 
-`manager_accounts-get_manager_accounts` takes no account identifier. It returns the authenticated user's manager accounts and up to 50 linked accounts per manager. Treat that embedded list as a bounded summary, not proof that no additional relationships exist.
+`ac_getManagerAccountsForUser` takes no arguments. It returns `managerAccounts[]`, each with `managerAccountId`, `managerAccountName`, and `linkedAccounts[]`.
 
-```json
-{
-  "skill": {
-    "skillName": "amazon-ads-accounts",
-    "version": "1.1.0"
-  }
-}
-```
+Each linked row has `accountId`, `accountName`, `accountType`, and `marketplaceId`. `DSP_ADVERTISING_ACCOUNT` rows add a `dspAdvertiserId`, and `VENDOR` rows add a `profileId`. A linked `accountId` can be an `ENTITY...` value, so do not present it as an `advertiserAccountId`. Report the types the rows state.
+
+Treat this list as what the call returned, not proof that no other relationships exist. Report the count you see rather than quoting a limit; one manager returned 60 linked rows on 2026-10-30.
+
+## Find the manager above an account
+
+Get the account's `alternateIds` from `allv1_QueryAdvertiserAccount`, then look for those IDs in each manager's `linkedAccounts`:
+
+- `DSP_ADVERTISING_ACCOUNT` rows match on `dspAdvertiserId`.
+- `VENDOR` rows match on `profileId`, or on `accountId` as `entityId`.
+
+Match on IDs rather than names. Every linked row matched an account this way on 2026-11-02. A matched row is a listed link, so state it as one. Then try the link query with `PARENT`, and if it fails, say that other parents and nesting are unconfirmed.
 
 ## Query account links
 
-`account_management-query_account_link` requires:
+`allv1_QueryAccountLink` takes flat arguments:
 
-- `accessRequestedAccount` containing exactly one `advertiserAccountId` or `managerAccountId`.
-- `relationshipTypeFilter.include` containing one relationship direction.
-- Pagination with `nextToken` when returned.
+- `relationshipTypeFilter.include` is required and holds one direction, `CHILD` or `PARENT`.
+- `accountIdFilter`, `accountNameFilter`, and `accountTypeFilter` narrow the results. `accountTypeFilter.include` accepts `ADVERTISER_ACCOUNT` and `MANAGER_ACCOUNT`.
+- Follow `nextToken` when it is returned.
 
-Query the children of a manager account:
-
-```json
-{
-  "body": {
-    "accessRequestedAccount": {
-      "managerAccountId": "amzn1.ads1.ma1.xxxxx"
-    },
-    "relationshipTypeFilter": {
-      "include": ["CHILD"]
-    },
-    "maxResults": 100
-  },
-  "skill": {
-    "skillName": "amazon-ads-accounts",
-    "version": "1.1.0"
-  }
-}
+```python
+links = await call_tool("allv1_QueryAccountLink", {
+    "relationshipTypeFilter": {"include": ["CHILD"]},
+    "accountTypeFilter": {"include": ["MANAGER_ACCOUNT"]},
+    "maxResults": 100,
+})
 ```
 
-Query the parent of an advertiser account by replacing `accessRequestedAccount` with its `advertiserAccountId` and using `PARENT`.
+This call returned 401 in every scope tried on 2026-10-30. If it fails, report the failure and say that nesting and completeness cannot be confirmed. Do not read either one from the linked-account list.
 
 ## Report the topology
 

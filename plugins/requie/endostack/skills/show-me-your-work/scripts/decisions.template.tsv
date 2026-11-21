@@ -1,0 +1,2 @@
+logged_at	phase	decision	reason	evidence	outcome
+2026-10-27T14:02:11Z	plan	Split the export work into two PRs	The endpoint can ship and be verified without the UI	docs/plan.md:41	pending

@@ -89,6 +89,7 @@ ANALYSIS_METADATA_FIELDS = {
 
 @dataclass(frozen=True)
 class AggregateRow:
+    """Aggregate row."""
     analysis_set: str
     treatment_group: str
     meddra_version: str
@@ -181,6 +182,7 @@ def load_aggregate_metadata(
 
 
 def _label(value: str | None, field: str) -> str:
+    """Handle label."""
     if value is None:
         raise ValidationError(f"{field} is required")
     text = value.strip()
@@ -196,6 +198,7 @@ def _label(value: str | None, field: str) -> str:
 
 
 def _count(value: str | None, field: str) -> int:
+    """Handle count."""
     if value is None or not re.fullmatch(r"\d{1,9}", value.strip()):
         raise ValidationError(f"{field} must be a non-negative integer")
     return int(value)
@@ -409,6 +412,7 @@ def render_markdown(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Format aggregate-only AE CSV rows as review-only Markdown. "
@@ -428,6 +432,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         rows = load_aggregate_csv(args.input_file)

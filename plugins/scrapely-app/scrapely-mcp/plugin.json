@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "scrapely",
+  "version": "0.3.17",
+  "description": "Find ready-made scrapers in the Scrape.ly Store, run them in the cloud, and read their results, datasets and logs.",
+  "author": { "name": "Scrape.ly", "url": "https://scrape.ly" },
+  "homepage": "https://scrape.ly/docs/mcp",
+  "repository": "https://github.com/scrapely-app/scrapely-mcp",
+  "license": "MIT",
+  "keywords": ["web-scraping", "scraper", "mcp", "data-extraction"]
+}

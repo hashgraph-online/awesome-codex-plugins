@@ -1,0 +1,64 @@
+schema_version: 1
+id: segment-nt
+title: SegmentNT Family
+path: skills/segment-nt
+status: active
+family: segmentation-heads
+tasks:
+  - segmentation-inference
+  - family-selection
+  - rescaling-factor
+  - troubleshooting
+triggers:
+  - segmentnt
+  - segmentenformer
+  - segmentborzoi
+  - rescaling_factor
+  - get_pretrained_segment_nt_model
+required_inputs:
+  - family-choice
+  - sequence-or-interval
+optional_inputs:
+  - species
+  - assembly
+  - coordinate-or-interval
+  - compute-constraints
+  - output-dir
+input_mappings:
+  - family-choice|query_tokens=segmentnt,segmentenformer,segmentborzoi,family|script_flags=--model
+  - sequence-or-interval|query_tokens=sequence,interval,fasta,start,end|script_flags=--interval,--chrom,--start,--end
+  - species|query_tokens=species,human,mouse|script_flags=--species
+  - assembly|query_tokens=assembly,hg38,hg19,mm10,chm13|script_flags=--assembly
+  - coordinate-or-interval|query_tokens=coordinate,position,chr,interval,start,end|script_flags=--interval,--chrom,--start,--end
+  - compute-constraints|query_tokens=cpu,gpu,memory,runtime,batch|script_flags=device-and-rescaling-path
+  - output-dir|query_tokens=output,outdir,目录|script_flags=--output-dir
+constraints:
+  - segmentnt-does-not-accept-n-bases
+  - segmentnt-token-count-excluding-cls-must-be-divisible-by-four
+  - transform-with-state-required-for-segmentenformer-and-segmentborzoi
+  - interval-is-0based-half-open-no-N-bases
+tools:
+  - scripts/compute_rescaling_factor.py
+  - scripts/run_segment_nt_region.py
+tool_contracts:
+  - tool: scripts/compute_rescaling_factor.py
+    inputs:
+      - sequence-length-or-token-count
+    outputs:
+      - rescaling-factor-report
+    side_effects:
+      - none
+    failure_codes:
+      - 1
+  - tool: scripts/run_segment_nt_region.py
+    inputs:
+      - species-assembly-and-interval
+    outputs:
+      - track-plot-probabilities-and-metadata
+    side_effects:
+      - writes-output-artifacts
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-segmentnt-family
+  - prefer-when-task-needs-segmentation-or-rescaling-factor-calculation

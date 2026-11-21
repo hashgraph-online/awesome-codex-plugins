@@ -1,0 +1,33 @@
+{
+  "id": "paper-mesh-gradient-ink",
+  "label": "Ink (Paper MeshGradient)",
+  "shader": "MeshGradient",
+  "page": "https://shaders.paper.design/mesh-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Ink\" preset for MeshGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 90,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#ffffff",
+      "#000000"
+    ],
+    "distortion": 1,
+    "swirl": 0.2,
+    "grainMixer": 0,
+    "grainOverlay": 0
+  }
+}

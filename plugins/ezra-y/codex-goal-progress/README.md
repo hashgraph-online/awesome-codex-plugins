@@ -16,11 +16,11 @@
 
 ## 🆕 Latest update
 
-### v0.3.10 — Reliable progress after Codex updates
+### v0.3.12 — Automatic connection recovery and lighter footprint
 
-- Restore the right progress when reopening chats or switching between windows.
-- Keep progress working when your system timezone changes.
-- Report missing progress correctly and finish local installation checks without waiting on unrelated plugin catalogs.
+- Automatically reconnect and restore the progress bar after long sessions or system sleep.
+- Clear outdated update prompts immediately after upgrading.
+- Reclaim disk space from older versions during upgrades and reduce page and conversation overhead.
 
 Existing goals, checklists, progress and display preferences are preserved.
 

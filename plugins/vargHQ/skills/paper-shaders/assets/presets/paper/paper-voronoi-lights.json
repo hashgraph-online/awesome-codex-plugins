@@ -1,0 +1,36 @@
+{
+  "id": "paper-voronoi-lights",
+  "label": "Lights (Paper Voronoi)",
+  "shader": "Voronoi",
+  "page": "https://shaders.paper.design/voronoi",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Lights\" preset for Voronoi, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 3.3,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#fffffffc",
+      "#bbff00",
+      "#00ffff"
+    ],
+    "colorGlow": "#ff00d0",
+    "colorGap": "#ff00d0",
+    "stepsPerColor": 2,
+    "distortion": 0.38,
+    "gap": 0,
+    "glow": 1
+  }
+}

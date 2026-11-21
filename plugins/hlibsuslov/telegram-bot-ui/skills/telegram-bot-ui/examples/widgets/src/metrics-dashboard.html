@@ -1,0 +1,77 @@
+<!-- Metrics dashboard (private chat, production). Source: build with scripts/build_widget.py.
+  chat_data: {"svc","st":0|1|2,"p":"1h|24h|7d","at":unix,"kpi":[[label,value,unit,delta,higherIsBetter]],
+              "lat":[p95 ms...],"err":[errors per bucket...],"thr":errors threshold,"inc":"incident line","r":N}
+  Requests: "p:<1h|24h|7d>" (tap), "sync" (background, and the Refresh tap). Labels come localized from the bot. -->
+<style>
+/*@kit tokens.css*/
+.pl { font-size: .8em; padding: 2px 8px; border-radius: 999px; background: var(--k-sec); white-space: nowrap }
+.pl::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 5px 1px 0; background: currentColor }
+.s0 { color: var(--k-ok) } .s1 { color: var(--k-warn) } .s2 { color: var(--k-bad) }
+.pp { margin: 8px 0 } .pp .ch { flex: 1 }
+.kp { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
+.kp b { display: block; font-size: min(1.33em, 7.4vw); font-weight: 600; line-height: 1.2 }
+.kp small { font-size: .8em; margin-left: 4px }
+.cv { margin-top: 6px; color: var(--k-btn) }
+.cv .mt { display: flex; justify-content: space-between; margin-bottom: 2px }
+.ic2 { color: var(--k-bad); margin-top: 6px; font-size: .87em }
+[dir=rtl] .kp small { margin: 0 4px 0 0 }
+[dir=rtl] .pl::before { margin: 0 0 1px 5px }
+</style>
+<div class="k">
+  <div class="hd"><span class="tt el" id="ti"></span><span class="pl" id="pl"></span></div>
+  <div class="rw pp" id="pp"></div>
+  <div class="kp" id="kp"></div>
+  <div class="sf cv"><div class="mt"><span id="ll"></span><span id="lr"></span></div><div id="sp"></div></div>
+  <div class="sf cv"><div class="mt"><span id="el"></span><span id="er"></span></div><div id="eb"></div></div>
+  <div class="ic2" id="in"></div>
+  <div class="hd st" id="ft"><span id="up"></span><button class="ch" id="rf"></button></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@kit chart.js*/
+/*@lang en*/K.add({ en: { s0: "Operational", s1: "Degraded", s2: "Outage", lat: "p95 latency", err: "Errors", upd: "Updated",
+        old: "Data may be stale", ref: "Refresh", none: "No data yet. The bot will fill this in." } });/*@end*/
+/*@lang ru*/K.add({ ru: { s0: "Работает", s1: "Деградация", s2: "Сбой", lat: "Задержка p95", err: "Ошибки", upd: "Обновлено",
+        old: "Данные могли устареть", ref: "Обновить", none: "Данных пока нет. Бот их пришлёт." } });/*@end*/
+/*@lang uk*/K.add({ uk: { s0: "Працює", s1: "Деградація", s2: "Збій", lat: "Затримка p95", err: "Помилки", upd: "Оновлено",
+        old: "Дані могли застаріти", ref: "Оновити", none: "Даних поки немає. Бот їх надішле." } });/*@end*/
+function draw() {
+  var s = K.S.chatData, $ = K.$;
+  $("rf").textContent = K.t("ref");
+  $("rf").disabled = K.busy || !K.can();
+  $("rf").onclick = function () { K.ask("sync"); };
+  if (!s) { $("ti").textContent = K.t("none"); return; }
+  $("ti").textContent = s.svc;
+  var pl = $("pl"); pl.textContent = K.t("s" + s.st); pl.className = "pl s" + s.st;
+  var pp = $("pp"); pp.innerHTML = "";
+  ["1h", "24h", "7d"].forEach(function (p) {
+    var b = K.h("button", "ch" + (s.p == p ? " on" : ""), p);
+    b.disabled = K.busy || !K.can();
+    b.onclick = function () { if (s.p != p) K.ask("p:" + p); };
+    pp.appendChild(b);
+  });
+  var kp = $("kp"); kp.innerHTML = "";
+  (s.kpi || []).forEach(function (k) {
+    var c = K.h("div", "sf"), d = k[3], good = d == 0 ? "" : (d > 0) == !!k[4] ? "up" : "dn";
+    c.appendChild(K.h("span", "mt", k[0]));
+    var b = K.h("b", "", k[1] + k[2]);
+    if (d) b.appendChild(K.h("small", good, (d > 0 ? "▲" : "▼") + Math.abs(d)));
+    c.appendChild(b);
+    kp.appendChild(c);
+  });
+  var lat = s.lat || [], err = s.err || [];
+  $("ll").textContent = K.t("lat");
+  $("lr").textContent = lat.length ? Math.min.apply(null, lat) + "–" + Math.max.apply(null, lat) + " ms" : "";
+  $("sp").innerHTML = K.spark(lat, 280, 44);
+  $("el").textContent = K.t("err");
+  $("er").textContent = err.reduce(function (a, b) { return a + b; }, 0);
+  $("eb").innerHTML = K.bars(err, 280, 30, s.thr);
+  $("in").textContent = s.inc || "";
+  var old = Date.now() / 1000 - s.at > 600;
+  $("up").textContent = old ? K.t("old") : K.t("upd") + " " + K.time(s.at);
+  $("up").className = old ? "s1" : "";
+}
+K.start(draw, { sync: "sync" });
+</script>

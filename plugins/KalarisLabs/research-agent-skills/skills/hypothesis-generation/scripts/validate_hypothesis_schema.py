@@ -69,6 +69,7 @@ FEASIBILITY_STATES = {
 
 
 def _parse_observation(raw: Any) -> dict[str, Any]:
+    """Parse observation."""
     value = require_object(raw, "record.observation")
     require_exact_keys(
         value,
@@ -94,6 +95,7 @@ def _parse_observation(raw: Any) -> dict[str, Any]:
 
 
 def _parse_question(raw: Any) -> dict[str, str]:
+    """Parse question."""
     value = require_object(raw, "record.research_question")
     fields = {
         "statement",
@@ -124,6 +126,7 @@ def _parse_question(raw: Any) -> dict[str, str]:
 
 
 def _parse_hypotheses(raw: Any) -> list[dict[str, Any]]:
+    """Parse hypotheses."""
     entries = require_list(raw, "record.hypotheses", minimum=1, maximum=50)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -185,6 +188,7 @@ def _parse_hypotheses(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_estimands(raw: Any) -> list[dict[str, Any]]:
+    """Parse estimands."""
     entries = require_list(raw, "record.causal_estimands", maximum=50)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -245,6 +249,7 @@ def _parse_estimands(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_predictions(raw: Any) -> list[dict[str, Any]]:
+    """Parse predictions."""
     entries = require_list(raw, "record.predictions", minimum=1, maximum=200)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -307,6 +312,7 @@ def _parse_predictions(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_alternatives(raw: Any) -> list[dict[str, Any]]:
+    """Parse alternatives."""
     entries = require_list(raw, "record.alternative_explanations", minimum=1, maximum=100)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -353,6 +359,7 @@ def _parse_alternatives(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_nulls(raw: Any) -> list[dict[str, Any]]:
+    """Parse nulls."""
     entries = require_list(raw, "record.null_hypotheses", minimum=1, maximum=100)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -391,6 +398,7 @@ def _parse_nulls(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_controls(raw: Any) -> list[dict[str, Any]]:
+    """Parse controls."""
     entries = require_list(raw, "record.negative_controls", minimum=1, maximum=100)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -437,6 +445,7 @@ def _parse_controls(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_operationalizations(raw: Any) -> list[dict[str, Any]]:
+    """Parse operationalizations."""
     entries = require_list(raw, "record.operationalizations", minimum=1, maximum=200)
     parsed: list[dict[str, Any]] = []
     identifiers: list[str] = []
@@ -488,6 +497,7 @@ def _parse_operationalizations(raw: Any) -> list[dict[str, Any]]:
 
 
 def _parse_analysis_plan(raw: Any) -> dict[str, Any]:
+    """Parse analysis plan."""
     plan = require_object(raw, "record.analysis_plan")
     require_exact_keys(
         plan,
@@ -586,6 +596,7 @@ def _parse_analysis_plan(raw: Any) -> dict[str, Any]:
 
 
 def _parse_evidence(raw: Any) -> dict[str, Any]:
+    """Parse evidence."""
     value = require_object(raw, "record.evidence")
     require_exact_keys(
         value,
@@ -622,6 +633,7 @@ def _parse_evidence(raw: Any) -> dict[str, Any]:
 
 
 def _parse_risk_register(raw: Any) -> dict[str, list[str]]:
+    """Parse risk register."""
     value = require_object(raw, "record.risk_register")
     fields = {
         "confounding",
@@ -641,6 +653,7 @@ def _parse_risk_register(raw: Any) -> dict[str, list[str]]:
 
 
 def _parse_ethics(raw: Any) -> dict[str, Any]:
+    """Parse ethics."""
     value = require_object(raw, "record.ethics_and_feasibility")
     gate_fields = {
         "human_subjects_gate",
@@ -681,6 +694,7 @@ def _parse_ethics(raw: Any) -> dict[str, Any]:
 
 
 def _parse_ai_use(raw: Any) -> dict[str, Any]:
+    """Parse ai use."""
     value = require_object(raw, "record.ai_use")
     fields = {
         "used",
@@ -774,6 +788,7 @@ def load_hypothesis_record(payload: Any) -> dict[str, Any]:
 def _missing_references(
     values: list[str], valid_values: set[str], code: str, field: str
 ) -> list[dict[str, str]]:
+    """Handle missing references."""
     return [
         issue(code, f"{field}:{value}")
         for value in sorted(set(values) - valid_values)
@@ -1006,17 +1021,18 @@ def validate_record(record: dict[str, Any]) -> dict[str, Any]:
             issue("HUMAN_ACCOUNTABILITY_REQUIRED", "ai_use.human_accountable")
         )
 
+    if errors:
+        status = "INVALID_RECORD"
+    elif unresolved_gate_names:
+        status = "VALID_BLOCKED_BY_GATES"
+    else:
+        status = "VALID_FOR_HUMAN_REVIEW"
+
     return {
         "schema_version": "2.0",
         "project_id": record["project_id"],
         "valid": not errors,
-        "status": (
-            "INVALID_RECORD"
-            if errors
-            else "VALID_BLOCKED_BY_GATES"
-            if unresolved_gate_names
-            else "VALID_FOR_HUMAN_REVIEW"
-        ),
+        "status": status,
         "errors": errors,
         "warnings": warnings,
         "counts": {
@@ -1049,6 +1065,7 @@ def validate_record(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a bounded local hypothesis JSON record and emit identifiers, "
@@ -1064,6 +1081,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         record = load_hypothesis_record(read_json(args.record))

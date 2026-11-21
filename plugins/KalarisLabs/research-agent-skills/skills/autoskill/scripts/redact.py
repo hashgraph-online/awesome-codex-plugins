@@ -1,4 +1,8 @@
+"""Redact helpers."""
+
 import re
+
+_API_KEY_PLACEHOLDER = "[REDACTED:api_key]"
 
 # Order matters: multi-line and prefixed patterns run before narrower ones.
 _PATTERNS = [
@@ -18,13 +22,13 @@ _PATTERNS = [
     (re.compile(r"\beyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+"),
      "[REDACTED:jwt]"),
 
-    (re.compile(r"\bxox[bpars]-[A-Za-z0-9\-]{10,}"), "[REDACTED:api_key]"),
-    (re.compile(r"\bhf_[A-Za-z0-9]{32,}"), "[REDACTED:api_key]"),
-    (re.compile(r"\bsk-[A-Za-z0-9_\-]{20,}"), "[REDACTED:api_key]"),
-    (re.compile(r"\b(?:sk|pk|rk)_live_[A-Za-z0-9]{24,}"), "[REDACTED:api_key]"),
-    (re.compile(r"\bghp_[A-Za-z0-9]{36}\b"), "[REDACTED:api_key]"),
-    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "[REDACTED:api_key]"),
-    (re.compile(r"\bAIza[A-Za-z0-9_\-]{35}\b"), "[REDACTED:api_key]"),
+    (re.compile(r"\bxox[bpars]-[A-Za-z0-9\-]{10,}"), _API_KEY_PLACEHOLDER),
+    (re.compile(r"\bhf_[A-Za-z0-9]{32,}"), _API_KEY_PLACEHOLDER),
+    (re.compile(r"\bsk-[A-Za-z0-9_\-]{20,}"), _API_KEY_PLACEHOLDER),
+    (re.compile(r"\b(?:sk|pk|rk)_live_[A-Za-z0-9]{24,}"), _API_KEY_PLACEHOLDER),
+    (re.compile(r"\bghp_[A-Za-z0-9]{36}\b"), _API_KEY_PLACEHOLDER),
+    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), _API_KEY_PLACEHOLDER),
+    (re.compile(r"\bAIza[A-Za-z0-9_\-]{35}\b"), _API_KEY_PLACEHOLDER),
 
     (re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"),
      "[REDACTED:email]"),
@@ -35,6 +39,7 @@ _PATTERNS = [
 
 
 def redact(text: str) -> str:
+    """Handle redact."""
     for pattern, placeholder in _PATTERNS:
         text = pattern.sub(placeholder, text)
     return text

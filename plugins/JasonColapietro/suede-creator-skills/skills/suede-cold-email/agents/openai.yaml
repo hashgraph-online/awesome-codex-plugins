@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Cold Email Skills"
+  short_description: "Write B2B cold outreach that gets replies"
+  default_prompt: "Use $suede-cold-email on [target]. The user is writing cold outbound email or a prospecting sequence, or nobody is replying to the ones they sent. Work through subject lines, opening lines, body, CTA, personalisation depth, and multi-touch follow-up, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

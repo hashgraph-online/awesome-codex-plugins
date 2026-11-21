@@ -1,0 +1,25 @@
+{
+  "name": "skill-check",
+  "version": "0.6.1",
+  "description": "Warns when a skill is used while out of date. Reads metadata.version / metadata.source from SKILL.md, and knows Spec Kit projects and npx skills installs.",
+  "author": {
+    "name": "Louis Esterhuizen",
+    "url": "https://github.com/louis8408"
+  },
+  "homepage": "https://github.com/louis8408/skill-check",
+  "repository": "https://github.com/louis8408/skill-check",
+  "license": "Apache-2.0",
+  "keywords": [
+    "skills",
+    "versioning",
+    "updates",
+    "spec-kit"
+  ],
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "skill-check",
+    "shortDescription": "Know when a skill you're using is out of date.",
+    "developerName": "Louis Esterhuizen",
+    "category": "Developer Tools"
+  }
+}

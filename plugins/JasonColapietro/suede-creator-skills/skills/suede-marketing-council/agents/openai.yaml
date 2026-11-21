@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Marketing Council Skills"
+  short_description: "Pressure-test a marketing bet with role-based advisors"
+  default_prompt: "Use $suede-marketing-council on [target]. The user wants several expert lenses on one marketing decision. Seat role-based advisors (never real people), apply each role's Suede frameworks to the user's evidence, map where they disagree and what would settle it, and return a chair's synthesis with next steps, a tripwire to watch, and skill handoffs."
+policy:
+  allow_implicit_invocation: true

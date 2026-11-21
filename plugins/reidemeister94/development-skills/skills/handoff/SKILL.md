@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Create a self-contained temporary handoff document when the user asks to transfer the session to a new chat or runs /handoff.
+description: "Use when the user asks to move the session to a new chat or runs /handoff."
 argument-hint: "[focus of the next session]"
 ---
 
@@ -43,8 +43,8 @@ Write the absolute path. Keep the first three sections. Include the later sectio
 
 ## Files and existing work
 - `path/to/file.ext` — [what it contains and why it matters]
-- Plan: `docs/plans/YYYY-MM-DD__slug.md` - [what it settles]
-- Chronicle: `docs/chronicles/YYYY-MM-DD__slug.md` - [what it records]
+- Plan: `docs/plans/YYYY-MM-DD__slug.md` — [what it settles]
+- Chronicle: `docs/chronicles/YYYY-MM-DD__slug.md` — [what it records]
 - Other: [PRD, ADR, issue, pull request, commit, or URL]
 
 ## Questions still open

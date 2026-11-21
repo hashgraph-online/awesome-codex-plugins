@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "openapps": {
+      "type": "http",
+      "url": "https://theopenapps.com/mcp"
+    }
+  }
+}

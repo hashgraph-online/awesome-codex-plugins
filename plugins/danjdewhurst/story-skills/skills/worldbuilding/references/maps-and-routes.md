@@ -41,6 +41,64 @@ time for rests, border crossings, changing horses, tides, and weather.
 Real settings deserve a research note: walk the route or check a journey
 planner, then record the source (see the `research` skill).
 
+## Recording geography
+
+Routes need a journey time for every pair of places. Geography records
+where places are, or how far apart, and lets the CLI work out whether a
+journey fits the `travel-hours` a scene gives it. Use it when the user has
+a map or a table of distances. Do not assume Earth: an invented world has
+its own map and its own units.
+
+First ask for the distance unit and the ways people travel, then set them
+in `story.md`:
+
+```yaml
+distance-unit: leagues
+map-scale: 4
+travel-modes:
+  - mode: on foot
+    speed: 1
+    per-day: 8
+  - mode: horse
+    speed: 3
+    per-day: 15
+  - mode: wyvern
+    speed: 12
+```
+
+- `distance-unit` - free text printed in findings (default `units`)
+- `map-scale` - distance units per map unit (default `1`)
+- `travel-modes` - each `mode` once, with `speed` in distance units an hour
+  while moving, and an optional `per-day`, the most one day of travel
+  covers. Take both from the speeds table in `economy-logistics.md`, or
+  from the world's own rules (a wyvern, a portal network)
+
+Then give locations `coordinates`, `distances`, or both:
+
+```yaml
+---
+name: "Stonebridge"
+type: town
+coordinates: [12, 40]
+distances:
+  - to: greyhaven
+    distance: 30
+---
+```
+
+- `coordinates` - `[x, y]` read off the user's map, in any grid: squares,
+  centimetres, or pixels. `map-scale` turns them into distance. The straight
+  line is the shortest possible way, so it never makes a journey look
+  slower than it is
+- `distances` - how far it is by the way people go, in the distance unit;
+  two-way unless the other place lists its own distance back. A listed
+  distance wins over the straight line, so list one where a mountain or a
+  river makes the real way longer
+
+`story add location 'Stonebridge' --coordinates 12,40` writes the
+coordinates. `story links .` reports a `distances` entry that names an
+unknown location or the location itself.
+
 ## Drawing the map-graph
 
 ```shell
@@ -91,5 +149,33 @@ need a `time`; a flashback does not reset it), not a journey inside the
 scene. A scene with no `pov` counts its chapter's `pov` as present. `story timeline .` and `story diagram timeline` show dated scenes in
 story-time order, which helps when adjusting dates.
 
-After editing routes, run `story reindex .`, `story wordcount . --write`,
-and `story check .` (which includes the continuity route checks).
+## The distance travel check
+
+Once `story.md` lists a travel mode, `story continuity .` compares each
+scene that has `travel-hours` above 0 with the previous scene in reading
+order. When the two scenes are at different places, the hours must cover
+the distance at the speed of the scene's `travel-mode`, for the characters
+(scene `characters` and `pov`) who are in both scenes:
+
+```yaml
+location: stonebridge
+travel-hours: 30
+travel-mode: horse
+```
+
+Without `travel-mode`, or with a mode `story.md` does not list, the check
+uses the fastest mode, so the warning then means no way of travel in the
+world could make the journey. The finding is a warning, `travel-too-far`.
+Undated scenes count; a flashback scene is skipped; after a scene with no
+`location`, the next scene has no place to start from.
+
+To fix a finding:
+
+1. Raise `travel-hours`, and move a dated scene later so the clock allows it
+2. Choose a faster `travel-mode` the story supports, and show it on the page
+3. Correct the distance, the coordinates, or the mode's speed if they are
+   wrong
+
+After editing routes, geography, or travel modes, run `story reindex .`,
+`story wordcount . --write`, and `story check .` (which includes the
+continuity route and distance checks).

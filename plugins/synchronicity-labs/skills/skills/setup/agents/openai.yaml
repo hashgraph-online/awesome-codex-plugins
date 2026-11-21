@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set up sync. labs"
+  short_description: "Connect sync. and check your account and credits"
+  default_prompt: "Use $setup to connect sync. labs and show me what I can make."

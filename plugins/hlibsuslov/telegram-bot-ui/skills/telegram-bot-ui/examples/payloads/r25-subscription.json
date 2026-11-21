@@ -1,0 +1,467 @@
+{
+  "scenario": "r25-subscription",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "createInvoiceLink",
+      "params": {
+        "title": "Pro, 30 days",
+        "description": "Pro access, renews every 30 days. Cancel in the bot any time.",
+        "payload": "sub:111111111",
+        "provider_token": "",
+        "currency": "XTR",
+        "prices": [
+          {
+            "label": "Pro, 30 days",
+            "amount": 150
+          }
+        ],
+        "subscription_period": 2592000
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Pro</b>\nThis part is for subscribers.\n• Unlimited exports\n• Priority support\n• Early features\n\n⭐ 150 per month, cancel any time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Start 7-day trial",
+                "callback_data": "sb:1:trial",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Subscribe ⭐ 150/month",
+                "url": "https://t.me/$sub111111111"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Pro</b>\nThis part is for subscribers.\n• Unlimited exports\n• Priority support\n• Early features\n\n⭐ 150 per month, cancel any time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Start 7-day trial",
+                "callback_data": "sb:2:trial",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Subscribe ⭐ 150/month",
+                "url": "https://t.me/$sub111111111"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "createInvoiceLink",
+      "params": {
+        "title": "Pro, 30 днів",
+        "description": "Доступ до Pro, продовжується кожні 30 днів. Скасувати можна в боті.",
+        "payload": "sub:333333333",
+        "provider_token": "",
+        "currency": "XTR",
+        "prices": [
+          {
+            "label": "Pro, 30 днів",
+            "amount": 150
+          }
+        ],
+        "subscription_period": 2592000
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Pro</b>\nЦя частина для підписників.\n• Експорт без обмежень\n• Пріоритетна підтримка\n• Ранній доступ до новинок\n\n⭐ 150 на місяць, скасувати можна будь-коли.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Спробувати 7 днів",
+                "callback_data": "sb:1:trial",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Підписатися ⭐ 150/міс",
+                "url": "https://t.me/$sub333333333"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "text": "<b>Pro trial</b>\nFull access until <tg-time unix=\"1795435200\" format=\"d\">23.11.2026</tg-time>.\nSubscribe to keep it after the trial.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Subscribe ⭐ 150/month",
+                "url": "https://t.me/$sub111111111",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq5",
+        "text": "The free trial was already used. Subscribe to continue.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqx",
+        "text": "Це меню іншої людини. Відкрийте своє через /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Your export is ready."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Subscribe ⭐ 150/month",
+                "url": "https://t.me/$sub111111111",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "text": "<b>Your trial ends in 3 d</b> (<tg-time unix=\"1795435200\" format=\"d\">23.11.2026</tg-time>).\nSubscribe to keep Pro."
+      }
+    },
+    {
+      "method": "answerPreCheckoutQuery",
+      "params": {
+        "pre_checkout_query_id": "4382000000000950001",
+        "ok": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Pro is active</b>\nRenews on <tg-time unix=\"1797854400\" format=\"d\">21.12.2026</tg-time>.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cancel renewal",
+                "callback_data": "sb:4:cancel",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerPreCheckoutQuery",
+      "params": {
+        "pre_checkout_query_id": "4382000000000950001",
+        "ok": false,
+        "error_message": "You already have an active subscription."
+      }
+    },
+    {
+      "method": "editUserStarSubscription",
+      "params": {
+        "user_id": 111111111,
+        "telegram_payment_charge_id": "stxDEMOsub0001",
+        "is_canceled": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7",
+        "text": "Renewal is off. Access stays until the end of the period."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1006,
+        "text": "<b>Pro is active</b>\nRenewal is off: access ends <tg-time unix=\"1797854400\" format=\"d\">21.12.2026</tg-time>.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Resume renewal",
+                "callback_data": "sb:5:resume",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Resume renewal",
+                "callback_data": "sr:tqe9c0:resume",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "text": "<b>Pro ends in 3 d</b> (<tg-time unix=\"1797854400\" format=\"d\">21.12.2026</tg-time>).\nRenewal is off."
+      }
+    },
+    {
+      "method": "editUserStarSubscription",
+      "params": {
+        "user_id": 111111111,
+        "telegram_payment_charge_id": "stxDEMOsub0001",
+        "is_canceled": false
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqr",
+        "text": "Renewal is back on."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqr2",
+        "text": "This screen has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "Pro renewed. Next payment <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Pro активний</b>\nПродовження <tg-time unix=\"1800878400\" format=\"d\">25.01.2027</tg-time>.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Скасувати продовження",
+                "callback_data": "sb:2:cancel",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editUserStarSubscription",
+      "params": {
+        "user_id": 333333333,
+        "telegram_payment_charge_id": "stxDEMOsub0003",
+        "is_canceled": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8",
+        "text": "Продовження вимкнено. Доступ лишається до кінця періоду."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1009,
+        "text": "<b>Pro активний</b>\nПродовження вимкнено: доступ до <tg-time unix=\"1800878400\" format=\"d\">25.01.2027</tg-time>.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відновити продовження",
+                "callback_data": "sb:3:resume",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Pro has ended</b>\nYour access ended <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>. Subscribe again to continue.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Subscribe ⭐ 150/month",
+                "url": "https://t.me/$sub111111111",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відновити продовження",
+                "callback_data": "sr:ts72o0:resume",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "text": "<b>Pro закінчується через 3 д</b> (<tg-time unix=\"1800878400\" format=\"d\">25.01.2027</tg-time>).\nПродовження вимкнено."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відновити продовження",
+                "callback_data": "sr:ts72o0:resume",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "text": "<b>Pro закінчується через 1 д</b> (<tg-time unix=\"1800878400\" format=\"d\">25.01.2027</tg-time>).\nПродовження вимкнено."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Pro завершився</b>\nДоступ закінчився <tg-time unix=\"1800878400\" format=\"d\">25.01.2027</tg-time>. Оформіть підписку знову.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Підписатися ⭐ 150/міс",
+                "url": "https://t.me/$sub333333333",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Pro</b>\nЦя частина для підписників.\n• Експорт без обмежень\n• Пріоритетна підтримка\n• Ранній доступ до новинок\n\n⭐ 150 на місяць, скасувати можна будь-коли.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Спробувати 7 днів",
+                "callback_data": "sb:5:trial",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Підписатися ⭐ 150/міс",
+                "url": "https://t.me/$sub333333333"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "parse_mode": "HTML",
+        "text": "<b>Допомога з оплатою</b>\nНапишіть питання сюди й додайте номер платежу з чека. Відповімо протягом доби."
+      }
+    }
+  ]
+}

@@ -1,0 +1,214 @@
+{
+  "id": "tile-flip-mosaic",
+  "name": "Impact tile-flip mosaic",
+  "use": "On a hit, the shot breaks into lit tiles that flip in a feathered, randomised wave to reveal the next shot.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "tile-flip-mosaic.impact-center",
+      "label": "Impact centre",
+      "look": "Hit in the centre, lit tiles flip outward",
+      "params": {
+        "duration_s": 5.0,
+        "fps": 30,
+        "grid_16x9": [
+          7,
+          12
+        ],
+        "grid_9x16": [
+          12,
+          7
+        ],
+        "grid_1x1": [
+          9,
+          9
+        ],
+        "origin": [
+          0.5,
+          0.5
+        ],
+        "wave_amount_s": 0.8,
+        "wave_ease": "power2.inOut",
+        "delay_jitter_pct": 20,
+        "tile_flip_s": 0.42,
+        "tile_flip_ease": "power3.inOut",
+        "axis": "rotateY",
+        "overshoot_deg": 3,
+        "settle_s": 0.12,
+        "perspective_px": 1400,
+        "z_lift_px": [
+          30,
+          60
+        ],
+        "edge_light_peak_brightness": 1.8,
+        "gutter_px": [
+          2,
+          4
+        ],
+        "impact_frame_s": 1.6,
+        "rgb_kick": {
+          "px": 8,
+          "frames": 2
+        },
+        "edge_light_note": "on bright footage use about 1.4; if it reads as a filter, halve the light"
+      },
+      "sources": [
+        8,
+        10,
+        21,
+        23,
+        24,
+        41
+      ]
+    },
+    {
+      "id": "tile-flip-mosaic.diagonal-sweep",
+      "label": "Diagonal sweep",
+      "look": "Clean diagonal wave from the top-left",
+      "params": {
+        "grid_16x9": [
+          9,
+          16
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "wave_amount_s": 1.0,
+        "wave_ease": "none",
+        "delay_jitter_pct": 10,
+        "tile_flip_s": 0.36,
+        "perspective_px": 1800
+      },
+      "sources": [
+        21,
+        24
+      ]
+    },
+    {
+      "id": "tile-flip-mosaic.random-scatter",
+      "label": "Random scatter",
+      "look": "Glittery flip without a single origin",
+      "params": {
+        "grid_16x9": [
+          6,
+          10
+        ],
+        "from": "random",
+        "wave_amount_s": 1.1,
+        "tile_flip_s": 0.3,
+        "tile_flip_ease": "power2.inOut",
+        "edge_light_peak_brightness": 1.5,
+        "edge_light_note": "on bright footage use about 1.4; if it reads as a filter, halve the light"
+      },
+      "sources": [
+        21,
+        47,
+        48
+      ]
+    },
+    {
+      "id": "tile-flip-mosaic.fine-mosaic",
+      "label": "Fine mosaic (split-flap)",
+      "look": "Small tiles flip on the X axis bottom-to-top like a split-flap board",
+      "params": {
+        "grid_16x9": [
+          14,
+          24
+        ],
+        "grid_9x16": [
+          24,
+          14
+        ],
+        "axis": "rotateX",
+        "origin": [
+          0.5,
+          1
+        ],
+        "wave_amount_s": 1.2,
+        "tile_flip_s": 0.28,
+        "perspective_px": 2000
+      },
+      "sources": [
+        21,
+        23,
+        24
+      ]
+    },
+    {
+      "id": "tile-flip-mosaic.bold-blocks",
+      "label": "Bold blocks",
+      "look": "Few big tiles, heavy and dramatic",
+      "params": {
+        "grid_16x9": [
+          4,
+          6
+        ],
+        "origin": "impact point",
+        "wave_amount_s": 0.6,
+        "tile_flip_s": 0.55,
+        "tile_flip_ease": "back.out(1.2)",
+        "perspective_px": 700,
+        "tile_shadow_opacity": 0.4
+      },
+      "sources": [
+        10,
+        22,
+        24
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 8,
+      "name": "Zaid Alkuheli, OverseerOS — How long should video transitions be",
+      "url": "https://www.overseeros.com/blog/how-long-should-video-transitions-be"
+    },
+    {
+      "n": 10,
+      "name": "Dan Ebberts, MotionScript — Realistic bounce and overshoot",
+      "url": "http://www.motionscript.com/articles/bounce-and-overshoot.html"
+    },
+    {
+      "n": 21,
+      "name": "GSAP — Staggers",
+      "url": "https://gsap.com/docs/v3/Staggers/"
+    },
+    {
+      "n": 22,
+      "name": "GSAP — Eases",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    },
+    {
+      "n": 23,
+      "name": "David DeSandro — CSS 3D card flip",
+      "url": "https://3dtransforms.desandro.com/card-flip"
+    },
+    {
+      "n": 24,
+      "name": "David DeSandro — Perspective",
+      "url": "https://3dtransforms.desandro.com/perspective"
+    },
+    {
+      "n": 41,
+      "name": "Yaori (@Pashoke1) on X",
+      "url": "https://x.com/Pashoke1/status/2115041115590037582"
+    },
+    {
+      "n": 47,
+      "name": "Siraj (@SirajEdits) on X",
+      "url": "https://x.com/SirajEdits/status/2115785675949650408"
+    },
+    {
+      "n": 48,
+      "name": "aescripts / kewin.wav on X",
+      "url": "https://x.com/aescripts/status/2115832815606546677"
+    }
+  ]
+}

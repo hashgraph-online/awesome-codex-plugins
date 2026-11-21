@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI CI Gate Skills"
+  short_description: "Path-aware CI and branch protection setup"
+  default_prompt: "Use $suede-ci-gate to set up path-aware CI and branch protection for this repo, or to audit why a required check is hanging. Detect the stack first; assume nothing."
+policy:
+  allow_implicit_invocation: false

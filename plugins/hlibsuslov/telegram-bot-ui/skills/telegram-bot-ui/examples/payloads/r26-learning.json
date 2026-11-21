@@ -1,0 +1,2442 @@
+{
+  "scenario": "r26-learning",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Git basics"
+            },
+            {
+              "type": "paragraph",
+              "text": "Streak: 0 day(s) in a row"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Commits"
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Branches"
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Pick a lesson. Each one takes about two minutes."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1 · Commits",
+                "callback_data": "lr:1:lesson:commits"
+              }
+            ],
+            [
+              {
+                "text": "2 · Branches",
+                "callback_data": "lr:1:lesson:branches"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Lesson 1: Commits"
+            },
+            {
+              "type": "paragraph",
+              "text": "A commit is a saved snapshot of the project with a message that says why it changed."
+            },
+            {
+              "type": "paragraph",
+              "text": "Small, focused commits are easy to review and to undo."
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message.",
+              "credit": "Example"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Start quiz",
+                  "callback_data": "lr:2:start",
+                  "style": "primary"
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "lr:2:back"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 1 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "What does a commit store?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "A snapshot with a message",
+                "callback_data": "lr:3:ans:0:0"
+              }
+            ],
+            [
+              {
+                "text": "Only file names",
+                "callback_data": "lr:3:ans:0:1"
+              }
+            ],
+            [
+              {
+                "text": "A copy of the server",
+                "callback_data": "lr:3:ans:0:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 1 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "What does a commit store?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. A commit is a snapshot plus the message that explains it."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ A snapshot with a message",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Only file names",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "A copy of the server",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Next question",
+                "callback_data": "lr:4:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq5",
+        "text": "This screen has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq6",
+        "text": "You already answered this question."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 2 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Which command records staged changes?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git clone",
+                "callback_data": "lr:5:ans:1:0"
+              }
+            ],
+            [
+              {
+                "text": "git commit",
+                "callback_data": "lr:5:ans:1:1"
+              }
+            ],
+            [
+              {
+                "text": "git fetch",
+                "callback_data": "lr:5:ans:1:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 2 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Which command records staged changes?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Not quite. git commit records what git add staged."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✗ git clone",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git commit",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git fetch",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Next question",
+                "callback_data": "lr:6:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 3 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "A good commit is…"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "as large as possible",
+                "callback_data": "lr:7:ans:2:0"
+              }
+            ],
+            [
+              {
+                "text": "without a message",
+                "callback_data": "lr:7:ans:2:1"
+              }
+            ],
+            [
+              {
+                "text": "small and focused",
+                "callback_data": "lr:7:ans:2:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq9"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 3 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "A good commit is…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. Small commits are easier to review."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "as large as possible",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "without a message",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ small and focused",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "See the result",
+                "callback_data": "lr:8:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq10"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Result: Commits"
+            },
+            {
+              "type": "paragraph",
+              "text": "██░  2/3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Streak: 1 day(s) in a row"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Next lesson",
+                "callback_data": "lr:9:next_lesson",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Course map",
+                "callback_data": "lr:9:map"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq11"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Lesson 2: Branches"
+            },
+            {
+              "type": "paragraph",
+              "text": "A branch is a movable pointer to a commit. Work on a branch never touches main."
+            },
+            {
+              "type": "paragraph",
+              "text": "Merge the branch when the work is ready."
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "git switch -c fix-typo\ngit commit -am \"Fix typo\"\ngit switch main\ngit merge fix-typo",
+              "credit": "Example"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Start quiz",
+                  "callback_data": "lr:a:start",
+                  "style": "primary"
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "lr:a:back"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq12"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 1 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "What is a branch?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "A copy of the disk",
+                "callback_data": "lr:b:ans:0:0"
+              }
+            ],
+            [
+              {
+                "text": "A pointer to a commit",
+                "callback_data": "lr:b:ans:0:1"
+              }
+            ],
+            [
+              {
+                "text": "A remote server",
+                "callback_data": "lr:b:ans:0:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq13"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 1 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "What is a branch?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. A branch only points at a commit."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "A copy of the disk",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ A pointer to a commit",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "A remote server",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Next question",
+                "callback_data": "lr:c:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq14"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 2 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Which command creates and opens a branch?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git switch -c",
+                "callback_data": "lr:d:ans:1:0"
+              }
+            ],
+            [
+              {
+                "text": "git merge",
+                "callback_data": "lr:d:ans:1:1"
+              }
+            ],
+            [
+              {
+                "text": "git log",
+                "callback_data": "lr:d:ans:1:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq15"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 2 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Which command creates and opens a branch?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. switch -c creates the branch and moves to it."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ git switch -c",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git merge",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git log",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Next question",
+                "callback_data": "lr:e:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq16"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 3 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "How do you bring finished work into main?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Delete main",
+                "callback_data": "lr:f:ans:2:0"
+              }
+            ],
+            [
+              {
+                "text": "git init",
+                "callback_data": "lr:f:ans:2:1"
+              }
+            ],
+            [
+              {
+                "text": "git merge",
+                "callback_data": "lr:f:ans:2:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq17"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 3 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "How do you bring finished work into main?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. Switch to main and merge the branch."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Delete main",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git init",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ git merge",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "See the result",
+                "callback_data": "lr:g:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq18"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Result: Branches"
+            },
+            {
+              "type": "paragraph",
+              "text": "███  3/3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Streak: 1 day(s) in a row"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Next lesson",
+                "callback_data": "lr:h:next_lesson",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Course map",
+                "callback_data": "lr:h:map"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq19"
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "You haven't done today's lesson yet. Two minutes keep your streak alive."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open the lesson",
+                "callback_data": "lr:i:next_lesson",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Mute for a week",
+                "callback_data": "lr:i:mute"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq20",
+        "text": "Reminders are paused for 7 days."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Git basics"
+            },
+            {
+              "type": "paragraph",
+              "text": "Streak: 1 day(s) in a row"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Commits"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Branches"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Pick a lesson. Each one takes about two minutes."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ 1 · Commits",
+                "callback_data": "lr:j:lesson:commits"
+              }
+            ],
+            [
+              {
+                "text": "✓ 2 · Branches",
+                "callback_data": "lr:j:lesson:branches"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 333333333,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Основи Git"
+            },
+            {
+              "type": "paragraph",
+              "text": "Серія: 0 дн. поспіль"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Коміти"
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Гілки"
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Оберіть урок. Кожен займає близько двох хвилин."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1 · Коміти",
+                "callback_data": "lr:1:lesson:commits"
+              }
+            ],
+            [
+              {
+                "text": "2 · Гілки",
+                "callback_data": "lr:1:lesson:branches"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Урок 1: Коміти"
+            },
+            {
+              "type": "paragraph",
+              "text": "Коміт — це збережений знімок проєкту з повідомленням про те, чому він змінився."
+            },
+            {
+              "type": "paragraph",
+              "text": "Малі та зосереджені коміти легко перевіряти й скасовувати."
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nЖурнал показує по рядку на коміт: короткий id і повідомлення.",
+              "credit": "Приклад"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Почати тест",
+                  "callback_data": "lr:2:start",
+                  "style": "primary"
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "lr:2:back"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq22"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 1 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Що зберігає коміт?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Знімок із повідомленням",
+                "callback_data": "lr:3:ans:0:0"
+              }
+            ],
+            [
+              {
+                "text": "Лише назви файлів",
+                "callback_data": "lr:3:ans:0:1"
+              }
+            ],
+            [
+              {
+                "text": "Копію сервера",
+                "callback_data": "lr:3:ans:0:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq23"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 1 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Що зберігає коміт?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Правильно. Коміт — це знімок плюс повідомлення, що його пояснює."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Знімок із повідомленням",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Лише назви файлів",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Копію сервера",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Наступне питання",
+                "callback_data": "lr:4:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq24"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 2 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Яка команда записує підготовлені зміни?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git clone",
+                "callback_data": "lr:5:ans:1:0"
+              }
+            ],
+            [
+              {
+                "text": "git commit",
+                "callback_data": "lr:5:ans:1:1"
+              }
+            ],
+            [
+              {
+                "text": "git fetch",
+                "callback_data": "lr:5:ans:1:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq25"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 2 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Яка команда записує підготовлені зміни?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Правильно. git commit записує те, що підготував git add."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git clone",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ git commit",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git fetch",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Наступне питання",
+                "callback_data": "lr:6:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq26"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 3 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Хороший коміт…"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "якомога більший",
+                "callback_data": "lr:7:ans:2:0"
+              }
+            ],
+            [
+              {
+                "text": "без повідомлення",
+                "callback_data": "lr:7:ans:2:1"
+              }
+            ],
+            [
+              {
+                "text": "малий і зосереджений",
+                "callback_data": "lr:7:ans:2:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq27"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 3 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Хороший коміт…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Правильно. Малі коміти легше перевіряти."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "якомога більший",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "без повідомлення",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ малий і зосереджений",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Показати результат",
+                "callback_data": "lr:8:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq28"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Результат: Коміти"
+            },
+            {
+              "type": "paragraph",
+              "text": "███  3/3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Серія: 1 дн. поспіль"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Наступний урок",
+                "callback_data": "lr:9:next_lesson",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Карта курсу",
+                "callback_data": "lr:9:map"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq29"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Урок 2: Гілки"
+            },
+            {
+              "type": "paragraph",
+              "text": "Гілка — це рухомий вказівник на коміт. Робота в гілці не чіпає main."
+            },
+            {
+              "type": "paragraph",
+              "text": "Зливайте гілку, коли робота готова."
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "git switch -c fix-typo\ngit commit -am \"Fix typo\"\ngit switch main\ngit merge fix-typo",
+              "credit": "Приклад"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Почати тест",
+                  "callback_data": "lr:a:start",
+                  "style": "primary"
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "lr:a:back"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq30"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 1 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Що таке гілка?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Копія диска",
+                "callback_data": "lr:b:ans:0:0"
+              }
+            ],
+            [
+              {
+                "text": "Вказівник на коміт",
+                "callback_data": "lr:b:ans:0:1"
+              }
+            ],
+            [
+              {
+                "text": "Віддалений сервер",
+                "callback_data": "lr:b:ans:0:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq31"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 1 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Що таке гілка?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Правильно. Гілка лише вказує на коміт."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Копія диска",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ Вказівник на коміт",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Віддалений сервер",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Наступне питання",
+                "callback_data": "lr:c:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq32"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 2 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Яка команда створює й відкриває гілку?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git switch -c",
+                "callback_data": "lr:d:ans:1:0"
+              }
+            ],
+            [
+              {
+                "text": "git merge",
+                "callback_data": "lr:d:ans:1:1"
+              }
+            ],
+            [
+              {
+                "text": "git log",
+                "callback_data": "lr:d:ans:1:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq33"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 2 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Яка команда створює й відкриває гілку?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Правильно. switch -c створює гілку й переходить на неї."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ git switch -c",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git merge",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git log",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Наступне питання",
+                "callback_data": "lr:e:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq34"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 3 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Як додати готову роботу в main?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Видалити main",
+                "callback_data": "lr:f:ans:2:0"
+              }
+            ],
+            [
+              {
+                "text": "git init",
+                "callback_data": "lr:f:ans:2:1"
+              }
+            ],
+            [
+              {
+                "text": "git merge",
+                "callback_data": "lr:f:ans:2:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq35"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Питання 3 з 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Як додати готову роботу в main?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Правильно. Перейдіть на main і злийте гілку."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Видалити main",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git init",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ git merge",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Показати результат",
+                "callback_data": "lr:g:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq36"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Результат: Гілки"
+            },
+            {
+              "type": "paragraph",
+              "text": "███  3/3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Серія: 2 дн. поспіль"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Наступний урок",
+                "callback_data": "lr:h:next_lesson",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Карта курсу",
+                "callback_data": "lr:h:map"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq37"
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Git basics"
+            },
+            {
+              "type": "paragraph",
+              "text": "Streak: 0 day(s) in a row"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Commits"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Branches"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Pick a lesson. Each one takes about two minutes."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ 1 · Commits",
+                "callback_data": "lr:k:lesson:commits"
+              }
+            ],
+            [
+              {
+                "text": "✓ 2 · Branches",
+                "callback_data": "lr:k:lesson:branches"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Lesson 1: Commits"
+            },
+            {
+              "type": "paragraph",
+              "text": "A commit is a saved snapshot of the project with a message that says why it changed."
+            },
+            {
+              "type": "paragraph",
+              "text": "Small, focused commits are easy to review and to undo."
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message.",
+              "credit": "Example"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Start quiz",
+                  "callback_data": "lr:l:start",
+                  "style": "primary"
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "lr:l:back"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq39"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 1 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "What does a commit store?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "A snapshot with a message",
+                "callback_data": "lr:m:ans:0:0"
+              }
+            ],
+            [
+              {
+                "text": "Only file names",
+                "callback_data": "lr:m:ans:0:1"
+              }
+            ],
+            [
+              {
+                "text": "A copy of the server",
+                "callback_data": "lr:m:ans:0:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq40"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 1 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "What does a commit store?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. A commit is a snapshot plus the message that explains it."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ A snapshot with a message",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Only file names",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "A copy of the server",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Next question",
+                "callback_data": "lr:n:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq41"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 2 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Which command records staged changes?"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git clone",
+                "callback_data": "lr:o:ans:1:0"
+              }
+            ],
+            [
+              {
+                "text": "git commit",
+                "callback_data": "lr:o:ans:1:1"
+              }
+            ],
+            [
+              {
+                "text": "git fetch",
+                "callback_data": "lr:o:ans:1:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq42"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 2 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Which command records staged changes?"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. git commit records what git add staged."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "git clone",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ git commit",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "git fetch",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Next question",
+                "callback_data": "lr:p:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq43"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 3 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "A good commit is…"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "as large as possible",
+                "callback_data": "lr:q:ans:2:0"
+              }
+            ],
+            [
+              {
+                "text": "without a message",
+                "callback_data": "lr:q:ans:2:1"
+              }
+            ],
+            [
+              {
+                "text": "small and focused",
+                "callback_data": "lr:q:ans:2:2"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq44"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Question 3 of 3"
+            },
+            {
+              "type": "paragraph",
+              "text": "A good commit is…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Correct. Small commits are easier to review."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "as large as possible",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "without a message",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ small and focused",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "See the result",
+                "callback_data": "lr:r:next",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq45"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Result: Commits"
+            },
+            {
+              "type": "paragraph",
+              "text": "███  3/3"
+            },
+            {
+              "type": "paragraph",
+              "text": "Streak: 1 day(s) in a row"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Next lesson",
+                "callback_data": "lr:s:next_lesson",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Course map",
+                "callback_data": "lr:s:map"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq46"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqx",
+        "text": "Цей урок належить іншій людині. Відкрийте свій через /start.",
+        "show_alert": true
+      }
+    }
+  ]
+}

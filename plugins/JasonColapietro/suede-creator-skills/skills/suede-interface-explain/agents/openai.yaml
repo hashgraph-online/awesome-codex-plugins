@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Interface Explain Skills"
+  short_description: "Explain interface mechanisms with source-backed evidence"
+  default_prompt: "Use $suede-interface-explain to explain [target or mechanism]. Keep the work read-only, trace the relevant source and available rendered evidence, distinguish observation from inference, and state the exact viewport, state and coverage. Return a concise mechanism explanation with source references and any missing evidence."
+policy:
+  allow_implicit_invocation: false

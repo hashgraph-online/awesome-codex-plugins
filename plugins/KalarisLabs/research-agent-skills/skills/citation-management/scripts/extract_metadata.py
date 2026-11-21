@@ -24,6 +24,9 @@ from _common import (  # noqa: E402
     render_entry,
 )
 
+_AUTHOR_SEP = ' and '
+
+
 class MetadataExtractor:
     """Extract metadata from various sources and generate BibTeX."""
     
@@ -166,7 +169,7 @@ class MetadataExtractor:
         Returns:
             Metadata dictionary or None
         """
-        url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
+        url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
         params = {
             'db': 'pubmed',
             'id': pmid,
@@ -301,7 +304,7 @@ class MetadataExtractor:
                     'entry_type': 'article' if journal else 'misc',
                     'arxiv_id': arxiv_id,
                     'title': entry.findtext('atom:title', '', ns).strip().replace('\n', ' '),
-                    'authors': ' and '.join(authors),
+                    'authors': _AUTHOR_SEP.join(authors),
                     'year': year,
                     'doi': doi,
                     'journal': journal,
@@ -421,7 +424,7 @@ class MetadataExtractor:
                 else:
                     formatted.append(family)
         
-        return ' and '.join(formatted)
+        return _AUTHOR_SEP.join(formatted)
     
     def _format_authors_pubmed(self, authors: List) -> str:
         """Format author list from PubMed XML."""
@@ -435,7 +438,7 @@ class MetadataExtractor:
                 else:
                     formatted.append(last_name)
         
-        return ' and '.join(formatted)
+        return _AUTHOR_SEP.join(formatted)
     
     def _extract_year_crossref(self, message: Dict) -> str:
         """Extract year from CrossRef message."""

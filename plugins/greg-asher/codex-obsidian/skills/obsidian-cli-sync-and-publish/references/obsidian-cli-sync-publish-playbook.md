@@ -3,7 +3,7 @@
 Use the Codex-safe wrapper in Codex Desktop on macOS:
 
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian <command>'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian <command>'
 ```
 
 ## Read-first release gate

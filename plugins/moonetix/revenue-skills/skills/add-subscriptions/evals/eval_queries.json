@@ -1,0 +1,15 @@
+[
+  {"query": "Add a monthly Pro plan with Stripe Billing to our app and lock the export feature behind it.", "should_trigger": true},
+  {"query": "Users who cancel their subscription still have premium access weeks later. Fix our subscription webhook.", "should_trigger": true},
+  {"query": "When a renewal payment fails, give people a few days of grace before they lose access, and give it back when Stripe's retry succeeds.", "should_trigger": true},
+  {"query": "Handle App Store Server Notifications V2 for our auto-renewable subscription: renewals, grace period, refunds and family sharing.", "should_trigger": true},
+  {"query": "Our Google Play subscription users lose access after upgrading to the yearly plan. We get the RTDN but I think we mishandle the linked purchase token.", "should_trigger": true},
+  {"query": "Our paid plan includes 500 credits a month, but some users got two batches in one month after upgrading. Make the monthly grant happen exactly once per billing period.", "should_trigger": true},
+  {"query": "Add a 14-day free trial to our Paddle subscription and stop people from starting a new trial with every new account.", "should_trigger": true},
+  {"query": "We use RevenueCat. Add a nightly job that compares who has premium in our database with RevenueCat and fixes the differences.", "should_trigger": true},
+  {"query": "Verify the Stripe-Signature header on our webhook endpoint and stop duplicate one-time payment credits.", "should_trigger": false},
+  {"query": "A buyer disputed a coin pack purchase and kept the coins. Make chargebacks take the coins back.", "should_trigger": false},
+  {"query": "Write the pricing page copy for our three subscription tiers.", "should_trigger": false},
+  {"query": "Add a newsletter subscription form that stores emails in Mailchimp.", "should_trigger": false},
+  {"query": "Charge credits per AI generation and refuse requests when the balance is empty.", "should_trigger": false}
+]

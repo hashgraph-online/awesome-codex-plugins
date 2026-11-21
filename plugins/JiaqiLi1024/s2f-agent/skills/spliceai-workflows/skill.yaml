@@ -1,0 +1,53 @@
+schema_version: 1
+id: spliceai-workflows
+title: SpliceAI Workflows
+path: skills/spliceai-workflows
+status: active
+family: splice-site-prediction
+tasks:
+  - environment-setup
+  - variant-effect
+  - prediction
+  - interpretation
+  - troubleshooting
+triggers:
+  - spliceai
+  - splice-ai
+  - DS_AG
+  - DS_AL
+  - DS_DG
+  - DS_DL
+  - splice variant
+required_inputs:
+  - task-objective
+  - sequence-or-interval
+optional_inputs:
+  - target-stack-or-model-family
+  - assembly
+  - coordinate-or-interval
+  - ref-alt-or-variant-spec
+  - vcf-input
+  - runtime-context
+  - hardware-context
+  - requested-outputs
+input_mappings:
+  - task-objective|query_tokens=variant,vcf,splice,sequence,custom|script_flags=cli-or-custom-sequence-path
+  - sequence-or-interval|query_tokens=vcf,variant,sequence,fasta|script_flags=-I-or-python-input
+  - target-stack-or-model-family|query_tokens=spliceai,model,package|script_flags=internal:model-selection
+  - assembly|query_tokens=grch37,grch38,hg19,hg38,assembly|script_flags=-A
+  - coordinate-or-interval|query_tokens=coordinate,position,chr,locus|script_flags=VCF-coordinate-validation
+  - ref-alt-or-variant-spec|query_tokens=ref,alt,variant,mutation|script_flags=VCF-allele-validation
+  - vcf-input|query_tokens=vcf,variant-file|script_flags=-I
+  - runtime-context|query_tokens=python,tensorflow,conda|script_flags=internal:runtime-selection
+  - hardware-context|query_tokens=gpu,cuda,cpu,memory|script_flags=internal:hardware-preflight
+  - requested-outputs|query_tokens=output,INFO,DS,DP,score|script_flags=-O
+constraints:
+  - only-snvs-and-simple-indels-supported
+  - reference-and-annotation-required-for-vcf
+  - trained-models-have-academic-noncommercial-license
+  - sequence-and-coordinate-inputs-use-explicit-0-based-or-1-based-conventions
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-spliceai-or-spliceai-cli
+  - prefer-over-pangolin-when-delta-score-fields-or-illumina-models-are-requested

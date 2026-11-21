@@ -1,11 +1,10 @@
 ---
-
 name: backend/api-development
 description: 后端API开发方法论，包括RESTful/GraphQL设计、请求验证、错误处理和安全实现
 type: methodology
 agent: boss-backend
 metadata:
-internal: true
+  internal: true
 ---
 
 # 后端 API 开发方法论
@@ -15,6 +14,7 @@ internal: true
 ### 契约来源
 
 实现 API 前，**必须**阅读 `architecture.md` §5（API 设计），获取：
+
 - API 规范（RESTful/GraphQL）
 - 接口列表（方法、路径、描述、认证要求）
 - 请求/响应格式约定
@@ -42,6 +42,7 @@ internal: true
 ### 统一响应格式
 
 **成功响应**：
+
 ```json
 {
   "success": true,
@@ -51,6 +52,7 @@ internal: true
 ```
 
 **错误响应**：
+
 ```json
 {
   "success": false,
@@ -65,11 +67,13 @@ internal: true
 ### 分页规范
 
 **请求参数**：
+
 ```
 GET /api/users?page=1&pageSize=20&sortBy=createdAt&order=desc
 ```
 
 **响应格式**：
+
 ```json
 {
   "success": true,
@@ -191,6 +195,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
 ### 认证（Authentication）
 
 **JWT Token 示例**：
+
 ```typescript
 import jwt from 'jsonwebtoken';
 
@@ -228,6 +233,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 ### 授权（Authorization）
 
 **基于角色的访问控制（RBAC）**：
+
 ```typescript
 export function requireRole(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -271,6 +277,7 @@ app.use('/api/', limiter);
 ### Controller 层
 
 职责：处理 HTTP 请求和响应
+
 ```typescript
 // controllers/userController.ts
 export class UserController {
@@ -294,6 +301,7 @@ export class UserController {
 ### Service 层
 
 职责：业务逻辑封装
+
 ```typescript
 // services/userService.ts
 export class UserService {
@@ -321,6 +329,7 @@ export class UserService {
 ### Repository 层
 
 职责：数据库操作
+
 ```typescript
 // repositories/userRepository.ts
 export class UserRepository {
@@ -410,12 +419,14 @@ async function getUserWithCache(id: string): Promise<User> {
 ## 实现检查清单
 
 实现 API 前：
+
 - [ ] 阅读 architecture.md §5 API 设计
 - [ ] 确认请求/响应格式约定
 - [ ] 确认认证和授权方案
 - [ ] 探索项目现有代码模式
 
 实现 API 后：
+
 - [ ] API 端点符合契约定义
 - [ ] 实现请求验证
 - [ ] 实现统一错误处理

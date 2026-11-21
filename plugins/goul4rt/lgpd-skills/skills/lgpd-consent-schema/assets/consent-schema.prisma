@@ -1,0 +1,146 @@
+// Consent Event Ledger — append-only orientado a eventos, versionado e auditável.
+// LGPD Art. 7º, I; Art. 8º (§§ 2º, 4º, 5º e 6º); Art. 9º; Art. 14; Art. 18, IX.
+// ECA Digital (Lei nº 15.211/2025, Arts. 13 e 24; Decreto nº 12.880/2026, Arts. 25–26) para
+// aferição de idade e vinculação de responsável até 16 anos.
+
+enum ConsentEventType {
+  GRANTED    // Consentimento concedido para finalidade e versão específicas
+  REVOKED    // Consentimento revogado pelo titular ou responsável (Art. 8º, § 5º)
+  SUPERSEDED // Substituído por mudança material de finalidade/política (Art. 8º, § 6º)
+  EXPIRED    // Expirado automaticamente quando houver prazo de validade (TTL)
+}
+
+// Faixa etária do titular (LGPD Art. 14 + ECA Art. 2º). Campo nulo = idade não aferida.
+enum SubjectAgeBand {
+  CHILD      // < 12 anos — consentimento parental específico quando a base for consentimento (Art. 14, § 1º)
+  ADOLESCENT // 12 a < 18 anos — consente por si (Enunciado CD/ANPD nº 1/2023), melhor interesse prevalece
+  ADULT
+}
+
+enum AgeAssuranceSource {
+  OS_SIGNAL             // sinal de idade do sistema operacional (Lei Art. 12, III; Dec. Art. 25)
+  APP_STORE_SIGNAL      // sinal de idade da loja de aplicações
+  VERIFIABLE_CREDENTIAL // credencial verificável / provedor certificado (Lei Art. 11; Dec. Arts. 25, § 2º, II e 30)
+  OWN_MECHANISM         // mecanismo próprio do fornecedor (Lei Art. 14, parágrafo único)
+}
+
+enum ConsentChannel {
+  WEB
+  MOBILE_RN
+  API
+  SIGNUP
+  SETTINGS_PAGE
+  EMAIL_OPTIN
+  COOKIE_BANNER
+}
+
+model PolicyVersion {
+  id                String         @id @default(cuid())
+  version           String         @unique // ex.: "v3.2"
+  effectiveAt       DateTime
+  requiresReconsent Boolean        @default(false) // Art. 8º, § 6º — mudança material exige nova coleta
+  text              String         @db.Text
+  textHash          String         // SHA-256 do texto canônico publicado
+  language          String         @default("pt-BR")
+  changelog         String?        @db.Text
+
+  events            ConsentEvent[]
+
+  @@index([effectiveAt])
+}
+
+model ConsentEvent {
+  id              String           @id @default(cuid())
+  seq             BigInt           @unique @default(autoincrement()) // desempate monotônico determinístico
+
+  // Titular e finalidade específica (Art. 8º, § 4º)
+  subjectId       String           // FK lógica para User
+  purpose         String           // ex.: "marketing_email", "analytics_cookies", "biometric_optin"
+
+  // Semântica de evento imutável (nunca sobrescrever registro anterior)
+  eventType       ConsentEventType
+  occurredAt      DateTime         @default(now())
+  expiresAt       DateTime?        // aplicável apenas em eventos GRANTED com TTL
+
+  // Linhagem: eventos REVOKED / SUPERSEDED / EXPIRED apontam para o GRANTED original
+  rootConsentId   String?
+  rootConsent     ConsentEvent?    @relation("ConsentLineage", fields: [rootConsentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  derivedEvents   ConsentEvent[]   @relation("ConsentLineage")
+
+  // Versão exata da política associada ao evento
+  policyVersionId String
+  policyVersion   PolicyVersion    @relation(fields: [policyVersionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  // Evidência probatória (Art. 8º, § 2º — ônus da prova cabe ao controlador)
+  evidenceHash    String           // SHA-256 canônico da evidência do evento
+  ipAddress       String?          @db.Inet
+  userAgent       String?
+  locale          String           @default("pt-BR")
+  channel         ConsentChannel
+  uiSnapshot      String?          @db.Text // hash ou snapshot do componente/texto exibido
+
+  // Crianças e adolescentes (Art. 14 LGPD + Enunciado 1/2023 + ECA Digital)
+  subjectAgeBand  SubjectAgeBand?
+  parentalConsent Boolean?         // true quando consentimento parental específico foi colhido (Art. 14, § 1º — só crianças)
+  guardianId      String?
+  guardian        Guardian?        @relation(fields: [guardianId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  // Rastreabilidade de propagação a operadores (Art. 18, § 6º)
+  propagatedTo    Json?            // ex.: ["mixpanel", "customer_io"]
+
+  @@index([subjectId, purpose, occurredAt(sort: Desc), seq(sort: Desc)])
+  @@index([rootConsentId])
+  @@index([policyVersionId])
+}
+
+// Vinculação a responsável legal (Art. 14, § 1º LGPD / Art. 24 Lei 15.211/2025 até 16 anos)
+model Guardian {
+  id                 String         @id @default(cuid())
+  fullName           String
+  // CPF só se a verificação escolhida realmente exigir (Art. 6º, III LGPD — necessidade). O Art. 24
+  // do ECA Digital exige vincular à conta/usuário do responsável, não coletar CPF.
+  cpfCiphertext      String?        // cifrado em nível de aplicação (AES-256-GCM + KMS)
+  cpfBlindIndex      String?        // HMAC-SHA256 com chave segregada para busca exata
+  guardianUserId     String?        // conta do responsável na própria plataforma (Art. 24, caput)
+  email              String
+  phone              String?
+  relationship       String         // "mother", "father", "legal_guardian"
+  verifiedAt         DateTime?
+  // Método que comprova a RELAÇÃO de responsabilidade (e a maioridade do responsável). Sinal de
+  // idade do SO/loja comprova só a idade — não a relação — e sozinho não basta aqui.
+  verificationMethod String?        // ex.: "gov_br", "id_doc_liveness", "os_parental_link"
+
+  minors             MinorLink[]
+  consentEvents      ConsentEvent[]
+
+  createdAt          DateTime       @default(now())
+
+  @@index([cpfBlindIndex])
+}
+
+model MinorLink {
+  id          String    @id @default(cuid())
+  minorUserId String
+  guardianId  String
+  guardian    Guardian  @relation(fields: [guardianId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  endedAt     DateTime?
+
+  @@unique([minorUserId, guardianId])
+}
+
+// Evidência de aferição de idade — guarda o RESULTADO, nunca o documento/biometria bruta.
+// Lei 15.211/2025, Art. 13 (dados de aferição só para essa finalidade) e Art. 14, parágrafo único
+// (mecanismo próprio, além dos sinais); Decreto 12.880/2026, Art. 25, § 1º (sinal sem data de
+// nascimento exata) e § 4º (divergência entre sinal e aferição própria → alternativa mais protetiva).
+model AgeAssurance {
+  id         String             @id @default(cuid())
+  userId     String
+  ageBand    SubjectAgeBand
+  source     AgeAssuranceSource
+  method     String?            // ex.: "store_age_range_api", "facial_age_estimation", "gov_br"
+  assessedAt DateTime           @default(now())
+
+  @@index([userId, assessedAt(sort: Desc)])
+}

@@ -1,11 +1,10 @@
 ---
-
 name: frontend/testing-guide
 description: 前端测试编写指南，包括单元测试、集成测试和E2E测试的编写方法和最佳实践
 type: methodology
 agent: boss-frontend
 metadata:
-internal: true
+  internal: true
 ---
 
 # 前端测试编写指南
@@ -338,6 +337,7 @@ it('is accessible', async () => {
 - 行覆盖率：≥ 80%
 
 运行覆盖率报告：
+
 ```bash
 npm test -- --coverage
 ```
@@ -347,6 +347,7 @@ npm test -- --coverage
 实现完成后，在输出中包含：
 
 **测试添加**：
+
 | 类型         | 文件                                   | 描述                      |
 | ------------ | -------------------------------------- | ------------------------- |
 | 单元测试     | `src/components/Button.test.tsx`       | Button 组件渲染和交互测试 |
@@ -354,6 +355,7 @@ npm test -- --coverage
 | **E2E 测试** | `e2e/user-management.spec.ts`          | 用户管理完整流程 E2E 测试 |
 
 **测试结果**：
+
 - 通过：25 / 失败：0
 - 覆盖率：85%
 - E2E 测试：✅ 已编写并通过

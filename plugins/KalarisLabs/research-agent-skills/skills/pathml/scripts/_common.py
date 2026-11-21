@@ -30,10 +30,12 @@ class CliError(ValueError):
 
 
 def _reject_constant(value: str) -> None:
+    """Handle reject constant."""
     raise CliError(f"non-standard JSON constant is not allowed: {value}")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle unique object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -43,6 +45,7 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _reject_url(value: str) -> None:
+    """Handle reject url."""
     lowered = value.strip().lower()
     if "://" in lowered or lowered.startswith(
         ("http:", "https:", "ftp:", "s3:", "gs:", "file:")
@@ -92,6 +95,7 @@ def checked_root(value: str | os.PathLike[str]) -> Path:
 
 
 def _within_root(candidate: Path, root: Path) -> None:
+    """Handle within root."""
     try:
         candidate.relative_to(root)
     except ValueError as exc:
@@ -99,6 +103,7 @@ def _within_root(candidate: Path, root: Path) -> None:
 
 
 def _suffix_matches(path: Path, suffixes: Iterable[str]) -> bool:
+    """Handle suffix matches."""
     name = path.name.lower()
     return any(name.endswith(suffix.lower()) for suffix in suffixes)
 

@@ -1,0 +1,29 @@
+{
+  "description": "Pixeltable: session orientation + real-time anti-pattern validation (pure Python; the command finds a 3.9+ interpreter as python, python3, or py -3).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'for p in python python3 \"py -3\"; do $p -c \"import sys; sys.exit(sys.version_info < (3, 9))\" >/dev/null 2>&1 && exec $p \"$0\"; done; exit 0' \"${CLAUDE_PLUGIN_ROOT}/hooks/session_orientation.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'for p in python python3 \"py -3\"; do $p -c \"import sys; sys.exit(sys.version_info < (3, 9))\" >/dev/null 2>&1 && exec $p \"$0\"; done; exit 0' \"${CLAUDE_PLUGIN_ROOT}/hooks/validate_antipatterns.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

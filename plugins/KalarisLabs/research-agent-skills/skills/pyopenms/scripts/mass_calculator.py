@@ -27,6 +27,7 @@ PROTON = 1.0072764665789
 
 
 def report_isotopes(formula, n, csv=None):
+    """Handle report isotopes."""
     gen = ms.CoarseIsotopePatternGenerator(n)
     dist = formula.getIsotopeDistribution(gen)
     print(f"\nIsotope pattern (top {n}):")
@@ -46,6 +47,7 @@ def report_isotopes(formula, n, csv=None):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Compute masses and isotope distributions.")
     parser.add_argument("--peptide", help="Amino-acid sequence (TPP/OpenMS mod syntax allowed)")
     parser.add_argument("--formula", help="Empirical formula, e.g. C6H12O6")

@@ -8,6 +8,7 @@ These conventions apply across all story skills. Every `SKILL.md` links here and
 - **YAML frontmatter** on every file in a story project for structured metadata (a standalone piece saved outside a project, such as a single poem, needs none)
 - **Schema version** - `story.md` frontmatter includes `schema-version: 2`
 - **Character identifiers** use the kebab-case filename without extension (e.g., `sera-voss`)
+- **Entity bodies are prose for the writer** - the markdown below an entity's frontmatter describes the character, place, or term in story terms. Do not name frontmatter fields there ("the `progressions` date the change"); say what happens and when ("from Festival night the city is occupied"), and keep the fields in the frontmatter
 - **Scene identifiers** use `chapter-{NN}-scene-{NN}` and live in `scenes/`
 
 ## Project files
@@ -35,6 +36,7 @@ A promise or clue moves from `planned` to `planted` (with `planted: chapter-{NN}
 
 - **Bidirectional cross-links** - when referencing another entity, update both files
 - **Death tracking** - when a character dies on the page, set `status: deceased` and `died-in: chapter-{NN}` so `story continuity` can flag posthumous appearances
+- **Ages** - record a character's age as a `born` date (a day or a year alone), never as a fixed `age`, so `story context` gives the age at each dated chapter and `story continuity` flags appearances before the birth
 - **`mentions` vs `characters`** - chapter and scene frontmatter lists characters present in-scene under `characters`; characters who are only referenced, remembered, recorded, or seen in flashback go under `mentions`
 
 ## Maintenance

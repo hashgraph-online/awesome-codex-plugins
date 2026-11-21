@@ -43,19 +43,19 @@ npm uninstall rxjs   # v7 drops the rxjs dependency
 v6 exposed per-domain RxJS Subjects; v7 merges SDK + UI events into one bus.
 ```diff
 - import { CometChatMessageEvents } from "@cometchat/chat-uikit-react";
-- CometChatMessageEvents.ccMessageSent.subscribe((data) => { /* … */ });
+- CometChatMessageEvents.ccMessageSent.subscribe((data) => { /* ... */ });
 ```
 ```tsx
 import { useCometChatEvents } from "@cometchat/chat-uikit-react";
 useCometChatEvents((event) => {
-  if (event.type === "ui:message/sent") { /* … */ }
+  if (event.type === "ui:message/sent") { /* ... */ }
 }, []); // 2nd arg (React.DependencyList) is REQUIRED
-// publish: const publish = usePublishEvent(); publish({ /* … */ });
+// publish: const publish = usePublishEvent(); publish({ /* ... */ });
 ```
 
 ## 4. DataSource / ChatConfigurator → plugins
 ```diff
-- class MyDecorator extends DataSourceDecorator { getTextMessageBubble() { /* … */ } }
+- class MyDecorator extends DataSourceDecorator { getTextMessageBubble() { /* ... */ } }
 - ChatConfigurator.enable(new MyDecorator());
 ```
 ```tsx
@@ -92,18 +92,18 @@ Full plugin API: fetch `plugins/overview` (docs-map).
 ## 6. Provider, theming, calling (minor)
 - **Provider (required):** wrap the chat tree in `CometChatProvider` (init/login stay imperative + unchanged from v6).
 - **Theming:** same CSS variables; `data-theme="dark"` attribute → `theme="dark"` prop on `CometChatProvider` (or the `useTheme()` hook).
-- **Calling:** enable in the init settings — `uiKit: { callsSDK: {} }` passed to `CometChatUIKit.initFromSettings` (the classic `new UIKitSettingsBuilder()…setCallingEnabled(true).build()` + `init()` still works but skips the ai-agent telemetry path). Not a provider prop. Without it, call UI hides + the Calls SDK doesn't load.
-- **Localization:** v7 localizes via `CometChatProvider` (auto `LocaleProvider`); switch language with its `locale` prop (`<CometChatProvider locale="fr">`). `init` / `setCurrentLanguage` / `addTranslation` are **INSTANCE** methods on `CometChatLocalize`, NOT statics — reach the live instance with `CometChatLocalize.getSharedInstance()` (e.g. `CometChatLocalize.getSharedInstance()?.addTranslation({ "en-us": { … } })`, **nested per-language** `Record<lang, Record<key,string>>`; other config via `getSharedInstance()?.init({ translationsForLanguage, timezone, calendarObject, … })`). **Don't `new CometChatLocalize(...)`** — the provider reads only the shared instance (registered by `CometChatUIKit.init*` / the provider), so a constructed one isn't wired to the UI; and the `locale` prop (default `"en-us"`) is applied on mount/change, overriding an earlier `init({ language })`. Read strings via the `useLocale()` hook. **Some KEYS changed v6→v7** — a stale v6 key falls through to the raw string (`getLocalizedString` returns the key on a miss), so a snake_case token like `group_info` in the UI = a missing key. Re-verify any custom translation keys against v7; never render a key literally.
+- **Calling:** enable in the init settings — `uiKit: { callsSDK: {} }` passed to `CometChatUIKit.initFromSettings` (the classic `new UIKitSettingsBuilder()...setCallingEnabled(true).build()` + `init()` still works but skips the ai-agent telemetry path). Not a provider prop. Without it, call UI hides + the Calls SDK doesn't load.
+- **Localization:** v7 localizes via `CometChatProvider` (auto `LocaleProvider`); switch language with its `locale` prop (`<CometChatProvider locale="fr">`). `init` / `setCurrentLanguage` / `addTranslation` are **INSTANCE** methods on `CometChatLocalize`, NOT statics — reach the live instance with `CometChatLocalize.getSharedInstance()` (e.g. `CometChatLocalize.getSharedInstance()?.addTranslation({ "en-us": { ... } })`, **nested per-language** `Record<lang, Record<key,string>>`; other config via `getSharedInstance()?.init({ translationsForLanguage, timezone, calendarObject, ... })`). **Don't `new CometChatLocalize(...)`** — the provider reads only the shared instance (registered by `CometChatUIKit.init*` / the provider), so a constructed one isn't wired to the UI; and the `locale` prop (default `"en-us"`) is applied on mount/change, overriding an earlier `init({ language })`. Read strings via the `useLocale()` hook. **Some KEYS changed v6→v7** — a stale v6 key falls through to the raw string (`getLocalizedString` returns the key on a miss), so a snake_case token like `group_info` in the UI = a missing key. Re-verify any custom translation keys against v7; never render a key literally.
 
 ## 7. Localization migration (the `sample_` raw-key trap) — EDIT the app
 **Symptom:** the UI renders raw keys like `group_info`, `add_members`, `delete_chat`, `view_members`, `banned_members` (snake_case) instead of "Group Info" etc. **Cause:** v7 **namespaced the sample-app strings under a `sample_` prefix**, so the v6 unprefixed keys now MISS and `getLocalizedString` returns the raw key.
 
 **Fix the client's app (this skill edits it):**
 1. Find every localization key the app uses — `getLocalizedString("<key>")`, custom panel/button/tab labels, any hardcoded `sample_*`/unprefixed key.
-2. **Look up the EXACT v7 key — never guess.** The kit ships them in its source: `@cometchat/chat-uikit-react` → `src/resources/CometChatLocalize/resources/<lang>/translation.json` (en-us default), also the public GitHub repo + the localization docs `.md`. The sample-app strings are prefixed **`sample_`** — ~77 of them (`sample_group_info` = "Group Info", `sample_add_members`, `sample_delete_chat`, `sample_view_members`, `sample_banned_members`, `sample_delete_and_exit`, `sample_delete_chat_confirm`, `sample_delete_exit_confirm`, `sample_add_1_member`/`sample_add_n_members`, `sample_create_group`, `sample_block_contact`, …).
+2. **Look up the EXACT v7 key — never guess.** The kit ships them in its source: `@cometchat/chat-uikit-react` → `src/resources/CometChatLocalize/resources/<lang>/translation.json` (en-us default), also the public GitHub repo + the localization docs `.md`. The sample-app strings are prefixed **`sample_`** — ~77 of them (`sample_group_info` = "Group Info", `sample_add_members`, `sample_delete_chat`, `sample_view_members`, `sample_banned_members`, `sample_delete_and_exit`, `sample_delete_chat_confirm`, `sample_delete_exit_confirm`, `sample_add_1_member`/`sample_add_n_members`, `sample_create_group`, `sample_block_contact`, ...).
 3. **Two strategies (prefer A — keeps it bundled):**
    - **A — map to the bundled `sample_` key:** `getLocalizedString("group_info")` → `getLocalizedString("sample_group_info")`. Resolves from the kit's built-in translations; no registration.
-   - **B — keep the app's key + register the value** (only if the key isn't in the kit): `addTranslation` is an INSTANCE method — `CometChatLocalize.getSharedInstance()?.addTranslation({ "en-us": { group_info: "Group Info", add_members: "Add Members" /* … */ } })` (nested per-language), once at startup after the provider mounts.
+   - **B — keep the app's key + register the value** (only if the key isn't in the kit): `addTranslation` is an INSTANCE method — `CometChatLocalize.getSharedInstance()?.addTranslation({ "en-us": { group_info: "Group Info", add_members: "Add Members" /* ... */ } })` (nested per-language), once at startup after the provider mounts.
 4. **Migrate the init to the v7 method:** `CometChatProvider` auto-localizes (default en-us); switch language with its `locale` prop (`<CometChatProvider locale="fr">`). `init` / `setCurrentLanguage` are INSTANCE methods (`CometChatLocalize.getSharedInstance()?.setCurrentLanguage(lang)`), NOT statics. Drop any obsolete v6 localization init.
 5. **Verify:** build/typecheck passes and no snake_case token renders as a label when you open the app.
 

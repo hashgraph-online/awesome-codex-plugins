@@ -1,0 +1,12 @@
+{
+  "update_id": 930002,
+  "message": {
+    "message_id": 7002,
+    "message_thread_id": 5999,
+    "is_topic_message": true,
+    "date": 1763200160,
+    "chat": {"id": -1001234567890, "type": "supergroup", "title": "Support desk", "is_forum": true},
+    "from": {"id": 333333333, "is_bot": false, "first_name": "Oleg", "language_code": "en"},
+    "text": "Lunch at 13:00?"
+  }
+}

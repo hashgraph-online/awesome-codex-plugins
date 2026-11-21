@@ -2,7 +2,7 @@
 name: cometchat-android-v6-testing
 description: "Test an Android app that integrates the CometChat v6 UI Kit — make the SDK mockable behind a repository, unit-test the init/login gate and credential hygiene, write instrumented/Compose UI tests for chat screens, and know honestly what can only be checked on a device. Triggers: 'how do I test my cometchat android app', 'mock cometchat in tests', 'compose ui test chat screen', 'unit test cometchat login'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:chat-sdk-android ^5; JUnit4 · MockK/Mockito · androidx.test / compose-ui-test"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:chat-sdk-android ^5; JUnit4 · MockK/Mockito · androidx.test / compose-ui-test"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -37,7 +37,7 @@ class RealChatSession : ChatSession {           // the only class that touches t
             override fun onSuccess(user: User) = onResult(Result.success(user))
             override fun onError(e: CometChatException) = onResult(Result.failure(e))
         })
-    override fun logout(onResult: (Result<Unit>) -> Unit) { /* … */ }
+    override fun logout(onResult: (Result<Unit>) -> Unit) { /* ... */ }
 }
 ```
 Your ViewModels/screens take `ChatSession`; unit tests pass a fake. This one wrapper is what makes the rest of this skill possible — without it, "mocking CometChat" means static mocking (`mockkStatic`), which is brittle and should be a last resort.
@@ -45,7 +45,7 @@ Your ViewModels/screens take `ChatSession`; unit tests pass a fake. This one wra
 ## Assertions that matter (the ones that catch real defects)
 1. **Init resolves before login, login before UI** — with a fake session, assert the gate state machine never exposes the chat screen while init/login are pending, and that an `onError` path produces an ERROR state (not a permanent spinner or a blank screen).
 2. **No credentials in source** — a cheap, high-value test/CI check: grep the source set for an Auth-Key-shaped literal and assert none; assert `cometchat-settings.json` is gitignored; for release, assert the packaged assets carry no `authKey` (→ `cometchat-android-v6-production`).
-3. **Listener add/remove are paired** — for every `add*Listener(ID, …)` your code makes, assert the matching `remove*Listener(ID)` runs on teardown (fake session records calls; assert balanced). Leaked listeners are the classic Android CometChat bug.
+3. **Listener add/remove are paired** — for every `add*Listener(ID, ...)` your code makes, assert the matching `remove*Listener(ID)` runs on teardown (fake session records calls; assert balanced). Leaked listeners are the classic Android CometChat bug.
 4. **Navigation round-trips** — thread/search/detail screens open AND return (the contract's back-stack rule).
 5. **Scoped data requests** — if the app is 1:1-only or groups-only, assert the request builder carries that scope rather than a client-side filter.
 

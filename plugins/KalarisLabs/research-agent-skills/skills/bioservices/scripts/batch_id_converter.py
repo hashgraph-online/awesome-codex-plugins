@@ -126,7 +126,7 @@ def batch_convert(ids, from_db, to_db, chunk_size=100, delay=0.5):
                 mapped_count = len([v for v in results.values() if v])
                 print(f"✓ Mapped: {mapped_count}/{len(chunk)}")
             else:
-                print(f"✗ No mappings returned")
+                print("✗ No mappings returned")
                 failed_ids.extend(chunk)
 
             # Rate limiting
@@ -137,7 +137,7 @@ def batch_convert(ids, from_db, to_db, chunk_size=100, delay=0.5):
             print(f"✗ Error: {e}")
 
             # Try individual IDs in failed chunk
-            print(f"    Retrying individual IDs...")
+            print("    Retrying individual IDs...")
             for single_id in chunk:
                 try:
                     result = u.mapping(fr=from_db, to=to_db, query=single_id)
@@ -158,7 +158,7 @@ def batch_convert(ids, from_db, to_db, chunk_size=100, delay=0.5):
         if id_ not in all_results:
             all_results[id_] = None
 
-    print(f"\n✓ Conversion complete:")
+    print("\n✓ Conversion complete:")
     print(f"  Total: {len(ids)}")
     print(f"  Mapped: {len([v for v in all_results.values() if v])}")
     print(f"  Failed: {len(failed_ids)}")
@@ -187,7 +187,7 @@ def save_mapping_csv(mapping, output_file, from_db, to_db):
 
             writer.writerow([source_id, from_db, target_str, to_db, status])
 
-    print(f"✓ Results saved")
+    print("✓ Results saved")
 
 
 def save_failed_ids(failed_ids, output_file):
@@ -222,7 +222,7 @@ def print_mapping_summary(mapping, from_db, to_db):
 
     # Show some examples
     if mapped > 0:
-        print(f"\nExample mappings (first 5):")
+        print("\nExample mappings (first 5):")
         count = 0
         for source_id, target_ids in mapping.items():
             if target_ids:
@@ -238,7 +238,7 @@ def print_mapping_summary(mapping, from_db, to_db):
     multiple_mappings = [v for v in mapping.values() if v and len(v) > 1]
     if multiple_mappings:
         print(f"\nMultiple target mappings: {len(multiple_mappings)} ID(s)")
-        print(f"  (These source IDs map to multiple target IDs)")
+        print("  (These source IDs map to multiple target IDs)")
 
     print(f"{'='*70}")
 
@@ -345,7 +345,7 @@ Use --list-databases to see all supported aliases.
         failed_file = output_file.replace(".csv", "_failed.txt")
         save_failed_ids(failed_ids, failed_file)
 
-    print(f"\n✓ Done!")
+    print("\n✓ Done!")
 
 
 if __name__ == "__main__":

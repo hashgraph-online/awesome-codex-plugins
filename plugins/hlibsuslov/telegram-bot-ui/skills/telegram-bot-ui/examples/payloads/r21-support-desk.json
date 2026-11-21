@@ -1,0 +1,525 @@
+{
+  "scenario": "r21-support-desk",
+  "status": "production",
+  "context": "private chat + forum supergroup",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Support</b>\nWhat is this about?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Billing",
+                "callback_data": "sf:1:cat:billing"
+              }
+            ],
+            [
+              {
+                "text": "Bug",
+                "callback_data": "sf:1:cat:bug"
+              }
+            ],
+            [
+              {
+                "text": "Other",
+                "callback_data": "sf:1:cat:other"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Billing</b>\nDescribe the problem in one message. Screenshots are fine.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cancel",
+                "callback_data": "sf:2:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "createForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "name": "🆕 T-1001 · Billing"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "text": "<b>T-1001</b> · Billing\nFrom: Alice · status: <b>new</b>\n\nI was charged twice for the same order.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take",
+                "callback_data": "sd:0:op:T-1001:take",
+                "style": "primary"
+              },
+              {
+                "text": "Wait for user",
+                "callback_data": "sd:0:op:T-1001:wait"
+              }
+            ],
+            [
+              {
+                "text": "Resolve",
+                "callback_data": "sd:0:op:T-1001:resolve",
+                "style": "success"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "Ticket <b>T-1001</b> is open. An agent will reply right here."
+      }
+    },
+    {
+      "method": "editForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "name": "⏳ T-1001 · Billing"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1003,
+        "text": "<b>T-1001</b> · Billing\nFrom: Alice · status: <b>waiting for user</b>\n\nI was charged twice for the same order.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take",
+                "callback_data": "sd:1:op:T-1001:take",
+                "style": "primary"
+              },
+              {
+                "text": "Wait for user",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Resolve",
+                "callback_data": "sd:1:op:T-1001:resolve",
+                "style": "success"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Support · T-1001</b>\nHi Alice, I can see the double charge. I am refunding it now."
+      }
+    },
+    {
+      "method": "editForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "name": "🟢 T-1001 · Billing"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1003,
+        "text": "<b>T-1001</b> · Billing\nFrom: Alice · status: <b>open</b>\n\nI was charged twice for the same order.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take",
+                "disabled": {}
+              },
+              {
+                "text": "Wait for user",
+                "callback_data": "sd:2:op:T-1001:wait"
+              }
+            ],
+            [
+              {
+                "text": "Resolve",
+                "callback_data": "sd:2:op:T-1001:resolve",
+                "style": "success"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "parse_mode": "HTML",
+        "text": "<b>Alice:</b> Thanks, take your time."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq10",
+        "text": "Not possible for a open ticket.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "name": "⏳ T-1001 · Billing"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1003,
+        "text": "<b>T-1001</b> · Billing\nFrom: Alice · status: <b>waiting for user</b>\n\nI was charged twice for the same order.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take",
+                "callback_data": "sd:3:op:T-1001:take",
+                "style": "primary"
+              },
+              {
+                "text": "Wait for user",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Resolve",
+                "callback_data": "sd:3:op:T-1001:resolve",
+                "style": "success"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq12"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq14",
+        "text": "This button is out of date."
+      }
+    },
+    {
+      "method": "editForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "name": "✅ T-1001 · Billing"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1003,
+        "text": "<b>T-1001</b> · Billing\nFrom: Alice · status: <b>resolved</b>\n\nI was charged twice for the same order.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take",
+                "disabled": {}
+              },
+              {
+                "text": "Wait for user",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Reopen",
+                "callback_data": "sd:4:op:T-1001:reopen"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "closeForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sd:1:rate:T-1001:1"
+              },
+              {
+                "text": "2",
+                "callback_data": "sd:1:rate:T-1001:2"
+              },
+              {
+                "text": "3",
+                "callback_data": "sd:1:rate:T-1001:3"
+              },
+              {
+                "text": "4",
+                "callback_data": "sd:1:rate:T-1001:4"
+              },
+              {
+                "text": "5",
+                "callback_data": "sd:1:rate:T-1001:5"
+              }
+            ]
+          ]
+        },
+        "text": "<b>T-1001 is resolved.</b> How did we do?"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq16"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq18",
+        "text": "Это обращение другого человека.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 900,
+        "parse_mode": "HTML",
+        "text": "Thanks! You rated T-1001: 5/5."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq20"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq22",
+        "text": "You already rated this ticket."
+      }
+    },
+    {
+      "method": "editForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "name": "🟢 T-1001 · Billing"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1003,
+        "text": "<b>T-1001</b> · Billing\nFrom: Alice · status: <b>open</b>\n\nI was charged twice for the same order.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take",
+                "disabled": {}
+              },
+              {
+                "text": "Wait for user",
+                "callback_data": "sd:5:op:T-1001:wait"
+              }
+            ],
+            [
+              {
+                "text": "Resolve",
+                "callback_data": "sd:5:op:T-1001:resolve",
+                "style": "success"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "reopenForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "Ticket <b>T-1001</b> reopened. An agent will reply here."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 5001,
+        "parse_mode": "HTML",
+        "text": "<b>Alice:</b> It happened again today."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq26",
+        "text": "This button is out of date."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Поддержка</b>\nПо какому вопросу?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Оплата",
+                "callback_data": "sf:1:cat:billing"
+              }
+            ],
+            [
+              {
+                "text": "Ошибка",
+                "callback_data": "sf:1:cat:bug"
+              }
+            ],
+            [
+              {
+                "text": "Другое",
+                "callback_data": "sf:1:cat:other"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Ошибка</b>\nОпишите проблему одним сообщением. Скриншоты можно.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Отмена",
+                "callback_data": "sf:2:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq30"
+      }
+    },
+    {
+      "method": "createForumTopic",
+      "params": {
+        "chat_id": -1001234567890,
+        "name": "🆕 T-1002 · Bug"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1002222222222,
+        "parse_mode": "HTML",
+        "text": "No topic for <b>T-1002</b> (Forbidden: not enough rights to create a topic). Check can_manage_topics for the bot in the support group."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "parse_mode": "HTML",
+        "text": "Обращение <b>T-1002</b> открыто. Сегодня ответ может прийти чуть позже."
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Borzoi Workflows"
+  short_description: "Borzoi setup, full/fast inference, variant scoring, interpretation"
+  default_prompt: "Use $borzoi-workflows to run Borzoi workflows (published or fast-tier mini models) for track prediction, variant-effect scoring, and interpretation on hg38/mm10."

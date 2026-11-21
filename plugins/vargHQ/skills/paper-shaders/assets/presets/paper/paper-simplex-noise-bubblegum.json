@@ -1,0 +1,33 @@
+{
+  "id": "paper-simplex-noise-bubblegum",
+  "label": "Bubblegum (Paper SimplexNoise)",
+  "shader": "SimplexNoise",
+  "page": "https://shaders.paper.design/simplex-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Bubblegum\" preset for SimplexNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 2,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#ffffff",
+      "#ff9e9e",
+      "#5f57ff",
+      "#00f7ff"
+    ],
+    "stepsPerColor": 1,
+    "softness": 1
+  }
+}

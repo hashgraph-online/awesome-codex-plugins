@@ -63,6 +63,7 @@ class Page:
 
 @dataclass
 class Api:
+    """Api."""
     name: str
     #: Seconds to wait between requests. Serialized: never parallelize one host.
     delay: float
@@ -73,6 +74,7 @@ class Api:
 
 
 def fetch(url: str, *, headers: dict[str, str] | None = None) -> Any:
+    """Fetch."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
     try:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
@@ -96,7 +98,9 @@ def fetch(url: str, *, headers: dict[str, str] | None = None) -> Any:
 
 
 def _rxiv_url(server: str) -> Callable[[str, Any, int], str]:
+    """Handle rxiv url."""
     def build(query: str, state: Any, _limit: int) -> str:
+        """Build."""
         endpoint = "pubs" if query.startswith("pubs:") else "details"
         interval = query[5:] if query.startswith("pubs:") else query
         return f"https://api.biorxiv.org/{endpoint}/{server}/{interval}/{int(state)}/json"
@@ -105,6 +109,7 @@ def _rxiv_url(server: str) -> Callable[[str, Any, int], str]:
 
 
 def _rxiv_parse(payload: Any, state: Any) -> Page:
+    """Handle rxiv parse."""
     if not isinstance(payload, dict):
         raise RuntimeError(f"expected a JSON object, got {type(payload).__name__}")
 
@@ -154,6 +159,7 @@ def _rxiv_parse(payload: Any, state: Any) -> Page:
 
 
 def _europepmc_url(query: str, state: Any, limit: int) -> str:
+    """Handle europepmc url."""
     params = {
         "query": query,
         "format": "json",
@@ -165,6 +171,7 @@ def _europepmc_url(query: str, state: Any, limit: int) -> str:
 
 
 def _europepmc_parse(payload: Any, state: Any) -> Page:
+    """Handle europepmc parse."""
     if not isinstance(payload, dict):
         raise RuntimeError(f"expected a JSON object, got {type(payload).__name__}")
     # Europe PMC reports errors with HTTP 200 and an errCode in the body.
@@ -196,6 +203,7 @@ def _europepmc_parse(payload: Any, state: Any) -> Page:
 
 
 def _openalex_url(query: str, state: Any, limit: int) -> str:
+    """Handle openalex url."""
     # `query` is a raw parameter string, e.g. `search=crispr` or
     # `filter=publication_year:2024`, so both forms work without a second flag.
     base = "https://api.openalex.org/works?"
@@ -210,6 +218,7 @@ def _openalex_url(query: str, state: Any, limit: int) -> str:
 
 
 def _openalex_parse(payload: Any, _state: Any) -> Page:
+    """Handle openalex parse."""
     if not isinstance(payload, dict):
         raise RuntimeError(f"expected a JSON object, got {type(payload).__name__}")
     meta = payload.get("meta") or {}
@@ -232,6 +241,7 @@ def _openalex_parse(payload: Any, _state: Any) -> Page:
 
 
 def _crossref_url(query: str, state: Any, limit: int) -> str:
+    """Handle crossref url."""
     params = {"rows": str(min(limit, 1000)), "cursor": str(state)}
     mail = os.environ.get("CROSSREF_MAILTO")
     if mail:
@@ -240,6 +250,7 @@ def _crossref_url(query: str, state: Any, limit: int) -> str:
 
 
 def _crossref_parse(payload: Any, _state: Any) -> Page:
+    """Handle crossref parse."""
     if not isinstance(payload, dict):
         raise RuntimeError(f"expected a JSON object, got {type(payload).__name__}")
     message = payload.get("message") or {}
@@ -313,6 +324,7 @@ def walk(
     max_calls: int,
     verbose: bool,
 ) -> tuple[list[Any], Reconciliation, list[str]]:
+    """Handle walk."""
     records: list[Any] = []
     reconciliation = Reconciliation()
     urls: list[str] = []
@@ -374,6 +386,7 @@ def walk(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Paginate one of this skill's APIs with the correct step, the correct stop "
@@ -409,44 +422,34 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def list_apis(output: str | None) -> None:
+    """Describe each API's delay and query format."""
+    emit(
+        {
+            name: {"delay_seconds": api.delay, "query_format": api.note}
+            for name, api in sorted(APIS.items())
+        },
+        output,
+    )
 
-    if args.list_apis:
-        emit(
-            {
-                name: {"delay_seconds": api.delay, "query_format": api.note}
-                for name, api in sorted(APIS.items())
-            },
-            args.output,
-        )
-        return 0
 
-    if not args.api or not args.query:
-        fail("--api and --query are both required (use --list-apis to see the query format)", code=2)
-    if args.page_size < 1:
-        fail("--page-size must be at least 1")
-    if args.max_records < 1:
-        fail("--max-records must be at least 1")
-    if args.max_calls < 1:
-        fail("--max-calls must be at least 1")
+def dry_run(api: Api, args: argparse.Namespace) -> None:
+    """Print the first URL that would be requested, without fetching."""
+    emit(
+        {
+            "api": api.name,
+            "first_url": redact_url(
+                api.build_url(args.query, api.initial_state, args.page_size)
+            ),
+            "delay_seconds": api.delay,
+            "query_format": api.note,
+        },
+        args.output,
+    )
 
-    api = APIS[args.api]
 
-    if args.dry_run:
-        emit(
-            {
-                "api": api.name,
-                "first_url": redact_url(
-                    api.build_url(args.query, api.initial_state, args.page_size)
-                ),
-                "delay_seconds": api.delay,
-                "query_format": api.note,
-            },
-            args.output,
-        )
-        return 0
-
+def walk_and_report(api: Api, args: argparse.Namespace) -> None:
+    """Walk the API, emit the records with their reconciliation, and flag shortfalls."""
     records, reconciliation, urls = walk(
         api,
         args.query,
@@ -483,6 +486,35 @@ def main(argv: list[str] | None = None) -> int:
             f"{f' of {reconciliation.expected}' if reconciliation.expected is not None else ''} "
             "records. Report this result as partial.\n"
         )
+
+
+def run_query(args: argparse.Namespace) -> None:
+    """Validate the query arguments, then dry-run or walk the selected API."""
+    if not args.api or not args.query:
+        fail("--api and --query are both required (use --list-apis to see the query format)", code=2)
+    if args.page_size < 1:
+        fail("--page-size must be at least 1")
+    if args.max_records < 1:
+        fail("--max-records must be at least 1")
+    if args.max_calls < 1:
+        fail("--max-calls must be at least 1")
+
+    api = APIS[args.api]
+
+    if args.dry_run:
+        dry_run(api, args)
+    else:
+        walk_and_report(api, args)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface; failures exit through `fail`."""
+    args = build_parser().parse_args(argv)
+
+    if args.list_apis:
+        list_apis(args.output)
+    else:
+        run_query(args)
     return 0
 
 

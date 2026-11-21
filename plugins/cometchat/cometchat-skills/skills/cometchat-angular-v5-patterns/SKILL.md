@@ -2,7 +2,7 @@
 name: cometchat-angular-v5-patterns
 description: "Angular project-shape glue for CometChat — Angular CLI vs Nx, standalone vs NgModule, environment file wiring, SSR/Angular Universal, lazy routes, and RxJS/signals state patterns. Triggers: 'add cometchat to my nx workspace', 'ngmodule not standalone', 'angular universal ssr', 'lazy load the chat route', 'window is not defined'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21; CLI or Nx"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21; CLI or Nx"
 metadata:
   author: "CometChat"
   version: "1.0.0"

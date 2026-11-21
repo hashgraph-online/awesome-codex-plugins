@@ -1,0 +1,128 @@
+{
+ "widget": "task-checklist",
+ "title": "Task checklist",
+ "summary": "Kanban-lite checklist: tap a task to move it To do, Doing, Done; progress bar; optimistic update with rollback.",
+ "caption": "Team offsite \u00b7 2 of 7 done",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Next task",
+     "callback_data": "tl:t:3"
+    }
+   ],
+   [
+    {
+     "text": "Open list",
+     "callback_data": "tl:list"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "ti": "Team offsite",
+    "t": [
+     [
+      1,
+      "Book the venue",
+      2
+     ],
+     [
+      2,
+      "Send invitations",
+      2
+     ],
+     [
+      3,
+      "Confirm catering",
+      1
+     ],
+     [
+      4,
+      "Print name badges",
+      0
+     ],
+     [
+      5,
+      "Prepare the slides",
+      1
+     ],
+     [
+      6,
+      "Test the projector",
+      0
+     ],
+     [
+      7,
+      "Order the cake",
+      0
+     ]
+    ],
+    "r": 0
+   }
+  },
+  "all-done": {
+   "chatData": {
+    "ti": "Team offsite",
+    "t": [
+     [
+      1,
+      "Book the venue",
+      2
+     ],
+     [
+      2,
+      "Send invitations",
+      2
+     ],
+     [
+      3,
+      "Confirm catering",
+      2
+     ],
+     [
+      4,
+      "Print name badges",
+      2
+     ],
+     [
+      5,
+      "Prepare the slides",
+      2
+     ],
+     [
+      6,
+      "Test the projector",
+      2
+     ],
+     [
+      7,
+      "Order the cake",
+      2
+     ]
+    ],
+    "r": 0
+   }
+  },
+  "empty": {
+   "chatData": {
+    "ti": "Team offsite",
+    "t": [],
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "t:3@0",
+  "t:7@0",
+  "t:99@0",
+  "t:x@0",
+  "other"
+ ],
+ "fresh": []
+}

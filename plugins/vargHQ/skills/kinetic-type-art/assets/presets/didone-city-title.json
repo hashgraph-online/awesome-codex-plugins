@@ -1,0 +1,163 @@
+{
+  "id": "didone-city-title",
+  "name": "Didone city title",
+  "use": "Two-word place name in traced Didone caps that holds, then springs wide",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Bodoni Moda",
+      "weights": [
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bodoni+Moda"
+    },
+    {
+      "family": "Playfair Display",
+      "weights": [
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Playfair+Display"
+    }
+  ],
+  "presets": [
+    {
+      "id": "didone-city-title.ink",
+      "label": "Ink",
+      "look": "Black Didone on paper, hairline trace then fill",
+      "params": {
+        "font": "Bodoni Moda",
+        "weight": 900,
+        "opsz": 96,
+        "ink": "#111111",
+        "bg": "#F2EFE8",
+        "trace_stroke_px": 1.5,
+        "trace": {
+          "start_f": 0,
+          "end_f": 36,
+          "ease": "power2.inOut",
+          "letter_stagger_f": 3
+        },
+        "fill": {
+          "start_f": 36,
+          "end_f": 48
+        },
+        "hold": {
+          "start_f": 48,
+          "end_f": 84
+        },
+        "anticipation": {
+          "start_f": 84,
+          "end_f": 90,
+          "width_scale": 0.96,
+          "ease": "power2.in"
+        },
+        "spring": {
+          "start_f": 90,
+          "end_f": 108,
+          "ease": "back.out(1.6)",
+          "arm_extension_x": 2.5,
+          "round_letter_to_capsule_x": 1.8
+        },
+        "cap_height_pct_of_frame_h_16x9": [
+          22,
+          28
+        ],
+        "line_gap_of_cap": 0.1,
+        "tracking_em": 0.04,
+        "margin_pct": 5
+      },
+      "sources": [
+        28,
+        29,
+        39,
+        21,
+        22
+      ]
+    },
+    {
+      "id": "didone-city-title.night",
+      "label": "Night",
+      "look": "Paper-white Didone on black with a gold trace",
+      "params": {
+        "font": "Playfair Display",
+        "weight": 900,
+        "ink": "#F2EFE8",
+        "bg": "#0B0B0D",
+        "trace_color": "#BB8B41"
+      },
+      "sources": [
+        28,
+        30
+      ]
+    },
+    {
+      "id": "didone-city-title.stretch",
+      "label": "Big stretch",
+      "look": "Short hold, very wide spring",
+      "params": {
+        "hold_f": 18,
+        "arm_extension_x": 3.5,
+        "round_letter_to_capsule_x": 2.2,
+        "ease": "back.out(1.8)"
+      },
+      "sources": [
+        39,
+        21
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 7,
+      "name": "@tsumiki_room, stroke-font kinetic type study",
+      "url": "https://x.com/tsumiki_room/status/2096229986827182422"
+    },
+    {
+      "n": 21,
+      "name": "GSAP Eases docs",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    },
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 28,
+      "name": "Didone (typography), Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Didone_(typography)"
+    },
+    {
+      "n": 29,
+      "name": "indestructible type, Bodoni* README",
+      "url": "https://github.com/indestructible-type/Bodoni"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 39,
+      "name": "Netguru, 12 principles of animation (Agnieszka Koniuszek)",
+      "url": "https://www.netguru.com/blog/illustrators-eye-12-principles-of-animation"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

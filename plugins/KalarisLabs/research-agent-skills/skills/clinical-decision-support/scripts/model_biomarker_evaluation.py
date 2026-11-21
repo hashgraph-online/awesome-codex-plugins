@@ -27,6 +27,7 @@ MAX_GROUP_N = 10_000_000
 
 
 def _wilson(successes: int, total: int) -> dict[str, Any]:
+    """Handle wilson."""
     if total <= 0:
         return {"estimate": None, "ci95": [None, None]}
     z = 1.959963984540054
@@ -48,16 +49,19 @@ def _wilson(successes: int, total: int) -> dict[str, Any]:
 
 
 def _small_nonzero(values: list[int], minimum: int) -> bool:
+    """Handle small nonzero."""
     return any(0 < value < minimum for value in values)
 
 
 def _metric(successes: int, total: int) -> dict[str, Any]:
+    """Handle metric."""
     return _wilson(successes, total)
 
 
 def _calibration_summary(
     bins: list[Any], group_name: str, minimum: int, expected_events: int
 ) -> tuple[dict[str, Any], bool]:
+    """Handle calibration summary."""
     total = 0
     events = 0
     weighted_predicted = 0.0
@@ -122,9 +126,188 @@ def _calibration_summary(
     )
 
 
+def _check_metadata(
+    document: dict[str, Any], known_sources: set[str], log: IssueLog
+) -> None:
+    """Validate the metadata block, recording soft errors and warnings in the log."""
+    metadata = document.get("metadata")
+    if not isinstance(metadata, dict):
+        raise InputError("metadata must be an object")
+    for field in (
+        "evaluation_id",
+        "title",
+        "evaluation_target",
+        "target_version",
+        "purpose",
+        "population",
+        "setting",
+        "outcome",
+        "outcome_horizon",
+        "threshold",
+        "threshold_source_id",
+        "validation_dataset",
+        "data_cut_date",
+    ):
+        require_nonempty_text(metadata.get(field), f"metadata.{field}")
+    if metadata.get("data_level") not in {"aggregate", "synthetic"}:
+        log.errors.append("metadata.data_level must be aggregate or synthetic")
+    if metadata.get("person_level_output") is not False:
+        log.errors.append("metadata.person_level_output must be false")
+    if metadata.get("threshold_pre_specified") is not True:
+        log.errors.append("metadata.threshold_pre_specified must be true")
+    if metadata.get("threshold_source_id") not in known_sources:
+        log.errors.append("metadata.threshold_source_id must reference sources")
+    if metadata.get("external_validation") is not True:
+        log.warnings.append("Independent external validation is not documented")
+    if metadata.get("human_review_required") is not True:
+        log.errors.append("metadata.human_review_required must be true")
+
+
+def _check_review_and_governance(document: dict[str, Any], log: IssueLog) -> None:
+    """Validate the human_review and governance blocks."""
+    review = document.get("human_review")
+    if not isinstance(review, dict):
+        raise InputError("human_review must be an object")
+    if review.get("required") is not True:
+        log.errors.append("human_review.required must be true")
+    roles = require_list(review.get("roles"), "human_review.roles", maximum=20)
+    if not roles:
+        log.errors.append("At least one human-review role is required")
+    for index, role in enumerate(roles):
+        require_nonempty_text(role, f"human_review.roles[{index}]")
+    if review.get("completed") is not True:
+        log.warnings.append("Human review is not recorded as complete")
+
+    governance = document.get("governance")
+    if not isinstance(governance, dict):
+        raise InputError("governance must be an object")
+    for field in (
+        "owner",
+        "version_and_change_control",
+        "monitoring",
+        "auditability",
+        "human_factors",
+        "rollback_and_retirement",
+    ):
+        require_nonempty_text(governance.get(field), f"governance.{field}")
+
+
+def _group_metrics(tp: int, fp: int, tn: int, fn: int, n: int) -> dict[str, Any]:
+    """Compute the descriptive performance metrics for one confusion matrix."""
+    metrics = {
+        "sensitivity": _metric(tp, tp + fn),
+        "specificity": _metric(tn, tn + fp),
+        "positive_predictive_value": _metric(tp, tp + fp),
+        "negative_predictive_value": _metric(tn, tn + fn),
+        "accuracy": _metric(tp + tn, n),
+        "prevalence": _metric(tp + fn, n),
+    }
+    sensitivity = metrics["sensitivity"]["estimate"]
+    specificity = metrics["specificity"]["estimate"]
+    metrics["balanced_accuracy"] = {
+        "estimate": round((sensitivity + specificity) / 2.0, 6),
+        "ci95": None,
+    }
+    return metrics
+
+
+def _collect_estimates(
+    name: str,
+    metrics: dict[str, Any],
+    metric_values: dict[str, list[tuple[str, float]]],
+) -> None:
+    """Record each available metric estimate of group ``name`` for subgroup comparison."""
+    for metric_name, metric in metrics.items():
+        estimate = metric.get("estimate")
+        if estimate is not None:
+            metric_values.setdefault(metric_name, []).append((name, float(estimate)))
+
+
+def _evaluate_group(
+    group: Any,
+    index: int,
+    names: set[str],
+    minimum: int,
+    metric_values: dict[str, list[tuple[str, float]]],
+) -> dict[str, Any]:
+    """Validate one aggregate group and return its result record."""
+    field = f"groups[{index}]"
+    if not isinstance(group, dict):
+        raise InputError(f"{field} must be an object")
+    name = require_nonempty_text(group.get("name"), f"{field}.name", max_length=100)
+    if name in names:
+        raise InputError(f"Duplicate group name: {name}")
+    names.add(name)
+    n = nonnegative_int(group.get("n"), f"{field}.n")
+    if n == 0 or n > MAX_GROUP_N:
+        raise InputError(f"{field}.n must be between 1 and {MAX_GROUP_N}")
+    confusion = group.get("confusion")
+    if not isinstance(confusion, dict):
+        raise InputError(f"{field}.confusion must be an object")
+    tp = nonnegative_int(confusion.get("tp"), f"{field}.confusion.tp")
+    fp = nonnegative_int(confusion.get("fp"), f"{field}.confusion.fp")
+    tn = nonnegative_int(confusion.get("tn"), f"{field}.confusion.tn")
+    fn = nonnegative_int(confusion.get("fn"), f"{field}.confusion.fn")
+    cells = [tp, fp, tn, fn]
+    if sum(cells) != n:
+        raise InputError(f"{field}.confusion counts must sum to n")
+
+    group_result: dict[str, Any] = {"name": name}
+    if n < minimum or _small_nonzero(cells, minimum):
+        group_result.update(
+            {
+                "suppressed": True,
+                "reason": (
+                    "Group or contributing confusion cell is below the "
+                    "disclosure threshold"
+                ),
+            }
+        )
+    else:
+        metrics = _group_metrics(tp, fp, tn, fn, n)
+        group_result.update({"suppressed": False, "n": n, "metrics": metrics})
+        _collect_estimates(name, metrics, metric_values)
+
+    bins = require_list(
+        group.get("calibration_bins"),
+        f"{field}.calibration_bins",
+        maximum=MAX_BINS,
+    )
+    calibration, _ = _calibration_summary(
+        bins, name, minimum, expected_events=tp + fn
+    )
+    if not calibration.get("suppressed") and calibration["n"] != n:
+        raise InputError(f"{field}.calibration_bins counts must sum to n")
+    group_result["calibration"] = calibration
+    return group_result
+
+
+def _subgroup_differences(
+    metric_values: dict[str, list[tuple[str, float]]],
+) -> dict[str, Any]:
+    """Describe the spread of each metric across groups that reported it."""
+    differences: dict[str, Any] = {}
+    for metric_name, values in metric_values.items():
+        if len(values) < 2:
+            continue
+        low_name, low = min(values, key=lambda item: item[1])
+        high_name, high = max(values, key=lambda item: item[1])
+        differences[metric_name] = {
+            "maximum_absolute_difference": round(high - low, 6),
+            "lowest_group": low_name,
+            "highest_group": high_name,
+            "interpretation": (
+                "Descriptive difference only; it is not a fairness judgment "
+                "and may reflect case mix, measurement, sampling, or model behavior."
+            ),
+        }
+    return differences
+
+
 def evaluate(
     document: dict[str, Any], minimum: int
 ) -> tuple[IssueLog, dict[str, Any]]:
+    """Evaluate."""
     log = IssueLog()
     report: dict[str, Any] = {
         "report_type": "aggregate_model_biomarker_evaluation",
@@ -139,154 +322,19 @@ def evaluate(
     try:
         require_nonempty_text(document.get("schema_version"), "schema_version")
         known_sources = source_ids(document)
-        metadata = document.get("metadata")
-        if not isinstance(metadata, dict):
-            raise InputError("metadata must be an object")
-        for field in (
-            "evaluation_id",
-            "title",
-            "evaluation_target",
-            "target_version",
-            "purpose",
-            "population",
-            "setting",
-            "outcome",
-            "outcome_horizon",
-            "threshold",
-            "threshold_source_id",
-            "validation_dataset",
-            "data_cut_date",
-        ):
-            require_nonempty_text(metadata.get(field), f"metadata.{field}")
-        if metadata.get("data_level") not in {"aggregate", "synthetic"}:
-            log.errors.append("metadata.data_level must be aggregate or synthetic")
-        if metadata.get("person_level_output") is not False:
-            log.errors.append("metadata.person_level_output must be false")
-        if metadata.get("threshold_pre_specified") is not True:
-            log.errors.append("metadata.threshold_pre_specified must be true")
-        if metadata.get("threshold_source_id") not in known_sources:
-            log.errors.append("metadata.threshold_source_id must reference sources")
-        if metadata.get("external_validation") is not True:
-            log.warnings.append("Independent external validation is not documented")
-        if metadata.get("human_review_required") is not True:
-            log.errors.append("metadata.human_review_required must be true")
-
-        review = document.get("human_review")
-        if not isinstance(review, dict):
-            raise InputError("human_review must be an object")
-        if review.get("required") is not True:
-            log.errors.append("human_review.required must be true")
-        roles = require_list(review.get("roles"), "human_review.roles", maximum=20)
-        if not roles:
-            log.errors.append("At least one human-review role is required")
-        for index, role in enumerate(roles):
-            require_nonempty_text(role, f"human_review.roles[{index}]")
-        if review.get("completed") is not True:
-            log.warnings.append("Human review is not recorded as complete")
-
-        governance = document.get("governance")
-        if not isinstance(governance, dict):
-            raise InputError("governance must be an object")
-        for field in (
-            "owner",
-            "version_and_change_control",
-            "monitoring",
-            "auditability",
-            "human_factors",
-            "rollback_and_retirement",
-        ):
-            require_nonempty_text(governance.get(field), f"governance.{field}")
+        _check_metadata(document, known_sources, log)
+        _check_review_and_governance(document, log)
 
         groups = require_list(document.get("groups"), "groups", maximum=MAX_GROUPS)
         if not groups:
             raise InputError("At least one aggregate group is required")
         names: set[str] = set()
         for index, group in enumerate(groups):
-            field = f"groups[{index}]"
-            if not isinstance(group, dict):
-                raise InputError(f"{field} must be an object")
-            name = require_nonempty_text(group.get("name"), f"{field}.name", max_length=100)
-            if name in names:
-                raise InputError(f"Duplicate group name: {name}")
-            names.add(name)
-            n = nonnegative_int(group.get("n"), f"{field}.n")
-            if n == 0 or n > MAX_GROUP_N:
-                raise InputError(f"{field}.n must be between 1 and {MAX_GROUP_N}")
-            confusion = group.get("confusion")
-            if not isinstance(confusion, dict):
-                raise InputError(f"{field}.confusion must be an object")
-            tp = nonnegative_int(confusion.get("tp"), f"{field}.confusion.tp")
-            fp = nonnegative_int(confusion.get("fp"), f"{field}.confusion.fp")
-            tn = nonnegative_int(confusion.get("tn"), f"{field}.confusion.tn")
-            fn = nonnegative_int(confusion.get("fn"), f"{field}.confusion.fn")
-            cells = [tp, fp, tn, fn]
-            if sum(cells) != n:
-                raise InputError(f"{field}.confusion counts must sum to n")
-
-            group_result: dict[str, Any] = {"name": name}
-            if n < minimum or _small_nonzero(cells, minimum):
-                group_result.update(
-                    {
-                        "suppressed": True,
-                        "reason": (
-                            "Group or contributing confusion cell is below the "
-                            "disclosure threshold"
-                        ),
-                    }
-                )
-            else:
-                metrics = {
-                    "sensitivity": _metric(tp, tp + fn),
-                    "specificity": _metric(tn, tn + fp),
-                    "positive_predictive_value": _metric(tp, tp + fp),
-                    "negative_predictive_value": _metric(tn, tn + fn),
-                    "accuracy": _metric(tp + tn, n),
-                    "prevalence": _metric(tp + fn, n),
-                }
-                sensitivity = metrics["sensitivity"]["estimate"]
-                specificity = metrics["specificity"]["estimate"]
-                metrics["balanced_accuracy"] = {
-                    "estimate": round((sensitivity + specificity) / 2.0, 6),
-                    "ci95": None,
-                }
-                group_result.update(
-                    {"suppressed": False, "n": n, "metrics": metrics}
-                )
-                for metric_name, metric in metrics.items():
-                    estimate = metric.get("estimate")
-                    if estimate is not None:
-                        metric_values.setdefault(metric_name, []).append(
-                            (name, float(estimate))
-                        )
-
-            bins = require_list(
-                group.get("calibration_bins"),
-                f"{field}.calibration_bins",
-                maximum=MAX_BINS,
+            report["groups"].append(
+                _evaluate_group(group, index, names, minimum, metric_values)
             )
-            calibration, _ = _calibration_summary(
-                bins, name, minimum, expected_events=tp + fn
-            )
-            if not calibration.get("suppressed") and calibration["n"] != n:
-                raise InputError(f"{field}.calibration_bins counts must sum to n")
-            group_result["calibration"] = calibration
-            report["groups"].append(group_result)
 
-        for metric_name, values in metric_values.items():
-            if len(values) < 2:
-                continue
-            estimates = [value for _, value in values]
-            low_name, low = min(values, key=lambda item: item[1])
-            high_name, high = max(values, key=lambda item: item[1])
-            report["subgroup_performance_differences"][metric_name] = {
-                "maximum_absolute_difference": round(high - low, 6),
-                "lowest_group": low_name,
-                "highest_group": high_name,
-                "interpretation": (
-                    "Descriptive difference only; it is not a fairness judgment "
-                    "and may reflect case mix, measurement, sampling, or model behavior."
-                ),
-            }
+        report["subgroup_performance_differences"] = _subgroup_differences(metric_values)
         if len(groups) < 2:
             log.warnings.append("Only one group supplied; subgroup comparisons are unavailable")
         if not report["subgroup_performance_differences"]:
@@ -309,6 +357,7 @@ def evaluate(
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description=(
             "Report bounded descriptive performance from local aggregate counts. "

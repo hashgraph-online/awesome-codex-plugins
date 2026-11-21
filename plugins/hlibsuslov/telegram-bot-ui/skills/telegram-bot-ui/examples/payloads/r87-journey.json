@@ -1,0 +1,136 @@
+{
+  "scenario": "r87-journey",
+  "status": "offline-model",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 101,
+        "text": "<b>Service desk queue</b>\nYour position: —.\nPosition is not an estimated waiting time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take a ticket",
+                "callback_data": "r87:1:join"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "foreign-user",
+        "text": "Open your own menu with /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-0"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service desk queue</b>\nYour position: 2.\nPosition is not an estimated waiting time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Leave queue",
+                "callback_data": "r87:2:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service desk queue</b>\nYour position: —.\nPosition is not an estimated waiting time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Take a ticket",
+                "callback_data": "r87:3:join"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-2"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service desk queue</b>\nYour position: 2.\nPosition is not an estimated waiting time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Leave queue",
+                "callback_data": "r87:4:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "old-screen",
+        "text": "This screen changed. Use the latest buttons."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service desk queue</b>\nIt is your turn. Please go to the desk.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Show status",
+                "callback_data": "r87:5:status"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+# Files Codex should not package with the plugin.
+.DS_Store

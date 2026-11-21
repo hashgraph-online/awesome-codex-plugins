@@ -1,6 +1,6 @@
 """Trust-gating helpers — per-field tri-state filtering of SpecValue lists.
 
-Track 2.4 of the v1.4 datasheet extraction work. Provides module-level
+Provides module-level
 functions that let detectors filter list[SpecValue] data by the evidence
 confidence level declared at extraction time.
 
@@ -20,7 +20,7 @@ Three functions:
         All SpecValues whose evidence.confidence meets min_confidence,
         in input order. Returns [] for missing and below-gate.
 
-Consumer pattern (spec §11 + §12):
+Consumer pattern:
 
     from datasheet_types import best, trusted, has_data
 
@@ -34,12 +34,13 @@ Consumer pattern (spec §11 + §12):
     use(passing[0])                          # Gate passed.
 
 min_confidence is keyword-only and REQUIRED — detectors must declare
-their trust level per spec §12. Pass 'low' explicitly to accept any value.
+their trust level. Pass 'low' explicitly to accept any value.
 
 No module-level state. Functions are pure. Thread-safe.
 """
 from __future__ import annotations
 
+import math
 from typing import Literal, Optional, TypeAlias
 
 from .spec_value import SpecValue
@@ -102,6 +103,29 @@ def best(
         if _CONFIDENCE_ORDER.get(s.evidence.confidence, -1) >= gate:
             return s
     return None
+
+
+FACTS_MIN_SCORE = 60
+
+
+def finite_score(value) -> Optional[float]:
+    """Return ``value`` when it is a usable quality score, else None.
+
+    A usable score is a finite int or float. A bool, NaN, an infinity, None or
+    any other type is no score, so callers compare only real numbers against
+    their threshold (``score is None or score < threshold`` means untrusted).
+    The scale (0-10 or 0-100) is the caller's.
+    """
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return value
+    return None
+
+
+def facts_trusted(facts) -> bool:
+    """True when a DatasheetFacts extraction is fit for detectors to use: quality
+    score at least FACTS_MIN_SCORE (0-100) and the source PDF unchanged."""
+    q = finite_score(facts.quality)
+    return q is not None and q >= FACTS_MIN_SCORE and not getattr(facts, "stale", False)
 
 
 def trusted(

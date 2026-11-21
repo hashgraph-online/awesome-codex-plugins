@@ -4,6 +4,7 @@ description: >
   Understand what you mean before anything is built. Takes anything — a one-line idea, notes, a
   spec, or a mix — reads the project first, asks only what is yours to decide, and writes your
   intent down for you to approve. Use when the user invokes the `ready` skill. Requires git.
+disable-model-invocation: true
 ---
 
 # ready

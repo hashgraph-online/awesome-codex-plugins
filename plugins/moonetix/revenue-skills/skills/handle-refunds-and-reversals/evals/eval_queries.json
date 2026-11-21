@@ -1,0 +1,17 @@
+[
+  {"query": "Customers who get a refund keep the credits they bought. Make refunds take the credits back.", "should_trigger": true},
+  {"query": "We just got our first chargeback and the user still has the coins. What should happen when a dispute is opened, and when we win or lose it?", "should_trigger": true},
+  {"query": "The offerwall sends status=2 when an advertiser takes a conversion back. Right now we ignore it. Handle it, including when the user already spent the reward.", "should_trigger": true},
+  {"query": "A user bought a pack, spent everything, then got a refund from the store. Their balance should go negative and they should not be able to cash out. Build that.", "should_trigger": true},
+  {"query": "When a referred user's purchase is refunded, the referrer keeps the commission. Claw it back too.", "should_trigger": true},
+  {"query": "Support sometimes refunds part of an order. Take back the matching share of the credits, and make sure a refund webhook that arrives twice does not take it twice.", "should_trigger": true},
+  {"query": "Verify the signature on our payment provider's webhook before we credit the order.", "should_trigger": false},
+  {"query": "Add a withdrawal feature so users can cash out their earnings to gift cards.", "should_trigger": false},
+  {"query": "Write our refund policy page and the email we send when a refund is approved.", "should_trigger": false},
+  {"query": "Our provider retried a payment webhook and the user was credited twice. Make the credit idempotent.", "should_trigger": false},
+  {"query": "revenuecat webhook refund: CANCELLATION with cancel_reason CUSTOMER_SUPPORT comes in and the user keeps the coins", "should_trigger": true},
+  {"query": "Paddle sends adjustment.created with action chargeback. What should happen to the credits, and what when chargeback_reverse arrives?", "should_trigger": true},
+  {"query": "Handle PayPal PAYMENT.CAPTURE.REFUNDED and CUSTOMER.DISPUTE.RESOLVED so the credits go back and come back correctly.", "should_trigger": true},
+  {"query": "Verify the Stripe-Signature header on our webhook before anything else runs.", "should_trigger": false},
+  {"query": "Show customers a list of their past Stripe invoices on the billing page.", "should_trigger": false}
+]

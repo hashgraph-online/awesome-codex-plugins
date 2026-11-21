@@ -1,0 +1,4 @@
+{
+  "name": "model-salt",
+  "plugins": [{ "name": "model-salt", "source": { "source": "local", "path": "./plugin" } }]
+}

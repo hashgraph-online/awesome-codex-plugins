@@ -1,0 +1,40 @@
+{
+  "description": "skill-check for Codex: warn when an out-of-date skill is used; refresh skill statuses in the background at session start. Codex has no Skill tool: the model opens a skill's SKILL.md with a shell command (PreToolUse on Bash), or the user mentions it as $name (UserPromptSubmit).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook --agent codex",
+            "async": true,
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook --agent codex",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook --agent codex",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,6 +2,8 @@
 
 Optional visual-language examples for authorized new-direction work: four build profiles and two strategy registers. Preserve an established design system rather than selecting a replacement profile for routine edits. Where a profile is adopted, use its motifs coherently; its font/color/layout preferences are not accessibility rules or reasons to reject approved product choices.
 
+The profiles are opinions, and they disagree with each other and with the static detector on purpose: a profile may recommend a font the detector flags as overused (`overused-font`), a cream canvas (`cream-palette`) or an eyebrow chip (`hero-eyebrow-chip`), and one profile's "ban" is another's signature. Those detector rules are advisory; when a project adopts a profile knowingly, waive the matching rule in the committed `.designer-skill/config.json` instead of fighting it. Contrast is never waived by a profile: check every text/surface pair with `check_contrast`.
+
 If light/dark treatment is genuinely unresolved, consider user environment and the existing theme policy. A physical-scene exercise may help explain a proposal; it is not a required ceremony and cannot force every product into one theme.
 
 Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObserver` not scroll listeners, stagger formulas, blur/`backdrop-filter` perf guardrails) live in **motion-and-interaction.md**. This file carries each system's signature *feel* only.
@@ -34,7 +36,7 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 | Card surface | `#FFFFFF` or `#F9F9F8` |
 | Border / divider | `#EAEAEA` or `rgba(0,0,0,0.06)` |
 | Body text | never `#000000` — use `#111111` or `#2F3437`, `line-height: 1.6` |
-| Secondary text | muted gray `#787774` |
+| Secondary text | muted gray `#6B6A66` (5.0:1 on bone `#F7F6F3`, passes AA on every canvas above) |
 | Spot pastels (tags/inline-code only) | Pale Red `#FDEBEC`/text `#9F2F2D` · Pale Blue `#E1F3FE`/`#1F6C9F` · Pale Green `#EDF3EC`/`#346538` · Pale Yellow `#FBF3DB`/`#956400` |
 
 **Typography (3-part stack).** Sans (body/UI): `'SF Pro Display','Geist Sans','Helvetica Neue','Switzer',sans-serif`. Editorial serif (hero/quotes): `'Lyon Text','Newsreader','Playfair Display','Instrument Serif',serif`, `letter-spacing -0.02em` to `-0.04em`, `line-height 1.1`. Mono (code/keys/meta): `'Geist Mono','SF Mono','JetBrains Mono',monospace`.
@@ -106,7 +108,7 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 | Body / meta | Steel `#71717A` on `#F9FAFB` (4.62:1); secondary Slate `#64748B` (4.55:1). Verify actual backgrounds, sizes and states; `#94A3B8` is not a readable-text role here. |
 | Border | Whisper `rgba(226,232,240,0.5)` |
 | Shadow | Diffused `rgba(0,0,0,0.05)` |
-| **Accent — pick ONE, sat < 80%** | Emerald `#10B981` (growth) · Electric Blue `#3B82F6` (SaaS/dev) · Deep Rose `#E11D48` (creative) · Amber `#F59E0B` (social) |
+| **Accent — pick ONE** (for fills, marks and focus, not large areas) | Emerald `#10B981` (growth) · Electric Blue `#3B82F6` (SaaS/dev) · Deep Rose `#E11D48` (creative) · Amber `#F59E0B` (social). Text on the fill: white fails AA on Emerald (2.5:1), Amber (2.2:1) and Blue (3.7:1); use dark text (`#022C22` on Emerald, `#451A03` on Amber) or the darker `#2563EB` for white-on-blue. White passes on Deep Rose (4.7:1). |
 
 **Typography.** Display: `Geist`/`Satoshi`/`Cabinet Grotesk`/`Outfit`, tracking `-0.025em`, weight `700–900`, leading `1.1`, `clamp(2.25rem, 5vw, 3.75rem)`. Body: same family weight 400, leading `1.65`, 65ch, color `#71717A`, `1rem`/`1.125rem`. Mono: `Geist Mono`/`JetBrains Mono` at `0.8125rem`; **when Density > 7, all numbers switch to monospace.**
 
@@ -114,7 +116,7 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 
 **Motion feel.** When motion has a task-specific purpose, springs such as `stiffness: 100, damping: 20` are one option; simple CSS transitions may be sufficient. Avoid perpetual loops unless they communicate actual ongoing state. Apply the frequency, interruption and reduced-motion rules in `motion-and-interaction`.
 
-**Bans — within this system.** No `Inter` (premium contexts). No generic serifs (`Times New Roman`/`Georgia`/`Garamond`/`Palatino`) — only `Fraunces`/`Instrument Serif`/`Editorial New` if needed; serif always banned in dashboards. No pure black, no neon/outer glows, no accents > 80% saturation, no overlapping elements, no 3-equal-card rows, no `flexbox` percentage math (`calc(33% - 1rem)`), no `h-screen`, no circular spinners (skeletal shimmer only), no invented statistics: use approved sourced values or visibly labeled demonstration fixtures, never more plausible fabricated numbers.
+**Bans — within this system.** No `Inter` (premium contexts). No generic serifs (`Times New Roman`/`Georgia`/`Garamond`/`Palatino`) — only `Fraunces`/`Instrument Serif`/`Editorial New` if needed; serif always banned in dashboards. No pure black, no neon/outer glows, no accent used as a large surface, no overlapping elements, no 3-equal-card rows, no `flexbox` percentage math (`calc(33% - 1rem)`), no `h-screen`, no circular spinners (skeletal shimmer only), no invented statistics: use approved sourced values or visibly labeled demonstration fixtures, never more plausible fabricated numbers.
 
 ---
 
@@ -132,11 +134,11 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 
 The `≤10%` rule is **Restrained-only**; Committed/Full/Drenched deliberately exceed it. When Committed or Drenched, don't hedge with neutrals — commit. Palette IS voice; don't converge across projects; reach past the obvious cultural-symbol palette.
 
-**Typography (optional exploration for a newly authorized brand).** (1) Write three physical-object brand-voice words ("warm and mechanical and opinionated", not "modern/elegant"). (2) List three reflex fonts; reject any on the reflex-reject list. (3) Browse a real catalog (Google Fonts, Pangram Pangram, Future Fonts, Adobe Fonts, ABC Dinamo, Klim, Velvetyne); find the font for the brand as a physical object; reject the first thing that "looks designy". (4) Cross-check — if the pick lines up with the reflex, start over. **Reflex-reject (greenfield only):** Fraunces · Newsreader · Lora · Crimson · Playfair Display · Cormorant · Syne · IBM Plex (Sans/Mono/Serif) · Space Mono · Space Grotesk · Inter · DM Sans/Serif · Outfit · Plus Jakarta Sans · Instrument Sans/Serif. Modular scale, fluid `clamp()`, **≥1.25 ratio** between steps (flat 1.1× reads uncommitted).
+**Typography (optional exploration for a newly authorized brand).** (1) Write three physical-object brand-voice words ("warm and mechanical and opinionated", not "modern/elegant"). (2) List three reflex fonts; reject any on the reflex-reject list. (3) Browse a real catalog (Google Fonts, Pangram Pangram, Future Fonts, Adobe Fonts, ABC Dinamo, Klim, Velvetyne); find the font for the brand as a physical object; reject the first thing that "looks designy". (4) Cross-check — if the pick lines up with the reflex, start over. **Reflex-reject (greenfield exploration only; the profiles above still list some of these as one valid option, and an approved identity overrides this list):** Fraunces · Newsreader · Lora · Crimson · Playfair Display · Cormorant · Syne · IBM Plex (Sans/Mono/Serif) · Space Mono · Space Grotesk · Inter · DM Sans/Serif · Outfit · Plus Jakarta Sans · Instrument Sans/Serif. Modular scale, fluid `clamp()`, **≥1.25 ratio** between steps (flat 1.1× reads uncommitted).
 
 **Spacing & permissions.** Asymmetric compositions, fluid `clamp()` spacing, intentional grid-breaking for emphasis; cards via `repeat(auto-fit, minmax(280px, 1fr))` when cards are right. Take permissions product can't: ambitious first-load motion (reveals + typographic choreography, not fade-on-scroll-everything — some brands skip entrance motion entirely), single-purpose viewports, unexpected color, art direction per section.
 
-**Imagery (required when the brief implies it — zero images is a bug, not restraint).** Four operational rules: (1) **Search for the brand's physical object, not the category** — "handmade pasta on a scratched wooden table" beats "Italian food"; "cypress trees above a limestone hotel facade at dusk" beats "luxury hotel". (2) **One decisive photo beats five mediocre ones** — hero imagery commits to a mood; padding an indecisive hero with more stock never rescues it. (3) **Alt text is part of the voice** — "Coastal fettuccine, hand-cut, served on the terrace", never "pasta dish". (4) **"Imagery" is broader than photos** — product screenshots, custom data-viz, generated SVG, canvas/WebGL all count; the all-typography page is the failure mode, not a style. Unsplash URLs take the shape `https://images.unsplash.com/photo-{id}?auto=format&fit=crop&w=1600&q=80` — verify the IDs actually resolve, or pick fewer photos you're confident in.
+**Imagery (required when the brief implies it — zero images is a bug, not restraint).** Four operational rules: (1) **Search for the brand's physical object, not the category** — "handmade pasta on a scratched wooden table" beats "Italian food"; "cypress trees above a limestone hotel facade at dusk" beats "luxury hotel". (2) **One decisive photo beats five mediocre ones** — hero imagery commits to a mood; padding an indecisive hero with more stock never rescues it. (3) **Alt text is part of the voice** — "Coastal fettuccine, hand-cut, served on the terrace", never "pasta dish". (4) **"Imagery" is broader than photos** — product screenshots, custom data-viz, generated SVG, canvas/WebGL all count; the all-typography page is the failure mode, not a style. Never construct or guess a remote image URL or id (an invented Unsplash id ships a broken image): use assets the project already has, an image tool the host provides, or a visibly labeled placeholder the user agreed to.
 
 **Identity-board modes (for logo/identity decks).** Default `3×3` board on a dark/light canvas, strong gutters, sparse type. Compact palette-mode map:
 
@@ -177,12 +179,12 @@ The same property gets opposite verdicts. This is by design — proof the rules 
 
 | Property | Minimalist | Brutalist | Soft | High-end (Stitch) |
 |---|---|---|---|---|
-| `Inter` font | ❌ banned | ✅ **required** (Extra Bold/Black, macro-type) | ❌ banned | ❌ banned |
+| `Inter` font | ❌ avoided | ✅ one option (Extra Bold/Black, macro-type only) | ❌ avoided | ❌ avoided |
 | Drop shadows | opacity `< 0.05` | ❌ banned entirely | ✅ **required** (soft, diffused, ambient) | diffused `rgba(0,0,0,0.05)` only |
 | `border-radius` | crisp `4–12px` | ❌ **90° / none** | `rounded-[2rem]` squircles | `rounded-[2.5rem]` cards |
 | Gradients | ❌ banned | ❌ banned | ✅ glass mesh orbs | ❌ no gradient text/neon |
 | Color dosage | scarce spot pastels | single hazard red | vibe-driven | one accent < 80% sat |
-| Motion | quiet `600ms` fade | mechanical/static | spring blur-up `800ms` | spring `100/20` + loops |
+| Motion | quiet `600ms` fade | mechanical/static | spring blur-up `800ms` | spring `100/20`, no perpetual loops |
 
 ---
 

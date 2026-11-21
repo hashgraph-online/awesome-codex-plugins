@@ -1,0 +1,7 @@
+interface:
+  display_name: "Refactor loop"
+  short_description: "Improve a project's internals while preserving observable behavior"
+policy:
+  # A long autonomous loop that commits on its own branch starts only from an
+  # explicit $mention by a person.
+  allow_implicit_invocation: false

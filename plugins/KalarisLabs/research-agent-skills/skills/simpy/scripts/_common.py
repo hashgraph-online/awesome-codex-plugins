@@ -51,10 +51,12 @@ def load_simpy(*, required: bool = True) -> Any | None:
 
 
 def _reject_constant(value: str) -> None:
+    """Handle reject constant."""
     raise CliError(f"non-standard JSON constant is not allowed: {value}")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle unique object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -368,6 +370,7 @@ def _beta_continued_fraction(a: float, b: float, x: float) -> float:
 
 
 def _regularized_incomplete_beta(a: float, b: float, x: float) -> float:
+    """Handle regularized incomplete beta."""
     if not 0.0 <= x <= 1.0:
         raise CliError("internal beta argument is outside [0, 1]")
     if x in {0.0, 1.0}:

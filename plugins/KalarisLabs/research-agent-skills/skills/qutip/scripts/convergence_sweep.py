@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 from typing import Any
 
 from _common import (
@@ -25,6 +26,7 @@ from two_level_simulation import SimulationConfig, run_simulation
 
 
 def _parse_rtols(value: str) -> list[float]:
+    """Parse rtols."""
     pieces = [piece.strip() for piece in value.split(",")]
     if not pieces or any(not piece for piece in pieces):
         raise CliError("rtols must be a comma-separated number list")
@@ -56,6 +58,7 @@ def _base_config(
     trajectories: int,
     rtol: float,
 ) -> SimulationConfig:
+    """Handle base config."""
     return SimulationConfig(
         solver=solver,
         initial_state="excited",
@@ -225,7 +228,9 @@ def run_sweep(
                 trajectories=count,
                 rtol=rtol,
             )
-            if config.decay_rate == 0.0 and config.dephasing_rate == 0.0:
+            if math.isclose(config.decay_rate, 0.0, rel_tol=0.0, abs_tol=0.0) and math.isclose(
+                config.dephasing_rate, 0.0, rel_tol=0.0, abs_tol=0.0
+            ):
                 raise CliError(
                     "monte-carlo mode requires a nonzero decay or dephasing rate"
                 )
@@ -307,6 +312,7 @@ def run_sweep(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Run a bounded synthetic QuTiP convergence sweep over deterministic "
@@ -348,6 +354,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     report = run_sweep(args)
     emit_json(report, output=args.output, force=args.force)

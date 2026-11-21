@@ -1,0 +1,245 @@
+{
+  "title": "Lantern Canyon",
+  "url": "index.html",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "seed": 7,
+  "bpm": 100,
+  "ready": "window.__game && window.__game.ready",
+  "probe": "window.__game.state.score",
+  "shots": [
+    {
+      "id": "s1_establish",
+      "role": "establishing",
+      "beats": 5,
+      "setup": "__game.setup({distance: 6, autopilot: true, hud: false})",
+      "warmup": 0,
+      "camera": {
+        "space": "__game.place(0)",
+        "lookAt": "__game.player",
+        "lookOffset": [
+          0,
+          6,
+          -70
+        ],
+        "ease": "inOutSine",
+        "keys": [
+          {
+            "pos": [
+              -4,
+              36,
+              24
+            ],
+            "fov": 42
+          },
+          {
+            "pos": [
+              0,
+              15,
+              -6
+            ],
+            "fov": 40
+          }
+        ]
+      },
+      "fade_in": 0.6
+    },
+    {
+      "id": "s2_mechanic",
+      "role": "mechanic",
+      "beats": 5,
+      "setup": "__game.setup({distance: 286, lat: 2.5, h: 2.0, score: 37})",
+      "warmup": 0,
+      "inputs": [
+        {
+          "at": 0.35,
+          "key": "ArrowRight",
+          "hold": 0.4
+        },
+        {
+          "at": 1.1,
+          "key": "ArrowLeft",
+          "hold": 0.9
+        },
+        {
+          "at": 2.15,
+          "key": "ArrowRight",
+          "hold": 0.5
+        }
+      ]
+    },
+    {
+      "id": "s3_skim",
+      "role": "mechanic",
+      "beats": 3,
+      "setup": "__game.setup({distance: 300, autopilot: true, hud: false})",
+      "warmup": 1,
+      "camera": {
+        "space": "__game.anchor",
+        "ease": "linear",
+        "handheld": 0.6,
+        "keys": [
+          {
+            "pos": [
+              4.5,
+              -2.6,
+              -9
+            ],
+            "look": [
+              0,
+              0.4,
+              0
+            ],
+            "fov": 42
+          },
+          {
+            "pos": [
+              -3.0,
+              -2.2,
+              -7.5
+            ],
+            "look": [
+              0,
+              0.4,
+              0
+            ],
+            "fov": 40
+          }
+        ]
+      }
+    },
+    {
+      "id": "s4_storm",
+      "role": "escalation",
+      "beats": 4,
+      "setup": "__game.setup({distance: 1600, autopilot: true, heat: 1, speedBonus: 6, score: 412, flame: 0.9})",
+      "warmup": 1,
+      "inputs": [
+        {
+          "at": 0.2,
+          "key": "Space",
+          "hold": 1.6
+        }
+      ]
+    },
+    {
+      "id": "s5_flyby",
+      "role": "escalation",
+      "beats": 2,
+      "setup": "__game.setup({distance: 800, autopilot: true, hud: false, heat: 0.6})",
+      "warmup": 0.6,
+      "camera": {
+        "space": "__game.place(838)",
+        "lookAt": "__game.player",
+        "keys": [
+          {
+            "pos": [
+              6,
+              2,
+              0
+            ],
+            "fov": 30
+          },
+          {
+            "pos": [
+              6,
+              2.6,
+              0
+            ],
+            "fov": 28
+          }
+        ]
+      }
+    },
+    {
+      "id": "s6_gate",
+      "role": "hero",
+      "beats": 5,
+      "speed": 0.5,
+      "setup": "__game.setup({distance: 1226, lat: 0, h: 4, autopilot: true, hud: false, score: 640})",
+      "warmup": 0,
+      "camera": {
+        "space": "__game.place(1240)",
+        "lookAt": "__game.player",
+        "lookOffset": [
+          0,
+          1.5,
+          0
+        ],
+        "ease": "linear",
+        "keys": [
+          {
+            "pos": [
+              5,
+              0.5,
+              -16
+            ],
+            "fov": 52
+          },
+          {
+            "pos": [
+              3,
+              1.5,
+              -19
+            ],
+            "fov": 58
+          }
+        ]
+      }
+    },
+    {
+      "id": "s7_title",
+      "role": "title",
+      "beats": 4,
+      "setup": "__game.setup({distance: 1925, lat: 0, h: 4, autopilot: true, hud: false})",
+      "warmup": 0,
+      "camera": {
+        "space": "__game.place(1960)",
+        "ease": "linear",
+        "keys": [
+          {
+            "pos": [
+              0,
+              9,
+              46
+            ],
+            "look": [
+              0,
+              12,
+              -60
+            ],
+            "fov": 50
+          },
+          {
+            "pos": [
+              0,
+              8,
+              38
+            ],
+            "look": [
+              0,
+              12,
+              -60
+            ],
+            "fov": 50
+          }
+        ]
+      },
+      "overlay": {
+        "css": "#__trailer_overlay{background:linear-gradient(to top,rgba(3,5,7,.88) 0%,rgba(3,5,7,.55) 30%,rgba(3,5,7,0) 60%);display:flex;align-items:center;justify-content:flex-end;flex-direction:column;padding-bottom:110px;box-sizing:border-box;font-family:'Avenir Next',Futura,'Helvetica Neue',Arial,sans-serif;color:#f3ece2} .ttl-t{font-size:112px;font-weight:600;letter-spacing:.34em;margin-left:.34em;text-shadow:0 0 40px rgba(0,0,0,.6);animation:ttl-t 2.4s cubic-bezier(.2,.7,.2,1) both} .ttl-l{width:0;height:2px;background:#ff5315;box-shadow:0 0 18px #ff5315;margin:30px 0 24px;animation:ttl-l 1.2s .35s ease-out both} .ttl-s{font-size:24px;letter-spacing:.6em;margin-left:.6em;opacity:0;animation:ttl-s 1s .7s ease-out both} @keyframes ttl-t{0%{opacity:0;letter-spacing:.6em;filter:blur(10px)}100%{opacity:1;letter-spacing:.34em;filter:blur(0)}} @keyframes ttl-l{to{width:420px}} @keyframes ttl-s{to{opacity:.8}}",
+        "html": "<div class='ttl-t'>LANTERN CANYON</div><div class='ttl-l'></div><div class='ttl-s'>FOLLOW THE SPARKS</div>"
+      },
+      "hide": [
+        "#hud"
+      ]
+    },
+    {
+      "id": "s8_end",
+      "role": "end",
+      "beats": 3,
+      "card": "../../cards/card.html?kicker=PLAY%20IN%20YOUR%20BROWSER&title=LANTERN%20CANYON&sub=One%20HTML%20file%20%C2%B7%20three.js%20%C2%B7%20no%20downloaded%20assets",
+      "fade_out": 0.6
+    }
+  ]
+}

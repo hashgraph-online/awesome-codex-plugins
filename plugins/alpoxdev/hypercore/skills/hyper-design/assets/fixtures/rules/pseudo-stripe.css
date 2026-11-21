@@ -1,0 +1,2 @@
+.card { position: relative; border-radius: 16px; background: #fff; }
+.card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #2563eb; }

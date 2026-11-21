@@ -31,25 +31,27 @@ REQUIRED_FIELDS = {
     "uncertainty",
     "analysis_intent",
 }
-CLAIM_ID_RE = re.compile(r"^C[0-9]{3,8}$")
-EVIDENCE_ID_RE = re.compile(r"^E[0-9]{3,8}$")
+CLAIM_ID_RE = re.compile(r"^C\d{3,8}$")
+EVIDENCE_ID_RE = re.compile(r"^E\d{3,8}$")
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
-CLAIM_MARKER_RE = re.compile(r"\[claim:(C[0-9]{3,8})\]")
+CLAIM_MARKER_RE = re.compile(r"\[claim:(C\d{3,8})\]")
 EVIDENCE_MARKER_RE = re.compile(
-    r"\[evidence:((?:E[0-9]{3,8})(?:\s*,\s*E[0-9]{3,8})*)\]"
+    r"\[evidence:(E\d{3,8}(?:\s*,\s*E\d{3,8})*)\]"
 )
-CITATION_MARKER_RE = re.compile(r"\[@(E[0-9]{3,8})\]")
-NUMERIC_RE = re.compile(r"(?<![A-Za-z])(?:[<>]=?\s*)?[0-9]+(?:\.[0-9]+)?%?")
+CITATION_MARKER_RE = re.compile(r"\[@(E\d{3,8})\]")
+NUMERIC_RE = re.compile(r"(?<![A-Za-z])(?:[<>]=?\s*)?\d+(?:\.\d+)?%?")
 CLAIM_KINDS = {"factual", "numeric", "method", "result", "interpretive", "declaration"}
 UNCERTAINTY = {"not_applicable", "not_estimated", "low", "moderate", "high"}
 ANALYSIS_INTENT = {"confirmatory", "exploratory", "descriptive", "not_applicable"}
 
 
 def _split_evidence_ids(value: str) -> list[str]:
+    """Split evidence ids."""
     return [part.strip() for part in value.split(";") if part.strip()]
 
 
 def load_sources(path: str) -> dict[str, bool]:
+    """Load sources."""
     data = require_object(read_json(path), "source_manifest")
     sources: dict[str, bool] = {}
     for index, raw_source in enumerate(require_list(data.get("sources"), "sources")):
@@ -73,6 +75,7 @@ def load_claims(
     path: str,
     sources: dict[str, bool],
 ) -> tuple[dict[str, dict[str, Any]], list[Issue]]:
+    """Load claims."""
     fields, rows = read_csv(path)
     if set(fields) != REQUIRED_FIELDS:
         missing = ",".join(sorted(REQUIRED_FIELDS - set(fields)))
@@ -132,6 +135,7 @@ def audit_markdown(
     claims: dict[str, dict[str, Any]],
     sources: dict[str, bool],
 ) -> tuple[list[Issue], set[str]]:
+    """Handle audit markdown."""
     issues: list[Issue] = []
     used_claims: set[str] = set()
     in_fence = False
@@ -203,6 +207,7 @@ def audit_markdown(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit local Markdown claim markers against a CSV claim registry and "
@@ -216,6 +221,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def cli() -> int:
+    """Handle cli."""
     args = build_parser().parse_args()
     sources = load_sources(args.sources)
     claims, issues = load_claims(args.claims, sources)

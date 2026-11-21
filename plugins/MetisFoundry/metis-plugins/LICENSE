@@ -1,0 +1,39 @@
+Metis Check plugin files: proprietary licence
+
+Copyright (c) 2026 Metis Foundry (I Am Violet Inc.). All rights reserved.
+
+The files in this repository (the manifests, configuration, skills, images
+and videos that install and present the Metis Check plugin in ChatGPT, Codex,
+Claude, Claude Code and other MCP clients) are proprietary to Metis Foundry.
+They are not open source and no open-source licence is granted.
+
+Permitted use. You may download, install and use these files, unmodified,
+only to connect to and use the Metis Check service, under the Metis Check
+terms at https://mcp.metisfoundry.com/terms. Plugin directories, marketplaces
+and registries may read, index and list these files and link to this
+repository.
+
+Directory mirroring. Plugin directories, marketplaces and registries may
+also copy, mirror and redistribute the plugin bundle in plugins/metis-check,
+unmodified and complete, solely so that users can find, install and use the
+Metis Check plugin with the Metis Check service. This permission does not
+cover any other use, any modified copy, or any third-party material (such as
+the music credited in dist/metis-check-video-credits.txt), and it does not
+license the Metis Check service or the Metis name and marks, except to
+identify the plugin accurately.
+
+Not permitted without written permission from Metis Foundry, except as
+allowed above: copying, modifying, adapting, redistributing, sublicensing or
+selling these files or any part of them, publishing them elsewhere, or using
+them with any service other than Metis Check.
+
+The Metis Check service (https://check-api.metisfoundry.com and
+https://mcp.metisfoundry.com), its verification engine, source code, methods
+and reports, and the Metis name and marks, are proprietary to Metis Foundry
+and are not licensed by these files.
+
+THE FILES ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. TO THE EXTENT PERMITTED BY LAW, METIS FOUNDRY IS NOT LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE FILES OR THEIR USE.
+
+Permission requests: hello@metisfoundry.com

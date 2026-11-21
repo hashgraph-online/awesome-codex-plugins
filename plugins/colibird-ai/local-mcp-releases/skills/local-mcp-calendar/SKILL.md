@@ -11,7 +11,7 @@ to it). These tools exist only on macOS; for a Microsoft 365 calendar, use `m365
 
 ## Core tools
 - `list_calendar_names` — the user's calendars (Personal, Work, …).
-- `list_calendar_events` — events in a date range (defaults to today + 7 days); pass `event_id` to read one event in full.
+- `list_calendar_events` — events in a date range (defaults to today + 7 days); set `event_id` to read one event in full.
 - `create_calendar_event` — new event (title, start, end, optional location/notes/calendar).
 - `update_calendar_event` / `delete_calendar_event` — modify or remove an event by `event_id`; both take `confirm` and require the user's approval before applying.
 

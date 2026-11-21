@@ -1,0 +1,142 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: "Inter", sans-serif;
+      color: #ffffff;
+      background: radial-gradient(120% 120% at 50% 40%, #3a72ff 0%, #2f6bff 38%, #1f4fd6 72%, #173aa8 100%);
+    }
+    #st-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 330px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #st-eyebrow {
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.78);
+    }
+    #st-numbox {
+      position: relative;
+      margin-top: 18px;
+      text-align: right;
+      font-weight: 800;
+      font-size: 238px; /* 22 % of frame height */
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    #st-numbox {
+      display: grid;
+    }
+    /* the hidden final string reserves the width; the live number is right-aligned in the same cell */
+    .st-sizer,
+    #st-num {
+      grid-area: 1 / 1;
+    }
+    .st-sizer {
+      visibility: hidden;
+    }
+    #st-under {
+      position: absolute;
+      left: 0;
+      bottom: -18px;
+      height: 8px;
+      width: 100%;
+      background: #ffd166;
+      border-radius: 4px;
+      transform-origin: 0 50%;
+    }
+    #st-label {
+      margin-top: 52px;
+      font-weight: 500;
+      font-size: 35px; /* 3.2 % of frame height */
+      letter-spacing: 0.01em;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #ffffff;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="stat" data-width="1920" data-height="1080">
+    <div id="st-wrap">
+      <div id="st-eyebrow">Northwind Air · May 2026</div>
+      <div id="st-numbox"><span class="st-sizer" aria-hidden="true">48,200</span><span id="st-num">48,200</span><div id="st-under"></div></div>
+      <div id="st-label">passengers in May</div>
+    </div>
+    <div class="lbl" id="st-lbl" data-layout-ignore>count-up-stat · center-hero</div>
+  </div>
+  <script>
+    (function () {
+      // preset count-up-stat.center-hero + shared beats (assets/presets/count-up-stat.json)
+      const D = 4.0;
+      const N = 48200; // 5 digits -> 1.6–1.9 s with smart easing
+      const T = { enter: [0, 0.4], count: [0.3, 2.0], land: [2.0, 2.25] };
+      const SMART = { threshold: 999, eased: 333, linearFraction: 0.55 };
+      const bez = (x1, y1, x2, y2) => (t) => {
+        let u = t;
+        for (let i = 0; i < 8; i++) {
+          const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u - t;
+          const dx = 3 * (1 - u) * (1 - u) * x1 + 6 * (1 - u) * u * (x2 - x1) + 3 * u * u * (1 - x2);
+          if (Math.abs(dx) < 1e-6) break;
+          u = Math.min(1, Math.max(0, u - x / dx));
+        }
+        return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+      };
+      const emphDecel = bez(0.05, 0.7, 0.1, 1);
+      const expoOut = bez(0.16, 1, 0.3, 1);
+      const p2o = gsap.parseEase("power2.out");
+      const clamp = (v) => Math.max(0, Math.min(1, v));
+      const prog = (t, [a, b]) => clamp((t - a) / (b - a));
+      const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
+      const wrap = document.getElementById("st-wrap");
+      const box = document.getElementById("st-numbox");
+      const num = document.getElementById("st-num");
+      const under = document.getElementById("st-under");
+
+      function value(t) {
+        const p = prog(t, T.count);
+        if (N <= SMART.threshold) return N * expoOut(p);
+        // CountUp smart easing: linear to N−333 over 55 % of the time, then easeOutExpo for the last 333
+        if (p < SMART.linearFraction) return (N - SMART.eased) * (p / SMART.linearFraction);
+        return N - SMART.eased + SMART.eased * expoOut((p - SMART.linearFraction) / (1 - SMART.linearFraction));
+      }
+
+      function render(t) {
+        const e = emphDecel(prog(t, T.enter));
+        wrap.style.opacity = e.toFixed(3);
+        const lp = prog(t, T.land);
+        const pulse = lp > 0 && lp < 1 ? Math.sin(Math.PI * lp) * 0.05 : 0; // 1 -> 1.05 -> 1
+        wrap.style.transform = `translateY(${(24 * (1 - e)).toFixed(1)}px) scale(${(0.96 + 0.04 * e).toFixed(4)})`;
+        box.style.transform = `scale(${(1 + pulse).toFixed(4)})`;
+        num.textContent = fmt.format(Math.round(value(t)));
+        under.style.transform = `scaleX(${p2o(prog(t, [T.land[0], T.land[0] + 0.3])).toFixed(4)})`;
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#st-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.2);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["stat"] = tl;
+    })();
+  </script>
+</template>

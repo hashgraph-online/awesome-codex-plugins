@@ -1,0 +1,35 @@
+{
+  "id": "paper-grain-gradient-truchet",
+  "label": "Truchet (Paper GrainGradient)",
+  "shader": "GrainGradient",
+  "page": "https://shaders.paper.design/grain-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Truchet\" preset for GrainGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#0a0000",
+    "colors": [
+      "#6f2200",
+      "#eabb7c",
+      "#39b523"
+    ],
+    "softness": 0,
+    "intensity": 0.2,
+    "noise": 1,
+    "shape": "truchet"
+  }
+}

@@ -2,7 +2,7 @@
 name: cometchat-android-v6-kotlin-customization
 description: "Make the CometChat Android v6 UI match your app in the Kotlin XML Views cohort — theming via CometChatTheme.DayNight attributes, per-component styles, message-bubble styling, ViewHolder view slots, state views, long-press and composer menu options, text formatters, custom message rendering with BubbleFactory, localization and sounds. Triggers: 'change cometchat colors android', 'brand the android chat ui', 'dark mode cometchat android xml', 'custom row in conversations', 'replace the empty state', 'add a message menu option', 'custom message type android'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views cohort) — 6.0.x, verified 6.0.5; com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views cohort) — 6.1.x, verified 6.1.1; com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -19,6 +19,8 @@ metadata:
 
 ## Use this skill when
 "match the chat to our brand", "use our fonts", "support dark mode", "restyle the conversation rows or bubbles", "replace the empty/loading/error view", "add an option to the message long-press menu", "render a custom message type", "highlight #hashtags", "translate the UI", "change notification sounds". **Theming lives HERE** — there is no separate theming skill.
+
+**Cloning a named app, or mixing kit components with your own UI?** Measure the target's colors, type, spacing and radii into ONE token source, theme the kit from it, and style every custom component from the same tokens so kit and custom parts look like one design; host a kit component in your own dialog/panel when only its placement differs. Flow: `cometchat-onboarding` → `references/clone-mode.md` (Design sync, build levels L0–L6).
 
 ## Customization mechanism map (pick the smallest one that does the job)
 | Intent | Mechanism | Docs page (fetch for exact names) |
@@ -44,20 +46,39 @@ Extend the kit theme, then apply it in the manifest:
 <style name="AppTheme" parent="CometChatTheme.DayNight">
     <item name="cometchatPrimaryColor">#F76808</item>
 </style>
-<!-- AndroidManifest.xml: <application android:theme="@style/AppTheme" …> -->
+<!-- AndroidManifest.xml: <application android:theme="@style/AppTheme" ...> -->
 ```
 Programmatic equivalent: `CometChatTheme.setPrimaryColor(Color.parseColor("#F76808"))`.
 
 **Brownfield — an app with its own design system NEVER re-parents its application theme.** `CometChatTheme.DayNight` parents `Theme.MaterialComponents.DayNight.NoActionBar`; re-parenting a Material3 host breaks its own screens (Material3-only attrs stop resolving), while skipping the kit theme crashes kit inflation (unresolved `?attr/cometchat*`). Keep the host theme and SCOPE the derived style to where kit views live: manifest `android:theme` on the chat Activities + `ContextThemeWrapper` for fragment/tab-embedded views — recipe: `kotlin-placement` Placement 2. App-wide re-parenting (above) is the greenfield path.
 
-**Dark mode — follow the system by default.** Add `res/values-night/themes.xml` overriding the same attributes (`cometchatPrimaryColor`, `cometchatBackgroundColor1`, `cometchatTextColorPrimary`, …); Android applies it automatically. A theme can also be scoped to one Activity (`theme-introduction` §"Apply a Theme to a Specific Activity"). Override only the tokens you actually brand so future kit versions stay consistent.
+**Dark mode — follow the system by default.** Add `res/values-night/themes.xml` overriding the same attributes (`cometchatPrimaryColor`, `cometchatBackgroundColor1`, `cometchatTextColorPrimary`, ...); Android applies it automatically. A theme can also be scoped to one Activity (`theme-introduction` §"Apply a Theme to a Specific Activity"). Override only the tokens you actually brand so future kit versions stay consistent.
 
-## What's swappable — slots, verified against 6.0.5
+## What's swappable — slots, verified against 6.0.5 and 6.1.1
 **Lists** (`CometChatConversations`, and the same shape on `CometChatUsers`/`CometChatGroups`/`CometChatGroupMembers`):
 `setItemView` · `setLeadingView` · `setTitleView` · `setSubtitleView` · `setTrailingView` — each takes a **`ConversationsViewHolderListener`** (a `createView`/`bindView` pair), not a `View`. Plus `setEmptyView`/`setErrorView`/`setLoadingView` (plain `View`), `setOptions`/`setAddOptions` for the long-press menu, `setOverflowMenu`, and `setConversationsRequestBuilder(...)` to scope the data.
 
 **Message list** — per-region providers, each a `BubbleViewProvider`:
 `setLeadingViewProvider` · `setHeaderViewProvider` · `setContentViewProvider` · `setReplyViewProvider` · `setBottomViewProvider` · `setStatusInfoViewProvider` · `setThreadViewProvider` · `setFooterViewProvider`.
+**Warning: these compile but render nothing in 6.0.5 and 6.1.1:** `MessageAdapter` stores the providers and never reads them (source: "stored but not used in the new architecture"; shipped AAR bytecode has no read of the field). The docs `message-list` page still teaches `setLeadingViewProvider`. Per-message slots that DO render: a `BubbleFactory`'s `createLeadingView`/`createHeaderView`/... for its own category+type (below).
+
+### Avatar and sender name on every message (BAKED — verified vs 6.1.1 source + compiled)
+What to check and why: `cometchat-onboarding/references/clone-mode.md` -> *Message chrome*. This is the Views how-to.
+**Kit default:** avatar only on INCOMING messages in a GROUP (`MessageAdapter.showAvatar = false`, `showLeftBubbleGroupAvatar = true`, `showLeftBubbleUserAvatar = false`); sender name only on incoming group messages. Your own messages and every 1:1 chat get neither.
+**Do this whenever the target shows avatars/names (Slack, Discord, Teams); don't ask.** Two calls cover own and others' messages in 1:1 and group chats:
+```kotlin
+import com.cometchat.uikit.core.constants.UIKitConstants
+import com.cometchat.uikit.kotlin.presentation.messagelist.ui.CometChatMessageList
+
+fun CometChatMessageList.showSenderOnEveryMessage() {
+    setMessageAlignment(UIKitConstants.MessageListAlignment.LEFT_ALIGNED) // own messages render as "left", so the name shows
+    showAvatar(true) // global override: avatar on every left row, 1:1 included (default: groups only)
+}
+```
+- `LEFT_ALIGNED` makes `isHideName` return false for every row, so the name shows in 1:1 too; `showAvatar(true)` (same as `setHideAvatar(false)`) sets the adapter's global avatar flag. Action and call rows stay centered with no avatar.
+- All rows now use the INCOMING bubble style. Style the name with `senderNameTextColor` / `senderNameTextAppearance` on the bubble style (`message-bubble-styling`).
+- **Your own avatar/name design is not reachable on Views 6.0.5 or 6.1.1:** the leading/header providers above are dead, and a `BubbleFactory` slot replaces every slot of that message type (content, time, receipts, reactions), so it isn't a per-message avatar hook for standard types. Say so (L4).
+- **Once per run** (avatar only on the first of consecutive messages) isn't reachable: no hook sees the previous message (L4).
 
 ## Custom message types — `BubbleFactory` (NOT message templates)
 ```kotlin
@@ -75,7 +96,7 @@ messageList.setBubbleFactories(listOf(ContactBubbleFactory()))
 ```
 `createContentView()` runs **before** the message is known (only the factory key is available); the message arrives in `bindContentView()`. Optional: `createBubbleView`/`bindBubbleView` (replace the whole bubble), `createLeadingView`, `getBubbleStyle`.
 
-⚠️ **The old v5 template API is absent from the shipped 6.0.5 artifact** — `CometChatMessageTemplate`, `setTemplates`, `setType`, `setCategory`, `setBubbleView`, `setMessageReceipt` do not compile (logged internally). The docs `message-template` page was corrected upstream (verified 2026-09-09): it is now "Message Bubble Factory" and teaches `BubbleFactory`. Use `BubbleFactory`.
+⚠️ **The old v5 template API is absent from the shipped 6.0.5 and 6.1.1 artifacts** — `CometChatMessageTemplate`, `setTemplates`, `setType`, `setCategory`, `setBubbleView`, `setMessageReceipt` do not compile (logged internally). The docs `message-template` page was corrected upstream (verified 2026-09-09): it is now "Message Bubble Factory" and teaches `BubbleFactory`. Use `BubbleFactory`.
 
 ## The rule
 **Custom UI goes INSIDE the component** — a slot, a state view, a menu option, a formatter, a bubble factory — never a hand-built row stacked over a kit list, never a forked component. If no slot exists for what's needed, fetch the component's `.md` twin before inventing UI; if there genuinely is no hook, say so rather than re-implementing the component.

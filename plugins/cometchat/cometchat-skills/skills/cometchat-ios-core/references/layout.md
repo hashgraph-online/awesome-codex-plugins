@@ -11,7 +11,7 @@ failure that compiles perfectly.
 
 ## Rule 0 — a component is a `UIViewController`, so constrain `component.view`
 
-Every kit component (`CometChatConversations`, `CometChatMessageList`, `CometChatGroups`, …)
+Every kit component (`CometChatConversations`, `CometChatMessageList`, `CometChatGroups`, ...)
 subclasses `UIViewController`, **not** `UIView`. Treating one as a view does not compile:
 
 ```

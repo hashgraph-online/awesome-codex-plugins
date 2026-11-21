@@ -77,6 +77,8 @@ _None configured._
      with its own sub-bullets, a Verify line, and a Commit line (repository) or receipt (artifact). Tick to a bracketed x when done.
      An optional Budget line limits one item: "Budget: soft 30m / 1M tokens, hard 45m / 2M tokens",
      either level, time and/or tokens. An item stopped at its hard budget is closed with a bracketed
-     dash and a Stopped line, and is never ticked.
+     dash and a Stopped line, and is never ticked. An optional Evidence line names what shows the
+     work to a reviewer. check off leaves the tick alone, report names a missing file, and block
+     keeps the stop open.
      drafting-table.md carries the exact shape. Keep the illustration out of this file: any
      bracketed-space checkbox here, even in a comment, counts as an open item. -->

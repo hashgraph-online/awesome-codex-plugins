@@ -1,0 +1,43 @@
+{
+  "id": "paper-gem-smoke-infrared",
+  "label": "Infrared (Paper GemSmoke)",
+  "shader": "GemSmoke",
+  "page": "https://shaders.paper.design/gem-smoke",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Infrared\" preset for GemSmoke, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#cd28dc",
+    "colorInner": "#00000000",
+    "colors": [
+      "#ff9900",
+      "#fff67a",
+      "#dcff52",
+      "#00ffbb",
+      "#0077ff"
+    ],
+    "outerGlow": 1,
+    "innerGlow": 1,
+    "innerDistortion": 1,
+    "outerDistortion": 1,
+    "offset": 0.2,
+    "angle": 0,
+    "size": 1,
+    "shape": "diamond",
+    "image": ""
+  }
+}

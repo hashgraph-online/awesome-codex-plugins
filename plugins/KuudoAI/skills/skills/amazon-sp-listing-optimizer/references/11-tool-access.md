@@ -74,7 +74,11 @@ that identity with nothing selected (2026-10-18, even right after
    `fba-inventory_getInventorySummaries`, or `orders_getOrderItems`). Each
    SKU with an active offer comes back with `status: "Success"` and the
    merchant ID in `Product.Identifiers.SKUIdentifier.SellerId`; a SKU
-   without one returns `ClientError`.
+   without one returns `ClientError`. If the Kuudo Amazon Ads MCP is also
+   connected, a seller profile's `accountInfo.id` from `ac_listProfiles` is
+   the same ID when its `accountInfo.name` matches the store, with no SKU
+   needed. It worked as `sellerId` in `listings_searchListingsItems` on
+   2026-11-02.
 
    ```python
    await call_tool("set_active_identity", {"identity_id": IDENTITY_ID})

@@ -6,7 +6,7 @@ The canonical doc channel is the **first-party CometChat docs MCP** — tools `s
 use them instead of a raw web fetch:**
 - **Find the page** → `search_cometchat_docs(query)` — e.g. `search_cometchat_docs("calls javascript join session")`.
 - **Read the page** → `fetch_cometchat_doc_page(path)` — pass the SAME `<path>` the tables below list; the MCP
-  resolves the `.md` twin and returns raw Markdown. A full `https://…/<path>` URL also works.
+  resolves the `.md` twin and returns raw Markdown. A full `https://.../<path>` URL also works.
 - **A whole feature/recipe** → `get_cometchat_implementation_bundle(...)` is **NON-AUTHORITATIVE** — curated
   STATIC recipes that can lag the live docs. Treat any bundle as a hint only: RECONCILE it against the
   `fetch_cometchat_doc_page` result + the catalog; never emit bundle code verbatim.
@@ -14,7 +14,7 @@ use them instead of a raw web fetch:**
 The MCP reads whatever docs environment it is pointed at (production by default; a preview when repointed),
 so it also carries the environment-swap concern below — no hardcoded host on the skill side.
 
-**If the MCP tools are NOT connected:** add it (`claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp`, or reinstall/enable the plugin) and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (defined next).
+**If the MCP tools are NOT connected:** help the user add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (defined next).
 Either way the `<path>` catalog in this file is the source of truth for WHICH page — MCP-vs-fetch is only HOW.
 
 ## DOCS_BASE — the fetch FALLBACK entry point (⚠️ SWAP HERE to change environments)
@@ -50,7 +50,7 @@ Use it to discover any page not listed below (search for `/calls/javascript/`).
 | **1:1 RINGING** — initiate · incoming-call listener + **incoming/outgoing call-screen UI** · accept/reject/cancel · then `generateToken`/`joinSession` | `/calls/javascript/ringing` |
 | Session settings (the `SessionSettings` object) | `/calls/javascript/session-settings` |
 | Events (`addEventListener` — full event list) | `/calls/javascript/events` |
-| In-call actions (mute/pause/leave/layout/record…) | `/calls/javascript/actions` |
+| In-call actions (mute/pause/leave/layout/record...) | `/calls/javascript/actions` |
 | **Custom control panel** — replace the built-in controls: hide the whole panel (`hideControlPanel`) OR hide INDIVIDUAL buttons, then drive your own UI off the action methods + keep it in sync via events | `/calls/javascript/custom-control-panel` — the canonical recipe for `SKILL.md` pitfall #1's "user EXPLICITLY wants custom controls" path. Carries the per-button hide flags the session-settings page doesn't foreground: `hideRaiseHandButton` · `hideShareInviteButton` · `hideParticipantListButton` · `hideChatButton` (plus `hideLeaveSessionButton`/`hideToggleAudioButton`/`hideToggleVideoButton`/`hideScreenSharingButton`/`hideRecordingButton`/`hideChangeLayoutButton`/`hideVirtualBackgroundButton`) — all real in the installed `.d.ts`. |
 | Call layouts (TILE / SIDEBAR / SPOTLIGHT) | `/calls/javascript/call-layouts` |
 | Participant management (pin / mute / list) | `/calls/javascript/participant-management` |
@@ -60,7 +60,7 @@ Use it to discover any page not listed below (search for `/calls/javascript/`).
 | Raise hand | `/calls/javascript/raise-hand` |
 | Idle timeout | `/calls/javascript/idle-timeout` |
 | Share invite | `/calls/javascript/share-invite` |
-| Call logs (`CallLogRequestBuilder`) | `/calls/javascript/call-logs` — ⚠️ **the live example OMITS the REQUIRED `.setAuthToken(token)` — copying it verbatim BREAKS AT RUNTIME.** The page now DOES document the client-SDK `CallLogRequestBuilder` (added in v5.0.5, in its "Transcripts" section) — but its snippet is `new CometChatCalls.CallLogRequestBuilder().setLimit(30).setHasTranscriptions(true).build()` with **no `setAuthToken`**, and the builder does **NOT** implicitly use the logged-in user's token: `fetchNext()` then throws `{ code: "NOT_ENOUGH_PARAMETERS", message: "`Auth Token` is required to use the fetchNext() method." }` (verified live vs installed `@cometchat/calls-sdk-javascript@5.0.5`, explorer `web-calls-v5`). **EMIT THE BAKED RECIPE, not the doc snippet:** `new CometChatCalls.CallLogRequestBuilder().setLimit(n).setAuthToken(CometChatCalls.getUserAuthToken()).build().fetchNext()` → `Promise<CallLog[]>` (paginated; read `getSessionID`/`getType`/`getStatus`/`getTotalDuration`/`getInitiatedAt`/…). `setAuthToken` is REQUIRED; pass the logged-in user's token from `CometChatCalls.getUserAuthToken()`. Use the SDK builder for an in-app call-log list; don't send the user to the REST API. (Docs bug tracked in `DOCS-BACKLOG.md`; this baked recipe stays authoritative over the doc snippet until it's fixed.) |
+| Call logs (`CallLogRequestBuilder`) | `/calls/javascript/call-logs` — ⚠️ **the live example OMITS the REQUIRED `.setAuthToken(token)` — copying it verbatim BREAKS AT RUNTIME.** The page now DOES document the client-SDK `CallLogRequestBuilder` (added in v5.0.5, in its "Transcripts" section) — but its snippet is `new CometChatCalls.CallLogRequestBuilder().setLimit(30).setHasTranscriptions(true).build()` with **no `setAuthToken`**, and the builder does **NOT** implicitly use the logged-in user's token: `fetchNext()` then throws `{ code: "NOT_ENOUGH_PARAMETERS", message: "`Auth Token` is required to use the fetchNext() method." }` (verified live vs installed `@cometchat/calls-sdk-javascript@5.0.5`, explorer `web-calls-v5`). **EMIT THE BAKED RECIPE, not the doc snippet:** `new CometChatCalls.CallLogRequestBuilder().setLimit(n).setAuthToken(CometChatCalls.getUserAuthToken()).build().fetchNext()` → `Promise<CallLog[]>` (paginated; read `getSessionID`/`getType`/`getStatus`/`getTotalDuration`/`getInitiatedAt`/...). `setAuthToken` is REQUIRED; pass the logged-in user's token from `CometChatCalls.getUserAuthToken()`. Use the SDK builder for an in-app call-log list; don't send the user to the REST API. (Docs bug tracked in `DOCS-BACKLOG.md`; this baked recipe stays authoritative over the doc snippet until it's fixed.) |
 | **React** integration (provider + call screen) | `/calls/javascript/react-integration` |
 | Vue / Angular / Next.js / Ionic integration | `/calls/javascript/{vue,angular,nextjs,ionic}-integration` |
 

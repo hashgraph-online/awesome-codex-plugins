@@ -18,7 +18,8 @@ description: >-
 compatibility: Creative specs and policy work standalone. Registering assets requires the Amazon Ads MCP (code-mode meta-tools) plus an out-of-band HTTP PUT for the upload step; image generation requires an image tool.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.4.1"
+  display-name: "Amazon Ads Creative Assets"
+  version: "0.4.2"
 ---
 
 # Amazon Ads creative assets

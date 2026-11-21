@@ -1,0 +1,53 @@
+{
+  "update_id": 100000004,
+  "widget_query": {
+    "id": "8123456789012340001",
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "message_id": 4243,
+    "chat_instance": "901234567890123456",
+    "type": {
+      "type": "data",
+      "wallet_card": {
+        "address": "UQAsampleUserWallet000000000000000000000000000003",
+        "amount": "5250000000",
+        "stickers": [
+          {
+            "position": {
+              "x_percentage": 30.0,
+              "y_percentage": 40.0,
+              "width_percentage": 20.0,
+              "height_percentage": 20.0,
+              "rotation_angle": 15.0,
+              "corner_radius_percentage": 8.0
+            },
+            "nft": {
+              "address": "EQBsampleNftAddress000000000000000000000000000001",
+              "collection_address": "EQBsampleCollection0000000000000000000000000000002",
+              "index": "17",
+              "name": "Plush Pepe #17",
+              "description": "A unique collectible.",
+              "attributes": [
+                {
+                  "trait_type": "Backdrop",
+                  "value": "Midnight"
+                }
+              ]
+            }
+          }
+        ],
+        "background_nft_address": "EQBsampleNftAddress000000000000000000000000000001"
+      }
+    },
+    "data": "pay:42"
+  }
+}

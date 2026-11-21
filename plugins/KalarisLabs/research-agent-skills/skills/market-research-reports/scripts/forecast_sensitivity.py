@@ -28,6 +28,7 @@ MAX_SCENARIOS = 20
 
 
 def _identifiers(value: Any, context: str, *, minimum: int = 0) -> list[str]:
+    """Handle identifiers."""
     items = require_list(value, context, minimum=minimum, maximum=100)
     parsed = [
         require_identifier(item, f"{context}[{index}]")
@@ -38,6 +39,7 @@ def _identifiers(value: Any, context: str, *, minimum: int = 0) -> list[str]:
 
 
 def _integer(value: Any, context: str, minimum: int, maximum: int) -> int:
+    """Handle integer."""
     if type(value) is not int:
         raise ValidationError(f"{context} must be an integer")
     if not minimum <= value <= maximum:
@@ -46,6 +48,7 @@ def _integer(value: Any, context: str, minimum: int, maximum: int) -> int:
 
 
 def _metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Handle metadata."""
     raw = require_object(payload.get("metadata"), "metadata")
     required = (
         "series_id",
@@ -104,6 +107,7 @@ def _metadata(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _rate_path(value: Any, context: str, horizon: int) -> list[float]:
+    """Handle rate path."""
     items = require_list(value, context, minimum=horizon, maximum=horizon)
     return [
         parse_number(
@@ -119,6 +123,7 @@ def _rate_path(value: Any, context: str, horizon: int) -> list[float]:
 def _project(
     start_year: int, start_value: float, rates: list[float]
 ) -> list[dict[str, float | int]]:
+    """Handle project."""
     observations: list[dict[str, float | int]] = [
         {"year": start_year, "value": start_value}
     ]
@@ -134,12 +139,14 @@ def _project(
 
 
 def _cagr(start: float, end: float, periods: int) -> float | None:
+    """Handle cagr."""
     if periods <= 0 or start <= 0.0 or end < 0.0:
         return None
     return (end / start) ** (1.0 / periods) - 1.0
 
 
 def forecast(payload: dict[str, Any]) -> dict[str, Any]:
+    """Handle forecast."""
     schema_version = require_text(
         payload.get("schema_version"), "schema_version", maximum=10
     )
@@ -298,6 +305,7 @@ def forecast(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate bounded local scenario forecasts and one-way growth-rate "
@@ -313,6 +321,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         payload = require_object(read_json(args.input), "root")

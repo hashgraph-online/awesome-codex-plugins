@@ -2,7 +2,7 @@
 name: cometchat-react-v7-migration
 description: "Upgrade a React app from CometChat UI Kit v6 → v7 (`@cometchat/chat-uikit-react` ^6 → ^7). Reads the repo's CometChat usage, applies the breaking-change map (deps, symbol renames, RxJS events → `useCometChatEvents`, DataSource → plugins, templates → plugins, theme prop, calling), fetches the prop-by-prop guide, and verifies the build. Triggers: 'upgrade my v6 uikit to v7', 'migrate cometchat react v6 to v7', 'upgrade @cometchat/chat-uikit-react to v7', 'cometchat v6 to v7', 'bump cometchat uikit'."
 license: "MIT"
-compatibility: "React >=18 <21; FROM @cometchat/chat-uikit-react ^6 → ^7 (7.1.x, verified 7.1.0); @cometchat/chat-sdk-javascript ^4.1.13 (peer); dompurify ^3.3.1 required (install explicitly); rxjs removed"
+compatibility: "React >=18 <21; FROM @cometchat/chat-uikit-react ^6 → ^7 (7.2.x, verified 7.2.4); @cometchat/chat-sdk-javascript ^4.1.13 (peer); dompurify ^3.3.1 required (install explicitly); rxjs removed"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -27,9 +27,9 @@ metadata:
 6. **Verify.** Build/typecheck passes; NO v6 symbols remain (grep the removed names); the app renders inside `CometChatProvider`; migrated events/plugins/calling work. Reuse `cometchat-react-v7-core` "Verify it works".
 
 ## Common pitfalls (BAKED)
-- **Leftover `rxjs` event subscriptions** — v6 `*Events.<x>.subscribe()` do NOT fire in v7; convert every one to `useCometChatEvents((event) => …)` (SDK + UI events share one bus). Publish via `usePublishEvent()`.
+- **Leftover `rxjs` event subscriptions** — v6 `*Events.<x>.subscribe()` do NOT fire in v7; convert every one to `useCometChatEvents((event) => ...)` (SDK + UI events share one bus). Publish via `usePublishEvent()`.
 - **Forgetting `CometChatProvider`** — v7 components read it; symptom = context/"not initialized" errors even though init ran.
-- **`CometChatMessageTemplate` / `templates` props** — removed from components; move custom message rendering to a `CometChatMessagePlugin` passed via `plugins`. **`textFormatters` is NOT removed** — it stays a prop in v7 (verified vs 7.1.0) on `CometChatMessageComposer`, the bubble components (Text/Image/Video/Audio/File/…), `CometChatSearch` and `CometChatMessageInformation`, but it is GONE from `CometChatMessageList`/`CometChatConversations`. Keep it as a prop on those components. The list's bubbles take formatters from the text plugin's `getTextFormatters()`, so to keep a v6 list-level formatter, override that one method — `plugins={[{ ...CometChatTextPlugin, getTextFormatters: () => [/* defaults + yours */] }]}` (provider plugins precede the defaults, so it wins).
+- **`CometChatMessageTemplate` / `templates` props** — removed from components; move custom message rendering to a `CometChatMessagePlugin` passed via `plugins`. **`textFormatters` is NOT removed** — it stays a prop in v7 (verified vs 7.1.0) on `CometChatMessageComposer`, the bubble components (Text/Image/Video/Audio/File/...), `CometChatSearch` and `CometChatMessageInformation`, but it is GONE from `CometChatMessageList`/`CometChatConversations`. Keep it as a prop on those components. The list's bubbles take formatters from the text plugin's `getTextFormatters()`, so to keep a v6 list-level formatter, override that one method — `plugins={[{ ...CometChatTextPlugin, getTextFormatters: () => [/* defaults + yours */] }]}` (provider plugins precede the defaults, so it wins).
 - **Dependency drift** — missing the new `dompurify` peer dep, or leftover `rxjs`, breaks the build; do both halves of step 2.
 - **Calling silently off** — v7 needs calling turned on in the init settings (`uiKit: { callsSDK: {} }` via `CometChatUIKit.initFromSettings`; or the classic `.setCallingEnabled(true)` on `UIKitSettingsBuilder`) — not a provider prop; without it, call buttons hide and the Calls SDK never loads.
 - **Bubble routing** — the message list now defaults to the multi-attachment bubbles (`CometChatImageBubble`→`CometChatImagesBubble`, singular `CometChatFileBubble` still ships); code that imported singular bubble names for the list default may need the plural.

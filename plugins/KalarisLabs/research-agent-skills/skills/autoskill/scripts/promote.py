@@ -1,3 +1,5 @@
+"""Promote helpers."""
+
 import argparse
 import shutil
 import sys
@@ -5,6 +7,7 @@ from pathlib import Path
 
 
 class PromoteError(Exception):
+    """Raised when promote fails."""
     pass
 
 
@@ -12,6 +15,7 @@ _KINDS = ("new-skills", "composition-recipes")
 
 
 def promote(proposed_path, skills_dir, name):
+    """Handle promote."""
     proposed_path = Path(proposed_path)
     skills_dir = Path(skills_dir)
 
@@ -33,6 +37,7 @@ def promote(proposed_path, skills_dir, name):
 
 
 def main(argv=None):
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         prog="autoskill-promote",
         description="Move a proposed skill from _proposed/<ts>/ into skills/",

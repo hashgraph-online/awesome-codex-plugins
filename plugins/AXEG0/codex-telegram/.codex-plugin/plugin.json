@@ -1,0 +1,39 @@
+{
+  "name": "telegram",
+  "version": "0.4.37",
+  "description": "One shared Codex conversation in your terminal and Telegram.",
+  "author": {
+    "name": "Aleksandr",
+    "url": "https://github.com/AXEG0"
+  },
+  "homepage": "https://github.com/AXEG0/codex-telegram",
+  "repository": "https://github.com/AXEG0/codex-telegram",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "telegram",
+    "remote"
+  ],
+  "interface": {
+    "displayName": "Codex Telegram",
+    "shortDescription": "Use Telegram from the active Codex session.",
+    "longDescription": "Pair Telegram with the same Codex conversation used in your terminal.",
+    "developerName": "Aleksandr",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/AXEG0/codex-telegram",
+    "defaultPrompt": [
+      "Reply to the active Telegram conversation."
+    ]
+  },
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/configure/SKILL.md"
+    }
+  }
+}

@@ -41,7 +41,7 @@ Each question's recommendation comes from what beat-1 detected. Phrase every one
 - The framework core executes whichever is chosen (its `references/setup-credentials.md`); onboarding only decides + states it.
 
 **Placement / SSR hints (feeds plan sections 3–4):**
-- `styling` (tailwind/mui/…) → note "match the existing design system" as a plan step (hand to customization on build).
+- `styling` (tailwind/mui/...) → note "match the existing design system" as a plan step (hand to customization on build).
 - **Theme MODE default = AUTO (follow the OS light/dark setting).** For a fresh app (no `styling` detected), recommend **auto** — the core syncs `theme` ↔ `prefers-color-scheme` (the kit ships light+dark but does NOT auto-follow the OS on its own; pack default per AUDIT-004). ALWAYS offer the auto/follow-system option in the design question — never a light-only or fixed-preset-only menu (AUDIT-042). Mode (auto/light/dark) and palette (default tokens / match design system / brand / custom) are independent — auto can pair with any palette.
 - `ssr: ssr`/`islands` (Next App Router, Astro) → flag the client-boundary work in the plan (the chat surface is client-side; the core's patterns skill owns the directive).
 - `state` (redux/zustand/context) → note where the "current conversation / logged-in CometChat user" state should live so it fits the app's existing store, not a new one.

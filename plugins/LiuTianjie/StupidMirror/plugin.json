@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "stupidmirror",
+  "version": "0.2.8",
+  "description": "Observe and control real iPhone and Android devices through the StupidMirror Mac app.",
+  "author": { "name": "StupidMirror" },
+  "homepage": "https://liutianjie.github.io/StupidMirror/",
+  "repository": "https://github.com/LiuTianjie/StupidMirror",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "StupidMirror",
+        "shortDescription": "Control your iPhone and Android devices",
+        "longDescription": "Use the StupidMirror Mac app to inspect real device screens, locate text with local OCR, tap, swipe, type and verify results. Reuses the app's USB and wireless connections and displays the live phone screen inside Codex without opening a native mirror window.",
+        "developerName": "StupidMirror",
+        "category": "Productivity",
+        "logo": "./assets/icon.png",
+        "composerIcon": "./assets/icon.png",
+        "defaultPrompt": [
+          "用 StupidMirror 在 Codex 中显示我的手机屏幕。",
+          "用 StupidMirror 读取手机当前页面。",
+          "Use StupidMirror to inspect and test my app on a real device."
+        ]
+      }
+    }
+  }
+}

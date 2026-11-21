@@ -1,0 +1,2 @@
+# CAD component (large, optional): CadQuery brings the OpenCascade kernel (cadquery-ocp).
+cadquery==2.8.0

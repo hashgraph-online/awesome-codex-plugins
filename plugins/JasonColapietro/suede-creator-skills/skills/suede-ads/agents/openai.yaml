@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Ads Skills"
+  short_description: "Run paid acquisition that pays back"
+  default_prompt: "Use $suede-ads on [target]. The user is planning, running, or fixing paid campaigns on Google, Meta, LinkedIn, or X, or weighing whether to run ads at all. Work through campaign structure, audience targeting, bidding, budget pacing, negative keywords, and knowing when to kill an ad, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,31 @@
+{
+  "update_id": 900043,
+  "message": {
+    "message_id": 703,
+    "date": 1762900403,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "text": "Pay to UQAsampleMerchant00000000000000000000000000000005 or card 4242 4242 4242 4242",
+    "entities": [
+      {
+        "type": "ton_address",
+        "offset": 7,
+        "length": 49
+      },
+      {
+        "type": "bank_card_number",
+        "offset": 65,
+        "length": 19
+      }
+    ]
+  }
+}

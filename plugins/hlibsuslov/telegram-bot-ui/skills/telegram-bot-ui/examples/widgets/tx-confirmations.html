@@ -1,0 +1,45 @@
+<!-- Transaction confirmation card (static widget, private chat, no requests needed:
+     the bot pushes chat_data on every confirmation; edits are silent).
+     chat_data = {"d":"in|out","w":"Main","amt":"0.0125","usd":"812.40","conf":1,"target":3,"tx":"<txid>","url":"https://mempool.space/tx/<txid>","r":N} -->
+<style>
+body{margin:0;padding:0}
+.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}
+.h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.t{font-weight:600}
+.w{color:var(--tg-theme-hint-color);font-size:.9em}
+.a{font-size:1.5em;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.u{color:var(--tg-theme-hint-color);font-size:.9em}
+.p{display:flex;gap:6px;margin:10px 0 6px}
+.p i{flex:1;height:6px;border-radius:3px;background:var(--tg-theme-secondary-bg-color);transition:background .3s}
+.p i.on{background:var(--tg-theme-button-color)}
+.done .p i.on{background:var(--tg-theme-accent-text-color)}
+.s{font-size:.9em}
+.r{display:flex;gap:8px;margin-top:8px;padding-right:max(0px,var(--tg-content-safe-area-corner-right));padding-left:max(0px,var(--tg-content-safe-area-corner-left))}
+.r button{flex:1}
+@media (prefers-reduced-motion:reduce){.p i{transition:none}}
+</style>
+<div class="c" id="c"><div class="h"><span class="t" id="t"></span><span class="w" id="w"></span></div>
+<div class="a" id="a"></div><div class="u" id="u"></div><div class="p" id="p"></div><div class="s" id="s"></div>
+<div class="r"><button id="cp"></button><button id="ex"></button></div></div>
+<script>
+var W=window.TelegramWidget,S=null,R=-1;
+var L={en:{in:"Incoming",out:"Outgoing",wait:"Waiting for the first confirmation",conf:"Confirmation {n} of {t}",done:"Confirmed",copy:"Copy TXID",open:"Explorer",as:"As of"},
+uk:{in:"Вхідна",out:"Вихідна",wait:"Очікує першого підтвердження",conf:"Підтвердження {n} з {t}",done:"Підтверджено",copy:"Копіювати TXID",open:"Оглядач",as:"Станом на"},
+ru:{in:"Входящая",out:"Исходящая",wait:"Ожидает первого подтверждения",conf:"Подтверждение {n} из {t}",done:"Подтверждено",copy:"Копировать TXID",open:"Обозреватель",as:"На момент"}};
+var T=L[(navigator.language||"en").slice(0,2)]||L.en;
+function $(i){return document.getElementById(i)}
+function load(){var s=null;try{s=JSON.parse(W?W.chatData:null)}catch(e){}if(s&&s.r>R){S=s;R=s.r}}
+function draw(){
+ if(!S)return;var done=S.conf>=S.target;
+ $("c").className="c"+(done?" done":"");
+ $("t").textContent=(S.d==="out"?"↗ ":"↘ ")+T[S.d];$("w").textContent=S.w;
+ $("a").textContent=(S.d==="out"?"−":"+")+S.amt+" BTC";$("u").textContent=S.usd?"≈ $"+S.usd:"";
+ var p=$("p");p.innerHTML="";for(var i=0;i<S.target;i++){var b=document.createElement("i");if(i<S.conf)b.className="on";p.appendChild(b)}
+ $("s").textContent=done?"✓ "+T.done:(S.conf?T.conf.replace("{n}",S.conf).replace("{t}",S.target):T.wait);
+ $("cp").textContent=T.copy;$("ex").textContent=T.open;
+}
+$("cp").onclick=function(){if(W&&S)W.copyText(S.tx)};
+$("ex").onclick=function(){if(W&&S&&S.url)W.openLink(S.url)};
+if(W){W.onEvent("chatDataChanged",function(){load();draw()});W.onEvent("themeChanged",draw)}
+load();draw();if(W)W.ready();
+</script>

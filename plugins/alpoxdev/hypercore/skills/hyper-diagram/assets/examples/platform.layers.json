@@ -1,0 +1,6 @@
+{"type":"layers","title":"서비스 플랫폼 계층","subtitle":"범위: 사용자 화면부터 인프라까지","description":"맨 위 화면 계층에서 시작해 API, 도메인 서비스, 데이터, 인프라 계층 순서로 아래로 내려갑니다. 각 계층은 바로 아래 계층만 호출합니다.",
+"layers":[{"id":"l1","label":"화면","sub":"presentation","kind":"client","items":[{"id":"w","label":"웹"},{"id":"a","label":"iOS · Android"},{"id":"ad","label":"관리자"}]},
+{"id":"l2","label":"API","sub":"gateway","kind":"edge","items":[{"id":"gw","label":"API Gateway"},{"id":"au","label":"인증","kind":"security"}]},
+{"id":"l3","label":"도메인","sub":"services","kind":"service","items":[{"id":"o","label":"주문"},{"id":"p","label":"결제"},{"id":"n","label":"알림"},{"id":"r","label":"추천","kind":"ai"}]},
+{"id":"l4","label":"데이터","sub":"storage","kind":"data","items":[{"id":"pg","label":"PostgreSQL"},{"id":"rd","label":"Redis","kind":"cache"},{"id":"s3","label":"S3","kind":"storage"}]},
+{"id":"l5","label":"인프라","sub":"platform","kind":"cloud","items":[{"id":"k8s","label":"Kubernetes"},{"id":"obs","label":"관측","sub":"로그 · 메트릭"}]}]}

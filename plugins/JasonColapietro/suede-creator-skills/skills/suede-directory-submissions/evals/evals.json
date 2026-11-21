@@ -1,0 +1,100 @@
+{
+  "skill_name": "suede-directory-submissions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're launching our AI SaaS in 3 weeks. Help me plan all the directories we should submit to.",
+      "expected_output": "Should check product context, treat the directory catalog as a research queue, and verify current official eligibility, pricing, policies, form requirements, and asset specifications with source URLs and dates. Should block only candidates missing a current requirement, truthful destination, or submission authority rather than imposing universal page counts. Should select a small evidence-backed mix by audience fit, build calendar dates from verified requirements, set goals from the user's baseline, and request explicit approval before external submissions.",
+      "assertions": [
+        "Checks product context",
+        "Treats candidates as unverified until researched",
+        "Records current official sources and check dates",
+        "Avoids fixed directory-volume and outcome promises",
+        "Maps verified requirements to calendar dates",
+        "Requires explicit submission authority"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Can I just copy-paste the same description into every directory?",
+      "expected_output": "Should keep approved product facts consistent but adapt emphasis and length to each directory's current fields, audience, and rules. Should not claim duplicate copy creates an AI or search penalty without current evidence. Should use references/positioning-variations.md as templates, verify every populated feature and outcome, and remove unsupported bracketed claims.",
+      "assertions": [
+        "Keeps approved facts consistent",
+        "Adapts copy to verified fields and audience",
+        "Avoids an unsupported AI penalty claim",
+        "Does not invent features or outcomes",
+        "References positioning-variations.md",
+        "Keeps entity facts (name, description, founder, URL) identical to the canonical entity sheet"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should we pay for one of those directory submission services that submits to 200 directories for $99?",
+      "expected_output": "Should not approve or reject from price and volume alone. Should request the exact destination list, editorial standards, data handling, rights, refund terms, and maximum total cost; verify live traffic or audience evidence and link behavior; compare a small manual batch; and require explicit approval before purchase. Should warn that raw submission count, authority scores, and promised dofollow links do not prove value.",
+      "assertions": [
+        "Requests exact destinations and terms",
+        "Verifies maximum cost before approval",
+        "Evaluates audience and editorial quality",
+        "Does not treat dofollow or authority scores as outcomes",
+        "Requires explicit purchase approval"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Walk me through how to launch on Product Hunt next month. We've never done it before.",
+      "expected_output": "Should research the platform's current official eligibility, scheduling, form limits, assets, solicitation rules, and moderation using source URLs and dates. Should build a preparation timeline from those verified rules, test the product and listing preview, identify authorized owned channels, prohibit vote manipulation and unsolicited messaging, and avoid remembered claims about ideal weekdays, launch times, algorithms, hunters, or supporter thresholds.",
+      "assertions": [
+        "Verifies current official platform rules",
+        "Builds timeline from verified requirements",
+        "Tests listing and destination",
+        "Requires authorized communication channels",
+        "Prohibits manipulation",
+        "Avoids remembered algorithm thresholds"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We want to list on G2 but we only have 4 customers right now. Worth doing?",
+      "expected_output": "Should treat customer count as a constraint rather than an automatic no. Should verify the current official listing, review, incentive, badge, report, and pricing policies with source URLs and dates; avoid asserting remembered thresholds or prices; identify only genuine eligible reviewers; and require explicit approval for recipient list, copy, channel, cadence, and any incentive before outreach.",
+      "assertions": [
+        "Does not call a small listing worthless",
+        "Verifies current official review policies",
+        "Avoids stale badge and pricing claims",
+        "Uses only genuine eligible reviewers",
+        "Requires explicit outreach authorization"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We submitted to 50 directories last week. Now what?",
+      "expected_output": "Should verify each live canonical listing and inspect rendered link attributes and redirects instead of using response headers as proof. Should reconcile the tracker, analytics, qualified conversions, cost, and complaints; update or remove inaccurate listings only with authorization; and choose the next destination or distribution experiment from measured evidence rather than promising rank, citation, or conversion outcomes.",
+      "assertions": [
+        "Verifies canonical live listings",
+        "Inspects rendered links rather than response headers",
+        "Reconciles analytics and qualified outcomes",
+        "Requires authority for listing changes",
+        "Chooses next action from measured evidence",
+        "Checks each live listing against the canonical entity sheet and flags mismatches"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I want to get our SaaS listed on the Notion Marketplace for the backlink. We don't have a Notion integration yet. What's involved?",
+      "expected_output": "Should load references/directory-list.md (integration marketplace candidates) and explain that a listing requires a working public Notion connection. Should flag that the installation scope must be set to \"Any workspace\" when the connection is created, because it cannot be changed later and other scopes are not eligible. Should suggest a simple genuine use case (for example sending the app's data into a Notion database), then submitting the listing for Notion's review, which includes a security review, with the approved page at notion.com/connections/<name>. Should mark these requirements as last-checked facts to re-verify in Notion's current developer docs, frame the integration as useful to customers rather than only a backlink, and not promise a link attribute or ranking effect.",
+      "assertions": [
+        "States a working public Notion connection is required",
+        "Warns the 'Any workspace' scope must be chosen at creation and can't be changed",
+        "Mentions Notion's review, including a security review",
+        "Suggests a simple genuine use case for the integration",
+        "Says to re-verify the requirements against Notion's current docs before building"
+      ],
+      "files": []
+    }
+  ]
+}

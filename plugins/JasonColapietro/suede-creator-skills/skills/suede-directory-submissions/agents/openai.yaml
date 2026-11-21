@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Directory Submissions Skills"
+  short_description: "Work the directory layer deliberately"
+  default_prompt: "Use $suede-directory-submissions on [target]. Research currently eligible startup, SaaS, AI, or MCP listings; verify official requirements, pricing, policies, rendered links, and authority for external action; then recommend a measured submission order without promising traffic, ranking, citations, or conversions."
+policy:
+  allow_implicit_invocation: true

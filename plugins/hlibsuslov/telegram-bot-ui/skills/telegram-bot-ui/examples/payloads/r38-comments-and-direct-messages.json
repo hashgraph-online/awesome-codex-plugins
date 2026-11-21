@@ -1,0 +1,66 @@
+{
+  "scenario": "r38-comments-and-direct-messages",
+  "status": "production",
+  "context": "discussion group + channel direct messages chat",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "getChat",
+      "params": {
+        "chat_id": -1001500000001
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000101,
+        "reply_parameters": {
+          "message_id": 9001
+        },
+        "text": "Comments are open. Be kind; links to other channels are removed.",
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000101,
+        "reply_parameters": {
+          "message_id": 9002
+        },
+        "text": "Thanks for asking - an editor will answer in this thread today."
+      }
+    },
+    {
+      "method": "deleteMessage",
+      "params": {
+        "chat_id": -1001500000101,
+        "message_id": 9003
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000201,
+        "direct_messages_topic_id": 77,
+        "text": "Thanks! The editors read every message and reply here within a day."
+      }
+    },
+    {
+      "method": "approveSuggestedPost",
+      "params": {
+        "chat_id": -1001500000201,
+        "message_id": 3002
+      }
+    },
+    {
+      "method": "declineSuggestedPost",
+      "params": {
+        "chat_id": -1001500000201,
+        "message_id": 3003,
+        "comment": "Sorry, we don't publish ads for this kind of service."
+      }
+    }
+  ]
+}

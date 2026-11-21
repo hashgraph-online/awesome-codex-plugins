@@ -1,0 +1,27 @@
+{
+  "skill": "stickman-video",
+  "should_trigger": [
+    "make a stickman video about surviving a night in an empty mall",
+    "stick figure animation for my faceless YouTube channel",
+    "how do I make videos like the viral stickman reels with Claude",
+    "Day 1 survival rules video with a two-choice ending",
+    "POV stickman short for TikTok",
+    "fake friend vs real friend stickman reel",
+    "my stickman animation looks stiff, only the head moves",
+    "stickman history explainer in code, no video model"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Write Google Flow prompts for a 60-second stickman video in the Amber Noir style",
+      "use_instead": "kaomei/stickman-video-director (Director mode)"
+    },
+    {
+      "query": "Turn my photo into a cartoon character and animate it",
+      "use_instead": "varg-character-cartoon"
+    },
+    {
+      "query": "Add word-by-word captions to my podcast clip",
+      "use_instead": "caption-styles"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Community Marketing Skills"
+  short_description: "Build a community that compounds"
+  default_prompt: "Use $suede-community-marketing on [target]. The user wants to start or grow a Discord, Slack, forum, or subreddit community around their product. Work through platform choice, seeding, rituals, moderation, and turning members into advocates, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

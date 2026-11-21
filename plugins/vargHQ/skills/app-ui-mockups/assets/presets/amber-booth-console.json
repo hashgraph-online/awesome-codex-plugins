@@ -1,0 +1,217 @@
+{
+  "id": "amber-booth-console",
+  "name": "Amber booth console",
+  "use": "A retro amber projection-booth touchscreen boots, loads your show, counts down and draws your end card.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 19,
+  "fonts": [
+    {
+      "family": "VT323",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/VT323"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    },
+    {
+      "family": "Share Tech Mono",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Share+Tech+Mono"
+    }
+  ],
+  "trademark_note": "Original UI; no real cinema-equipment brand names or logos.",
+  "presets": [
+    {
+      "id": "amber-booth-console.boot-load-endcard",
+      "label": "Boot, load, end card",
+      "look": "Full 19 s arc with CRT look",
+      "params": {
+        "beats_s": {
+          "power_on": [
+            0,
+            0.6
+          ],
+          "self_test": [
+            0.6,
+            4.5
+          ],
+          "progress": [
+            4.5,
+            6.0
+          ],
+          "load_show": [
+            6.0,
+            11.0
+          ],
+          "countdown": [
+            11.0,
+            13.5
+          ],
+          "end_card_draw": [
+            13.5,
+            17.5
+          ],
+          "hold": [
+            17.5,
+            19.0
+          ]
+        },
+        "power_on": {
+          "scaleY_from": 0.004,
+          "duration_s": 0.35,
+          "ease": "expo.out",
+          "brightness_overshoot": [
+            1.4,
+            1.0
+          ],
+          "overshoot_s": 0.25
+        },
+        "boot_line_every_ms": 60,
+        "check_ok_delay_s": 0.2,
+        "playlist_title_cps": 14,
+        "row_step_s": 0.5,
+        "countdown_each_s": 0.8,
+        "countdown_scale_from": 1.08,
+        "end_card": {
+          "method": "stroke-dashoffset",
+          "duration_s": 2.5,
+          "ease": "power2.inOut",
+          "stagger_s": 0.12
+        },
+        "color": {
+          "text": "#FFB000",
+          "dim": "#7A4A00",
+          "bg": "#0A0600",
+          "p3_602nm_conversions": [
+            "#ffb700",
+            "#fa9300",
+            "#f67800"
+          ]
+        },
+        "glow": [
+          "0 0 4px rgba(255,176,0,0.8)",
+          "0 0 18px rgba(255,140,0,0.35)"
+        ],
+        "crt": {
+          "bloom": 0.6,
+          "burn_in": 0.3,
+          "flicker": 0.1,
+          "jitter": 0.2,
+          "static_noise": 0.1,
+          "curvature": 0.2,
+          "glowing_line": 0.2
+        },
+        "scanlines": {
+          "period_px_1080p": 3,
+          "darken_pct": [
+            15,
+            20
+          ]
+        },
+        "barrel_k1": [
+          0.04,
+          0.08
+        ],
+        "vignette": 0.35,
+        "persistence": {
+          "ghost_pct": [
+            25,
+            30
+          ],
+          "decay_frames": 3
+        },
+        "touch_flash_s": 0.15,
+        "text_min_pct_frame_h_vt323": 3.4
+      },
+      "sources": [
+        39,
+        40,
+        41,
+        42,
+        12,
+        15,
+        44
+      ]
+    },
+    {
+      "id": "amber-booth-console.clean-amber",
+      "label": "Clean amber",
+      "look": "Same UI, no curvature, light glow",
+      "params": {
+        "glow": "0 0 6px rgba(255,176,0,0.55)",
+        "scanlines_darken_pct": 10,
+        "curvature": 0,
+        "jitter": 0
+      },
+      "sources": [
+        41
+      ]
+    },
+    {
+      "id": "amber-booth-console.footage-crt",
+      "label": "Footage to amber CRT",
+      "look": "ffmpeg filter chain for real footage",
+      "params": {
+        "ffmpeg_vf": "format=gray,lutrgb=r='val*1.0':g='val*0.69':b='val*0.0',lenscorrection=k1=0.06:k2=0.02,tmix=frames=3:weights='1 0.45 0.2',gblur=sigma=1.2,noise=alls=6:allf=t,geq=r='r(X,Y)*(1-0.18*eq(mod(Y,3),0))':g='g(X,Y)*(1-0.18*eq(mod(Y,3),0))':b='b(X,Y)',vignette=PI/4.5",
+        "encode": "-c:v libx264 -crf 18"
+      },
+      "sources": [
+        40,
+        41
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 12,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 15,
+      "name": "VHS best-practice skill",
+      "url": "https://cdn.jsdelivr.net/npm/@marcfargas/skills@0.5.1/vhs/SKILL.md"
+    },
+    {
+      "n": 39,
+      "name": "Wikipedia, Monochrome monitor",
+      "url": "https://en.wikipedia.org/wiki/Monochrome_monitor"
+    },
+    {
+      "n": 40,
+      "name": "Phosphor color notes (P3 602 nm)",
+      "url": "https://publish.obsidian.md/xybre/permalink/e397c38e-aa6f-45eb-831f-f02a3836abc4"
+    },
+    {
+      "n": 41,
+      "name": "cool-retro-term Default Amber profile (GPL-3, values only)",
+      "url": "https://github.com/Swordfish90/cool-retro-term"
+    },
+    {
+      "n": 42,
+      "name": "Pushing Pixels interview, David Sheldon-Hicks (Territory Studio)",
+      "url": "https://www.pushing-pixels.org/2014/08/07/the-craft-of-screen-graphics-and-movie-user-interfaces-interview-with-david-sheldon-hicks-of-territory-studio.html"
+    },
+    {
+      "n": 44,
+      "name": "Emil Kowalski, Great animations",
+      "url": "https://emilkowal.ski/ui/great-animations"
+    }
+  ]
+}

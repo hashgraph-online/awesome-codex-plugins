@@ -17,6 +17,7 @@ from _common import (
 )
 
 
+NUMPY_REQUIRED = "NumPy is required"
 REQUIRED_ARRAYS = {
     "risk",
     "test_event",
@@ -33,10 +34,11 @@ def synthetic_metric_inputs(seed: int = DEFAULT_SEED) -> dict[str, Any]:
     try:
         import numpy as np
     except ImportError as exc:
-        raise CliError("NumPy is required") from exc
+        raise CliError(NUMPY_REQUIRED) from exc
     rng = np.random.default_rng(seed)
 
     def observed(rows: int) -> tuple[Any, Any, Any]:
+        """Handle observed."""
         risk = rng.normal(size=rows)
         event_time = rng.exponential(scale=9.0 * np.exp(-0.65 * risk)) + 0.1
         censor_time = rng.exponential(scale=13.0, size=rows) + 0.1
@@ -70,7 +72,7 @@ def load_prediction_archive(value: str) -> tuple[dict[str, Any], str]:
     try:
         import numpy as np
     except ImportError as exc:
-        raise CliError("NumPy is required") from exc
+        raise CliError(NUMPY_REQUIRED) from exc
     path = checked_input_file(value, suffixes={".npz"})
     try:
         with np.load(path, allow_pickle=False) as archive:
@@ -148,7 +150,7 @@ def validate_predictions(
     try:
         import numpy as np
     except ImportError as exc:
-        raise CliError("NumPy is required") from exc
+        raise CliError(NUMPY_REQUIRED) from exc
     y_train = structured_survival(arrays["train_event"], arrays["train_time"])
     y_test = structured_survival(arrays["test_event"], arrays["test_time"])
     times = validate_time_grid(arrays["times"], y_train, y_test)
@@ -257,6 +259,7 @@ def evaluate(arrays: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Evaluate risk scores and optional survival probabilities from a "
@@ -271,6 +274,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

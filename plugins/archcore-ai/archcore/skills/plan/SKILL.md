@@ -41,6 +41,7 @@ Apply in this order:
 |---|---|
 | No arguments, one draft with a state block this command resumes | Resume it at its earliest incomplete gate |
 | No arguments, several such drafts | Resume rule 10 in `skills/_shared/gate-contract.md` |
+| No arguments, no such draft, and one draft proof-tracked plan per `skills/_shared/plan-contract.md` that is not fully proven | Report its frontier tasks, proven and open, and its **Waiting on** bullets; IF every frontier task is proven, THEN expand the next phase per "The frontier" in that contract; then go to Step 6 |
 | No arguments, a clear request in the session or one unfinished plan | Offer a start menu of at most four items, each with the evidence that names it, the recommended item first |
 | No arguments and no reliable signal | Ask one question — what outcome to plan; a dirty branch alone is not a target |
 | The first word is a type slug | The explicit type request per `explicit-type-request-wins.adr`; a leading `research` requests the type `research` |
@@ -85,14 +86,14 @@ MCP call that names either type.
 3. WHEN a found draft on the topic carries an `archcore:track` state block, resume it per the resume rules in `skills/_shared/gate-contract.md` and `skills/_shared/delta-routing.md` instead of opening a new track.
 4. Read git state — current branch, recent commits, working tree — and the code areas the topic names. Record the concrete files and modules for Step 5, and note owner documents whose referenced paths changed after them — the staleness input to Selection.
 5. IF `.archcore/` exists but contains no documents, THEN proceed on outer-context grounding (git state and the codebase) and report that zero documents were found.
-6. IF `.archcore/` does not exist, THEN announce initialization in one line and call `mcp__archcore__init_project` without asking a question.
+6. IF the session root holds no `.archcore/`, THEN follow `skills/_shared/target-project.md`, section Projects without `.archcore/`: name the roots the session recap listed, ask which project to use or whether to initialize the session root, and do not call `mcp__archcore__init_project` before the answer.
 
-**Global sources.** If a `list_documents` / `search_documents` result has
-`global: true` / `read_only: true` / `source_kind: "global"`, load
+**Global sources.** If a `list_documents` / `search_documents` result has `source_kind: "global"`, load
 `skills/_shared/globals.md`. Also load it when a `search_documents` response's
 `coverage` names a source other than `"local"` — even when `results` is empty:
-the empty page is exactly where that file's retry ladder applies. Never modify
-a global document and never target one with `add_relation`. Absent any global
+the empty page is exactly where that file's retry ladder applies. Edit a global
+document only through its source project, per that file's write convention, and
+never join a local and a global document with `add_relation`. Absent any global
 match, proceed as usual.
 
 ### 2. Select
@@ -116,6 +117,24 @@ inside the draft artifact (with the `claims:` field this command adds), persist 
 and follow the resume rules on re-entry. Gate bodies, per-gate questions, and
 relation wiring live in the track files — do not restate them.
 
+WHEN an instrument creates a `plan`, write every task of its Tasks section in
+this form; `skills/_shared/plan-contract.md` holds the full rules:
+
+```markdown
+### Phase 1: <name>
+
+1. [ ] T1 <one imperative action, at most 17 words>
+
+   - files: @<path> for each file the task changes or creates
+   - covers: <spec slug>#<n> for each covered clause, or none
+   - done when: <one test name or command> <expected result>
+   - proof: —
+```
+
+Only the first unproven phase holds tasks. A later phase holds one line:
+`Covers: <clause references>; expand when Phase <n-1> is proven.` A condition
+outside the repository goes to `## Waiting on`, one bullet with `(owner: <who>)`.
+
 Before delegating research or evidence work, pass the current vocabulary probe
 result and absolute plugin root to the assistant. If the assistant returns
 `needs-vocabulary-probe`, run the helper and resume the same task.
@@ -127,7 +146,7 @@ plugin root to the assistant. The assistant reads
 
 WHEN the selection produced a `plan` document:
 
-1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call.
+1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call. In a proof-tracked plan, put them in the task's `files` line.
 2. WHEN grounding surfaced no file or module for a task, state that no target was found for that task. Do not guess a path.
 3. Confirm the plan carries its `## Declared Delta` section per sequencing rule 9 of `skills/_shared/delta-routing.md`.
 
@@ -139,7 +158,7 @@ or the selection line names the follow-ups.
 WHEN a blocking exit check stopped the selection, skip this step and go to Result.
 Otherwise, offer exactly two exits and let the user choose:
 
-- **Implement now** — start on the mapped task list, first phase first, against the files mapped in Step 5.
+- **Implement now** — start on the mapped task list, first phase first, against the files mapped in Step 5. For a proof-tracked plan, take the first unchecked frontier task; check each task per "Checking a task" in `skills/_shared/plan-contract.md`.
 - **Stop here** — the draft documents and relations stay in `.archcore/`; a later `/archcore:plan` invocation resumes any draft that still carries a state block.
 
 ## Result
@@ -147,7 +166,7 @@ Otherwise, offer exactly two exits and let the user choose:
 Report:
 
 - The selection line, and the inferred scope when no argument set it.
-- Produced documents grouped by category — vision, knowledge, experience — with each document's path and status.
+- Produced documents grouped by category — vision, knowledge, experience — with each document's path and status. WHEN the request named more than one target project, list each document beside its project root per `skills/_shared/target-project.md`.
 - Relations created, plus candidate `mcp__archcore__add_relation` targets among existing documents, or a statement that none match.
 - `retire` claims reported for closeout discharge, when any exist.
 - Next actions, naming only v2 commands: `/archcore:plan` to continue the selection, `/archcore:document <subject>` to record a decision or document code touched during implementation, `/archcore:review` to check the implementation against the recorded plan and reconcile its Declared Delta.

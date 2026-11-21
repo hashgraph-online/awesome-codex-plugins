@@ -1,0 +1,40 @@
+{
+  "description": "Actera checks each tool call before it runs and reports its outcome afterwards. The check runs on the plugin's MCP server so a held call can be reviewed in Codex.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "mcp_tool",
+            "server": "actera",
+            "tool": "pre_tool_use",
+            "input": {
+              "session_id": "${session_id}",
+              "turn_id": "${turn_id}",
+              "transcript_path": "${transcript_path}",
+              "cwd": "${cwd}",
+              "model": "${model}",
+              "permission_mode": "${permission_mode}",
+              "tool_name": "${tool_name}",
+              "tool_use_id": "${tool_use_id}",
+              "tool_input": "${tool_input}"
+            },
+            "statusMessage": "Checking with Actera. A call that needs approval waits here for a reviewer.",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/bin/actera-hook.mjs\" hook",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-# UCP — Universal Commerce Protocol (June 2026)
+# UCP - Universal Commerce Protocol (June 2026)
 
 UCP is a Google-initiated open standard, co-developed with Shopify, Etsy,
 Wayfair, Target, and Walmart (20+ endorsers), plus payment partners (Stripe,
@@ -29,7 +29,7 @@ in Search; broader Universal Cart rollout details are reported from Google I/O
 | Compatible with AP2 (Agent Payments Protocol) for cryptographic user-consent proof on autonomous purchases | A way to skip being merchant of record |
 | Google reference implementation for conversational buying in AI Mode in Search | A "ranking factor" because Google has not framed it that way |
 
-Merchants stay **Merchant of Record** under UCP — they keep customer
+Merchants stay **Merchant of Record** under UCP - they keep customer
 relationships and post-purchase ownership.
 
 ## How to declare a UCP profile
@@ -65,14 +65,14 @@ The general shape (consult the live spec for exact field names):
 ```
 
 UCP uses **date-based versioning** (`YYYY-MM-DD`), current release **2026-04-08**
-— a literal `"1.0"` does not match any real UCP release and will fail the spec's
+- a literal `"1.0"` does not match any real UCP release and will fail the spec's
 version negotiation. Platforms (AI Mode in Search, Gemini, and eventually
 others) auto-discover the profile and negotiate.
 
 ### Integration paths
 
-- **Native checkout** (default) — full agentic potential; the recommended path.
-- **Embedded checkout** (optional, iframe-based) — for specific Google-approved
+- **Native checkout** (default) - full agentic potential; the recommended path.
+- **Embedded checkout** (optional, iframe-based) - for specific Google-approved
   merchants with complex/bespoke checkout.
 
 Merchants join a **waitlist** and must be Google-approved before going live.
@@ -106,7 +106,7 @@ Exact identifiers are governed by the live spec. The namespace pattern is
 5. **Integration path:** does the profile imply Native (default) or Embedded
    (approved-merchant) checkout?
 
-The audit should **not** score the absence of UCP as a critical failure — frame
+The audit should **not** score the absence of UCP as a critical failure - frame
 it as an opportunity, especially for merchants already on Google Merchant
 Center. (UCP itself is live; what's "early" is broad merchant adoption.)
 
@@ -114,9 +114,9 @@ Center. (UCP itself is live; what's "early" is broad merchant adoption.)
 
 | Existing surface | Relationship to UCP |
 |---|---|
-| Google Merchant Center feed | Required upstream — UCP capabilities reference Merchant Center products by ID |
-| Google Business Profile | Independent — UCP is product / order; GBP is store / location |
-| Product schema (`hasMerchantReturnPolicy`, `shippingDetails`) | Complementary — UCP exposes the same data at the API layer; schema exposes it at the page layer |
+| Google Merchant Center feed | Required upstream - UCP capabilities reference Merchant Center products by ID |
+| Google Business Profile | Independent - UCP is product / order; GBP is store / location |
+| Product schema (`hasMerchantReturnPolicy`, `shippingDetails`) | Complementary - UCP exposes the same data at the API layer; schema exposes it at the page layer |
 | AP2 (Agent Payments Protocol) | Pair. UCP handles discovery + checkout structure; AP2 handles cryptographic proof of user consent. Treat FIDO governance, v0.2, and Mastercard Verifiable Intent details as secondary-source context, not canonical audit guidance until primary sources verify them. |
 
 A merchant that already has clean Merchant Center feeds, complete Product
@@ -126,9 +126,9 @@ schema, and a checkout API can declare a UCP profile in a sprint.
 
 - **Tier 1 (e-commerce sites already on Merchant Center):** recommend
   declaring a UCP profile as a forward-looking opportunity.
-- **Tier 2 (DTC sites not on Merchant Center):** do not recommend UCP yet —
+- **Tier 2 (DTC sites not on Merchant Center):** do not recommend UCP yet -
   Merchant Center is the prerequisite to most flows.
-- **Tier 3 (informational / B2B sites):** ignore UCP — but **do not** blanket-
+- **Tier 3 (informational / B2B sites):** ignore UCP - but **do not** blanket-
   exclude hospitality/restaurant sites: UCP is expanding to **Lodging and Food**
   verticals (hotel booking in AI Mode, food delivery via Google Maps).
 
@@ -142,7 +142,7 @@ schema, and a checkout API can declare a UCP profile in a sprint.
 - **GML 2026 (2026-05-20):** BNPL (Affirm, Klarna) in Google Pay; **Direct
   Offers** + Shopping ads on YouTube enabling instant purchase for UCP-integrated
   brands; AI performance insights + Ask Advisor in Merchant Center.
-- **Landscape:** UCP is one of three agentic-checkout protocols — alongside
+- **Landscape:** UCP is one of three agentic-checkout protocols - alongside
   **OpenAI's Agentic Commerce Protocol (ACP)** (its consumer Instant Checkout was
   pulled early March 2026) and **Microsoft Copilot** checkout via Shopify
   (2026-01-08). Keep ACP/Copilot as *secondary*-sourced context.

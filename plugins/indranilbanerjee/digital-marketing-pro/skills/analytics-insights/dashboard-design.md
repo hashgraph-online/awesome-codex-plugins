@@ -111,7 +111,7 @@ Enable marketing managers to identify issues, spot opportunities, and make weekl
 | Metric | Visualization | Alert Threshold |
 |--------|--------------|-----------------|
 | Email send volume (weekly) | Bar chart | N/A |
-| Open rate by campaign type | Grouped bar chart | Drop below 15% |
+| Click rate by campaign type (opens only as a directional series: Apple Mail Privacy Protection inflates them) | Grouped bar chart | Drop below the brand's own 30-day baseline |
 | Click rate by campaign type | Grouped bar chart | Drop below 2% |
 | Unsubscribe rate | Line chart | Spike above 0.5% per campaign |
 | List growth rate (net) | Line chart | Negative growth for 2+ weeks |

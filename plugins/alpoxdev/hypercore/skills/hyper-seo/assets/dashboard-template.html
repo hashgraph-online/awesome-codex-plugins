@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO/AEO/GEO Audit Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fbfbfd;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --critical: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --good: #22c55e;
+      --accent: #7c3aed;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: linear-gradient(180deg, #fdfdfd 0%, #f7f8fc 100%);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    h1, h2 { margin: 0 0 12px; font-weight: 650; }
+    p { margin: 0; color: var(--muted); }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .status.running { background: #fef3c7; color: #92400e; }
+    .status.complete { background: #d1fae5; color: #065f46; }
+    .status.idle { background: #e5e7eb; color: #374151; }
+
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
+    .metric { display: grid; gap: 4px; }
+    .metric strong { font-size: 28px; line-height: 1; }
+    .metric[hidden] { display: none; }
+
+    .grade {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .grade.A { color: var(--good); }
+    .grade.B { color: #84cc16; }
+    .grade.C { color: var(--warning); }
+    .grade.D { color: #f97316; }
+    .grade.F { color: var(--critical); }
+
+    .category-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+    .cat-card {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 6px;
+    }
+    .cat-card .cat-name { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cat-card .cat-score { font-size: 24px; font-weight: 700; }
+    .cat-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .cat-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Narrow viewports: a wide data table scrolls inside its own panel instead of
+       widening the page. Every column and row stays in the DOM and on screen. */
+    #measurement-wrap, #platform-wrap, #ai-experiments-wrap, #history-wrap,
+    #findings-wrap, #quickwins-wrap, #actions-wrap { overflow-x: auto; }
+
+    .sev { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .sev.critical { background: #fef2f2; color: var(--critical); }
+    .sev.warning { background: #fffbeb; color: #b45309; }
+    .sev.info { background: #eff6ff; color: var(--info); }
+    .sev.unknown { background: #e5e7eb; color: var(--muted); }
+
+    .empty {
+      padding: 16px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      color: var(--muted);
+      background: #fcfcff;
+    }
+
+    .two-col { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1>SEO/AEO/GEO Audit Dashboard</h1>
+        <p id="subtitle">results.json을 불러오는 중...</p>
+      </div>
+      <div class="status idle" id="status-pill">대기 중</div>
+    </section>
+
+    <section class="panel" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <p style="margin-bottom:4px">Overall</p>
+        <div class="grade" id="overall-grade">-</div>
+      </div>
+      <div class="grid" style="flex:1">
+        <div class="metric"><p>Critical</p><strong id="cnt-critical" style="color:var(--critical)">0</strong></div>
+        <div class="metric"><p>Warning</p><strong id="cnt-warning" style="color:var(--warning)">0</strong></div>
+        <div class="metric"><p>Info</p><strong id="cnt-info" style="color:var(--info)">0</strong></div>
+        <div class="metric" id="cnt-other-wrap" hidden><p>Other</p><strong id="cnt-other">0</strong></div>
+        <div class="metric"><p>Total Findings</p><strong id="cnt-total">0</strong></div>
+        <div class="metric"><p>Quick Wins</p><strong id="cnt-quickwins" style="color:var(--good)">0</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Category Scores</h2>
+      <div class="category-grid" id="category-grid">
+        <div class="empty">아직 카테고리 데이터가 없습니다.</div>
+      </div>
+    </section>
+
+    <section class="two-col">
+      <div class="panel">
+        <h2>Score Radar</h2>
+        <canvas id="radar-chart" height="220"></canvas>
+      </div>
+      <div class="panel">
+        <h2>Severity Distribution</h2>
+        <canvas id="severity-chart" height="220"></canvas>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Measurement Methods</h2>
+      <div id="measurement-wrap" class="empty">측정 방법이 아직 기록되지 않았습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Platform Policy</h2>
+      <div id="platform-wrap" class="empty">플랫폼 정책이 아직 기록되지 않았습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>AI Search Experiments</h2>
+      <div id="ai-experiments-wrap" class="empty">Query fan-out 또는 citation probe가 아직 기록되지 않았습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Optimization History</h2>
+      <div id="history-wrap" class="empty">최적화 이력이 아직 기록되지 않았습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Findings</h2>
+      <div id="findings-wrap" class="empty">아직 기록된 발견사항이 없습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Quick Wins</h2>
+      <div id="quickwins-wrap" class="empty">아직 기록된 Quick Win이 없습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Prioritized Actions</h2>
+      <div id="actions-wrap" class="empty">아직 기록된 액션이 없습니다.</div>
+    </section>
+  </div>
+
+  <script>
+    let radarChart, sevChart;
+
+    const SEVERITIES = ["critical", "warning", "info"];
+    const STATUSES = ["running", "complete", "idle"];
+    const GRADES = ["A", "B", "C", "D", "F"];
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function sevClass(severity) {
+      return SEVERITIES.includes(severity) ? severity : "unknown";
+    }
+
+    function statusClass(status) {
+      return STATUSES.includes(status) ? status : "idle";
+    }
+
+    function gradeClass(grade) {
+      return GRADES.includes(grade) ? grade : "";
+    }
+
+    function severityCounts(findings) {
+      const counts = { critical: 0, warning: 0, info: 0, other: 0 };
+      (findings || []).forEach(f => {
+        const severity = f && f.severity;
+        if (SEVERITIES.includes(severity)) counts[severity] += 1;
+        else counts.other += 1;
+      });
+      return counts;
+    }
+
+    function injectScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src; s.onload = resolve;
+        s.onerror = () => reject(new Error(`스크립트를 불러오지 못했습니다: ${src}`));
+        document.head.appendChild(s);
+      });
+    }
+
+    function barColor(score) {
+      if (score >= 80) return "var(--good)";
+      if (score >= 60) return "#84cc16";
+      if (score >= 40) return "var(--warning)";
+      return "var(--critical)";
+    }
+
+    function renderCategories(categories) {
+      const wrap = document.getElementById("category-grid");
+      if (!categories || !categories.length) { wrap.innerHTML = '<div class="empty">아직 카테고리 데이터가 없습니다.</div>'; return; }
+      const rows = categories.map(c => {
+        const measured = c.status !== "unknown" && c.status !== "not-applicable" && Number.isFinite(c.score);
+        const display = measured ? String(c.score) : String(c.status || "unknown");
+        const unit = measured ? "/100" : "";
+        const width = measured ? c.score : 0;
+        const color = measured ? barColor(c.score) : "var(--muted)";
+        return `
+        <div class="cat-card">
+          <span class="cat-name">${escapeHtml(c.name)}</span>
+          <span class="cat-score">${escapeHtml(display)}<small>${escapeHtml(unit)}</small></span>
+          <div class="cat-bar"><div class="cat-bar-fill" style="width:${escapeHtml(width)}%;background:${escapeHtml(color)}"></div></div>
+        </div>
+      `}).join("");
+      wrap.innerHTML = rows;
+    }
+
+    function renderRadar(categories) {
+      const ctx = document.getElementById("radar-chart");
+      if (radarChart) radarChart.destroy();
+      const measured = (categories || []).filter(c =>
+        c.status !== "unknown" &&
+        c.status !== "not-applicable" &&
+        Number.isFinite(c.score)
+      );
+      if (measured.length < 3) return;
+      if (typeof Chart === "undefined") return;
+      radarChart = new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: measured.map(c => c.name),
+          datasets: [{
+            label: "Score",
+            data: measured.map(c => c.score),
+            borderColor: "var(--accent)",
+            backgroundColor: "rgba(124, 58, 237, 0.15)",
+            pointBackgroundColor: "var(--accent)",
+            borderWidth: 2
+          }]
+        },
+        options: { responsive: true, scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } } }
+      });
+    }
+
+    function renderSeverity(findings) {
+      const ctx = document.getElementById("severity-chart");
+      if (sevChart) sevChart.destroy();
+      if (typeof Chart === "undefined") return;
+      const counts = severityCounts(findings);
+      const labels = ["Critical", "Warning", "Info"];
+      const data = [counts.critical, counts.warning, counts.info];
+      const colors = ["#ef4444", "#f59e0b", "#3b82f6"];
+      if (counts.other) { labels.push("Other"); data.push(counts.other); colors.push("#9ca3af"); }
+      sevChart = new Chart(ctx, {
+        type: "doughnut",
+        data: { labels, datasets: [{ data, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+      });
+    }
+
+
+    function renderMeasurement(methods) {
+      const wrap = document.getElementById("measurement-wrap");
+      if (!methods || !Object.keys(methods).length) { wrap.className = "empty"; wrap.textContent = "측정 방법이 아직 기록되지 않았습니다."; return; }
+      wrap.className = "";
+      const rows = Object.entries(methods).map(([name, m]) => `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(m.status || m.method || "")}</td><td>${escapeHtml(m.evidence_grade || "")}</td><td>${escapeHtml(m.confidence || m.confidence_impact || "")}</td><td>${escapeHtml(m.reason || m.tool || m.notes || "")}</td></tr>`).join("");
+      wrap.innerHTML = `<table><thead><tr><th>Method</th><th>Status/Method</th><th>Evidence</th><th>Confidence</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+
+    function renderPlatform(policy) {
+      const wrap = document.getElementById("platform-wrap");
+      if (!policy || !Object.keys(policy).length) { wrap.className = "empty"; wrap.textContent = "플랫폼 정책이 아직 기록되지 않았습니다."; return; }
+      wrap.className = "";
+      const rows = Object.entries(policy).map(([name, p]) => `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(p.status || "")}</td><td>${escapeHtml(p.purpose || "")}</td><td>${escapeHtml(p.evidence_grade || "")}</td><td>${escapeHtml(p.confidence || "")}</td></tr>`).join("");
+      wrap.innerHTML = `<table><thead><tr><th>Platform/Bot</th><th>Status</th><th>Purpose</th><th>Evidence</th><th>Confidence</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderAiExperiments(queryFanout, citationProbe) {
+      const wrap = document.getElementById("ai-experiments-wrap");
+      if (!queryFanout && !citationProbe) { wrap.className = "empty"; wrap.textContent = "Query fan-out 또는 citation probe가 아직 기록되지 않았습니다."; return; }
+      wrap.className = "";
+      const q = queryFanout || {};
+      const c = citationProbe || {};
+      wrap.innerHTML = `<table><thead><tr><th>Surface</th><th>Status</th><th>Sample/Count</th><th>Confidence</th><th>Notes</th></tr></thead><tbody>
+        <tr><td>Query Fan-out</td><td>${escapeHtml(q.status || "")}</td><td>${escapeHtml((q.queries || []).length)} queries</td><td>${escapeHtml(q.confidence || "")}</td><td>${escapeHtml((q.missing_topics || []).join(", "))}</td></tr>
+        <tr><td>Citation Probe</td><td>${escapeHtml(c.status || "")}</td><td>${escapeHtml(c.sample_size || 0)} samples</td><td>${escapeHtml(c.confidence || "")}</td><td>${escapeHtml((c.engines || []).join(", "))}</td></tr>
+      </tbody></table>`;
+    }
+
+    function renderHistory(scoreHistory, bestRun) {
+      const wrap = document.getElementById("history-wrap");
+      if ((!scoreHistory || !scoreHistory.length) && !bestRun) { wrap.className = "empty"; wrap.textContent = "최적화 이력이 아직 기록되지 않았습니다."; return; }
+      wrap.className = "";
+      const best = bestRun ? `<p><strong>Best run:</strong> iteration ${escapeHtml(bestRun.iteration ?? "")}, score ${escapeHtml(bestRun.score ?? "")}, ${escapeHtml(bestRun.reason || "")}</p>` : "";
+      const rows = (scoreHistory || []).map(h => `<tr><td>${escapeHtml(h.iteration)}</td><td>${escapeHtml(h.score)}</td><td>${escapeHtml(h.grade || "")}</td><td>${escapeHtml(h.decision || "")}</td><td>${escapeHtml(h.evidence || "")}</td></tr>`).join("");
+      wrap.innerHTML = `${best}<table><thead><tr><th>Iteration</th><th>Score</th><th>Grade</th><th>Decision</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderFindings(findings) {
+      const wrap = document.getElementById("findings-wrap");
+      if (!findings || !findings.length) { wrap.className = "empty"; wrap.textContent = "아직 기록된 발견사항이 없습니다."; return; }
+      wrap.className = "";
+      const rows = findings.map((f, i) => `<tr><td>${escapeHtml(f.id || i+1)}</td><td><span class="sev ${sevClass(f.severity)}">${escapeHtml(f.severity)}</span></td><td>${escapeHtml(f.category || "")}</td><td>${escapeHtml(f.finding || "")}</td><td>${escapeHtml(f.location || "")}</td><td>${escapeHtml(f.evidence_grade || "unlabeled")}</td><td>${escapeHtml(f.confidence || "unknown")}</td><td>${escapeHtml(f.measurement_method || "")}</td><td>${escapeHtml(f.source_tier || "")}</td><td>${escapeHtml(f.recommendation || "")}</td></tr>`).join("");
+      wrap.innerHTML = `<table><thead><tr><th>#</th><th>Severity</th><th>Category</th><th>Finding</th><th>Location</th><th>Evidence</th><th>Confidence</th><th>Method</th><th>Source Tier</th><th>Recommendation</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderQuickWins(items) {
+      const wrap = document.getElementById("quickwins-wrap");
+      if (!items || !items.length) { wrap.className = "empty"; wrap.textContent = "아직 기록된 Quick Win이 없습니다."; return; }
+      wrap.className = "";
+      const rows = items.map((q, i) => `<tr><td>${i+1}</td><td>${escapeHtml(q.action)}</td><td>${escapeHtml(q.impact)}</td><td>${escapeHtml(q.effort)}</td></tr>`).join("");
+      wrap.innerHTML = `<table><thead><tr><th>#</th><th>Action</th><th>Impact</th><th>Effort</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderActions(items) {
+      const wrap = document.getElementById("actions-wrap");
+      if (!items || !items.length) { wrap.className = "empty"; wrap.textContent = "아직 기록된 액션이 없습니다."; return; }
+      wrap.className = "";
+      const rows = items.map(a => `<tr><td>${escapeHtml(a.priority)}</td><td>${escapeHtml(a.category)}</td><td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.impact)}</td><td>${escapeHtml(a.effort)}</td></tr>`).join("");
+      wrap.innerHTML = `<table><thead><tr><th>Priority</th><th>Category</th><th>Action</th><th>Impact</th><th>Effort</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function applyData(data) {
+      if (!data) throw new Error("results 데이터가 없습니다");
+
+      document.getElementById("subtitle").textContent = `${data.project_name} | ${data.scope} | ${data.date}`;
+
+      const pill = document.getElementById("status-pill");
+      pill.className = `status ${statusClass(data.status)}`;
+      pill.textContent = data.status === "running" ? "분석 진행 중..." : data.status === "complete" ? "분석 완료" : "대기 중";
+
+      const gradeEl = document.getElementById("overall-grade");
+      gradeEl.textContent = data.overall_grade || "-";
+      gradeEl.className = `grade ${gradeClass(data.overall_grade)}`;
+
+      const findings = data.findings || [];
+      const sev = severityCounts(findings);
+      document.getElementById("cnt-critical").textContent = sev.critical;
+      document.getElementById("cnt-warning").textContent = sev.warning;
+      document.getElementById("cnt-info").textContent = sev.info;
+      document.getElementById("cnt-other").textContent = sev.other;
+      document.getElementById("cnt-other-wrap").hidden = sev.other === 0;
+      document.getElementById("cnt-total").textContent = findings.length;
+      document.getElementById("cnt-quickwins").textContent = (data.quick_wins || []).length;
+
+      renderCategories(data.categories);
+      renderRadar(data.categories);
+      renderSeverity(findings);
+      renderMeasurement(data.measurement_methods);
+      renderPlatform(data.platform_policy);
+      renderAiExperiments(data.query_fanout, data.citation_probe);
+      renderHistory(data.score_history, data.best_run);
+      renderFindings(findings);
+      renderQuickWins(data.quick_wins);
+      renderActions(data.actions);
+    }
+
+    async function refresh() {
+      if (window.location.protocol === "file:") {
+        delete window.__SEO_RESULTS__;
+        await injectScript(`./results.js?ts=${Date.now()}`);
+        applyData(window.__SEO_RESULTS__);
+        return;
+      }
+      const res = await fetch("./results.json", { cache: "no-store" });
+      applyData(await res.json());
+    }
+
+    refresh().catch(e => { document.getElementById("subtitle").textContent = `결과를 불러오지 못했습니다: ${e.message}`; });
+    setInterval(() => refresh().catch(() => {}), 10000);
+  </script>
+</body>
+</html>

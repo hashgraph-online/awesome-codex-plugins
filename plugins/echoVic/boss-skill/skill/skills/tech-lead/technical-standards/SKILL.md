@@ -1,5 +1,4 @@
 ---
-
 name: tech-lead/technical-standards
 description: 技术规范和最佳实践，确保代码质量和一致性
 version: 1.0.0
@@ -8,13 +7,12 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要定义技术规范时
-- 需要统一代码风格时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要定义技术规范时
+  - 需要统一代码风格时
+metadata:
   internal: true
-
 ---
 
 # 技术规范与最佳实践

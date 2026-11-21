@@ -1,0 +1,34 @@
+{
+ "widget": "onboarding-stepper",
+ "title": "Onboarding stepper",
+ "summary": "Four-step bot setup: step dots, Back/Next kept local, choices sent as absolute set:<key>:<value>, one finish request.",
+ "caption": "Bot setup · step 1 of 4 · Language",
+ "send": {"allow_queries": true},
+ "fallback": {"inline_keyboard": [
+  [{"text": "English", "callback_data": "ob:l:en"}, {"text": "Русский", "callback_data": "ob:l:ru"}, {"text": "Українська", "callback_data": "ob:l:uk"}],
+  [{"text": "Skip setup", "callback_data": "ob:skip"}]
+ ]},
+ "states": {
+  "default": {"chatData": {
+   "p": 0,
+   "t": ["Language", "Notifications", "Timezone", "Ready to go"],
+   "b": ["Pick the language the bot speaks.", "What should the bot notify you about?", "Used for reminders and the daily digest.", "Check your choices, then finish."],
+   "o": [[["en", "English"], ["ru", "Русский"], ["uk", "Українська"]], [["all", "Everything"], ["imp", "Important only"], ["off", "Muted"]], [["+1", "UTC+1"], ["+2", "UTC+2"], ["+3", "UTC+3"]]],
+   "v": ["", "", ""], "d": 0, "r": 0}},
+  "mid": {"chatData": {
+   "p": 2,
+   "t": ["Language", "Notifications", "Timezone", "Ready to go"],
+   "b": ["Pick the language the bot speaks.", "What should the bot notify you about?", "Used for reminders and the daily digest.", "Check your choices, then finish."],
+   "o": [[["en", "English"], ["ru", "Русский"], ["uk", "Українська"]], [["all", "Everything"], ["imp", "Important only"], ["off", "Muted"]], [["+1", "UTC+1"], ["+2", "UTC+2"], ["+3", "UTC+3"]]],
+   "v": ["en", "imp", ""], "d": 0, "r": 0}},
+  "completed": {"chatData": {
+   "p": 3,
+   "t": ["Language", "Notifications", "Timezone", "You're all set"],
+   "b": ["", "", "", ""],
+   "o": [[["en", "English"], ["ru", "Русский"], ["uk", "Українська"]], [["all", "Everything"], ["imp", "Important only"], ["off", "Muted"]], [["+1", "UTC+1"], ["+2", "UTC+2"], ["+3", "UTC+3"]]],
+   "v": ["en", "imp", "+2"], "d": 1, "dn": "Setup complete. Alerts follow your timezone.", "r": 0}},
+  "empty": {"chatData": null}
+ },
+ "queries": ["set:l:ru", "set:n:off", "set:z:+3", "finish", "set:z:+9"],
+ "fresh": []
+}

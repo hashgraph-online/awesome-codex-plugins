@@ -1,0 +1,191 @@
+{
+  "id": "show-open-title",
+  "name": "Show open title",
+  "use": "Opening title for a podcast or series: show name on the beat, guest plates typed on a panel, then away.",
+  "formats": [
+    "16:9",
+    "9:16"
+  ],
+  "duration_s": 10,
+  "fonts": [
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    },
+    {
+      "family": "Archivo Black",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo+Black"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "presets": [
+    {
+      "id": "show-open-title.standard-10s",
+      "label": "Standard 10 s",
+      "look": "Name word-by-word on beats, panel with typed guest plates, slide away.",
+      "params": {
+        "bpm": 120,
+        "beat_f_30fps": 15,
+        "name_font": "Anton 400 caps",
+        "name_size": "13% H",
+        "word_cut": "hard set on beat, optional scale 1.03->1 over 4 f",
+        "lock_s": 0.3,
+        "lock_ease": "cubic-bezier(0.2, 0, 0, 1)",
+        "panel_in": {
+          "t": 3.0,
+          "s": 0.45,
+          "ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+          "w": "34% W"
+        },
+        "type_chars_per_s": 30,
+        "caret_blink_s": 0.5,
+        "plate_hold_s": 4.2,
+        "panel_out": {
+          "t": 8.7,
+          "s": 0.3,
+          "ease": "cubic-bezier(0.3, 0, 0.8, 0.15)"
+        },
+        "colors": {
+          "bg": "#0B0B0C",
+          "name": "#F5F1E8",
+          "panel": "#16161A",
+          "panel_alpha": 0.92,
+          "accent": "#FF5A1F"
+        }
+      },
+      "sources": [
+        31,
+        17,
+        4,
+        14,
+        10,
+        20
+      ]
+    },
+    {
+      "id": "show-open-title.cold-5s",
+      "label": "Cold 5 s",
+      "look": "Clip version: name in 4 beats, one guest plate.",
+      "params": {
+        "bpm": 128,
+        "beat_f_30fps": 14,
+        "words_max": 4,
+        "plate_hold_s": 3.0,
+        "type_chars_per_s": 30,
+        "total_s": 5
+      },
+      "sources": [
+        20,
+        13,
+        35
+      ]
+    },
+    {
+      "id": "show-open-title.vertical",
+      "label": "Vertical",
+      "look": "9:16 cut-down: name stacked one word per line, plate below.",
+      "params": {
+        "name_size": "11% W",
+        "stack": "one word per line",
+        "plate_band": "52-64% H",
+        "right_clear_px": 230,
+        "total_s_max": 7
+      },
+      "sources": [
+        3,
+        34,
+        20
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "EBU R 095 — Safe areas for 16:9 television production",
+      "url": "https://tech.ebu.ch/publications/r095"
+    },
+    {
+      "n": 3,
+      "name": "HopperHQ — Instagram Reel size: dimensions, aspect ratio and safe zones",
+      "url": "https://www.hopperhq.com/blog/instagram-reel-size/"
+    },
+    {
+      "n": 4,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 10,
+      "name": "Material Design 3 motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 11,
+      "name": "GSAP docs — SteppedEase",
+      "url": "https://gsap.com/docs/v3/Eases/SteppedEase"
+    },
+    {
+      "n": 13,
+      "name": "Chris Salters — Sports lower thirds (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/sports-lower-thirds"
+    },
+    {
+      "n": 14,
+      "name": "Jason Boone — How to make lower third titles that don't suck (Frame.io Insider)",
+      "url": "https://blog.frame.io/2017/12/04/create-lower-thirds-titles-that-dont-suck/"
+    },
+    {
+      "n": 17,
+      "name": "Joey Korenman — Kinetic typography in After Effects, part 1 (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/kinetic-typography-after-effects-part-1"
+    },
+    {
+      "n": 20,
+      "name": "Hadiyah Woods — How long should a YouTube intro be? (Marmoset)",
+      "url": "https://www.marmosetmusic.com/journal/how-long-should-a-youtube-intro-be/"
+    },
+    {
+      "n": 29,
+      "name": "Art of the Title — Stranger Things (Imaginary Forces; Michelle Dougherty)",
+      "url": "https://www.artofthetitle.com/title/stranger-things/"
+    },
+    {
+      "n": 31,
+      "name": "Art of the Title — Pablo Ferro: a career retrospective, part 1",
+      "url": "http://www.artofthetitle.com/feature/pablo-ferro-a-career-retrospective-part-1/"
+    },
+    {
+      "n": 34,
+      "name": "@YouTubeInsider (YouTube Creator Insider)",
+      "url": "https://x.com/YouTubeInsider/status/1560995909089067010"
+    },
+    {
+      "n": 35,
+      "name": "@sallyshin (Sally Shin)",
+      "url": "https://x.com/sallyshin/status/2046419371396833446"
+    }
+  ]
+}

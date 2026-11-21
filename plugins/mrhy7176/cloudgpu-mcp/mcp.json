@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "cloudgpu": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "cloudgpu-mcp"],
+      "env": {
+        "CLOUDGPU_API_KEY": "${CLOUDGPU_API_KEY}"
+      }
+    }
+  }
+}

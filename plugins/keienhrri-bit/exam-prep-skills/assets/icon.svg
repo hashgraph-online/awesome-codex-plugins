@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="exam-prep-skills">
+  <rect width="64" height="64" rx="14" fill="#1F4E79"/>
+  <path d="M12 18c6-2 13-2 20 2v28c-7-4-14-4-20-2z" fill="#FFFFFF"/>
+  <path d="M52 18c-6-2-13-2-20 2v28c7-4 14-4 20-2z" fill="#DCE8F5"/>
+  <path d="M37 33l5 5 8-11" fill="none" stroke="#2E9E5B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

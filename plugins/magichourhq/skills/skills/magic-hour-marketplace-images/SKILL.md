@@ -11,7 +11,7 @@ metadata:
 
 Deliver individual listing assets that answer a buyer's questions while preserving the actual product. A beautiful but different product, invented feature or flattened sheet of six images fails the job.
 
-Use the connected Magic Hour MCP at `https://mcp.magichour.ai/` or the project's existing API integration. For setup, use the [connection guide](https://github.com/magichourhq/skills/blob/main/docs/quickstart.md#connect-once). Verify `account_retrieve`, inspect current schemas and check the intended generation cost against existing authorization.
+Use the connected Magic Hour MCP at `https://mcp.magichour.ai/` or the project's existing API integration. For setup, use the [connection guide](https://github.com/magichourhq/skills/blob/main/docs/quickstart.md#connect-once). Verify `get_account_info`, inspect current schemas and check the intended generation cost against existing authorization.
 
 ## Plan from facts and destination
 
@@ -23,7 +23,7 @@ Choose roles from the buyer's unanswered questions. A useful default is a clean 
 
 ## Preserve the product; vary the explanation
 
-Use `ai_image_editor_create_image` with the original authorized product photo. Preserve exact geometry, material, controls, label, color and pack contents. Reuse the accepted source for each scene instead of feeding every derivative into the next edit. Use `ai_image_generator_create_image` only for an original fictional product or a background that does not replace the real product.
+Use `edit_image` with the original authorized product photo. Preserve exact geometry, material, controls, label, color and pack contents. Reuse the accepted source for each scene instead of feeding every derivative into the next edit. Use `generate_image` only for an original fictional product or a background that does not replace the real product.
 
 Start with one demanding image at a resolution that reveals critical product details. Inspect the downloaded image before producing the rest. A small thumbnail is not proof of label accuracy. Use a neutral background and full silhouette for a clean main image; put explanatory copy in secondary layouts only when the destination permits it.
 

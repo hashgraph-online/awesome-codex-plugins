@@ -2,7 +2,7 @@
   "mcpServers": {
     "zcode_bridge": {
       "command": "node",
-      "args": ["./dist/bridge.mjs"],
+      "args": ["./launch-node24.mjs"],
       "cwd": ".",
       "env": {
         "ZCODE_BRIDGE_PLUGIN_MODE": "1"

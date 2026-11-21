@@ -149,6 +149,7 @@ def validate_files(bam_files=None, bigwig_files=None, bed_files=None):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Validate files for deepTools analysis",
         formatter_class=argparse.RawDescriptionHelpFormatter,

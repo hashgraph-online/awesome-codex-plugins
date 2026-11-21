@@ -47,6 +47,8 @@ import urllib.request
 from dataclasses import dataclass, asdict, field
 from typing import Iterable
 
+FILTER_HELP = "restrict to one section"
+
 BASE = "https://huggingscience.co"
 
 KNOWN_TOPICS = [
@@ -72,6 +74,7 @@ KNOWN_TOPICS = [
 
 @dataclass
 class Entry:
+    """Entry."""
     title: str
     section: str  # "datasets" | "models" | "blog posts" | "unknown"
     type: str = ""
@@ -82,6 +85,7 @@ class Entry:
     description: str = ""
 
     def matches_filter(self, kind: str | None, tag: str | None) -> bool:
+        """Handle matches filter."""
         if kind:
             section_aliases = {
                 "datasets": {"datasets", "dataset"},
@@ -99,6 +103,7 @@ class Entry:
 
 
 def fetch(url: str) -> str:
+    """Fetch."""
     req = urllib.request.Request(url, headers={"User-Agent": "hugging-science-skill/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -121,6 +126,7 @@ def parse_markdown(md: str) -> list[Entry]:
     desc_lines: list[str] = []
 
     def finalize(e: Entry | None, desc: list[str]) -> None:
+        """Handle finalize."""
         if e is None:
             return
         e.description = " ".join(line.strip() for line in desc if line.strip()).strip()
@@ -187,6 +193,7 @@ UNTRUSTED_BANNER = (
 
 
 def _host_is_expected(host: str) -> bool:
+    """Handle host is expected."""
     # Exact host or a real subdomain -- "evil-huggingface.co" must not pass by
     # suffix match alone.
     return any(
@@ -209,6 +216,7 @@ def _defang(text: str) -> str:
 
 
 def render_entry(e: Entry) -> str:
+    """Render entry."""
     lines = [f"### {_defang(e.title)}"]
     if e.type:
         lines.append(f"- Type: {_defang(e.type)}")
@@ -229,6 +237,7 @@ def render_entry(e: Entry) -> str:
 
 
 def render_entries(entries: Iterable[Entry], group_by_section: bool = True) -> str:
+    """Render entries."""
     entries = list(entries)
     if not entries:
         return "(no entries matched)"
@@ -248,6 +257,7 @@ def render_entries(entries: Iterable[Entry], group_by_section: bool = True) -> s
 
 
 def cmd_topics(_: argparse.Namespace) -> None:
+    """Run the topics subcommand."""
     print("Known Hugging Science topic slugs (use as `topic <slug>`):\n")
     for t in KNOWN_TOPICS:
         print(f"  {t}")
@@ -258,6 +268,7 @@ def cmd_topics(_: argparse.Namespace) -> None:
 
 
 def cmd_topic(args: argparse.Namespace) -> None:
+    """Run the topic subcommand."""
     slug = args.slug.strip().lower().replace("_", "-").replace(" ", "-")
     md = fetch(f"{BASE}/topics/{slug}.md")
     entries = parse_markdown(md)
@@ -271,6 +282,7 @@ def cmd_topic(args: argparse.Namespace) -> None:
 
 
 def cmd_all(args: argparse.Namespace) -> None:
+    """Run the all subcommand."""
     md = fetch(f"{BASE}/llms-full.txt")
     if args.raw:
         print(md)
@@ -286,6 +298,7 @@ def cmd_all(args: argparse.Namespace) -> None:
 
 
 def cmd_search(args: argparse.Namespace) -> None:
+    """Run the search subcommand."""
     md = fetch(f"{BASE}/llms-full.txt")
     entries = parse_markdown(md)
     needle = args.query.lower()
@@ -307,6 +320,7 @@ def cmd_search(args: argparse.Namespace) -> None:
 
 
 def cmd_raw(args: argparse.Namespace) -> None:
+    """Run the raw subcommand."""
     name = args.name.lower()
     if name in ("llms", "index"):
         url = f"{BASE}/llms.txt"
@@ -324,6 +338,7 @@ def cmd_raw(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -332,21 +347,21 @@ def main() -> None:
 
     sp = sub.add_parser("topic", help="fetch a single topic file")
     sp.add_argument("slug", help="topic slug, e.g. biology, materials-science")
-    sp.add_argument("--filter", choices=["datasets", "models", "blogs"], help="restrict to one section")
+    sp.add_argument("--filter", choices=["datasets", "models", "blogs"], help=FILTER_HELP)
     sp.add_argument("--tag", help="restrict to entries with a tag substring (case-insensitive)")
     sp.add_argument("--format", choices=["markdown", "json"], default="markdown")
     sp.set_defaults(func=cmd_topic)
 
     sp = sub.add_parser("all", help="fetch the full llms-full.txt")
     sp.add_argument("--raw", action="store_true", help="print the raw file untouched")
-    sp.add_argument("--filter", choices=["datasets", "models", "blogs"], help="restrict to one section")
+    sp.add_argument("--filter", choices=["datasets", "models", "blogs"], help=FILTER_HELP)
     sp.add_argument("--tag", help="restrict to entries with a tag substring")
     sp.add_argument("--format", choices=["markdown", "json"], default="markdown")
     sp.set_defaults(func=cmd_all)
 
     sp = sub.add_parser("search", help="substring search across the full catalog")
     sp.add_argument("query")
-    sp.add_argument("--filter", choices=["datasets", "models", "blogs"], help="restrict to one section")
+    sp.add_argument("--filter", choices=["datasets", "models", "blogs"], help=FILTER_HELP)
     sp.add_argument("--tag", help="restrict to entries with a tag substring")
     sp.add_argument("--format", choices=["markdown", "json"], default="markdown")
     sp.set_defaults(func=cmd_search)

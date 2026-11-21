@@ -64,6 +64,7 @@ def summarise_interval(evaluate, start: float, end: float, points: int = 4001) -
 
 
 def _regimen_spec(text: str) -> tuple[float, float]:
+    """Handle regimen spec."""
     if "@" not in text:
         raise argparse.ArgumentTypeError(f"regimen must look like 500@12 (dose@interval), got {text!r}")
     dose_text, interval_text = text.split("@", 1)
@@ -74,6 +75,7 @@ def _regimen_spec(text: str) -> tuple[float, float]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Simulate single- and multiple-dose regimens, deterministically or with IIV.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -114,8 +116,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def _validate_args(args: argparse.Namespace) -> None:
+    """Reject inconsistent parameter combinations before simulating anything."""
     if len(args.q) != len(args.v2):
         raise InputError(f"{len(args.q)} --q values but {len(args.v2)} --v2 values; they pair up")
     if args.route == "oral" and args.ka is None:
@@ -127,36 +129,217 @@ def run(argv: Sequence[str] | None = None) -> int:
     if not args.nonlinear and args.cl is None:
         raise InputError("--cl is required for a linear model")
 
+
+def _compare_regimens(args: argparse.Namespace, report: Report) -> int:
+    """Emit the closed-form steady-state comparison table for ``--compare``."""
+    regimens = [_regimen_spec(chunk.strip()) for chunk in args.compare.split(",")]
+    if args.nonlinear:
+        raise InputError("--compare currently supports linear models only")
+    disp = disposition(args.cl, args.v, args.q, args.v2)
+    rows = []
+    for dose, interval in regimens:
+        metrics = steady_state_metrics(disp, dose, interval, f=args.f)
+        rows.append(
+            {
+                "regimen": f"{dose:g} q{interval:g}h",
+                "daily_dose": dose * 24.0 / interval,
+                "auc_tau_ss": metrics["auc_tau_ss"],
+                "cavg_ss": metrics["cavg_ss"],
+                "cmax_ss_bolus": metrics["cmax_ss_bolus"],
+                "cmin_ss_bolus": metrics["cmin_ss_bolus"],
+                "ptf_pct": metrics["peak_trough_fluctuation_pct"],
+                "accumulation_ratio_auc": metrics["accumulation_ratio_auc"],
+            }
+        )
+    report.table("steady-state comparison", rows)
+    report.note(
+        "Cmax and Cmin here are the bolus-equivalent extremes. Average concentration depends only "
+        "on the daily dose and clearance, so regimens matched on daily dose differ in fluctuation, "
+        "not in Cavg."
+    )
+    return report.emit(args.format)
+
+
+def _nonlinear_profile(args: argparse.Namespace, regimen, times: np.ndarray, report: Report):
+    """Michaelis-Menten deterministic profile; returns (evaluate, concentrations)."""
+
+    def evaluate(grid: np.ndarray) -> np.ndarray:
+        """Concentration-time curve under Michaelis-Menten elimination."""
+        return simulate_michaelis_menten(
+            grid,
+            regimen,
+            vmax=args.vmax,
+            km=args.km,
+            v1=args.v,
+            q=args.q,
+            vp=args.v2,
+            ka=args.ka if args.route == "oral" else None,
+            f=args.f,
+        )
+
+    conc = evaluate(times)
+    report.note(
+        "Michaelis-Menten elimination: exposure is not proportional to dose and superposition does "
+        "not apply, so multiple-dose behaviour cannot be inferred from a single-dose profile."
+    )
+    cl_at_steady = args.vmax / (args.km + float(conc.max())) if conc.size else float("nan")
+    report.scalar("clearance_at_peak_concentration", cl_at_steady)
+    return evaluate, conc
+
+
+def _linear_profile(args: argparse.Namespace, regimen, times: np.ndarray, report: Report):
+    """Linear-disposition deterministic profile; returns (evaluate, concentrations)."""
+    disp = disposition(args.cl, args.v, args.q, args.v2)
+
+    def evaluate(grid: np.ndarray) -> np.ndarray:
+        """Concentration-time curve under linear disposition."""
+        return simulate_linear(grid, regimen, disp, ka=args.ka, f=args.f, tlag=args.tlag)
+
+    conc = evaluate(times)
+    report.scalar("terminal_half_life", disp.terminal_half_life)
+    report.scalar("vss", disp.vss)
+    report.scalar("mrt_iv", disp.mrt_iv)
+    for i, half in enumerate(disp.half_lives, start=1):
+        report.scalar(f"t_half_phase{i}", float(half))
+    return evaluate, conc
+
+
+def _ratio_or_nan(numerator: float, denominator: float, positive_only: bool = False) -> float:
+    """numerator / denominator, or NaN when the denominator is zero (or non-positive)."""
+    valid = denominator > 0 if positive_only else bool(denominator)
+    return numerator / denominator if valid else float("nan")
+
+
+def _interval_summary_table(evaluate, args: argparse.Namespace, interval: float, report: Report) -> None:
+    """First-vs-last dosing-interval summary with accumulation ratios."""
+    last = summarise_interval(evaluate, (args.n_doses - 1) * interval, args.n_doses * interval)
+    first = summarise_interval(evaluate, 0.0, interval)
+    report.table(
+        "dosing-interval summary",
+        [
+            {"interval": "first", **first},
+            {"interval": f"last (#{args.n_doses})", **last},
+            {
+                "interval": "accumulation (last/first)",
+                "auc_tau": _ratio_or_nan(last["auc_tau"], first["auc_tau"]),
+                "cmax": _ratio_or_nan(last["cmax"], first["cmax"]),
+                "cmin": _ratio_or_nan(last["cmin"], first["cmin"], positive_only=True),
+                "cavg": _ratio_or_nan(last["cavg"], first["cavg"]),
+            },
+        ],
+    )
+
+
+def _steady_state_section(args: argparse.Namespace, interval: float, report: Report) -> None:
+    """Closed-form steady-state table plus a warning if the simulation is too short."""
+    metrics = steady_state_metrics(disposition(args.cl, args.v, args.q, args.v2), args.dose, interval, f=args.f)
+    report.table("closed-form steady state", [{"metric": k, "value": v} for k, v in metrics.items()])
+    if args.n_doses > 1 and args.n_doses * interval < metrics["time_to_95pct_ss"]:
+        report.finding(
+            f"the simulation covers {args.n_doses * interval:g} time units but 95% of steady state "
+            f"is not reached until {metrics['time_to_95pct_ss']:.1f}; the last interval shown is not "
+            "steady state"
+        )
+
+
+def _percentiles(values: np.ndarray, label: str) -> dict:
+    """Percentile and geometric-mean summary row for one simulated metric."""
+    return {
+        "metric": label,
+        "p5": float(np.percentile(values, 5)),
+        "p25": float(np.percentile(values, 25)),
+        "median": float(np.percentile(values, 50)),
+        "p75": float(np.percentile(values, 75)),
+        "p95": float(np.percentile(values, 95)),
+        "geo_mean": float(np.exp(np.mean(np.log(np.maximum(values, 1e-12))))),
+    }
+
+
+def _lognormal_draws(rng, typical: float, omega: float, n: int) -> np.ndarray:
+    """``n`` log-normal draws around ``typical`` with CV ``omega`` (constant if omega <= 0)."""
+    sd = math.sqrt(math.log(1.0 + omega**2)) if omega > 0 else 0.0
+    return typical * np.exp(rng.normal(0.0, sd, n)) if sd else np.full(n, typical)
+
+
+def _simulate_population(
+    args: argparse.Namespace, regimen, interval: float, horizon: float, cl_draws: np.ndarray, v_draws: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per-subject trough, peak and AUC over the last (or only) interval."""
+    n = len(cl_draws)
+    start = (args.n_doses - 1) * interval if args.n_doses > 1 else 0.0
+    end = args.n_doses * interval if args.n_doses > 1 else horizon
+    window = np.linspace(start, end, 401)
+    troughs = np.empty(n)
+    peaks = np.empty(n)
+    aucs = np.empty(n)
+    for i in range(n):
+        disp_i = disposition(cl_draws[i], v_draws[i], args.q, args.v2)
+        profile = simulate_linear(window, regimen, disp_i, ka=args.ka, f=args.f, tlag=args.tlag)
+        troughs[i] = profile[-1] if args.n_doses > 1 else profile.min()
+        peaks[i] = profile.max()
+        aucs[i] = float(np.trapezoid(profile, window))
+    return troughs, peaks, aucs
+
+
+def _attainment_rows(args: argparse.Namespace, troughs: np.ndarray, peaks: np.ndarray, aucs: np.ndarray) -> list[dict]:
+    """Fraction of simulated subjects attaining each requested target."""
+    attainment = []
+    if args.target_trough is not None:
+        fraction = float(np.mean(troughs >= args.target_trough))
+        attainment.append({"target": f"trough >= {args.target_trough:g}", "fraction_attaining": fraction})
+    if args.target_peak_below is not None:
+        fraction = float(np.mean(peaks <= args.target_peak_below))
+        attainment.append({"target": f"peak <= {args.target_peak_below:g}", "fraction_attaining": fraction})
+    if args.target_auc is not None:
+        fraction = float(np.mean(aucs >= args.target_auc))
+        attainment.append({"target": f"AUC >= {args.target_auc:g}", "fraction_attaining": fraction})
+    if args.target_trough is not None and args.target_peak_below is not None:
+        both = float(np.mean((troughs >= args.target_trough) & (peaks <= args.target_peak_below)))
+        attainment.append({"target": "both trough and peak targets", "fraction_attaining": both})
+    return attainment
+
+
+def _monte_carlo_section(args: argparse.Namespace, regimen, interval: float, horizon: float, report: Report) -> None:
+    """Between-subject-variability Monte Carlo summary and target attainment."""
+    if args.nonlinear:
+        raise InputError("--simulate currently supports linear models only")
+    if args.omega_cl <= 0 and args.omega_v <= 0:
+        raise InputError("--simulate needs at least one of --omega-cl or --omega-v above zero")
+    rng = np.random.default_rng(args.seed)
+    n = args.simulate
+    cl_draws = _lognormal_draws(rng, args.cl, args.omega_cl, n)
+    v_draws = _lognormal_draws(rng, args.v, args.omega_v, n)
+    troughs, peaks, aucs = _simulate_population(args, regimen, interval, horizon, cl_draws, v_draws)
+
+    report.table(
+        f"simulated population (n = {n})",
+        [_percentiles(peaks, "peak"), _percentiles(troughs, "trough"), _percentiles(aucs, "auc_over_interval")],
+    )
+
+    attainment = _attainment_rows(args, troughs, peaks, aucs)
+    if attainment:
+        report.table("probability of target attainment", attainment)
+        for row in attainment:
+            if row["fraction_attaining"] < 0.9:
+                report.finding(
+                    f"{row['target']}: only {100 * row['fraction_attaining']:.1f}% of simulated "
+                    "subjects attain this target"
+                )
+    report.note(
+        "Between-subject variability only. Residual/assay variability and between-occasion "
+        "variability would widen these intervals further, so the attainment fractions here are "
+        "optimistic."
+    )
+
+
+def run(argv: Sequence[str] | None = None) -> int:
+    """Run the regimen simulation CLI and emit the report."""
+    args = build_parser().parse_args(argv)
+    _validate_args(args)
     report = Report()
 
-    # ---- regimen comparison
     if args.compare:
-        regimens = [_regimen_spec(chunk.strip()) for chunk in args.compare.split(",")]
-        if args.nonlinear:
-            raise InputError("--compare currently supports linear models only")
-        disp = disposition(args.cl, args.v, args.q, args.v2)
-        rows = []
-        for dose, interval in regimens:
-            metrics = steady_state_metrics(disp, dose, interval, f=args.f)
-            rows.append(
-                {
-                    "regimen": f"{dose:g} q{interval:g}h",
-                    "daily_dose": dose * 24.0 / interval,
-                    "auc_tau_ss": metrics["auc_tau_ss"],
-                    "cavg_ss": metrics["cavg_ss"],
-                    "cmax_ss_bolus": metrics["cmax_ss_bolus"],
-                    "cmin_ss_bolus": metrics["cmin_ss_bolus"],
-                    "ptf_pct": metrics["peak_trough_fluctuation_pct"],
-                    "accumulation_ratio_auc": metrics["accumulation_ratio_auc"],
-                }
-            )
-        report.table("steady-state comparison", rows)
-        report.note(
-            "Cmax and Cmin here are the bolus-equivalent extremes. Average concentration depends only "
-            "on the daily dose and clearance, so regimens matched on daily dose differ in fluctuation, "
-            "not in Cavg."
-        )
-        return report.emit(args.format)
+        return _compare_regimens(args, report)
 
     if args.dose is None or (args.n_doses > 1 and not args.interval):
         raise InputError("--dose is required, and a multiple-dose regimen needs --interval")
@@ -173,141 +356,21 @@ def run(argv: Sequence[str] | None = None) -> int:
     horizon = interval * args.n_doses if args.n_doses > 1 else max(interval, 1.0) * 10
     times = np.linspace(0.0, horizon, max(200 * max(args.n_doses, 1), 400) + 1)
 
-    # ---- deterministic profile
-    if args.nonlinear:
-        def evaluate(grid: np.ndarray) -> np.ndarray:
-            return simulate_michaelis_menten(
-                grid,
-                regimen,
-                vmax=args.vmax,
-                km=args.km,
-                v1=args.v,
-                q=args.q,
-                vp=args.v2,
-                ka=args.ka if args.route == "oral" else None,
-                f=args.f,
-            )
-
-        conc = evaluate(times)
-        report.note(
-            "Michaelis-Menten elimination: exposure is not proportional to dose and superposition does "
-            "not apply, so multiple-dose behaviour cannot be inferred from a single-dose profile."
-        )
-        cl_at_steady = args.vmax / (args.km + float(conc.max())) if conc.size else float("nan")
-        report.scalar("clearance_at_peak_concentration", cl_at_steady)
-    else:
-        disp = disposition(args.cl, args.v, args.q, args.v2)
-
-        def evaluate(grid: np.ndarray) -> np.ndarray:
-            return simulate_linear(grid, regimen, disp, ka=args.ka, f=args.f, tlag=args.tlag)
-
-        conc = evaluate(times)
-        report.scalar("terminal_half_life", disp.terminal_half_life)
-        report.scalar("vss", disp.vss)
-        report.scalar("mrt_iv", disp.mrt_iv)
-        for i, half in enumerate(disp.half_lives, start=1):
-            report.scalar(f"t_half_phase{i}", float(half))
+    profile_fn = _nonlinear_profile if args.nonlinear else _linear_profile
+    evaluate, conc = profile_fn(args, regimen, times, report)
 
     if args.n_doses > 1:
-        last = summarise_interval(evaluate, (args.n_doses - 1) * interval, args.n_doses * interval)
-        first = summarise_interval(evaluate, 0.0, interval)
-        report.table(
-            "dosing-interval summary",
-            [
-                {"interval": "first", **first},
-                {"interval": f"last (#{args.n_doses})", **last},
-                {
-                    "interval": "accumulation (last/first)",
-                    "auc_tau": last["auc_tau"] / first["auc_tau"] if first["auc_tau"] else float("nan"),
-                    "cmax": last["cmax"] / first["cmax"] if first["cmax"] else float("nan"),
-                    "cmin": last["cmin"] / first["cmin"] if first["cmin"] > 0 else float("nan"),
-                    "cavg": last["cavg"] / first["cavg"] if first["cavg"] else float("nan"),
-                },
-            ],
-        )
+        _interval_summary_table(evaluate, args, interval, report)
     else:
         report.scalar("cmax", float(conc.max()))
         report.scalar("tmax", float(times[int(np.argmax(conc))]))
         report.scalar("auc_over_horizon", float(np.trapezoid(conc, times)))
 
     if args.steady_state and not args.nonlinear:
-        metrics = steady_state_metrics(disposition(args.cl, args.v, args.q, args.v2), args.dose, interval, f=args.f)
-        report.table("closed-form steady state", [{"metric": k, "value": v} for k, v in metrics.items()])
-        if args.n_doses > 1 and args.n_doses * interval < metrics["time_to_95pct_ss"]:
-            report.finding(
-                f"the simulation covers {args.n_doses * interval:g} time units but 95% of steady state "
-                f"is not reached until {metrics['time_to_95pct_ss']:.1f}; the last interval shown is not "
-                "steady state"
-            )
+        _steady_state_section(args, interval, report)
 
-    # ---- Monte Carlo
     if args.simulate:
-        if args.nonlinear:
-            raise InputError("--simulate currently supports linear models only")
-        if args.omega_cl <= 0 and args.omega_v <= 0:
-            raise InputError("--simulate needs at least one of --omega-cl or --omega-v above zero")
-        rng = np.random.default_rng(args.seed)
-        n = args.simulate
-        sd_cl = math.sqrt(math.log(1.0 + args.omega_cl**2)) if args.omega_cl > 0 else 0.0
-        sd_v = math.sqrt(math.log(1.0 + args.omega_v**2)) if args.omega_v > 0 else 0.0
-        cl_draws = args.cl * np.exp(rng.normal(0.0, sd_cl, n)) if sd_cl else np.full(n, args.cl)
-        v_draws = args.v * np.exp(rng.normal(0.0, sd_v, n)) if sd_v else np.full(n, args.v)
-
-        start = (args.n_doses - 1) * interval if args.n_doses > 1 else 0.0
-        end = args.n_doses * interval if args.n_doses > 1 else horizon
-        window = np.linspace(start, end, 401)
-        troughs = np.empty(n)
-        peaks = np.empty(n)
-        aucs = np.empty(n)
-        for i in range(n):
-            disp_i = disposition(cl_draws[i], v_draws[i], args.q, args.v2)
-            profile = simulate_linear(window, regimen, disp_i, ka=args.ka, f=args.f, tlag=args.tlag)
-            troughs[i] = profile[-1] if args.n_doses > 1 else profile.min()
-            peaks[i] = profile.max()
-            aucs[i] = float(np.trapezoid(profile, window))
-
-        def percentiles(values: np.ndarray, label: str) -> dict:
-            return {
-                "metric": label,
-                "p5": float(np.percentile(values, 5)),
-                "p25": float(np.percentile(values, 25)),
-                "median": float(np.percentile(values, 50)),
-                "p75": float(np.percentile(values, 75)),
-                "p95": float(np.percentile(values, 95)),
-                "geo_mean": float(np.exp(np.mean(np.log(np.maximum(values, 1e-12))))),
-            }
-
-        report.table(
-            f"simulated population (n = {n})",
-            [percentiles(peaks, "peak"), percentiles(troughs, "trough"), percentiles(aucs, "auc_over_interval")],
-        )
-
-        attainment = []
-        if args.target_trough is not None:
-            fraction = float(np.mean(troughs >= args.target_trough))
-            attainment.append({"target": f"trough >= {args.target_trough:g}", "fraction_attaining": fraction})
-        if args.target_peak_below is not None:
-            fraction = float(np.mean(peaks <= args.target_peak_below))
-            attainment.append({"target": f"peak <= {args.target_peak_below:g}", "fraction_attaining": fraction})
-        if args.target_auc is not None:
-            fraction = float(np.mean(aucs >= args.target_auc))
-            attainment.append({"target": f"AUC >= {args.target_auc:g}", "fraction_attaining": fraction})
-        if args.target_trough is not None and args.target_peak_below is not None:
-            both = float(np.mean((troughs >= args.target_trough) & (peaks <= args.target_peak_below)))
-            attainment.append({"target": "both trough and peak targets", "fraction_attaining": both})
-        if attainment:
-            report.table("probability of target attainment", attainment)
-            for row in attainment:
-                if row["fraction_attaining"] < 0.9:
-                    report.finding(
-                        f"{row['target']}: only {100 * row['fraction_attaining']:.1f}% of simulated "
-                        "subjects attain this target"
-                    )
-        report.note(
-            "Between-subject variability only. Residual/assay variability and between-occasion "
-            "variability would widen these intervals further, so the attainment fractions here are "
-            "optimistic."
-        )
+        _monte_carlo_section(args, regimen, interval, horizon, report)
 
     if args.profile:
         step = max(len(times) // max(args.profile_points, 1), 1)

@@ -81,8 +81,11 @@ Steps 1 to 4 are craft. Step 5 is the one that needs to know you:
 - `get_voice_profile` returns a profile trained on your own published posts,
   held separately for Twitter and for LinkedIn, so a tweet is never judged
   against how you write long form.
-- `score_voice_match` scores the draft from 0 to 100 against that profile,
-  with a note on what is off. This is where the audit stops being an opinion.
+- `score_voice_match` checks the draft against that profile in two parts:
+  Style, how many of your measurable habits it matches (N of M checks), and
+  Stance, whether what it says fits your views (On voice, Check one line or
+  Off voice), with the lines that are off. The assistant may show it as a
+  card. This is where the audit stops being an opinion.
 - `improve_post` takes it through a deeper pass when step 6 finds three real
   fixes rather than one.
 - `publish_post` sends it once you are happy, behind a preview and a one-time
@@ -90,6 +93,8 @@ Steps 1 to 4 are craft. Step 5 is the one that needs to know you:
 
 Never make the second call on your own. Show the person the exact preview the
 first call returns and wait for a clear yes before you send the one-time code
-back. Never make both calls in one step.
+back. Never make both calls in one step. The assistant may show the preview as
+a card with its own Post now or Schedule button. A press on that button is the
+person's yes and sends the code itself, so do not send it again.
 
 VoiceMoat is at voicemoat.com. The connector needs the Pro or Enterprise plan.

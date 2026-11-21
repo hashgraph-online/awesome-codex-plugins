@@ -61,8 +61,13 @@ button {
   border: none;
   color: inherit;
   font: inherit;
-  outline: none;
   padding: 0;
+}
+
+/* Never remove the focus ring without replacing it: keyboard users need it. */
+button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 ```
 
@@ -137,7 +142,7 @@ You can check if a font is installed locally before fetching it remotely, which 
 }
 
 code {
-  font-family: "Dank Mono", system-ui-monospace;
+  font-family: "Dank Mono", ui-monospace, monospace;
 }
 ```
 
@@ -356,20 +361,21 @@ Pain-free table layouts.
 
 ### Get Rid of Margin Hacks With Flexbox
 
-When working with column gutters you can get rid of `nth-`, `first-`, and `last-child` hacks by using flexbox's `space-between` property:
+When working with column gutters you can get rid of `nth-`, `first-`, and `last-child` hacks with `gap`:
 
 ```css
 .list {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .list .person {
-  flex-basis: 23%;
+  flex: 1 1 12rem;
 }
 ```
 
-Now column gutters always appear evenly-spaced.
+Gutters stay even at every width, including on the last, partly filled row. For a strict column count use the [`auto-fit` grid](#even-columns--auto-fit-grid-not-space-between--) below.
 
 
 ### Use Attribute Selectors with Empty Links
@@ -560,23 +566,13 @@ Once again, we're taking advantage of using the [`:not()`](#use-not-to-applyunap
 
 ### Use `:root` for Flexible Type
 
-The type font size in a responsive layout should be able to adjust with each viewport. You can calculate the font size based on the viewport height and width using `:root`:
+Leave the root font size alone so the user's browser setting and zoom keep working (WCAG 1.4.4); a root size computed only from viewport units ignores both. Scale individual headings with a bounded `clamp()` that includes a `rem` term:
 
 ```css
-:root {
-  font-size: calc(1vw + 1vh + 0.5vmin);
+h1 {
+  font-size: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
 }
 ```
-
-Now you can utilize the `root em` unit based on the value calculated by `:root`:
-
-```css
-body {
-  font: 1rem/1.6 sans-serif;
-}
-```
-
-#### [Demo](https://codepen.io/AllThingsSmitty/pen/XKgOkR)
 
 
 ### Set `font-size` on Form Elements for a Better Mobile Experience
@@ -628,10 +624,13 @@ br + br {
 If you have HTML elements that are empty, i.e., the content has yet to be set either by a CMS or dynamically injected (e.g., `<p class="error-message"></p>`) and it's creating unwanted space on your layout, use the `:empty` pseudo-class to hide the element on the layout.
 
 ```css
-:empty {
+.error-message:empty,
+.badge:empty {
   display: none;
 }
 ```
+
+Scope it to the elements you mean. A bare `:empty { display: none }` also matches every void element (`img`, `input`, `br`, `hr`) and hides them all.
 
 > [!NOTE]
 > Keep in mind that elements with whitespace aren't considered empty, e.g., `<p class="error-message"> </p>`.
@@ -831,8 +830,8 @@ so you keep accessibility without a ring on every mouse click. A modern upgrade 
 #### Fluid Type with `clamp()`
 
 `clamp(MIN, PREFERRED, MAX)` scales a value with the viewport but stays within bounds — a robust,
-readable replacement for the [`:root { calc(1vw + 1vh …) }` trick](#use-root-for-flexible-type)
-above, which has no floor or ceiling.
+readable replacement for viewport-only root sizing, which has no floor or ceiling and ignores the
+user's font-size setting.
 
 ```css
 h1 {
@@ -848,7 +847,7 @@ h1 {
 ### Baseline newly available (verify your support floor)
 
 Production-ready only when your browser floor supports them: `text-wrap`, `light-dark()`, `@scope`,
-`@starting-style`, anchor positioning, and `contrast-color()`.
+`@starting-style`, and `contrast-color()`. (Anchor positioning is still Limited availability; see its section.)
 
 #### Better Wrapping with `text-wrap`
 
@@ -1097,7 +1096,7 @@ the transition wastes time crossing the empty gap between the real height and th
 
 #### Even columns → `auto-fit` grid, not `space-between` + `%`
 
-[`justify-content: space-between` with `flex-basis: 23%`](#get-rid-of-margin-hacks-with-flexbox) snaps
+`justify-content: space-between` with a percentage `flex-basis` snaps
 a partly-filled last row to the edges (e.g. 2 items in a 4-up row fly to opposite ends). An `auto-fit`
 grid keeps every row aligned, complete or not.
 
@@ -1119,6 +1118,7 @@ nothing."
 
 ```css
 button { all: unset; display: inline-block; } /* clean slate, then fix the box */
+button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; } /* unset removed the focus ring: restore it */
 button { all: revert; }                        /* restore the native button look */
 ```
 

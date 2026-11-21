@@ -1,0 +1,61 @@
+{
+  "skill_name": "add-referral-program",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL has users, a ledger with a postEntry function and a verified payment webhook. Add referrals: each user has an invite code, and the inviter gets 500 coins once the invited user has paid for a first pack.",
+      "expected_output": "Invite codes, a referral recorded at sign-up with nothing paid, and one 500 coin reward posted through postEntry after the invited user's first verified payment, never twice, with tests.",
+      "assertions": [
+        "The sign-up handler writes the referral row in the same transaction that creates the account, and posts no ledger entry for the inviter or the new account.",
+        "The referral table has the referred account as primary key or under a unique constraint, and a constraint or check that the referrer differs from the referred account.",
+        "The reward is posted from the handler of the verified payment event, or from a job that runs after a hold, through the existing posting function with the referred account's id as the reference.",
+        "The project's tests create three accounts with one invite code and assert that the inviter's balance is unchanged.",
+        "The tests deliver the same paid event twice and make a second purchase, and assert that exactly one referral entry exists for that referred account.",
+        "Invite codes are generated from a cryptographic random source and are not the user id or a counter.",
+        "The sign-up request cannot set the referrer by account id: only a code is accepted and resolved on the server.",
+        "The referrer can read a list of their referrals with a state for each, and the list contains no email address of a referred user."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "In our Django shop the referrer gets a 10 dollar credit when a referred customer's first order is paid. When that order is refunded the credit stays. Make the refund take the referral credit back, and make sure it cannot be taken back twice.",
+      "expected_output": "Refund handling that takes back the 10 dollar referral credit in the same transaction that records the refund, exactly once, with a test for a repeated refund event.",
+      "assertions": [
+        "The refund handling path calls the referral settlement code in the same database transaction that records the refund.",
+        "The take-back is a ledger entry or guarded status change keyed by the referred account, so a refund event delivered twice lowers the referrer's balance once.",
+        "The amount taken back is read from the reward that was posted, not from the current configuration value.",
+        "A test spends the referrer's credit, then refunds the referred order, and asserts that the referrer's balance is negative by the reward amount.",
+        "After a take-back, a new paid order by the same referred customer does not post a second referral reward.",
+        "A partial refund that leaves the qualifying condition met does not take the reward back, and a test covers it."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Users of this PHP rewards site on MySQL earn points from offer postbacks. Add a referral program that gives the referrer 10 percent of the referred user's offer earnings for 12 months, at most 50,000 points per referred user. Reversed offers must reverse the commission. Block people who refer themselves with a second account.",
+      "expected_output": "A 10 percent referral commission posted once per offer transaction for 12 months, capped at 50,000 points per referred user, reversed with the offer, and blocked for self-referral by a second account, with tests.",
+      "assertions": [
+        "Each commission is posted through the ledger's posting function with a reference derived from the offer transaction id, and the same postback delivered twice posts one commission.",
+        "The commission is computed with integer arithmetic and rounded down, and it is not deducted from the referred user's own reward.",
+        "A stored record links each commission to the referred account and holds the amount, and the reversal handler takes back exactly that amount once.",
+        "The total commission from one referred account cannot pass 50,000 points, also when two postbacks for that account are processed at the same moment, because the cap is checked under a row lock or with a conditional update.",
+        "No commission is posted for earnings that arrive more than 12 months after the referred account signed up.",
+        "No commission is paid on bonus, promo or commission entries, only on the offer kind.",
+        "A referred account whose normalized email, device id or payout destination equals the referrer's is marked as blocked and produces no commission.",
+        "The duplicate handling of the ledger insert treats MySQL error 1062 as already posted and does not use INSERT IGNORE."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Add an invite-a-friend program to our Next.js app with Prisma and PostgreSQL. The inviter gets 500 credits when the friend makes a first purchase.",
+      "expected_output": "A referral row written in the sign-up transaction and keyed by the new account, a reward posted once after the verified purchase and its hold, under a lock on the inviter for the cap, with tests.",
+      "assertions": [
+        "The referrals table has the referred account id as its primary key, and the row is created inside the same prisma.$transaction as the user.",
+        "The referrer is found from a code on the server, and a referrer id in the request body is ignored.",
+        "Nothing is credited at sign-up.",
+        "The reward is posted only through a conditional update from qualified to rewarded that compares the hold time with the database clock.",
+        "The reward ledger entry uses the referred account id as reference under the ledger's unique kind and reference key.",
+        "A test delivers the qualifying purchase event twice and asserts one reward."
+      ]
+    }
+  ]
+}

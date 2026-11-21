@@ -5,10 +5,10 @@
 > (calls-sdk 5.0.4 + chat-sdk 5.0.5, two processes on one emulator — both roles).
 
 ## Prerequisites (on top of the meet-style ones)
-- `implementation("com.cometchat:chat-sdk-android:5.0.5")` **+ `android.enableJetifier=true`** (with
-  `android.useAndroidX=true`) in `gradle.properties` — `chat-sdk-android:5.0.5` still pulls
-  `android.arch.lifecycle:extensions:1.1.1 → com.android.support:support-compat:26.1.0`; without Jetifier an AndroidX
-  app fails `checkDebugDuplicateClasses` (`Duplicate class android.support.v4.app.INotificationSideChannel …`).
+- `implementation("com.cometchat:chat-sdk-android:5.0.7")` with `android.useAndroidX=true` in `gradle.properties`.
+  No Jetifier on 5.0.7 (verified 2026-10-15). On 5.0.6 or older add `android.enableJetifier=true`: those pull
+  `android.arch.lifecycle:extensions:1.1.1 → com.android.support:support-compat:26.1.0`, and without Jetifier an AndroidX
+  app fails `checkDebugDuplicateClasses` (`Duplicate class android.support.v4.app.INotificationSideChannel ...`).
 - Chat SDK init + login FIRST — `CometChat.initFromSettings(context, l)` → `CometChat.login(uid, authKey, l)` (the
   `cometchat-android-v5-sdk` recipe; same settings asset), THEN the Calls SDK init/login, THEN register the listener.
   A Calls-SDK login does NOT log the Chat SDK in — check `CometChat.getLoggedInUser()` separately
@@ -20,7 +20,7 @@ In the default **auto** socket mode the Chat SDK **disconnects its WebSocket the
 - a **backgrounded CALLEE never receives `onIncomingCallReceived`** — the caller gets `onOutgoingCallRejected` when the
   `initiateCall` timeout (default 45 s) expires;
 - a **backgrounded CALLER never receives `onOutgoingCallAccepted`**, and it is **NOT replayed** on return to the
-  foreground — an un-reconciled caller sits on "Calling…" forever.
+  foreground — an un-reconciled caller sits on "Calling..." forever.
 So "rings from any screen" means **any screen of a FOREGROUND app**. Background / killed-app ringing is the **VoIP push
 path** — `/calls/android/voip-calling` (FCM + `ConnectionService`; docs-first, real device, class-E in the pack's
 harness) — offer it explicitly instead of promising background ringing. **Manual** socket mode + `CometChat.ping()`

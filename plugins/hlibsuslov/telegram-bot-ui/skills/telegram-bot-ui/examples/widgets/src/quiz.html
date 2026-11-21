@@ -1,0 +1,71 @@
+<!-- Quiz (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"q":index,"n":total,"t":question,"o":[4 options],"sel":picked index or -1,"ok":correct index (only after
+              the answer),"ex":one-line explanation (only after the answer),"sc":score,"r":N}
+             finished: {"fin":1,"n":total,"sc":score,"r":N}. The correct answer is never sent before the user answers.
+  Requests: "a:<qid>:<i>@rev" (answer, stale verb), "next@rev", "restart". -->
+<style>
+/*@kit tokens.css*/
+.qh { margin-bottom: 6px } .qh b { font-weight: 600 }
+.qq { font-weight: 600; font-size: 1.07em; margin: 10px 0 8px; line-height: 1.3 }
+.an { display: block; width: 100%; text-align: start; border-radius: var(--k-r); margin-top: 6px; padding: 8px 12px; min-height: 36px }
+.an.g { background: var(--k-ok); color: var(--k-btx) }
+.an.b { background: var(--k-bad); color: var(--k-btx) }
+.ex { margin-top: 8px; font-size: .93em }
+.sc { text-align: center; padding: 12px 0 4px }
+.sc b { display: block; font-size: min(2.6em, 14vw); font-weight: 600; line-height: 1.2 }
+</style>
+<div class="k">
+  <div id="fn"></div>
+  <div id="qz">
+    <div class="hd qh"><span class="mt" id="hl"></span><span class="mt" id="sl"></span></div>
+    <div class="br"><i id="pb"></i></div>
+    <div class="qq" id="qq"></div>
+    <div id="an"></div>
+    <div class="ex" id="ex"></div>
+    <button class="wd" id="nx"></button>
+  </div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { q: "Question", of: "of", sc: "Score", nx: "Next", rs: "See result", pa: "Play again", rt: "Your score", none: "No quiz yet. The bot will start one.", good: "Correct", bad: "Not quite" } });/*@end*/
+/*@lang ru*/K.add({ ru: { q: "Вопрос", of: "из", sc: "Счёт", nx: "Дальше", rs: "Результат", pa: "Играть снова", rt: "Ваш счёт", none: "Викторины пока нет. Бот её запустит.", good: "Верно", bad: "Не совсем" } });/*@end*/
+/*@lang uk*/K.add({ uk: { q: "Питання", of: "з", sc: "Рахунок", nx: "Далі", rs: "Результат", pa: "Грати знову", rt: "Ваш рахунок", none: "Вікторини поки немає. Бот її запустить.", good: "Вірно", bad: "Не зовсім" } });/*@end*/
+function draw() {
+  var s = K.S.chatData, $ = K.$, off = K.busy || !K.can(), rev = "@" + K.R.chatData;
+  $("qz").style.display = s && !s.fin ? "" : "none";
+  var fn = $("fn"); fn.innerHTML = "";
+  if (!s) { fn.appendChild(K.h("div", "mt", K.t("none"))); return; }
+  if (s.fin) {
+    var f = K.h("div", "sc"); f.appendChild(K.h("span", "mt", K.t("rt")));
+    f.appendChild(K.h("b", "", s.sc + " / " + s.n));
+    fn.appendChild(f);
+    var pa = K.h("button", "wd", K.t("pa")); pa.disabled = off;
+    pa.onclick = function () { K.ask("restart"); };
+    fn.appendChild(pa);
+    return;
+  }
+  var done = s.sel >= 0;
+  $("hl").dir = "auto"; $("hl").textContent = K.t("q") + " " + (s.q + 1) + " " + K.t("of") + " " + s.n;
+  $("sl").textContent = K.t("sc") + " " + s.sc;
+  $("pb").style.width = Math.round((s.q + (done ? 1 : 0)) / s.n * 100) + "%";
+  $("qq").textContent = s.t;
+  var an = $("an"); an.innerHTML = "";
+  s.o.forEach(function (o, i) {
+    var cls = "ch an" + (done ? (i == s.ok ? " g" : i == s.sel ? " b" : "") : "");
+    var b = K.h("button", cls, o);
+    b.disabled = off || done;
+    b.onclick = function () { K.ask("a:" + s.q + ":" + i + rev); };
+    an.appendChild(b);
+  });
+  var ex = $("ex");
+  ex.textContent = done ? s.ex : "";
+  ex.className = "ex " + (done ? (s.sel == s.ok ? "up" : "dn") : "");
+  var nx = $("nx"); nx.style.display = done ? "" : "none";
+  nx.textContent = K.t(s.q + 1 < s.n ? "nx" : "rs");
+  nx.disabled = off;
+  nx.onclick = function () { K.ask("next" + rev); };
+}
+K.start(draw);
+</script>

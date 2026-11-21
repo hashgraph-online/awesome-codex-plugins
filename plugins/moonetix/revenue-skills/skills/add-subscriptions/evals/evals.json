@@ -1,0 +1,60 @@
+{
+  "skill_name": "add-subscriptions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our Express app on PostgreSQL sells a Pro plan through Stripe Checkout in subscription mode, and the verified Stripe webhook is already in place for one-time payments. Give users Pro when they pay and take it away when they stop paying. Pro includes 1,000 AI credits a month. Stripe retries failed cards; give people three days before they lose Pro.",
+      "expected_output": "A subscriptions table fed by the verified webhook through a fetch of the current subscription, one server-side access check at the time of use with a three-day grace from the last paid period, monthly credits keyed by subscription and period, and a reconciliation job, with tests.",
+      "assertions": [
+        "A migration creates a subscriptions table with a unique key on the provider subscription id and a user id that the code resolves from the app's own checkout record or the subscription metadata it set, not from an email in the event.",
+        "The handlers of customer.subscription.* and invoice.* events retrieve the subscription from the Stripe API before writing it, or apply a state only when it is newer, and do not use the event's created field to order events.",
+        "No Stripe API call runs inside an open database transaction.",
+        "The period dates are read from the subscription items (items.data[].current_period_end) or from the invoice line period, not from a top-level current_period_end on the subscription.",
+        "One function decides access from the stored rows and the current time, and it gives access while past due only until three days after the end of the last paid period.",
+        "The monthly credits are posted to a ledger with a reference built from the subscription id and the period start, only for invoices with billing_reason subscription_create or subscription_cycle, and the same invoice delivered under two event ids grants once.",
+        "Tests cover a failed renewal that keeps access inside the grace period and loses it after it, and an older customer.subscription.updated delivered after customer.subscription.deleted that does not restore access.",
+        "A scheduled job lists subscriptions with status=all, pages with starting_after, and writes them through the same function as the webhook."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "This Django backend serves an iOS and an Android app with a monthly Premium subscription. Right now the apps send us the receipt or the purchase token after a purchase and we set user.is_premium = True. Users keep Premium forever after they cancel or get a refund. Move it to App Store Server Notifications and Google Play real-time developer notifications.",
+      "expected_output": "Verified store notifications that fetch the current state from the App Store Server API and the Play Developer API, a subscription row per originalTransactionId and per purchase token, access computed from expiry, grace and revocation, and the is_premium flag removed, with tests.",
+      "assertions": [
+        "The is_premium flag no longer decides access anywhere; one function reads subscription rows and the current time.",
+        "App Store notifications are verified with Apple's certificate chain (for example with the App Store Server Library), and the nested signedTransactionInfo and signedRenewalInfo are verified as well.",
+        "Apple subscriptions are keyed by originalTransactionId, and the current state comes from Get All Subscription Statuses or from the verified notification with the most recent signedDate.",
+        "Google Play notifications are verified by their Pub/Sub OIDC token, and every notification is followed by a purchases.subscriptionsv2.get call whose answer is stored.",
+        "SUBSCRIPTION_CANCELED and AUTO_RENEW_DISABLED keep access until the expiry time; SUBSCRIPTION_ON_HOLD, EXPIRED, GRACE_PERIOD_EXPIRED, REVOKE, SUBSCRIPTION_REVOKED, a voided purchase and an Apple REFUND end it.",
+        "A purchase with a linkedPurchaseToken ends the entitlement of the linked token.",
+        "New Google Play purchases are acknowledged from the server after the grant is committed.",
+        "The receipt or token sent by the app is at most a hint to look the purchase up; it never grants by itself."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We bill a team plan with Paddle Billing in a Laravel app on MySQL. Some customers who canceled still have access weeks later, and some who upgraded got their monthly 5,000 credits twice in the same month. Find out why and fix it.",
+      "expected_output": "Paddle subscription events applied newer-wins on occurred_at or by fetching the subscription, access that ends at the scheduled change or the canceled status, credits keyed by subscription and billing period with a one-time top-up on upgrade, and a reconciliation job, with tests.",
+      "assertions": [
+        "The fix compares occurred_at with the stored value before writing a subscription, or fetches the subscription from the Paddle API, and deduplicates on event_id rather than notification_id.",
+        "A subscription.updated with a scheduled_change of action cancel keeps access until effective_at, and subscription.canceled ends it.",
+        "Monthly credits are posted with a ledger reference built from the subscription id and the billing period start, and an upgrade in the same period posts at most the difference to the new allowance under its own key.",
+        "The ledger insert treats MySQL error 1062 as an entry that already exists and does not use INSERT IGNORE.",
+        "A job lists subscriptions with GET /subscriptions, pages with after while meta.pagination.has_more is true, and repairs rows through the same function as the webhook.",
+        "Tests reproduce both reported bugs and pass after the fix."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Next.js app uses RevenueCat for a Pro entitlement across iOS, Android and web. The webhook handler sets pro=true on INITIAL_PURCHASE and RENEWAL and pro=false on CANCELLATION. Users complain they lose Pro right after canceling even though they paid for the month. Also, we want a 7-day free trial on web only, once per person.",
+      "expected_output": "A RevenueCat webhook that fetches the customer's active entitlements and stores their expiry, access until the expiry after a cancellation, and a web trial claimed under an identity key before checkout, with tests.",
+      "assertions": [
+        "The handler verifies the Authorization header in constant time and deduplicates on the event id.",
+        "After each event the handler calls the RevenueCat REST API for the customer's entitlements and stores the expiry instead of setting a flag from the event type.",
+        "CANCELLATION no longer ends access; access ends when the stored expiry passes, on EXPIRATION, or at once for a refund the user decided to end immediately.",
+        "SANDBOX events are refused in production.",
+        "A trial claim is inserted under a unique identity key before the web checkout is created, and a second account of the same person gets a checkout without a trial."
+      ]
+    }
+  ]
+}

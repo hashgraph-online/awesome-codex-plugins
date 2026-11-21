@@ -71,10 +71,15 @@ ambiguous, retrieve applicable standards and known patterns, plan the model,
 build each document, and report measured validation evidence. A knowledge-base
 outage is recorded but does not block local CAD work.
 
-The default knowledge base is `https://sw-plugin.ideep.org`. Override it with
+The default knowledge base is `https://sw-plugin.erfouni.ir`. Override it with
 the `SW_KB_HOST` environment variable. Read-only runtime endpoints are public;
 session feedback is sent only after the user chooses **Yes, send now** or has
 previously chosen **Always send**.
+
+Version 1.2.1 uses the new public endpoint without additional configuration.
+After updating an existing installation, restart Codex. If you explicitly saved
+the former public address in `SW_KB_HOST`, remove that override or change it to
+`https://sw-plugin.erfouni.ir`. Keep your override when using your own server.
 
 ## Install from GitHub
 

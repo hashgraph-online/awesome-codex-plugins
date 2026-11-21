@@ -1,0 +1,51 @@
+/* Widget kit: design tokens and primitives (profile 1). Inlined by scripts/build_widget.py.
+   Every colour is a Telegram theme variable with a fallback; status colours use light-dark(),
+   which follows the chat's colour scheme. See references/widget-design-system.md. */
+:root {
+  --k-tx: var(--tg-theme-text-color, #000);
+  --k-hint: var(--tg-theme-hint-color, #707579);
+  --k-link: var(--tg-theme-link-color, #2481cc);
+  --k-btn: var(--tg-theme-button-color, #2481cc);
+  --k-btx: var(--tg-theme-button-text-color, #fff);
+  --k-sec: var(--tg-theme-secondary-bg-color, #f1f1f4);
+  --k-acc: var(--tg-theme-accent-text-color, #2481cc);
+  --k-bad: var(--tg-theme-destructive-text-color, #e53935);
+  --k-sep: var(--tg-theme-section-separator-color, #e0e0e0);
+  --k-bg: var(--tg-theme-bg-color, #fff);
+  --k-ok: light-dark(#2e8b3e, #5ec46e);
+  --k-warn: light-dark(#a86400, #f0a73a);
+  --k-r: 10px;
+  color-scheme: light dark;
+}
+body { margin: 0; padding: 0 }
+/* The root block: the bubble is the canvas; the bottom pad keeps the time band clear. */
+.k {
+  padding: 10px 12px max(10px, env(safe-area-inset-bottom), var(--tg-content-safe-area-inset-bottom, 0px));
+  font-variant-numeric: tabular-nums;
+}
+.hd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px }
+.tt { font-weight: 600; font-size: 1.07em; margin: 0 }
+.mt { color: var(--k-hint); font-size: .87em }
+.rw { display: flex; align-items: center; gap: 8px }
+.gr { flex: 1; min-width: 0 }
+.el { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.sf { background: var(--k-sec); border-radius: var(--k-r); padding: 8px 10px }
+.ls > * + * { border-top: 1px solid var(--k-sep) }
+.wd { width: 100%; margin-top: 8px }
+.ch {
+  background: var(--k-sec); color: var(--k-tx); border: 0; border-radius: 999px;
+  padding: 6px 12px; min-height: 34px; font: inherit; font-size: .93em;
+}
+.ch.on { background: var(--k-btn); color: var(--k-btx) }
+.st { min-height: 1.35em; margin-top: 6px; color: var(--k-hint); font-size: .87em }
+.st.e { color: var(--k-bad) }
+.st.ok { color: var(--k-ok) }
+.br { height: 6px; border-radius: 3px; background: var(--k-sec); overflow: hidden }
+.br > i { display: block; height: 100%; background: var(--k-btn); border-radius: 3px; transition: width .3s }
+.up { color: var(--k-ok) }
+.dn { color: var(--k-bad) }
+.ic {
+  width: 1.15em; height: 1.15em; flex: none; vertical-align: -.2em;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }

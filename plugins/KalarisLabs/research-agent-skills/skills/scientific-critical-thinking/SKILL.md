@@ -206,5 +206,5 @@ This skill includes comprehensive reference materials that provide detailed fram
 ## Related skills
 
 - `bgpt-paper-search`: Search scientific papers and retrieve structured experimental data extracted from full-text studies via the BGPT MCP server.
-- `systematic-review-prisma`: Plan, run and report systematic reviews and meta-analyses to PRISMA 2020 standards.
 - `peer-review`: Prepare evidence-bounded, constructive peer-review drafts and structured manuscript assessments.
+- `paper-corpus-rag`: Build grounded question answering over your own collection of research papers, with answers that cite the exact paper, page and passage.

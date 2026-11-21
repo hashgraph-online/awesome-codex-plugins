@@ -2,7 +2,7 @@
 name: cometchat-android-v6-features
 description: "Add or enable a specific CometChat feature in an Android v6 app — receipts, typing, reactions, mentions, threads, search, polls, stickers, translation, link previews, AI smart replies / conversation starter / summary, AI agents, moderation, notification feed, campaigns — by resolving the ask to the feature oracle and taking the right enablement path (already-on vs Dashboard toggle vs Gradle package vs code wiring). Triggers: 'add search to my android chat', 'enable polls android', 'turn on smart replies android', 'add reactions android', 'is X supported in the android ui kit'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views) OR com.cometchat:chatuikit-compose-android ^6 (Compose) — 6.0.x, verified 6.0.5; com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views) OR com.cometchat:chatuikit-compose-android ^6 (Compose) — 6.1.x, verified 6.1.1; com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"

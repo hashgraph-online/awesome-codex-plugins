@@ -27,6 +27,7 @@ except ImportError:
 
 
 def export_gnps(args):
+    """Export gnps."""
     cm = ms.ConsensusMap()
     ms.ConsensusXMLFile().load(args.consensus, cm)
     print(f"Loaded {cm.size()} consensus features")
@@ -44,6 +45,7 @@ def export_gnps(args):
 
 
 def export_sirius(args):
+    """Export sirius."""
     out_ms = args.out or os.path.splitext(args.input)[0] + ".ms"
     out_info = args.compound_info or os.path.splitext(out_ms)[0] + "_compounds.tsv"
 
@@ -65,6 +67,7 @@ def export_sirius(args):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Export for GNPS FBMN or SIRIUS.")
     sub = parser.add_subparsers(dest="mode", required=True)
 

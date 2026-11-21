@@ -26,10 +26,11 @@ output_contract: process exit status and captured Claude output artifact
 
 Run one caller-supplied prompt through Claude Code print mode and capture the
 result, only when the caller selects Claude: the native agent stays the
-default and batches belong to `agent-native`. Flags match `claude --help` for
-2.1.309; recheck it on other versions. Re-checked on 2026-10-25 against Claude
-Code 2.1.309, codex-cli 0.163.0, AGY 1.4.7, gc edge 97503b2 (with Gas City
-v1.5.1 docs and source), bd 1.3.1 and ao 3.11.0.
+default and batches belong to `orchestrate`. Flags match `claude --help` for
+Claude Code 2.1.309, re-checked on 2026-10-25; recheck it on other versions.
+It worked when the run drops inherited settings, names its tools and permission
+mode, stays inside one deadline, and the result is judged by exit status and
+`is_error` with `permission_denials` reported.
 
 ## Failure modes of a quick `claude -p`
 
@@ -56,29 +57,34 @@ Redirect the prompt from a file, or pass it as the argument with `</dev/null`,
 because print mode reads stdin to EOF: a pipe left open hangs until the bound
 kills it (not re-run since 2.1.282). Stock macOS lacks `timeout`: use GNU
 `timeout` or Homebrew's `gtimeout`, and launch nothing without one. This
-script body makes one launch; the caller supplies `$POSTURE`, `$BUDGET_USD`
-and absolute `$PROMPT_FILE`, `$OUT` and `$ERR` paths outside the tree.
+script body makes one launch; the caller supplies `$POSTURE`, `$MODEL`,
+`$BUDGET_USD`, `$DEADLINE_EPOCH`, `$ALLOWED` for `test`, an absolute
+`$WORKDIR`, and absolute `$PROMPT_FILE`, `$OUT` and `$ERR` paths outside it.
 
 ```bash
 TO=$(command -v timeout || command -v gtimeout) || { echo "no timeout: not launching" >&2; exit 2; }
 case "$DEADLINE_EPOCH" in ''|*[!0-9]*) echo "no deadline: not launching" >&2; exit 2;; esac
-for p in "$PROMPT_FILE" "$OUT" "$ERR"; do case "$p" in /*) ;; *) echo "not absolute: '$p'" >&2; exit 2;; esac; done
+for p in "$WORKDIR" "$PROMPT_FILE" "$OUT" "$ERR"; do case "$p" in /*) ;; *) echo "not absolute: '$p'" >&2; exit 2;; esac; done
+[ -n "$MODEL" ] && [ -n "$BUDGET_USD" ] || { echo "no model or budget: not launching" >&2; exit 2; }
+EXTRA=()
 case "$POSTURE" in
   read) TOOLS="Read,Grep,Glob" MODE=dontAsk ;;   # review, research, questions
   edit) TOOLS="Read,Grep,Glob,Edit,Write" MODE=acceptEdits ;;   # authorized changes under $WORKDIR
-  *) echo "POSTURE must be read or edit: not launching" >&2; exit 2 ;; esac
+  test) [ -n "$ALLOWED" ] || { echo "test needs \$ALLOWED: not launching" >&2; exit 2; }   # edit plus named commands
+    TOOLS="Read,Grep,Glob,Edit,Write,Bash" MODE=acceptEdits; EXTRA=(--allowedTools "$ALLOWED") ;;
+  *) echo "POSTURE must be read, edit or test: not launching" >&2; exit 2 ;; esac
 cd "$WORKDIR" || exit 2
 SECS=$(( DEADLINE_EPOCH - $(date +%s) ))   # DEADLINE_EPOCH: Unix time fixed once by the caller
 [ "$SECS" -gt 0 ] || { echo "deadline passed: not launching" >&2; exit 124; }
 "$TO" -k 10 "$SECS" claude -p --model "$MODEL" --output-format json \
   --setting-sources "" --strict-mcp-config --disable-slash-commands --restricted \
-  --tools "$TOOLS" --permission-mode "$MODE" --permission-prompts none \
+  --tools "$TOOLS" --permission-mode "$MODE" --permission-prompts none ${EXTRA[@]+"${EXTRA[@]}"} \
   --max-budget-usd "$BUDGET_USD" <"$PROMPT_FILE" >"$OUT" 2>"$ERR"; rc=$?; echo "exit=$rc"
 ```
 
-Unapproved calls are denied and listed in `permission_denials`. Add `Bash` to
-`--tools` only for authorized commands named in `--allowedTools`, e.g.
-`"Bash(go test *)"`; with settings hooks dropped, that list is the guard.
+Unapproved calls are denied and listed in `permission_denials`. `test` adds
+`Bash` only for the authorized commands `$ALLOWED` names, e.g.
+`ALLOWED="Bash(go test *)"`; with settings hooks dropped, that list is the guard.
 `--max-budget-usd` stops after the call that crosses it. `--max-turns <n>`
 caps agentic turns in print mode and exits with an error when it is reached:
 2.1.309 accepts it although `--help` omits it, and the CLI reference documents
@@ -97,7 +103,7 @@ notice; a run the host killed was the one attempt. A quiet run is working.
 JSON carries `result`, `is_error`, `terminal_reason`, `api_error_status`,
 `session_id`, `permission_denials`, and `modelUsage` keyed by the models
 billed; identity evidence needs `stream-json --verbose` per the
-[model-dispatch recipe](../agent-native/references/model-dispatch.md). Judge
+[model-dispatch recipe](../validate/references/model-dispatch.md). Judge
 by exit status and `is_error`: an unknown model exited 1 with
 `subtype: "success"`, `terminal_reason: "api_error"` and `api_error_status:
 404`. Exit 1 also covers a spent budget or missing input (not re-run since
@@ -117,6 +123,7 @@ Return this, and stop:
 ```text
 command: <exact argv>    posture: <tools; permission mode; clean flags>
 model: <requested> -> <modelUsage keys>    exit: <status | timeout at N s>
+ok: <yes|no; a clean run, not acceptance>    is_error: <true|false | none>
 reason: <terminal_reason; api_error_status | none>    session_id: <id | none>
 output: <path, bytes, truncated: yes|no>    permission_denials: <count and tools>
 ```

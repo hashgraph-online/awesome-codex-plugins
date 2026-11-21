@@ -1,0 +1,221 @@
+{
+  "id": "desktop-terminal-window",
+  "name": "Desktop terminal window",
+  "use": "An editable classic desktop terminal window (macOS Terminal-style) that types and runs a short session.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "trademark_note": "macOS and Terminal belong to Apple; SF Mono is Apple-licensed, so an OFL monospace is used. No Apple logo, invented user names.",
+  "presets": [
+    {
+      "id": "desktop-terminal-window.basic-light",
+      "label": "Basic (light)",
+      "look": "White profile, dark text",
+      "params": {
+        "bg": "#FFFFFF",
+        "text": "#1E1E1E",
+        "titlebar": "#ECECEC",
+        "title": {
+          "text": "user — zsh — 80×24",
+          "color": "#6E6E6E",
+          "px_1080p": 20
+        },
+        "dots": [
+          "#FF4F4D",
+          "#FEBB00",
+          "#00CC1D"
+        ],
+        "dot_px": 14,
+        "dot_spacing_px": 21,
+        "titlebar_px": 42,
+        "window_px": [
+          1500,
+          860
+        ],
+        "radius_px": 12,
+        "padding_px": 28,
+        "font_px_1080p": [
+          26,
+          32
+        ],
+        "line_height": 1.3,
+        "max_columns": 90,
+        "window_in": {
+          "scale_from": 0.94,
+          "duration_s": 0.35,
+          "ease": "power2.out"
+        },
+        "typing": {
+          "cps": 14,
+          "gap_table_ms": [
+            100,
+            33,
+            200,
+            133,
+            200,
+            33,
+            67,
+            33,
+            100,
+            67,
+            33,
+            67,
+            67,
+            67,
+            133,
+            67,
+            33,
+            67,
+            100,
+            100,
+            67,
+            133,
+            100,
+            33,
+            100,
+            33,
+            167,
+            33,
+            100,
+            100
+          ],
+          "extra_at_space_ms": 120,
+          "extra_before_flag_ms": 250,
+          "seed": "demo"
+        },
+        "hold_after_s": 3
+      },
+      "sources": [
+        14,
+        15,
+        16,
+        31,
+        2,
+        62
+      ]
+    },
+    {
+      "id": "desktop-terminal-window.pro-dark",
+      "label": "Pro (dark)",
+      "look": "Black profile, light-grey text, lime block caret",
+      "params": {
+        "bg": "#000000",
+        "text": "#C7C7C7",
+        "caret": "#A6E22E",
+        "titlebar": "#2B2B2B",
+        "title_color": "#9A9A9A"
+      },
+      "sources": [
+        14
+      ]
+    },
+    {
+      "id": "desktop-terminal-window.homebrew-green",
+      "label": "Green retro",
+      "look": "Green on black",
+      "params": {
+        "bg": "#000000",
+        "text": "#28FE14",
+        "glow": "0 0 6px rgba(40,254,20,0.45)"
+      },
+      "sources": [
+        39
+      ]
+    },
+    {
+      "id": "desktop-terminal-window.amber",
+      "label": "Amber retro",
+      "look": "Amber phosphor, glow only",
+      "params": {
+        "bg": "#0B0700",
+        "text": "#FFB000",
+        "glow": "0 0 8px rgba(255,176,0,0.5)",
+        "scanlines": false
+      },
+      "sources": [
+        40,
+        41
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "Emil Kowalski (@emilkowalski)",
+      "url": "https://x.com/emilkowalski/status/1954891053032755560"
+    },
+    {
+      "n": 14,
+      "name": "Charm VHS source (MIT)",
+      "url": "https://github.com/charmbracelet/vhs"
+    },
+    {
+      "n": 15,
+      "name": "VHS best-practice skill",
+      "url": "https://cdn.jsdelivr.net/npm/@marcfargas/skills@0.5.1/vhs/SKILL.md"
+    },
+    {
+      "n": 16,
+      "name": "Thorsten Ball, How to Demo",
+      "url": "https://thorstenball.com/how-to-demo"
+    },
+    {
+      "n": 31,
+      "name": "Apple HIG Typography",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/typography"
+    },
+    {
+      "n": 39,
+      "name": "Wikipedia, Monochrome monitor",
+      "url": "https://en.wikipedia.org/wiki/Monochrome_monitor"
+    },
+    {
+      "n": 40,
+      "name": "Phosphor color notes (P3 602 nm)",
+      "url": "https://publish.obsidian.md/xybre/permalink/e397c38e-aa6f-45eb-831f-f02a3836abc4"
+    },
+    {
+      "n": 41,
+      "name": "cool-retro-term Default Amber profile (GPL-3, values only)",
+      "url": "https://github.com/Swordfish90/cool-retro-term"
+    },
+    {
+      "n": 62,
+      "name": "HyperFrames notes-typing",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components/notes-typing"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+<!-- Settings panel (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"n":[4 toggle labels],"f":on-bitmask (bit i = toggle i),"dg":digest time 0..2,"dl":[3 time labels],
+              "lg":language code,"ll":[[code,label]...],"r":N}
+  Requests (all absolute, no revision needed): "tg:<i>:<0|1>", "dt:<0|1|2>", "lg:<code>".
+  Optimistic: a tap flips the control at once (pending look); a failed or refused answer rolls it back. -->
+<style>
+/*@kit tokens.css*/
+.sr { width: 100%; min-height: 40px; padding: 0; border: 0; background: none; color: var(--k-tx); font: inherit; text-align: start }
+.sr[disabled] { color: var(--k-tx) }
+.sw { width: 38px; height: 22px; border-radius: 11px; background: rgba(128,128,128,.4); position: relative; flex: none; transition: background .15s }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--k-bg); transition: transform .15s }
+.on .sw { background: var(--k-btn) }
+.on .sw::after { transform: translateX(16px) }
+.pe .sw { background: var(--k-hint) }
+[dir=rtl] .sw::after { left: auto; right: 2px }
+[dir=rtl] .on .sw::after { transform: translateX(-16px) }
+.sg { display: flex; gap: 6px; margin: 4px 0 8px }
+.sg .ch { flex: 1; min-width: 0 }
+.sg .ch[disabled] { color: var(--k-hint) }
+.lb { margin-top: 8px }
+</style>
+<div class="k">
+  <div class="ls" id="ls"></div>
+  <div class="mt lb" id="dl"></div>
+  <div class="sg" id="dg"></div>
+  <div class="mt" id="ll"></div>
+  <div class="sg" id="lg"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { sv: "Saved", dl: "Digest time", ll: "Language", none: "No settings yet. The bot will send them." } });/*@end*/
+/*@lang ru*/K.add({ ru: { sv: "Сохранено", dl: "Время дайджеста", ll: "Язык", none: "Настроек пока нет. Бот их пришлёт." } });/*@end*/
+/*@lang uk*/K.add({ uk: { sv: "Збережено", dl: "Час дайджесту", ll: "Мова", none: "Налаштувань поки немає. Бот їх надішле." } });/*@end*/
+var pe = {};
+function ef(k, v) { return k in pe ? pe[k] : v; }
+function put(k, v, d) {
+  pe[k] = v;
+  function e() { delete pe[k]; }
+  K.ask(d, {
+    done: K.t("sv"),
+    then: function () {
+      e();
+      setTimeout(function () { if (K.$("st").className == "st ok") K.st(""); }, 1800);
+    },
+    fail: e
+  }) || e();
+}
+function seg(box, list, cur, key, verb, off) {
+  box.innerHTML = "";
+  list.forEach(function (x, j) {
+    var v = key == "d" ? j : x[0], b = K.h("button", "ch" + (cur == v ? " on" : ""), key == "d" ? x : x[1]);
+    b.disabled = off;
+    b.onclick = function () { if (cur != v) put(key, v, verb + ":" + v); };
+    box.appendChild(b);
+  });
+}
+function draw() {
+  var s = K.S.chatData, $ = K.$, l = $("ls"), dis = K.busy || !K.can();
+  l.innerHTML = "";
+  $("dl").textContent = $("ll").textContent = $("dg").innerHTML = $("lg").innerHTML = "";
+  if (!s) { $("dl").textContent = K.t("none"); return; }
+  s.n.forEach(function (t, i) {
+    var on = ef(i, s.f >> i & 1), b = K.h("button", "rw sr" + (on ? " on" : "") + (i in pe ? " pe" : ""));
+    b.appendChild(K.h("span", "gr el", t));
+    b.appendChild(K.h("span", "sw"));
+    b.setAttribute("role", "switch");
+    b.setAttribute("aria-checked", on ? "true" : "false");
+    b.disabled = dis;
+    b.onclick = function () { put(i, on ? 0 : 1, "tg:" + i + ":" + (on ? 0 : 1)); };
+    l.appendChild(b);
+  });
+  $("dl").textContent = K.t("dl");
+  seg($("dg"), s.dl, ef("d", s.dg), "d", "dt", dis || !ef(1, s.f >> 1 & 1));
+  $("ll").textContent = K.t("ll");
+  seg($("lg"), s.ll, ef("l", s.lg), "l", "lg", dis);
+}
+K.start(draw);
+</script>

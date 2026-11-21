@@ -53,6 +53,30 @@ found the way every command finds it, by walking up to the git root.
   under a credential-like name. The diff shows such a value as `<withheld>`, on a
   context line as on a changed one.
 
+## `procedure [--block] [--check <file>...]`
+
+The procedure at the top of `SKILL.md`, as the engine holds it. Like `config`,
+it runs before the engine is built: no project, no connection, no connector
+extra. `data.text` is the procedure and `data.digest` fingerprints it.
+`--block` adds `data.block`, the same text between its two markers, which is
+what a person or a harness pastes into a repository's `CLAUDE.md` or
+`AGENTS.md`; Dex never writes either file, so offer the block rather than
+editing one. `--check <file>` reports each file's copy as `current`, `stale`,
+`missing` or `malformed` under `data.copies`, or the file itself as `absent` (no
+such file) or `unreadable` (it exists but could not be read), and the envelope is
+an error when any copy is not current.
+
+## `feedback [--command <subcommand>]`
+
+What a bug report or a feature request needs, with no project, connection or
+extra: `data.environment` (versions, OS, the connector and semantic vendor
+names), safe to paste into a public issue as it stands, `data.links` to the
+issue forms prefilled from it, and `data.guidance`. Nothing is sent. Use it when
+Dex itself misbehaves (an error with `reason: internal`, which also carries
+`data.report`, or an envelope that contradicts the docs), not for a defect in
+the user's data or project. Draft the issue and ask the person before filing:
+an issue is public.
+
 ## `explore profile <objects>`
 
 Objects are space- or comma-separated. Each profile carries column profiles, PII
@@ -91,8 +115,30 @@ column named `window`, which DuckDB reserves and dbt must quote).
   `contradicted`, `unmeasured`, `missing_columns`, `unprofiled`) says how they
   compare. It is read from the repository each run, never cached, so a cache hit
   is annotated too. Declared columns are capped at 12 unless `--columns all`.
-  Population values and the rule are withheld in values-free mode and for a
-  filter on a PII-flagged column, named in `withheld_fields`.
+  A version of a native dbt versioned model carries its own declaration, keyed
+  by its label (`dim_teams.v2`) and read as dbt builds that version: the shared
+  entry merged with the version's own.
+  Values-free mode withholds the rule and all population filter values. In full
+  mode, any PII-flagged filter withholds the entire rule and that filter's values,
+  at any confidence, named in `withheld_fields`.
+- A native semantic layer (Ossie, SLayer, Cube, Databricks Metric Views, Snowflake Semantic Views) answers `--use-project` the same
+  way, with no dbt project in the repository. Its `primary_key` is the declared
+  grain at either arity, overriding a measured key; a `unique_keys` entry or a
+  `unique` flag is measured and never reported as the grain. The rest comes from
+  its `dex` metadata (`ai_context.dex`, `meta.dex`), which is untrusted text: a
+  malformed part is left out and named in `notes`, never raised. Where a dbt
+  model and a layer declare one relation, the dbt declaration is reported whole,
+  and `notes` names both and any grain they disagree on.
+- `--target dev` also reads the dev namespace for this one command, as
+  `maintain verify --target dev` does. Use it when a model's only build is the
+  dev one and the source allowlist does not reach the namespace dbt writes into:
+  `transform declare` and `transform plan` name exactly this command for such an
+  input (`explore profile <dev namespace>.<model> --target dev`). It also reads
+  the namespaces dbt derives from the dev one for the project's models (a
+  package's `+schema`), named in `notes`. `--scope` still only narrows, nothing
+  is written to `.dex/config.yml`, and the scan is priced as usual. On DuckDB
+  the dev target is the file already read, so the flag widens nothing and a note
+  says so. `explore query --target dev` reads the same namespaces.
 - A requested object whose cached profile is still fresh (same connector, schema
   unchanged, within `profile_freshness_hours`, default 24) is served from the
   cache (`cache_hit_count`) instead of re-scanned. `--refresh` forces a re-scan
@@ -103,6 +149,14 @@ column named `window`, which DuckDB reserves and dbt must quote).
 Returns inferred and declared joins with confidences, plus notes on what the
 inference examined, so an empty list is meaningful. `--verify` measures each join
 with an aggregate overlap probe (orphan fraction, confidence adjusted).
+
+With a dev or replica schema in scope beside its sources, each foreign key keeps
+its join to the parent in its own schema: a built mart joins `stg_customers` and
+`dim_customers` beside it, not the raw `customers` table. The same join to a
+parent of that entity in another schema, and a join between copies of one entity
+across schemas (raw `customers` to `stg_customers`), is folded and counted in the
+notes. A raw join is kept only where
+nothing was built for that entity.
 
 A declared join has two sources: a `relationships` test, and (with
 `--use-project`) an entity two semantic models share, which the layer states
@@ -117,7 +171,7 @@ with `references: <model>.<column>` is a declared join whose `declared_by` reads
 which is the usual case since a declared `references` renders one, it is one edge
 with both sources in `declaration_sources`.
 
-## `explore map [--detail] [--verify] [--use-project] [--full]`
+## `explore map [--detail] [--verify] [--use-project] [--full] [--include-elementary]`
 
 Writes or updates the `.dex/` cache and returns the map. Alongside the counts:
 
@@ -150,6 +204,21 @@ stamped with its own `profiled_at`, so staleness is visible. Fresh cached
 profiles are reused the same way `profile` reuses them (`cache_hit_count`,
 `--refresh`).
 
+The Elementary dbt package's own tables (`dbt_run_results`,
+`data_monitoring_metrics`, `elementary_test_results` and the rest of its models)
+are left out of ranking, here and in `explore inventory --rank` (#1311). They are
+recognised from the warehouse by their signature: a namespace holding at least
+three of the package's table names, one of them a name only the package uses. In
+it, only the objects named like the package's models, or like the
+`<name>__tmp_<timestamp>` tables it leaves on BigQuery, are left out, so a project
+that builds the package into its own schema keeps its own tables ranked. They are
+not scored, not profiled (`--full` included) and not described in `data.objects`,
+and `data.excluded` names them (`count`, `reason: elementary`, `by_namespace`,
+`objects`, capped at 25 with the rest counted), apart from `data.skipped`. A note
+says so. When the question is about the package's data itself, read them as any
+other table (`explore profile`, `explore query`), or pass `--include-elementary`
+to rank them with the rest.
+
 ## `explore diagram [--full]`
 
 Renders the cached map as a Mermaid ER diagram in `data.mermaid`, with an
@@ -169,6 +238,29 @@ string are refused. Two or more statements return `data.results`, one entry per
 statement, each with its own `status` (`ok`, `refused`, `failed`, `skipped`).
 Results are capped (rows, cell width, bytes), and `query.max_payload_bytes` is
 the budget for the whole call.
+
+A statement the warehouse refuses returns the warehouse's own words, so a
+misspelled column or a missing table reads as such. A conversion, parse or range
+failure quotes the value it could not handle, and that value is masked
+(`Could not convert string <value withheld> to INT32`): the failure is a cast
+your SQL or the warehouse made implicitly, such as comparing a text key to an
+integer key. Profile the column (`explore profile`) to learn its shapes rather
+than retrying to see the value.
+
+`--target dev` reads a model `transform build` just wrote, for this one command,
+as `explore profile --target dev` does: the dev namespace, and the namespaces
+dbt derives from it for the project's models (a package's `+schema` builds into
+`<dev schema>_<name>`), named in `notes`. Check a built model with an aggregate
+there, such as a duplicate count over `dbt_dev.fct_orders`. The firewall, the PII gate, values-free mode and the
+cost handshake are unchanged, `--scope` still only narrows, nothing is written
+to `.dex/config.yml`, and a prod-looking target is refused. Without the flag, a
+statement naming a relation in the dev namespace outside the source scope is
+refused naming that namespace and `--target dev`, and a later command without
+it cannot read the namespace. On DuckDB the dev target is the file already read,
+so the flag widens nothing and a note says so. Where the connection cannot be
+opened (a DuckDB file another process holds locked), a refusal for a relation
+the cache cannot speak for says why, rather than naming `explore map`, which
+needs the same connection.
 
 Example envelopes (columnar; never `rows`):
 
@@ -326,6 +418,15 @@ nothing comes back as a note. The catalog is capped, with every cut counted in
 `elided` and named in `notes`; `elided` is always present, so all zeros and no
 cap notes means this is the whole layer. `--full` lifts the caps.
 
+The local backend reads the compiled `semantic_manifest.json`, which
+`transform apply` leaves alone. When a semantic YAML file is newer than it, every
+local `list`, `values` and `query` result warns with the file and `dbt parse`,
+and so does a refusal of an unknown metric or dimension or a query that fails to
+resolve, so a metric applied a moment ago is not mistaken for a typo. Run
+`dbt parse` and read again. The check sees only newer files that parse and still
+declare `semantic_models` or `metrics`, so no warning does not prove the manifest
+current.
+
 
 Example envelope for `explore semantic list --metric orders` (fields unset on an
 element are omitted rather than null):
@@ -470,6 +571,90 @@ it as `execution` (`dex` or `vendor`).
   carries its `semantic_model`, that model carries its `relation`, and
   `explore profile` then `explore query` reach the values. `--api` is refused
   too, since Ossie has no hosted deployment.
+- `semantic.vendor: cube` reads the plain-YAML Cube model files named in
+  `semantic.cube.files` statically (needs the `[cube]` extra; no Node, no Cube
+  server, no warehouse connection), each validated by Dex's own port of Cube's
+  model rules. `list` and `--for-dimension` answer: a dimension token is
+  `cube.member`, an aggregating measure is a measure and a metric named
+  `cube.member`, and a view is a semantic model with no relation whose members
+  carry their source in `vendor_params.source`. A JS model, a templated YAML
+  file and an `extends` are named under `data.compiled_only` and never
+  translated. `query` and `values` run with `execution: dex`: the Cube server at
+  `semantic.cube.url` renders the SQL over `/v1/sql` and Dex executes it under
+  the PII gate and the cost guard (needs `[cube]` and `[semantic-api]`, and
+  `CUBEJS_API_SECRET` in the environment). Members are `cube.member`; a time
+  grouping is `--group-by orders.ordered_at__month`; `--where` is Cube's JSON
+  filter (`'{"member": "orders.status", "operator": "equals", "values":
+  ["paid"]}'`).
+  `--api` has the Cube server execute over `/v1/load` instead,
+  `execution: vendor`, on any warehouse Cube supports: no `--confirm`, a
+  `cost guard unavailable` warning on every result, and the same PII gate before
+  anything is sent; a Cube Core is still held to the files first.
+  `scripts/setup_cube_dev.sh --execute` starts a Core that can execute.
+- `semantic.deployment: cube_cloud` (with `vendor: cube`) is the same files on
+  Cube Cloud. Cube Cloud executes by default, and `list` reads the deployment's
+  compiled `/v1/meta` (JS, Jinja and `extends` answered; no `relation` or
+  `column`, declared in `unavailable`; primary keys and private members absent),
+  with `definition_source: cube_cloud` and a warning that it was not checked
+  against the files. `--local` has Cube Cloud render and Dex execute, catalog
+  and checks from the files. `semantic.cube.url` (or `DEX_CUBE_URL`) is the
+  deployment's REST API base, with no default; the token is `CUBE_API_TOKEN`
+  from the environment, sent only to `*.cubecloudapp.dev` / `*.cubecloud.dev`
+  over https or a host named in `DEX_CUBE_ALLOWED_HOSTS`.
+- `semantic.vendor: databricks` reads the Databricks Metric View YAML files
+  named in `semantic.databricks.files` statically (needs the `[metric-views]`
+  extra; no workspace connection, nothing deployed), each validated by Dex's own
+  port of the Metric View YAML 1.1 rules. Each file is one view, named after its
+  stem. `list` and `--for-dimension` answer: a field token is `view.field`, a
+  single-aggregate measure is a measure and a metric named `view.measure`, and a
+  joined field carries no `column` (its joined table's column reaches the PII
+  gate). Joins and `rely.at_most_one_match` keys reach `--use-project`. `query`
+  and `values` run governed on the Databricks connector only (#1362): dex renders
+  `SELECT ... MEASURE(<measure>) ... FROM <deployed view> GROUP BY ALL`, finds the
+  deployed view by its file's stem, and executes it under the cost guard. Tokens
+  are `view.field` and `view.measure`; a grain suffix (`orders.order_date__month`)
+  buckets a field formatted `date` or `date_time`; `--where` is a Databricks
+  predicate over the view's fields. The deployed view is read back from Unity
+  Catalog and held to the file first: a difference in anything the query relies
+  on refuses, naming the member and the field (#1363). `list --deployed` reads
+  the deployed views instead, with `source: deployed` and per-view `coverage`.
+  `semantic.deployment: databricks_workspace` (#1364) reads the catalog from
+  Unity Catalog alone (every Metric View the allowlist holds, `tables.list` then
+  `tables.get`, no warehouse, `source: account`, per-view `coverage`, no file
+  needed, each view named by its Unity Catalog name) and runs `query` and
+  `values` over it with nothing held to a file; every result carries
+  `definition_source: account` (on a query or values result) and a warning
+  saying so. A configured file describing a view is named in its `coverage` as
+  `repository_file`, and `--local` holds the view to it.
+  `explore relationships` and `explore map` with `--use-hosted-semantic-layer`
+  fold the deployed views' joins and `rely` keys in.
+- `semantic.vendor: snowflake` reads the Snowflake Semantic View YAML files
+  named in `semantic.snowflake.files` statically (needs the `[semantic-views]`
+  extra; no Snowflake connection, nothing deployed), each validated by Dex's own
+  port of Snowflake's rules. Each file is one view, named by its `name`. `list`
+  and `--for-dimension` answer: every name carries its view, so a logical table
+  is `view.table`, a dimension or fact `view.table.member` (a fact is marked
+  `kind: fact`, `groupable: false`), and a metric `view.table.metric` (a
+  view-level one `view.metric`). Primary keys are entities; keys and
+  relationships reach `--use-project`. `query` and `values` run governed on
+  the Snowflake connector only (#1290): Dex renders `SEMANTIC_VIEW(...)` over
+  the deployed view, after refusing by name facts beside metrics or dimensions,
+  private, window, LOD or `using_relationships` members, `variables`, an
+  unreachable dimension and a grain on a categorical one, after the PII gate,
+  and after holding the deployed view (read back with no warehouse) to
+  the repository's file, a difference refusing before the query runs. Tokens are the
+  catalog's, one view per query; a grain is `view.table.dim__month`, `--where`
+  a Snowflake predicate over dimensions and facts (`orders.status = 'F'`), and
+  a query of facts alone takes `--group-by <fact>` and no metric.
+  `list --deployed` reads the deployed views, with per-view `coverage`.
+  `semantic.deployment: snowflake_account` (#1357) reads the catalog from the
+  account alone (every view the allowlist holds, `source: account`, per-view
+  `coverage`, no file needed) and runs `query` and `values` over it with
+  nothing held to a file; every result carries `definition_source: account`
+  (on a query or values result) and a warning saying so. A configured file
+  describing a view is named in its `coverage` as `repository_file`, and
+  `--local` holds the view to it. `explore relationships` and `explore map`
+  with `--use-hosted-semantic-layer` fold the account's keys and joins in.
 - `semantic.vendor: slayer` reads the SLayer model files named in
   `semantic.slayer.models` (needs the `[slayer]` extra). `list` and
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,
@@ -482,6 +667,13 @@ it as `execution` (`dex` or `vendor`).
     refused;
  - `--group-by` takes that model's own columns (`orders.status`); a column
     reached through a join is not groupable;
+ - a list column (`type: ARRAY`) groups by its elements, `posts.tags.value`,
+    listed with a type from its `element_type`; each row counts the parents
+    holding that element (SLayer's `associate`), so rows overlap and a note
+    says so. The whole list (`posts.tags`) is listed with `groupable: false`,
+    and grouping by it or reading its values is refused, naming the `.value`
+    token. `contains`, `contains_any`, `contains_all` and `tags.value = ...`
+    filters are screened as the list column. Redshift refuses a list column;
  - `--grain` buckets the model's `default_time_dimension` at a built-in SLayer
     grain (`day`, `week`, `month`, ...), and a model with none refuses it;
  - `--where` is SLayer's filter syntax, not Jinja: `status = 'paid'`, read

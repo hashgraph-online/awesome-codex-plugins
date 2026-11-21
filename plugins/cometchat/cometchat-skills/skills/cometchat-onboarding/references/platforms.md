@@ -52,7 +52,7 @@ Whether the kit follows the OS by itself DIFFERS per platform — do not assume 
 - **Android:** it DEPENDS on the cohort. **Views:** it DOES with no extra code — extend
   `CometChatTheme.DayNight` (AppCompat DayNight follows the system `uiMode`). **Compose:** it does NOT
   by itself — the host MUST wrap the kit UI in `CometChatTheme(colorScheme = if (isSystemInDarkTheme())
-  darkColorScheme() else lightColorScheme()) { … }`; with no wrapper the kit renders its light defaults
+  darkColorScheme() else lightColorScheme()) { ... }`; with no wrapper the kit renders its light defaults
   and ignores the OS setting (like the React Native "supply BOTH light and dark" case below, NOT the
   automatic iOS case). The core Compose golden path emits this wrapper when theming is "Auto — follow
   OS"; full theming API is `cometchat-android-v6-compose-customization`.

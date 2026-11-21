@@ -1,0 +1,27 @@
+{
+  "skill": "caption-styles",
+  "should_trigger": [
+    "how to add word-by-word captions to a video",
+    "how to make TikTok-style highlighted captions",
+    "karaoke subtitles that fill as you speak",
+    "best font size for captions on Reels and Shorts",
+    "caption safe zone for TikTok, Reels and Shorts",
+    "how to make captions readable over any background",
+    "animated captions in Remotion or HyperFrames",
+    "accessible captions vs Hormozi-style captions"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Transcribe this interview to an SRT file",
+      "use_instead": "whisperx or elevenlabs-speech-to-text"
+    },
+    {
+      "query": "Translate my subtitles into Spanish",
+      "use_instead": "gemini-srt-translator"
+    },
+    {
+      "query": "Add a lower third with the guest's name",
+      "use_instead": "title-design"
+    }
+  ]
+}

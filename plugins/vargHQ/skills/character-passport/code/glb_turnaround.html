@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLB turnaround</title>
+<style>
+  html, body { margin: 0; background: #ece9e2; overflow: hidden; }
+  .lbl { position: absolute; top: 10px; font: 600 15px/1 Helvetica, Arial, sans-serif; color: #333; letter-spacing: .08em; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// Any GLB (image-to-3D output, Poly Haven prop, Sketchfab download) -> 4 orthographic views, auto-framed.
+const MODEL = new URLSearchParams(location.search).get('model') || 'fisherman_hunyuan_mv.glb';
+const W = 1600, H = 600, VIEWS = [['FRONT', 0], ['SIDE', 90], ['BACK', 180], ['3/4', 35]];
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.setScissorTest(true);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x777066, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 2); key.position.set(2, 3, 4); scene.add(key);
+
+const gltf = await new GLTFLoader().loadAsync(MODEL);
+const obj = gltf.scene;
+obj.traverse(o => { if (o.isMesh && !o.material.map) o.material = new THREE.MeshStandardMaterial({ color: 0xbdb6aa, roughness: 0.7 }); });
+const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+obj.position.sub(c); scene.add(obj);              // centre the mesh on the origin
+const h = Math.max(size.y, size.x * 1.6, size.z * 1.6) * 1.1, aspect = (W / 4) / H;
+
+VIEWS.forEach(([name, deg], i) => {
+  const cam = new THREE.OrthographicCamera(-h * aspect / 2, h * aspect / 2, h / 2, -h / 2, 0.01, 100);
+  const a = THREE.MathUtils.degToRad(deg);
+  cam.position.set(Math.sin(a) * 10, 0, Math.cos(a) * 10); cam.lookAt(0, 0, 0);
+  key.position.set(Math.sin(a + 0.6) * 4, 3, Math.cos(a + 0.6) * 4);  // light follows the camera
+  const x = i * W / 4;
+  renderer.setViewport(x, 0, W / 4, H); renderer.setScissor(x, 0, W / 4, H);
+  renderer.setClearColor(i % 2 ? 0xe2ded6 : 0xece9e2);
+  renderer.render(scene, cam);
+  const d = document.createElement('div'); d.className = 'lbl'; d.textContent = name; d.style.left = (x + 14) + 'px'; document.body.appendChild(d);
+});
+window.__done = true;
+</script>
+</body>
+</html>

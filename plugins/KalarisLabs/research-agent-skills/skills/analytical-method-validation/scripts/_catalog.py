@@ -14,6 +14,8 @@ from __future__ import annotations
 from typing import Any
 
 RESEARCH_DATE = "2026-07-27"
+_REPORT_SD_RSD_CI = "standard deviation, relative standard deviation, and a 100(1-alpha)% CI"
+_TABLE_3_SEPARATION = "Table 3 (quantitative separation techniques)"
 
 # --------------------------------------------------------------------------
 # Frameworks
@@ -265,7 +267,7 @@ Q2R2_STUDY_DESIGN: dict[str, dict[str, str]] = {
             "/ 3 replicates), or minimum 6 determinations at 100% of the test concentration"
         ),
         "reference": "Q2(R2) 3.3.2.1",
-        "report": "standard deviation, relative standard deviation, and a 100(1-alpha)% CI",
+        "report": _REPORT_SD_RSD_CI,
     },
     "intermediate-precision": {
         "requirement": (
@@ -274,7 +276,7 @@ Q2R2_STUDY_DESIGN: dict[str, dict[str, str]] = {
             "encouraged. Extent justified by development understanding and risk (ICH Q14)"
         ),
         "reference": "Q2(R2) 3.3.2.2",
-        "report": "standard deviation, relative standard deviation, and a 100(1-alpha)% CI",
+        "report": _REPORT_SD_RSD_CI,
     },
     "reproducibility": {
         "requirement": (
@@ -282,7 +284,7 @@ Q2R2_STUDY_DESIGN: dict[str, dict[str, str]] = {
             "consider for pharmacopoeial standardisation or multi-site procedures"
         ),
         "reference": "Q2(R2) 3.3.2.3",
-        "report": "standard deviation, relative standard deviation, and a 100(1-alpha)% CI",
+        "report": _REPORT_SD_RSD_CI,
     },
     "specificity": {
         "requirement": (
@@ -431,7 +433,7 @@ M10_CRITERIA: dict[str, dict[str, Any]] = {
 
 TECHNIQUE_NOTES: dict[str, dict[str, str]] = {
     "hplc": {
-        "annex_table": "Table 3 (quantitative separation techniques)",
+        "annex_table": _TABLE_3_SEPARATION,
         "robustness": (
             "extraction volume/time/temperature, dilution, column or capillary lot, mobile "
             "phase and buffer composition and pH, column temperature, flow rate, detection "
@@ -443,10 +445,10 @@ TECHNIQUE_NOTES: dict[str, dict[str, str]] = {
             "correction. Determine RRF under final procedure conditions and document it."
         ),
     },
-    "gc": {"annex_table": "Table 3 (quantitative separation techniques)",
+    "gc": {"annex_table": _TABLE_3_SEPARATION,
            "robustness": "as for HPLC, plus inlet temperature, split ratio, carrier flow, oven ramp",
            "special": "same relative response factor 0.8-1.2 consideration as HPLC"},
-    "ce": {"annex_table": "Table 3 (quantitative separation techniques)",
+    "ce": {"annex_table": _TABLE_3_SEPARATION,
            "robustness": "capillary lot, buffer composition and pH, capillary temperature, voltage",
            "special": "same relative response factor consideration as HPLC"},
     "icp": {"annex_table": "Table 4 (elemental impurities by ICP-OES or ICP-MS)",
@@ -491,6 +493,7 @@ TECHNIQUE_NOTES: dict[str, dict[str, str]] = {
 
 
 def resolve_attribute(name: str) -> str:
+    """Resolve attribute."""
     key = name.strip().lower().replace("_", "-")
     if key in ATTRIBUTE_ALIASES:
         return ATTRIBUTE_ALIASES[key]

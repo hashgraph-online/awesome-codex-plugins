@@ -8,6 +8,8 @@
 >
 > **Last updated:** 2026-02-11
 >
+> **Email open rates** in these profiles are directional only: Apple Mail Privacy Protection inflates opens (see `platform-specs.md`, Open tracking). Judge email on click, conversion and complaint rates.
+>
 > **Usage:** When a workflow or module needs industry-specific data, look up the relevant profile below. All KPI ranges represent typical mid-market performance (not top-decile or bottom-decile). Adjust recommendations based on company maturity and budget.
 
 ---

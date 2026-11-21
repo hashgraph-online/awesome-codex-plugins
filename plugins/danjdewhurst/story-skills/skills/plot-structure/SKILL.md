@@ -15,7 +15,7 @@ A story project must already exist (created via the story-init skill). Verify by
 
 ## Choosing a Story Structure
 
-1. Read `story.md` for genre, themes, and `form` (`novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, `chapter-book`). For `short-story` and `flash`, use `references/short-story-form.md` instead of a multi-act beat sheet
+1. Read `story.md` for genre, themes, and `form` (`novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, `chapter-book`, `poetry-collection`). A poetry collection has no plot beats: use `verse-craft` for it. For `short-story` and `flash`, use `references/short-story-form.md` instead of a multi-act beat sheet
 2. Consult `references/structure-models.md` for available structures
 3. Recommend a structure based on genre (default to three-act if unclear). If the user wants to design the whole book top-down before drafting, or asks for the Snowflake Method, follow `references/snowflake.md` on top of the chosen structure
 4. Update `plot/_index.md` frontmatter `structure` field
@@ -109,7 +109,7 @@ A promise or clue record is `planned` until the setup is on the page, then `plan
 
 Scaffold chapters and scenes with `story add chapter '{Title}' --number {N} --pov {id} --arc {arc-id}` and `story add scene '{Title}' --chapter chapter-{NN} --scene {M} --pov {id} --location {id}`, then write the prose and outline content into the created files. Set `outcome` on scene records and `hook` and `beat` on chapters as the outline settles them, then run `story reindex .`, `story wordcount . --write`, and `story check .`, then `story pacing .`.
 
-When pacing or the outline calls for reordering, show the user the proposed new order and wait for their approval before any move, since reordering changes story shape. Then move the files with the CLI rather than renaming them, because chapter and scene ids encode their numbers and clues, promises, questions, and the timeline point at them:
+When pacing or the outline calls for reordering, show the user the proposed new order and wait for their approval before any move, since reordering changes story shape. Test each move first with `story impact`, which runs the same `move` on a scratch copy and lists only the check findings it would add and clear, writing nothing: `story impact move scene chapter-{NN}-scene-{MM} --chapter chapter-{NN} --path .` (a clue paid off before it is planted, a question resolved before it is asked, a character in a cast after their death). Show the user what it adds alongside the new order. The same works for a plot change with no move, such as a character's death: `story impact die {character-id} chapter-{NN} --path .`. Then move the files with the CLI rather than renaming them, because chapter and scene ids encode their numbers and clues, promises, questions, and the timeline point at them:
 
 - Move a scene to another chapter with `story move scene chapter-{NN}-scene-{MM} --chapter chapter-{NN} --path .` (next free number; add `--scene {M}` to place it), or reorder within its chapter with `--scene {M}` alone
 - Renumber a chapter with `story move chapter chapter-{NN} --number {N} --path .`. A taken number is refused, so to open a gap move the later chapters up one, highest first, then `story add chapter '{Title}' --number {N}`

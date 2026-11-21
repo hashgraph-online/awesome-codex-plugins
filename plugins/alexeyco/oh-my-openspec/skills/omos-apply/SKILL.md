@@ -57,6 +57,10 @@ For each wave, in order:
   requirement/scenario sections they implement, design.md decisions touching
   the group, and the full wave table, including each group's assigned files.
 - Implementers tick their own `- [ ]` → `- [x]` in `tasks.md`.
+- Treat the `Scenario verification` table in `tasks.md` as the planned
+  verification contract. Each verifier report must name the actual method,
+  test or action, and observed result for every scenario. Label manual or
+  composited evidence explicitly; never call it an automated regression test.
 - A user request arriving mid-wave is first checked against the wave table —
   the single source of execution order (Guardrails) — and the remaining
   `tasks.md` items; a covering task is cited, never duplicated by a new
@@ -65,16 +69,30 @@ For each wave, in order:
 ### 5. Blockage and conflict
 
 An implementer `BLOCKED:` answer stops the run's dispatch loop for the
-affected wave:
+affected wave. A reported plan divergence also pauses the affected task group
+until the orchestrator resolves it:
 
 - `file conflict` → re-dispatch the blocked group alone in a follow-up
   mini-wave after its conflicting sibling completes.
-- Guardrail or plan defect → halt and ask the user (irreversible action,
-  security change, external side effect, broken plan are always user
-  decisions). Never lower the bar to get green. Exception: a
-  prompt-truncation `BLOCKED:` is the orchestrator's defect, not the
+- User decision required by a guardrail (irreversible action, security
+  change, or external side effect) → halt and ask the user. Plan divergences
+  follow the explicit paths below. Never lower the bar to get green.
+  Exception: a prompt-truncation `BLOCKED:` is the orchestrator's defect, not the
   plan's — re-dispatch the group with a numbered edit list of ≤150 lines
   referencing `file:line`, not inlined spec or transcript text.
+- Contract-changing discovery → present the implementer's evidence and the
+  exact proposed changes to proposal/spec/design/tasks. Wait for the user's
+  approval before changing agreed scope, behavior, or acceptance criteria.
+  After approval, dispatch `omos-planner` in `MODE: plan` to revise the
+  existing change using only that approval; validate it, rebuild the wave
+  plan, and resume affected work only after the gate returns VALID.
+- Contract-preserving clarification → dispatch `omos-planner` in `MODE: plan`
+  with the evidence to update only the relevant design or task artifact. No
+  scope approval is needed, but validate the change and recompute affected
+  waves before resuming. Never silently change a spec requirement.
+- User declines a proposed contract change → leave the approved artifacts
+  unchanged and stop the affected work; report the remaining tasks and the
+  decision needed to continue.
 
 ### 6. Verify
 
@@ -87,7 +105,8 @@ ticked or the run halts. This gate is ordering only; the verifier's
 
 After the final wave: dispatch one `omos-verifier` per capability spec
 file in parallel. Each runs the mechanical gate, executes every scenario's
-WHEN/THEN, and checks `tasks.md` consistency.
+WHEN/THEN using the planned method where feasible, reports concrete evidence
+and observed outcome, and checks `tasks.md` consistency.
 
 - Any FAIL → one fix round: dispatch `omos-implementer` per failing
   capability with the exact scenario lines, then re-run only the failed

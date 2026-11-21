@@ -1,0 +1,53 @@
+schema_version: 1
+id: hyenadna-inference
+title: HyenaDNA Inference
+path: skills/hyenadna-inference
+status: active
+family: long-context-dna-language-models
+tasks:
+  - environment-setup
+  - embedding
+  - forward
+  - fine-tuning
+  - training
+  - fine-tuning
+  - troubleshooting
+triggers:
+  - hyenadna
+  - hyena-dna
+  - LongSafari
+  - CharacterTokenizer
+  - hyenadna-tiny
+  - hyenadna-large-1m
+required_inputs:
+  - task-objective
+  - target-stack-or-model-family
+optional_inputs:
+  - sequence-or-interval
+  - embedding-target
+  - compute-constraints
+  - runtime-context
+  - hardware-context
+  - dataset-schema
+  - requested-outputs
+input_mappings:
+  - task-objective|query_tokens=embedding,forward,fine-tune,pretrain,classification|script_flags=standalone-or-hydra-path
+  - target-stack-or-model-family|query_tokens=hyenadna,LongSafari,tiny,small,medium,large,checkpoint|script_flags=pretrained_model_name
+  - sequence-or-interval|query_tokens=sequence,DNA,FASTA,ACGTN|script_flags=CharacterTokenizer-input
+  - embedding-target|query_tokens=embedding,representation,logits|script_flags=use_head-and-output-selection
+  - compute-constraints|query_tokens=length,seqlen,1k,32k,160k,450k,1m|script_flags=model_max_length
+  - runtime-context|query_tokens=python,conda,PyTorch,Hydra|script_flags=internal:runtime-selection
+  - hardware-context|query_tokens=gpu,cuda,cpu,memory|script_flags=device-selection
+  - dataset-schema|query_tokens=dataset,GenomicBenchmarks,hg38|script_flags=Hydra-dataset
+  - requested-outputs|query_tokens=embedding,checkpoint,weights,ckpt|script_flags=output-selection
+constraints:
+  - checkpoint-length-is-hard-limit
+  - tokenizer-uses-single-nucleotide-ACGTN-and-left-padding
+  - long-context-inference-needs-GPU-memory
+  - flash-attention-and-submodules-needed-for-full-training
+  - sequence-and-coordinate-inputs-use-explicit-0-based-or-1-based-conventions
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-hyenadna-or-LongSafari
+  - prefer-over-caduceus-when-hyenadna-checkpoint-or-character-tokenizer-is-named

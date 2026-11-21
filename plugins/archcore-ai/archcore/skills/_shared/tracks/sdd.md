@@ -256,8 +256,8 @@ hosts. Gate execution, state block, and resume rules:
     `implements` → the `prd` from `sdd.require` otherwise; none when neither
     exists.
 - Exit checks:
-  - blocking: the plan draft contains the sections Goal, Tasks (phased),
-    Acceptance Criteria, and Dependencies.
+  - blocking: the plan draft has Goal, Tasks, Acceptance Criteria, and
+    Dependencies; Tasks take the form of `skills/_shared/plan-contract.md`.
   - blocking: no plan task and no acceptance criterion restates a prd
     requirement, a prd success metric, or a spec behavior line; the
     content-kind ownership table in `skills/_shared/prd-contract.md` assigns

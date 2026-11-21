@@ -53,7 +53,7 @@ bkt auth login https://bitbucket.org --kind cloud --web-token
 bkt context create dc-prod --host bitbucket.example.com --project ABC --set-active
 
 # Cloud
-bkt context create cloud-team --host bitbucket.org --workspace myteam --set-active
+bkt context create cloud-team --host api.bitbucket.org --workspace myteam --set-active
 ```
 
 ## Platform Awareness

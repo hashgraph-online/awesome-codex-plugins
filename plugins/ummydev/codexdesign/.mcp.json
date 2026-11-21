@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "codexdesign": {
+      "command": "sh",
+      "args": ["./scripts/start.sh", "mcp"],
+      "cwd": "."
+    }
+  }
+}

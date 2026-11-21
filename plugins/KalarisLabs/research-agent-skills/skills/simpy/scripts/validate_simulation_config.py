@@ -74,6 +74,7 @@ def validate_document(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate and normalize an allowlisted local queue or replication "
@@ -93,6 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

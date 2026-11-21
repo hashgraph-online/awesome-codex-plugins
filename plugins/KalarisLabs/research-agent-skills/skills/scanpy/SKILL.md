@@ -308,4 +308,4 @@ Edit-and-pass templates so you don't author config/mappings from scratch:
 
 - `anndata`: Data structure for annotated matrices in single-cell analysis.
 - `scvi-tools`: Trains and applies scvi-tools probabilistic deep generative models (scVI, scANVI, totalVI, MultiVI, PeakVI, DestVI, Solo, CellAssign, MrVI…
-- `pydeseq2`: Runs differential expression analysis on bulk RNA-seq count data with PyDESeq2, the Python port of DESeq2.
+- `cellxgene-census`: Query the CZ CELLxGENE Census programmatically for versioned public single-cell and spatial transcriptomics data.

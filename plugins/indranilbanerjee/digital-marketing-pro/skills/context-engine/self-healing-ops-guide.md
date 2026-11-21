@@ -83,7 +83,7 @@ Every active campaign receives a 0–100 health score, recalculated on each moni
 | **DKIM failure** | Any DKIM failure on sent emails | DNS misconfiguration or key rotation needed |
 | **SPF failure** | Any SPF failure | Sending IP not in SPF record |
 | **DMARC failure** | Any DMARC failure | DKIM or SPF not aligned with From domain |
-| **Open rate collapse** | >40% drop from 7-day moving avg | Deliverability issue or list fatigue |
+| **Click rate collapse** | >40% drop from 7-day moving avg (a sudden open-rate collapse still flags inbox placement, though Apple Mail Privacy Protection hides it for Apple users) | Deliverability issue or list fatigue |
 
 ### Pacing Analysis
 
@@ -139,7 +139,7 @@ Guardrails are stored per brand at `~/.claude-marketing/brands/{slug}/config/gua
 }
 ```
 
-To pre-authorise actions: create a standing approval with `approval-manager.py --brand {slug} --action create-standing --data '{"kind": "autopilot", "actions": ["adjust_bid"], "max_uses_per_day": 5, "days": 30, "summary": "..."}'`, show its scope and cap to the user, run `approve` only after they type `yes`, then `campaign-health-monitor.py --action set-guardrails --brand {slug} --guardrails '{"allowed_actions": ["adjust_bid"]}' --approval-id <id>`. The script refuses non-empty `allowed_actions` without a covering approved standing approval.
+To pre-authorise actions: create a standing approval with `approval-manager.py --brand {slug} --action create-standing --data "@{data_file}"` (`{data_file}` holds `{"kind": "autopilot", "actions": ["adjust_bid"], "max_uses_per_day": 5, "days": 30, "summary": "..."}`: write it with the Write tool first, then pass the path), show its scope and cap to the user, run `approve` only after they type `yes`, then `campaign-health-monitor.py --action set-guardrails --brand {slug} --guardrails "@{guardrails_file}" --approval-id <id>` (`{guardrails_file}` holds `{"allowed_actions": ["adjust_bid"]}`: write it with the Write tool first, then pass the path). The script refuses non-empty `allowed_actions` without a covering approved standing approval.
 
 Before applying any correction without asking, check it is in `allowed_actions` and inside the limits, then log it with `log-correction --was-auto true`; if the log step reports `cap_reached` (or the standing approval expired), propose the correction instead and wait for a typed `yes`. The corrections themselves run through the ad platform's MCP tools, so the limits are kept by you and logged by the script, not enforced by the platform. Guardrails written before 3.35.0 that already list actions keep working as written.
 
@@ -245,7 +245,7 @@ Logs stored at `~/.claude-marketing/brands/{slug}/ops-log.json` and surfaced via
 |---|---|---|---|
 | Deliverability score | Per send | Score <90 | Alert with authentication check |
 | Bounce classification | Per send | Hard bounce >1% | Auto-suppress bounced addresses, alert |
-| Engagement metrics | Per send | Open rate <50% of prior 5-send avg | Alert with subject line / list analysis |
+| Engagement metrics | Per send | Click rate <50% of prior 5-send avg | Alert with subject line / list analysis |
 | List decay rate | Weekly | >2% invalid addresses per month | Alert with list cleaning recommendation |
 | Spam trap hits | Per send | Any spam trap hit | Alert immediately — potential blocklist risk |
 

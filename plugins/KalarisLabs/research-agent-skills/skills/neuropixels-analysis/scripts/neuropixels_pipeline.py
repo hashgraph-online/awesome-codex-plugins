@@ -23,8 +23,10 @@ import json
 import spikeinterface.full as si
 import numpy as np
 
+DEFAULT_STREAM = 'imec0.ap'
 
-def load_recording(data_path: str, stream_name: str = 'imec0.ap') -> si.BaseRecording:
+
+def load_recording(data_path: str, stream_name: str = DEFAULT_STREAM) -> si.BaseRecording:
     """Load a SpikeGLX or Open Ephys recording."""
 
     data_path = Path(data_path)
@@ -41,7 +43,7 @@ def load_recording(data_path: str, stream_name: str = 'imec0.ap') -> si.BaseReco
     else:
         raise ValueError(f"Unknown format in {data_path}")
 
-    print(f"Loaded recording:")
+    print("Loaded recording:")
     print(f"  Channels: {recording.get_num_channels()}")
     print(f"  Duration: {recording.get_total_duration():.2f} s")
     print(f"  Sampling rate: {recording.get_sampling_frequency()} Hz")
@@ -70,7 +72,7 @@ def preprocess(
     print(f"  Applied high-pass filter at {freq_min} Hz")
 
     # Step 2: Detect bad channels
-    bad_channel_ids, channel_labels = si.detect_bad_channels(rec)
+    bad_channel_ids, _ = si.detect_bad_channels(rec)
     if len(bad_channel_ids) > 0:
         print(f"  Detected {len(bad_channel_ids)} bad channels: {bad_channel_ids}")
         rec = rec.remove_channels(bad_channel_ids)
@@ -127,7 +129,7 @@ def check_drift(recording: si.BaseRecording, output_folder: str) -> dict:
 
     # Subsample for plotting
     n_plot = min(100000, len(peaks))
-    idx = np.random.choice(len(peaks), n_plot, replace=False)
+    idx = np.random.default_rng().choice(len(peaks), n_plot, replace=False)
 
     ax.scatter(
         peaks['sample_index'][idx] / recording.get_sampling_frequency(),
@@ -364,7 +366,7 @@ def run_pipeline(
     data_path: str,
     output_path: str,
     sorter: str = 'kilosort4',
-    stream_name: str = 'imec0.ap',
+    stream_name: str = DEFAULT_STREAM,
     apply_motion_correction: bool = True,
     curation_method: str = 'allen'
 ):
@@ -393,7 +395,7 @@ def run_pipeline(
 
     # 4. Motion correction (if needed)
     if apply_motion_correction and drift_info['drift_estimate'] > 20:
-        print(f"Drift > 20 μm detected, applying motion correction...")
+        print("Drift > 20 μm detected, applying motion correction...")
         rec_final = correct_motion(rec_preprocessed, str(output_path))
     else:
         print("Skipping motion correction (low drift)")
@@ -428,7 +430,7 @@ if __name__ == '__main__':
     parser.add_argument('--sorter', default='kilosort4',
                         choices=['kilosort4', 'kilosort3', 'spykingcircus2', 'mountainsort5'],
                         help='Spike sorter to use')
-    parser.add_argument('--stream', default='imec0.ap', help='Stream name')
+    parser.add_argument('--stream', default=DEFAULT_STREAM, help='Stream name')
     parser.add_argument('--no-motion-correction', action='store_true',
                         help='Skip motion correction')
     parser.add_argument('--curation', default='allen',

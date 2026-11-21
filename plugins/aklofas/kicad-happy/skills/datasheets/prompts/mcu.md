@@ -10,7 +10,7 @@ Produce a single JSON object matching this schema: `{{SCHEMA_PATH}}`.
 
 ## Scope — catalog tier only
 
-This is a **catalog-tier** extraction. Capture identity-level facts about the MCU: what is it, how much memory, how many peripherals of each type, what are the supply ranges. Do NOT attempt per-peripheral instance configuration, pin-mux tables, or alternate function maps — those are Tier 2 fields deferred to v1.5 (`mcu_peripherals.schema.json`).
+This is a **catalog-tier** extraction. Capture identity-level facts about the MCU: what is it, how much memory, how many peripherals of each type, what are the supply ranges. Do NOT attempt per-peripheral instance configuration, pin-mux tables, or alternate function maps — those are Tier 2 fields, not part of this schema (`mcu_peripherals.schema.json`).
 
 ## Field guide
 
@@ -82,7 +82,7 @@ This is a **catalog-tier** extraction. Capture identity-level facts about the MC
 
 1. **Canonical SI units. No exceptions.** Memory sizes in **bytes** (NOT KB/MB — store 32K as `32768`). Frequencies in **Hz** (NOT MHz — store 72MHz as `72000000`). Voltages in **V**. Sample rates in **Hz**.
 2. **Every SpecValue requires `evidence`** with `page` (1-based integer), `section` (string or null), `confidence` (`"high"`, `"medium"`, or `"low"`), `method` (one of `table`, `prose`, `curve`, `calculated`, `derived`).
-3. **Catalog tier only.** Capture peripheral *counts* in `peripheral_counts`, not per-peripheral detail. The peripheral_counts object exists to answer "how many UARTs", not "which pins does UART1 use". Per-instance configuration is v1.5 work.
+3. **Catalog tier only.** Capture peripheral *counts* in `peripheral_counts`, not per-peripheral detail. The peripheral_counts object exists to answer "how many UARTs", not "which pins does UART1 use". Per-instance configuration is not part of this schema.
 4. **peripheral_counts uses 0 for absent peripherals, not null.** If a part has no DAC, set `peripheral_counts.dac = 0` AND set top-level `dac: null`.
 5. **reset_pin matches base.pinout[*].numbers exactly** when populated. If you cannot find the pin number in the pinout, set null.
 6. **nvic_priorities is null for non-Cortex-M cores.** AVR, PIC, 8051, classic RISC-V without NVIC → null.

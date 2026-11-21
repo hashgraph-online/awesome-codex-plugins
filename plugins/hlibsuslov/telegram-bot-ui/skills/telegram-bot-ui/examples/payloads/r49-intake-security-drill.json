@@ -1,0 +1,36 @@
+{
+  "scenario": "r49-intake-security-drill",
+  "status": "production",
+  "context": "private + unknown group",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "getUpdates",
+      "params": {
+        "offset": 0,
+        "limit": 100,
+        "timeout": 25,
+        "allowed_updates": [
+          "message",
+          "callback_query",
+          "my_chat_member",
+          "stopped_message_generation"
+        ]
+      }
+    },
+    {
+      "method": "leaveChat",
+      "params": {
+        "chat_id": -1009876543210
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "I was added to chat -1009876543210 (supergroup) by user 444444444. It's not on my allowlist, so I left."
+      }
+    }
+  ]
+}

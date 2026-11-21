@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Slop Stop Skills"
+  short_description: "Remove slop without flattening the author's voice"
+  default_prompt: "Use $suede-deslop (Suede Slop Stop) on [text]. If I ask for findings only, quote and explain the issues without rewriting. Otherwise make the minimum effective style edits, preserve facts, numbers, quotes, code, links, house style, and deliberate voice, invent nothing, then return the cleaned prose with the Slop Stop report and 50-point score. Never infer authorship from writing patterns."
+policy:
+  allow_implicit_invocation: true

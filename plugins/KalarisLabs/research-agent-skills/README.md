@@ -9,11 +9,11 @@
 **<!-- count -->280+<!-- /count --> open-source agent skills that take Claude Code, Codex, Cursor, Gemini CLI, Copilot or any Agent Skills harness from the research question to the accepted paper: literature, hypotheses, experimental design, analysis in AI, ML, biology, chemistry, medicine and physics, writing, citation checks and peer review.**
 
 [![skills.sh installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fskills.sh%2Fapi%2Fbadge%2Fkalarislabs%2Fresearch-agent-skills&label=skills.sh%20installs&color=165d74)](https://skills.sh/kalarislabs/research-agent-skills)
-[![Skills](https://img.shields.io/badge/skills-281-165d74)](#skill-catalog)
+[![Skills](https://img.shields.io/badge/skills-283-165d74)](#skill-catalog)
 [![GitHub stars](https://img.shields.io/github/stars/KalarisLabs/research-agent-skills?style=flat&logo=github&label=stars&color=165d74)](https://github.com/KalarisLabs/research-agent-skills/stargazers)
-[![README views](https://hits.sh/github.com/KalarisLabs/research-agent-skills.svg?label=views&color=165d74)](https://hits.sh/github.com/KalarisLabs/research-agent-skills/)
 [![Last commit](https://img.shields.io/github/last-commit/KalarisLabs/research-agent-skills?color=165d74)](https://github.com/KalarisLabs/research-agent-skills/commits/main)
 [![License: MIT](https://img.shields.io/badge/license-MIT-165d74)](LICENSE)
+[![Ask Devin: CodeWiki](https://img.shields.io/badge/Ask_Devin-CodeWiki-165d74?logo=devin&logoColor=white)](https://app.devin.ai/org/kalarislabs/wiki/KalarisLabs/research-agent-skills?branch=main)
 
 [![Validate](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/validate.yml/badge.svg)](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/validate.yml)
 [![Skill security](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/skill-security.yml/badge.svg)](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/skill-security.yml)
@@ -38,7 +38,15 @@ npx skills add KalarisLabs/research-agent-skills
 
 <sub>One command via <a href="https://skills.sh/kalarislabs/research-agent-skills">skills.sh</a> · no account · pick all skills or only the ones you need · not on npm</sub>
 
-[Install](#install) · [Proof](#proof-a-whole-brain-study-run-end-to-end-with-these-skills) · [Who it's for](#built-for-researchers) · [Benchmarks](#measured-not-claimed) · [Skills](#skill-catalog) · [skills.sh](https://skills.sh/kalarislabs/research-agent-skills) · [Docs](https://docs.kalarislabs.com/research-agent-skills) · [FAQ](#faq)
+**Or paste this into your agent and let it do the install:**
+
+```text
+Use the skills in "https://github.com/kalarislabs/research-agent-skills" that are relevant to the current task. Run `npx skills add "https://github.com/kalarislabs/research-agent-skills"` and select the relevant skills, then follow their instructions.
+```
+
+<sub>Documentation sponsored by <a href="https://mintlify.com">Mintlify</a> · code explained by <a href="https://app.devin.ai/org/kalarislabs/wiki/KalarisLabs/research-agent-skills?branch=main">Devin CodeWiki</a></sub>
+
+[Interactive Catalog](https://skills.kalarislabs.com) · [Install](#install) · [Problems solved](#research-problems-this-actually-solves) · [Proof](#proof-a-whole-brain-study-run-end-to-end-with-these-skills) · [Who it's for](#built-for-researchers) · [Benchmarks](#measured-not-claimed) · [Skills](#skill-catalog) · [skills.sh](https://skills.sh/kalarislabs/research-agent-skills) · [Docs](https://docs.kalarislabs.com/research-agent-skills) · [FAQ](#faq)
 
 </div>
 
@@ -48,6 +56,24 @@ npx skills add KalarisLabs/research-agent-skills
 [agent skills](https://agentskills.io) that gives your AI agent the methods of a careful scientist. Each skill is a folder
 with a `SKILL.md` playbook, reference material and tested scripts. Your agent loads one only when the task needs it, so
 the same agent can search the literature in the morning, design an experiment at noon and answer reviewers at night.
+
+Browse and search the entire collection visually at **[skills.kalarislabs.com](https://skills.kalarislabs.com)**.
+
+## Research problems this actually solves
+
+These are the failures researchers hit when they use a general-purpose agent for science, and what the skills do about
+each. Numbers come from the committed [benchmark results](#measured-not-claimed); model-based ones are pilots.
+
+| The problem | What the skills do | Evidence |
+|---|---|---|
+| **Fabricated or wrong citations** | `citation-verification` checks every reference against Crossref, arXiv and DOI-less preprints before it reaches your draft | Flagged 4/4 fabricated and 4/4 corrupted references, passed 10/10 real ones |
+| **Text that reads as AI-generated** | `unslop-academic-writing` removes the patterns reviewers recognise | Slop index 83% lower than the same model without it (pilot) |
+| **Your agent picks the wrong method** | Each skill states when it applies, so the agent loads the right protocol for the task | Right skill in the top 3 for 96% of 100 held-out prompts, with no false triggers |
+| **Journal formatting and submission rules** | Venue skills for Nature, Cell, Science, IEEE, ACM, Springer, Elsevier, APA, PLOS and arXiv | 11 journal-format skills, each with a checklist |
+| **Analyses you cannot reproduce** | Skills carry tested scripts, reproducibility statements and explicit verification steps | Every skill passes the static quality gate (mean 95.2/100) |
+| **Unsafe third-party skills** | Every skill is scanned for prompt injection, payloads and unreviewed network calls | Cisco skill-scanner, CodeQL and an injection linter run on every pull request |
+
+What it does not do: it will not run your experiments or replace your judgement, and the model-based results are pilots on small samples.
 
 ### From assistant to co-scientist
 
@@ -122,6 +148,7 @@ see also its <a href="https://github.com/KalarisLabs/fly-brain-resuscitation/blo
 One command with the open [skills.sh](https://skills.sh/kalarislabs/research-agent-skills) CLI. It needs Node.js 18+
 and no account, and works with the agents above plus about 70 others (Cline, Goose, Roo, Zed, Warp and more).
 
+**Via skills.sh (Node.js):**
 ```bash
 npx skills add KalarisLabs/research-agent-skills
 ```
@@ -137,6 +164,18 @@ That opens a picker for skills and agents. To skip the picker:
 | Install for all my projects | add `--global` (default is the current project) |
 | Skip confirmation prompts | add `--yes` |
 | Update installed skills later | `npx skills update` |
+
+**Via Python (uv / pip):**
+```bash
+# Instant one-liner via uv (no install required)
+uvx research-agent-skills install citation-verification
+
+# Or install globally into your Python environment
+pip install research-agent-skills
+research-agent-skills install --bundle research-essentials
+```
+
+To inspect all available skills visually first, search the **[Interactive Catalog](https://skills.kalarislabs.com)**.
 
 Then ask your agent in plain language, for example *"Verify every reference in refs.bib"* or
 *"Unslop this introduction without changing any claims"*. The agent loads the right skill on its own.
@@ -261,9 +300,11 @@ drifts from its data. Methodology and caveats: [benchmarks/README.md](benchmarks
 </tr>
 <tr>
 <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/routing-dark.svg" /><img src="PUBLIC/benchmarks/routing-light.svg" alt="Grouped bars: on 100 held-out prompts an LLM router picks the right skill hit@3 0.96 with 0.00 false triggers, versus 0.77 and 0.04 for keyword routing." width="100%" /></picture></td>
-<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/quality-dark.svg" /><img src="PUBLIC/benchmarks/quality-light.svg" alt="Histogram of static quality scores: all 281 skills score 80 or more, mean 95.2." width="100%" /></picture></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/quality-dark.svg" /><img src="PUBLIC/benchmarks/quality-light.svg" alt="Histogram of static quality scores: all 283 skills score 80 or more, mean 95.2." width="100%" /></picture></td>
 </tr>
 </table>
+
+<p align="center"><img src="PUBLIC/benchmark_leaderboard_verification.png" alt="Verification and guardrail results: Crossref DOI verification, fabricated and corrupted citation detection all 100 percent, Claude Haiku router hit@3 96 percent, unslop clean rate 89 percent." width="100%" /></p>
 
 <details>
 <summary><b>The same numbers as a table</b></summary>
@@ -353,20 +394,22 @@ Grouped by category and generated from [`catalog/skills.json`](catalog/skills.js
 
 </details>
 
-<details><summary><b>literature-review</b> (18) · Literature search, systematic reviews, citation management and reference managers</summary>
+<details><summary><b>literature-review</b> (20) · Literature search, systematic reviews, citation management and reference managers</summary>
 
 | Skill | What it does |
 |---|---|
 | [`bgpt-paper-search`](skills/bgpt-paper-search/SKILL.md) | Search scientific papers and retrieve structured experimental data extracted from full-text studies via the BGPT MCP server. |
 | [`bibtex-hygiene`](skills/bibtex-hygiene/SKILL.md) | Clean, deduplicate and validate BibTeX/BibLaTeX bibliographies before submission. |
 | [`citation-management`](skills/citation-management/SKILL.md) | Searches OpenAlex, PubMed, and Google Scholar, extracts metadata from DOIs, PMIDs, PMCIDs, arXiv IDs, and URLs via CrossRef, PubMed, and arXiv, then formats, d… |
-| [`citation-verification`](skills/citation-verification/SKILL.md) | Verify that every reference in a manuscript really exists and matches its metadata, catching hallucinated, corrupted or mismatched citations before submission. |
+| [`citation-verification`](skills/citation-verification/SKILL.md) | Verify that every reference in a manuscript really exists and matches its metadata, catching hallucinated, corrupted, mismatched or retracted citations before… |
 | [`exa-search`](skills/exa-search/SKILL.md) | Web toolkit powered by Exa, tuned for scientific and technical content. |
 | [`firecrawl-research-index`](skills/firecrawl-research-index/SKILL.md) | Query Firecrawl Research Index paper endpoints for topic discovery, source metadata, question-matched passages, and citation-neighbor expansion. |
+| [`fulltext-acquisition`](skills/fulltext-acquisition/SKILL.md) | Get the full text of the papers you screened in and attach each file to the right record. |
 | [`liteparse`](skills/liteparse/SKILL.md) | Local document and PDF parsing that returns spatial text with bounding boxes. |
 | [`literature-review`](skills/literature-review/SKILL.md) | Runs systematic literature reviews by searching PubMed, arXiv, bioRxiv, and Semantic Scholar (plus web search via parallel-cli), screening studies, extracting… |
 | [`markitdown`](skills/markitdown/SKILL.md) | Converts documents to Markdown with Microsoft MarkItDown (Python API, markitdown CLI, markitdown-ocr plugin, markitdown-mcp server), covering PDF, Word, PowerP… |
 | [`open-notebook`](skills/open-notebook/SKILL.md) | Self-hosted, open-source alternative to Google NotebookLM for AI-powered research and document analysis. |
+| [`paper-card`](skills/paper-card/SKILL.md) | Write a structured, verified summary (card) of one research paper where every claim carries a page, a verbatim quote and the numbers it rests on, checked by sc… |
 | [`paper-lookup`](skills/paper-lookup/SKILL.md) | Search 18 scholarly APIs for papers, preprints, citations, open-access full text, repository records, and journal OA status, and return results with reproducib… |
 | [`paperclip`](skills/paperclip/SKILL.md) | Search and read full-text biomedical papers, FDA/PMDA/EMA regulatory documents, clinical trial registries, and UniProt/PDB/ChEMBL entries with the Paperclip CL… |
 | [`paperzilla`](skills/paperzilla/SKILL.md) | Chat with your agent about projects, recommendations, and canonical papers in Paperzilla. |
@@ -458,7 +501,7 @@ Grouped by category and generated from [`catalog/skills.json`](catalog/skills.js
 |---|---|
 | [`chroma`](skills/chroma/SKILL.md) | Open-source embedding database for AI applications. |
 | [`faiss`](skills/faiss/SKILL.md) | Facebook's library for efficient similarity search and clustering of dense vectors. |
-| [`paper-corpus-rag`](skills/paper-corpus-rag/SKILL.md) | Build grounded question answering and retrieval-augmented generation (RAG) over your own collection of research papers, with answers that cite the exact paper… |
+| [`paper-corpus-rag`](skills/paper-corpus-rag/SKILL.md) | Build grounded question answering over your own collection of research papers, with answers that cite the exact paper, page and passage. |
 | [`pinecone`](skills/pinecone/SKILL.md) | Guides use of Pinecone, a managed serverless vector database, through its Python client and the LangChain and LlamaIndex integrations. |
 | [`qdrant-vector-search`](skills/qdrant-vector-search/SKILL.md) | High-performance vector similarity search engine for RAG and semantic search. |
 | [`research-knowledge-graph`](skills/research-knowledge-graph/SKILL.md) | Turn a bibliography or literature corpus into a knowledge graph of papers, authors, venues, topics and citation links, then analyze it (citation clusters, key… |
@@ -729,6 +772,14 @@ Grouped by category and generated from [`catalog/skills.json`](catalog/skills.js
 
 <!-- catalog:end -->
 
+## Sponsor and community
+
+Documentation hosting is sponsored by **[Mintlify](https://mintlify.com)**.
+
+<a href="https://mintlify.com"><img src="docs/assets/mintlify-logo.svg" alt="Mintlify, documentation sponsor of Research Agent Skills" width="140"></a>
+
+[![Star History Chart: Research Agent Skills](https://api.star-history.com/svg?repos=kalarislabs%2Fresearch-agent-skills&type=Date)](https://star-history.com/#KalarisLabs/research-agent-skills&Date)
+
 ## Documentation
 
 - **Getting started:** [Installation](docs/getting-started/installation.md) · [Quickstart](docs/getting-started/quickstart.md)
@@ -825,7 +876,7 @@ If Research Agent Skills helped your work, please cite it ("Cite this repository
   author  = {Chowdhury, Sayan and {Kalaris Labs}},
   title   = {Research Agent Skills: AI agent skills for academic writing and scientific research},
   year    = {2026},
-  version = {1.1.1},
+  version = {1.2.0},
   url     = {https://github.com/KalarisLabs/research-agent-skills},
   license = {MIT}
 }
@@ -840,7 +891,7 @@ their notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 <div align="center">
 
-**Created by [Sayan Chowdhury](https://github.com/saynchowdhury) · [Kalaris Labs](https://github.com/KalarisLabs)**
+**Created & Maintained by [Sayan Chowdhury](https://kalarislabs.com/team/sayan-chowdhury) at [Kalaris Labs](https://kalarislabs.com)**
 
 If this saves you time, please ⭐ the repository so other researchers can find it.
 

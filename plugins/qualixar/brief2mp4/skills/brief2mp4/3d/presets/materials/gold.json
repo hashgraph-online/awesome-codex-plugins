@@ -1,0 +1,12 @@
+{
+  "name": "gold",
+  "description": "Polished gold (measured F0).",
+  "colorSpace": "linear",
+  "baseColor": [
+    1.0,
+    0.77,
+    0.34
+  ],
+  "metallic": 1.0,
+  "roughness": 0.18
+}

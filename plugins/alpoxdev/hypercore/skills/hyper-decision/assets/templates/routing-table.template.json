@@ -1,0 +1,23 @@
+{
+  "review_verdict": "review",
+  "verdicts": {
+    "billing": { "action": "route_to_billing_queue", "human_review": false },
+    "technical": { "action": "route_to_technical_queue", "human_review": false },
+    "account": { "action": "route_to_account_queue", "human_review": false },
+    "other": { "action": "open_triage_task", "human_review": true },
+    "review": { "action": "open_human_review_task", "human_review": true }
+  },
+  "question_types": {
+    "boolean": { "signal": "probability of true", "acts_at_or_above": "booleanActAtOrAbove" },
+    "choice": { "signal": "probability of the chosen option", "acts_at_or_above": "choiceProbabilityAtOrAbove" },
+    "score": { "signal": "confidence where the route reports one", "acts_at_or_above": "scoreConfidenceAtOrAbove" },
+    "box": { "signal": "confidence, which may be null", "acts_at_or_above": "scoreConfidenceAtOrAbove" }
+  },
+  "route": {
+    "tier": "T1",
+    "dialect": "systemone",
+    "name": "TypeSafe direct",
+    "returns_distribution": true
+  },
+  "notes": "The thresholds named in question_types are pre-tuning assumptions, so evaluate them on your own labeled cases; they live in constants.template.ts, which is the single place holding them. A verdict of review is what a below-threshold answer turns into, and it is the path a person has to complete. A route that returns no distribution (T3 emulation on a general language model) cannot fill the signal for choice or score, so every such answer takes review; the route block records the tier so a caller can check before branching."
+}

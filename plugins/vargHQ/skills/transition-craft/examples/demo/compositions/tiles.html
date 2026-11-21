@@ -1,0 +1,242 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    /* the stage overscans 24 px left and right so the RGB kick's channel offsets never show a coloured edge */
+    #tf-stage {
+      position: absolute;
+      left: -24px;
+      top: 0;
+      width: 1968px;
+      height: 1080px;
+      overflow: hidden;
+      background: #000;
+    }
+    #tf-shake {
+      position: absolute;
+      left: 24px;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    /* one shared perspective on the grid parent = one vanishing point for the whole wall */
+    #tf-grid {
+      position: absolute;
+      inset: 0;
+      perspective: 1400px;
+      perspective-origin: 960px 540px;
+    }
+    .tf-tile {
+      position: absolute;
+      transform-style: preserve-3d;
+    }
+    .tf-in {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+    .tf-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background-repeat: no-repeat;
+      background-size: 1920px 1080px;
+      overflow: hidden;
+    }
+    .tf-front {
+      background-image: url("assets/shots/dunes.svg");
+    }
+    .tf-back {
+      background-image: url("assets/shots/harbor.svg");
+      transform: rotateY(180deg);
+    }
+    .tf-spec {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, rgba(255, 255, 255, 0) 35%, rgba(255, 244, 228, 0.4) 50%, rgba(255, 255, 255, 0) 65%);
+      background-size: 300% 100%;
+      opacity: 0;
+      mix-blend-mode: screen;
+    }
+    .tf-full {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #fff;
+      opacity: 0.6;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="tiles" data-width="1920" data-height="1080">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <filter id="tf-rgb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+          <feOffset in="r" dx="-8" dy="0" result="r2" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+          <feOffset in="b" dx="8" dy="0" result="b2" />
+          <feBlend in="r2" in2="g" mode="screen" result="rg" />
+          <feBlend in="rg" in2="b2" mode="screen" />
+        </filter>
+      </defs>
+    </svg>
+    <div id="tf-stage" data-layout-allow-overflow>
+      <div id="tf-shake">
+        <div id="tf-grid"></div>
+        <!-- clean full frames for the holds: no tile seams before the hit or after the wave -->
+        <img class="tf-full" id="tf-a" src="assets/shots/dunes.svg" alt="" />
+        <img class="tf-full" id="tf-b" src="assets/shots/harbor.svg" alt="" />
+      </div>
+    </div>
+    <div class="lbl" id="tf-lbl" data-layout-ignore>tile-flip-mosaic · impact-center</div>
+  </div>
+  <script>
+    (function () {
+      // preset tile-flip-mosaic.impact-center (assets/presets/tile-flip-mosaic.json)
+      const FPS = 30;
+      const D = 3.2;
+      const IMPACT = 1.0; // on the downbeat (8.0 s in the film)
+      const P = {
+        grid: [7, 12], // [rows, cols] for 16:9
+        origin: [0.5, 0.5],
+        amount: 0.8,
+        waveEase: "power2.inOut",
+        jitterPct: 20,
+        flip: 0.42, // whole tile move: 0.30 s to 183°, 0.12 s settle to 180°
+        flipEase: "power3.inOut",
+        overshoot: 3,
+        settle: 0.12,
+        zLift: 45,
+        lightPeak: 1.8, // preset value
+        lightScale: 0.5, // the reference's own rule [41]: 'if it looks like a filter, halve the light' (bright desert clips at 1.8)
+        gutterPx: 3,
+        rgb: { px: 8, frames: 2 },
+      };
+      const [ROWS, COLS] = P.grid;
+      const TW = 1920 / COLS;
+      const TH = 1080 / ROWS;
+      const waveEase = gsap.parseEase(P.waveEase);
+      const flipEase = gsap.parseEase(P.flipEase);
+      const settleEase = gsap.parseEase("power2.out");
+      function hash(i) {
+        let a = (i * 2654435761 + 1013904223) >>> 0;
+        a = Math.imul(a ^ (a >>> 15), a | 1);
+        a ^= a + Math.imul(a ^ (a >>> 7), a | 61);
+        return ((a ^ (a >>> 14)) >>> 0) / 4294967296;
+      }
+
+      const grid = document.getElementById("tf-grid");
+      const tiles = [];
+      const ox = P.origin[0] * 1920,
+        oy = P.origin[1] * 1080;
+      const maxDist = Math.hypot(Math.max(ox, 1920 - ox), Math.max(oy, 1080 - oy));
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const i = r * COLS + c;
+          const x = Math.round(c * TW),
+            y = Math.round(r * TH);
+          const w = Math.round((c + 1) * TW) - x + 1; // 1 px overlap, no rounding gaps
+          const h = Math.round((r + 1) * TH) - y + 1;
+          const tile = document.createElement("div");
+          tile.className = "tf-tile";
+          tile.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+          tile.innerHTML =
+            `<div class="tf-in"><div class="tf-face tf-front" style="background-position:${-x}px ${-y}px"><div class="tf-spec"></div></div>` +
+            `<div class="tf-face tf-back" style="background-position:${-x}px ${-y}px"><div class="tf-spec"></div></div></div>`;
+          grid.appendChild(tile);
+          const cx = x + w / 2,
+            cy = y + h / 2;
+          const d = Math.hypot(cx - ox, cy - oy) / maxDist;
+          const jitter = (hash(i + 7) * 2 - 1) * (P.jitterPct / 100) * P.amount;
+          const delay = Math.max(0, waveEase(d) * P.amount + jitter);
+          const inner = tile.firstChild;
+          tiles.push({
+            inner,
+            faces: inner.children,
+            specs: inner.querySelectorAll(".tf-spec"),
+            delay,
+          });
+        }
+      const WAVE_END = IMPACT + Math.max(...tiles.map((t) => t.delay)) + P.flip;
+
+      const fullA = document.getElementById("tf-a");
+      const fullB = document.getElementById("tf-b");
+      const shake = document.getElementById("tf-shake");
+      const stage = document.getElementById("tf-stage");
+      const FLIP_MAIN = P.flip - P.settle;
+
+      function angleAt(local) {
+        if (local <= 0) return 0;
+        if (local < FLIP_MAIN) return (180 + P.overshoot) * flipEase(local / FLIP_MAIN);
+        if (local < P.flip) return 180 + P.overshoot - P.overshoot * settleEase((local - FLIP_MAIN) / P.settle);
+        return 180;
+      }
+
+      function render(t) {
+        const before = t < IMPACT;
+        const after = t >= WAVE_END;
+        fullA.style.visibility = before ? "visible" : "hidden";
+        fullB.style.visibility = after ? "visible" : "hidden";
+        grid.style.visibility = before || after ? "hidden" : "visible";
+        if (!before && !after) {
+          for (const tile of tiles) {
+            const local = t - IMPACT - tile.delay;
+            const th = angleAt(local);
+            const sn = Math.abs(Math.sin((th * Math.PI) / 180));
+            const moving = local > 0 && local < P.flip;
+            const z = moving ? P.zLift * Math.sin(Math.PI * Math.min(1, local / FLIP_MAIN)) : 0;
+            // gutters open only while the tile is between ~10° and ~170°
+            const g = moving ? Math.min(1, sn / Math.sin(Math.PI / 18)) : 0;
+            const sx = 1 - (P.gutterPx * g) / TW;
+            const sy = 1 - (P.gutterPx * g) / TH;
+            tile.inner.style.transform = `translateZ(${z.toFixed(2)}px) rotateY(${th.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+            const bright = 1 + (P.lightPeak - 1) * P.lightScale * sn;
+            const f = moving ? `brightness(${bright.toFixed(3)})` : "none";
+            tile.faces[0].style.filter = f;
+            tile.faces[1].style.filter = f;
+            const prog = Math.max(0, Math.min(1, local / FLIP_MAIN));
+            for (const sp of tile.specs) {
+              sp.style.opacity = moving ? (0.6 * sn).toFixed(3) : "0";
+              sp.style.backgroundPosition = `${(100 - prog * 100).toFixed(1)}% 0`;
+            }
+          }
+        }
+        // impact: 2-frame RGB kick + a 6-frame decaying micro-shake on the wall
+        const f = Math.round((t - IMPACT) * FPS);
+        stage.style.filter = f >= 0 && f < P.rgb.frames ? "url(#tf-rgb)" : "none";
+        const tau = t - IMPACT;
+        if (tau >= 0 && tau < 0.3) {
+          const env = Math.exp(-8 * tau);
+          const x = 14 * Math.cos(2 * Math.PI * 10 * tau) * env;
+          const y = 10 * Math.sin(2 * Math.PI * 11.3 * tau + 1) * env;
+          shake.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${(1 + 0.02 * env).toFixed(4)})`;
+        } else shake.style.transform = "none";
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#tf-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.15);
+      tl.to("#tf-lbl", { opacity: 0, duration: 0.2, ease: "power1.in" }, D - 0.3);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["tiles"] = tl;
+    })();
+  </script>
+</template>

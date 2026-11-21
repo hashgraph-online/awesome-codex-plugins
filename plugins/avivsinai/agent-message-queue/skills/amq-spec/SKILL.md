@@ -1,6 +1,6 @@
 ---
 name: amq-spec
-version: 0.115.2 # x-release-please-version
+version: 0.158.0 # x-release-please-version
 description: Use two agents to research a design independently and converge on one specification through AMQ. Trigger for collaborative design or messages labeled workflow:spec; use amq-cli for ordinary coordination.
 argument-hint: "<description of what to design> [with <partner>]"
 metadata:
@@ -23,7 +23,9 @@ Per-phase commands and the research and plan templates are in
 
 From the user prompt, extract:
 - **topic**: short kebab-case spec name (e.g., `auth-token-rotation`)
-- **partner**: partner agent handle (default: `codex`)
+- **partner**: use the requested handle. Otherwise inspect `amq who --json`,
+  select a distinct available collaborator on the intended route, and ask the
+  initiator to name one if the choice is ambiguous.
 - **problem**: the full design problem statement
 
 If topic/problem are unclear, ask for clarification.
@@ -65,7 +67,7 @@ Every spec message uses an ordinary AMQ kind plus these labels on the
 
 | Label | Your action |
 |---|---|
-| `phase:request` | Do your own research first, then send findings as `brainstorm` + `phase:research`. |
+| `phase:request` | Research independently, then reply to the kickoff ID with `brainstorm` and labels `workflow:spec,phase:research,done`. The initiator sends its own research as a new brainstorm. |
 | `phase:research` | If you have not sent your own research on this thread, research and send it before you read the partner's. Then read the thread and start discussion as `brainstorm` + `phase:discuss`. |
 | `phase:discuss` | Reply with your analysis; continue until aligned. |
 | `phase:draft` | Review the plan and send feedback as `review_response` + `phase:review`. Do not implement. |

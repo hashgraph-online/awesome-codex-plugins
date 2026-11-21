@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cloudgpu": {
+      "command": "npx",
+      "args": ["-y", "cloudgpu-mcp"],
+      "env": {
+        "CLOUDGPU_API_KEY": "${CLOUDGPU_API_KEY}"
+      }
+    }
+  }
+}

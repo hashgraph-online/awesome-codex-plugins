@@ -1,0 +1,91 @@
+{
+  "skill_name": "suede-pricing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Help me figure out pricing for our new SaaS product. It's a customer support platform for e-commerce stores. We're not sure whether to charge per agent, per ticket, or flat rate. Currently thinking $49-199/month range.",
+      "expected_output": "Should check for product-marketing.md first. Should apply the three pricing axes framework: packaging (what's included in each tier), pricing metric (per agent, per ticket, flat rate: evaluate each), price point ($49-199 range evaluation). Should discuss value metrics and which aligns best with value delivered (per agent is common in support, but per ticket aligns with usage). Should recommend a good-better-best tier structure. Should address pricing psychology. Should provide a specific pricing recommendation with rationale.",
+      "assertions": [
+        "Checks for product-marketing.md",
+        "Applies three pricing axes framework",
+        "Evaluates multiple pricing metrics",
+        "Discusses which metric aligns with value delivered",
+        "Recommends good-better-best tier structure",
+        "Addresses pricing psychology",
+        "Provides specific pricing recommendation with rationale"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We want to raise our prices by 30%. We've been at $29/month for 2 years and we've added a lot of features. How do we do this without losing customers?",
+      "expected_output": "Should apply the 'when to raise prices' and price increase strategies sections. Should recommend a strategy: grandfather existing customers (or give them a grace period), tie the increase to new value, communicate the change clearly with advance notice, consider an annual billing discount as a softening measure. Should address different approaches (immediate for new customers, delayed for existing). Should recommend specific communication strategy. Should note that some churn is expected and acceptable. Should note that auto-renewing customers need advance notice of the increase under state auto-renewal laws (California requires notice 7 to 30 days before the new price applies) and route subscription-law detail to suede-paywalls.",
+      "assertions": [
+        "Applies price increase strategies",
+        "Recommends grandfathering or grace period approach",
+        "Recommends tying increase to new value",
+        "Provides communication strategy",
+        "Addresses new vs existing customer timing",
+        "Suggests annual billing as softening measure",
+        "Notes some churn is expected",
+        "Flags advance-notice rules for auto-renewing customers"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "how do we figure out what people will actually pay? we're launching a new product and have no idea what to charge.",
+      "expected_output": "Should trigger on casual phrasing. Should apply the pricing research methods: Van Westendorp price sensitivity analysis (too cheap, bargain, expensive, too expensive), MaxDiff for feature importance, competitive benchmarking. Should explain how to run each method. Should also recommend simpler approaches: talking to potential customers, analyzing competitor pricing, testing different price points. Should provide a practical pricing research plan they can execute.",
+      "assertions": [
+        "Triggers on casual phrasing",
+        "Applies Van Westendorp price sensitivity method",
+        "Applies MaxDiff for feature importance",
+        "Recommends competitive benchmarking",
+        "Explains how to run each method",
+        "Suggests practical alternatives (customer interviews, competitive analysis)",
+        "Provides executable pricing research plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have a Basic ($19), Pro ($49), and Enterprise (custom) plan. The Pro plan gets 70% of signups. Should we add a plan between Pro and Enterprise?",
+      "expected_output": "Should apply the good-better-best tier structure framework. Should analyze the current situation: Pro capturing 70% is actually healthy, but the gap to Enterprise suggests there may be mid-market customers underserved. Should evaluate whether a 4th tier makes sense: does it address a real gap, or will it create choice paralysis? Should apply pricing psychology (Hick's Law: more options can reduce decisions). Should recommend either a 4th tier with clear differentiation or adjusting the Pro plan to better bridge the gap.",
+      "assertions": [
+        "Applies good-better-best tier structure",
+        "Analyzes current tier performance",
+        "Evaluates whether 4th tier addresses real gap",
+        "Considers choice paralysis risk",
+        "Applies pricing psychology (Hick's Law)",
+        "Provides specific recommendation with rationale"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "What pricing psychology tactics should we use on our pricing page? We want the $79 plan to be the most popular.",
+      "expected_output": "Should apply the pricing psychology section with evidence tiers from the suede-offers behavioral-models catalog: anchoring (Robust), good-better-best relativity and visual emphasis (Context-dependent), decoy tier (Contested, test only), charm pricing (Context-dependent, weak for B2B subscriptions), and the percent-vs-dollar discount heuristic (Folklore), all as hypotheses rather than guaranteed effects. Should provide specific pricing-page recommendations for the $79 plan and cross-reference suede-site-alchemy for broader conversion analysis.",
+      "assertions": [
+        "Applies pricing psychology tactics with evidence tiers",
+        "Applies anchoring effect",
+        "Frames the decoy tier as a test, not a reliable effect",
+        "Applies charm pricing or the percent-vs-dollar heuristic as a test",
+        "Provides specific pricing page recommendations",
+        "Cross-references suede-site-alchemy or the suede-offers behavioral-models catalog"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our pricing page conversion rate is only 1.5%. Can you review the page and suggest improvements?",
+      "expected_output": "Should recognize this is a pricing-page conversion task, not a pricing strategy task. Should defer to or cross-reference `suede-site-alchemy`, which handles conversion analysis including plan-comparison clarity, CTA optimization, and trust signals. `suede-pricing` focuses on the actual pricing decisions (what to charge and how to package), not page design.",
+      "assertions": [
+        "Recognizes this as pricing page CRO, not pricing strategy",
+        "References or defers to suede-site-alchemy",
+        "Explains that pricing is about pricing decisions",
+        "Does not attempt full page CRO audit"
+      ],
+      "files": []
+    }
+  ]
+}

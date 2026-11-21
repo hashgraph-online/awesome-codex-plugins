@@ -6,6 +6,8 @@ Layout-preserving PDF translation skill for **Codex and DeepSeek Harness**, powe
 
 ## 当前版本与适用范围
 
+当前源码版本 **1.5.0-rc.29** 增加 DSH 插件安装入口，只把原有技能注册到宿主的技能目录，不改变翻译、排版或质量检查核心。DSH 安装与权限说明见 [DSH.md](DSH.md)。该源码候选没有发布 npm 包，也不是新的稳定翻译版本。
+
 **1.5.0-rc.28 是 Windows / R1 限定预发布，非正式稳定版。** 源码已合并并发布预发布包；下载与发布状态见 [GitHub Releases](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/tag/v1.5.0-rc.28)。
 
 - 主要流程：Luna 翻译 → BabelDOC 排版 → 单独配置的低成本视觉审查 → 有界定点返工 → 再验收 → 输出前审计。Astra 仅用于单独的开发评估，不自动升级生产模型。
@@ -52,7 +54,19 @@ codex plugin marketplace add reliable-ly0411/babeldoc-pdf-translate
 
 在支持仓库市场的 Codex 客户端选择 `BabelDOC PDF Translate` 安装。该仓库市场独立于 OpenAI 官方公共目录，不代表官方收录。插件只封装技能；Python/BabelDOC 按部署文档另行安装。
 
-## DeepSeek Harness skill 安装
+## DeepSeek Harness plugin 安装
+
+使用支持 `skills.registerProvider` 的 DSH 0.2.2-rc.1（Node.js 24.9+），在独立或现有的 `web` profile 中安装：
+
+```sh
+dsh plugin --profile web add github:reliable-ly0411/babeldoc-pdf-translate
+```
+
+重新启动该 profile 后，agent 的技能目录会出现 `babeldoc-pdf-translate`。适配层只读取随包技能，不下载 Python/BabelDOC、不修改其他技能、不启动翻译、不调用模型，也不读取账户或凭据。实际翻译仍需完成[运行时部署](references/deployment.md)，并由用户选择翻译后端。
+
+目前仅提供 GitHub 源码安装，**没有发布 npm 包**；申请的是社区网站目录收录，不代表已进入应用内一键安装市场，也不代表 DeepSeek 官方认证。详细安装、卸载、兼容与验证边界见 [DSH.md](DSH.md)。
+
+## DeepSeek Harness 文件系统 skill 安装（保留）
 
 DSH 原生发现项目 `.dsh/skills/<name>/SKILL.md`。在目标项目根目录运行：
 
@@ -60,7 +74,7 @@ DSH 原生发现项目 `.dsh/skills/<name>/SKILL.md`。在目标项目根目录�
 git clone --branch main --depth 1 https://github.com/reliable-ly0411/babeldoc-pdf-translate.git .dsh/skills/babeldoc-pdf-translate
 ```
 
-这是文件系统技能，无需安装 Cordis 插件或运行 npm 安装脚本。也可从本仓库复制 `skills/babeldoc-pdf-translate` 到 `.dsh/skills/` 或配置的用户技能目录。需要 DSH 的文件/命令工具和独立 BabelDOC 运行时；未声称验证所有 DSH 版本。
+这条路径仍是文件系统技能，无需安装 Cordis 插件或运行 npm 安装脚本。也可从本仓库复制 `skills/babeldoc-pdf-translate` 到 `.dsh/skills/` 或配置的用户技能目录。需要 DSH 的文件/命令工具和独立 BabelDOC 运行时；未声称验证所有 DSH 版本。两种 DSH 入口任选其一；同名的项目或用户技能优先于插件提供的 bundled 技能。
 
 See [DSH's filesystem skill discovery](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/skills.md). Root `SKILL.md` remains available for direct skill installers; the nested `skills/` copy is the Codex plugin payload. Maintainers edit the root skill resources, run `python scripts/sync_plugin_skill.py`, and check with `--check`.
 

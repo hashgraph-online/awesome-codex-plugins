@@ -2,14 +2,14 @@
 name: cometchat-angular-v5-testing
 description: "Test an Angular app that embeds CometChat — what to mock vs exercise for real, TestBed setup for standalone kit components, avoiding real network in unit tests, and a two-account manual pass for realtime. Triggers: 'write tests for my chat', 'mock cometchat in jest', 'testbed cometchat', 'my tests hang', 'e2e test the chat'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21; Jest / Karma / Vitest / Playwright"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21; Jest / Karma / Vitest / Playwright"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat angular testing v5 testbed jest mock e2e playwright"
 ---
 
-> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.0 verified). **The Angular UI Kit docs have no testing page** — the strategy here is the pack's own, and is labelled as such rather than presented as documented (a tracked DOCS GAP). Any kit symbol a test mocks must still exist in the `angular-v5` catalog, and its real shape comes from the component's `.md` twin via `cometchat-angular-v5-core/references/docs-map.md` — mock the API the kit actually exposes, never one invented to fit the test.
+> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.2 verified). **The Angular UI Kit docs have no testing page** — the strategy here is the pack's own, and is labelled as such rather than presented as documented (a tracked DOCS GAP). Any kit symbol a test mocks must still exist in the `angular-v5` catalog, and its real shape comes from the component's `.md` twin via `cometchat-angular-v5-core/references/docs-map.md` — mock the API the kit actually exposes, never one invented to fit the test.
 
 ## Companion skills (read first)
 - `cometchat-angular-v5-core` — init/login lifecycle, which is what makes tests hang if unmocked.

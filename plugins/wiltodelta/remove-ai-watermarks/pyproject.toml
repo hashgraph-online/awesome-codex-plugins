@@ -4,7 +4,7 @@
 # on it, including the ComfyUI node package. The console script below carries
 # the same weight, since users have it on PATH.
 name = "remove-ai-watermarks"
-version = "0.47.1"
+version = "0.64.0"
 description = "AI watermark remover for visible, invisible, and provenance marks in images and video"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
@@ -60,10 +60,25 @@ dependencies = [
     # synthetic/partial blobs the validator rejects. Binary wheel (Rust), but the
     # import is light (no torch/numpy) so it fits the dependency-light identify
     # host. Prebuilt wheels cover the full CI matrix (linux/macos/windows).
-    "c2pa-python>=0.38.0",
+    # 0.39.0 (c2pa-rs 0.92) reports valid signatures as unknown and accepts a
+    # rejected signer, so stay on 0.38 until a release passes the C2PA suite.
+    "c2pa-python>=0.38.0,<0.39",
 ]
 
 [project.optional-dependencies]
+text = [
+    "torch>=2.0.0",
+    "transformers>=5,<5.16",
+    "tokenizers>=0.22,<0.23",
+    # Thresholds are evaluated against this packaged language model.
+    "py3langid==0.4.0",
+]
+text-api = ["py3langid==0.4.0"]
+# Optional Apple silicon text generation; the shared text guards also cover MLX.
+text-mlx = [
+    "mlx-lm>=0.32.2; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "py3langid==0.4.0; platform_system == 'Darwin' and platform_machine == 'arm64'",
+]
 pixels = [
     "numpy>=1.24.0; python_version < '3.13'",
     # NumPy 1.x has no CPython 3.13+ wheels. Requiring 2.x prevents installers
@@ -78,10 +93,66 @@ heif = [
 ]
 visible = ["remove-ai-watermarks[pixels]"]
 # Video visible removal uses the shared pixel runtime. PyAV packetizes processed
-# VFR frames with explicit PTS before system ffmpeg encodes them.
+# VFR frames with explicit PTS before FFmpeg encodes them. The full bundle
+# includes both CLI tools, so video installations work without a system FFmpeg.
 video = [
     "remove-ai-watermarks[visible]",
     "av>=18,<19",
+    "portable-ffmpeg-full==0.5.0",
+    "filelock>=3.20",
+]
+# Known-message decoding for the pinned public VideoSeal and PixelSeal models.
+video-detect = ["remove-ai-watermarks[video]", "torch>=2.6"]
+# Audio sample processing stays independent of OpenCV and the ML stack.
+audio = [
+    "numpy>=1.24.0; python_version < '3.13'",
+    "numpy>=2; python_version >= '3.13'",
+    "scipy>=1.13.0",
+]
+# The open AudioSeal model verifies compatible audio marks locally. This is
+# separate from proprietary provider audio-watermark verification.
+audio-detect = [
+    "remove-ai-watermarks[audio]",
+    "audioseal==0.2.1",
+    "huggingface-hub>=0.20.0,<2",
+]
+# Compatible public WavMark decoding, separate from production provider claims.
+audio-wavmark = [
+    "remove-ai-watermarks[audio]",
+    "wavmark==0.0.3",
+    "huggingface-hub>=0.20.0,<2",
+]
+# Public Perth v1; validated model modules load without the legacy package initializer.
+audio-perth = [
+    "remove-ai-watermarks[audio]",
+    "resemble-perth==1.0.1",
+    "torch>=2.0.0",
+    "librosa>=0.10",
+    "soundfile>=0.12.1",
+    "PyYAML>=6",
+    "torchaudio>=2.11",
+]
+# Pinned Sony decoder, without the obsolete SDK Torch upper bound.
+audio-silentcipher = [
+    "remove-ai-watermarks[audio]",
+    "torch>=2.6",
+    "librosa>=0.10",
+    "huggingface-hub>=0.20.0,<2",
+]
+# Optional neural codec resynthesis, separate from compatible watermark decoders.
+audio-codec = [
+    "remove-ai-watermarks[audio]",
+    "torch>=2.0.0",
+    "transformers>=5,<5.16",
+    "safetensors",
+    "huggingface-hub>=0.20.0,<2",
+]
+# Optional pinned full-track mel-vocoder, independent of watermark decoders.
+audio-vocoder = [
+    "remove-ai-watermarks[audio]",
+    "torch>=2.6",
+    "librosa>=0.10",
+    "huggingface-hub>=0.20.0,<2",
 ]
 # Open DWT-DCT watermarks used by Stable Diffusion / SDXL / FLUX. The in-tree
 # decoder avoids the upstream invisible-watermark package's mandatory torch and
@@ -92,10 +163,10 @@ detect = [
 ]
 diffusion = [
     "remove-ai-watermarks[pixels]",
-    # A CUDA-enabled torch build is required: invisible-watermark removal has no
-    # CPU, MPS or XPU path. The default PyPI wheel carries CUDA on Linux/Windows;
-    # on macOS there is no CUDA build and this extra installs only for the
-    # non-diffusion imports it shares.
+    # Preserve the historical text runtime installed through this extra.
+    "py3langid==0.4.0",
+    # Image regeneration requires NVIDIA CUDA. Video VAE profiles also support
+    # CPU and MPS when the selected Torch stack supports the host platform.
     "torch>=2.0.0",
     "diffusers>=0.38.0",
     # diffusers 0.38's auto-pipeline registry imports ``Qwen3VLForConditional
@@ -113,6 +184,9 @@ diffusion = [
     "tokenizers>=0.22,<0.23",
     "accelerate>=0.25.0",
     "safetensors",
+    # Wan 2.1 3D video diffusion uses UMT5 (SentencePiece) and ftfy normalization.
+    "sentencepiece>=0.2.2,<0.3",
+    "ftfy>=6.3.1",
 ]
 # Full two-stage high-fidelity profile: Qwen-Image-2512 Lightning + DiffSynth
 # Canny ControlNet for the frame, then SAM-masked Z-Image Turbo face repair.
@@ -125,6 +199,8 @@ qwen-zimage = [
     # Transformers falls through to tiktoken, which cannot parse that file.
     "sentencepiece>=0.2.2,<0.3",
     "torchvision>=0.20.0",
+    # Fixed perceptual acceptance model for qwen21-zimage.
+    "lpips==0.1.4",
 ]
 # Opt-in verified-text reconstruction over qwen-zimage. LaMa removes the changed
 # candidate glyphs before exact Qwen-VAE cores are composited back.
@@ -153,27 +229,13 @@ trustmark = [
     # CPython 3.13+; its 13 detector tests pass on 3.13 with NumPy 2.5.3.
     "trustmark>=0.9.2",
 ]
-# Metadata-free photo classifier (Model 1 then gated Model 2). CPU torch is
-# enough. identify never imports this extra. Weights download on first use.
-classify = [
-    "remove-ai-watermarks[pixels]",
-    "torch>=2.0.0",
-    "transformers>=5,<5.16",
-    "tokenizers>=0.22,<0.23",
-    "huggingface-hub>=0.20.0,<2",
-]
-# Optional vision-only CPU runtime for the photo classifier. Keep it separate
-# because PyTorch remains the default and ONNX Runtime is needed only on opt-in.
-classify-onnx = [
-    "remove-ai-watermarks[classify]",
-    "onnxruntime>=1.24.0",
-]
-# Compact OpenAI/Google/unknown source-export classifier. This is intentionally
-# separate from the heavier photo AI-versus-camera classifier and is not a
-# SynthID detector. Weights download on first use.
+# Unified 10-provider source-pipeline + synthetic-image classifier (NumPy +
+# ONNX Runtime CPU, no torch). identify never imports this extra, and it is not
+# a SynthID detector. Weights download on first use.
 source-classify = [
     "remove-ai-watermarks[pixels]",
     "huggingface-hub>=0.20.0,<2",
+    "onnxruntime>=1.24.0",
 ]
 # Universal region eraser backend -- big-LaMa via onnxruntime (Carve/LaMa-ONNX,
 # Apache-2.0). CPU, no torch. Model (~200 MB) is downloaded on first use and
@@ -197,13 +259,14 @@ migan = [
 dev = [
     "remove-ai-watermarks[video]",
     "remove-ai-watermarks[detect]",
+    # API transport tests exercise the actual packaged language checker.
+    "remove-ai-watermarks[text-api]",
     # Development-only OpenAI Content Provenance oracle. It is not exposed by
     # the installed CLI or the public Python API.
     "openai>=2.52.0",
-    # Development-only local AudioSeal audio watermark oracle for the
-    # scripts/audioseal_experiment.py provenance study. Not part of the
-    # installed CLI, the public Python API, or any runtime pipeline.
-    "audioseal>=0.2.0",
+    # Runtime detector and controlled AudioSeal fixture generation share the
+    # same pinned model seam. The generator remains a development helper.
+    "remove-ai-watermarks[audio-detect]",
     "huggingface-hub>=0.20.0,<2",
     # Direct Microsoft Content Provenance API transport. The adapter uses an
     # Azure CLI Entra token and ignores process proxy settings.
@@ -223,7 +286,7 @@ dev = [
 ]
 # ``qwen-zimage`` already pulls ``diffusion``; naming both would suggest diffusion is
 # independently sufficient for a removal, which it is not.
-all = ["remove-ai-watermarks[video,heif,detect,trustmark,text-restoration,migan,classify,source-classify]"]
+all = ["remove-ai-watermarks[video,video-detect,heif,detect,trustmark,text-restoration,migan,source-classify,audio-detect,audio-codec,audio-vocoder,audio-wavmark,audio-perth,audio-silentcipher,text,text-mlx]"]
 
 [project.scripts]
 remove-ai-watermarks = "remove_ai_watermarks.cli:main"
@@ -243,7 +306,13 @@ build-backend = "hatchling.build"
 # prefers the newest NumPy and silently downgrades PaddleOCR to 3.4.
 # opencv-python comes only from the dev group's invisible-watermark; it shares
 # cv2 with the headless and contrib wheels, so it follows the text-draft pin.
-constraint-dependencies = ["numpy<2.4", "opencv-python==4.10.0.84"]
+constraint-dependencies = [
+    "numpy<2.4",
+    "opencv-python==4.10.0.84",
+    # These C2PA releases omit binary wheels on the affected platforms.
+    "c2pa-python!=0.38.2; sys_platform != 'darwin'",
+    "c2pa-python!=0.38.1; sys_platform == 'win32'",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/remove_ai_watermarks"]

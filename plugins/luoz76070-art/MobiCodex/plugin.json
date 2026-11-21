@@ -1,0 +1,49 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "mobile-codex",
+  "version": "0.3.0",
+  "description": "Manage the Mobile Codex gateway and pair a phone with existing desktop conversations.",
+  "author": {
+    "name": "Mobile Codex contributors"
+  },
+  "homepage": "https://github.com/luoz76070-art/MobiCodex",
+  "repository": "https://github.com/luoz76070-art/MobiCodex",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "mobile",
+    "phone",
+    "remote",
+    "gateway"
+  ],
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "Mobile Codex",
+        "shortDescription": "手机配对、后台网关与设备管理",
+        "longDescription": "Runs a local gateway on the computer that hosts Codex Desktop, so the MobiCodex Android app can view and continue the existing desktop conversations, including approval requests. The skill starts and stops the gateway, creates a five-minute pairing code, lists and revokes paired phones, and can install an optional macOS login service. Nothing starts when the plugin loads.",
+        "developerName": "Mobile Codex contributors",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "查看 Mobile Codex 网关状态",
+          "生成手机配对码"
+        ],
+        "websiteURL": "https://github.com/luoz76070-art/MobiCodex",
+        "privacyPolicyURL": "https://github.com/luoz76070-art/MobiCodex/blob/main/plugins/mobile-codex/PRIVACY.md",
+        "termsOfServiceURL": "https://github.com/luoz76070-art/MobiCodex/blob/main/LICENSE",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png",
+        "screenshots": [
+          "./assets/approval.jpg"
+        ]
+      },
+      "onboardingSkill": "./skills/mobile-codex/SKILL.md"
+    }
+  }
+}

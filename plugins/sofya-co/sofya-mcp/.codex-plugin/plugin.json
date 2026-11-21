@@ -1,0 +1,49 @@
+{
+  "name": "sofya",
+  "version": "1.1.0",
+  "description": "Web search, page fetch, extraction and cited research from Sofya's own search index. Search returns page content, not just snippets; fetch returns clean markdown, PDFs and Office files included.",
+  "author": {
+    "name": "Sofya, Inc.",
+    "email": "support@sofya.co",
+    "url": "https://sofya.co"
+  },
+  "homepage": "https://sofya.co/docs",
+  "repository": "https://github.com/sofya-co/sofya-mcp",
+  "license": "MIT",
+  "keywords": [
+    "web search",
+    "search the web",
+    "fetch url",
+    "read webpage",
+    "pdf to markdown",
+    "extract",
+    "research",
+    "citations",
+    "current events",
+    "news",
+    "sofya"
+  ],
+  "interface": {
+    "displayName": "Sofya",
+    "shortDescription": "Web search, page reading and cited research",
+    "longDescription": "Search the web and get page content, not just snippets. Read URLs and documents (PDF, Word, Excel, PowerPoint) as clean markdown, pull one fact out of a page, or get a cited research report from many sources. Uses Sofya's hosted MCP server with sign-in, plus two skills that tell the agent when to use each tool.",
+    "developerName": "Sofya, Inc.",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://sofya.co",
+    "supportURL": "https://sofya.co/contact",
+    "privacyPolicyURL": "https://sofya.co/privacy",
+    "termsOfServiceURL": "https://sofya.co/terms",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png",
+    "defaultPrompt": [
+      "Use Sofya to search the web for the latest release notes of [library] and cite the sources.",
+      "Use Sofya to read [URL or PDF] and summarise it.",
+      "Use Sofya to research [question] and give me a cited report."
+    ]
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

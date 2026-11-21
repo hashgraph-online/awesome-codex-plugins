@@ -1,0 +1,82 @@
+<!-- Media carousel (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"f":favorites bitmask (bit i = slide i),"c":[5 captions, localized by the bot],"r":N}
+  Slides are inline SVG on theme gradients (no raster files); the one data:image/gif is a 1x1 pixel used as a bullet.
+  Swipe, the arrows and the dots row are local. Request: "fav:<i>@<rev>" toggles slide i (a stale verb: it
+  depends on the state the user saw). -->
+<style>
+/*@kit tokens.css*/
+.cv { margin: 0 8px; overflow: hidden; border-radius: var(--k-r); touch-action: pan-y }
+.sl { display: flex; transition: transform .25s }
+.sl.dr { transition: none }
+.s { flex: none; width: 100%; height: min(150px, 36vw); color: var(--k-btx) }
+.s svg { display: block; width: 100%; height: 100% }
+.s0 { background: linear-gradient(135deg, var(--k-btn), var(--k-acc)) }
+.s1 { background: linear-gradient(135deg, var(--k-ok), var(--k-link)) }
+.s2 { background: linear-gradient(135deg, var(--k-warn), var(--k-bad)) }
+.s3 { background: linear-gradient(135deg, var(--k-link), var(--k-btn)) }
+.s4 { background: linear-gradient(135deg, var(--k-acc), var(--k-ok)) }
+.nv { margin: 8px 0 4px }
+.dt { display: flex; gap: 6px; justify-content: center }
+.dt i { width: 7px; height: 7px; border-radius: 50%; background: rgba(128,128,128,.4) }
+.dt .on { background: var(--k-btn) }
+.pt { width: 8px; height: 8px; border-radius: 50%; background: var(--k-acc); flex: none }
+.wd .ic { margin-right: 6px } [dir=rtl] .wd .ic { margin: 0 0 0 6px }
+</style>
+<div class="k">
+  <div class="cv" id="cv"><div class="sl" id="sl"></div></div>
+  <div class="rw nv"><button class="ch" id="pv"></button><div class="dt gr" id="dt"></div><button class="ch" id="nx"></button></div>
+  <div class="rw"><img class="pt" alt="" src=data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7><span class="gr el" id="cp"></span><span class="mt" id="ct"></span></div>
+  <button class="wd" id="fv"></button>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { pm: "Previous slide", nm: "Next slide", sv: "Save to favorites", fv: "In favorites", none: "No media yet. The bot will send it." } });/*@end*/
+/*@lang ru*/K.add({ ru: { pm: "Предыдущий слайд", nm: "Следующий слайд", sv: "В избранное", fv: "В избранном", none: "Медиа пока нет. Бот его пришлёт." } });/*@end*/
+/*@lang uk*/K.add({ uk: { pm: "Попередній слайд", nm: "Наступний слайд", sv: "В обране", fv: "В обраному", none: "Медіа поки немає. Бот його надішле." } });/*@end*/
+var cur = 0, x0 = 0, dx = 0, dg = 0, sl = K.$("sl"), cv = K.$("cv"), rtl = document.documentElement.dir == "rtl";
+sl.innerHTML = [
+  '<circle cx="70" cy="20" r="9"/><path d="M0 60V42L25 24L48 46L68 32L100 52V60z"/>',
+  '<circle cx="25" cy="16" r="5"/><path d="M0 36q12-10 25 0t25 0t25 0t25 0V60H0z"/>',
+  '<path d="M50 8L61 30L50 52L39 30z"/><circle cx="20" cy="20" r="4"/><circle cx="82" cy="42" r="4"/>',
+  '<rect x="14" y="34" width="14" height="26"/><rect x="36" y="20" width="14" height="40"/><rect x="58" y="28" width="14" height="32"/><rect x="80" y="12" width="12" height="48"/>',
+  '<circle cx="50" cy="30" r="18" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="50" cy="30" r="6"/>'
+].map(function (x, i) {
+  return '<div class="s s' + i + '"><svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" fill="currentColor">' + x + '</svg></div>';
+}).join("");
+function pos() {
+  sl.style.transform = "translateX(calc(" + (rtl ? 1 : -1) * cur * 100 + "% + " + dx + "px))";
+}
+function go(n) { cur = Math.max(0, Math.min(4, n)); dx = 0; draw(); }
+function end() {
+  if (!dg) return;
+  dg = 0; sl.className = "sl";
+  go(cur + (Math.abs(dx) > 40 ? (dx < 0 ? 1 : -1) * (rtl ? -1 : 1) : 0));
+}
+cv.onpointerdown = function (e) {
+  dg = 1; x0 = e.clientX; dx = 0; sl.className = "sl dr";
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+};
+cv.onpointermove = function (e) { if (dg) { dx = e.clientX - x0; pos(); } };
+cv.onpointerup = end;
+cv.onpointercancel = function () { dg = 0; sl.className = "sl"; go(cur); };
+function draw() {
+  var s = K.S.chatData, $ = K.$, i, d = $("dt"), f = s && (s.f >> cur & 1);
+  pos();
+  d.innerHTML = "";
+  for (i = 0; i < 5; i++) d.appendChild(K.h("i", i == cur ? "on" : ""));
+  $("pv").textContent = rtl ? "›" : "‹"; $("nx").textContent = rtl ? "‹" : "›";
+  $("pv").setAttribute("aria-label", K.t("pm")); $("nx").setAttribute("aria-label", K.t("nm"));
+  $("pv").disabled = !cur; $("nx").disabled = cur > 3;
+  $("pv").onclick = function () { go(cur - 1); };
+  $("nx").onclick = function () { go(cur + 1); };
+  $("cp").textContent = s ? s.c[cur] : K.t("none");
+  $("ct").textContent = K.nf(cur + 1) + "/" + K.nf(5);
+  $("fv").innerHTML = '<svg class="ic" viewBox="0 0 24 24"' + (f ? ' fill="currentColor"' : "") +
+    '><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg>' + K.t(f ? "fv" : "sv");
+  $("fv").disabled = K.busy || !K.can() || !s;
+  $("fv").onclick = function () { K.ask("fav:" + cur + "@" + K.R.chatData); };
+}
+K.start(draw);
+</script>

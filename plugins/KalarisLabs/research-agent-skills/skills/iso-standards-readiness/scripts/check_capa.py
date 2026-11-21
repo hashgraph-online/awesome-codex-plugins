@@ -33,6 +33,7 @@ def _text_array(
     *,
     min_items: int = 1,
 ) -> list[str]:
+    """Handle text array."""
     raw = review.list(value, path, min_items=min_items)
     if raw is None:
         return []
@@ -50,6 +51,7 @@ def _text_array(
 
 
 def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
+    """Validate."""
     review = Review()
     metadata = review.object(data.get("metadata"), "metadata")
     if metadata is not None:
@@ -226,6 +228,7 @@ def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = standard_parser(
         "Check CAPA records and fail closed on missing effectiveness evidence.",
         "Path to the local CAPA JSON file",

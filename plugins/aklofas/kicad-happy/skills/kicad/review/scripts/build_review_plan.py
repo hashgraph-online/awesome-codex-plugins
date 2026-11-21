@@ -1,8 +1,7 @@
 """Build a review plan JSON for dispatcher consumption.
 
-design_context is an optional Deep Review input (v2.0 spec §3.B); the
-Layer 2 reviewer role is retired (spec §5). Emits a 1-task plan for the
-design_context subagent.
+design_context is an optional Deep Review input; there is no Layer 2
+reviewer task. Emits a 1-task plan for the design_context subagent.
 """
 from __future__ import annotations
 
@@ -12,6 +11,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))   # skills/kicad/scripts
+
+from deep_review_gate import resolve_run_dir   # noqa: E402
+from kicad_core.fileio import atomic_write_text   # noqa: E402
+
+
 def _now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -19,10 +25,12 @@ def _now_iso():
 def build_plan(analysis_dir):
     """Build a 1-task review plan: design_context only.
 
-    The Layer 2 reviewer task is retired in v2.0 (spec §5).
-    design_context remains as an optional Deep Review input.
+    design_context is an optional Deep Review input. The
+    schematic input is the current run's (analysis/manifest.json), or
+    the one directly in `analysis_dir` for a flat layout.
     """
     analysis_dir = Path(analysis_dir)
+    run_dir = resolve_run_dir(analysis_dir)
     now = _now_iso()
     plan = {
         "schema_version": "1.0",
@@ -38,7 +46,7 @@ def build_plan(analysis_dir):
                 "result_path": str(analysis_dir / "design_context.json"),
                 "result_schema": "skills/kicad/review/schemas/design_context.schema.json",
                 "input_artifacts": [
-                    str(analysis_dir / "schematic.json"),
+                    str(run_dir / "schematic.json"),
                     ".kicad-happy.json",
                 ],
             },
@@ -55,11 +63,13 @@ def main():
     plan = build_plan(args.analysis_dir)
     out = json.dumps(plan, indent=2, sort_keys=True) + "\n"
     if args.output:
-        args.output.write_text(out)
+        atomic_write_text(args.output, out, follow_symlinks=False)
     else:
         print(out)
     return 0
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

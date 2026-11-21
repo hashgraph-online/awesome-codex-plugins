@@ -1,0 +1,22 @@
+{
+  "snapshot": 1,
+  "source": "job board export (fake data): the catalog the search runs over",
+  "jobs": [
+    {"id": "j1", "title": "Backend Engineer (Python)", "company": "Northwind", "city": "Berlin", "level": "middle", "remote": true, "salary": "€4.5-6k", "summary": "Payments APIs, PostgreSQL, on-call once a month."},
+    {"id": "j2", "title": "Senior Backend Engineer, Payments & Billing", "company": "Fabrikam", "city": "Warsaw", "level": "senior", "remote": true, "salary": "€6-8k", "summary": "Own the billing service end to end."},
+    {"id": "j3", "title": "Frontend Engineer (React)", "company": "Contoso", "city": "Kyiv", "level": "middle", "remote": false, "salary": "€3-4k", "summary": "Design system and a public dashboard."},
+    {"id": "j4", "title": "Junior QA Engineer", "company": "Adatum", "city": "Lviv", "level": "junior", "remote": true, "salary": "€1.5-2k", "summary": "Manual and automated checks, mentoring included."},
+    {"id": "j5", "title": "Data Engineer (Airflow, dbt)", "company": "Tailwind", "city": "Berlin", "level": "senior", "remote": false, "salary": "€6-7.5k", "summary": "Warehouse modelling and pipeline reliability."},
+    {"id": "j6", "title": "Staff Engineer, Search & Ranking <Core> Platform — Berlin or Remote EU, Hybrid", "company": "Wingtip", "city": "Berlin", "level": "senior", "remote": true, "salary": "€8-10k", "summary": "Relevance, latency and a small team of four."},
+    {"id": "j7", "title": "DevOps Engineer", "company": "Litware", "city": "Kraków", "level": "middle", "remote": true, "salary": "€4-5.5k", "summary": "Kubernetes, Terraform, incident response."},
+    {"id": "j8", "title": "Embedded Engineer", "company": "Proseware", "city": "Gdańsk", "level": "senior", "remote": false, "salary": "€5-6.5k", "summary": "Firmware for battery systems."},
+    {"id": "j9", "title": "Junior Data Engineer", "company": "Woodgrove", "city": "Kyiv", "level": "junior", "remote": false, "salary": "€1.8-2.5k", "summary": "SQL, Python and a lot of learning."},
+    {"id": "j10", "title": "Інженер даних (Python, Airflow)", "company": "Світоч", "city": "Київ", "level": "middle", "remote": true, "salary": "€3.5-4.5k", "summary": "Пайплайни даних і якість даних."},
+    {"id": "j11", "title": "Інженер з автоматизації тестування", "company": "Зоря", "city": "Львів", "level": "junior", "remote": false, "salary": "€1.5-2.2k", "summary": "Автотести для мобільного застосунку."},
+    {"id": "j12", "title": "Product Designer", "company": "Fabrikam", "city": "Berlin", "level": "middle", "remote": true, "salary": "€4-5k", "summary": "Research and interface design."},
+    {"id": "j13", "title": "Support Specialist (night shift)", "company": "Contoso", "city": "Lviv", "level": "junior", "remote": true, "salary": "€1.2-1.6k", "summary": "Chat support for a payments product."},
+    {"id": "j14", "title": "Engineering Manager", "company": "Northwind", "city": "Warsaw", "level": "senior", "remote": false, "salary": "€7-9k", "summary": "Two squads, roadmap and hiring."},
+    {"id": "j15", "title": "Security Engineer", "company": "Adatum", "city": "Berlin", "level": "senior", "remote": true, "salary": "€6.5-8k", "summary": "Threat modelling and cloud hardening."},
+    {"id": "j16", "title": "ML Engineer", "company": "Tailwind", "city": "Kyiv", "level": "senior", "remote": true, "salary": "€6-8k", "summary": "Ranking models in production."}
+  ]
+}

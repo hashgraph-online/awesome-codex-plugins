@@ -18,9 +18,12 @@ from _common import (
 )
 
 MAX_DIFFS = 512
+_PATH_CPU = "$.cpu"
+_PATH_MEMORY = "$.memory"
 
 
 def _is_optional_nonnegative_number(value: Any) -> bool:
+    """Return whether optional nonnegative number."""
     return value is None or bounded_number(value, maximum=float(MAX_BYTES)) is not None
 
 
@@ -30,6 +33,7 @@ def _expect_mapping(
     path: str,
     errors: list[dict[str, str]],
 ) -> Mapping[str, Any]:
+    """Handle expect mapping."""
     value = parent.get(key)
     if not isinstance(value, dict):
         errors.append(
@@ -49,6 +53,7 @@ def _check_optional_number(
     path: str,
     errors: list[dict[str, str]],
 ) -> None:
+    """Check optional number."""
     if not _is_optional_nonnegative_number(parent.get(key)):
         errors.append(
             {
@@ -59,52 +64,51 @@ def _check_optional_number(
         )
 
 
-def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
-    """Validate the stable 1.1 resource snapshot contract."""
-    errors: list[dict[str, str]] = []
-    notes: list[dict[str, str]] = []
+def _issue(code: str, message: str, path: str) -> dict[str, str]:
+    """Build a validation issue record."""
+    return {"code": code, "message": message, "path": path}
+
+
+def _is_number(value: Any) -> bool:
+    """Return whether ``value`` is an int or float that is not a bool."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _validate_header(snapshot: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate schema version, snapshot kind, timestamp and platform fields."""
     if snapshot.get("schema_version") != SCHEMA_VERSION:
         errors.append(
-            {
-                "code": "SCHEMA_VERSION",
-                "message": f"must equal {SCHEMA_VERSION}",
-                "path": "$.schema_version",
-            }
+            _issue("SCHEMA_VERSION", f"must equal {SCHEMA_VERSION}", "$.schema_version")
         )
     if snapshot.get("snapshot_kind") != "effective_resource_snapshot":
         errors.append(
-            {
-                "code": "SNAPSHOT_KIND",
-                "message": "must equal effective_resource_snapshot",
-                "path": "$.snapshot_kind",
-            }
+            _issue(
+                "SNAPSHOT_KIND",
+                "must equal effective_resource_snapshot",
+                "$.snapshot_kind",
+            )
         )
     observed_at = snapshot.get("observed_at")
     if not isinstance(observed_at, str) or not observed_at.endswith("Z"):
         errors.append(
-            {
-                "code": "TIMESTAMP",
-                "message": "must be a UTC string ending in Z",
-                "path": "$.observed_at",
-            }
+            _issue("TIMESTAMP", "must be a UTC string ending in Z", "$.observed_at")
         )
 
     platform = _expect_mapping(snapshot, "platform", "$", errors)
     for key in ("system", "machine", "python_version"):
         if not isinstance(platform.get(key), str) or not platform.get(key):
             errors.append(
-                {
-                    "code": "PLATFORM",
-                    "message": "must be a nonempty string",
-                    "path": f"$.platform.{key}",
-                }
+                _issue("PLATFORM", "must be a nonempty string", f"$.platform.{key}")
             )
 
+
+def _validate_cpu(snapshot: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the cpu section of a snapshot."""
     cpu = _expect_mapping(snapshot, "cpu", "$", errors)
-    host_cpu = _expect_mapping(cpu, "host", "$.cpu", errors)
-    process_cpu = _expect_mapping(cpu, "process", "$.cpu", errors)
-    cpu_cgroup = _expect_mapping(cpu, "cgroup_v2", "$.cpu", errors)
-    effective_cpu = _expect_mapping(cpu, "effective", "$.cpu", errors)
+    host_cpu = _expect_mapping(cpu, "host", _PATH_CPU, errors)
+    process_cpu = _expect_mapping(cpu, "process", _PATH_CPU, errors)
+    cpu_cgroup = _expect_mapping(cpu, "cgroup_v2", _PATH_CPU, errors)
+    effective_cpu = _expect_mapping(cpu, "effective", _PATH_CPU, errors)
     for key in ("logical", "physical"):
         _check_optional_number(host_cpu, key, "$.cpu.host", errors)
     for key in ("affinity_logical", "python_available_logical"):
@@ -121,26 +125,25 @@ def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         or not 1 <= worker_ceiling <= 1024
     ):
         errors.append(
-            {
-                "code": "WORKER_CEILING",
-                "message": "must be an integer between 1 and 1024",
-                "path": "$.cpu.effective.worker_ceiling",
-            }
+            _issue(
+                "WORKER_CEILING",
+                "must be an integer between 1 and 1024",
+                "$.cpu.effective.worker_ceiling",
+            )
         )
     if not isinstance(effective_cpu.get("limiting_sources"), list):
         errors.append(
-            {
-                "code": "LIMIT_SOURCES",
-                "message": "must be an array",
-                "path": "$.cpu.effective.limiting_sources",
-            }
+            _issue("LIMIT_SOURCES", "must be an array", "$.cpu.effective.limiting_sources")
         )
 
+
+def _validate_memory(snapshot: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the memory section of a snapshot."""
     memory = _expect_mapping(snapshot, "memory", "$", errors)
-    host_memory = _expect_mapping(memory, "host", "$.memory", errors)
-    effective_memory = _expect_mapping(memory, "effective", "$.memory", errors)
-    memory_cgroup = _expect_mapping(memory, "cgroup_v2", "$.memory", errors)
-    swap = _expect_mapping(memory, "swap", "$.memory", errors)
+    host_memory = _expect_mapping(memory, "host", _PATH_MEMORY, errors)
+    effective_memory = _expect_mapping(memory, "effective", _PATH_MEMORY, errors)
+    memory_cgroup = _expect_mapping(memory, "cgroup_v2", _PATH_MEMORY, errors)
+    swap = _expect_mapping(memory, "swap", _PATH_MEMORY, errors)
     for key in ("available_bytes", "total_bytes"):
         _check_optional_number(host_memory, key, "$.memory.host", errors)
     for key in (
@@ -155,116 +158,109 @@ def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         _check_optional_number(swap, key, "$.memory.swap", errors)
     available = effective_memory.get("available_bytes")
     hard_limit = effective_memory.get("hard_limit_bytes")
-    if (
-        isinstance(available, (int, float))
-        and not isinstance(available, bool)
-        and isinstance(hard_limit, (int, float))
-        and not isinstance(hard_limit, bool)
-        and available > hard_limit
-    ):
+    if _is_number(available) and _is_number(hard_limit) and available > hard_limit:
         errors.append(
-            {
-                "code": "MEMORY_ORDER",
-                "message": "available memory cannot exceed the effective hard limit",
-                "path": "$.memory.effective.available_bytes",
-            }
+            _issue(
+                "MEMORY_ORDER",
+                "available memory cannot exceed the effective hard limit",
+                "$.memory.effective.available_bytes",
+            )
         )
 
+
+def _validate_disk(snapshot: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the disk section of a snapshot."""
     disk = _expect_mapping(snapshot, "disk", "$", errors)
     for key in ("capacity_bytes", "free_bytes", "user_available_bytes"):
         _check_optional_number(disk, key, "$.disk", errors)
     if disk.get("writable") is not None and not isinstance(
         disk.get("writable"), bool
     ):
-        errors.append(
-            {
-                "code": "DISK_WRITABLE",
-                "message": "must be boolean or null",
-                "path": "$.disk.writable",
-            }
-        )
+        errors.append(_issue("DISK_WRITABLE", "must be boolean or null", "$.disk.writable"))
     free = disk.get("free_bytes")
     user_available = disk.get("user_available_bytes")
     capacity = disk.get("capacity_bytes")
-    if all(
-        isinstance(value, (int, float)) and not isinstance(value, bool)
-        for value in (free, user_available, capacity)
-    ):
-        if not 0 <= user_available <= free <= capacity:
-            errors.append(
-                {
-                    "code": "DISK_ORDER",
-                    "message": "expected user_available <= free <= capacity",
-                    "path": "$.disk",
-                }
+    all_numbers = all(_is_number(value) for value in (free, user_available, capacity))
+    if all_numbers and not 0 <= user_available <= free <= capacity:
+        errors.append(
+            _issue(
+                "DISK_ORDER",
+                "expected user_available <= free <= capacity",
+                "$.disk",
             )
+        )
 
+
+def _validate_device(
+    index: int,
+    device: Any,
+    errors: list[dict[str, str]],
+    notes: list[dict[str, str]],
+) -> None:
+    """Validate one accelerator device entry, recording errors and assertion notes."""
+    device_path = f"$.accelerators.devices[{index}]"
+    if not isinstance(device, dict):
+        errors.append(_issue("ACCELERATOR_DEVICE", "must be an object", device_path))
+        return
+    if device.get("backend_candidate") not in {"cuda", "metal", "rocm"}:
+        errors.append(
+            _issue(
+                "ACCELERATOR_BACKEND",
+                "must be cuda, metal, or rocm",
+                f"{device_path}.backend_candidate",
+            )
+        )
+    if device.get("device_permission") != "not_tested":
+        notes.append(
+            _issue(
+                "PERMISSION_ASSERTION",
+                "device permission differs from the detector's "
+                "conservative not_tested default",
+                f"{device_path}.device_permission",
+            )
+        )
+    if device.get("runtime_compatibility") != "not_tested":
+        notes.append(
+            _issue(
+                "RUNTIME_ASSERTION",
+                "runtime compatibility differs from the detector's "
+                "conservative not_tested default",
+                f"{device_path}.runtime_compatibility",
+            )
+        )
+
+
+def _validate_accelerators(
+    snapshot: Mapping[str, Any],
+    errors: list[dict[str, str]],
+    notes: list[dict[str, str]],
+) -> None:
+    """Validate the accelerators section of a snapshot."""
     accelerators = _expect_mapping(snapshot, "accelerators", "$", errors)
     devices = accelerators.get("devices")
     if not isinstance(devices, list) or len(devices) > 256:
         errors.append(
-            {
-                "code": "ACCELERATOR_DEVICES",
-                "message": "must be an array with at most 256 entries",
-                "path": "$.accelerators.devices",
-            }
+            _issue(
+                "ACCELERATOR_DEVICES",
+                "must be an array with at most 256 entries",
+                "$.accelerators.devices",
+            )
         )
-    else:
-        for index, device in enumerate(devices):
-            if not isinstance(device, dict):
-                errors.append(
-                    {
-                        "code": "ACCELERATOR_DEVICE",
-                        "message": "must be an object",
-                        "path": f"$.accelerators.devices[{index}]",
-                    }
-                )
-                continue
-            if device.get("backend_candidate") not in {"cuda", "metal", "rocm"}:
-                errors.append(
-                    {
-                        "code": "ACCELERATOR_BACKEND",
-                        "message": "must be cuda, metal, or rocm",
-                        "path": (
-                            f"$.accelerators.devices[{index}].backend_candidate"
-                        ),
-                    }
-                )
-            if device.get("device_permission") != "not_tested":
-                notes.append(
-                    {
-                        "code": "PERMISSION_ASSERTION",
-                        "message": (
-                            "device permission differs from the detector's "
-                            "conservative not_tested default"
-                        ),
-                        "path": (
-                            f"$.accelerators.devices[{index}].device_permission"
-                        ),
-                    }
-                )
-            if device.get("runtime_compatibility") != "not_tested":
-                notes.append(
-                    {
-                        "code": "RUNTIME_ASSERTION",
-                        "message": (
-                            "runtime compatibility differs from the detector's "
-                            "conservative not_tested default"
-                        ),
-                        "path": (
-                            f"$.accelerators.devices[{index}].runtime_compatibility"
-                        ),
-                    }
-                )
+        return
+    for index, device in enumerate(devices):
+        _validate_device(index, device, errors, notes)
 
+
+def _validate_scheduler_privacy(
+    snapshot: Mapping[str, Any],
+    errors: list[dict[str, str]],
+    notes: list[dict[str, str]],
+) -> None:
+    """Validate the scheduler and privacy sections of a snapshot."""
     scheduler = _expect_mapping(snapshot, "scheduler", "$", errors)
     if not isinstance(scheduler.get("fields_read"), list):
         errors.append(
-            {
-                "code": "SCHEDULER_FIELDS",
-                "message": "must be an array",
-                "path": "$.scheduler.fields_read",
-            }
+            _issue("SCHEDULER_FIELDS", "must be an array", "$.scheduler.fields_read")
         )
     privacy = _expect_mapping(snapshot, "privacy", "$", errors)
     for key in (
@@ -274,13 +270,7 @@ def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         "identifiers_redacted_by_default",
     ):
         if not isinstance(privacy.get(key), bool):
-            errors.append(
-                {
-                    "code": "PRIVACY",
-                    "message": "must be boolean",
-                    "path": f"$.privacy.{key}",
-                }
-            )
+            errors.append(_issue("PRIVACY", "must be boolean", f"$.privacy.{key}"))
     if any(
         privacy.get(key) is True
         for key in (
@@ -290,31 +280,37 @@ def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
     ):
         notes.append(
-            {
-                "code": "PRIVACY_EXPANDED",
-                "message": "snapshot includes fields normally redacted",
-                "path": "$.privacy",
-            }
+            _issue(
+                "PRIVACY_EXPANDED",
+                "snapshot includes fields normally redacted",
+                "$.privacy",
+            )
         )
 
-    warning_items = snapshot.get("warnings")
-    if not isinstance(warning_items, list) or len(warning_items) > 512:
-        errors.append(
-            {
-                "code": "WARNINGS",
-                "message": "must be an array with at most 512 entries",
-                "path": "$.warnings",
-            }
-        )
-    provenance = snapshot.get("provenance")
-    if not isinstance(provenance, list) or len(provenance) > 512:
-        errors.append(
-            {
-                "code": "PROVENANCE",
-                "message": "must be an array with at most 512 entries",
-                "path": "$.provenance",
-            }
-        )
+
+def _validate_bounded_lists(
+    snapshot: Mapping[str, Any], errors: list[dict[str, str]]
+) -> None:
+    """Validate that the warnings and provenance arrays exist and stay bounded."""
+    for key, code in (("warnings", "WARNINGS"), ("provenance", "PROVENANCE")):
+        items = snapshot.get(key)
+        if not isinstance(items, list) or len(items) > 512:
+            errors.append(
+                _issue(code, "must be an array with at most 512 entries", f"$.{key}")
+            )
+
+
+def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate the stable 1.1 resource snapshot contract."""
+    errors: list[dict[str, str]] = []
+    notes: list[dict[str, str]] = []
+    _validate_header(snapshot, errors)
+    _validate_cpu(snapshot, errors)
+    _validate_memory(snapshot, errors)
+    _validate_disk(snapshot, errors)
+    _validate_accelerators(snapshot, errors, notes)
+    _validate_scheduler_privacy(snapshot, errors, notes)
+    _validate_bounded_lists(snapshot, errors)
 
     errors.sort(key=lambda item: (item["path"], item["code"], item["message"]))
     notes.sort(key=lambda item: (item["path"], item["code"], item["message"]))
@@ -328,6 +324,7 @@ def validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _strip_volatile(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """Handle strip volatile."""
     cleaned = copy.deepcopy(dict(snapshot))
     cleaned.pop("observed_at", None)
     return cleaned
@@ -339,6 +336,7 @@ def _diff_values(
     path: str,
     changes: list[dict[str, Any]],
 ) -> None:
+    """Handle diff values."""
     if len(changes) >= MAX_DIFFS:
         return
     if isinstance(before, dict) and isinstance(after, dict):
@@ -434,6 +432,7 @@ def diff_snapshots(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Validate or structurally diff resource snapshot JSON"
     )
@@ -462,6 +461,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.force and not args.output:

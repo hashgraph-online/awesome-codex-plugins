@@ -95,7 +95,7 @@ passwords, 2FA codes, cookies, or session tokens.
 
 - Deleted, protected, or unavailable content can stay inaccessible. Xquik
   omits missing optional fields and never invents data.
-- The rate limits give each user 500 reads per second, 120 writes per minute,
-  and 60 deletes per minute. A `429` includes `Retry-After`.
+- The rate limits give each user 500 reads per second, 6,000 changes per
+  minute, and 120 X actions per minute. A `429` includes `Retry-After`.
 - The repository README lists typed TypeScript and Python SDKs.
 - Docs for the user are at `https://docs.xquik.com`.

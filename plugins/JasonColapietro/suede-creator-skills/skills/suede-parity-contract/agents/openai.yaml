@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Parity Contract Skills"
+  short_description: "Cross-surface constants held by a generated contract"
+  default_prompt: "Use $suede-parity-contract when the same rule, threshold, ladder or scoring table is implemented on more than one surface and the values are being kept in step by hand. Name exactly one reference surface, build a contract that imports its live constants rather than retyping them, add a staleness test so the committed file cannot drift from the code, vendor a byte-identical copy to every follower, and make each follower assert through public behaviour rather than by reimplementing the reference formula. Record every divergence you find under knownDivergences with the value on each surface and a reason, and guard that the divergence list is exactly the expected set. Prove non-vacuity on both sides in the same run: change a constant, watch the named test fail, restore it. Never decide which surface is correct and never change a shipped constant as a side effect: halt, name the divergence, offer the options, and wait."
+policy:
+  allow_implicit_invocation: true

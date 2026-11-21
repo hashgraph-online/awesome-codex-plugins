@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "telegram-bot-ui",
+  "version": "2.2.1",
+  "description": "Design, build, review and operate Telegram bots with the newest Bot API: bot screens and keyboards, streaming AI replies, HTML widgets, premium emoji, product flows, channel publishing, agent-operated bots and Bot API lookups. Bundles the telegram-bot-ui skill and five subagents.",
+  "author": {
+    "name": "hlibsuslov"
+  },
+  "homepage": "https://github.com/hlibsuslov/telegram-bot-ui",
+  "repository": "https://github.com/hlibsuslov/telegram-bot-ui",
+  "license": "MIT",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "bot-api",
+    "ui",
+    "ux",
+    "widgets",
+    "channels",
+    "agent-skills"
+  ]
+}

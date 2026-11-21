@@ -117,26 +117,38 @@ Make plots support the argument, not merely display data.
 
 ## Results And Figure Discussion
 
-Discuss figures in four levels:
+Open a results subsection with its purpose and connection to the preceding analysis when that connection is not already clear. Identify the comparison being made before interpreting it.
 
-1. Description: State what the figure shows, including variables, conditions, samples, and uncertainty representation.
-2. Observation: Identify the main trends, thresholds, extrema, slopes, regimes, or anomalies.
-3. Physical explanation: Explain the observation using mechanisms, scaling, competing effects, or limiting processes.
-4. Literature comparison: Compare the conclusion with existing work, noting whether it is consistent, extends prior understanding, or reveals something not previously reported.
+Develop each figure discussion through four steps:
 
-For multi-panel figures, describe how panels connect instead of treating them as unrelated plots.
+1. **Describe:** Identify the plotted quantities, axes, conditions, and configurations. Include the uncertainty definition when it is needed to read the result.
+2. **Observe:** State the direction, threshold, extremum, regime change, or difference, with only the numerical anchors needed to support it.
+3. **Explain:** Relate the observation to theory, mechanisms, hypotheses, or relevant prior studies. Label plausible explanations as hypotheses when the controls do not isolate them. Repeat observation and explanation when a figure contains distinct findings.
+4. **Conclude:** State the specific implication supported within the tested scope.
 
-When discussing disagreement with existing work, first check differences in geometry, operating regime, fluid properties, measurement method, uncertainty, and data-reduction definitions.
+Combine plots that support one consistent argument in a connected paragraph. Give plots separate discussions when their questions, evidence, or implications differ; do not assign a paragraph mechanically to every subfigure. Use this sequence as reasoning, not mandatory sentence stems. A literature comparison belongs where it helps explain or bound the observation, rather than as an obligatory closing sentence.
 
-## Results Writing Pattern
-
-Use this sentence-level flow for each major result:
-
-1. "Figure X shows..." to orient the reader.
-2. "It is observed that..." to state the trend.
-3. "This trend indicates/suggests..." to interpret the result.
-4. "Physically, this can be attributed to..." to explain the mechanism.
-5. "This conclusion is consistent with/differs from..." to situate the result relative to prior work.
-6. "Therefore..." to state the implication for the research question.
+Before attributing disagreement with prior work to physics, compare geometry, operating regime, properties, measurement method, uncertainty, and data-reduction definitions.
 
 Avoid claiming novelty only because a trend was not previously reported. State why the new observation matters and what measurement, model, or analysis made it possible.
+
+## Concise Section Revision
+
+- Re-read the current manuscript and relevant figures/tables before revising a previously edited section. An earlier draft or extraction may be stale.
+- Preserve definitions, units, signs, uncertainty, citations, and decisive protocol boundaries. Remove repeated setup, secondary numerical catalogs, and repeated qualifications; do not target an arbitrary word reduction.
+- Identify model architecture, task, input/context duration, and evaluation protocol where ambiguity would change the interpretation. Use a short name only after its identity is clear; do not infer that similarly named models in different sections use the same checkpoints or windows.
+- Keep captions descriptive. Put interpretation and substantive methodological notes in the main text. For Han Hu manuscripts, avoid an extra explanatory paragraph below a table: integrate essential notes into the main text and drop redundant ones, retaining symbol definitions or footnotes required by the venue.
+- When asked whether a value appears in a table or figure, inspect those objects and distinguish text-only reporting from displayed evidence. A value repeated from manuscript prose is not independently verified against raw data or logs. Do not invent a table location or new measurement.
+- A conclusion synthesizes the principal findings, their significance, and the decisive validation limits. Retain a few key numerical anchors with their uncertainty, not every metric or a figure-by-figure recap. Check it against the final results after section revisions.
+
+## Evidence Checks During Compression
+
+Apply the checks relevant to the section; do not turn every rewrite into a new experimental study.
+
+- Preserve aggregation: mean signed bias, mean absolute error, per-sample error, and variability across optimization seeds answer different questions. A bound on a mean is not a bound on every sample or seed, and seed variability is not independent experimental uncertainty.
+- Keep distinct calibrations, partitions, capacities, and sample counts identifiable. Do not pool incompatible comparisons or transfer an attribution result from one configuration to another without evidence.
+- Input perturbations establish sensitivity to the intervention. Check which properties changed before attributing the response to motion or a physical mechanism; averaging may also alter spatial detail, and reordering may change the final input. Define branch-variance fractions and covariance treatment before interpreting them. Correlation with an image-derived proxy does not exclude alternative causes.
+- The best tested setting does not establish an optimum. Reaching a training limit does not prove that further training improves test performance or that a limitation can only bias the trend in one direction.
+- Separate training time, inference latency, memory, and arithmetic cost. Check frame-period comparisons arithmetically. Amortized batch time per sample measures throughput, not individual response latency; distinguish full-batch execution, batch accumulation, input-history startup, and end-to-end processing when relevant. State the assumed prediction-update cadence.
+
+For a separate replacement document, preserve the original, retain requested figures and table values, and use anchored comments for unresolved author checks. Verify cross-references and numerical entries, then render and inspect every page, including caption breaks and table wrapping. Report what was checked and what remains unresolved; prose edits do not close scientific validation gaps.

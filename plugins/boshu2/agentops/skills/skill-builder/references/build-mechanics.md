@@ -21,11 +21,12 @@ checkout: the one holding these scripts, or the root named by
 `scripts/generate-skill-mesh.py`, such as a plugin install, is refused with exit
 2 before anything is written. `heal.sh --fix` runs the source check first, so a
 target with findings exits 1 before that refusal is reached. `heal.sh --check`
-has no such requirement but accepts only targets under that root's `skills/`.
+has no such requirement but accepts only targets under that root's `skills/`
+and resolves a relative target against that root, not the current directory.
 
 The shell entrypoints delegate creation and source checks to `ao skills build`
 and `ao skills check-source`. Development checkouts run their Go source;
-installed packages need an `ao` built from this version. Tests can set
+installed packages need `ao` 3.9 or later. Tests can set
 `AO_SKILL_BUILDER_BIN` to an explicit binary. Build JSON goes to stdout. To save
 it, pass `--report /absolute/external/directory/build.json` in an existing
 protected non-Git directory. Existing report paths are never replaced.

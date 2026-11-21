@@ -26,6 +26,7 @@ except ImportError:
 
 
 def summarize_experiment(path):
+    """Summarize experiment."""
     exp = ms.MSExperiment()
     ms.FileHandler().loadExperiment(path, exp)
 
@@ -74,6 +75,7 @@ def summarize_experiment(path):
 
 
 def dump_spectra_csv(exp, out_csv):
+    """Handle dump spectra csv."""
     import csv
     with open(out_csv, "w", newline="") as fh:
         w = csv.writer(fh)
@@ -96,6 +98,7 @@ def dump_spectra_csv(exp, out_csv):
 
 
 def summarize_feature_map(path):
+    """Summarize feature map."""
     fm = ms.FeatureMap()
     ms.FeatureXMLFile().load(path, fm)
     print(f"File: {path}")
@@ -111,6 +114,7 @@ def summarize_feature_map(path):
 
 
 def summarize_consensus_map(path):
+    """Summarize consensus map."""
     cm = ms.ConsensusMap()
     ms.ConsensusXMLFile().load(path, cm)
     print(f"File: {path}")
@@ -122,6 +126,7 @@ def summarize_consensus_map(path):
 
 
 def summarize_idxml(path):
+    """Summarize idxml."""
     prot_ids = []
     pep_ids = ms.PeptideIdentificationList()  # required type in pyOpenMS 3.5+
     ms.IdXMLFile().load(path, prot_ids, pep_ids)
@@ -141,6 +146,7 @@ def summarize_idxml(path):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Inspect a mass spectrometry data file.")
     parser.add_argument("input", help="Input file (mzML, mzXML, featureXML, consensusXML, idXML)")
     parser.add_argument("--spectra-csv", help="Write a per-spectrum summary table to this CSV path")

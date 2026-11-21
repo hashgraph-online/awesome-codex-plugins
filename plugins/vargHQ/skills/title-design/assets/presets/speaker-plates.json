@@ -1,0 +1,234 @@
+{
+  "id": "speaker-plates",
+  "name": "Speaker plates",
+  "use": "A consistent plate system for talking-head videos: two-line plate, ticker, caption bar, title card, corner tag.",
+  "formats": [
+    "16:9",
+    "9:16"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "speaker-plates.two-line",
+      "label": "Two-line plate",
+      "look": "Name + role plate, light or dark theme.",
+      "params": {
+        "dark": {
+          "plate": "#0E0F12",
+          "alpha": 0.85,
+          "text": "#FFFFFF",
+          "accent": "#FFD23F"
+        },
+        "light": {
+          "plate": "#FFFFFF",
+          "alpha": 0.92,
+          "text": "#111111",
+          "accent": "#2B59FF"
+        },
+        "in_s": 0.45,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "out_s": 0.28,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        14,
+        9,
+        10
+      ]
+    },
+    {
+      "id": "speaker-plates.ticker",
+      "label": "Ticker",
+      "look": "Label block + constant-speed crawl at the bottom.",
+      "params": {
+        "bar_h": "6.5% H",
+        "label_w": "18% of bar",
+        "label_tracking_em": 0.1,
+        "text_px_1080p": 38,
+        "crawl_px_per_s_1080p": 420,
+        "crawl_rule": "20 chars/s x glyph advance",
+        "ease": "none",
+        "bar_in_s": 0.4,
+        "text_area": "#0E0F12",
+        "text_area_alpha": 0.9,
+        "separator": "• with 1.5em spaces"
+      },
+      "sources": [
+        4,
+        13
+      ]
+    },
+    {
+      "id": "speaker-plates.caption-bar",
+      "label": "Caption bar",
+      "look": "Key line on a bar, subtitle rules.",
+      "params": {
+        "max_chars_per_line": 42,
+        "max_lines": 2,
+        "max_line_width": "68% W",
+        "font": "Inter 600",
+        "px_1080p": 46,
+        "bar_alpha": 0.8,
+        "y_16x9": "80-84% H",
+        "y_9x16": "58-62% H",
+        "hold": "clamp(2 * chars / 20, 3, 7) s"
+      },
+      "sources": [
+        4,
+        6,
+        5,
+        3
+      ]
+    },
+    {
+      "id": "speaker-plates.title-card",
+      "label": "Title card",
+      "look": "Segment card between parts.",
+      "params": {
+        "kicker_font": "JetBrains Mono 500 caps",
+        "kicker_px_1080p": 24,
+        "kicker_tracking_em": 0.12,
+        "title_px_1080p": 80,
+        "hairline_draw_s": 0.6,
+        "hold_s": [
+          2.5,
+          3.5
+        ],
+        "in_s": 0.6,
+        "out_s": 0.35,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)"
+      },
+      "sources": [
+        7,
+        10
+      ]
+    },
+    {
+      "id": "speaker-plates.corner-tag",
+      "label": "Corner tag",
+      "look": "Small persistent show tag.",
+      "params": {
+        "pos_16x9": {
+          "x_px": 96,
+          "y_px": 54
+        },
+        "pos_9x16": {
+          "x_px": 65,
+          "y_min_px": 270
+        },
+        "px_1080p": [
+          22,
+          26
+        ],
+        "tracking_em": 0.08,
+        "opacity": 0.9,
+        "in_s": 0.4
+      },
+      "sources": [
+        1,
+        3,
+        7
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "EBU R 095 — Safe areas for 16:9 television production",
+      "url": "https://tech.ebu.ch/publications/r095"
+    },
+    {
+      "n": 3,
+      "name": "HopperHQ — Instagram Reel size: dimensions, aspect ratio and safe zones",
+      "url": "https://www.hopperhq.com/blog/instagram-reel-size/"
+    },
+    {
+      "n": 4,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 5,
+      "name": "Netflix — Timed Text Style Guide: General Requirements",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/215758617"
+    },
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 7,
+      "name": "Matthew Butterick — Practical Typography: Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 9,
+      "name": "W3C — Understanding WCAG 2.1 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Material Design 3 motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 13,
+      "name": "Chris Salters — Sports lower thirds (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/sports-lower-thirds"
+    },
+    {
+      "n": 14,
+      "name": "Jason Boone — How to make lower third titles that don't suck (Frame.io Insider)",
+      "url": "https://blog.frame.io/2017/12/04/create-lower-thirds-titles-that-dont-suck/"
+    },
+    {
+      "n": 16,
+      "name": "Mackenzie Scott — A documentarian's guide to lower thirds (Soundstripe)",
+      "url": "https://www.soundstripe.com/blogs/a-documentarians-guide-to-lower-thirds"
+    },
+    {
+      "n": 34,
+      "name": "@YouTubeInsider (YouTube Creator Insider)",
+      "url": "https://x.com/YouTubeInsider/status/1560995909089067010"
+    },
+    {
+      "n": 35,
+      "name": "@sallyshin (Sally Shin)",
+      "url": "https://x.com/sallyshin/status/2046419371396833446"
+    }
+  ]
+}

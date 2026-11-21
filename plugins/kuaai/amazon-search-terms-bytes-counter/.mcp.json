@@ -1,0 +1,6 @@
+{
+  "name": "amazon-search-terms-bytes-counter",
+  "version": "1.0.0",
+  "description": "Amazon 249-byte search terms optimizer, listing HTML sanitizer, and Rufus AI optimization rules",
+  "mcpServers": {}
+}

@@ -11,6 +11,7 @@ from typing import Any
 
 
 def positive_qubits(value: str) -> int:
+    """Handle positive qubits."""
     qubits = int(value)
     if qubits < 1:
         raise argparse.ArgumentTypeError("minimum qubits must be positive")
@@ -20,6 +21,7 @@ def positive_qubits(value: str) -> int:
 
 
 def distribution_version(distribution: str) -> str | None:
+    """Handle distribution version."""
     try:
         return version(distribution)
     except PackageNotFoundError:
@@ -32,6 +34,7 @@ def select_backend(
     min_qubits: int,
     use_fractional_gates: bool | None,
 ) -> Any:
+    """Select backend."""
     feature_kwargs: dict[str, Any] = {}
     if use_fractional_gates is not None:
         feature_kwargs["use_fractional_gates"] = use_fractional_gates
@@ -51,6 +54,7 @@ def select_backend(
 
 
 def inspect_backend(backend: Any) -> dict[str, Any]:
+    """Handle inspect backend."""
     status = backend.status()
     operation_names = sorted(backend.operation_names)
 
@@ -118,6 +122,7 @@ def inspect_backend(backend: Any) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Select and inspect one accessible IBM Quantum backend. "
@@ -156,6 +161,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def print_human(report: dict[str, Any]) -> None:
+    """Print human."""
     backend = report["backend"]
     target = report["target"]
 
@@ -181,6 +187,7 @@ def print_human(report: dict[str, Any]) -> None:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
 
     try:

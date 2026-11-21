@@ -1,0 +1,37 @@
+{
+  "id": "paper-warp-cauldron-pot",
+  "label": "Cauldron Pot (Paper Warp)",
+  "shader": "Warp",
+  "page": "https://shaders.paper.design/warp",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Cauldron Pot\" preset for Warp, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 10,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.9,
+    "rotation": 160,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#a7e58b",
+      "#324472",
+      "#0a180d"
+    ],
+    "proportion": 0.64,
+    "softness": 1.5,
+    "distortion": 0.2,
+    "swirl": 0.86,
+    "swirlIterations": 7,
+    "shapeScale": 0.6,
+    "shape": "edge"
+  }
+}

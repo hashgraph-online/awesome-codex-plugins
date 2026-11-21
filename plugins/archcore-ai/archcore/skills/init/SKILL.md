@@ -93,7 +93,9 @@ Run the CLI availability check and the `cli-gte 0.7.0` host-wiring version gate 
 
 ### 2. Initialize and probe the host
 
-Call `mcp__archcore__init_project()` exactly once (pre-gate infrastructure — idempotent, safe on an already-initialized project). It creates `.archcore/` and `settings.json` if missing. On `initialized: true` print *"Archcore initialized at `.archcore/`."*; on `already_initialized: true` print nothing.
+Call `mcp__archcore__init_project()` exactly once (pre-gate infrastructure — idempotent, safe on an already-initialized project). It creates `.archcore/` and `settings.json` if missing. On `initialized: true` print *"Archcore initialized at `.archcore/`."*; on `already_initialized: true` print nothing. The `project` field of the response names the project root; this run seeds and wires that root.
+
+WHEN `project` differs from the session's working directory, print one line: *"Archcore project: `<project>` — the nearest `.archcore/` above this folder. To create a separate project in this folder instead, say so."* IF the user asks for a separate project, THEN call `mcp__archcore__init_project(project=<the working directory>)` once and use its `project` field as the root.
 
 Then run the host and project-root probe per `lib/host-wiring.md` "Host and project root probe" — always, even when host wiring is disabled. It prints one token: `claude-code` | `cursor` | `codex-cli` | `__UNKNOWN__`. On `__UNKNOWN__`, or anything else than the three host tokens, ask one `AskUserQuestion` — "Which AI host is this session running in?" with options Claude Code / Cursor / Codex (CLI or desktop app) / GitHub Copilot CLI — and map the answer to the agent id (`claude-code` / `cursor` / `codex-cli` / `copilot`); there is no `codex-desktop` id. A GitHub Copilot CLI session always lands on `__UNKNOWN__`. Do not run `archcore init` yourself at this step; if the archcore MCP tools are unavailable in this session, the terminal command `archcore init --agent <host> --project "<root>"` is the user's recovery path.
 
@@ -101,7 +103,7 @@ Host wiring is planned **first** in every preview: when the probe finds the host
 
 ### 3. Check state
 
-Call `mcp__archcore__list_documents()` once. **Derive every flag below from local documents only** — skip any result carrying `global: true` / `read_only: true` / `source_kind: "global"`. A mounted global source must not satisfy the already-seeded early-exit: init seeds THIS repo's documents. If any global results appear, load `skills/_shared/globals.md`; never modify a global document and never target one with `add_relation`. Derive:
+Call `mcp__archcore__list_documents()` once. **Derive every flag below from local documents only** — skip any result carrying `source_kind: "global"`. A mounted global source must not satisfy the already-seeded early-exit: init seeds THIS repo's documents. If any global results appear, load `skills/_shared/globals.md`; init writes no global document and never joins a local and a global document with `add_relation`. Derive:
 
 - `has_stack_rule` — a `rule` whose title contains "stack" in `conventions/`; `has_run_guide` — a `guide` whose title contains "run"/"running" in `onboarding/`.
 - `has_data_model`, `has_integrations`, `has_config`, `has_entry_points`, `has_surface`, `has_top_level_map`, `has_overview` — any `doc` tagged `data-model`, `integrations`, `config`, `entry-points`, `surface`, `top-level-map`, `architecture-overview`.

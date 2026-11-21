@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "riskdesk": {
+      "type": "stdio",
+      "command": "riskdesk-mcp",
+      "args": []
+    }
+  }
+}

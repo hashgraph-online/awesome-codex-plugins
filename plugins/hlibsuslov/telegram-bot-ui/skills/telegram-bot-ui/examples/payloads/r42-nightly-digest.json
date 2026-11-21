@@ -1,0 +1,226 @@
+{
+  "scenario": "r42-nightly-digest",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Nightly jobs · 15 Nov · 3/3 passed"
+            },
+            {
+              "type": "paragraph",
+              "text": "All jobs passed."
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Job",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Result",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Time",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "backup-db",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "4m 12s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "reindex-search",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "18m 40s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "cleanup-tmp",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "12s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true
+            }
+          ]
+        },
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Nightly jobs · 15 Nov · 3/4 passed"
+            },
+            {
+              "type": "paragraph",
+              "text": "Needs attention: sync-crm (HTTP 503 from CRM, 3 retries)"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Job",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Result",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Time",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "backup-db",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "4m 12s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "reindex-search",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "18m 40s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "sync-crm",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "failed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "1m 03s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "cleanup-tmp",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "12s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Nightly: sync-crm failed — details in the digest above."
+      }
+    }
+  ]
+}

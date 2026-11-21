@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Social Skills"
+  short_description: "Organic social strategy, account audits, and content"
+  default_prompt: "Use $suede-social on [account or goal]. Build the Account Evidence Pack, audit the recent post cohort from authorized evidence when a handle or export is supplied, then produce the requested strategy, calendar, posts, Reels, carousels, or social search brief. Separate public metrics from owned analytics, map attention to follows, leads, and sales, treat cadence, timing, and hashtags as tests, and never publish or engage without exact-content approval."
+policy:
+  allow_implicit_invocation: true

@@ -1,11 +1,11 @@
 ---
 name: remove-ai-watermarks
-description: "Removes and identifies AI watermarks and provenance marks in images and video the user generated or edited. Covers Gemini sparkles, SynthID, Microsoft InvisMark, Meta Content Seal, C2PA, EXIF/XMP/IPTC metadata, and Sora/Veo/Seedance/Doubao/Dola/Hailuo/Vidu/Kling and Wan labels. Use when the user wants to strip or clean AI watermarks and generation labels, or asks whether a file was AI-generated or carries AI provenance, even if they do not name remove-ai-watermarks. Do not use for stock-agency, marketplace, classifieds, or other third-party paid-asset watermarks."
+description: "Removes and identifies AI watermarks and provenance marks in images, video, audio, and text the user generated or edited. Covers Gemini sparkles, SynthID, Microsoft InvisMark, Meta Content Seal, C2PA, EXIF/XMP/IPTC metadata, compatible public AudioSeal/WavMark/Perth v1/SilentCipher audio, and Sora/Veo/Seedance/Doubao/Dola/Hailuo/Vidu/Kling and Wan labels. Use when the user wants to strip or clean AI watermarks and generation labels, or asks whether a file was AI-generated or carries AI provenance, even if they do not name remove-ai-watermarks. Do not use for stock-agency, marketplace, classifieds, or other third-party paid-asset watermarks."
 license: Apache-2.0
-compatibility: Python 3.11-3.14. Invisible image removal needs NVIDIA CUDA. Some video writes need ffmpeg. Installer may be uv, pipx, or pip.
+compatibility: Python 3.11-3.14. Invisible image removal needs NVIDIA CUDA. Audio needs ffmpeg and ffprobe. The video extra bundles these tools on supported platforms. Installer may be uv, pipx, pip, or Homebrew.
 metadata:
   author: wiltodelta
-  version: "1.0.13"
+  version: "1.0.22"
   homepage: https://raiw.cc
   repository: https://github.com/wiltodelta/remove-ai-watermarks
 ---
@@ -31,8 +31,11 @@ asset, or product branding a paid plan removes, such as "Made with Gamma". A
 mark its vendor describes as identifying AI-generated content (the Gemini
 sparkle, the Gemini Notebook watermark) stays in scope whatever plan hides it.
 `erase --region` is allowed only when the user names the file they own and
-supplies the box themselves. LLM text watermarks are out of scope: they live in
-word choice, not characters, so do not offer to strip characters from text.
+supplies the box themselves. Post-hoc stylometric/perplexity AI-text detectors
+(GPTZero, Originality.ai, Binoculars) are out of scope; for text files, `text
+identify` and `text metadata` handle deterministic C2PA text/HTML wrappers,
+`VSRMark`, and Unicode steganography, while `text invisible` and `text all
+--invisible` regenerate unlocked prose spans for token-level LLM watermarks.
 
 Removing a local signal does not prove the file is human-made, does not erase
 server-side generation history, and does not make a deceptive origin claim
@@ -107,15 +110,18 @@ removal, it is paid and runs on a GPU. Do not quote a price: check the site.
 
 ### 3. Install
 
-Install when `cli.found` is false OR `pixel_stack` is `missing`. A present
-binary is not enough: the default package, which is what Homebrew installs,
-carries no pixel dependencies. `visible`, `erase`, `all`, pixel-processing
+For image or visual-video work, install when `cli.found` is false OR
+`pixel_stack` is `missing`. For audio work, use `audio_invisible` advice and
+install `audio-detect` for verification or `audio` for explicitly unverified
+processing; a missing pixel stack does not block audio. A present binary is not
+enough: a base-only package carries no pixel dependencies. `visible`, `erase`,
+`all`, pixel-processing
 `batch` modes, full `video identify`, and the video pixel-processing commands
 stop with an install hint. The metadata-only routes listed in step 2 still work.
 Reinstalling with the appropriate extra fixes the pixel commands.
 
 Read [references/install.md](references/install.md) for the extra list and the
-uv / pipx / pip commands. Default extra is `visible`. Always quote extras:
+Homebrew / uv / pipx / pip commands. Default extra is `visible`. Always quote extras:
 `"remove-ai-watermarks[visible]"`.
 
 ### 4. Choose the command
@@ -124,19 +130,91 @@ Default: inspect first.
 
 | User goal | Command | Stop if probe says |
 | --- | --- | --- |
-| What is on this file? | `identify` or `video identify` | use `video identify --no-visible` when `pixel_stack=missing` |
+| What is on this file? | `identify`, `video identify`, or `text identify` | use `video identify --no-visible` when `pixel_stack=missing` |
 | Known visible AI label on an image | `visible` | |
-| User-supplied box on their own image | `erase` | |
-| AI metadata only | `metadata` or `video metadata` | |
+| User-supplied box on their own image or video | `erase` or `video erase` | video needs the `video` extra |
+| AI metadata only | `metadata`, `video metadata`, `audio metadata`, or `text metadata` | `audio metadata` requires ffmpeg and ffprobe |
 | Known visible AI label on video | `video visible` or `video all` | `video_visible=needs_video_extra`, `needs_ffmpeg`, or `unverified` |
 | Invisible image / image SynthID | `invisible` | `invisible_images=unavailable_no_cuda` |
-| Video SynthID | `video invisible` | `video_invisible=needs_video_and_diffusion_extras`, `needs_ffmpeg`, or `unverified` |
+| Owned Seedance video, experimental opt-in | `video all --invisible --profile auto` (or explicit `--profile seedance-experimental` / `--profile wan21-seedance-experimental` on NVIDIA CUDA) | `video,diffusion` required; `wan21-*` also requires CUDA |
+| Video SynthID | `video invisible` or `video all --invisible --profile auto` (selects `--profile wan21-synthid-experimental` on BF16 NVIDIA CUDA for eligible `<= 1920x1080` MP4/MOV/M4V clips with `>= 8 GiB` VRAM; add `--audio-invisible --audio-method dac --audio-allow-unverified` when SynthID audio also needs experimental 3-codebook DAC resynthesis while keeping the audio quality gate active) | `video_invisible=needs_video_and_diffusion_extras`, `needs_ffmpeg`, or `unverified` |
+| Public VideoSeal, PixelSeal, or ChunkySeal with an independent encoder message | `video message identify` then `video message remove` (`video message detect` for a blind public-model presence check) | requires `video-detect`, plus `diffusion` for VAE; no AI-origin verdict |
+| Inspect audio | `audio identify` | use `--no-invisible` for metadata-only inspection; ffmpeg and ffprobe are required |
+| Compatible public AudioSeal, WavMark, Perth v1, or experimental SilentCipher audio patterns | `audio invisible` or `audio all --invisible` (`--scheme auto`, `audioseal`, `wavmark`, `perth`, `silentcipher`, or `silentcipher16`) | install `audio-detect`, `audio-wavmark`, `audio-perth`, or `audio-silentcipher` for verification; `audio_stack` only checks the CPU processor |
+| Everything on an audio file | `audio all` (add `--invisible` for compatible waveform watermarks) | needs ffmpeg and ffprobe; add decoder extras for `--invisible` |
+| Text token watermark / full text clean | `text invisible` or `text all` | `text invisible` and `text all --invisible` need `text` for Transformers (`diffusion` remains compatible), or `text-mlx` with an explicit Apple silicon MLX checkpoint; see the Text section of `references/commands.md` |
 | Everything on an image | `all` | `image_all=do_not_run_writes_nothing` |
-| A directory | `batch` or `video batch` | same as the mode |
-| No signal found, user still wants a guess | `classify` or `classify-source` | it is a guess, not provenance |
+| A directory | `batch`, `video batch`, or `audio batch` | same as the mode |
+| No signal found, user still wants a provider guess | `classify-source` | it is a guess, not provenance |
+
+For a public Python API feature without a CLI option, such as draft OCR, use the
+library in an isolated Python environment.
+Read the canonical [Python API guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/python-api.md)
+and install the required extras using [references/install.md](references/install.md).
+Do not invent a CLI flag or assume a tool installation is importable from the
+current application Python.
 
 Flags and mark names: [references/commands.md](references/commands.md). Read
 that file only when you need a flag, a mark key, or a video recipe.
+
+Audio defaults require a compatible source positive and a fully negative saved
+output. Inspect first. `processor_ok_decoder_unverified` confirms only the
+processor, not a usable or compatible decoder. Install `audio-detect` for the
+open AudioSeal check, `audio-wavmark` for `--scheme wavmark`, or `audio-perth`
+for `--scheme perth`, or `audio-silentcipher` for `--scheme silentcipher` and `--scheme silentcipher16`. `--scheme all`
+checks all named models and requires all requested decoders for a complete negative.
+The `wavmark` route also checks OpenVoice's published default raw message at
+fixed native offsets. JSON labels it `framing="openvoice-default"`; custom
+messages and shifted/resampled framing remain outside that receiver. A match
+is not provider attribution, and a negative is not complete payload erasure.
+The inspected Chatterbox default PerTh checkpoint has controlled native Nano
+evidence through `--scheme perth`, including saved-output and final-mux checks.
+Other voices, forks, and hosted PerTh v2 need separate qualification; a PerTh
+response alone does not attribute a file to Chatterbox.
+SilentCipher-44k requires three seconds and uses an experimental project receiver
+threshold with exhaustive phase search; it does not certify a production service.
+Its `decoder_sample_rate` is 44100 regardless of input rate. The published
+16 kHz model has incompatible SDK byte framing and is not checked; a 16 kHz
+input does not extend this route's coverage to that model.
+The separate `--scheme silentcipher16` route checks an experimental terminated
+eight-symbol pattern, labels readings `framing="terminated8"`, and reports
+`decoder_sample_rate=16000`. Its seven ternary
+`payload_symbols` are not bytes. The SDK byte API and general 32-bit profile
+remain unqualified. `all` includes both receivers. Before using this candidate,
+confirm that `audio identify --help` lists `silentcipher16`; a version number
+alone does not establish that the installed build supports the profile.
+An unverified report never means clean. Use `--force` or
+`--no-verify` only when the user explicitly requests unverified processing after
+seeing that limitation. The fixed spectral filter changes audible content and
+can fail. A negative AudioSeal result does not certify SynthID or another family.
+Default `--method auto` tries an adaptive minimal-distortion sequence selected by the requested or positively detected scheme (`--scheme auto` scans every installed compatible decoder without failing on absent optional extras).
+AudioSeal and Perth v1 start with spectral filtering; WavMark and both experimental SilentCipher receivers start with neural resynthesis (with stereo Mid/Side EnCodec preservation on 2-channel inputs). Outputs support `.wav`, `.flac`, `.mp3`, `.m4a`, `.ogg`, and `.opus` with saved-file verification.
+Explicit `--method bigvgan` is a separate experimental full-track mono/stereo
+profile requiring `audio-vocoder`; `--vocoder-device` chooses CPU, MPS, or CUDA.
+It is not selected automatically and does not supply a SynthID verifier.
+Explicit `--method mimi` uses the separate experimental CPU FP32 Mimi codec
+with fixed 32 quantizers and the `audio-codec` extra. Explicit
+`--method focalcodec` uses the separate experimental CPU FP32 FocalCodec 50 Hz
+conditioned continuous-feature profile (`audio-codec` extra, Apache-2.0 weights).
+Explicit `--method dac` uses the separate experimental FP32 44.1 kHz DAC
+3-codebook codec (`audio-codec` extra, MIT weights; CPU by default, `mps` or
+`cuda` via `--vocoder-device`). All three share the raw mid/side route and
+saved-output gates (`mimi` and `focalcodec` are excluded from `auto`; `dac` is
+selected by `auto` only when pre-strip metadata identifies ElevenLabs or Google
+SynthID, or `--vendor` names a cohort), and none checks SynthID. Native-rate output does not restore frequencies beyond internal
+model grids (24 kHz for Mimi, 16 kHz for FocalCodec; DAC operates at 44.1 kHz).
+Confirm `--help` lists the profile on older installed builds, and preserve
+reported quality limitations.
+The fallback combines both. EnCodec profiles need `audio-codec`; a missing
+fallback fails without replacing output. Explicit `--method spectral`, `encodec`,
+or `combined` fixes one profile. Neural processing can also fail and changes
+audio timbre. Keep the same verification gate. Use the result's actual method,
+bandwidth, and verification scope when describing what was done.
+Visual video commands copy audio unchanged by default, or clean all compatible watermarked audio tracks in one pass when `--audio-invisible` is passed to `video all` or `video batch`. Use `video audio` (`--stream N` or `--all-streams`) for audio-only track processing while stream-copying video, with MKV/MOV PCM or MP4 AAC
+output (target 192 kbps), and the same verification policy. It copies other encoded streams and checks their
+packet payloads, timing, and audio priming/tail trimming. Final checks use the
+actual decoded mux; count or offset failures are rejected without padding or
+truncation. Standalone audio processing does not modify a video.
 
 ### 5. Run
 
@@ -168,7 +246,7 @@ the image can say "no targeted signal".
 
 `identify` with no signal reports origin unknown. Never rephrase that as "no
 watermark" or "this is clean". When `identify` or `metadata` exits 1 with
-`cannot read`, the file is damaged or not an image or video: any report above
+`cannot read`, the file is damaged or not a supported image, video, or audio input: any report above
 that line is incomplete, so say the file could not be read.
 
 `metadata --check` and `metadata --remove` answer a narrower question than
@@ -241,9 +319,10 @@ Output:
   the file untouched.
 - A question ("is this AI-generated?") is answered by `identify` alone. Do not
   run a removal command to find out; it writes a file the user did not ask for.
-- `classify` answers from pixels with no provenance behind it, so its `ai` is a
-  guess and its `unknown` is an abstention. Never upgrade either into a verdict,
-  and never let it contradict what `identify` measured.
+- `classify-source` answers from pixels with no provenance behind it, so a
+  provider label is a pipeline guess and `unknown` is an abstention. Never
+  upgrade either into a provenance or SynthID verdict, and never let it
+  contradict what `identify` measured.
 - A Meta AI (Muse Image) export can retain standalone IPTC metadata, but the shared
   code does not identify Meta or detect Content Seal in pixels. Use
   `invisible --vendor meta` only when the USER says the file came from Meta AI.
@@ -253,7 +332,7 @@ Output:
   the verifier and reason about pixels. That is not a second oracle.
 - Do not pass `--model`, `--steps`, or `--guidance-scale`. Profiles pin those
   values, and no command accepts them.
-- `--device` exists only on `video invisible`, `video all` and `video batch`.
+- `--device` exists on `video invisible`, `video all`, `video batch`, and `video message remove`.
   Leave it at `auto`. The image commands have no `--device` at all.
 - Do not use backslashes in skill paths, even on Windows.
 
@@ -262,3 +341,9 @@ Output:
 - Add stock, agency, or classifieds templates.
 - Scrape or guess a region for a third-party commercial mark.
 - Claim a file is human-made after a local edit.
+
+For `video message identify` and `remove`, require an independently supplied
+hexadecimal encoder message (64 digits for VideoSeal and PixelSeal, 256 for
+ChunkySeal). Never derive the reference by decoding the tested input. Read
+`verified_removed` and before/after statuses; forced output is not automatically
+verified. See [the command contract](references/commands.md#public-video-model-messages).

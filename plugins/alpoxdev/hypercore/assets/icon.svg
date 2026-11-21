@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Hypercore">
+  <rect width="512" height="512" rx="112" fill="#111827"/>
+  <path d="M256 92 398 174v164L256 420 114 338V174z" fill="none" stroke="#F9FAFB" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M200 190v132M312 190v132M200 256h112" fill="none" stroke="#F9FAFB" stroke-width="32" stroke-linecap="round"/>
+</svg>

@@ -131,14 +131,14 @@ Reference knowledge for PDF report generation, dashboard templates, multi-touch 
 | **Time-decay** | More credit to recent touchpoints. Typical half-life: 7 days | Sales cycles where later touches matter more | Undervalues early awareness touchpoints |
 | **Position-based (U-shaped)** | 40% first touch, 40% last touch, 20% distributed across middle | Balanced view valuing both discovery and conversion | Fixed percentages may not reflect actual influence |
 | **W-shaped** | 30% first touch, 30% lead creation, 30% opportunity creation, 10% middle | B2B with defined funnel stages | Requires CRM stage tracking, complex implementation |
-| **Data-driven (algorithmic)** | ML model assigns credit based on statistical analysis of all conversion paths | Organizations with sufficient data volume (1,000+ conversions/month) | Black box, requires significant data volume, platform-specific |
+| **Data-driven (algorithmic)** | ML model assigns credit based on statistical analysis of all conversion paths | Organizations with steady conversion volume (Data volume decides how stable the model is; Google publishes no fixed minimum for data-driven attribution, so neither do we) | Black box, requires significant data volume, platform-specific |
 
 ### Attribution Data Requirements
 
 - **Cross-channel tracking**: UTM parameters on all links (utm_source, utm_medium, utm_campaign, utm_content, utm_term). Platform pixels on all conversion pages (Meta Pixel, Google tag, LinkedIn Insight Tag). Offline conversion imports for phone calls, in-store visits, events
 - **Identity resolution**: First-party cookies for cross-session tracking. Logged-in user IDs where available. CRM email matching for cross-device. Probabilistic matching as fallback (less reliable post-cookie deprecation)
 - **Conversion window**: Define the maximum lookback window. Common: 30 days for eCommerce, 90 days for B2B, 7 days for impulse purchases. All touches outside the window are excluded from attribution
-- **Assisted conversions**: GA4 provides assisted conversion data natively. For custom attribution, query all touchpoints within the conversion window, not just the converting session
+- **Assisted conversions**: GA4's Conversion attribution analysis report (beta, 2026-01-16) shows assisted-conversion and funnel views; "assisted conversions" as a standard report was a Universal Analytics term. For custom attribution, query all touchpoints within the conversion window, not just the converting session
 
 ### Attribution Report Output Format
 

@@ -45,7 +45,7 @@ export class ChatAppComponent {
        STOPGAP until the kit component awaits readiness itself. -->
   <ng-container *ngIf="tab() === 'calls'">
     <cometchat-call-logs class="cc-fill" *ngIf="callsReady(); else callsLoading" (itemClick)="openCallLog($event)"></cometchat-call-logs>
-    <ng-template #callsLoading><div class="cc-empty">Loading call history…</div></ng-template>
+    <ng-template #callsLoading><div class="cc-empty">Loading call history...</div></ng-template>
   </ng-container>
 </aside>
 ```

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Churn Prevention Skills"
+  short_description: "Keep subscribers who are leaving, recover failed payments"
+  default_prompt: "Use $suede-churn-prevention on [target]. The user is losing subscribers, designing a cancellation flow, or recovering revenue lost to failed payments. Work through cancel flows, save offers, pause options, dunning for failed payments, and win-back sequences, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "surface": "http://localhost:3000/pricing",
+  "captures": [
+    {
+      "viewport": { "width": 375, "height": 800 },
+      "state": "default",
+      "capturedAt": "2026-08-29T12:00:00Z",
+      "observations": [
+        {
+          "locator": "#hero",
+          "rect": { "x": 0, "y": 0, "width": 375, "height": 200 }
+        }
+      ]
+    }
+  ]
+}

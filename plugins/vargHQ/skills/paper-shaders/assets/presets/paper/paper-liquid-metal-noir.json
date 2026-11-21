@@ -1,0 +1,36 @@
+{
+  "id": "paper-liquid-metal-noir",
+  "label": "Noir (Paper LiquidMetal)",
+  "shader": "LiquidMetal",
+  "page": "https://shaders.paper.design/liquid-metal",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Noir\" preset for LiquidMetal, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorTint": "#606060",
+    "softness": 0.45,
+    "repetition": 1.5,
+    "shiftRed": 0,
+    "shiftBlue": 0,
+    "distortion": 0,
+    "contour": 0,
+    "angle": 90,
+    "shape": "diamond",
+    "image": ""
+  }
+}

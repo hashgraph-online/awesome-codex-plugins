@@ -55,8 +55,10 @@ Six steps; each guards a failure mode.
 
 ```python
 identities = await call_tool("list_identities", {})
-# Each identity lists its region and profiles. Pick the identity and profile the user named or confirmed.
+# Each identity lists its region. With one, use it and say which. With several, ask unless the user named one.
 await call_tool("set_active_identity", {"identity_id": "<id>"})
+# The identity's own profile list is partial, so choose from this one: the profile the user named or confirmed.
+profiles = await call_tool("ac_listProfiles", {})
 await call_tool("set_active_profile", {"profile_id": "<profile_id>"})
 ```
 

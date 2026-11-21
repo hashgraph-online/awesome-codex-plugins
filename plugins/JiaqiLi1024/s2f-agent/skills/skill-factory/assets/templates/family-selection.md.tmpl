@@ -1,0 +1,25 @@
+# Family Selection — {{TOOL_NAME}}
+
+Use this file when a user asks for a {{TOOL_NAME}} workflow without specifying which model family or variant to use.
+Replace the table and routing criteria below with real values from the tool's documentation.
+
+## Supported Model Families
+
+| Model Family / Checkpoint | Sequence Scope | Best For | Required Hardware |
+|---|---|---|---|
+| TODO: `<checkpoint-name>` | TODO: e.g. `≤131 kb` | TODO: e.g. embeddings, single-species | TODO: e.g. 16 GB GPU |
+| TODO: `<checkpoint-name-2>` | TODO | TODO | TODO |
+
+## Routing Decision
+
+Apply this decision tree when the user has not specified a model:
+
+1. If the user has a sequence longer than TODO bp → use `<large-context-checkpoint>`.
+2. If the user wants variant scoring → use `<variant-checkpoint>`.
+3. If the user wants embeddings only and has limited compute → use `<lightweight-checkpoint>`.
+4. Default recommendation: `<default-checkpoint>` (best balance of capability and hardware cost).
+
+## Notes
+
+- Replace all TODO values above with verified checkpoint names and real sequence length limits.
+- If only one checkpoint exists, remove the table and state it directly.

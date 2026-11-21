@@ -13,11 +13,11 @@ Four empirically-grounded constraints on interaction speed and accuracy. Apply b
 Acquisition time scales with distance and shrinks with target size. Large targets near the pointer are fast; small targets far away are slow and error-prone.
 
 **Hard rules:**
-- Touch targets ≥ 44×44pt (Apple HIG) / 48×48dp (Material). This is the *interactive area*, not the visual icon — a 16px icon can have a 44px tap area via padding.
+- Touch targets: 24×24 CSS px is the WCAG 2.2 AA floor; aim for 44×44pt (Apple HIG) / 48×48dp (Material) on touch surfaces (numbers owned by design-principles.md). This is the *interactive area*, not the visual icon — a 16px icon can have a 44px tap area via padding.
 - Pointer targets: 24×24px minimum; more for dense UIs.
 - Screen edges are infinite targets (pointer cannot overshoot) → use for persistent navigation (macOS menu bar, taskbar).
 - Bottom-of-screen placement reduces reach distance for right-hand thumb on mobile.
-- Destructive actions: intentionally small and distant to prevent accidental activation.
+- Destructive actions: visually quieter and set apart from the primary action to prevent accidental activation, never below the minimum target size.
 
 | Pattern | Fitts's Law application |
 |---|---|
@@ -160,7 +160,7 @@ Single column, almost always. Two-column layouts disrupt reading flow and create
 
 **Accessibility:**
 - Every field: `<label for>` or `aria-label`.
-- Error messages: `aria-describedby` pointing to the field.
+- Error messages: the field carries `aria-describedby` pointing at the error element's id (and `aria-invalid="true"` while invalid).
 - Focus order follows visual order.
 - Error summary at top: keyboard-focusable, links to each failing field.
 - Never rely on color alone for required or error states.

@@ -23,6 +23,9 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import argparse
 
+# Module-level generator for the demo plots that draw their own random data
+_RNG = np.random.default_rng(42)
+
 
 def set_publication_style():
     """Configure matplotlib for publication-quality figures."""
@@ -44,16 +47,16 @@ def set_publication_style():
 
 def generate_sample_data():
     """Generate sample data for demonstrations."""
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
     x = np.linspace(0, 10, 100)
     y1 = np.sin(x)
     y2 = np.cos(x)
-    scatter_x = np.random.randn(200)
-    scatter_y = np.random.randn(200)
+    scatter_x = rng.standard_normal(200)
+    scatter_y = rng.standard_normal(200)
     categories = ['A', 'B', 'C', 'D', 'E']
-    bar_values = np.random.randint(10, 100, len(categories))
-    hist_data = np.random.normal(0, 1, 1000)
-    matrix = np.random.rand(10, 10)
+    bar_values = rng.integers(10, 100, len(categories))
+    hist_data = rng.normal(0, 1, 1000)
+    matrix = rng.random((10, 10))
 
     X, Y = np.meshgrid(np.linspace(-3, 3, 100), np.linspace(-3, 3, 100))
     Z = np.sin(np.sqrt(X**2 + Y**2))
@@ -127,7 +130,7 @@ def create_bar_chart(data, ax=None):
         fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
 
     x_pos = np.arange(len(data['categories']))
-    errors = np.random.randint(5, 15, len(data['categories']))
+    errors = _RNG.integers(5, 15, len(data['categories']))
 
     bars = ax.bar(x_pos, data['bar_values'], yerr=errors,
                   color='steelblue', edgecolor='black', linewidth=1.5,
@@ -246,7 +249,7 @@ def create_box_plot(data, ax=None):
         fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
 
     # Generate multiple distributions
-    box_data = [np.random.normal(0, std, 100) for std in range(1, 5)]
+    box_data = [_RNG.normal(0, std, 100) for std in range(1, 5)]
 
     ax.boxplot(box_data, tick_labels=['Group 1', 'Group 2', 'Group 3', 'Group 4'],
                patch_artist=True, showmeans=True,
@@ -271,7 +274,7 @@ def create_violin_plot(data, ax=None):
         fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
 
     # Generate multiple distributions
-    violin_data = [np.random.normal(0, std, 100) for std in range(1, 5)]
+    violin_data = [_RNG.normal(0, std, 100) for std in range(1, 5)]
 
     parts = ax.violinplot(violin_data, positions=range(1, 5),
                          showmeans=True, showmedians=True)

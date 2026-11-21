@@ -4,19 +4,15 @@ Provides tolerance parsing, value sampling, and statistical aggregation
 for running N simulations with randomized component values within
 tolerance bands.
 
-Zero external dependencies — uses only Python 3.8+ stdlib.
+Zero external dependencies — uses only Python 3.10+ stdlib.
 """
 
 import copy
 import math
 import random
-import sys
-import os
 
-# Allow importing from kicad scripts directory
-sys.path.insert(0, os.path.join(os.path.dirname(__file__),
-                                 "..", "..", "kicad", "scripts"))
-from kicad_utils import parse_tolerance
+import _core_path  # noqa: F401
+from kicad_core.values import parse_tolerance
 
 
 # Default tolerances when not specified in the component value string.

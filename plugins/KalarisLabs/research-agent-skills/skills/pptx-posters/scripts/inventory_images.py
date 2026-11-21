@@ -17,6 +17,7 @@ MAX_IMAGE_PIXELS = 100_000_000
 
 
 def _pillow_version() -> str:
+    """Handle pillow version."""
     try:
         return version("Pillow")
     except PackageNotFoundError:
@@ -24,6 +25,7 @@ def _pillow_version() -> str:
 
 
 def _read_image(path: Path) -> dict[str, Any]:
+    """Read image."""
     try:
         from PIL import Image
     except ImportError as exc:
@@ -81,6 +83,7 @@ def build_inventory(
     document: dict[str, Any],
     validation: dict[str, Any],
 ) -> dict[str, Any]:
+    """Build inventory."""
     assets = {asset["id"]: asset for asset in document["assets"]}
     placements: dict[str, list[dict[str, Any]]] = {
         asset_id: [] for asset_id in assets
@@ -220,6 +223,7 @@ def build_inventory(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Fully decode approved local PNG/JPEG assets, report hashes, provenance, "
@@ -233,6 +237,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

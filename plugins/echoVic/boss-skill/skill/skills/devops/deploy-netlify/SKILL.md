@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-netlify
 description: Netlify 部署方法论，使用 netlify CLI 部署前端应用、静态站点和 Serverless Functions
 version: 1.0.0
@@ -8,14 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Netlify 时
-- 项目是静态站点或前端 SPA 时
-- 需要 Serverless Functions 时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Netlify 时
+  - 项目是静态站点或前端 SPA 时
+  - 需要 Serverless Functions 时
+metadata:
   internal: true
-
 ---
 
 # Netlify 部署
@@ -102,6 +100,7 @@ netlify deploy --dir=dist --prod
 ```
 
 **部署输出示例**：
+
 ```
 Deploy path:        /path/to/project/dist
 Configuration:      /path/to/project/netlify.toml
@@ -188,6 +187,7 @@ netlify dev
 ### Git 自动部署
 
 Netlify 原生支持 Git 集成，连接仓库后：
+
 - push 到 `main` 分支 → 自动生产部署
 - push 到其他分支或 PR → 自动预览部署
 
@@ -221,6 +221,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `NETLIFY_AUTH_TOKEN`：Netlify Personal Access Token（User Settings → Applications → Personal access tokens）
 - `NETLIFY_SITE_ID`：站点 ID（Site Settings → General → Site ID）
 

@@ -46,6 +46,7 @@ def _decode_two_level(coded, factors):
 
 
 def _randomize(df, randomize, seed):
+    """Handle randomize."""
     if not randomize:
         return df.reset_index(drop=True)
     rng = np.random.default_rng(seed)

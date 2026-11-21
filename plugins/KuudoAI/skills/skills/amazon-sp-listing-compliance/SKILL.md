@@ -17,7 +17,8 @@ description: >-
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Uses the Listings Restrictions API (getListingsRestrictions) on an SP-API MCP server. Where the host also exposes Amazon's Seller Assistant (Amazon's Selling Partner connector does), it can confirm current rules live; without it the gate runs on the bundled regulatory map and says so. Without any server it can still classify and ask, but can't check gating.
 metadata:
-  version: "0.1.1"
+  display-name: "Amazon SP Listing Compliance"
+  version: "0.1.3"
 ---
 
 # Amazon listing compliance gate
@@ -88,9 +89,12 @@ On a code-mode SP-API MCP server:
   `pricing_getPricing` with `ItemType: "Sku"` and up to 20 of the seller's
   SKUs returns it as `Product.Identifiers.SKUIdentifier.SellerId` for each
   SKU with an active offer (`status: "Success"`). On 2026-10-18 the ID it
-  returned worked for `getListingsRestrictions`. If the seller has no
-  active SKU to use, ask for their merchant token (shown in Seller Central
-  account settings). Never substitute an account ID, an MCID, a store name,
+  returned worked for `getListingsRestrictions`. If the Kuudo Amazon Ads
+  MCP is also connected, a seller profile's `accountInfo.id` from
+  `ac_listProfiles` is the same ID when its `accountInfo.name` matches the
+  store; it worked as `sellerId` in `listings_searchListingsItems` on
+  2026-11-02. If neither gives the ID, ask for their merchant token (shown
+  in Seller Central account settings). Never substitute an account ID, an MCID, a store name,
   an identity `id`, or a guess. If it's genuinely unavailable, mark gating
   **"seller to confirm"**.
 

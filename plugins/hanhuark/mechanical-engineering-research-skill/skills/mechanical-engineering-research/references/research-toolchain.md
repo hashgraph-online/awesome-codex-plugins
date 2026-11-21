@@ -45,6 +45,9 @@ When helping with Overleaf manuscripts:
 - For final packaging, check figures, captions, references, supplementary files, and source files expected by the venue.
 - Keep one documented compile entry point and remove or clearly label stale alternate TeX sources.
 - Extract and compile the final upload package independently before reporting it ready.
+- Treat a stale build artifact as a submission defect. A `.bbl` left in the source directory is shipped verbatim in an Elsevier-style package and compiled by anyone who builds from that directory, so an empty or outdated one silently removes the bibliography. Rebuild it, and confirm the reference list in the rendered PDF rather than in the log alone.
+- Compiling with `-jobname` makes BibTeX look for `<jobname>.aux` and write `<jobname>.bbl`, so a trial build under another job name leaves the real `.bbl` untouched, and the undefined-citation warnings surface only in the next clean build. Run BibTeX for the job name actually used, then copy the result back.
+- Re-check every external artifact that quotes the manuscript after a title, author, or abstract change. A dataset README, an archive record, a citation file, and a submission portal entry all go stale silently.
 
 ## VS Code Guidance
 

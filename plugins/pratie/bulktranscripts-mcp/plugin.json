@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bulktranscripts",
+  "version": "1.1.0",
+  "description": "YouTube transcripts for one video, a whole channel or a playlist, plus YouTube search and free new-upload tracking, from the hosted BulkTranscripts MCP server.",
+  "author": { "name": "BulkTranscripts", "email": "hello@bulktranscripts.co", "url": "https://bulktranscripts.co" },
+  "homepage": "https://bulktranscripts.co/youtube-mcp-server",
+  "repository": "https://github.com/pratie/bulktranscripts-mcp",
+  "license": "MIT",
+  "keywords": ["bulktranscripts", "youtube", "transcripts", "mcp", "youtube transcript"],
+  "logo": "https://bulktranscripts.co/logo-mark.png"
+}

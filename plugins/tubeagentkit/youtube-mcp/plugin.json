@@ -1,0 +1,162 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "youtube-transcript",
+  "version": "1.3.0",
+  "description": "YouTube transcripts, video and channel search, channel browsing, and playlist extraction for AI agents and chat assistants, via the hosted getyoutubetranscript.com MCP server. Sign in with OAuth or use an API key.",
+  "author": {
+    "name": "TubeAgentKit",
+    "url": "https://getyoutubetranscript.com"
+  },
+  "homepage": "https://getyoutubetranscript.com",
+  "repository": "https://github.com/tubeagentkit/youtube-mcp",
+  "license": "MIT",
+  "keywords": [
+    "youtube",
+    "transcript",
+    "captions",
+    "subtitles",
+    "video-search",
+    "channel-search",
+    "playlists",
+    "mcp",
+    "youtube-transcript-api",
+    "transcript-api",
+    "rest-api"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "GetYouTubeTranscript",
+        "shortDescription": "Chat with any YouTube video",
+        "longDescription": "Turn any YouTube video, channel, or playlist into text you can work with inside ChatGPT. Paste a link and ask for a summary, study notes, key quotes, a translation, or answers to your questions, all grounded in what the video actually says.\n\nWhat you can do:\n- Chat with a YouTube video: ask questions and get answers based on its real transcript.\n- Students: turn lectures, tutorials, and courses into study notes, summaries, and flashcards.\n- Researchers and journalists: pull exact quotes, compare what different speakers said, and research a topic across many videos.\n- Creators and marketers: see what a channel posted recently, find videos on a topic, and review a creator's whole catalogue.\n- Work through a playlist or course video by video.\n- AI agents and Codex: search YouTube and process channels and playlists in bulk.\n- Developers: ask Codex to add YouTube transcripts to your app, script, or data pipeline. The bundled YouTube Transcript API skill writes working Python, JavaScript, or curl code against the getyoutubetranscript.com REST API, with pagination, retries, and error handling.\n\nWorks with regular videos, Shorts, and live stream links, in any caption language the video offers.\n\nLimitations: it reads a video's captions, so videos without captions cannot be transcribed, and transcripts come as one block of text by default, with per-line timestamps available on request. It does not download video or audio, post comments, or change anything on YouTube. Requires a getyoutubetranscript.com account.",
+        "developerName": "Tinyforge Studio",
+        "category": "Education & Research",
+        "capabilities": [
+          "Get the full transcript of a YouTube video",
+          "Search YouTube for videos and channels",
+          "See a channel's latest uploads",
+          "Search inside one channel's videos",
+          "List every video on a channel",
+          "List every video in a playlist",
+          "Check remaining account credits",
+          "Write code that calls the YouTube Transcript API"
+        ],
+        "websiteURL": "https://getyoutubetranscript.com",
+        "supportURL": "https://getyoutubetranscript.com/contact",
+        "privacyPolicyURL": "https://getyoutubetranscript.com/privacy-policy",
+        "termsOfServiceURL": "https://getyoutubetranscript.com/terms-and-conditions",
+        "defaultPrompt": [
+          "Summarize this YouTube video and list the key takeaways",
+          "Turn this lecture playlist into study notes, one section per video",
+          "What has this YouTube channel posted this month?"
+        ],
+        "brandColor": "#DC2626",
+        "brandColorDark": "#F87171",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Summarize a lecture video",
+              "prompt": "Using GetYouTubeTranscript, summarize this video and give me the 5 key points: https://www.youtube.com/watch?v=J7DzL2_Na80",
+              "tools_triggered": "get_youtube_transcript",
+              "expected_behavior": "Fetches the transcript of MIT 18.06 Lecture 1 (The Geometry of Linear Equations) and returns a summary with 5 key points drawn from it."
+            },
+            {
+              "description": "Answer a question about a video",
+              "prompt": "Using GetYouTubeTranscript, which textbook does Gilbert Strang say this course uses? https://www.youtube.com/watch?v=J7DzL2_Na80",
+              "tools_triggered": "get_youtube_transcript",
+              "expected_behavior": "Fetches the transcript and answers that the course text is his book Introduction to Linear Algebra, based on what he says in the video."
+            },
+            {
+              "description": "Find a video and summarize it",
+              "prompt": "Using GetYouTubeTranscript, find a popular lecture on linear algebra on YouTube and summarize the top result.",
+              "tools_triggered": "search_youtube, get_youtube_transcript",
+              "expected_behavior": "Searches YouTube, picks a top lecture result, fetches its transcript, and summarizes it, naming the video and channel."
+            },
+            {
+              "description": "Recent uploads from a channel",
+              "prompt": "Using GetYouTubeTranscript, what has the MIT OpenCourseWare YouTube channel (@mitocw) posted recently?",
+              "tools_triggered": "get_channel_latest_videos",
+              "expected_behavior": "Returns the channel's details and a list of its most recent uploads with titles and links."
+            },
+            {
+              "description": "Study notes from a playlist",
+              "prompt": "Using GetYouTubeTranscript, list the videos in this playlist, then write study notes for lecture 1: https://www.youtube.com/playlist?list=PLE7DDD91010BC51F8",
+              "tools_triggered": "list_playlist_videos, get_youtube_transcript",
+              "expected_behavior": "Lists the MIT 18.06 Linear Algebra playlist in order, then fetches the transcript of lecture 1 (The Geometry of Linear Equations) and writes study notes from it."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Video download is not supported",
+              "prompt": "Download this YouTube video as an MP4 file: https://www.youtube.com/watch?v=J7DzL2_Na80"
+            },
+            {
+              "description": "Uploaded audio files are not YouTube videos",
+              "prompt": "Transcribe the audio file I just uploaded."
+            },
+            {
+              "description": "Posting to YouTube is not supported",
+              "prompt": "Post a comment on this YouTube video saying great lecture: https://www.youtube.com/watch?v=J7DzL2_Na80"
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments. It reads public YouTube captions for the user's connected getyoutubetranscript.com account.",
+        "demo_recording_url": "https://getyoutubetranscript.com/review/openai-plugin-demo-v2.mp4"
+      },
+      "publication": {
+        "release_notes": "Initial release: YouTube transcripts, YouTube search, channel and playlist browsing, a credit balance check, and a YouTube Transcript API skill for writing integration code.",
+        "translations": {
+          "de-DE": {
+            "subtitle": "Chatte mit jedem YouTube-Video",
+            "description": "Mach aus jedem YouTube-Video, Kanal oder jeder Playlist Text, mit dem du in ChatGPT arbeiten kannst. Füge einen Link ein und frag nach einer Zusammenfassung, Lernnotizen, wichtigen Zitaten oder Antworten auf deine Fragen, basierend auf dem echten Transkript. Ideal für Studierende, Forschende, Creator und KI-Agenten."
+          },
+          "es-ES": {
+            "subtitle": "Chatea con cualquier vídeo",
+            "description": "Convierte cualquier vídeo, canal o lista de YouTube en texto con el que trabajar en ChatGPT. Pega un enlace y pide un resumen, apuntes de estudio, citas clave o respuestas a tus preguntas, basadas en la transcripción real. Ideal para estudiantes, investigadores, creadores y agentes de IA."
+          },
+          "fr-FR": {
+            "subtitle": "Parlez à une vidéo YouTube",
+            "description": "Transformez n'importe quelle vidéo, chaîne ou playlist YouTube en texte exploitable dans ChatGPT. Collez un lien et demandez un résumé, des notes de révision, des citations clés ou des réponses à vos questions, fondés sur la vraie transcription. Idéal pour les étudiants, chercheurs, créateurs et agents IA."
+          },
+          "hi-IN": {
+            "subtitle": "YouTube वीडियो से चैट करें",
+            "description": "किसी भी YouTube वीडियो, चैनल या प्लेलिस्ट को ChatGPT में इस्तेमाल होने वाले टेक्स्ट में बदलें। लिंक पेस्ट करें और सारांश, स्टडी नोट्स, मुख्य उद्धरण या अपने सवालों के जवाब पाएं, जो वीडियो के असली ट्रांसक्रिप्ट पर आधारित हों। छात्रों, शोधकर्ताओं, क्रिएटर्स और AI एजेंट्स के लिए।"
+          },
+          "id-ID": {
+            "subtitle": "Ngobrol dengan video YouTube",
+            "description": "Ubah video, channel, atau playlist YouTube apa pun menjadi teks yang bisa kamu olah di ChatGPT. Tempel tautan lalu minta ringkasan, catatan belajar, kutipan penting, atau jawaban atas pertanyaanmu, berdasarkan transkrip aslinya. Cocok untuk pelajar, peneliti, kreator, dan agen AI."
+          },
+          "ja-JP": {
+            "subtitle": "YouTube動画とチャット",
+            "description": "YouTubeの動画、チャンネル、再生リストを、ChatGPTで扱えるテキストに変換します。リンクを貼るだけで、要約、学習ノート、重要な引用、質問への回答を、動画の実際の文字起こしに基づいて得られます。学生、研究者、クリエイター、AIエージェントに最適です。"
+          },
+          "ko-KR": {
+            "subtitle": "모든 YouTube 영상과 대화",
+            "description": "YouTube 영상, 채널, 재생목록을 ChatGPT에서 활용할 수 있는 텍스트로 바꿔 줍니다. 링크를 붙여 넣고 요약, 학습 노트, 핵심 인용문, 질문에 대한 답변을 실제 자막을 바탕으로 받아 보세요. 학생, 연구자, 크리에이터, AI 에이전트에게 적합합니다."
+          },
+          "pt-BR": {
+            "subtitle": "Converse com vídeos do YouTube",
+            "description": "Transforme qualquer vídeo, canal ou playlist do YouTube em texto para usar no ChatGPT. Cole um link e peça um resumo, anotações de estudo, citações importantes ou respostas às suas perguntas, com base na transcrição real. Ideal para estudantes, pesquisadores, criadores e agentes de IA."
+          },
+          "ru-RU": {
+            "subtitle": "Общайтесь с YouTube-видео",
+            "description": "Превратите любое видео, канал или плейлист YouTube в текст для работы в ChatGPT. Вставьте ссылку и попросите краткое содержание, учебный конспект, ключевые цитаты или ответы на вопросы, основанные на реальной расшифровке. Для студентов, исследователей, авторов и ИИ-агентов."
+          },
+          "tr-TR": {
+            "subtitle": "Her YouTube videosuyla sohbet",
+            "description": "Herhangi bir YouTube videosunu, kanalını veya oynatma listesini ChatGPT'de kullanabileceğin metne dönüştür. Bir bağlantı yapıştır; gerçek transkripte dayanan özet, ders notları, önemli alıntılar veya sorularına yanıtlar al. Öğrenciler, araştırmacılar, içerik üreticileri ve yapay zeka ajanları için."
+          },
+          "vi-VN": {
+            "subtitle": "Trò chuyện với video YouTube",
+            "description": "Biến bất kỳ video, kênh hoặc danh sách phát YouTube nào thành văn bản để dùng trong ChatGPT. Dán liên kết và yêu cầu tóm tắt, ghi chú học tập, trích dẫn quan trọng hoặc câu trả lời cho câu hỏi của bạn, dựa trên bản chép lời thật. Phù hợp cho học sinh, nhà nghiên cứu, nhà sáng tạo và tác nhân AI."
+          }
+        }
+      }
+    }
+  }
+}

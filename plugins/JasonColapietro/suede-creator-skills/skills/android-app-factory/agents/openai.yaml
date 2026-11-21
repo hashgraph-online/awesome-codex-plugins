@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Android App Factory Skills"
+  short_description: "Production Android build and Play release gate"
+  default_prompt: "Use $android-app-factory to plan or build [app]. Identify the exact repo, package, and Play app; live-check official Play policy (API 36 and Billing Library 8+ as of the 2026-10-23 baseline). Deliver maintainable Compose architecture, tests, accessibility, performance and Baseline Profile evidence, privacy/Data Safety/account-deletion reconciliation, kids and Families rules when children are in the audience, safe Billing/Integrity behavior, truthful store assets, and a completed release-gate artifact. Hand upload and rollout to $suede-play-release and require explicit confirmation before any Play Console mutation."
+policy:
+  allow_implicit_invocation: true

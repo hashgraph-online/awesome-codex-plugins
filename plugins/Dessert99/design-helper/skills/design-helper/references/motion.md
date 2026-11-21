@@ -57,11 +57,12 @@ Stagger only reads with enough items. Six minimum.
   state attributes, the sheet imitates them (`references/sweeping.md`).
 - **Motion libraries don't take these values directly.** If the project uses Framer
   Motion, GSAP or similar, spring physics has no CSS equivalent — a cubic-bezier is an
-  approximation, not a translation. **This belongs in the blast radius report**, not
+  approximation, not a translation. Mark the specimens `실물과 다름` on the sheet
+  (`references/sweeping.md`), and **put it in the blast radius report**, not
   discovered afterwards:
 
-  > 이 easing 은 CSS transition 기준입니다. 프로젝트는 Framer Motion 을 쓰므로
-  > spring 파라미터로 옮겨야 하고, 완전히 같지는 않습니다.
+  > 이 easing은 CSS transition 기준입니다. 프로젝트는 Framer Motion을 씁니다.
+  > 그래서 spring 값으로 옮겨야 하고, 움직임이 완전히 같지는 않습니다.
 
   Detect it: `grep -o 'framer-motion\|gsap\|@react-spring[a-z/]*' package.json | sort -u`
 

@@ -1,0 +1,50 @@
+{
+  "name": "brewpage",
+  "version": "0.2.1",
+  "description": "Prepare drafts, publish HTML, Markdown, JSON, files and static sites, and update BrewPage publications from Codex. Uses the connected BrewPage MCP server or the bundled HTTPS runner.",
+  "author": {
+    "name": "Maksim Kochetkov",
+    "email": "info@brewpage.app",
+    "url": "https://brewpage.app"
+  },
+  "homepage": "https://brewpage.app",
+  "repository": "https://github.com/kochetkov-ma/brewpage-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "publishing",
+    "html-hosting",
+    "markdown",
+    "static-site",
+    "file-sharing",
+    "ai-artifacts",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BrewPage",
+    "shortDescription": "Publish HTML, Markdown, files and sites to a shareable link",
+    "longDescription": "Prepare a local draft, share a finished artifact through BrewPage or update a specific publication. The plugin includes recipes for forms with saved visitor answers, custom domains and owner access. It uses BrewPage MCP when the available tools support the requested operation and the bundled HTTPS runner when permitted. Anonymous publishing needs no account or API key. Private management receipts go to the owner. BrewPage is a hosted, closed-source service. This plugin is MIT-licensed.",
+    "developerName": "Maksim Kochetkov",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://brewpage.app",
+    "privacyPolicyURL": "https://brewpage.app/privacy",
+    "termsOfServiceURL": "https://brewpage.app/terms",
+    "defaultPrompt": [
+      "Publish report.html to BrewPage and give me the link",
+      "Share this Markdown summary as a BrewPage page that expires in 7 days",
+      "Upload the ./dist folder to BrewPage as a site"
+    ],
+    "brandColor": "#EBBB40",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshot-home.png",
+      "./assets/screenshot-api.png"
+    ]
+  }
+}

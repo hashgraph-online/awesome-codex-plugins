@@ -1,0 +1,21 @@
+{
+  "_test_server_only": true,
+  "update_id": 100000012,
+  "widget_query": {
+    "id": "8123456789012340102",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "inline_message_id": "BAAAAAx2nwABCDEF",
+    "chat_instance": "-7770003",
+    "chat_type": "group",
+    "widget_id": "7770011223344556677",
+    "type": {
+      "type": "data"
+    },
+    "data": "vote:1"
+  }
+}

@@ -14,6 +14,10 @@ updates:
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
+    ignore:
+      # Remove once @docusaurus/theme-mermaid allows @mermaid-js/layout-elk 1.x as a peer (#2890).
+      - dependency-name: '@mermaid-js/layout-elk'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: 'pip'
     directory: '/'
     schedule: { interval: 'weekly' }

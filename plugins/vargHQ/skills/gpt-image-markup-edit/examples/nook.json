@@ -1,0 +1,8 @@
+{
+  "units": "px",
+  "width": 10,
+  "shapes": [
+    {"type": "ellipse", "box": [81, 329, 329, 521], "color": "red", "label": "Santa hat on the cat"},
+    {"type": "ellipse", "box": [621, 433, 979, 597], "color": "blue", "label": "book → wrapped present"}
+  ]
+}

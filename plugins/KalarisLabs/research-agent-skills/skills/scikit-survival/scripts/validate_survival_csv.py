@@ -98,6 +98,7 @@ def validate_and_convert(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate right-censored survival outcomes in a bounded local CSV. "
@@ -130,6 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

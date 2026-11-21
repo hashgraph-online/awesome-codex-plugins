@@ -1,0 +1,8 @@
+{
+  "name": "maps-demo-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "d3-geo": "3.1.1"
+  }
+}

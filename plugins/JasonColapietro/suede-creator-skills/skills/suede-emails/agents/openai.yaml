@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Lifecycle Email Skills"
+  short_description: "Design lifecycle email that runs itself"
+  default_prompt: "Use $suede-emails on [target]. The user is building an automated email sequence, drip campaign, or lifecycle flow. Work through welcome and onboarding sequences, nurture, re-engagement, trigger design, and cadence that does not burn the list, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Competitor Comparison Skills"
+  short_description: "Write comparison and alternative pages that rank and convert"
+  default_prompt: "Use $suede-competitors on [target]. The user wants a versus page, alternative page, or competitor comparison for search and sales. Work through page formats, claim discipline with sources and check dates, answer-first structure that AI answers can quote, and fair framing; return the page plan, the copy, and the KPIs to watch."
+policy:
+  allow_implicit_invocation: true

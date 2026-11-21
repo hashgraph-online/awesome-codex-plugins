@@ -1,0 +1,66 @@
+{
+  "skill_name": "suede-offers",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My $3K group coaching program for agency owners isn't selling. Here's the page. Fix the offer.",
+      "expected_output": "Reads product-marketing context, writes the current offer in plain language, scores the four Suede Value Levers (outcome, confidence, wait, effort) with the evidence gap behind the lowest, audits the six parts, changes one lever this iteration, and returns the Offer Brief with every heading. Names a measurement (metric, baseline, review date) instead of promising a lift percentage. Bonuses each map to an objection and carry no invented dollar values.",
+      "assertions": [
+        "Scores all four Value Levers and names the binding one with its evidence gap",
+        "Returns the Offer Brief with every heading in order",
+        "Changes one lever this iteration rather than rebuilding everything",
+        "Does not promise a conversion lift percentage",
+        "Does not invent testimonials, results, or bonus dollar values"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Add a countdown timer and 'only 5 spots left' to my course sales page. It's evergreen, there's no real cap.",
+      "expected_output": "Declines to add fake scarcity, explains that resetting timers and false stock claims are deceptive under FTC Act Section 5, the UK DMCC Act, and the EU Unfair Commercial Practices Directive, and offers real constraints instead: cohort start dates, a scheduled price increase, a bonus that actually expires, or capacity on live components. Keeps the response practical and offers a compliant version.",
+      "assertions": [
+        "Refuses to fabricate scarcity or a resetting countdown",
+        "Cites the consumer-protection risk with at least one named rule",
+        "Offers at least two real-constraint alternatives",
+        "Provides a usable compliant draft or structure"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How can I use psychology to increase conversions on our pricing page? We sell a B2B SaaS tool with three tiers ($29, $79, $199/month).",
+      "expected_output": "Reads the behavioral-models catalog before naming models. Uses the per-recommendation contract (Mechanism, Evidence tier, Application, Test) for each recommendation: anchoring and framing (Robust), good-better-best price relativity (Context-dependent), charm pricing (Context-dependent, weak for B2B subscriptions), decoy effect (Contested, test only). Applications reference the actual price points. Routes tier architecture to suede-pricing and test design to suede-ab-testing.",
+      "assertions": [
+        "Every recommendation uses the four-part contract",
+        "Evidence tiers match the catalog, including Contested for the decoy effect",
+        "Applications are specific to the $29/$79/$199 tiers",
+        "Contested or Folklore models are framed as tests, not reasons",
+        "Routes tier architecture to suede-pricing"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What guarantee should a $15K/month fractional CMO retainer offer? Clients worry they'll pay for months with nothing to show.",
+      "expected_output": "Maps the buyer's real risk (paying for months without results) to a guarantee type such as a paid pilot with a milestone gate or an outcome-or-extension guarantee, states exact conditions and who carries the cost, stress-tests refund exposure, and avoids an unconditional or better-than-money-back promise the margin cannot carry.",
+      "assertions": [
+        "Names the buyer's specific risk before choosing a guarantee type",
+        "Recommends a guarantee type with exact conditions",
+        "Stress-tests the cost if a share of clients invoke it",
+        "Avoids over-promising guarantees"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Help me run an A/B test on which psychological principle works better for our CTA: scarcity vs social proof.",
+      "expected_output": "Frames each principle with the contract (mechanism, evidence tier, application) so the hypothesis is sharp, flags that scarcity copy must reflect a real constraint, and hands experiment design, sample sizing, and readout to suede-ab-testing rather than designing the full test itself.",
+      "assertions": [
+        "States each principle as a testable hypothesis with its evidence tier",
+        "Requires the scarcity variant to reflect a real constraint",
+        "Routes test design and analysis to suede-ab-testing"
+      ],
+      "files": []
+    }
+  ]
+}

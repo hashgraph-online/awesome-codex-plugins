@@ -20,7 +20,7 @@ delete an answered entry: the answer is the record Archive keeps.
 
 A `Filed:` line points at answered history — follow it and search that file by topic or identifier.
 Historical decisions are evidence, not fresh authorization. A broken pointer is reported in
-`snag-log.md`; never guess or delete history.
+`snag-log.md`; never guess, and keep history intact.
 
 ---
 

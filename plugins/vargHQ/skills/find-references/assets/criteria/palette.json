@@ -1,0 +1,16 @@
+[
+ {
+  "id": "C4",
+  "question": "Is the accent on the named object?",
+  "pass_example": "Red only on umbrella",
+  "fail_example": "Red on background sign",
+  "ct_rule": "Object not visible"
+ },
+ {
+  "id": "C5",
+  "question": "Do colours belong to objects, not one overlay tint?",
+  "pass_example": "Skin, wall and sky differ",
+  "fail_example": "Same teal in every shadow, same orange on every highlight",
+  "ct_rule": "Monochrome subject"
+ }
+]

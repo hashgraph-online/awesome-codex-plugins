@@ -1,0 +1,70 @@
+{
+  "name": "@modelsalt/model-salt",
+  "version": "1.0.3",
+  "mcpName": "com.modelsalt/model-salt",
+  "description": "An MCP server that gives your model randomness from outside it, so one prompt gives different answers that still do what you asked. For Claude Code, Codex, Gemini CLI and Kimi Code.",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "llm",
+    "ai",
+    "randomness",
+    "diversity",
+    "creative",
+    "prompt",
+    "claude",
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "kimi"
+  ],
+  "homepage": "https://modelsalt.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/modelsalt/model-salt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/modelsalt/model-salt/issues"
+  },
+  "license": "MIT",
+  "author": "Chris Benjaminsen (https://chrisbenjaminsen.com)",
+  "type": "module",
+  "bin": {
+    "model-salt": "src/stdio.mjs"
+  },
+  "files": [
+    "src/stdio.mjs",
+    "src/setup.mjs",
+    "src/server.mjs",
+    "src/services.mjs",
+    "src/common.mjs",
+    "src/codepick.mjs",
+    "src/entropy.mjs",
+    "src/placeholders.mjs",
+    "src/runner.mjs",
+    "src/in-context.mjs",
+    "src/seedlines.mjs",
+    "src/template-steps.mjs",
+    "src/wordlist.mjs",
+    "src/words.mjs",
+    "services/*/service.mjs",
+    "services/*/models.mjs",
+    "services/*/steps/0.45a.mjs",
+    "plugin/skills/model-salt/SKILL.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "stdio": "node src/stdio.mjs",
+    "http": "node src/serve-http.mjs",
+    "smoke": "scripts/smoke.sh",
+    "words": "python3 -I src/make_words.py src/words.mjs",
+    "test": "node --test checks/*.test.mjs"
+  }
+}

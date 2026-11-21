@@ -1,0 +1,4 @@
+interface:
+  display_name: "AlphaGenome Research"
+  short_description: "Local AlphaGenome model workflows"
+  default_prompt: "Use $alphagenome-research to run AlphaGenome locally with downloaded weights for variant or interval prediction."

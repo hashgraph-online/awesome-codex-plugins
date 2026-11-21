@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "mcpName": "io.github.ASCIT31/darkmoon-mcp-server",
   "description": "MCP server for a self-hosted Darkmoon Pro instance: start autonomous AI pentest runs, poll status, list campaigns and read findings.",
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

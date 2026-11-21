@@ -1,0 +1,195 @@
+{
+  "schema_version": "0.1.0",
+  "package_type": "music-release-lint-report",
+  "generated_at": "2026-07-03T03:18:09.751608+00:00",
+  "source_root": "sample-blocked-project",
+  "metadata_source": "metadata.json",
+  "score": 0,
+  "status": "blocked",
+  "severity_counts": {
+    "error": 7,
+    "warning": 11,
+    "info": 3
+  },
+  "summary": {
+    "title": "unknown",
+    "artist": "unknown",
+    "asset_counts": {
+      "audio": 0,
+      "video": 0,
+      "artwork": 0,
+      "lyrics": 0,
+      "stem": 0,
+      "document": 2,
+      "other": 0
+    }
+  },
+  "assets": [
+    {
+      "relative_path": "metadata.json",
+      "category": "document",
+      "role": "document",
+      "suffix": ".json",
+      "size_bytes": 839,
+      "mime_guess": "application/json"
+    },
+    {
+      "relative_path": "notes/project-notes.txt",
+      "category": "document",
+      "role": "document",
+      "suffix": ".txt",
+      "size_bytes": 223,
+      "mime_guess": "text/plain"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "error",
+      "category": "metadata",
+      "code": "missing-title",
+      "message": "Title is missing.",
+      "fix": "Add the official public title."
+    },
+    {
+      "severity": "error",
+      "category": "metadata",
+      "code": "missing-artist",
+      "message": "Artist or creator name is missing.",
+      "fix": "Add the official artist or creator name."
+    },
+    {
+      "severity": "warning",
+      "category": "metadata",
+      "code": "missing-release-date",
+      "message": "Release date is missing.",
+      "fix": "Add release date metadata."
+    },
+    {
+      "severity": "warning",
+      "category": "metadata",
+      "code": "missing-genre",
+      "message": "Genre is missing.",
+      "fix": "Add genre metadata."
+    },
+    {
+      "severity": "warning",
+      "category": "metadata",
+      "code": "missing-language",
+      "message": "Language is missing.",
+      "fix": "Add language metadata."
+    },
+    {
+      "severity": "warning",
+      "category": "metadata",
+      "code": "missing-description",
+      "message": "Description is missing.",
+      "fix": "Add description metadata."
+    },
+    {
+      "severity": "warning",
+      "category": "metadata",
+      "code": "missing-explicit-status",
+      "message": "Explicit-content status is missing.",
+      "fix": "Add explicit true/false status."
+    },
+    {
+      "severity": "error",
+      "category": "media",
+      "code": "missing-primary-media",
+      "message": "No primary audio or video file was found.",
+      "fix": "Add or identify the final master or primary media file."
+    },
+    {
+      "severity": "warning",
+      "category": "artwork",
+      "code": "missing-artwork",
+      "message": "No artwork image was found.",
+      "fix": "Add release artwork before public distribution or catalog publication."
+    },
+    {
+      "severity": "info",
+      "category": "lyrics",
+      "code": "missing-lyrics",
+      "message": "No lyric or timed-text file was found.",
+      "fix": "Add lyrics or timed lyrics if the release uses vocals."
+    },
+    {
+      "severity": "warning",
+      "category": "stems",
+      "code": "missing-stems",
+      "message": "No stems were found.",
+      "fix": "Add stems or plan stem separation for remix, sync, licensing, or Suede optimization."
+    },
+    {
+      "severity": "error",
+      "category": "splits",
+      "code": "invalid-master-split-total",
+      "message": "Master splits add to 80, not 100.",
+      "fix": "Correct master split percentages."
+    },
+    {
+      "severity": "error",
+      "category": "splits",
+      "code": "invalid-publishing-split-total",
+      "message": "Publishing splits add to 110, not 100.",
+      "fix": "Correct publishing split percentages."
+    },
+    {
+      "severity": "warning",
+      "category": "credits",
+      "code": "contributors-unconfirmed",
+      "message": "One or more contributors lack confirmation.",
+      "fix": "Collect contributor confirmations before royalty routing or licensing."
+    },
+    {
+      "severity": "error",
+      "category": "rights",
+      "code": "ownership-unconfirmed",
+      "message": "Ownership claim is missing or unconfirmed.",
+      "fix": "Confirm master and publishing ownership."
+    },
+    {
+      "severity": "error",
+      "category": "rights",
+      "code": "sample-clearance-missing",
+      "message": "Samples, covers, interpolations, or third-party material are indicated but clearance is not confirmed.",
+      "fix": "Provide clearance details or remove uncleared material before licensing."
+    },
+    {
+      "severity": "warning",
+      "category": "rights",
+      "code": "release-history-unknown",
+      "message": "Prior release, registration, minting, or licensing history is unknown.",
+      "fix": "Confirm whether the work has already been distributed, registered, minted, licensed, or sold."
+    },
+    {
+      "severity": "info",
+      "category": "rights",
+      "code": "ai-involvement-unstated",
+      "message": "AI involvement is not stated.",
+      "fix": "State whether generative AI was used for vocals, instrumentation, composition, lyrics, artwork, or post-production (use \"none\" if not); distributors increasingly require this at delivery."
+    },
+    {
+      "severity": "warning",
+      "category": "suede",
+      "code": "missing-wallet-or-payment-destination",
+      "message": "No creator wallet or payment destination was provided.",
+      "fix": "Add a public wallet or payment-routing note if Suede royalty routing or agent commerce is intended."
+    },
+    {
+      "severity": "warning",
+      "category": "suede",
+      "code": "missing-provenance-notes",
+      "message": "No provenance or creation-history notes were provided.",
+      "fix": "Add creation history, source notes, or chain-of-custody details."
+    },
+    {
+      "severity": "info",
+      "category": "suede",
+      "code": "rights-passport-candidate",
+      "message": "Project can be prepared with a Suede Rights Passport after blockers are resolved.",
+      "fix": "Use suede-rights-passport once error findings are fixed or clearly documented."
+    }
+  ],
+  "recommended_next_action": "Fix error findings before preparing a Suede Rights Passport, registering rights, licensing, or routing royalties."
+}

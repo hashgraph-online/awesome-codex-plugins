@@ -9,6 +9,7 @@
 - [ ] 无已知高危依赖漏洞
 
 检测逻辑：
+
 - 若存在 `tsconfig.json` → 执行 `tsc --noEmit`
 - 若存在 Biome/ESLint/Ruff 配置 → 执行对应 lint
 - 若存在 `package.json` → 执行 `npm audit` 检查高危漏洞
@@ -22,6 +23,7 @@
 - [ ] 集成测试通过
 
 检测逻辑：
+
 - 自动识别测试框架：Vitest / Jest / pytest / cargo test / go test
 - 自动解析覆盖率报告（coverage-summary.json / coverage.json / coverage.out）
 - 自动识别 E2E 框架：Playwright / Cypress
@@ -33,12 +35,14 @@
 - [ ] 无内存泄漏（长时间运行稳定）
 
 检测逻辑：
+
 - 检测前端框架（React / Vue / Svelte / Angular / Next.js）→ 执行 Lighthouse
 - 检测 API 框架（Express / Fastify / Koa / Hono / Go / Python）→ 测量 P99
 
 ## 判断标准
 
 问自己：
+
 - **如果现在把这个代码交给用户，他能正常使用吗？**
 - **核心流程有没有遗漏的测试？**
 - **有没有明显的性能或安全问题？**
@@ -46,6 +50,7 @@
 ## 未通过处理
 
 如果门禁未通过：
+
 1. 尝试修复问题
 2. 重新执行对应检查
 3. 再次确认是否通过

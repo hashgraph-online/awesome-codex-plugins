@@ -20,6 +20,10 @@ import json
 import math
 import sys
 
+import _core_path  # noqa: F401
+from kicad_core.fileio import atomic_write_text, json_load
+from kicad_core.cli import add_output_arg
+
 
 # Physical constants
 RHO_CU = 1.68e-8       # Copper resistivity at 20°C (Ω·m)
@@ -153,6 +157,11 @@ def extract_parasitics(pcb_json, net_filter=None):
         if layer.get("type") == "copper" and layer.get("thickness"):
             copper_thickness = layer["thickness"]
             break
+    # a segment takes its own layer's thickness, else the first copper layer's
+    copper_by_layer = {}
+    for layer in stackup:
+        if layer.get("type") == "copper" and layer.get("thickness"):
+            copper_by_layer.setdefault(layer.get("name"), layer["thickness"])
     for layer in stackup:
         if layer.get("type") in ("core", "prepreg") and layer.get("epsilon_r"):
             dielectric_er = layer["epsilon_r"]
@@ -185,7 +194,8 @@ def extract_parasitics(pcb_json, net_filter=None):
         total_trace_r = 0.0
         segment_parasitics = []
         for seg in trace_segments:
-            r = trace_resistance(seg["length_mm"], seg["width_mm"], copper_thickness)
+            r = trace_resistance(seg["length_mm"], seg["width_mm"],
+                                 copper_by_layer.get(seg.get("layer"), copper_thickness))
             total_trace_r += r
             if r > 0:
                 segment_parasitics.append({
@@ -259,7 +269,7 @@ def extract_parasitics(pcb_json, net_filter=None):
     return result
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Extract PCB parasitic R/L/C from PCB analysis JSON"
     )
@@ -267,22 +277,19 @@ def main():
         "input",
         help="Path to PCB analysis JSON (from analyze_pcb.py --full)",
     )
-    parser.add_argument(
-        "--output", "-o",
-        help="Path to write parasitics JSON (default: stdout)",
-    )
+    add_output_arg(parser, help="Path to write parasitics JSON (default: stdout)")
     parser.add_argument(
         "--nets",
         help="Comma-separated list of net names to process (default: all)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
-        with open(args.input) as f:
-            pcb_json = json.load(f)
+        with open(args.input, encoding="utf-8") as f:
+            pcb_json = json_load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading {args.input}: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     # Check for trace segment data
     net_lengths = pcb_json.get("net_lengths", [])
@@ -309,11 +316,13 @@ def main():
 
     output = json.dumps(result, indent=2)
     if args.output:
-        with open(args.output, "w") as f:
-            f.write(output)
+        atomic_write_text(args.output, output, follow_symlinks=False)
     else:
         print(output)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
+    sys.exit(main())

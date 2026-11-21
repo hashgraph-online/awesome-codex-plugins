@@ -1,0 +1,216 @@
+[
+  {
+    "update_id": 900301,
+    "callback_query": {
+      "id": "4383000000000000001",
+      "from": {
+        "id": 333333333,
+        "is_bot": false,
+        "first_name": "Mallory"
+      },
+      "message": {
+        "message_id": 1002,
+        "date": 1763200000,
+        "chat": {
+          "id": 333333333,
+          "type": "private",
+          "first_name": "Mallory"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Draft d42 · v1 → City News"
+      },
+      "chat_instance": "-5550300",
+      "data": "pub:approve:d42:1"
+    }
+  },
+  {
+    "update_id": 900302,
+    "callback_query": {
+      "id": "4383000000000000002",
+      "from": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "message": {
+        "message_id": 1002,
+        "date": 1763200000,
+        "chat": {
+          "id": 111111111,
+          "type": "private",
+          "first_name": "Alice"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Draft d42 · v1 → City News"
+      },
+      "chat_instance": "-5550300",
+      "data": "pub:edit:d42:1"
+    }
+  },
+  {
+    "update_id": 900303,
+    "message": {
+      "message_id": 1004,
+      "date": 1763200060,
+      "chat": {
+        "id": 111111111,
+        "type": "private",
+        "first_name": "Alice"
+      },
+      "from": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "text": "Tram line 4 reopens on Friday, not Saturday. Night trams run until 01:00.",
+      "reply_to_message": {
+        "message_id": 1003,
+        "date": 1763200030,
+        "chat": {
+          "id": 111111111,
+          "type": "private",
+          "first_name": "Alice"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Send the corrected text for draft d42."
+      }
+    }
+  },
+  {
+    "update_id": 900304,
+    "callback_query": {
+      "id": "4383000000000000004",
+      "from": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "message": {
+        "message_id": 1002,
+        "date": 1763200000,
+        "chat": {
+          "id": 111111111,
+          "type": "private",
+          "first_name": "Alice"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Draft d42 · v1 → City News"
+      },
+      "chat_instance": "-5550300",
+      "data": "pub:approve:d42:1"
+    }
+  },
+  {
+    "update_id": 900305,
+    "callback_query": {
+      "id": "4383000000000000005",
+      "from": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "message": {
+        "message_id": 1006,
+        "date": 1763200000,
+        "chat": {
+          "id": 111111111,
+          "type": "private",
+          "first_name": "Alice"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Draft d42 · v1 → City News"
+      },
+      "chat_instance": "-5550300",
+      "data": "pub:approve:d42:2"
+    }
+  },
+  {
+    "update_id": 900306,
+    "callback_query": {
+      "id": "4383000000000000006",
+      "from": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "message": {
+        "message_id": 1006,
+        "date": 1763200000,
+        "chat": {
+          "id": 111111111,
+          "type": "private",
+          "first_name": "Alice"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Draft d42 · v1 → City News"
+      },
+      "chat_instance": "-5550300",
+      "data": "pub:approve:d42:2"
+    }
+  },
+  {
+    "update_id": 900307,
+    "callback_query": {
+      "id": "4383000000000000007",
+      "from": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "message": {
+        "message_id": 1008,
+        "date": 1763200000,
+        "chat": {
+          "id": 111111111,
+          "type": "private",
+          "first_name": "Alice"
+        },
+        "from": {
+          "id": 999000222,
+          "is_bot": true,
+          "first_name": "Newsroom",
+          "username": "newsroom_demo_bot"
+        },
+        "text": "Draft d42 · v1 → City News"
+      },
+      "chat_instance": "-5550300",
+      "data": "pub:reject:d43:1"
+    }
+  }
+]

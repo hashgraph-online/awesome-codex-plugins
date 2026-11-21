@@ -1,0 +1,10 @@
+interface:
+  display_name: "e2e"
+  short_description: "Write, run, and debug agentic end-to-end tests"
+  icon_small: "../../assets/icon.png"
+  icon_large: "../../assets/icon.png"
+  brand_color: "#171717"
+  default_prompt: "Use $e2e:e2e to add end-to-end tests for the main user flow, run them, and fix any failures from the trace."
+
+policy:
+  allow_implicit_invocation: true

@@ -168,6 +168,7 @@ test('bounded unconfirmed shutdown retains its live exact claim and records no s
   return {examined:0,deleted_count:0,preserved_count:0};};
  const manager=new RunHistoryMaintenance({runRoot:store.root,settlementMs:25,launchWorker:testWorker(store)});manager.schedule(store);await entered.promise;
  await assert.rejects(manager.close(),{code:'RUN_HISTORY_MAINTENANCE_STOP_PENDING'});
+ await manager.writes;
  const status=await manager.status();assert.equal(status.outcome,'stop_pending');
  assert((await lstat(join(store.root,'.run-locks','.history-maintenance','.writer.lock'))).isFile());
  proceed.release();await manager.settle();
@@ -346,13 +347,38 @@ test('real child stop pending retains exact identities until admitted checks set
  const manager=new RunHistoryMaintenance({runRoot:store.root,settlementMs:25,launchWorker:options=>launchHistoryWorker({...options,workerURL:pathToFileURL(worker)})});
  manager.schedule(store);
  for(let attempts=0;;attempts++){try{await readFile(entered);break;}catch(error){if(error.code!=='ENOENT')throw error;assert(attempts<500);await new Promise(r=>setTimeout(r,10));}}
+ const receiptGate=latch();
+ // Hold receipt publication past close()'s separate persistence deadline.
+ // The real worker stays admitted until the read gate is released.
+ manager.writes=manager.writes.then(()=>receiptGate.promise);
+ let running;
  try{
-  await assert.rejects(manager.close(),{code:'RUN_HISTORY_MAINTENANCE_STOP_PENDING'});
-  const pending=await manager.status();assert.equal(pending.outcome,'stop_pending');assert.notEqual(pending.worker_pid,process.pid);
-  assert.doesNotThrow(()=>process.kill(pending.worker_pid,0));
+  running=await manager.status();
+  assert.equal(running.outcome,'pending');
+  assert.equal(running.owner_pid,process.pid);
+  assert(Number.isSafeInteger(running.worker_pid)&&running.worker_pid>0&&running.worker_pid!==process.pid);
+  await assert.rejects(manager.close(),{
+   code:'RUN_HISTORY_MAINTENANCE_STOP_PENDING',
+   persistence_error:{code:'RUN_HISTORY_MAINTENANCE_RECEIPT_PENDING'},
+  });
+  const unpublished=await manager.status();
+  assert.equal(unpublished.outcome,'pending');
+  assert.equal(unpublished.job_id,running.job_id);
+  assert.equal(unpublished.owner_pid,running.owner_pid);
+  assert.equal(unpublished.worker_pid,running.worker_pid);
+  assert.doesNotThrow(()=>process.kill(unpublished.worker_pid,0));
   assert((await lstat(join(store.root,'.run-locks','.history-maintenance','.writer.lock'))).isFile());
- }finally{await writeFile(gate,'release');await manager.settle();}
+
+  receiptGate.release();
+  await manager.writes;
+  const published=await manager.status();
+  assert.equal(published.outcome,'stop_pending');
+  assert.equal(published.job_id,running.job_id);
+  assert.equal(published.owner_pid,running.owner_pid);
+  assert.equal(published.worker_pid,running.worker_pid);
+ }finally{receiptGate.release();await writeFile(gate,'release');await manager.settle();}
  const cancelledStatus=await manager.status();assert.equal(cancelledStatus.outcome,'cancelled');
+ assert.equal(cancelledStatus.job_id,running.job_id);assert.equal(cancelledStatus.worker_pid,running.worker_pid);
  assert.throws(()=>process.kill(cancelledStatus.worker_pid,0),{code:'ESRCH'});
  assert((await lstat(store.directory('preserve'))).isDirectory());
  await assert.rejects(lstat(join(store.root,'.run-locks','.history-maintenance','diagnostic.json')),{code:'ENOENT'});

@@ -1,0 +1,49 @@
+schema_version: 1
+id: pangolin-workflows
+title: Pangolin Workflows
+path: skills/pangolin-workflows
+status: active
+family: tissue-specific-splice-prediction
+tasks:
+  - environment-setup
+  - environment-setup
+  - variant-effect
+  - prediction
+  - interpretation
+  - troubleshooting
+triggers:
+  - pangolin
+  - pangolin splice
+  - tissue-specific splice
+  - score_cutoff
+  - gffutils database
+required_inputs:
+  - task-objective
+  - vcf-input
+  - assembly
+optional_inputs:
+  - sequence-or-interval
+  - target-stack-or-model-family
+  - runtime-context
+  - hardware-context
+  - requested-outputs
+input_mappings:
+  - task-objective|query_tokens=variant,splice,custom,database|script_flags=cli-or-custom-script
+  - vcf-input|query_tokens=vcf,csv,variant,variant-file|script_flags=positional-variant-file
+  - assembly|query_tokens=reference,fasta,genome,hg19,hg38,assembly|script_flags=positional-reference-file
+  - sequence-or-interval|query_tokens=sequence,custom,fasta|script_flags=custom-usage-path
+  - target-stack-or-model-family|query_tokens=pangolin,model,package|script_flags=internal:model-selection
+  - runtime-context|query_tokens=python,conda,pytorch|script_flags=internal:runtime-selection
+  - hardware-context|query_tokens=gpu,cuda,cpu,memory|script_flags=internal:hardware-preflight
+  - requested-outputs|query_tokens=mask,cutoff,distance,output|script_flags=--mask,--score_cutoff,--distance
+constraints:
+  - annotation-database-is-gffutils-db
+  - only-simple-variants-supported
+  - default-mask-is-true
+  - reference-and-gene-context-required
+  - sequence-and-coordinate-inputs-use-explicit-0-based-or-1-based-conventions
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-pangolin
+  - prefer-over-spliceai-when-tissue-specific-splice-strength-is-requested

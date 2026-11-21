@@ -1,0 +1,53 @@
+{
+  "name": "dchub-mcp-server",
+  "version": "2.12.59",
+  "description": "DC Hub is the orchestration layer for data center and energy intelligence. Start with execute_plan. It also publishes the Data Center Power Index (DCPI).",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "data-center",
+    "datacenter",
+    "energy",
+    "electricity",
+    "electricity-prices",
+    "power-grid",
+    "grid-power",
+    "orchestration",
+    "interconnection",
+    "interconnection-queue",
+    "site-selection",
+    "fiber",
+    "colocation",
+    "data-center-power-index",
+    "dchub"
+  ],
+  "author": "DC Hub (https://dchub.cloud)",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "vitest run",
+    "sync": "node scripts/sync-tools-manifest.mjs",
+    "sync:fix": "node scripts/sync-tools-manifest.mjs --fix",
+    "hooks:install": "node scripts/install-hooks.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "express": "^4.22.3",
+    "jose": "^6.2.14",
+    "zod": "^4.6.7"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "qs": "6.16.1",
+    "ip-address": "10.7.4"
+  }
+}

@@ -18,15 +18,13 @@ metadata:
   disposition: keep_strategy
   tier: judgment
   dependencies: []
-output_contract: 'concise inline causal analysis; a requested durable report is YYYY-MM-DD-postmortem-<topic>.md in caller-selected protected external non-Git storage'
+output_contract: 'concise inline causal analysis; a requested report file is YYYY-MM-DD-postmortem-<topic>.md, saved where the caller names, in a private directory outside any Git repository'
 ---
 
 # Postmortem
 
 Answer an explicit retrospective causal question about a completed or stopped
 goal, session, change or incident from its actual intent, outcome and judgment evidence.
-For an explicitly requested interim analysis, pin the cutoff and pending checks;
-its conclusions describe that interval and do not establish a final outcome.
 Neighbours: how a plan not yet run could fail is [Premortem](../premortem/SKILL.md);
 whether a finished change meets acceptance is [Validate](../validate/SKILL.md).
 
@@ -51,25 +49,18 @@ framed as that experiment, not as a supported change. Rejecting a claim needs
 discriminating evidence too, or a prediction of the claim that the evidence
 contradicts. Anything less stays a correlation or an unknown.
 
-## Prompt
-
-```text
-Postmortem last Thursday's release: the deploy needed four attempts and two
-rollbacks before it stuck. Using the deploy log, the CI runs and the incident
-channel notes, which failures were avoidable and what caused each one?
-Answer inline.
-```
-
 ## Critical Constraints
 
 - Postmortem is retrospective causal analysis, not the general learning umbrella
   or a code-acceptance gate: code judgment never waits on it, and Plan's
   [code plus a retrospective](../plan/references/resume-and-handoff.md) rule
   keeps the two separate when both are requested.
-  Wait for a known outcome unless interim analysis was requested.
+- If the outcome is not yet known and no interim analysis was asked for, say
+  so and ask whether to analyze up to now. An interim analysis pins the cutoff
+  and pending checks; its conclusions cover that interval, not a final outcome.
 - It does not re-run acceptance validation, change existing verdicts or
-  fabricate missing proof. An existing `verdict.v2` is optional evidence; its
-  absence does not exclude a stopped or unvalidated subject.
+  fabricate missing proof. An existing Validate verdict (`verdict.v2`) is
+  optional evidence; its absence does not exclude a stopped or unvalidated subject.
 - Because the caller owns subsequent action, do not rewrite proof, operate
   tracker state, change the remaining plan, reopen work or promote a rule.
 - Empty or inconclusive analysis is valid; recommend no change when warranted.
@@ -139,9 +130,6 @@ Answer inline.
   - Fact found slowly: one pointer where the search began. Fact out of reach:
     a way to expose it next time, such as a captured log or an alert; changing
     access needs caller authority.
-- Only when requested, save `YYYY-MM-DD-postmortem-<topic>.md` in caller-selected
-  protected external non-Git storage. Missing routing does not authorize a
-  repository fallback; preserve existing requested evidence under owner policy.
-- Curation, support and destination-disclosure review of any lesson are
-  separately authorized [Memory](../memory/SKILL.md) work; retrospective
-  evidence cannot promote itself.
+- Save `YYYY-MM-DD-postmortem-<topic>.md` only when asked, where the caller
+  names, in a private directory outside any Git repository. With no location
+  named, answer inline and write no file. Never overwrite an earlier report.

@@ -34,10 +34,8 @@ _SCHEMES = (
     "hf:",
     "ssh:",
 )
-_INTEGER = re.compile(r"^-?(?:0|[1-9][0-9]*)$")
-_FLOAT = re.compile(
-    r"^-?(?:(?:0|[1-9][0-9]*)\.[0-9]+|(?:0|[1-9][0-9]*)(?:[eE][+-]?[0-9]+))$"
-)
+_INTEGER = re.compile(r"^-?(?:0|[1-9]\d*)$")
+_FLOAT = re.compile(r"^-?(?:0|[1-9]\d*)(?:\.\d+|[eE][+-]?\d+)$")
 _YAML_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
 
 
@@ -66,6 +64,7 @@ def int_type(*, minimum: int = 0, maximum: int, label: str):
     """Return an argparse-compatible bounded integer parser."""
 
     def parse(value: str) -> int:
+        """Parse."""
         try:
             return bounded_int(
                 value,
@@ -80,6 +79,7 @@ def int_type(*, minimum: int = 0, maximum: int, label: str):
 
 
 def _reject_unsafe_text_path(raw: str) -> None:
+    """Handle reject unsafe text path."""
     if not raw or "\x00" in raw:
         raise SafetyError("path must be a nonempty string without NUL bytes")
     lowered = raw.strip().lower()
@@ -92,6 +92,7 @@ def _reject_unsafe_text_path(raw: str) -> None:
 
 
 def _reject_symlink_components(path: Path) -> None:
+    """Handle reject symlink components."""
     current = Path(path.anchor)
     for part in path.parts[1:]:
         current = current / part
@@ -122,15 +123,25 @@ def local_path(
     except FileNotFoundError:
         if must_exist:
             raise SafetyError("required local path does not exist")
-        parent = candidate.parent
-        try:
-            parent_mode = parent.lstat().st_mode
-        except FileNotFoundError as exc:
-            raise SafetyError("output parent does not exist") from exc
-        if not stat.S_ISDIR(parent_mode):
-            raise SafetyError("output parent is not a directory")
-        return candidate
+        _require_output_parent(candidate)
+    else:
+        _require_allowed_mode(mode, kind)
+    return candidate
 
+
+def _require_output_parent(candidate: Path) -> None:
+    """Require the parent of a not-yet-existing output path to be a directory."""
+    parent = candidate.parent
+    try:
+        parent_mode = parent.lstat().st_mode
+    except FileNotFoundError as exc:
+        raise SafetyError("output parent does not exist") from exc
+    if not stat.S_ISDIR(parent_mode):
+        raise SafetyError("output parent is not a directory")
+
+
+def _require_allowed_mode(mode: int, kind: str) -> None:
+    """Reject symlinks and file types that do not match the requested kind."""
     if stat.S_ISLNK(mode):
         raise SafetyError("symlinks are not allowed")
     if kind == "file" and not stat.S_ISREG(mode):
@@ -139,10 +150,10 @@ def local_path(
         raise SafetyError("expected a directory")
     if kind == "any" and not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
         raise SafetyError("only regular files and directories are allowed")
-    return candidate
 
 
 def _open_binary_nofollow(path: Path):
+    """Open binary nofollow."""
     flags = os.O_RDONLY
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -230,6 +241,7 @@ def display_path(path: Path, index: int, mode: str) -> str:
 
 
 def add_path_mode_argument(parser) -> None:
+    """Add path mode argument."""
     parser.add_argument(
         "--path-mode",
         choices=("redacted", "basename", "full"),
@@ -292,6 +304,7 @@ def read_delimited_manifest(
 
 
 def delimiter_from_path(path: Path, requested: str) -> str:
+    """Resolve the manifest delimiter, inferring it from the file suffix for auto."""
     if requested != "auto":
         return requested
     return "csv" if path.suffix.lower() == ".csv" else "tsv"

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Clip to Guide Skills"
+  short_description: "Turn video moments into long-form content funnels"
+  default_prompt: "Use $suede-clip-to-guide to turn this video moment and guide into a rights-aware, platform-native funnel package ready for exact-content approval, with the dual certainty gate when Max Effort or Worker Fleet controls the run."
+policy:
+  allow_implicit_invocation: true

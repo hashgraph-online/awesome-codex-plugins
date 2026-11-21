@@ -1,0 +1,7 @@
+[Verse 1]
+Placeholder lyric line one, synthetic fixture text.
+Placeholder lyric line two, for linter testing only.
+
+[Chorus]
+This is not a real song.
+This is a fixture, plain and clear.

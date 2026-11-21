@@ -115,6 +115,8 @@ This repository includes `.codex-plugin/plugin.json`, which exposes `./skills/` 
 - Keep `.codex-plugin/plugin.json` as the Codex source of truth. It must point `skills` at `./skills/`, omit `apps` and `mcpServers` unless their companion manifests exist, and keep version metadata aligned with the other extension manifests.
 - When publishing through a marketplace, update that marketplace entry after the release commit so its source, ref, or sha points at the published revision.
 - Validate packaging changes with `python3 scripts/validate_plugin_metadata.py`.
+- Ship the complete plugin root, including `references/`, `templates/`, `scripts/`, and the other runtime manifests and entrypoints. Copying only `skills/` and the Codex manifest leaves broken shared references and package commands.
+- Before publishing a mirrored or installed copy, run `python3 scripts/check_plugin_package.py <plugin-root> --source <source-checkout>`, then `npm --prefix <plugin-root> run validate`. CI performs both checks against an extracted Git archive and uploads that validated archive as `agent-harness-skills-plugin`.
 - Verify by asking Codex to use `repo-harness-assessment` on a repository.
 
 ### Claude Code
@@ -233,6 +235,7 @@ python3 scripts/check_skill_closure.py
 python3 scripts/check_reference_neutrality.py
 python3 scripts/check_profile_consistency.py
 python3 scripts/validate_plugin_metadata.py
+python3 scripts/check_plugin_package.py
 node --check .opencode/plugins/agent-harness-skills.js
 ```
 

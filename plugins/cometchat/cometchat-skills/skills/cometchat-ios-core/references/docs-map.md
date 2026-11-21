@@ -7,13 +7,13 @@ use them instead of a raw web fetch:**
 - **Find the page** → `search_cometchat_docs(query, version?)` — replaces browsing the scoped `llms-*` index.
 - **Read the page** → `fetch_cometchat_doc_page(path)` — pass the SAME `<path>` the tables below list
   (the conversations page path for your platform); the MCP resolves the `.md` twin and returns raw Markdown.
-  A full `https://…/docs/<path>` URL also works.
+  A full `https://.../docs/<path>` URL also works.
 - **A whole feature/recipe** → `get_cometchat_implementation_bundle(...)` is **NON-AUTHORITATIVE** — curated STATIC recipes that can lag the live docs (verified stale vs v7: e.g. `CometChatConversationsWithMessages`, `css-variables.css`). Treat any bundle as a hint only: RECONCILE it against the `fetch_cometchat_doc_page` result + the pack's hardening; never emit bundle code verbatim.
 
 The MCP reads whatever docs environment it is pointed at (production by default; a preview when repointed),
 so it also carries the environment-swap concern below — no hardcoded host on the skill side.
 
-**If the MCP tools are NOT connected:** add it (`claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp`, or reinstall/enable the plugin) and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE`/`SDK_DOCS_BASE` (defined next).
+**If the MCP tools are NOT connected:** help the user add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE`/`SDK_DOCS_BASE` (defined next).
 Either way the `<path>` catalog in this file is the source of truth for WHICH page — MCP-vs-fetch is only HOW.
 
 ## DOCS_BASE — the fetch FALLBACK entry point (⚠️ SWAP HERE to change environments)
@@ -26,7 +26,7 @@ SDK_DOCS_BASE = https://www.cometchat.com/docs
 > answer API from memory.
 >
 > **Docs note (`DOCS-BACKLOG.md`):** the v4 composite components (`*WithMessages`) do not exist in
-> 5.1.22. The live pages now say so (`conversations.md` states there is no composite; `*WithMessages`
+> 5.2.3 (0 matches in its interface). The live pages now say so (`conversations.md` states there is no composite; `*WithMessages`
 > survives only on `upgrading-from-v4`, correctly as the v4 "before" side). Still: verify every symbol
 > against `catalogs/ios-v5.json` before emitting — the catalog is the ground truth, not the docs.
 

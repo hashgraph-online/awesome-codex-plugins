@@ -10,7 +10,7 @@ a meeting or create a reminder. This skill codifies that end-to-end flow. Every 
 Reminders, so the flow runs only on macOS.
 
 ## The flow
-1. **Surface what needs attention** — `search_emails`/`list_emails` (pass `account=` to stay fast),
+1. **Surface what needs attention** — `search_emails`/`list_emails` (set `account=` to stay fast),
    then `read_email` on the ones that matter. Summarize: who, what they want, urgency.
 2. **Reply** — `create_draft` (with `reply_to_message_id` for replies). Compose the draft; the
    user reviews and sends it. **Never auto-send.**

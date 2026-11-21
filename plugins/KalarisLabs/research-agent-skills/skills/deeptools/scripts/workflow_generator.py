@@ -425,6 +425,7 @@ echo "  ~400bp: di-nucleosome"
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Generate deepTools workflow scripts",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -515,10 +516,10 @@ Examples:
         message = generate_atacseq_workflow(output_file, params)
 
     print(message)
-    print(f"\nTo run the workflow:")
+    print("\nTo run the workflow:")
     print(f"  chmod +x {shell_literal(output_file)}")
     print(f"  {runnable_script_path(output_file)}")
-    print(f"\nNote: Edit the script to customize file paths and parameters.")
+    print("\nNote: Edit the script to customize file paths and parameters.")
 
 
 if __name__ == "__main__":

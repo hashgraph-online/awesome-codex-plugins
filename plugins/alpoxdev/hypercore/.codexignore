@@ -1,0 +1,7 @@
+# Authoring guidance and repository tooling are not part of the Codex plugin bundle.
+instructions/
+scripts/
+assets/readme/
+.hyper/
+AGENTS.md
+AGENTS.ko.md

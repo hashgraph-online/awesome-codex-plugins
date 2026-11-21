@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "hyper-design slop detector project configuration",
+  "description": "Optional per-project configuration for scripts/detect-slop.sh. Re-authored from the mechanism idea in dbc-hbin/omp-ulw @ 74df40f (2026-11-09); no text or code was copied.",
+  "type": "object",
+  "required": ["version"],
+  "properties": {
+    "version": { "const": 1 },
+    "rules": {
+      "type": "object",
+      "description": "Per-rule severity override or disablement. A severity value replaces the registry default in the report; off removes the rule from the scan.",
+      "additionalProperties": { "enum": ["off", "P1", "P2", "P3"] }
+    },
+    "allowFonts": {
+      "type": "array",
+      "description": "Font families the project allows. All allowFonts, allowEasings, and designTokens values form one pooled allowlist: a finding whose matched excerpt contains any listed value moves to the skipped count instead of the findings list.",
+      "items": { "type": "string" }
+    },
+    "allowEasings": {
+      "type": "array",
+      "description": "Named easing functions the project allows, for example cubic-bezier(0.2, 0.6, 0.2, 1). All allowFonts, allowEasings, and designTokens values form one pooled allowlist: a finding whose matched excerpt contains any listed value moves to the skipped count instead of the findings list.",
+      "items": { "type": "string" }
+    },
+    "designTokens": {
+      "type": "object",
+      "description": "Declared design tokens as name to CSS value map, for example colors and lengths the project standardizes on. All allowFonts, allowEasings, and designTokens values form one pooled allowlist: a finding whose matched excerpt contains any listed value moves to the skipped count instead of the findings list.",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

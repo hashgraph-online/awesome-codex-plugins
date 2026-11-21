@@ -13,8 +13,7 @@
  * complementary accent on near-white) regardless of brief. A single seed +
  * the model's own composition lets the same seed produce a dark-mode jazz
  * club or a light-mode hospitality brand depending on what the brief calls
- * for. Tested empirically against curated 4-color palettes; seed approach
- * wins on mood-fit in 3 of 5 cases and ties on the rest.
+ * for.
  *
  * Usage:
  *   node scripts/palette.mjs                  # pick at random
@@ -467,7 +466,7 @@ function weightedPick(seeds, unit) {
 
 class UnknownSeedError extends Error {
   constructor(id) {
-    super(`No palette seed with id "${id}". Omit id for a weighted pick, or use one of the listed seed ids.`);
+    super(`No palette seed with id "${id}". Omit id for a weighted pick, or use a known seed id (SEED_IDS; the MCP error lists them in details.ids).`);
     this.code = 'UNKNOWN_SEED';
   }
 }
@@ -491,7 +490,7 @@ function fmtOklch([L, C, H]) {
 }
 
 function hueWord(H) {
-  if (H < 15 || H >= 345) return 'pure red';
+  if (H < 15 || H >= 345) return 'red / rose';
   if (H < 35)  return 'warm red / crimson';
   if (H < 55)  return 'warm coral / burnt orange';
   if (H < 80)  return 'orange / honey';
@@ -529,8 +528,8 @@ Seed color (anchor for your primary brand color):
 
 This is the brand's anchor — a single beautiful color. Compose the rest of
 the palette around it using YOUR judgment, the brief (PRODUCT.md /
-DESIGN.md / the user's prompt), and the color-strategy guidance already in
-SKILL.md.
+DESIGN.md / the user's prompt) and any approved identity, which outranks
+everything below.
 
 How to use:
 
@@ -593,19 +592,19 @@ How to use:
                   default-complementary across the wheel). Used for
                   badges, status pills, links, accent rules.
      • muted    — secondary text. Ink pulled 40% toward bg, keeping ink's
-                  hue. Must reach ≥3.5:1 contrast vs bg.
+                  hue. Must reach ≥4.5:1 contrast vs bg (WCAG AA).
 
-4. Pick a color STRATEGY (the four steps from SKILL.md):
+4. Pick a color STRATEGY (one of four):
      • Restrained: tinted neutrals + accent ≤10% — product default
      • Committed: one saturated color carries 30-60% — identity-driven
      • Full palette: 3-4 named roles each used deliberately — brand work
      • Drenched: the surface IS the color — campaign, hero, statement
    The brief picks the strategy. A startup dashboard ≠ a perfume brand.
 
-Hard rules (already in SKILL.md, recapped because the seed step is where
-they actually bite):
+Rules for the composed palette:
 
-  - OKLCH only — never hex. Never #RRGGBB.
+  - Compose in OKLCH; write the result in whatever format the project's
+    tokens already use (hex is fine there).
   - ink-vs-bg WCAG contrast ≥ 7 (body text must be readable)
   - primary chroma ≤ 0.23 (above this, primary glows perceptually and
     no text on it is readable — acid-bright is a UI failure)
@@ -621,23 +620,25 @@ they actually bite):
     + dusty brown primary), forest-green-on-cream, AI-purple-on-white,
     navy-cream-with-orange-accent
 
-TEXT-ON-COLOR FILLS — pick by perceptual contrast, not just WCAG. The
+TEXT-ON-COLOR FILLS — WCAG AA first, perceptual judgment second. The
 rule applies to ANY element where text sits on a saturated color fill:
 primary buttons, accent buttons, badges, status pills, tag highlights,
 filled callouts. Don't only think "primary button" — apply consistently.
 
-For any saturated mid-luminance color (L between 0.42 and 0.78, chroma ≥
-0.08), use WHITE text (or near-white from your bg), not dark text — even
-if WCAG says dark technically passes. The Helmholtz-Kohlrausch effect
-makes saturated colors appear brighter than their luminance suggests,
-and dark text on a warm-or-cool-saturated fill reads as muddy.
+Text on a fill must reach 4.5:1 (3:1 for large text). Measure every
+pair (the MCP tool check_contrast does it); never ship a failing pair
+for the look. On a saturated mid-luminance fill (L 0.42-0.78, chroma ≥
+0.08) white often fails: then darken the fill until white passes, or use
+dark text. When white and dark both pass, prefer white: the
+Helmholtz-Kohlrausch effect makes saturated colors look brighter than
+their luminance, and dark text on them can read as muddy.
 
 Convention: Stripe orange CTAs, McDonald's red, every fintech orange
 button, Vercel's filled badges, Linear's status pills — all use white
 text on saturated bg fills.
 
-Dark text is correct only on PALE fills (L > 0.85) or PURE-NEUTRAL fills
-(chroma near 0). Everything else: white text.
+Dark text is the usual answer on PALE fills (L > 0.85) and on bright
+yellows, ambers and limes, where white cannot pass.
 
 Return your composed palette in CSS custom properties using OKLCH, then
 build with it. The seed is the start, not the recipe.

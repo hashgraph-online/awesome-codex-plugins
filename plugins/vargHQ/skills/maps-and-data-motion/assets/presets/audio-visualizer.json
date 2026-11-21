@@ -1,0 +1,280 @@
+{
+  "id": "audio-visualizer",
+  "name": "Audio visualizer",
+  "use": "Turns a soundtrack into silk ribbons, a scrolling wireframe terrain or an ASCII character field.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 20,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "analysis": {
+      "sample_rate": 44100,
+      "fft_size": 4096,
+      "hz_per_bin": 10.8,
+      "window": "Hann/Blackman centred on frame time",
+      "hop_samples": 1470,
+      "band_range_hz": [
+        30,
+        16000
+      ],
+      "band_spacing": "log",
+      "db_range": [
+        -100,
+        -30
+      ],
+      "normalise": "per band to the track's 98th percentile",
+      "musical_bands_hz": {
+        "bass": [
+          20,
+          140
+        ],
+        "lowMid": [
+          140,
+          400
+        ],
+        "mid": [
+          400,
+          2600
+        ],
+        "highMid": [
+          2600,
+          5200
+        ],
+        "treble": [
+          5200,
+          14000
+        ]
+      }
+    },
+    "envelope": {
+      "attack_frames": 1,
+      "release_tau_s": {
+        "bars_ascii": 0.25,
+        "ribbons": 0.45,
+        "terrain": 0.6
+      },
+      "formula": "y += (x-y) * (x>y ? 1 : 1-exp(-1/(fps*tau)))"
+    },
+    "beats": {
+      "tool": "librosa.beat.beat_track(sr=22050, hop_length=512)",
+      "impulse": 1.0,
+      "decay_tau_s": 0.12,
+      "shape_scale_pct": [
+        6,
+        12
+      ],
+      "text_scale_pct_max": 4
+    },
+    "level_model": "1 = normal, <0.7 quiet, >1.3 loud (MilkDrop); damped copy for big shapes",
+    "idle_floor_motion_pct": [
+      8,
+      12
+    ],
+    "idle_phase_cycles_per_s": [
+      0.1,
+      0.2
+    ],
+    "sampling": "precompute smoothed arrays; tl.call per frame on the paused timeline"
+  },
+  "ffmpeg_quick": {
+    "cqt": "showcqt=s=1920x1080:fps=30:sono_g=3",
+    "log_spectrum_line": "showfreqs=s=1920x1080:mode=line:fscale=log:win_size=4096",
+    "waveform": "showwaves=s=1920x400:mode=cline:rate=30"
+  },
+  "presets": [
+    {
+      "id": "audio-visualizer.silk-ribbons",
+      "label": "Silk ribbons",
+      "look": "Five translucent ribbons flowing over a dark gradient",
+      "params": {
+        "bg": "linear #0B0B12 -> #1B1030",
+        "ribbons": [
+          "#FF5EA8",
+          "#8A5CFF",
+          "#4CC9F0",
+          "#F9C74F",
+          "#FFFFFF"
+        ],
+        "ribbon_count": 5,
+        "line_px": [
+          2,
+          4
+        ],
+        "glow_px": 16,
+        "blend": "lighter",
+        "bands": 32,
+        "amplitude_pct_h": [
+          4,
+          14
+        ],
+        "phase_cycles_per_s": [
+          0.15,
+          0.4
+        ],
+        "release_tau_s": 0.45,
+        "mapping": "bass -> bottom ribbon ... treble -> top ribbon"
+      },
+      "sources": [
+        60,
+        64,
+        65,
+        69,
+        71
+      ]
+    },
+    {
+      "id": "audio-visualizer.wire-terrain",
+      "label": "Wire terrain",
+      "look": "Perspective wireframe landscape built from scrolling spectrum rows",
+      "params": {
+        "grid_cols_bands": 96,
+        "grid_rows_history": 48,
+        "history_s": 1.6,
+        "line_px": 1.5,
+        "line": "#39FF88",
+        "bg": "#030805",
+        "height": "level^0.7 * 18% frame height",
+        "camera_pitch_deg": {
+          "16:9": 60,
+          "9:16": 50
+        },
+        "far_fog_pct": 70,
+        "release_tau_s": 0.6
+      },
+      "sources": [
+        62,
+        63,
+        66,
+        71
+      ]
+    },
+    {
+      "id": "audio-visualizer.ascii-stream",
+      "label": "ASCII stream",
+      "look": "Monospace glyph field whose density follows the spectrum",
+      "params": {
+        "font": "JetBrains Mono 500",
+        "cell_px": [
+          12,
+          24
+        ],
+        "grid": {
+          "16:9": [
+            160,
+            45
+          ],
+          "9:16": [
+            90,
+            80
+          ]
+        },
+        "ramp": " .:-=+*#%@",
+        "ramp_fine": "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. (reverse for dark bg)",
+        "fg": "#C8FFD4",
+        "bg": "#050807",
+        "glow_px": 6,
+        "bands": 64,
+        "release_tau_s": 0.25
+      },
+      "sources": [
+        67,
+        71
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 60,
+      "name": "W3C Web Audio API",
+      "url": "https://webaudio.github.io/web-audio-api/"
+    },
+    {
+      "n": 61,
+      "name": "MDN AnalyserNode",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode"
+    },
+    {
+      "n": 62,
+      "name": "Remotion visualizeAudio",
+      "url": "https://www.remotion.dev/docs/visualize-audio"
+    },
+    {
+      "n": 63,
+      "name": "three.js webaudio_visualizer example",
+      "url": "https://github.com/mrdoob/three.js/blob/dev/examples/webaudio_visualizer.html"
+    },
+    {
+      "n": 64,
+      "name": "p5.sound fft.js",
+      "url": "https://github.com/processing/p5.js-sound/blob/main/src/fft.js"
+    },
+    {
+      "n": 65,
+      "name": "Ryan Geiss: MilkDrop preset authoring guide",
+      "url": "https://www.geisswerks.com/milkdrop/milkdrop_preset_authoring.html"
+    },
+    {
+      "n": 66,
+      "name": "FFmpeg filters",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 67,
+      "name": "Paul Bourke: ASCII grey-scale ramps",
+      "url": "https://paulbourke.net/dataformats/asciiart/"
+    },
+    {
+      "n": 68,
+      "name": "librosa beat.py",
+      "url": "https://github.com/librosa/librosa/blob/main/librosa/beat.py"
+    },
+    {
+      "n": 69,
+      "name": "Wikipedia: Peak programme meter",
+      "url": "https://en.wikipedia.org/wiki/Peak_programme_meter"
+    },
+    {
+      "n": 70,
+      "name": "Wikipedia: VU meter",
+      "url": "https://en.wikipedia.org/wiki/VU_meter"
+    },
+    {
+      "n": 71,
+      "name": "HyperFrames hyperframes-creative audio-reactive guide",
+      "url": "https://github.com/heygen-com/hyperframes"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

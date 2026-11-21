@@ -1,0 +1,112 @@
+<!-- API data browser (private chat, production): the widget is the front end, the bot is the only
+  bridge to the backend (the widget has no network). Source: build with scripts/build_widget.py.
+  chat_data: {"ti":title,"v":"l"|"d","f":"open|mine|all","pg":page,"np":pages,"n":total,
+              "it":[[id,title,status,meta]...<=5],"d":{"id","t","st","by","pr","up","tx"}|null,
+              "app":"t.me/<bot>?startapp=" prefix|null,"at":unix,"stale":0|1,"r":N}
+  Requests: "f:<filter>", "pg:<n>", "o:<id>", "b" (back), "x:<id>:<assign|close>", "sync". -->
+<style>
+/*@kit tokens.css*/
+.fl { margin: 8px 0 }
+.fl .ch { flex: 1 }
+.it { display: flex; width: 100%; align-items: center; gap: 8px; padding: 9px 2px; background: none; border: 0;
+  color: var(--k-tx); font: inherit; text-align: inherit; min-height: 44px }
+.it b { font-weight: 500 }
+.pl { font-size: .8em; padding: 2px 8px; border-radius: 999px; background: var(--k-sec); white-space: nowrap }
+.o { color: var(--k-btn) } .p { color: var(--k-warn) } .c { color: var(--k-hint) }
+.pg { justify-content: space-between; margin-top: 6px }
+.dt dt { color: var(--k-hint); font-size: .87em }
+.dt dd { margin: 0 0 6px }
+.dt { margin: 8px 0 }
+.tx { -webkit-user-select: text; user-select: text }
+.wn { color: var(--k-warn); font-size: .87em; margin-top: 4px }
+.ac { margin-top: 8px }
+.ac button { flex: 1 }
+</style>
+<div class="k">
+  <div class="hd"><span class="tt el" id="ti"></span><span class="mt" id="n"></span></div>
+  <div class="wn" id="wn"></div>
+  <div id="v"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { open: "Open", mine: "Mine", all: "All", o: "open", p: "pending", c: "closed",
+  back: "‹ Back", by: "Requester", pr: "Priority", up: "Updated", assign: "Assign to me", close: "Close ticket",
+  app: "Open in app", none: "Nothing here. Try another filter.", empty: "Connecting to the service…",
+  cached: "Service is slow. Cached data from", of: "of", done: "Done" } });/*@end*/
+/*@lang ru*/K.add({ ru: { open: "Открытые", mine: "Мои", all: "Все", o: "открыт", p: "ждёт", c: "закрыт",
+  back: "‹ Назад", by: "Автор", pr: "Приоритет", up: "Обновлён", assign: "Взять себе", close: "Закрыть",
+  app: "Открыть в приложении", none: "Здесь пусто. Смените фильтр.", empty: "Подключаюсь к сервису…",
+  cached: "Сервис отвечает медленно. Данные от", of: "из", done: "Готово" } });/*@end*/
+/*@lang uk*/K.add({ uk: { open: "Відкриті", mine: "Мої", all: "Усі", o: "відкрито", p: "очікує", c: "закрито",
+  back: "‹ Назад", by: "Автор", pr: "Пріоритет", up: "Оновлено", assign: "Взяти собі", close: "Закрити",
+  app: "Відкрити в застосунку", none: "Тут порожньо. Змініть фільтр.", empty: "Підключаюся до сервісу…",
+  cached: "Сервіс відповідає повільно. Дані від", of: "з", done: "Готово" } });/*@end*/
+function btn(cls, txt, data) {
+  var b = K.h("button", cls, txt);
+  b.disabled = K.busy || !K.can();
+  b.onclick = function () { K.ask(data, { done: data[0] == "x" ? K.t("done") : "" }); };
+  return b;
+}
+function draw() {
+  var s = K.S.chatData, v = K.$("v"), $ = K.$;
+  v.innerHTML = "";
+  if (!s) { $("ti").textContent = K.t("empty"); return; }
+  $("ti").textContent = s.ti;
+  $("n").textContent = s.v == "l" ? s.n : "";
+  $("wn").textContent = s.stale ? K.t("cached") + " " + K.time(s.at) : "";
+  if (s.v == "d" && s.d) {
+    var d = s.d, dl = K.h("dl", "dt");
+    v.appendChild(K.h("div", "tt", d.t));
+    [["by", d.by], ["pr", d.pr], ["up", K.time(d.up, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })]]
+      .forEach(function (p) { dl.appendChild(K.h("dt", "", K.t(p[0]))); dl.appendChild(K.h("dd", "", p[1])); });
+    v.appendChild(dl);
+    v.appendChild(K.h("div", "sf tx", d.tx));
+    var ac = K.h("div", "rw ac");
+    if (d.st != "c") {
+      ac.appendChild(btn("", K.t("assign"), "x:" + d.id + ":assign"));
+      ac.appendChild(btn("", K.t("close"), "x:" + d.id + ":close"));
+    }
+    v.appendChild(ac);
+    var nav = K.h("div", "rw pg");
+    nav.appendChild(btn("ch", K.t("back"), "b"));
+    if (s.app) {
+      var a = K.h("button", "ch", K.t("app"));
+      a.disabled = !K.can();
+      a.onclick = function () { W.openTelegramLink("https://" + s.app + d.id); };
+      nav.appendChild(a);
+    }
+    v.appendChild(nav);
+    return;
+  }
+  var fl = K.h("div", "rw fl");
+  ["open", "mine", "all"].forEach(function (f) {
+    var b = btn("ch" + (s.f == f ? " on" : ""), K.t(f), "f:" + f);
+    if (s.f == f) b.onclick = null;
+    fl.appendChild(b);
+  });
+  v.appendChild(fl);
+  var ls = K.h("div", "ls");
+  (s.it || []).forEach(function (r) {
+    var b = btn("it", null, "o:" + r[0]), g = K.h("span", "gr");
+    g.appendChild(K.h("b", "el", r[1]));
+    g.appendChild(K.h("div", "mt el", "#" + r[0] + " · " + r[3]));
+    b.appendChild(g);
+    b.appendChild(K.h("span", "pl " + r[2], K.t(r[2])));
+    ls.appendChild(b);
+  });
+  if (!(s.it || []).length) ls.appendChild(K.h("p", "mt", K.t("none")));
+  v.appendChild(ls);
+  if (s.np > 1) {
+    var pg = K.h("div", "rw pg"), prev = btn("ch", "‹", "pg:" + (s.pg - 1)), next = btn("ch", "›", "pg:" + (s.pg + 1));
+    prev.disabled = prev.disabled || s.pg < 2;
+    next.disabled = next.disabled || s.pg >= s.np;
+    pg.appendChild(prev);
+    var pl = K.h("span", "mt", s.pg + " " + K.t("of") + " " + s.np); pl.dir = "auto"; pg.appendChild(pl);
+    pg.appendChild(next);
+    v.appendChild(pg);
+  }
+}
+K.start(draw, { sync: "sync" });
+</script>

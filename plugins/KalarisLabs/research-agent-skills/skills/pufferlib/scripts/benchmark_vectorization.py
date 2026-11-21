@@ -51,6 +51,7 @@ def _partitions(
     seed: int,
     max_steps: int,
 ) -> list[tuple[int, int, int, int, int]]:
+    """Handle partitions."""
     parts: list[tuple[int, int, int, int, int]] = []
     base, remainder = divmod(num_envs, workers)
     start = 0
@@ -63,9 +64,11 @@ def _partitions(
 
 
 def _summarize(samples: list[float]) -> dict[str, float]:
+    """Summarize."""
     ordered = sorted(samples)
 
     def percentile(fraction: float) -> float:
+        """Handle percentile."""
         index = round((len(ordered) - 1) * fraction)
         return ordered[index]
 
@@ -177,6 +180,7 @@ def benchmark(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     safe_methods = [method for method in ("spawn", "forkserver") if method in mp.get_all_start_methods()]
     parser = argparse.ArgumentParser(
         description=(
@@ -205,6 +209,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI News Tracking Spec"
+  short_description: "Scoring, formatting, and validation rules for AI news items"
+  default_prompt: "Apply the AI news tracking specification for scoring and formatting news items."

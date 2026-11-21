@@ -1,5 +1,7 @@
 interface:
   display_name: "Wrap up branch"
-  short_description: "Test, review, document, and merge a finished feature branch"
+  short_description: "Add missing tests, review and fix, align docs, then merge the feature branch into its target"
 policy:
+  # Codex analog of disable-model-invocation: a run that commits and merges a
+  # branch is invoked by a person, never picked up implicitly from a prompt.
   allow_implicit_invocation: false

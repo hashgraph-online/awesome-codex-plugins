@@ -1,0 +1,235 @@
+{
+  "id": "hand-drawn-radial-burst",
+  "name": "Hand-drawn radial burst",
+  "use": "A blocky, dithered sunburst of rays that boils like hand-drawn animation, for hooks, reveals and title cards",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "hand-drawn-radial-burst.signature",
+      "label": "Signature",
+      "look": "Cream rays on warm black, 8-drawing boil at 12.5 fps",
+      "params": {
+        "engine": "custom-glsl",
+        "rays": 32,
+        "rayWidthJitter": 0.45,
+        "rayLengthJitter": 0.35,
+        "radialSteps": 12,
+        "blockPx1080": 8,
+        "dither": "bayer4x4",
+        "ditherCellPx1080": 4,
+        "falloff": "tone = 1.0 - smoothstep(0.05, 1.1, r)",
+        "boil": {
+          "stepMs": 80,
+          "fps": 12.5,
+          "drawings": 8,
+          "seed": "mod(floor(t/0.08), 8.0)"
+        },
+        "rotationDegPerS": 0,
+        "lineWobblePx1080": 3,
+        "background": "#141210",
+        "ink": "#F2EEE3"
+      },
+      "sources": [
+        15,
+        26,
+        27,
+        29,
+        38
+      ]
+    },
+    {
+      "id": "hand-drawn-radial-burst.print",
+      "label": "Print",
+      "look": "Black ink on newsprint, finer 8x8 dither, paper grain",
+      "params": {
+        "engine": "custom-glsl",
+        "rays": 32,
+        "rayWidthJitter": 0.45,
+        "rayLengthJitter": 0.35,
+        "radialSteps": 12,
+        "blockPx1080": 8,
+        "dither": "bayer8x8",
+        "ditherCellPx1080": 3,
+        "falloff": "tone = 1.0 - smoothstep(0.05, 1.1, r)",
+        "boil": {
+          "stepMs": 80,
+          "fps": 12.5,
+          "drawings": 8,
+          "seed": "mod(floor(t/0.08), 8.0)"
+        },
+        "rotationDegPerS": 0,
+        "lineWobblePx1080": 3,
+        "background": "#FBFAF4",
+        "ink": "#231F20",
+        "paperGrain": 0.15
+      },
+      "sources": [
+        27,
+        29,
+        33
+      ]
+    },
+    {
+      "id": "hand-drawn-radial-burst.negative",
+      "label": "Negative",
+      "look": "White burst on black, more rays, slow 4 deg/s turn",
+      "params": {
+        "engine": "custom-glsl",
+        "rays": 40,
+        "rayWidthJitter": 0.45,
+        "rayLengthJitter": 0.35,
+        "radialSteps": 12,
+        "blockPx1080": 8,
+        "dither": "bayer4x4",
+        "ditherCellPx1080": 4,
+        "falloff": "tone = 1.0 - smoothstep(0.05, 1.1, r)",
+        "boil": {
+          "stepMs": 80,
+          "fps": 12.5,
+          "drawings": 8,
+          "seed": "mod(floor(t/0.08), 8.0)"
+        },
+        "rotationDegPerS": 4,
+        "lineWobblePx1080": 3,
+        "background": "#000000",
+        "ink": "#FFFFFF"
+      },
+      "sources": [
+        26,
+        38
+      ]
+    },
+    {
+      "id": "hand-drawn-radial-burst.riso",
+      "label": "Riso",
+      "look": "Two riso inks, fluorescent pink and blue, misregistered by 3 px, multiply on paper",
+      "params": {
+        "engine": "custom-glsl",
+        "rays": 32,
+        "rayWidthJitter": 0.45,
+        "rayLengthJitter": 0.35,
+        "radialSteps": 12,
+        "blockPx1080": 8,
+        "dither": "bayer4x4",
+        "ditherCellPx1080": 4,
+        "falloff": "tone = 1.0 - smoothstep(0.05, 1.1, r)",
+        "boil": {
+          "stepMs": 80,
+          "fps": 12.5,
+          "drawings": 8,
+          "seed": "mod(floor(t/0.08), 8.0)"
+        },
+        "rotationDegPerS": 0,
+        "lineWobblePx1080": 3,
+        "background": "#FBFAF4",
+        "ink": "#FF48B0",
+        "secondInk": "#0078BF",
+        "secondInkOffsetPx": [
+          3,
+          -2
+        ],
+        "blend": "multiply"
+      },
+      "sources": [
+        33,
+        35
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 10,
+      "name": "Lucas Pope: sphere-mapped dither",
+      "url": "https://x.com/dukope/status/933700786260910080"
+    },
+    {
+      "n": 12,
+      "name": "Lucas Pope: hi-contrast dither on YouTube",
+      "url": "https://x.com/dukope/status/490854690297364480"
+    },
+    {
+      "n": 15,
+      "name": "Mirza Beig: hand-drawn stepped time",
+      "url": "https://x.com/TheMirzaBeig/status/2007826704769618278"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 26,
+      "name": "The Book of Shaders ch. 07 Shapes",
+      "url": "https://thebookofshaders.com/07/"
+    },
+    {
+      "n": 27,
+      "name": "Surma: Ditherpunk",
+      "url": "https://surma.dev/things/ditherpunk/"
+    },
+    {
+      "n": 29,
+      "name": "Wikipedia: Ordered dithering",
+      "url": "https://en.wikipedia.org/wiki/Ordered_dithering"
+    },
+    {
+      "n": 33,
+      "name": "Paper blog: Retro print CMYK halftone",
+      "url": "https://paper.design/blog/retro-print-cmyk-halftone-shader"
+    },
+    {
+      "n": 35,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 38,
+      "name": "Jason Boone: line boil animations",
+      "url": "https://www.premiumbeat.com/blog/how-to-create-line-boil-animations/"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ],
+  "paperFallback": {
+    "note": "Crisp (not hand-drawn) sectors: Swirl with twist 0 gives straight sectors.",
+    "paper": {
+      "shader": "Swirl",
+      "motion": {
+        "timeScale": 0.2,
+        "frame": 0
+      },
+      "paper": {
+        "fit": "contain",
+        "scale": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "originX": 0.5,
+        "originY": 0.5,
+        "worldWidth": 0,
+        "worldHeight": 0,
+        "colorBack": "#141210",
+        "colors": [
+          "#F2EEE3",
+          "#141210"
+        ],
+        "bandCount": 12,
+        "twist": 0,
+        "center": 0,
+        "proportion": 0.5,
+        "softness": 0,
+        "noise": 0,
+        "noiseFrequency": 0
+      }
+    }
+  }
+}

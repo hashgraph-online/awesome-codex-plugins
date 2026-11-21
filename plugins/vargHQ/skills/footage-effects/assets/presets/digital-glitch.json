@@ -1,0 +1,184 @@
+{
+  "id": "digital-glitch",
+  "name": "Digital glitch",
+  "use": "Glitch real footage with RGB splits, torn rows, swapped blocks, stutter and macroblock corruption, in deterministic bursts.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "digital-glitch.subtle",
+      "label": "Subtle",
+      "look": "Rare 2-frame hits: 8 px RGB split and one thin torn row. Brand-safe.",
+      "params": {
+        "hit_window_frames": 2,
+        "hit_probability": 0.12,
+        "hits_per_second_avg": 1.8,
+        "rgb_split_px": 8,
+        "row_tear_height_px": "8-40",
+        "row_tear_shift_px": 20,
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=3[ga][gb][gc];[ga]extractplanes=r,crop=w=iw-16:h=ih:x='8+if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.12),8*(2*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))-1),0)':y=0,pad=iw+16:ih:8:0,fillborders=left=8:right=8:mode=smear[gR];[gb]extractplanes=g[gG];[gc]extractplanes=b,crop=w=iw-16:h=ih:x='8-if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.12),8*(2*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))-1),0)':y=0,pad=iw+16:ih:8:0,fillborders=left=8:right=8:mode=smear[gB];[gG][gB][gR]mergeplanes=0x001020:gbrp,swaprect=w='w-40':h='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.12),8+floor(32*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))),2)':x1=20:y1='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-48))':x2='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.12),20+floor(40*((sin((floor(n/2))*39.425)*43758.5453-floor(sin((floor(n/2))*39.425)*43758.5453))-0.5)),20)':y2='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-48))+2',format=yuv420p[v]"
+        },
+        "hyperframes": {
+          "data-color-grading": {
+            "effects": {
+              "digitalGlitch": 0.25,
+              "digitalGlitchLineTear": 0.06,
+              "digitalGlitchColorSplit": 0.1,
+              "digitalGlitchSpeed": 0.5
+            }
+          }
+        }
+      },
+      "sources": [
+        29,
+        34,
+        10
+      ]
+    },
+    {
+      "id": "digital-glitch.default",
+      "label": "Default",
+      "look": "Bursts on ~30% of 2-frame windows: 24 px split, a sheared band, one swapped 240x48 block.",
+      "params": {
+        "hit_window_frames": 2,
+        "hit_probability": 0.3,
+        "rgb_split_px": 24,
+        "band_height_px": "32-128",
+        "band_shift_px": 40,
+        "block_px": [
+          240,
+          48
+        ],
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=3[ga][gb][gc];[ga]extractplanes=r,crop=w=iw-48:h=ih:x='24+if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.3),24*(2*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))-1),0)':y=0,pad=iw+48:ih:24:0,fillborders=left=24:right=24:mode=smear[gR];[gb]extractplanes=g[gG];[gc]extractplanes=b,crop=w=iw-48:h=ih:x='24-if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.3),24*(2*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))-1),0)':y=0,pad=iw+48:ih:24:0,fillborders=left=24:right=24:mode=smear[gB];[gG][gB][gR]mergeplanes=0x001020:gbrp,swaprect=w='w-80':h='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.3),32+floor(96*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))),2)':x1=40:y1='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-136))':x2='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.3),40+floor(80*((sin((floor(n/2))*39.425)*43758.5453-floor(sin((floor(n/2))*39.425)*43758.5453))-0.5)),40)':y2='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-136))+2',swaprect=w='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.3),240,2)':h='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.3),48,2)':x1='floor((sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))*(w-240))':y1='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-48))':x2='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(w-240))':y2='floor((sin((floor(n/2))*39.425)*43758.5453-floor(sin((floor(n/2))*39.425)*43758.5453))*(h-48))',format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        34,
+        35,
+        9,
+        10
+      ]
+    },
+    {
+      "id": "digital-glitch.intense",
+      "label": "Intense",
+      "look": "Half the frames hit: 48 px split, tall shifted bands, big swapped blocks, temporal noise.",
+      "params": {
+        "hit_window_frames": 2,
+        "hit_probability": 0.55,
+        "rgb_split_px": 48,
+        "band_height_px": "64-256",
+        "band_shift_px": 120,
+        "block_px": [
+          320,
+          64
+        ],
+        "noise": 10,
+        "max_duration_s": 1.5,
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=3[ga][gb][gc];[ga]extractplanes=r,crop=w=iw-96:h=ih:x='48+if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.55),48*(2*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))-1),0)':y=0,pad=iw+96:ih:48:0,fillborders=left=48:right=48:mode=smear[gR];[gb]extractplanes=g[gG];[gc]extractplanes=b,crop=w=iw-96:h=ih:x='48-if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.55),48*(2*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))-1),0)':y=0,pad=iw+96:ih:48:0,fillborders=left=48:right=48:mode=smear[gB];[gG][gB][gR]mergeplanes=0x001020:gbrp,swaprect=w='w-240':h='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.55),64+floor(192*(sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))),2)':x1=120:y1='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-264))':x2='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.55),120+floor(240*((sin((floor(n/2))*39.425)*43758.5453-floor(sin((floor(n/2))*39.425)*43758.5453))-0.5)),120)':y2='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-264))+2',swaprect=w='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.55),320,2)':h='if(lt((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453)),0.55),64,2)':x1='floor((sin((floor(n/2))*78.233)*43758.5453-floor(sin((floor(n/2))*78.233)*43758.5453))*(w-320))':y1='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(h-64))':x2='floor((sin((floor(n/2))*12.9898)*43758.5453-floor(sin((floor(n/2))*12.9898)*43758.5453))*(w-320))':y2='floor((sin((floor(n/2))*39.425)*43758.5453-floor(sin((floor(n/2))*39.425)*43758.5453))*(h-64))',noise=alls=10:allf=t,format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        34,
+        35,
+        36
+      ]
+    },
+    {
+      "id": "digital-glitch.jittery",
+      "label": "Jittery",
+      "look": "Footage stutters at 12 fps and the whole frame jumps up to 16 px on hits.",
+      "params": {
+        "stutter_fps": 12,
+        "jitter_px": 16,
+        "hit_window_frames": 1,
+        "hit_probability": 0.5,
+        "rgb_split_px": 12,
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]fps=12,fps=30,crop=w=iw-32:h=ih-32:x='16+if(lt((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453)),0.5),16*(2*(sin((floor(n/1))*78.233)*43758.5453-floor(sin((floor(n/1))*78.233)*43758.5453))-1),0)':y='16+if(lt((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453)),0.5),16*(2*(sin((floor(n/1))*39.425)*43758.5453-floor(sin((floor(n/1))*39.425)*43758.5453))-1),0)',scale=1920:1080,format=gbrp,split=3[ga][gb][gc];[ga]extractplanes=r,crop=w=iw-24:h=ih:x='12+if(lt((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453)),0.5),12*(2*(sin((floor(n/1))*78.233)*43758.5453-floor(sin((floor(n/1))*78.233)*43758.5453))-1),0)':y=0,pad=iw+24:ih:12:0,fillborders=left=12:right=12:mode=smear[gR];[gb]extractplanes=g[gG];[gc]extractplanes=b,crop=w=iw-24:h=ih:x='12-if(lt((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453)),0.5),12*(2*(sin((floor(n/1))*78.233)*43758.5453-floor(sin((floor(n/1))*78.233)*43758.5453))-1),0)':y=0,pad=iw+24:ih:12:0,fillborders=left=12:right=12:mode=smear[gB];[gG][gB][gR]mergeplanes=0x001020:gbrp,swaprect=w='w-32':h='if(lt((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453)),0.5),8+floor(24*(sin((floor(n/1))*78.233)*43758.5453-floor(sin((floor(n/1))*78.233)*43758.5453))),2)':x1=16:y1='floor((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453))*(h-40))':x2='if(lt((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453)),0.5),16+floor(32*((sin((floor(n/1))*39.425)*43758.5453-floor(sin((floor(n/1))*39.425)*43758.5453))-0.5)),16)':y2='floor((sin((floor(n/1))*12.9898)*43758.5453-floor(sin((floor(n/1))*12.9898)*43758.5453))*(h-40))+2',format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        35,
+        29,
+        10
+      ]
+    },
+    {
+      "id": "digital-glitch.corrupt",
+      "label": "Corrupt",
+      "look": "Codec-corruption look: a 384x96 region turns into 32 px posterized macroblocks, plus split and swapped blocks.",
+      "params": {
+        "macroblock_px": 32,
+        "posterize_levels": 4,
+        "corrupt_region_px": [
+          384,
+          96
+        ],
+        "hit_window_frames": 3,
+        "hit_probability": 0.4,
+        "rgb_split_px": 32,
+        "datamosh_reference": {
+          "blockSize": 48,
+          "intensity": 0.7,
+          "drift": 0.35,
+          "churn": 0.4
+        },
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=3[ga][gb][gc];[ga]extractplanes=r,crop=w=iw-64:h=ih:x='32+if(lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4),32*(2*(sin((floor(n/3))*78.233)*43758.5453-floor(sin((floor(n/3))*78.233)*43758.5453))-1),0)':y=0,pad=iw+64:ih:32:0,fillborders=left=32:right=32:mode=smear[gR];[gb]extractplanes=g[gG];[gc]extractplanes=b,crop=w=iw-64:h=ih:x='32-if(lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4),32*(2*(sin((floor(n/3))*78.233)*43758.5453-floor(sin((floor(n/3))*78.233)*43758.5453))-1),0)':y=0,pad=iw+64:ih:32:0,fillborders=left=32:right=32:mode=smear[gB];[gG][gB][gR]mergeplanes=0x001020:gbrp,swaprect=w='w-120':h='if(lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4),16+floor(64*(sin((floor(n/3))*78.233)*43758.5453-floor(sin((floor(n/3))*78.233)*43758.5453))),2)':x1=60:y1='floor((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453))*(h-88))':x2='if(lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4),60+floor(120*((sin((floor(n/3))*39.425)*43758.5453-floor(sin((floor(n/3))*39.425)*43758.5453))-0.5)),60)':y2='floor((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453))*(h-88))+2',swaprect=w='if(lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4),256,2)':h='if(lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4),64,2)':x1='floor((sin((floor(n/3))*78.233)*43758.5453-floor(sin((floor(n/3))*78.233)*43758.5453))*(w-256))':y1='floor((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453))*(h-64))':x2='floor((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453))*(w-256))':y2='floor((sin((floor(n/3))*39.425)*43758.5453-floor(sin((floor(n/3))*39.425)*43758.5453))*(h-64))'[gm];[gm]split[gm1][gm2];[gm2]pixelize=w=32:h=32,lutrgb=r='floor(val/64)*64':g='floor(val/64)*64':b='floor(val/64)*64',crop=w=384:h=96:x='floor((sin((floor(n/3))*39.425)*43758.5453-floor(sin((floor(n/3))*39.425)*43758.5453))*(iw-384))':y='floor((sin((floor(n/3))*78.233)*43758.5453-floor(sin((floor(n/3))*78.233)*43758.5453))*(ih-96))'[gblk];[gm1][gblk]overlay=x='floor((sin((floor(n/3))*39.425)*43758.5453-floor(sin((floor(n/3))*39.425)*43758.5453))*(W-384))':y='floor((sin((floor(n/3))*78.233)*43758.5453-floor(sin((floor(n/3))*78.233)*43758.5453))*(H-96))':enable='lt((sin((floor(n/3))*12.9898)*43758.5453-floor(sin((floor(n/3))*12.9898)*43758.5453)),0.4)',format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        36,
+        35,
+        10
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 9,
+      "name": "Andrew Kramer (@videocopilot) — Colorful Glitch FX tutorial",
+      "url": "https://x.com/videocopilot/status/970977859568201732"
+    },
+    {
+      "n": 10,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 29,
+      "name": "HyperFrames — media-treatment recipes (digitalGlitch keys)",
+      "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/skills/media-use/references/media-treatment-recipes.md"
+    },
+    {
+      "n": 34,
+      "name": "Maxon — Red Giant Universe Glitch Transition",
+      "url": "https://help.maxon.net/rg/en-us/Content/html/glitch-transition.html"
+    },
+    {
+      "n": 35,
+      "name": "Notch — Block Glitch node",
+      "url": "https://manual.notch.one/1.0/en/docs/reference/nodes/post-fx/stylisation/block-glitch"
+    },
+    {
+      "n": 36,
+      "name": "shaders.com — DataMosh component",
+      "url": "https://shaders.com/docs/components/datamosh"
+    }
+  ]
+}

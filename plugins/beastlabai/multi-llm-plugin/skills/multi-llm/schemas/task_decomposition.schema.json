@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Task Decomposition",
+  "type": "object",
+  "required": ["tasks"],
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "description", "depends_on", "context_files"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string", "minLength": 5, "maxLength": 100 },
+          "description": { "type": "string", "minLength": 10 },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 }
+          },
+          "context_files": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "output_files": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "estimated_complexity": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        }
+      }
+    },
+    "clarifications_needed": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

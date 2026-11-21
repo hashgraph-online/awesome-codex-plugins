@@ -52,5 +52,5 @@ reset a working Bridge for a REST token error or evade its call limits.
 Tokens stay in their secure environment/config, never chat/files/commits/canvas.
 Use `figma-bridge-doctor` for connection failure. Treat server/version/seat and
 rate-limit notes as dated observations, not proof of current installation.
-Map persistence can use project knowledge or a runtime’s own authorized memory;
-reading a Figma file does not authorize writing another runtime’s storage.
+Map persistence can use project knowledge or a runtime's own authorized memory;
+reading a Figma file does not authorize writing another runtime's storage.

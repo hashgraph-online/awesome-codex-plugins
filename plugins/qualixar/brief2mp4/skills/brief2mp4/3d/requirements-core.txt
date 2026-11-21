@@ -1,0 +1,6 @@
+# Core component: geometry from specs, GLB export, convex hulls for physics.
+# Python 3.12 or 3.13 (numpy 2.5 and scipy 1.18 need 3.12+). Pinned to the versions the test suite ran against.
+numpy==2.5.4
+trimesh==5.2.1
+scipy==1.18.1
+manifold3d==3.5.5

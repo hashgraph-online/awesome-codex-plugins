@@ -35,6 +35,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+ADJUSTED_P_COLUMN = "Adjusted P-value"  # Enrichr result column
+FDR_Q_COLUMN = "FDR q-val"  # GSEA prerank result column
+
 try:
     import gseapy as gp
 except ImportError:
@@ -116,6 +119,7 @@ def _read_rnk(path: Path, organism: str) -> pd.Series:
 
 
 def _clean_index(index, organism: str):
+    """Handle clean index."""
     idx = pd.Index([str(g).strip() for g in index])
     if organism == "human":
         idx = idx.str.upper()
@@ -125,6 +129,7 @@ def _clean_index(index, organism: str):
 
 
 def _dotplot(df: pd.DataFrame, column: str, title: str, outpath: Path):
+    """Handle dotplot."""
     try:
         ax = gp.dotplot(df, column=column, title=title, top_term=15, cutoff=1.0)
         fig = ax.get_figure()
@@ -135,6 +140,7 @@ def _dotplot(df: pd.DataFrame, column: str, title: str, outpath: Path):
 
 
 def run_ora(args):
+    """Run ora."""
     genes = _clean_symbols(_read_gene_list(Path(args.genes)), args.organism)
     if len(genes) < 5:
         print(f"WARNING: only {len(genes)} genes after cleanup; ORA is underpowered.")
@@ -150,12 +156,13 @@ def run_ora(args):
         outdir=None,
     )
     res = enr.results.copy()
-    sig = res[res["Adjusted P-value"] < args.fdr].sort_values("Adjusted P-value")
-    print(f"{len(sig)}/{len(res)} terms with Adjusted P-value < {args.fdr}")
-    return res, sig, "Adjusted P-value"
+    sig = res[res[ADJUSTED_P_COLUMN] < args.fdr].sort_values(ADJUSTED_P_COLUMN)
+    print(f"{len(sig)}/{len(res)} terms with {ADJUSTED_P_COLUMN} < {args.fdr}")
+    return res, sig, ADJUSTED_P_COLUMN
 
 
 def run_gsea(args):
+    """Run gsea."""
     if args.deseq2:
         rnk = _build_rank_from_deseq2(Path(args.deseq2), args.organism)
     elif args.rnk:
@@ -176,13 +183,14 @@ def run_gsea(args):
         outdir=None,
     )
     res = pre.res2d.copy()
-    res["FDR q-val"] = pd.to_numeric(res["FDR q-val"], errors="coerce")
-    sig = res[res["FDR q-val"] < args.fdr].sort_values("FDR q-val")
-    print(f"{len(sig)}/{len(res)} gene sets with FDR q-val < {args.fdr}")
-    return res, sig, "FDR q-val"
+    res[FDR_Q_COLUMN] = pd.to_numeric(res[FDR_Q_COLUMN], errors="coerce")
+    sig = res[res[FDR_Q_COLUMN] < args.fdr].sort_values(FDR_Q_COLUMN)
+    print(f"{len(sig)}/{len(res)} gene sets with {FDR_Q_COLUMN} < {args.fdr}")
+    return res, sig, FDR_Q_COLUMN
 
 
 def main():
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="method", required=True)
 

@@ -1,0 +1,127 @@
+{
+  "scenario": "r32-media-album-post",
+  "status": "production",
+  "context": "channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMediaGroup",
+      "params": {
+        "chat_id": -1001500000001,
+        "media": [
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket1",
+            "caption": "Winter market opens on Saturday\n\n40 stalls, hot cider and a skating rink on Cathedral Square, 10:00–22:00.",
+            "caption_entities": [
+              {
+                "type": "bold",
+                "offset": 0,
+                "length": 31
+              }
+            ],
+            "show_caption_above_media": true
+          },
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket2"
+          },
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket3",
+            "has_spoiler": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Plan your visit:",
+        "disable_notification": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Map and opening hours",
+                "url": "https://example.com/market"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMediaGroup",
+      "params": {
+        "chat_id": -1001500000001,
+        "media": [
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket1",
+            "caption": "Winter market opens on Saturday\n\n40 stalls, hot cider and a skating rink on Cathedral Square, 10:00–22:00.",
+            "caption_entities": [
+              {
+                "type": "bold",
+                "offset": 0,
+                "length": 31
+              }
+            ],
+            "show_caption_above_media": true
+          },
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket2"
+          },
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket3",
+            "has_spoiler": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Stall list: stall 1 (crafts, food, gifts), stall 2 (crafts, food, gifts), stall 3 (crafts, food, gifts), stall 4 (crafts, food, gifts), stall 5 (crafts, food, gifts), stall 6 (crafts, food, gifts), stall 7 (crafts, food, gifts), stall 8 (crafts, food, gifts), stall 9 (crafts, food, gifts), stall 10 (crafts, food, gifts), stall 11 (crafts, food, gifts), stall 12 (crafts, food, gifts), stall 13 (crafts, food, gifts), stall 14 (crafts, food, gifts), stall 15 (crafts, food, gifts), stall 16 (crafts, food, gifts), stall 17 (crafts, food, gifts), stall 18 (crafts, food, gifts), stall 19 (crafts, food, gifts), stall 20 (crafts, food, gifts), stall 21 (crafts, food, gifts), stall 22 (crafts, food, gifts), stall 23 (crafts, food, gifts), stall 24 (crafts, food, gifts), stall 25 (crafts, food, gifts), stall 26 (crafts, food, gifts), stall 27 (crafts, food, gifts), stall 28 (crafts, food, gifts), stall 29 (crafts, food, gifts), stall 30 (crafts, food, gifts), stall 31 (crafts, food, gifts), stall 32 (crafts, food, gifts), stall 33 (crafts, food, gifts), stall 34 (crafts, food, gifts), stall 35 (crafts, food, gifts), stall 36 (crafts, food, gifts), stall 37 (crafts, food, gifts), stall 38 (crafts, food, gifts), stall 39 (crafts, food, gifts), stall 40 (crafts, food, gifts), stall 41 (crafts, food, gifts), stall 42 (crafts, food, gifts), stall 43 (crafts, food, gifts), stall 44 (crafts, food, gifts).",
+        "link_preview_options": {
+          "is_disabled": true
+        },
+        "disable_notification": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Map and opening hours",
+                "url": "https://example.com/market"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendPaidMedia",
+      "params": {
+        "chat_id": -1001500000001,
+        "star_count": 50,
+        "media": [
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBdemoPhotoMarket1"
+          },
+          {
+            "type": "video",
+            "media": "BAACAgIAAxkBAAIBdemoVideo"
+          }
+        ],
+        "caption": "Backstage: how the rink was built (2 photos + video)",
+        "payload": "backstage-2026-11"
+      }
+    }
+  ]
+}

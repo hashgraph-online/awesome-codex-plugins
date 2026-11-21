@@ -100,6 +100,7 @@ def bounded_int(minimum: int, maximum: int) -> Callable[[str], int]:
     """Return an argparse converter for a bounded integer."""
 
     def convert(value: str) -> int:
+        """Convert."""
         try:
             parsed = int(value)
         except ValueError as exc:
@@ -336,6 +337,7 @@ def load_json(value: str | os.PathLike[str]) -> Any:
     path = checked_input_file(value, suffixes={".json"})
 
     def reject_constant(constant: str) -> None:
+        """Handle reject constant."""
         raise CliError(f"non-standard JSON constant is not allowed: {constant}")
 
     try:
@@ -392,9 +394,8 @@ def parse_expression(text: str) -> ast.Expression:
             )
         if isinstance(node, ast.Constant) and not isinstance(node.value, (int, float)):
             raise CliError("expression constants must be numbers")
-        if isinstance(node, ast.Name):
-            if node.id.startswith("_"):
-                raise CliError("expression names must not start with an underscore")
+        if isinstance(node, ast.Name) and node.id.startswith("_"):
+            raise CliError("expression names must not start with an underscore")
         if isinstance(node, ast.Call):
             if not isinstance(node.func, ast.Name):
                 raise CliError("only direct calls to whitelisted functions are allowed")
@@ -407,15 +408,16 @@ def parse_expression(text: str) -> ast.Expression:
                 raise CliError("function calls may not use keyword arguments")
             if not 1 <= len(node.args) <= 2:
                 raise CliError("functions accept one or two positional arguments")
-        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow):
-            exponent = node.right
-            if isinstance(exponent, ast.Constant) and isinstance(
-                exponent.value, (int, float)
-            ):
-                if abs(float(exponent.value)) > MAX_LITERAL_EXPONENT:
-                    raise CliError(
-                        f"literal exponents are limited to +/-{MAX_LITERAL_EXPONENT}"
-                    )
+        if (
+            isinstance(node, ast.BinOp)
+            and isinstance(node.op, ast.Pow)
+            and isinstance(node.right, ast.Constant)
+            and isinstance(node.right.value, (int, float))
+            and abs(float(node.right.value)) > MAX_LITERAL_EXPONENT
+        ):
+            raise CliError(
+                f"literal exponents are limited to +/-{MAX_LITERAL_EXPONENT}"
+            )
 
     _check_depth(tree.body, 1)
     return tree
@@ -458,6 +460,7 @@ def reduce_expression(
     """Reduce a validated expression tree against concrete values."""
 
     def walk(node: ast.AST) -> Any:
+        """Handle walk."""
         if isinstance(node, ast.Expression):
             return walk(node.body)
         if isinstance(node, ast.Constant):
@@ -557,6 +560,7 @@ def array_functions() -> dict[str, Callable[..., Any]]:
     }
 
     def erf(value: Any) -> Any:
+        """Handle erf."""
         try:
             from scipy.special import erf as scipy_erf
         except ImportError as exc:

@@ -1,0 +1,43 @@
+{
+  "name": "vidbyte-memory",
+  "version": "0.3.0",
+  "description": "Correction-driven memory for coding agents: every correction becomes a fact, a test and a footprint commit in your repo. `npx vidbyte-memory init` installs it into the repo you are in.",
+  "type": "module",
+  "bin": { "vidbyte-memory": "bin/vidbyte-memory.js" },
+  "files": [
+    "bin/vidbyte-memory.js",
+    "scripts/",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "memory/",
+    "facts/",
+    "skills/",
+    "prompts/",
+    "verifiers/",
+    "tests/",
+    ".claude/agents/",
+    ".agents/skills/",
+    ".claude/skills/",
+    ".claude-plugin/plugin.json",
+    "integrations/opencode/index.js",
+    "integrations/pi/vidbyte-memory.js",
+    "PRIVACY.md",
+    "SECURITY.md",
+    "!**/__pycache__/",
+    "!**/*.pyc",
+    "!**/.pytest_cache/",
+    "!.claude/.guard_state.json"
+  ],
+  "pi": {
+    "extensions": ["./integrations/pi/vidbyte-memory.js"],
+    "skills": ["./skills/install-memory"],
+    "image": "https://raw.githubusercontent.com/cerredz/vidbyte-memory/main/.github/assets/social-preview.png"
+  },
+  "keywords": ["pi-package", "agent-memory", "memory", "coding-agent", "agents-md", "agent-skills", "stop-hook", "claude-code", "codex", "copilot", "opencode", "pi"],
+  "homepage": "https://github.com/cerredz/vidbyte-memory#readme",
+  "bugs": "https://github.com/cerredz/vidbyte-memory/issues",
+  "repository": { "type": "git", "url": "git+https://github.com/cerredz/vidbyte-memory.git" },
+  "author": "cerredz (https://github.com/cerredz)",
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}

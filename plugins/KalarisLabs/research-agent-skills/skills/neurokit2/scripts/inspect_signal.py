@@ -27,7 +27,9 @@ from _common import (
 
 
 class OnlineStats:
+    """Online stats."""
     def __init__(self) -> None:
+        """Initialise the instance."""
         self.numeric = 0
         self.missing = 0
         self.nonfinite = 0
@@ -45,6 +47,7 @@ class OnlineStats:
         self.max_gap_run = 0
 
     def add_cell(self, cell: str) -> float | None:
+        """Add cell."""
         normalized = cell.strip()
         if normalized.lower() in MISSING_TOKENS:
             self.missing += 1
@@ -89,6 +92,7 @@ class OnlineStats:
         return value
 
     def report(self, unit: str | None) -> dict[str, Any]:
+        """Handle report."""
         variance = self.m2 / (self.numeric - 1) if self.numeric > 1 else None
         return {
             "flat_transition_fraction": (
@@ -108,7 +112,14 @@ class OnlineStats:
         }
 
 
+def _check_unit_text(unit: str) -> None:
+    """Require a unit label to be short and printable."""
+    if len(unit) > 32 or any(ord(character) < 32 for character in unit):
+        raise CliError("units must be short printable strings")
+
+
 def _parse_units(value: str | None, selected: list[str]) -> dict[str, str]:
+    """Parse units."""
     if value is None:
         return {}
     result: dict[str, str] = {}
@@ -122,105 +133,121 @@ def _parse_units(value: str | None, selected: list[str]) -> dict[str, str]:
             raise CliError(f"duplicate unit declaration for {column!r}")
         if column not in selected:
             raise CliError(f"unit declared for unselected column {column!r}")
-        if len(unit) > 32 or any(ord(character) < 32 for character in unit):
-            raise CliError("units must be short printable strings")
+        _check_unit_text(unit)
         result[column] = unit
     return result
 
 
-def inspect_csv(
-    path: Path,
-    *,
-    selected_names: list[str] | None,
-    time_column: str | None,
-    declared_sampling_rate: float | None,
-    units_value: str | None,
-    max_rows: int,
-    max_channels: int,
-) -> dict[str, Any]:
-    if not 1 <= max_rows <= MAX_ROWS:
-        raise CliError(f"--max-rows must be between 1 and {MAX_ROWS}")
-    if not 1 <= max_channels <= MAX_CHANNELS:
-        raise CliError(f"--max-channels must be between 1 and {MAX_CHANNELS}")
+class _TimeTracker:
+    """Track timestamp spacing, duplicates and backward steps across rows."""
 
+    def __init__(self) -> None:
+        """Start with no previous timestamp and empty counters."""
+        self.positive_deltas: list[float] = []
+        self.previous: float | None = None
+        self.duplicates = 0
+        self.backward = 0
+
+    def update(self, time_value: float | None) -> None:
+        """Fold one parsed timestamp (or None when unusable) into the running totals."""
+        if time_value is None:
+            return
+        if self.previous is not None:
+            delta = time_value - self.previous
+            if delta > 0:
+                self.positive_deltas.append(delta)
+            elif delta == 0:
+                self.duplicates += 1
+            else:
+                self.backward += 1
+        self.previous = time_value
+
+
+def _read_header(reader: Any, max_channels: int, time_column: str | None) -> list[str]:
+    """Read and validate the CSV header row."""
     try:
-        handle = path.open("r", encoding="utf-8-sig", newline="")
-    except (OSError, UnicodeError) as exc:
-        raise CliError(f"cannot open CSV: {exc}") from exc
-    with handle:
-        reader = csv.reader(handle)
-        try:
-            header = [name.strip() for name in next(reader)]
-        except StopIteration as exc:
-            raise CliError("CSV is empty") from exc
-        if not header or any(not name for name in header):
-            raise CliError("CSV header names must be nonempty")
-        if len(header) != len(set(header)):
-            raise CliError("CSV header names must be unique")
-        if len(header) > max_channels:
+        header = [name.strip() for name in next(reader)]
+    except StopIteration as exc:
+        raise CliError("CSV is empty") from exc
+    if not header or any(not name for name in header):
+        raise CliError("CSV header names must be nonempty")
+    if len(header) != len(set(header)):
+        raise CliError("CSV header names must be unique")
+    if len(header) > max_channels:
+        raise CliError(
+            f"CSV has {len(header)} columns; --max-channels is {max_channels}"
+        )
+    if time_column is not None and time_column not in header:
+        raise CliError(f"time column {time_column!r} is absent")
+    return header
+
+
+def _check_selection(
+    selected_names: list[str] | None,
+    header: list[str],
+    time_column: str | None,
+    max_channels: int,
+) -> list[str]:
+    """Validate the selected signal columns against the header and return them."""
+    selected = selected_names or []
+    if not selected:
+        raise CliError("no signal columns selected")
+    if len(selected) > max_channels:
+        raise CliError(
+            f"selected {len(selected)} columns; --max-channels is {max_channels}"
+        )
+    missing = [name for name in selected if name not in header]
+    if missing:
+        raise CliError(f"CSV is missing selected columns: {', '.join(missing)}")
+    if time_column in selected:
+        raise CliError("--time-column must not also be a signal column")
+    return selected
+
+
+def _check_row_shape(row: list[str], row_count: int, width: int) -> None:
+    """Require a data row to have the header width and bounded cell lengths."""
+    if len(row) != width:
+        raise CliError(
+            f"CSV row {row_count + 1} has {len(row)} cells; expected {width}"
+        )
+    for cell in row:
+        if len(cell) > MAX_CELL_CHARS:
             raise CliError(
-                f"CSV has {len(header)} columns; --max-channels is {max_channels}"
+                f"CSV row {row_count + 1} contains a cell longer than "
+                f"{MAX_CELL_CHARS} characters"
             )
-        if time_column is not None and time_column not in header:
-            raise CliError(f"time column {time_column!r} is absent")
-        selected = selected_names or []
-        if not selected:
-            raise CliError("no signal columns selected")
-        if len(selected) > max_channels:
-            raise CliError(
-                f"selected {len(selected)} columns; --max-channels is {max_channels}"
-            )
-        missing = [name for name in selected if name not in header]
-        if missing:
-            raise CliError(f"CSV is missing selected columns: {', '.join(missing)}")
-        if time_column in selected:
-            raise CliError("--time-column must not also be a signal column")
-        units = _parse_units(units_value, selected)
-        positions = {name: header.index(name) for name in selected}
-        time_position = header.index(time_column) if time_column else None
-        stats = {name: OnlineStats() for name in selected}
-        time_stats = OnlineStats() if time_column else None
-        positive_deltas: list[float] = []
-        previous_time: float | None = None
-        duplicate_times = 0
-        backward_times = 0
-        row_count = 0
 
-        try:
-            for row_count, row in enumerate(reader, start=1):
-                if row_count > max_rows:
-                    raise CliError(f"CSV exceeds --max-rows={max_rows}")
-                if len(row) != len(header):
-                    raise CliError(
-                        f"CSV row {row_count + 1} has {len(row)} cells; "
-                        f"expected {len(header)}"
-                    )
-                for cell in row:
-                    if len(cell) > MAX_CELL_CHARS:
-                        raise CliError(
-                            f"CSV row {row_count + 1} contains a cell longer than "
-                            f"{MAX_CELL_CHARS} characters"
-                        )
-                for name, position in positions.items():
-                    stats[name].add_cell(row[position])
-                if time_position is not None and time_stats is not None:
-                    time_value = time_stats.add_cell(row[time_position])
-                    if time_value is not None and previous_time is not None:
-                        delta = time_value - previous_time
-                        if delta > 0:
-                            positive_deltas.append(delta)
-                        elif delta == 0:
-                            duplicate_times += 1
-                        else:
-                            backward_times += 1
-                    if time_value is not None:
-                        previous_time = time_value
-        except csv.Error as exc:
-            raise CliError(f"cannot parse CSV: {exc}") from exc
 
-    if row_count == 0:
-        raise CliError("CSV has a header but no data rows")
+def _scan_rows(
+    reader: Any,
+    header: list[str],
+    positions: dict[str, int],
+    stats: dict[str, OnlineStats],
+    time_position: int | None,
+    time_stats: OnlineStats | None,
+    tracker: _TimeTracker,
+    max_rows: int,
+) -> int:
+    """Stream the data rows into the per-column statistics and return the row count."""
+    row_count = 0
+    try:
+        for row_count, row in enumerate(reader, start=1):
+            if row_count > max_rows:
+                raise CliError(f"CSV exceeds --max-rows={max_rows}")
+            _check_row_shape(row, row_count, len(header))
+            for name, position in positions.items():
+                stats[name].add_cell(row[position])
+            if time_position is not None and time_stats is not None:
+                tracker.update(time_stats.add_cell(row[time_position]))
+    except csv.Error as exc:
+        raise CliError(f"cannot parse CSV: {exc}") from exc
+    return row_count
 
+
+def _sampling_summary(
+    positive_deltas: list[float],
+) -> tuple[float | None, float | None, float | None]:
+    """Return the median interval, observed sampling rate and maximum relative jitter."""
     observed_sampling_rate: float | None = None
     median_delta: float | None = None
     maximum_relative_jitter: float | None = None
@@ -231,13 +258,11 @@ def inspect_csv(
             maximum_relative_jitter = max(
                 abs(delta - median_delta) / median_delta for delta in positive_deltas
             )
+    return median_delta, observed_sampling_rate, maximum_relative_jitter
 
-    duration_s: float | None = None
-    effective_rate = observed_sampling_rate or declared_sampling_rate
-    if effective_rate and row_count > 1:
-        duration_s = (row_count - 1) / effective_rate
 
-    channel_reports = {name: stats[name].report(units.get(name)) for name in selected}
+def _channel_warnings(channel_reports: dict[str, dict[str, Any]]) -> list[str]:
+    """Warn about invalid or suspiciously flat samples in each channel."""
     warnings: list[str] = []
     for name, report in channel_reports.items():
         invalid = (
@@ -254,9 +279,20 @@ def inspect_csv(
             warnings.append(
                 f"{name}: more than 20% of adjacent finite samples are identical"
             )
-    if duplicate_times:
+    return warnings
+
+
+def _time_warnings(
+    tracker: _TimeTracker,
+    declared_sampling_rate: float | None,
+    observed_sampling_rate: float | None,
+    maximum_relative_jitter: float | None,
+) -> list[str]:
+    """Warn about timestamp order, rate mismatch and interval jitter."""
+    warnings: list[str] = []
+    if tracker.duplicates:
         warnings.append("time column contains duplicate timestamps")
-    if backward_times:
+    if tracker.backward:
         warnings.append("time column contains backward timestamps")
     if (
         declared_sampling_rate
@@ -270,6 +306,59 @@ def inspect_csv(
         )
     if maximum_relative_jitter is not None and maximum_relative_jitter > 0.01:
         warnings.append("timestamp intervals vary by more than 1% from the median")
+    return warnings
+
+
+def inspect_csv(
+    path: Path,
+    *,
+    selected_names: list[str] | None,
+    time_column: str | None,
+    declared_sampling_rate: float | None,
+    units_value: str | None,
+    max_rows: int,
+    max_channels: int,
+) -> dict[str, Any]:
+    """Handle inspect csv."""
+    if not 1 <= max_rows <= MAX_ROWS:
+        raise CliError(f"--max-rows must be between 1 and {MAX_ROWS}")
+    if not 1 <= max_channels <= MAX_CHANNELS:
+        raise CliError(f"--max-channels must be between 1 and {MAX_CHANNELS}")
+
+    try:
+        handle = path.open("r", encoding="utf-8-sig", newline="")
+    except (OSError, UnicodeError) as exc:
+        raise CliError(f"cannot open CSV: {exc}") from exc
+    with handle:
+        reader = csv.reader(handle)
+        header = _read_header(reader, max_channels, time_column)
+        selected = _check_selection(selected_names, header, time_column, max_channels)
+        units = _parse_units(units_value, selected)
+        positions = {name: header.index(name) for name in selected}
+        time_position = header.index(time_column) if time_column else None
+        stats = {name: OnlineStats() for name in selected}
+        time_stats = OnlineStats() if time_column else None
+        tracker = _TimeTracker()
+        row_count = _scan_rows(
+            reader, header, positions, stats, time_position, time_stats, tracker, max_rows
+        )
+
+    if row_count == 0:
+        raise CliError("CSV has a header but no data rows")
+
+    median_delta, observed_sampling_rate, maximum_relative_jitter = _sampling_summary(
+        tracker.positive_deltas
+    )
+
+    duration_s: float | None = None
+    effective_rate = observed_sampling_rate or declared_sampling_rate
+    if effective_rate and row_count > 1:
+        duration_s = (row_count - 1) / effective_rate
+
+    channel_reports = {name: stats[name].report(units.get(name)) for name in selected}
+    warnings = _channel_warnings(channel_reports) + _time_warnings(
+        tracker, declared_sampling_rate, observed_sampling_rate, maximum_relative_jitter
+    )
 
     return {
         "channel_count_in_file": len(header),
@@ -282,8 +371,8 @@ def inspect_csv(
         "row_count": row_count,
         "selected_columns": selected,
         "time": {
-            "backward_step_count": backward_times,
-            "duplicate_count": duplicate_times,
+            "backward_step_count": tracker.backward,
+            "duplicate_count": tracker.duplicates,
             "maximum_relative_interval_jitter": maximum_relative_jitter,
             "median_interval_s": median_delta,
             "name": time_column,
@@ -294,6 +383,7 @@ def inspect_csv(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Inspect a bounded local CSV for numeric coverage, gaps, flat runs, "
@@ -328,6 +418,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     require_deidentified(args.deidentified)
     declared_rate = (

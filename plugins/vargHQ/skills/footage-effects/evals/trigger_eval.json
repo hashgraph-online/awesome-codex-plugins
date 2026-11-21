@@ -1,0 +1,27 @@
+{
+  "skill": "footage-effects",
+  "should_trigger": [
+    "how to add chromatic aberration to a video with ffmpeg",
+    "how to make a zoom blur punch transition on the beat",
+    "how to make footage look like it's on an old CRT TV",
+    "how to add glow and bloom to night footage",
+    "how to add film halation to video",
+    "how to turn a video into halftone dots or an LED wall",
+    "how to add a glitch effect to video without plugins",
+    "how to make a heat haze or water ripple effect on footage"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Animate a mesh gradient background behind the title",
+      "use_instead": "paper-shaders"
+    },
+    {
+      "query": "Color grade this clip teal and orange",
+      "use_instead": "a color-grading skill (LUTs)"
+    },
+    {
+      "query": "Generate a glitchy cyberpunk clip from text",
+      "use_instead": "varg-ai"
+    }
+  ]
+}

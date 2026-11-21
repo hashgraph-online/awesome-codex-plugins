@@ -1,7 +1,7 @@
 export const BUILTIN_NATIVE_AGENT_PROFILES = Object.freeze({
   'native-luna': Object.freeze({ model: 'gpt-6-luna', reasoning_effort: 'max', role: 'advisor', agent_type: 'default' }),
-  'native-sol': Object.freeze({ model: 'gpt-6.1-sol', reasoning_effort: 'high', role: 'advisor', agent_type: 'default' }),
-  'native-astra': Object.freeze({ model: 'gpt-6-astra', reasoning_effort: 'medium', role: 'advisor', agent_type: 'default' }),
+  'native-sol': Object.freeze({ model: 'gpt-6.2-sol', reasoning_effort: 'high', role: 'advisor', agent_type: 'default' }),
+  'native-astra': Object.freeze({ model: 'gpt-6.2-astra', reasoning_effort: 'medium', role: 'advisor', agent_type: 'default' }),
 });
 
 // A Provider represents one real execution connection. Role behaviour belongs
@@ -13,11 +13,11 @@ export const BUILTIN_NATIVE_PROVIDER_METADATA = Object.freeze({
     description: 'Use for routine bounded inspection, documentation and implementation with explicit inputs and clear checks. Suitable for ordinary repository scanning and evidence-based audits; a read-only task does not require a stronger model.',
   }),
   'native-sol': Object.freeze({
-    name: 'GPT-6.1 Sol / High',
+    name: 'GPT-6.2 Sol / High',
     description: 'Use for complex implementation, cross-module repository analysis and independent review. Select when the work needs difficult integration or a fresh critical judgment beyond routine bounded inspection.',
   }),
   'native-astra': Object.freeze({
-    name: 'GPT-6 Astra / Medium',
+    name: 'GPT-6.2 Astra / Medium',
     description: 'Use only for difficult planning, novel causal diagnosis and unresolved design tradeoffs. Ordinary scanning, documentation, checklist audits and straightforward route decisions do not justify this model. Main conversation decisions belong to Main orchestration.',
   }),
 });

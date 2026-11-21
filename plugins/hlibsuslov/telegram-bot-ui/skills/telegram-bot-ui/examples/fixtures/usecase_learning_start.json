@@ -1,0 +1,11 @@
+{
+  "update_id": 960001,
+  "message": {
+    "message_id": 41,
+    "date": 1763328600,
+    "chat": {"id": 333333333, "type": "private", "first_name": "Олена"},
+    "from": {"id": 333333333, "is_bot": false, "first_name": "Олена", "language_code": "uk"},
+    "text": "/start",
+    "entities": [{"type": "bot_command", "offset": 0, "length": 6}]
+  }
+}

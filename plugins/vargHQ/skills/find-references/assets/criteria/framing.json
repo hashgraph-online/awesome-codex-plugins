@@ -1,0 +1,32 @@
+[
+ {
+  "id": "F1",
+  "core": true,
+  "needs": "shot size",
+  "question": "State the crop points on the body or object. Do they match the shot size asked?",
+  "pass_example": "Want medium close-up: cut at chest, head inside",
+  "fail_example": "Full body",
+  "ct_rule": "No person or object of known size"
+ },
+ {
+  "id": "F2",
+  "question": "Using horizon or verticals, is the camera height as asked?",
+  "pass_example": "Want low: horizon below subject's waist",
+  "fail_example": "Horizon at eye level",
+  "ct_rule": "No horizon or verticals are visible"
+ },
+ {
+  "id": "F3",
+  "question": "Is the subject's centre in the asked third? Use a detector box first if you have one.",
+  "pass_example": "Box centre in the right third",
+  "fail_example": "Centred",
+  "ct_rule": "No clear subject"
+ },
+ {
+  "id": "F4",
+  "question": "Is the foreground as asked: named object, or the number of depth planes?",
+  "pass_example": "Soft door frame in foreground",
+  "fail_example": "Subject flat against a wall",
+  "ct_rule": "Subject fills frame"
+ }
+]

@@ -1,0 +1,48 @@
+{
+  "name": "varg",
+  "version": "1.0.0",
+  "description": "How to make any AI video: find the skill, the options to show and the steps, then generate video, images, voice and music with varg on one key.",
+  "author": {
+    "name": "varg",
+    "url": "https://varg.ai"
+  },
+  "homepage": "https://varg.ai/how-to",
+  "repository": "https://github.com/vargHQ/skills",
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "ai-video",
+    "how-to",
+    "video-editing",
+    "ffmpeg",
+    "agent-skills",
+    "image-generation",
+    "text-to-speech",
+    "music",
+    "mcp"
+  ],
+  "skills": "./",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "varg",
+    "shortDescription": "How to make any AI video",
+    "longDescription": "varg how to answers \"how do I make this video\" for an AI agent. One call to search_how_to with the person's request, in their words and in any language, returns ranked cards from 2,000+ checked AI video agent skills, how-to tutorials, FFmpeg recipes, video formats, prompts and styles. get_how_to returns the full tutorial as Markdown: the best skill, the 2-4 choices to show the person with example videos, and the steps. No account or key. To generate, connect the varg MCP (mcp.varg.ai), which puts 200+ image, video, voice and music models behind one key.",
+    "developerName": "varg",
+    "category": "Creativity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Make a UGC ad for my skincare serum.",
+      "Add TikTok style captions to this video.",
+      "Turn my song into a lyric video."
+    ],
+    "websiteURL": "https://varg.ai/how-to",
+    "supportURL": "https://github.com/vargHQ/skills/issues",
+    "privacyPolicyURL": "https://varg.ai/privacy",
+    "termsOfServiceURL": "https://varg.ai/terms",
+    "composerIcon": "./assets/varg-512.png",
+    "logo": "./assets/varg-512.png"
+  }
+}

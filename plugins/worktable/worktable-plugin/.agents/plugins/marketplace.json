@@ -1,0 +1,32 @@
+{
+  "name": "worktable",
+  "interface": {
+    "displayName": "Worktable"
+  },
+  "plugins": [
+    {
+      "name": "worktable",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "worktable-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/worktable-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

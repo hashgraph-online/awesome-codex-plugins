@@ -1,0 +1,48 @@
+{
+ "duration": 20.0,
+ "fps": 30,
+ "platform": "youtube",
+ "duck": {
+  "depth_db": 0
+ },
+ "checks": {
+  "voice_over_music_db": 10
+ },
+ "beats": "music/bed_vague_beats.json",
+ "cut_on": "beats",
+ "cuts": [
+  3.3,
+  7.1,
+  12.6,
+  16.4
+ ],
+ "silences": [],
+ "tracks": [
+  {
+   "id": "L01",
+   "role": "voice",
+   "file": "vo/L01.mp3",
+   "start": 0.0
+  },
+  {
+   "id": "L02",
+   "role": "voice",
+   "file": "vo/L02.mp3",
+   "start": 3.0
+  },
+  {
+   "id": "L03",
+   "role": "voice",
+   "file": "vo/L03.mp3",
+   "start": 6.5
+  },
+  {
+   "id": "bed",
+   "role": "music",
+   "file": "music/bed_vague.mp3",
+   "start": 0.0,
+   "length": 20.0,
+   "gain_db": 0
+  }
+ ]
+}

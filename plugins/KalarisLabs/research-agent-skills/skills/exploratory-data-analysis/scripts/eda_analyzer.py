@@ -47,6 +47,7 @@ IMAGE_SUFFIXES = {
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate a bounded, redacted EDA report for an explicitly supported "
@@ -296,6 +297,7 @@ def markdown_report(report: dict[str, Any]) -> str:
 
 
 def _infer_output_format(requested: str | None, output: str | None) -> str:
+    """Handle infer output format."""
     if requested is not None:
         return requested
     if output is not None and output.casefold().endswith((".md", ".markdown")):
@@ -304,6 +306,7 @@ def _infer_output_format(requested: str | None, output: str | None) -> str:
 
 
 def _main() -> None:
+    """Handle main."""
     args = build_parser().parse_args()
     max_bytes = bounded_file_limit(args.max_bytes)
     path = checked_input_file(
@@ -338,6 +341,7 @@ def _main() -> None:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     return run_cli(_main)
 
 

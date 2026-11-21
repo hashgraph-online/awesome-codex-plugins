@@ -25,10 +25,11 @@ A story project must already exist (created via the story-init skill). Verify by
    - Motivations (external wants vs internal needs)
    - Voice and speech patterns (ask for example dialogue), plus `voice-words` (words and phrases they reach for) and `voice-avoid` (words they would never say)
    - Pronunciation, when the name is invented or easily misread (`pronunciation: "SEER-sha"`)
+   - Birth date, when age matters to the story: record `born` (a day such as `2001-09-14`, or a year alone such as `1968`, in the story calendar when `story.md` has one), never a fixed `age`. `story context` and `story knowledge` work out the age at each dated chapter, and `story continuity` reports a character in a cast dated before their birth and a parent born after their child
    - Character arc (starting state, turning points, ending state)
    - Key life events for the timeline
 5. Write the character file using the template in `references/character-template.md`
-6. Save to `characters/{name-kebab}.md`, or use `story add character '{Name}' --role '{role}'` when the CLI is available. Cyrillic and Greek names are transliterated (`Пётр` gives `characters/petr.md`). When the name is in a script with no transliteration table (`李明`), or the user wants a different spelling, choose the ASCII id yourself and pass it: `story add character '李明' --id li-ming --role supporting` keeps `name: 李明` in the file
+6. Save to `characters/{name-kebab}.md`, or use `story add character '{Name}' --role '{role}'` when the CLI is available (add `--born {date}` when you have one). Cyrillic and Greek names are transliterated (`Пётр` gives `characters/petr.md`). When the name is in a script with no transliteration table (`李明`), or the user wants a different spelling, choose the ASCII id yourself and pass it: `story add character '李明' --id li-ming --role supporting` keeps `name: 李明` in the file
 7. Leave the `characters/_index.md` table to the CLI: `story add` and `story reindex .` rebuild it from the character files, so never add a row by hand
 8. If relationships reference existing characters, update those character files too
 9. When CLI access is available, run the maintenance pass in the story root:
@@ -66,6 +67,7 @@ progressions:
 - `field` is kebab-case. It can be an existing single-value field (`status`, `role`, `arc`) or a new one (`scar`, `title`). List fields (`aliases`, `relationships`, `locations`, `tags`, voice lists) cannot change this way; record a shifted relationship as a progression on its own field, such as `field: standing-with-kael` with `value: estranged` under `progressions`, never as a top-level field (that would show from chapter 1)
 - `value` is one value. `role` and `status` values must be ones the character file allows
 - Keep entries in story order. Do not use a progression alone for a death: set `died-in` (see below). A `status` progression is still checked against the story: `story continuity` warns when a progression to `deceased` with no `died-in` is followed by the character in a cast or learning something, when a status progression brings them back between `died-in` and `revived-in`, and when a progression to `deceased` still holds at `revived-in`
+- The body of the file is prose for the writer. Describe a change in story terms ("from Festival night she carries the scar"), and do not name `progressions` or other frontmatter fields there
 - Before drafting or revising a chapter, run `story knowledge {id} --at chapter-NN`. It lists what the character knows at that chapter in story time (by date when both chapters are dated, otherwise by chapter number), the same rule as `story context`, and which progressions already apply. Write to that state rather than the opening frontmatter alone
 - A line marked `reader-knowledge` is already on the page, or known before the book, and may appear in the prose. A line marked `character-knowledge` and `do not reveal` is something the character knows from a flashback the reader has not reached: the character may act on it, and the fact itself must not be stated. Do not drop those lines, and do not write them in as if the reader had already learned them
 
@@ -86,9 +88,10 @@ Without `--prose`, `rename` leaves the chapter text alone, for when the user wan
 
 To kill a character off:
 
-1. Set `status: deceased` and `died-in: chapter-NN` in the character file
-2. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
-3. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
+1. Test the death first: `story impact die {id} chapter-NN --path .` sets `died-in` and `status` on a scratch copy, runs the checks, and lists only what the death would break, such as each later chapter and scene that still lists them, writing nothing. Show the user that list; when they are choosing between chapters, run it for each. `story impact remove character {id} --path .` does the same for cutting a character
+2. Set `status: deceased` and `died-in: chapter-NN` in the character file
+3. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
+4. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
 
 Variants:
 

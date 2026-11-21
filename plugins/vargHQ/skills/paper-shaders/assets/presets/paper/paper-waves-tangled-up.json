@@ -1,0 +1,33 @@
+{
+  "id": "paper-waves-tangled-up",
+  "label": "Tangled up (Paper Waves)",
+  "shader": "Waves",
+  "page": "https://shaders.paper.design/waves",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Tangled up\" preset for Waves, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.5,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorFront": "#133a41",
+    "colorBack": "#c2d8b6",
+    "shape": 2.07,
+    "frequency": 0.44,
+    "amplitude": 0.57,
+    "spacing": 1.05,
+    "proportion": 0.75,
+    "softness": 0
+  }
+}

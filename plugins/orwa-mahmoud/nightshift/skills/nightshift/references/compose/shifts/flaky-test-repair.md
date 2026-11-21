@@ -1,5 +1,7 @@
 # Flaky-test repair — finite — unstable tests reproduced and repaired without weakening coverage
 
+## When to use
+
 Tests that sometimes pass and sometimes fail under the repository's existing test runner. The
 shift spends a declared repetition budget reproducing each suspect, fixes only demonstrated
 causes, and leaves an evidence-backed record when the failure cannot be reproduced.
@@ -14,6 +16,8 @@ Use only when the project already has a test command and evidence of instability
 failure, CI history, or a named suspect test. Supported on any stack whose existing test runner can
 repeat a test or suite. Do not add a new flake service or test framework.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **Flaky-test repair — reproduce unstable tests and fix their demonstrated causes.**

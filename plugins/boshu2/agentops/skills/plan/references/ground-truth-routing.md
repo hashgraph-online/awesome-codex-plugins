@@ -64,10 +64,14 @@ leave the question unresolved and continue only work that does not rely on it.
 
 Use only when the accepted behavior has materially different plausible
 interfaces. Sketch the ordinary caller and one consequential failure case for
-at most two alternatives before implementing either. Include setup, required
-call order, state ownership and error handling, not just function signatures.
-One alternative can keep the existing boundary. Sequential sketches suffice;
-this method grants no delegation authority.
+the recommended interface and at most one alternative before implementing
+either. Include setup, required call order, state ownership and error handling,
+not just function signatures. The alternative can keep the existing boundary.
+Sequential sketches suffice; this method grants no delegation authority.
+When the choice moves a boundary between modules, or changes callers outside
+this slice's scope, the decision is architectural: hand it to
+[Architecture](../../architecture/SKILL.md), whose comparison takes more
+alternatives, and keep the slice on the current interface until it settles.
 
 Compare which facts each caller must learn, which repeated rule the boundary
 owns, and where the next acceptance-relevant change would land. Include the

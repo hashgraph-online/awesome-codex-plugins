@@ -344,7 +344,7 @@ def score_extraction(extraction, expected_pin_count=None):
 
 
 # ---------------------------------------------------------------------------
-# v1.4 rubric extension (Phase 3a)
+# v1.4 rubric extension
 # ---------------------------------------------------------------------------
 
 # Per-pin fields scored by population (1 point each, max 4 pts/pin)
@@ -434,13 +434,13 @@ def _category_extension_completeness(extraction: dict) -> float:
 
 
 def score_v14_extraction(extraction: dict) -> dict:
-    """Phase 3a quality score (0-100) for a v1.4 extraction JSON.
+    """Quality score (0-100) for a v1.4 extraction JSON.
 
     Weighted dimensions:
       pinout_completeness            20%
       base_completeness              25%
       category_extension_completeness 25%
-      reserved (v1.5)                30%   (full credit in v1.4)
+      reserved                       30%   (always full credit)
     """
     dims = {
         "pinout_completeness": _pinout_completeness(extraction),

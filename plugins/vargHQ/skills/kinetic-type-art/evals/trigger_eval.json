@@ -1,0 +1,27 @@
+{
+  "skill": "kinetic-type-art",
+  "should_trigger": [
+    "how to make kinetic typography that hits on the beat",
+    "how to make a glitch logo animation on paper texture",
+    "how to make a text decrypt scramble effect for a title",
+    "how to make a 3D word tunnel animation",
+    "how to make a font changing every beat title",
+    "how to make a risograph style motion poster",
+    "how to make an anime HUD title screen",
+    "how to make a photocopy xerox explainer video style"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Add TikTok captions to my talking-head video",
+      "use_instead": "caption-styles"
+    },
+    {
+      "query": "Put a name lower third on the interview",
+      "use_instead": "title-design"
+    },
+    {
+      "query": "Generate an AI music video for my song",
+      "use_instead": "varg-music-video"
+    }
+  ]
+}

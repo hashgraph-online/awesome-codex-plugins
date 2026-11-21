@@ -1,9 +1,9 @@
 ---
 name: roast-my-code
-description: "Roast code with aggressive humor while preserving a factual staff review; --fix can apply selected CRITICAL/HIGH fixes."
+description: "Use when the user asks to roast code: a factual staff review told with aggressive humor; --fix applies selected CRITICAL and HIGH fixes."
 user-invocable: true
 allowed-tools: Skill, AskUserQuestion
-effort: xhigh
+effort: high
 ---
 
 # Roast My Code

@@ -14,7 +14,8 @@ from __future__ import annotations
 import re
 
 from kicad_types import AnalysisContext
-from kicad_utils import parse_value, parse_voltage_from_net_name
+from kicad_core.netnames import is_usb_data_net_name, is_usb_signal_net_name, parse_voltage_from_net_name
+from kicad_core.parts import LOAD_SWITCH_KEYWORDS, names_load_switch
 
 try:
     import os as _os, sys as _sys
@@ -30,10 +31,9 @@ except ImportError:
     def get_mcu_features(mpn, **kw): return None
 
 from detector_helpers import (
-    get_components_by_type, get_unique_ics, index_two_pin_components,
-    match_ic_keywords,
+    get_components_by_type, get_pin_net, get_unique_ics, index_two_pin_components,
+    is_led_rail, led_forward_voltage, led_string, match_ic_keywords,
 )
-from signal_detectors import _get_net_components
 from finding_schema import make_finding, make_provenance
 from lookup_helpers import get_facts, has_data, best
 
@@ -66,9 +66,8 @@ def _find_pullups_on_net(
 
 # Library / footprint substrings that identify a bridged-by-default solder
 # jumper. SolderJumper_2_Bridged (Jumper library) is the canonical KiCad
-# symbol; the footprint name carries _Bridged_ too. rc.2 4.1 expansion
-# (SparkFun review — JP1/JP14/JP22 FP class on I2C buses behind bridged
-# jumpers).
+# symbol; the footprint name carries _Bridged_ too. Without this, I2C buses
+# behind bridged jumpers draw false pull-up findings.
 _BRIDGED_JUMPER_LIB_SUBSTRINGS = (
     'solderjumper_2_bridged',
     'solderjumper-2_p1.3mm_bridged',  # standard footprint suffix
@@ -113,7 +112,7 @@ def _find_pullups_on_net_with_bridged(
 ) -> list[dict]:
     """Like `_find_pullups_on_net` but also walks one hop through
     SolderJumper_2_Bridged to find pullups attached on the bridged side
-    of the jumper. rc.2 4.1 expansion (SparkFun review).
+    of the jumper.
     """
     pullups = list(_find_pullups_on_net(ctx, net_name, resistor_nets, net_to_resistors))
     for neighbor in _bridged_jumper_neighbor_nets(ctx, net_name):
@@ -142,28 +141,8 @@ def _find_pulldowns_on_net(
     return pulldowns
 
 
-def _get_pin_net(ctx: AnalysisContext, ref: str, pin_names: tuple[str, ...]) -> str | None:
-    """Find the net connected to a pin matching any of the given names."""
-    pins = ctx.ref_pins.get(ref, {})
-    for pnum, (net, _) in pins.items():
-        comp = ctx.comp_lookup.get(ref)
-        if not comp:
-            continue
-        for p in comp.get('pins', []):
-            if p.get('number') == pnum and p.get('name', '').upper() in pin_names:
-                return net
-    # Fallback: check net pin_name via ctx.nets
-    for pnum, (net, _) in pins.items():
-        if not net or net not in ctx.nets:
-            continue
-        for np in ctx.nets[net]['pins']:
-            if np['component'] == ref and np.get('pin_name', '').upper() in pin_names:
-                return net
-    return None
-
-
 def _net_has_driver(ctx: AnalysisContext, net_name: str, exclude_ref: str) -> bool:
-    """Check if a net has at least one push-pull driver (non-OD/OC IC output)."""
+    """True when another IC sits on the net. Any IC counts, whatever its pin type: it may drive the line push-pull or hold it with a firmware-enabled internal pull-up, neither of which the schematic shows, so PU-001 does not ask for an external resistor."""
     if not net_name or net_name not in ctx.nets:
         return False
     for p in ctx.nets[net_name]['pins']:
@@ -188,7 +167,6 @@ _PULLUP_PIN_NAMES = (
     'INT', 'IRQ', 'ALERT', 'DRDY', 'BUSY', 'RDY',
     'INT1', 'INT2', 'IRQ1', 'IRQ2', 'ALERT1', 'ALERT2',
     'SDA', 'SCL', 'I2C_SDA', 'I2C_SCL',
-    'MISO',  # SPI open-drain mode
     'OD', 'OPEN_DRAIN',
     'PG', 'PGOOD', 'POWER_GOOD', 'nPG',
     'FAULT', 'nFAULT', 'FLAG', 'nFLAG',
@@ -220,7 +198,6 @@ _PULLUP_MAX_OHMS = 100000    # 100k — above this is weak
 # Regulators with internal EN pull-up — EN can be left floating (the part
 # enables itself by default) without a discrete external pull-up. Per-part
 # prefixes from TI/MPS/Microchip; pattern-match against IC value/MPN upper-cased.
-# rc.2 4.1 expansion (SparkFun + Manas review).
 _INTERNAL_EN_PULLUP_REGULATOR_PREFIXES = (
     'TPS54302', 'TPS5430',     # TI sync buck (D-CAP2) — internal EN pull-up
     'TPS6213',                 # TI buck with internal soft-start + EN pull-up
@@ -262,12 +239,11 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
     checked_nets: set[str] = set()
 
     cache_dir = getattr(ctx, 'cache_dir', None)
-    design_context = getattr(ctx, 'design_context', None)
 
     for ic in ics:
         ref = ic['reference']
         mpn = ic.get('mpn') or ic.get('value') or ''
-        facts = get_facts(mpn, cache_dir=cache_dir) if mpn else None
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None)) if mpn else None
         pins = ctx.ref_pins.get(ref, {})
 
         for pnum, (net, _) in pins.items():
@@ -324,9 +300,9 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
 
             if needs_pullup:
                 # Datasheet path: if facts has recommended_pullup_range, use it.
-                # Heuristic path: fall back to _PULLUP_MIN/MAX_OHMS (always fires
-                # in v1.4 — no extracted MPN carries recommended_pullup_range yet;
-                # 4d-active populates ctx.cache_dir to activate datasheet path).
+                # Heuristic path: fall back to _PULLUP_MIN/MAX_OHMS. No extraction
+                # schema field is named recommended_pullup_range today, so the
+                # datasheet path only runs once a facts block provides one.
                 ds_range = None
                 if facts is not None:
                     _specs = getattr(
@@ -353,7 +329,7 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
                         continue  # Net is actively driven, pull-up not strictly required
 
                     # Skip regulators whose EN pin has an internal pull-up
-                    # (rc.2 4.1 expansion — TI/MPS/Microchip parts list).
+                    # (TI/MPS/Microchip parts list).
                     if _has_internal_en_pullup(ic, pin_name):
                         continue
 
@@ -384,7 +360,6 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
                         report_section='Signal Integrity',
                         impact='Pin may float or bus may not function without pull-up',
                         provenance=make_provenance('pu_missing_pullup', 'deterministic'),
-                        design_context=design_context,
                         schema_era='v1.4',
                         source=ctx.source,))
                 else:
@@ -410,7 +385,6 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
                                     nets=[net],
                                     recommendation=f'Consider increasing {pu["ref"]} to 4.7k-10k.',
                                     provenance=make_provenance('pu_value_check', 'deterministic'),
-                                    design_context=design_context,
                                     schema_era='v1.4',
                                     source=ctx.source,))
                             elif pu['ohms'] > pu_max:
@@ -432,7 +406,6 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
                                     nets=[net],
                                     recommendation=f'Consider decreasing {pu["ref"]} to 4.7k-10k.',
                                     provenance=make_provenance('pu_weak_pullup', 'deterministic'),
-                                    design_context=design_context,
                                     schema_era='v1.4',
                                     source=ctx.source,))
 
@@ -465,7 +438,6 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
                         report_section='Signal Integrity',
                         impact='Pin floats at startup, undefined behavior',
                         provenance=make_provenance('pu_missing_pullup', 'deterministic'),
-                        design_context=design_context,
                         schema_era='v1.4',
                         source=ctx.source,))
 
@@ -485,28 +457,53 @@ _VOLTAGE_THRESHOLDS = {
 
 
 def _estimate_rail_voltage_for_ic(ctx: AnalysisContext, ref: str) -> float | None:
-    """Estimate IC supply rail voltage. Regulators use VIN pin; others use first power net."""
+    """Estimate IC supply rail voltage. Regulators use VIN pin; others use first power net.
+
+    Returns the magnitude so a +/- supplied IC does not read as a different
+    domain depending on pin order.
+    """
+    return _ic_rail_voltage(ctx, ref)[0]
+
+
+def _ic_rail_voltage(ctx: AnalysisContext, ref: str) -> tuple[float | None, bool]:
+    """``_estimate_rail_voltage_for_ic`` and whether the voltage is a config override."""
+    def pin_voltage(net):
+        return ctx.rail_voltage_or(net, parse_voltage_from_net_name)
+
+    # A rail known only by its pins is often a core or PLL supply; the first one by pin
+    # order is not the IC's I/O level.
+    pins = {num: entry for num, entry in ctx.ref_pins.get(ref, {}).items()
+            if entry[0] not in ctx.topology_rails}
+    # A supply on an ignored rail has an unknown voltage; the IC's other supply does not
+    # stand in for it.
+    if any(net and ctx.is_power_net(net) and not ctx.is_ground(net) and ctx.rail_ignored(net)
+           for net, _ in pins.values()):
+        return None, False
+
     comp = ctx.comp_lookup.get(ref, {})
     mpn = comp.get('mpn') or comp.get('value', '')
     feat = get_regulator_features(mpn, project_dir=ctx.project_dir) if mpn else None
     if feat and not feat.get('quality', {}).get('trusted', True):
-        feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
+        feat = None   # deterministic detectors ignore untrusted extractions
     if feat and feat.get('vin_pin'):
         vin_pin = str(feat['vin_pin'])
-        pins = ctx.ref_pins.get(ref, {})
         for pnum, (net, _) in pins.items():
             if str(pnum) == vin_pin and net and ctx.is_power_net(net) and not ctx.is_ground(net):
-                v = parse_voltage_from_net_name(net)
+                v = pin_voltage(net)
                 if v is not None:
-                    return v
+                    return abs(v), ctx.config_rail_voltage(net) is not None
 
-    pins = ctx.ref_pins.get(ref, {})
+    # The positive supply sets a split-supply IC's logic swing; a negative rail counts
+    # only for an IC that has no positive one.
+    negative = None
     for pnum, (net, _) in pins.items():
         if net and ctx.is_power_net(net) and not ctx.is_ground(net):
-            v = parse_voltage_from_net_name(net)
-            if v is not None:
-                return v
-    return None
+            v = pin_voltage(net)
+            if v is not None and v > 0:
+                return v, ctx.config_rail_voltage(net) is not None
+            if v is not None and negative is None:
+                negative = (abs(v), ctx.config_rail_voltage(net) is not None)
+    return negative if negative is not None else (None, False)
 
 
 def _closest_threshold(voltage: float) -> tuple:
@@ -522,21 +519,129 @@ def _closest_threshold(voltage: float) -> tuple:
     return best
 
 
+# Upper-cased pin names of a regulator's enable input and of its open-drain power-good output
+# (the pull-up, not the regulator's supply, sets the power-good level).
+_EN_PIN_PATTERNS = ('EN', 'ENABLE', 'CE', 'SHDN', 'NSHDN', 'ON', 'ON_OFF', 'RUN')
+_PG_PIN_PATTERNS = ('PG', 'PGOOD', 'PWRGD', 'NPG')
+# Load-switch families whose symbols often carry no description (Vishay SiP32xxx, TI TPS205x,
+# Diodes AP2280x / AP2261x / AP2265x / AP255x, Microchip MIC20xx, onsemi FPFxxxx).
+_LOAD_SWITCH_FAMILIES = ('sip32', 'tps205', 'ap2280', 'ap2261', 'ap2265', 'ap255', 'mic20', 'fpf')
+
+
+def _is_regulator_like(ctx: AnalysisContext, ref: str) -> bool:
+    """A regulator-family part by its value or MPN, or typed power_regulator. A load switch
+    counts too (by family or by its text): its enable is a logic input rated independently
+    of its VIN."""
+    comp = ctx.comp_lookup.get(ref, {})
+    val_mpn = ((comp.get('mpn') or '') + ' ' + (comp.get('value') or '')).upper()
+    if comp.get('type') == 'power_regulator' or any(pfx in val_mpn for pfx in (
+            'TPS6', 'TPS5', 'LM25', 'LM33', 'LM317', 'AP21', 'AMS11',
+            'MP23', 'MP15', 'XL40', 'RT8', 'SY8', 'MIC29', 'NCP',
+            'LDO', 'BOOST', 'BUCK', 'REG')):
+        return True
+    text = (val_mpn + ' ' + (comp.get('lib_id') or '')).lower()
+    return (any(k in text for k in LOAD_SWITCH_KEYWORDS + _LOAD_SWITCH_FAMILIES)
+            or names_load_switch(text + ' ' + (comp.get('description') or '')))
+
+
+def _en_endpoint_compatible(ctx: AnalysisContext, p: dict, net_name: str, v_min: float) -> bool:
+    """True when pin *p* on *net_name* is a regulator enable input that tolerates a net
+    whose lowest domain is *v_min*: by the datasheet EN threshold when one is extracted,
+    else by an EN-named pin on a regulator-family part."""
+    comp = ctx.comp_lookup.get(p['ref'], {})
+    p_mpn = comp.get('mpn') or comp.get('value', '')
+    ds_feat = get_regulator_features(p_mpn, project_dir=ctx.project_dir) if p_mpn else None
+    if ds_feat and not ds_feat.get('quality', {}).get('trusted', True):
+        ds_feat = None   # deterministic detectors ignore untrusted extractions
+    if ds_feat and ds_feat.get('en_pin'):
+        for pnum, (net, _) in ctx.ref_pins.get(p['ref'], {}).items():
+            if net == net_name and str(pnum) == str(ds_feat['en_pin']):
+                en_ih = ds_feat.get('en_v_ih_max')
+                if en_ih is not None:
+                    return v_min >= 2 * en_ih
+                break
+    if _is_regulator_like(ctx, p['ref']):
+        name = (p.get('pin') or '').upper().strip()
+        return name in _EN_PIN_PATTERNS
+    return False
+
+
+# Data-pair prefixes seen on USB and Ethernet pairs (LsD+, TD+, RD+, UD+, U1D+, XUD+, DBGD+);
+# a word that merely ends in D (HOLD, MOD, AVDD, SDD) is not one.
+_DATA_PAIR_NAME = re.compile(r"(?:^|[^A-Z0-9])(?:LS|[TRQIDU]|U\d|XU|IU|UC|DBG)?D[+-]$")
+
+
+def _is_usb_dp_dm(net_name: str, nets) -> bool:
+    name = net_name.upper()
+    if is_usb_data_net_name(name):
+        return not is_usb_signal_net_name(name)
+    # A D+ / D- pair under another name (LsD+ / LsD-, TD+ / TD-) is differential data too;
+    # a lone HOLD- or SPEED- is a logic signal.
+    if _DATA_PAIR_NAME.search(name):
+        return (net_name[:-1] + ("-" if net_name.endswith("+") else "+")) in nets
+    return False
+
+
+# Charger status outputs are open-drain by convention (STAT, CHG, CHRG); a power-good pin
+# is when the part is a regulator.
+_OD_STATUS_NAMES = frozenset({'STAT', 'STAT1', 'STAT2', 'CHG', 'CHRG'})
+
+
+def _bare_pin_name(name: str) -> str:
+    """Upper-cased pin name without an active-low marker (~{PG}, nPG, NSTAT)."""
+    n = re.sub(r'^~\{(.*)\}$', r'\1', (name or '').upper().strip()).lstrip('~/')
+    if n.startswith('N') and (n[1:] in _OD_STATUS_NAMES or n[1:] in _PG_PIN_PATTERNS):
+        return n[1:]
+    return n
+
+
+def _is_open_drain_endpoint(ctx: AnalysisContext, p: dict) -> bool:
+    """An open-collector / open-drain output: by pin type, a charger status pin by name,
+    or a power-good pin on a regulator."""
+    if p.get('pin_type') == 'open_collector':
+        return True
+    if p.get('pin_type') == 'tri_state':
+        return False   # MCP73831 STAT drives high to its supply
+    name = _bare_pin_name(p.get('pin'))
+    if name in _OD_STATUS_NAMES:
+        return True
+    return name in _PG_PIN_PATTERNS and _is_regulator_like(ctx, p['ref'])
+
+
+def _pull_up_voltage(ctx: AnalysisContext, net_name: str) -> float | None:
+    """The highest rail a resistor on *net_name* ties it to, or None."""
+    best = None
+    for q in ctx.nets.get(net_name, {}).get('pins', []):
+        comp = ctx.comp_lookup.get(q['component'], {})
+        if comp.get('type') != 'resistor':
+            continue
+        n1, n2 = ctx.get_two_pin_nets(q['component'])
+        other = n2 if n1 == net_name else n1
+        if not other or other == net_name or not ctx.is_power_net(other) or ctx.is_ground(other):
+            continue
+        v = ctx.rail_voltage_or(other, parse_voltage_from_net_name)
+        if v is not None and v > 0 and (best is None or v > best):
+            best = v
+    return best
+
+
 def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | None = None) -> list[dict]:
     """VM-001: Detect signal nets crossing power domain boundaries without level shifting."""
     findings: list[dict] = []
     cache_dir = getattr(ctx, 'cache_dir', None)
-    design_context = getattr(ctx, 'design_context', None)
 
     ic_voltages: dict[str, float] = {}
+    config_voltage_ics: set[str] = set()
     for ic in get_unique_ics(ctx):
         v = _estimate_rail_voltage_for_ic(ctx, ic['reference'])
         if v is not None:
             ic_voltages[ic['reference']] = v
-            # 4b lookup probe (informational; future v1.5 will use
-            # facts.base.recommended_operating.VDD to validate the rail estimate).
+            if ctx.rail_overrides and _ic_rail_voltage(ctx, ic['reference'])[1]:
+                config_voltage_ics.add(ic['reference'])
+            # Lookup probe (informational; the rail estimate is not yet checked
+            # against facts.base.recommended_operating.VDD).
             mpn = ic.get('mpn') or ic.get('value') or ''
-            facts = get_facts(mpn, cache_dir=cache_dir) if mpn else None
+            facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None)) if mpn else None
             # facts probe is informational — confidence stays heuristic regardless.
 
     shifted_nets: set[str] = set()
@@ -556,17 +661,37 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
             continue
         if net_name in shifted_nets:
             continue
+        # USB D+/D- swing at most 3.6 V whatever the device supply (USB 2.0, 7.1.1 drivers).
+        if _is_usb_dp_dm(net_name, ctx.nets):
+            continue
 
         ic_pins_on_net = []
         for p in net_info.get('pins', []):
             ref = p['component']
             if ref in ic_voltages:
+                # A supply pin on a non-power net is a rail feeding a regulator or a
+                # regulator output (L7809 OUT -> L7805 IN), not a logic level.
+                if p.get('pin_type') in ('power_in', 'power_out'):
+                    continue
                 ic_pins_on_net.append({
                     'ref': ref, 'pin': p.get('pin_name', ''),
                     'pin_number': p['pin_number'], 'voltage': ic_voltages[ref],
+                    'pin_type': p.get('pin_type'),
                 })
+        # An open-drain output swings to its pull-up, not to its IC's supply; with no
+        # pull-up on the net it drives nothing high.
+        od = [q for q in ic_pins_on_net if _is_open_drain_endpoint(ctx, q)]
+        if od and len(ic_pins_on_net) >= 2:
+            v_pu = _pull_up_voltage(ctx, net_name)
+            for q in od:
+                if v_pu is None:
+                    ic_pins_on_net.remove(q)
+                else:
+                    q['voltage'] = v_pu
 
-        if len(ic_pins_on_net) < 2:
+        # One part's own pins are not a domain crossing (MC34063 switch collectors tied to
+        # its current-sense input).
+        if len({p['ref'] for p in ic_pins_on_net}) < 2:
             continue
 
         voltages = set(p['voltage'] for p in ic_pins_on_net)
@@ -577,44 +702,23 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
         v_max = max(voltages)
         v_min = min(voltages)
 
-        # Check if this is a regulator EN pin — skip if threshold is compatible
-        _EN_PIN_PATTERNS = ('EN', 'ENABLE', 'CE', 'SHDN', 'nSHDN', 'ON', 'ON_OFF', 'RUN')
-        skip_en = False
-        for p in ic_pins_on_net:
-            comp = ctx.comp_lookup.get(p['ref'], {})
-            p_mpn = comp.get('mpn') or comp.get('value', '')
-            # Datasheet-backed path: check EN pin threshold
-            ds_feat = get_regulator_features(p_mpn, project_dir=ctx.project_dir) if p_mpn else None
-            if ds_feat and not ds_feat.get('quality', {}).get('trusted', True):
-                ds_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
-            ds_decided = False
-            if ds_feat and ds_feat.get('en_pin'):
-                pin_names = ctx.ref_pins.get(p['ref'], {})
-                for pnum, (net, pname) in pin_names.items():
-                    if net == net_name and str(pnum) == str(ds_feat['en_pin']):
-                        en_ih = ds_feat.get('en_v_ih_max')
-                        if en_ih is not None:
-                            ds_decided = True
-                            if v_min >= 2 * en_ih:
-                                skip_en = True
-                        break
-                if skip_en:
-                    break
-            # Heuristic fallback: pin name matches EN pattern on a regulator-family part
-            if not ds_decided:
-                val_mpn = ((comp.get('mpn') or '') + ' ' + (comp.get('value') or '')).upper()
-                is_regulator_like = any(pfx in val_mpn for pfx in (
-                    'TPS6', 'TPS5', 'LM25', 'LM33', 'LM317', 'AP21', 'AMS11',
-                    'MP23', 'MP15', 'XL40', 'RT8', 'SY8', 'MIC29', 'NCP',
-                    'LDO', 'BOOST', 'BUCK', 'REG',
-                ))
-                if is_regulator_like or comp.get('type') == 'power_regulator':
-                    pin_name = (p.get('pin') or '').upper().strip()
-                    if pin_name in _EN_PIN_PATTERNS:
-                        skip_en = True
-                        break
-        if skip_en:
+        # A regulator EN input that tolerates the drive is one compatible endpoint; the
+        # other endpoints on the net are still checked against each other.
+        en_ok = [p for p in ic_pins_on_net if _en_endpoint_compatible(ctx, p, net_name, v_min)]
+        if en_ok:
+            ic_pins_on_net = [p for p in ic_pins_on_net if p not in en_ok]
+            voltages = set(p['voltage'] for p in ic_pins_on_net)
+            if len({p['ref'] for p in ic_pins_on_net}) < 2 or len(voltages) <= 1:
+                continue
+            v_max = max(voltages)
+            v_min = min(voltages)
+
+        # An open-drain output only pulls the net low: it is never the input that a
+        # higher domain overdrives.
+        readers = [p['voltage'] for p in ic_pins_on_net if p not in od]
+        if not readers or min(readers) >= v_max:
             continue
+        v_min = min(readers)
 
         low_thresh = _closest_threshold(v_min)
         if low_thresh is None:
@@ -643,6 +747,8 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
                 continue
 
         refs = sorted(set(p['ref'] for p in ic_pins_on_net))
+        config_extra = ({'rail_voltage_source': 'config'}
+                        if config_voltage_ics.intersection(refs) else {})
         findings.append(make_finding(
             detector='validate_voltage_levels',
             rule_id='VM-001',
@@ -670,9 +776,9 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
             report_section='Signal Integrity',
             impact='Risk of damage or unreliable logic levels',
             provenance=make_provenance('vm_rail_mismatch', 'heuristic'),
-            design_context=design_context,
             schema_era='v1.4',
-            source=ctx.source,))
+            source=ctx.source,
+            **config_extra))
 
     return findings
 
@@ -740,8 +846,8 @@ def validate_i2c_bus(ctx: AnalysisContext) -> list[dict]:
         ref = ic['reference']
         if not match_ic_keywords(ic, _I2C_IC_KEYWORDS):
             continue
-        sda_net = _get_pin_net(ctx, ref, _I2C_SDA_NAMES)
-        scl_net = _get_pin_net(ctx, ref, _I2C_SCL_NAMES)
+        sda_net = get_pin_net(ctx, ref, _I2C_SDA_NAMES)
+        scl_net = get_pin_net(ctx, ref, _I2C_SCL_NAMES)
         if not sda_net or not scl_net:
             continue
         bus_key = f'{sda_net}:{scl_net}'
@@ -765,7 +871,7 @@ def validate_i2c_bus(ctx: AnalysisContext) -> list[dict]:
                 standard_ref='I2C specification UM10204 section 3.1.1', impact='I2C bus non-functional',
                 provenance=make_provenance('pr_i2c_spec', 'deterministic'),
             
-                source=ctx.source,))
+                source=ctx.source, schema_era="v3.0",))
 
         scl_pullups = _find_pullups_on_net_with_bridged(ctx, scl, resistor_nets, net_to_resistors)
         if not scl_pullups:
@@ -780,7 +886,7 @@ def validate_i2c_bus(ctx: AnalysisContext) -> list[dict]:
                 standard_ref='I2C specification UM10204 section 3.1.1', impact='I2C bus non-functional',
                 provenance=make_provenance('pr_i2c_spec', 'deterministic'),
             
-                source=ctx.source,))
+                source=ctx.source, schema_era="v3.0",))
 
         for net_label, pullups in [('SDA', sda_pullups), ('SCL', scl_pullups)]:
             for pu in pullups:
@@ -798,7 +904,7 @@ def validate_i2c_bus(ctx: AnalysisContext) -> list[dict]:
                             standard_ref='I2C specification UM10204 Table 10',
                             provenance=make_provenance('pr_i2c_spec', 'deterministic'),
                         
-                            source=ctx.source,))
+                            source=ctx.source, schema_era="v3.0",))
 
         # Address conflict: flag multiple same-IC-type on same bus
         if len(refs) >= 2:
@@ -820,7 +926,7 @@ def validate_i2c_bus(ctx: AnalysisContext) -> list[dict]:
                         impact='Address conflict causes bus corruption',
                         provenance=make_provenance('pr_i2c_spec', 'deterministic'),
                     
-                        source=ctx.source,))
+                        source=ctx.source, schema_era="v3.0",))
 
     return findings
 
@@ -835,7 +941,7 @@ def validate_spi_bus(ctx: AnalysisContext) -> list[dict]:
         ref = ic['reference']
         if not match_ic_keywords(ic, _SPI_IC_KEYWORDS):
             continue
-        cs_net = _get_pin_net(ctx, ref, _SPI_CS_NAMES)
+        cs_net = get_pin_net(ctx, ref, _SPI_CS_NAMES)
         if cs_net and not ctx.is_power_net(cs_net) and not ctx.is_ground(cs_net):
             pullups = _find_pullups_on_net(ctx, cs_net, resistor_nets, net_to_resistors)
             if not pullups:
@@ -850,7 +956,7 @@ def validate_spi_bus(ctx: AnalysisContext) -> list[dict]:
                     impact='Device may be selected during reset causing bus contention',
                     provenance=make_provenance('pr_spi_spec', 'deterministic'),
                 
-                    source=ctx.source,))
+                    source=ctx.source, schema_era="v3.0",))
     return findings
 
 
@@ -864,8 +970,8 @@ def validate_can_bus(ctx: AnalysisContext) -> list[dict]:
     for ic in get_unique_ics(ctx):
         if match_ic_keywords(ic, _CAN_IC_KEYWORDS):
             ref = ic['reference']
-            canh = _get_pin_net(ctx, ref, _CAN_H_NAMES)
-            canl = _get_pin_net(ctx, ref, _CAN_L_NAMES)
+            canh = get_pin_net(ctx, ref, _CAN_H_NAMES)
+            canl = get_pin_net(ctx, ref, _CAN_L_NAMES)
             if canh or canl:
                 can_transceivers.append({'ref': ref, 'value': ic.get('value', ''), 'canh': canh, 'canl': canl})
 
@@ -896,7 +1002,7 @@ def validate_can_bus(ctx: AnalysisContext) -> list[dict]:
                 standard_ref='ISO 11898-2 section 7.3', impact='Bus reflections cause communication errors',
                 provenance=make_provenance('pr_can_spec', 'deterministic'),
             
-                source=ctx.source,))
+                source=ctx.source, schema_era="v3.0",))
     return findings
 
 
@@ -913,8 +1019,8 @@ def validate_usb_bus(ctx: AnalysisContext) -> list[dict]:
         if 'usb' not in val_lib:
             continue
         ref = comp['reference']
-        dp_net = _get_pin_net(ctx, ref, _USB_DP_NAMES)
-        dm_net = _get_pin_net(ctx, ref, _USB_DM_NAMES)
+        dp_net = get_pin_net(ctx, ref, _USB_DP_NAMES)
+        dm_net = get_pin_net(ctx, ref, _USB_DM_NAMES)
         if not dp_net and not dm_net:
             continue
 
@@ -931,7 +1037,7 @@ def validate_usb_bus(ctx: AnalysisContext) -> list[dict]:
                     mcu_mpn = c.get('mpn') or c.get('value', '')
                     mcu_feat = get_mcu_features(mcu_mpn, project_dir=ctx.project_dir) if mcu_mpn else None
                     if mcu_feat and not mcu_feat.get('quality', {}).get('trusted', True):
-                        mcu_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
+                        mcu_feat = None   # deterministic detectors ignore untrusted extractions
                     if mcu_feat and mcu_feat.get('has_native_usb_phy') is True and mcu_feat.get('usb_series_r_required') is False:
                         mcu_on_net = p['component']
                         break
@@ -949,7 +1055,7 @@ def validate_usb_bus(ctx: AnalysisContext) -> list[dict]:
                     standard_ref='USB 2.0 specification section 7.1.2',
                     provenance=make_provenance('pr_uart_spec', 'deterministic'),
                 
-                    source=ctx.source,))
+                    source=ctx.source, schema_era="v3.0",))
     return findings
 
 
@@ -958,7 +1064,9 @@ def validate_usb_bus(ctx: AnalysisContext) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 _ENABLE_PIN_NAMES = ('EN', 'ENABLE', 'CE', 'SHDN', 'ON', 'nSHDN', 'ON_OFF', 'RUN')
-_PG_PIN_NAMES = ('PG', 'PGOOD', 'POWER_GOOD', 'nPG', 'PGD', 'POK')
+# PS-001's power-good names; domain_detectors._PG_PIN_NAMES is a deliberately
+# different (wider) set for power-sequencing detection.
+_PS_PG_PIN_NAMES = ('PG', 'PGOOD', 'POWER_GOOD', 'nPG', 'PGD', 'POK')
 
 _SEQUENCING_SENSITIVE_KEYWORDS = (
     'stm32', 'esp32', 'nrf52', 'rp2040', 'samd', 'sam3', 'sam4',
@@ -989,7 +1097,7 @@ def validate_power_sequencing(
     enable_edges: list[tuple[str, str]] = []
     for reg in power_regulators:
         ref = reg.get('ref', reg.get('reference', ''))
-        en_net = _get_pin_net(ctx, ref, _ENABLE_PIN_NAMES)
+        en_net = get_pin_net(ctx, ref, _ENABLE_PIN_NAMES)
         if not en_net:
             continue
         if en_net in reg_by_output:
@@ -1024,7 +1132,7 @@ def validate_power_sequencing(
     for start in adj:
         cycle = _has_cycle(start)
         if cycle:
-            cycle_key = '->'.join(sorted(cycle))
+            cycle_key = '->'.join(sorted(set(cycle)))
             if cycle_key not in reported_cycles:
                 reported_cycles.add(cycle_key)
                 findings.append(make_finding(
@@ -1037,7 +1145,7 @@ def validate_power_sequencing(
                     impact='System fails to power on', report_section='Power Integrity',
                     provenance=make_provenance('ps_sequence_check', 'heuristic'),
                 
-                    source=ctx.source,))
+                    source=ctx.source, schema_era="v3.0",))
 
     for reg in power_regulators:
         ref = reg.get('ref', reg.get('reference', ''))
@@ -1058,10 +1166,10 @@ def validate_power_sequencing(
         mpn = comp.get('mpn') or comp.get('value', '')
         ds_feat = get_regulator_features(mpn, project_dir=ctx.project_dir) if mpn else None
         if ds_feat and not ds_feat.get('quality', {}).get('trusted', True):
-            ds_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
+            ds_feat = None   # deterministic detectors ignore untrusted extractions
         if ds_feat and ds_feat.get('has_pg') is False:
             continue
-        pg_net = _get_pin_net(ctx, ref, _PG_PIN_NAMES)
+        pg_net = get_pin_net(ctx, ref, _PS_PG_PIN_NAMES)
         if not pg_net:
             if ds_feat is None and mpn:
                 findings.append(make_finding(
@@ -1074,7 +1182,7 @@ def validate_power_sequencing(
                     report_section='Power Integrity', impact='Downstream devices may latch up or boot incorrectly',
                     provenance=make_provenance('ps_sequence_check', 'heuristic'),
                 
-                    source=ctx.source,))
+                    source=ctx.source, schema_era="v3.0",))
                 continue
             findings.append(make_finding(
                 detector='validate_power_sequencing', rule_id='PS-001', category='power_integrity',
@@ -1086,7 +1194,7 @@ def validate_power_sequencing(
                 report_section='Power Integrity', impact='Downstream devices may latch up or boot incorrectly',
                 provenance=make_provenance('ps_sequence_check', 'heuristic'),
             
-                source=ctx.source,))
+                source=ctx.source, schema_era="v3.0",))
 
     return findings
 
@@ -1095,21 +1203,8 @@ def validate_power_sequencing(
 # LR-001: LED resistor sizing validation
 # ---------------------------------------------------------------------------
 
-_LED_VF_BY_COLOR = {
-    'red': 1.8, 'orange': 2.0, 'amber': 2.0, 'yellow': 2.1,
-    'green': 2.2, 'blue': 3.2, 'white': 3.2, 'uv': 3.3, 'ir': 1.2,
-}
-_LED_VF_DEFAULT = 2.0
 _LED_IF_MAX_DEFAULT_MA = 20
 _LED_IF_RECOMMENDED_MA = 10
-
-
-def _guess_led_color(value: str, lib_id: str) -> str | None:
-    combined = (value + ' ' + lib_id).lower()
-    for color in _LED_VF_BY_COLOR:
-        if color in combined:
-            return color
-    return None
 
 
 def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
@@ -1123,17 +1218,16 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
     resistor_nets, net_to_resistors = index_two_pin_components(ctx, resistors)
 
     cache_dir = getattr(ctx, 'cache_dir', None)
-    design_context = getattr(ctx, 'design_context', None)
 
     for led in leds:
         ref = led['reference']
         mpn = led.get('mpn') or led.get('value') or ''
-        facts = get_facts(mpn, cache_dir=cache_dir) if mpn else None
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None)) if mpn else None
 
         # Probe diode.vf and diode.if_max from datasheet facts.
-        # DatasheetFacts.diode does not exist in v1.4 (DiodeBlock is v1.5 expansion),
-        # so _vf_specs and _if_specs will always be None today — heuristic always fires.
-        # The wiring activates automatically once DiodeBlock lands in v1.5 / 4d-active.
+        # DatasheetFacts has no diode block, so _vf_specs and _if_specs are
+        # always None today and the heuristic always fires. The datasheet
+        # path activates once a diode block exists.
         _vf_specs = getattr(getattr(facts, 'diode', None), 'vf', None)
         _if_specs = getattr(getattr(facts, 'diode', None), 'if_max', None)
 
@@ -1152,30 +1246,43 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
         n1, n2 = ctx.get_two_pin_nets(ref)
         if not n1 or not n2:
             continue
+        if ctx.rail_ignored(n1) or ctx.rail_ignored(n2):
+            continue
 
-        anode_net = cathode_net = None
-        if ctx.is_power_net(n1) and not ctx.is_ground(n1):
-            anode_net, cathode_net = n1, n2
-        elif ctx.is_power_net(n2) and not ctx.is_ground(n2):
-            anode_net, cathode_net = n2, n1
-        elif ctx.is_ground(n2):
-            anode_net, cathode_net = n1, n2
-        elif ctx.is_ground(n1):
-            anode_net, cathode_net = n2, n1
-        else:
-            anode_net, cathode_net = n1, n2
-
+        # The series resistor sits on the own node(s) at the ends of the LED's series
+        # string, not on a rail or ground (those carry pull-ups and every other part
+        # on the supply).
+        string, e1, e2 = led_string(ctx, ref)
+        if not e1 or not e2:
+            continue
+        own_nets = [n for n in (e1, e2) if not ctx.is_ground(n) and not is_led_rail(ctx, n)]
         series_resistors = []
-        for net in (n1, n2):
+        has_series_r = False
+        for net in own_nets:
+            led_other = e2 if net == e1 else e1
             for rref in net_to_resistors.get(net, []):
                 rn1, rn2 = resistor_nets.get(rref, (None, None))
                 if not rn1 or not rn2:
                     continue
                 other = rn2 if rn1 == net else rn1
-                if ctx.is_power_net(other) or ctx.is_ground(other):
-                    ohms = ctx.parsed_values.get(rref)
-                    if ohms is not None and ohms > 0:
-                        series_resistors.append({'ref': rref, 'ohms': ohms, 'rail': other})
+                if other in (e1, e2):
+                    continue  # a bleeder across the LED or its string
+                has_series_r = True
+                if ctx.is_power_net(other) and not ctx.is_ground(other):
+                    rail = other  # high side: rail -> R -> LED
+                elif (ctx.is_ground(other) and ctx.is_power_net(led_other)
+                      and not ctx.is_ground(led_other)):
+                    rail = led_other  # low side: rail -> LED -> R -> ground
+                else:
+                    continue  # through a transistor or IC: the current is not computable
+                ohms = ctx.parsed_values.get(rref)
+                if ohms is not None and ohms > 0:
+                    series_resistors.append({'ref': rref, 'ohms': ohms, 'rail': rail})
+        if not has_series_r:
+            has_series_r = any(ctx.comp_lookup.get(p['component'], {}).get('type') == 'resistor_network'
+                               for net in own_nets for p in ctx.nets.get(net, {}).get('pins', []))
+        if not series_resistors and has_series_r:
+            continue
 
         if not series_resistors:
             has_driver = False
@@ -1198,17 +1305,17 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
                     fix_params={'type': 'add_component', 'components': [{'type': 'resistor', 'value': '330', 'net_from': n1, 'net_to': n2}], 'basis': 'LED requires series current limiting'},
                     impact='LED overcurrent causes failure',
                     provenance=make_provenance('lr_resistor_check', 'deterministic'),
-                    design_context=design_context,
                     schema_era='v1.4',
                     source=ctx.source,))
             continue
 
-        color = _guess_led_color(led.get('value', ''), led.get('lib_id', ''))
         # Use datasheet Vf (typ) if available; fall back to color-heuristic or default.
         if ds_vf is not None and ds_vf.typ is not None:
             vf = ds_vf.typ
         else:
-            vf = _LED_VF_BY_COLOR.get(color, _LED_VF_DEFAULT) if color else _LED_VF_DEFAULT
+            vf = led_forward_voltage(led)
+        # A string drops every LED's forward voltage.
+        vf += sum(led_forward_voltage(ctx.comp_lookup[r]) for r in string if r != ref)
         # Use datasheet If_max (max, else typ) if available; fall back to constant.
         if ds_if is not None and ds_if.max is not None:
             if_max_ma = ds_if.max * 1000  # SpecValue in amps → mA
@@ -1218,10 +1325,12 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
             if_max_ma = _LED_IF_MAX_DEFAULT_MA
 
         for sr in series_resistors:
-            rail_v = parse_voltage_from_net_name(sr['rail'])
+            rail_v = ctx.rail_voltage_or(sr['rail'], parse_voltage_from_net_name)
+            rail_v = abs(rail_v) if rail_v is not None else None
             if rail_v is None or rail_v <= vf:
                 continue
             current_ma = (rail_v - vf) / sr['ohms'] * 1000
+            config_extra = ctx.rail_source_fields(sr['rail'])
 
             if current_ma > if_max_ma * 2:
                 findings.append(make_finding(
@@ -1234,12 +1343,12 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
                     fix_params={'type': 'resistor_value_change', 'component': sr['ref'], 'current_value': sr['ohms'], 'target_metric': 'led_current_mA', 'target_value': _LED_IF_RECOMMENDED_MA, 'actual_value': current_ma, 'formula': f'R = (Vrail - Vf) / Iled = ({rail_v} - {vf}) / {_LED_IF_RECOMMENDED_MA/1000}'},
                     impact='LED overcurrent reduces lifespan',
                     provenance=make_provenance('lr_resistor_check', 'deterministic'),
-                    design_context=design_context,
                     schema_era='v1.4',
-                    source=ctx.source,))
+                    source=ctx.source,
+                    **config_extra))
 
             power_w = (current_ma / 1000) ** 2 * sr['ohms']
-            if power_w > 0.25:
+            if power_w > 0.25 and ref == min(string):  # once per string, whichever LED starts it
                 findings.append(make_finding(
                     detector='validate_led_resistors', rule_id='LR-001', category='component_integrity',
                     summary=f'LED resistor {sr["ref"]}: power dissipation {power_w*1000:.0f}mW',
@@ -1248,9 +1357,9 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
                     components=[sr['ref']],
                     recommendation='Use a larger package resistor or increase resistance.',
                     provenance=make_provenance('lr_resistor_check', 'deterministic'),
-                    design_context=design_context,
                     schema_era='v1.4',
-                    source=ctx.source,))
+                    source=ctx.source,
+                    **config_extra))
 
     return findings
 
@@ -1274,7 +1383,6 @@ def validate_crystal_load_caps(
     Confidence/evidence_source tracks the target_load_source.
     """
     findings: list[dict] = []
-    design_context = getattr(ctx, 'design_context', None)
 
     for xc in crystal_circuits:
         status = xc.get('load_cap_status')
@@ -1324,7 +1432,6 @@ def validate_crystal_load_caps(
                 f'Typical C_stray is 3-5pF.'
             ),
             provenance=make_provenance('xtal_load_cap_check', xt_confidence),
-            design_context=design_context,
             schema_era='v1.4',
             source=ctx.source,
         ))
@@ -1336,19 +1443,15 @@ def validate_crystal_load_caps(
 # FS-001: Feedback network stability pre-check
 # ---------------------------------------------------------------------------
 
+# Parts with a compensation pin (COMP) that takes an external network.
 _REQUIRES_COMPENSATION_KEYWORDS = (
-    'lm2596', 'lm2576',
-    'tps5430', 'tps5450', 'tps54', 'tps40',
-    'lm259', 'lm317', 'lm337', 'lm350',
-    'lt308', 'lt108',
-    'mc34', 'mc33',
+    'tps54', 'tps40',
     'uc384', 'uc282',
 )
 
 # Internally-compensated regulators — no external compensation needed.
 # Checked BEFORE _REQUIRES_COMPENSATION_KEYWORDS so wins over broad matches
-# like 'tps54' (which catches TPS54302's D-CAP2 part by accident). rc.2 4.1
-# expansion (Manas review).
+# like 'tps54' (which catches TPS54302's D-CAP2 part by accident).
 _INTERNALLY_COMPENSATED_KEYWORDS = (
     'tps54302',                # TI D-CAP2 (already a more-specific 'tps54' match)
     'tps62',                   # TI TPS62xxx DCS-Control family
@@ -1356,7 +1459,17 @@ _INTERNALLY_COMPENSATED_KEYWORDS = (
     'ap6',                     # Diodes Inc. AP6xxx synchronous buck family
 )
 
-_FB_PIN_NAMES = ('FB', 'VFEEDBACK', 'VFB', 'ADJ', 'VADJ', 'COMP', 'VSEN')
+# Adjustable linear regulators that need a minimum load: their datasheet divider is
+# 120-240 ohm on OUT-ADJ (LM317 datasheet, R1 = 240 ohm), so a low divider impedance is intended.
+_MIN_LOAD_ADJ_KEYWORDS = ('lm317', 'lm337', 'lm338', 'lm350', 'lm1117', 'ams1117', 'ld1117',
+                          'lm1086', 'lt1083', 'lt1084', 'lt1085', 'lt1086', 'az1117', 'ap1117',
+                          'ncp1117', 'spx1117', 'tlv1117', 'lm1084', 'lm1085', 'lt1117',
+                          'lt317a', 'lm117', 'lm217', 'ld1085', 'ld1086')
+
+# Simple Switcher bucks whose datasheet R1 (FB to ground) range puts the divider below
+# _FB_IMPEDANCE_MIN: LM2596 240 ohm to 1.5 kohm, R1 about 1 kohm (SNVS124); LM2576 1 kohm
+# to 5 kohm (SNVS107).
+_LOW_DIVIDER_R1_RANGE = (('lm2596', 240, 1500), ('lm2576', 1000, 5000))
 
 _FB_IMPEDANCE_MIN = 1000
 _FB_IMPEDANCE_MAX = 1000000
@@ -1369,7 +1482,6 @@ def validate_feedback_stability(
     """FS-001: Check regulator feedback networks for stability concerns."""
     findings: list[dict] = []
     cache_dir = getattr(ctx, 'cache_dir', None)
-    design_context = getattr(ctx, 'design_context', None)
 
     for reg in power_regulators:
         ref = reg.get('ref', reg.get('reference', ''))
@@ -1384,17 +1496,22 @@ def validate_feedback_stability(
 
         parallel_impedance = (r_top * r_bottom) / (r_top + r_bottom) if (r_top + r_bottom) > 0 else 0
 
-        # 4b lookup wiring: probe regulator facts (currently informational only;
-        # validation logic stays heuristic). Future v1.5/4d-active will validate
-        # cout_min and esr_range against schematic when datasheet provides them.
+        # Lookup wiring: probe regulator facts (informational only; validation
+        # logic stays heuristic). cout_min and esr_range are not yet compared
+        # against the schematic.
         mpn = reg.get('mpn') or ''
         if not mpn:
             comp_entry = ctx.comp_lookup.get(ref)
             mpn = (comp_entry.get('mpn') if comp_entry else '') or ''
-        facts = get_facts(mpn, cache_dir=cache_dir) if mpn else None
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None)) if mpn else None
         # facts probe is informational — confidence stays heuristic regardless.
 
-        if parallel_impedance < _FB_IMPEDANCE_MIN:
+        comp = ctx.comp_lookup.get(ref)
+        min_load_adj = (fb_div.get('reference') == 'out_adj'
+                        or bool(comp and match_ic_keywords(comp, _MIN_LOAD_ADJ_KEYWORDS))
+                        or bool(comp and any(match_ic_keywords(comp, (kw,)) and lo <= r_bottom <= hi
+                                             for kw, lo, hi in _LOW_DIVIDER_R1_RANGE)))
+        if parallel_impedance < _FB_IMPEDANCE_MIN and not min_load_adj:
             findings.append(make_finding(
                 detector='validate_feedback_stability', rule_id='FS-001', category='power_integrity',
                 summary=f'Regulator {ref}: feedback divider impedance too low ({parallel_impedance:.0f}R)',
@@ -1403,7 +1520,6 @@ def validate_feedback_stability(
                 components=[ref, fb_div['r_top'].get('ref', ''), fb_div['r_bottom'].get('ref', '')],
                 recommendation=f'Increase divider resistors to achieve >{_FB_IMPEDANCE_MIN} ohm parallel impedance.',
                 provenance=make_provenance('fs_stability_check', 'heuristic'),
-                design_context=design_context,
                 schema_era='v1.4',
                 source=ctx.source,))
 
@@ -1416,18 +1532,19 @@ def validate_feedback_stability(
                 components=[ref, fb_div['r_top'].get('ref', ''), fb_div['r_bottom'].get('ref', '')],
                 recommendation=f'Decrease divider resistors to below {_FB_IMPEDANCE_MAX/1000:.0f}k parallel impedance.',
                 provenance=make_provenance('fs_stability_check', 'heuristic'),
-                design_context=design_context,
                 schema_era='v1.4',
                 source=ctx.source,))
 
-        comp = ctx.comp_lookup.get(ref)
+        # Only a compensation pin takes an external network; a capacitor on the feedback
+        # node of an internally compensated part is not a compensation network.
         if (comp and match_ic_keywords(comp, _REQUIRES_COMPENSATION_KEYWORDS)
                 and not match_ic_keywords(comp, _INTERNALLY_COMPENSATED_KEYWORDS)):
-            fb_net = _get_pin_net(ctx, ref, _FB_PIN_NAMES)
-            comp_net = _get_pin_net(ctx, ref, ('COMP', 'CC', 'RC'))
-            check_net = comp_net or fb_net
+            check_net = get_pin_net(ctx, ref, ('COMP', 'CC', 'RC'))
             if check_net:
-                caps_on_fb = [p['component'] for p in ctx.nets.get(check_net, {}).get('pins', [])
+                # The network may sit behind a bridged-by-default solder jumper.
+                comp_nets = [check_net] + _bridged_jumper_neighbor_nets(ctx, check_net)
+                caps_on_fb = [p['component'] for n in comp_nets
+                              for p in ctx.nets.get(n, {}).get('pins', [])
                               if ctx.comp_lookup.get(p['component'], {}).get('type') == 'capacitor']
                 if not caps_on_fb:
                     findings.append(make_finding(
@@ -1437,10 +1554,8 @@ def validate_feedback_stability(
                         severity='warning', confidence='heuristic', evidence_source='heuristic_rule',
                         components=[ref], nets=[check_net],
                         recommendation=f'Add a compensation network per {comp.get("value", "")} datasheet.',
-                        fix_params={'type': 'add_component', 'components': [{'type': 'capacitor', 'value': '10n', 'net_from': check_net, 'net_to': 'GND'}], 'basis': f'{comp.get("value", "")} requires external compensation'},
                         impact='Regulator may oscillate or have poor transient response',
                         provenance=make_provenance('fs_stability_check', 'heuristic'),
-                        design_context=design_context,
                         schema_era='v1.4',
                         source=ctx.source,))
 

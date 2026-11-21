@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/interaction-specification
 description: 交互规范方法论，基于 Laws of UX、Material Design Motion、HIG 等开源原则，定义加载/空状态、反馈层级、微交互、手势与无障碍交互
 version: 2.0.0
@@ -8,20 +7,19 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- ui-designer/design-system
-  triggers:
-- 需要定义交互行为时
-- 需要处理边界情况时
-- 需要确保无障碍访问时
-  metadata:
+  - ui-designer/design-system
+triggers:
+  - 需要定义交互行为时
+  - 需要处理边界情况时
+  - 需要确保无障碍访问时
+metadata:
   internal: true
   references:
-  - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
-  - "Material Design Motion: https://m3.material.io/styles/motion"
-  - "Apple HIG - Motion: https://developer.apple.com/design/human-interface-guidelines/motion"
-  - "WAI-ARIA Authoring Practices: https://www.w3.org/WAI/ARIA/apg/"
-  - "Refactoring UI - Feedback: https://www.refactoringui.com/"
-
+    - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
+    - "Material Design Motion: https://m3.material.io/styles/motion"
+    - "Apple HIG - Motion: https://developer.apple.com/design/human-interface-guidelines/motion"
+    - "WAI-ARIA Authoring Practices: https://www.w3.org/WAI/ARIA/apg/"
+    - "Refactoring UI - Feedback: https://www.refactoringui.com/"
 ---
 
 # 交互规范方法论
@@ -87,6 +85,7 @@ dependencies:
 | Error   | 红   | ✕    | 5s 或不自动消失 | 「网络错误，请重试」 |
 
 **Toast 原则**：
+
 - 不要放需要用户操作的内容（放 Modal）
 - 不要同时显示多个 Toast（队列或合并）
 - Error Toast 不自动消失，让用户有时间阅读
@@ -170,6 +169,7 @@ dependencies:
 ```
 
 **原则**：
+
 - 插图与场景相关，不要用通用的「空盒子」图标
 - 主标题不超过 12 字，副标题不超过 30 字
 - 必须有 CTA 按钮（除非是权限/错误，提供「返回」或「重试」）
@@ -348,6 +348,7 @@ dependencies:
 | `> 1024px` 桌面   | 居中弹窗、悬停效果、键盘快捷键、小触控目标 |
 
 **移动端特有**：
+
 - 弹窗从底部滑入（Bottom Sheet），不是居中
 - 操作按钮放在屏幕底部（拇指可达）
 - 表单输入时键盘弹出，确保输入框可见（scroll into view）

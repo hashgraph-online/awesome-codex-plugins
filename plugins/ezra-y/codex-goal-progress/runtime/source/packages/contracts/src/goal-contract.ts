@@ -11,23 +11,17 @@ const IsoTimestampSchema = z.iso.datetime({ offset: true });
 export const GoalContractIdSchema = z
   .string()
   .regex(/^gp_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/)
-  .describe(
-    "Contract ID returned by the plugin. Starts with gp_ followed by 8-128 ASCII letters, digits, underscores or hyphens; the first suffix character is alphanumeric. Copy unchanged; not a bare UUID.",
-  );
+  .describe("Plugin-returned gp_ Contract ID; copy unchanged (no UUID).");
 export const GoalObjectiveIdSchema = z
   .string()
   .max(64)
   .regex(/^C[1-9]\d*$/)
-  .describe(
-    "Objective ID: C followed by a positive integer, e.g. C1 or C2. Preserve existing IDs when updating or reordering.",
-  );
+  .describe("Objective ID (C1, C2); keep existing IDs unchanged.");
 export const GoalChecklistItemIdSchema = z
   .string()
   .max(128)
   .regex(/^C[1-9]\d*\.[1-9]\d*$/)
-  .describe(
-    "Child item ID: parent objective ID plus a dot and a positive integer, e.g. C1.1 or C1.2. Do not use letters after the dot.",
-  );
+  .describe("Child item ID (e.g. C1.1, C1.2).");
 export const GoalProgressTargetIdSchema = z.union([
   GoalObjectiveIdSchema,
   GoalChecklistItemIdSchema,
@@ -112,7 +106,7 @@ export const GoalObjectiveSchema = z
       .min(0)
       .max(GOAL_PROGRESS_BPS_TOTAL)
       .describe(
-        "Non-cancelled required objectives: 1-10000, total 10000. Optional: 0. Cancelled required objectives may use 0 or retain a previous weight; they do not count toward progress.",
+        "Active required objectives: 1-10000 (sum 10000). Optional: 0. Cancelled required: 0 or prior.",
       ),
     contributionReason: NonEmptyTextSchema.max(500),
     status: GoalProgressItemStatusSchema,

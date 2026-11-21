@@ -2,28 +2,7 @@
 
 This directory contains the core analysis scripts, shared utilities, the S-expression parser, and the rich-finding/trust-summary infrastructure. Each analyzer outputs a structured JSON envelope for the AI agent to consume during design reviews.
 
-| Script | Input | Size | Purpose |
-|--------|-------|------|---------|
-| `analyze_schematic.py` | `.kicad_sch` / `.sch` | ~9,300 LOC | Component extraction, net building, subcircuit detection, signal/power/BOM/DFM analysis, audit detectors |
-| `analyze_pcb.py` | `.kicad_pcb` | ~6,600 LOC | Footprint inventory, routing, signal integrity, power, thermal, placement, manufacturing, DFM, union-find connectivity graph, assembly/DFM checks |
-| `analyze_gerbers.py` | Gerber dir (`.gbr`/`.drl`) | ~1,400 LOC | Layer completeness, drill holes, apertures, coordinate alignment, X2 attributes |
-| `analyze_thermal.py` | schematic + PCB JSON | ~910 LOC | Junction-temperature estimator with package θJA, thermal via correction, proximity warnings |
-| `cross_analysis.py` | schematic + PCB JSON | ~430 LOC | Cross-domain checks: CC-001 connector current, EG-001 ESD gaps, DA-001 decoupling adequacy, XV-001..003, PCB intelligence (NR/RP/TW/PS/VS/DP-005) |
-| `lifecycle_audit.py` | schematic JSON + distributor API | ~855 LOC | Component obsolescence, temperature audit (LC-001..006, LT-001) |
-| `sexp_parser.py` | — | ~220 LOC | S-expression parser shared by schematic and PCB analyzers |
-| `kicad_utils.py` | — | ~860 LOC | Shared utilities: component classification, value parsing, net detection, switching-frequency table, Vref lookup |
-| `kicad_types.py` | — | ~110 LOC | Typed dataclass (`AnalysisContext`) shared across detectors |
-| `signal_detectors.py` | — | ~4,400 LOC | Core signal path detectors (regulators, filters, opamps, dividers, crystals, transistors, bridges, protection), plus v1.3 audit detectors (RS-001, LB-001, PP-001) |
-| `domain_detectors.py` | — | ~6,100 LOC | Domain-specific detectors (RF, Ethernet, HDMI, memory, BMS, battery chargers, motor drivers, wireless modules, etc.) |
-| `validation_detectors.py` | — | ~1,000 LOC | Validation detectors (PU-001, VM-001, PR-001..004, PS-001, LR-001, FS-001) |
-| `finding_schema.py` | — | ~330 LOC | `make_finding()` factory, `Det.*` constants, `get_findings()` / `group_findings()` helpers, `trust_summary` aggregation, `sort_findings()` determinism |
-| `output_filters.py` | — | ~460 LOC | Stage/audience filtering (`--stage schematic/layout/pre_fab/bring_up`, `--audience designer/reviewer/manager`) |
-| `pcb_connectivity.py` | — | ~300 LOC | Union-find over pads/tracks/vias/zone fills for per-net island detection (used by `analyze_pcb.py --full`) |
-| `project_config.py` | — | ~870 LOC | `.kicad-happy.json` loader, suppression matching, design intent resolution |
-| `analysis_cache.py` | — | ~510 LOC | Analysis-folder convention, manifest-based run tracking, SHA-256 staleness detection |
-| `diff_analysis.py` | two analyzer JSONs | ~950 LOC | Diff-aware design comparison (component/signal/EMC/SPICE) |
-| `what_if.py` | analyzer JSON + patch spec | ~1,500 LOC | Parameter sweep + automated fix suggestions (inverse solvers with E-series snapping) |
-| `summarize_findings.py` | analysis/manifest.json | ~200 LOC | Cross-run severity × count rollup |
+The module map (file, size, purpose) is the "Key files" table in the repository `CONTRIBUTING.md`; module ownership and import direction are in `ARCHITECTURE.md`.
 
 Detailed methodology documentation for each analyzer:
 - `methodology_schematic.md` — parsing pipeline, net building, component classification, detector inventory
@@ -32,7 +11,7 @@ Detailed methodology documentation for each analyzer:
 
 ---
 
-## sexp_parser.py
+## kicad_core/sexp.py
 
 Parses KiCad's Lisp-like S-expression format into nested Python lists. Used by both `analyze_schematic.py` and `analyze_pcb.py`.
 
@@ -47,7 +26,6 @@ Parses KiCad's Lisp-like S-expression format into nested Python lists. Used by b
 | `get_value(node, keyword)` | Get value from `(keyword value)` pair |
 | `get_property(node, prop_name)` | Get value from `(property "name" "value")` |
 | `get_at(node)` | Get `(x, y, angle)` from `(at ...)` node |
-| `get_xy(node)` | Get `(x, y)` from `(xy ...)` node |
 
 **Design note**: The parser is intentionally simple — no schema validation, no type coercion beyond strings. All values come back as strings; callers convert to `float`/`int` as needed. This makes it robust against KiCad version differences.
 
@@ -57,7 +35,7 @@ Parses KiCad's Lisp-like S-expression format into nested Python lists. Used by b
 
 ## analyze_pcb.py
 
-Parses `.kicad_pcb` files (KiCad 5 `module` and KiCad 6+ `footprint` formats).
+Parses `.kicad_pcb` files (KiCad 5 `module` and KiCad 6+ `footprint` formats). The CLI is a thin wrapper; the analyzer lives in the `pcb/` package.
 
 ### Pipeline
 
@@ -82,7 +60,7 @@ extract_silkscreen()        -- Board-level text on SilkS/Fab layers
     |
     v
  ANALYSIS (derived facts)
-analyze_connectivity()      -- Unrouted nets (zone-aware)
+analyze_connectivity()      -- Unrouted nets (any copper; proven from the copper graph with `--full`)
 analyze_net_lengths()       -- Per-net trace length (segments + arcs)
 analyze_power_nets()        -- Power net routing summary
 analyze_decoupling_placement() -- Cap-to-IC distance
@@ -110,7 +88,7 @@ JSON output (~50-300KB depending on board complexity)
 - **Free vias identified**: Vias with `(free yes)` are flagged — typically stitching or thermal vias not anchored to tracks.
 - **Pin function/type carried from schematic**: Pad-level `pinfunction` and `pintype` enable power-pin vs signal-pin differentiation without needing the schematic.
 - **KiCad 5 compatibility**: Handles `(module ...)`, `(fp_text reference ...)`, `(net_class ...)`, and `(dimension ...)` in addition to KiCad 6+ equivalents.
-- **Unrouted detection**: Zone-aware — nets routed only through copper pours are not flagged as unrouted.
+- **Unrouted detection**: without `--full` a net with any copper (track, via, zone, copper graphic) counts as routed; with `--full` a net is routed only when all its pads sit on one copper island.
 - **Facts over judgement**: Analysis functions provide raw facts (track widths, via counts, distances) rather than pass/fail verdicts, enabling flexible higher-level analysis.
 
 ### Usage
@@ -141,8 +119,8 @@ scan_zip_archives()     -- Zip contents inventory + timestamp comparison vs loos
     |
     v
 identify_layer_type()   -- Map filename/X2 attributes to KiCad layer names (F.Cu, B.Mask, etc.)
-check_completeness()    -- Verify required layers present (F.Cu, B.Cu, F.Mask, B.Mask, Edge.Cuts)
-check_alignment()       -- Compare coordinate extents across copper/edge layers
+check_completeness()    -- Verify required layers present (F.Cu, B.Cu, F.Mask, B.Mask, Edge.Cuts), plus the inner copper layers the stackup implies
+check_alignment()       -- Copper layers that extend past the board outline (GR-002)
     |
     v
 JSON output
@@ -158,7 +136,7 @@ Uses two strategies, in order:
 
 ### Alignment Check
 
-Compares bounding box extents across copper and edge layers. Only checks F.Cu, B.Cu, and Edge.Cuts — paste, silk, mask, and drill layers naturally have smaller extents. A >2mm difference flags an alignment issue.
+Checks that every copper layer (F.Cu, B.Cu, inner copper) lies inside the Edge.Cuts extent: a layer that extends past it by more than max(2 mm, 5 % of that side) is reported (GR-002). Layers need not have the same size; drill extents are recorded, not compared. See `methodology_gerbers.md` §6.3.
 
 ### Drill File Parsing
 
@@ -179,7 +157,7 @@ python3 analyze_gerbers.py ./gerbers/ --compact          # Minified JSON
 
 ## analyze_schematic.py
 
-The largest and most complex script. The rest of this document focuses on its architecture and pitfalls.
+The CLI entry point. The analysis itself lives in the `schematic/` package; `analyze_schematic.py` parses arguments, runs the pipeline and writes the output. The rest of this document focuses on its architecture and pitfalls.
 
 ### Pipeline
 
@@ -187,45 +165,31 @@ The largest and most complex script. The rest of this document focuses on its ar
 .kicad_sch file(s)
     |
     v
-parse_single_sheet()          -- S-expression parsing, component/wire/label extraction
+schematic/pipeline.py          -- named phases: read sheets -> build AnalysisContext -> run analyses -> assemble
+    |  detect_topologies / reconcile_detections / run_domain_detectors / assemble_signal_results
+    |  build_net_map (schematic/connectivity.py): union-find nets, sheet-aware coordinates
     |
     v
-analyze_schematic()           -- Multi-sheet orchestration, instance remapping
-    |  Builds: all_components, all_wires, all_labels, all_junctions
-    |
+schematic/presentation.py      -- result dict in the historical key order; detections -> flat findings[]
+    |                             with rich envelopes (detector, rule_id, severity, confidence, recommendation)
     v
-build_net_map()               -- Union-find net building (sheet-aware coordinates)
-    |  Produces: nets dict {name -> {pins, labels, ...}}
-    |
-    v
-analyze_signal_paths()        -- Subcircuit detection (VD, RC, regulators, bridges, etc.)
-analyze_design_rules()        -- Bus detection, diff pairs, power domains, ERC
-analyze_ic_pinouts()          -- Per-IC pin connectivity summary
-compute_statistics()          -- Counts, BOM dedup
-    |
-    v
-Output harmonization           -- All detections → flat findings[] with rich envelopes
-                                  (detector, rule_id, severity, confidence, recommendation)
-                                  rail_voltages/net_classifications promoted to top level
-    |
-    v
-JSON output                    -- {analyzer_type, summary, findings[], components, nets, ...}
+output_io.write_primary_run / write_derived_output (thermal/cross/gerber)  -- JSON to stdout, -o, or the --analysis-dir run folder
 ```
 
 ### Key Data Structures
 
 - **`nets`**: `{net_name: {"pins": [{component, pin_number, pin_name, pin_type, x, y}], ...}}`
-- **`pin_net`**: `{(reference, pin_number): (net_name, pin_type)}` — reverse lookup from `build_pin_to_net_map()`
+- **`pin_net`**: `{(reference, pin_number): (net_name, net_info)}` — reverse lookup from `build_pin_to_net_map()`
 - **`comp_lookup`**: `{reference: component_dict}` — built locally in analysis functions
 - **`parsed_values`**: `{reference: float}` — numeric values for passive components
 
 ## File Format Support
 
 ### Modern `.kicad_sch` (KiCad 6+)
-Full support. S-expression format parsed by `sexp_parser.py`.
+Full support. S-expression format parsed by `kicad_core/sexp.py`.
 
 ### Legacy `.sch` (KiCad 4/5)
-Line-based format. Components, wires, labels, power symbols parsed. `.lib` symbol libraries are parsed for pin definitions (`parse_legacy_lib()`), enabling pin-to-net mapping via geometric snapping. Library resolution searches cache-lib, sym-lib-table, LIBS: directives, and built-in defaults. Pin geometry uses a snapping radius (up to 12mm) when parsed symbols are incomplete — results are heuristic and carry reduced confidence compared to KiCad 6+ native pin data.
+Line-based format. Components, wires, labels, power symbols parsed. `.lib` symbol libraries are parsed for pin definitions (`schematic.legacy_reader._parse_legacy_lib()`), enabling pin-to-net mapping by exact pin coordinates (the `$Comp` orientation matrix applied to the `.lib` pin offset, as KiCad does). Library resolution reads the cache-lib and, alongside it, the `Legacy` entries of the project `sym-lib-table` (registered as `nick:name`, so a table library's symbol wins over the cache's copy); without a cache it falls back to the table (`nick:name` through the row named `nick`, a bare name through the first row defining it), then `LIBS:` directives, then built-in defaults. Placed symbols left on the built-in defaults or without pins get one `diagnostics` record per library; a pre-table project whose cache copy of a placed symbol differs from its `.pro` library's copy keeps the cache copy (KiCad 10's rescue default) and gets one `diagnostics` record. Pins of symbols taken from the built-in defaults (`pin_source_coverage.builtin_fallback`) are snapped to the nearest free wire end within 12mm when they miss every wire end — those results are heuristic; pins from parsed libraries never move. Hierarchy follows the same per-instance scheme as KiCad 6+: each `$Sheet` instance is parsed separately, its sheet pins (`F2`+) and the child's hierarchical labels are named `/<sheet timestamp>/NAME`, and a component in a repeated sheet takes its reference and unit from the `AR Path="/<sheet ts>/<symbol ts>"` record of that instance (else its `L`/`F0` reference).
 
 ### Eagle `.sch`
 Not supported (binary and XML formats). Returns 0 components gracefully.
@@ -272,7 +236,9 @@ The sheet's UUID comes from the parent's `(sheet ... (uuid "xxx"))` block.
 - `extract_lib_symbols()` stores pins per unit in `unit_pins` dict
 - `extract_components()` reads `(unit N)` from each placed symbol
 - `compute_pin_positions()` filters pins by unit number
-- `generate_bom()` and `compute_statistics()` deduplicate by reference (count U1 once, not per unit)
+- De Morgan symbols: `unit_pins`/`pins` hold body styles 0 and 1, `alt_unit_pins`/`alt_pins` body styles 0 and 2; a symbol placed with `(convert 2)` / `(body_style 2)` (legacy `U unit 2 ts`) takes the alternate set; a KiCad 10 body style 3 or higher takes its own pins plus body 0's
+- A placed unit takes its own pins plus the common unit-0 pins; a unit with no pins of its own has only the unit-0 pins
+- `generate_bom()` and `compute_statistics()` deduplicate by reference (count U1 once, not per unit); each field of a multi-unit part comes from the lowest unit that sets it (`package_fields()`)
 
 **Pitfall**: Multi-unit components appear multiple times in `all_components`. Always use reference-based dedup when counting unique components.
 
@@ -281,19 +247,25 @@ The sheet's UUID comes from the parent's `(sheet ... (uuid "xxx"))` block.
 - **Local labels** (`label`): Connect only within their sheet (`_sheet` index must match)
 - **Global labels** (`global_label`): Connect across all sheets
 - **Hierarchical labels** (`hierarchical_label`): Connect via parent sheet's hierarchical pin
-- **Power symbols**: Behave like global labels (connect across all sheets by name)
+- **Power symbols**: Global ones behave like global labels (connect across all sheets by name); a local one (`(power local)`) joins only within its own sheet
 
-In `build_net_map()`, local labels use `(name, sheet)` as their union key, while global/hierarchical labels and power symbols use `(name,)` (no sheet).
+In `build_net_map()`, local labels and local power symbols use `(name, sheet)` as their union key, while global/hierarchical labels and global power symbols use `(name,)` (no sheet) and also `(name, sheet)`, so a same-name local label on their own sheet joins them (sheet pins excepted).
 
 ### Net Name Assignment
 
-Nets are assigned names with this priority:
-1. Power symbol name (e.g., "GND", "+3V3")
-2. Global/hierarchical label name
+Nets are assigned names with KiCad's driver priority:
+1. Global label name
+2. Power symbol name (e.g., "GND", "+3V3"; global before local)
 3. Local label name
-4. `__unnamed_N` for nets with no label
+4. Hierarchical label name
+5. Sheet pin name
+6. `__unnamed_N` for nets with no label
 
-**Duplicate name handling**: When multiple disconnected wire groups share the same net name (e.g., two separate "GND" connections via local labels), the second group's pins are merged into the first's net entry rather than overwriting it. This was a previous bug (commit f8ae22b).
+Between equal-priority names, the shallower sheet wins, then the lower full net name, sheet path included (sheet names escaped as KiCad escapes them, `/` as `{slash}`). In KiCad 5 `.sch` files, sibling sheets of equal depth still resolve by sheet order.
+
+A label's net name is its shown text with `/` escaped as `{slash}` (KiCad's net-name escaping), so a label shown `A/B` names the net `A{slash}B`; the net's `display_name` carries the shown form. Board net names are read as the file writes them.
+
+**Duplicate name handling**: When multiple disconnected wire groups share the same net name (e.g., two separate "GND" connections via local labels), the second group's pins are merged into the first's net entry rather than overwriting it.
 
 ## Value Parser
 
@@ -305,8 +277,16 @@ Nets are assigned names with this priority:
 | `"4K7"` | 4700.0 | Embedded multiplier |
 | `"0R1"` | 0.1 | R as decimal point |
 | `"100n"` | 1e-7 | |
-| `"300µ"` | 0.0003 | Unicode micro |
-| `"0.3mOhm"` | 0.0003 | Ohm suffix stripped |
+| `"300µ"` | 0.0003 | Unicode micro (µ or Greek μ) |
+| `"0.3mOhm"` | 0.0003 | Ohm suffix stripped (also Ω / Ω signs) |
+| `"1Meg"` | 1e6 | SPICE mega |
+| `"100"` (capacitor) | 1e-10 | A plain number on a capacitor keeps the legacy reading: >= 1 is pF, < 1 is µF (`"0.1"` gives 1e-7) |
+| `"1F"`, `"1 F"`, `"10e-12"` (capacitor) | 1.0, 1.0, 1e-11 | An uppercase `F` or a bare exponent is SI farads; a lowercase `f` keeps the legacy reading (`"1f"` gives 1e-12) |
+| `"10 μF"` | 1e-5 | Space before the unit is allowed |
+| `"1fF"`, `"1fH"` | 1e-15 | `f` is femto when a unit follows |
+| `"4,7k"` | 4700.0 | Decimal comma, separators inferred as KiCad does |
+| `"1,000"` | None | Ambiguous separator; `ambiguous_separator()` is True |
+| `"0.1uF, 50V"` | 1e-7 | Leading value of a comma-separated list |
 | `"220k/R0402"` | 220000.0 | Splits on "/" first |
 | `"4.7k 1%"` | 4700.0 | Tolerance stripped |
 | `"DNP"` | None | Not parseable |
@@ -353,7 +333,7 @@ Many detectors use keyword lists to identify component types from value/lib_id s
 
 **X prefix ambiguity**: X can mean crystal (IEC standard) or connector (some designers). The code checks value/lib keywords. Active oscillators (MEMS, TCXO) with "oscillator" in lib but not "crystal"/"xtal" get typed as `"oscillator"` (an IC-like active device), not `"crystal"` (passive).
 
-**Power symbols**: Detected by `(power)` flag in lib_symbol definition, or `#PWR`/`#FLG` reference prefix, or `lib_prefix == "power"` / `lib_prefix.endswith("_power")`. The substring check was previously too broad.
+**Power symbols**: Detected by a `(power)`, `(power global)` or `(power local)` flag in the lib_symbol definition, or `#PWR`/`#FLG` reference prefix, or `lib_prefix == "power"` / `lib_prefix.endswith("_power")`. The substring check was previously too broad.
 
 ## Adding New Detection Features
 
@@ -363,7 +343,7 @@ Many detectors use keyword lists to identify component types from value/lib_id s
 
 3. **Filter high-fanout nets**. Power rails (+3V3, GND) connect to many components. Most detection patterns should skip or special-case nets with >4-6 connections, or nets identified as power/ground by `is_power_net()`/`is_ground()`.
 
-4. **Test against the harness**. See `kicad-happy-testharness` repo — `run_tests.py --smoke` runs the 565-test PR-gate subset in ~30s with no corpus dependency, `run_tests.py --quick-sanity` runs 5-repo assertions, and `run/run_schematic.py --jobs 16` runs the full 5,829-repo corpus regression (~30 min).
+4. **Test against the harness**. See `kicad-happy-testharness` repo — `run_tests.py --smoke` runs the 565-test PR-gate subset in ~30s with no corpus dependency, `run_tests.py --quick-sanity` runs 5-repo assertions, and `run/run_schematic.py --jobs 16` runs the full 5,857-repo corpus regression (~30 min).
 
 5. **Count detections across the corpus** to calibrate sensitivity. Too many detections (>1000 for a specific pattern across the 36,000+ schematic files) suggests false positives. Too few (<5) might mean overly narrow keywords. Use `run/run_schematic.py --cross-section smoke` or `--cross-section quick_200` for faster calibration passes.
 
@@ -373,9 +353,9 @@ Many detectors use keyword lists to identify component types from value/lib_id s
 
 Location: `kicad-happy-testharness` sibling repo.
 
-- 5,829 open-source KiCad projects spanning KiCad 5 through 10
+- 5,857 open-source KiCad projects spanning KiCad 5 through 10
 - ~36,500 schematic files, ~18,700 PCB files, ~5,500 gerber dirs
-- 2M+ regression assertions at 99.98%+ pass, 565-test smoke subset, 5-repo quick-sanity
+- 2.7M+ regression assertions (current pass rate in VALIDATION.md), 565-test smoke subset, 5-repo quick-sanity
 - Schema drift tests across all 8 analyzer types
 - Equation audit (107 tagged equations), constants audit (105+ switching freqs), bugfix guards
 
@@ -383,7 +363,7 @@ The harness is the authoritative validation layer. For the legacy `batchtest` di
 
 ## Known Remaining Limitations
 
-- **Legacy pin mapping**: `.sch` pin-to-net mapping uses heuristic geometry snapping (up to 12mm radius) when `.lib` symbols are incomplete or resolved from fallback sources
-- **Vout estimation**: Feedback divider Vout uses hardcoded Vref guesses (0.6, 0.8, 1.0, 1.22, 1.25V) without a component database
+- **Legacy pin mapping**: `.sch` pins of symbols resolved from the built-in fallback table use heuristic snapping to a free wire end (up to 12mm radius); pins from parsed `.lib` files are exact
+- **Vout estimation**: a regulator missing from the Vref table and from the datasheet extractions gets the common reference (0.6, 0.8, 1.0, 1.22, 1.25 V) that puts Vout within 10 % of its output rail's name, else the first giving 0.5–60 V (`vref_source: heuristic`)
 - **Regulator output_rail**: Switching regulators sometimes show null output_rail when the power net is on the inductor output side
 - **Eagle files**: Not parseable — output 0 components

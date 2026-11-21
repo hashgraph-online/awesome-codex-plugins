@@ -133,7 +133,7 @@ For manufacturer, datasheet URL and price breaks, query LCSC's own endpoint by `
 GET https://wmsc.lcsc.com/ftps/wm/product/detail?productCode=C318884
 ```
 
-Useful `result` fields: `productModel` (MPN), `brandNameEn` (manufacturer), `pdfUrl` (direct datasheet PDF), `encapStandard` (package), `productIntroEn` / `productDescEn` (description), `stockNumber` (LCSC stock), `productPriceList[]` (`ladder` = min qty, `usdPrice`). `fetch_datasheet_lcsc.search_lcsc_direct()` wraps this and normalizes the result to the jlcsearch dict shape (`extra.number`, `extra.mpn`, `extra.manufacturer.name`, `extra.datasheet.pdf`, ladder list in `price`); `search_lcsc.py` uses it for `Cxxxxx` enrichment and as the fallback when jlcsearch has no row.
+Useful `result` fields: `productModel` (MPN), `brandNameEn` (manufacturer), `pdfUrl` (direct datasheet PDF), `encapStandard` (package), `productIntroEn` / `productDescEn` (description), `stockNumber` (LCSC stock), `productPriceList[]` (`ladder` = min qty, `usdPrice`). `provider_lcsc.search_lcsc_direct()` wraps this and normalizes the result to the jlcsearch dict shape (`extra.number`, `extra.mpn`, `extra.manufacturer.name`, `extra.datasheet.pdf`, ladder list in `price`); `search_lcsc.py` uses it for `Cxxxxx` enrichment and as the fallback when jlcsearch has no row.
 
 ### Rate Limits
 
@@ -154,7 +154,7 @@ python3 <skill-path>/scripts/sync_datasheets_lcsc.py <file.kicad_sch>
 # Preview what would be downloaded
 python3 <skill-path>/scripts/sync_datasheets_lcsc.py <file.kicad_sch> --dry-run
 
-# Retry previously failed downloads
+# Retry parts a previous run failed at LCSC
 python3 <skill-path>/scripts/sync_datasheets_lcsc.py <file.kicad_sch> --force
 
 # Custom output directory
@@ -167,7 +167,7 @@ python3 <skill-path>/scripts/sync_datasheets_lcsc.py <file.kicad_sch> --parallel
 python3 <skill-path>/scripts/sync_datasheets_lcsc.py --mpn-list mpns.txt --output ./datasheets
 ```
 
-**MPN-list batch mode** (KH-312) — when you have a list of MPNs but no
+**MPN-list batch mode** — when you have a list of MPNs but no
 KiCad project to point at. One MPN per line; blank lines and `#`
 comments (full-line and inline) are skipped; generic values are filtered
 via `is_real_mpn()` and de-duplicated. Output defaults to `./datasheets/`
@@ -175,7 +175,7 @@ in the current working directory when `--output` is omitted.
 
 The script:
 - **Runs the kicad schematic analyzer** to extract components, MPNs, and LCSC codes
-- **Accepts any identifier** — MPN, LCSC code, or other distributor PNs from KiCad symbol properties
+- **Searches by LCSC code or MPN** (an MPN from the Value field matches its family); a part with only another distributor's PN is skipped
 - **Prefers LCSC code** for search (exact match) — falls back to MPN keyword search
 - **Falls back to wmsc.lcsc.com API** when jlcsearch has no results, or a hit has no datasheet URL, for an LCSC code (Cxxxxx)
 - **Downloads from LCSC CDN** — direct PDF URLs, no bot protection
@@ -203,13 +203,14 @@ python3 <skill-path>/scripts/fetch_datasheet_lcsc.py --search "C14663" --json
 ```
 
 The script:
-- **OS-agnostic** — uses `requests` → `urllib` → `playwright` fallback chain (no wget/curl)
+- **OS-agnostic** — uses `requests` → `urllib` → `playwright` fallback chain (no wget/curl; `requests` 2.32.2 or newer; `playwright` only with `datasheets.allow_private_hosts`)
+- **Refuses another part** — a `--search` hit that is a different part is not downloaded (exit 2); a family match is accepted
 - **Validates PDF headers** — rejects HTML error pages
 - **Falls back to alternative manufacturer sources** when LCSC URL fails
 - **Exit codes**: 0 = success, 1 = download failed, 2 = search/API error
 - **Dependencies**:
   - `pip install requests` (recommended; urllib fallback works fine for LCSC)
-  - `pip install playwright && playwright install chromium` (optional; rarely needed for LCSC)
+  - `pip install playwright && playwright install chromium` (optional; rarely needed for LCSC; used only with `datasheets.allow_private_hosts` set in `~/.kicad-happy.json`)
 
 ## LCSC Official API (Requires Approval)
 

@@ -32,6 +32,7 @@ license: MIT
 | `docs` | `query`, up to 500 characters | Matching public documentation | Free |
 | `search` | `code`, an async arrow function over `spec.paths` | The paths, methods & contract fields it returns | Free, no network call |
 | `execute` | `code`, an async arrow function that calls `xquik.request({ path, method, query, body })` | `{ success, status, result, errors, messages }` per request | The called route's price |
+| `whoami` | None | The Xquik account this connection signs in as. Its ID stays the same across token refresh & reconnection | Free |
 
 - `path` works with or without `/api/v1`.
 - `execute` adds authentication & an `Idempotency-Key` to writes. It retries

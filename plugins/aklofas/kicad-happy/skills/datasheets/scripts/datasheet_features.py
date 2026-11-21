@@ -6,7 +6,7 @@ IC-aware detectors in kicad, emc, spice, and thermal skills.
 Contract:
   - Returns a dict of feature fields on cache hit, with a `quality` flag
     describing score/staleness/version status. Quality gate is applied by each
-    caller (v2.0 spec §3.A.1), not by _load.
+    caller, not by _load.
   - Returns None only on cache miss or wrong part category (e.g., not a regulator).
   - Individual fields within the dict may be None (datasheet didn't specify).
   - Consumers MUST distinguish None (unknown) from False (explicitly no).
@@ -21,7 +21,7 @@ from typing import Optional
 
 from datasheet_extract_cache import (
     resolve_extract_dir,
-    get_cached_extraction,
+    find_extraction,
     EXTRACTION_VERSION,
     MIN_SCORE,
 )
@@ -34,6 +34,7 @@ if _TYPES_PARENT not in sys.path:
     sys.path.insert(0, _TYPES_PARENT)
 
 from datasheet_types.extraction import DatasheetFacts  # noqa: E402
+from datasheet_types.trust_gating import FACTS_MIN_SCORE, finite_score  # noqa: E402
 
 
 _REGULATOR_TOPOLOGIES = ('boost', 'buck', 'ldo')
@@ -61,44 +62,69 @@ _PIN_NAME_TO_FUNCTION: dict[str, str] = {
 
 
 def _load(mpn, extract_dir=None, analysis_json=None, project_dir=None):
-    """Resolve extract dir and load the cached extraction for mpn.
+    """Resolve extract dir and load the cached v1.3 extraction for mpn (the
+    v1.4 file is read first, through cache_reader.lookup, by each helper).
 
     Returns the extraction dict on any cache hit (quality is described by
-    `_quality_v13`, never gated here — v2.0 spec §3.A.1). Returns None only
-    on cache miss.
+    `_quality_v13`, never gated here). Returns None on a
+    cache miss or when no project names a cache.
     """
-    import json as _json
     if extract_dir is None:
         extract_dir = resolve_extract_dir(
             analysis_json=analysis_json, project_dir=project_dir
         )
-    ext = get_cached_extraction(extract_dir, mpn)
-    if ext:
-        return ext
-    # Direct-file fallback: allows test fixtures (and simple single-file drops)
-    # that write {mpn}.json directly without a manifest index.
-    direct = Path(extract_dir) / f"{mpn}.json"
-    if direct.exists():
-        try:
-            with direct.open(encoding="utf-8") as f:
-                return _json.load(f)
-        except (OSError, ValueError):
-            pass
-    return None
+        if extract_dir is None:
+            return None
+    ext = find_extraction(extract_dir, mpn, v14_first=False)[0]
+    return ext if ext is not None and _legacy_shape_ok(ext) else None
+
+
+def _is_number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _legacy_shape_ok(ext):
+    """True when the nested blocks the helpers read have their expected JSON types."""
+    meta = ext.get('extraction_metadata')
+    if meta is not None:
+        if not isinstance(meta, dict):
+            return False
+        ver = meta.get('extraction_version')
+        if ver is not None and not _is_number(ver):
+            return False
+    # Falsy wrong-typed blocks were always read as empty; only truthy ones are rejected.
+    for key in ('features', 'peripherals'):
+        if ext.get(key) and not isinstance(ext[key], dict):
+            return False
+    periph = ext.get('peripherals')
+    if isinstance(periph, dict) and periph.get('usb') \
+            and not isinstance(periph['usb'], dict):
+        return False
+    pins = ext.get('pins')
+    if pins:
+        if not isinstance(pins, list):
+            return False
+        for pin in pins:
+            if not isinstance(pin, dict):
+                return False
+            for k in ('threshold_high_v', 'threshold_low_v'):
+                if pin.get(k) is not None and not _is_number(pin[k]):
+                    return False
+    return True
 
 
 def _quality_v13(ext):
     """Quality flag for a v1.3-format extraction. Describes — never gates."""
     meta = (ext or {}).get('extraction_metadata') or {}
-    score = meta.get('extraction_score')
+    score = finite_score(meta.get('extraction_score'))
     version = meta.get('extraction_version') or 0
     reasons = []
     if version < EXTRACTION_VERSION:
         reasons.append(f'stale_version ({version} < {EXTRACTION_VERSION})')
-    if not isinstance(score, (int, float)) or score < MIN_SCORE:
+    if score is None or score < MIN_SCORE:
         reasons.append(f'low_score ({score} < {MIN_SCORE})')
     return {
-        'score': score if isinstance(score, (int, float)) else None,
+        'score': score,
         'scale': '0-10',
         'trusted': not reasons,
         'reasons': reasons,
@@ -107,14 +133,14 @@ def _quality_v13(ext):
 
 def _quality_v14(facts):
     """Quality flag for a v1.4 DatasheetFacts. Describes — never gates."""
-    score = facts.quality
+    score = finite_score(facts.quality)
     reasons = []
-    if not isinstance(score, (int, float)) or score < 60:
-        reasons.append(f'low_score ({score} < 60)')
+    if score is None or score < FACTS_MIN_SCORE:
+        reasons.append(f'low_score ({score} < {FACTS_MIN_SCORE})')
     if getattr(facts, 'stale', False):
         reasons.append('stale_pdf')
     return {
-        'score': score if isinstance(score, (int, float)) else None,
+        'score': score,
         'scale': '0-100',
         'trusted': not reasons,
         'reasons': reasons,
@@ -131,14 +157,14 @@ def _pin_with_function(pins, target_function):
 
 # ---------------------------------------------------------------------------
 # v1.4 derivation helpers — translate DatasheetFacts → v1.3 dict shape.
-# Used by the public wrappers in Task 2. Pure functions, no filesystem.
+# Used by the public wrappers below. Pure functions, no filesystem.
 # ---------------------------------------------------------------------------
 
 def _derive_regulator_features_v14(facts: DatasheetFacts) -> Optional[dict]:
     """Translate a v1.4 DatasheetFacts into a v1.3 regulator-features dict.
 
-    Returns None when facts has no regulator category (v1.4 MVP scope is
-    regulator only; MCU / opamp / etc. land in v1.5).
+    Returns None when facts has no regulator category (only the regulator
+    category is derived).
 
     Fields derived from v1.4:
       topology:  facts.regulator.topology (already v1.3-compatible enum
@@ -160,7 +186,7 @@ def _derive_regulator_features_v14(facts: DatasheetFacts) -> Optional[dict]:
 
     topo = facts.regulator.topology
 
-    # Find VIN / VOUT pins by name via the Pinout wrapper (Track 2.2).
+    # Find VIN / VOUT pins by name via the Pinout wrapper.
     # Try short forms first, then verbose datasheet variants used by TI etc.
     vin_pin_obj = (facts.base.pinout.find(name="VIN")
                    or facts.base.pinout.find(name="VIN+")
@@ -190,14 +216,11 @@ def _derive_regulator_features_v14(facts: DatasheetFacts) -> Optional[dict]:
 def _derive_mcu_features_v14(facts: DatasheetFacts) -> Optional[dict]:
     """Translate a v1.4 DatasheetFacts into a v1.3 mcu-features dict.
 
-    v1.4 MVP has no mcu category — this always returns None. The public
+    DatasheetFacts has no mcu category — this always returns None. The public
     get_mcu_features wrapper falls through to the v1.3 cache read path
     when this returns None.
-
-    v1.5 adds the mcu category extension; this function will grow real
-    derivation logic then.
     """
-    # categories is a list[str]; 'mcu' is not in v1.4 MVP scope.
+    # categories is a list[str]; DatasheetFacts has no mcu category.
     return None
 
 
@@ -244,12 +267,14 @@ def _try_v14_facts(mpn, *, extract_dir=None, analysis_json=None, project_dir=Non
     Resolves extract_dir the same way _load does (via resolve_extract_dir)
     so callers that passed analysis_json / project_dir get the same behavior.
     """
-    from datasheet_lookup import lookup  # Lazy import — scripts-dir sibling.
+    from datasheet_types.cache_reader import lookup  # Lazy import.
 
     if extract_dir is None:
         extract_dir = resolve_extract_dir(
             analysis_json=analysis_json, project_dir=project_dir
         )
+        if extract_dir is None:
+            return None
     return lookup(mpn, cache_dir=Path(extract_dir))
 
 
@@ -257,14 +282,13 @@ def get_regulator_features(mpn, *, extract_dir=None,
                             analysis_json=None, project_dir=None) -> Optional[dict]:
     """Return regulator-specific features for mpn, or None if not available.
 
-    Dual-cache-read: tries the v1.4 cache first via Track 2.3's lookup();
+    Dual-cache-read: tries the v1.4 cache first via cache_reader.lookup();
     falls back to the v1.3 (extraction_version=2) cache if no v1.4 cache
     exists. When both exist for the same MPN (mid-migration), v1.4 wins.
 
     Returns None when:
       - No v1.4 cache AND no v1.3 cache for the MPN
-      - v1.4 cache parses but has no regulator category (v1.5 MCU/opamp/etc.
-        extensions are not regulator)
+      - v1.4 cache parses but has no regulator category
       - v1.3 cache exists but topology not in ('boost', 'buck', 'ldo')
 
     Returned dict fields (any may be None individually):
@@ -331,11 +355,9 @@ def get_mcu_features(mpn, *, extract_dir=None,
                      analysis_json=None, project_dir=None) -> Optional[dict]:
     """Return MCU-specific features for mpn, or None if not available.
 
-    Dual-cache-read: tries v1.4 first (but v1.4 MVP has no mcu category
-    extension yet — this path always returns None), then falls back to
-    v1.3 (extraction_version=2) cache. Once v1.5 ships the mcu category
-    schema, _derive_mcu_features_v14 gains real logic and the v1.4 path
-    starts returning values.
+    Dual-cache-read: tries v1.4 first (but DatasheetFacts has no mcu category,
+    so this path always returns None), then falls back to the v1.3
+    (extraction_version=2) cache.
 
     Returns None when neither cache has data for mpn.
 
@@ -352,7 +374,7 @@ def get_mcu_features(mpn, *, extract_dir=None,
         derived = _derive_mcu_features_v14(facts)
         if derived is not None:
             return derived
-        # v1.4 facts present but no mcu category (v1.4 MVP scope).
+        # v1.4 facts present but no mcu category.
         # Fall through to v1.3 for legacy MCU caches.
 
     # ---- v1.3 fallback ----
@@ -380,7 +402,7 @@ def get_pin_function(mpn, pin_identifier, *, extract_dir=None,
     (case-insensitive).
 
     The trusted gate is applied explicitly here: untrusted extractions return
-    None (v2.0 spec §3.A.1 — gate moves from _load into each consumer).
+    None (the gate lives in each consumer, not in _load).
 
     Dual-cache-read: v1.4 cache preferred, v1.3 fallback.
     """
@@ -416,8 +438,8 @@ def is_extraction_available(mpn, *, extract_dir=None,
     if _try_v14_facts(mpn, extract_dir=extract_dir,
                       analysis_json=analysis_json, project_dir=project_dir) is not None:
         return True
-    # v1.3 fallback: trusted gate applied explicitly here (v2.0 spec §3.A.1 —
-    # gate moves from _load into each consumer that needs a binary usable/not answer).
+    # v1.3 fallback: trusted gate applied explicitly here (the gate lives in
+    # each consumer that needs a binary usable/not answer, not in _load).
     ext = _load(mpn, extract_dir=extract_dir,
                 analysis_json=analysis_json, project_dir=project_dir)
     return bool(ext) and _quality_v13(ext)['trusted']

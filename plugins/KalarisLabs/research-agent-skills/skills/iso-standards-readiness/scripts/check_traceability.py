@@ -40,6 +40,7 @@ def _reference_list(
     path: str,
     artifact_ids: set[str],
 ) -> list[str]:
+    """Handle reference list."""
     raw = review.list(value, path, min_items=1)
     if raw is None:
         return []
@@ -62,6 +63,7 @@ def _reference_list(
 
 
 def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
+    """Validate."""
     review = Review()
     metadata = review.object(data.get("metadata"), "metadata")
     if metadata is not None:
@@ -157,6 +159,7 @@ def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = standard_parser(
         "Check explicit traceability from risks and design through postmarket evidence.",
         "Path to the local traceability-matrix JSON file",

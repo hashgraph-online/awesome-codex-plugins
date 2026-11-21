@@ -1,0 +1,209 @@
+{
+  "id": "karaoke-fill-captions",
+  "name": "Karaoke fill captions",
+  "use": "Each word fills with yellow as it is sung or spoken, with a short bar under the current word.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 1,
+  "fonts": [
+    {
+      "family": "Poppins",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Poppins",
+      "weights": [
+        800
+      ]
+    },
+    {
+      "family": "Montserrat",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Montserrat",
+      "weights": [
+        800
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "karaoke-fill-captions.classic-yellow",
+      "label": "Classic yellow sweep",
+      "look": "White text, yellow wipe per word, underline under the current word",
+      "params": {
+        "font_family": "Poppins",
+        "font_weight": 800,
+        "font_size_px_16x9": 64,
+        "font_size_px_9x16": 84,
+        "base_color": "#FFFFFF",
+        "fill_color": "#FFE600",
+        "stroke_px": 8,
+        "stroke_color": "#000000",
+        "paint_order": "stroke fill",
+        "fill_mode": "sweep",
+        "fill_ease": "none",
+        "fill_start_offset_frames": -1,
+        "fill_duration": "word",
+        "underline": {
+          "height_em": 0.08,
+          "offset_em": 0.14,
+          "color": "#FFE600",
+          "slide_frames": 4,
+          "ease": "cubic-bezier(0.2,0,0,1)"
+        },
+        "line_preroll_frames": 15,
+        "line_preroll_max_s": 1.5,
+        "align": "center",
+        "lyric_marker": "♫"
+      },
+      "sources": [
+        4,
+        8,
+        15,
+        20
+      ]
+    },
+    {
+      "id": "karaoke-fill-captions.two-line-preview",
+      "label": "Two-line preview",
+      "look": "Current line plus next line dimmed underneath",
+      "params": {
+        "next_line": {
+          "opacity": 0.55,
+          "scale": 0.85,
+          "promote_frames": 8,
+          "ease": "cubic-bezier(0.2,0,0,1)"
+        }
+      },
+      "sources": [
+        4,
+        18
+      ]
+    },
+    {
+      "id": "karaoke-fill-captions.speech-instant",
+      "label": "Speech (instant fill)",
+      "look": "Whole word turns yellow at onset, for spoken voice-over",
+      "params": {
+        "fill_mode": "instant",
+        "fill_start_offset_frames": -1,
+        "underline": null
+      },
+      "sources": [
+        15,
+        20
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 5,
+      "name": "DCMP — Captioning Key: Presentation Rate",
+      "url": "https://dcmp.org/learn/601-captioning-key---presentation-rate"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 18,
+      "name": "Google Material Design 3 — md-sys-motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 20,
+      "name": "Aegisub — ASS override tags",
+      "url": "https://aegisub.org/docs/latest/ass_tags/"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 31,
+      "name": "@merylkevans (Meryl Evans) — Reply: karaoke-style captions",
+      "url": "https://x.com/merylkevans/status/1821233367712711088"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    }
+  ]
+}

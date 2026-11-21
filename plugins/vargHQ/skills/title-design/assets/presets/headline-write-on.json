@@ -1,0 +1,217 @@
+{
+  "id": "headline-write-on",
+  "name": "Headline write-on",
+  "use": "A headline that writes on letter by letter, word by word or line by line, then holds.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Instrument Serif",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif"
+    },
+    {
+      "family": "Fraunces",
+      "weights": [
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Fraunces"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    }
+  ],
+  "presets": [
+    {
+      "id": "headline-write-on.display",
+      "label": "Display",
+      "look": "Big sans, per-character rise and fade, tight tracking.",
+      "params": {
+        "font": "Inter 800",
+        "size": "12% H",
+        "tracking_em": -0.02,
+        "split": "words,chars",
+        "char_from": {
+          "yPercent": 60,
+          "opacity": 0
+        },
+        "char_s": 0.55,
+        "char_ease": "expo.out",
+        "stagger_s": 0.04,
+        "hold_min_s": 1.8,
+        "exit": "power2.in, 0.3 s, stagger 0.02 s",
+        "color_on_black": "#F2F2F2"
+      },
+      "sources": [
+        12,
+        17,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "headline-write-on.editorial",
+      "label": "Editorial",
+      "look": "Serif deck revealed line by line through masks.",
+      "params": {
+        "font": "Instrument Serif 400",
+        "size": "8% H",
+        "split": "lines",
+        "mask": "lines",
+        "line_from_yPercent": 105,
+        "line_s": 0.8,
+        "ease": "power3.out",
+        "stagger_s": 0.18,
+        "max_line_width": "68% W",
+        "hold": "2 x 0.36 s/word"
+      },
+      "sources": [
+        12,
+        6
+      ]
+    },
+    {
+      "id": "headline-write-on.chapter",
+      "label": "Chapter card",
+      "look": "Mono kicker, serif title, hairline that draws, slow drift.",
+      "params": {
+        "kicker_font": "JetBrains Mono 500 caps",
+        "kicker_size": "2.2% H",
+        "kicker_tracking_em": 0.12,
+        "title_font": "Fraunces 600",
+        "title_size": "7% H",
+        "title_in": "fade + 8 px rise, 0.7 s",
+        "rule_px": 1,
+        "rule_draw_s": 0.6,
+        "drift_scale": [
+          1.0,
+          1.015
+        ],
+        "grain_opacity": 0.07,
+        "hold_s": 2.3,
+        "out_s": 0.35
+      },
+      "sources": [
+        29,
+        30,
+        7
+      ]
+    },
+    {
+      "id": "headline-write-on.kinetic",
+      "label": "Kinetic",
+      "look": "Words slam on beats with ghosts; smear on exit.",
+      "params": {
+        "font": "Anton 400 caps",
+        "size": "14% H",
+        "tracking_em": 0.02,
+        "bpm": 120,
+        "frames_per_word_30fps": 15,
+        "ghosts": [
+          {
+            "offset_f": -2,
+            "opacity": 0.5
+          },
+          {
+            "offset_f": -1,
+            "opacity": 0.5
+          }
+        ],
+        "slam_scale": [
+          1.12,
+          1.0
+        ],
+        "slam_f": 6,
+        "slam_ease": "expo.out",
+        "exit": "stretch smear 6 f, cut on fastest frame, eases ~90%",
+        "sync_nudge_f": -2
+      },
+      "sources": [
+        17,
+        18,
+        33
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 7,
+      "name": "Matthew Butterick — Practical Typography: Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 10,
+      "name": "Material Design 3 motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 12,
+      "name": "GSAP docs — SplitText",
+      "url": "https://gsap.com/docs/v3/Plugins/SplitText/"
+    },
+    {
+      "n": 17,
+      "name": "Joey Korenman — Kinetic typography in After Effects, part 1 (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/kinetic-typography-after-effects-part-1"
+    },
+    {
+      "n": 18,
+      "name": "Nol Honig — How to stretch and smear text (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/stretch-and-smear-text-tutorial"
+    },
+    {
+      "n": 29,
+      "name": "Art of the Title — Stranger Things (Imaginary Forces; Michelle Dougherty)",
+      "url": "https://www.artofthetitle.com/title/stranger-things/"
+    },
+    {
+      "n": 30,
+      "name": "Art of the Title — Severance (Oliver Latta, Teddy Blanks)",
+      "url": "https://www.artofthetitle.com/title/severance/"
+    },
+    {
+      "n": 33,
+      "name": "@jakeinmotion (Jake Bartlett)",
+      "url": "https://x.com/jakeinmotion/status/2104022458865218019"
+    }
+  ]
+}

@@ -21,7 +21,7 @@
   (full list: `/calls/android/session-settings`)
 
 ## Active call (`CallSession.getInstance()`)
-`isSessionActive` · `leaveSession` · lifecycle-bound listeners `addSessionStatusListener(owner, …)` /
+`isSessionActive` · `leaveSession` · lifecycle-bound listeners `addSessionStatusListener(owner, ...)` /
 `addParticipantEventListener` / `addMediaEventsListener` / `addButtonClickListener` / `addLayoutListener` ·
 `clearAllListeners`
 
@@ -33,13 +33,13 @@
 `raiseHand`/`lowerHand` — real symbols, **no-ops in 5.0.4** (see `references/pitfalls.md`).
 
 ## Call logs
-`CallLogRequest.CallLogRequestBuilder().setLimit(n)…build()` → `fetchNext(l)` / `fetchPrevious(l)` →
+`CallLogRequest.CallLogRequestBuilder().setLimit(n)...build()` → `fetchNext(l)` / `fetchPrevious(l)` →
 `List<CallLog>` (`getRecordings()` → `Recording.recordingURL`).
 
 ## Transcription & closed captions (v5.0.4+; PLAN-GATED)
 - builder: `enableAutoStartTranscription`/`hideTranscriptionButton`/`hideClosedCaptionButton`/`setCaptionLanguage`
-- mid-call: `CallSession…startTranscription()`/`stopTranscription()`
-- retrieve: `TranscriptRequest.TranscriptRequestBuilder().setSessionId(sid)…build()` → `fetchNext` →
+- mid-call: `CallSession...startTranscription()`/`stopTranscription()`
+- retrieve: `TranscriptRequest.TranscriptRequestBuilder().setSessionId(sid)...build()` → `fetchNext` →
   `List<Transcript>` (`.transcriptUrl` = downloadable JSON; empty≠error). Full row: `references/docs-map.md`.
 
 ## Background

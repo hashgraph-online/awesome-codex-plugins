@@ -27,6 +27,7 @@ def _control(
     *,
     required: bool,
 ) -> None:
+    """Handle control."""
     control_path = f"{path}.{key}"
     control = review.object(supplier.get(key), control_path)
     if control is None:
@@ -57,6 +58,7 @@ def _control(
 
 
 def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
+    """Validate."""
     review = Review()
     metadata = review.object(data.get("metadata"), "metadata")
     if metadata is not None:
@@ -152,6 +154,7 @@ def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = standard_parser(
         "Check risk-based supplier and outsourced-process control evidence.",
         "Path to the local supplier-controls JSON file",

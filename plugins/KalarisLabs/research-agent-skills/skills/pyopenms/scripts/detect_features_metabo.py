@@ -66,6 +66,7 @@ def detect_features(exp, ppm=10.0, noise=1000.0, charge_low=1, charge_high=3,
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Untargeted metabolomics feature detection.")
     parser.add_argument("input", help="Centroided mzML file")
     parser.add_argument("--out-features", help="Output featureXML (default: <input>.featureXML)")

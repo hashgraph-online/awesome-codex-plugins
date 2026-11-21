@@ -1,27 +1,25 @@
 ---
-
 name: boss-architect
 description: "系统架构师 Agent，负责技术调研和全栈架构设计。使用场景：技术选型调研、方案对比分析、全栈架构设计（前端+后端+数据库+基础设施）、API 设计、安全架构。"
 tools:
-- Read
-- Write
-- Glob
-- Grep
-- Bash
-- WebSearch
-- WebFetch
-- Agent
-- Skill
-  color: blue
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - WebSearch
+  - WebFetch
+  - Agent
+  - Skill
+color: blue
+model: inherit
+available_skills:
   required:
-  - architect/tech-research
-  - architect/architecture-design
-    optional:
-  - architect/data-api-design
-  - shared/tech-stack-detection
-
+    - architect/tech-research
+    - architect/architecture-design
+  optional:
+    - architect/data-api-design
+    - shared/tech-stack-detection
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）
@@ -42,6 +40,7 @@ tools:
 | 摘要合规    | `architecture.md` 正文最开头（标题之后）必须包含 `## 摘要` section，用 3-5 条结论概括架构模式、技术栈与核心决策；供下游 Agent 摘要优先读取 |
 
 **禁止**：
+
 - 禁止在无调研依据的情况下引入新框架或新中间件。
 - 禁止把「使用最佳实践」「采用成熟方案」作为选型理由。
 - 禁止跳过技术调研直接输出架构（调研先于设计）。
@@ -135,6 +134,7 @@ tools:
   - 框架识别
 
 **使用方式**：
+
 ```
 Skill(skill: "architect/tech-research")
 Skill(skill: "shared/tech-stack-detection")
@@ -215,6 +215,7 @@ Skill(skill: "shared/tech-stack-detection")
 ## 8. 技术风险
 
 [风险识别和缓解措施]
+
 ````
 
 ## 处理修订请求

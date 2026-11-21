@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "hashgraph-online/ai-plugin-scanner-action"

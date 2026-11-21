@@ -59,7 +59,7 @@ def preprocess_recording(
     # Bad channel detection
     if detect_bad:
         print("Detecting bad channels...")
-        bad_channel_ids, bad_labels = si.detect_bad_channels(rec)
+        bad_channel_ids, _ = si.detect_bad_channels(rec)
         if len(bad_channel_ids) > 0:
             print(f"  Removing {len(bad_channel_ids)} bad channels: {bad_channel_ids[:10]}...")
             rec = rec.remove_channels(bad_channel_ids)
@@ -90,6 +90,7 @@ def preprocess_recording(
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description='Preprocess Neuropixels recording')
     parser.add_argument('input', help='Path to input recording')
     parser.add_argument('--output', '-o', default='preprocessed/', help='Output directory')

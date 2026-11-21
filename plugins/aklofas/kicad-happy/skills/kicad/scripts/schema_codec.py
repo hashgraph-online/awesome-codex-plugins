@@ -20,12 +20,11 @@ Rules:
       emitted schema fragment — useful for discriminator fields like
       analyzer_type or schema_version that must carry a fixed value.
     - field(metadata={"json_name": "<key>"}) renames the emitted JSON
-      property to <key> (used for underscore-prefixed keys like
-      "_redirected_from" that don't fit Python identifier rules).
+      property to <key> (an explicit wire name; the schematic envelope
+      maps "_redirected_from" and "_stale_file_warning" this way).
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 import sys
 import types
@@ -81,7 +80,7 @@ def _type_to_schema(tp) -> dict:
     args = typing.get_args(tp)
 
     # Handle Optional[T] / T | None / Union[T, None]
-    if origin is typing.Union or (origin is not None and _is_union_type(origin)):
+    if origin is typing.Union or (origin is not None and origin is types.UnionType):
         non_none = [a for a in args if a is not type(None)]
         if len(non_none) == 1 and len(args) == 2:
             inner = _type_to_schema(non_none[0])
@@ -132,11 +131,6 @@ def _type_to_schema(tp) -> dict:
         return _object_schema_for(tp)
 
     raise TypeError(f"Cannot convert {tp!r} to JSON Schema")
-
-
-def _is_union_type(origin) -> bool:
-    """True for PEP 604 'X | Y' unions (Python 3.10+)."""
-    return origin is types.UnionType
 
 
 def emit_schema(cls: type) -> None:

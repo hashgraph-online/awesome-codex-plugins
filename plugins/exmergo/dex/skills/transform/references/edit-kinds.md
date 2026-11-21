@@ -20,7 +20,18 @@ Hand content over with `--edits-file <path>` (or `-` to read stdin):
 ]}
 ```
 
+Beside `edits`, `transform plan` also takes `declarations`
+([declarations.md](declarations.md)) and a `toggle` contract for a flag that
+stays live ([feature-toggles.md](feature-toggles.md)). `transform remove var`
+takes a `retirement` contract instead
+([feature-retirement.md](feature-retirement.md)). A command that does not read a
+contract refuses it rather than dropping it, and one payload never carries both.
+
 ## Kinds and what each must be
+
+A new version of an existing model is a `model_sql` edit for the version's file
+and a `schema_yml` edit giving the model a `versions:` list. It is never a second
+plain model named `<model>_v2`. Recipe: [model-versions.md](model-versions.md).
 
 | Kind | Where | Must be |
 |---|---|---|
@@ -46,7 +57,10 @@ severity, and an analysis's description.
 A seed past the row or size limit is data rather than a lookup: load it into the
 warehouse and `source()` it. A seed whose header names a column that looks like
 personal data is refused, and the refusal names the `pii_overrides` entry a human
-can add.
+can add. A seed file the plan creates warns instead where the column's strongest
+flag is exactly at the threshold and comes from its header name alone (a `*_note`
+column read as free text), naming the same entry; a column a profile flagged, a
+rewrite of an existing seed, and any stronger flag still refuse.
 
 A singular test that names no `ref()` or `source()` is warned about, not refused:
 it runs against nothing and passes unconditionally.
@@ -80,7 +94,9 @@ an analysis build no relation and nothing can `ref()` either, so neither enters
 a refactor is one plan rather than a plan plus a manual `rm`.
 
 Deletes are guarded: the plan is refused if any surviving file still `ref()`s a
-deleted model, naming the offenders. Carry the edits that remove those
+deleted model, naming the offenders. Deleting a project override of a package
+model, in the same plan that removes its `+enabled: false`, is accepted: the
+package's model answers the name again. Carry the edits that remove those
 references in the same plan, so the post-change project is validated as one
 unit. A surviving reference Dex cannot resolve statically is warned about rather
 than refused. An unconfirmed delete against a file a human edited after planning

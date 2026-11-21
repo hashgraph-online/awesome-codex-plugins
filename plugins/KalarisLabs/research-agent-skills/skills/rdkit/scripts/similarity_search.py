@@ -16,11 +16,13 @@ from pathlib import Path
 
 try:
     from rdkit import Chem
-    from rdkit.Chem import AllChem, MACCSkeys, rdFingerprintGenerator
+    from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
     from rdkit import DataStructs
 except ImportError:
     print("Error: RDKit not installed. Install with: uv pip install rdkit")
     sys.exit(1)
+
+from _common import iter_molecules
 
 
 FINGERPRINT_METHODS = {
@@ -59,27 +61,9 @@ def generate_fingerprint(mol, method='morgan', radius=2, n_bits=2048):
 
 def load_molecules(file_path):
     """Load molecules from file."""
-    path = Path(file_path)
-
-    if not path.exists():
-        print(f"Error: File not found: {file_path}")
-        return []
-
     molecules = []
 
-    if path.suffix.lower() in ['.sdf', '.mol']:
-        suppl = Chem.SDMolSupplier(str(path))
-    elif path.suffix.lower() in ['.smi', '.smiles', '.txt']:
-        suppl = Chem.SmilesMolSupplier(str(path), titleLine=False)
-    else:
-        print(f"Error: Unsupported file format: {path.suffix}")
-        return []
-
-    for idx, mol in enumerate(suppl):
-        if mol is None:
-            print(f"Warning: Failed to parse molecule {idx+1}")
-            continue
-
+    for idx, mol in iter_molecules(file_path):
         # Try to get molecule name
         name = mol.GetProp('_Name') if mol.HasProp('_Name') else f"Mol_{idx+1}"
         smiles = Chem.MolToSmiles(mol)
@@ -196,6 +180,7 @@ def print_results(hits, max_display=20):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Molecular similarity search using fingerprints',
         formatter_class=argparse.RawDescriptionHelpFormatter,

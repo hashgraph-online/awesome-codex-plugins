@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Email **tejas@krexa.xyz** with a description of the issue, the steps to reproduce it, and its impact. Please do not open a public GitHub issue for security problems.
+Email **himanshu@krexa.xyz** with a description of the issue, the steps to reproduce it, and its impact. Please do not open a public GitHub issue for security problems.
 
 This covers the skill files in this repository and the hosted Krexa MCP server they connect to (`https://www.krexa.xyz/mcp`).
 

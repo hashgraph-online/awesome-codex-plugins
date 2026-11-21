@@ -1,0 +1,13 @@
+[
+  {"query": "Add a credits system to our SaaS: users buy credits, each API call uses one, and I need a history page.", "should_trigger": true},
+  {"query": "Our game stores coins in users.coins and support keeps asking why someone's balance is what it is. Can we get a proper transaction log?", "should_trigger": true},
+  {"query": "Two purchases at the same time took a user's balance below zero. Fix the wallet so that can't happen.", "should_trigger": true},
+  {"query": "We only have a balance column on the users table. Migrate it to a ledger without changing what users see.", "should_trigger": true},
+  {"query": "I need a points table for our loyalty program where every change is recorded and a nightly job checks that the totals add up.", "should_trigger": true},
+  {"query": "Add a wallet with a transaction history to our Laravel app, and make sure two requests cannot spend the same balance.", "should_trigger": true},
+  {"query": "In our Next.js app with Prisma two parallel purchases both succeed when the user can only afford one. Fix the points balance.", "should_trigger": true},
+  {"query": "Verify the signature on our payment provider's webhook before we credit the order.", "should_trigger": false},
+  {"query": "Customers who get a refund keep their credits. Make refunds take the credits back.", "should_trigger": false},
+  {"query": "Set up double-entry accounting with a chart of accounts for our company's books.", "should_trigger": false},
+  {"query": "Write a Prisma migration that renames the username column to handle.", "should_trigger": false}
+]

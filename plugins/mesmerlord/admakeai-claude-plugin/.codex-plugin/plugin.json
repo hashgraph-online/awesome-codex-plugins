@@ -1,0 +1,50 @@
+{
+  "name": "admakeai",
+  "version": "1.1.0",
+  "description": "AI ad generator: design ad creatives and copy, make UGC video ads, research competitors' Meta Ad Library ads, and draft and report on Meta campaigns with the AdMakeAI MCP server.",
+  "author": {
+    "name": "Mesmer s.r.o.",
+    "email": "support@admakeai.com",
+    "url": "https://admakeai.com"
+  },
+  "homepage": "https://admakeai.com/agents",
+  "repository": "https://github.com/mesmerlord/admakeai-claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "ad-generator",
+    "ai-ads",
+    "ad-creative",
+    "ad-copy",
+    "ugc",
+    "facebook-ads",
+    "meta-ads",
+    "competitor-research",
+    "marketing",
+    "mcp"
+  ],
+  "interface": {
+    "displayName": "AdMakeAI",
+    "shortDescription": "Design and research Meta ads",
+    "longDescription": "Design ad creatives for your brand from a conversation: finished ads with headline and CTA, exact-prompt images, edits, batches of variations, ad copy and UGC-style video ads. Research the ads any brand runs in the Meta Ad Library and save the ones worth remixing. For connected Meta ad accounts, check creatives before upload, prepare campaign drafts and read performance with previous-period comparisons. Sign in through the browser with codex mcp login admakeai; there's no key to paste. Designs and Meta uploads spend credits from your AdMakeAI account, and reads are free. Launching, pausing and resuming ads stay in Meta Ads Manager.",
+    "developerName": "Mesmer s.r.o.",
+    "category": "Design",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://admakeai.com/agents",
+    "privacyPolicyURL": "https://admakeai.com/resources/privacy-policy",
+    "termsOfServiceURL": "https://admakeai.com/resources/terms-of-service",
+    "defaultPrompt": [
+      "Design a 4:5 ad for one of my brands.",
+      "Show me the ads Huel is running on Meta.",
+      "Write three headlines for my latest ad."
+    ],
+    "brandColor": "#7C3AED",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

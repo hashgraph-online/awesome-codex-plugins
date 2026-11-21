@@ -1,0 +1,204 @@
+{
+  "id": "code-editor-walkthrough",
+  "name": "Code editor walkthrough",
+  "use": "A VS Code-style guided tour: scroll to a line, highlight it, open a comment thread per step.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 12,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "Geist Mono",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Geist+Mono"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "trademark_note": "Visual Studio Code, VS Code and its icon are Microsoft trademarks. MIT theme colors only; no icon or product name in the video's branding.",
+  "presets": [
+    {
+      "id": "code-editor-walkthrough.dark-2026",
+      "label": "Dark 2026",
+      "look": "Full workbench, dark",
+      "params": {
+        "editor_bg": "#121314",
+        "chrome_bg": "#191A1B",
+        "fg": "#BBBEBF",
+        "line_numbers": "#858889",
+        "line_highlight": "#242526",
+        "focus": "#3994BC",
+        "tab_active_border_top": "#3994BC",
+        "tokens": {
+          "keyword": "#ff7b72",
+          "string": "#a5d6ff",
+          "function": "#d2a8ff",
+          "constant": "#79c0ff",
+          "entity_variable": "#ffa657",
+          "tag": "#7ee787",
+          "comment": "#8b949e",
+          "text": "#c9d1d9"
+        },
+        "step_s": 3.0,
+        "step_beats_s": {
+          "scroll": [
+            0,
+            0.7
+          ],
+          "highlight_sweep": [
+            0.5,
+            0.8
+          ],
+          "comment_open": [
+            0.7,
+            0.95
+          ]
+        },
+        "scroll_ease": "power3.inOut",
+        "target_line_at_pct_pane_h": 42,
+        "comment_open": {
+          "duration_s": 0.25,
+          "ease": "power2.out",
+          "scale_from": 0.97
+        },
+        "hold": "max(step_s, 0.8 + 0.6 + note_chars/15) s",
+        "token_transition": {
+          "duration_s": [
+            0.6,
+            0.9
+          ],
+          "ease": "power2.inOut"
+        },
+        "code_px_1080p": [
+          22,
+          26
+        ],
+        "line_height": 1.5,
+        "comment_card_w_pct_pane": 46
+      },
+      "sources": [
+        21,
+        23,
+        24,
+        1,
+        45,
+        2,
+        44,
+        12,
+        16
+      ]
+    },
+    {
+      "id": "code-editor-walkthrough.light-2026",
+      "label": "Light 2026",
+      "look": "Full workbench, light",
+      "params": {
+        "editor_bg": "#FFFFFF",
+        "chrome_bg": "#FAFAFD",
+        "fg": "#202020",
+        "line_numbers": "#606060",
+        "line_highlight": "#EAEAEA40",
+        "focus": "#0069CC",
+        "button": "#0069CC",
+        "tokens": {
+          "keyword": "#cf222e",
+          "string": "#0a3069",
+          "function": "#8250df",
+          "constant": "#0550ae",
+          "entity_variable": "#953800",
+          "tag": "#116329",
+          "comment": "#6e7781",
+          "text": "#1f2328"
+        },
+        "step_s": 3.0
+      },
+      "sources": [
+        21
+      ]
+    },
+    {
+      "id": "code-editor-walkthrough.editor-only",
+      "label": "Editor only (vertical)",
+      "look": "Pane crop, huge type",
+      "params": {
+        "code_pct_frame_h": 2.9,
+        "columns": 34,
+        "comment_card": "below the line, full width",
+        "sidebar": false
+      },
+      "sources": [
+        16
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Adam Pietrasiak (@pie6k), Screen Studio",
+      "url": "https://x.com/pie6k/status/1586636942879645696"
+    },
+    {
+      "n": 2,
+      "name": "Emil Kowalski (@emilkowalski)",
+      "url": "https://x.com/emilkowalski/status/1954891053032755560"
+    },
+    {
+      "n": 12,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 16,
+      "name": "Thorsten Ball, How to Demo",
+      "url": "https://thorstenball.com/how-to-demo"
+    },
+    {
+      "n": 21,
+      "name": "VS Code theme-defaults 2026 themes (MIT)",
+      "url": "https://github.com/microsoft/vscode/tree/main/extensions/theme-defaults/themes"
+    },
+    {
+      "n": 23,
+      "name": "Microsoft CodeTour",
+      "url": "https://github.com/microsoft/codetour"
+    },
+    {
+      "n": 24,
+      "name": "Code Hike token transitions",
+      "url": "https://codehike.org/docs/code/token-transitions"
+    },
+    {
+      "n": 44,
+      "name": "Emil Kowalski, Great animations",
+      "url": "https://emilkowal.ski/ui/great-animations"
+    },
+    {
+      "n": 45,
+      "name": "Screen Studio guide, Animations",
+      "url": "https://screen.studio/guide/animations"
+    }
+  ]
+}

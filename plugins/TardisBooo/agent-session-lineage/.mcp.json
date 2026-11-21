@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mobius-connect": {
+      "command": "mobius-connect",
+      "args": ["mcp", "serve"]
+    }
+  }
+}

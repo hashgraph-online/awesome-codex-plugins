@@ -1,0 +1,1729 @@
+{
+  "paperShaders": "0.0.82",
+  "source": "https://shaders.paper.design/llms.txt",
+  "sizing": {
+    "fit": {
+      "type": "enum",
+      "enum": [
+        "none",
+        "contain",
+        "cover"
+      ]
+    },
+    "scale": {
+      "type": "number",
+      "min": 0.01,
+      "max": 4
+    },
+    "rotation": {
+      "type": "number",
+      "min": 0,
+      "max": 360
+    },
+    "offsetX": {
+      "type": "number",
+      "min": -1,
+      "max": 1
+    },
+    "offsetY": {
+      "type": "number",
+      "min": -1,
+      "max": 1
+    },
+    "originX": {
+      "type": "number",
+      "min": 0,
+      "max": 1
+    },
+    "originY": {
+      "type": "number",
+      "min": 0,
+      "max": 1
+    },
+    "worldWidth": {
+      "type": "number"
+    },
+    "worldHeight": {
+      "type": "number"
+    }
+  },
+  "shaders": {
+    "ColorPanels": {
+      "page": "https://shaders.paper.design/color-panels",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 7
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "density": {
+          "type": "number",
+          "min": 0.25,
+          "max": 7
+        },
+        "angle1": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "angle2": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "length": {
+          "type": "number",
+          "min": 0,
+          "max": 3
+        },
+        "edges": {
+          "type": "boolean"
+        },
+        "blur": {
+          "type": "number",
+          "min": 0,
+          "max": 0.5
+        },
+        "fadeIn": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "fadeOut": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "gradient": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "Dithering": {
+      "page": "https://shaders.paper.design/dithering",
+      "params": {
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFront": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "simplex",
+            "warp",
+            "dots",
+            "wave",
+            "ripple",
+            "swirl",
+            "sphere"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "enum": [
+            "random",
+            "2x2",
+            "4x4",
+            "8x8"
+          ]
+        },
+        "size": {
+          "type": "number",
+          "min": 1,
+          "max": 20
+        }
+      }
+    },
+    "DotGrid": {
+      "page": "https://shaders.paper.design/dot-grid",
+      "params": {
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFill": {
+          "type": "string"
+        },
+        "colorStroke": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "circle",
+            "diamond",
+            "square",
+            "triangle"
+          ]
+        },
+        "size": {
+          "type": "number",
+          "min": 1,
+          "max": 100
+        },
+        "gapX": {
+          "type": "number",
+          "min": 2,
+          "max": 500
+        },
+        "gapY": {
+          "type": "number",
+          "min": 2,
+          "max": 500
+        },
+        "strokeWidth": {
+          "type": "number",
+          "min": 0,
+          "max": 50
+        },
+        "sizeRange": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "opacityRange": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "DotOrbit": {
+      "page": "https://shaders.paper.design/dot-orbit",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "stepsPerColor": {
+          "type": "number",
+          "min": 1,
+          "max": 4,
+          "step": 1
+        },
+        "size": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "sizeRange": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "spreading": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "FlutedGlass": {
+      "page": "https://shaders.paper.design/fluted-glass",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorShadow": {
+          "type": "string"
+        },
+        "colorHighlight": {
+          "type": "string"
+        },
+        "shadows": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "highlights": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "size": {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "pattern",
+            "wave",
+            "lines",
+            "linesIrregular",
+            "zigzag"
+          ]
+        },
+        "angle": {
+          "type": "number",
+          "min": 0,
+          "max": 180
+        },
+        "distortionShape": {
+          "type": "enum",
+          "enum": [
+            "prism",
+            "lens",
+            "contour",
+            "cascade",
+            "flat"
+          ]
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "shift": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "stretch": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "blur": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "edges": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "margin": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginLeft": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginRight": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginTop": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginBottom": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "GemSmoke": {
+      "page": "https://shaders.paper.design/gem-smoke",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "none",
+            "circle",
+            "daisy",
+            "diamond",
+            "metaballs"
+          ]
+        },
+        "colors": {
+          "type": "string[]",
+          "maxCount": 6
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "innerDistortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "outerDistortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "outerGlow": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "innerGlow": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "colorInner": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "angle": {
+          "type": "number",
+          "min": 0,
+          "max": 360
+        },
+        "size": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "GodRays": {
+      "page": "https://shaders.paper.design/god-rays",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 5
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorBloom": {
+          "type": "string"
+        },
+        "bloom": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "intensity": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "density": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "spotty": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "midSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "midIntensity": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "GrainGradient": {
+      "page": "https://shaders.paper.design/grain-gradient",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 7
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "intensity": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noise": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "wave",
+            "dots",
+            "truchet",
+            "corners",
+            "ripple",
+            "blob",
+            "sphere"
+          ]
+        }
+      }
+    },
+    "HalftoneCmyk": {
+      "page": "https://shaders.paper.design/halftone-cmyk",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorC": {
+          "type": "string"
+        },
+        "colorM": {
+          "type": "string"
+        },
+        "colorY": {
+          "type": "string"
+        },
+        "colorK": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "gridNoise": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "type": {
+          "type": "enum",
+          "enum": [
+            "dots",
+            "ink",
+            "sharp"
+          ]
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "contrast": {
+          "type": "number",
+          "min": 0,
+          "max": 2
+        },
+        "floodC": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "floodM": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "floodY": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "floodK": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "gainC": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "gainM": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "gainY": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "gainK": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "grainSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "HalftoneDots": {
+      "page": "https://shaders.paper.design/halftone-dots",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFront": {
+          "type": "string"
+        },
+        "originalColors": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "enum",
+          "enum": [
+            "classic",
+            "gooey",
+            "holes",
+            "soft"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "grid": {
+          "type": "enum",
+          "enum": [
+            "square",
+            "hex"
+          ]
+        },
+        "size": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "radius": {
+          "type": "number",
+          "min": 0,
+          "max": 2
+        },
+        "contrast": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "Heatmap": {
+      "page": "https://shaders.paper.design/heatmap",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "contour": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "angle": {
+          "type": "number",
+          "min": 0,
+          "max": 360
+        },
+        "noise": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "innerGlow": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "outerGlow": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "ImageDithering": {
+      "page": "https://shaders.paper.design/image-dithering",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFront": {
+          "type": "string"
+        },
+        "colorHighlight": {
+          "type": "string"
+        },
+        "originalColors": {
+          "type": "boolean"
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "enum",
+          "enum": [
+            "random",
+            "2x2",
+            "4x4",
+            "8x8"
+          ]
+        },
+        "size": {
+          "type": "number",
+          "min": 0.5,
+          "max": 20
+        },
+        "colorSteps": {
+          "type": "number",
+          "min": 1,
+          "max": 7,
+          "step": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "LensDistortion": {
+      "page": "https://shaders.paper.design/lens-distortion",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "spread": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "bias": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "angle": {
+          "type": "number",
+          "min": 0,
+          "max": 360
+        },
+        "perspective": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "count": {
+          "type": "number",
+          "min": 2,
+          "max": 50,
+          "step": 1
+        },
+        "dispersion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "dispersionShift": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "dispersionColor": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "focusCenter": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "focusEdges": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "swirl": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "noise": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noiseFrequency": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noiseOffset": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "lensBulge": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "lensCircle": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "imageX": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "imageY": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "LiquidMetal": {
+      "page": "https://shaders.paper.design/liquid-metal",
+      "params": {
+        "colorBack": {
+          "type": "string"
+        },
+        "colorTint": {
+          "type": "string"
+        },
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "none",
+            "circle",
+            "daisy",
+            "diamond",
+            "metaballs"
+          ]
+        },
+        "repetition": {
+          "type": "number",
+          "min": 1,
+          "max": 10
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "shiftRed": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "shiftBlue": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "contour": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "angle": {
+          "type": "number",
+          "min": 0,
+          "max": 360
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "MeshGradient": {
+      "page": "https://shaders.paper.design/mesh-gradient",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "swirl": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "Metaballs": {
+      "page": "https://shaders.paper.design/metaballs",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 8
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "count": {
+          "type": "number",
+          "min": 1,
+          "max": 20
+        },
+        "size": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "NeuroNoise": {
+      "page": "https://shaders.paper.design/neuro-noise",
+      "params": {
+        "colorFront": {
+          "type": "string"
+        },
+        "colorMid": {
+          "type": "string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "brightness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "contrast": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "PaperTexture": {
+      "page": "https://shaders.paper.design/paper-texture",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorPaper": {
+          "type": "string"
+        },
+        "colorShadow": {
+          "type": "string"
+        },
+        "blending": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "distortion": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "clip": {
+          "type": "boolean"
+        },
+        "angle": {
+          "type": "number",
+          "min": 0,
+          "max": 360
+        },
+        "seed": {
+          "type": "number",
+          "min": 0,
+          "max": 1000
+        },
+        "roughness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "roughnessSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "roughnessRows": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "fiber": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "fiberSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "folds": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "foldSizeX": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "foldSizeY": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "foldOffsetX": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "foldOffsetY": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "wrinkles": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "wrinkleSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "crumples": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "crumpleCount": {
+          "type": "number",
+          "min": 2,
+          "max": 15,
+          "step": 1
+        },
+        "drops": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "PerlinNoise": {
+      "page": "https://shaders.paper.design/perlin-noise",
+      "params": {
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFront": {
+          "type": "string"
+        },
+        "proportion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "octaveCount": {
+          "type": "number",
+          "min": 1,
+          "max": 8,
+          "step": 1
+        },
+        "persistence": {
+          "type": "number",
+          "min": 0.3,
+          "max": 1
+        },
+        "lacunarity": {
+          "type": "number",
+          "min": 1.5,
+          "max": 10
+        }
+      }
+    },
+    "PulsingBorder": {
+      "page": "https://shaders.paper.design/pulsing-border",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 5
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "roundness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "thickness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "aspectRatio": {
+          "type": "enum",
+          "enum": [
+            "auto",
+            "square"
+          ]
+        },
+        "intensity": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "bloom": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "spots": {
+          "type": "number",
+          "min": 1,
+          "max": 4,
+          "step": 1
+        },
+        "spotSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "pulse": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "smoke": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "smokeSize": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "margin": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginLeft": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginRight": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginTop": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "marginBottom": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "SimplexNoise": {
+      "page": "https://shaders.paper.design/simplex-noise",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "stepsPerColor": {
+          "type": "number",
+          "min": 1,
+          "max": 10,
+          "step": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "SmokeRing": {
+      "page": "https://shaders.paper.design/smoke-ring",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "number",
+          "min": 0.01,
+          "max": 1
+        },
+        "radius": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "innerShape": {
+          "type": "number",
+          "min": 0,
+          "max": 4
+        },
+        "noiseIterations": {
+          "type": "number",
+          "min": 1,
+          "max": 8,
+          "step": 1
+        },
+        "noiseScale": {
+          "type": "number",
+          "min": 0.01,
+          "max": 5
+        }
+      }
+    },
+    "Spiral": {
+      "page": "https://shaders.paper.design/spiral",
+      "params": {
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFront": {
+          "type": "string"
+        },
+        "density": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "strokeWidth": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "strokeTaper": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "strokeCap": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noise": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noiseFrequency": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "StaticMeshGradient": {
+      "page": "https://shaders.paper.design/static-mesh-gradient",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "positions": {
+          "type": "number",
+          "min": 0,
+          "max": 100
+        },
+        "waveX": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "waveXShift": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "waveY": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "waveYShift": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "mixing": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "StaticRadialGradient": {
+      "page": "https://shaders.paper.design/static-radial-gradient",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "radius": {
+          "type": "number",
+          "min": 0,
+          "max": 3
+        },
+        "focalDistance": {
+          "type": "number",
+          "min": 0,
+          "max": 3
+        },
+        "falloff": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "focalAngle": {
+          "type": "number",
+          "min": 0,
+          "max": 360
+        },
+        "mixing": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "distortionShift": {
+          "type": "number",
+          "min": -1,
+          "max": 1
+        },
+        "distortionFreq": {
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "step": 1
+        },
+        "grainMixer": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "grainOverlay": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "Swirl": {
+      "page": "https://shaders.paper.design/swirl",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "bandCount": {
+          "type": "number",
+          "min": 0,
+          "max": 15,
+          "step": 1
+        },
+        "twist": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "center": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "proportion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noise": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "noiseFrequency": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "Voronoi": {
+      "page": "https://shaders.paper.design/voronoi",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 5
+        },
+        "colorGlow": {
+          "type": "string"
+        },
+        "colorGap": {
+          "type": "string"
+        },
+        "stepsPerColor": {
+          "type": "number",
+          "min": 1,
+          "max": 3,
+          "step": 1
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 0.5
+        },
+        "gap": {
+          "type": "number",
+          "min": 0,
+          "max": 0.1
+        },
+        "glow": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "Warp": {
+      "page": "https://shaders.paper.design/warp",
+      "params": {
+        "colors": {
+          "type": "string[]",
+          "maxCount": 10
+        },
+        "proportion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "distortion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "swirl": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "swirlIterations": {
+          "type": "number",
+          "min": 2,
+          "max": 20,
+          "step": 1
+        },
+        "shape": {
+          "type": "enum",
+          "enum": [
+            "checks",
+            "stripes",
+            "edge"
+          ]
+        },
+        "shapeScale": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    "Water": {
+      "page": "https://shaders.paper.design/water",
+      "params": {
+        "image": {
+          "type": "HTMLImageElement | string"
+        },
+        "colorBack": {
+          "type": "string"
+        },
+        "colorHighlight": {
+          "type": "string"
+        },
+        "highlights": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "layering": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "edges": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "waves": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "caustic": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "size": {
+          "type": "number",
+          "min": 0.01,
+          "max": 7
+        },
+        "scale": {
+          "type": "number",
+          "min": 0.1,
+          "max": 4
+        }
+      }
+    },
+    "Waves": {
+      "page": "https://shaders.paper.design/waves",
+      "params": {
+        "colorBack": {
+          "type": "string"
+        },
+        "colorFront": {
+          "type": "string"
+        },
+        "amplitude": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "frequency": {
+          "type": "number",
+          "min": 0,
+          "max": 2
+        },
+        "spacing": {
+          "type": "number",
+          "min": 0,
+          "max": 2
+        },
+        "proportion": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "softness": {
+          "type": "number",
+          "min": 0,
+          "max": 1
+        },
+        "shape": {
+          "type": "number",
+          "min": 0,
+          "max": 3
+        }
+      }
+    }
+  }
+}

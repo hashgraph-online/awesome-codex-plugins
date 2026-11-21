@@ -26,6 +26,7 @@ TOOL = "gtars-bed-validator"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate one local BED/BED.GZ file as 0-based half-open intervals. "
@@ -77,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def validate(args: argparse.Namespace) -> tuple[dict, int]:
+    """Validate."""
     assembly = args.assembly.strip()
     if not assembly or len(assembly) > 200:
         raise SafetyError("assembly must contain 1-200 characters")
@@ -170,6 +172,7 @@ def validate(args: argparse.Namespace) -> tuple[dict, int]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report, status = validate(args)

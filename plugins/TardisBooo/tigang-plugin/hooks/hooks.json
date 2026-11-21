@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PLUGIN_ROOT/hooks/tigang_hook.js\" detect",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PLUGIN_ROOT/hooks/tigang_hook.js\" remind",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

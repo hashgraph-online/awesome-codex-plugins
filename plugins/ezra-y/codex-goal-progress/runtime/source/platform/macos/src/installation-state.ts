@@ -1,5 +1,8 @@
-import { readdir, readlink, stat } from "node:fs/promises";
+import { execFile as execFileCallback } from "node:child_process";
+import { lstat, readdir, readlink, realpath, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
+import { isGoalProgressUpdateVersion } from "../../../packages/contracts/src/update-state-runtime.js";
 import type { GoalProgressPaths } from "../../../packages/store/src/index.js";
 import type { CdpController } from "./cdp-controller.js";
 import { type MacosInstallationLayout, resolveMacosInstallationLayout } from "./install-layout.js";
@@ -10,16 +13,19 @@ import {
   startupListenerFileExists,
 } from "./installed-inspection.js";
 import type { LaunchAgentController } from "./launch-agent-controller.js";
-import { isNotFound } from "./macos-errors.js";
+import { isNotFound, stableErrorCode } from "./macos-errors.js";
 import type { PluginController } from "./plugin-controller.js";
+import { compareGoalProgressVersions } from "./update-manifest.js";
 import {
   type CodexInstallIdentity,
   type InstalledManifest,
   type ParsedReleaseManifest,
   readInstalledManifest,
-  readVerifiedRelease,
+  readReleaseManifest,
   validateCodexIdentity,
 } from "./verified-release.js";
+
+const execFile = promisify(execFileCallback);
 
 const releaseBackupNamePattern =
   /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}\.rollback-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
@@ -37,6 +43,104 @@ export async function inspectOrphanReleaseBackups(programReleasesRoot: string): 
     }
     throw error;
   }
+}
+
+export interface PruneObsoleteReleasesOptions {
+  readonly programReleasesRoot: string;
+  readonly currentVersion: string;
+  readonly previousInstalledVersion?: string | null;
+}
+
+export async function pruneObsoleteProgramReleases(options: PruneObsoleteReleasesOptions): Promise<{
+  readonly removed: readonly string[];
+  readonly warningCode: string | null;
+}> {
+  let entryNames: string[];
+  try {
+    entryNames = await readdir(options.programReleasesRoot);
+  } catch (error) {
+    if (isNotFound(error)) {
+      return { removed: [], warningCode: null };
+    }
+    return { removed: [], warningCode: stableErrorCode(error) };
+  }
+
+  const verifiedVersions: string[] = [];
+  for (const entryName of entryNames) {
+    if (!isGoalProgressUpdateVersion(entryName)) {
+      continue;
+    }
+    const candidatePath = resolve(options.programReleasesRoot, entryName);
+    const metadata = await lstat(candidatePath).catch(() => null);
+    if (!metadata?.isDirectory() || metadata.isSymbolicLink()) {
+      continue;
+    }
+    const manifest = await readReleaseManifest(candidatePath).catch(() => null);
+    if (!manifest || manifest.releaseVersion !== entryName) {
+      continue;
+    }
+    verifiedVersions.push(entryName);
+  }
+
+  const keptVersions = new Set<string>([options.currentVersion]);
+  const othersDescending = verifiedVersions
+    .filter((version) => version !== options.currentVersion)
+    .sort((left, right) => compareGoalProgressVersions(right, left));
+  if (
+    options.previousInstalledVersion &&
+    options.previousInstalledVersion !== options.currentVersion &&
+    verifiedVersions.includes(options.previousInstalledVersion)
+  ) {
+    keptVersions.add(options.previousInstalledVersion);
+  } else if (othersDescending[0] !== undefined) {
+    keptVersions.add(othersDescending[0]);
+  }
+
+  const candidates = verifiedVersions
+    .filter((version) => !keptVersions.has(version))
+    .sort(compareGoalProgressVersions);
+  if (candidates.length === 0) {
+    return { removed: [], warningCode: null };
+  }
+
+  let activeCommands: readonly string[];
+  try {
+    const { stdout } = await execFile("/bin/ps", ["-axo", "command="], {
+      encoding: "utf8",
+      maxBuffer: 8 * 1024 * 1024,
+      timeout: 2_000,
+    });
+    activeCommands = stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    return { removed: [], warningCode: stableErrorCode(error) };
+  }
+
+  const removed: string[] = [];
+  let warningCode: string | null = null;
+  for (const version of candidates) {
+    const candidatePath = resolve(options.programReleasesRoot, version);
+    const realCandidatePath = await realpath(candidatePath).catch(() => candidatePath);
+    const prefixes = [`${candidatePath}/`, `${realCandidatePath}/`];
+    if (activeCommands.some((command) => prefixes.some((prefix) => command.includes(prefix)))) {
+      continue;
+    }
+    try {
+      const metadata = await lstat(candidatePath);
+      if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+        continue;
+      }
+      await rm(candidatePath, { recursive: true, force: true });
+      removed.push(version);
+    } catch (error) {
+      if (!isNotFound(error)) {
+        warningCode ??= stableErrorCode(error);
+      }
+    }
+  }
+  return { removed, warningCode };
 }
 
 export interface InstallationStateOptions {
@@ -71,7 +175,7 @@ export class InstallationState {
   }
 
   release(): Promise<ParsedReleaseManifest> {
-    this.#release ??= readVerifiedRelease(this.#options.releaseRoot);
+    this.#release ??= readReleaseManifest(this.#options.releaseRoot);
     return this.#release;
   }
 
@@ -139,8 +243,8 @@ export class InstallationState {
     return inspectInstalledHook(this.#options.homeDirectory, installed);
   }
 
-  cdpReady(): Promise<boolean> {
-    this.#cdpReady ??= this.#options.cdp.verify();
+  cdpReady(codex?: CodexInstallIdentity): Promise<boolean> {
+    this.#cdpReady ??= this.#options.cdp.verify(codex);
     return this.#cdpReady;
   }
 
@@ -149,7 +253,7 @@ export class InstallationState {
   }
 
   installedRelease(installed: InstalledManifest): Promise<ParsedReleaseManifest> {
-    return readVerifiedRelease(installed.programReleaseRoot);
+    return readReleaseManifest(installed.programReleaseRoot);
   }
 
   async currentReleaseTarget(layout: MacosInstallationLayout): Promise<string | null> {

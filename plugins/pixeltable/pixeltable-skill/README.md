@@ -1,10 +1,10 @@
 # Pixeltable Skill
 
-The backend agents build with: multimodal database, orchestration, and serving in one file.
+Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data.
 
 This plugin teaches AI coding assistants to build Pixeltable applications: tables with computed columns, embedding indexes and vector search, RAG, tool-calling agents, and video, audio, image, and document pipelines across 25+ AI providers. The agent declares the schema as `TableModel` classes in `app.py`, creates the tables with `pxt schema update`, and serves HTTP routes with `pxt service update`.
 
-Verified against Pixeltable 0.7.11 on 2026-09-28: [docs/review-2.12.0.md](docs/review-2.12.0.md).
+Verified against Pixeltable 0.7.11 on 2026-09-28: [docs/review-2.12.0.md](docs/review-2.12.0.md). Later reviews: [2.13.0](docs/review-2.13.0.md), [2.14.0](docs/review-2.14.0.md).
 
 ## Install
 
@@ -16,12 +16,17 @@ Install the portable skill with [npx skills](https://github.com/vercel-labs/skil
 npx skills add pixeltable/pixeltable-skill
 ```
 
-This installs `SKILL.md` and its references for supported coding assistants,
-including Cursor, Copilot, Windsurf, and the Codex IDE extension.
+This installs the `pixeltable` skill and its references for supported coding
+assistants, including Claude Code, Cursor, Copilot, Windsurf, and the Codex IDE
+extension. A 2.13.0 install also keeps these folders beside it: `multimodal-rag`,
+`video-search`, `image-similarity-search`, `audio-transcription-search`,
+`agent-memory`, `vector-database-alternative`, `incremental-ml-pipeline`,
+`dataset-versioning`. Remove those directories. The `pixeltable` skill covers
+the jobs they and their slash commands named.
 
-With only Python, `pxt skills install` (Pixeltable 0.7.17 or later) writes the
-same skill into the current project's `.claude/skills/pixeltable` and
-`.agents/skills/pixeltable`; `pxt skills install -f` updates it.
+With only Python, `pxt skills install` (Pixeltable 0.7.21) copies the same skill
+into `.claude/skills/pixeltable` and `.agents/skills/pixeltable`.
+`pxt skills install -f` updates it.
 
 **Google Antigravity** is not one of them: it reads
 `~/.gemini/antigravity/skills`, which `npx skills` does not write to. Install
@@ -71,7 +76,7 @@ are team-distribution sources; they do not publish to a public directory.
 ## What's Inside
 
 ```
-skills/pixeltable-skill/
+skills/pixeltable-skill/        # The skill (name: pixeltable)
 ├── SKILL.md                    # Contract: app.py, schema update, service update
 └── references/
     ├── core-api.md             # Tables, querying, views, UDFs, config
@@ -79,6 +84,9 @@ skills/pixeltable-skill/
     ├── providers.md            # Import and output shape
     ├── workflows.md            # FastAPIRouter
     └── anti-patterns.md        # Wrong/right stack
+commands/                       # /pixeltable:scaffold, /pixeltable:add-provider
+agents/                         # pipeline-architect, debugger
+hooks/                          # Optional pure-Python hooks (Claude Code)
 ```
 
 Client manifests and marketplace metadata live alongside the shared skill so

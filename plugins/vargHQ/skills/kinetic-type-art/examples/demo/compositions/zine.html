@@ -1,0 +1,307 @@
+<!doctype html>
+<!--
+  photocopy-explainer · zine (assets/presets/photocopy-explainer.json: explainer timings, zine inks)
+  Question card -> number grid -> answer stamp, in two riso inks (#3255A4 blue, #FF48B0 pink,
+  multiply, pink misregistered 2 px) on #F4F1EA paper. Cards slide in 12 f power3.out with
+  0.5-1.5deg rotation and a 4 px / 6 px blur / 25% shadow; grid cells fill one per 2 f; the stamp
+  lands in 4 f (1.3 -> 1, back.out(2)) with a 2 f toner smear; highlighter 15 f power2.inOut at
+  1.1x x-height; toner jitter +-1 px every 2 f with +-3% flicker; one copier band in 21 f at 15%.
+  Type stays sharp: grain and speckle sit on top in multiply.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #f4f1ea;
+        }
+        #zn-stage {
+          position: absolute;
+          inset: -8px;
+          background: #f4f1ea;
+        }
+        #zn-paper {
+          position: absolute;
+          inset: 0;
+          opacity: 0.55;
+          mix-blend-mode: multiply;
+        }
+        .zn-card {
+          position: absolute;
+          background: #fbf9f4;
+          box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.25);
+        }
+        #zn-q {
+          left: 104px;
+          top: 168px;
+          width: 840px;
+          height: 700px;
+          padding: 64px 64px 56px;
+        }
+        #zn-g {
+          left: 1000px;
+          top: 188px;
+          width: 824px;
+          height: 560px;
+          padding: 56px 56px 48px;
+        }
+        .zn-kicker {
+          font-family: "Space Mono", monospace;
+          font-weight: 700;
+          font-size: 28px;
+          letter-spacing: 0.08em;
+          color: #3255a4;
+          mix-blend-mode: multiply;
+        }
+        .zn-rule {
+          height: 4px;
+          background: #3255a4;
+          margin: 20px 0 40px;
+          mix-blend-mode: multiply;
+        }
+        #zn-question {
+          position: relative;
+          font-family: "Inter", sans-serif;
+          font-weight: 600;
+          font-size: 84px;
+          line-height: 1.08;
+          letter-spacing: -0.02em;
+          color: #3255a4;
+          mix-blend-mode: multiply;
+        }
+        .zn-mark {
+          position: relative;
+          display: inline-block;
+        }
+        #zn-hl {
+          position: absolute;
+          left: -10px;
+          right: -10px;
+          bottom: 4px;
+          height: 52px;
+          background: #ff48b0;
+          opacity: 0.85;
+          mix-blend-mode: multiply;
+          border-radius: 3px 6px 4px 7px;
+          transform-origin: 0 50%;
+        }
+        .zn-foot {
+          position: absolute;
+          left: 64px;
+          bottom: 56px;
+          font-family: "Space Mono", monospace;
+          font-size: 28px;
+          color: #3255a4;
+          mix-blend-mode: multiply;
+        }
+        #zn-cells {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
+          margin-top: 8px;
+        }
+        .zn-cell {
+          position: relative;
+          height: 92px;
+          border: 3px solid #3255a4;
+          mix-blend-mode: multiply;
+        }
+        .zn-fill {
+          position: absolute;
+          inset: 0;
+          background: #3255a4;
+          opacity: 0;
+        }
+        .zn-n {
+          position: absolute;
+          left: 12px;
+          top: 6px;
+          font-family: "Space Mono", monospace;
+          font-weight: 700;
+          font-size: 30px;
+          color: #3255a4;
+        }
+        #zn-formula {
+          margin-top: 32px;
+          font-family: "Space Mono", monospace;
+          font-size: 30px;
+          color: #3255a4;
+          mix-blend-mode: multiply;
+        }
+        #zn-stamp {
+          position: absolute;
+          left: 1196px;
+          top: 712px;
+          width: 600px;
+          height: 200px;
+          mix-blend-mode: multiply;
+          opacity: 0;
+        }
+        #zn-stamp-in {
+          position: absolute;
+          inset: 0;
+          border: 10px solid #ff48b0;
+          border-radius: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: "Space Mono", monospace;
+          font-weight: 700;
+          font-size: 96px;
+          letter-spacing: 0.04em;
+          color: #ff48b0;
+        }
+        #zn-smear {
+          position: absolute;
+          inset: 0;
+          border: 10px solid #ff48b0;
+          border-radius: 18px;
+          opacity: 0;
+        }
+        #zn-band {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 140px;
+          background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 50%, rgba(255, 255, 255, 0));
+          opacity: 0;
+        }
+        #zn-grain {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          mix-blend-mode: multiply;
+          opacity: 0.5;
+        }
+        #zn-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #151515;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="zine" data-width="1920" data-height="1080">
+        <div id="zn-stage" data-layout-allow-overflow>
+          <svg id="zn-paper" width="1936" height="1096" data-layout-ignore>
+            <filter id="zn-fibre" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9 0.6" numOctaves="3" seed="7" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0.93  0 0 0 0 0.91  0 0 0 0 0.86  0 0 0 -1.2 1.05" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#zn-fibre)" />
+          </svg>
+          <div class="zn-card" id="zn-q">
+            <div class="zn-kicker">Q.01 / BEAT MATHS</div>
+            <div class="zn-rule"></div>
+            <div id="zn-question">How many frames is <span class="zn-mark"><span id="zn-hl"></span>one beat</span> at 120&nbsp;BPM?</div>
+            <div class="zn-foot">30 fps · no rounding per beat</div>
+          </div>
+          <div class="zn-card" id="zn-g">
+            <div class="zn-kicker">FIG. 2 — FRAMES IN ONE BEAT</div>
+            <div class="zn-rule"></div>
+            <div id="zn-cells"></div>
+            <div id="zn-formula">60 / 120 × 30 = 15</div>
+          </div>
+          <div id="zn-stamp"><div id="zn-smear"></div><div id="zn-stamp-in">15 FRAMES</div></div>
+          <canvas id="zn-grain" width="968" height="548"></canvas>
+          <div id="zn-band"></div>
+        </div>
+        <div id="zn-label" data-layout-ignore>photocopy-explainer · zine</div>
+      </div>
+      <script>
+        (function () {
+          const FPS = 30;
+          const at = (f) => Math.max(0, f / FPS - 0.004);
+          const cells = document.getElementById("zn-cells");
+          for (let i = 1; i <= 15; i++) {
+            const d = document.createElement("div");
+            d.className = "zn-cell";
+            d.innerHTML = '<div class="zn-fill" id="zn-f' + i + '"></div><div class="zn-n" id="zn-n' + i + '">' + String(i).padStart(2, "0") + "</div>";
+            cells.appendChild(d);
+          }
+
+          // Seeded speckle grain (mulberry32); 4 tiles cycled every 2 f so the toner "boils" on the copier rhythm.
+          function mulberry32(a) {
+            return function () {
+              a |= 0;
+              a = (a + 0x6d2b79f5) | 0;
+              let t = Math.imul(a ^ (a >>> 15), 1 | a);
+              t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+              return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+          }
+          const grain = document.getElementById("zn-grain");
+          const g = grain.getContext("2d");
+          const tiles = [];
+          for (let k = 0; k < 4; k++) {
+            const rnd = mulberry32(1009 + k * 7919);
+            const img = g.createImageData(grain.width, grain.height);
+            for (let i = 0; i < img.data.length; i += 4) {
+              const r = rnd();
+              let v = 255;
+              if (r < 0.006) v = 40; // toner speckle
+              else if (r < 0.05) v = 205 + Math.floor(rnd() * 40);
+              else v = 236 + Math.floor(rnd() * 19);
+              img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+              img.data[i + 3] = 255;
+            }
+            tiles.push(img);
+          }
+          let lastTile = -1;
+          const drawGrain = (t) => {
+            const k = Math.floor((t * FPS) / 2) % 4;
+            if (k !== lastTile) {
+              g.putImageData(tiles[k], 0, 0);
+              lastTile = k;
+            }
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          const clock = { t: 0 };
+          tl.fromTo(clock, { t: 0 }, { t: 4.5, duration: 4.5, ease: "none", onUpdate: () => drawGrain(clock.t) }, 0);
+          drawGrain(0);
+
+          // Toner jitter: +-1 px every 2 f, brightness flicker +-3%.
+          const jr = mulberry32(42);
+          for (let f = 0; f < 135; f += 2) {
+            const x = Math.round(jr() * 2 - 1);
+            const y = Math.round(jr() * 2 - 1);
+            const b = 1 + (jr() * 2 - 1) * 0.03;
+            tl.set("#zn-stage", { x: x, y: y, filter: "brightness(" + b.toFixed(3) + ")" }, at(f));
+          }
+
+          // Cards slide like paper on copier glass: 12 f power3.out, slight rotation, no fade.
+          tl.fromTo("#zn-q", { x: -1100, rotation: -4 }, { x: 0, rotation: -1.2, duration: 12 / FPS, ease: "power3.out" }, at(0));
+          tl.fromTo("#zn-g", { x: 1100, rotation: 4 }, { x: 0, rotation: 0.8, duration: 12 / FPS, ease: "power3.out" }, at(15));
+          // Copier band: one sweep top to bottom in 21 f at 15%.
+          tl.fromTo("#zn-band", { y: -140, opacity: 0.15 }, { y: 1100, opacity: 0.15, duration: 21 / FPS, ease: "none" }, at(4));
+          tl.set("#zn-band", { opacity: 0 }, at(26));
+          // Highlighter sweeps "one beat": 15 f power2.inOut.
+          tl.fromTo("#zn-hl", { scaleX: 0 }, { scaleX: 1, duration: 15 / FPS, ease: "power2.inOut" }, at(30));
+          // Grid: one cell per 2 f in reading order from frame 38.
+          for (let i = 1; i <= 15; i++) {
+            const f = 38 + (i - 1) * 2;
+            tl.set("#zn-f" + i, { opacity: 1 }, at(f));
+            tl.set("#zn-n" + i, { color: "#F4F1EA" }, at(f));
+          }
+          // Answer stamp on beat 5 (frame 75): 4 f, 1.3 -> 1, back.out(2); pink misregistered 2 px; 2 f smear.
+          tl.set("#zn-stamp", { opacity: 1 }, at(75));
+          tl.fromTo("#zn-stamp", { scale: 1.3, rotation: -9, x: 2, y: 2 }, { scale: 1, rotation: -6, x: 2, y: 2, duration: 4 / FPS, ease: "back.out(2)" }, at(75));
+          tl.fromTo("#zn-smear", { opacity: 0.35, x: -14 }, { opacity: 0, x: -6, duration: 2 / FPS, ease: "none" }, at(79));
+          window.__timelines["zine"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

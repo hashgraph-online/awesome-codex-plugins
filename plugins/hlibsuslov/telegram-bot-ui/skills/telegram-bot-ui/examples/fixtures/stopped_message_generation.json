@@ -1,0 +1,11 @@
+{
+  "update_id": 900001,
+  "stopped_message_generation": {
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "draft_id": 48127
+  }
+}

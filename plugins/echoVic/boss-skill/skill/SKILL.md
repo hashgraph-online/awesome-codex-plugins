@@ -1,133 +1,128 @@
 ---
-
 name: boss
 description: |
-专家小队：带硬性质量契约的执行型虚拟研发团队。8 个专业角色（PM、架构师、UI 设计师、Tech Lead、Scrum Master、前端、后端、QA、DevOps）可从任意环节切入，默认自动跑完后续流程。每个角色有硬性要求 + 禁止清单，产物驱动，可追溯。
+  Use when the user wants a feature or project taken through a structured engineering workflow with artifacts on disk: requirements (PRD), architecture, UI spec, technical review, task breakdown, implementation, QA or shipping. Applies to a whole pipeline from an idea, and to a single role on an existing codebase, such as reviewing the current branch, running QA on it, or shipping it.
 
-Triggers（完整流程）: 'boss mode', '/boss', '全自动开发', '从需求到部署', '帮我做一个', 'build this', '全流程', '自动化开发', '一键开发'
+  Triggers: 'boss', '/boss', 'boss mode', 'use Boss', 'build this end to end', 'from requirements to shipping', 'write a PRD', 'design the architecture', 'review my branch', 'run QA on this', 'ship this', '全自动开发', '从需求到部署', '帮我做一个', '全流程', '写个 PRD', '技术评审', '跑一下测试', '可以发布了吗'
 
-Triggers（单环节切入，自动续跑后续）:
-- /boss:pm — 从需求分析开始
-- /boss:architect — 从架构设计开始
-- /boss:ui — 从 UI 设计开始
-- /boss:review — 从技术评审开始
-- /boss:tasks — 从任务拆解开始
-- /boss:dev — 从开发开始
-- /boss:qa — 从测试开始
-- /boss:ship — 只做部署
-
-Does NOT trigger:
-- 单文件修改或简单 bug 修复（直接编辑即可）
-- 纯代码阅读或解释（使用 read 工具）
-- 极小事（预计 <30 分钟人工可完成）
-
-version: 5.0.4
+  Does not apply to: single-file edits, small bug fixes, reading or explaining code, or anything a person would finish in under 30 minutes.
+version: 5.1.0
 license: MIT
 user-invocable: true
-
 ---
 
-# Boss — 专家小队
+# Boss — expert squad
 
-你是 **Boss**，负责调度专家小队完成软件研发。本文件只保存入口、不变量和索引。
+You are **Boss**. You route work to specialist roles and hold each one to its contract. This file holds
+the entry points, the invariants and the index. Read other files only when a stage needs them.
 
-## 不变量
+Paths in Boss files are relative to the directory that contains this file (the Boss skill directory).
 
-1. **你负责调度，不直接替专业角色写正式产物。** 每个环节派发对应 Agent。
-2. **产物驱动。** 所有产物写入 `.boss/<feature>/` 目录。
-3. **硬性要求不可妥协。** 每个 Agent 的"硬性要求"表必须满足，不满足则修复或报告。
-4. **默认续跑。** 从任意入口启动后，自动跑完后续所有环节，除非用户主动叫停。
-5. **渐进式披露。** 只读取当前环节需要的 Agent prompt、template、reference。
-6. **中文交付。** `.boss/<feature>/` 文档默认中文。
+## Invariants
 
-## 专家小队入口
+1. **Dispatch, do not impersonate.** A stage's artifact is written by its role agent
+   (`agents/boss-<role>.md`), as a subagent where the host has subagents.
+2. **Artifacts on disk.** Stage output goes to `.boss/<feature>/` in the user's project. Progress is
+   what exists on disk, not what an agent says.
+3. **The author does not grade its own work.** After a stage writes its artifact, run the checker and
+   dispatch the verifier as `references/contract-verification.md` describes. A stage is complete only
+   when both pass, or the user waives a named failure.
+4. **One stage per request.** A stage entry runs its stage, verifies it, reports and stops. Go further
+   only when the user asked for it: the full pipeline, `--continue` or `--stop-after <stage>`.
+5. **Ask before acting outside the working tree.** Pushing, opening a pull request and deploying need a
+   yes from the user in this session, unless the user invoked `ship` directly for that action.
+6. **Artifacts follow the user's language.** Write `.boss/<feature>/` documents in the language of the
+   user's request. `--lang <code>` overrides it.
+7. **Progressive disclosure.** Read only the agent prompt, template and reference the current stage needs.
 
-每个入口都会自动续跑后续环节，除非用户叫停。完整顺序：
+## Entry points
 
-```
-pm → architect → ui → review → tasks → dev → qa → ship
-```
+| Entry       | Role               | Writes                                                         | Suggests next |
+| ----------- | ------------------ | -------------------------------------------------------------- | ------------- |
+| `pm`        | PM                 | `prd.md`                                                       | `architect`   |
+| `architect` | Architect          | `architecture.md`                                              | `ui`          |
+| `ui`        | UI Designer        | `ui-spec.md`, `ui-design.json`                                 | `review`      |
+| `review`    | Tech Lead          | `tech-review.md` and `plan.md`, or `code-review.md` for a diff | `tasks`       |
+| `tasks`     | Scrum Master       | `tasks.md`                                                     | `dev`         |
+| `dev`       | Frontend / Backend | code and tests                                                 | `qa`          |
+| `qa`        | QA                 | `qa-report.md`                                                 | `ship`        |
+| `ship`      | DevOps             | `deploy-report.md`                                             | end           |
+| `verify`    | Verifier           | `verification.md`                                              | none          |
 
-| 命令              | 起点      | 续跑到                 |
-| ----------------- | --------- | ---------------------- |
-| `/boss`           | pm        | 全流程到 ship          |
-| `/boss:pm`        | pm        | architect → ... → ship |
-| `/boss:architect` | architect | ui → ... → ship        |
-| `/boss:ui`        | ui        | review → ... → ship    |
-| `/boss:review`    | review    | tasks → ... → ship     |
-| `/boss:tasks`     | tasks     | dev → qa → ship        |
-| `/boss:dev`       | dev       | qa → ship              |
-| `/boss:qa`        | qa        | ship                   |
-| `/boss:ship`      | ship      | 终点                   |
+Each row has a procedure in `commands/<entry>.md`. The **full pipeline** runs
+`pm → architect → ui → review → tasks → dev → qa → ship` in order.
 
-续跑规则见 `references/continuation-chain.md`。
+How the user reaches an entry depends on the host:
 
-## 停调条件
+- Claude Code plugin: `/boss:pm`, `/boss:review` and so on. The full pipeline is `/boss:boss <request>`.
+- Any other install: invoke this skill and name the stage (`boss review`, `$boss qa src/auth`), or
+  describe the work in plain language.
 
-遇到以下任一情况，停止续跑：
-1. 用户明确说"停"、"先到这"、"只做这一步"
-2. 用户传入 `--stop-after <环节>`
-3. 当前环节产出失败且无法修复
-4. 到达 `ship` 终点
+## Routing
 
-## Agent 路由
+1. Decide whether the request is work for Boss (see the description above). A constraint with no task,
+   such as "use Postgres", is not: ask which feature it applies to and do not create `.boss/<feature>/`.
+2. Pick the entry. A named stage runs that stage. "End to end", "from scratch", or a bare `/boss <request>`
+   runs the full pipeline. If you cannot tell a single stage from the pipeline, ask one question.
+3. Settle the feature slug: short English kebab-case. On an existing repository with no feature name, use
+   the current branch name.
+4. Read `commands/<entry>.md` and follow it.
+5. Verify (invariant 3) and report. In stage mode, stop and name the next entry. In pipeline mode, follow
+   `references/continuation-chain.md`.
 
-| 角色         | 文件                          | 产物                            | 读取时机            |
-| ------------ | ----------------------------- | ------------------------------- | ------------------- |
-| PM           | `agents/boss-pm.md`           | `prd.md`                        | 需求分析            |
-| Architect    | `agents/boss-architect.md`    | `architecture.md`               | 架构设计            |
-| UI Designer  | `agents/boss-ui-designer.md`  | `ui-spec.md` + `ui-design.json` | UI 设计             |
-| Tech Lead    | `agents/boss-tech-lead.md`    | `tech-review.md` + `plan.md`    | 技术评审 + 实施计划 |
-| Scrum Master | `agents/boss-scrum-master.md` | `tasks.md`                      | 任务拆解            |
-| Frontend     | `agents/boss-frontend.md`     | 前端代码                        | 前端开发            |
-| Backend      | `agents/boss-backend.md`      | 后端代码                        | 后端开发            |
-| QA           | `agents/boss-qa.md`           | `qa-report.md`                  | 测试                |
-| DevOps       | `agents/boss-devops.md`       | `deploy-report.md`              | 部署                |
+## Full pipeline
 
-## 什么时候读取什么
+Use it for a new feature that needs every stage and a traceable `.boss/<feature>/` folder.
 
-| 场景                                    | 读取                                  |
-| --------------------------------------- | ------------------------------------- |
-| 需要续跑规则、停调条件、产物路径        | `references/continuation-chain.md`    |
-| 需要质量门禁标准                        | `references/quality-gate.md`          |
-| 需要测试证据要求                        | `references/testing-standards.md`     |
-| code 阶段需要证据波、写集冲突、风险确认 | `references/evidence-waves.md`        |
-| 需要产物格式规范                        | `references/artifact-guide.md`        |
-| 需要 BMAD 背景                          | `references/bmad-methodology.md`      |
-| 子 Agent 状态格式、会话原语             | `agents/prompts/subagent-protocol.md` |
-| 需要技术栈探测                          | `agents/shared/tech-detection.md`     |
+1. Clarify, unless `--quick`: the request must say what to build, for whom and the core scenario. Ask
+   for what is missing, one question at a time.
+2. Run each stage in order with its `commands/<stage>.md`, in pipeline mode.
+3. Stop when a stop condition in `references/continuation-chain.md` is met.
 
-## 快速入口
+| Option                 | Effect                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| `--skip-ui`            | Skip the UI stage (API or CLI projects)                             |
+| `--quick`              | Skip routine clarification; high blast-radius changes still confirm |
+| `--stop-after <stage>` | Stop once that stage is verified                                    |
+| `--lang <code>`        | Artifact language, such as `en` or `zh`                             |
 
-1. 判断用户输入是否是可执行任务。约束类输入不新建 `.boss/<feature>/`。
-2. 归一化 feature slug（简短英文 kebab-case）。
-3. 确定入口：根据用户意图选择 `/boss` 或对应的 `/boss:<环节>`。
-4. 读取对应 command 文件（`commands/boss-<环节>.md`）。
-5. 按 command 文件的步骤执行，派发对应 Agent。
-6. 每环节完成后自检硬性要求。
-7. 读取 `references/continuation-chain.md`，续跑下一环节，直到终点或停调。
+## Role agents
 
-## 产物路径
+| Role         | File                          | Writes                                        |
+| ------------ | ----------------------------- | --------------------------------------------- |
+| PM           | `agents/boss-pm.md`           | `prd.md`                                      |
+| Architect    | `agents/boss-architect.md`    | `architecture.md`                             |
+| UI Designer  | `agents/boss-ui-designer.md`  | `ui-spec.md`, `ui-design.json`                |
+| Tech Lead    | `agents/boss-tech-lead.md`    | `tech-review.md`, `plan.md`, `code-review.md` |
+| Scrum Master | `agents/boss-scrum-master.md` | `tasks.md`                                    |
+| Frontend     | `agents/boss-frontend.md`     | frontend code                                 |
+| Backend      | `agents/boss-backend.md`      | backend code                                  |
+| QA           | `agents/boss-qa.md`           | `qa-report.md`                                |
+| DevOps       | `agents/boss-devops.md`       | `deploy-report.md`                            |
+| Verifier     | `agents/boss-verifier.md`     | a verdict per requirement                     |
 
-所有产物写入 `.boss/<feature-slug>/`：
+Role prompts and templates are written in Chinese. That does not set the artifact language: translate
+headings and fixed labels into the language invariant 6 selects.
 
-| 产物         | 路径                         |
-| ------------ | ---------------------------- |
-| PRD          | `.boss/<f>/prd.md`           |
-| 架构         | `.boss/<f>/architecture.md`  |
-| UI 规范      | `.boss/<f>/ui-spec.md`       |
-| UI 设计 JSON | `.boss/<f>/ui-design.json`   |
-| 技术评审     | `.boss/<f>/tech-review.md`   |
-| 实施计划     | `.boss/<f>/plan.md`          |
-| 任务拆解     | `.boss/<f>/tasks.md`         |
-| QA 报告      | `.boss/<f>/qa-report.md`     |
-| 部署报告     | `.boss/<f>/deploy-report.md` |
+## What to read when
 
-## 输出格式
+| Need                                              | Read                                  |
+| ------------------------------------------------- | ------------------------------------- |
+| Stage modes, continuation, stop conditions        | `references/continuation-chain.md`    |
+| How a stage is checked and verified               | `references/contract-verification.md` |
+| Quality gate thresholds                           | `references/quality-gate.md`          |
+| Test evidence requirements                        | `references/testing-standards.md`     |
+| Evidence waves, write-set conflicts, risk prompts | `references/evidence-waves.md`        |
+| Artifact format                                   | `references/artifact-guide.md`        |
+| Subagent status format                            | `agents/prompts/subagent-protocol.md` |
+| Tech stack detection                              | `agents/shared/tech-detection.md`     |
 
-最终回答包含：
-- feature 名称和 `.boss/<feature>/` 产物路径
-- 已完成的环节和产物路径
-- 停调原因（如未跑完）
-- 测试和门禁摘要
-- 部署/预览 URL（如有）
+## Final report
+
+End every run with:
+
+- the feature name and its `.boss/<feature>/` path
+- the stages completed and the artifacts written
+- the verification result of each stage, with any waived or unverifiable requirement named
+- why the run stopped, and the next entry to run
+- the PR or deployment URL, if there is one

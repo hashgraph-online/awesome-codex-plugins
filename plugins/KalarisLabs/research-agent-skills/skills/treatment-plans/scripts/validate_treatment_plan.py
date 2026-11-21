@@ -20,6 +20,7 @@ from _common import (
 
 
 def validate_target(raw_path: str) -> dict:
+    """Validate target."""
     documents, _ = load_target(raw_path)
     if set(documents) == set(TEMPLATE_FILES):
         issues = validate_package_structure(documents)
@@ -68,6 +69,7 @@ def validate_target(raw_path: str) -> dict:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate one local JSON record or a complete six-file package. "
@@ -82,6 +84,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = validate_target(args.path)

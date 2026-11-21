@@ -197,6 +197,7 @@ class Auditor(ast.NodeVisitor):
     """Collect unit and uncertainty findings from one parsed module."""
 
     def __init__(self, source: str, filename: str) -> None:
+        """Initialise the instance."""
         self.filename = filename
         self.findings: list[dict[str, Any]] = []
         self.registry_sites: list[ast.AST] = []
@@ -214,6 +215,7 @@ class Auditor(ast.NodeVisitor):
         message: str,
         remedy: str,
     ) -> None:
+        """Handle report."""
         self.findings.append(
             {
                 "rule": rule,
@@ -228,12 +230,14 @@ class Auditor(ast.NodeVisitor):
     # --- imports -----------------------------------------------------------
 
     def visit_Import(self, node: ast.Import) -> None:
+        """Handle visit import."""
         for alias in node.names:
             if alias.name.split(".", 1)[0] == "uncertainties":
                 self.imports_uncertainties = True
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Handle visit import from."""
         if node.module and node.module.split(".", 1)[0] == "uncertainties":
             self.imports_uncertainties = True
         self.generic_visit(node)
@@ -241,6 +245,7 @@ class Auditor(ast.NodeVisitor):
     # --- string literals ---------------------------------------------------
 
     def visit_Constant(self, node: ast.Constant) -> None:
+        """Handle visit constant."""
         if isinstance(node.value, str):
             tokens = _tokens(node.value)
             if any(token.startswith("delta_") for token in tokens):
@@ -270,6 +275,7 @@ class Auditor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _check_constant_literal(self, node: ast.Constant, value: float) -> None:
+        """Check constant literal."""
         if value == 0 or not math.isfinite(value):
             return
         if significant_digits(value) < 3:
@@ -291,6 +297,7 @@ class Auditor(ast.NodeVisitor):
     # --- attribute access --------------------------------------------------
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
+        """Handle visit attribute."""
         if node.attr == "magnitude":
             source = node.value
             preserved = (
@@ -314,6 +321,7 @@ class Auditor(ast.NodeVisitor):
     # --- calls -------------------------------------------------------------
 
     def visit_Call(self, node: ast.Call) -> None:
+        """Handle visit call."""
         name = self._call_name(node)
         keywords = {keyword.arg for keyword in node.keywords if keyword.arg}
 
@@ -332,18 +340,21 @@ class Auditor(ast.NodeVisitor):
                 "uncertainties; leave it False only for relative weights",
             )
 
-        if name in {"std", "var", "nanstd", "nanvar"} and "ddof" not in keywords:
-            if self._is_numpy_call(node):
-                self.report(
-                    node,
-                    "UNC002",
-                    "medium",
-                    f"numpy {name} defaults to ddof=0, which is the population "
-                    "spread; a Type A standard uncertainty needs the sample "
-                    "estimate",
-                    "pass ddof=1, and divide by sqrt(n) as well when you want the "
-                    "standard uncertainty of the mean rather than of one reading",
-                )
+        if (
+            name in {"std", "var", "nanstd", "nanvar"}
+            and "ddof" not in keywords
+            and self._is_numpy_call(node)
+        ):
+            self.report(
+                node,
+                "UNC002",
+                "medium",
+                f"numpy {name} defaults to ddof=0, which is the population "
+                "spread; a Type A standard uncertainty needs the sample "
+                "estimate",
+                "pass ddof=1, and divide by sqrt(n) as well when you want the "
+                "standard uncertainty of the mean rather than of one reading",
+            )
 
         if name == "ufloat":
             for argument in node.args + [kw.value for kw in node.keywords]:
@@ -382,6 +393,7 @@ class Auditor(ast.NodeVisitor):
 
     @staticmethod
     def _call_name(node: ast.Call) -> str | None:
+        """Handle call name."""
         if isinstance(node.func, ast.Name):
             return node.func.id
         if isinstance(node.func, ast.Attribute):
@@ -390,12 +402,14 @@ class Auditor(ast.NodeVisitor):
 
     @staticmethod
     def _call_module(node: ast.Call) -> str | None:
+        """Handle call module."""
         if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
             return node.func.value.id
         return None
 
     @staticmethod
     def _is_numpy_call(node: ast.Call) -> bool:
+        """Return whether numpy call."""
         return (
             isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
@@ -483,6 +497,7 @@ def render_markdown(document: dict[str, Any]) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Statically audit Python sources for stripped units, offset-temperature "
@@ -552,6 +567,7 @@ def exit_code(document: dict[str, Any], fail_on: str) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     arguments = build_parser().parse_args(argv)
     try:
         document = run(arguments)

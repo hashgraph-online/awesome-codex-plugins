@@ -47,8 +47,11 @@ from _common import (  # noqa: E402
     shape_facts,
 )
 
+TARGET_HELP = "STEP, STL, or *_model.py"
 
-def cmd_standards(args) -> int:
+
+def cmd_standards(args) -> None:
+    """Run the standards subcommand; returning None signals success (exit 0)."""
     data = load_standards()
     standards = data["standards"]
 
@@ -72,7 +75,7 @@ def cmd_standards(args) -> int:
         if not entry.get("verified", False):
             lines.append("  WARNING: this entry is not verified against the primary document.")
         emit(entry, args.as_json, "\n".join(lines))
-        return 0
+        return
 
     listing = [
         {
@@ -88,10 +91,10 @@ def cmd_standards(args) -> int:
         for item in listing
     )
     emit(listing, args.as_json, text)
-    return 0
 
 
 def cmd_facts(args) -> int:
+    """Run the facts subcommand."""
     shape = load_shape(args.target)
     facts = shape_facts(shape)
     box = facts["bounding_box_mm"]
@@ -167,6 +170,7 @@ def _evaluate(
 
 
 def cmd_fit(args) -> int:
+    """Run the fit subcommand."""
     entry = get_standard(args.standard)
     offset = float(args.clearance)
     results = []
@@ -426,6 +430,7 @@ def cmd_probe(args) -> int:
 
 
 def _parse_floats(raw: str, count: int, flag: str) -> list[float]:
+    """Parse floats."""
     parts = [p for p in raw.replace(" ", "").split(",") if p]
     if len(parts) != count:
         raise LabCadError(f"{flag} expects {count} comma-separated numbers, got {raw!r}")
@@ -435,15 +440,18 @@ def _parse_floats(raw: str, count: int, flag: str) -> list[float]:
         raise LabCadError(f"{flag}: {raw!r} is not numeric") from exc
 
 
-def cmd_bores(args) -> int:
-    """List every cylindrical face: the census for reconciling render vs solid."""
+def cmd_bores(args) -> None:
+    """List every cylindrical face: the census for reconciling render vs solid.
+
+    Returning None signals success (exit 0).
+    """
     part = load_shape(args.target)
     rows = cylinder_census(part)
     payload = {"target": str(args.target), "cylindrical_faces": rows}
 
     if not rows:
         emit(payload, args.as_json, f"{args.target.name}: no cylindrical faces.")
-        return 0
+        return
     lines = [
         f"{args.target.name}: {len(rows)} cylindrical face(s). Full ~360 degree sweeps "
         "are bores/bosses; ~90 degree sweeps are edge fillets.",
@@ -462,10 +470,10 @@ def cmd_bores(args) -> int:
         "picture appears to show."
     )
     emit(payload, args.as_json, "\n".join(lines))
-    return 0
 
 
 def _min_distance(shape_a, shape_b) -> float | None:
+    """Handle min distance."""
     for method in ("distance_to", "distance"):
         func = getattr(shape_a, method, None)
         if callable(func):
@@ -483,6 +491,7 @@ def _min_distance(shape_a, shape_b) -> float | None:
 
 
 def cmd_clearance(args) -> int:
+    """Run the clearance subcommand."""
     shape_a = load_shape(args.a)
     shape_b = load_shape(args.b)
 
@@ -531,6 +540,7 @@ def cmd_clearance(args) -> int:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -545,7 +555,7 @@ def main() -> int:
     p_std.set_defaults(func=cmd_standards)
 
     p_facts = sub.add_parser("facts", help="validity, bounding box, volume, area, centre")
-    p_facts.add_argument("target", type=Path, help="STEP, STL, or *_model.py")
+    p_facts.add_argument("target", type=Path, help=TARGET_HELP)
     p_facts.set_defaults(func=cmd_facts)
 
     p_int = sub.add_parser(
@@ -577,7 +587,7 @@ def main() -> int:
         "probe",
         help="ad-hoc region gauge: is this cylinder/box clear of (or filled with) material?",
     )
-    p_probe.add_argument("target", type=Path, help="STEP, STL, or *_model.py")
+    p_probe.add_argument("target", type=Path, help=TARGET_HELP)
     p_probe.add_argument("--cyl", type=float, metavar="DIA",
                          help="cylindrical gauge of this diameter in mm")
     p_probe.add_argument("--box", metavar="DX,DY,DZ", help="box gauge, size in mm")
@@ -606,7 +616,7 @@ def main() -> int:
         description="The reconciliation instrument for step 6: compare what the render "
                     "appears to show against what the solid actually contains.",
     )
-    p_bores.add_argument("target", type=Path, help="STEP, STL, or *_model.py")
+    p_bores.add_argument("target", type=Path, help=TARGET_HELP)
     p_bores.set_defaults(func=cmd_bores)
 
     p_fit = sub.add_parser("fit", help="check one dimension against a standard by hand")
@@ -638,7 +648,8 @@ def main() -> int:
     p_clr.set_defaults(func=cmd_clearance)
 
     args = parser.parse_args()
-    return args.func(args)
+    result = args.func(args)
+    return 0 if result is None else result
 
 
 if __name__ == "__main__":

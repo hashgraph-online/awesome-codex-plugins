@@ -228,7 +228,7 @@ python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch>
 # Preview what would be downloaded
 python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch> --dry-run
 
-# Retry previously failed downloads
+# Retry parts a previous run failed at DigiKey
 python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch> --force
 
 # Custom output directory
@@ -244,7 +244,7 @@ python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch> --paral
 python3 <skill-path>/scripts/sync_datasheets_digikey.py --mpn-list mpns.txt --output ./datasheets
 ```
 
-**MPN-list batch mode** (KH-312) — when you have a list of MPNs but no KiCad
+**MPN-list batch mode** — when you have a list of MPNs but no KiCad
 project to point at (harness datasheet seeding, bulk seeding a new part
 library). The file format is one MPN per line. Blank lines and `#`
 comments (full-line and inline) are skipped. Non-MPN strings (generic
@@ -257,7 +257,7 @@ The script:
 - **Filters generic passives** — skips entries without real MPNs (e.g., "100nF", "10K")
 - **Tries schematic URLs first** — uses the datasheet URL embedded in the KiCad symbol before hitting the DigiKey API, saving API calls
 - **Writes `manifest.json` manifest** — maps each MPN to its PDF file, manufacturer, description, download status, and URL. The kicad skill reads this during design review to cross-reference datasheets with the schematic.
-- **Tracks failures** — failed downloads are recorded with error details and not retried on subsequent runs unless `--force` is used
+- **Tracks failures** — a part not found, without a datasheet or failed at DigiKey is recorded with the error (`failed_providers`) and skipped by DigiKey on later runs unless `--force`; other distributors still try it, and a network failure (`error`) is retried on the next run
 - **Rate-limited** — 1 second between DigiKey API calls (configurable with `--delay`)
 - **Saves progress incrementally** — if interrupted, already-downloaded files are preserved
 
@@ -296,16 +296,17 @@ python3 <skill-path>/scripts/fetch_datasheet_digikey.py --search "ADP1706" --jso
 ```
 
 The script:
-- **OS-agnostic** — uses Python `requests` library (no wget/curl dependency). Falls back to `urllib` if `requests` isn't installed.
+- **OS-agnostic** — uses Python `requests` library (no wget/curl dependency). Falls back to `urllib` if `requests` isn't installed, is older than 2.32.2, or fails.
+- **Refuses another part** — a `--search` hit that is a different part is not downloaded (exit 2); a family match is accepted
 - **Normalizes redirect URLs** — DigiKey's `DatasheetUrl` for TI parts points to a JS redirect page; the script extracts the direct PDF link. Also fixes protocol-relative `//mm.digikey.com/...` URLs.
 - **Sets proper User-Agent** — many manufacturer sites (Nexperia, Lite-On, STMicro, Molex) block bare `urllib` or `curl` requests but serve PDFs fine with a browser User-Agent
 - **Validates PDF headers** — rejects HTML error pages or Cloudflare challenge pages that masquerade as downloads
 - **Falls back to alternative sources** — tries known URL patterns for Microchip when the primary URL fails
-- **Headless browser fallback** — if `playwright` is installed, automatically uses a headless Chromium browser as a last resort for sites that serve PDFs via JavaScript (Broadcom doc viewer, Espressif download redirects). Intercepts download events and reads response bodies directly.
+- **Headless browser fallback** — if `playwright` is installed and `datasheets.allow_private_hosts` is set in `~/.kicad-happy.json`, uses a headless Chromium browser as a last resort for sites that serve PDFs via JavaScript (Broadcom doc viewer, Espressif download redirects). Intercepts download events and reads response bodies directly. The browser resolves each host itself, so its connection cannot be held to the checked address; without the opt-in it is not started, and the run says so once.
 - **Exit codes**: 0 = success, 1 = download failed, 2 = search/API error
 - **Dependencies**:
-  - `pip install requests` (strongly recommended; urllib fallback can't handle HTTP/2 sites like analog.com)
-  - `pip install playwright && playwright install chromium` (optional; enables headless browser fallback for JS-heavy sites)
+  - `pip install requests` 2.32.2 or newer (strongly recommended; some manufacturer sites, such as analog.com, time out over urllib but answer requests; an older `requests` cannot be held to the checked address and is not used)
+  - `pip install playwright && playwright install chromium` (optional; enables the headless browser fallback for JS-heavy sites when `datasheets.allow_private_hosts` is set)
 
 ### Manufacturer Compatibility
 
@@ -314,7 +315,7 @@ Tested against 240 components across 8 open-source KiCad projects (96% download 
 | Manufacturer | Status | Notes |
 |---|---|---|
 | TI | Works | URL normalization strips JS redirect wrapper |
-| ADI / Analog | Works | `requests` handles HTTP/2 transparently |
+| ADI / Analog | Works | Needs `requests`; urllib times out |
 | STMicro | Works | Requires User-Agent header |
 | Nexperia | Works | Requires User-Agent header |
 | Lite-On | Works | Requires User-Agent header |
@@ -325,15 +326,15 @@ Tested against 240 components across 8 open-source KiCad projects (96% download 
 | Diodes Inc | Works | Direct download |
 | Microchip | Works | Direct download via API URLs |
 | YAGEO, Samsung, Murata | Works | DigiKey-hosted PDFs (`mm.digikey.com`) |
-| Broadcom | Works* | Requires Playwright — `docs.broadcom.com` serves PDFs via JS download |
-| Espressif | Works* | Requires Playwright — download redirect needs JS execution |
+| Broadcom | Works* | Requires the browser fallback — `docs.broadcom.com` serves PDFs via JS download |
+| Espressif | Works* | Requires the browser fallback — download redirect needs JS execution |
 | Lattice | Mixed | Some URLs require cookies/auth |
 
-\* Requires `playwright` package — falls back gracefully to user notification if not installed.
+\* Requires the `playwright` package and `datasheets.allow_private_hosts` — if either is missing, the script reports the URL for the user to download.
 
 ### When Download Fails
 
-If the script or inline download fails (exit code 1), **tell the user and provide the URL** so they can open it in a real browser. Some manufacturer sites (Lattice, TDK InvenSense) require interactive login, cookies, or CAPTCHA that even a headless browser can't handle. With Playwright installed, Broadcom and Espressif now download automatically.
+If the script or inline download fails (exit code 1), **tell the user and provide the URL** so they can open it in a real browser. Some manufacturer sites (Lattice, TDK InvenSense) require interactive login, cookies, or CAPTCHA that even a headless browser can't handle. Broadcom and Espressif download automatically only with Playwright installed and `datasheets.allow_private_hosts` set; otherwise give the user their URL.
 
 Example message to the user:
 > I couldn't download the datasheet for ICE40UP5K-SG48I automatically — Lattice's site requires browser authentication. Here's the direct link:
@@ -341,7 +342,7 @@ Example message to the user:
 >
 > You can open it in your browser and save it locally, then I can read and analyze it.
 
-The `--json` output always includes the `datasheet_url` field even on failure, so you can extract the URL programmatically.
+With `--search --json`, the output includes `datasheet_url` whenever the part was found, including a failed download (exit 1); a part that is not found (exit 2) gives only `success` and `error`. Direct-URL mode reports `url` instead.
 
 ### Manual Download Workflow
 

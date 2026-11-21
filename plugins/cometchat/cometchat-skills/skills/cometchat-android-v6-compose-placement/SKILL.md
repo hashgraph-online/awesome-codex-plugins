@@ -2,7 +2,7 @@
 name: cometchat-android-v6-compose-placement
 description: "Where the CometChat Android v6 chat UI goes in a Jetpack Compose app — the default conversations→message NavHost flow, growing to the tab-based app (chats/users/groups/calls + detail, thread and search routes + incoming calls), a single one-to-one screen, or chat embedded in an existing composable, with a correct back stack and IME handling. Triggers: 'cometchat compose navigation', 'chat screen navhost', 'tab based chat compose', 'embed cometchat in a composable', 'full chat app jetpack compose'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-compose-android ^6 (Jetpack Compose cohort) — 6.0.x, verified 6.0.5; com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-compose-android ^6 (Jetpack Compose cohort) — 6.1.x, verified 6.1.1; com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -22,7 +22,7 @@ metadata:
 
 ## Prerequisites & install
 
-> ⚠️ **Required on Compose too:** `configurations.all { exclude(group = "org.jetbrains", module = "annotations-java5") }` plus `android.useAndroidX=true` + `android.enableJetifier=true` in `gradle.properties`. The collision arrives via `chatuikit-core-android`, which BOTH cohorts pull, so a Compose-only app fails its FIRST build without them (~40 `Duplicate class` errors). Full block: `cometchat-android-v6-core` §Prerequisites & install.
+> ⚠️ **Build setup (same for Compose):** `android.useAndroidX=true` in `gradle.properties`. On 6.1.1 that's all: the POMs carry the `annotations-java5` exclusion and chat-sdk 5.0.7 is all-AndroidX (verified: a clean Compose app builds with no exclude and Jetifier off). On 6.0.x you ALSO need `configurations.all { exclude(group = "org.jetbrains", module = "annotations-java5") }` + `android.enableJetifier=true`, or the FIRST build fails (~40 `Duplicate class` errors via `chatuikit-core-android`). Full block: `cometchat-android-v6-core` §Prerequisites & install.
 Same kit + `initFromSettings → login` gate as `core` — **no chat route is shown before login resolves**; gate the NavHost (or the start destination) on it. Compose cohort artifact only.
 
 ## The rule that governs every layout: one screen per route
@@ -64,7 +64,7 @@ fun ChatApp() {
         composable("messages") {
             MessageScreen(selectedUser, selectedGroup) { navController.popBackStack() }
         }
-        // + composable("thread") { … } — its own destination (Thread route, Placement 3)
+        // + composable("thread") { ... } — its own destination (Thread route, Placement 3)
     }
 }
 ```
@@ -186,7 +186,7 @@ CometChatMessageComposer(
     user = user, group = group, parentMessageId = parent.id,
 )
 ```
-- **Search route** — (import `com.cometchat.uikit.core.constants.SearchScope`) `CometChatSearch(searchScopes = listOf(SearchScope.CONVERSATIONS, SearchScope.MESSAGES), uid = …, guid = …, onConversationClick = …, onMessageClick = …, onBackPress = …)`. Omit `uid`/`guid` for global search; pass one to scope to the open chat.
+- **Search route** — (import `com.cometchat.uikit.core.constants.SearchScope`) `CometChatSearch(searchScopes = listOf(SearchScope.CONVERSATIONS, SearchScope.MESSAGES), uid = ..., guid = ..., onConversationClick = ..., onMessageClick = ..., onBackPress = ...)`. Omit `uid`/`guid` for global search; pass one to scope to the open chat.
 - **Incoming calls at app level** — `CometChatIncomingCall` driven by a global call listener, hoisted above the NavHost so a call surfaces from any tab (→ `cometchat-android-v6-calls`).
 
 Each tab keeps its own back stack (`navController` per tab, or `saveState`/`restoreState` on the bottom-nav items).
@@ -197,7 +197,7 @@ Give the component a bounded box: `Modifier.weight(1f)` inside a `Column`, `Modi
 ## Placement 5 — deep entry from an arbitrary screen (known UID/GUID)
 "Open a chat with THIS user" from one of your own screens (an order, an article, a ticket): gate on the same init/login, resolve the entity with the Chat SDK, then navigate to the SAME message destination from Placement 1 with it (docs: `core` → `references/docs-map.md` → `one-to-one-chat`):
 ```kotlin
-CometChat.getUser(uid, object : CometChat.CallbackListener<User>() {   // groups: CometChat.getGroup(guid, …)
+CometChat.getUser(uid, object : CometChat.CallbackListener<User>() {   // groups: CometChat.getGroup(guid, ...)
     override fun onSuccess(user: User) {
         navController.navigate(messageRouteFor(user))   // or Placement 1: set selectedUser, then navigate("messages")
     }

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "joxo",
+  "version": "0.2.177",
+  "description": "Joxo's setup skill: joins this coding agent to your team's Joxo project.",
+  "author": {
+    "name": "Joxo",
+    "email": "support@joxo.ai",
+    "url": "https://joxo.ai"
+  },
+  "homepage": "https://joxo.ai",
+  "repository": "https://github.com/JoxoAI/joxo",
+  "keywords": [
+    "team",
+    "collaboration",
+    "handoff",
+    "task-board",
+    "multi-agent"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentmart",
+  "version": "1.1.11",
+  "description": "Ready, hosted parts for coding agents: a public webhook inbox URL, memory shared across sessions and machines, wake-up calls and schedules that run after the session ends, uptime watch, a task queue, a form backend, and tested code kits (Stripe billing, Supabase auth). Its two skills make the agent check the shelf before building, which saves time, tokens and effort, and buy only with your human's yes. Searching is free.",
+  "author": {
+    "name": "Ciphyr Tech OÜ",
+    "email": "support@ciphyr.ai",
+    "url": "https://agentmart.ciphyr.ai"
+  },
+  "homepage": "https://agentmart.ciphyr.ai",
+  "repository": "https://github.com/mustafaakmese/agentmart-plugins",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "mcp",
+    "webhooks",
+    "memory",
+    "scheduling",
+    "monitoring",
+    "code-kits"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "AgentMart",
+        "shortDescription": "Hosted utilities for AI agents",
+        "longDescription": "Ready, hosted parts for coding agents: a public webhook inbox URL, memory shared across sessions and machines, wake-up calls and schedules that run after the session ends, uptime watch, a task queue, a form backend, and tested code kits (Stripe billing, Supabase auth). Its two skills make the agent check the shelf before building, which saves time, tokens and effort, and buy only with your human's yes. Searching is free.",
+        "developerName": "Ciphyr Tech OÜ",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://agentmart.ciphyr.ai",
+        "privacyPolicyURL": "https://agentmart.ciphyr.ai/privacy",
+        "termsOfServiceURL": "https://agentmart.ciphyr.ai/terms",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png",
+        "screenshots": [
+          "./assets/screenshot-1.png"
+        ]
+      }
+    }
+  }
+}

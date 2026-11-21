@@ -1,0 +1,39 @@
+---
+title: "Media player"
+---
+stateDiagram-v2
+  direction LR
+  state Legend {
+    legend0: breaks PanelOnlyWhilePlaying in some cases
+    legend1: path to the PanelOnlyWhilePlaying bug
+    legend2: repeats forever so StopsForever breaks
+  }
+  state "all at once" as regions {
+    state "Playback" as region0 {
+      s0: Stopped
+      s3: Playing
+      s4: Paused
+      [*] --> s0
+      s0 --> s3: press play
+      s3 --> s0: press stop
+      s3 --> s4: press pause
+      s4 --> s0: press stop
+      s4 --> s3: press play
+    }
+    --
+    state "Panel" as region1 {
+      s1: Queue closed
+      s2: Queue open
+      [*] --> s1
+      s1 --> s2: open queue
+      s2 --> s1: close queue
+      s2 --> s1: press stop #91;when not Stopped#93;
+    }
+  }
+  classDef mayBreak fill:#fdebd3,stroke:#d4740b,color:#6e3b04
+  class legend0 mayBreak
+  class legend1 bugPath
+  class legend2 repeats
+  class s0,s2 mayBreak
+  class s0,s1 bugPath
+  class s0,s3,s1 repeats

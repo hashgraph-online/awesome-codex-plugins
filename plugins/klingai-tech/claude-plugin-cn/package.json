@@ -1,0 +1,7 @@
+{
+  "name": "kling-ai-cn-claude-plugin",
+  "version": "1.3.3",
+  "private": true,
+  "type": "module",
+  "description": "Build your own AI creative workflow with Kling MCP"
+}

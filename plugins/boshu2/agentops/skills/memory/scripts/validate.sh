@@ -8,7 +8,7 @@ for ref in recall mine-learn curate; do
   grep -Fq "references/$ref.md" "$skill_dir/SKILL.md"
 done
 grep -Fq 'applicability, action, support, limits and invalidation' "$skill_dir/SKILL.md"
-grep -Fq 'public or already-cleared trial inputs only' "$skill_dir/SKILL.md"
+grep -Fq 'enforces no access control' "$skill_dir/SKILL.md"
 grep -Fq 'No blind TTL' "$skill_dir/SKILL.md"
 grep -Fq 'Only later' "$skill_dir/SKILL.md"
 grep -Fq 'no Git objects or imports before exact' "$skill_dir/references/mine-learn.md"

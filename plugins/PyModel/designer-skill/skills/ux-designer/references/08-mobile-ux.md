@@ -333,7 +333,7 @@ Edge swipe  → Back navigation
 |--------|--------|--------|
 | First Contentful Paint | < 1.8s | User perceives loading |
 | Largest Contentful Paint | < 2.5s | Main content visible |
-| Time to Interactive | < 3.8s | Users can interact |
+| Interaction to Next Paint | < 200ms | Every tap responds promptly |
 | Cumulative Layout Shift | < 0.1 | Visual stability |
 
 ### Mobile Performance Tips
@@ -350,18 +350,19 @@ Edge swipe  → Back navigation
 ```
 
 ```css
-/* Optimize animations */
-.animated {
-  transform: translateZ(0);
-  will-change: transform;
-}
+/* Animate transform and opacity; add will-change only to an element you measured as janky,
+   and remove it when the animation ends (it costs memory on every layer it creates). */
+.sheet.is-dragging { will-change: transform; }
 
-/* Reduce motion for performance/preference */
+/* Reduced motion means less and gentler, not broken: keep opacity and color feedback,
+   drop large movement, parallax and looping animation. */
 @media (prefers-reduced-motion: reduce) {
   * {
-    animation: none !important;
-    transition: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
+  .sheet, .drawer, .parallax { transition: opacity 150ms linear; transform: none; }
 }
 ```
 
@@ -395,7 +396,7 @@ Edge swipe  → Back navigation
   position: absolute;
   background: rgba(255,255,255,0.3);
   border-radius: 50%;
-  transform: scale(0);
+  transform: scale(0.4); /* start small but visible; animating from scale(0) pops */
   animation: ripple 0.6s linear;
 }
 ```
@@ -434,8 +435,12 @@ navigator.vibrate([50, 50, 50]);
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
-/* Enable safe area support */
-<meta name="viewport" content="viewport-fit=cover" />
+```
+
+Enable safe-area support in the document head (HTML, not CSS):
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 ```
 
 ---

@@ -18,8 +18,10 @@ coverage target, required section list or separate report.
 | Are configuration keys explained? | Compare the selected keys with source and the requested reference. | File presence is not key or entity coverage. |
 
 Use caller-supplied acceptance thresholds when they exist. Otherwise report
-observed checks and gaps without inventing a percentage target. For entity
-discovery and status handling, see [code/API guidance](default-mode.md).
+observed checks and gaps without inventing a percentage target. For each
+selected entity, distinguish verified documentation, a verified gap and unknown
+or unexamined status; a Python declaration line alone does not show its
+docstring, and doc-file presence is not an entity count.
 
 ## Informational documents
 

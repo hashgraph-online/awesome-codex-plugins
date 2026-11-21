@@ -107,7 +107,7 @@ When multiple automations trigger for the same subscriber:
 
 | Metric | Target | Action if Below |
 |--------|--------|----------------|
-| Open rate | >25% | Test subject lines, send time, from name |
+| Open rate (directional only: Apple Mail Privacy Protection inflates opens) | >25% | Test subject lines, send time, from name; confirm with clicks |
 | Click rate | >3% | Improve content, CTA, personalization |
 | Conversion rate | Varies by flow | Optimize offer, landing page, segmentation |
 | Unsubscribe rate | <0.5% per email | Reduce frequency, improve targeting |

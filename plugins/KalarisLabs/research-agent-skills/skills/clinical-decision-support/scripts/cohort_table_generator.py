@@ -29,18 +29,13 @@ MAX_ROWS = 200
 
 
 def _format_count(count: int, denominator: int) -> str:
+    """Format count."""
     percentage = 100.0 * count / denominator if denominator else 0.0
     return f"{count}/{denominator} ({percentage:.1f}%)"
 
 
-def _build_table(
-    document: dict[str, Any], minimum: int
-) -> tuple[IssueLog, list[str], list[list[str]], list[str]]:
-    log = IssueLog()
-    notes: list[str] = []
-    headers: list[str] = ["Characteristic"]
-    output_rows: list[list[str]] = []
-
+def _check_metadata(document: dict[str, Any], log: IssueLog) -> None:
+    """Validate the metadata block, recording soft errors in the log."""
     metadata = document.get("metadata")
     if not isinstance(metadata, dict):
         raise InputError("metadata must be an object")
@@ -59,6 +54,9 @@ def _build_table(
         metadata.get("human_review"), "metadata.human_review"
     )
 
+
+def _check_review_and_governance(document: dict[str, Any], log: IssueLog) -> None:
+    """Validate the human_review and governance blocks."""
     review = document.get("human_review")
     if not isinstance(review, dict):
         raise InputError("human_review must be an object")
@@ -84,6 +82,11 @@ def _build_table(
     ):
         require_nonempty_text(governance.get(field), f"governance.{field}")
 
+
+def _read_groups(
+    document: dict[str, Any], minimum: int, headers: list[str]
+) -> dict[str, dict[str, Any]]:
+    """Validate the groups list, append column headers, and return groups by id."""
     groups = require_list(document.get("groups"), "groups", maximum=MAX_GROUPS)
     if not groups:
         raise InputError("At least one group is required")
@@ -105,104 +108,157 @@ def _build_table(
             raise InputError(f"Duplicate group id: {identifier}")
         group_map[identifier] = {"label": label, "n": n}
         headers.append(f"{label} (n={n if n >= minimum else 'SUPP'})")
+    return group_map
+
+
+def _categorical_cell(
+    value: dict[str, Any], cell_field: str, group_n: int, minimum: int
+) -> tuple[str, int | None]:
+    """Return the display cell and eligible count for a categorical row value."""
+    count = nonnegative_int(value.get("count"), f"{cell_field}.count")
+    denominator = nonnegative_int(
+        value.get("denominator"), f"{cell_field}.denominator"
+    )
+    missing = nonnegative_int(
+        value.get("missing", group_n - denominator),
+        f"{cell_field}.missing",
+    )
+    if denominator == 0 or count > denominator:
+        raise InputError(f"{cell_field} has inconsistent counts")
+    if denominator + missing != group_n:
+        raise InputError(
+            f"{cell_field} denominator plus missing must equal group n"
+        )
+    if (
+        0 < count < minimum
+        or 0 < denominator - count < minimum
+        or 0 < missing < minimum
+    ):
+        return "SUPP", None
+    return _format_count(count, denominator), count
+
+
+def _continuous_cell(
+    value: dict[str, Any], cell_field: str, group_n: int, minimum: int
+) -> str:
+    """Return the display cell for a continuous row value."""
+    summarized_n = nonnegative_int(value.get("n"), f"{cell_field}.n")
+    missing = nonnegative_int(
+        value.get("missing", group_n - summarized_n),
+        f"{cell_field}.missing",
+    )
+    if summarized_n + missing != group_n:
+        raise InputError(
+            f"{cell_field} n plus missing must equal group n"
+        )
+    summary = require_nonempty_text(
+        value.get("summary"), f"{cell_field}.summary", max_length=120
+    )
+    if summarized_n < minimum or 0 < missing < minimum:
+        return "SUPP"
+    return f"{summary}; n={summarized_n}"
+
+
+def _row_cells(
+    row_type: str,
+    values: dict[str, Any],
+    group_map: dict[str, dict[str, Any]],
+    field: str,
+    minimum: int,
+) -> tuple[dict[str, str], set[str], dict[str, int]]:
+    """Compute the cells, primary suppressions and eligible counts for one data row."""
+    cells: dict[str, str] = {}
+    primary_suppressed: set[str] = set()
+    eligible_counts: dict[str, int] = {}
+    for group_id, group in group_map.items():
+        value = values[group_id]
+        cell_field = f"{field}.values.{group_id}"
+        if not isinstance(value, dict):
+            raise InputError(f"{cell_field} must be an object")
+        group_n = group["n"]
+        if group_n < minimum:
+            cells[group_id] = "SUPP"
+            primary_suppressed.add(group_id)
+            continue
+        if row_type == "categorical":
+            cell, count = _categorical_cell(value, cell_field, group_n, minimum)
+            if count is not None:
+                eligible_counts[group_id] = count
+        else:
+            cell = _continuous_cell(value, cell_field, group_n, minimum)
+        cells[group_id] = cell
+        if cell == "SUPP":
+            primary_suppressed.add(group_id)
+    return cells, primary_suppressed, eligible_counts
+
+
+def _build_row(
+    row: Any,
+    row_index: int,
+    group_map: dict[str, dict[str, Any]],
+    minimum: int,
+    notes: list[str],
+) -> list[str]:
+    """Validate one table row and return its rendered cells."""
+    field = f"rows[{row_index}]"
+    if not isinstance(row, dict):
+        raise InputError(f"{field} must be an object")
+    if "p_value" in row or "statistical_test" in row:
+        raise InputError(
+            f"{field} contains inferential fields; this helper creates descriptive tables only"
+        )
+    label = require_nonempty_text(row.get("label"), f"{field}.label", max_length=200)
+    level = row.get("level")
+    if level is not None:
+        label = f"  {require_nonempty_text(level, f'{field}.level', max_length=120)}"
+    row_type = require_nonempty_text(
+        row.get("type"), f"{field}.type", max_length=30
+    )
+    if row_type not in {"categorical", "continuous", "header"}:
+        raise InputError(f"{field}.type is unsupported")
+    values = row.get("values")
+    if row_type == "header":
+        return [label] + [""] * len(group_map)
+    if not isinstance(values, dict):
+        raise InputError(f"{field}.values must be an object")
+    if set(values) != set(group_map):
+        raise InputError(f"{field}.values must contain exactly all group ids")
+
+    cells, primary_suppressed, eligible_counts = _row_cells(
+        row_type, values, group_map, field, minimum
+    )
+    if (
+        row_type == "categorical"
+        and len(primary_suppressed) == 1
+        and eligible_counts
+    ):
+        complementary = min(eligible_counts, key=eligible_counts.get)
+        cells[complementary] = "SUPP-C"
+        notes.append(
+            f"Complementary suppression applied to row {row_index + 1}."
+        )
+    return [label] + [cells[group_id] for group_id in group_map]
+
+
+def _build_table(
+    document: dict[str, Any], minimum: int
+) -> tuple[IssueLog, list[str], list[list[str]], list[str]]:
+    """Build table."""
+    log = IssueLog()
+    notes: list[str] = []
+    headers: list[str] = ["Characteristic"]
+
+    _check_metadata(document, log)
+    _check_review_and_governance(document, log)
+    group_map = _read_groups(document, minimum, headers)
 
     rows = require_list(document.get("rows"), "rows", maximum=MAX_ROWS)
     if not rows:
         raise InputError("At least one aggregate table row is required")
-    for row_index, row in enumerate(rows):
-        field = f"rows[{row_index}]"
-        if not isinstance(row, dict):
-            raise InputError(f"{field} must be an object")
-        if "p_value" in row or "statistical_test" in row:
-            raise InputError(
-                f"{field} contains inferential fields; this helper creates descriptive tables only"
-            )
-        label = require_nonempty_text(row.get("label"), f"{field}.label", max_length=200)
-        level = row.get("level")
-        if level is not None:
-            label = f"  {require_nonempty_text(level, f'{field}.level', max_length=120)}"
-        row_type = require_nonempty_text(
-            row.get("type"), f"{field}.type", max_length=30
-        )
-        if row_type not in {"categorical", "continuous", "header"}:
-            raise InputError(f"{field}.type is unsupported")
-        values = row.get("values")
-        if row_type == "header":
-            output_rows.append([label] + [""] * len(group_map))
-            continue
-        if not isinstance(values, dict):
-            raise InputError(f"{field}.values must be an object")
-        if set(values) != set(group_map):
-            raise InputError(f"{field}.values must contain exactly all group ids")
-
-        cells: dict[str, str] = {}
-        primary_suppressed: set[str] = set()
-        eligible_counts: dict[str, int] = {}
-        for group_id, group in group_map.items():
-            value = values[group_id]
-            cell_field = f"{field}.values.{group_id}"
-            if not isinstance(value, dict):
-                raise InputError(f"{cell_field} must be an object")
-            group_n = group["n"]
-            if group_n < minimum:
-                cells[group_id] = "SUPP"
-                primary_suppressed.add(group_id)
-                continue
-            if row_type == "categorical":
-                count = nonnegative_int(value.get("count"), f"{cell_field}.count")
-                denominator = nonnegative_int(
-                    value.get("denominator"), f"{cell_field}.denominator"
-                )
-                missing = nonnegative_int(
-                    value.get("missing", group_n - denominator),
-                    f"{cell_field}.missing",
-                )
-                if denominator == 0 or count > denominator:
-                    raise InputError(f"{cell_field} has inconsistent counts")
-                if denominator + missing != group_n:
-                    raise InputError(
-                        f"{cell_field} denominator plus missing must equal group n"
-                    )
-                if (
-                    0 < count < minimum
-                    or 0 < denominator - count < minimum
-                    or 0 < missing < minimum
-                ):
-                    cells[group_id] = "SUPP"
-                    primary_suppressed.add(group_id)
-                else:
-                    cells[group_id] = _format_count(count, denominator)
-                    eligible_counts[group_id] = count
-            else:
-                summarized_n = nonnegative_int(value.get("n"), f"{cell_field}.n")
-                missing = nonnegative_int(
-                    value.get("missing", group_n - summarized_n),
-                    f"{cell_field}.missing",
-                )
-                if summarized_n + missing != group_n:
-                    raise InputError(
-                        f"{cell_field} n plus missing must equal group n"
-                    )
-                summary = require_nonempty_text(
-                    value.get("summary"), f"{cell_field}.summary", max_length=120
-                )
-                if summarized_n < minimum or 0 < missing < minimum:
-                    cells[group_id] = "SUPP"
-                    primary_suppressed.add(group_id)
-                else:
-                    cells[group_id] = f"{summary}; n={summarized_n}"
-
-        if (
-            row_type == "categorical"
-            and len(primary_suppressed) == 1
-            and eligible_counts
-        ):
-            complementary = min(eligible_counts, key=eligible_counts.get)
-            cells[complementary] = "SUPP-C"
-            notes.append(
-                f"Complementary suppression applied to row {row_index + 1}."
-            )
-        output_rows.append([label] + [cells[group_id] for group_id in group_map])
+    output_rows = [
+        _build_row(row, row_index, group_map, minimum, notes)
+        for row_index, row in enumerate(rows)
+    ]
 
     notes.extend(
         [
@@ -219,6 +275,7 @@ def _build_table(
 def _to_markdown(
     title: str, headers: list[str], rows: list[list[str]], notes: list[str]
 ) -> str:
+    """Handle to markdown."""
     lines = [
         f"# {title}",
         "",
@@ -234,6 +291,7 @@ def _to_markdown(
 
 
 def _to_csv(headers: list[str], rows: list[list[str]], notes: list[str]) -> str:
+    """Handle to csv."""
     stream = io.StringIO()
     writer = csv.writer(stream, lineterminator="\n")
     writer.writerow(headers)
@@ -246,6 +304,7 @@ def _to_csv(headers: list[str], rows: list[list[str]], notes: list[str]) -> str:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate a bounded descriptive cohort table from local aggregate JSON "

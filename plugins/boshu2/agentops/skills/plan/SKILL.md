@@ -116,11 +116,14 @@ only where it prevents a plausible scope mistake.
    separate from the Check line, and keep it out of the slice's diff. A
    mechanical cross-cutting migration that cannot stay working slice by slice
    uses expand, migrate, contract and says where integration is required. If
-   recorded evidence (scorecards, fixtures) is bound to files the slice
-   changes, plan its recapture; with the `ao` CLI, which the plugin does not
-   ship, `ao provenance evidence-orphans --root <repo-root> --changed <path>`
-   lists those bindings. Across an epic, [Navigate](../navigate/SKILL.md)
-   picks the next bead; Plan shapes that bead.
+   recorded evidence (goldens, snapshots, fixtures) covers files the slice
+   changes, plan its recapture: grep the tests in Scope for the files they
+   read or compare against. The `ao` CLI, which the plugin does not ship, adds
+   `ao provenance evidence-orphans --root <repo-root> --changed <path>`; it
+   reads only AgentOps eval bindings under `docs/evals/scorecards/` and
+   `evals/skill-probes/`, so an empty result rules out no other golden.
+   Across an epic, [Navigate](../navigate/SKILL.md) picks the next bead; Plan
+   shapes that bead.
 4. When evidence disproves an approach, keep the failed assumption, its
    evidence and the revised check in the existing intent, under the same
    authority as the Output write below. An approach change

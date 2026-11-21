@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-sp-refund-return-monitor",
-  "skill_version": "0.7.0",
+  "skill_version": "0.7.1",
   "evals": [
     {
       "id": 0,

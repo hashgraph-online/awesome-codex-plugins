@@ -1,0 +1,89 @@
+---
+title: "Two-phase commit (two resource managers)"
+---
+stateDiagram-v2
+  state Legend {
+    legend0: aborted
+    legend1: committed
+    legend2: init
+    legend3: breaks Consistent
+    legend4: path to the Consistent bug
+  }
+  state "coordinator init" as s0 {
+    s1: r1 working, r2 working
+    s4: r1 prepared, r2 working
+    s5: r1 working, r2 prepared
+    s12: r1 prepared, r2 prepared
+  }
+  state "coordinator aborted" as s2 {
+    s3: r1 working, r2 working
+    s6: r1 aborted, r2 working
+    s7: r1 working, r2 aborted
+    s8: r1 prepared, r2 working
+    s9: r1 working, r2 prepared
+    s14: r1 aborted, r2 aborted
+    s15: r1 aborted, r2 prepared
+    s16: r1 prepared, r2 aborted
+    s17: r1 prepared, r2 prepared
+  }
+  state "coordinator committed" as s10 {
+    s11: r1 prepared, r2 working
+    s13: r1 working, r2 prepared
+    s18: r1 committed, r2 working
+    s19: r1 prepared, r2 prepared
+    s20: r1 working, r2 committed
+    s21: r1 committed, r2 prepared
+    s22: r1 prepared, r2 committed
+    s23: r1 committed, r2 committed
+  }
+  [*] --> s1
+  s1 --> s3: abort
+  s1 --> s4: prepare
+  s1 --> s5: prepare
+  s3 --> s6: cancel
+  s3 --> s7: cancel
+  s3 --> s8: prepare
+  s3 --> s9: prepare
+  s4 --> s8: abort
+  s4 --> s11: decide
+  s4 --> s12: prepare
+  s5 --> s9: abort
+  s5 --> s12: prepare
+  s5 --> s13: decide
+  s6 --> s14: cancel
+  s6 --> s15: prepare
+  s7 --> s14: cancel
+  s7 --> s16: prepare
+  s8 --> s6: cancel
+  s8 --> s16: cancel
+  s8 --> s17: prepare
+  s9 --> s7: cancel
+  s9 --> s15: cancel
+  s9 --> s17: prepare
+  s11 --> s18: apply
+  s11 --> s19: prepare
+  s12 --> s17: abort
+  s12 --> s19: decide
+  s13 --> s19: prepare
+  s13 --> s20: apply
+  s15 --> s14: cancel
+  s16 --> s14: cancel
+  s17 --> s15: cancel
+  s17 --> s16: cancel
+  s18 --> s21: prepare
+  s19 --> s21: apply
+  s19 --> s22: apply
+  s20 --> s22: prepare
+  s21 --> s23: apply
+  s22 --> s23: apply
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 pink
+  class legend1 teal
+  class legend2 blue
+  class legend3 breaks
+  class legend4 bugPath
+  class s1,s4,s5,s12 blue
+  class s11,s13,s18,s19,s20,s21,s22,s23 teal
+  class s3,s6,s7,s8,s9,s14,s15,s16,s17 pink
+  class s18,s20 breaks
+  class s1,s4,s11 bugPath

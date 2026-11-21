@@ -1,0 +1,77 @@
+{
+  "skill_name": "build-webhook-endpoint",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL creates orders with a price and a number of credits, and already has a ledger posting function. Add POST /webhooks/payments for a provider that signs each event with an X-Signature header of the form t=<unix seconds>,v1=<hex HMAC-SHA256 of t.body>. A payment.succeeded event should credit the order.",
+      "expected_output": "POST /webhooks/payments that verifies the signature over the raw body with a timestamp tolerance and a constant-time comparison, stores each event id once, and credits the order exactly once, with tests.",
+      "assertions": [
+        "The webhook route receives the raw request body as bytes and is registered before or apart from the global JSON body parser.",
+        "The HMAC is computed over the timestamp and the raw body, and the comparison uses crypto.timingSafeEqual or an equivalent constant-time function.",
+        "A request whose timestamp is more than the configured tolerance away from the server time is answered with a 4xx status.",
+        "The signing secret is read from configuration with no default value, and the app fails at start-up when it is missing.",
+        "A migration creates an event table with a unique or primary key on the provider and event id, and the handler inserts into it in the same transaction as the ledger entry.",
+        "The handler compares the event's amount and currency with the stored order and grants the credits stored on the order, not a value from the event.",
+        "The order is marked paid by an UPDATE whose WHERE clause requires the pending status, and the credit runs only when that update changed one row.",
+        "The project's test run includes tests that send the same signed event twice and ten times concurrently and assert one credit, and they pass.",
+        "Sending the signed event with the signature header removed, and with one body field changed, both get a 4xx answer and leave the balance unchanged."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our PHP app on MySQL has postback.php, which credits users.balance from $_GET['reward'] for $_GET['user_id'] with no checks. The network's documentation says hash = HMAC-SHA256 of user_id:tx:reward:status with our postback key, status 1 is a completed offer and status 2 is a reversal. Make it safe. We do not have a ledger.",
+      "expected_output": "A postback.php that verifies the HMAC over the received strings, credits each transaction once under a unique key, handles status 2 as a reversal of the stored credit, and works without a ledger, with tests.",
+      "assertions": [
+        "The hash is recomputed from the received user_id, tx, reward and status strings before any conversion and compared with hash_equals.",
+        "The postback key comes from configuration with no default, and a missing key stops the request before anything is credited.",
+        "No request parameter or debug switch lets a request skip the hash check.",
+        "The reward and the user id are validated as positive integers after the hash check, and a parameter sent as an array is refused.",
+        "A table with a unique or primary key on the network and the transaction id is inserted into in the same database transaction as the balance update, and the balance is updated only when the insert created a row.",
+        "MySQL error 1062 on that insert is treated as an already credited transaction and answered with the network's success response.",
+        "A request with a changed reward and the original hash is answered with a 4xx status and does not change the balance.",
+        "A status 2 postback is not answered with success unless a reversal was applied or stored."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "In this Flask app the webhook view only checks the signature when the X-Signature header is present, falls back to the secret 'changeme' when WEBHOOK_SECRET is unset, compares with ==, and the /payment/success page marks the order paid. Fix all of it without changing what a genuine event does.",
+      "expected_output": "A webhook view that always verifies, refuses to start without WEBHOOK_SECRET, compares in constant time, and a /payment/success page that only shows status, while a genuine event still credits as before.",
+      "assertions": [
+        "The view refuses every request without a valid signature, including requests with no signature header.",
+        "The signature is verified over request.get_data() or request.data, not over a re-serialized request.json.",
+        "No default value for the secret remains in the code, and the app raises at start-up when the variable is unset.",
+        "The comparison uses hmac.compare_digest.",
+        "The /payment/success view no longer changes the order's status or any balance.",
+        "The event id is stored under a unique constraint in the same transaction as the credit, and a repeated event is answered with a 2xx status and credits nothing.",
+        "The project's tests cover a missing header, a wrong signature and a repeated event, and they pass."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Next.js App Router app sells credit packs through Stripe Checkout. app/api/stripe/route.ts calls request.json(), skips verification when STRIPE_WEBHOOK_SECRET is unset, and credits session.amount_total / 100 coins on checkout.session.completed. Some customers pay by bank debit. Make the webhook correct.",
+      "expected_output": "A route handler that verifies Stripe-Signature over the raw body with the official library, stores event ids under a unique key, grants the pack stored on the order only when the payment is settled, including async payment methods, with tests.",
+      "assertions": [
+        "The route reads the body with request.text() or request.arrayBuffer() and passes those bytes to stripe.webhooks.constructEvent or an equivalent verifier before parsing.",
+        "There is no code path that skips verification, and the app fails at start-up or on the first request with an error when the secret is missing, never with a default.",
+        "checkout.session.completed grants only when payment_status is not unpaid, and checkout.session.async_payment_succeeded grants the remaining delayed payments.",
+        "The number of credits comes from the app's own order or price table, not from amount_total, and amount_total and currency are compared with the order.",
+        "The Stripe event id is inserted under a unique constraint in the same transaction as the credit, and a second order-level key stops two events for one session from crediting twice.",
+        "refund and dispute events are not answered with 200 and dropped: they are handled or stored for the reversal code.",
+        "The tests sign events with the test secret, cover a missing signature, a changed body, a stale timestamp and a duplicate event, and they pass."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Add an endpoint for App Store Server Notifications V2 to our Python backend. Users buy coin packs (consumables) and a monthly subscription. Production and sandbox notifications both go to the same URL.",
+      "expected_output": "An endpoint that verifies signedPayload and the nested signed transaction with Apple's App Store Server Library, checks bundle id and environment, deduplicates on notificationUUID, credits coins once per transactionId, and routes REFUND, REFUND_REVERSED, REVOKE and EXPIRED, with tests.",
+      "assertions": [
+        "signedPayload is verified with SignedDataVerifier from the App Store Server Library or an equivalent check of the certificate chain to an Apple root certificate, never only base64-decoded.",
+        "signedTransactionInfo is verified as well before any of its fields are used.",
+        "bundleId and environment are compared with configuration, and sandbox notifications cannot credit production accounts.",
+        "notificationUUID is stored under a unique constraint, and coin credits are keyed on transactionId, not on originalTransactionId.",
+        "REFUND and REVOKE notifications reach reversal code or are stored for it, and are not acknowledged and dropped.",
+        "The handler answers 200 after the commit and keeps slow work out of the request."
+      ]
+    }
+  ]
+}

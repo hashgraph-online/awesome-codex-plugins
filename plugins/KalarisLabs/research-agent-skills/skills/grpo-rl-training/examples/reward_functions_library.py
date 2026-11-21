@@ -13,7 +13,12 @@ Categories:
 - Combined rewards (multi-objective)
 """
 
+import json
+import os
 import re
+import subprocess
+import sys
+import tempfile
 from typing import List, Any
 
 # ==================== CORRECTNESS REWARDS ====================
@@ -68,7 +73,7 @@ def numeric_correctness_reward(prompts, completions, answer, tolerance=0.01, **k
                 rewards.append(2.0)
             else:
                 rewards.append(0.0)
-        except:
+        except Exception:
             rewards.append(0.0)
 
     return rewards
@@ -89,7 +94,7 @@ def code_execution_reward(prompts, completions, test_cases, **kwargs) -> List[fl
             # Execute code (sandboxed!)
             passed = run_test_cases(code, test_cases)
             rewards.append(2.0 if passed else 0.0)
-        except:
+        except Exception:
             rewards.append(0.0)
 
     return rewards
@@ -136,12 +141,12 @@ def json_format_reward(completions, **kwargs) -> List[float]:
         try:
             json.loads(r)
             rewards.append(0.5)
-        except:
+        except Exception:
             rewards.append(0.0)
 
     return rewards
 
-def incremental_format_reward(completions, tags=['reasoning', 'answer'], **kwargs) -> List[float]:
+def incremental_format_reward(completions, tags=('reasoning', 'answer'), **kwargs) -> List[float]:
     """
     Partial credit for each required tag.
     Use for: Training models to gradually learn format
@@ -292,6 +297,35 @@ def no_repetition_penalty(completions, **kwargs) -> List[float]:
 
     return rewards
 
+def code_block_format_reward(completions, **kwargs) -> List[float]:
+    """
+    Reward completions that contain a fenced markdown code block.
+    Use for: Code generation tasks
+
+    Weight: 0.5
+    """
+    responses = [comp[0]['content'] for comp in completions]
+    return [0.5 if extract_code_block(r) else 0.0 for r in responses]
+
+def no_syntax_error_reward(completions, **kwargs) -> List[float]:
+    """
+    Reward extracted Python code that parses without a SyntaxError.
+    Use for: Code generation tasks
+
+    Weight: 0.2
+    """
+    import ast
+
+    rewards = []
+    for comp in completions:
+        code = extract_code_block(comp[0]['content'])
+        try:
+            ast.parse(code)
+            rewards.append(0.2 if code else 0.0)
+        except SyntaxError:
+            rewards.append(0.0)
+    return rewards
+
 # ==================== COMBINED REWARDS ====================
 
 def math_problem_reward(prompts, completions, answer, **kwargs) -> List[float]:
@@ -336,29 +370,43 @@ def extract_code_block(text: str) -> str:
     match = re.search(pattern, text, re.DOTALL)
     return match.group(1) if match else ""
 
-def run_test_cases(code: str, test_cases: List[tuple]) -> bool:
+def run_test_cases(code: str, test_cases: List[tuple], timeout: float = 5.0) -> bool:
     """
-    Execute code with test cases (MUST be sandboxed in production!).
+    Run model-generated code against test cases in a separate, time-limited Python process.
+
+    This is process isolation only, not a security sandbox: for untrusted completions
+    also use a container/VM with no network, no secrets and resource limits.
 
     Args:
-        code: Python code string
+        code: Python code string defining ``solution``
         test_cases: List of (input, expected_output) tuples
+        timeout: Seconds before the subprocess is killed
 
     Returns:
         True if all tests pass
     """
-    # WARNING: This is a simplified example
-    # In production, use proper sandboxing (e.g., docker, pypy sandbox)
+    runner = (
+        "import json, runpy, sys\n"
+        "ns = runpy.run_path(sys.argv[1])\n"
+        "tests = json.load(sys.stdin)\n"
+        "sys.exit(0 if all(ns['solution'](i) == e for i, e in tests) else 1)\n"
+    )
     try:
-        exec_globals = {}
-        exec(code, exec_globals)
-
-        for input_val, expected in test_cases:
-            result = exec_globals['solution'](input_val)
-            if result != expected:
-                return False
-        return True
-    except:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "completion.py")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(code)
+            proc = subprocess.run(
+                [sys.executable, "-I", "-c", runner, path],
+                input=json.dumps(test_cases),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                cwd=tmp,
+            )
+        return proc.returncode == 0
+    except (subprocess.TimeoutExpired, TypeError, ValueError, OSError):
         return False
 
 # ==================== REWARD FUNCTION PRESETS ====================

@@ -45,7 +45,8 @@ Use this skill for a caller-requested security review of code or of a plan or de
   one line that the go/no-go on that evidence is the caller's; recommending
   ship, hold or block in any wording is that decision. Name each finding's
   remediation class in a few words; do not write the patch, a plan, an owner,
-  or a priority.
+  or a priority. An independent go/no-go on a security-boundary change is
+  [Validate](../validate/SKILL.md)'s.
 
 ## What every review reports
 

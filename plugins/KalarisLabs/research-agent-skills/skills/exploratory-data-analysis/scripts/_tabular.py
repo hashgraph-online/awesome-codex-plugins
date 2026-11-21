@@ -38,6 +38,7 @@ MAX_TRACKED_LEAKAGE_KEYS = 200_000
 
 @dataclass
 class ScanSummary:
+    """Scan summary."""
     rows_scanned: int
     truncated: bool
     column_count: int
@@ -53,10 +54,12 @@ def normalize_missing_tokens(tokens: Iterable[str] | None) -> frozenset[str]:
 
 
 def is_missing(value: str, missing_tokens: frozenset[str]) -> bool:
+    """Return whether missing."""
     return value.strip().casefold() in missing_tokens
 
 
 def delimiter_for_path(path: Path) -> str:
+    """Handle delimiter for path."""
     name = path.name.casefold()
     if name.endswith(".csv"):
         return ","
@@ -159,10 +162,12 @@ class PrioritySample:
     """Keep a deterministic bounded sample selected by content and position hash."""
 
     def __init__(self, limit: int) -> None:
+        """Initialise the instance."""
         self.limit = limit
         self._heap: list[tuple[int, float]] = []
 
     def add(self, value: float, *, row_index: int, column_index: int) -> None:
+        """Add."""
         material = f"{row_index}\0{column_index}\0{value!r}".encode("ascii")
         priority = int.from_bytes(
             hashlib.blake2s(material, digest_size=8).digest(),
@@ -175,10 +180,12 @@ class PrioritySample:
             heapq.heapreplace(self._heap, item)
 
     def values(self) -> list[float]:
+        """Handle values."""
         return [value for _, value in self._heap]
 
 
 def _quantile(sorted_values: Sequence[float], probability: float) -> float | None:
+    """Handle quantile."""
     if not sorted_values:
         return None
     if len(sorted_values) == 1:
@@ -196,6 +203,7 @@ def _quantile(sorted_values: Sequence[float], probability: float) -> float | Non
 
 @dataclass
 class ColumnAccumulator:
+    """Column accumulator."""
     column_index: int
     sample_limit: int = PROFILE_SAMPLE_SIZE
     total: int = 0
@@ -216,6 +224,7 @@ class ColumnAccumulator:
     sample: PrioritySample = field(init=False)
 
     def __post_init__(self) -> None:
+        """Validate and normalise fields after initialisation."""
         self.sample = PrioritySample(self.sample_limit)
 
     def add(
@@ -225,6 +234,7 @@ class ColumnAccumulator:
         row_index: int,
         missing_tokens: frozenset[str],
     ) -> None:
+        """Add."""
         self.total += 1
         if is_missing(value, missing_tokens):
             self.missing += 1
@@ -262,6 +272,7 @@ class ColumnAccumulator:
         )
 
     def as_report(self, *, column_id: str) -> dict[str, Any]:
+        """Handle as report."""
         observed = self.total - self.missing
         if observed == 0:
             inferred = "all_missing_in_scanned_rows"
@@ -337,6 +348,7 @@ def profile_table(
     duplicate_tracking_truncated = False
 
     def on_header(names: list[str]) -> None:
+        """Handle on header."""
         nonlocal header, accumulators
         header = names
         accumulators = [
@@ -344,6 +356,7 @@ def profile_table(
         ]
 
     def on_row(row_index: int, row: list[str]) -> None:
+        """Handle on row."""
         nonlocal duplicate_rows, duplicate_tracking_truncated
         for accumulator, value in zip(accumulators, row, strict=True):
             accumulator.add(
@@ -451,15 +464,15 @@ def profile_json_structure(
             stack.extend((item, depth + 1) for item in reversed(list(value.values())))
         else:
             raise CliError("the JSON parser produced an unsupported value type")
+    if isinstance(document, dict):
+        root_type = "object"
+    elif isinstance(document, list):
+        root_type = "array"
+    else:
+        root_type = "scalar"
     return {
         "profile_type": "json_structural_profile",
-        "root_type": (
-            "object"
-            if isinstance(document, dict)
-            else "array"
-            if isinstance(document, list)
-            else "scalar"
-        ),
+        "root_type": root_type,
         "nodes_visited": nodes,
         "node_limit_reached": truncated,
         "maximum_depth_visited": maximum_depth,
@@ -479,6 +492,7 @@ def profile_json_structure(
 
 
 def _moment_skew(values: Sequence[float]) -> float | None:
+    """Handle moment skew."""
     if len(values) < 3:
         return None
     mean = statistics.fmean(values)
@@ -496,6 +510,7 @@ def _distribution_report(
     nonnumeric_count: int,
     missing_count: int,
 ) -> dict[str, Any]:
+    """Handle distribution report."""
     ordered = sorted(values)
     if not ordered:
         return {
@@ -590,6 +605,7 @@ def audit_distributions(
     skipped_columns = 0
 
     def on_header(names: list[str]) -> None:
+        """Handle on header."""
         nonlocal header, selected_indices, selected_ids, accumulators, skipped_columns
         header = names
         if columns:
@@ -620,6 +636,7 @@ def audit_distributions(
         }
 
     def on_row(row_index: int, row: list[str]) -> None:
+        """Handle on row."""
         for index in selected_indices:
             accumulators[index].add(
                 row[index],
@@ -662,6 +679,7 @@ def audit_distributions(
 
 
 def _parse_time(value: str) -> datetime | None:
+    """Parse time."""
     text = value.strip()
     if not text:
         return None
@@ -674,6 +692,228 @@ def _parse_time(value: str) -> datetime | None:
     if parsed.tzinfo is not None:
         return parsed.astimezone(timezone.utc).replace(tzinfo=None)
     return parsed
+
+
+PartitionMap = dict[str, tuple[int, list[int]]]
+
+
+def _track_split(
+    mapping: dict[Any, set[str]],
+    key: Any,
+    split_token: str,
+) -> bool:
+    """Record a key's split membership; return True when the tracking cap dropped it."""
+    if len(mapping) < MAX_TRACKED_LEAKAGE_KEYS:
+        mapping.setdefault(key, set()).add(split_token)
+        return False
+    return key not in mapping
+
+
+class _LeakageScan:
+    """Streaming accumulator for missingness and split-leakage statistics."""
+
+    def __init__(
+        self,
+        missing: frozenset[str],
+        *,
+        group_column: str | None,
+        entity_column: str | None,
+        split_column: str | None,
+        time_column: str | None,
+    ) -> None:
+        """Remember the missing-code set and the requested role columns."""
+        self.missing = missing
+        self.columns = (group_column, entity_column, split_column, time_column)
+        self.header: list[str] = []
+        self.group_index: int | None = None
+        self.entity_index: int | None = None
+        self.split_index: int | None = None
+        self.time_index: int | None = None
+        self.overall_missing: list[int] = []
+        self.by_group: PartitionMap = {}
+        self.by_split: PartitionMap = {}
+        self.entity_splits: dict[str, set[str]] = {}
+        self.group_splits: dict[str, set[str]] = {}
+        self.row_splits: dict[bytes, set[str]] = {}
+        self.time_intervals: dict[str, tuple[datetime, datetime]] = {}
+        self.time_parse_failures = 0
+        self.missing_split_rows = 0
+        self.tracking_truncated = False
+
+    def on_header(self, names: list[str]) -> None:
+        """Resolve the role columns against the header and size the counters."""
+        self.header = names
+        group_column, entity_column, split_column, time_column = self.columns
+        self.group_index = resolve_column(names, group_column)
+        self.entity_index = resolve_column(names, entity_column)
+        self.split_index = resolve_column(names, split_column)
+        self.time_index = resolve_column(names, time_column)
+        self.overall_missing = [0] * len(names)
+
+    def _is_missing_at(self, row: list[str], index: int) -> bool:
+        """Return whether the cell at an index is a missing code."""
+        return is_missing(row[index], self.missing)
+
+    def _update_partition(self, mapping: PartitionMap, key: str, row: list[str]) -> None:
+        """Count one row and its missing cells under a group or split key."""
+        if key not in mapping:
+            if len(mapping) >= MAX_DISTINCT_GROUPS:
+                raise CliError("too many distinct group or split values")
+            mapping[key] = (0, [0] * len(row))
+        count, counts = mapping[key]
+        for index, value in enumerate(row):
+            if is_missing(value, self.missing):
+                counts[index] += 1
+        mapping[key] = (count + 1, counts)
+
+    def _partition_tokens(self, row: list[str]) -> tuple[str | None, str | None]:
+        """Update the group and split partitions and return their tokens."""
+        group_token: str | None = None
+        split_token: str | None = None
+        if self.group_index is not None and not self._is_missing_at(row, self.group_index):
+            group_token = stable_token(row[self.group_index], kind="group")
+            self._update_partition(self.by_group, group_token, row)
+        if self.split_index is not None:
+            if self._is_missing_at(row, self.split_index):
+                self.missing_split_rows += 1
+            else:
+                split_token = stable_token(row[self.split_index], kind="split")
+                self._update_partition(self.by_split, split_token, row)
+        return group_token, split_token
+
+    def _track_overlap(
+        self,
+        row: list[str],
+        group_token: str | None,
+        split_token: str,
+    ) -> None:
+        """Track entity, group and identical-row membership across splits."""
+        truncated = False
+        if self.entity_index is not None and not self._is_missing_at(row, self.entity_index):
+            entity_token = stable_token(row[self.entity_index], kind="entity")
+            truncated |= _track_split(self.entity_splits, entity_token, split_token)
+        if group_token is not None:
+            truncated |= _track_split(self.group_splits, group_token, split_token)
+        row_without_split = [
+            value for index, value in enumerate(row) if index != self.split_index
+        ]
+        fingerprint = hashlib.blake2s(
+            "\0".join(row_without_split).encode(
+                "utf-8",
+                errors="surrogatepass",
+            ),
+            digest_size=16,
+        ).digest()
+        truncated |= _track_split(self.row_splits, fingerprint, split_token)
+        if truncated:
+            self.tracking_truncated = True
+
+    def _track_time(self, row: list[str], split_token: str) -> None:
+        """Extend the observed time interval of a split with this row's timestamp."""
+        if self.time_index is None:
+            return
+        parsed = _parse_time(row[self.time_index])
+        if parsed is None:
+            if not self._is_missing_at(row, self.time_index):
+                self.time_parse_failures += 1
+        elif split_token not in self.time_intervals:
+            self.time_intervals[split_token] = (parsed, parsed)
+        else:
+            low, high = self.time_intervals[split_token]
+            self.time_intervals[split_token] = (min(low, parsed), max(high, parsed))
+
+    def on_row(self, _row_index: int, row: list[str]) -> None:
+        """Fold one table row into the missingness and leakage counters."""
+        for index, value in enumerate(row):
+            if is_missing(value, self.missing):
+                self.overall_missing[index] += 1
+        group_token, split_token = self._partition_tokens(row)
+        if split_token is None:
+            return
+        self._track_overlap(row, group_token, split_token)
+        self._track_time(row, split_token)
+
+    def temporal_overlap_pairs(self) -> int:
+        """Count pairs of splits whose observed time intervals overlap."""
+        pairs = 0
+        interval_items = sorted(self.time_intervals.items())
+        for left_index, (_, (left_low, left_high)) in enumerate(interval_items):
+            for _, (right_low, right_high) in interval_items[left_index + 1 :]:
+                if max(left_low, right_low) <= min(left_high, right_high):
+                    pairs += 1
+        return pairs
+
+    def leakage_flags(self) -> dict[str, int]:
+        """Return the counts of tokens and intervals that straddle multiple splits."""
+        return {
+            "entity_tokens_in_multiple_splits": sum(
+                len(splits) > 1 for splits in self.entity_splits.values()
+            ),
+            "group_tokens_in_multiple_splits": sum(
+                len(splits) > 1 for splits in self.group_splits.values()
+            ),
+            "identical_row_hashes_in_multiple_splits": sum(
+                len(splits) > 1 for splits in self.row_splits.values()
+            ),
+            "overlapping_split_time_interval_pairs": self.temporal_overlap_pairs(),
+        }
+
+
+def _partition_report(
+    mapping: PartitionMap,
+    *,
+    key_name: str,
+    column_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Build the per-key row counts and column missingness for one partitioning."""
+    reports: list[dict[str, Any]] = []
+    for key in sorted(mapping):
+        count, counts = mapping[key]
+        reports.append(
+            {
+                key_name: key,
+                "row_count": count,
+                "column_missingness": [
+                    {
+                        "column_id": column_ids[index],
+                        "missing_count": value,
+                        "missing_fraction": value / count if count else None,
+                    }
+                    for index, value in enumerate(counts)
+                ],
+            }
+        )
+    return reports
+
+
+def _maximum_group_gaps(by_group: PartitionMap, column_ids: list[str]) -> list[dict[str, Any]]:
+    """Report the largest between-group missingness-rate gap per column."""
+    gaps: list[dict[str, Any]] = []
+    if len(by_group) < 2:
+        return gaps
+    for index, column_id in enumerate(column_ids):
+        rates = [
+            counts[index] / count
+            for count, counts in by_group.values()
+            if count
+        ]
+        if rates:
+            gaps.append(
+                {
+                    "column_id": column_id,
+                    "maximum_group_missingness_gap": max(rates) - min(rates),
+                }
+            )
+    return gaps
+
+
+def _leakage_status(leakage_assessed: bool, any_flag: bool) -> str:
+    """Name the leakage-audit outcome from whether it ran and whether it flagged anything."""
+    if not leakage_assessed:
+        return "not_assessed_without_split_column"
+    if any_flag:
+        return "potential_leakage_detected"
+    return "not_detected_in_scanned_rows"
 
 
 def audit_missingness_and_leakage(
@@ -690,106 +930,18 @@ def audit_missingness_and_leakage(
     """Audit missingness and common split leakage without exposing identifiers."""
 
     missing = normalize_missing_tokens(missing_tokens)
-    header: list[str] = []
-    group_index: int | None = None
-    entity_index: int | None = None
-    split_index: int | None = None
-    time_index: int | None = None
-    overall_missing: list[int] = []
-    by_group: dict[str, tuple[int, list[int]]] = {}
-    by_split: dict[str, tuple[int, list[int]]] = {}
-    entity_splits: dict[str, set[str]] = {}
-    group_splits: dict[str, set[str]] = {}
-    row_splits: dict[bytes, set[str]] = {}
-    time_intervals: dict[str, tuple[datetime, datetime]] = {}
-    time_parse_failures = 0
-    missing_split_rows = 0
-    tracking_truncated = False
-
-    def on_header(names: list[str]) -> None:
-        nonlocal header, group_index, entity_index, split_index, time_index
-        nonlocal overall_missing
-        header = names
-        group_index = resolve_column(names, group_column)
-        entity_index = resolve_column(names, entity_column)
-        split_index = resolve_column(names, split_column)
-        time_index = resolve_column(names, time_column)
-        overall_missing = [0] * len(names)
-
-    def update_partition(
-        mapping: dict[str, tuple[int, list[int]]],
-        key: str,
-        row: list[str],
-    ) -> None:
-        if key not in mapping:
-            if len(mapping) >= MAX_DISTINCT_GROUPS:
-                raise CliError("too many distinct group or split values")
-            mapping[key] = (0, [0] * len(row))
-        count, counts = mapping[key]
-        for index, value in enumerate(row):
-            if is_missing(value, missing):
-                counts[index] += 1
-        mapping[key] = (count + 1, counts)
-
-    def on_row(_row_index: int, row: list[str]) -> None:
-        nonlocal time_parse_failures, missing_split_rows, tracking_truncated
-        for index, value in enumerate(row):
-            if is_missing(value, missing):
-                overall_missing[index] += 1
-        group_token: str | None = None
-        split_token: str | None = None
-        if group_index is not None and not is_missing(row[group_index], missing):
-            group_token = stable_token(row[group_index], kind="group")
-            update_partition(by_group, group_token, row)
-        if split_index is not None:
-            if is_missing(row[split_index], missing):
-                missing_split_rows += 1
-            else:
-                split_token = stable_token(row[split_index], kind="split")
-                update_partition(by_split, split_token, row)
-        if split_token is None:
-            return
-        if entity_index is not None and not is_missing(row[entity_index], missing):
-            entity_token = stable_token(row[entity_index], kind="entity")
-            if len(entity_splits) < MAX_TRACKED_LEAKAGE_KEYS:
-                entity_splits.setdefault(entity_token, set()).add(split_token)
-            elif entity_token not in entity_splits:
-                tracking_truncated = True
-        if group_token is not None:
-            if len(group_splits) < MAX_TRACKED_LEAKAGE_KEYS:
-                group_splits.setdefault(group_token, set()).add(split_token)
-            elif group_token not in group_splits:
-                tracking_truncated = True
-        row_without_split = [
-            value for index, value in enumerate(row) if index != split_index
-        ]
-        fingerprint = hashlib.blake2s(
-            "\0".join(row_without_split).encode(
-                "utf-8",
-                errors="surrogatepass",
-            ),
-            digest_size=16,
-        ).digest()
-        if len(row_splits) < MAX_TRACKED_LEAKAGE_KEYS:
-            row_splits.setdefault(fingerprint, set()).add(split_token)
-        elif fingerprint not in row_splits:
-            tracking_truncated = True
-        if time_index is not None:
-            parsed = _parse_time(row[time_index])
-            if parsed is None:
-                if not is_missing(row[time_index], missing):
-                    time_parse_failures += 1
-            elif split_token not in time_intervals:
-                time_intervals[split_token] = (parsed, parsed)
-            else:
-                low, high = time_intervals[split_token]
-                time_intervals[split_token] = (min(low, parsed), max(high, parsed))
-
+    scan = _LeakageScan(
+        missing,
+        group_column=group_column,
+        entity_column=entity_column,
+        split_column=split_column,
+        time_column=time_column,
+    )
     summary = scan_table(
         path,
         max_rows=max_rows,
-        on_header=on_header,
-        on_row=on_row,
+        on_header=scan.on_header,
+        on_row=scan.on_row,
     )
     column_ids = [
         display_identifier(
@@ -797,7 +949,7 @@ def audit_missingness_and_leakage(
             kind="column",
             reveal_identifiers=reveal_identifiers,
         )
-        for name in header
+        for name in scan.header
     ]
     overall = [
         {
@@ -807,89 +959,29 @@ def audit_missingness_and_leakage(
             if summary.rows_scanned
             else None,
         }
-        for index, count in enumerate(overall_missing)
+        for index, count in enumerate(scan.overall_missing)
     ]
-
-    def partition_report(
-        mapping: dict[str, tuple[int, list[int]]],
-        *,
-        key_name: str,
-    ) -> list[dict[str, Any]]:
-        reports: list[dict[str, Any]] = []
-        for key in sorted(mapping):
-            count, counts = mapping[key]
-            reports.append(
-                {
-                    key_name: key,
-                    "row_count": count,
-                    "column_missingness": [
-                        {
-                            "column_id": column_ids[index],
-                            "missing_count": value,
-                            "missing_fraction": value / count if count else None,
-                        }
-                        for index, value in enumerate(counts)
-                    ],
-                }
-            )
-        return reports
-
-    maximum_group_gaps: list[dict[str, Any]] = []
-    if len(by_group) >= 2:
-        for index, column_id in enumerate(column_ids):
-            rates = [
-                counts[index] / count
-                for count, counts in by_group.values()
-                if count
-            ]
-            if rates:
-                maximum_group_gaps.append(
-                    {
-                        "column_id": column_id,
-                        "maximum_group_missingness_gap": max(rates) - min(rates),
-                    }
-                )
-    temporal_overlap_pairs = 0
-    interval_items = sorted(time_intervals.items())
-    for left_index, (_, (left_low, left_high)) in enumerate(interval_items):
-        for _, (right_low, right_high) in interval_items[left_index + 1 :]:
-            if max(left_low, right_low) <= min(left_high, right_high):
-                temporal_overlap_pairs += 1
-    entity_overlap_count = sum(
-        len(splits) > 1 for splits in entity_splits.values()
-    )
-    group_overlap_count = sum(len(splits) > 1 for splits in group_splits.values())
-    duplicate_row_overlap_count = sum(
-        len(splits) > 1 for splits in row_splits.values()
-    )
-    leakage_flags = {
-        "entity_tokens_in_multiple_splits": entity_overlap_count,
-        "group_tokens_in_multiple_splits": group_overlap_count,
-        "identical_row_hashes_in_multiple_splits": duplicate_row_overlap_count,
-        "overlapping_split_time_interval_pairs": temporal_overlap_pairs,
-    }
-    any_flag = any(leakage_flags.values())
-    leakage_assessed = split_index is not None
+    leakage_flags = scan.leakage_flags()
+    # resolve_column returns an index exactly when a split column was requested.
+    leakage_assessed = split_column is not None
     return {
         "audit_type": "missingness_group_and_split_leakage",
         "rows_scanned": summary.rows_scanned,
         "row_limit_reached": summary.truncated,
         "overall_missingness": overall,
-        "missingness_by_group": partition_report(by_group, key_name="group_token"),
-        "missingness_by_split": partition_report(by_split, key_name="split_token"),
-        "maximum_group_missingness_gaps": maximum_group_gaps,
+        "missingness_by_group": _partition_report(
+            scan.by_group, key_name="group_token", column_ids=column_ids
+        ),
+        "missingness_by_split": _partition_report(
+            scan.by_split, key_name="split_token", column_ids=column_ids
+        ),
+        "maximum_group_missingness_gaps": _maximum_group_gaps(scan.by_group, column_ids),
         "leakage_audit": {
-            "status": (
-                "not_assessed_without_split_column"
-                if not leakage_assessed
-                else "potential_leakage_detected"
-                if any_flag
-                else "not_detected_in_scanned_rows"
-            ),
+            "status": _leakage_status(leakage_assessed, any(leakage_flags.values())),
             **leakage_flags,
-            "rows_with_missing_split": missing_split_rows,
-            "unparseable_nonmissing_time_values": time_parse_failures,
-            "tracking_truncated": tracking_truncated,
+            "rows_with_missing_split": scan.missing_split_rows,
+            "unparseable_nonmissing_time_values": scan.time_parse_failures,
+            "tracking_truncated": scan.tracking_truncated,
             "scope_warning": (
                 "No finding is not proof of no leakage, especially for truncated scans "
                 "or unprovided entity/group/time roles."

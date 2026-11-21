@@ -1,0 +1,161 @@
+{
+  "id": "justified-manifesto",
+  "name": "Justified manifesto column",
+  "use": "A manifesto set word by word into one justified column, photos opening in gaps",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 15,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Instrument Serif",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif"
+    },
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    }
+  ],
+  "presets": [
+    {
+      "id": "justified-manifesto.dark",
+      "label": "Dark",
+      "look": "White grotesque on near-black, one accent word",
+      "params": {
+        "bg": "#0B0B0D",
+        "ink": "#F2EFE8",
+        "accent": "#FF5A1F",
+        "font": "Inter",
+        "weight": 600,
+        "size_px": 64,
+        "leading": 1.05,
+        "align": "justify",
+        "hyphens": "auto",
+        "column_width_px_16x9": [
+          720,
+          880
+        ],
+        "column_width_px_9x16": 936,
+        "chars_per_line": [
+          25,
+          40
+        ],
+        "bpm": 120,
+        "words_per_beat": 1,
+        "word_in": {
+          "frames": 5,
+          "rise_em": 0.15,
+          "ease": "power3.out"
+        },
+        "reflow": {
+          "frames": 7,
+          "ease": "power2.out"
+        },
+        "photo_gap": {
+          "open_pct_of_height": [
+            30,
+            45
+          ],
+          "open_frames": 12,
+          "ease": "power3.inOut",
+          "hold_beats": 2,
+          "close_frames": 9
+        },
+        "end_hold_s": 1.8
+      },
+      "sources": [
+        23,
+        37,
+        38,
+        9,
+        25
+      ]
+    },
+    {
+      "id": "justified-manifesto.light",
+      "label": "Light",
+      "look": "Black editorial serif on paper",
+      "params": {
+        "bg": "#F2EFE8",
+        "ink": "#111111",
+        "font": "Instrument Serif",
+        "size_px": 72,
+        "leading": 1.0,
+        "accent_style": "italic"
+      },
+      "sources": [
+        23,
+        25
+      ]
+    },
+    {
+      "id": "justified-manifesto.caps",
+      "label": "Caps poster",
+      "look": "Condensed caps block",
+      "params": {
+        "font": "Anton",
+        "size_px": 96,
+        "tracking_em": 0.04,
+        "leading": 0.92
+      },
+      "sources": [
+        22
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 9,
+      "name": "@_chenglou, userland text measurement",
+      "url": "https://x.com/_chenglou/status/2037713766205608234"
+    },
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 23,
+      "name": "Butterick, Justified text",
+      "url": "https://practicaltypography.com/justified-text.html"
+    },
+    {
+      "n": 25,
+      "name": "PRINT, Swiss Style (Callie Budrick)",
+      "url": "https://www.printmag.com/?p=1387"
+    },
+    {
+      "n": 37,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 38,
+      "name": "Silverman Sound, BPM to FPS calculator",
+      "url": "https://www.silvermansound.com/bpm-to-fps-calculator"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

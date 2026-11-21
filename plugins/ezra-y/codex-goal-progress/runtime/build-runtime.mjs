@@ -69,6 +69,7 @@ const rendererPath = resolve(outputRoot, "renderer/goal-progress.js");
 await build({
   absWorkingDir: sourceRoot,
   bundle: true,
+  charset: "utf8",
   entryPoints: ["packages/codex-adapter/src/browser-entry.ts"],
   format: "iife",
   legalComments: "none",

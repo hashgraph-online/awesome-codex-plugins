@@ -1,0 +1,4 @@
+interface:
+  display_name: "GrayMatter Onboarding"
+  short_description: "Get useful memory working from your first task"
+  default_prompt: "Use $graymatter-onboarding to get started with GrayMatter as my primary memory."

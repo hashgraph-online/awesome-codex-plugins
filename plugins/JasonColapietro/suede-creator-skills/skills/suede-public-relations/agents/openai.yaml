@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Public Relations Skills"
+  short_description: "Earned media that also earns AI-search citations"
+  default_prompt: "Use $suede-public-relations on [target]. The user wants press coverage, is pitching journalists, or is deciding how to announce something publicly. Work through media lists, journalist pitching, newsjacking a live story, press kits, and responding to reporter requests, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

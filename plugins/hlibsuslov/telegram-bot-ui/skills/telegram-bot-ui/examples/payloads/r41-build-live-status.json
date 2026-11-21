@@ -1,0 +1,586 @@
+{
+  "scenario": "r41-build-live-status",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>CI #142 · shop-api</b> — running · 0s\n⏳ Install\n▫️ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 16s\n⏳ Install\n▫️ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nInstall: step 4",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 32s\n⏳ Install\n▫️ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nInstall: step 8",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 44s\n✅ Install\n⏳ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nCompile: step 1",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 1m 00s\n✅ Install\n⏳ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nCompile: step 5",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 1m 16s\n✅ Install\n⏳ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nCompile: step 9",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 1m 32s\n✅ Install\n⏳ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nCompile: step 13",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 1m 48s\n✅ Install\n⏳ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nCompile: step 17",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 2m 04s\n✅ Install\n⏳ Compile\n▫️ Unit tests\n▫️ E2E tests\n▫️ Package\n\nCompile: step 21",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 2m 20s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 1",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 2m 36s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 5",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 2m 52s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 9",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 3m 08s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 13",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 3m 24s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 17",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 3m 40s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 21",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 3m 56s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 25",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 4m 12s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 29",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 4m 28s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 33",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 4m 44s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 37",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 5m 00s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 41",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 5m 16s\n✅ Install\n✅ Compile\n⏳ Unit tests\n▫️ E2E tests\n▫️ Package\n\nUnit tests: step 45",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 5m 20s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 0/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 5m 36s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 2/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 5m 52s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 5/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 6m 08s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 8/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 6m 24s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 10/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 6m 40s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 13/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 6m 56s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 16/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 7m 12s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 18/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 7m 28s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 21/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 7m 44s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 24/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 8m 00s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 26/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 8m 16s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 29/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 8m 32s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 32/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 8m 48s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 34/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 9m 04s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 37/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 9m 20s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 40/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 9m 36s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 42/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 9m 52s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 45/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 10m 08s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 48/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 10m 24s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 50/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 10m 40s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 53/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 10m 56s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 56/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 11m 12s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 58/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — running · 11m 28s\n✅ Install\n✅ Compile\n✅ Unit tests\n⏳ E2E tests\n▫️ Package\n\nE2E: 60/60 specs",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>CI #142 · shop-api</b> — failed · 11m 59s\n✅ Install\n✅ Compile\n✅ Unit tests\n❌ E2E tests\n▫️ Package\n\n3 of 60 E2E specs failed (checkout)",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "CI #142 · shop-api: failed in 11m 59s.",
+        "reply_parameters": {
+          "message_id": 1001
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "CI #142 — failed at E2E tests"
+            },
+            {
+              "type": "paragraph",
+              "text": "Unit and integration are green. 3 checkout specs time out after the payment form change."
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Stage",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Result",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Time",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "Install",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "40s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Compile",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "1m 35s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Unit tests",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "812 passed",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "3m 00s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "E2E tests",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "57/60",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "6m 40s",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "checkout.spec.ts › pays with saved card"
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "checkout.spec.ts › applies coupon"
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "details",
+              "summary": "Log tail",
+              "blocks": [
+                {
+                  "type": "pre",
+                  "text": "TimeoutError: waited 30000ms for #pay\n  at checkout.spec.ts:88"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendDocument",
+      "params": {
+        "chat_id": 111111111,
+        "document": "attach://document",
+        "caption": "CI #142 full log (2001 lines)"
+      }
+    }
+  ]
+}

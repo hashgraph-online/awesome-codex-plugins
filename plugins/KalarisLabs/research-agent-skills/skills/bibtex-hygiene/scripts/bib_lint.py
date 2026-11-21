@@ -23,6 +23,8 @@ import sys
 import unicodedata
 from dataclasses import dataclass, field
 
+_AUTHOR_SEP = " and "
+
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
@@ -45,6 +47,7 @@ ACRONYM_RE = re.compile(r"(?<![{\\\w])([A-Z][A-Za-z]*[A-Z][A-Za-z]*|[A-Z]{2,}\d*
 
 @dataclass
 class Entry:
+    """Entry."""
     type: str
     key: str
     fields: dict[str, str] = field(default_factory=dict)
@@ -52,6 +55,7 @@ class Entry:
 
 
 class BibError(ValueError):
+    """Raised when bib fails."""
     pass
 
 
@@ -104,6 +108,7 @@ def _read_value(text: str, i: int) -> tuple[str, int]:
 
 
 def parse_bib(text: str) -> list[Entry]:
+    """Parse bib."""
     entries: list[Entry] = []
     for m in re.finditer(r"@(\w+)\s*([{(])", text):
         etype = m.group(1).lower()
@@ -131,14 +136,17 @@ def parse_bib(text: str) -> list[Entry]:
 
 
 def norm_title(t: str) -> str:
+    """Handle norm title."""
     t = unicodedata.normalize("NFKD", re.sub(r"[{}\\]", "", t)).encode("ascii", "ignore").decode().lower()
     return re.sub(r"[^a-z0-9]+", " ", t).strip()
 
 
 def lint(entries: list[Entry]) -> list[dict]:
+    """Handle lint."""
     out: list[dict] = []
 
     def add(e: Entry, severity: str, code: str, msg: str) -> None:
+        """Add."""
         out.append({"key": e.key, "line": e.line, "severity": severity, "code": code, "message": msg})
 
     seen_keys: dict[str, Entry] = {}
@@ -182,14 +190,15 @@ def lint(entries: list[Entry]) -> list[dict]:
         journal = f.get("journal", "").lower()
         if ("arxiv" in journal or f.get("eprinttype", "").lower() == "arxiv" or f.get("archiveprefix", "").lower() == "arxiv"):
             add(e, "info", "preprint", "arXiv preprint: check whether a peer-reviewed version exists and cite it")
-        if f.get("author", "").count(" and ") >= 1 and re.search(r",\s*,", f.get("author", "")):
+        if f.get("author", "").count(_AUTHOR_SEP) >= 1 and re.search(r",\s*,", f.get("author", "")):
             add(e, "error", "author-format", "malformed author list (empty name between commas)")
-        if "others" in f.get("author", "").split(" and ")[-1:] and len(f.get("author", "").split(" and ")) < 3:
+        if "others" in f.get("author", "").split(_AUTHOR_SEP)[-1:] and len(f.get("author", "").split(_AUTHOR_SEP)) < 3:
             add(e, "warning", "author-others", "'and others' with fewer than 3 authors: list them all")
     return out
 
 
 def normalized_bib(entries: list[Entry]) -> str:
+    """Handle normalized bib."""
     chunks = []
     order = ["author", "editor", "title", "journal", "booktitle", "publisher", "school", "institution", "year",
              "volume", "number", "pages", "doi", "url", "eprint", "archiveprefix", "primaryclass", "note"]
@@ -207,6 +216,7 @@ def normalized_bib(entries: list[Entry]) -> str:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("bib")
     ap.add_argument("--json", action="store_true")

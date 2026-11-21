@@ -1,0 +1,44 @@
+{
+  "name": "brief2mp4",
+  "version": "0.4.0",
+  "description": "Turn a written brief into a finished, checked MP4 motion graphic: HyperFrames, Three.js, an optional 3D pack (CAD, materials, physics), Blender and ffmpeg. macOS, Windows, Linux.",
+  "author": {
+    "name": "Varun Pratap Bhardwaj",
+    "url": "https://github.com/qualixar"
+  },
+  "homepage": "https://github.com/qualixar/brief2mp4",
+  "repository": "https://github.com/qualixar/brief2mp4",
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "motion-graphics",
+    "hyperframes",
+    "threejs",
+    "blender",
+    "ffmpeg",
+    "3d",
+    "physics",
+    "agent-skills",
+    "text-to-video"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "brief2mp4",
+    "shortDescription": "Write a brief, get a checked MP4",
+    "longDescription": "Paste a written video brief and the agent writes a spec, routes each beat to HyperFrames, Three.js, the optional 3D pack or Blender, renders, finishes the file with ffmpeg, checks every line of the brief against real frames, fixes what fails and writes a report.",
+    "developerName": "Varun Pratap Bhardwaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/qualixar/brief2mp4",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": [
+      "Use the brief2mp4 skill to make the video in this brief:",
+      "Check it against the brief."
+    ],
+    "brandColor": "#FF5A1F"
+  }
+}

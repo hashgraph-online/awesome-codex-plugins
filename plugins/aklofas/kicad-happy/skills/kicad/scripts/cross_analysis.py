@@ -23,12 +23,20 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from finding_schema import make_finding, compute_trust_summary, assign_finding_ids
-from kicad_utils import build_net_id_map as _build_net_id_map
+from finding_schema import make_finding, compute_trust_summary, assign_finding_ids, show_decoded_names
+from kicad_core.fileio import atomic_write_text, json_load
+from kicad_core.fields import merge_unit_fields
+from kicad_core.netnames import (RAIL_SIGNAL_SUFFIXES, _VOLTAGE_SIGNAL_SUFFIXES, is_ground_name,
+                                 is_pin_guarded_signal, is_power_net_name, net_leaf)
+from kicad_core.netquery import build_net_id_map as _build_net_id_map
+from kicad_core.pairing import pair_by_path
 from envelopes.cross_analysis import CrossAnalysisEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_upstream_artifact, build_compat
 from capability_mode import get_capability_mode_ref
+from kicad_core.cli import (add_only_deterministic_arg, add_output_arg, add_schema_arg,
+                            add_stage_audience_args, add_text_arg, envelope_type_error,
+                            utf8_text_stdout)
 
 ANALYZER_SOURCE = "cross"
 
@@ -36,20 +44,25 @@ ANALYZER_SOURCE = "cross"
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _is_ground_net(name: str) -> bool:
+def is_cross_analysis_ground_name(name: str) -> bool:
+    """Ground net: the shared schematic rule (kicad_core.netnames.is_ground_name) plus EARTH and CHASSIS."""
     if not name:
         return False
-    n = name.upper().replace('/', '').replace('-', '').replace('_', '')
-    return n in ('GND', 'VSS', 'DGND', 'AGND', 'PGND', 'GNDD', 'GNDA',
-                 'GND_D', 'GND_A', 'EARTH', 'CHASSIS', '0V')
+    return is_ground_name(name) or net_leaf(name).upper() in ('EARTH', 'CHASSIS')
 
 
 def _is_power_net(name: str) -> bool:
     if not name:
         return False
     n = name.upper()
-    if _is_ground_net(name):
+    if is_cross_analysis_ground_name(name):
         return True
+    # A signal about a rail (VBUS_DET, VIN_EN, +5V_SENSE, 5VEN) is not the rail.
+    if '_' in n and n.rsplit('_', 1)[-1] in RAIL_SIGNAL_SUFFIXES:
+        return False
+    m = re.match(r'^\+?\d+V\d*([A-Z]+)$', n)
+    if m and m.group(1) in _VOLTAGE_SIGNAL_SUFFIXES:
+        return False
     if n.startswith(('+', 'VCC', 'VDD', 'VBUS', 'VIN', 'VBAT', 'VSYS')):
         return True
     if re.match(r'^\+?\d+V\d*', n):
@@ -99,12 +112,63 @@ _IPC2152_1OZ_10C = {
 }
 
 
+def _reg_iout(reg: dict) -> float:
+    return (reg.get('estimated_iout_A')
+            or (reg.get('power_dissipation') or {}).get('estimated_iout_A')
+            or 0)
+
+
+def _reg_iin(reg: dict) -> float:
+    """Estimated input current of a regulator: its output current for a linear regulator,
+    Iout * |Vout| / (Vin * efficiency) for a switcher whose estimate carries them. Vout is
+    read from the output rail's name when the name carries a voltage."""
+    iout = _reg_iout(reg)
+    pd = reg.get('power_dissipation') or {}
+    vin, vout, eff = pd.get('vin_estimated_V'), pd.get('vout_V'), pd.get('efficiency_assumed')
+    vout = _parse_voltage_from_name(reg.get('output_rail', '')) or vout
+    if iout and all(isinstance(v, (int, float)) for v in (vin, vout, eff)) and vin > 0 and eff > 0:
+        return iout * abs(vout) / (vin * eff)
+    return iout
+
+
+def _path_min_width(pad_paths: dict, net_name: str, conn_ref: str, reg_refs: set) -> float | None:
+    """Narrowest track on the routed paths between a connector's pads and the pads of the
+    regulators it feeds on one net (pad_to_pad_distances, keyed "REF.pad-REF.pad");
+    None when no such path was measured."""
+    widths = []
+    for key, entry in pad_paths.items():
+        w = entry.get('min_width_mm')
+        if entry.get('net') != net_name or not isinstance(w, (int, float)) or w <= 0:
+            continue
+        if any((key.startswith(conn_ref + '.') and f'-{r}.' in key)
+               or (key.startswith(r + '.') and f'-{conn_ref}.' in key) for r in reg_refs):
+            widths.append(w)
+    return min(widths) if widths else None
+
+
+def _attached_min_width(segments: list, net_id_map: dict, net_name: str, fp: dict) -> float | None:
+    """Narrowest track of net_name with an end inside the footprint's courtyard (the track
+    leaving the connector); None without a courtyard or such a track."""
+    cy = fp.get('courtyard') or {}
+    if not all(isinstance(cy.get(k), (int, float)) for k in ('min_x', 'min_y', 'max_x', 'max_y')):
+        return None
+    widths = []
+    for seg in segments:
+        net_id = seg.get('net', 0)
+        if (net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)) != net_name:
+            continue
+        w = seg.get('width', 0) or 0
+        if w > 0 and any(cy['min_x'] <= x <= cy['max_x'] and cy['min_y'] <= y <= cy['max_y']
+                         for x, y in ((seg.get('x1'), seg.get('y1')), (seg.get('x2'), seg.get('y2')))
+                         if isinstance(x, (int, float)) and isinstance(y, (int, float))):
+            widths.append(w)
+    return min(widths) if widths else None
+
+
 def _min_trace_width_for_current(current_a: float) -> float:
     prev_i, prev_w = 0.0, 0.0
     for i, w in sorted(_IPC2152_1OZ_10C.items()):
         if current_a <= i:
-            if prev_i == 0:
-                return w
             frac = (current_a - prev_i) / (i - prev_i)
             return prev_w + frac * (w - prev_w)
         prev_i, prev_w = i, w
@@ -167,7 +231,7 @@ def _point_to_segment_distance(px, py, x1, y1, x2, y2):
 
 
 # ---------------------------------------------------------------------------
-# checks_run recorder (KH-381)
+# checks_run recorder
 # ---------------------------------------------------------------------------
 
 class _CheckRecorder:
@@ -207,18 +271,13 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
 
     footprints = pcb.get('footprints', [])
     fp_map = {fp.get('reference', ''): fp for fp in footprints}
+    pad_paths = pcb.get('pad_to_pad_distances') or {}
 
     segments = (pcb.get('tracks') or {}).get('segments') or []
+    if not segments:
+        _record(recorder, 'CC-001', False, 'no PCB track segments present', 0, findings)
+        return findings
     net_id_map = _build_net_id_map(pcb)
-
-    net_min_width: dict[str, float] = {}
-    for seg in segments:
-        net_id = seg.get('net', 0)
-        net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        w = seg.get('width', 0) or 0
-        if net_name and w > 0:
-            if net_name not in net_min_width or w < net_min_width[net_name]:
-                net_min_width[net_name] = w
 
     components = schematic.get('components', [])
     connectors = [c for c in components if c.get('type') == 'connector']
@@ -230,21 +289,25 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
         fp = fp_map.get(ref)
         if not fp:
             continue
-        for pad in fp.get('pads', []):
-            net_name = pad.get('net_name', '')
-            if not net_name or _is_ground_net(net_name) or not _is_power_net(net_name):
+        pad_nets = {e.get('net') for e in (fp.get('pad_nets') or {}).values()}
+        for net_name in sorted(n for n in pad_nets if n):
+            if is_cross_analysis_ground_name(net_name) or not _is_power_net(net_name):
                 continue
             voltage = _parse_voltage_from_name(net_name)
             if voltage is None:
                 continue
-            total_current = sum(
-                reg.get('estimated_iout_A', 0) or 0
-                for reg in regulators
-                if reg.get('input_rail') == net_name
-            )
+            fed = [reg for reg in regulators if reg.get('input_rail') == net_name]
+            total_current = sum(_reg_iin(reg) for reg in fed)
             if total_current <= 0:
                 continue
-            trace_w = net_min_width.get(net_name)
+            # The routed connector-to-regulator path when it was measured, else the
+            # track leaving the connector.
+            trace_w = _path_min_width(pad_paths, net_name, ref,
+                                      {reg.get('ref') for reg in fed if reg.get('ref')})
+            where = 'between the connector and those regulators'
+            if trace_w is None:
+                trace_w = _attached_min_width(segments, net_id_map, net_name, fp)
+                where = 'leaving the connector'
             if trace_w is None:
                 continue
             min_w = _min_trace_width_for_current(total_current)
@@ -252,10 +315,11 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
                 findings.append(make_finding(
                     detector='check_connector_current', rule_id='CC-001',
                     category='current_capacity',
-                    summary=f'Connector {ref}: trace on {net_name} too narrow for ~{total_current:.1f}A',
+                    summary=f'Connector {ref}: trace on {net_name} too narrow for ~{total_current:.1f}A (est.)',
                     description=(
-                        f'Power net {net_name} at connector {ref} carries estimated '
-                        f'{total_current:.1f}A but narrowest trace is {trace_w:.2f}mm. '
+                        f'Power net {net_name} at connector {ref} carries an estimated '
+                        f'{total_current:.1f}A into the regulators it feeds (from their '
+                        f'output capacitance), but the narrowest trace {where} is {trace_w:.2f}mm. '
                         f'IPC-2152 recommends >= {min_w:.2f}mm (1oz Cu, 10C rise).'
                     ),
                     severity='warning', confidence='heuristic', evidence_source='topology',
@@ -263,7 +327,7 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
                     recommendation=f'Widen trace on {net_name} to >= {min_w:.1f}mm or use copper pour.',
                     standard_ref='IPC-2152', impact='Trace overheating and voltage drop',
 
-                    source=ANALYZER_SOURCE,))
+                    source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'CC-001', True, None, len(connectors), findings)
     return findings
 
@@ -295,9 +359,35 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
 
     components = schematic.get('components', [])
     connectors = [c for c in components if c.get('type') == 'connector']
-
-    # Build pin_net lookup from schematic components
-    pin_net_data = schematic.get('pin_net') or {}
+    comp_type = {c.get('reference'): c.get('type') for c in components}
+    all_nets = schematic.get('nets') or {}
+    # A clamp behind one series resistor, ferrite or inductor still protects the pin; the
+    # far side must be a clamped signal (a pull-up to a clamped rail protects nothing, and a
+    # fuse or a reverse-polarity diode is no ESD clamp).
+    clamped = {n for pd in protection if pd.get('type') in ('esd_ic', 'diode', 'varistor', 'surge_arrester')
+               for n in [pd.get('protected_net', '')] + list(pd.get('protected_nets') or []) if n}
+    # The pin's own net must reach no IC, or that IC sits in front of the clamp.
+    via_series: set[str] = set()
+    for c in components:
+        if (c.get('type') not in ('resistor', 'ferrite_bead', 'inductor')
+                or c.get('dnp') or c.get('on_board') is False):
+            continue
+        ends = {n for n in (c.get('pin_nets') or {}).values() if n}
+        if len(ends) != 2:
+            continue
+        a, b = sorted(ends)
+        for near, far in ((a, b), (b, a)):
+            if (far in clamped and not _is_power_net(far)
+                    and not is_ground_name(far) and not is_power_net_name(far)
+                    and not any(comp_type.get(p.get('component')) == 'ic'
+                                for p in (all_nets.get(near) or {}).get('pins', []))):
+                via_series.add(near)
+    rails = {n for n, info in all_nets.items()
+             if any(str(p.get('component', '')).startswith(('#PWR', '#FLG'))
+                    for p in info.get('pins', []))}
+    pin_signals = {n for n, info in all_nets.items()
+                   if n not in rails and is_pin_guarded_signal(n, [(p.get('pin_type'), comp_type.get(p.get('component')) == 'ic')
+                                                for p in info.get('pins', [])])}
 
     for conn in connectors:
         val_lib = (conn.get('value', '') + ' ' + conn.get('lib_id', '')).lower()
@@ -306,17 +396,16 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
         ref = conn['reference']
 
         unprotected_nets = []
-        # Check via pin_net data (keys are "ref:pin_number" strings or tuples)
-        if isinstance(pin_net_data, dict):
-            for key, val in pin_net_data.items():
-                key_str = str(key)
-                if not key_str.startswith(ref + ':') and not key_str.startswith(f"('{ref}'"):
-                    continue
-                net = val[0] if isinstance(val, (list, tuple)) else val
-                if not net or _is_power_net(net) or _is_ground_net(net):
-                    continue
-                if net not in protected_nets:
-                    unprotected_nets.append(net)
+        pin_nets = conn.get('pin_nets') or {}
+        for _, net in sorted(pin_nets.items()):
+            if (not net or _is_power_net(net) or is_cross_analysis_ground_name(net)
+                    or is_ground_name(net) or (is_power_net_name(net) and net not in pin_signals)):
+                continue
+            nc_pins = (all_nets.get(net) or {}).get('pins') or []
+            if nc_pins and all(p.get('pin_type') == 'no_connect' for p in nc_pins):
+                continue  # an unused pin typed no-connect, alone on its net
+            if net not in protected_nets and net not in via_series:
+                unprotected_nets.append(net)
 
         # Deduplicate
         unprotected_nets = list(dict.fromkeys(unprotected_nets))
@@ -331,7 +420,7 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
                     f'{len(unprotected_nets)} unprotected signal net(s): '
                     f'{", ".join(unprotected_nets[:5])}{"..." if len(unprotected_nets) > 5 else ""}.'
                 ),
-                severity='warning', confidence='heuristic', evidence_source='topology',
+                severity='info', confidence='heuristic', evidence_source='topology',
                 components=[ref], nets=unprotected_nets[:10],
                 recommendation='Add TVS or ESD clamp diodes on unprotected external nets.',
                 fix_params={
@@ -341,9 +430,31 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
                 },
                 standard_ref='IEC 61000-4-2', impact='ESD damage on unprotected pins',
 
-                source=ANALYZER_SOURCE,))
+                source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'EG-001', True, None, len(connectors), findings)
     return findings
+
+
+def _multi_unit(c: dict, units_by_ref: dict) -> bool:
+    """Whether *c* is a unit of a multi-unit part. KiCad's netlist merges every symbol of one
+    reference only for multi-unit library symbols; a placed unit above 1 is the sign of one
+    (the output carries no unit count). Unannotated references stay one part per symbol."""
+    ref = c.get('reference') or ''
+    if not ref or ref.endswith('?'):
+        return False
+    return any((u.get('unit') or 1) != 1 for u in units_by_ref.get(ref, ()))
+
+
+def _package_key(c: dict, units_by_ref: dict) -> tuple:
+    if _multi_unit(c, units_by_ref):
+        return ('ref', c['reference'])
+    return ('symbol', c.get('instance_path') or c.get('uuid') or str(id(c)))
+
+
+def _package_keys(components, units_by_ref: dict) -> set:
+    """One key per package: the units of a multi-unit part share one; every other symbol is
+    its own package, even when it shares a reference with another."""
+    return {_package_key(c, units_by_ref) for c in components}
 
 
 # ---------------------------------------------------------------------------
@@ -353,22 +464,21 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
 def check_decoupling_adequacy(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
     """DA-001: Per-IC decoupling assessment — count, value, and placement."""
     findings: list[dict] = []
-    decoupling_list = [f for f in schematic.get('findings', [])
-                       if f.get('detector') == 'detect_decoupling']
-    decoupling = decoupling_list[0] if decoupling_list else {}
-    if not decoupling:
+    rails = [f for f in schematic.get('findings', [])
+             if f.get('detector') == 'detect_decoupling']
+    if not rails:
         _record(recorder, 'DA-001', False, 'no decoupling detector findings in schematic analysis', 0, findings)
         return findings
 
-    rails = decoupling.get('per_rail', decoupling.get('rails', []))
-    if isinstance(rails, dict):
-        rails = list(rails.values())
-
+    # A DNP or excluded-from-board IC is not fitted, so it needs no decoupling.
+    ics = [c for c in schematic.get('components', [])
+           if c.get('type') == 'ic' and not c.get('dnp') and c.get('on_board') is not False]
+    by_ref = _units_by_ref(schematic)
     for rail in rails:
-        rail_name = rail.get('rail', rail.get('name', ''))
-        caps = rail.get('capacitors', [])
-        ics = rail.get('ics', rail.get('ic_count', 0))
-        ic_count = ics if isinstance(ics, int) else len(ics) if isinstance(ics, list) else 0
+        rail_name = rail.get('rail', '')
+        caps = rail.get('capacitors') or []
+        ic_count = len(_package_keys(
+            [c for c in ics if rail_name in set((c.get('pin_nets') or {}).values())], by_ref))
         if ic_count == 0:
             continue
         cap_count = len(caps)
@@ -393,29 +503,99 @@ def check_decoupling_adequacy(schematic: dict, pcb: dict | None, recorder=None) 
                 },
                 impact='Increased power supply noise and EMI',
 
-                source=ANALYZER_SOURCE,))
+                source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'DA-001', True, None, len(rails), findings)
     return findings
 
 
 # ---------------------------------------------------------------------------
-# XV-001..003: Schematic/PCB cross-validation
+# XV-001..004: Schematic/PCB cross-validation
 # ---------------------------------------------------------------------------
 
+def _xv_ref(ref) -> bool:
+    return isinstance(ref, str) and bool(ref) and not ref.startswith('#')
+
+
+def _units_by_ref(schematic: dict) -> dict[str, list[dict]]:
+    units: dict[str, list[dict]] = {}
+    for c in schematic.get('components', []):
+        ref = c.get('reference', '')
+        if _xv_ref(ref):
+            units.setdefault(ref, []).append(c)
+    return units
+
+
+def _legacy_schematic(schematic: dict) -> bool:
+    """True for analyzer output read from a legacy .sch (schematic/presentation.py)."""
+    return schematic.get('kicad_version') == '5 (legacy)'
+
+
+def _package_fields(units: list[dict], legacy: bool = False) -> dict[str, str]:
+    """Value, Footprint and MPN of one reference, merged across its units as KiCad's
+    netlist merges them (kicad_core.fields.merge_unit_fields). In a legacy .sch a `~`
+    Value or Footprint is unassigned (KiCad 4/5 assigned footprints outside the schematic)."""
+    def fields(c):
+        out = {name: c.get(key) for name, key in (('Value', 'value'), ('Footprint', 'footprint'))
+               if isinstance(c.get(key), str) and not (legacy and c.get(key) == '~')}
+        mpn = c.get('mpn')
+        if isinstance(mpn, str) and mpn.strip():
+            out['MPN'] = mpn
+        return out
+    merged = merge_unit_fields((c.get('unit') or 1, fields(c)) for c in units)
+    return {'value': merged.get('Value', ''), 'footprint': merged.get('Footprint', ''),
+            'mpn': merged.get('MPN', '')}
+
+
+def _pair_fields(schematic: dict, pairs) -> list[tuple[str, dict, dict]]:
+    """(reference, footprint, merged fields of the paired part) per pair. A footprint paired by
+    path compares with its own symbol (with the other units of a multi-unit part); one paired
+    by reference compares with every symbol of that reference."""
+    units = _units_by_ref(schematic)
+    legacy = _legacy_schematic(schematic)
+    by_path = {}
+    for c in schematic.get('components', []):
+        path = c.get('instance_path')
+        if _xv_ref(c.get('reference', '')) and isinstance(path, str) and path:
+            by_path.setdefault(path.lower(), c)
+    cache: dict = {}
+    out = []
+    for ref, fp in pairs:
+        path = fp.get('sch_path')
+        c = by_path.get(path.lower()) if isinstance(path, str) and path else None
+        if c is not None and not _multi_unit(c, units):
+            key, members = ('symbol', id(c)), [c]
+        else:
+            key, members = ('ref', ref), units[ref]
+        if key not in cache:
+            cache[key] = _package_fields(members, legacy)
+        out.append((ref, fp, cache[key]))
+    return out
+
+
+def _fpid_name(fpid: str) -> str:
+    return fpid.partition(':')[2] if ':' in fpid else fpid
+
+
+def _fpid_equivalent(board_fpid: str, sch_fpid: str) -> bool:
+    """KiCad's fpidsEquivalent: a schematic footprint without a library nickname matches
+    on the footprint name alone; otherwise library and name must both be equal."""
+    if ':' not in sch_fpid:
+        return _fpid_name(board_fpid) == sch_fpid
+    return board_fpid == sch_fpid
+
+
 def check_cross_validation(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
-    """XV-001..003: Cross-validate schematic and PCB data consistency."""
+    """XV-001..003: references, values and footprints of each schematic part and its PCB
+    footprint, paired by schematic path (kicad_core.pairing.pair_by_path)."""
     findings: list[dict] = []
     if not pcb:
         _record(recorder, 'XV-001..003', False, 'no PCB data provided', 0, findings)
         return findings
 
-    sch_refs = {c.get('reference', '') for c in schematic.get('components', [])
-                if c.get('reference', '') and not c['reference'].startswith('#')}
+    pairs, in_sch_not_pcb, in_pcb_not_sch = pair_by_path(schematic, pcb)
+    sch_refs = set(_units_by_ref(schematic))
     pcb_refs = {fp.get('reference', '') for fp in pcb.get('footprints', [])
-                if fp.get('reference', '') and not fp['reference'].startswith('#')}
-
-    in_sch_not_pcb = sch_refs - pcb_refs
-    in_pcb_not_sch = pcb_refs - sch_refs
+                if _xv_ref(fp.get('reference', ''))}
 
     # XV-001: Components in schematic but not PCB
     real_missing = {r for r in in_sch_not_pcb if not r.startswith(('TP', 'MH', 'NT', 'FID'))}
@@ -429,10 +609,12 @@ def check_cross_validation(schematic: dict, pcb: dict | None, recorder=None) -> 
             recommendation='Update PCB from schematic (Tools > Update PCB from Schematic).',
             impact='Missing components on manufactured board',
         
-            source=ANALYZER_SOURCE,))
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
 
     # XV-001: Components in PCB but not schematic
-    real_extra = {r for r in in_pcb_not_sch if not r.startswith(('TP', 'MH', 'NT', 'FID', 'H', 'G'))}
+    extra = {r for r in in_pcb_not_sch if not r.startswith(('TP', 'MH', 'NT', 'FID', 'H', 'G'))}
+    unlinked = extra & sch_refs
+    real_extra = extra - unlinked
     if real_extra:
         findings.append(make_finding(
             detector='check_cross_validation', rule_id='XV-001', category='design_sync',
@@ -442,39 +624,143 @@ def check_cross_validation(schematic: dict, pcb: dict | None, recorder=None) -> 
             components=sorted(real_extra)[:20],
             recommendation='Verify these are intentional (mounting holes, test points, fiducials).',
         
-            source=ANALYZER_SOURCE,))
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
+    if unlinked:
+        findings.append(make_finding(
+            detector='check_cross_validation', rule_id='XV-001', category='design_sync',
+            summary=f'{len(unlinked)} footprint(s) not linked to any schematic symbol',
+            description=(f'Not linked to a symbol (each reference is used by a different symbol): '
+                         f'{", ".join(sorted(unlinked)[:20])}{"..." if len(unlinked) > 20 else ""}.'),
+            severity='info', confidence='deterministic', evidence_source='topology',
+            components=sorted(unlinked)[:20],
+            recommendation='Update PCB from schematic; KiCad replaces or removes footprints its symbols do not own.',
+            source=ANALYZER_SOURCE, schema_era="v3.0", reason='unlinked_footprint'))
+
+    # XV-001: a footprint paired by path carries another reference (annotation not synced)
+    renamed = sorted({(ref, fp['reference']) for ref, fp in pairs if fp['reference'] != ref})
+    if renamed:
+        refs = sorted({ref for ref, _ in renamed})
+        listed = ', '.join(f'{ref} (PCB {pcb_ref})' for ref, pcb_ref in renamed[:20])
+        findings.append(make_finding(
+            detector='check_cross_validation', rule_id='XV-001', category='design_sync',
+            summary=f'{len(refs)} component(s) with a different reference on the PCB',
+            description=(f'Footprints placed for these symbols carry another reference: {listed}'
+                         f'{"..." if len(renamed) > 20 else ""}.'),
+            severity='warning', confidence='deterministic', evidence_source='topology',
+            components=refs[:20],
+            recommendation='Update PCB from schematic (or back-annotate) so both use the same references.',
+            impact='Assembly files and the schematic name different parts',
+            source=ANALYZER_SOURCE, schema_era="v3.0", reason='reference_mismatch'))
+
+    checked = _pair_fields(schematic, pairs)
+
+    # Copies of a footprint, or one reference on several symbols, report one difference once.
+    reported = set()
 
     # XV-002: Value consistency
-    pcb_fp_map = {fp.get('reference', ''): fp for fp in pcb.get('footprints', [])}
-    sch_comp_map = {c.get('reference', ''): c for c in schematic.get('components', [])}
-    for ref in sorted(sch_refs & pcb_refs):
-        sch_val = sch_comp_map.get(ref, {}).get('value', '')
-        pcb_fp = pcb_fp_map.get(ref, {})
+    for ref, pcb_fp, fields in checked:
+        sch_val = fields['value']
         pcb_val = pcb_fp.get('value', '')
-        # KH-326: skip cross-check if either value is malformed (not a string).
+        # Skip cross-check if either value is malformed (not a string).
         # Parser edge case in analyze_pcb.py footprint parsing can yield a list.
         if not isinstance(sch_val, str) or not isinstance(pcb_val, str):
             continue
         if sch_val and pcb_val and sch_val != pcb_val:
             if sch_val.replace(' ', '') == pcb_val.replace(' ', ''):
                 continue
-            # Skip when the PCB "value" is actually the footprint library name
-            # (never synced from schematic — KiCad default on fresh placement)
-            pcb_footprint = pcb_fp.get('footprint', '')
-            if pcb_val == pcb_footprint or pcb_val == pcb_footprint.split(':')[-1]:
+            if ('XV-002', ref, sch_val, pcb_val) in reported:
                 continue
+            reported.add(('XV-002', ref, sch_val, pcb_val))
+            pcb_footprint = pcb_fp.get('library') or pcb_fp.get('footprint') or ''
+            if pcb_val in (pcb_footprint, _fpid_name(pcb_footprint)):
+                summary = f'{ref}: value never synchronised to the PCB — "{sch_val}" vs footprint name "{pcb_val}"'
+            else:
+                summary = f'{ref}: value mismatch — "{sch_val}" vs "{pcb_val}"'
             findings.append(make_finding(
                 detector='check_cross_validation', rule_id='XV-002', category='design_sync',
-                summary=f'{ref}: value mismatch — "{sch_val}" vs "{pcb_val}"',
+                summary=summary,
                 description=f'{ref} has "{sch_val}" in schematic but "{pcb_val}" in PCB.',
                 severity='warning', confidence='deterministic', evidence_source='topology',
                 components=[ref],
                 recommendation='Sync PCB with schematic to resolve value differences.',
                 impact='Wrong component may be placed during assembly',
 
-                source=ANALYZER_SOURCE,))
+                source=ANALYZER_SOURCE, schema_era="v3.0",))
+
+    # XV-003: Footprint consistency (Update PCB replaces a footprint whose FPID differs)
+    relinked = []
+    for ref, pcb_fp, fields in checked:
+        sch_fp = fields['footprint']
+        board_fp = pcb_fp.get('library') or pcb_fp.get('footprint') or ''
+        if not isinstance(board_fp, str) or not sch_fp or not board_fp:
+            continue
+        if _fpid_equivalent(board_fp, sch_fp) or ('XV-003', ref, sch_fp, board_fp) in reported:
+            continue
+        reported.add(('XV-003', ref, sch_fp, board_fp))
+        if _fpid_name(board_fp) == _fpid_name(sch_fp):
+            relinked.append((ref, sch_fp, board_fp))
+            continue
+        findings.append(make_finding(
+            detector='check_cross_validation', rule_id='XV-003', category='design_sync',
+            summary=f'{ref}: footprint mismatch — "{sch_fp}" vs "{board_fp}"',
+            description=(f'{ref} is assigned "{sch_fp}" in the schematic but the PCB carries '
+                         f'"{board_fp}"; Update PCB from schematic would replace it.'),
+            severity='warning', confidence='deterministic', evidence_source='topology',
+            components=[ref],
+            recommendation='Update PCB from schematic, or assign the PCB footprint to the symbol.',
+            impact='Wrong land pattern on the manufactured board',
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
+    if relinked:
+        refs = sorted({ref for ref, _, _ in relinked})
+        listed = ', '.join(f'{ref} ("{s}" vs "{b}")' for ref, s, b in relinked[:20])
+        findings.append(make_finding(
+            detector='check_cross_validation', rule_id='XV-003', category='design_sync',
+            summary=f'{len(refs)} footprint(s) differ from the schematic only in the library name',
+            description=f'Same footprint name, different library: {listed}{"..." if len(relinked) > 20 else ""}.',
+            severity='info', confidence='deterministic', evidence_source='topology',
+            components=refs[:20],
+            recommendation='Update PCB from schematic to link these footprints to the schematic\'s libraries.',
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
 
     _record(recorder, 'XV-001..003', True, None, len(sch_refs | pcb_refs), findings)
+    return findings
+
+
+def check_mpn_parity(schematic: dict, pcb: dict | None, recorder=None, notes=None) -> list[dict]:
+    """XV-004: a footprint's MPN differs from its symbol's (both non-blank; Update PCB
+    copies symbol fields to the footprint exactly). With a *notes* list, a line counting the
+    pairs not compared is appended to it."""
+    findings: list[dict] = []
+    if not pcb:
+        _record(recorder, 'XV-004', False, 'no PCB data provided', 0, findings)
+        return findings
+    pairs, _, _ = pair_by_path(schematic, pcb)
+    compared = 0
+    skipped = 0
+    reported = set()
+    for ref, pcb_fp, fields in _pair_fields(schematic, pairs):
+        sch_mpn = fields['mpn'].strip()
+        pcb_mpn = pcb_fp.get('mpn')
+        pcb_mpn = pcb_mpn.strip() if isinstance(pcb_mpn, str) else ''
+        if not sch_mpn or not pcb_mpn:
+            skipped += 1
+            continue
+        compared += 1
+        if sch_mpn == pcb_mpn or (ref, sch_mpn, pcb_mpn) in reported:
+            continue
+        reported.add((ref, sch_mpn, pcb_mpn))
+        findings.append(make_finding(
+            detector='check_mpn_parity', rule_id='XV-004', category='design_sync',
+            summary=f'{ref}: MPN mismatch — "{sch_mpn}" vs "{pcb_mpn}"',
+            description=f'{ref} has MPN "{sch_mpn}" in the schematic but "{pcb_mpn}" on the PCB.',
+            severity='warning', confidence='deterministic', evidence_source='topology',
+            components=[ref],
+            recommendation='Update PCB from schematic so the footprint fields match the symbol.',
+            impact='Assembly may source a different part than the schematic specifies',
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
+    if skipped and notes is not None:
+        notes.append(f'XV-004: {skipped} paired part(s) not compared (MPN blank on the schematic or the PCB)')
+    _record(recorder, 'XV-004', True, None, compared, findings)
     return findings
 
 
@@ -489,13 +775,13 @@ _EDGE_DISTANCE_WARN_MM = 2.0
 def _point_to_outline_min_distance(px, py, edges):
     """Minimum distance from a point to the board outline edges.
 
-    Mirrors emc_rules._point_to_edges_min_distance (KH-357/Task 14 fix):
+    Mirrors emc_rules._point_to_edges_min_distance:
     a 'rect' edge is two opposite corners of the outline rectangle, not a
     diagonal line, so it's expanded to its 4 sides. 'circle'/'polygon'/
     'curve' edges are skipped explicitly rather than falling through to a
     generic branch that would read their (nonexistent) 'start'/'end' keys
     via .get() defaults and silently measure against a bogus (0,0)-origin
-    segment — the KH-357-class bug this must not replicate.
+    segment.
     """
     min_dist = float('inf')
     for edge in edges:
@@ -554,7 +840,7 @@ def check_critical_net_routing(schematic, pcb, recorder=None):
     for seg in segments:
         net_id = seg.get('net', 0)
         net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        if not net_name or _is_power_net(net_name) or _is_ground_net(net_name):
+        if not net_name or _is_power_net(net_name) or is_cross_analysis_ground_name(net_name):
             continue
         classification = _get_net_classification(net_name, schematic)
         if not classification or classification.get('type') not in _HIGH_SPEED_TYPES:
@@ -579,7 +865,7 @@ def check_critical_net_routing(schematic, pcb, recorder=None):
             recommendation=f'Re-route {net_name} at least {_EDGE_DISTANCE_WARN_MM}mm from board edges.',
             impact='Increased EMI radiation and susceptibility',
 
-            source=ANALYZER_SOURCE,))
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'NR-001', True, None, len(segments), findings)
     return findings
 
@@ -601,16 +887,21 @@ def check_return_path_enhanced(schematic, pcb, recorder=None):
     conn_graph = pcb.get('connectivity_graph') or {}
     net_id_map = _build_net_id_map(pcb)
     rpc_flagged = _flagged_return_path_entries(pcb, threshold_pct=95.0)
-    has_rpc_data = len(pcb.get('return_path_continuity', []) or []) > 0
+    # [] means coverage was measured and no net is short; an absent key means
+    # zone fills were unavailable, so no crossing can be confirmed.
+    has_rpc_data = isinstance(pcb.get('return_path_continuity'), list)
     plane_gaps = []
     for net_name, graph in conn_graph.items():
-        if not (_is_ground_net(net_name) or _is_power_net(net_name)):
+        if not (is_cross_analysis_ground_name(net_name) or _is_power_net(net_name)):
             continue
         for gap in graph.get('gaps', []):
             plane_gaps.append({**gap, 'net': net_name})
+    if not has_rpc_data:
+        _record(recorder, 'RP-002', False,
+                'no return-path coverage in PCB analysis (zone fills unavailable)', 0, findings)
+        return findings
     if not plane_gaps:
-        rpc = pcb.get('return_path_continuity', [])
-        for entry in rpc:
+        for entry in pcb['return_path_continuity']:
             coverage = entry.get('reference_plane_coverage_pct', 100)
             if coverage < 90:
                 net_name = entry.get('net', '')
@@ -626,18 +917,20 @@ def check_return_path_enhanced(schematic, pcb, recorder=None):
                         recommendation='Re-route signal to avoid reference plane gaps.',
                         impact='Increased loop area and EMI',
 
-                        source=ANALYZER_SOURCE,))
+                        source=ANALYZER_SOURCE, schema_era="v3.0",))
         _record(recorder, 'RP-002', True, None, len(segments), findings)
         return findings
     flagged = set()
     for seg in segments:
         net_id = seg.get('net', 0)
         net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        if not net_name or _is_power_net(net_name) or _is_ground_net(net_name):
+        if not net_name or _is_power_net(net_name) or is_cross_analysis_ground_name(net_name):
             continue
         if net_name in flagged:
             continue
-        if has_rpc_data and net_name not in rpc_flagged:
+        # A gap is the rectangle between two islands' bounding boxes, so a
+        # crossing is reported only where measured plane coverage is short.
+        if net_name not in rpc_flagged:
             continue
         classification = _get_net_classification(net_name, schematic)
         if not classification:
@@ -657,12 +950,12 @@ def check_return_path_enhanced(schematic, pcb, recorder=None):
                     category='return_path',
                     summary=f'{net_type} net {net_name} crosses {gap["net"]} plane gap',
                     description=f'{net_type} signal {net_name} crosses a gap in {gap["net"]} plane on layer {gap.get("layer", "?")}.',
-                    severity=severity, confidence='deterministic', evidence_source='topology',
+                    severity=severity, confidence='heuristic', evidence_source='topology',
                     nets=[net_name, gap['net']],
                     recommendation=f'Re-route {net_name} to avoid the {gap["net"]} plane gap, or bridge with a stitching capacitor.',
                     impact='Increased EMI from enlarged return path loop',
 
-                    source=ANALYZER_SOURCE,))
+                    source=ANALYZER_SOURCE, schema_era="v3.0",))
                 flagged.add(net_name)
                 break
     _record(recorder, 'RP-002', True, None, len(segments), findings)
@@ -689,12 +982,13 @@ def check_trace_width_power(schematic, pcb, recorder=None):
     net_current = {}
     for reg in regulators:
         output_rail = reg.get('output_rail', '')
-        iout = reg.get('estimated_iout_A', 0) or 0
+        iout = _reg_iout(reg)
         if output_rail and iout > 0:
             net_current[output_rail] = max(net_current.get(output_rail, 0), iout)
         input_rail = reg.get('input_rail', '')
-        if input_rail and iout > 0:
-            net_current[input_rail] = net_current.get(input_rail, 0) + iout
+        iin = _reg_iin(reg)
+        if input_rail and iin > 0:
+            net_current[input_rail] = net_current.get(input_rail, 0) + iin
     if not net_current:
         _record(recorder, 'TW-001', False, 'no power regulator current estimates in schematic analysis', 0, findings)
         return findings
@@ -715,15 +1009,15 @@ def check_trace_width_power(schematic, pcb, recorder=None):
             findings.append(make_finding(
                 detector='check_trace_width_power', rule_id='TW-001',
                 category='current_capacity',
-                summary=f'Power net {net_name}: trace {trace_w:.2f}mm too narrow for ~{current:.1f}A',
-                description=f'Power net {net_name} carries ~{current:.1f}A but narrowest trace is {trace_w:.2f}mm. IPC-2152 recommends >= {min_w:.2f}mm.',
+                summary=f'Power net {net_name}: trace {trace_w:.2f}mm too narrow for ~{current:.1f}A (est.)',
+                description=f'Power net {net_name} carries ~{current:.1f}A (estimated from regulator output capacitance) but narrowest trace is {trace_w:.2f}mm. IPC-2152 recommends >= {min_w:.2f}mm.',
                 severity='warning', confidence='heuristic', evidence_source='topology',
                 nets=[net_name],
                 recommendation=f'Widen {net_name} traces to >= {min_w:.1f}mm or use copper pour.',
                 fix_params={'type': 'resistor_value_change', 'change': f'trace width -> {min_w:.1f}mm', 'basis': f'IPC-2152: {current:.1f}A'},
                 standard_ref='IPC-2152', impact='Trace overheating and voltage drop',
 
-                source=ANALYZER_SOURCE,))
+                source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'TW-001', True, None, len(net_current), findings)
     return findings
 
@@ -745,8 +1039,13 @@ def check_plane_splits(schematic, pcb, recorder=None):
     segments = (pcb.get('tracks') or {}).get('segments') or []
     net_id_map = _build_net_id_map(pcb)
     rpc_flagged = _flagged_return_path_entries(pcb, threshold_pct=95.0)
+    # A net without a copper zone has no plane to split: its islands are
+    # unrouted connections, not plane gaps.
+    zone_nets = {z.get('net_name') for z in pcb.get('zones') or []}
     for plane_net, graph in conn_graph.items():
-        if not (_is_ground_net(plane_net) or _is_power_net(plane_net)):
+        if not (is_cross_analysis_ground_name(plane_net) or _is_power_net(plane_net)):
+            continue
+        if plane_net not in zone_nets:
             continue
         if graph.get('islands', 1) <= 1:
             continue
@@ -760,7 +1059,7 @@ def check_plane_splits(schematic, pcb, recorder=None):
         for seg in segments:
             seg_net_id = seg.get('net', 0)
             seg_net = net_id_map.get(seg_net_id, '') if isinstance(seg_net_id, int) else str(seg_net_id)
-            if not seg_net or _is_power_net(seg_net) or _is_ground_net(seg_net):
+            if not seg_net or _is_power_net(seg_net) or is_cross_analysis_ground_name(seg_net):
                 continue
             sx1, sy1 = seg.get('x1', 0), seg.get('y1', 0)
             sx2, sy2 = seg.get('x2', 0), seg.get('y2', 0)
@@ -789,7 +1088,10 @@ def check_plane_splits(schematic, pcb, recorder=None):
             category='plane_integrity',
             summary=f'{plane_net} plane split: {graph["islands"]} islands{", " + str(len(crossing_signals_rpc)) + " signals crossing" if crossing_signals_rpc else ""}',
             description=f'{plane_net} plane has {graph["islands"]} disconnected islands.{desc_signals}',
-            severity=severity, confidence='deterministic', evidence_source='topology',
+            # The island count is measured; a crossing is a track overlapping
+            # the rectangle between two islands' bounding boxes.
+            severity=severity, confidence='heuristic' if crossing_signals_rpc else 'deterministic',
+            evidence_source='topology',
             nets=[plane_net] + crossing_signals_rpc[:5],
             recommendation=(
                 'Bridge the plane gap with copper pour or stitching vias. '
@@ -799,7 +1101,7 @@ def check_plane_splits(schematic, pcb, recorder=None):
             ),
             impact='Return path discontinuity increases EMI',
 
-            source=ANALYZER_SOURCE,))
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'PS-002', True, None, len(conn_graph), findings)
     return findings
 
@@ -841,7 +1143,7 @@ def check_via_stitching_density(schematic, pcb, recorder=None):
     for via in via_list:
         net_id = via.get('net', 0)
         net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        if _is_ground_net(net_name):
+        if is_cross_analysis_ground_name(net_name):
             gnd_vias.append((via.get('x', 0), via.get('y', 0)))
     if not gnd_vias:
         findings.append(make_finding(
@@ -853,7 +1155,7 @@ def check_via_stitching_density(schematic, pcb, recorder=None):
             recommendation=f'Add ground stitching vias at <= {max_spacing_mm:.0f}mm spacing.',
             impact='Poor ground plane connectivity between layers',
 
-            source=ANALYZER_SOURCE,))
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
         _record(recorder, 'VS-002', True, None, len(via_list), findings)
         return findings
     cell_size = max_spacing_mm
@@ -881,7 +1183,7 @@ def check_via_stitching_density(schematic, pcb, recorder=None):
             recommendation=f'Add ground stitching vias at <= {max_spacing_mm:.0f}mm intervals.',
             impact='Degraded ground plane connectivity at high frequencies',
 
-            source=ANALYZER_SOURCE,))
+            source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'VS-002', True, None, len(via_list), findings)
     return findings
 
@@ -896,18 +1198,17 @@ _DIFF_PAIR_SUFFIXES = [
     (re.compile(r'(.+)_DP$'), re.compile(r'(.+)_DN$')),
     (re.compile(r'(.+)_TXP$'), re.compile(r'(.+)_TXN$')),
     (re.compile(r'(.+)_RXP$'), re.compile(r'(.+)_RXN$')),
+    (re.compile(r'(.+)DP$'), re.compile(r'(.+)DM$')),
 ]
 
 
-def _find_diff_pairs(net_names, schematic):
+def _find_diff_pairs(schematic):
     """Return pairs of net names that are explicitly marked differential.
 
-    F7: The previous implementation had a suffix-only fallback loop that
-    paired any nets matching `<base>P`/`<base>N` regardless of whether the
-    schematic analyzer had identified them as a real differential interface.
-    On gate-driver designs (INH/INL, HIN/LIN) and op-amp current-sense
-    circuits (OUTP/OUTN, INP/INN) this fired DP-005 on every conventional
-    naming pair. The fallback is gone — DP-005 now only fires when
+    There is no suffix-only fallback that pairs any nets matching
+    `<base>P`/`<base>N`: on gate-driver designs (INH/INL, HIN/LIN) and
+    op-amp current-sense circuits (OUTP/OUTN, INP/INN) it would fire DP-005
+    on every conventional naming pair. DP-005 only fires when
     ``schematic['net_classifications'][<net>]['differential']`` is True
     for both endpoints. Conservative loss: any genuine diff pair the
     schematic analyzer failed to classify won't get a DP-005 finding.
@@ -949,33 +1250,21 @@ def check_diff_pair_quality(schematic, pcb, recorder=None):
         _record(recorder, 'DP-005', False, 'no PCB data provided', 0, findings)
         return findings
     segments = (pcb.get('tracks') or {}).get('segments') or []
-    via_list = (pcb.get('vias') or {}).get('vias') or []
     if not segments:
         _record(recorder, 'DP-005', False, 'no PCB track segments present', 0, findings)
         return findings
-    net_id_map = _build_net_id_map(pcb)
-    all_net_names = list(set(net_id_map.values()))
-    pairs = _find_diff_pairs(all_net_names, schematic)
+    pairs = _find_diff_pairs(schematic)
     if not pairs:
         _record(recorder, 'DP-005', False, 'no differential pairs classified in schematic net_classifications', 0, findings)
         return findings
+    # net_lengths counts arcs as well as straight segments
     net_stats = {}
-    for seg in segments:
-        net_id = seg.get('net', 0)
-        net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        if not net_name:
-            continue
-        x1, y1 = seg.get('x1', 0), seg.get('y1', 0)
-        x2, y2 = seg.get('x2', 0), seg.get('y2', 0)
-        length = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        stats = net_stats.setdefault(net_name, {'length_mm': 0, 'via_count': 0, 'layers': set()})
-        stats['length_mm'] += length
-        stats['layers'].add(seg.get('layer', ''))
-    for via in (via_list or []):
-        net_id = via.get('net', 0)
-        net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        if net_name in net_stats:
-            net_stats[net_name]['via_count'] = net_stats[net_name].get('via_count', 0) + 1
+    for entry in pcb.get('net_lengths') or []:
+        layers = entry.get('layers') or {}
+        if entry.get('net') and layers:
+            net_stats[entry['net']] = {'length_mm': entry.get('total_length_mm', 0) or 0,
+                                       'via_count': entry.get('via_count', 0) or 0,
+                                       'layers': set(layers)}
     for p_net, n_net in pairs:
         p_stats = net_stats.get(p_net)
         n_stats = net_stats.get(n_net)
@@ -1008,7 +1297,7 @@ def check_diff_pair_quality(schematic, pcb, recorder=None):
                 recommendation='Match via counts, layer transitions, and trace lengths between P and N.',
                 impact='Degraded signal integrity and increased common-mode EMI',
 
-                source=ANALYZER_SOURCE,))
+                source=ANALYZER_SOURCE, schema_era="v3.0",))
     _record(recorder, 'DP-005', True, None, len(pairs), findings)
     return findings
 
@@ -1017,12 +1306,12 @@ def check_diff_pair_quality(schematic, pcb, recorder=None):
 # Main
 # ---------------------------------------------------------------------------
 
-def run_all_checks(schematic: dict, pcb: dict | None) -> tuple[list[dict], list[dict]]:
+def run_all_checks(schematic: dict, pcb: dict | None, notes=None) -> tuple[list[dict], list[dict]]:
     """Run every cross-domain check in a fixed order.
 
-    Returns (findings, checks_run) — checks_run is the KH-381 manifest
+    Returns (findings, checks_run) — checks_run is the manifest
     recording whether each check executed, in call order (see
-    _CheckRecorder).
+    _CheckRecorder). A *notes* list collects the run's stderr notes.
     """
     findings: list[dict] = []
     recorder = _CheckRecorder()
@@ -1030,6 +1319,7 @@ def run_all_checks(schematic: dict, pcb: dict | None) -> tuple[list[dict], list[
     findings.extend(check_esd_coverage_gaps(schematic, pcb, recorder=recorder))
     findings.extend(check_decoupling_adequacy(schematic, pcb, recorder=recorder))
     findings.extend(check_cross_validation(schematic, pcb, recorder=recorder))
+    findings.extend(check_mpn_parity(schematic, pcb, recorder=recorder, notes=notes))
     # PCB intelligence checks
     findings.extend(check_critical_net_routing(schematic, pcb, recorder=recorder))
     findings.extend(check_return_path_enhanced(schematic, pcb, recorder=recorder))
@@ -1040,28 +1330,23 @@ def run_all_checks(schematic: dict, pcb: dict | None) -> tuple[list[dict], list[
     return findings, recorder.entries
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description='Cross-domain analysis — schematic + PCB combined checks')
     parser.add_argument('--schematic', '-s', default=None,
                         help='Schematic analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
     parser.add_argument('--pcb', '-p', default=None,
                         help='PCB analyzer JSON (optional). Auto-resolved from --analysis-dir current run when omitted.')
-    parser.add_argument('--output', '-o', default=None, help='Output JSON file path')
-    parser.add_argument('--schema', action='store_true', help='Print output schema and exit')
-    parser.add_argument('--text', action='store_true', help='Print human-readable text report')
+    add_output_arg(parser, help='Output JSON file path')
+    add_schema_arg(parser, help='Print output schema and exit')
+    add_text_arg(parser, help='Print human-readable text report')
     parser.add_argument('--analysis-dir', default=None, help='Write into analysis cache directory')
-    parser.add_argument('--stage', default=None,
-                        choices=['schematic', 'layout', 'pre_fab', 'bring_up'],
-                        help='Filter findings by review stage')
-    parser.add_argument('--audience', default=None,
-                        choices=['designer', 'reviewer', 'manager'],
-                        help='Audience level for summaries and --text output')
-    parser.add_argument('--only-deterministic', action='store_true',
-                        help='Accepted for consistency; analyzers never write llm_* fields. '
-                             'Honored by downstream consumers (Phase 4 spec §3.4).')
+    add_stage_audience_args(parser)
+    add_only_deterministic_arg(parser)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.text:
+        utf8_text_stdout()
 
     if args.schema:
         emit_schema(CrossAnalysisEnvelope)
@@ -1084,7 +1369,7 @@ def main():
     if not args.schematic:
         parser.error('--schematic is required (or pass --analysis-dir with a current run containing schematic.json)')
 
-    def _load_analyzer_json(flag, path, writer):
+    def _load_analyzer_json(flag, path, writer, expected):
         # A first-time user naturally passes the project folder or the
         # .kicad_sch / .kicad_pcb itself; give a usage error, not a traceback.
         if not os.path.isfile(path):
@@ -1092,29 +1377,33 @@ def main():
             parser.error(f'{flag} {path}: {what}; expected the JSON file '
                          f'{writer} writes (--output)')
         try:
-            with open(path, 'r') as f:
-                return json.load(f)
+            with open(path, 'r', encoding="utf-8") as f:
+                data = json_load(f)
         except json.JSONDecodeError as e:
             parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
                          f'file {writer} writes (--output)')
+        type_error = envelope_type_error(flag, path, data, expected, writer)
+        if type_error:
+            parser.error(type_error)
+        return data
 
     t0 = time.time()
 
     schematic = _load_analyzer_json('--schematic', args.schematic,
-                                    'analyze_schematic.py')
+                                    'analyze_schematic.py', 'schematic')
 
     if 'signal_analysis' in schematic and 'findings' not in schematic:
         print(f'Error: {args.schematic} uses the pre-v1.3 '
               f'signal_analysis wrapper format.\n'
               f'Re-run analyze_schematic.py to produce the current '
               f'findings[] format.', file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     pcb = None
     if args.pcb:
-        pcb = _load_analyzer_json('--pcb', args.pcb, 'analyze_pcb.py')
+        pcb = _load_analyzer_json('--pcb', args.pcb, 'analyze_pcb.py', 'pcb')
 
-    # Build inputs provenance block (Track 1.3).
+    # Build inputs provenance block.
     from pathlib import Path as _Path
     _upstream_artifacts = {
         "schematic": build_upstream_artifact(_Path(args.schematic), schematic),
@@ -1124,7 +1413,7 @@ def main():
         _upstream_artifacts["pcb"] = build_upstream_artifact(_Path(args.pcb), pcb)
         _source_files.append(_Path(args.pcb))
 
-    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4).
+    # Resolve the canonical analysis_dir once.
     if args.analysis_dir:
         _analysis_dir = _Path(args.analysis_dir)
     elif args.output:
@@ -1132,7 +1421,7 @@ def main():
     else:
         _analysis_dir = _Path("analysis")
 
-    # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
+    # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id matches it.
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
 
     inputs = build_inputs(
@@ -1142,7 +1431,11 @@ def main():
     )
     compat = build_compat()
 
-    findings, checks_run = run_all_checks(schematic, pcb)
+    notes: list[str] = []
+    findings, checks_run = run_all_checks(schematic, pcb, notes=notes)
+    for note in notes:
+        print(note, file=sys.stderr)
+    show_decoded_names(findings)
     elapsed = time.time() - t0
 
     sev_counts = {'error': 0, 'warning': 0, 'info': 0}
@@ -1155,6 +1448,7 @@ def main():
         'schema_version': '1.4.0',
         'inputs': inputs,
         'compat': compat,
+        'diagnostics': [],
         'elapsed_s': round(elapsed, 3),
         'summary': {'total_findings': len(findings), 'by_severity': sev_counts},
         'findings': findings,
@@ -1164,46 +1458,29 @@ def main():
     }
 
     from output_filters import apply_output_filters
-    apply_output_filters(result, args.stage, args.audience)
+    apply_output_filters(result, args.stage)
 
     # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
     # on it). Runs after filtering; before any output branch.
     assign_finding_ids(result.get("findings", []), "cross_analysis")
 
-    # Wire capability_mode_ref (Phase 4 spec §3.3). Resolved early so
+    # Wire capability_mode_ref. Resolved early so
     # inputs.run_id and capability_mode_ref.run_id match.
     result["capability_mode_ref"] = _capability_mode_ref
 
     if args.text:
         from output_filters import format_text
         print(format_text(result.get('findings', []), args.audience or 'designer', args.stage))
-        sys.exit(0)
+        return 0
 
     if args.output:
-        with open(args.output, 'w') as f:
-            json.dump(result, f, indent=2)
+        atomic_write_text(args.output, json.dumps(result, indent=2), follow_symlinks=False)
         print(f'Cross-analysis: {len(findings)} findings -> {args.output}', file=sys.stderr)
     elif args.analysis_dir:
-        # Route into the current run folder via the manifest so that
-        # cross_analysis.json co-locates with schematic.json + pcb.json
-        # instead of landing at the analysis-dir root.
-        import tempfile
-        from analysis_cache import overwrite_current, CANONICAL_OUTPUTS, get_current_run
-        analysis_dir = args.analysis_dir
-        if not os.path.isabs(analysis_dir):
-            analysis_dir = os.path.abspath(analysis_dir)
-        filename = CANONICAL_OUTPUTS.get('cross_analysis', 'cross_analysis.json')
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_out = os.path.join(tmp_dir, filename)
-            with open(tmp_out, 'w') as f:
-                json.dump(result, f, indent=2)
-            overwrite_current(analysis_dir, tmp_dir, source_hashes=None)
-        current = get_current_run(analysis_dir)
-        if current:
-            out_path = os.path.join(current[0], filename)
-        else:
-            out_path = os.path.join(analysis_dir, filename)
-        print(f'Cross-analysis: {len(findings)} findings -> {out_path}', file=sys.stderr)
+        from output_io import write_derived_output
+        out_path = write_derived_output(args.analysis_dir, json.dumps(result, indent=2), analyzer='cross_analysis')
+        if out_path:
+            print(f'Cross-analysis: {len(findings)} findings -> {out_path}', file=sys.stderr)
     else:
         print(json.dumps(result, indent=2))
 
@@ -1211,4 +1488,6 @@ def main():
 
 
 if __name__ == '__main__':
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

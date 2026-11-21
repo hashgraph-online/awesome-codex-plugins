@@ -15,12 +15,12 @@ Write this at the repo root from the ledger. Keep an empty section's heading wit
 | Twilio feature | CometChat equivalent | Files |
 |---|---|---|
 | Conversations client + access-token login | CometChat init + `loginWithAuthToken` | src/chat/client.ts, server/token.ts |
-| Conversation list / messages / participants | conversations + messages request builders + group members | src/chat/*, … |
+| Conversation list / messages / participants | conversations + messages request builders + group members | src/chat/*, ... |
 
 ## 3. Removed — not available in CometChat
 | Feature | What it did | Removed from | What users lose | Evidence (features.json · docs query → result) | Closest CometChat alternative |
 |---|---|---|---|---|---|
-| Non-chat participants (SMS / WhatsApp / MMS) | Bridged the conversation to phone numbers via `addNonChatParticipant` | src/…, server/… | Reaching users over SMS/WhatsApp from the chat | Not in features.json · UI Kit `"sms whatsapp participant"` → no page · SDK `"non-chat participant sms"` → no page (Twilio omnichannel is vendor-specific) | — (use a separate SMS provider if still needed) |
+| Non-chat participants (SMS / WhatsApp / MMS) | Bridged the conversation to phone numbers via `addNonChatParticipant` | src/..., server/... | Reaching users over SMS/WhatsApp from the chat | Not in features.json · UI Kit `"sms whatsapp participant"` → no page · SDK `"non-chat participant sms"` → no page (Twilio omnichannel is vendor-specific) | — (use a separate SMS provider if still needed) |
 
 ## 4. Behavior changes (migrated, works differently)
 - Presence/online model differs from Twilio's `notifiable`/`online` user flags.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "SpliceAI workflows"
+  short_description: "SpliceAI splice variant annotation and sequence inference"
+  default_prompt: "Use $spliceai-workflows to help me with SpliceAI splice variant annotation and sequence inference."

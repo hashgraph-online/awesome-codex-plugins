@@ -9,6 +9,14 @@ Per-schema semver-lite versioning. Rules:
 
 ---
 
+## regulator — 0.4 (2026-10-29)
+
+Additive: `stability_conditions.cap_types_allowed` accepts the generic token `ceramic` for datasheets that require ceramic output capacitors without naming a dielectric. A consumer treats `ceramic` as "class unknown", not as any specific dielectric family. Existing extractions stay valid.
+
+## base, pinout, extraction — 1.0 (2026-10-29)
+
+These three schemas now declare `x-schema-version: "1.0"` (the value the merger already stamps into `schema_version.base`), so the run-level `capability_mode` record lists them with the other schemas. No shape change.
+
 ## crystal.schema.json v1.0 — 2026-04-27
 
 Initial release. Phase 3b (extraction breadth). Final Phase 3b category. Fields cover AT-cut quartz crystals, ceramic resonators, TCXO, VCXO, OCXO. Field union from a single MVP MPN — ABM8G-106-12.000MHZ-T (Abracon 12 MHz AT-cut fundamental SMD crystal, 3.2×2.5×1.0 mm) — per harness Stage 0 coordination.

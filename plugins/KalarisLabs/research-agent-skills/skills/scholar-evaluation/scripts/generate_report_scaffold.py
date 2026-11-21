@@ -18,6 +18,7 @@ def _load_companion(
     evaluation_id: str | None = None,
     work_id: str | None = None,
 ) -> dict[str, Any] | None:
+    """Load companion."""
     if report is None:
         return None
     if not isinstance(report, dict) or report.get("schema_version") != _common.SCHEMA_VERSION:
@@ -42,6 +43,7 @@ def generate_scaffold(
     sensitivity: dict[str, Any] | None = None,
     process: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Generate scaffold."""
     rubric_issues = _common.validate_rubric(rubric)
     _common.require_valid(rubric_issues)
     evaluation_issues = _common.validate_evaluation(evaluation, rubric)
@@ -172,6 +174,7 @@ def generate_scaffold(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate a local JSON report scaffold containing bounded scores, "
@@ -203,6 +206,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         optional_paths = {

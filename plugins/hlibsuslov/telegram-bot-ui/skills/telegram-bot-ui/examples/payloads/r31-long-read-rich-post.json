@@ -1,0 +1,489 @@
+{
+  "scenario": "r31-long-read-rich-post",
+  "status": "production",
+  "context": "private preview + channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 1,
+              "text": "Potholes Q3 2026: Riverside is fastest, Old Town still slowest"
+            },
+            {
+              "type": "paragraph",
+              "text": "Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. "
+            },
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Days from report to repair"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "District",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Reports",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Median days",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Change",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "Riverside",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "412",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "3.1",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "−1.2",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Hillside",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "388",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "4.0",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "−0.4",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Harbour",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "295",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "5.6",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "+0.3",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Northgate",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "510",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "6.2",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "−0.9",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Old Town",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "640",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "9.8",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "+1.1",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Median, 1 Jul – 30 Sep 2026"
+            },
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "How we counted"
+            },
+            {
+              "type": "paragraph",
+              "text": "We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. "
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median.",
+              "credit": "Maintenance department, 2 Oct 2026"
+            },
+            {
+              "type": "document",
+              "document": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoReportPdf"
+              },
+              "caption": {
+                "text": "Full data set (PDF, 14 pages)"
+              }
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "footer",
+              "text": [
+                "Data: city open data portal. ",
+                {
+                  "type": "italic",
+                  "text": "Next issue in January."
+                }
+              ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Report a pothole",
+                  "url": "https://example.com/report",
+                  "style": "primary"
+                },
+                {
+                  "text": "Copy data link",
+                  "copy_text": {
+                    "text": "https://example.com/data/q3-2026"
+                  }
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 1,
+              "text": "Potholes Q3 2026: Riverside is fastest, Old Town still slowest"
+            },
+            {
+              "type": "paragraph",
+              "text": "Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. "
+            },
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Days from report to repair"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "District",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Reports",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Median days",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Change",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "Riverside",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "412",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "3.1",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "−1.2",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Hillside",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "388",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "4.0",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "−0.4",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Harbour",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "295",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "5.6",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "+0.3",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Northgate",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "510",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "6.2",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "−0.9",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Old Town",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "640",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "9.8",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "+1.1",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Median, 1 Jul – 30 Sep 2026"
+            },
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "How we counted"
+            },
+            {
+              "type": "paragraph",
+              "text": "We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. "
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median.",
+              "credit": "Maintenance department, 2 Oct 2026"
+            },
+            {
+              "type": "document",
+              "document": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoReportPdf"
+              },
+              "caption": {
+                "text": "Full data set (PDF, 14 pages)"
+              }
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "footer",
+              "text": [
+                "Data: city open data portal. ",
+                {
+                  "type": "italic",
+                  "text": "Next issue in January."
+                }
+              ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Report a pothole",
+                  "url": "https://example.com/report",
+                  "style": "primary"
+                },
+                {
+                  "text": "Copy data link",
+                  "copy_text": {
+                    "text": "https://example.com/data/q3-2026"
+                  }
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "markdown": "# Potholes Q3 2026: Riverside is fastest, Old Town still slowest\n\nEvery quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. \n\n## Days from report to repair\n\n<table bordered compact><caption>Median, 1 Jul – 30 Sep 2026</caption><tr><th align=\"left\">District</th><th align=\"right\">Reports</th><th align=\"right\">Median days</th><th align=\"right\">Change</th></tr><tr><td align=\"left\">Riverside</td><td align=\"right\">412</td><td align=\"right\">3.1</td><td align=\"right\">−1.2</td></tr><tr><td align=\"left\">Hillside</td><td align=\"right\">388</td><td align=\"right\">4.0</td><td align=\"right\">−0.4</td></tr><tr><td align=\"left\">Harbour</td><td align=\"right\">295</td><td align=\"right\">5.6</td><td align=\"right\">+0.3</td></tr><tr><td align=\"left\">Northgate</td><td align=\"right\">510</td><td align=\"right\">6.2</td><td align=\"right\">−0.9</td></tr><tr><td align=\"left\">Old Town</td><td align=\"right\">640</td><td align=\"right\">9.8</td><td align=\"right\">+1.1</td></tr></table>\n\n## How we counted\n\nWe counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. \n\n<blockquote expandable>Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median.<cite>Maintenance department, 2 Oct 2026</cite></blockquote>\n\n![](tg://document?id=doc1 \"Full data set (PDF, 14 pages)\")\n\n---\n\n<footer>Data: city open data portal. <i>Next issue in January.</i></footer>\n\n<tg-button-row><tg-button type=\"url\" url=\"https://example.com/report\" style=\"primary\">Report a pothole</tg-button><tg-button type=\"copy_text\" text=\"https://example.com/data/q3-2026\">Copy data link</tg-button></tg-button-row>",
+          "media": [
+            {
+              "id": "doc1",
+              "media": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoReportPdf"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "html": "<h1>Potholes Q3 2026: Riverside is fastest, Old Town still slowest</h1>\n<p>Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. Every quarter we compare how fast the five city districts fix potholes after a report. This issue covers July to September 2026. </p>\n<h2>Days from report to repair</h2>\n<table bordered compact><caption>Median, 1 Jul – 30 Sep 2026</caption><tr><th align=\"left\">District</th><th align=\"right\">Reports</th><th align=\"right\">Median days</th><th align=\"right\">Change</th></tr><tr><td align=\"left\">Riverside</td><td align=\"right\">412</td><td align=\"right\">3.1</td><td align=\"right\">−1.2</td></tr><tr><td align=\"left\">Hillside</td><td align=\"right\">388</td><td align=\"right\">4.0</td><td align=\"right\">−0.4</td></tr><tr><td align=\"left\">Harbour</td><td align=\"right\">295</td><td align=\"right\">5.6</td><td align=\"right\">+0.3</td></tr><tr><td align=\"left\">Northgate</td><td align=\"right\">510</td><td align=\"right\">6.2</td><td align=\"right\">−0.9</td></tr><tr><td align=\"left\">Old Town</td><td align=\"right\">640</td><td align=\"right\">9.8</td><td align=\"right\">+1.1</td></tr></table>\n<h2>How we counted</h2>\n<p>We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. We counted every report submitted through the city app and the hotline, then matched it with the closing record in the maintenance system. Reports closed as duplicates were removed. </p>\n<blockquote expandable>Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median.<cite>Maintenance department, 2 Oct 2026</cite></blockquote>\n<figure><tg-document src=\"tg://document?id=doc1\"></tg-document><figcaption>Full data set (PDF, 14 pages)</figcaption></figure>\n<hr/>\n<footer>Data: city open data portal. <i>Next issue in January.</i></footer>\n<tg-button-row><tg-button type=\"url\" url=\"https://example.com/report\" style=\"primary\">Report a pothole</tg-button><tg-button type=\"copy_text\" text=\"https://example.com/data/q3-2026\">Copy data link</tg-button></tg-button-row>",
+          "media": [
+            {
+              "id": "doc1",
+              "media": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoReportPdf"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

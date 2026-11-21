@@ -218,6 +218,7 @@ def collect_warnings(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Round a value and its uncertainty to a common decimal place and render "
@@ -312,6 +313,7 @@ def run(arguments: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     arguments = build_parser().parse_args(argv)
     try:
         document = run(arguments)

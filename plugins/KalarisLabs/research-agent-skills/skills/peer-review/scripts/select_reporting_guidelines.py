@@ -47,6 +47,7 @@ ITEM_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
 
 
 def load_catalog(path: Path = ASSET_CATALOG) -> dict[str, Any]:
+    """Load catalog."""
     payload = require_object(read_json(path), "catalog")
     require_exact_keys(
         payload,
@@ -135,6 +136,7 @@ def load_catalog(path: Path = ASSET_CATALOG) -> dict[str, Any]:
 
 
 def load_profile(payload: Any) -> dict[str, Any]:
+    """Load profile."""
     profile = require_object(payload, "profile")
     require_exact_keys(
         profile,
@@ -169,6 +171,7 @@ def load_profile(payload: Any) -> dict[str, Any]:
 def select_guidelines(
     profile: dict[str, Any], catalog: dict[str, Any]
 ) -> list[dict[str, Any]]:
+    """Select guidelines."""
     study_types = set(profile["study_types"])
     features = set(profile["features"])
     domains = set(profile["domains"])
@@ -193,6 +196,7 @@ def select_guidelines(
 
 
 def load_coverage(raw_path: str | Path) -> list[dict[str, str]]:
+    """Load coverage."""
     rows = read_csv_records(
         raw_path,
         required_fields=COVERAGE_FIELDS,
@@ -250,6 +254,7 @@ def assess(
     catalog: dict[str, Any],
     coverage_rows: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
+    """Handle assess."""
     selected = select_guidelines(profile, catalog)
     selected_by_id = {entry["id"]: entry for entry in selected}
     errors: list[dict[str, str]] = []
@@ -345,6 +350,7 @@ def assess(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Select current bundled reporting guidance and optionally audit a "
@@ -367,6 +373,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         profile = load_profile(read_json(args.profile))

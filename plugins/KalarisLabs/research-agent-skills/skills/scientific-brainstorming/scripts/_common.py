@@ -29,6 +29,7 @@ def bounded_float(minimum: float, maximum: float):
     """Return an argparse converter for a finite bounded float."""
 
     def convert(raw: str) -> float:
+        """Convert."""
         try:
             value = float(raw)
         except ValueError as exc:
@@ -172,6 +173,7 @@ def read_json(raw_path: str, *, label: str = "JSON input") -> tuple[Path, Any]:
     )
 
     def reject_constant(value: str) -> None:
+        """Handle reject constant."""
         raise CliError(f"non-standard JSON constant is not allowed: {value}")
 
     try:

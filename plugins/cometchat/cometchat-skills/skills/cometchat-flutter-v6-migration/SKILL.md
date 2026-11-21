@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-migration
 description: "Upgrade a Flutter app from CometChat UI Kit v5 → v6 (`cometchat_chat_uikit` ^5 → ^6). Reads the repo's CometChat usage, applies the breaking-change map (removed shells, the deleted extension architecture, GetX → BLoC, renamed widgets), and verifies the build. Triggers: 'upgrade my v5 uikit to v6', 'migrate cometchat flutter v5 to v6', 'cometchat flutter v5 to v6', 'bump cometchat_chat_uikit'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; FROM cometchat_chat_uikit ^5 → ^6 (6.1.x, verified 6.1.0); cometchat_sdk ^5.0.6"
+compatibility: "Flutter >=3.38.9; FROM cometchat_chat_uikit ^5 → ^6 (6.2.x; removed-symbol map compiler-verified vs 6.1.0, source-checked vs 6.2.0); cometchat_sdk ^5.0.8"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -19,15 +19,15 @@ metadata:
 "upgrade my v5 UI Kit to v6", "migrate CometChat Flutter v5→v6", "bump `cometchat_chat_uikit`". Precondition: the project currently has `cometchat_chat_uikit` ^5.
 
 ## Prerequisites & install
-A clean branch. Then `flutter pub add cometchat_chat_uikit:^6.1.0` (and `cometchat_calls_sdk:^5.0.4` if the app calls). Remove `cometchat_uikit_shared` **and `cometchat_calls_uikit`** — neither exists as a package in v6; calling now ships inside the chat package behind a second barrel.
+A clean branch. Then `flutter pub add cometchat_chat_uikit:^6.2.0` (and `cometchat_calls_sdk:^5.0.8` if the app imports it directly). Remove `cometchat_uikit_shared` **and `cometchat_calls_uikit`** — neither exists as a package in v6; calling now ships inside the chat package behind a second barrel.
 
-**Expect `pub get` to fail once on a peer constraint.** The kit tightens transitive pins (e.g. 6.1.0 needs `permission_handler ^12`, so an app on `^11` will not resolve). Bump the app's pin to what the solver names — never downgrade the kit to fit the app.
+**Expect `pub get` to fail once on a peer constraint.** The kit tightens transitive pins (e.g. 6.1.0+ needs `permission_handler ^12`; 6.2.0 caps it below 13, so an app on `^11` will not resolve). Bump the app's pin to what the solver names — never downgrade the kit to fit the app.
 
 ## Migration workflow (BAKED)
 1. **Confirm the starting point.** `pubspec.yaml` has `cometchat_chat_uikit` ^5 (already ^6 → STOP, nothing to migrate). Note platform floors (Android `minSdk 26`, iOS `15.1` — **not** the docs' 24 / 13.0; see DOCS-BACKLOG D7) and whether the app uses calls / GetX / extensions / custom templates.
 2. **Update deps.** Bump the kit; drop `cometchat_uikit_shared` **and `cometchat_calls_uikit`**; bump `cometchat_sdk`/`cometchat_calls_sdk`; expect one peer-constraint bump. `flutter pub get`.
 3. **Scan for removed symbols** — grep the map in `references/migration-guide.md`. Produce a concrete change list BEFORE editing.
-4. **Apply the map** (below + the reference), then **re-point imports**: everything now comes from `package:cometchat_chat_uikit/cometchat_chat_uikit.dart`, plus `…/cometchat_calls_uikit.dart` for call widgets.
+4. **Apply the map** (below + the reference), then **re-point imports**: everything now comes from `package:cometchat_chat_uikit/cometchat_chat_uikit.dart`, plus `.../cometchat_calls_uikit.dart` for call widgets.
 5. **Re-verify** — `flutter analyze` clean, no v5 symbol remains, the app builds and chat renders.
 
 ## The five breaking changes that matter (BAKED)
@@ -44,7 +44,7 @@ This is the largest edit: a one-line v5 shell becomes a screen you assemble. Use
 Dashboard-enabled extensions now surface **automatically**; the replacement for `getDataSource()` defaults is `MessageTemplateUtils` (`getTextMessageOptions`, `getAllMessageTypes`, `getAllMessageCategories`).
 **Two exceptions to "just delete it":**
 - **Calling had a replacement, not a removal.** `..callingExtension = CometChatCallingExtension()` becomes `..enableCalls = true` + `..callingConfiguration = CallingConfiguration()` on the classic builder, or `uiKit.enableCalling` on `initFromSettings` (`-calls`). Delete it without the pair and every call affordance vanishes silently.
-- **`CometChatUIKitChatAIFeatures` still resolves** — delete the `..aiFeature = …` line because the *setter* is gone, not the class.
+- **`CometChatUIKitChatAIFeatures` still resolves** — delete the `..aiFeature = ...` line because the *setter* is gone, not the class.
 
 **3. GetX controllers → BLoC.** `CometChatMessagesController`, `CometChatOngoingCallController` and friends are gone; v6 widgets own their blocs internally. Delete the controller wiring; read list state via `stateCallBack` / `onLoad` instead (`-events`).
 

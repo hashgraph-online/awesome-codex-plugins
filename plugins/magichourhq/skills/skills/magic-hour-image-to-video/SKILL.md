@@ -4,7 +4,7 @@ description: Animate a supplied product photo, portrait, character, artwork or s
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.6.1"
+  version: "1.6.2"
 ---
 
 # Magic Hour image to video
@@ -14,6 +14,8 @@ Animate an approved supplied image directly when it already meets the brief. Edi
 Generation consumes Magic Hour credits. Use a connected Magic Hour creation MCP at `https://mcp.magichour.ai/` when available. Otherwise read `references/setup.md` for the API route. Discover the current schemas before choosing a model, duration, resolution, or price.
 
 Choose the shot direction from the brief; do not ask a nontechnical user for model fields or a motion-prompt template. Honor the existing budget. When creative decisions are delegated, inspect and accept the still yourself, then continue to video unless draft approval was requested. Show the clip first and keep technical records in the project. For transformations and reveals, read [directing the moment](references/transformations.md); for stories with several beats, read [multi-shot direction](references/multi-shot.md).
+
+For product motion, packaging reveals or unboxing, read [product fidelity in motion](references/product-fidelity.md).
 
 For a first result or setup recovery, read [first video and next edit](references/first-video.md). It defines the account check, combined budget, recoverable job record and reusable deliverable.
 
@@ -31,13 +33,13 @@ Keep a short clip to one coherent beat. If the user wants several shots, treat e
 
 ## Choose the start frame
 
-When the user names a saved character or reference, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with that type. Match the name, follow `next_cursor` as needed, and ask which item if ambiguous. Inspect its primary `IMAGE` asset and use the durable `file_path` without another upload; an item ID is not an image path. Preserve an explicitly supplied image.
+When the user names a saved character or reference, use `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with that type. Match the name, follow `next_cursor` as needed, and ask which item if ambiguous. Inspect its primary `IMAGE` asset and use the durable `file_path` without another upload; an item ID is not an image path. Preserve an explicitly supplied image.
 
 Choose one route:
 
-1. **The supplied image already satisfies the shot:** pass it directly to `image_to_video_create_video`. Preserve its product geometry, packaging, label, identity and composition; prompt for the requested motion.
-2. **The source needs a visual change:** call `ai_image_editor_create_image` only when composition, wardrobe, background, lighting, product placement, or cleanup must change for the brief. State the edit and everything that must remain unchanged.
-3. **No source image exists:** call `ai_image_generator_create_image` when a starting image is needed. AI Image Editor requires an input image; do not send it a prompt-only creation request.
+1. **The supplied image already satisfies the shot:** pass it directly to `create_video_from_image`. Preserve its product geometry, packaging, label, identity and composition; prompt for the requested motion.
+2. **The source needs a visual change:** call `edit_image` only when composition, wardrobe, background, lighting, product placement, or cleanup must change for the brief. State the edit and everything that must remain unchanged.
+3. **No source image exists:** call `generate_image` when a starting image is needed. AI Image Editor requires an input image; do not send it a prompt-only creation request.
 
 If an image must be generated or edited, create one still at the intended video aspect ratio. Use an authorized reference when exact identity, product geometry, packaging, or branding matters. Do not expect image-to-video to repair a poor source frame.
 
@@ -45,7 +47,7 @@ For a generated or edited image, wait with `wait_for_image_project`. Inspect the
 
 ## Animate the approved frame
 
-Pass the exact approved source image to `image_to_video_create_video`. If it is a local file, upload its raw bytes first using the flow in `references/setup.md`; a local path is not a hosted `file_path`.
+Pass the exact approved source image to `create_video_from_image`. If it is a local file, upload its raw bytes first using the flow in `references/setup.md`; a local path is not a hosted `file_path`.
 
 Write the motion prompt around change over time:
 

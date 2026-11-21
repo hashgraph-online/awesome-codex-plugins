@@ -1,3 +1,8 @@
+<p align="center"><a href="https://webly.ai"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Webly-AI/webly-plugin/main/assets/webly-mark-dark.gif">
+  <img src="https://raw.githubusercontent.com/Webly-AI/webly-plugin/main/assets/webly-mark-light.gif" width="600" alt="The Webly mark building itself from pixels">
+</picture></a></p>
+
 # Webly skill and plugin
 
 [Webly](https://webly.ai) is website hosting for agents. This repo ships the
@@ -78,6 +83,7 @@ claude plugin update webly@webly         # the Claude Code plugin
 .claude-plugin/marketplace.json   marketplace manifest
 .cursor-plugin/plugin.json        Cursor plugin manifest (skills/webly + Webly MCP server)
 assets/logo.svg                   marketplace logo
+assets/webly-mark-{dark,light}.gif  README header: the mark building itself, as on webly.ai
 gemini-extension.json             Gemini CLI extension (Webly MCP server, GEMINI.md, skills/)
 GEMINI.md                         Gemini CLI context
 install.sh                        installs skills/webly for Claude Code and Codex

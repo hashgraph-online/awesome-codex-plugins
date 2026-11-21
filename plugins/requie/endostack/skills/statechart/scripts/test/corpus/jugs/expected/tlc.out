@@ -1,0 +1,43 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -1806989396566061607 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 9530] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/jugs/Jugs.tla
+Parsing file /tmp/statechart-rec-9bMBPh/02-verdict-1/tlc.tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Jugs
+Starting... (2026-10-27 16:48:45)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:45.
+Error: Invariant NotFour is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ big = 0
+/\ small = 0
+
+State 2: <FillBig line 7, col 12 to line 7, col 37 of module Jugs>
+/\ big = 5
+/\ small = 0
+
+State 3: <BigToSmall line 11, col 47 to line 11, col 82 of module Jugs>
+/\ big = 2
+/\ small = 3
+
+State 4: <EmptySmall line 8, col 15 to line 8, col 38 of module Jugs>
+/\ big = 2
+/\ small = 0
+
+State 5: <BigToSmall line 11, col 47 to line 11, col 82 of module Jugs>
+/\ big = 0
+/\ small = 2
+
+State 6: <FillBig line 7, col 12 to line 7, col 37 of module Jugs>
+/\ big = 5
+/\ small = 2
+
+State 7: <BigToSmall line 11, col 47 to line 11, col 82 of module Jugs>
+/\ big = 4
+/\ small = 3
+
+73 states generated, 14 distinct states found, 1 states left on queue.
+The depth of the complete state graph search is 7.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 2 and the 95th percentile is 2).
+Finished in 00s at (2026-10-27 16:48:45)

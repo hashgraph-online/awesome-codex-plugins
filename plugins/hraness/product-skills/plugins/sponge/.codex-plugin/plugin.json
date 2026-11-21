@@ -1,0 +1,26 @@
+{
+  "name": "sponge",
+  "version": "0.1.7",
+  "description": "Save articles and PDFs to a reading library captured by a computer you control. Highlight passages, keep notes, and find ideas through search or your coding agent.",
+  "author": {
+    "name": "Hraness",
+    "url": "https://hraness.com"
+  },
+  "homepage": "https://sponge.computer/docs/agents",
+  "repository": "https://github.com/hraness/product-skills",
+  "license": "MIT",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "Sponge",
+    "shortDescription": "Reading and notes.",
+    "longDescription": "Save articles and PDFs to a reading library captured by a computer you control. Highlight passages, keep notes, and find ideas through search or your coding agent.\n\nRequires the separately installed @hraness/sponge CLI, Node.js 24.20.0 or later and an initialized local library.",
+    "developerName": "Hraness",
+    "category": "Productivity",
+    "capabilities": [],
+    "websiteURL": "https://sponge.computer",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

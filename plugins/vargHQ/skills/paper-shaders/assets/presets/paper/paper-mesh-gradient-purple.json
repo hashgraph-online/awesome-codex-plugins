@@ -1,0 +1,33 @@
+{
+  "id": "paper-mesh-gradient-purple",
+  "label": "Purple (Paper MeshGradient)",
+  "shader": "MeshGradient",
+  "page": "https://shaders.paper.design/mesh-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Purple\" preset for MeshGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.6,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#aaa7d7",
+      "#3c2b8e"
+    ],
+    "distortion": 1,
+    "swirl": 1,
+    "grainMixer": 0,
+    "grainOverlay": 0
+  }
+}

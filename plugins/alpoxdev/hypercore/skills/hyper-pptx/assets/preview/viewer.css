@@ -1,0 +1,89 @@
+/* viewer.css — the deck stage in the browser.
+ *
+ * Sizes come from the resolved deck, so nothing here sets geometry; this file
+ * only carries the parts a browser needs that DrawingML does not have: the
+ * measurement context, print rules, and the capture frame.
+ */
+:root {
+  --pp-gap: 28px;
+  --pp-frame: rgba(0, 0, 0, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #e9ecf1;
+  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+}
+
+body.pp-capture {
+  background: #ffffff;
+}
+
+body:not(.pp-capture) #pp-root {
+  padding: var(--pp-gap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pp-gap);
+}
+
+.pp-slide {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08), 0 12px 28px rgba(16, 24, 40, 0.12);
+  flex: 0 0 auto;
+}
+
+body.pp-capture .pp-slide {
+  box-shadow: none;
+}
+
+.pp-text {
+  position: absolute;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.pp-text-in {
+  width: 100%;
+}
+
+.pp-p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.pp-rect {
+  position: absolute;
+}
+
+.pp-table {
+  position: absolute;
+}
+
+.pp-table table {
+  border-collapse: collapse;
+}
+
+.pp-chart {
+  position: absolute;
+}
+
+.pp-image {
+  position: absolute;
+}
+
+@media print {
+  @page { size: 13.333in 7.5in; margin: 0; }
+  html, body { background: #ffffff; }
+  #pp-root { padding: 0; gap: 0; display: block; }
+  .pp-slide {
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+}

@@ -42,7 +42,6 @@ form.submitted, log.appended, chart.changed, message.added.
 ## Rules
 
 - Prefer the lightest way: a link before an embed, `from:` before a watch.
-- Do not write the values of a `from:` chart; the board rewrites them.
-- A watch with `--exec` keeps running and acts for the user: start it only
-  when asked, in the background, and say how to stop it.
+- A watch with `--exec` keeps running and acts for the user: start it in
+  the background, and say how to stop it.
 - `${CLAUDE_PLUGIN_ROOT}/rules/touching-the-board.md` applies.

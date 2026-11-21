@@ -18,7 +18,6 @@
     "claude-code",
     "agent-skills"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Figma Maxxing",
     "shortDescription": "Skills for real Figma files",
@@ -38,5 +37,6 @@
     "brandColor": "#DC000C",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png"
-  }
+  },
+  "skills": "./skills/"
 }

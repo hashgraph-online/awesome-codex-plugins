@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "imagera": {
+      "type": "http",
+      "url": "https://mcp.imagera.ai/mcp"
+    }
+  }
+}

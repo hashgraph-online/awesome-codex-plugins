@@ -16,11 +16,7 @@ import {
   GOAL_PROGRESS_STABLE_HOOK_LAUNCHER,
   GOAL_PROGRESS_STABLE_MCP_LAUNCHER,
 } from "./plugin-release.js";
-import {
-  type CodexInstallIdentity,
-  fileSha256,
-  validateCodexIdentity,
-} from "./verified-release.js";
+import { type CodexInstallIdentity, validateCodexIdentity } from "./verified-release.js";
 
 const PLUGIN_NAME = "codex-goal-progress";
 const MARKETPLACE_NAME = "codex-goal-progress-local";
@@ -291,11 +287,10 @@ export function createPluginController(options: {
     const sourceRoot = resolve(marketplaceRoot, "plugins", PLUGIN_NAME);
     try {
       await verifyPluginTreeManifest(sourceRoot, expectedTreeManifestSha256);
-      const [sourceManifest, sourceMcp, sourceHooks, sourceHook] = await Promise.all([
+      const [sourceManifest, sourceMcp, sourceHooks] = await Promise.all([
         readFile(resolve(sourceRoot, ".codex-plugin/plugin.json"), "utf8"),
         readFile(resolve(sourceRoot, ".mcp.json"), "utf8"),
         readFile(resolve(sourceRoot, "hooks/hooks.json"), "utf8"),
-        fileSha256(resolve(sourceRoot, "hooks/hooks.json")),
       ]);
       const parsedSourceManifest = JSON.parse(sourceManifest) as {
         name?: string;
@@ -333,24 +328,6 @@ export function createPluginController(options: {
       if (currentCacheExists) {
         try {
           await verifyPluginTreeManifest(currentCacheRoot, expectedTreeManifestSha256);
-          const [cacheManifest, cacheMcp, cacheHook] = await Promise.all([
-            readFile(resolve(currentCacheRoot, ".codex-plugin/plugin.json"), "utf8"),
-            readFile(resolve(currentCacheRoot, ".mcp.json"), "utf8"),
-            fileSha256(resolve(currentCacheRoot, "hooks/hooks.json")),
-          ]);
-          if (
-            sourceManifest !== cacheManifest ||
-            sourceMcp !== cacheMcp ||
-            sourceHook !== cacheHook
-          ) {
-            return false;
-          }
-          for (const launcher of ["bin/goal-progress-mcp", "bin/goal-progress-hook"]) {
-            const metadata = await lstat(resolve(currentCacheRoot, launcher));
-            if (!metadata.isFile() || (metadata.mode & 0o777) !== 0o700) {
-              return false;
-            }
-          }
           if (reportedVersion === expectedVersion) {
             return true;
           }

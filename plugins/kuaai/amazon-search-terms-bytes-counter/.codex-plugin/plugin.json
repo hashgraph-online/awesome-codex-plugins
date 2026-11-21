@@ -1,0 +1,24 @@
+{
+  "name": "amazon-search-terms-bytes-counter",
+  "version": "1.0.0",
+  "description": "Amazon 249-byte search terms optimizer, listing HTML sanitizer, and Rufus AI optimization rules",
+  "repository": "https://github.com/kuaai/amazon-search-terms-bytes-counter",
+  "license": "MIT",
+  "interface": {
+    "displayName": "Amazon 249-Byte Terms & HTML Optimizer",
+    "shortDescription": "Strictly format and validate 249 UTF-8 byte backend search terms and sanitize Amazon listing HTML descriptions.",
+    "composerIcon": "./assets/icon.svg"
+  },
+  "skills": [
+    {
+      "name": "amazon-search-terms-optimizer",
+      "path": "skills/amazon-search-terms-optimizer/SKILL.md",
+      "description": "Optimizes Amazon Seller Central generic backend search terms to strictly comply with the 249 UTF-8 byte ceiling."
+    },
+    {
+      "name": "amazon-html-sanitizer",
+      "path": "skills/amazon-html-sanitizer/SKILL.md",
+      "description": "Cleans and sanitizes Amazon product description HTML, stripping forbidden tags, styles, and classes."
+    }
+  ]
+}

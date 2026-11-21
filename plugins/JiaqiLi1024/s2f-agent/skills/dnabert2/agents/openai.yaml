@@ -1,0 +1,4 @@
+interface:
+  display_name: "DNABERT-2"
+  short_description: "DNABERT2 coordinate inference and fine-tuning workflows"
+  default_prompt: "Use $dnabert2 to run real-coordinate DNABERT2 embedding visualization, validate my DNA CSV dataset, and draft grounded fine-tuning commands."

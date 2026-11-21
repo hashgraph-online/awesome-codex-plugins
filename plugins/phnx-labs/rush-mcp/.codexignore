@@ -1,0 +1,8 @@
+.git/
+.github/
+.agents/
+node_modules/
+scripts/
+source/
+*.env
+.env*

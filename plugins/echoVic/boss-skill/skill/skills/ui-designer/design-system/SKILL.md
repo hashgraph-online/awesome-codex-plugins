@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/design-system
 description: 设计系统方法论，基于 Refactoring UI、Material Design 3、HIG、Laws of UX、WCAG 等开源设计原则，指导如何建立有设计方向、可落地的设计令牌体系
 version: 2.0.0
@@ -9,20 +8,19 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-- 开始UI设计时
-- 需要定义视觉规范时
-- 确保设计一致性时
-  metadata:
+  - 开始UI设计时
+  - 需要定义视觉规范时
+  - 确保设计一致性时
+metadata:
   internal: true
   references:
-  - "Refactoring UI (Steve Schoger & Adam Wathan): https://www.refactoringui.com/"
-  - "Material Design 3: https://m3.material.io/"
-  - "Apple Human Interface Guidelines: https://developer.apple.com/design/human-interface-guidelines/"
-  - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
-  - "Ant Design: https://ant.design/docs/spec/introduce"
-  - "Carbon Design System (IBM): https://carbondesignsystem.com/"
-  - "WCAG 2.1: https://www.w3.org/WAI/WCAG21/quickref/"
-
+    - "Refactoring UI (Steve Schoger & Adam Wathan): https://www.refactoringui.com/"
+    - "Material Design 3: https://m3.material.io/"
+    - "Apple Human Interface Guidelines: https://developer.apple.com/design/human-interface-guidelines/"
+    - "Laws of UX (Jon Yablonski): https://lawsofux.com/"
+    - "Ant Design: https://ant.design/docs/spec/introduce"
+    - "Carbon Design System (IBM): https://carbondesignsystem.com/"
+    - "WCAG 2.1: https://www.w3.org/WAI/WCAG21/quickref/"
 ---
 
 # 设计系统方法论
@@ -36,6 +34,7 @@ triggers:
 ### 核心原则（来自 Refactoring UI）
 
 设计不是把内容塞进布局里，而是**用视觉手段引导用户注意力**。记住以下原则：
+
 1. **从功能出发，不从布局出发** — 先想清楚用户要完成什么任务，再决定界面怎么排布。不要上来就画三栏布局。
 2. **先灰阶，后上色** — 先用灰度建立层次和对比度，确认信息架构没问题后再引入颜色。颜色是锦上添花，不是救命稻草。
 3. **字号不超过 3 种** — 正文、小标题、大标题。更多字号只会造成混乱，用字重和颜色来区分层次。
@@ -156,6 +155,7 @@ triggers:
 ### 字号阶梯（Type Scale）
 
 使用**模块化比例**（Modular Scale）生成字号，而非随意取值。推荐比例：
+
 - **1.250（Major Third）**：保守、专业，适合工具类产品
 - **1.333（Perfect Fourth）**：平衡，适合大多数产品
 - **1.500（Perfect Fifth）**：大胆、有冲击力，适合营销页
@@ -173,6 +173,7 @@ triggers:
 | `text-3xl`  | 36px | 1.2  | 700  | 大标题（Hero）     |
 
 **原则**（来自 Refactoring UI）：
+
 - 正文不小于 14px，理想 16px
 - 行高：正文 1.5-1.7，标题 1.2-1.3
 - 用**字重**和**颜色**区分层次，而非无限增加字号
@@ -240,6 +241,7 @@ triggers:
 | `radius-full` | 9999px | 圆形、胶囊按钮、头像 |
 
 **原则**：
+
 - 同一产品圆角风格统一，不要混用直角和大圆角
 - 嵌套元素圆角递减（外层 12px，内层 8px，最内层 4px）
 - **Material Design 3** 引入了「形状 scale」（none / extra-small / small / medium / large / extra-large / full），可参考
@@ -261,6 +263,7 @@ triggers:
 | `shadow-xl` | `0 20px 25px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.04)` | 模态框           |
 
 **原则**：
+
 - 阴影要**柔和** — 用多层小阴影模拟真实光照，不要用单个大黑影
 - 阴影颜色带一点主色相，比纯黑更自然
 - 悬停时加深阴影暗示可交互

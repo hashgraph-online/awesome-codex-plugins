@@ -1,0 +1,7 @@
+interface:
+  display_name: "Align standards"
+  short_description: "Audit a project against its standards, choose what to fix, and converge it with identical behavior"
+policy:
+  # Codex analog of disable-model-invocation: a whole-repository convergence
+  # starts only when a person invokes it.
+  allow_implicit_invocation: false

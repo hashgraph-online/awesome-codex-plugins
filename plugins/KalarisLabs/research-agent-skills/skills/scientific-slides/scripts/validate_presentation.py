@@ -56,6 +56,7 @@ class PresentationValidator:
     }
     
     def __init__(self, filepath: str, duration: Optional[int] = None):
+        """Initialise the instance."""
         self.filepath = Path(filepath)
         self.duration = duration
         self.file_type = self.filepath.suffix.lower()
@@ -348,6 +349,7 @@ def print_results(results: Dict):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Validate scientific presentations',
         formatter_class=argparse.RawDescriptionHelpFormatter,

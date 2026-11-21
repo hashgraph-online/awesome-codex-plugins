@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "liendeadline",
+  "version": "1.4.6",
+  "description": "Supplier notice and mechanics lien baselines for reviewed private scopes across all 50 states and DC. Live discovery checks the exact project scope. A customer API key is required; completed calculations use plan allowance. State guides are public.",
+  "author": { "name": "LienDeadline", "url": "https://liendeadline.com" },
+  "homepage": "https://liendeadline.com",
+  "repository": "https://github.com/LienDeadline/skills",
+  "license": "MIT",
+  "keywords": ["mechanics-lien", "preliminary-notice", "notice-to-owner", "construction", "lien-deadlines", "mcp"]
+}

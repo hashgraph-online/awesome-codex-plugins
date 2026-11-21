@@ -71,7 +71,7 @@ def analyze_pathway(kegg, pathway_id):
                 if line.startswith("NAME"):
                     pathway_name = line.replace("NAME", "").strip()
                     break
-        except:
+        except Exception:
             pathway_name = "Unknown"
 
         result = {
@@ -149,7 +149,7 @@ def save_pathway_summary(results, output_file):
                     if k not in ['activation', 'inhibition', 'phosphorylation', 'binding/association'])
             ])
 
-    print(f"✓ Summary saved")
+    print("✓ Summary saved")
 
 
 def save_interactions_sif(results, output_file):
@@ -168,7 +168,7 @@ def save_interactions_sif(results, output_file):
                 # Write SIF format: source\tinteraction\ttarget
                 f.write(f"{entry1}\t{interaction_type}\t{entry2}\n")
 
-    print(f"✓ Interactions saved")
+    print("✓ Interactions saved")
 
 
 def save_detailed_pathway_info(results, output_dir):
@@ -208,27 +208,27 @@ def print_statistics(results):
     total_interactions = sum(r['num_relations'] for r in results)
     total_genes = sum(r['num_entries'] for r in results)
 
-    print(f"\nOverall:")
+    print("\nOverall:")
     print(f"  Total pathways: {total_pathways}")
     print(f"  Total genes/proteins: {total_genes}")
     print(f"  Total interactions: {total_interactions}")
 
     # Largest pathways
-    print(f"\nLargest pathways (by gene count):")
+    print("\nLargest pathways (by gene count):")
     sorted_by_size = sorted(results, key=lambda x: x['num_entries'], reverse=True)
     for i, result in enumerate(sorted_by_size[:10], 1):
         print(f"  {i}. {result['pathway_id']}: {result['num_entries']} genes")
         print(f"     {result['pathway_name']}")
 
     # Most connected pathways
-    print(f"\nMost connected pathways (by interactions):")
+    print("\nMost connected pathways (by interactions):")
     sorted_by_connections = sorted(results, key=lambda x: x['num_relations'], reverse=True)
     for i, result in enumerate(sorted_by_connections[:10], 1):
         print(f"  {i}. {result['pathway_id']}: {result['num_relations']} interactions")
         print(f"     {result['pathway_name']}")
 
     # Interaction type distribution
-    print(f"\nInteraction type distribution:")
+    print("\nInteraction type distribution:")
     all_types = Counter()
     for result in results:
         for rel_type, count in result['relation_types'].items():

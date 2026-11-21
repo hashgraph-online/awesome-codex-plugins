@@ -1,0 +1,37 @@
+{
+  "name": "@actera-ai/agent-hooks",
+  "version": "0.4.1",
+  "description": "Evaluate coding-agent tool calls against Actera policies and report their outcomes",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./claude-code": "./src/hosts/claude-code/bridge.mjs",
+    "./claude-code/cli": "./src/hosts/claude-code/cli.mjs",
+    "./claude-code/settings": "./src/hosts/claude-code/settings.mjs",
+    "./codex": "./src/hosts/codex/bridge.mjs",
+    "./codex/cli": "./src/hosts/codex/cli.mjs",
+    "./codex/mcp-server": "./src/hosts/codex/mcp-server.mjs",
+    "./codex/settings": "./src/hosts/codex/settings.mjs",
+    "./core": "./src/core/bridge.mjs",
+    "./core/delivery": "./src/core/delivery.mjs",
+    "./core/scanner": "./src/core/scanner-client.mjs",
+    "./core/defaults": "./src/core/defaults.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "vendor/",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "test": "npm run check:contract && node --test test/unit/*.test.mjs",
+    "check:contract": "node scripts/check-contract.mjs && node scripts/generate-outcomes.mjs --check",
+    "check:package": "node scripts/check-package.mjs",
+    "generate:outcomes": "node scripts/generate-outcomes.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

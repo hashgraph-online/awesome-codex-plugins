@@ -1,6 +1,6 @@
 # Authored source catalog
 
-Reference data for `/archcore:init`. The assessment gate (`SKILL.md` step 5) and the `discover` and `triage` gates of `skills/_shared/tracks/import.md` read this file. It defines the five discovery levels, the record each found source gets, the triage verdicts, and the measures the gate computes. Contract: `authored-source-discovery.spec`.
+Reference data for `/archcore:init`. The assessment gate (`SKILL.md` step 5) and the `discover` and `triage` gates of `skills/_shared/tracks/import.md` read this file. It defines the five discovery levels, the record each found source gets, the triage verdicts, and the measures the gate computes.
 
 An **authored source** is a file, or a recoverable piece of git history, in which a person recorded knowledge about the repository: a convention, a decision, a procedure, a contract, a reference fact, or an intent. Source code and code comments are not authored sources; the code seed reads code.
 

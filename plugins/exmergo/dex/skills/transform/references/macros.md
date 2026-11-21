@@ -11,6 +11,71 @@ customized or stale), and applying that plan overwrites deliberately.
 The override `transform init --layered-schemas` scaffolds, so each layer folder
 builds into its own `<layer>_<target name>` schema.
 
+## `dex_unique_combination`
+
+The generic test a declared composite grain renders
+([declarations](declarations.md#dex_unique_combination-a-composite-grain)), where
+`declarations.render_tests` turns it on. A declaration plan adds it for you; this
+command scaffolds or diffs it on its own. It fails with the count of rows beyond
+the first of each grain value, and never selects a key. The SQL goes through
+dbt's dispatch, `default__dex_unique_combination` holds on every connector, and
+a project overrides one warehouse with its own
+`<adapter>__dex_unique_combination(model, columns)` macro.
+
+## `dex_population_filter`
+
+The generic test a declared population filter renders
+([declarations](declarations.md#dex_population_filter-a-population-filter)), one
+per `includes` or `excludes` list, where `declarations.render_tests` turns it on.
+A declaration plan adds it for you; this command scaffolds or diffs it on its
+own. It fails with the count of rows whose column breaks the list (a NULL breaks
+an `includes` list and never an `excludes` one), and never selects a value. The
+SQL goes through dbt's dispatch, `default__dex_population_filter` holds on every
+connector, and a project overrides one warehouse with its own
+`<adapter>__dex_population_filter(model, column_name, includes, excludes)` macro.
+The cast a text comparison makes is dispatched apart, as
+`dex_population_filter_text(column_name)`: ClickHouse cannot cast a NULL to its
+non-Nullable `String`, so its variant is `toString`. So is each text literal,
+`dex_population_filter_literal(text)`, written as `maintain verify` writes it:
+a quote doubled on DuckDB, Postgres and Trino, and a backslash escaped on
+BigQuery, Snowflake, Databricks, Redshift and ClickHouse, where it starts an
+escape sequence.
+
+## `dex_parent_population`
+
+The generic test a declared parent population renders
+([declarations](declarations.md#dex_parent_population-a-parents-population)),
+twice per declared `population.parent`, once per `direction` (`missing`,
+`unexpected`), where `declarations.render_tests` turns it on. A declaration plan
+adds it for you; this command scaffolds or diffs it on its own. It fails with
+the count of distinct eligible parent keys the model lacks (`missing`) or of
+distinct model keys the parent lacks (`unexpected`), and never selects a key.
+The `filters` argument scopes the eligible parents, each applied where the
+parent has its column, read from the parent's metadata when the test runs. The
+SQL goes through dbt's dispatch, `default__dex_parent_population` holds on every
+connector, and a project overrides one warehouse with its own
+`<adapter>__dex_parent_population(model, parent, key, direction, filters)`
+macro. The text cast and the text literal of a filter comparison are dispatched
+apart, as `dex_parent_population_text(column_name)` and
+`dex_parent_population_literal(text)`, written per warehouse as
+`dex_population_filter`'s are.
+
+## `dex_unit_range`
+
+The generic test a column declared a fraction renders
+([declarations](declarations.md#dex_unit_range-a-fraction)), where
+`declarations.render_tests` turns it on; a `percent` column renders none. A
+declaration plan adds it for you; this command scaffolds or diffs it on its own.
+It fails with the count of rows whose value sits below 0 or above 1 (a NULL
+never counts), and never selects a value. It reads the column's type from the
+relation's metadata and compares a column only where its type is a number as
+`maintain verify` reads one (a numeric type name, and no boolean or temporal
+one), so text, a boolean, a date, a UUID or JSON is not compared; dbt's own
+`Column.is_number()` is not used, since it reads `DECIMAL(2,1)`, `FLOAT64` and `NUMBER(38,0)` as no
+number. The SQL goes through dbt's dispatch, `default__dex_unit_range` holds on
+every connector, and a project overrides one warehouse with its own
+`<adapter>__dex_unit_range(model, column_name)` macro.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

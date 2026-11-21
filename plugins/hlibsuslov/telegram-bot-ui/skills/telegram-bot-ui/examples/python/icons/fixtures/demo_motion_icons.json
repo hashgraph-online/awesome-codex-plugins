@@ -1,0 +1,59 @@
+{
+ "_note": "SYNTHETIC offline fixture shaped like a getStickerSet result. Ids start with 0 on purpose: they are NOT real custom_emoji_id values and scripts/audit_icons.py rejects them unless --allow-fixture-ids. Never ship them.",
+ "ok": true,
+ "result": {
+  "name": "demo_motion_icons",
+  "title": "Demo Motion Icons (fixture)",
+  "sticker_type": "custom_emoji",
+  "stickers": [
+   {
+    "emoji": "✅",
+    "custom_emoji_id": "0400000000000001",
+    "type": "custom_emoji",
+    "is_animated": true,
+    "is_video": false,
+    "set_name": "demo_motion_icons"
+   },
+   {
+    "emoji": "🎉",
+    "custom_emoji_id": "0400000000000002",
+    "type": "custom_emoji",
+    "is_animated": true,
+    "is_video": false,
+    "set_name": "demo_motion_icons"
+   },
+   {
+    "emoji": "⏳",
+    "custom_emoji_id": "0400000000000003",
+    "type": "custom_emoji",
+    "is_animated": true,
+    "is_video": false,
+    "set_name": "demo_motion_icons"
+   },
+   {
+    "emoji": "✨",
+    "custom_emoji_id": "0400000000000004",
+    "type": "custom_emoji",
+    "is_animated": true,
+    "is_video": false,
+    "set_name": "demo_motion_icons"
+   },
+   {
+    "emoji": "🔥",
+    "custom_emoji_id": "0400000000000005",
+    "type": "custom_emoji",
+    "is_animated": true,
+    "is_video": false,
+    "set_name": "demo_motion_icons"
+   },
+   {
+    "emoji": "🚀",
+    "custom_emoji_id": "0400000000000006",
+    "type": "custom_emoji",
+    "is_animated": true,
+    "is_video": false,
+    "set_name": "demo_motion_icons"
+   }
+  ]
+ }
+}

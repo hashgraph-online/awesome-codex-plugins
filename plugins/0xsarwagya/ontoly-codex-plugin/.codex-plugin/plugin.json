@@ -1,7 +1,7 @@
 {
   "name": "ontoly",
   "version": "0.1.0",
-  "description": "Use Ontoly Software Graph evidence, CLI reports, MCP, and Agent Skills for deterministic TypeScript codebase understanding.",
+  "description": "Use Ontoly Software Graph evidence, CLI reports, MCP, and Agent Skills for deterministic JavaScript, TypeScript, Python, and Go codebase understanding.",
   "author": {
     "name": "0xsarwagya",
     "url": "https://github.com/0xsarwagya"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Ontoly",
     "shortDescription": "Use deterministic Software Graph evidence before searching source files",
-    "longDescription": "Ontoly builds a deterministic Software Graph for TypeScript repositories. Use this plugin when Codex needs architecture review, dependency analysis, impact analysis, request tracing, configuration analysis, security ownership, or codebase onboarding backed by graph evidence and MCP capabilities.",
+    "longDescription": "Ontoly builds a deterministic Software Graph for JavaScript, TypeScript, Python, and Go repositories. Use this plugin when Codex needs architecture review, dependency analysis, impact analysis, request tracing, configuration analysis, security ownership, or codebase onboarding backed by graph evidence and MCP capabilities.",
     "developerName": "0xsarwagya",
     "category": "Developer Tools",
     "capabilities": [

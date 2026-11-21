@@ -1,0 +1,445 @@
+<!doctype html>
+<!--
+  Reference board for the redesign-screen skill. The rules for what goes on it are
+  in references/reference-board.md.
+
+  Fill in the JSON in #board-data and change nothing else. The layout and the
+  type are already set here, so a run writes data, not CSS.
+
+  Deliver it either way:
+  - as a PNG: open this file in a browser and capture the .board element at twice
+    the pixel scale, after the images have loaded. A capture tool that cannot set
+    a device pixel ratio gets the same detail from --board-zoom: 2 below.
+  - as itself: run scripts/embed-images.py on it first, which puts the screen
+    images inside the file, so it opens on its own and goes without them. The
+    app names link to their Mobbin screens only here, not in the PNG.
+
+  "image" is the file downloaded from the screen's image_url, never the inline
+  preview. "also" is left out unless the screen backs a later problem too.
+  "label" is left out after a targeted run, so groups number 1, 2, 3; after an
+  explore run it is the variation's letter.
+
+  Screens sit five to a row. "columns" is left out for phone screens; set it to 2
+  for web screens, so they stay readable.
+
+  "collections" lists the user's collections the run read, each { "name", "url" }
+  with the collection's mobbin_url, as chips on the title line. Leave it out when
+  the run read no collection, such as a run built from a search alone.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mobbin references</title>
+    <style>
+      /* Mobbin design system tokens, verbatim from ux-audit-tool's shared/design-system.css. */
+      :root {
+        --gray-0: #ffffff;
+        --gray-50: #fafafa;
+        --gray-100: #f5f5f5;
+        --gray-150: #ededed;
+        --gray-200: #e5e5e5;
+        --gray-300: #d4d4d4;
+        --gray-400: #a3a3a3;
+        --gray-500: #737373;
+        --gray-600: #525252;
+        --gray-700: #404040;
+        --gray-800: #262626;
+        --gray-900: #171717;
+        --gray-950: #0a0a0a;
+        --bg: var(--gray-0);
+        --bg-subtle: var(--gray-50);
+        --bg-muted: var(--gray-100);
+        --fg1: var(--gray-950);
+        --fg2: var(--gray-600);
+        --fg3: var(--gray-500);
+        --fg-muted: var(--gray-400);
+        --border: var(--gray-200);
+        --border-strong: var(--gray-300);
+        --border-subtle: var(--gray-150);
+        --success: #1a7f46;
+        --warning: #b45309;
+        --danger: #b42318;
+        --info: #1c5fd4;
+        --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --fs-11: 11px;
+        --fs-12: 12px;
+        --fs-13: 13px;
+        --fs-14: 14px;
+        --fs-15: 15px;
+        --fs-24: 24px;
+        --ls-normal: -0.005em;
+        --ls-tight: -0.02em;
+        --ls-widest: 0.12em;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 20px;
+        --sp-6: 24px;
+        --sp-8: 32px;
+        --sp-10: 40px;
+        --r-sm: 5px;
+        --r-md: 8px;
+        --r-lg: 12px;
+        --r-xl: 16px;
+
+        --board-width: 1320px;
+        --board-zoom: 1; /* 2 doubles every pixel, for a capture tool with no scale factor of its own. */
+      }
+      :root[data-theme="dark"] {
+        --bg: var(--gray-950);
+        --bg-subtle: var(--gray-900);
+        --bg-muted: var(--gray-800);
+        --fg1: var(--gray-50);
+        --fg2: var(--gray-400);
+        --fg3: var(--gray-500);
+        --fg-muted: var(--gray-600);
+        --border: var(--gray-800);
+        --border-strong: var(--gray-700);
+        --border-subtle: var(--gray-800);
+        --success: #46c485;
+        --warning: #e0a34a;
+        --danger: #f2a099;
+        --info: #7aa7f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg-subtle);
+      }
+      /* Centred when the file is opened; the capture shoots .board alone, so it is unaffected. */
+      body {
+        display: flex;
+        justify-content: safe center;
+        padding: var(--sp-10) var(--sp-4);
+      }
+      .board {
+        flex: none;
+      }
+      .board {
+        zoom: var(--board-zoom);
+        width: var(--board-width);
+        padding: var(--sp-10);
+        background: var(--bg-subtle);
+        color: var(--fg1);
+        font-family: var(--font-sans);
+        font-size: var(--fs-15);
+        line-height: 1.5;
+        letter-spacing: var(--ls-normal);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .docmeta {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--sp-4);
+        margin-bottom: var(--sp-6);
+        color: var(--fg-muted);
+        font-family: var(--font-mono);
+        font-size: var(--fs-11);
+      }
+      .docmeta .stamp {
+        letter-spacing: var(--ls-widest);
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: var(--fs-24);
+        font-weight: 600;
+        letter-spacing: var(--ls-tight);
+        line-height: 1.25;
+      }
+      .subtitle {
+        margin: var(--sp-2) 0 0;
+        color: var(--fg2);
+        font-size: var(--fs-14);
+      }
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--sp-8);
+      }
+      .heading {
+        flex: 1;
+        min-width: 0;
+      }
+      /* Collections the run read, on the title line. The width caps how many chips share a
+         line; later lines wrap under the chips, right-aligned. */
+      .collections {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: var(--sp-2);
+        max-width: 580px;
+        margin-top: 1px; /* Centres the first line on the title's 30px line. */
+        color: var(--fg3);
+        font-size: var(--fs-13);
+      }
+      .collections[hidden] {
+        display: none;
+      }
+      .collections-label {
+        white-space: nowrap;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 240px;
+        height: 28px;
+        padding: 0 10px 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--fg1);
+        font-weight: 500;
+        text-decoration: none;
+      }
+      .chip-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chip svg {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        color: var(--fg2);
+      }
+
+      .group {
+        margin-top: var(--sp-8);
+        padding-top: var(--sp-8);
+        border-top: 1px solid var(--border);
+      }
+      .group-head {
+        display: flex;
+        gap: var(--sp-3);
+        align-items: flex-start;
+        margin-bottom: var(--sp-5);
+      }
+      .num {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        margin-top: 1px;
+        border-radius: 50%;
+        background: var(--fg1);
+        color: var(--bg);
+        font-family: var(--font-mono);
+        font-size: var(--fs-12);
+        font-weight: 700;
+        line-height: 1;
+      }
+      .lead {
+        margin: 0;
+        font-size: var(--fs-15);
+        font-weight: 600;
+      }
+      .problem {
+        margin: 0;
+        color: var(--fg2);
+        font-size: var(--fs-13);
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(var(--columns, 5), 1fr);
+        gap: var(--sp-4);
+        align-items: start;
+      }
+      .card {
+        padding: 6px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+      }
+      .card img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: var(--r-md);
+        background: var(--bg-muted);
+      }
+      .caption {
+        padding: var(--sp-3) 6px 6px;
+      }
+      .app {
+        color: var(--info);
+        font-size: var(--fs-14);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .take {
+        margin: 2px 0 0;
+        color: var(--fg2);
+        font-size: var(--fs-13);
+        line-height: 1.45;
+      }
+      .also {
+        margin: 6px 0 0;
+        color: var(--fg3);
+        font-size: var(--fs-12);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="application/json" id="board-data">
+      {
+        "theme": "light",
+        "meta": "iOS paywall, 2 problems, 3 references",
+        "title": "Mobbin references used in the paywall redesign",
+        "subtitle": "Grouped by the problem each change answered.",
+        "groups": [
+          {
+            "lead": "The trial button is in the first view.",
+            "problem": "The main action sits below the fold.",
+            "screens": [
+              {
+                "app": "Headspace",
+                "url": "https://mobbin.com/screens/example-1",
+                "image": "ref-1.png",
+                "take": "Trial button pinned above the plan list",
+                "also": "also problem 2"
+              },
+              {
+                "app": "Calm",
+                "url": "https://mobbin.com/screens/example-2",
+                "image": "ref-2.png",
+                "take": "One plan card, button directly under it"
+              }
+            ]
+          },
+          {
+            "lead": "The charge is stated before the choice.",
+            "problem": "The price after the trial is hidden.",
+            "screens": [
+              {
+                "app": "Strava",
+                "url": "https://mobbin.com/screens/example-3",
+                "image": "ref-3.png",
+                "take": "Timeline, then one plan card carrying both prices"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <div class="board">
+      <div class="docmeta">
+        <span class="stamp">Mobbin · redesign-screen</span><span id="meta"></span>
+      </div>
+      <div class="head">
+        <div class="heading">
+          <h1 id="title"></h1>
+          <p class="subtitle" id="subtitle"></p>
+        </div>
+        <div class="collections" id="collections" hidden></div>
+      </div>
+      <div id="groups"></div>
+    </div>
+
+    <template id="group-template">
+      <section class="group">
+        <div class="group-head">
+          <span class="num"></span>
+          <div>
+            <p class="lead"></p>
+            <p class="problem"></p>
+          </div>
+        </div>
+        <div class="cards"></div>
+      </section>
+    </template>
+
+    <template id="card-template">
+      <figure class="card" style="margin: 0">
+        <img alt="" />
+        <figcaption class="caption">
+          <a class="app" target="_blank" rel="noopener"></a>
+          <p class="take"></p>
+          <p class="also"></p>
+        </figcaption>
+      </figure>
+    </template>
+
+    <script>
+      const data = JSON.parse(document.getElementById("board-data").textContent);
+      document.documentElement.dataset.theme = data.theme ?? "light";
+      document.getElementById("meta").textContent = data.meta ?? "";
+      document.getElementById("title").textContent = data.title;
+      document.getElementById("subtitle").textContent = data.subtitle ?? "";
+      fillCollections(document.getElementById("collections"), data.collections ?? []);
+
+      const groupTemplate = document.getElementById("group-template");
+      const cardTemplate = document.getElementById("card-template");
+      const groups = document.getElementById("groups");
+      if (data.columns) groups.style.setProperty("--columns", data.columns);
+
+      data.groups.forEach((group, i) => {
+        const section = groupTemplate.content.cloneNode(true);
+        section.querySelector(".num").textContent = group.label ?? i + 1;
+        section.querySelector(".lead").textContent = group.lead;
+        section.querySelector(".problem").textContent = group.problem;
+        const cards = section.querySelector(".cards");
+        for (const screen of group.screens) cards.append(buildCard(screen));
+        groups.append(section);
+      });
+
+      function buildCard(screen) {
+        const card = cardTemplate.content.cloneNode(true);
+        const img = card.querySelector("img");
+        img.src = screen.image;
+        img.alt = `${screen.app} screen`;
+        const app = card.querySelector(".app");
+        app.href = screen.url;
+        app.textContent = screen.app;
+        card.querySelector(".take").textContent = screen.take;
+        const also = card.querySelector(".also");
+        if (screen.also) also.textContent = screen.also;
+        else also.remove();
+        return card;
+      }
+
+      /** One chip per collection, each a link to it on Mobbin; a long name is cut with an ellipsis. */
+      function fillCollections(el, collections) {
+        if (collections.length === 0) return;
+        el.hidden = false;
+        const label = document.createElement("span");
+        label.className = "collections-label";
+        label.textContent = "Collections referenced:";
+        el.append(label);
+        for (const collection of collections) {
+          const chip = document.createElement("a");
+          chip.className = "chip";
+          chip.href = collection.url;
+          chip.target = "_blank";
+          chip.rel = "noopener";
+          chip.title = collection.name;
+          const name = document.createElement("span");
+          name.className = "chip-name";
+          name.textContent = collection.name;
+          chip.append(name);
+          chip.insertAdjacentHTML(
+            "beforeend",
+            '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 7.5 2.5M3.5 2.5h4v4" /></svg>'
+          );
+          el.append(chip);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "lurkapi",
+  "version": "1.4.0",
+  "description": "Social media research skills and the LurkAPI MCP server: public profiles, posts, comments, transcripts and ads from TikTok, Instagram, YouTube, Reddit, X, LinkedIn and more, as JSON. Paid per call, with 100 free credits at signup.",
+  "author": {
+    "name": "Mesmer s.r.o.",
+    "email": "support@lurkapi.com",
+    "url": "https://lurkapi.com"
+  },
+  "homepage": "https://lurkapi.com/docs",
+  "repository": "https://github.com/mesmerlord/lurkapi-claude-plugin",
+  "license": "MIT",
+  "keywords": ["social-media", "scraper", "tiktok", "instagram", "youtube", "reddit", "ad-library", "transcripts", "research", "mcp"]
+}

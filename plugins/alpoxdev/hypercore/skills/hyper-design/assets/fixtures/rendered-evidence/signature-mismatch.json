@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "surface": "http://localhost:3000/settings",
+  "captures": [
+    {
+      "viewport": { "width": 375, "height": 800 },
+      "state": "default",
+      "capturedAt": "2026-09-03T12:00:00Z",
+      "sourceMtime": "2026-09-02T09:30:00Z",
+      "frameKind": "page",
+      "file": "settings-375.png",
+      "fileSignature": "jpeg",
+      "dimensions": { "width": 375, "height": 800 },
+      "observations": [
+        {
+          "locator": "main",
+          "rect": { "x": 0, "y": 0, "width": 375, "height": 720 }
+        }
+      ]
+    }
+  ]
+}

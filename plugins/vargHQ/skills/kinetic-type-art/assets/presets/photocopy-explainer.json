@@ -1,0 +1,198 @@
+{
+  "id": "photocopy-explainer",
+  "name": "Photocopy explainer",
+  "use": "Explainer graphics in photocopied paper and toner: question to number grid, or a clipping under a highlighter",
+  "formats": [
+    "16:9",
+    "1:1"
+  ],
+  "duration_s": 21,
+  "fonts": [
+    {
+      "family": "Space Mono",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Space+Mono"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Old Standard TT",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Old+Standard+TT"
+    },
+    {
+      "family": "Courier Prime",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Courier+Prime"
+    }
+  ],
+  "presets": [
+    {
+      "id": "photocopy-explainer.explainer",
+      "label": "Explainer",
+      "look": "Question card to number grid to answer stamp",
+      "params": {
+        "paper": "#EDEAE2",
+        "toner": "#151515",
+        "highlight": "#FFE900",
+        "highlight_blend": "multiply",
+        "card_in": {
+          "frames": 12,
+          "ease": "power3.out",
+          "rotate_deg": [
+            0.5,
+            1.5
+          ],
+          "shadow_px": [
+            2,
+            6
+          ]
+        },
+        "text_hold_s": "max(1.5, chars/20)",
+        "grid_cell_every_f": [
+          2,
+          3
+        ],
+        "stamp": {
+          "frames": 4,
+          "from_scale": 1.3,
+          "ease": "back.out(2)"
+        },
+        "toner_jitter_px": 1,
+        "toner_jitter_every_f": 2,
+        "flicker_pct": 3,
+        "copier_band": {
+          "frames": [
+            18,
+            24
+          ],
+          "opacity": 0.15
+        },
+        "photo_recipe": {
+          "desaturate": true,
+          "levels": [
+            41,
+            214
+          ],
+          "grain": "speckle",
+          "blur_px": 1.7,
+          "streaks": "horizontal motion blur"
+        },
+        "ffmpeg_toner": "format=gray,eq=contrast=1.6:brightness=0.03,curves=all='0/0 0.35/0.1 0.65/0.9 1/1',noise=alls=18:allf=t,gblur=sigma=0.8"
+      },
+      "sources": [
+        31,
+        37,
+        33,
+        53
+      ]
+    },
+    {
+      "id": "photocopy-explainer.article",
+      "label": "Article",
+      "look": "Generic invented newspaper clipping, highlighter sweeps lines",
+      "params": {
+        "paper": "#E9E4D8",
+        "ink": "#1A1A1A",
+        "headline_font": "Old Standard TT",
+        "headline_weight": 700,
+        "highlighter": "#FFE900",
+        "highlighter_opacity": 0.85,
+        "highlighter_line": {
+          "frames": [
+            12,
+            18
+          ],
+          "ease": "power2.inOut",
+          "height_of_xheight": 1.1
+        },
+        "content": "invented masthead and story only"
+      },
+      "sources": [
+        31,
+        25,
+        27
+      ]
+    },
+    {
+      "id": "photocopy-explainer.zine",
+      "label": "Riso zine",
+      "look": "Two-ink riso version",
+      "params": {
+        "inks": [
+          "#3255A4",
+          "#FF48B0"
+        ],
+        "paper": "#F4F1EA",
+        "blend": "multiply"
+      },
+      "sources": [
+        30
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 25,
+      "name": "PRINT, Swiss Style (Callie Budrick)",
+      "url": "https://www.printmag.com/?p=1387"
+    },
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 31,
+      "name": "Envato Tuts+, photocopy and xerox textures",
+      "url": "https://design.tutsplus.com/tutorials/how-to-create-photocopy-and-xerox-textures--cms-109034"
+    },
+    {
+      "n": 33,
+      "name": "FFmpeg filters documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 37,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "vargHQ/skills paper-shaders",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 53,
+      "name": "Art of the Title, Se7en (Kyle Cooper)",
+      "url": "https://www.artofthetitle.com/title/se7en/"
+    }
+  ]
+}

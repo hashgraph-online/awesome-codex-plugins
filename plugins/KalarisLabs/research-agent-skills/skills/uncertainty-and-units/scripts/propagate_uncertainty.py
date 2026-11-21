@@ -493,6 +493,7 @@ def render_markdown(document: dict[str, Any]) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Propagate uncertainty through a measurement model with both the GUM "
@@ -606,7 +607,7 @@ def run(arguments: argparse.Namespace) -> dict[str, Any]:
         key = (first, second) if first < second else (second, first)
         if key in correlations and correlations[key] != coefficient:
             raise CliError(f"conflicting correlations given for {key[0]} and {key[1]}")
-        if coefficient != 0.0:
+        if not math.isclose(coefficient, 0.0, rel_tol=0.0, abs_tol=0.0):
             correlations[key] = coefficient
 
     coverage = spec.get("coverage_probability", arguments.coverage)
@@ -639,6 +640,7 @@ def run(arguments: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     arguments = build_parser().parse_args(argv)
     try:
         document = run(arguments)

@@ -1,0 +1,51 @@
+{
+  "name": "leeway",
+  "version": "0.1.0",
+  "description": "Leeway is a drive for you and your agents. This plugin connects Codex to your Leeway drive at https://leeway.to/mcp and teaches it the drive's working rules: save without overwriting anyone's change, find what's there, undo from history, edit in a workspace and publish, and leave a hand-off note.",
+  "author": {
+    "name": "The Primal Team LLC",
+    "email": "support@leeway.to",
+    "url": "https://leeway.to"
+  },
+  "homepage": "https://leeway.to/agents/",
+  "keywords": [
+    "drive",
+    "files",
+    "storage",
+    "history",
+    "undo",
+    "workspace",
+    "agents",
+    "team"
+  ],
+  "interface": {
+    "displayName": "Leeway",
+    "shortDescription": "Room to work, without drift",
+    "longDescription": "Room to work, without the drift. One drive your team and its agents share: everyone sees what's true, every move is on record, and any mistake can be undone.\n\nLeeway is a drive for you and your agents. Connect it and Codex can work in your files the way a colleague would: list and read them, write new ones, move, rename and tidy, and bring back anything deleted or overwritten.\n\nYou decide how much leeway Codex gets. When you connect, you choose the drive, or just one folder in it, and what Codex may do there: read, change files, work on its own copy, publish that copy back, or see and restore history. Remove Codex at any time at leeway.to/activate and its access ends at once.\n\nCodex's work is never hidden. Every change carries its name in the drive's history. Deleted files wait in the trash for 30 days, and earlier versions of a file can be brought back. For bigger edits, Codex can fork a folder into a workspace, show you the diff, and publish only when you're happy. Publishing never overwrites a change someone else made in the meantime; it keeps both.\n\nThe same drive is on your Mac, Linux and Windows computers, so what Codex writes is already in your folders, and what you save is what Codex reads. Leeway is free up to 50 GB. You need a Leeway account, made in a minute with a passkey at leeway.to/signup or while connecting.",
+    "developerName": "The Primal Team LLC",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://leeway.to",
+    "supportURL": "https://leeway.to/support",
+    "privacyPolicyURL": "https://leeway.to/privacy",
+    "termsOfServiceURL": "https://leeway.to/terms",
+    "defaultPrompt": [
+      "Save a short summary of this session to /Notes/summary.md in my Leeway drive.",
+      "List what's in my Leeway drive and read me /Notes/plan.md.",
+      "Fork /Site into a Leeway workspace, change the headline, show me the diff, then publish it."
+    ],
+    "brandColor": "#2444AD",
+    "composerIcon": "./assets/leeway-icon.png",
+    "logo": "./assets/leeway-icon.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/get-started/SKILL.md"
+    }
+  }
+}

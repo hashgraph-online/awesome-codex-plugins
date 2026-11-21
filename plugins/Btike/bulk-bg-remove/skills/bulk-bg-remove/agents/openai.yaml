@@ -1,0 +1,6 @@
+interface:
+  display_name: "Bulk BG Remove"
+  short_description: "Remove image backgrounds locally, in bulk"
+  default_prompt: "Use $bulk-bg-remove to remove the background from every photo in this folder."
+policy:
+  allow_implicit_invocation: true

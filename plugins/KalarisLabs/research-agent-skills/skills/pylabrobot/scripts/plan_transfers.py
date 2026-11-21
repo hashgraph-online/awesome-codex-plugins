@@ -31,6 +31,7 @@ else:
 
 
 def build_parser() -> argparse.ArgumentParser:
+  """Build parser."""
   parser = argparse.ArgumentParser(
       description=(
           "Validate transfer CSV rows, source/dead/destination volumes, tip capacity, "
@@ -44,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+  """Run the command-line interface."""
   args = build_parser().parse_args(argv)
   try:
     manifest = validate_manifest(load_json(args.manifest))

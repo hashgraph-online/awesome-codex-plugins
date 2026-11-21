@@ -100,7 +100,7 @@ Create the Personal Access Token under **Profile picture → Manage account → 
 
 ### Credential storage
 
-Tokens live in the OS keychain: macOS Keychain, Windows Credential Manager, or Secret Service/KWallet on Linux. Host metadata lives in `$XDG_CONFIG_HOME/bkt/config.yml` and never contains a token.
+Tokens live in the OS keychain: macOS Keychain, Windows Credential Manager, or Secret Service/KWallet on Linux. Host metadata lives in `config.yml` in the bkt config directory (`~/Library/Application Support/bkt` on macOS, `%AppData%\bkt` on Windows, `$XDG_CONFIG_HOME/bkt` or `~/.config/bkt` on Linux) and never contains a token.
 
 - **No keychain** (containers, minimal Linux): pass `--allow-insecure-store` or set `BKT_ALLOW_INSECURE_STORE=1` to use an encrypted file instead.
 - **Slow unlock prompts:** raise `BKT_KEYRING_TIMEOUT`, for example `BKT_KEYRING_TIMEOUT=2m`.
@@ -125,6 +125,8 @@ export BKT_HOST=https://bitbucket.org BKT_TOKEN=<access-token> BKT_AUTH_METHOD=b
 bkt pr list
 ```
 
+When `BKT_HOST` is set, `BKT_TOKEN` is used for that host only. The pair wins over an active context that points at another host, and `bkt` refuses to send the token to a different host named with `--context` or `--host`.
+
 Resource access tokens belong to no user. Commands that need a user identity, such as `bkt pr list --mine` across repositories, still need a user API token or OAuth.
 
 In Bitbucket Pipelines, store `BKT_TOKEN` and `BKT_HOST` as secured [repository variables](https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/) and install a pinned release:
@@ -147,7 +149,7 @@ pipelines:
 | `BKT_USERNAME` | Username for basic auth. Required for Cloud user API tokens. |
 | `BKT_AUTH_METHOD` | `basic` or `bearer`. Data Center defaults to `bearer` without `BKT_USERNAME`; Cloud defaults to `basic`. |
 | `BKT_PROJECT` / `BKT_WORKSPACE` / `BKT_REPO` | Default Data Center project, Cloud workspace, and repository. |
-| `BKT_CONFIG_DIR` | Config directory (default `$XDG_CONFIG_HOME/bkt`). |
+| `BKT_CONFIG_DIR` | Config directory (default: the per-OS location above). |
 | `BKT_OAUTH_CLIENT_ID` / `BKT_OAUTH_CLIENT_SECRET` | Your own Bitbucket Cloud OAuth consumer for `--web`; set both. |
 | `BKT_ALLOW_INSECURE_STORE` | `1` allows the encrypted file store when no keychain exists. |
 | `BKT_KEYRING_TIMEOUT` | Keychain operation timeout, for example `2m`. |
@@ -181,10 +183,17 @@ bkt repo downloads upload before.png after.png   # Cloud: host images for PR des
 bkt pr list --state OPEN --limit 10
 bkt pr create --title "feat: cache" --source feature/cache --target main --reviewer alice
 bkt pr checks 42 --wait --timeout 5m             # wait for builds, with backoff
+bkt pr mergeability 42 --json                    # Cloud: read-only merge checks
 bkt pr comments 42 --details                     # threads with file/line anchors
 bkt pr comments resolve 42 1001
 bkt pr merge 42 --message "merge: feature/cache"
 ```
+
+`pr mergeability` reports `mergeable` (`MERGEABLE`, `CONFLICTING`, `UNKNOWN`),
+`mergeStateStatus` (`CLEAN`, `DIRTY`, `BLOCKED`, `UNKNOWN`), and the full Cloud
+checks with their blocking flags. API errors print `UNKNOWN` and exit nonzero.
+`CLEAN` reflects the available checks, which cannot guarantee an actual merge.
+Use `--json --jq '{mergeable, mergeStateStatus}'` to select just the summary.
 
 **Issues.** Atlassian removed Bitbucket Cloud Issues in August 2026, and Data Center never had them; track issues in Jira.
 

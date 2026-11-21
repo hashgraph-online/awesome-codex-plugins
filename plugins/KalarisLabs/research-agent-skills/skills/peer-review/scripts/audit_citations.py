@@ -43,6 +43,7 @@ YEAR_RE = re.compile(r"^(?:1[5-9]\d{2}|20\d{2}|2100)$")
 
 
 def load_references(raw_path: str) -> list[dict[str, str]]:
+    """Load references."""
     rows = read_csv_records(
         raw_path,
         required_fields=REFERENCE_FIELDS,
@@ -87,6 +88,7 @@ def load_references(raw_path: str) -> list[dict[str, str]]:
 
 
 def extract_citations(markdown: str) -> tuple[dict[str, list[int]], list[int]]:
+    """Extract citations."""
     citations: dict[str, list[int]] = {}
     malformed_lines: list[int] = []
     for line_number, line in enumerate(markdown.splitlines(), start=1):
@@ -108,6 +110,7 @@ def extract_citations(markdown: str) -> tuple[dict[str, list[int]], list[int]]:
 
 
 def audit(markdown: str, references: list[dict[str, str]]) -> dict[str, Any]:
+    """Handle audit."""
     citations, malformed_lines = extract_citations(markdown)
     by_id = {row["reference_id"]: row for row in references}
     cited_ids = set(citations)
@@ -175,6 +178,7 @@ def audit(markdown: str, references: list[dict[str, str]]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit Pandoc-style Markdown citations such as [@ref-id] against a "
@@ -191,6 +195,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = audit(

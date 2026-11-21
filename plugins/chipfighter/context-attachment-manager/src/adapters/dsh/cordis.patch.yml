@@ -1,0 +1,10 @@
+# Context Attachment Manager for DeepSeek Harness (index.js). dsh's own image offload (the dsh-base row
+# `image-offload`) is turned off: this plugin does what it does, and also offloads earlier turns' images
+# when a new turn starts. Both register the same message projection, so only one of them may run.
+
+- id: image-offload
+  disabled: true
+
+- insert:
+    - id: context-attachment-manager
+      name: dsh-context-attachment-manager

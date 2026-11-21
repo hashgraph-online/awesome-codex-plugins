@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animatic review</title>
+<link rel="icon" href="data:,">
+<!-- three.js from a CDN, pinned. No npm, no build step. Keep both entries on the same version. -->
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/" } }
+</script>
+<style>
+  :root {
+    --bg: #0c0e14; --panel: #131620; --line: #262b3a; --text: #e7eaf2; --muted: #8d94a8;
+    --accent: #ff6a2b; --start: #3dff9a; --end: #ff8a3d; --live: #ffd23d; --warn: #ffb020;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, -apple-system, sans-serif; overflow: hidden; }
+  #gl { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; }
+  .app { position: relative; z-index: 1; display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  button, select { background: #1c2131; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+  button:hover { border-color: #3c4563; }
+  button.on { border-color: var(--accent); background: #2a2f45; }
+  button:disabled { opacity: .4; cursor: default; }
+  kbd { font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; }
+
+  header { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 14px; margin: 0 8px 0 0; font-weight: 650; }
+  .grp { display: flex; gap: 4px; align-items: center; }
+  #t-now { font: 12px var(--mono); color: var(--muted); min-width: 110px; }
+  #save-state { font-size: 12px; color: var(--muted); margin-left: auto; }
+  #save-state.dirty { color: var(--warn); }
+
+  main { display: flex; gap: 10px; padding: 10px; min-height: 0; }
+  .col-shot { flex: 1.4 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .col-shot .fit { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .col-map { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .bar { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; flex-wrap: wrap; min-height: 26px; }
+  .view { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; touch-action: none; }
+  #view-map { flex: 1; cursor: grab; }
+  body.is-framing #view-shot { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); cursor: grab; }
+  aside { width: 330px; flex: none; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+  aside h2 { font-size: 15px; margin: 0 0 2px; }
+  aside h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+  aside p { margin: 0 0 6px; }
+  .muted { color: var(--muted); }
+  #p-spec { background: #0f121a; border: 1px solid var(--line); border-radius: 6px; padding: 8px; font-family: var(--mono); font-size: 12px; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font: 11px var(--mono); }
+  .keys b.a { color: var(--start); } .keys b.b { color: var(--end); }
+  .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+  .row label { color: var(--muted); font-size: 12px; }
+  #p-warn { color: var(--warn); font-size: 12px; }
+  #p-warn div::before { content: '⚠ '; }
+  #p-status button.on[data-s="ok"] { border-color: var(--start); }
+  #p-status button.on[data-s="fix"] { border-color: var(--warn); }
+  textarea { width: 100%; min-height: 54px; background: #0f121a; border: 1px solid var(--line); border-radius: 6px; padding: 6px; resize: vertical; }
+
+  /* shot view overlays (never in the export) */
+  .hud { position: absolute; pointer-events: none; font-family: var(--mono); text-shadow: 0 1px 2px #000; font-size: 12px; }
+  #hud-top { top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; }
+  #hud-id { font-weight: 700; font-size: 14px; }
+  #hud-beat { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #444; margin-left: 6px; vertical-align: middle; }
+  #hud-beat.on { background: var(--accent); }
+  #hud-spec { bottom: 8px; left: 10px; right: 10px; color: #dfe4ee; }
+  #hud-k { position: absolute; top: 0; left: 0; height: 3px; background: var(--accent); }
+  .guides { position: absolute; inset: 0; pointer-events: none; }
+  .guides i { position: absolute; background: rgba(255,255,255,.18); }
+  .guides .safe { position: absolute; inset: 5%; border: 1px dashed rgba(255,255,255,.22); }
+  body:not(.is-guides) .guides { display: none; }
+
+  footer { background: var(--panel); border-top: 1px solid var(--line); padding: 8px 12px 10px; }
+  #timeline { position: relative; height: 46px; cursor: ew-resize; user-select: none; }
+  #tl-beats, #tl-shots { position: absolute; left: 0; right: 0; }
+  #tl-beats { top: 0; height: 10px; }
+  #tl-beats i { position: absolute; top: 4px; width: 1px; height: 6px; background: #3a4058; }
+  #tl-beats i.bar { top: 0; height: 10px; background: #6a7290; }
+  #tl-shots { top: 12px; height: 32px; }
+  .tl-shot { position: absolute; top: 0; height: 100%; background: #20263a; border: 1px solid #343c58; border-radius: 4px; padding: 3px 6px; font: 11px var(--mono); overflow: hidden; white-space: nowrap; }
+  .tl-shot.cur { border-color: var(--accent); background: #2b2436; }
+  .tl-shot[data-status="ok"]::after, .tl-shot[data-status="fix"]::after { content: ''; position: absolute; right: 5px; top: 5px; width: 7px; height: 7px; border-radius: 50%; }
+  .tl-shot[data-status="ok"]::after { background: var(--start); } .tl-shot[data-status="fix"]::after { background: var(--warn); }
+  #playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--live); pointer-events: none; }
+  #toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: #222838; border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity .2s; z-index: 5; pointer-events: none; }
+  #toast.show { opacity: 1; }
+
+  /* clean export: only the canvas at the export size */
+  body.is-export .app { display: none; }
+  body.is-export #gl { position: fixed; left: 0; top: 0; }
+</style>
+</head>
+<body class="is-guides">
+<canvas id="gl"></canvas>
+<div class="app">
+  <header>
+    <h1 id="title">Animatic</h1>
+    <div class="grp">
+      <button id="b-prev" title="previous shot (←)">◀</button>
+      <button id="b-play" title="play / pause (space)">play</button>
+      <button id="b-next" title="next shot (→)">▶</button>
+      <button id="b-loop" title="loop the current shot (L)">loop</button>
+      <span id="t-now">0:00.00</span>
+    </div>
+    <div class="grp">
+      <button id="b-click" title="click on every beat (K)">click</button>
+      <button id="b-guides" class="on" title="thirds and safe area (G)">guides</button>
+      <button id="b-all" class="on" title="frustums of every shot on the map (H)">all cams</button>
+    </div>
+    <span id="save-state">saved</span>
+    <div class="grp">
+      <button id="b-save" title="save camera edits, status and notes (⌘S)">save</button>
+      <button id="b-export" title="write camera_plan.md + camera_plan.json">export plan</button>
+    </div>
+  </header>
+  <main>
+    <div class="col-shot">
+      <div class="bar"><b>shot camera</b><span class="muted">press <kbd>1</kbd>/<kbd>2</kbd> to frame START/END, <kbd>F</kbd> to frame now, <kbd>Esc</kbd> to leave</span></div>
+      <div class="fit" id="fit-shot">
+        <div class="view" id="view-shot">
+          <div class="guides"><i style="left:33.33%;top:0;bottom:0;width:1px"></i><i style="left:66.66%;top:0;bottom:0;width:1px"></i><i style="top:33.33%;left:0;right:0;height:1px"></i><i style="top:66.66%;left:0;right:0;height:1px"></i><div class="safe"></div></div>
+          <div class="hud" id="hud-top"><span><span id="hud-id">s01</span> <span id="hud-time"></span><span id="hud-beat"></span></span><span id="hud-mode"></span></div>
+          <div id="hud-k"></div>
+          <div class="hud" id="hud-spec"></div>
+        </div>
+      </div>
+      <div class="bar" id="frame-bar" hidden>
+        <label>FOV <input id="f-fov" type="range" min="4" max="110" step="0.5"></label><span id="f-fov-v"></span>
+        <button id="f-to-a">→ write START</button><button id="f-to-b">→ write END</button><button id="f-exit">done</button>
+        <span class="muted">drag orbit · shift-drag look · right-drag truck · wheel dolly · alt-wheel FOV · WASD/QE fly</span>
+      </div>
+    </div>
+    <div class="col-map">
+      <div class="bar"><b>set map</b><span class="muted">top-down, metres · <span style="color:var(--start)">START</span> / <span style="color:var(--end)">END</span> frustums · <span style="color:var(--live)">now</span> · drag pan · wheel zoom</span></div>
+      <div class="view" id="view-map"></div>
+    </div>
+    <aside>
+      <h2 id="p-id">s01</h2>
+      <div class="muted" id="p-time"></div>
+      <h3>picture</h3><p id="p-picture"></p>
+      <h3>action (goes into the video prompt)</h3><p id="p-action" class="muted"></p>
+      <h3>camera</h3>
+      <div id="p-spec"></div>
+      <div id="p-warn"></div>
+      <div class="keys" style="margin-top:8px">
+        <b class="a">START</b><span id="p-a"></span>
+        <b class="b">END</b><span id="p-b"></span>
+      </div>
+      <div class="row">
+        <label>ease <select id="p-ease"><option>inOut</option><option>linear</option><option>in</option><option>out</option><option>whip</option><option>hold</option></select></label>
+        <label>path <select id="p-path"><option value="line">line</option><option value="arc">arc</option></select></label>
+      </div>
+      <div class="row">
+        <button id="p-go-a">frame START <kbd>1</kbd></button><button id="p-go-b">frame END <kbd>2</kbd></button>
+        <button id="p-reset" title="back to the defaults in js/shots.js">reset</button>
+      </div>
+      <h3>approval</h3>
+      <div class="row" id="p-status"><button data-s="ok">approved</button><button data-s="fix">needs a fix</button></div>
+      <textarea id="p-note" placeholder="note for this shot"></textarea>
+      <h3>keys</h3>
+      <p class="muted" style="font-size:12px"><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> shot · <kbd>L</kbd> loop · <kbd>K</kbd> click · <kbd>G</kbd> guides · <kbd>H</kbd> all cams · <kbd>M</kbd> map home · <kbd>⌘S</kbd> save</p>
+    </aside>
+  </main>
+  <footer>
+    <div id="timeline"><div id="tl-beats"></div><div id="tl-shots"></div><div id="playhead"></div></div>
+  </footer>
+</div>
+<div id="toast"></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

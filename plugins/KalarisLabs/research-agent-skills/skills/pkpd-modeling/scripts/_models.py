@@ -61,18 +61,22 @@ class Disposition:
 
     @property
     def n_compartments(self) -> int:
+        """Handle n compartments."""
         return 1 + len(self.q)
 
     @property
     def half_lives(self) -> np.ndarray:
+        """Handle half lives."""
         return np.log(2.0) / -self.lam
 
     @property
     def terminal_half_life(self) -> float:
+        """Handle terminal half life."""
         return float(np.log(2.0) / -self.lam[-1])
 
     @property
     def vss(self) -> float:
+        """Handle vss."""
         return float(self.v1 + sum(self.vp))
 
     @property
@@ -169,6 +173,7 @@ def _absorption_term(lam: np.ndarray, ka: float, t: np.ndarray) -> np.ndarray:
 
 
 def conc_bolus(t: np.ndarray, dose: float, d: Disposition) -> np.ndarray:
+    """Handle conc bolus."""
     t = np.atleast_1d(np.asarray(t, dtype=float))
     out = dose * np.exp(d.lam[None, :] * t[:, None]) @ d.coef
     return np.where(t < 0, 0.0, out)
@@ -248,6 +253,7 @@ class Dose:
     route: str = "iv"
 
     def __post_init__(self) -> None:
+        """Validate and normalise fields after initialisation."""
         if self.route not in {"iv", "oral"}:
             raise ValueError(f"route must be 'iv' or 'oral', got {self.route!r}")
         if self.amount < 0:
@@ -341,6 +347,7 @@ def steady_state_metrics(d: Disposition, dose: float, interval: float, f: float 
 
 
 def _require_scipy(what: str) -> None:
+    """Handle require scipy."""
     if solve_ivp is None:  # pragma: no cover
         raise RuntimeError(f"{what} needs scipy; install scipy to use this model")
 
@@ -366,6 +373,7 @@ def _integrate_with_doses(
     infusions = [(e.time, e.time + e.duration, e.amount / e.duration) for e in events if e.duration > 0]
 
     def rhs_with_infusions(t: float, y: np.ndarray) -> np.ndarray:
+        """Handle rhs with infusions."""
         dy = np.asarray(rhs(t, y), dtype=float)
         for start, end, rate in infusions:
             if start <= t < end:
@@ -379,7 +387,7 @@ def _integrate_with_doses(
     state = np.array(y0, dtype=float)
     for index, start in enumerate(breakpoints):
         for event in events:
-            if math.isclose(event.time, start, rel_tol=0, abs_tol=1e-12) and event.duration == 0:
+            if math.isclose(event.time, start, rel_tol=0, abs_tol=1e-12) and math.isclose(event.duration, 0.0, rel_tol=0.0, abs_tol=0.0):
                 state[dose_compartment] += event.amount
         stop = breakpoints[index + 1] if index + 1 < len(breakpoints) else float(np.max(times))
         window = (times >= start - 1e-12) & (times <= stop + 1e-12)
@@ -429,6 +437,7 @@ def simulate_michaelis_menten(
     size = 1 + n_periph + depot
 
     def rhs(_t: float, y: np.ndarray) -> np.ndarray:
+        """Handle rhs."""
         dy = np.zeros(size)
         central = y[depot]
         conc = central / v1
@@ -445,7 +454,7 @@ def simulate_michaelis_menten(
         return dy
 
     y0 = np.zeros(size)
-    states = _integrate_with_doses(rhs, y0, times, regimen, dose_compartment=0 if depot else 0)
+    states = _integrate_with_doses(rhs, y0, times, regimen, dose_compartment=0)
     return states[:, depot] / v1
 
 
@@ -487,6 +496,7 @@ def simulate_tmdd(
         size = 4 if has_periph else 3
 
         def rhs(_t: float, y: np.ndarray) -> np.ndarray:
+            """Handle rhs."""
             drug = max(y[0], 0.0) / v1
             target, complex_ = max(y[1], 0.0), max(y[2], 0.0)
             binding = kon * drug * target - koff * complex_
@@ -512,6 +522,7 @@ def simulate_tmdd(
     size = 3 if has_periph else 2
 
     def rhs_qss(_t: float, y: np.ndarray) -> np.ndarray:
+        """Handle rhs qss."""
         total_drug = max(y[0], 0.0) / v1
         total_target = max(y[1], 0.0)
         b = total_drug - total_target - kd_qss
@@ -550,7 +561,7 @@ def simulate_tmdd(
 def emax(conc: np.ndarray, e0: float, emax_value: float, ec50: float, hill: float = 1.0) -> np.ndarray:
     """Sigmoid Emax. ``hill = 1`` is the ordinary Emax model."""
     conc = np.maximum(np.asarray(conc, dtype=float), 0.0)
-    if hill == 1.0:
+    if math.isclose(hill, 1.0, rel_tol=0.0, abs_tol=0.0):
         return e0 + emax_value * conc / (ec50 + conc)
     powered = np.power(conc, hill)
     return e0 + emax_value * powered / (np.power(ec50, hill) + powered)
@@ -627,11 +638,13 @@ def indirect_response(
         raise ValueError("kin, kout and C50 must be positive")
 
     def drive(t: float) -> float:
+        """Handle drive."""
         conc = max(float(conc_fn(t)), 0.0)
         powered = conc**hill
         return max_effect * powered / (c50**hill + powered)
 
     def rhs(t: float, y: np.ndarray) -> np.ndarray:
+        """Handle rhs."""
         fraction = drive(t)
         if idr_type == 1:
             return np.array([kin * (1.0 - fraction) - kout * y[0]])

@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Any
 
 sys.dont_write_bytecode = True
@@ -43,6 +45,7 @@ TOP_LEVEL_FIELDS = {
 
 
 def _array(data: dict[str, Any], field: str, errors: list[str]) -> list[Any]:
+    """Handle array."""
     value = data.get(field, [])
     if not isinstance(value, list):
         errors.append(f"{field} must be an array")
@@ -54,6 +57,7 @@ def _array(data: dict[str, Any], field: str, errors: list[str]) -> list[Any]:
 
 
 def _finite_number(value: Any, field: str) -> float:
+    """Handle finite number."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValidationError(f"{field} must be a number")
     number = float(value)
@@ -68,6 +72,7 @@ def _track_id(
     seen: set[str],
     errors: list[str],
 ) -> str | None:
+    """Handle track id."""
     try:
         identifier = require_identifier(value, field)
     except ValidationError as exc:
@@ -79,14 +84,44 @@ def _track_id(
     return identifier
 
 
-def validate_consistency(data: dict[str, Any]) -> dict[str, Any]:
-    """Return deterministic discrepancies without changing any values."""
-    errors: list[str] = []
-    discrepancies: list[str] = []
-    warnings: list[str] = []
-    seen_ids: set[str] = set()
-    checked = 0
+_STATUS_INVALID = "BLOCKED_INVALID_SCHEMA"
+_STATUS_DISCREPANT = "DISCREPANCIES_REQUIRE_RESOLUTION"
+_STATUS_CONSISTENT = "CONSISTENT_WITHIN_DECLARED_TOLERANCES_REVIEW_REQUIRED"
 
+_DATE_KEYS = {"id", "date", "source_fact_id"}
+_RANGE_KEYS = {"id", "start", "end", "source_fact_id"}
+_QUANTITY_KEYS = {
+    "id",
+    "series_id",
+    "value",
+    "unit",
+    "expected_unit",
+    "source_fact_id",
+}
+_PROPORTION_KEYS = {
+    "id",
+    "numerator",
+    "denominator",
+    "reported_percent",
+    "tolerance_percentage_points",
+    "source_fact_id",
+}
+_TOTAL_KEYS = {"id", "components", "reported_total", "source_fact_ids"}
+
+
+@dataclass
+class _Run:
+    """Mutable accumulator shared by the per-section checks."""
+
+    errors: list[str] = field(default_factory=list)
+    discrepancies: list[str] = field(default_factory=list)
+    seen_ids: set[str] = field(default_factory=set)
+    series_units: dict[str, str] = field(default_factory=dict)
+    checked: int = 0
+
+
+def _check_header(data: dict[str, Any], errors: list[str]) -> None:
+    """Validate the manifest envelope fields and append any errors."""
     try:
         require_exact_keys(data, TOP_LEVEL_FIELDS, "manifest")
         if data.get("schema_version") != "2.0":
@@ -107,242 +142,171 @@ def validate_consistency(data: dict[str, Any]) -> dict[str, Any]:
     except ValidationError as exc:
         errors.append(str(exc))
 
-    for index, item in enumerate(_array(data, "dates", errors)):
-        try:
-            item = require_exact_keys(
-                item,
-                {"id", "date", "source_fact_id"},
-                f"dates[{index}]",
-            )
-        except ValidationError as exc:
-            errors.append(str(exc))
-            continue
-        check_id = _track_id(item.get("id"), f"dates[{index}].id", seen_ids, errors)
-        try:
-            parse_iso_date(item.get("date"), f"dates[{index}].date")
-            require_identifier(
-                item.get("source_fact_id"),
-                f"dates[{index}].source_fact_id",
-            )
-            checked += 1
-        except ValidationError as exc:
-            errors.append(str(exc))
-        if check_id is None:
-            continue
 
-    for index, item in enumerate(_array(data, "date_ranges", errors)):
-        try:
-            item = require_exact_keys(
-                item,
-                {"id", "start", "end", "source_fact_id"},
-                f"date_ranges[{index}]",
-            )
-        except ValidationError as exc:
-            errors.append(str(exc))
+def _open_item(
+    run: _Run,
+    raw: Any,
+    section: str,
+    index: int,
+    keys: set[str],
+) -> tuple[dict[str, Any], str | None] | None:
+    """Validate an item's keys and register its id, or record the error."""
+    try:
+        item = require_exact_keys(raw, keys, f"{section}[{index}]")
+    except ValidationError as exc:
+        run.errors.append(str(exc))
+        return None
+    check_id = _track_id(item.get("id"), f"{section}[{index}].id", run.seen_ids, run.errors)
+    return item, check_id
+
+
+def _run_section(
+    run: _Run,
+    data: dict[str, Any],
+    section: str,
+    keys: set[str],
+    body: Callable[[_Run, dict[str, Any], str, str | None], None],
+) -> None:
+    """Apply a per-item check to every item of one manifest section."""
+    for index, raw in enumerate(_array(data, section, run.errors)):
+        opened = _open_item(run, raw, section, index, keys)
+        if opened is None:
             continue
-        check_id = _track_id(
-            item.get("id"),
-            f"date_ranges[{index}].id",
-            seen_ids,
-            errors,
+        item, check_id = opened
+        try:
+            body(run, item, f"{section}[{index}]", check_id)
+        except ValidationError as exc:
+            run.errors.append(str(exc))
+
+
+def _date_body(run: _Run, item: dict[str, Any], prefix: str, check_id: str | None) -> None:
+    """Check a single dated fact."""
+    parse_iso_date(item.get("date"), f"{prefix}.date")
+    require_identifier(item.get("source_fact_id"), f"{prefix}.source_fact_id")
+    run.checked += 1
+
+
+def _range_body(run: _Run, item: dict[str, Any], prefix: str, check_id: str | None) -> None:
+    """Check that a date range does not start after it ends."""
+    start = parse_iso_date(item.get("start"), f"{prefix}.start")
+    end = parse_iso_date(item.get("end"), f"{prefix}.end")
+    require_identifier(item.get("source_fact_id"), f"{prefix}.source_fact_id")
+    run.checked += 1
+    if start > end and check_id:
+        run.discrepancies.append(f"{check_id}: start date is after end date")
+
+
+def _quantity_body(run: _Run, item: dict[str, Any], prefix: str, check_id: str | None) -> None:
+    """Check a quantity's unit against its series and its expected unit."""
+    series_id = require_identifier(item.get("series_id"), f"{prefix}.series_id")
+    _finite_number(item.get("value"), f"{prefix}.value")
+    unit = require_string(item.get("unit"), f"{prefix}.unit", max_length=80)
+    require_identifier(item.get("source_fact_id"), f"{prefix}.source_fact_id")
+    run.checked += 1
+    prior = run.series_units.get(series_id)
+    if prior is not None and prior != unit and check_id:
+        run.discrepancies.append(
+            f"{check_id}: unit {unit!r} differs from prior series unit {prior!r}"
         )
-        try:
-            start = parse_iso_date(item.get("start"), f"date_ranges[{index}].start")
-            end = parse_iso_date(item.get("end"), f"date_ranges[{index}].end")
-            require_identifier(
-                item.get("source_fact_id"),
-                f"date_ranges[{index}].source_fact_id",
-            )
-            checked += 1
-            if start > end and check_id:
-                discrepancies.append(f"{check_id}: start date is after end date")
-        except ValidationError as exc:
-            errors.append(str(exc))
+    else:
+        run.series_units[series_id] = unit
+    expected = item.get("expected_unit")
+    if expected is None:
+        return
+    expected_unit = require_string(expected, f"{prefix}.expected_unit", max_length=80)
+    if expected_unit != unit and check_id:
+        run.discrepancies.append(f"{check_id}: unit does not match expected_unit")
 
-    series_units: dict[str, str] = {}
-    for index, item in enumerate(_array(data, "quantities", errors)):
-        try:
-            item = require_exact_keys(
-                item,
-                {
-                    "id",
-                    "series_id",
-                    "value",
-                    "unit",
-                    "expected_unit",
-                    "source_fact_id",
-                },
-                f"quantities[{index}]",
-            )
-        except ValidationError as exc:
-            errors.append(str(exc))
-            continue
-        check_id = _track_id(
-            item.get("id"),
-            f"quantities[{index}].id",
-            seen_ids,
-            errors,
+
+def _proportion_body(
+    run: _Run,
+    item: dict[str, Any],
+    prefix: str,
+    check_id: str | None,
+) -> None:
+    """Check an n/N proportion against its reported percentage."""
+    numerator = require_nonnegative_int(item.get("numerator"), f"{prefix}.numerator")
+    denominator = require_nonnegative_int(item.get("denominator"), f"{prefix}.denominator")
+    reported = _finite_number(item.get("reported_percent"), f"{prefix}.reported_percent")
+    tolerance = _finite_number(
+        item.get("tolerance_percentage_points", 0.05),
+        f"{prefix}.tolerance_percentage_points",
+    )
+    require_identifier(item.get("source_fact_id"), f"{prefix}.source_fact_id")
+    run.checked += 1
+    if denominator == 0:
+        run.errors.append(f"{prefix}.denominator must be greater than zero")
+    elif numerator > denominator and check_id:
+        run.discrepancies.append(f"{check_id}: numerator exceeds denominator")
+    elif not 0 <= reported <= 100 and check_id:
+        run.discrepancies.append(f"{check_id}: reported_percent is outside 0-100")
+    elif tolerance < 0:
+        run.errors.append(f"{prefix}.tolerance_percentage_points must be non-negative")
+    elif abs(numerator / denominator * 100 - reported) > tolerance and check_id:
+        run.discrepancies.append(
+            f"{check_id}: reported_percent differs from n/N beyond tolerance"
         )
-        try:
-            series_id = require_identifier(
-                item.get("series_id"),
-                f"quantities[{index}].series_id",
-            )
-            _finite_number(item.get("value"), f"quantities[{index}].value")
-            unit = require_string(
-                item.get("unit"),
-                f"quantities[{index}].unit",
-                max_length=80,
-            )
-            require_identifier(
-                item.get("source_fact_id"),
-                f"quantities[{index}].source_fact_id",
-            )
-            checked += 1
-            prior = series_units.get(series_id)
-            if prior is not None and prior != unit and check_id:
-                discrepancies.append(
-                    f"{check_id}: unit {unit!r} differs from prior series unit {prior!r}"
-                )
-            else:
-                series_units[series_id] = unit
-            expected = item.get("expected_unit")
-            if expected is not None:
-                expected_unit = require_string(
-                    expected,
-                    f"quantities[{index}].expected_unit",
-                    max_length=80,
-                )
-                if expected_unit != unit and check_id:
-                    discrepancies.append(
-                        f"{check_id}: unit does not match expected_unit"
-                    )
-        except ValidationError as exc:
-            errors.append(str(exc))
 
-    for index, item in enumerate(_array(data, "proportions", errors)):
-        try:
-            item = require_exact_keys(
-                item,
-                {
-                    "id",
-                    "numerator",
-                    "denominator",
-                    "reported_percent",
-                    "tolerance_percentage_points",
-                    "source_fact_id",
-                },
-                f"proportions[{index}]",
-            )
-        except ValidationError as exc:
-            errors.append(str(exc))
-            continue
-        check_id = _track_id(
-            item.get("id"),
-            f"proportions[{index}].id",
-            seen_ids,
-            errors,
-        )
-        try:
-            numerator = require_nonnegative_int(
-                item.get("numerator"),
-                f"proportions[{index}].numerator",
-            )
-            denominator = require_nonnegative_int(
-                item.get("denominator"),
-                f"proportions[{index}].denominator",
-            )
-            reported = _finite_number(
-                item.get("reported_percent"),
-                f"proportions[{index}].reported_percent",
-            )
-            tolerance = _finite_number(
-                item.get("tolerance_percentage_points", 0.05),
-                f"proportions[{index}].tolerance_percentage_points",
-            )
-            require_identifier(
-                item.get("source_fact_id"),
-                f"proportions[{index}].source_fact_id",
-            )
-            checked += 1
-            if denominator == 0:
-                errors.append(f"proportions[{index}].denominator must be greater than zero")
-            elif numerator > denominator and check_id:
-                discrepancies.append(f"{check_id}: numerator exceeds denominator")
-            elif not 0 <= reported <= 100 and check_id:
-                discrepancies.append(f"{check_id}: reported_percent is outside 0-100")
-            elif tolerance < 0:
-                errors.append(
-                    f"proportions[{index}].tolerance_percentage_points must be non-negative"
-                )
-            else:
-                calculated = numerator / denominator * 100
-                if abs(calculated - reported) > tolerance and check_id:
-                    discrepancies.append(
-                        f"{check_id}: reported_percent differs from n/N beyond tolerance"
-                    )
-        except ValidationError as exc:
-            errors.append(str(exc))
 
-    for index, item in enumerate(_array(data, "totals", errors)):
-        try:
-            item = require_exact_keys(
-                item,
-                {"id", "components", "reported_total", "source_fact_ids"},
-                f"totals[{index}]",
-            )
-        except ValidationError as exc:
-            errors.append(str(exc))
-            continue
-        check_id = _track_id(
-            item.get("id"),
-            f"totals[{index}].id",
-            seen_ids,
-            errors,
-        )
-        try:
-            components = item.get("components")
-            if not isinstance(components, list) or not components:
-                raise ValidationError(f"totals[{index}].components must be non-empty")
-            parsed_components = [
-                require_nonnegative_int(value, f"totals[{index}].components")
-                for value in components
-            ]
-            reported_total = require_nonnegative_int(
-                item.get("reported_total"),
-                f"totals[{index}].reported_total",
-            )
-            source_fact_ids = item.get("source_fact_ids")
-            if not isinstance(source_fact_ids, list) or not source_fact_ids:
-                raise ValidationError(
-                    f"totals[{index}].source_fact_ids must be non-empty"
-                )
-            for fact_id in source_fact_ids:
-                require_identifier(fact_id, f"totals[{index}].source_fact_ids")
-            checked += 1
-            if sum(parsed_components) != reported_total and check_id:
-                discrepancies.append(f"{check_id}: components do not equal reported_total")
-        except ValidationError as exc:
-            errors.append(str(exc))
+def _non_empty_list(value: Any, field_name: str) -> list[Any]:
+    """Return a non-empty list or raise a ValidationError."""
+    if not isinstance(value, list) or not value:
+        raise ValidationError(f"{field_name} must be non-empty")
+    return value
 
-    if checked == 0:
-        errors.append("manifest contains no valid checks")
-    if not discrepancies and not errors:
+
+def _total_body(run: _Run, item: dict[str, Any], prefix: str, check_id: str | None) -> None:
+    """Check that components sum to the reported total."""
+    components = _non_empty_list(item.get("components"), f"{prefix}.components")
+    parsed_components = [
+        require_nonnegative_int(value, f"{prefix}.components") for value in components
+    ]
+    reported_total = require_nonnegative_int(
+        item.get("reported_total"),
+        f"{prefix}.reported_total",
+    )
+    source_fact_ids = _non_empty_list(item.get("source_fact_ids"), f"{prefix}.source_fact_ids")
+    for fact_id in source_fact_ids:
+        require_identifier(fact_id, f"{prefix}.source_fact_ids")
+    run.checked += 1
+    if sum(parsed_components) != reported_total and check_id:
+        run.discrepancies.append(f"{check_id}: components do not equal reported_total")
+
+
+_SECTIONS = (
+    ("dates", _DATE_KEYS, _date_body),
+    ("date_ranges", _RANGE_KEYS, _range_body),
+    ("quantities", _QUANTITY_KEYS, _quantity_body),
+    ("proportions", _PROPORTION_KEYS, _proportion_body),
+    ("totals", _TOTAL_KEYS, _total_body),
+)
+
+
+def validate_consistency(data: dict[str, Any]) -> dict[str, Any]:
+    """Return deterministic discrepancies without changing any values."""
+    run = _Run()
+    warnings: list[str] = []
+    _check_header(data, run.errors)
+    for section, keys, body in _SECTIONS:
+        _run_section(run, data, section, keys, body)
+
+    if run.checked == 0:
+        run.errors.append("manifest contains no valid checks")
+    if not run.discrepancies and not run.errors:
         warnings.append("No discrepancy was found within the declared checks and tolerances.")
 
-    status = (
-        "BLOCKED_INVALID_SCHEMA"
-        if errors
-        else "DISCREPANCIES_REQUIRE_RESOLUTION"
-        if discrepancies
-        else "CONSISTENT_WITHIN_DECLARED_TOLERANCES_REVIEW_REQUIRED"
-    )
+    if run.errors:
+        status = _STATUS_INVALID
+    elif run.discrepancies:
+        status = _STATUS_DISCREPANT
+    else:
+        status = _STATUS_CONSISTENT
     return {
         "tool": TOOL,
         "status": status,
-        "checks_completed": checked,
-        "errors": errors,
-        "discrepancies": discrepancies,
+        "checks_completed": run.checked,
+        "errors": run.errors,
+        "discrepancies": run.discrepancies,
         "warnings": warnings,
         "limitations": [
             "No source was chosen as authoritative and no value was changed.",
@@ -354,6 +318,7 @@ def validate_consistency(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check bounded structured dates, units, n/N percentages, and totals. "
@@ -367,6 +332,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         _, data = load_json_object(args.input_file)

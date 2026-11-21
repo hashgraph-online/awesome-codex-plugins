@@ -1,5 +1,6 @@
 // Purpose: P3-2 — lifecycle of the engine (the local proxy): one instance per machine, `ensure` starts it in the
-// background when it is not running, and it exits by itself once no Codex process is left.
+// background when it is not running, and it exits by itself once no Codex process is left (v0.11: and no plugin service
+// of any platform checks in).
 // v0.1-3 — an engine reports which code it runs (build and version). After a plugin update, the new plugin's `ensure`
 // asks the older engine still running to retire: it stops listening at once, finishes what is in flight, then exits,
 // and an engine of the new code takes the port.
@@ -20,16 +21,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 // build and version are missing on engines from before v0.1-3.
 export type Health = { ok: true; service: string; pid: number; startedAt: string; port: number; build?: string | null; version?: string | null; routingVersion?: number; routingPort?: number };
 export type EngineState = "running" | "started" | "replaced" | "failed";
+export type EngineBindFailure = { port: number; host: string; code: string };
 
 export function isEngineHealth(value: unknown): value is Health {
   const health = value as Partial<Health> | null;
   return !!health && health.ok === true && health.service === ENGINE_SERVICE && typeof health.pid === "number";
 }
 
-// Loopback only, and never through a system proxy: plain http.get on 127.0.0.1.
-export async function engineHealth(port = DEFAULT_PORT, timeoutMs = 800): Promise<Health | null> {
+// Loopback only, and never through a system proxy: plain http.get on 127.0.0.1. v0.11: `client`, the platform whose
+// plugin service is asking (ensureEngine): the engine stays while such checks keep coming (watchForClients).
+export async function engineHealth(port = DEFAULT_PORT, timeoutMs = 800, client?: string): Promise<Health | null> {
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/__cam/health`, { signal: AbortSignal.timeout(timeoutMs) });
+    const response = await fetch(`http://127.0.0.1:${port}/__cam/health`, { signal: AbortSignal.timeout(timeoutMs), ...(client ? { headers: { "x-cam-client": client } } : {}) });
     const body = await response.json();
     return isEngineHealth(body) ? body : null;
   } catch {
@@ -37,12 +40,14 @@ export async function engineHealth(port = DEFAULT_PORT, timeoutMs = 800): Promis
   }
 }
 
-// Which code a runtime folder holds: a hash of its .ts files, line endings normalised (a copy made from a Windows
-// checkout has CRLF). null when the folder is gone, e.g. a plugin version Codex has removed.
+// Which code a runtime folder holds: a hash of its .ts files, subfolders included (v0.11), line endings normalised (a
+// copy made from a Windows checkout has CRLF). A flat folder hashes as before. null when the folder is gone, e.g. a
+// plugin version Codex has removed.
 export function buildOf(dir = here): string | null {
   try {
     const hash = createHash("sha256");
-    for (const name of readdirSync(dir).filter((file) => file.endsWith(".ts")).sort()) {
+    const names = readdirSync(dir, { recursive: true, encoding: "utf8" }).map((name) => name.replaceAll("\\", "/"));
+    for (const name of names.filter((file) => file.endsWith(".ts")).sort()) {
       hash.update(`${name}\0${readFileSync(join(dir, name), "utf8").replaceAll("\r\n", "\n")}\0`);
     }
     return hash.digest("hex").slice(0, 12);
@@ -84,10 +89,12 @@ export function shouldReplace(running: Health, own: { build: string | null; vers
 // Detached and hidden, so it outlives whoever asked for it (a plugin server instance, the CLI). Its working folder is
 // not the plugin's: Windows will not delete a folder a running process works in, and Codex replaces the plugin's
 // folder on every update and removes it on uninstall.
-export function spawnEngine(port = DEFAULT_PORT, extraArgs: string[] = [], dir = here): number | undefined {
-  const child = spawn(process.execPath, [join(dir, "proxy.ts"), "--port", String(port), ...extraArgs], { cwd: tmpdir(), detached: true, stdio: "ignore", windowsHide: true });
+function spawnEngine(port: number, extraArgs: string[] = [], dir = here) {
+  const child = spawn(process.execPath, [join(dir, "proxy.ts"), "--port", String(port), ...extraArgs], {
+    cwd: tmpdir(), detached: true, stdio: ["ignore", "ignore", "ignore", "ipc"], windowsHide: true,
+  });
   child.unref();
-  return child.pid;
+  return child;
 }
 
 // An engine from v0.1-3 on stops listening at once and exits after its open requests; an older one does not know the
@@ -106,10 +113,10 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // The build of each runtime folder, read again once for every different build a running engine reports.
 const knownBuilds = new Map<string, { build: string | null; against: string | null | undefined }>();
 
-export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health }> {
+export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean; client?: string } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health; bindFailure?: EngineBindFailure }> {
   const port = options.port ?? DEFAULT_PORT;
   const dir = options.dir ?? here;
-  const existing = await engineHealth(port);
+  const existing = await engineHealth(port, 800, options.client);
   let replaced: Health | undefined;
   if (existing) {
     const known = knownBuilds.get(dir);
@@ -121,14 +128,23 @@ export async function ensureEngine(options: { port?: number; waitMs?: number; ex
     for (let i = 0; i < 20 && (await engineHealth(port, 300))?.pid === existing.pid; i++) await sleep(150);
     replaced = existing;
   }
-  spawnEngine(port, options.extraArgs, dir);
-  const deadline = Date.now() + (options.waitMs ?? 8000);
-  while (Date.now() < deadline) {
-    await sleep(150);
-    const health = await engineHealth(port);
-    if (health && health.pid !== replaced?.pid) return { state: replaced ? "replaced" : "started", health, replaced };
+  const child = spawnEngine(port, options.extraArgs, dir);
+  let spawnFailed = false;
+  let bindFailure: EngineBindFailure | undefined;
+  child.on("error", () => { spawnFailed = true; });
+  child.on("message", (message) => { bindFailure = message as EngineBindFailure; });
+  try {
+    const deadline = Date.now() + (options.waitMs ?? 8000);
+    while (Date.now() < deadline) {
+      await sleep(150);
+      const health = await engineHealth(port);
+      if (health && health.pid !== replaced?.pid) return { state: replaced ? "replaced" : "started", health, replaced };
+      if (bindFailure || spawnFailed) break;
+    }
+    return { state: "failed", health: null, replaced, bindFailure };
+  } finally {
+    if (child.connected) child.disconnect();
   }
-  return { state: "failed", health: null, replaced };
 }
 
 // `tasklist /FO CSV /NH` prints one quoted CSV row per process, or an INFO line when nothing matches.
@@ -164,10 +180,16 @@ export function listCodexProcesses(): Promise<number> {
   });
 }
 
-// Exit only after `misses` checks in a row found no Codex (v0.4: and no Claude Code), so a restart does not stop the
-// engine.
-export function watchForCodex(onGone: () => void, options: { intervalMs?: number; misses?: number; count?: () => Promise<number> } = {}): () => void {
-  const count = options.count ?? listCodexProcesses;
+// v0.11: a plugin service of any platform checks the engine every few seconds while its platform runs (plugin-server.ts);
+// one checked within this long counts as a client still there.
+export const CLIENT_SEEN_MS = 60_000;
+
+// Exit only after `misses` checks in a row found no Codex (v0.4: and no Claude Code; v0.11: and no plugin service of
+// another platform checking in, `lastClient`), so a restart does not stop the engine.
+export function watchForClients(onGone: () => void, options: { intervalMs?: number; misses?: number; count?: () => Promise<number>; lastClient?: () => number } = {}): () => void {
+  const processes = options.count ?? listCodexProcesses;
+  const lastClient = options.lastClient ?? (() => 0);
+  const count = async () => (Date.now() - lastClient() < CLIENT_SEEN_MS ? 1 : await processes());
   const needed = options.misses ?? 2;
   let missed = 0;
   const timer = setInterval(async () => {

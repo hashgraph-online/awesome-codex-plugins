@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "commandWindows": "& (Join-Path $env:PLUGIN_ROOT 'bin/WaitingGaming.Hook.exe')",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "commandWindows": "& (Join-Path $env:PLUGIN_ROOT 'bin/WaitingGaming.Hook.exe')",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "commandWindows": "& (Join-Path $env:PLUGIN_ROOT 'bin/WaitingGaming.Hook.exe')",
+            "async": true,
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

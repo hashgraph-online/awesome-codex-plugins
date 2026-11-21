@@ -13,7 +13,7 @@ Accept “put me in this scene.” Identify the person reference and destination
 
 ## Prepare compatible inputs
 
-Use `body_swap_create_image` when an entire person belongs in a supplied scene. Use photo Face Swap when the existing body/outfit must remain, AI Image Editor for a directed background or wardrobe change, and Character Replace when preserving a video performance is the actual job.
+Use `place_person_in_scene` when an entire person belongs in a supplied scene. Use photo Face Swap when the existing body/outfit must remain, AI Image Editor for a directed background or wardrobe change, and Character Replace when preserving a video performance is the actual job.
 
 Inspect both images before generating: intended person, visible body extent, pose, camera height, lighting and destination scale. A headshot cannot specify unseen clothing or legs. Prefer a reference showing the body the scene needs; if a new view is necessary, create/edit it deliberately within budget and identify invented details. Preserve actual identity and clothing choices rather than adding unsolicited body or beauty changes.
 
@@ -23,7 +23,7 @@ Determine whether the scene contains one obvious replacement subject or needs a 
 
 Use the creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). Pass `assets.person_file_path` for the identity/body reference, `assets.scene_file_path` for the destination and a supported `resolution`. API users should read `/v1/body-swap` in the [live schema](https://docs.magichour.ai/api-reference/openapi.json). It does not accept a general prompt, strength, mask, seed or model field; do not invent them.
 
-Upload local inputs with `video_assets_generate_presigned_url`, PUT raw bytes to `upload_url` without the API bearer token, then use `file_path`. Submit once, save the ID and `wait_for_image_project`. Resume the same ID after a timeout. Preserve exact download URLs and save a durable image.
+Upload local inputs with `get_upload_urls`, PUT raw bytes to `upload_url` without the API bearer token, then use `file_path`. Submit once, save the ID and `wait_for_image_project`. Resume the same ID after a timeout. Preserve exact download URLs and save a durable image.
 
 Compare against both inputs: recognizable face, intended outfit/body, pose, limb count, hands, perspective, subject scale, ground/chair contact, shadow direction, occlusion and unchanged surrounding people/objects. Inspect full resolution and the intended small display size. Verify the downloaded dimensions; a plausible face alone does not make a convincing placement.
 

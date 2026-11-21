@@ -74,6 +74,9 @@ reject() {
 
 accept marked-single-method '.synthesis.consensus[0] += {methodologies: ["static reading"], weighs_as_one: true}'
 accept boolean-diversity '.diversity_unsatisfied = true'
+accept no-model-identities 'del(.judges[].model_identity) | del(.synthesis.consensus[0].models)'
+accept partial-model-identities 'del(.judges[1].model_identity) | del(.synthesis.consensus[0].models)'
+accept marked-same-model '.judges[1].model_identity = "model-a" | .synthesis.consensus[0] += {models: ["model-a"], weighs_as_one: true}'
 reject verdict-field '. + {verdict: "PASS"}'
 reject verdict-judgment '.judges[0].judgment = "pass"'
 reject verdict-recommendation '.recommendation = "NOT_PROVEN"'
@@ -82,7 +85,18 @@ reject duplicate-methodology '.synthesis.consensus[0].methodologies = ["static r
 reject methodology-no-judge-used '.synthesis.consensus[0].methodologies = ["static reading", "tracing history"]'
 reject unmarked-single-model '.synthesis.consensus[0].models = ["model-a"]'
 reject model-no-judge-used '.synthesis.consensus[0].models = ["model-a", "model-z"]'
+reject missing-models 'del(.synthesis.consensus[0].models)'
+reject same-model-echo '.judges[1].model_identity = "model-a" | del(.synthesis.consensus[0].models) | .synthesis.consensus[0].weighs_as_one = false'
 reject challenge-without-missing-context 'del(.synthesis.caller_challenge[0].context_possibly_missing)'
 reject evidence-free-judge '.judges[1].evidence = []'
+
+# Without jq the validator must say it did not run (exit 2), not call a valid report invalid.
+mkdir "$work/no-jq"
+rc=0
+PATH="$work/no-jq" "$BASH" "$validator" "$work/valid.json" >/dev/null 2>&1 || rc=$?
+if [[ $rc -ne 2 ]]; then
+  echo "council validator without jq exited $rc, want 2" >&2
+  exit 1
+fi
 
 echo 'council skill contract: PASS'

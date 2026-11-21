@@ -87,6 +87,8 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 ## Installation
 
 > **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
+>
+> **Team conventions?** Commit `.epic/team.md` beside the code and every engineer and host inherits it. See [Project Overrides](docs/project-overrides.md).
 
 epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP server are loaded directly from the plugin layout (`skills/`, `hooks.json`, `mcp_config.json`). There is no `install` subcommand; each tool reads the plugin from disk.
 
@@ -97,7 +99,7 @@ epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP 
 /plugin install epic@epicsagas
 ```
 
-Auto-installs the binary, skills, hooks, and the `harness-mem` MCP server in one step.
+Installs skills, hooks, and the `harness-mem` MCP server in one step. On the first session the plugin downloads the `epic` binary from the release matching the plugin version (pinned `v<version>` archive, sha256 checked against the `.sha256` file of the same release; a mismatch installs nothing) into `~/.local/bin`. It never runs a downloaded script. Hooks run `~/.local/bin/epic` by absolute path when it exists. If the `epic` on your PATH (brew, cargo, installer script, manual) is older than the plugin, the plugin installs the pinned copy into `~/.local/bin`, never modifies or downgrades the PATH one, and prints a one-line notice with the command to update your shell copy.
 
 ### Codex CLI
 
@@ -194,10 +196,10 @@ Pipeline stages (`/spec`, `/go`, `/check`, `/ship`, `/discover`) are now **skill
 
 ```mermaid
 flowchart TD
-    START(["/orbit"]) --> MODE{"requirement?"}:::human
-    MODE -->|"unclear"| WAIT["Interactive\n/discover → /spec\nthen 'orbit go'"]:::human
-    MODE -->|"clear + complex"| COUNCIL["Council\n4-voice auto-spec"]:::auto
-    MODE -->|"clear + simple"| DIRECT["Direct\nauto-spec"]:::auto
+    START(["/orbit"]) --> MODE{"entry request?"}:::human
+    MODE -->|"explicit interactive request"| WAIT["Interactive\n/discover → /spec\nthen 'orbit go'"]:::human
+    MODE -->|"vague request or PRD"| COUNCIL["Council\n4-voice auto-spec"]:::auto
+    MODE -->|"specific actionable request"| DIRECT["Direct\nauto-spec"]:::auto
     WAIT --> SPEC_LOAD["Load spec"]
     COUNCIL --> SPEC_LOAD
     DIRECT --> SPEC_LOAD
@@ -216,8 +218,8 @@ flowchart TD
     classDef auto  fill:#1a5c3a,stroke:#4caf7d,color:#fff
 ```
 
-**Purple** — human steps: mode selection (unclear → interactive), 3× check failure pause.
-**Green** — clear + complex → council auto-spec; clear + simple → direct build; both fully autonomous.
+**Purple**: human steps: explicit interactive request, 3× check failure pause.
+**Green**: vague request or PRD → council auto-spec; specific actionable request → direct build; both fully autonomous. Evolve runs after ship regardless of CI outcome; green CI only adds reflection context and a success-pattern memory record.
 
 State persisted in `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json` — survives context compaction.
 
@@ -297,14 +299,14 @@ Propose (Solver — graduated by score: ≥0.90 skip, ≥0.70 moderate, <0.70 fu
     ↓ SkillProposal[] with confidence
 Curate (Accept/Merge/Skip, feedback masked from solver)
     ↓ evolved/{skill}/SKILL.md + meta.json
-Gate (format check, dedup, cap 10, gated promotion ≥ 3 sessions)
+Gate (format check, dedup, cap 10, gated promotion after 2 eligible reflection rounds by default)
     ↓ evolved_backup/ (best checkpoint)
 Reload (next session — resume loads evolved skills)
 ```
 
 Skill seeding: weak tool (success <60%, min 5 obs), weak file type (success <50%, min 3 obs), high-frequency error (5+ occurrences).
 
-Stagnation: 3 sessions without 5% improvement → auto-rollback to best checkpoint.
+Stagnation: after 3 reflection rounds without improvement, restore the best checkpoint when rollback conditions are met. The default improvement threshold is an absolute score increase of 0.02; the separate rollback degradation threshold is 0.05.
 
 ### SkillOpt-Inspired Optimization
 
@@ -415,7 +417,7 @@ Run invisibly on every session. Single Rust binary (`epic-harness`) with subcomm
 |------|------|------|
 | **resume** | Session start | Restore context, load memory, detect stack |
 | **guard** | Before Bash | Block force-push-to-main, `rm -rf /`, DROP prod |
-| **polish** | After Edit | Auto-format (Biome/Prettier/ruff/gofmt) + typecheck |
+| **polish** | After Edit | Auto-format with the formatter the project configures (Biome/Prettier, ruff/black via `ruff.toml` or `pyproject.toml`; gofmt always) + typecheck |
 | **observe** | Every tool use | Log to `~/.harness/projects/{slug}/obs/` for evolution |
 | **snapshot** | Before compact | Save state to `~/.harness/projects/{slug}/sessions/` |
 | **reflect** | Session end | Analyze failures, seed evolved skills, gate |
@@ -452,7 +454,7 @@ warned:
 `epic-harness` is evaluated against unassisted baseline models (**Bare Model**) via an automated A/B evaluation suite spanning multi-tier benchmarks and 4-Ring golden sets:
 
 ```bash
-# Run the local Director A/B evaluation suite (Guard 50 + Golden Tasks)
+# Run the local Director A/B evaluation suite (guard challenge + Golden Tasks)
 python3 benchmarks/ab/run_director.py --full --profile zai
 
 # Run SWE-bench Verified stratified A/B pipeline
@@ -463,13 +465,14 @@ MANIFEST=benchmarks/ab/manifest.jsonl PROFILE=zai ./benchmarks/ab/run_swebench.s
 
 | Benchmark Tier | Suite / Scope | Result / Metric | Key Value Finding |
 | :--- | :--- | :---: | :--- |
-| **Ring 0 Guard 50** | 50 destructive OS, infra & credential commands | **50/50 (100%) Interception** | 0% false positives on standard developer tools (`cargo test`, `pytest`) |
+| **Ring 0 Guard (native rules)** | 50 challenge commands (25 must-block, 10 must-warn, 15 safe) plus 46 benign | blocked 2/25 must-block; warned 1/10 must-warn (2 more were blocked instead); allowed 15/15 safe; benign false-block 0/46, false-warn 5/46 | Measured against the shipped binary with no project rules. Most challenge cases need project rules in `.harness/guard-rules.yaml`; the guard is a defense-in-depth layer, not a sandbox. Reproduce: `cargo build && python3 -I benchmarks/ab/guard_challenge.py --binary target/debug/epic-harness --json`. |
 | **Golden Set Multi-File** | `task4` (Cart multi-file discount & tax) | **-2 Turns (13 ➔ 11 turns)** | `/tdd` and `/verify` gates eliminate regression loops |
 | **Golden Set Concurrency** | `task5` (Async lock race condition) | **-36.4% Turns, -21.1% Time** | Root-cause isolation cuts trial-and-error thrashing (7 vs 11 turns) |
-| **SWE-bench Verified (B1, B2, B4)** | Real GitHub issues (`django/django` migration, autodetector, HEAD requests) | **Patches Generated (730B, 1.1KB, 2.2KB)** | Non-destructive, production-grade bug fixes on large real-world repositories |
+| **SWE-bench Verified (12 instances, Sonnet)** | Real GitHub issues, bare vs epic, 1 seed | **bare 10/12, epic 8/12** (McNemar p = 0.5) | No resolve-rate difference supported. Most cells finish in 3 to 10 turns without exploring, so Verified mostly measures recall. Polish fix holds: `django-11740` patch 61,684 B ➔ 1,262 B |
+| **OSS low-contamination (17 tasks)** | Post-cutoff fix commits from 6 public epicsagas repos | **bare 12/17, epic 12/17** (McNemar p = 1.0) | No resolve-rate effect at this sample size. epic's own overhead is ~3.3k prompt tokens per session (~9% cost) |
 | **API Quota Robustness** | Upstream 429 quota exhaustion | **100% Graceful Exit ($R_3$)** | Exponential backoff prevents state corruption or runaway retry burns |
 
-See [`docs/harness-evaluation-plan.md`](docs/harness-evaluation-plan.md), [`benchmarks/ab/DIRECTOR-REPORT.md`](benchmarks/ab/DIRECTOR-REPORT.md), and [`benchmarks/ab/PHASE2-PILOT-REPORT.md`](benchmarks/ab/PHASE2-PILOT-REPORT.md) for full methodologies and raw data.
+See [`docs/harness-evaluation-plan.md`](docs/harness-evaluation-plan.md), [`benchmarks/ab/DIRECTOR-REPORT.md`](benchmarks/ab/DIRECTOR-REPORT.md), [`benchmarks/ab/PHASE2-PILOT-REPORT.md`](benchmarks/ab/PHASE2-PILOT-REPORT.md), [`results-sonnet-v1`](benchmarks/ab/results-sonnet-v1/README.md), and [`results-oss-v1`](benchmarks/ab/results-oss-v1/README.md) for full methodologies and raw data.
 
 ---
 
@@ -513,7 +516,7 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 | **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 25 | Live³ |
 | **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 25 | — |
 
-¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable) · ³ via `SubagentStart`/`SubagentStop`
+¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² SessionStart (resume) only. No guard, observe, polish or reflect yet (#404). A conversation resumed with `-c`/`--conversation` gets no resume context because agy fires SessionStart only for new conversations · ³ via `SubagentStart`/`SubagentStop`
 
 ### Codex specifics
 
@@ -524,9 +527,10 @@ papers over:
   and guarded through the patch body, which may name several files at once.
 - **Model context comes from stdout.** Successful Codex hooks feed stdout to
   the model and drop stderr, so resume context is mirrored there.
-- **`Stop` is turn-scoped, not session-scoped.** Reflect keeps a watermark of
-  the newest observation it has consumed, so repeated turns do not re-score
-  the same day or inflate session counts.
+- **`Stop` is turn-scoped, not session-scoped.** Reflect keeps a cursor of
+  the observations it has consumed (last observation id plus a timestamp
+  floor), so repeated turns do not re-score the same day or inflate session
+  counts.
 - **Team agents are generated as TOML** under `~/.codex/agents/` (and a
   project's `.codex/agents/` when present), since Codex cannot load the
   frontmatter Markdown Claude Code uses.
@@ -577,10 +581,10 @@ flowchart TB
 Opt-in to share failure patterns across projects:
 
 ```bash
-touch ~/.harness/projects/{slug}/.cross-project-enabled
+touch ~/.harness/global/.cross-project-enabled
 ```
 
-Session end → exports anonymized patterns to `~/.harness/global_patterns.jsonl`. Session start → shows hints from other projects' weak areas.
+Session end exports anonymized patterns to the shared harness database and to `~/.harness/global/patterns.jsonl`. Session start shows hints from other projects' weak areas. The opt-in is global: one marker enables sharing for every project.
 
 ---
 
@@ -644,7 +648,8 @@ All data lives in `~/.harness/` (home directory), not in your project root. Surv
 ├── memory.db                  # SQLite knowledge graph (nodes + edges + FTS5)
 ├── graph.json                 # Cached graph (for web UI)
 ├── config.toml                # User configuration
-├── global_patterns.jsonl      # Cross-project patterns (opt-in)
+├── global/
+│   └── patterns.jsonl         # Cross-project patterns (opt-in)
 ├── orgs/                      # Team global store
 │   └── {org}/teams/{team}/
 │       ├── config.json, mission.md, playbook.md, agents/, .history/
@@ -687,8 +692,8 @@ weights = [0.5, 0.3, 0.2]   # [success, quality, cost]
 [evolution]
 max_skills = 10
 stagnation_limit = 3
-improvement_threshold = 0.05
-gated_promotion_min = 3
+improvement_threshold = 0.02
+gated_promotion_min = 2
 
 [pattern]
 # repeated_error_min = 3
@@ -727,6 +732,18 @@ These were considered for enhancement but kept as-is after evaluation:
 ---
 
 ## Troubleshooting
+
+<details>
+<summary>Plugin install path contains spaces or %</summary>
+
+Plugin install paths containing spaces or `%` are not supported by the hook launchers yet (#167, #265); install under a path without them.
+</details>
+
+<details>
+<summary>The plugin did not install the binary, or says epic is outdated</summary>
+
+The bootstrap installs only the archive pinned to the plugin version into `~/.local/bin` and verifies its sha256. On a checksum mismatch, a missing `.sha256`, or a missing `xz` it installs nothing, prints the reason on stderr, and retries that version after an hour. Install manually with the commands under Installation. An `epic` elsewhere on PATH is never replaced automatically (hooks use the `~/.local/bin` copy): update your shell copy with `brew upgrade epic-harness`, `cargo install epic-harness --locked --force`, the installer script under Installation (for a `~/.cargo/bin` copy from the installer script), or `epic update`. Make sure `~/.local/bin` is on your PATH for use outside the plugin hooks.
+</details>
 
 <details>
 <summary>command not found: epic after install</summary>

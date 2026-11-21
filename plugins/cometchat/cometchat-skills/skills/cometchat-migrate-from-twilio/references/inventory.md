@@ -12,7 +12,7 @@ Search case-insensitively. Skip `node_modules/`, `Pods/`, `build/`, `.dart_tool/
 | iOS (Swift) | `TwilioConversationsClient` (pod/SPM `twilio-conversations`) | `ios` | the iOS core's SDK fallback (`CometChatSDK`) | `cometchat-ios-core` |
 | Android | `com.twilio:conversations-android` | `android-v6` | `cometchat-android-v5-sdk` | `cometchat-android-v6-core` |
 | Flutter | `twilio_conversations` | `flutter-v6` | the Flutter core's SDK fallback (`cometchat_sdk`) | `cometchat-flutter-v6-core` |
-| Server (Node, Python, Go, Java, Ruby, PHP, C#) | `twilio` server SDK → Conversations REST; access-token minting | — (REST) | — | CometChat REST (`/rest-api/…`) |
+| Server (Node, Python, Go, Java, Ruby, PHP, C#) | `twilio` server SDK → Conversations REST; access-token minting | — (REST) | — | CometChat REST (`/rest-api/...`) |
 
 Because Twilio ships no UI Kit, the **default** target is client/SDK mode (keep the app's UI). Offer the UI Kit path only if the user wants CometChat's prebuilt UI. A platform not in this table → STOP: report only.
 
@@ -46,7 +46,7 @@ Because Twilio ships no UI Kit, the **default** target is client/SDK mode (keep 
 
 **Legacy Programmable Chat** (`twilio-chat`, deprecated): `Channel`, `Member`, `Message`, `client.getChannelBySid` — same shapes as Conversations; map identically and note it's the legacy SDK.
 
-**Server**: `AccessToken` + `ChatGrant`/`ConversationsGrant` (API Key SID/Secret + Conversations Service SID), Conversations REST (`conversations.v1.conversations…`), webhooks (`onMessageAdded`, `onConversationAdded`, scoped/global).
+**Server**: `AccessToken` + `ChatGrant`/`ConversationsGrant` (API Key SID/Secret + Conversations Service SID), Conversations REST (`conversations.v1.conversations...`), webhooks (`onMessageAdded`, `onConversationAdded`, scoped/global).
 
 **Env / config**: `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_CONVERSATIONS_SERVICE_SID`, `VITE_TWILIO_*`, tokens endpoints; CI secrets `TWILIO_*`.
 

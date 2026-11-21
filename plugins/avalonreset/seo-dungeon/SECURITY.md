@@ -5,8 +5,8 @@
 If you discover a security vulnerability, please report it responsibly. Do **not** open a public issue.
 
 1. Open a private [GitHub Security Advisory](https://github.com/avalonreset/legends-seo-dungeon/security/advisories/new) on this repository (preferred channel).
-2. As a fallback, email the maintainer at the address listed in [`CITATION.cff`](CITATION.cff).
-3. Encrypt sensitive disclosures if you can. Request the maintainer's PGP key in the advisory or email — the key fingerprint is published in advisory threads on first request and is rotated yearly.
+2. Alternatively, contact the maintainer through the GitHub profile listed in [`CITATION.cff`](CITATION.cff) (`https://github.com/avalonreset`).
+3. Encrypt sensitive disclosures if you can. Request the maintainer's PGP key in the advisory thread - the key fingerprint is published in advisory threads on first request and is rotated yearly.
 
 When reporting, please include:
 
@@ -51,12 +51,12 @@ Legends SEO Dungeon is a research and audit toolkit that runs on a user's workst
 
 3. **Local privilege escalation against stored credentials.** Google OAuth tokens and API credential files under the SEO skill configuration directory are the most sensitive on-disk artifacts.
 
-   **Mitigation:** v2 forces `0o600` on every write (`os.open` + `os.fchmod`) and remediates legacy `0o644` files in place on first load. Tokens never contain the OAuth `client_secret` — only the access/refresh pair plus expiry metadata.
+   **Mitigation:** v2 forces `0o600` on every write (`os.open` + `os.fchmod`) and remediates legacy `0o644` files in place on first load. Tokens never contain the OAuth `client_secret` - only the access/refresh pair plus expiry metadata.
 
 ## Known residual risks
 
 - **Playwright + Chromium DNS rebinding.** Chromium does its own DNS resolution inside the renderer process. The Python-layer DNS pin (`url_safety._pin_dns`) cannot reach it. The Playwright `route()` handler re-validates every subresource host (`make_safe_playwright_route_handler`), which closes the common case, but a true rebinding attacker can still race Chromium's resolver after our pre-flight returns. Mitigation: do not point `/seo` skills at untrusted sites with high-frequency redirects.
-- **IPv6-only audit targets.** The strict validator queries `family=AF_INET` for the initial resolution. Hosts with AAAA records only will surface as "DNS resolution failed". This is **fail-closed** by design — we'd rather refuse than connect to an unvalidated IPv6 endpoint. Tracked for a future patch (full dual-stack pinning, similar to the Playwright handler which already uses `AF_UNSPEC`).
+- **IPv6-only audit targets.** The strict validator queries `family=AF_INET` for the initial resolution. Hosts with AAAA records only will surface as "DNS resolution failed". This is **fail-closed** by design - we'd rather refuse than connect to an unvalidated IPv6 endpoint. Tracked for a future patch (full dual-stack pinning, similar to the Playwright handler which already uses `AF_UNSPEC`).
 - **Windows file permissions.** `os.fchmod(fd, 0o600)` is a no-op on Windows for non-ACL filesystems. Users on Windows should rely on per-user directory ACLs instead of POSIX mode bits.
 
 ## Security-relevant code paths
@@ -76,12 +76,12 @@ If you are auditing, these are the high-leverage files:
 ## What this policy does **not** cover
 
 - Bugs that require attacker control of the user's machine (any local attacker is already game over).
-- Vulnerabilities in upstream dependencies — please report those to their respective maintainers. We track CVEs in `requirements.txt` and bump pins under the `deps:` Dependabot stream.
-- Quality-of-output issues (SEO recommendations, schema errors, etc.) — those are bugs, not security issues.
+- Vulnerabilities in upstream dependencies - please report those to their respective maintainers. We track CVEs in `requirements.txt` and bump pins under the `deps:` Dependabot stream.
+- Quality-of-output issues (SEO recommendations, schema errors, etc.) - those are bugs, not security issues.
 
 ## Security-relevant practices
 
 - No credentials or API keys are committed to this repository. `.gitignore` blocks every known credential filename pattern.
 - Install scripts write only to user-level Codex skill directories unless a user intentionally runs an optional legacy adapter installer.
 - Python dependencies install into an isolated virtual environment under the installed SEO skill directory.
-- Every new fetcher must route through `scripts/url_safety.py` — there is no exception for "trusted" URLs.
+- Every new fetcher must route through `scripts/url_safety.py` - there is no exception for "trusted" URLs.

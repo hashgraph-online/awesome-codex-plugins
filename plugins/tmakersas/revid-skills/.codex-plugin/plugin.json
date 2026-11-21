@@ -1,7 +1,7 @@
 {
   "name": "revid",
   "version": "1.0.1",
-  "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X.",
+  "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X with the hosted Revid MCP server and 12 skills.",
   "author": {
     "name": "Revid",
     "email": "hello@revid.ai",
@@ -18,10 +18,9 @@
     "youtube-shorts",
     "instagram-reels",
     "social-media",
+    "content-creation",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Revid",
     "shortDescription": "Research, make and post short videos",
@@ -43,5 +42,7 @@
     "termsOfServiceURL": "https://www.revid.ai/terms",
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

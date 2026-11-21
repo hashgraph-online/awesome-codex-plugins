@@ -35,13 +35,7 @@ The build is green. Where should it go?
 [ Deploy ] [ Cancel ]
 ```
 
-| Line | Is |
-| --- | --- |
-| `- ( ) text` | one choice among the options under the same heading |
-| `- [ ] text` | any number of choices |
-| indented line under an option | what choosing it means |
-| `> ` | a line the user types into |
-| `[ Label ] [ Label ]` | the buttons; a form without any gets `[ Submit ]` |
+How to write each line: `${CLAUDE_PLUGIN_ROOT}/rules/writing-notes.md`.
 
 `wait` prints one line per question:
 
@@ -66,10 +60,9 @@ Report the answer in one line; acting on it is the caller's job. Then
 - Ask only what you cannot decide yourself, and only once.
 - One question, or a few that belong together, per form. A question is a
   heading with its options under it.
-- Name buttons by what they do (`[ Deploy ] [ Cancel ]`), never `[ OK ]`.
 - When the time runs out, say so and take the safe path or ask in chat.
   Never guess the answer.
-- To ask again, write the form without the `submitted` keys; a form that
-  still has them answers at once with the old choice.
+- A form that still has its `submitted` keys answers at once with the old
+  choice.
 - An answer that is a sentence, or a back and forth: `talking-in-chat`.
 - `${CLAUDE_PLUGIN_ROOT}/rules/touching-the-board.md` applies.

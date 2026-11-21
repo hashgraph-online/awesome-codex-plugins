@@ -1,17 +1,6 @@
-LMCP — License
-
-The LMCP binary is proprietary software. You may not copy, modify,
-distribute, or reverse-engineer the binary except as permitted by your
-license agreement at https://local-mcp.com/terms.
-
-The documentation, configuration examples, and scripts in this repository
-are licensed under the MIT License:
-
----
-
 MIT License
 
-Copyright (c) 2026 LMCP
+Copyright (c) 2026 Colibird
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

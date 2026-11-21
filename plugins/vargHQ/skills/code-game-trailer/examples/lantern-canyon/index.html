@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Canyon</title>
+<link rel="icon" href="data:,">
+<!-- Lantern Canyon: steer a paper-lantern glider through a dusk canyon and collect sparks.
+     One HTML file, three.js from jsDelivr (pinned), every model, texture and light made in code.
+     Play: open over http (bunx serve, python3 -m http.server). Arrows / WASD steer, Space boosts.
+     URL flags: ?autopilot=1 (attract mode), ?distance=900 (start further down the canyon).
+     Trailer hooks: window.__game (see the bottom of the script). -->
+<style>
+  :root { --ember: #ff5315; --ink: #f3ece2; --teal: #5fd6cf; }
+  html, body { margin: 0; height: 100%; background: #030507; overflow: hidden; }
+  canvas#gl { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; }
+  #hud { position: fixed; inset: 0; pointer-events: none; color: var(--ink);
+    font-family: "Avenir Next", "Futura", "Helvetica Neue", Arial, sans-serif; text-shadow: 0 0 1.4vh rgba(0,0,0,.55); }
+  .tl { position: absolute; left: 6.5vh; top: 4.4vh; }
+  .tr { position: absolute; right: 6.5vh; top: 4.4vh; text-align: right; }
+  .label { font-size: 1.25vh; letter-spacing: .42em; font-weight: 600; opacity: .6; }
+  .score { font-size: 5.6vh; font-weight: 600; letter-spacing: .05em; line-height: 1; margin-top: .7vh;
+    font-variant-numeric: tabular-nums; transform-origin: left center; }
+  .combo { font-size: 2.1vh; color: var(--ember); font-weight: 700; margin-top: 1vh; letter-spacing: .16em; min-height: 2.6vh; }
+  .dist { font-size: 3.3vh; font-weight: 500; letter-spacing: .08em; margin-top: .7vh; font-variant-numeric: tabular-nums; }
+  .bottom { position: absolute; left: 50%; bottom: 4.6vh; transform: translateX(-50%); width: 30vh; text-align: center; }
+  .flame { height: .6vh; background: rgba(255,255,255,.13); border-radius: 1vh; overflow: hidden; margin-top: 1vh; }
+  .flame i { display: block; height: 100%; width: 50%; background: linear-gradient(90deg, #ff9a4d, var(--ember));
+    box-shadow: 0 0 1.4vh var(--ember); }
+  .pop { animation: pop .32s ease-out; }
+  @keyframes pop { 0% { transform: scale(1.16); color: #ffd7b3; } 100% { transform: scale(1); } }
+  #toast { position: absolute; left: 0; right: 0; top: 27vh; text-align: center; font-size: 2.6vh; font-weight: 600;
+    letter-spacing: .5em; color: var(--ink); opacity: 0; }
+  #toast b { color: var(--ember); font-weight: 700; }
+  #toast.show { animation: toast 1.6s ease-out forwards; }
+  @keyframes toast { 0% { opacity: 0; transform: translateY(1.5vh); } 12% { opacity: 1; transform: none; }
+    75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-1vh); } }
+  #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--ink); font-family: "Avenir Next", "Futura", "Helvetica Neue", Arial, sans-serif; background: rgba(2,4,6,.35); }
+  #start h1 { font-size: 7vh; font-weight: 600; letter-spacing: .32em; margin: 0 0 2vh .32em; }
+  #start p { font-size: 1.7vh; letter-spacing: .4em; opacity: .7; margin: 0; }
+  #start.hidden, #hud.hidden { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="hud">
+  <div class="tl"><div class="label">SPARKS</div><div class="score" id="score">0000</div><div class="combo" id="combo"></div></div>
+  <div class="tr"><div class="label">DISTANCE</div><div class="dist" id="dist">0.00 KM</div></div>
+  <div class="bottom"><div class="label">FLAME</div><div class="flame"><i id="flame"></i></div></div>
+  <div id="toast"></div>
+</div>
+<div id="start"><h1>LANTERN CANYON</h1><p>ARROWS TO STEER &nbsp;·&nbsp; SPACE TO BOOST &nbsp;·&nbsp; PRESS ANY KEY</p></div>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const Q = new URLSearchParams(location.search);
+const V3 = THREE.Vector3, UP = new V3(0, 1, 0);
+const EMBER = new THREE.Color('#ff5315');
+
+// ---------- deterministic helpers (world generation never uses Math.random) ----------
+function mulberry(a) { return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rand = mulberry(20261109);
+const rr = (a, b) => a + (b - a) * rand();
+function h3(x, y, z) { let n = Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1) ^ Math.imul(z, 0x1b873593);
+  n = Math.imul(n ^ (n >>> 15), 0x85ebca6b); n ^= n >>> 13; n = Math.imul(n, 0xc2b2ae35); n ^= n >>> 16; return (n >>> 0) / 4294967296; }
+function vnoise(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const fx = x - xi, fy = y - yi, fz = z - zi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), w = fz * fz * (3 - 2 * fz);
+  const L = (a, b, t) => a + (b - a) * t;
+  const c = (i, j, k) => h3(xi + i, yi + j, zi + k);
+  return L(L(L(c(0,0,0), c(1,0,0), u), L(c(0,1,0), c(1,1,0), u), v), L(L(c(0,0,1), c(1,0,1), u), L(c(0,1,1), c(1,1,1), u), v), w);
+}
+function fbm(x, y, z, o = 4) { let a = .5, f = 1, s = 0; for (let i = 0; i < o; i++) { s += a * (vnoise(x * f, y * f, z * f) * 2 - 1); f *= 2.03; a *= .5; } return s; }
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// ---------- the canyon path: x(s), y(s), z = -s ----------
+const PX = s => 36 * Math.sin(s / 190) + 15 * Math.sin(s / 71 + 1.3);
+const PY = s => 4 * Math.sin(s / 130 + 0.7);
+const DPX = s => 36 / 190 * Math.cos(s / 190) + 15 / 71 * Math.cos(s / 71 + 1.3);
+const DPY = s => 4 / 130 * Math.cos(s / 130 + 0.7);
+const HW = s => 20 + 5 * Math.sin(s / 97) + 3 * Math.sin(s / 41 + 2);   // half width at cruise height
+const FLOOR = -10, S_MIN = -260, S_MAX = 3400;
+function frameAt(s, o = {}) {
+  o.c = (o.c || new V3()).set(PX(s), 0, -s);
+  o.T = (o.T || new V3()).set(DPX(s), DPY(s), -1).normalize();
+  o.R = (o.R || new V3()).crossVectors(o.T, UP).normalize();
+  return o;
+}
+
+// ---------- renderer, scene, post ----------
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+const FOG = new THREE.Color('#0b1a1d');
+scene.fog = new THREE.Fog(FOG, 30, 520);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 4000);
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.62, 0.5, 0.86);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------- lights: teal fill, low warm dusk key, the lantern ----------
+scene.add(new THREE.HemisphereLight('#3fb3ad', '#0a0c0c', 1.25));
+const moon = new THREE.DirectionalLight('#5cc8c2', 0.45); moon.position.set(90, 160, 220); scene.add(moon);
+const dusk = new THREE.DirectionalLight('#ff7a45', 1.6); dusk.position.set(-120, 70, -600); scene.add(dusk, dusk.target);
+const lanternLight = new THREE.PointLight(EMBER, 260, 55, 2); scene.add(lanternLight);
+const gateLight = new THREE.PointLight('#ff7a3a', 520, 90, 2); scene.add(gateLight);
+
+// ---------- sky dome: near-black zenith, teal haze at the horizon, ember dusk glow down the canyon ----------
+const sky = new THREE.Mesh(new THREE.SphereGeometry(3000, 48, 24), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { fogc: { value: FOG }, ember: { value: EMBER }, time: { value: 0 } },
+  vertexShader: `varying vec3 vd; void main(){ vd = normalize(position); vec4 p = modelViewMatrix * vec4(position,1.); gl_Position = projectionMatrix * p; gl_Position.z = gl_Position.w; }`,
+  fragmentShader: `varying vec3 vd; uniform vec3 fogc, ember; uniform float time;
+    float hash(vec3 p){ p = fract(p*0.3183099+.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+    void main(){ float y = vd.y; vec3 zen = vec3(.004,.006,.012); vec3 col = mix(fogc, zen, smoothstep(-.02,.42,y));
+      vec3 dir = normalize(vec3(-.15,.0,-1.)); float d = max(dot(normalize(vec3(vd.x,0.,vd.z)), dir), 0.);
+      float glow = pow(d, 22.) * exp(-max(y,0.)*11.); col += ember * glow * .75 + vec3(1.,.55,.3) * pow(d,90.) * exp(-max(y,0.)*40.) * .7 + ember * pow(d, 4.) * exp(-max(y,0.)*25.) * .08;
+      vec3 g = floor(vd*900.); float st = step(.9985, hash(g)) * smoothstep(.05,.5,y); col += vec3(.75,.9,1.) * st * (.6+.4*sin(time*2.+hash(g+3.)*40.));
+      gl_FragColor = vec4(col,1.); }`,
+}));
+sky.renderOrder = -1; scene.add(sky);
+
+// ---------- canyon walls + plateau (vertex-coloured strata, flat-shaded) ----------
+const STRATA = ['#7a6a60', '#927563', '#5a524c', '#a3806a', '#6d6560', '#876752'].map(c => new THREE.Color(c));
+const WET = new THREE.Color('#1b2b2b'), TOP = new THREE.Color('#4a403b');
+const HEIGHTS = [-14, -8, -4, -1, 2, 5, 8, 11, 14, 18, 22, 27, 32, 38, 44, 51, 58, 64];
+const OUT = [5, 14, 30, 60, 110, 200, 380, 700, 1200];
+const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, metalness: 0, flatShading: true, side: THREE.DoubleSide });
+function wallLat(s, h, side) {
+  return HW(s) + .2 * Math.max(h, 0) + .0045 * h * h - 3.2 * Math.exp(-(((h - 3) / 5) ** 2))
+    + 6 * fbm(s * .035, h * .06, side * 7) + 1.8 * fbm(s * .14, h * .22, side * 7 + 3) + 1.0 * Math.sin(h * .9 + fbm(s * .02, 0, side) * 3);
+}
+function buildWalls(s0, s1, ds) {
+  const rows = Math.round((s1 - s0) / ds) + 1, cols = HEIGHTS.length + OUT.length;
+  const pos = [], col = [], idx = [], f = {}, c = new THREE.Color();
+  for (const side of [-1, 1]) {
+    const base = pos.length / 3;
+    for (let i = 0; i < rows; i++) {
+      const s = s0 + i * ds; frameAt(s, f);
+      const topH = 58 + 8 * fbm(s * .02, 5, side * 3), hAt = j => -14 + (HEIGHTS[j] + 14) / 78 * (topH + 14), topLat = Math.max(...HEIGHTS.map((_, j) => wallLat(s, hAt(j), side)));
+      for (let j = 0; j < cols; j++) {
+        let lat, h;
+        if (j < HEIGHTS.length) { h = hAt(j); lat = j === HEIGHTS.length - 1 ? topLat : wallLat(s, h, side); }
+        else { const k = j - HEIGHTS.length; lat = topLat + OUT[k]; h = topH + 4 * Math.abs(fbm(s * .01, k, side * 9)) * smooth(0, 2, k) + k * 2 + Math.max(0, 70 * fbm(s * .004, k * .3, side * 5)) * smooth(3, 8, k); }
+        const p = f.c.clone().addScaledVector(f.R, side * lat); p.y = h;
+        pos.push(p.x, p.y, p.z);
+        if (j >= HEIGHTS.length - 1) c.copy(TOP);
+        else { const band = Math.floor((h + 6 * fbm(s * .012, h * .04, 2) + 40) / 5.5) % STRATA.length; c.copy(STRATA[band]); }
+        c.multiplyScalar(j < HEIGHTS.length ? .75 + .5 * vnoise(s * .3, h * .3, side) : .8 + .3 * vnoise(s * .03, j, side));
+        if (h < FLOOR + 3) c.lerp(WET, .7);
+        col.push(c.r, c.g, c.b);
+      }
+    }
+    for (let i = 0; i < rows - 1; i++) for (let j = 0; j < cols - 1; j++) {
+      const a = base + i * cols + j, b = a + 1, d = a + cols, e = d + 1;
+      if (side < 0) idx.push(a, d, b, b, d, e); else idx.push(a, b, d, b, e, d);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return new THREE.Mesh(g, rockMat);
+}
+for (let s = S_MIN; s < S_MAX; s += 200) scene.add(buildWalls(s, s + 200, 2.4));
+
+// water: dark, glossy, catches the lantern's light
+// water: reflects the dusk sky (same gradient as the dome) with code-made ripples, plus a pool of lantern light
+const waterMat = new THREE.ShaderMaterial({ side: THREE.DoubleSide,
+  uniforms: { fogc: { value: FOG }, ember: { value: EMBER }, time: { value: 0 }, lamp: { value: new V3() }, fnear: { value: 30 }, ffar: { value: 520 } },
+  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `uniform vec3 fogc, ember, lamp; uniform float time, fnear, ffar; varying vec3 vW;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+    void main(){ vec3 V = normalize(vW - cameraPosition); vec2 q = vW.xz * .12;
+      vec3 N = normalize(vec3((n(q + time * .25) - .5) * .16 + (n(q * 3.1 - time * .4) - .5) * .06, 1., (n(q * 1.7 - time * .2) - .5) * .16));
+      vec3 R = reflect(V, N); float y = max(R.y, 0.);
+      vec3 sky = mix(fogc, vec3(.004, .006, .012), smoothstep(-.02, .42, y));
+      float d = max(dot(normalize(vec3(R.x, 0., R.z)), normalize(vec3(-.15, 0., -1.))), 0.);
+      sky += ember * pow(d, 22.) * exp(-y * 11.) * .9 + vec3(1., .55, .3) * pow(d, 90.) * exp(-y * 40.) * 1.2 + ember * pow(d, 4.) * exp(-y * 25.) * .1;
+      float fres = .04 + .96 * pow(1. - max(dot(-V, N), 0.), 5.);
+      vec3 col = vec3(.004, .011, .013) + sky * (.35 + .65 * fres);
+      float ld = distance(vW.xz, lamp.xz); col += ember * 1.6 * exp(-ld * ld / 30.) * smoothstep(26., 4., lamp.y - vW.y) * (.75 + .25 * n(q * 6. + time));
+      col = mix(col, fogc, smoothstep(fnear, ffar, distance(vW, cameraPosition)));
+      gl_FragColor = vec4(col, 1.); }` });
+function buildWater(s0, s1, ds) {
+  const rows = Math.round((s1 - s0) / ds) + 1, pos = [], idx = [], f = {};
+  for (let i = 0; i < rows; i++) { const s = s0 + i * ds; frameAt(s, f);
+    for (const lat of [-60, 60]) { const p = f.c.clone().addScaledVector(f.R, lat); pos.push(p.x, FLOOR, p.z); } }
+  for (let i = 0; i < rows - 1; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return new THREE.Mesh(g, waterMat);
+}
+for (let s = S_MIN; s < S_MAX; s += 400) scene.add(buildWater(s, s + 400, 6));
+
+// distant mesas: silhouettes that sink into the haze
+const mesaMat = new THREE.MeshStandardMaterial({ color: '#120f0e', roughness: 1, flatShading: true });
+for (let i = 0; i < 0; i++) {
+  const g = new THREE.CylinderGeometry(rr(40, 90), rr(90, 180), rr(60, 140), 7, 3);
+  const p = g.attributes.position; for (let k = 0; k < p.count; k++) p.setXYZ(k, p.getX(k) * (1 + .25 * (h3(k, i, 1) - .5)), p.getY(k), p.getZ(k) * (1 + .25 * (h3(k, i, 2) - .5)));
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mesaMat), s = rr(300, 3400), side = rand() < .5 ? -1 : 1;
+  const f = frameAt(s); m.position.copy(f.c).addScaledVector(f.R, side * rr(320, 700)); m.position.y = 30; scene.add(m);
+}
+
+// ---------- soft glow texture (drawn in code) ----------
+function glowTex(stops) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d');
+  const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); for (const [o, c] of stops) g.addColorStop(o, c); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; }
+const GLOW = glowTex([[0, 'rgba(255,255,255,1)'], [.18, 'rgba(255,200,150,.55)'], [.5, 'rgba(255,110,40,.14)'], [1, 'rgba(255,80,20,0)']]);
+const MIST = glowTex([[0, 'rgba(160,220,215,.5)'], [.6, 'rgba(90,160,160,.12)'], [1, 'rgba(60,120,120,0)']]);
+
+// mist on the water
+for (let s = S_MIN; s < S_MAX; s += 18) {
+  const f = frameAt(s), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: MIST, color: '#3a7f7c', transparent: true, opacity: .12, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+  sp.position.copy(f.c).addScaledVector(f.R, rr(-14, 14)); sp.position.y = FLOOR + rr(2, 6); sp.scale.set(rr(30, 55), rr(9, 15), 1); scene.add(sp);
+  sp.onBeforeRender = (r, sc, cam) => { sp.material.opacity = .12 * smooth(10, 40, cam.position.distanceTo(sp.position)); };
+}
+
+// ---------- point clouds (sparks, embers, sky lanterns, stars) share one shader ----------
+function pointsMat(size, opts = {}) {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    uniforms: { time: { value: 0 }, size: { value: size }, scale: { value: innerHeight / 2 }, gain: { value: opts.gain ?? 1 } },
+    vertexShader: `attribute float alpha; attribute vec3 color; attribute float phase; varying float va; varying vec3 vc; uniform float time, size, scale;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); gl_Position = projectionMatrix * mv;
+        float tw = .75 + .25 * sin(time * 6. + phase * 30.); gl_PointSize = clamp(size * scale / -mv.z * tw, 0., 220.);
+        float fogf = smoothstep(560., 60., -mv.z) * smoothstep(1.5, 7., -mv.z); va = alpha * fogf; vc = color; }`,
+    fragmentShader: `varying float va; varying vec3 vc; uniform float gain; void main(){ vec2 d = gl_PointCoord - .5; float r = length(d) * 2.;
+      float core = exp(-r * r * 9.), halo = exp(-r * 3.4) * .45; float a = (core + halo) * va * (1. - smoothstep(.85, 1., r));
+      gl_FragColor = vec4(vc * a * gain + vec3(1.) * core * va * .55 * gain, 1.); }`,
+  });
+}
+function cloud(n, size, gain) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('alpha', new THREE.BufferAttribute(new Float32Array(n), 1));
+  g.setAttribute('phase', new THREE.BufferAttribute(Float32Array.from({ length: n }, () => rand()), 1));
+  const p = new THREE.Points(g, pointsMat(size, { gain })); p.frustumCulled = false; scene.add(p); return p;
+}
+
+// sky lanterns rising above the plateau
+const SKY_N = 320, skyL = cloud(SKY_N, 5.0, 2.6), skyBase = [];
+for (let i = 0; i < SKY_N; i++) { const s = i % 5 < 2 ? rr(-60, 700) : rr(-200, 3400), f = frameAt(s), side = rand() < .5 ? -1 : 1;
+  const inside = i % 3 === 0, p = f.c.clone().addScaledVector(f.R, side * (inside ? rr(0, 18) : rr(30, 220))); skyBase.push([p.x, inside ? rr(-20, 110) : rr(0, 170), p.z, rr(.8, 2.2)]);
+  const c = new THREE.Color().setHSL(rr(.03, .07), 1, rr(.45, .6)); skyL.geometry.attributes.color.setXYZ(i, c.r, c.g, c.b); skyL.geometry.attributes.alpha.setX(i, rr(.5, 1)); }
+
+// sparks to collect
+const sparks = [];
+function addSpark(s, lat, h) { const lim = HW(s) - 5.5; sparks.push({ s, lat: Math.max(-lim, Math.min(lim, lat)), h: Math.max(-4, Math.min(15, h)), alive: true }); }
+const GATES = [520, 1240, 1960, 2680].map(s => ({ s, lat: 0, h: 4, r: 7.5, passed: false }));
+// the level layout has its own random stream: cosmetic changes elsewhere must not move a single spark
+const lrand = mulberry(424242), lrr = (a, b) => a + (b - a) * lrand();
+const PILLARS = [];
+for (let s = 640; s < 3300; s += lrr(60, 95)) {
+  if (GATES.some(g => Math.abs(g.s - s) < 60) || HW(s) < 19) continue;
+  const side = lrand() < .5 ? -1 : 1; PILLARS.push({ s, lat: side * lrr(4, 9), r: lrr(2.4, 3.6), top: lrr(26, 52) });
+}
+for (let s = 60; s < 3300;) {
+  if (GATES.some(g => g.s - s < 50 && g.s - s > -20)) { const g = GATES.find(g => g.s - s < 50 && g.s - s > -20);
+    for (let k = 0; k < 8; k++) addSpark(g.s - 44 + k * 5.5, 0, g.h); s = g.s + 24; continue; }
+  const pil = PILLARS.find(p => Math.abs(p.s - s) < 30), avoid = pil ? -Math.sign(pil.lat) * (pil.r + 6) : 0;
+  const kind = Math.floor(lrand() * 4), lat0 = pil ? avoid : lrr(-9, 9), h0 = lrr(0, 9), n = 8 + Math.floor(lrand() * 5);
+  for (let k = 0; k < n; k++) {
+    const u = k / (n - 1), ss = s + k * 5.2;
+    if (kind === 0) addSpark(ss, lat0, h0);
+    else if (kind === 1) addSpark(ss, lat0 + 7 * Math.sin(u * Math.PI * 2), h0);
+    else if (kind === 2) addSpark(ss, lat0 + (u - .5) * 14, h0 + 6 * Math.sin(u * Math.PI));
+    else addSpark(ss, lat0 + 3.2 * Math.cos(u * Math.PI * 3), h0 + 3.2 * Math.sin(u * Math.PI * 3));
+  }
+  s += n * 5.2 + lrr(14, 30);
+}
+const sparkCloud = cloud(sparks.length, 1.7, 2.2);
+{ const f = {}, a = sparkCloud.geometry.attributes; sparks.forEach((sp, i) => { frameAt(sp.s, f);
+    const p = f.c.clone().addScaledVector(f.R, sp.lat); p.y = PY(sp.s) + sp.h; sp.p = p; a.position.setXYZ(i, p.x, p.y, p.z);
+    a.color.setXYZ(i, 1, .42, .12); a.alpha.setX(i, 1); }); }
+
+// burst / trail / storm particles: one pool
+const POOL = 4000, pool = cloud(POOL, .55, 2.4), pv = new Float32Array(POOL * 3), plife = new Float32Array(POOL), pmax = new Float32Array(POOL).fill(1);
+let pnext = 0;
+function emit(p, v, life, r, g, b) { const i = pnext; pnext = (pnext + 1) % POOL; const a = pool.geometry.attributes;
+  a.position.setXYZ(i, p.x, p.y, p.z); pv[i * 3] = v.x; pv[i * 3 + 1] = v.y; pv[i * 3 + 2] = v.z; plife[i] = pmax[i] = life; a.color.setXYZ(i, r, g, b); }
+function burst(p, n, power, life = 1.1) { const v = new V3();
+  for (let k = 0; k < n; k++) { v.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize().multiplyScalar(power * (.3 + Math.random()));
+    const w = Math.random(); emit(p, v, life * (.5 + Math.random() * .8), 1, .35 + .45 * w, .08 + .2 * w); } }
+
+// ember storm: closed-form field around the player, density = heat
+const STORM_N = 1600, storm = cloud(STORM_N, .32, 2.0), stormSeed = Array.from({ length: STORM_N }, () => [rand(), rand(), rand(), rand()]);
+
+// ---------- props: pillars, gates ----------
+for (const p of PILLARS) {
+  const g = new THREE.CylinderGeometry(p.r * .5, p.r * 1.35, p.top - FLOOR, 11, 26); const a = g.attributes.position, cols = [], c = new THREE.Color();
+  for (let k = 0; k < a.count; k++) { const x = a.getX(k), y = a.getY(k), z = a.getZ(k), ang = Math.atan2(z, x), wy = y + (p.top + FLOOR) / 2;
+    const n = 1 + .42 * fbm(Math.cos(ang) * 1.4 + p.s, y * .07, Math.sin(ang) * 1.4) + .14 * Math.sin(y * .8 + p.s);
+    a.setXYZ(k, x * n, y, z * n); c.copy(STRATA[Math.floor((wy + 40 + 5 * fbm(p.s, wy * .05, 1)) / 5.5) % STRATA.length]).multiplyScalar(.7 + .4 * vnoise(ang * 3, y * .4, p.s)); cols.push(c.r, c.g, c.b); }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  g.computeVertexNormals(); const f = frameAt(p.s), m = new THREE.Mesh(g, rockMat);
+  m.position.copy(f.c).addScaledVector(f.R, p.lat); m.position.y = FLOOR + (p.top - FLOOR) / 2; scene.add(m);
+}
+const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(EMBER).multiplyScalar(3), fog: false });
+const paperMat = new THREE.MeshStandardMaterial({ color: '#ffb46e', emissive: '#ff6a24', emissiveIntensity: 1.8, roughness: .7 });
+const ropeMat = new THREE.MeshStandardMaterial({ color: '#1a1210', roughness: 1 });
+for (const gt of GATES) {
+  const f = frameAt(gt.s), center = f.c.clone().setY(PY(gt.s) + gt.h); gt.p = center; gt.R = f.R.clone(); gt.T = f.T.clone();
+  const span = HW(gt.s) + 12, arch = new THREE.TorusGeometry(span, 4.2, 8, 40, Math.PI), a = arch.attributes.position;
+  for (let k = 0; k < a.count; k++) { const n = 1 + .12 * fbm(a.getX(k) * .2, a.getY(k) * .2, gt.s); a.setXYZ(k, a.getX(k) * n, a.getY(k) * n * 1.25, a.getZ(k) * (1.6 + fbm(a.getX(k), 0, 1))); }
+  arch.computeVertexNormals();
+  const am = new THREE.Mesh(arch, new THREE.MeshStandardMaterial({ color: '#4d3428', roughness: .95, flatShading: true }));
+  am.position.copy(f.c).setY(FLOOR); am.lookAt(am.position.clone().add(f.T)); scene.add(am);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(gt.r, .16, 10, 96), ringMat); ring.position.copy(center); ring.lookAt(center.clone().add(f.T)); scene.add(ring); gt.ring = ring;
+  // a string of paper lanterns across the canyon under the arch
+  const left = f.c.clone().addScaledVector(f.R, -span + 6).setY(24), right = f.c.clone().addScaledVector(f.R, span - 6).setY(24);
+  const pts = []; for (let k = 0; k <= 20; k++) { const u = k / 20; pts.push(left.clone().lerp(right, u).setY(24 - 9 * Math.sin(u * Math.PI))); }
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, .07, 4), ropeMat));
+  for (let k = 2; k <= 18; k += 2) { const l = new THREE.Mesh(new THREE.SphereGeometry(.85, 12, 8), paperMat); l.scale.y = 1.3; l.position.copy(pts[k]).y -= 1.4; scene.add(l);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: '#ff7a33', transparent: true, opacity: .32, depthWrite: false, fog: false, blending: THREE.AdditiveBlending })); halo.position.copy(l.position); halo.scale.setScalar(7); scene.add(halo); }
+}
+const shock = new THREE.Mesh(new THREE.RingGeometry(.92, 1, 96), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ff8a4a').multiplyScalar(3), transparent: true, opacity: 0, side: THREE.DoubleSide, fog: false, depthWrite: false, blending: THREE.AdditiveBlending }));
+scene.add(shock);
+
+// ---------- the lantern glider ----------
+const lantern = new THREE.Group(); scene.add(lantern);
+const paper = new THREE.ShaderMaterial({ uniforms: { glow: { value: 1 } },
+  vertexShader: `varying vec3 vN, vV; varying float vy; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vy = position.y; gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `varying vec3 vN, vV; varying float vy; uniform float glow; void main(){ float f = clamp(abs(dot(normalize(vN), normalize(vV))), 0., 1.);
+    vec3 core = vec3(1., .6, .28) * 1.45, edge = vec3(.85, .2, .03) * .55; vec3 c = mix(edge, core, pow(f, 1.8));
+    c *= .8 + .2 * smoothstep(0., .12, abs(fract(vy / .55 + .5) - .5)); c *= 1. - .35 * smoothstep(.6, .9, abs(vy));
+    gl_FragColor = vec4(c * glow, 1.); }` });
+const body = new THREE.Mesh(new THREE.LatheGeometry([[0, -.9], [.45, -.86], [.72, -.55], [.8, 0], [.72, .55], [.45, .86], [0, .9]].map(([x, y]) => new THREE.Vector2(x, y)), 32), paper);
+lantern.add(body);
+const ribMat = new THREE.MeshStandardMaterial({ color: '#5a2410', roughness: .8 });
+for (const y of [-.55, 0, .55]) { const r = new THREE.Mesh(new THREE.TorusGeometry(y === 0 ? .805 : .725, .016, 6, 40), ribMat); r.rotation.x = Math.PI / 2; r.position.y = y; lantern.add(r); }
+for (const y of [-.92, .92]) { const cap = new THREE.Mesh(new THREE.CylinderGeometry(.26, .3, .08, 20), ribMat); cap.position.y = y; lantern.add(cap); }
+const wingShape = new THREE.Shape(); wingShape.moveTo(0, .2); wingShape.bezierCurveTo(.9, .75, 1.9, .6, 2.5, .05); wingShape.bezierCurveTo(1.9, -.25, 1.0, -.7, 0, -.55);
+const wingGeo = new THREE.ShapeGeometry(wingShape, 16); { const p = wingGeo.attributes.position, uv = wingGeo.attributes.uv; for (let k = 0; k < p.count; k++) uv.setXY(k, p.getX(k) / 2.5, (p.getY(k) + .7) / 1.45); }
+const wingTex = (() => { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 160; const x = cv.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 256, 0); g.addColorStop(0, 'rgba(255,214,170,.95)'); g.addColorStop(1, 'rgba(255,170,110,.7)'); x.fillStyle = g; x.fillRect(0, 0, 256, 160);
+  x.strokeStyle = 'rgba(90,36,16,.85)'; x.lineWidth = 3; for (let k = 0; k < 6; k++) { x.beginPath(); x.moveTo(0, 85); x.quadraticCurveTo(110, 85 - (k - 2.5) * 22, 256, 80 - (k - 2.5) * 38); x.stroke(); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const wingMat = new THREE.MeshStandardMaterial({ map: wingTex, color: '#ffffff', emissive: '#ff6a24', emissiveIntensity: .35, emissiveMap: wingTex, side: THREE.DoubleSide, transparent: true, opacity: .9, roughness: .85 });
+const wings = [-1, 1].map(side => { const w = new THREE.Mesh(wingGeo, wingMat); w.rotation.x = -Math.PI / 2; w.scale.x = side;
+  const pivot = new THREE.Group(); pivot.position.set(side * .62, .15, 0); pivot.add(w); lantern.add(pivot); return pivot; });
+const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: '#ff8a3d', transparent: true, opacity: .4, depthWrite: false, fog: false, blending: THREE.AdditiveBlending })); halo.scale.setScalar(4.5); lantern.add(halo);
+const reflect = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: '#ff5315', transparent: true, opacity: .5, depthWrite: false, fog: false, blending: THREE.AdditiveBlending })); scene.add(reflect);
+const anchor = new THREE.Object3D(); scene.add(anchor);   // the player's place in the canyon, no roll: +x right, +y up, -z forward
+
+// ---------- game state ----------
+const hud = { root: document.getElementById('hud'), score: document.getElementById('score'), combo: document.getElementById('combo'),
+  dist: document.getElementById('dist'), flame: document.getElementById('flame'), toast: document.getElementById('toast'), start: document.getElementById('start') };
+const keys = new Set();
+addEventListener('keydown', e => { keys.add(e.code); if (!G.started) start(); if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', e => keys.delete(e.code));
+const G = { started: false, autopilot: Q.has('autopilot'), s: 0, s0: 0, lat: 0, h: 4, vl: 0, vh: 0, speed: 18, boost: 0, flame: .5,
+  score: 0, combo: 0, comboT: 0, heat: null, shake: 0, kick: 0, time: 0, events: [] };
+const shown = { score: -1, combo: -1, dist: -1, flame: -1 };
+function setup(o = {}) {
+  Object.assign(G, { started: true, autopilot: !!o.autopilot, s: o.distance ?? 0, s0: o.distance ?? 0, lat: o.lat ?? 0, h: o.h ?? 4, vl: 0, vh: 0,
+    boost: 0, flame: o.flame ?? .5, score: o.score ?? 0, combo: 0, comboT: 0, heat: o.heat ?? null, shake: 0, kick: 0, speedBonus: o.speedBonus ?? 0, events: [] });
+  sparks.forEach((sp, i) => { sp.alive = true; sparkCloud.geometry.attributes.alpha.setX(i, 1); }); sparkCloud.geometry.attributes.alpha.needsUpdate = true;
+  GATES.forEach(g => g.passed = false); plife.fill(0);
+  hud.start.classList.add('hidden'); hud.root.classList.toggle('hidden', o.hud === false);
+  update(0); snapCamera(); return { s: G.s, score: G.score };
+}
+function start() { setup({ distance: Number(Q.get('distance') || 0), autopilot: G.autopilot }); }
+function toast(html) { hud.toast.innerHTML = html; hud.toast.classList.remove('show'); void hud.toast.offsetWidth; hud.toast.classList.add('show'); }
+function bump(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+const f = {}, tmp = new V3(), tmp2 = new V3(), m4 = new THREE.Matrix4();
+function playerPos(o = new V3()) { frameAt(G.s, f); return o.copy(f.c).addScaledVector(f.R, G.lat).setY(PY(G.s) + G.h); }
+
+function update(dt) {
+  G.time += dt;
+  const heat = G.heat ?? smooth(500, 1500, G.s - G.s0 + G.s * .3);
+  // steering: keys or autopilot
+  let ax = 0, ay = 0;
+  if (G.autopilot || !G.started) {
+    let tl = 0, th = 4; const gate = GATES.find(g => g.s > G.s + 2 && g.s < G.s + 110);
+    const next = sparks.find(sp => sp.alive && sp.s > G.s + 8 && sp.s < G.s + 70);
+    if (gate) { tl = gate.lat; th = gate.h; } else if (next) { tl = next.lat; th = next.h; }
+    const pil = PILLARS.find(p => p.s > G.s - 2 && p.s < G.s + 38);
+    if (pil && Math.abs(tl - pil.lat) < pil.r + 4) tl = pil.lat + (tl >= pil.lat ? 1 : -1) * (pil.r + 5);
+    ax = Math.max(-1, Math.min(1, (tl - G.lat) * .9 - G.vl * .15)); ay = Math.max(-1, Math.min(1, (th - G.h) * .9 - G.vh * .17));
+  } else {
+    ax = (keys.has('ArrowRight') || keys.has('KeyD') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') ? 1 : 0);
+    ay = (keys.has('ArrowUp') || keys.has('KeyW') ? 1 : 0) - (keys.has('ArrowDown') || keys.has('KeyS') ? 1 : 0);
+  }
+  const boosting = G.started && keys.has('Space') && G.flame > .02;
+  G.boost += ((boosting ? 1 : 0) - G.boost) * (1 - Math.exp(-5 * dt));
+  if (boosting) G.flame = Math.max(0, G.flame - .22 * dt);
+  G.vl += ax * 62 * dt; G.vh += ay * 42 * dt; G.vl *= Math.exp(-3.4 * dt); G.vh *= Math.exp(-3.8 * dt);
+  G.lat += G.vl * dt; G.h += G.vh * dt;
+  const lim = HW(G.s) - 4.5; if (Math.abs(G.lat) > lim) { G.lat = Math.sign(G.lat) * lim; G.vl *= -.4; }
+  if (G.h < -4.5) { G.h = -4.5; G.vh *= -.3; } if (G.h > 16) { G.h = 16; G.vh *= -.3; }
+  G.speed = 17 + Math.min(11, (G.s - G.s0) / 110) + (G.speedBonus || 0) + G.boost * 16 + heat * 4;
+  const sPrev = G.s; if (G.started) G.s += G.speed * dt; else G.s += 14 * dt;
+  const pos = playerPos();
+  // pillars knock you sideways and break the chain
+  for (const p of PILLARS) if (Math.abs(p.s - G.s) < 2.2 && Math.abs(p.lat - G.lat) < p.r + 1.1 && G.h < p.top) {
+    G.lat = p.lat + Math.sign(G.lat - p.lat || 1) * (p.r + 1.2); G.vl = Math.sign(G.lat - p.lat) * 14; G.combo = 0; G.shake = 1; G.events.push({ t: performance.now() / 1000, type: 'hit' });
+    burst(pos, 40, 9, .8);
+  }
+  // sparks
+  const a = sparkCloud.geometry.attributes;
+  for (let i = 0; i < sparks.length; i++) { const sp = sparks[i]; if (!sp.alive || sp.s < G.s - 4 || sp.s > G.s + 4) continue;
+    if (sp.p.distanceTo(pos) < 2.6) { sp.alive = false; a.alpha.setX(i, 0); a.alpha.needsUpdate = true;
+      G.combo++; G.comboT = 1.8; const mult = 1 + Math.floor(G.combo / 5); G.score += mult; G.flame = Math.min(1, G.flame + .035);
+      burst(sp.p, 26, 7); G.events.push({ t: performance.now() / 1000, type: 'spark', combo: G.combo }); } }
+  if ((G.comboT -= dt) <= 0) G.combo = 0;
+  // gates
+  for (const g of GATES) if (!g.passed && sPrev < g.s && G.s >= g.s) { g.passed = true;
+    if (Math.hypot(G.lat - g.lat, G.h - g.h) < g.r) { G.score += 50; G.flame = 1; G.kick = 1; toast('LANTERN GATE &nbsp;<b>+50</b>'); burst(g.p, 420, 26, 1.8);
+      shock.position.copy(g.p); shock.lookAt(g.p.clone().add(g.T)); shock.userData.t = 0; G.events.push({ t: performance.now() / 1000, type: 'gate' }); } }
+  // lantern pose: face along the canyon, bank into turns, wings flap
+  const bank = Math.max(-.45, Math.min(.45, -G.vl * .04)), pitch = Math.max(-.3, Math.min(.3, G.vh * .03));
+  m4.makeBasis(f.R, tmp2.crossVectors(f.R, f.T), tmp.copy(f.T).negate()); anchor.position.copy(pos); anchor.quaternion.setFromRotationMatrix(m4);
+  lantern.position.copy(pos); lantern.quaternion.copy(anchor.quaternion); lantern.rotateZ(bank); lantern.rotateX(pitch);
+  const flap = Math.sin(G.time * 7.5) * .28 * (1 - G.boost * .7);
+  wings[0].rotation.z = -.38 - flap - G.boost * .25; wings[1].rotation.z = .38 + flap + G.boost * .25;
+  lanternLight.position.copy(pos); lanternLight.intensity = 260 * (1 + .08 * Math.sin(G.time * 13) + .06 * Math.sin(G.time * 31) + G.boost * .6);
+  halo.material.opacity = .38 + .05 * Math.sin(G.time * 17); paper.uniforms.glow.value = 1 + .06 * Math.sin(G.time * 13) + .25 * G.boost;
+  reflect.position.set(pos.x, 2 * FLOOR - pos.y, pos.z); reflect.scale.set(7, 12, 1); reflect.material.opacity = .45 * smooth(22, 4, pos.y - FLOOR);
+  // trail embers
+  frameAt(G.s, f);
+  for (let k = 0; k < 3 + G.boost * 6; k++) emit(tmp2.copy(pos).addScaledVector(f.T, -.9).add(tmp.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(.6)),
+    tmp.set((Math.random() - .5) * 2, 1 + Math.random() * 1.5, (Math.random() - .5) * 2).addScaledVector(f.T, G.speed * .55), .9 + Math.random() * .6, 1, .4 + Math.random() * .3, .1);
+  const pa = pool.geometry.attributes;
+  for (let i = 0; i < POOL; i++) { if (plife[i] <= 0) { if (pa.alpha.getX(i) !== 0) pa.alpha.setX(i, 0); continue; }
+    plife[i] -= dt; const d = Math.exp(-1.8 * dt); pv[i * 3] *= d; pv[i * 3 + 1] = pv[i * 3 + 1] * d + 1.2 * dt; pv[i * 3 + 2] *= d;
+    pa.position.setXYZ(i, pa.position.getX(i) + pv[i * 3] * dt, pa.position.getY(i) + pv[i * 3 + 1] * dt, pa.position.getZ(i) + pv[i * 3 + 2] * dt);
+    const life = Math.max(0, plife[i] / pmax[i]); pa.alpha.setX(i, life * life); }
+  pa.position.needsUpdate = pa.alpha.needsUpdate = pa.color.needsUpdate = true;
+  // storm field (closed form around the player)
+  const sa = storm.geometry.attributes, box = 70;
+  for (let i = 0; i < STORM_N; i++) { const [u, v, w, q] = stormSeed[i];
+    const z = ((w * box + G.time * (6 + q * 10) + G.s) % box + box) % box - box * .3;
+    const p = tmp.copy(pos).addScaledVector(f.T, -z + box * .35).addScaledVector(f.R, (u - .5) * 60).setY(pos.y + (v - .5) * 34 + Math.sin(G.time + q * 9) * 1.5);
+    sa.position.setXYZ(i, p.x, p.y, p.z); sa.alpha.setX(i, q < heat ? .5 + .5 * q : 0); sa.color.setXYZ(i, 1, .32 + .3 * v, .08); }
+  sa.position.needsUpdate = sa.alpha.needsUpdate = sa.color.needsUpdate = true;
+  // sky lanterns rise, gate light follows the next gate
+  const ka = skyL.geometry.attributes; for (let i = 0; i < SKY_N; i++) { const b = skyBase[i]; ka.position.setXYZ(i, b[0] + Math.sin(G.time * .2 + i) * 2, 20 + ((b[1] + G.time * b[3]) % 190), b[2]); } ka.position.needsUpdate = true;
+  const ng = GATES.find(g => g.s > G.s - 40) || GATES[GATES.length - 1]; gateLight.position.copy(ng.p).y += 14;
+  if (shock.userData.t !== undefined) { const t = shock.userData.t += dt; shock.scale.setScalar(8 + t * 70); shock.material.opacity = Math.max(0, 1 - t / .9); }
+  for (const m of [sparkCloud, pool, storm, skyL]) m.material.uniforms.time.value = G.time;
+  waterMat.uniforms.time.value = G.time; waterMat.uniforms.lamp.value.copy(pos);
+  sky.material.uniforms.time.value = G.time;
+  G.shake = Math.max(0, G.shake - dt * 2.5); G.kick = Math.max(0, G.kick - dt * 1.6);
+  updateHud(heat);
+}
+function updateHud() {
+  if (G.score !== shown.score) { if (shown.score >= 0 && G.score > shown.score) bump(hud.score); hud.score.textContent = String(G.score).padStart(4, '0'); shown.score = G.score; }
+  const mult = 1 + Math.floor(G.combo / 5);
+  if (G.combo !== shown.combo) { hud.combo.textContent = G.combo >= 3 ? `×${mult}  CHAIN ${G.combo}` : ''; shown.combo = G.combo; }
+  const km = ((G.s - G.s0) / 1000 + (G.s0 / 1000)).toFixed(2); if (km !== shown.dist) { hud.dist.textContent = `${km} KM`; shown.dist = km; }
+  const fl = Math.round(G.flame * 100); if (fl !== shown.flame) { hud.flame.style.width = fl + '%'; shown.flame = fl; }
+}
+// chase camera: behind and above, lags into turns, widens with speed
+const camPos = new V3(), camLook = new V3();
+function camTarget(pos, look) { const p = playerPos(); frameAt(G.s, f);
+  pos.copy(p).addScaledVector(f.T, -10.5).addScaledVector(f.R, -G.vl * .18).setY(p.y + 3.2); look.copy(p).addScaledVector(f.T, 14).setY(p.y + .6); }
+function snapCamera() { camTarget(camPos, camLook); placeCamera(); }
+function placeCamera() {
+  camera.position.copy(camPos); camera.lookAt(camLook);
+  if (G.shake > 0) { camera.rotateZ(Math.sin(G.time * 61) * .02 * G.shake); camera.rotateX(Math.sin(G.time * 47) * .015 * G.shake); }
+  camera.fov = 60 + G.boost * 12 + (G.speed - 17) * .35 + G.kick * 8; camera.updateProjectionMatrix();
+}
+function frame(dt) {
+  update(dt);
+  camTarget(tmp, tmp2); const k = 1 - Math.exp(-7 * dt); camPos.lerp(tmp, k); camLook.lerp(tmp2, k); placeCamera();
+  composer.render();
+}
+let last = null;
+renderer.setAnimationLoop(t => { const dt = last === null ? 1 / 60 : Math.min(.05, (t - last) / 1000); last = t; frame(dt); if (!window.__game.ready) window.__game.ready = true; });
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  for (const m of [sparkCloud, pool, storm, skyL]) m.material.uniforms.scale.value = innerHeight / 2; });
+if (Q.has('autopilot') || Q.has('play')) start(); else update(0), snapCamera();
+
+// ---------- trailer hooks (read by code-game-trailer/scripts/capture.ts) ----------
+// ready: true after the first frame. camera: the camera the game renders with (a trailer camera path
+// overrides it per render call). anchor: the player's canyon frame without roll (+x right, +y up, -z forward).
+// place(s): a fixed Object3D at canyon distance s (centre line, y = 0) for world-fixed cameras.
+// setup(opts): reset to a known state { distance, autopilot, score, heat, speedBonus, flame, lat, h, hud }.
+// events: sound-worthy moments { t (s, page clock), type }, drained by the recorder.
+const places = new Map();
+window.__game = { ready: false, renderer, scene, camera, composer, player: lantern, anchor, setup, state: G,
+  get events() { const e = G.events; G.events = []; return e; },
+  boost(on = true) { on ? keys.add('Space') : keys.delete('Space'); },
+  place(s) { if (!places.has(s)) { const o = new THREE.Object3D(), fr = frameAt(s); o.position.copy(fr.c);
+      m4.makeBasis(fr.R, new V3().crossVectors(fr.R, fr.T), fr.T.clone().negate()); o.quaternion.setFromRotationMatrix(m4); scene.add(o); o.updateMatrixWorld(true); places.set(s, o); } return places.get(s); },
+  layout: { sparks: sparks.map(({ s, lat, h }) => ({ s, lat, h })), gates: GATES.map(({ s, lat, h, r }) => ({ s, lat, h, r })), pillars: PILLARS } };
+</script>
+</body>
+</html>

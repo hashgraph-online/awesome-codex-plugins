@@ -40,6 +40,7 @@ import pandas as pd
 EXAMPLE_DIR = Path(__file__).parent
 OUTPUT_DIR = EXAMPLE_DIR / "output"
 
+AXES_FRACTION = "axes fraction"  # matplotlib annotation coordinate system
 N_STORES = 3
 CONTEXT_LEN = 24
 HORIZON_LEN = 12
@@ -161,6 +162,7 @@ def create_visualization(data: dict) -> None:
     )
 
     def add_divider(ax, label_top=True):
+        """Add divider."""
         ax.axvline(CONTEXT_LEN - 0.5, color="#9ca3af", lw=1.3, ls="--", alpha=0.8)
         ax.axvspan(
             CONTEXT_LEN - 0.5, TOTAL_LEN - 0.5, alpha=0.06, color="grey", zorder=0
@@ -215,7 +217,7 @@ def create_visualization(data: dict) -> None:
         f"Store A earns {ratio:.1f}x Store C\n(premium vs discount pricing)\n"
         f"-> store_type is a useful static covariate",
         xy=(0.97, 0.05),
-        xycoords="axes fraction",
+        xycoords=AXES_FRACTION,
         ha="right",
         fontsize=8,
         bbox=dict(boxstyle="round", fc="#fffbe6", ec="#d4a017", alpha=0.95),
@@ -299,7 +301,7 @@ def create_visualization(data: dict) -> None:
         f"Promotion weeks: +{p_lift:.0f} units avg\n"
         f"Future event schedules must be known for XReg",
         xy=(0.97, 0.05),
-        xycoords="axes fraction",
+        xycoords=AXES_FRACTION,
         ha="right",
         fontsize=8,
         bbox=dict(boxstyle="round", fc="#fffbe6", ec="#d4a017", alpha=0.95),
@@ -329,7 +331,7 @@ def create_visualization(data: dict) -> None:
         "Price elasticity: -$1 increase -> -20 units sold\n"
         "Store A ($12) consistently more expensive than C ($7.50)",
         xy=(0.97, 0.05),
-        xycoords="axes fraction",
+        xycoords=AXES_FRACTION,
         ha="right",
         fontsize=8,
         bbox=dict(boxstyle="round", fc="#fffbe6", ec="#d4a017", alpha=0.95),
@@ -384,7 +386,7 @@ def create_visualization(data: dict) -> None:
         f"Price effect (+/-{np.abs(pe).max():.0f} units) is minor by comparison\n"
         f"-> Time-varying covariates explain most sales spikes",
         xy=(0.97, 0.55),
-        xycoords="axes fraction",
+        xycoords=AXES_FRACTION,
         ha="right",
         fontsize=8,
         bbox=dict(boxstyle="round", fc="#fffbe6", ec="#d4a017", alpha=0.95),
@@ -403,6 +405,7 @@ def create_visualization(data: dict) -> None:
 
 
 def demonstrate_api() -> None:
+    """Handle demonstrate api."""
     print("\n" + "=" * 70)
     print("  TIMESFM COVARIATES API (TimesFM 2.5)")
     print("=" * 70)
@@ -429,6 +432,7 @@ point_fc, quant_fc = model.forecast_with_covariates(
 
 
 def explain_xreg_modes() -> None:
+    """Handle explain xreg modes."""
     print("\n" + "=" * 70)
     print("  XREG MODES")
     print("=" * 70)
@@ -448,6 +452,7 @@ def explain_xreg_modes() -> None:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     print("=" * 70)
     print("  TIMESFM COVARIATES (XREG) EXAMPLE")
     print("=" * 70)

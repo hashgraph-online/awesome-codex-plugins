@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/session-start.sh\" --host codex",
+            "statusMessage": "Checking MetaMask CLI readiness",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "frugal",
+  "version": "1.0.2",
+  "description": "Before your agent signs up for a paid API, LLM model, cloud service, SaaS plan, domain or anything else that costs money, it checks free tiers, right-sized plans and billing periods, startup, student, open-source and nonprofit programs, verified promo codes and cheaper alternatives, sized to the amount at stake. It never pays by itself.",
+  "author": {
+    "name": "Nir Feinstein",
+    "url": "https://github.com/fainir"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/fainir/frugal",
+  "repository": "https://github.com/fainir/frugal",
+  "keywords": [
+    "cost-saving",
+    "finops",
+    "llm-costs",
+    "cloud-costs",
+    "saas",
+    "discounts",
+    "skill"
+  ],
+  "interface": {
+    "displayName": "Frugal",
+    "shortDescription": "Find the cheaper honest way before paying",
+    "longDescription": "Whenever a task involves paying for something (a SaaS plan, an API, cloud, a domain, a gadget, a flight), Codex first checks free tiers, plan size and billing period, startup, student, open-source and nonprofit programs, verified promo codes and cheaper alternatives, with sources, then carries on. It never pays by itself.",
+    "developerName": "Nir Feinstein",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  },
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

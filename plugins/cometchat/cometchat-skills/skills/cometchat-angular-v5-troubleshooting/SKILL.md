@@ -2,14 +2,14 @@
 name: cometchat-angular-v5-troubleshooting
 description: "Diagnose a broken CometChat Angular integration — blank panes, silent no-render, empty lists, events that never fire, UI that does not update, memory leaks, install failures. Symptom to cause to fix. Triggers: 'chat not showing', 'blank screen', 'nothing renders', 'click handler not firing', 'messages not updating', 'ERESOLVE', 'cometchat not working'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat angular troubleshooting v5 debug blank-screen silent-failure diagnostics"
 ---
 
-> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.0 verified). Symptoms map to causes verified against the installed kit and the live `{DOCS_BASE}/ui-kit/angular/troubleshooting.md` page (base + paths in `cometchat-angular-v5-core/references/docs-map.md`). Every `CometChat*` symbol named here exists in the `angular-v5` catalog; a fix that requires a symbol not in the catalog is a bug in this file, not a missing export.
+> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.2 verified). Symptoms map to causes verified against the installed kit and the live `{DOCS_BASE}/ui-kit/angular/troubleshooting.md` page (base + paths in `cometchat-angular-v5-core/references/docs-map.md`). Every `CometChat*` symbol named here exists in the `angular-v5` catalog; a fix that requires a symbol not in the catalog is a bug in this file, not a missing export.
 
 ## Companion skills (read first)
 - `cometchat-angular-v5-core` — `references/anti-patterns.md` and `references/troubleshooting.md` carry the same table in more depth.
@@ -44,7 +44,7 @@ Lists render empty with no error when there is no session. Check `CometChatUIKit
 | Scrolling the list scrolls the WHOLE page | shell/columns missing `overflow: hidden` | `min-height: 0` lets it shrink; `overflow: hidden` keeps the scroll inside the pane — both are required |
 | List doesn't scroll at all — bottom items unreachable | `<cometchat-conversations>`/`-users`/`-groups`/`-call-logs`/`-search`/`-message-list` has no `flex: 1; min-height: 0` of its OWN | add the `.cc-fill` class to the tag itself, not just its ancestors — the list resolves an internal `height: 100%` and does not size itself |
 | Whole surface runs past the viewport / clipped, on a **routed** page only | `<cometchat-error-boundary>` is the template root and ships **no** `:host` sizing, so a `height: 100%` shell under it resolves against nothing | add `cometchat-error-boundary { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }` — it is styled by ELEMENT, not by a class. Symptom hides when the shell uses `100dvh` (viewport-relative), appears the moment it becomes `100%` under a routed outlet |
-| `<cometchat-call-logs>` shows "OOPS! Looks like something went wrong" | KIT BUG (5.1.0), not your code: `CallLogsService` builds `new CometChatUIKitCalls.CallLogRequestBuilder()` without awaiting the lazy calls-SDK load, so the accessor is still `null`. Zero network requests are made — it fails before fetching, and Retry does not recover | No host-side fix. Do not hand-roll around it; report it. Note `(error)` will NOT surface it — call-logs has no `error` output (it takes an `onError` INPUT) |
+| `<cometchat-call-logs>` shows "OOPS! Looks like something went wrong" | KIT BUG (5.1.0, still in 5.2.2), not your code: `CallLogsService` builds `new CometChatUIKitCalls.CallLogRequestBuilder()` without awaiting the lazy calls-SDK load, so the accessor is still `null`. Zero network requests are made — it fails before fetching, and Retry does not recover | No host-side fix. Do not hand-roll around it; report it. Note `(error)` will NOT surface it — call-logs has no `error` output (it takes an `onError` INPUT) |
 | Blank space where chat should be | component not in `imports: []` | add the class to that component's `imports` |
 | Blank pane, markup correct | ancestor has no height | `html, body { height: 100% }` + `100dvh` + `min-height: 0` |
 | Lists render but always empty | rendered before `login()` resolved | init → login before bootstrap, or gate the route |
@@ -57,7 +57,7 @@ Lists render empty with no error when there is no session. Check `CometChatUIKit
 | `npm install` fails `ERESOLVE` | project on Angular 22 | peer range is `<22.0.0`; use `@angular/cli@21` |
 | Build error: path not exported by package | `@import` of the kit stylesheet | register the full `node_modules/...` path in `angular.json` |
 | Config empty at runtime | credentials in `.env` | Angular reads `environment.ts`, not `.env` |
-| Import will not compile | bare class name used | use the exported `…Component` form |
+| Import will not compile | bare class name used | use the exported `...Component` form |
 | Header shows one chat, messages another | `[user]`/`[group]` mismatch | pass the same subject to header, list and composer |
 | Reply button does nothing | no thread surface rendered | wire a thread panel or hide the affordance |
 | Feature missing, no error | dashboard extension off | enable it for the app the credentials point at |

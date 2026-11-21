@@ -23,6 +23,7 @@ MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 OUTPUT_DIR = "outputs/grpo-model"
 MAX_PROMPT_LENGTH = 256
 MAX_COMPLETION_LENGTH = 512
+ANSWER_CLOSE_TAG = '</answer>'
 
 SYSTEM_PROMPT = """
 Respond in the following format:
@@ -48,6 +49,7 @@ def get_dataset(split="train"):
     data = load_dataset('openai/gsm8k', 'main')[split]
 
     def process_example(x):
+        """Process example."""
         # Extract ground truth answer
         answer = x['answer'].split('####')[1].strip() if '####' in x['answer'] else None
 
@@ -109,12 +111,12 @@ def incremental_format_reward_func(completions, **kwargs):
             score += 0.125
         if '<answer>' in r:
             score += 0.125
-        if '</answer>' in r:
+        if ANSWER_CLOSE_TAG in r:
             score += 0.125
 
         # Penalize extra content after closing tag
-        if '</answer>' in r:
-            extra = r.split('</answer>')[-1].strip()
+        if ANSWER_CLOSE_TAG in r:
+            extra = r.split(ANSWER_CLOSE_TAG)[-1].strip()
             score -= len(extra) * 0.001
 
         rewards.append(score)

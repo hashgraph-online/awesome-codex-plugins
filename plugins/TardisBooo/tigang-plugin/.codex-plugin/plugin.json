@@ -1,0 +1,27 @@
+{
+  "name": "tigang-reminder",
+  "version": "1.3.0",
+  "description": "Display a Kegel break reminder after successful Git commits and pushes, with local counts.",
+  "author": {
+    "name": "TardisBooo",
+    "url": "https://github.com/TardisBooo"
+  },
+  "homepage": "https://github.com/TardisBooo/tigang-plugin",
+  "repository": "https://github.com/TardisBooo/tigang-plugin",
+  "license": "MIT",
+  "keywords": [
+    "break",
+    "git",
+    "hooks",
+    "kegel",
+    "reminder"
+  ],
+  "hooks": "./hooks/codex-hooks.json",
+  "scripts": "./hooks/",
+  "interface": {
+    "displayName": "Tigang Reminder",
+    "shortDescription": "Kegel break reminders after successful Git commits and pushes.",
+    "category": "Productivity",
+    "composerIcon": "./docs/logo.svg"
+  }
+}

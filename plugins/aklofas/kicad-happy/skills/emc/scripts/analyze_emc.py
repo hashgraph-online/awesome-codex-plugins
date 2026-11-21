@@ -11,7 +11,7 @@ Usage:
     python3 analyze_emc.py --schematic schematic.json --pcb pcb.json --severity high
     python3 analyze_emc.py --schematic schematic.json --pcb pcb.json --standard cispr-class-b
 
-Zero external dependencies beyond Python 3.8+ stdlib.
+Zero external dependencies beyond Python 3.10+ stdlib.
 """
 
 import argparse
@@ -20,27 +20,30 @@ import os
 import sys
 import time
 
-# Add this script's directory and kicad scripts to path for sibling imports
+# Add this script's directory to path for sibling imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-_kicad_scripts = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              '..', '..', 'kicad', 'scripts')
-if os.path.isdir(_kicad_scripts):
-    sys.path.insert(0, os.path.abspath(_kicad_scripts))
+import _core_path  # noqa: F401
 
-from emc_rules import run_all_checks, generate_test_plan, analyze_regulatory_coverage
+from emc_rules import (run_all_checks, filter_by_severity, generate_test_plan,
+                       analyze_regulatory_coverage)
 from emc_formulas import STANDARDS, MARKET_STANDARDS
-from finding_schema import compute_trust_summary
+from finding_schema import compute_trust_summary, show_decoded_names
+from kicad_core.fileio import atomic_write_text, json_load
+from kicad_core.render import summary_or_title
 from emc_envelope import EMCEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_upstream_artifact, build_compat
 from capability_mode import get_capability_mode_ref
+from kicad_core.cli import (add_compact_arg, add_config_arg, add_only_deterministic_arg, add_output_arg,
+                            add_schema_arg, add_stage_audience_args, add_text_arg, envelope_type_error,
+                            utf8_text_stdout)
 
 ANALYZER_SOURCE = "emc"
 
 # Shared severity weights — used by both risk score and per-net scoring.
 # Keyed on the v1.3 envelope vocabulary (error/warning/info); legacy
 # EMC rule severities are normalized before reaching this map via
-# _make_finding's _normalize_severity().
+# _make_finding's normalize_severity().
 SEVERITY_WEIGHTS = {'error': 12, 'warning': 3, 'info': 0}
 
 # Confidence discount — heuristic findings carry less weight because the
@@ -234,7 +237,7 @@ def format_text_report(result: dict) -> str:
 
         for f in cat_findings:
             sev = f['severity']
-            lines.append(f'  [{sev}] {f["rule_id"]}: {f["title"]}')
+            lines.append(f'  [{sev}] {f["rule_id"]}: {summary_or_title(f)}')
             # Wrap description
             desc = f.get('description', '')
             for i in range(0, len(desc), 70):
@@ -307,47 +310,39 @@ def format_text_report(result: dict) -> str:
     return '\n'.join(lines)
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description='EMC pre-compliance risk analyzer for KiCad designs')
     parser.add_argument('--schematic', '-s',
                         help='Schematic analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
     parser.add_argument('--pcb', '-p',
                         help='PCB analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
-    parser.add_argument('--output', '-o', help='Output JSON file path')
+    add_output_arg(parser, help='Output JSON file path')
     parser.add_argument('--severity', default='all',
-                        choices=['all', 'low', 'medium', 'high', 'critical'],
+                        choices=['all', 'low', 'medium', 'high', 'critical',
+                                 'info', 'warning', 'error'],
                         help='Minimum severity to report (default: all)')
     parser.add_argument('--standard', default='fcc-class-b',
                         choices=list(STANDARDS.keys()),
                         help='Target EMC standard (default: fcc-class-b)')
-    parser.add_argument('--text', action='store_true',
-                        help='Print human-readable text report to stdout')
-    parser.add_argument('--compact', action='store_true',
-                        help='Omit INFO-level findings from output')
+    add_text_arg(parser, help='Print human-readable text report to stdout')
+    add_compact_arg(parser, help='Omit INFO-level findings from output')
     parser.add_argument('--market', default=None,
                         choices=list(MARKET_STANDARDS.keys()),
                         help='Target market — sets applicable standards (us, eu, automotive, medical, military)')
     parser.add_argument('--spice-enhanced', action='store_true',
-                        help='Use SPICE simulation for improved PDN/filter analysis (requires ngspice/LTspice/Xyce)')
-    parser.add_argument('--config', default=None,
-                        help='Path to .kicad-happy.json project config file')
+                        help='Use SPICE simulation for improved PDN and switching-harmonic analysis (requires ngspice/LTspice/Xyce)')
+    add_config_arg(parser)
     parser.add_argument('--analysis-dir', default=None,
                         help='Write output into analysis cache directory '
                              '(creates/updates manifest)')
-    parser.add_argument('--schema', action='store_true',
-                        help='Print JSON output schema and exit')
-    parser.add_argument('--stage', default=None,
-                        choices=['schematic', 'layout', 'pre_fab', 'bring_up'],
-                        help='Filter findings by review stage')
-    parser.add_argument('--audience', default=None,
-                        choices=['designer', 'reviewer', 'manager'],
-                        help='Audience level for summaries and --text output')
-    parser.add_argument('--only-deterministic', action='store_true',
-                        help='Accepted for consistency; analyzers never write llm_* fields. '
-                             'Honored by downstream consumers (Phase 4 spec §3.4).')
+    add_schema_arg(parser)
+    add_stage_audience_args(parser)
+    add_only_deterministic_arg(parser)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.text:
+        utf8_text_stdout()
 
     if args.schema:
         emit_schema(EMCEnvelope)
@@ -375,19 +370,34 @@ def main():
     schematic = None
     pcb = None
 
+    def _load_analyzer_json(flag, path, writer, expected):
+        if not os.path.isfile(path):
+            what = 'a directory' if os.path.isdir(path) else 'not found'
+            parser.error(f'{flag} {path}: {what}; expected the JSON file '
+                         f'{writer} writes (--output)')
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json_load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
+                         f'file {writer} writes (--output)')
+        type_error = envelope_type_error(flag, path, data, expected, writer)
+        if type_error:
+            parser.error(type_error)
+        return data
+
     if args.schematic:
-        with open(args.schematic, 'r') as f:
-            schematic = json.load(f)
+        schematic = _load_analyzer_json('--schematic', args.schematic,
+                                        'analyze_schematic.py', 'schematic')
         if 'signal_analysis' in schematic and 'findings' not in schematic:
             print(f'Error: {args.schematic} uses the pre-v1.3 '
                   f'signal_analysis wrapper format.\n'
                   f'Re-run analyze_schematic.py to produce the current '
                   f'findings[] format.', file=sys.stderr)
-            sys.exit(1)
+            return 1
 
     if args.pcb:
-        with open(args.pcb, 'r') as f:
-            pcb = json.load(f)
+        pcb = _load_analyzer_json('--pcb', args.pcb, 'analyze_pcb.py', 'pcb')
 
     # Effective severity threshold
     severity = args.severity
@@ -422,6 +432,9 @@ def main():
     except ImportError:
         config = {'version': 1, 'project': {}, 'suppressions': []}
 
+    _acfg = config.get('analysis')
+    analysis_cfg = _acfg if isinstance(_acfg, dict) else {}
+
     # Apply config defaults to CLI args
     project = config.get('project', {})
     if args.standard == 'fcc-class-b' and project.get('emc_standard'):
@@ -438,7 +451,7 @@ def main():
         except (TypeError, ValueError):
             pass
 
-    # Build inputs provenance block (Track 1.3).
+    # Build inputs provenance block.
     from pathlib import Path as _Path
     _upstream_artifacts = {}
     _source_files = []
@@ -454,15 +467,15 @@ def main():
     if _cfg_path and not _cfg_path.is_file():
         _cfg_path = None
 
-    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4).
+    # Resolve the canonical analysis_dir once.
     if args.analysis_dir:
         _analysis_dir = _Path(args.analysis_dir)
     elif args.output:
         _analysis_dir = _Path(args.output).parent
     else:
-        _analysis_dir = _Path("analysis")
+        _analysis_dir = _Path(analysis_cfg.get('output_dir') or 'analysis')
 
-    # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
+    # Resolve capability_mode_ref before build_inputs.
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
 
     inputs = build_inputs(
@@ -475,22 +488,42 @@ def main():
 
     # Run analysis
     t0 = time.time()
+    diagnostics: list = []
     findings = run_all_checks(schematic, pcb,
                               standard=args.standard,
-                              severity_threshold=severity,
+                              severity_threshold='all',
                               spice_backend=spice_backend,
-                              pdn_transient_a=pdn_transient_a)
+                              pdn_transient_a=pdn_transient_a,
+                              diagnostics=diagnostics)
     elapsed = time.time() - t0
+    show_decoded_names(findings)
 
     # Apply suppressions
     apply_suppressions(findings, config.get('suppressions', []))
+
+    # The score, per-net scores, test plan and regulatory coverage cover every
+    # unsuppressed finding; --severity only filters the emitted list.
+    active_findings = [f for f in findings if not f.get('suppressed')]
+
+    risk_score = compute_risk_score(active_findings)
+    test_plan = generate_test_plan(schematic, pcb, active_findings,
+                                   standard=args.standard)
+    per_net = compute_per_net_scores(active_findings)
+    regulatory = analyze_regulatory_coverage(args.standard, args.market,
+                                            active_findings)
+
+    findings = filter_by_severity(findings, severity)
+    # --compact is presentation-only: strip info findings before the summary
+    # and category counts are built, so they describe the emitted list
+    if args.compact:
+        findings = [f for f in findings
+                    if str(f.get('severity', 'info')).lower() != 'info']
 
     # Build summary over the standard v1.3 severity vocabulary.  EMC
     # findings go through _make_finding which normalizes legacy
     # CRITICAL/HIGH/MEDIUM/LOW/INFO to error/warning/info — we count the
     # normalized buckets directly.
     counts = {'error': 0, 'warning': 0, 'info': 0}
-    active_counts = {'error': 0, 'warning': 0, 'info': 0}
     suppressed_count = 0
     for f in findings:
         sev = str(f.get('severity', 'info')).lower()
@@ -499,20 +532,6 @@ def main():
         counts[sev] += 1
         if f.get('suppressed'):
             suppressed_count += 1
-        else:
-            active_counts[sev] += 1
-
-    # Use only active (non-suppressed) findings for derived metrics
-    active_findings = [f for f in findings if not f.get('suppressed')]
-
-    risk_score = compute_risk_score(active_findings)
-
-    # Generate test plan, per-net scores, and regulatory coverage
-    test_plan = generate_test_plan(schematic, pcb, active_findings,
-                                   standard=args.standard)
-    per_net = compute_per_net_scores(active_findings)
-    regulatory = analyze_regulatory_coverage(args.standard, args.market,
-                                            active_findings)
 
     # Pre-rollup by category for downstream consumers
     _sev_order = {"error": 3, "warning": 2, "info": 1}
@@ -542,6 +561,7 @@ def main():
         'schema_version': '1.4.0',
         'inputs': inputs,
         'compat': compat,
+        'diagnostics': diagnostics,
         'summary': {
             'total_findings': len(findings),
             'categories_checked': len(category_summary),
@@ -562,19 +582,13 @@ def main():
         'elapsed_s': round(elapsed, 3),
     }
 
-    # --compact is presentation-only: strip info findings from output
-    if args.compact:
-        result['findings'] = [f for f in result['findings']
-                              if str(f.get('severity', 'info')).lower() != 'info']
-
     from output_filters import apply_output_filters
-    apply_output_filters(result, args.stage, args.audience)
+    apply_output_filters(result, args.stage)
 
     # Rebuild summary + trust_summary post-filter so the envelope matches
-    # the final findings[] emitted to consumers. --compact and
-    # apply_output_filters can both mutate findings after the initial
-    # summary was built (KH-311 for trust_summary; same idea here for
-    # total_findings + by_severity).
+    # the final findings[] emitted to consumers. apply_output_filters can
+    # mutate findings after the summary was built, so trust_summary,
+    # total_findings and by_severity are recomputed from the final list.
     _final = result.get('findings', []) if isinstance(result.get('findings'), list) else []
     _final_counts = {'error': 0, 'warning': 0, 'info': 0}
     for _f in _final:
@@ -589,7 +603,7 @@ def main():
         result['summary']['by_severity'] = _final_counts
     result['trust_summary'] = compute_trust_summary(_final)
 
-    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    # Wire capability_mode_ref.
     from pathlib import Path as _Path
     # capability_mode_ref already resolved early — reuse to keep run_id stable.
     result['capability_mode_ref'] = _capability_mode_ref
@@ -600,64 +614,21 @@ def main():
     from finding_schema import assign_finding_ids
     assign_finding_ids(result.get('findings', []), 'emc')
 
-    # Analysis cache integration
-    if args.analysis_dir:
-        import tempfile
-        from pathlib import Path
-        # analysis_cache lives in skills/kicad/scripts/ — already on sys.path
-        from analysis_cache import (hash_source_file, should_create_new_run,
-                                    create_run, overwrite_current,
-                                    CANONICAL_OUTPUTS, MANIFEST_FILENAME,
-                                    save_manifest, _empty_manifest, GITIGNORE_CONTENT,
-                                    resolve_analysis_dir)
-
-        # Keep analysis-dir semantics aligned with the core KiCad analyzers.
-        analysis_dir = resolve_analysis_dir(args.analysis_dir)
-
-        os.makedirs(analysis_dir, exist_ok=True)
-        manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
-        if not os.path.isfile(manifest_path):
-            manifest = _empty_manifest()
-            save_manifest(analysis_dir, manifest)
-        gitignore_path = os.path.join(analysis_dir, '.gitignore')
-        if not os.path.isfile(gitignore_path):
-            with open(gitignore_path, 'w') as f:
-                f.write(GITIGNORE_CONTENT)
-
-        # Hash the schematic JSON that was consumed (primary input)
-        source_hashes = {}
-        if args.schematic:
-            h = hash_source_file(os.path.abspath(args.schematic))
-            if h:
-                source_hashes[os.path.basename(args.schematic)] = h
-        if args.pcb:
-            h = hash_source_file(os.path.abspath(args.pcb))
-            if h:
-                source_hashes[os.path.basename(args.pcb)] = h
-
-        # Write result to a temp dir, then let cache module decide
-        with tempfile.TemporaryDirectory() as tmpdir:
-            canonical = CANONICAL_OUTPUTS.get('emc', 'emc.json')
-            tmp_out = os.path.join(tmpdir, canonical)
-            with open(tmp_out, 'w') as f:
-                json.dump(result, f, indent=2)
-
-            if should_create_new_run(analysis_dir, tmpdir):
-                run_id = create_run(analysis_dir, tmpdir,
-                                    source_hashes=source_hashes,
-                                    scripts={'emc': 'analyze_emc.py'})
-                print(f'EMC analysis cached: new run {run_id}',
-                      file=sys.stderr)
-            else:
-                overwrite_current(analysis_dir, tmpdir,
-                                  source_hashes=source_hashes)
-                print('EMC analysis cached: updated current run',
-                      file=sys.stderr)
+    # Analysis cache integration (--output wins when both are given)
+    if args.analysis_dir and not args.output:
+        # output_io lives in skills/kicad/scripts/ — already on sys.path
+        from output_io import write_primary_run
+        write_primary_run(args.analysis_dir, json.dumps(result, indent=2), analyzer='emc',
+                          source_path=args.schematic or args.pcb,
+                          extra_source_paths=(args.pcb,) if args.schematic and args.pcb else (),
+                          script_name='analyze_emc.py', script_entry='analyze_emc.py',
+                          record_project=False,
+                          diff_threshold=analysis_cfg.get('diff_threshold', 'major'),
+                          retention=int(analysis_cfg.get('retention', 0) or 0))
 
     # Output
     if args.output:
-        with open(args.output, 'w') as f:
-            json.dump(result, f, indent=2)
+        atomic_write_text(args.output, json.dumps(result, indent=2), follow_symlinks=False)
         print(f'EMC analysis complete: {len(findings)} findings '
               f'(score {risk_score}/100) → {args.output}', file=sys.stderr)
     elif args.text:
@@ -679,4 +650,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
+    sys.exit(main())

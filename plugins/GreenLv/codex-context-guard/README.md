@@ -8,54 +8,34 @@
 
 [简体中文](README.zh-CN.md) | [Introduction](https://greenlv.github.io/blogs/protecting-context-in-long-running-agent-tasks/) | [Changelog](CHANGELOG.md)
 
-Context Guard keeps important requirements from disappearing during a long Codex task. It restores a private checklist when a task is compacted or resumed, and checks recorded evidence before accepting a completion claim.
+Context Guard helps Codex remember what you asked for in a long task. After `/compact` or a resume, it brings back the requirements that are still open. When Codex says the whole task is done, Context Guard checks for evidence that matches those requirements.
 
-It works beside Codex Plan, Goal, memories, subagents, worktrees and the transcript. Ordinary edits, commits and pushes use Codex’s existing permissions.
+For example, if you ask Codex to edit one file and run a test, a successful file read or an unrun test still leaves work open. Ordinary edits, commits and pushes use Codex's existing permissions.
 
-> **Current version: 0.15.1 — 2026-10-05.** Explicit resumes release ordinary pauses while preserving unfinished work; later user messages can pause again. Diagnostic status queries verify applicable sources without private writes. Bounded native macOS/Windows acceptance passed. Public availability is determined by the [GitHub Release readback](https://github.com/GreenLv/codex-context-guard/releases); see [release notes](docs/releases/v0.15.1.md) and [upgrade boundaries](docs/SESSION_STORAGE.md) before changing an installation.
+**Latest release: 0.18.0.** If you use the 0.17.3 stable entry, you can upgrade between turns while Codex stays open once the tool confirms compatibility. Pause new operations until the switch finishes. [release notes](docs/releases/v0.18.0.md) · [upgrade guide](docs/UPGRADE_0_18_0.md)
 
-## Install
+## Install with Codex
 
-Requirements: Python 3.10 or newer, Codex CLI, and a Codex surface that loads plugins and lifecycle Hooks. The 0.15.1 acceptance batch targets Codex CLI `0.160.0`; earlier CLI versions are not retested for this release. See [compatibility](docs/COMPATIBILITY.md) for completed and pending checks.
+You need Python 3.10 or newer and a Codex client that can load plugins and their automatic scripts (Hooks). Run `codex plugin list --json` first. If any Context Guard entry is already installed, use the [0.18.0 upgrade guide](docs/UPGRADE_0_18_0.md) for that entry. The steps here are for a fresh installation.
 
-```shell
-git clone https://github.com/GreenLv/codex-context-guard.git
-cd codex-context-guard
-python3 scripts/manage_plugin.py --apply
-```
+1. Download `context-guard-0.18.0.zip` from the [release assets](https://github.com/GreenLv/codex-context-guard/releases/tag/v0.18.0). Verify the published SHA-256, extract the ZIP into a directory you control, and keep it there as the marketplace source. The release ZIP includes the file list used for verification.
+2. From that directory, register the marketplace and install Context Guard:
 
-On Windows:
+   ```shell
+   codex plugin marketplace add .
+   codex plugin add context-guard@codex-context-guard --json
+   codex plugin list --json
+   ```
 
-```powershell
-py -3 scripts\manage_plugin.py --apply
-```
+3. Check that the list has one `context-guard@codex-context-guard` entry at `0.18.0`, installed and enabled, with the extracted directory as its marketplace source. Save the `installedPath` from the add response. To compare the installed files, replace the quoted example with that full path. On Windows, use `py -3` in place of `python3`.
 
-The installer adds this repository as a marketplace, installs `context-guard@codex-context-guard`, and verifies the installed copy. It also keeps versioned copies needed by tasks that started before an upgrade.
+   ```shell
+   python3 scripts/artifact_identity.py --compare-to "/path/from/installedPath"
+   ```
 
-Installing a plugin does not trust its Hooks automatically. Start a fresh Codex task, open `/hooks`, review and trust all nine definitions, then start another fresh task so it loads the current version.
+4. Start a fresh Codex CLI task with the same configuration directory. Open `/hooks` and check that the nine Context Guard Hooks come from `<installedPath>/hooks/hooks.json` before trusting them. If a source is missing or differs, stop and check the installation. Then try the plugin in the client you actually use. Desktop may need a restart to load the new entry.
 
-### Ask an agent to install
-
-Copy this prompt into a Codex task:
-
-```text
-Install Context Guard from https://github.com/GreenLv/codex-context-guard
-at its latest published stable release. Use this README's safe installer
-and the normal Codex client. Detect my platform and verify Python 3.10+.
-Follow the upgrade notes; preserve unrelated settings and existing versioned caches.
-Verify the release source, installed version, source/cache parity and
-fresh-task Hook loading. If Codex asks for Hook trust, guide me through
-its normal confirmation once, then continue verification. Never edit trust
-hashes or bypass trust. Tell me if a new task or client restart is needed.
-```
-
-### Upgrade notes
-
-Before upgrading to 0.15.1, verify its published Release. Here, HOME means Codex’s configuration and task-data directory, selected by `CODEX_HOME`. Finish old tasks before changing their HOME’s selected plugin, or keep an independent HOME explicitly on the original version while new work uses a fresh HOME. Keeping an old cache alone does not pin its Hooks: Codex may select the new version on the next turn. This release does not migrate old task state.
-
-Use the managed installer and check the installed-version readback. Review and trust all nine Hooks in a fresh task, then start another task to load the new version. Do not overwrite consumed caches. See [session storage and upgrades](docs/SESSION_STORAGE.md) for the separate-HOME route and [compatibility](docs/COMPATIBILITY.md) for tested limits.
-
-If the required Python interpreter and managed cache are both unavailable, Context Guard stops with a reinstall hint. Version history is in the [changelog](CHANGELOG.md); current behavior and platform limits are in [compatibility](docs/COMPATIBILITY.md). The [0.12.4 baseline](docs/BEHAVIOR_BASELINE_0_12_4.md) is historical.
+If a new task cannot find Python or still loads the old version, see [compatibility](docs/COMPATIBILITY.md) and [the upgrade guide](docs/UPGRADE_0_18_0.md). For a repeat check, inspect the installed entry and compare the files again. Repeating `plugin add` can recreate cache files.
 
 ## Try it
 
@@ -72,7 +52,7 @@ context-guard status
 context-guard diagnose
 ```
 
-For a recovery check, use it on a non-trivial synthetic task, run `/compact`, and confirm that the same open requirements return immediately afterward.
+To try recovery, give a new task two or three requirements and leave one open. Run `/compact`, then ask Codex to list what is still open. Check that it remembers the same requirement.
 
 For a worked example, follow the [Context Guard walkthrough on HOL](https://hol.org/blog/context-guard-codex-compaction-evidence-workflow): define a document’s requirements, compact the task, then check the recovered requirements and finished document.
 
@@ -86,7 +66,7 @@ For a worked example, follow the [Context Guard walkthrough on HOL](https://hol.
 - Ambiguous output remains `unknown`; damaged or unverifiable private state blocks completion verification.
 - Exports are explicit and redacted. Image bytes, credentials, and raw transcript content are not copied into the requirement ledger.
 
-Automatic checks are used only when the request names a concrete target, such as a file, URL, edited image, or complete object list. If Context Guard cannot verify a result exactly, it leaves the item open instead of guessing. Waiting for the user, an external result, or a later turn does not close unfinished requirements.
+Context Guard can require specific proof for a named file, URL, edited image or complete list of objects. It keeps those checks open when the proof is missing. For requests it cannot check in that way, it reports `legacy_fallback` and uses the more general completion check. Waiting for the user, an external result, or a later turn keeps unfinished requirements open.
 
 ## Who decides what
 
@@ -193,53 +173,44 @@ Read [Successor Pack Input](skills/context-guard/references/successor-pack.md) b
 
 ## Private data and retention
 
-Runtime data is stored under Codex-managed `PLUGIN_DATA`. Prompt bodies, task state, evidence summaries, and recovery files remain local runtime data and are not part of this repository.
+Context Guard stores its task records locally in the plugin data directory. It writes a redacted handoff only on request and preserves any file already at the destination. [Privacy](docs/PRIVACY.md) lists what redaction covers. Direct CLI commands use the active `CODEX_HOME` when no plugin data directory is supplied.
 
-In 0.15.1, ended v2 sessions with no resumed activity are eligible for cleanup after 30 days; legacy session trees are retained. Redacted exports are created only when requested and omit raw prompts, transcripts, credentials, authorization headers, URL query values, and plugin-private paths. See [Privacy](docs/PRIVACY.md).
+Since 0.17.2, ending a session can start automatic cleanup of Context Guard’s own session records. Codex chats and session history stay untouched. Eligible sessions that ended more than 30 days ago can move to recoverable quarantine. After at least seven days there, a later maintenance pass can permanently delete them. Your disabled policy, custom period, quarantine-only setting or durable opt-out takes precedence. A damaged policy never authorizes deletion. From the extracted release directory, `python3 scripts/context_guard.py cleanup --data-dir "/path/to/plugin-data"` previews what maintenance would do. Add `--policy show` to see the active policy and last automatic attempt. Scheduled maintenance is an additional opt-in.
+
+Active, unfinished, resumable and old-format sessions stay protected. Cleanup also keeps directories whose identity it cannot verify. [Session storage and cleanup](docs/SESSION_STORAGE.md) explains the commands, how to restore a quarantined session, and why a scan may report unfinished work.
 
 ## Update and uninstall
 
-Before updating a HOME with unfinished tasks, follow the [upgrade notes](#upgrade-notes).
+Do not run `git pull` in an extracted release directory. Keep the old extracted
+directory, do not overwrite or repair a consumed cache, and extract the new
+published artifact into a separate directory. Follow the guide's compatibility and pause
+requirements; use the official marketplace operations to switch registration
+to the new directory.
 
-```shell
-git pull --ff-only
-python3 scripts/manage_plugin.py --apply
-```
-
-Plugin source changes require a version bump. Historical caches and trusted archives remain available to tasks that already loaded them.
+Removal deletes the selected plugin's cache. Finish tasks that depend on it
+before removing the stable entry:
 
 ```shell
 codex plugin remove context-guard@codex-context-guard
 codex plugin marketplace remove codex-context-guard
 ```
 
-Removing code does not remove private runtime data. Keep old data or caches while an active task may still depend on them.
+The experimental `codex-context-guard-v016` entry left by 0.16.x keeps its own
+cache and its own removal commands; do not remove it while any task or cache
+still depends on it.
+
+Private runtime data is separate; this procedure does not migrate or delete it.
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Privacy](docs/PRIVACY.md)
-- [Compatibility](docs/COMPATIBILITY.md)
-- [Versioning](docs/VERSIONING.md)
-- [Local acceptance](docs/LOCAL_ACCEPTANCE.md)
+- [Upgrade to 0.18.0](docs/UPGRADE_0_18_0.md)
+- [Session storage and cleanup](docs/SESSION_STORAGE.md)
+- [Documentation map](docs/README.md)
 - [Changelog](CHANGELOG.md)
 
 ## Validation
 
-```shell
-python3 scripts/validate_public_repo.py .
-python3 scripts/audit_public_tree.py .
-python3 scripts/run_current_behavior_suite.py
-python3 scripts/check_phase3_transition.py
-python3 scripts/context_guard.py self-test
-ruff check .
-python3 -m compileall -q scripts tests tools
-git diff --check
-```
-
-The current-behavior runner discovers every current `test_*.py` module except the byte-frozen 0.11.x observation baseline. The transition audit runs that historical baseline separately and succeeds only when its exact fixed/inverted manifest matches; running the frozen file as an ordinary all-pass suite would intentionally report failures and unexpected successes.
-
-The Hook runtime uses only the Python standard library. CI covers Ubuntu, macOS, and Windows on Python 3.10–3.14; CI does not substitute for native Hook trust or installed lifecycle evidence.
+See [Contributing](CONTRIBUTING.md) for commands and [Local acceptance](docs/LOCAL_ACCEPTANCE.md) for the platforms and versions tested. CI covers Ubuntu, macOS and Windows across Python 3.10–3.14. The acceptance record reports installed Hook behavior separately.
 
 ## Explicit non-goals
 

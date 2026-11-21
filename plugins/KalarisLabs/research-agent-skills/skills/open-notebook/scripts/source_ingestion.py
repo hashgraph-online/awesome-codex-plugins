@@ -25,7 +25,7 @@ def add_url_source(notebook_id, url, process_async=True):
         "url": url,
         "notebook_id": notebook_id,
         "process_async": str(process_async).lower(),
-    })
+    }, timeout=30)
     response.raise_for_status()
     source = response.json()
     print(f"Added URL source: {source['id']} - {url}")
@@ -38,7 +38,7 @@ def add_text_source(notebook_id, title, text):
         "text": text,
         "notebook_id": notebook_id,
         "process_async": "false",
-    })
+    }, timeout=30)
     response.raise_for_status()
     source = response.json()
     print(f"Added text source: {source['id']} - {title}")
@@ -56,7 +56,8 @@ def upload_file_source(notebook_id, file_path, process_async=True):
                 "process_async": str(process_async).lower(),
             },
             files={"file": (filename, f)},
-        )
+        timeout=30,
+    )
     response.raise_for_status()
     source = response.json()
     print(f"Uploaded file source: {source['id']} - {filename}")
@@ -67,7 +68,7 @@ def wait_for_processing(source_id, poll_interval=5, timeout=300):
     """Poll source processing status until completion or timeout."""
     elapsed = 0
     while elapsed < timeout:
-        response = requests.get(f"{BASE_URL}/sources/{source_id}/status")
+        response = requests.get(f"{BASE_URL}/sources/{source_id}/status", timeout=30)
         response.raise_for_status()
         status = response.json()
         current_status = status.get("status", "unknown")
@@ -87,7 +88,7 @@ def list_sources(notebook_id=None, limit=20):
     params = {"limit": limit}
     if notebook_id:
         params["notebook_id"] = notebook_id
-    response = requests.get(f"{BASE_URL}/sources", params=params)
+    response = requests.get(f"{BASE_URL}/sources", params=params, timeout=30)
     response.raise_for_status()
     sources = response.json()
     print(f"Found {len(sources)} source(s):")
@@ -98,14 +99,14 @@ def list_sources(notebook_id=None, limit=20):
 
 def get_source_insights(source_id):
     """Retrieve AI-generated insights for a source."""
-    response = requests.get(f"{BASE_URL}/sources/{source_id}/insights")
+    response = requests.get(f"{BASE_URL}/sources/{source_id}/insights", timeout=30)
     response.raise_for_status()
     return response.json()
 
 
 def retry_failed_source(source_id):
     """Retry processing for a failed source."""
-    response = requests.post(f"{BASE_URL}/sources/{source_id}/retry")
+    response = requests.post(f"{BASE_URL}/sources/{source_id}/retry", timeout=30)
     response.raise_for_status()
     print(f"Retrying source: {source_id}")
     return response.json()
@@ -113,7 +114,7 @@ def retry_failed_source(source_id):
 
 def delete_source(source_id):
     """Delete a source."""
-    response = requests.delete(f"{BASE_URL}/sources/{source_id}")
+    response = requests.delete(f"{BASE_URL}/sources/{source_id}", timeout=30)
     response.raise_for_status()
     print(f"Deleted source: {source_id}")
 
@@ -125,7 +126,7 @@ if __name__ == "__main__":
     notebook = requests.post(f"{BASE_URL}/notebooks", json={
         "name": "Source Ingestion Demo",
         "description": "Testing various source types",
-    }).json()
+    }, timeout=30).json()
     notebook_id = notebook["id"]
     print(f"Created notebook: {notebook_id}\n")
 
@@ -156,5 +157,5 @@ if __name__ == "__main__":
     print()
     delete_source(url_source["id"])
     delete_source(text_source["id"])
-    requests.delete(f"{BASE_URL}/notebooks/{notebook_id}")
+    requests.delete(f"{BASE_URL}/notebooks/{notebook_id}", timeout=30)
     print("Cleanup complete")

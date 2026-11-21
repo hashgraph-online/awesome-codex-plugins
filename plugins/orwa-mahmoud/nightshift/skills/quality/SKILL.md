@@ -37,9 +37,9 @@ Quality does not import, search, or work GitHub issues.
 The owner's sentence is binding intent. There is no keyword list.
 
 If the owner already stated feature, product, UI, or design work — even when they invoked
-Quality — continue as Hunt / Product Evolution. Do not show Quality catalog cards. Do not
-ask Guided-or-Automatic. Read `$NIGHTSHIFT_PLUGIN_ROOT/skills/hunt/SKILL.md` and follow it
-from its section 0.
+Quality — continue as Hunt / Product Evolution. Skip the Quality catalog cards. Do not
+ask Guided-or-Automatic. Follow the Hunt skill from its
+section 0.
 
 If the owner asked for quality work (lint, tests, coverage, debt, accessibility, contracts,
 documentation drift, dependencies, advisories), stay in this skill.
@@ -91,7 +91,9 @@ Do not scan until the tooling policy is answered. Never install a tool merely to
 findings — including after auto-add authorization. Under existing-tools, skip contracts whose
 required capabilities are unavailable and do not pause to provision.
 
-In repository mode detect the stack from the gates catalog (monorepo-aware), including a plugin or
+In repository mode detect the stack from `ns catalog-index --catalog gates` (monorepo-aware) and
+read only the stacks that matched. An owner's stack of the same key replaces the shipped one;
+say where the proposal came from. Include a plugin or
 marketplace manifest at the work-target root or under `plugins/<name>/`, and inspect
 repository-owned tooling and evidence. In artifact mode inspect the persistent folder's files and
 any existing manifests or reports; do not require git history or stack detection that needs a

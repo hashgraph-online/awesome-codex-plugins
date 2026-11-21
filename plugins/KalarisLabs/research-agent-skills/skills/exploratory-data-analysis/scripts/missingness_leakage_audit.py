@@ -7,41 +7,25 @@ import argparse
 
 from _capabilities import capability_for_path
 from _common import (
-    DEFAULT_MAX_FILE_BYTES,
-    DEFAULT_MAX_ROWS,
-    bounded_file_limit,
-    checked_input_file,
-    emit_json,
+    add_output_arguments,
+    add_reveal_identifiers_argument,
+    add_table_input_arguments,
+    checked_table_input,
+    emit_report,
     run_cli,
 )
 from _tabular import audit_missingness_and_leakage
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit bounded CSV/TSV missingness and common group/entity/time split "
             "leakage. Identifiers and cell values are tokenized or omitted."
         )
     )
-    parser.add_argument("input", help="Local .csv or .tsv path inside --root")
-    parser.add_argument(
-        "--root",
-        default=".",
-        help="Existing local directory that bounds all input/output paths",
-    )
-    parser.add_argument(
-        "--max-bytes",
-        type=int,
-        default=DEFAULT_MAX_FILE_BYTES,
-        help=f"Maximum input bytes (hard ceiling: {512 * 1024 * 1024})",
-    )
-    parser.add_argument(
-        "--max-rows",
-        type=int,
-        default=DEFAULT_MAX_ROWS,
-        help="Maximum rows to scan (hard ceiling: 1000000)",
-    )
+    add_table_input_arguments(parser)
     parser.add_argument(
         "--missing-token",
         action="append",
@@ -66,29 +50,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--time-column",
         help="Exact ISO-8601 time column used for split interval overlap checks",
     )
-    parser.add_argument(
-        "--reveal-identifiers",
-        action="store_true",
-        help="Emit sanitized column identifiers; values and group/entity IDs stay tokenized",
+    add_reveal_identifiers_argument(
+        parser,
+        "Emit sanitized column identifiers; values and group/entity IDs stay tokenized",
     )
-    parser.add_argument("--output", help="Optional local .json output path")
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Allow replacement of an existing regular output file",
-    )
+    add_output_arguments(parser)
     return parser
 
 
 def _main() -> None:
+    """Handle main."""
     args = build_parser().parse_args()
-    max_bytes = bounded_file_limit(args.max_bytes)
-    path = checked_input_file(
-        args.input,
-        root=args.root,
-        suffixes={".csv", ".tsv"},
-        max_bytes=max_bytes,
-    )
+    path = checked_table_input(args)
     report = {
         "schema_version": "1.1",
         "capability": capability_for_path(path),
@@ -114,15 +87,11 @@ def _main() -> None:
             "domain_design_review_required": True,
         },
     }
-    emit_json(
-        report,
-        output=args.output,
-        root=args.root,
-        force=args.force,
-    )
+    emit_report(report, args)
 
 
 def main() -> int:
+    """Run the command-line interface."""
     return run_cli(_main)
 
 

@@ -109,7 +109,7 @@ const KOREAN_NAME_STOPLIST = new Set([
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.source || !args.final || !args.report) {
-  fail("Usage: audit-humanize-output.mjs --source SOURCE --final FINAL --report REPORT");
+  fail("Usage: audit-humanize-output.mjs --source SOURCE --final FINAL --report REPORT [--genre GENRE] [--cut R-7]");
 }
 
 let report;
@@ -128,6 +128,10 @@ async function audit(args) {
   const source = await readInputFile("source", args.source);
   const final = await readInputFile("final", args.final);
   const genre = args.genre ?? null;
+  // An R-7 reply cut deletes the re-told problem from a short reply, so its change rate routinely
+  // passes 50%. The caller declares the cut; protected tokens (URLs included) still gate it.
+  const cut = args.cut ?? null;
+  if (cut !== null && cut !== "R-7") throw new Error(`Unsupported --cut value: ${cut} (only R-7)`);
   const sourceRatio = koreanRatio(source);
   const finalRatio = koreanRatio(final);
   const protectedTokens = collectProtectedTokens(source);
@@ -139,7 +143,11 @@ async function audit(args) {
   if (sourceRatio < 0.2) problems.push("Korean source text required");
   if (missing.length > 0) problems.push("Protected tokens changed");
   if (finalRatio < 0.2) problems.push("Final text is not Korean enough");
-  if (changeRate > 0.5) problems.push("Change rate exceeds 50%");
+  // A declared R-7 cut must delete (final shorter than source) and still stops at 80%, so the flag
+  // cannot launder a near-total rewrite.
+  const changeLimit = cut === null ? 0.5 : 0.8;
+  if (changeRate > changeLimit) problems.push(`Change rate exceeds ${changeLimit * 100}%`);
+  if (cut !== null && final.length >= source.length) problems.push(`A declared ${cut} cut must shorten the text`);
   if (requiredS1Count(before) > 0 && requiredS1Count(after) >= requiredS1Count(before)) {
     problems.push("S1 AI-tell count not reduced");
   }
@@ -147,7 +155,9 @@ async function audit(args) {
   if ((after["M-1"] ?? 0) > 0) problems.push("Em dash remains in Korean prose");
 
   const warnings = [];
-  if (changeRate > 0.3 && changeRate <= 0.5) warnings.push("Change rate exceeds 30%");
+  if (changeRate > 0.3 && changeRate <= changeLimit) {
+    warnings.push(cut === null ? "Change rate exceeds 30%" : `Change rate ${(changeRate * 100).toFixed(1)}% from a declared ${cut} reply cut`);
+  }
   const modality = {
     deontic: { before: countMatches(source, DEONTIC_MARKER_PATTERN), after: countMatches(final, DEONTIC_MARKER_PATTERN) },
     hedge: { before: countMatches(source, HEDGE_MARKER_PATTERN), after: countMatches(final, HEDGE_MARKER_PATTERN) }
@@ -178,8 +188,9 @@ async function audit(args) {
   }
   return {
     ok: problems.length === 0,
-    grade: grade({ after, changeRate, missing, problems }),
+    grade: grade({ after, changeRate, cut, missing, problems }),
     genre,
+    cut,
     sourceChars: source.length,
     finalChars: final.length,
     changeRate: Number(changeRate.toFixed(4)),
@@ -318,8 +329,8 @@ function levenshtein(left, right) {
   return previous[right.length];
 }
 
-function grade({ after, changeRate, missing, problems }) {
-  if (problems.length > 0 || missing.length > 0 || changeRate > 0.5) return "D";
+function grade({ after, changeRate, cut, missing, problems }) {
+  if (problems.length > 0 || missing.length > 0 || changeRate > (cut === null ? 0.5 : 0.8)) return "D";
   const s1After = requiredS1Count(after);
   const s2After = Object.entries(after)
     .filter(([id]) => ![...REQUIRED_S1_PATTERN_IDS, ...GRADE_EXEMPT_IDS, ...ADVISORY_PATTERN_IDS].includes(id))

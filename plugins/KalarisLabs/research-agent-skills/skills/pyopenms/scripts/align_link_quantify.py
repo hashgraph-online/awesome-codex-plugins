@@ -35,6 +35,7 @@ except Exception:
 
 
 def load_or_detect(path, ppm, noise):
+    """Load or detect."""
     if path.lower().endswith(".featurexml"):
         fm = ms.FeatureMap()
         ms.FeatureXMLFile().load(path, fm)
@@ -66,6 +67,7 @@ def align(feature_maps):
 
 
 def link(feature_maps, filenames, rt_tol, mz_tol, mz_unit):
+    """Handle link."""
     grouper = ms.FeatureGroupingAlgorithmQT()
     p = grouper.getParameters()
     p.setValue("distance_RT:max_difference", float(rt_tol))
@@ -88,6 +90,7 @@ def link(feature_maps, filenames, rt_tol, mz_tol, mz_unit):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Align, link, and quantify across samples.")
     parser.add_argument("inputs", nargs="+", help="mzML and/or featureXML files (2+)")
     parser.add_argument("--out-prefix", default="consensus", help="Output file prefix")

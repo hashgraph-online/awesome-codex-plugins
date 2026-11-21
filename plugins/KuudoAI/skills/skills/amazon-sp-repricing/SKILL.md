@@ -16,7 +16,8 @@ description: >-
 compatibility: Amazon SP-API MCP (meta-tool pattern) for pricing, fees, listings, and reports. Degrades to advisory mode without it, where floors and competitive position depend entirely on seller-supplied figures.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.2.0"
+  display-name: "Amazon SP Repricing"
+  version: "0.2.1"
 ---
 
 # Amazon repricing

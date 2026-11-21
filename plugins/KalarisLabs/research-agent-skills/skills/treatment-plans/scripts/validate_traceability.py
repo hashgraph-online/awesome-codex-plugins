@@ -19,6 +19,7 @@ from _common import (
 
 
 def validate_traceability(documents: dict[str, dict]) -> dict:
+    """Validate traceability."""
     issues = validate_package_structure(documents)
     if issues:
         return report_payload(
@@ -122,6 +123,7 @@ def validate_traceability(documents: dict[str, dict]) -> dict:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check that every package fact reference exists and points to a "
@@ -133,6 +135,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         documents, _ = load_package(args.package)

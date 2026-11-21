@@ -2,14 +2,14 @@
 name: cometchat-angular-v5-customization
 description: "Brand and customize the CometChat Angular UI Kit — CSS variable tokens, light/dark via ThemeService, localization, date/time formats, global config, and swapping component regions with ng-template. Triggers: 'change the chat colours', 'match my brand angular', 'dark mode', 'translate the chat', 'change the date format', 'custom avatar in the list'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat angular customization theming v5 branding dark-mode localization tokens"
 ---
 
-> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.0 verified). Theme tokens, `ThemeService` and the global config are FETCHED from `{DOCS_BASE}/ui-kit/angular/customization/theming.md`, `/customization/global-config.md`, `/customization/localization.md`, `/customization/date-time-formatting.md` and `/message-bubble-styling.md` — base + paths in `cometchat-angular-v5-core/references/docs-map.md`. CSS variable names are version-pinned; never invent a token.
+> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.2 verified). Theme tokens, `ThemeService` and the global config are FETCHED from `{DOCS_BASE}/ui-kit/angular/customization/theming.md`, `/customization/global-config.md`, `/customization/localization.md`, `/customization/date-time-formatting.md` and `/message-bubble-styling.md` — base + paths in `cometchat-angular-v5-core/references/docs-map.md`. CSS variable names are version-pinned; never invent a token.
 
 ## Companion skills (read first)
 - `cometchat-angular-v5-core` — install and `references/theming.md` for the token basics. Assumed.
@@ -17,6 +17,8 @@ metadata:
 
 ## Use this skill when
 Changing how the kit **looks or reads**: colours, fonts, dark mode, language, date formats, or replacing a region's markup.
+
+**Cloning a named app, or mixing kit components with your own UI?** Measure the target's colors, type, spacing and radii into ONE token source, theme the kit from it, and style every custom component from the same tokens so kit and custom parts look like one design; host a kit component in your own dialog/panel when only its placement differs. Flow: `cometchat-onboarding` → `references/clone-mode.md` (Design sync, build levels L0–L6).
 
 ## Pick the smallest lever
 | Want | Use | Cost |
@@ -74,6 +76,46 @@ Per-component inputs, not global CSS: `lastMessageDateTimeFormat` (conversations
 
 ## Structural changes
 Replacing markup rather than styling it is a **view slot** — `itemView`, `titleView`, `subtitleView`, `leadingView`, `trailingView`, `headerView`, `emptyView`, `errorView`, `loadingView`. See `cometchat-angular-v5-components`. Override the smallest slot that does the job.
+
+### Avatar and sender name on every message (BAKED — verified vs 5.2.2, same code in 5.1.0 and 5.2.0)
+What to check and why: `cometchat-onboarding/references/clone-mode.md` → *Message chrome*. This is the Angular how-to.
+**Kit default:** avatar and sender name on every LEFT-aligned (incoming) message, in 1:1 chats AND groups; your own messages sit on the right with neither. The bubble's rule is `alignment === left` with no group check (`shouldShowLeadingView` / `shouldShowHeaderView` in `CometChatMessageBubbleComponent`); call and action rows are centered and never get them.
+When the target shows avatars and names (Slack, Discord, Teams), do BOTH steps yourself, without asking. Together they put your avatar and name on every message, own and others', in 1:1 chats and groups:
+1. **Alignment:** `[messageAlignment]="align"` with `align = MessageListAlignment.left` on `<cometchat-message-list>`. Everything moves left, so your own messages get the avatar and name too. The enum is numeric (`left = 0`, `standard = 1`); the docs' `[messageAlignment]="'left'"` is a strict-template error (TS2322) and would not match at runtime anyway.
+2. **Per-message slots:** register a `leadingView` (avatar) and `headerView` (name) through `MessageBubbleConfigService` (root singleton; `setGlobalViews` covers every message type). A registered slot renders even on right-aligned bubbles, so this also works if the target keeps your own messages on the right, and it is where the target's own avatar size and name style go:
+```ts
+import { Component, Input, OnDestroy, OnInit, TemplateRef, ViewChild, inject } from '@angular/core';
+import type { BaseMessage, Group, User } from '@cometchat/chat-sdk-javascript';
+import { CometChatAvatarComponent, CometChatMessageListComponent, MessageBubbleConfigService, MessageListAlignment } from '@cometchat/chat-uikit-angular';
+
+@Component({
+  selector: 'app-channel-messages',
+  standalone: true,
+  imports: [CometChatMessageListComponent, CometChatAvatarComponent],
+  template: `
+    <cometchat-message-list [user]="user" [group]="group" [messageAlignment]="align" />
+    <ng-template #senderAvatar let-m>
+      <cometchat-avatar [image]="m.getSender()?.getAvatar() ?? ''" [name]="m.getSender()?.getName() ?? ''" />
+    </ng-template>
+    <ng-template #senderName let-m><span class="cc-sender-name">{{ m.getSender()?.getName() }}</span></ng-template>
+  `,
+})
+export class ChannelMessagesComponent implements OnInit, OnDestroy {
+  @Input() user?: User;
+  @Input() group?: Group;
+  readonly align = MessageListAlignment.left;
+  @ViewChild('senderAvatar', { static: true }) senderAvatar!: TemplateRef<{ $implicit: BaseMessage }>;
+  @ViewChild('senderName', { static: true }) senderName!: TemplateRef<{ $implicit: BaseMessage }>;
+  private readonly bubbles = inject(MessageBubbleConfigService);
+  // static: true -> the templates exist in ngOnInit, before the list renders its first bubble.
+  ngOnInit(): void { this.bubbles.setGlobalViews({ leadingView: this.senderAvatar, headerView: this.senderName }); }
+  // Root singleton: clear on destroy, or every other message list keeps a dead template.
+  ngOnDestroy(): void { this.bubbles.setGlobalViews({ leadingView: null, headerView: null }); }
+}
+```
+  The slot context is `{ $implicit: message }`. Style `.cc-sender-name` from your token source (e.g. `font: 600 15px var(--cometchat-font-family)`). Multi-attachment batches show the avatar and name once by themselves (the list passes `hideAvatar` / `hideSenderName` to the follow-on bubbles, which also hides your slot). `hideAvatar` on the list, or `hideAvatar` in `COMETCHAT_GLOBAL_CONFIG`, still wins over the slot; check both are unset. Service API: `{DOCS_BASE}/ui-kit/angular/components/cometchat-message-list.md` (MessageBubbleConfigService section).
+- **Once per run** isn't reachable: the slot only receives its own message, not the previous one (L4).
+- **Verified:** names and logic read from the shipped 5.2.2 fesm2022 + `.d.ts` (5.1.0 and 5.2.0 identical); snippet compiles with `ng build` `strictTemplates` + strict TS. Not yet run in a browser: open a 1:1 chat and a group and check your own and others' messages.
 
 ## Common pitfalls
 1. **Hand-rolling OS theme detection** — `ThemeService.initFromPreference()` already does it.

@@ -41,13 +41,21 @@ user which capability to plan first.
 
 Keep an internal coverage map over six categories — `Outcome + scenarios /
 Constraints + compat / Data + integrations / Failure + edge / Out of scope /
-Success metric` — each `Clear / Partial / Missing` from the request text.
+Success metric` — each `Clear / Partial / Missing` from the request text. Also
+review these risk areas for applicability: non-functional qualities (such as
+latency, capacity, or reliability), security and privacy, compatibility and
+migration, concurrent access, observability, and accessibility. Mark each
+`Applicable`, `Out of scope`, or `Unresolved`; ask only about material,
+unresolved areas relevant to this change. Do not add requirements for areas
+that do not apply.
 Ask about at most 5 questions per round, ordered by `Impact × Uncertainty`
 (Missing categories first), each with a recommended answer:
 
 - Outcome: what the user observes when this is done.
 - Why now, and what "good" looks like (these become spec scenarios).
 - Constraints: platforms, libraries, performance, compatibility.
+- Risk review: which applicable areas impose a constraint or need an
+  acceptance scenario; which areas are out of scope or unresolved.
 - Out of scope: what this change must not touch.
 - Capability name(s) the behavior belongs to.
 
@@ -95,11 +103,11 @@ intent before it becomes paper.
 
 ### 6. Playback gate
 
-Restate intent in seven lines — `Outcome / Why now / Success / Constraints /
-Out of scope / Rejected risks / Established` — and get explicit confirmation
-before any file is written. `Established:` recites up to five decision-relevant
-research findings the user might re-ask, one per line, absences included (e.g.
-"X exposes no theme API").
+Restate intent in seven lines — `Outcome / Why now / Success / Constraints
+(including risk review) / Out of scope / Rejected risks / Established` — and
+get explicit confirmation before any file is written. `Established:` recites
+up to five decision-relevant research findings the user might re-ask, one per
+line, absences included (e.g. "X exposes no theme API").
 
 ### 7. Draft
 
@@ -127,7 +135,25 @@ Dispatch `omos-critic` on the drafted change.
 - Mechanical INVALID lines from the critic are always fixed first, never
   waived by you.
 
-### 9. Approval
+### 9. Mechanical validation and recovery
+
+After the critique path is complete and before approval, call
+`openspec_validate` for the drafted change.
+
+- `VALID` → continue to §10.
+- `INVALID` → dispatch `omos-planner` with the exact numbered findings and
+  request a correction. After each planner revision, run `openspec_validate`
+  again for the same change.
+- If findings remain after a revision or the planner reports it cannot safely
+  resolve them, show the exact remaining findings and offer the user another
+  planner revision or the chance to fix them. Do not claim validation passed.
+
+This mechanical correction step does not consume the critique loop's
+three-round limit. When the user previously chose critic-only because the CLI
+was unavailable, report that mechanical validation could not run and continue
+to approval with the critic result clearly identified as non-mechanical.
+
+### 10. Approval
 
 Present: change id, file list with one-line summaries, every `ASSUMPTION:`
 and `REJECTED-RISK:` line verbatim, validation result. Ask the user to
@@ -148,3 +174,5 @@ confirm.
   written by any dispatched role; project code is untouched in this command.
 - Never commit, push, or stage anything.
 - The user's confirmed playback, not chat history, is the drafting contract.
+- A risk review records applicability; it does not require every risk area to
+  become a requirement.

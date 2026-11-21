@@ -1,0 +1,106 @@
+{
+  "profile_version": 1,
+  "updated": "2026-11-15",
+  "bot": {
+    "archetype": "shop",
+    "contexts": ["private", "group"],
+    "locales": ["en", "ru"],
+    "primary_locale": "en",
+    "sdk": "grammy 1.38",
+    "bot_api_ceiling": "10.4"
+  },
+  "mandate": {"access": "A2", "change": "M4"},
+  "brand": {
+    "traits": ["calm", "precise", "plain"],
+    "accent": "#2F6FEB",
+    "icon_style": "outline",
+    "avatar": "web/public/brand/avatar-640.png"
+  },
+  "voice": {"address": "informal", "tone": "calm", "person": "we", "exclamations": "never"},
+  "density": {
+    "max_body_lines": 8,
+    "max_sentences_per_paragraph": 2,
+    "headings": "bold_line",
+    "tables": "when_compared",
+    "long_text": "rich_message"
+  },
+  "keyboard": {
+    "max_actions_per_screen": 6,
+    "max_buttons_per_row": 2,
+    "label_max_chars": 20,
+    "label_form": "verb_object",
+    "nav_row": "last",
+    "back_label": "← Back",
+    "home_label": "Home",
+    "confirm_destructive": true
+  },
+  "emphasis": {"primary_per_screen": 1, "success_on_commit": true, "danger": "after_confirm"},
+  "icons": {
+    "system": "unicode",
+    "eligibility": "none",
+    "pack": null,
+    "in_labels": "leading",
+    "in_body": "status_only",
+    "max_per_message": 3
+  },
+  "navigation": {
+    "entry": "home_screen",
+    "edit_in_place": true,
+    "max_depth": 2,
+    "menu_button": "commands",
+    "commands": [
+      {"command": "start", "description": "Open the shop"},
+      {"command": "orders", "description": "Track your orders"},
+      {"command": "help", "description": "Ask a question or get support"}
+    ]
+  },
+  "feedback": {"ack_every_tap": true, "progress": "named_stages", "ai_streaming": "none"},
+  "formats": {"date": "15 Nov 2026", "time": "24h", "number_grouping": "locale", "currency": "locale"},
+  "profile_texts": {
+    "en": {
+      "name": "Northwind Shop",
+      "short_description": "Order coffee gear and track deliveries.",
+      "description": "Browse the catalogue, pay with Stars or card, and follow your delivery here. Tap Start to open the shop."
+    },
+    "ru": {
+      "name": "Northwind Shop",
+      "short_description": "Заказывайте кофейное оборудование и следите за доставкой.",
+      "description": "Смотрите каталог, платите звёздами или картой и следите за доставкой здесь. Нажмите «Запустить», чтобы открыть магазин."
+    }
+  },
+  "contracts": {
+    "callback_data": "versioned",
+    "callback_prefix": "v2:",
+    "i18n_keys": "new_keys_for_new_meaning",
+    "deep_links": "frozen",
+    "commands": "aliased"
+  },
+  "sources": {
+    "bot.archetype": "README.md:1",
+    "bot.contexts": "src/bot.ts:12 (group handlers)",
+    "bot.locales": "locales/en.json, locales/ru.json",
+    "bot.primary_locale": "user 2026-11-15",
+    "bot.sdk": "package.json:14",
+    "bot.bot_api_ceiling": "grammY changelog",
+    "mandate.access": "repo checkout, no test token",
+    "mandate.change": "user 2026-11-15: rethink the whole menu, callbacks may change",
+    "brand.traits": "DESIGN.md:5",
+    "brand.accent": "web/src/styles/tokens.css:3 --color-primary",
+    "brand.icon_style": "web/src/components/icons (outline set)",
+    "brand.avatar": "web/public/brand/",
+    "voice.address": "locales/ru.json: 21x ты, 0x вы",
+    "voice.tone": "user 2026-11-15 (voice samples)",
+    "voice.person": "web landing copy",
+    "voice.exclamations": "user 2026-11-15",
+    "density": "user 2026-11-15 (voice samples)",
+    "keyboard": "skill defaults confirmed by user 2026-11-15",
+    "keyboard.label_max_chars": "longest ru label 19 chars",
+    "emphasis": "skill defaults",
+    "icons": "probe: 0 custom emoji ids; owner has no Fragment username",
+    "navigation": "redesign plan docs/telegram-ui/plan.md",
+    "feedback": "no AI replies in this bot",
+    "formats": "web/src/lib/format.ts",
+    "profile_texts": "user 2026-11-15",
+    "contracts": "plan.md section Migration"
+  }
+}

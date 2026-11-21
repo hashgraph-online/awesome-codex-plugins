@@ -140,7 +140,7 @@ export class GoalProgressUpdateCoordinator {
   readonly #newOperationId: () => string;
   #state: GoalProgressUpdateState | null = null;
   #checkScheduled = false;
-  #automaticCheckAttempted = false;
+  #lastAutomaticCheckAttemptAtMs: number | null = null;
   #queue: Promise<void> = Promise.resolve();
   #operationPromise: Promise<void> | null = null;
   #operationAbortController: AbortController | null = null;
@@ -471,6 +471,7 @@ export class GoalProgressUpdateCoordinator {
       if (!proof.complete) {
         return;
       }
+      this.#lastAutomaticCheckAttemptAtMs = this.#now().getTime();
       completed = await this.#writeDirect(state, {
         phase: "up-to-date",
         currentVersion: operation.targetVersion,
@@ -510,18 +511,23 @@ export class GoalProgressUpdateCoordinator {
   async beginAutomaticCheck(): Promise<GoalProgressUpdateIntentResult | null> {
     let result: GoalProgressUpdateIntentResult | null = null;
     await this.#enqueue(async () => {
-      if (this.#automaticCheckAttempted) {
+      if (this.#checkScheduled) {
         return;
       }
-      this.#automaticCheckAttempted = true;
       const state = await this.#loadOrCreate();
       if (updateActivePhases.has(state.phase)) {
         return;
       }
+      const nowMs = this.#now().getTime();
       const checkedAt = state.checkedAt === null ? null : Date.parse(state.checkedAt);
-      if (checkedAt !== null && this.#now().getTime() - checkedAt < 24 * 60 * 60 * 1_000) {
+      const lastCheckMs = Math.max(
+        checkedAt ?? Number.NEGATIVE_INFINITY,
+        this.#lastAutomaticCheckAttemptAtMs ?? Number.NEGATIVE_INFINITY,
+      );
+      if (nowMs - lastCheckMs < 24 * 60 * 60 * 1_000) {
         return;
       }
+      this.#lastAutomaticCheckAttemptAtMs = nowMs;
       result = await this.#beginCheck(state);
     });
     return result;
@@ -1095,9 +1101,29 @@ export class GoalProgressUpdateCoordinator {
         downloadPercent: null,
       });
     }
-    if (stored.currentVersion !== this.#currentVersion && !updateActivePhases.has(stored.phase)) {
+    const targetAlreadyReached =
+      stored.latestVersion !== null &&
+      compareGoalProgressVersions(stored.latestVersion, this.#currentVersion) <= 0;
+    if (
+      !updateActivePhases.has(stored.phase) &&
+      (stored.currentVersion !== this.#currentVersion || targetAlreadyReached)
+    ) {
       this.#state = await this.#writeDirect(stored, {
         currentVersion: this.#currentVersion,
+        ...(targetAlreadyReached
+          ? {
+              latestVersion: null,
+              phase: "up-to-date",
+              lastSeenUpdateVersion: this.#currentVersion,
+              promptDismissedForVersion: null,
+              downloadedBytes: 0,
+              totalBytes: null,
+              downloadPercent: null,
+              restartRequired: false,
+              lastErrorCode: null,
+              nextStep: "check",
+            }
+          : {}),
       });
     }
     return this.#state;

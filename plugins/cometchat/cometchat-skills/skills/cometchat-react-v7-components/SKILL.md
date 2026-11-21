@@ -2,7 +2,7 @@
 name: cometchat-react-v7-components
 description: "The React v7 UI Kit component catalog — which drop-in components exist and how to compose/swap them (conversations, messages, users, groups, threads, calling, bubbles). Triggers: 'what cometchat components are there', 'customize the message list', 'swap the message bubble', 'add a users list'."
 license: "MIT"
-compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.1.x, verified 7.1.0)"
+compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.2.x, verified 7.2.4)"
 metadata:
   author: "CometChat"
   version: "1.0.1"

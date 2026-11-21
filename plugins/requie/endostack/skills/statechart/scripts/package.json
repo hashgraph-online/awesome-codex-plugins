@@ -1,0 +1,12 @@
+{
+  "name": "endostack-statechart",
+  "private": true,
+  "type": "module",
+  "description": "TLA+ model-check front end: runs TLC, writes a report and a Mermaid state chart.",
+  "bin": { "statechart": "./statechart" },
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test test/",
+    "record": "node test/support/record.mjs"
+  }
+}

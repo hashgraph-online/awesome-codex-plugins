@@ -1,0 +1,27 @@
+{
+  "update_id": 950003,
+  "message": {
+    "message_id": 1203,
+    "date": 1797854460,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "successful_payment": {
+      "currency": "XTR",
+      "total_amount": 150,
+      "invoice_payload": "sub:111111111",
+      "subscription_expiration_date": 1800446400,
+      "is_recurring": true,
+      "telegram_payment_charge_id": "stxDEMOsub0002",
+      "provider_payment_charge_id": ""
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "uizze-ui-slop",
+  "description": "UI design that stands out",
+  "version": "1.3.1",
+  "author": {
+    "name": "Uizze",
+    "url": "https://uizze.com"
+  },
+  "homepage": "https://uizze.com",
+  "repository": "https://github.com/uizze/uizze",
+  "license": "MIT",
+  "keywords": [
+    "ui",
+    "design",
+    "frontend",
+    "anti-slop",
+    "agent-skill",
+    "github-copilot"
+  ],
+  "extensions": {
+    "com.github.awesome-copilot": {
+      "skills": [
+        "./skills/anti-ui-slop/"
+      ]
+    }
+  }
+}

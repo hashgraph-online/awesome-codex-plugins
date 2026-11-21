@@ -1,0 +1,49 @@
+{
+  "id": "paper-pulsing-border-northern-lights",
+  "label": "Northern lights (Paper PulsingBorder)",
+  "shader": "PulsingBorder",
+  "page": "https://shaders.paper.design/pulsing-border",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Northern lights\" preset for PulsingBorder, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.18,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1.1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#4c4794",
+      "#774a7d",
+      "#12694a",
+      "#0aff78",
+      "#4733cc"
+    ],
+    "colorBack": "#0c182c",
+    "roundness": 0,
+    "thickness": 1,
+    "softness": 1,
+    "margin": 0,
+    "marginLeft": 0,
+    "marginRight": 0,
+    "marginTop": 0,
+    "marginBottom": 0,
+    "aspectRatio": "auto",
+    "intensity": 0.1,
+    "bloom": 0.2,
+    "spots": 4,
+    "spotSize": 0.25,
+    "pulse": 0,
+    "smoke": 0.32,
+    "smokeSize": 0.5
+  }
+}

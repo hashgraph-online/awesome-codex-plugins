@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "templateDirectory": "templates",
+  "skillRouting": {
+    "assessment": "repo-harness-assessment",
+    "entrypoint": "repo-harness-assessment",
+    "contracts": "repo-contracts-and-boundaries",
+    "quality": "repo-contracts-and-boundaries",
+    "validation": "validation-harness-design",
+    "runtime-evidence": "runtime-evidence-and-tracing",
+    "work-state": "work-state-and-delivery",
+    "ledger": "work-state-and-delivery",
+    "commit-policy": "work-state-and-delivery"
+  },
+  "roles": {
+    "entrypoint": {
+      "description": "First-read guidance that routes an agent to source-of-truth documents, edit boundaries, and minimum validation.",
+      "defaultArtifacts": ["AGENTS.md"],
+      "aliases": ["CLAUDE.md", "GEMINI.md", ".cursorrules", ".github/instructions/"]
+    },
+    "work-state": {
+      "description": "Current tasks, status, acceptance criteria, and task-to-change traceability.",
+      "defaultArtifacts": ["tasks.md", "docs/tasks.md"],
+      "aliases": ["GitHub Issues", "Linear", "Jira", "internal task board"]
+    },
+    "ledger": {
+      "description": "Durable delivery evidence that summarizes intent, changes, validation, risks, and linked tasks or commits.",
+      "defaultArtifacts": ["agent_chats/", "agents_chat/"],
+      "aliases": ["pull request description", "release note", "handoff note"]
+    },
+    "validation": {
+      "description": "Repeatable commands and checks that prove a change is safe enough for review.",
+      "defaultArtifacts": ["docs/validation.md", "scripts/check_repo_harness.py"],
+      "aliases": ["Makefile target", "package script", "CI workflow", "doctor command"]
+    },
+    "runtime-evidence": {
+      "description": "Artifacts that connect observed behavior to run identifiers, request identifiers, logs, traces, screenshots, or external dependency status.",
+      "defaultArtifacts": ["artifacts/runs/<run_id>/"],
+      "aliases": ["trace export", "test report", "manual smoke artifact", "monitoring permalink"]
+    },
+    "quality": {
+      "description": "Generated metrics, thresholds, and baselines that freeze new degradation and guide gradual cleanup.",
+      "defaultArtifacts": ["QUALITY_SCORE.md", "docs/generated/quality-report.md"],
+      "aliases": ["quality dashboard", "structural metrics report", "debt baseline"]
+    }
+  },
+  "archetypes": [
+    {
+      "id": "library",
+      "displayName": "Library",
+      "minimumRoles": ["entrypoint", "validation"],
+      "optionalRoles": ["work-state", "ledger", "quality"],
+      "defaultTemplates": {
+        "entrypoint": "templates/AGENTS.md",
+        "validation": "templates/validation-matrix.md"
+      },
+      "avoidByDefault": ["runtime-evidence"]
+    },
+    {
+      "id": "service",
+      "displayName": "Service",
+      "minimumRoles": ["entrypoint", "validation", "runtime-evidence"],
+      "optionalRoles": ["work-state", "ledger", "quality"],
+      "defaultTemplates": {
+        "entrypoint": "templates/AGENTS.md",
+        "validation": "templates/validation-matrix.md",
+        "runtime-evidence": "templates/runtime-evidence-summary.md"
+      },
+      "avoidByDefault": []
+    },
+    {
+      "id": "monorepo",
+      "displayName": "Monorepo",
+      "minimumRoles": ["entrypoint", "validation", "work-state"],
+      "optionalRoles": ["ledger", "runtime-evidence", "quality"],
+      "defaultTemplates": {
+        "entrypoint": "templates/AGENTS.md",
+        "work-state": "templates/task-state.md",
+        "validation": "templates/validation-matrix.md"
+      },
+      "avoidByDefault": []
+    },
+    {
+      "id": "cli-tooling",
+      "displayName": "CLI Tooling",
+      "minimumRoles": ["entrypoint", "validation"],
+      "optionalRoles": ["work-state", "ledger", "quality"],
+      "defaultTemplates": {
+        "entrypoint": "templates/AGENTS.md",
+        "validation": "templates/validation-matrix.md"
+      },
+      "avoidByDefault": ["runtime-evidence"]
+    },
+    {
+      "id": "docs-only",
+      "displayName": "Docs Only",
+      "minimumRoles": ["entrypoint", "validation"],
+      "optionalRoles": ["work-state", "ledger"],
+      "defaultTemplates": {
+        "entrypoint": "templates/AGENTS.md",
+        "validation": "templates/validation-matrix.md"
+      },
+      "avoidByDefault": ["runtime-evidence", "quality"]
+    },
+    {
+      "id": "regulated-high-audit",
+      "displayName": "Regulated High Audit",
+      "minimumRoles": ["entrypoint", "work-state", "ledger", "validation"],
+      "optionalRoles": ["runtime-evidence", "quality"],
+      "defaultTemplates": {
+        "entrypoint": "templates/AGENTS.md",
+        "work-state": "templates/task-state.md",
+        "ledger": "templates/delivery-record.md",
+        "validation": "templates/validation-matrix.md"
+      },
+      "avoidByDefault": []
+    }
+  ],
+  "engineeringForms": [
+    "library",
+    "service",
+    "monorepo",
+    "cli-tooling",
+    "docs-only",
+    "regulated-high-audit",
+    "backend",
+    "frontend",
+    "browser",
+    "docker"
+  ]
+}

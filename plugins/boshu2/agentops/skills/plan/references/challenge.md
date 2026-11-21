@@ -11,11 +11,13 @@ unknowns need observations, and caller choices need the caller.
    decision at stake. Preserve acceptance and scope unchanged. Use the author's
    proposal plus one fresh challenger by default, with distinct native context
    identity and only the inputs needed for this question. Follow
-   [model-dispatch](../../agent-native/references/model-dispatch.md) for actual
+   [model-dispatch](../../validate/references/model-dispatch.md) for actual
    authorization, same-family default, explicit cross-model selection and real
    remaining bounds. Method selection itself grants no dispatch authority.
    Without it, do not stand in as your own challenger: mark the claim as
-   inference and return it with the check that would settle it.
+   inference and return it with the check that would settle it. A requested
+   Premortem instead runs its checks and states that the independence leg is
+   missing ([its workflow](../../premortem/SKILL.md#workflow), step 2).
 2. The challenger gives the strongest counterexample or contrary evidence,
    identifies the assumption it attacks, and names what would change its view.
    Unsupported possibilities remain hypotheses; seek a concrete defeating

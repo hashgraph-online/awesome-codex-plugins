@@ -1,0 +1,87 @@
+schema_version: 1
+id: alphagenome-research
+title: AlphaGenome Research
+path: skills/alphagenome-research
+status: active
+family: local-regulatory-model-inference
+tasks:
+  - environment-setup
+  - sequence-prediction
+  - interval-prediction
+  - track-prediction
+  - variant-effect
+  - interpretation
+  - troubleshooting
+triggers:
+  - alphagenome-research
+  - alphagenome_research
+  - create_from_kaggle
+  - create_from_huggingface
+  - local alphagenome
+  - score_ism_variants
+required_inputs:
+  - task-objective
+  - execution-path
+optional_inputs:
+  - species
+  - model-source
+  - model-version
+  - checkpoint-path
+  - reference-fasta
+  - annotation-assets
+  - sequence
+  - sequence-or-interval
+  - coordinate-or-interval
+  - ref-alt-or-variant-spec
+  - output-head
+  - ontology-terms
+  - output-dir
+input_mappings:
+  - task-objective|query_tokens=setup,install,check,run,predict,score,ism,variant,interval,track,troubleshoot|script_flags=--mode
+  - execution-path|query_tokens=local,research,jax,gpu,tpu,kaggle,huggingface,checkpoint|script_flags=--model-source
+  - species|query_tokens=human,mouse,species|script_flags=--species
+  - model-source|query_tokens=kaggle,huggingface,checkpoint,weights|script_flags=--model-source
+  - model-version|query_tokens=all_folds,model-version,version|script_flags=--model-version
+  - checkpoint-path|query_tokens=checkpoint,path,local-weights|script_flags=--checkpoint-path
+  - reference-fasta|query_tokens=fasta,fa,reference-genome|script_flags=--fasta-path
+  - annotation-assets|query_tokens=gtf,feather,pas,splice-site,annotation|script_flags=--gtf-feather-path,--pas-feather-path,--splice-site-starts-feather-path,--splice-site-ends-feather-path
+  - sequence|query_tokens=sequence,dna,predict_sequence,smoke-test|script_flags=--sequence
+  - sequence-or-interval|query_tokens=interval,chr,start,end,track|script_flags=--interval
+  - coordinate-or-interval|query_tokens=coordinate,position,pos,locus,variant-site|script_flags=--chrom,--position,--interval
+  - ref-alt-or-variant-spec|query_tokens=ref,alt,mutation,variant,allele|script_flags=--ref,--alt
+  - output-head|query_tokens=head,output,rna_seq,dnase,atac,chip,contact,splice|script_flags=--output-head
+  - ontology-terms|query_tokens=ontology,uberon,cl,tissue,cell-type|script_flags=--ontology-term
+  - output-dir|query_tokens=output,outdir,save|script_flags=--output-dir
+required_env_any: []
+constraints:
+  - python>=3.11
+  - local-jax-model-not-hosted-dna-client-api
+  - weights-must-be-downloaded-or-supplied-by-checkpoint
+  - jax-accelerator-expected-for-full-model-inference
+  - all_folds-explicit-organism-settings-should-include-human-and-mouse
+  - use-predict_sequence-for-first-real-accelerator-smoke-test
+  - set-HF_HUB_DISABLE_XET-when-huggingface-download-stalls
+  - interval-is-0based-half-open
+  - variant-position-is-1based
+  - use-local-organism-settings-for-reproducible-fasta-and-annotations
+tools:
+  - scripts/run_local_alphagenome.py
+tool_contracts:
+  - tool: scripts/run_local_alphagenome.py
+    inputs:
+      - mode
+      - model-source
+      - sequence-or-coordinates-or-interval
+      - output-head
+      - optional-local-reference-assets
+    outputs:
+      - runtime-check-json
+      - runnable-template
+      - prediction-npz
+      - result-json
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-alphagenome-research-or-alphagenome_research
+  - prefer-when-user-asks-for-local-alphagenome-rather-than-hosted-api
+  - prefer-when-task-needs-kaggle-huggingface-or-local-checkpoint-weights

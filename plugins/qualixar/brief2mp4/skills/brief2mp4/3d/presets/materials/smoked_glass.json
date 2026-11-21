@@ -1,0 +1,14 @@
+{
+  "name": "smoked_glass",
+  "description": "Tinted smoked glass.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.35,
+    0.36,
+    0.4
+  ],
+  "metallic": 0.0,
+  "roughness": 0.05,
+  "transmission": 0.85,
+  "ior": 1.5
+}

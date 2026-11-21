@@ -1,0 +1,82 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/prewalk_pause.sh",
+            "commandWindows": "python ${PLUGIN_ROOT}/hooks/pause_detect.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(((functions|collaboration)\\.)?spawn_agent|multi_agent_v[0-9]+__spawn_agent)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/prewalk_executor_router.sh",
+            "commandWindows": "python ${PLUGIN_ROOT}/hooks/executor_router.py",
+            "timeout": 30,
+            "statusMessage": "prewalk executor route check"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(functions\\.)?(update_plan|todo)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/prewalk_todo_tracker.sh",
+            "commandWindows": "python ${PLUGIN_ROOT}/hooks/todo_tracker.py",
+            "timeout": 30,
+            "statusMessage": "prewalk todo tracker"
+          }
+        ]
+      },
+      {
+        "matcher": "^(functions\\.)?(apply_patch|Edit|Write|exec_command|exec|Bash|rp|RepoPrompt)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/prewalk_edit_tracker.sh",
+            "commandWindows": "python ${PLUGIN_ROOT}/hooks/edit_tracker.py",
+            "timeout": 30,
+            "statusMessage": "prewalk edit tracker"
+          }
+        ]
+      },
+      {
+        "matcher": "^(((functions|collaboration)\\.)?spawn_agent|multi_agent_v[0-9]+__spawn_agent)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/prewalk_executor_router.sh",
+            "commandWindows": "python ${PLUGIN_ROOT}/hooks/executor_router.py",
+            "timeout": 30,
+            "statusMessage": "prewalk executor binding"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/prewalk_executor_router.sh",
+            "commandWindows": "python ${PLUGIN_ROOT}/hooks/executor_router.py",
+            "timeout": 30,
+            "statusMessage": "prewalk executor completion"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "skill": "app-ui-mockups",
+  "should_trigger": [
+    "how to make a fake text message video",
+    "how to animate a Slack conversation for a product video",
+    "how to make a terminal typing animation for a launch video",
+    "how to show Claude Code in a video",
+    "how to animate code in 3D for a product launch",
+    "how to make an exploded view of an app UI",
+    "how to make a macOS notification pop-up animation",
+    "how to make a retro amber CRT terminal screen animation"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Record my screen while I use the app",
+      "use_instead": "a screen recorder; this skill rebuilds UIs as HTML"
+    },
+    {
+      "query": "Make a text message story drama with a cliffhanger",
+      "use_instead": "varg-imessage-video for the full story format"
+    },
+    {
+      "query": "Generate a product hero shot of the laptop",
+      "use_instead": "varg-ai"
+    }
+  ]
+}

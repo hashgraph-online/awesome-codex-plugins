@@ -1,0 +1,112 @@
+{
+  "scenario": "r04-shared-card-personal-panel",
+  "status": "production",
+  "context": "supergroup",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "4382000000000000001"
+        },
+        "text": "Your order: Margherita, no olives — $9.50",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Refresh",
+                "callback_data": "panel:refresh"
+              },
+              {
+                "text": "Close",
+                "callback_data": "panel:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000001"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "ephemeral_message_parameters": {
+          "callback_query_id": "4382000000000000002",
+          "receiver_user_id": 222222222
+        },
+        "text": "Your order: Pepperoni + lemonade — $12.00",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Refresh",
+                "callback_data": "panel:refresh"
+              },
+              {
+                "text": "Close",
+                "callback_data": "panel:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000002"
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 111111111,
+        "ephemeral_message_id": 1001,
+        "text": "Your order: Margherita, no olives — $9.50",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Refresh",
+                "callback_data": "panel:refresh"
+              },
+              {
+                "text": "Close",
+                "callback_data": "panel:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000003"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000004",
+        "text": "This panel has expired. Tap the card again."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000003",
+        "text": "This panel has expired. Tap the card again."
+      }
+    }
+  ]
+}

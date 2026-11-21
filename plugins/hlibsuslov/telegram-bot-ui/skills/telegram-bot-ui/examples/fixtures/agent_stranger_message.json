@@ -1,0 +1,20 @@
+{
+  "update_id": 910006,
+  "message": {
+    "message_id": 501,
+    "date": 1762900100,
+    "chat": {
+      "id": 333333333,
+      "type": "private",
+      "first_name": "Alice",
+      "username": "alice_ops"
+    },
+    "from": {
+      "id": 333333333,
+      "is_bot": false,
+      "first_name": "Alice",
+      "username": "alice_ops"
+    },
+    "text": "/stop build-142"
+  }
+}

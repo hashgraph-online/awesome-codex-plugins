@@ -5,8 +5,8 @@
 // deno, into ~/.self-starter/runtime/<version>; later starts need no network.
 // SELF_STARTER_RUNTIME installs from somewhere else, such as a tarball in tests.
 //
-// The same file is the launcher for Codex, Claude Code and ZCode; a test keeps
-// the copies in codex-plugin/, cc-plugin/ and zcode-plugin/ identical.
+// The same file is the launcher for Codex, Claude Code, ZCode and Antigravity; a test keeps
+// the copies in codex-plugin/, cc-plugin/, zcode-plugin/ and agy-plugin/ identical.
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+const PACKAGE = "self-starter";
 const REPOSITORY = "github:hyprh/self-starter";
 
 function fail(message) {
@@ -24,30 +25,45 @@ function fail(message) {
 if (Number(process.versions.node.split(".")[0]) < 20) fail(`Node.js 20 or newer is required (this is ${process.version})`);
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const manifest = [".codex-plugin", ".claude-plugin", ".zcode-plugin"].map((dir) => join(pluginRoot, dir, "plugin.json")).find((path) => existsSync(path));
+const manifest = [".codex-plugin", ".claude-plugin", ".zcode-plugin", "."].map((dir) => join(pluginRoot, dir, "plugin.json")).find((path) => existsSync(path));
 if (!manifest) fail(`no plugin manifest in ${pluginRoot}`);
 const { version } = JSON.parse(readFileSync(manifest, "utf8"));
 const home = resolve(process.env.SELF_STARTER_HOME || join(homedir(), ".self-starter"));
 const runtime = join(home, "runtime", version);
 const cli = join(runtime, "node_modules", "self-starter", "dist", "src", "cli", "main.js");
-const source = process.env.SELF_STARTER_RUNTIME || `${REPOSITORY}#v${version}`;
+const explicitSource = process.env.SELF_STARTER_RUNTIME;
+const sources = explicitSource ? [explicitSource] : [`${PACKAGE}@${version}`, `${REPOSITORY}#v${version}`];
+const source = sources[0];
 
 /** Installs the runtime beside its final folder and moves it into place, so that no start ever sees half of one. */
 function install() {
   const staging = `${runtime}.${process.pid}.partial`;
-  mkdirSync(staging, { recursive: true });
+  mkdirSync(dirname(runtime), { recursive: true });
   // What an install that was stopped left behind.
   for (const name of readdirSync(dirname(runtime))) {
     const path = join(dirname(runtime), name);
     if (name.endsWith(".partial") && path !== staging && Date.now() - statSync(path).mtimeMs > 15 * 60_000) rmSync(path, { recursive: true, force: true });
   }
-  // npm 12 blocks Git and remote tarball sources by default. Permit only the
-  // runtime selected here, not Git/URL dependencies brought in by that runtime.
-  // These command-local options are also accepted by npm 10 and 11.
-  const npm = spawnSync("npm", ["install", "--prefix", staging, "--no-audit", "--no-fund", "--loglevel=error", source, "--allow-git=root", "--allow-remote=root"], { stdio: ["ignore", 2, 2] });
-  if (npm.status !== 0) {
+  // Prefer the prebuilt npm package; fall back to the release tag if the registry
+  // copy is unreachable or not published yet. npm 12 blocks Git and remote tarball
+  // sources by default, so permit only the selected Git/tarball runtime source.
+  let failure = "";
+  for (const candidate of sources) {
     rmSync(staging, { recursive: true, force: true });
-    fail(`could not install ${source}: ${npm.error ? npm.error.message : `npm exited with code ${npm.status}`}`);
+    mkdirSync(staging, { recursive: true });
+    const allowGit = Boolean(explicitSource) || candidate.startsWith("github:");
+    const args = ["install", "--prefix", staging, "--no-audit", "--no-fund", "--loglevel=error", candidate];
+    if (allowGit) args.push("--allow-git=root", "--allow-remote=root");
+    const npm = spawnSync("npm", args, { stdio: ["ignore", 2, 2] });
+    if (npm.status === 0) {
+      failure = "";
+      break;
+    }
+    failure = `could not install ${candidate}: ${npm.error ? npm.error.message : `npm exited with code ${npm.status}`}`;
+  }
+  if (failure) {
+    rmSync(staging, { recursive: true, force: true });
+    fail(failure);
   }
   try {
     renameSync(staging, runtime);
@@ -166,8 +182,8 @@ if (process.env.SELF_STARTER_INSTALL_ONLY === "1") {
 const args = process.argv.slice(2);
 if (!existsSync(cli)) {
   const installed = installInBackground();
-  // Claude Code sets CLAUDE_CODE_SESSION_ID for its MCP servers; Codex waits as long as the plugin's .mcp.json says.
-  if (args[0] === "mcp" && process.env.CLAUDE_CODE_SESSION_ID) {
+  // Claude Code sets CLAUDE_CODE_SESSION_ID for its MCP servers; Antigravity sets SELF_STARTER_HOST=antigravity; Codex waits as long as the plugin's .mcp.json says.
+  if (args[0] === "mcp" && (process.env.CLAUDE_CODE_SESSION_ID || process.env.SELF_STARTER_HOST === "antigravity")) {
     if (await serveWhileInstalling(installed)) args.push("--tools-changed");
   } else {
     await installed;

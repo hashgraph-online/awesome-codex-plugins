@@ -1,4 +1,4 @@
-"""Canonical run-level capability_mode.json writer (Phase 4 spec §3.3).
+"""Canonical run-level capability_mode.json writer.
 
 First-writer-wins pattern: the first analyzer in a run creates
 analysis/capability_mode.json; subsequent analyzers in the same run
@@ -15,6 +15,10 @@ from pathlib import Path
 from typing import Optional
 
 from run_id import generate_run_id
+from kicad_core.fileio import json_loads
+from kicad_core.diagnostics import record as record_diagnostic
+
+_SCHEMAS_DIR = Path(__file__).resolve().parent.parent.parent / "datasheets" / "schemas"
 
 
 CAPABILITY_MODE_FILENAME = "capability_mode.json"
@@ -22,7 +26,7 @@ CAPABILITY_MODE_FILENAME = "capability_mode.json"
 
 def _read_capability_mode(path: Path) -> Optional[dict]:
     """Read an existing capability_mode.json, tolerating a transient
-    partial read from a racing writer.
+    partial or unreadable file.
 
     Returns the parsed record, or None if the file can't be read as
     valid JSON after a few short retries. Caller then falls through to
@@ -35,17 +39,17 @@ def _read_capability_mode(path: Path) -> Optional[dict]:
     is distinct from valid-but-foreign JSON (e.g. an analyzer envelope
     written to this path by external tooling, not through this module)
     — that case parses fine here and is no longer treated as a wedge;
-    see _is_valid_record / KH-415, which rejects it downstream and the
+    see _is_valid_record, which rejects it downstream and the
     caller bypasses it with a fresh in-memory record instead of raising
     or giving up.
-    The 5-retry x 5ms sleep window is sized for the only failure mode
-    this module actually races against: the brief gap between
-    tempfile.mkstemp/fdopen and os.link in our own writer.
+    The 5-retry x 5ms sleep window tolerates a file another process is
+    still writing or has left partial. This module's own writer never
+    exposes one: it closes the complete record before os.link publishes it.
     """
     for _ in range(5):
         try:
-            return json.loads(path.read_text())
-        except (json.JSONDecodeError, FileNotFoundError, OSError):
+            return json_loads(path.read_text(encoding="utf-8"))
+        except (ValueError, FileNotFoundError, OSError):
             time.sleep(0.005)
     return None
 
@@ -54,7 +58,7 @@ def _is_valid_record(rec) -> bool:
     """A capability_mode record is a dict with a non-empty string run_id.
 
     Anything else at the sidecar path (an analyzer envelope, a list, a bare
-    string) must not be adopted as the run record — KH-415: indexing
+    string) must not be adopted as the run record: indexing
     record["run_id"] on such a file crashed every analyzer at startup.
     """
     return isinstance(rec, dict) and isinstance(rec.get("run_id"), str) and bool(rec["run_id"])
@@ -63,15 +67,15 @@ def _is_valid_record(rec) -> bool:
 def _warn_malformed(path: Path, rec) -> None:
     kind = type(rec).__name__ if not isinstance(rec, dict) else "dict without a string run_id"
     print(f"Warning: {path} is not a capability_mode record ({kind}); "
-          f"leaving it untouched and using a fresh in-memory run_id (KH-415)",
+          f"leaving it untouched and using a fresh in-memory run_id",
           file=sys.stderr)
 
 
 def _detect_datasheet_status(cache_dir: Optional[Path] = None) -> str:
     """Return one of 'verified' | 'partial' | 'heuristic_fallback' | 'unavailable'.
 
-    For 4a we ship a minimal implementation; 4d-skeleton refines based on
-    schema_version inspection of present extractions.
+    A minimal check: it looks only at whether extractions are present, not at
+    their schema_version.
     """
     if cache_dir is None:
         cache_dir = Path("datasheets/extracted")
@@ -80,32 +84,49 @@ def _detect_datasheet_status(cache_dir: Optional[Path] = None) -> str:
     extractions = list(cache_dir.glob("*.json"))
     if not extractions:
         return "heuristic_fallback"
-    # Heuristic: at-least-one extraction = "partial" until 4d-skeleton refines
+    # Heuristic: at least one extraction counts as "partial"
     return "partial"
 
 
 def _compute_coverage_pct(cache_dir: Optional[Path] = None) -> int:
-    """Return integer coverage percentage. Stub: 0 in 4a; refined in 4d-skeleton."""
-    return 0
+    """Percentage of the parts in the distributor manifest (``datasheets/manifest.json``,
+    the schematic's parts as the last sync recorded them) that have an extraction in
+    ``cache_dir``. 0 when the manifest, its parts or the folder are missing."""
+    if cache_dir is None:
+        cache_dir = Path("datasheets/extracted")
+    ds_scripts = str(Path(__file__).resolve().parents[2] / "datasheets" / "scripts")
+    if ds_scripts not in sys.path:
+        sys.path.insert(0, ds_scripts)
+    try:
+        from datasheet_extract_cache import find_extraction
+        from datasheet_types.cache_reader import read_json_object
+    except ImportError:
+        return 0
+    manifest = read_json_object(Path(cache_dir).parent / "manifest.json")
+    parts = manifest.get("parts") if manifest else None
+    if not isinstance(parts, dict) or not parts:
+        return 0
+    have = sum(1 for mpn in parts if isinstance(find_extraction(cache_dir, mpn)[0], dict))
+    return round(100 * have / len(parts))
 
 
 def _read_schema_versions() -> dict:
     """Read schema_version from each shipped datasheet schema.
 
     Returns dict like {"base": "1.0", "regulator": "0.3", "diode": "1.0", ...}.
+    Resolved from this file's location so the result does not depend on the cwd.
     """
-    schemas_dir = Path("skills/datasheets/schemas")
+    schemas_dir = _SCHEMAS_DIR
     versions: dict = {}
     if not schemas_dir.exists():
         return versions
     for schema_path in schemas_dir.glob("*.schema.json"):
         try:
-            data = json.loads(schema_path.read_text())
+            data = json.loads(schema_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
         title = schema_path.stem.replace(".schema", "")
         # Schemas store version in top-level "x-schema-version" key
-        # (refined in 4d-skeleton if additional sources need merging)
         sv = data.get("x-schema-version")
         if sv:
             versions[title] = sv
@@ -146,14 +167,14 @@ def get_or_create_capability_mode(
         if existing is not None:
             if _is_valid_record(existing):
                 return existing
-            # Parses, but is not ours (KH-415) — never crash the analysis
+            # Parses, but is not ours — never crash the analysis
             # over a sidecar; do not overwrite someone else's file either.
             _warn_malformed(path, existing)
             return _fresh_record(datasheet_extraction, cache_dir,
                                  llm_review_status, schema_versions)
         # exists() is True but the file isn't valid JSON yet — most likely
-        # a racing writer is mid-create (our own writer's mkstemp/fdopen
-        # window before os.link). Fall through and try to write our own.
+        # another process or external tool left a partial file (our own
+        # writer never exposes one at this path). Fall through and try to write our own.
         # If we win the os.link race, the file is now our valid record.
         # If we lose (FileExistsError), we re-read the winner's record —
         # which will succeed if the racing writer completed, or return
@@ -161,7 +182,14 @@ def get_or_create_capability_mode(
         # (no self-heal under os.link first-writer-wins; see
         # _read_capability_mode docstring for recovery).
     record = _fresh_record(datasheet_extraction, cache_dir, llm_review_status, schema_versions)
-    analysis_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        analysis_dir.mkdir(parents=True, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(dir=analysis_dir, prefix=".capmode-", suffix=".tmp")
+    except OSError as exc:
+        # A read-only directory (sandbox, read-only checkout) must not fail the analysis.
+        record_diagnostic(None, "capability_mode.get_or_create_capability_mode", exc,
+                          f"{CAPABILITY_MODE_FILENAME} not written, in-memory record used")
+        return record
     # Atomic create: stage the full record to a temp file in the same
     # directory, then os.link() it into place. os.link raises
     # FileExistsError if the target already exists, so it is an atomic
@@ -174,9 +202,8 @@ def get_or_create_capability_mode(
     #      exists() check above, exactly one os.link() succeeds; the loser
     #      reads the winner's record, so every analyzer in the run shares
     #      one run_id (HI-7).
-    fd, tmp_path = tempfile.mkstemp(dir=analysis_dir, prefix=".capmode-", suffix=".tmp")
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(record, indent=2, sort_keys=True) + "\n")
         try:
             os.link(tmp_path, path)
@@ -188,22 +215,17 @@ def get_or_create_capability_mode(
             if winner is not None:
                 _warn_malformed(path, winner)
             return record
+    except OSError as exc:
+        # Full disk, or a filesystem without hard links (FAT, exFAT).
+        record_diagnostic(None, "capability_mode.get_or_create_capability_mode", exc,
+                          f"{CAPABILITY_MODE_FILENAME} not written, in-memory record used")
+        return record
     finally:
         try:
             os.unlink(tmp_path)
         except OSError:
             pass
     return record
-
-
-def get_or_create_run_id(analysis_dir, **kwargs) -> str:
-    """Return canonical run_id for analysis_dir, creating capability_mode.json if absent.
-
-    Phase 4 spec §3.1 wiring helper: analyzers call this at the start of main()
-    to align inputs.run_id with the canonical capability_mode.json:run_id.
-    """
-    record = get_or_create_capability_mode(analysis_dir, **kwargs)
-    return record["run_id"]
 
 
 def get_capability_mode_ref(analysis_dir, **kwargs) -> dict:

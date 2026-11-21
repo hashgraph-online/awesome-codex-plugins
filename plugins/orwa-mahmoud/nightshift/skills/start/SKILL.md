@@ -1,6 +1,6 @@
 ---
 name: start
-description: Begin the shift from the punch list without asking, so scheduled and headless runs behave like interactive ones.
+description: Begin the shift from the punch list with no prompts, so scheduled and headless runs behave like interactive ones.
 license: MIT
 metadata:
   internal: true
@@ -8,9 +8,11 @@ metadata:
 
 Start a Nightshift run in the host-opened project.
 
-Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT` — `${CLAUDE_PLUGIN_ROOT}`
-on Claude Code, `$PLUGIN_ROOT` on Codex when set, otherwise the absolute path this skill was
-attached from (`skills/start/SKILL.md`). Run every command below through
+Resolve `$NIGHTSHIFT_PLUGIN_ROOT` to the copy this host installed, as an absolute path.
+On Claude Code that is `${CLAUDE_PLUGIN_ROOT}`, on Cursor `${CURSOR_PLUGIN_ROOT}`, and on
+Codex `$PLUGIN_ROOT` when set. A skill loaded from a copy another host installed is the
+wrong runtime — use the copy under this host's plugins directory. When none of those is
+set, use the absolute path this skill was attached from (`skills/start/SKILL.md`). Run every command below through
 `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns"` — native Windows: `& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1"`
 in the PowerShell tool, same verbs — which resolves the host and the workspace; `ns help` lists the
 verbs, and `ns bind` prints the six resolved facts (`TASK_ROOT`, `NIGHTSHIFT_WORKSPACE`, `NS`,
@@ -30,7 +32,7 @@ works — which is what lets cron run it at 04:00 and lets the watchman revive i
 promotes nothing on its own: what is in the punch list is the shift, exactly as the owner left it.
 
 The one time it speaks is when the punch list is **empty**. Then there is no work to do silently,
-so it looks at staged drafts and pending Hunt orders and asks which to promote.
+so it looks at waiting plans, staged drafts and pending Hunt orders and asks which to promote.
 
 ```bash
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-preflight --host claude
@@ -79,10 +81,18 @@ one building entry is inconsistent state: keep the earliest one active, mark the
 `candidate`, record the repair in `$NS/run/shift-log.md`, and continue.
 
 **Only when the punch list is empty, offer what is staged.** The `ok staged` verdict already counts
-`$NS/staging/work-orders.md` and `$NS/staging/drafting-table.md`. Read both (a file that is not there
-holds nothing), show what they hold in one short list,
-and ask which to work now. On the owner's choice, **cut it — move, never copy**: the item goes
-under `## Items` and is removed from the file it came from, so it never exists in two places. An
+the plans in `$NS/staging/plans/`, `$NS/staging/work-orders.md` and `$NS/staging/drafting-table.md`.
+Read them (a file that is not there holds nothing), show what they hold in one short list, plans
+first by name with their open items, and ask which to work now.
+
+**A plan is cut whole.** A plan file is a complete punch list: its contract, gates, plan notes and
+items. When the owner picks one, it replaces `$NS/punch-list.md` and is removed from
+`$NS/staging/plans/`: move the file over the punch list, never copy it. If the punch list still
+holds ticked items that Archive has not filed, run Archive first so they are filed with their
+shift; nothing in the old list is dropped. The plan's title line, `# Punch List — <name>`, names the
+shift, and Archive files it under that name.
+
+For a draft or an order, on the owner's choice, **cut it — move, never copy**: the item goes under `## Items` and is removed from the file it came from, so it never exists in two places. An
 imported draft (`Status: proposed` and a canonical `Source:` GitHub URL) is cut the same way in the
 skill — move the item under `## Items` and remove it from the drafting table. The import-issues
 helper is optional. Do not require Python. A flagged import stays refused unless the owner
@@ -192,7 +202,7 @@ This runs after the probe and before the watchman, on every host:
 The probe ran every installed Nightshift copy's guard, so the phase first checks that only one copy
 answers this session. `refuse copies` names each copy and its version: remove the markers and reset
 the lease exactly as for `refuse codex-identity` below, append one failed-preflight line to
-`$NS/run/shift-log.md`, and tell the owner to disable all but one copy and start a new conversation.
+`$NS/run/shift-log.md`, and tell the owner to disable the extra copy in that host's plugin settings, leave copies installed by another host enabled, and start a new conversation.
 
 Codex exposes the current task identity through hook payloads, not as a shell environment variable.
 The phase classifies `$NS/run/.shift-session` line 1 with `ns_codex_identity_kind` (native Windows:

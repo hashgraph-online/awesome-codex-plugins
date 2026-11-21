@@ -1,0 +1,36 @@
+/* report.css 之上的组件：状态标签、提示框、步骤条、周历。 */
+
+/* 状态标签：<span class="st ok">稳</span>，mid 黄、bad 红、info 蓝 */
+.st { display: inline-block; font-family: var(--sans); font-size: 7.6pt; font-weight: 700;
+      padding: 0 4.5pt; border-radius: 2pt; line-height: 1.6; white-space: nowrap; vertical-align: 0.5pt; }
+.st.ok   { color: #0e6b47; background: #e3f3ea; }
+.st.mid  { color: #8a5a00; background: #fbf0d6; }
+.st.bad  { color: #a32626; background: #fbe6e6; }
+.st.info { color: #1d5aa3; background: #e4eefb; }
+
+/* 提示框：::: key（蓝，结论，样式在 report.css）、::: warn（红，别再犯）、::: tip（绿，怎么做） */
+.warn, .tip { padding: 6pt 9pt 3pt; margin: 7pt 0 10pt; border-radius: 2pt; break-inside: avoid; }
+.warn { border-left: 2.6pt solid #c23535; background: #fbefef; }
+.tip  { border-left: 2.6pt solid #1baf7a; background: #eef7f2; }
+.warn p:last-child, .tip p:last-child, .key p:last-child { margin-bottom: 3pt; }
+.warn ol, .tip ol, .key ol, .warn ul, .tip ul { margin-bottom: 3pt; }
+
+/* 步骤条：<div class="flow"><div><b>①</b><h4>标题</h4><p>说明</p></div>…</div> */
+.flow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6pt; margin: 6pt 0 10pt; break-inside: avoid; }
+.flow > div { border-top: 2pt solid var(--accent); background: var(--wash); padding: 5pt 7pt 4pt; border-radius: 0 0 2pt 2pt; }
+.flow b { font-family: var(--sans); color: var(--accent); font-size: 12pt; line-height: 1; }
+.flow h4 { margin: 3pt 0 2pt; font-size: 9.4pt; }
+.flow p { font-size: 8.4pt; line-height: 1.55; margin: 0; text-align: left; color: var(--ink2); }
+
+/* 周历：<table class="cal">，格子里 <span class="d">日期</span>、<span class="t">任务</span> */
+table.cal { font-size: 7.9pt; line-height: 1.45; table-layout: fixed; break-inside: avoid; }
+table.cal th { text-align: center; }
+table.cal td { padding: 3pt 3.5pt; border-right: 0.4pt solid var(--hair); }
+table.cal td:last-child { border-right: none; background: var(--wash); }
+table.cal td:first-child { font-family: var(--sans); font-weight: 700; white-space: nowrap; }
+table.cal td:first-child small { display: block; font-weight: 400; color: var(--muted); font-size: 7.2pt; white-space: normal; }
+table.cal .d { display: block; font-family: var(--sans); font-size: 7pt; color: var(--muted); }
+table.cal .t { display: block; font-family: var(--sans); font-weight: 700; color: var(--ink); }
+table.cal .ex { display: block; font-family: var(--sans); font-weight: 700; color: var(--accent); font-size: 9pt; }
+table.cal .off { color: var(--muted); }
+.small { font-size: 8.4pt; color: var(--ink2); }

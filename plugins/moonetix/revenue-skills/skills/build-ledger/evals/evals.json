@@ -1,0 +1,56 @@
+{
+  "skill_name": "build-ledger",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL has a users table and nothing for balances yet. Add a coins balance with a ledger. Offers credit coins by transaction id, and users spend coins on items from the server's price table.",
+      "expected_output": "A ledger table with a unique (kind, reference) key, one posting function that updates the cached balance in the same transaction, debits that cannot overdraw, a reconciliation command, and tests.",
+      "assertions": [
+        "A migration creates a ledger table with a unique constraint on the kind and reference columns and a signed integer amount column.",
+        "Exactly one function in the code base contains an UPDATE of the balance column, and the credit and spend handlers both call it inside a transaction.",
+        "The posting function updates the balance only when the insert reported a new row.",
+        "The debit is a single UPDATE with a balance condition in its WHERE clause, or runs after SELECT ... FOR UPDATE, and the code checks the number of rows changed.",
+        "The project's test run includes a test that posts the same reference twice and asserts that the balance changed once, and it passes.",
+        "A reconciliation command exists and exits with a non-zero status when a balance is changed directly in the database."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our PHP app on MySQL updates users.balance directly in six places. Move it to a ledger. Users must not see any change in their balance.",
+      "expected_output": "A migration to a ledger with one opening entry per account, every direct write of users.balance replaced by the posting function, and a reconciliation query that returns no rows.",
+      "assertions": [
+        "A migration creates the ledger table referencing users.id and inserts one opening_balance entry per account with a non-zero balance, keyed by the account id.",
+        "Running the opening-balance statement a second time inserts no rows.",
+        "A search of the code for statements that write users.balance finds only the posting function.",
+        "No handler contains both a call to the posting function and a direct balance update for the same change.",
+        "The posting function treats MySQL error 1062 on the ledger insert as an already recorded event and returns without updating the balance.",
+        "The reconciliation query over users and ledger returns no rows after the test suite has run."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Support needs to add or remove points from an account. Add an admin action for it on top of our existing ledger.",
+      "expected_output": "An admin action that posts an adjustment through the existing ledger with the staff member, a reason and a request id, refuses requests without a staff session or reason or above a cap, and is idempotent.",
+      "assertions": [
+        "The adjustment is posted through the existing posting function with its own kind, not by a direct update of the balance.",
+        "The stored entry contains the staff member's identity taken from the session and the reason text.",
+        "Submitting the same adjustment request twice with the same request id creates one ledger row.",
+        "A request without a staff session, without a reason, or above the configured cap is refused with a 4xx status and creates no ledger row.",
+        "A manual debit larger than the account's balance is refused unless it names the entry it corrects."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Django app on PostgreSQL keeps points in a column on the user profile, and several views add and subtract with profile.points += n; profile.save(). Replace it with a proper ledger.",
+      "expected_output": "A ledger model with a unique constraint on kind and reference, one posting function used by every view inside transaction.atomic, a conditional debit, opening entries for existing balances, and tests.",
+      "assertions": [
+        "A model with a BigIntegerField amount and a UniqueConstraint on the kind and reference fields is added with a migration.",
+        "One posting function inserts the entry inside a savepoint or with ON CONFLICT DO NOTHING, and updates the balance only when the entry was inserted.",
+        "Debits use a filtered update with an F expression, such as filter(balance__gte=n).update(balance=F('balance') - n), or run after select_for_update, and the number of rows changed is checked.",
+        "No view or task assigns to the points field and calls save() any more.",
+        "A data migration posts one opening entry per profile with a non-zero balance.",
+        "A test posts the same kind and reference twice and asserts one entry and one balance change."
+      ]
+    }
+  ]
+}

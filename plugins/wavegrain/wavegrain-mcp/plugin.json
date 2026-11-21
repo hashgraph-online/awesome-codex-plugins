@@ -1,0 +1,31 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "wavegrain",
+  "version": "0.4.0",
+  "description": "Curated TikTok slideshows and Instagram carousels for your brand on autopilot, through the hosted Wavegrain MCP server.",
+  "author": {
+    "name": "Wavegrain",
+    "email": "support@wavegrain.com",
+    "url": "https://wavegrain.com"
+  },
+  "homepage": "https://wavegrain.com/mcp",
+  "repository": "https://github.com/wavegrain/wavegrain-mcp",
+  "license": "MIT",
+  "keywords": [
+    "tiktok",
+    "instagram",
+    "carousel",
+    "slideshow",
+    "social-media",
+    "mcp"
+  ],
+  "extensions": {
+    "com.nousresearch.hermes": {
+      "servers": {
+        "wavegrain": {
+          "trust": "untrusted"
+        }
+      }
+    }
+  }
+}

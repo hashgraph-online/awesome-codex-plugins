@@ -78,10 +78,15 @@ the first time, and record results in `.claude/tracking/limitations.md`.
   `UNINSTALL` + `INSTALL` as the upgrade path.
 
 - **REAL-returning functions with integer input.** If the extension includes
-  a `.returns(REAL)` function, test it with an INT column and inspect the
-  result type via `DESCRIBE`. If it shows INT rather than DOUBLE, document
-  the `CAST(col AS DOUBLE)` or `col * 1.0` workaround, record the limitation,
-  and link [villagesql-server#608](https://github.com/villagesql/villagesql-server/issues/608).
+  a `.returns(REAL)` function, call it on an INT column (and, if it takes
+  no arguments, with none) in `CREATE TABLE t AS SELECT ...`, then run
+  `SHOW CREATE TABLE t`. VillageSQL 0.0.7 and earlier declare the column
+  `double(22,0)` and round away the fraction. Nightly builds from
+  2026-10-13 and releases after 0.0.7 declare `double`
+  ([villagesql-server#1327](https://github.com/villagesql/villagesql-server/pull/1327)).
+  If the probe shows `double(22,0)`, document
+  the `CAST(col AS DOUBLE)` or `col * 1.0` workaround, record the
+  limitation, and name the server version that fixes it.
 
 - **STRING return size and charset.** Two behaviors affect any function
   returning text. Both change across server versions — probe the running

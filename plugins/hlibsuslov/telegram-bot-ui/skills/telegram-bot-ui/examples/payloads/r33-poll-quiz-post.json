@@ -1,0 +1,74 @@
+{
+  "scenario": "r33-poll-quiz-post",
+  "status": "production",
+  "context": "channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendPoll",
+      "params": {
+        "chat_id": -1001500000001,
+        "question": "Which district fixed potholes fastest in Q3?",
+        "options": [
+          {
+            "text": "Old Town"
+          },
+          {
+            "text": "Riverside"
+          },
+          {
+            "text": "Harbour"
+          },
+          {
+            "text": "Northgate"
+          }
+        ],
+        "type": "quiz",
+        "correct_option_ids": [
+          1
+        ],
+        "explanation": "Riverside: median 3.1 days. Full table in the pinned long read.",
+        "members_only": true,
+        "country_codes": [
+          "UA",
+          "PL",
+          "FT"
+        ],
+        "open_period": 86400,
+        "description": "Answer before the long read comes out tomorrow."
+      }
+    },
+    {
+      "method": "sendPoll",
+      "params": {
+        "chat_id": -1001500000001,
+        "question": "What should the next issue cover?",
+        "options": [
+          {
+            "text": "Bike lanes"
+          },
+          {
+            "text": "Night buses"
+          },
+          {
+            "text": "Parks"
+          },
+          {
+            "text": "Street lighting"
+          }
+        ],
+        "disable_notification": true,
+        "allows_multiple_answers": true,
+        "close_date": 1763459200
+      }
+    },
+    {
+      "method": "stopPoll",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_id": 1002
+      }
+    }
+  ]
+}

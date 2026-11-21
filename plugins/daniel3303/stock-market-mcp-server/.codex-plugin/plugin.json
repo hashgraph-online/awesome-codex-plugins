@@ -1,26 +1,20 @@
 {
   "name": "equibles",
   "version": "1.0.1",
-  "description": "US stock market research through the hosted Equibles MCP server: SEC filings with full-text search, XBRL financial statements, earnings call transcripts, insider and congressional trades, 13F institutional holdings, short interest, prices, options and macroeconomic data.",
+  "description": "Financial research with SEC filings, company financials, institutional holdings, earnings calls, prices, options, and macroeconomic data.",
   "author": {
     "name": "Equibles",
     "url": "https://equibles.com"
   },
-  "homepage": "https://equibles.com/mcp",
+  "homepage": "https://equibles.com",
   "repository": "https://github.com/daniel3303/stock-market-mcp-server",
   "license": "MIT",
   "keywords": [
     "equibles",
     "finance",
-    "stocks",
-    "sec-filings",
-    "earnings-calls",
-    "13f",
-    "insider-trading",
+    "financial-research",
     "mcp"
   ],
-  "mcpServers": "./.mcp.json",
-  "skills": "./skills/",
   "interface": {
     "displayName": "Equibles",
     "shortDescription": "SEC filings, financials, earnings calls, insider trades and 13F holdings",
@@ -42,5 +36,7 @@
       "Summarize Microsoft's most recent earnings call.",
       "What did Apple's latest 10-K say about tariffs? Quote the passage."
     ]
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

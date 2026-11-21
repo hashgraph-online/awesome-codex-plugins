@@ -21,6 +21,8 @@ from _common import (
     write_json_report,
 )
 
+_AUTH_BASIS_PATH = "authorization.basis"
+_CONFLICT_STATUS_PATH = "reviewer.conflict_status"
 MATERIAL_STATUSES = {
     "unpublished_confidential",
     "public_preprint",
@@ -287,18 +289,18 @@ def validate_intake(payload: Any) -> dict[str, Any]:
         "synthetic_training",
     }:
         errors.append(
-            issue("AUTHORIZATION_BASIS_MISMATCH", "authorization.basis")
+            issue("AUTHORIZATION_BASIS_MISMATCH", _AUTH_BASIS_PATH)
         )
     if material_status in {"public_preprint", "published"} and authorization_basis not in {
         "public_material",
         "author_request",
     }:
         warnings.append(
-            issue("PUBLIC_MATERIAL_BASIS_REVIEW", "authorization.basis")
+            issue("PUBLIC_MATERIAL_BASIS_REVIEW", _AUTH_BASIS_PATH)
         )
     if material_status == "synthetic" and authorization_basis != "synthetic_training":
         warnings.append(
-            issue("SYNTHETIC_MATERIAL_BASIS_REVIEW", "authorization.basis")
+            issue("SYNTHETIC_MATERIAL_BASIS_REVIEW", _AUTH_BASIS_PATH)
         )
 
     if not human_accountable:
@@ -306,14 +308,14 @@ def validate_intake(payload: Any) -> dict[str, Any]:
             issue("HUMAN_ACCOUNTABILITY_REQUIRED", "reviewer.human_accountable")
         )
     if conflict_status == "not_assessed":
-        errors.append(issue("CONFLICTS_NOT_ASSESSED", "reviewer.conflict_status"))
+        errors.append(issue("CONFLICTS_NOT_ASSESSED", _CONFLICT_STATUS_PATH))
     elif conflict_status == "unresolved":
-        errors.append(issue("CONFLICT_UNRESOLVED", "reviewer.conflict_status"))
+        errors.append(issue("CONFLICT_UNRESOLVED", _CONFLICT_STATUS_PATH))
     elif conflict_status == "none_identified" and conflicts:
         errors.append(issue("CONFLICT_STATUS_MISMATCH", "reviewer.conflicts"))
     elif conflict_status == "disclosed_to_editor":
         warnings.append(
-            issue("EDITOR_CONFLICT_CLEARANCE_REQUIRED", "reviewer.conflict_status")
+            issue("EDITOR_CONFLICT_CLEARANCE_REQUIRED", _CONFLICT_STATUS_PATH)
         )
 
     if not venue_checked:
@@ -424,6 +426,7 @@ def validate_intake(payload: Any) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a local peer-review intake JSON without reading or echoing "
@@ -439,6 +442,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = validate_intake(read_json(args.intake))

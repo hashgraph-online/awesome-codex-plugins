@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-sp-fba-inbound",
-  "skill_version": "0.2.2",
+  "skill_version": "0.2.3",
   "description": "Dry-run behavioral evals. No live MCP: the runner simulates a code-mode SP-API MCP server (fba-inbound_* names, strict unknown-key rejection) from a server-rules file plus per-eval fixtures, and records every tool call with full params plus the final seller-facing reply. Session context: seller identity 'Acme Outdoor (US)' is active, region na, marketplace US (ATVPDKIKX0DER). Evals with mode=live-read run against a live SP-API MCP server through a read-only harness that blocks every write operation and logs all calls to calls.jsonl.",
   "evals": [
     {

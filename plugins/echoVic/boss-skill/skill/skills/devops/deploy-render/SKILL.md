@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-render
 description: Render 部署方法论，使用 render.yaml 蓝图和 Render CLI 部署全栈应用（Web 服务、Worker、静态站点、数据库）
 version: 1.0.0
@@ -8,14 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Render 时
-- 项目是全栈应用且需要数据库时
-- 项目使用 Docker 容器部署时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Render 时
+  - 项目是全栈应用且需要数据库时
+  - 项目使用 Docker 容器部署时
+metadata:
   internal: true
-
 ---
 
 # Render 部署
@@ -37,6 +35,7 @@ dependencies:
 ## 部署方式
 
 Render 支持两种部署方式：
+
 1. **render.yaml 蓝图（推荐）**：基础设施即代码，一键创建所有服务和数据库
 2. **Dashboard 手动创建**：通过 Web 界面逐个创建服务
 
@@ -300,6 +299,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `RENDER_API_KEY`：Render API Key（Account Settings → API Keys）
 - `RENDER_SERVICE_ID`：服务 ID（Dashboard 服务页面 URL 中 `srv-xxx`）
 

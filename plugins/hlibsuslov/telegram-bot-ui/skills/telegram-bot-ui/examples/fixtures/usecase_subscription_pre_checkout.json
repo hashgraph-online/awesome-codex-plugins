@@ -1,0 +1,15 @@
+{
+  "update_id": 950001,
+  "pre_checkout_query": {
+    "id": "4382000000000950001",
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "currency": "XTR",
+    "total_amount": 150,
+    "invoice_payload": "sub:111111111"
+  }
+}

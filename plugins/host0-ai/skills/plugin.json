@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "host0",
+  "version": "0.1.0",
+  "description": "Publish files, sites and apps with a shared database to a link you can share, and manage them from your agent.",
+  "author": {
+    "name": "host0",
+    "email": "support@host0.ai",
+    "url": "https://host0.ai"
+  },
+  "homepage": "https://host0.ai/agents",
+  "repository": "https://github.com/host0-ai/skills",
+  "license": "MIT",
+  "keywords": ["hosting", "deploy", "publish", "share", "database", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "host0",
+        "shortDescription": "Publish what your agent made at a link you can share",
+        "longDescription": "Publish a file, a folder or an app with a shared database to a live URL. Private by default; open it to anyone with the link or invite people by email. Manage apps, versions, visitors and shared data from your agent.",
+        "developerName": "host0",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://host0.ai",
+        "privacyPolicyURL": "https://host0.ai/legal/privacy",
+        "termsOfServiceURL": "https://host0.ai/legal/terms",
+        "defaultPrompt": [
+          "Publish this folder with host0 and give me the link.",
+          "Build a team todo list with a shared database and publish it with host0."
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      }
+    }
+  }
+}

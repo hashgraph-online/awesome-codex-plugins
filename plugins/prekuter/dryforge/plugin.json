@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dryforge",
+  "version": "1.3.8",
+  "description": "Intent to implementation: ready, then go.",
+  "author": {
+    "name": "prekuter",
+    "email": "prekuter@dryforge.dev"
+  },
+  "homepage": "https://github.com/prekuter/dryforge",
+  "repository": "https://github.com/prekuter/dryforge",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agent-harness",
+    "harness",
+    "bounded-autonomy",
+    "plugin",
+    "coding-agent",
+    "claude-code",
+    "codex",
+    "copilot",
+    "intent",
+    "elicitation",
+    "spec",
+    "planning",
+    "brainstorming",
+    "verification",
+    "autonomy"
+  ]
+}

@@ -59,19 +59,22 @@ When any agent or module makes a recommendation:
 ### Saving Campaign Data
 After generating a campaign plan:
 ```bash
-python campaign-tracker.py --brand {slug} --action save-campaign --data '{"name": "...", "channels": [...], "budget": "...", "goals": [...]}'
+# write with the Write tool first: {data_file} holds {"name": "...", "channels": [...], "budget": "...", "goals": [...]}
+python campaign-tracker.py --brand {slug} --action save-campaign --data "@{data_file}"
 ```
 
 ### Saving Performance Snapshots
 After generating a performance report:
 ```bash
-python campaign-tracker.py --brand {slug} --action save-performance --data '{"campaign_id": "...", "metrics": {...}, "period": "..."}'
+# write with the Write tool first: {data_file} holds {"campaign_id": "...", "metrics": {...}, "period": "..."}
+python campaign-tracker.py --brand {slug} --action save-performance --data "@{data_file}"
 ```
 
 ### Saving Marketing Insights
 After any significant analysis or discovery:
 ```bash
-python campaign-tracker.py --brand {slug} --action save-insight --data '{"type": "learning|benchmark|anomaly|recommendation", "insight": "...", "context": "..."}'
+# write with the Write tool first: {data_file} holds {"type": "learning|benchmark|anomaly|recommendation", "insight": "...", "context": "..."}
+python campaign-tracker.py --brand {slug} --action save-insight --data "@{data_file}"
 ```
 
 ### Retrieving Past Data

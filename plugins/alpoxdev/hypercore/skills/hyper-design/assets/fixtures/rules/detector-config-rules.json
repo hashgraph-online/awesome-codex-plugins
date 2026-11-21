@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "rules": { "surface.radial-glow": "off", "copy.cliche": "P1" }
+}

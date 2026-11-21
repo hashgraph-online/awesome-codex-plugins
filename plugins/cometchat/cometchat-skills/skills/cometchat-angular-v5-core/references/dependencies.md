@@ -6,12 +6,12 @@ npm install @cometchat/chat-uikit-angular@^5 @cometchat/chat-sdk-javascript@^4 @
 ```
 Calls (optional): `npm install @cometchat/calls-sdk-javascript@^5`
 
-## Peer dependencies — verified against the published 5.1.0
+## Peer dependencies — verified against the published 5.1.0 and 5.2.2
 | Package | Range | Notes |
 | --- | --- | --- |
 | `@angular/core` | `>=17.0.0 <22.0.0` | 22 fails to install — see below |
 | `@angular/common` | `>=17.0.0 <22.0.0` | |
-| `@cometchat/chat-sdk-javascript` | `^4.1.13` | required |
+| `@cometchat/chat-sdk-javascript` | `^4.2.0` (5.2.x); `^4.1.13` (5.1.0) | required |
 | `@cometchat/cards-angular` | `^1.0.0` | **required** — added in 5.1.0 |
 | `dompurify` | `^3.0.0` | required |
 | `@cometchat/calls-sdk-javascript` | `^5.0.3` | optional — calls only |
@@ -41,14 +41,14 @@ npx -y @angular/cli@21 new my-app
 ```
 The package-specifier `@import` form does not work — the `exports` map does not expose it.
 
-`assets` (282 SVG icons ship under `src/lib/assets`):
+`assets` (290 SVG icons ship under `src/lib/assets` in 5.2.x; 282 in 5.1.0):
 ```json
 { "glob": "**/*", "input": "node_modules/@cometchat/chat-uikit-angular/src/lib/assets", "output": "assets" }
 ```
 Missing this leaves icons broken across every component with no error — the most commonly missed Angular setup step. Verify after `ng serve`: send/attach/emoji buttons in the composer should render as icons, not blank space.
 
 ## Versions this skill was verified against
-`@cometchat/chat-uikit-angular@5.1.0` · `@cometchat/chat-sdk-javascript@4.1.13`
+`@cometchat/chat-uikit-angular@5.1.0` · `@cometchat/chat-sdk-javascript@4.1.13`; re-verified on `@cometchat/chat-uikit-angular@5.2.2` · `@cometchat/chat-sdk-javascript@4.2.1` · `@cometchat/calls-sdk-javascript@5.0.8` (2026-10-15)
 
 ## Production build: budgets + the CommonJS bailout
 

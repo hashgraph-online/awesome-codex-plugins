@@ -39,7 +39,7 @@ those directories are generated and hand-edits get overwritten.
 ### 1. `react-native-gesture-handler` must be the FIRST import of your entry file
 ```js title="index.js"
 import 'react-native-gesture-handler';
-// …every other import after this
+// ...every other import after this
 ```
 Not at the top of a screen — the **very top of `index.js`**, before anything else. Getting this wrong
 often works in debug and **crashes in release**, which is the worst possible failure shape: it passes
@@ -59,7 +59,7 @@ Add these inside your target in `ios/Podfile`, then re-run `pod install`:
 target 'YourApp' do
   pod 'SPTPersistentCache', :modular_headers => true
   pod 'DVAssetLoaderDelegate', :modular_headers => true
-  # …
+  # ...
 end
 ```
 

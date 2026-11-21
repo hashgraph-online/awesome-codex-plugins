@@ -16,8 +16,6 @@ import {
   GoalProgressTargetIdSchema,
   type GoalProgressViewModel,
   GoalProgressViewModelSchema,
-  RuntimeContextArgumentSchema,
-  RuntimeProofArgumentSchema,
 } from "../../contracts/src/index.js";
 import { selectProgressTarget } from "../../contracts/src/progress-focus.js";
 import {
@@ -52,14 +50,12 @@ const LooseJsonValueSchema = z.union([
   z.array(z.unknown()),
   z.record(z.string(), z.unknown()),
 ]);
-const RuntimeContextTransportSchema = z
-  .union([RuntimeContextArgumentSchema, LooseJsonValueSchema])
-  .optional()
-  .describe("禁止手填。此字段只能由 Codex PreToolUse Hook 注入。");
-const RuntimeProofTransportSchema = z
-  .union([RuntimeProofArgumentSchema, LooseJsonValueSchema])
-  .optional()
-  .describe("禁止手填。此证明只能由受信任的 Codex PreToolUse Hook 生成。");
+
+const OutputContractIdSchema = z.string().regex(/^gp_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/);
+const OutputObjectiveIdSchema = z
+  .string()
+  .max(64)
+  .regex(/^C[1-9]\d*$/);
 
 function businessTransportField<T extends z.ZodType>(schema: T) {
   const { $schema: _schemaDeclaration, ...publishedSchema } = z.toJSONSchema(schema, {
@@ -76,11 +72,11 @@ export const GoalProgressToolOutputSchema = z
   .object({
     ok: z.boolean(),
     code: z.string().trim().min(1).max(128),
-    contractId: GoalContractIdSchema.nullable(),
+    contractId: OutputContractIdSchema.nullable(),
     revision: z.number().int().nonnegative().nullable(),
     currentRevision: z.number().int().nonnegative().nullable(),
     overallPercent: z.number().int().min(0).max(100).nullable(),
-    currentObjectiveId: GoalObjectiveIdSchema.nullable(),
+    currentObjectiveId: OutputObjectiveIdSchema.nullable(),
     currentObjectivePercent: z.number().int().min(0).max(100).nullable(),
     summary: z.string().max(500),
     nextStep: z.string().max(200),
@@ -91,31 +87,27 @@ export const GoalProgressToolOutputSchema = z
   })
   .strict();
 
-// Accept missing business fields so the handler can consume the one-time proof before rejecting them.
+// Accept missing business fields and Hook-injected envelope fields at runtime so handlers can
+// consume one-time proofs before rejecting malformed business payloads, without advertising
+// internal Hook-only fields in tools/list.
 export const GoalProgressInitializeInputSchema = z
   .object({
     contractId: businessTransportField(GoalProgressInitializeBusinessSchema.shape.contractId),
     source: businessTransportField(GoalProgressSourceSchema),
     objectives: businessTransportField(z.array(GoalObjectiveSchema).max(100)),
-    _runtimeContext: RuntimeContextTransportSchema,
-    _runtimeProof: RuntimeProofTransportSchema,
   })
   .passthrough()
-  .meta({ required: ["source", "objectives"] });
+  .meta({ required: ["source", "objectives"], additionalProperties: false });
 
 export const GoalProgressActivateInputSchema = z
-  .object({
-    _runtimeContext: RuntimeContextTransportSchema,
-    _runtimeProof: RuntimeProofTransportSchema,
-  })
-  .strict();
+  .object({})
+  .passthrough()
+  .meta({ additionalProperties: false });
 
 export const GoalProgressGetInputSchema = z
-  .object({
-    _runtimeContext: RuntimeContextTransportSchema,
-    _runtimeProof: RuntimeProofTransportSchema,
-  })
-  .passthrough();
+  .object({})
+  .passthrough()
+  .meta({ additionalProperties: false });
 
 export const GoalProgressUpdateInputSchema = z
   .object({
@@ -124,11 +116,9 @@ export const GoalProgressUpdateInputSchema = z
     changes: businessTransportField(z.array(GoalProgressItemChangeSchema).min(1).max(500)),
     activeObjectiveId: businessTransportField(GoalObjectiveIdSchema.nullable()),
     correctionReason: businessTransportField(z.string().trim().min(1).max(2_000)),
-    _runtimeContext: RuntimeContextTransportSchema,
-    _runtimeProof: RuntimeProofTransportSchema,
   })
   .passthrough()
-  .meta({ required: ["contractId", "expectedRevision", "changes"] });
+  .meta({ required: ["contractId", "expectedRevision", "changes"], additionalProperties: false });
 
 export const GoalProgressRescopeInputSchema = z
   .object({
@@ -136,11 +126,12 @@ export const GoalProgressRescopeInputSchema = z
     expectedRevision: businessTransportField(z.number().int().nonnegative()),
     reason: businessTransportField(z.string().trim().min(1).max(2_000)),
     objectives: businessTransportField(z.array(GoalObjectiveSchema).max(100)),
-    _runtimeContext: RuntimeContextTransportSchema,
-    _runtimeProof: RuntimeProofTransportSchema,
   })
   .passthrough()
-  .meta({ required: ["contractId", "expectedRevision", "reason", "objectives"] });
+  .meta({
+    required: ["contractId", "expectedRevision", "reason", "objectives"],
+    additionalProperties: false,
+  });
 
 const GoalProgressModelPhaseSchema = GoalProgressPhaseSchema.exclude(["paused", "error"]);
 
@@ -149,11 +140,9 @@ export const GoalProgressSetPhaseInputSchema = z
     contractId: businessTransportField(GoalContractIdSchema),
     expectedRevision: businessTransportField(z.number().int().nonnegative()),
     phase: businessTransportField(GoalProgressModelPhaseSchema),
-    _runtimeContext: RuntimeContextTransportSchema,
-    _runtimeProof: RuntimeProofTransportSchema,
   })
   .passthrough()
-  .meta({ required: ["contractId", "expectedRevision", "phase"] });
+  .meta({ required: ["contractId", "expectedRevision", "phase"], additionalProperties: false });
 
 const GoalProgressUpdateBusinessSchema = z
   .object({
@@ -659,12 +648,17 @@ export function createGoalProgressMcpServer(options: GoalProgressMcpServerOption
   };
   const resolveToolIdentity = (
     toolName: string,
-    input: {
-      readonly _runtimeContext?: unknown;
-      readonly _runtimeProof?: unknown;
-    },
+    input: Record<string, unknown>,
     extra: GoalProgressMcpRequestExtra,
-  ) => resolveTrustedToolAuthorization(toolName, input, extra);
+  ) =>
+    resolveTrustedToolAuthorization(
+      toolName,
+      {
+        _runtimeContext: input._runtimeContext,
+        _runtimeProof: input._runtimeProof,
+      },
+      extra,
+    );
 
   server.registerTool(
     GOAL_PROGRESS_ACTIVATE_TOOL_NAME,

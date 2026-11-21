@@ -17,11 +17,13 @@ except ImportError:  # Direct script execution.
 
 
 def _require(condition: bool, message: str, errors: list[str]) -> None:
+    """Handle require."""
     if not condition:
         errors.append(message)
 
 
 def _validate_reset(result: Any, env: SyntheticGymEnv, errors: list[str]) -> Any:
+    """Validate reset."""
     _require(
         isinstance(result, tuple) and len(result) == 2,
         "reset() must return (observation, info)",
@@ -40,6 +42,7 @@ def _validate_reset(result: Any, env: SyntheticGymEnv, errors: list[str]) -> Any
 
 
 def _validate_step(result: Any, env: SyntheticGymEnv, errors: list[str]) -> tuple[bool, bool]:
+    """Validate step."""
     _require(
         isinstance(result, tuple) and len(result) == 5,
         "step() must return (observation, reward, terminated, truncated, info)",
@@ -72,6 +75,7 @@ def _validate_step(result: Any, env: SyntheticGymEnv, errors: list[str]) -> tupl
 
 
 def _check_determinism(seed: int, max_steps: int, errors: list[str]) -> None:
+    """Check determinism."""
     env_a = SyntheticGymEnv(max_steps=max_steps)
     env_b = SyntheticGymEnv(max_steps=max_steps)
     first_a = env_a.reset(seed=seed)
@@ -158,6 +162,7 @@ def validate_synthetic(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate only the allowlisted built-in synthetic environment; "
@@ -174,6 +179,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

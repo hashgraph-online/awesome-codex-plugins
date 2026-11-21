@@ -1,0 +1,26 @@
+{
+  "name": "amazon-search-terms-bytes-counter",
+  "version": "1.0.0",
+  "description": "Amazon 249-byte backend search terms counter, listing HTML sanitizer, and Rufus AI optimization rules for Cursor and Claude Code.",
+  "main": "index.js",
+  "bin": {
+    "amazon-search-terms-bytes-counter": "./cli.js"
+  },
+  "keywords": [
+    "amazon",
+    "cursor-rules",
+    "amazon-seo",
+    "search-terms",
+    "249-bytes",
+    "seller-central",
+    "listing-optimizer",
+    "rufus",
+    "html-sanitizer"
+  ],
+  "author": "AmazonSEO.ai (https://www.amazonseo.ai)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuaai/amazon-search-terms-bytes-counter.git"
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "scenario": "r80-journey",
+  "status": "offline-model",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 101,
+        "text": "<b>Request a quote</b>\nNo details yet.\nConsent: no. Request: draft.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Use sample details",
+                "callback_data": "r80:1:review"
+              }
+            ],
+            [
+              {
+                "text": "Submit request",
+                "callback_data": "r80:1:submit"
+              }
+            ],
+            [
+              {
+                "text": "Discard draft",
+                "callback_data": "r80:1:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "foreign-user",
+        "text": "Open your own menu with /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-0"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Request a quote</b>\nNo details yet.\nConsent: no. Request: draft.\nThe action could not be completed: review the details and give consent.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Use sample details",
+                "callback_data": "r80:2:review"
+              }
+            ],
+            [
+              {
+                "text": "Submit request",
+                "callback_data": "r80:2:submit"
+              }
+            ],
+            [
+              {
+                "text": "Discard draft",
+                "callback_data": "r80:2:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Request a quote</b>\nReview: Website consultation. Contact: demo@example.invalid.\nConsent: no. Request: draft.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Use sample details",
+                "callback_data": "r80:3:review"
+              }
+            ],
+            [
+              {
+                "text": "Allow contact about this request",
+                "callback_data": "r80:3:consent"
+              }
+            ],
+            [
+              {
+                "text": "Submit request",
+                "callback_data": "r80:3:submit"
+              }
+            ],
+            [
+              {
+                "text": "Discard draft",
+                "callback_data": "r80:3:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-2"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Request a quote</b>\nReview: Website consultation. Contact: demo@example.invalid.\nConsent: yes. Request: draft.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Use sample details",
+                "callback_data": "r80:4:review"
+              }
+            ],
+            [
+              {
+                "text": "Submit request",
+                "callback_data": "r80:4:submit"
+              }
+            ],
+            [
+              {
+                "text": "Discard draft",
+                "callback_data": "r80:4:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-3"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Request a quote</b>\nReview: Website consultation. Contact: demo@example.invalid.\nConsent: yes. Request: accepted locally.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Show status",
+                "callback_data": "r80:5:status"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "old-screen",
+        "text": "This screen changed. Use the latest buttons."
+      }
+    }
+  ]
+}

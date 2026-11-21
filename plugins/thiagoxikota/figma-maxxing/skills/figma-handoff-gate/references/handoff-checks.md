@@ -37,7 +37,7 @@ Use only the section relevant to the current operation. Inline `scripts/` and `r
 - 3-5 bullets max per card
 - Each bullet = `deliverable + value`
 - NO internal jargon: ticket codes (`TICKET-123`), internal tool names ("the v2 validator"), registry or rule codes, and the like
-- Apply the project’s sample-data policy; no real private identities or invented factual claims. Neutral handles may be required by project canon.
+- Apply the project's sample-data policy; no real private identities or invented factual claims. Neutral handles may be required by project canon.
 - NO AI-stuffed verbose explanations. Check the copy against "Hype copy ban" in [`figma-canon/references/ai-slop-signatures.md`](../../figma-canon/references/ai-slop-signatures.md)
 
 ### 6. Screen-count integrity
@@ -59,7 +59,7 @@ Evaluate the applicable developer, designer, product and owner concerns against 
 ### 9. Localization rule (applied per project)
 
 - If the project has a localization rule, it is applied consistently across the whole handoff. For example, a project may keep the Figma source in one language and leave the others to app localization. Do not mix locales in one handoff.
-- Follow the project’s declared sample-data convention; do not replace required neutral handles merely because a generic reference prefers names.
+- Follow the project's declared sample-data convention; do not replace required neutral handles merely because a generic reference prefers names.
 - See [`figma-canon/references/handoff-format.md#project-locale-and-sample-names`](../../figma-canon/references/handoff-format.md#project-locale-and-sample-names)
 
 ### 10. Self-correction in reports

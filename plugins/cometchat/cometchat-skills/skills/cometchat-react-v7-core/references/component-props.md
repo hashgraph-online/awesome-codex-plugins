@@ -19,7 +19,7 @@ message header instead of in its `trailingView`, is a defect — fix it by using
 >   headerView={
 >     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", height: 56 }}>
 >       <h3 style={{ margin: 0 }}>{getLocalizedString("groups")}</h3>   {/* re-render the default title */}
->       <button aria-label="Create group" onClick={openCreateGroup}>＋</button>  {/* the action, right of the title */}
+>       <button aria-label="Create group" onClick={openCreateGroup}>+</button>  {/* the action, right of the title */}
 >     </div>
 >   }
 >   onItemClick={openGroup}
@@ -64,7 +64,7 @@ message header instead of in its `trailingView`, is a defect — fix it by using
 > **A custom search/action icon in the message header → put it in `trailingView`** (or `auxiliaryButtonView`), or use the built-in `showSearchOption` + `onSearchOptionClicked`. NOT a sibling above the header.
 
 ## CometChatMessageList
-**Props:** `onThreadRepliesClick(message)` · `hideReplyInThreadOption` · `showSmartReplies` (default `false`; footer) · `showConversationStarters` (default `false`; footer when empty) · hide toggles (`hideReceipts`, `hideDateSeparator`, `hideReactionOption`, …).
+**Props:** `onThreadRepliesClick(message)` · `hideReplyInThreadOption` · `showSmartReplies` (default `false`; footer) · `showConversationStarters` (default `false`; footer when empty) · hide toggles (`hideReceipts`, `hideDateSeparator`, `hideReactionOption`, ...).
 **View slots:**
 - `bubbleView(message, loggedInUser)` — replace an entire message bubble.
 - `headerView: ReactNode` — banner **above** the scroll container. → **A custom banner/notice goes HERE.**

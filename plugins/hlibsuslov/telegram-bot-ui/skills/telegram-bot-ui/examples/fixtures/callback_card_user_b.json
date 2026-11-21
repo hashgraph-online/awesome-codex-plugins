@@ -1,0 +1,44 @@
+{
+  "update_id": 900011,
+  "callback_query": {
+    "id": "4382000000000000002",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "message": {
+      "message_id": 77,
+      "date": 1762900000,
+      "chat": {
+        "id": -1001234567890,
+        "type": "supergroup",
+        "title": "Team Orders"
+      },
+      "from": {
+        "id": 999000111,
+        "is_bot": true,
+        "first_name": "OrdersBot",
+        "username": "orders_demo_bot"
+      },
+      "text": "Lunch order for Friday — 6 people joined.",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "text": "My order",
+              "callback_data": "card:mine"
+            },
+            {
+              "text": "Join",
+              "callback_data": "card:join"
+            }
+          ]
+        ]
+      }
+    },
+    "chat_instance": "-5550001",
+    "data": "card:mine"
+  }
+}

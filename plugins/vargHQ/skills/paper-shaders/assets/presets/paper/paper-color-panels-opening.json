@@ -1,0 +1,38 @@
+{
+  "id": "paper-color-panels-opening",
+  "label": "Opening (Paper ColorPanels)",
+  "shader": "ColorPanels",
+  "page": "https://shaders.paper.design/color-panels",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Opening\" preset for ColorPanels, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 2,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 2.32,
+    "rotation": 360,
+    "offsetX": -0.3,
+    "offsetY": 0.6,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#00ffff"
+    ],
+    "colorBack": "#570044",
+    "angle1": -1,
+    "angle2": -1,
+    "length": 0.52,
+    "edges": false,
+    "blur": 0,
+    "fadeIn": 0,
+    "fadeOut": 1,
+    "gradient": 0,
+    "density": 2.21
+  }
+}

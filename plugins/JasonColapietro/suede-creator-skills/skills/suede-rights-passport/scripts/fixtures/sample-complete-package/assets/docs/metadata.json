@@ -1,0 +1,49 @@
+{
+  "project": {
+    "title": "Golden Hour Reprise",
+    "artist_name": "Ari Fontaine",
+    "work_type": "song",
+    "description": "Synthetic test fixture: a fictional single with fully confirmed ownership and splits, no samples.",
+    "release_status": "unreleased",
+    "public_urls": []
+  },
+  "creator": {
+    "name": "Ari Fontaine",
+    "email": "ari.fontaine.synthetic@example.com",
+    "wallet_address": "",
+    "organization": "",
+    "confirmation_status": "confirmed"
+  },
+  "rights": {
+    "owner_claim": "Ari Fontaine (master and publishing, per signed split sheet on file)",
+    "ownership_status": "confirmed",
+    "contributors": [
+      {
+        "name": "Ari Fontaine",
+        "role": "Songwriter/Producer",
+        "master_percent": 60,
+        "publishing_percent": 60,
+        "confirmed": true
+      },
+      {
+        "name": "Devon Okafor",
+        "role": "Co-writer/Vocals",
+        "master_percent": 40,
+        "publishing_percent": 40,
+        "confirmed": true
+      }
+    ],
+    "contributors_confirmed": true,
+    "splits_confirmed": true,
+    "contains_samples": "no",
+    "sample_clearance_status": "not-needed",
+    "cover_or_interpolation": "no",
+    "license_restrictions": []
+  },
+  "provenance": {
+    "creation_notes": "Synthetic test fixture created for validate_transfer_package.py testing. Written and recorded entirely by the two listed contributors; no third-party material used."
+  },
+  "suede": {
+    "optimization_notes": "Synthetic fixture: ready for rights review pass."
+  }
+}

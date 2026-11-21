@@ -1,0 +1,18 @@
+[
+  {"query": "Add a webhook endpoint for our payment provider. It should mark the order paid and add the credits when the payment succeeds.", "should_trigger": true},
+  {"query": "Our webhook handler verifies JSON.stringify(req.body) and the signature check fails on real events, so someone commented it out. Fix it properly.", "should_trigger": true},
+  {"query": "The offerwall sends a postback with a hash parameter when a user finishes an offer. Build the postback URL so nobody can fake a reward.", "should_trigger": true},
+  {"query": "The provider retried a webhook after a timeout and the customer got their coins twice. Make the handler safe against retries.", "should_trigger": true},
+  {"query": "We need to rotate the webhook signing secret without dropping events. How should the endpoint handle the old and the new one?", "should_trigger": true},
+  {"query": "Set up the server notification endpoint for in-app purchases so a subscription renewal extends access exactly once.", "should_trigger": true},
+  {"query": "Customers who get a refund keep their credits. Make refunds take the credits back.", "should_trigger": false},
+  {"query": "Send a webhook to our customers' servers whenever one of their invoices is paid, with retries and a signature they can verify.", "should_trigger": false},
+  {"query": "Add a credits balance with a transaction history to our app.", "should_trigger": false},
+  {"query": "Audit our payment code and tell me where we can lose money.", "should_trigger": false},
+  {"query": "stripe webhook idempotency: our checkout.session.completed handler ran twice and gave the user double coins", "should_trigger": true},
+  {"query": "Paddle-Signature verification fails on every real event in our Express app but works in unit tests. Fix the paddle webhook signature check.", "should_trigger": true},
+  {"query": "Set up a Pub/Sub push endpoint for Google Play real-time developer notifications so a coin pack purchase is credited once.", "should_trigger": true},
+  {"query": "Our Lemon Squeezy order_created webhook has no event id. How do we stop a resend from crediting twice?", "should_trigger": true},
+  {"query": "Create a Stripe Checkout session with three price tiers and a success page.", "should_trigger": false},
+  {"query": "Add the RevenueCat SDK to our Flutter app and show a paywall.", "should_trigger": false}
+]

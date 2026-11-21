@@ -1,0 +1,10 @@
+{
+  "update_id": 961003,
+  "business_connection": {
+    "id": "bizconn_oksana",
+    "user": {"id": 111111111, "is_bot": false, "first_name": "Оксана", "language_code": "uk"},
+    "user_chat_id": 111111111,
+    "date": 1763200000,
+    "is_enabled": false
+  }
+}

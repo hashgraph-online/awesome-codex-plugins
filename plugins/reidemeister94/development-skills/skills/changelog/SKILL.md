@@ -1,6 +1,6 @@
 ---
 name: changelog
-description: "Add CHANGELOG.md entries, derive them from commits, or cut a Keep a Changelog and SemVer release."
+description: "Use when the user asks to add CHANGELOG.md entries, derive them from commits, or cut a Keep a Changelog and SemVer release."
 user-invocable: true
 allowed-tools: Read, Edit, Write, Bash, AskUserQuestion
 ---

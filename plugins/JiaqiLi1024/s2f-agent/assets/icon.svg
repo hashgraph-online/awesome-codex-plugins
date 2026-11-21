@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">s2f Agent DNA helix icon</title>
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M156 94c0 80 200 80 200 162S156 338 156 418" stroke="#fff" stroke-width="26"/>
+    <path d="M356 94c0 80-200 80-200 162s200 82 200 162" stroke="#bae6fd" stroke-width="26"/>
+    <path d="M169 134h174M200 194h112M200 318h112M169 378h174" stroke="#dbeafe" stroke-width="16"/>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ahel",
+  "version": "1.0.0",
+  "description": "Data and tools for your AI agent: company and people enrichment, SEO and SERP data, social media data, official EU business registers and more, from one catalog. Pay per call; each call's price is shown before it runs.",
+  "author": { "name": "Ahel Technologies", "url": "https://ahel.ai" },
+  "homepage": "https://ahel.ai",
+  "license": "MIT"
+}

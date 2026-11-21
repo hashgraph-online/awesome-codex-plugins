@@ -56,7 +56,7 @@ Avoid:
 ```
 Good:
 - "Top 10" lists on Netflix
-- 3-4 pricing tiers
+- 3 pricing tiers (a fourth only when it serves a distinct buyer)
 - Stepped forms/wizards
 - Clear default selections
 
@@ -74,7 +74,7 @@ Keep top-level navigation to roughly **4–7 items**. Miller's 7±2 describes wo
 
 ## Miller's Law
 
-> The average person can only keep about 7 (±2) items in their working memory.
+> Miller's original estimate was 7 (±2) items in working memory; later research (Cowan, 2001) puts the practical limit nearer 4 (±1) chunks. Design for about 4.
 
 **Formulated by:** George A. Miller (1956)
 

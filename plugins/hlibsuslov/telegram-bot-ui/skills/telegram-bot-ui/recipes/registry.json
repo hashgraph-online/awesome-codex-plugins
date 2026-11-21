@@ -1,0 +1,912 @@
+{
+ "verified": "2026-11-12",
+ "source": "https://core.telegram.org/bots/api-changelog",
+ "newest_release": "10.4 (2026-11-09)",
+ "statuses": {
+  "ready": "explained + example + automated check",
+  "ready-test-server": "same, but the feature exists only on Telegram's test server today",
+  "ready-dry-run": "destructive/rights-changing: the example prints the plan; the call runs only on explicit request"
+ },
+ "rows": [
+  {
+   "id": "10.4-W01",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "Widget class; Message.widget and ExternalReplyInfo.widget",
+   "symbols": [
+    "Widget",
+    "widget",
+    "ExternalReplyInfo"
+   ],
+   "use": "read widgets in messages and in replies to forwarded copies",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#sending-a-widget",
+   "recipe": "recipes/05-private-widget.md",
+   "example": "examples/fixtures/message_with_widget.json",
+   "check": "examples/python/recipes/mini_recipes.py::m14_received_widget",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W02",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "sendWidget; production: private chats only, protected content",
+   "symbols": [
+    "sendWidget"
+   ],
+   "use": "interactive card inside a message",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#sending-a-widget",
+   "recipe": "recipes/05-private-widget.md",
+   "example": "examples/payloads/r05-private-widget.json",
+   "check": "tests/test_widgets.py::Size",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W03",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "sendSharedWidget re-sends a shared widget",
+   "symbols": [
+    "sendSharedWidget"
+   ],
+   "use": "one live object shown in many chats",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#shared-widgets",
+   "recipe": "recipes/06-shared-widget.md",
+   "example": "examples/payloads/r06-shared-widget.json",
+   "check": "examples/python/recipes/r06_shared_widget.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W04",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "WidgetQuery and Update.widget_query",
+   "symbols": [
+    "WidgetQuery",
+    "widget_query"
+   ],
+   "use": "the widget asks the bot (like a callback)",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#query-flow",
+   "recipe": "recipes/05-private-widget.md",
+   "example": "examples/fixtures/widget_query_ship.json",
+   "check": "tests/test_widgets.py::QueryFlow",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W05",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "SharedWidgetQuery and Update.shared_widget_query (from forwards)",
+   "symbols": [
+    "SharedWidgetQuery",
+    "shared_widget_query"
+   ],
+   "use": "live forwards (a poll that keeps counting)",
+   "availability": "test server only (forwards not in production)",
+   "skill": "references/widgets.md#groups-inline-and-forwards-test-server",
+   "recipe": "recipes/06-shared-widget.md",
+   "example": "examples/fixtures/shared_widget_query_vote.json",
+   "check": "tests/test_widgets.py::QueryFlow",
+   "status": "ready-test-server"
+  },
+  {
+   "id": "10.4-W06",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "WidgetQueryType, WidgetQueryTypeData, WidgetQueryTypeSignData, WidgetQueryTypeSentTransaction, WidgetQueryWallet",
+   "symbols": [
+    "WidgetQueryType",
+    "WidgetQueryTypeData",
+    "WidgetQueryTypeSignData",
+    "WidgetQueryTypeSentTransaction",
+    "WidgetQueryWallet",
+    "wallet_card",
+    "sign_data",
+    "sent_transaction",
+    "msg_hash"
+   ],
+   "use": "data + wallet card, signed data, transaction notice",
+   "availability": "production: private chats with the bot; wallet availability depends on the user's app/country",
+   "skill": "references/wallet-and-ton.md#payment-flow",
+   "recipe": "recipes/07-wallet.md",
+   "example": "examples/fixtures/widget_query_sent_transaction.json",
+   "check": "examples/python/recipes/r07_wallet.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W07",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "answerWidgetQuery (15 s, data to the asking widget only)",
+   "symbols": [
+    "answerWidgetQuery"
+   ],
+   "use": "reply to one widget without changing state",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#query-flow",
+   "recipe": "recipes/05-private-widget.md",
+   "example": "examples/payloads/r05-private-widget.json",
+   "check": "tests/test_widgets.py::QueryFlow",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W08",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "editMessageWidgetData (chat_data / public_data of a message)",
+   "symbols": [
+    "editMessageWidgetData"
+   ],
+   "use": "change what the widget shows",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#changing-state",
+   "recipe": "recipes/05-private-widget.md",
+   "example": "examples/payloads/r05-private-widget.json",
+   "check": "tests/test_widgets.py::QueryFlow",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W09",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "editSharedWidgetData (public data of a shared widget, cache_time)",
+   "symbols": [
+    "editSharedWidgetData",
+    "cache_time"
+   ],
+   "use": "update every copy at once",
+   "availability": "production: private chats with the bot",
+   "skill": "references/widgets.md#shared-widgets",
+   "recipe": "recipes/06-shared-widget.md",
+   "example": "examples/payloads/r06-shared-widget.json",
+   "check": "tests/test_widgets.py::Coalescing",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W10",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "InputWidgetMessageContent, InputSharedWidgetMessageContent (inline results)",
+   "symbols": [
+    "InputWidgetMessageContent",
+    "InputSharedWidgetMessageContent"
+   ],
+   "use": "widgets as inline results",
+   "availability": "test server only (not in production inline mode)",
+   "skill": "references/widgets.md#groups-inline-and-forwards-test-server",
+   "recipe": "recipes/06-shared-widget.md",
+   "example": "examples/python/recipes/r06_shared_widget.py",
+   "check": "examples/python/recipes/r06_shared_widget.py::main",
+   "status": "ready-test-server"
+  },
+  {
+   "id": "10.4-W11",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "widget messages can't be copied (copyMessage/copyMessages)",
+   "symbols": [
+    "copyMessage",
+    "copyMessages"
+   ],
+   "use": "re-send by widget_id instead",
+   "availability": "everywhere",
+   "skill": "references/widgets.md#shared-widgets",
+   "recipe": "recipes/06-shared-widget.md",
+   "example": "examples/fixtures/copy_widget_error.json",
+   "check": "examples/python/recipes/r06_shared_widget.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-W12",
+   "version": "10.4",
+   "section": "Widgets",
+   "change": "can_send_other_messages now also allows widgets",
+   "symbols": [
+    "can_send_other_messages",
+    "ChatPermissions",
+    "ChatMemberRestricted"
+   ],
+   "use": "check the right before sending a widget to a group",
+   "availability": "groups: test server only",
+   "skill": "references/widgets.md#groups-inline-and-forwards-test-server",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/python/recipes/mini_recipes.py",
+   "check": "examples/python/recipes/mini_recipes.py::m13_widget_permission",
+   "status": "ready-test-server"
+  },
+  {
+   "id": "10.4-E01",
+   "version": "10.4",
+   "section": "Ephemeral messages",
+   "change": "ephemeral reply to a callback without receiver_user_id, any chat except channel DM chats, 14 send methods",
+   "symbols": [
+    "callback_query_id",
+    "receiver_user_id",
+    "sendRichMessage",
+    "sendLivePhoto"
+   ],
+   "use": "private answer to whoever tapped, even in chats where the bot isn't a member",
+   "availability": "production; not in channel direct-messages chats",
+   "skill": "references/ephemeral-and-personal.md#addressing-an-ephemeral-reply",
+   "recipe": "recipes/04-shared-card-personal-panel.md",
+   "example": "examples/payloads/r04-shared-card-personal-panel.json",
+   "check": "tests/test_ephemeral.py::Audience",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-E02",
+   "version": "10.4",
+   "section": "Ephemeral messages",
+   "change": "EphemeralMessageParameters.receiver_user_id and send chat_id optional",
+   "symbols": [
+    "EphemeralMessageParameters",
+    "chat_id"
+   ],
+   "use": "no chat id needed for callback replies (inline messages)",
+   "availability": "production",
+   "skill": "references/ephemeral-and-personal.md#addressing-an-ephemeral-reply",
+   "recipe": "recipes/04-shared-card-personal-panel.md",
+   "example": "examples/fixtures/callback_inline_message.json",
+   "check": "examples/python/recipes/r04_shared_card_personal_panel.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-Q01",
+   "version": "10.4",
+   "section": "Quotes from rich messages",
+   "change": "TextQuote.rich_texts (text may be empty)",
+   "symbols": [
+    "TextQuote",
+    "rich_texts"
+   ],
+   "use": "know which fragment of a rich answer the user asks about",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#quotes-from-rich-messages",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/fixtures/message_quote_rich.json",
+   "check": "tests/test_text_and_rich.py::RichPayloads",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-Q02",
+   "version": "10.4",
+   "section": "Quotes from rich messages",
+   "change": "ReplyParameters.quote_rich_texts",
+   "symbols": [
+    "ReplyParameters",
+    "quote_rich_texts"
+   ],
+   "use": "quote a fragment of a rich message back",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#quotes-from-rich-messages",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "tests/test_text_and_rich.py::RichPayloads",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-T01",
+   "version": "10.4",
+   "section": "TON wallet",
+   "change": "TonWalletCard, TonWalletCardSticker, TonNft, TonNftAttribute; ChatFullInfo.ton_wallet_card",
+   "symbols": [
+    "TonWalletCard",
+    "TonWalletCardSticker",
+    "TonNft",
+    "TonNftAttribute",
+    "ton_wallet_card",
+    "ChatFullInfo"
+   ],
+   "use": "show a user's public wallet card / NFTs",
+   "availability": "production (private chats)",
+   "skill": "references/wallet-and-ton.md#wallet-cards-and-transfers",
+   "recipe": "recipes/07-wallet.md",
+   "example": "examples/fixtures/get_chat_result_wallet_theme.json",
+   "check": "examples/python/recipes/r07_wallet.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-T02",
+   "version": "10.4",
+   "section": "TON wallet",
+   "change": "TonWalletTransfer service message; Message.ton_wallet_transfer",
+   "symbols": [
+    "TonWalletTransfer",
+    "ton_wallet_transfer"
+   ],
+   "use": "react to wallet transfers in the chat",
+   "availability": "production",
+   "skill": "references/wallet-and-ton.md#wallet-cards-and-transfers",
+   "recipe": "recipes/07-wallet.md",
+   "example": "examples/fixtures/message_ton_wallet_transfer.json",
+   "check": "examples/python/recipes/r07_wallet.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-T03",
+   "version": "10.4",
+   "section": "TON wallet",
+   "change": "renamed StoryAreaPosition -> AreaPosition",
+   "symbols": [
+    "StoryAreaPosition",
+    "AreaPosition"
+   ],
+   "use": "SDK type migration (JSON unchanged)",
+   "availability": "all",
+   "skill": "references/specialized-updates.md#renamed-areaposition",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/get_chat_result_wallet_theme.json",
+   "check": "examples/python/recipes/mini_recipes.py::m11_area_position_rename",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-S01",
+   "version": "10.4",
+   "section": "Chat share themes",
+   "change": "ChatShareTheme, ChatShareThemeEmoji, ChatShareThemeUniqueGift; ChatFullInfo.share_theme",
+   "symbols": [
+    "ChatShareTheme",
+    "ChatShareThemeEmoji",
+    "ChatShareThemeUniqueGift",
+    "share_theme"
+   ],
+   "use": "match your UI to the user's share screen",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#chat-share-themes",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/get_chat_result_wallet_theme.json",
+   "check": "examples/python/recipes/mini_recipes.py::m06_share_theme",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-S02",
+   "version": "10.4",
+   "section": "Chat share themes",
+   "change": "EmojiType, EmojiTypeEmoji, EmojiTypeCustomEmoji",
+   "symbols": [
+    "EmojiType",
+    "EmojiTypeEmoji",
+    "EmojiTypeCustomEmoji"
+   ],
+   "use": "regular vs custom emoji union",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#chat-share-themes",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/get_chat_result_wallet_theme.json",
+   "check": "examples/python/recipes/mini_recipes.py::m06_share_theme",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-S03",
+   "version": "10.4",
+   "section": "Chat share themes",
+   "change": "ChatShareThemeBackdrop(s), getChatShareThemeBackdrops",
+   "symbols": [
+    "ChatShareThemeBackdrop",
+    "ChatShareThemeBackdrops",
+    "getChatShareThemeBackdrops"
+   ],
+   "use": "resolve backdrop ids to colors",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#chat-share-themes",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/get_chat_share_theme_backdrops_result.json",
+   "check": "examples/python/recipes/mini_recipes.py::m06_share_theme",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-G01",
+   "version": "10.4",
+   "section": "Gifts",
+   "change": "getUniqueGift by name",
+   "symbols": [
+    "getUniqueGift"
+   ],
+   "use": "look up a collectible a user mentions",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#getuniquegift",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m04_get_unique_gift",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-G02",
+   "version": "10.4",
+   "section": "Gifts",
+   "change": "deleteBusinessAccountGift (destructive, no Stars)",
+   "symbols": [
+    "deleteBusinessAccountGift",
+    "can_convert_gifts_to_stars"
+   ],
+   "use": "clean up a managed business account's regular gifts",
+   "availability": "production; business bot right required",
+   "skill": "references/specialized-updates.md#deletebusinessaccountgift",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/python/recipes/mini_recipes.py",
+   "check": "examples/python/recipes/mini_recipes.py::m05_delete_business_gift",
+   "status": "ready-dry-run"
+  },
+  {
+   "id": "10.4-X01",
+   "version": "10.4",
+   "section": "General",
+   "change": "Premium owners: secondary bot usernames ending agent/ai/app/game/gay via suggested_username",
+   "symbols": [
+    "suggested_username",
+    "KeyboardButtonRequestManagedBot"
+   ],
+   "use": "nicer usernames for managed bots",
+   "availability": "production; creator must have Premium",
+   "skill": "references/specialized-updates.md#managed-bot-usernames",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m07_managed_bot_username",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-X02",
+   "version": "10.4",
+   "section": "General",
+   "change": "RichTextTonAddress in rich messages",
+   "symbols": [
+    "RichTextTonAddress",
+    "ton_address"
+   ],
+   "use": "read TON addresses from rich text exactly",
+   "availability": "production",
+   "skill": "references/wallet-and-ton.md#ton-addresses-in-text",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/fixtures/rich_message_received.json",
+   "check": "examples/python/recipes/r02_interactive_document.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-X03",
+   "version": "10.4",
+   "section": "General",
+   "change": "MessageEntity type ton_address",
+   "symbols": [
+    "ton_address",
+    "MessageEntity"
+   ],
+   "use": "detect and copy addresses",
+   "availability": "production",
+   "skill": "references/wallet-and-ton.md#ton-addresses-in-text",
+   "recipe": "recipes/07-wallet.md",
+   "example": "examples/fixtures/message_entities_ton_bank.json",
+   "check": "examples/python/recipes/r07_wallet.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-X04",
+   "version": "10.4",
+   "section": "General",
+   "change": "MessageEntity type bank_card_number",
+   "symbols": [
+    "bank_card_number"
+   ],
+   "use": "mask card numbers before logging",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#bank-card-and-ton-entities",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/message_entities_ton_bank.json",
+   "check": "examples/python/recipes/mini_recipes.py::m10_sensitive_entities",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-X05",
+   "version": "10.4",
+   "section": "General",
+   "change": "verifyUser/verifyChat custom_description_parse_mode and custom_description_entities (text_link only)",
+   "symbols": [
+    "verifyUser",
+    "verifyChat",
+    "custom_description_parse_mode",
+    "custom_description_entities"
+   ],
+   "use": "a linked verification description",
+   "availability": "verification organizations only",
+   "skill": "references/specialized-updates.md#verification-descriptions",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m08_verification_description",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-X06",
+   "version": "10.4",
+   "section": "General",
+   "change": "PaidMessagesWaived service message; Message.paid_messages_waived",
+   "symbols": [
+    "PaidMessagesWaived",
+    "paid_messages_waived"
+   ],
+   "use": "know a sender came through a free-message link",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#paid-messages-waived",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/message_paid_messages_waived.json",
+   "check": "examples/python/recipes/mini_recipes.py::m09_paid_messages_waived",
+   "status": "ready"
+  },
+  {
+   "id": "10.4-X07",
+   "version": "10.4",
+   "section": "General",
+   "change": "links to topics in private chats: https://t.me/<bot_username>/<message_thread_id>",
+   "symbols": [
+    "message_thread_id",
+    "t.me"
+   ],
+   "use": "jump between conversation topics",
+   "availability": "production; works only for that user",
+   "skill": "references/topics-and-contexts.md#private-chat-topics-and-topic-links",
+   "recipe": "recipes/08-multi-topic-bot.md",
+   "example": "examples/payloads/r08-multi-topic-bot.json",
+   "check": "examples/python/recipes/r08_multi_topic_bot.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R01",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "RichMessageButton (style link for callbacks; no pay/game/icon)",
+   "symbols": [
+    "RichMessageButton"
+   ],
+   "use": "buttons inside the document",
+   "availability": "production",
+   "skill": "references/buttons-and-styles.md#three-button-models",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "tests/test_keyboard_validator.py::RegressionFixtures",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R02",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "RichTextButton (button inside a text run)",
+   "symbols": [
+    "RichTextButton"
+   ],
+   "use": "an inline action next to the sentence it belongs to",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "tests/test_keyboard_validator.py::RegressionFixtures",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R03",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "RichBlockButtons / InputRichBlockButtons (<tg-button-row>, 1-8, align)",
+   "symbols": [
+    "RichBlockButtons",
+    "InputRichBlockButtons",
+    "tg-button-row"
+   ],
+   "use": "a row of actions between sections",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "tests/test_keyboard_validator.py::RegressionFixtures",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R04",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "is_compact on RichBlockTable / InputRichBlockTable",
+   "symbols": [
+    "is_compact",
+    "RichBlockTable",
+    "InputRichBlockTable"
+   ],
+   "use": "dense tables on phones",
+   "availability": "production",
+   "skill": "references/tables.md#compact-tables",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "examples/python/recipes/r02_interactive_document.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R05",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "RichBlockExpandableBlockQuotation / Input... (<blockquote expandable>)",
+   "symbols": [
+    "RichBlockExpandableBlockQuotation",
+    "InputRichBlockExpandableBlockQuotation",
+    "expandable_blockquote"
+   ],
+   "use": "long notes collapsed by default",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "examples/python/recipes/r02_interactive_document.py::main",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R06",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "RichBlockDocument / InputRichBlockDocument (<tg-document>)",
+   "symbols": [
+    "RichBlockDocument",
+    "InputRichBlockDocument",
+    "tg-document"
+   ],
+   "use": "attach a file inside the document",
+   "availability": "production; not new uploads/URLs in drafts",
+   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "tests/test_text_and_rich.py::RichPayloads",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-R07",
+   "version": "10.3",
+   "section": "Rich Messages",
+   "change": "tg://document?id= links for general files",
+   "symbols": [
+    "tg://document"
+   ],
+   "use": "reference a file from markdown/html",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "tests/test_text_and_rich.py::RichPayloads",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E01",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "EphemeralMessageParameters replaces receiver_user_id/callback_query_id on 13 send methods",
+   "symbols": [
+    "EphemeralMessageParameters",
+    "ephemeral_message_parameters"
+   ],
+   "use": "one addressing object for every personal send",
+   "availability": "production",
+   "skill": "references/ephemeral-and-personal.md#migrating-from-102",
+   "recipe": "recipes/04-shared-card-personal-panel.md",
+   "example": "examples/payloads/r04-shared-card-personal-panel.json",
+   "check": "examples/python/recipes/mini_recipes.py::m12_ephemeral_media_edit",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E02",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "sendRichMessage accepts ephemeral_message_parameters",
+   "symbols": [
+    "sendRichMessage"
+   ],
+   "use": "rich personal panels",
+   "availability": "production",
+   "skill": "references/ephemeral-and-personal.md#addressing-an-ephemeral-reply",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m12_ephemeral_media_edit",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E03",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "replace_callback_query_message",
+   "symbols": [
+    "replace_callback_query_message"
+   ],
+   "use": "personal view in place of the shared card",
+   "availability": "production; must be false for callbacks from ephemeral messages",
+   "skill": "references/ephemeral-and-personal.md#addressing-an-ephemeral-reply",
+   "recipe": "recipes/04-shared-card-personal-panel.md",
+   "example": "examples/python/recipes/r04_shared_card_personal_panel.py",
+   "check": "tests/test_ephemeral.py::Audience",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E04",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "editEphemeralMessageMedia supports new uploads",
+   "symbols": [
+    "editEphemeralMessageMedia"
+   ],
+   "use": "personal receipt image",
+   "availability": "production",
+   "skill": "references/ephemeral-and-personal.md#editing-and-lifetime",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m12_ephemeral_media_edit",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E05",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "editEphemeralMessageCaption show_caption_above_media",
+   "symbols": [
+    "editEphemeralMessageCaption",
+    "show_caption_above_media"
+   ],
+   "use": "caption placement in personal media",
+   "availability": "production",
+   "skill": "references/ephemeral-and-personal.md#editing-and-lifetime",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m12_ephemeral_media_edit",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E06",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "editEphemeralMessageText rich_message",
+   "symbols": [
+    "editEphemeralMessageText",
+    "rich_message"
+   ],
+   "use": "rich personal panels can be edited",
+   "availability": "production",
+   "skill": "references/ephemeral-and-personal.md#editing-and-lifetime",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/payloads/mini-recipes.json",
+   "check": "examples/python/recipes/mini_recipes.py::m12_ephemeral_media_edit",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E07",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "can_send_welcome_messages in ChatAdministratorRights / ChatMemberAdministrator",
+   "symbols": [
+    "can_send_welcome_messages",
+    "ChatAdministratorRights",
+    "ChatMemberAdministrator"
+   ],
+   "use": "gate a welcome flow on the right",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#welcome-messages-right",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/chat_member_admin_welcome.json",
+   "check": "examples/python/recipes/mini_recipes.py::m01_welcome_right",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-E08",
+   "version": "10.3",
+   "section": "Ephemeral messages",
+   "change": "promoteChatMember can_send_welcome_messages",
+   "symbols": [
+    "promoteChatMember"
+   ],
+   "use": "grant the right (rights change: dry-run)",
+   "availability": "production; admin with can_promote_members",
+   "skill": "references/specialized-updates.md#welcome-messages-right",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/python/recipes/mini_recipes.py",
+   "check": "examples/python/recipes/mini_recipes.py::m01_welcome_right",
+   "status": "ready-dry-run"
+  },
+  {
+   "id": "10.3-K01",
+   "version": "10.3",
+   "section": "Reply markup",
+   "change": "DisabledButton and InlineKeyboardButton.disabled",
+   "symbols": [
+    "DisabledButton",
+    "disabled"
+   ],
+   "use": "show an action as unavailable without removing it",
+   "availability": "production",
+   "skill": "references/buttons-and-styles.md#disabled-buttons",
+   "recipe": "recipes/03-multi-step-form.md",
+   "example": "tests/fixtures/keyboards/disabled_ok.json",
+   "check": "tests/test_keyboard_validator.py::RegressionFixtures",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-K02",
+   "version": "10.3",
+   "section": "Reply markup",
+   "change": "force_reply on InlineKeyboardMarkup (immutable on edit) and ReplyKeyboardMarkup",
+   "symbols": [
+    "force_reply",
+    "InlineKeyboardMarkup",
+    "ReplyKeyboardMarkup"
+   ],
+   "use": "buttons AND a reply field in one step",
+   "availability": "production",
+   "skill": "references/buttons-and-styles.md#force_reply-on-keyboards",
+   "recipe": "recipes/03-multi-step-form.md",
+   "example": "examples/payloads/r03-multi-step-form.json",
+   "check": "tests/test_keyboard_validator.py::RegressionFixtures",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-G01",
+   "version": "10.3",
+   "section": "General",
+   "change": "can_stop and keep_on_stop on sendMessageDraft / sendRichMessageDraft",
+   "symbols": [
+    "can_stop",
+    "keep_on_stop",
+    "sendMessageDraft",
+    "sendRichMessageDraft"
+   ],
+   "use": "a Stop button on AI answers",
+   "availability": "production (private chats)",
+   "skill": "references/streaming-and-editing.md#stop-can_stop-and-keep_on_stop",
+   "recipe": "recipes/01-ai-assistant.md",
+   "example": "examples/payloads/r01-ai-stop-keep-marked.json",
+   "check": "tests/test_generation.py::Endings",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-G02",
+   "version": "10.3",
+   "section": "General",
+   "change": "MessageGenerationStopped and Update.stopped_message_generation",
+   "symbols": [
+    "MessageGenerationStopped",
+    "stopped_message_generation"
+   ],
+   "use": "know the user pressed Stop",
+   "availability": "production",
+   "skill": "references/streaming-and-editing.md#receiving-the-stop-update",
+   "recipe": "recipes/01-ai-assistant.md",
+   "example": "examples/fixtures/stopped_message_generation.json",
+   "check": "tests/test_generation.py::Endings",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-G03",
+   "version": "10.3",
+   "section": "General",
+   "change": "CommunityChatJoined; Message.community_chat_joined",
+   "symbols": [
+    "CommunityChatJoined",
+    "community_chat_joined"
+   ],
+   "use": "welcome members arriving from a community",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#community-joins",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/message_community_chat_joined.json",
+   "check": "examples/python/recipes/mini_recipes.py::m02_community_join",
+   "status": "ready"
+  },
+  {
+   "id": "10.3-G04",
+   "version": "10.3",
+   "section": "General",
+   "change": "UniqueGiftInfo text, entities, is_private",
+   "symbols": [
+    "UniqueGiftInfo",
+    "is_private"
+   ],
+   "use": "show the gift note, respecting privacy",
+   "availability": "production",
+   "skill": "references/specialized-updates.md#gift-text-and-privacy",
+   "recipe": "recipes/mini-recipes.md",
+   "example": "examples/fixtures/message_unique_gift_info.json",
+   "check": "examples/python/recipes/mini_recipes.py::m03_unique_gift_text",
+   "status": "ready"
+  }
+ ]
+}

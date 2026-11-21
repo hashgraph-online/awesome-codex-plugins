@@ -29,12 +29,15 @@ class DiscreteSpace:
 
     @property
     def shape(self) -> tuple[int, ...]:
+        """Handle shape."""
         return ()
 
     def contains(self, value: Any) -> bool:
+        """Handle contains."""
         return isinstance(value, int) and not isinstance(value, bool) and 0 <= value < self.n
 
     def sample(self, rng: random.Random) -> int:
+        """Handle sample."""
         return rng.randrange(self.n)
 
 
@@ -48,6 +51,7 @@ class BoxSpace:
     dtype: str = "float32"
 
     def contains(self, value: Any) -> bool:
+        """Handle contains."""
         if len(self.shape) != 1 or not isinstance(value, (list, tuple)):
             return False
         if len(value) != self.shape[0]:
@@ -66,6 +70,7 @@ class SyntheticGymEnv:
     metadata = {"render_modes": []}
 
     def __init__(self, *, max_steps: int = 16) -> None:
+        """Initialise the instance."""
         if not 1 <= max_steps <= 10_000:
             raise UserInputError("max_steps must be between 1 and 10000")
         self.max_steps = max_steps
@@ -80,6 +85,7 @@ class SyntheticGymEnv:
         self._last_action = 0.0
 
     def _observation(self) -> list[float]:
+        """Handle observation."""
         return [
             float(self._position),
             float(self._target),
@@ -142,6 +148,7 @@ class SyntheticGymEnv:
         return self._observation(), float(reward), terminated, truncated, info
 
     def close(self) -> None:
+        """Close."""
         self._initialized = False
         self._done = True
 
@@ -181,6 +188,7 @@ def run_demo(*, seed: int, steps: int, max_steps: int) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Run the dependency-free synthetic environment template."
     )
@@ -192,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

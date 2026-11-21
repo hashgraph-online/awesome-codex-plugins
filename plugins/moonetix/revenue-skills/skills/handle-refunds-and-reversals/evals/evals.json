@@ -1,0 +1,75 @@
+{
+  "skill_name": "handle-refunds-and-reversals",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL credits an order's credits to a ledger when payment.succeeded arrives. payment.refunded events carry refund_id, order_id, amount_cents and currency and are currently answered with 200 and ignored. Make refunds, including partial ones, take the credits back. Users may already have spent them.",
+      "expected_output": "Refund handling that takes back the credits for each refund id once, in proportion for a partial refund, lets the balance go negative when the credits were spent, and blocks spending while it is, with tests.",
+      "assertions": [
+        "A migration creates a refunds table with a unique constraint on the provider and refund id.",
+        "The amount subtracted is computed from the ledger entry of the original purchase and the order's price, not taken from a credits or amount field of the event.",
+        "The reversal entry references the original ledger entry and is posted to the account of that entry.",
+        "Refunds of 166, 166 and 167 cents on an order of 499 cents that granted 500 credits take back 500 credits in total.",
+        "Delivering the same refund event twice, and ten times concurrently, changes the balance once.",
+        "A refund after the credits were spent leaves a negative balance, and a following spend request is refused with a 4xx status.",
+        "The handler runs under a row lock on the order, or an equivalent serialization of reversals for one order.",
+        "A refund event that is processed before the payment event of its order subtracts nothing, and the balance is back at its starting value after the payment event is processed.",
+        "The project's test run includes tests for the duplicate, the partial and the spent-balance case, and they pass."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our PHP app on MySQL credits offer rewards from a signed postback into a ledger with kind 'offer' and the network's transaction id as reference. The network sends the same postback with status=2 when a conversion is reversed, sometimes before the status=1 postback. Add reversal handling. Referrers get 10 percent of each reward as kind 'referral_commission'.",
+      "expected_output": "Reversal handling that subtracts the stored credit once, also reverses the referral commission, and records a reversal that arrives first so that the later credit pays nothing, with tests.",
+      "assertions": [
+        "The reversal looks up the ledger entry or stored conversion for the transaction id and subtracts that entry's amount from that entry's account, ignoring the reward and user id parameters of the reversal request.",
+        "A second status=2 postback for the same transaction id does not change any balance and is answered with the network's success response.",
+        "A status=2 postback for a transaction id that was never credited changes no balance, and a status=1 postback for the same id that arrives afterwards credits nothing.",
+        "The credit and the reversal both write a row keyed by network and transaction id, and MySQL error 1062 on that insert is handled as an existing row rather than as a failure.",
+        "The reversal can take the balance below zero, and no other debit in the code base can.",
+        "The referral commission paid for the transaction is taken back from the referrer in the same database transaction as the reversal.",
+        "The ledger reconciliation query returns no rows after the tests have run."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our Django app on PostgreSQL sells a lifetime Pro plan and credit packs. We receive dispute.opened, dispute.won and dispute.lost events with a dispute id and the order id and do nothing with them. Implement them. A partial refund may already exist on the order.",
+      "expected_output": "Dispute handling with a status that moves from open to won or lost once, credits and the Pro entitlement taken back on a loss net of any partial refund, and restored on a win, with tests.",
+      "assertions": [
+        "A disputes table has a unique constraint on the provider and dispute id, and a status that only moves from open to won or lost through a conditional update.",
+        "dispute.opened delivered twice takes the remaining credits of the order once and revokes or suspends the Pro plan granted by that order.",
+        "dispute.won gives back the amount that the opening took, read from the stored dispute, and restores the plan. A second dispute.won changes nothing.",
+        "On an order with an earlier refund of half the price, opening and then winning a dispute leaves the user with half the credits.",
+        "dispute.lost after dispute.opened does not change the balance, and the plan stays revoked.",
+        "dispute.won arriving without an earlier dispute.opened leaves the balance unchanged in total and does not raise an error.",
+        "The code that decides whether a user has the Pro plan reads the stored grant at request time, and returns false after a dispute was opened.",
+        "The project's tests cover opened twice, won twice, lost, and won without opened, and they pass."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Django app on PostgreSQL sells coin packs through Stripe and credits them on checkout.session.completed. We get charge.refunded, refund.created and charge.dispute.created and charge.dispute.closed events but only log them. Make refunds, partial refunds and disputes take the coins back.",
+      "expected_output": "Refund and dispute handling keyed on Stripe's refund and dispute ids, one refund source only, proportional shares for partial refunds computed from the original credit, dispute open and close moves, with tests.",
+      "assertions": [
+        "Refunds are recorded from one source only, either the refund.* events keyed by refund id or charge.refunded keyed by the running amount_refunded, and the tests show one partial refund delivered through both events takes back one share.",
+        "The coins taken back are computed from the original ledger entry and the order's price, not from refund.amount alone.",
+        "The refund or dispute is linked to the order through a PaymentIntent or charge id the app stored at payment time, or through metadata the app set.",
+        "charge.dispute.created takes back what is left once, and charge.dispute.closed with status won gives back exactly what the opening took.",
+        "A charge.dispute.closed with status lost changes no balance and keeps the account restricted.",
+        "A refund event processed before the payment event subtracts nothing, and the balance ends at its starting value after the payment event."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Our Node backend grants coins for App Store and Google Play purchases. Apple REFUND notifications and Google Play voidedPurchaseNotification messages arrive but nothing happens. Add reversals, including Apple's prorated refunds and Google's quantity-based partial refunds.",
+      "expected_output": "Reversals keyed on the store's transaction or order, shares computed from the original credit, Apple REFUND_REVERSED giving back, and a scheduled Voided Purchases API job, with tests.",
+      "assertions": [
+        "An Apple REFUND is matched to the credit by the transactionId of the verified signedTransactionInfo, and REFUND_PRORATED takes the grant times revocationPercentage divided by 100000, rounded down.",
+        "REFUND_REVERSED gives back exactly what the refund took, once.",
+        "A Google Play voided purchase is matched by purchaseToken and orderId, and a quantity-based partial refund takes a share in proportion to the quantity voided.",
+        "Every reversal is stored under a unique key, so a repeated notification changes no balance.",
+        "A scheduled job reads the Voided Purchases API with subscriptions and partial refunds included and passes each result through the same functions as the notification."
+      ]
+    }
+  ]
+}

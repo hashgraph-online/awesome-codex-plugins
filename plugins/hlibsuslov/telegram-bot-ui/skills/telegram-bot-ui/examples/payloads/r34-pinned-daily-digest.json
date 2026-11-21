@@ -1,0 +1,239 @@
+{
+  "scenario": "r34-pinned-daily-digest",
+  "status": "production",
+  "context": "channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 1,
+              "text": "Today in the city — 15 Nov"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Time",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "What",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Where",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "09:00",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Farmers' market",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Cathedral Sq.",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true
+            },
+            {
+              "type": "footer",
+              "text": "Updated through the day. Tap a post in the channel for details."
+            }
+          ]
+        },
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "pinChatMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_id": 1001
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 1,
+              "text": "Today in the city — 15 Nov"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Time",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "What",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Where",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "09:00",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Farmers' market",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Cathedral Sq.",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "13:00",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Road closed for repairs",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Bridge St.",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true
+            },
+            {
+              "type": "footer",
+              "text": "Updated through the day. Tap a post in the channel for details."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 1,
+              "text": "Today in the city — 16 Nov"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Time",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "What",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Where",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "10:00",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Half marathon",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Riverside",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true
+            },
+            {
+              "type": "footer",
+              "text": "Updated through the day. Tap a post in the channel for details."
+            }
+          ]
+        },
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "pinChatMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_id": 1002
+      }
+    },
+    {
+      "method": "unpinChatMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_id": 1001
+      }
+    }
+  ]
+}

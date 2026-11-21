@@ -1,0 +1,65 @@
+{
+  "id": "wave-wordmark",
+  "name": "Wave-through wordmark",
+  "use": "A 2 s logo sting: a crest of lift, weight or seesaw tilt runs through a wordmark letter by letter and settles back to the exact logo.",
+  "formats": ["16:9", "9:16", "1:1"],
+  "duration_s": 2,
+  "fonts": [
+    { "family": "Recursive", "weights": [300, 1000], "axes": { "wght": [300, 1000], "slnt": [-15, 0] }, "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Recursive", "role": "weight preset" },
+    { "family": "Inter", "weights": [600, 800], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Inter", "role": "typeset wordmark" },
+    { "family": "Space Grotesk", "weights": [500, 700], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Space+Grotesk", "role": "typeset wordmark" }
+  ],
+  "beats": [
+    { "t": [0.0, 0.2], "beat": "rest: read the logo (6 f at 30 fps)" },
+    { "t": [0.2, 1.1], "beat": "crest travels: last peak at 0.2 + (N-1)*0.1 s (8 letters: 0.9 s), tail clears 0.2 s later" },
+    { "t": [1.1, 1.6], "beat": "settle: seesaw rock or overshoot decays" },
+    { "t": [1.6, 2.0], "beat": "hold the exact rest pose; last frame = first frame" }
+  ],
+  "formula": "peak_i = t0 + i*d; u = clamp(|t - peak_i| / (2d), 0, 1); y_i = -A * 0.5*(1 + cos(pi*u))",
+  "presets": [
+    {
+      "id": "wave-wordmark.lift",
+      "label": "Lift wave",
+      "look": "Letters rise and fall as one crest travels left to right",
+      "params": { "fps": 30, "amplitude_pct_cap_height": 30, "per_letter_delay_s": 0.1, "per_letter_delay_frames": 3, "pulse_width_s": 0.4, "falloff_window_multiplier": 2, "t0_s": 0.2, "from": "start", "ease": "sine.inOut", "end_state": "exact rest pose", "safe_clearance_above_pct_frame_h_9x16": 10 },
+      "sources": [26, 27]
+    },
+    {
+      "id": "wave-wordmark.seesaw",
+      "label": "Seesaw",
+      "look": "The word tips toward the crest, then rocks to rest on a decaying sine",
+      "params": { "fps": 30, "amplitude_pct_cap_height": 20, "per_letter_delay_s": 0.1, "max_tilt_deg": 3, "tilt_limit_deg": 4, "tilt_formula": "3deg * (crestX - cx) / (W/2)", "pivot": "baseline centre (transform-origin 50% 100%)", "settle": { "type": "decaying sine", "amp_deg": "tilt at exit", "freq_hz": 2.5, "decay": 5, "below_1pct_after_s": 0.9 } },
+      "sources": [27, 28]
+    },
+    {
+      "id": "wave-wordmark.weight",
+      "label": "Weight wave",
+      "look": "A crest of boldness and forward lean passes through the word",
+      "params": { "font": "Recursive", "wght_rest": 400, "wght_crest": 1000, "slnt_rest": 0, "slnt_crest": -15, "crest_width_chars": 4, "sweep_duration_s": 1.0, "transforms": "none (axes only, baseline locked)", "registry_block": "weight-wave" },
+      "sources": [30, 31]
+    },
+    {
+      "id": "wave-wordmark.snap",
+      "label": "Snap",
+      "look": "Short, punchy UI-brand version with overshoot",
+      "params": { "fps": 30, "per_letter_delay_frames": 2, "scaleY_keys": [1.0, 1.12, 0.96, 1.0], "overshoot_pct": 12, "settle_frames": 6, "total_max_s": 1.2 },
+      "sources": [29]
+    },
+    {
+      "id": "wave-wordmark.idle-loop",
+      "label": "Idle loop",
+      "look": "A continuous subtle ripple for a held logo",
+      "params": { "amplitude_pct_cap_height": 10, "per_letter_period_s": 1.0, "stagger_each_s": 0.08, "repeat": -1, "yoyo": true, "ease": "sine.inOut", "loop_length_s": 2.0 },
+      "sources": [26]
+    }
+  ],
+  "registry_blocks": ["weight-wave", "variable-font-flex", "wordmark-tiles", "pendulum-swing", "logo-sting", "logo-outro"],
+  "sources": [
+    { "n": 26, "name": "GSAP docs — Staggers", "url": "https://gsap.com/resources/getting-started/Staggers/" },
+    { "n": 27, "name": "Dan Ebberts — Mexican wave expression selector (Creative COW)", "url": "https://creativecow.net/forums/thread/mexican-wave-expression-selector/" },
+    { "n": 28, "name": "Dan Ebberts — Realistic Bounce and Overshoot (MotionScript)", "url": "http://www.motionscript.com/articles/bounce-and-overshoot.html" },
+    { "n": 29, "name": "Asteri (@Asteri_eth) on X — kinetic type knobs", "url": "https://x.com/Asteri_eth/status/2115126932291436649" },
+    { "n": 30, "name": "HyperFrames registry — weight-wave block", "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry/blocks/weight-wave/registry-item.json" },
+    { "n": 31, "name": "Google Fonts repository (OFL license files)", "url": "https://github.com/google/fonts/tree/main/ofl" }
+  ]
+}

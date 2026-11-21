@@ -1,10 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 || ! -f "$1" ]]; then
-  echo "usage: $0 <idea-portfolio.json>" >&2
+# Pass a file path, or - to read an inline packet from stdin.
+# Exit 0 valid, 1 invalid, 2 usage or jq missing (not checked).
+usage() {
+  echo "usage: $0 <idea-portfolio.json | ->" >&2
   exit 2
+}
+
+[[ $# -eq 1 ]] || usage
+if [[ "$1" == "-" ]]; then
+  src=/dev/stdin
+  label=stdin
+elif [[ -f "$1" ]]; then
+  src="$1"
+  label="$1"
+else
+  usage
 fi
+
+command -v jq >/dev/null 2>&1 || {
+  echo "jq not found: $label was not validated" >&2
+  exit 2
+}
 
 jq -e '
   def text: type == "string" and length > 0;
@@ -44,9 +62,9 @@ jq -e '
       and (.dropped | type == "array" and length > 0)
     end
   )
-' "$1" >/dev/null || {
-  echo "invalid idea-portfolio.v1 artifact: $1" >&2
+' "$src" >/dev/null || {
+  echo "invalid idea-portfolio.v1 artifact: $label" >&2
   exit 1
 }
 
-echo "valid idea-portfolio.v1: $1"
+echo "valid idea-portfolio.v1: $label"

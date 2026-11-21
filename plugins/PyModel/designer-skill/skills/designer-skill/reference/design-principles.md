@@ -1,6 +1,6 @@
 # Design Principles
 
-Visual guidance for hierarchy and readability. Reuse the project's established typography, spacing and palette; numeric aesthetic examples below are proposals, not mandatory migrations or universal defect thresholds. Concrete palettes, named token systems, and worked examples live in aesthetic-systems.md; motion, easing, hover transforms, and live-mode params live in motion-and-interaction.md. This file is the neutral baseline every aesthetic builds on.
+Visual guidance for hierarchy and readability. Reuse the project's established typography, spacing and palette; numeric aesthetic examples below are proposals, not mandatory migrations or universal defect thresholds. Concrete palettes, named token systems, and worked examples live in aesthetic-systems.md; motion, easing and hover transforms live in motion-and-interaction.md. This file is the neutral baseline every aesthetic builds on.
 
 The bar for a change is an observed usability/readability defect or an authorized design requirement. Consistency should come from the project's real tokens and component conventions, not a new scale imposed by this reference.
 
@@ -90,7 +90,7 @@ More color ≠ better. Strategic color beats rainbow vomit. Use OKLCH, not HSL: 
 - **Kill pure gray.** Add chroma **0.005-0.015** to all neutrals, hued toward *this* brand's color, small enough not to read as tinted. Stick to one gray family; never mix warm and cool grays. The hue comes from the specific brand, not a "warm = friendly, cool = tech" formula. Avoid the lazy default of always tinting toward warm orange or cool blue.
 - **60-30-10 by visual weight, not pixel count:** 60% neutral backgrounds/surfaces/whitespace, 30% secondary (text, borders, inactive states), 10% accent (CTAs, highlights, focus). Accents work *because* they are rare; flooding the page kills their power.
 - **Accent saturation < 80%.** Desaturate so accents blend with neutrals instead of screaming. Bolder = one bold color owning ~60% plus a sharp accent; quieter = 70-85% saturation with neutral dominance. Avoid the AI purple/blue glow and the purple-to-blue gradient.
-- **Gradients:** allowed when subtle and palette-matched (low-chroma tonal grades, single-hue atmospheric washes, noise-textured). Break uniform linear 45° fades with radial, noise-overlay, or mesh variants. Banned slop: rainbow/mesh blobs, purple-to-blue "AI" defaults, pink-to-orange "creator" defaults, gradient text as a premium shortcut.
+- **Gradients:** allowed when subtle and palette-matched (low-chroma tonal grades, single-hue atmospheric washes, noise-textured). Break uniform linear 45° fades with radial, noise-overlay, or mesh variants. Avoid by default, unless the approved identity calls for them: rainbow/mesh blobs, purple-to-blue "AI" defaults, pink-to-orange "creator" defaults, gradient text as a premium shortcut.
 
 ### Contrast (WCAG, verify on every text element)
 
@@ -107,7 +107,7 @@ The single biggest reason AI designs feel hard to read: muted gray body text on 
 
 ### Dark mode
 
-Dark mode is not inverted light mode. **Never use pure black or pure white**; use off-black or a brand-tinted near-black (`#0a0a0a`, `#121212`, oklch ~12-18% works). Depth comes from **surface lightness**, not shadow: build a 3-step surface scale where higher elevations are lighter (e.g. 15% / 20% / 25% lightness), same hue/chroma as the brand, varying only lightness. Reduce body text weight slightly and desaturate accents. Use two token layers: primitives (`--blue-500`) and semantics (`--color-primary`); for dark mode, redefine only the semantic layer. Heavy alpha use is a smell that signals an incomplete palette; define explicit overlay colors instead (exception: focus rings and interactive states).
+Dark mode is not inverted light mode. Pure white and near-black are both valid surfaces (see design-systems.md); what to avoid is pure white text on pure black for long reading, where the glare tires the eye, so soften one of the two (`#0a0a0a`, `#121212`, or oklch ~12-18% lightness all work). Depth comes from **surface lightness**, not shadow: build a small surface scale where higher elevations are lighter, same hue/chroma as the brand, varying only lightness; pick the steps by looking at the result, not from a fixed percentage. Check accents against the dark surface and lower their chroma only where they vibrate or fail contrast. Use two token layers: primitives (`--blue-500`) and semantics (`--color-primary`); for dark mode, redefine only the semantic layer. Heavy alpha use is a smell that signals an incomplete palette; define explicit overlay colors instead (exception: focus rings and interactive states).
 
 ---
 
@@ -119,11 +119,11 @@ Dark mode is not inverted light mode. **Never use pure black or pure white**; us
 - **Asymmetry creates interest.** Break centered/symmetrical layouts with offset margins, mixed aspect ratios, or left-aligned headers over centered content. Throw out the golden ratio; try **70/30 or 80/20** splits. Use negative margins for overlap and layering. Centered hero is OK only for editorial/manifesto/launch briefs where the message is the design.
 - **Cards are the lazy answer.** Use them only when elevation communicates real hierarchy; otherwise group with `border-t`, `divide-y`, or negative space. **Never nest cards inside cards.** Vary card sizes and mix with non-card content to break monotony. Allow variable card heights or masonry when content length differs; force-equalized heights look rigid. Pin CTAs to card bottoms so they form a clean horizontal line, and start feature lists at the same Y across pricing/comparison columns.
 - **Bento grids:** exactly as many cells as you have content for (3 items → 3 cells; 5 → 5). No empty cell in the middle or end; re-shape the grid, never paste a blank tile. Use `grid-flow-dense` and verify col-span/row-span interlock. Give multi-cell grids real visual variation (image, palette-matched gradient, pattern, tinted background); all-text white-on-white cards read as default.
-- **Vary layout families.** Each family appears at most once per page; an 8-section page uses ≥4 different families. Cap consecutive image+text zigzag at 2; the 3rd is broken.
+- **Vary layout families.** Use at least two families per page and never the same one three times in a row; a long page (8 sections) wants four or more. Cap consecutive image+text zigzag at 2; the 3rd is broken.
 - **Hero discipline:** headline ≤2 lines, subtext ≤20 words and ≤3-4 lines, CTAs visible without scroll. A 4-line hero headline is a font-size error, not a copy-length one. Cap hero top padding at `pt-24` (~6rem). Max 4 text elements; trust strips, taglines, pricing teasers, and logo walls move below the hero.
 - **Navigation** renders on a single line at desktop (condense or hamburger if it won't fit); cap height at 80px (default 64-72px).
 - **Theme lock:** one theme for the whole page; sections do not invert mid-scroll. Section-level tints within the same family are fine; flipping to a cream section between dark sections is broken. Set the theme once at the page root.
-- **Touch targets** are 44×44px even when the visual element is smaller (WCAG 2.5.5 AAA and platform guidance; the WCAG 2.2 AA floor is 24×24); expand the hit area with padding or a pseudo-element.
+- **Touch targets:** the WCAG 2.2 AA floor is 24×24 CSS px (2.5.8). On touch surfaces aim for 44×44pt (Apple HIG) or 48×48dp (Material), which is also the AAA target (2.5.5), even when the visual element is smaller; expand the hit area with padding or a pseudo-element. This is the one home for these numbers; other references point here.
 
 ### Optical alignment
 
@@ -147,7 +147,7 @@ Direct the eye with the fewest dimensions needed. Space alone is often enough; a
 
 ### Cognitive load
 
-Humans hold ≤4 items in working memory. Cap simultaneous decision options at 4: nav ≤5 top-level, ≤4 form fields per group, 1 primary + 1-2 secondary actions, ≤4 dashboard metrics, ≤3 pricing tiers. One screen, one focus. Option bands: ≤4 is manageable, 5-7 is pushing it, 8+ and users skip, misclick, or abandon.
+Humans hold ≤4 items in working memory. Cap simultaneous decision options at 4: nav 5 top-level as the target and 7 as the ceiling, ≤4 form fields per group, 1 primary + 1-2 secondary actions, ≤4 dashboard metrics, ≤3 pricing tiers. One screen, one focus. Option bands: ≤4 is manageable, 5-7 is pushing it, 8+ and users skip, misclick, or abandon.
 
 Three kinds of load, three treatments:
 
@@ -196,7 +196,7 @@ These are **default-lean** verdicts for the aesthetic-neutral baseline — what 
 | Shadows tinted to background hue, one light source | Pure-black drop shadows, inconsistent lighting |
 | Hairlines and surface contrast for depth | Blanket drop shadows on every card |
 | Committed type scale, ≥1.25 between steps | Flat 1.1× scale; 14/15/16/18px muddle |
-| Geist/Satoshi/Cabinet Grotesk with real weight contrast | Inter everywhere; only 400 + 700 |
+| A type family chosen for this product, used with real weight contrast | One default family applied without thought; only 400 + 700 |
 | Same-family italic/bold emphasis | Random serif word dropped into a sans headline |
 | Measure capped 65-75ch, generous whitespace | Edge-to-edge text, cramped equal spacing |
 | Asymmetric 70/30 splits, varied layout families | Centered-over-dark hero, 6 zigzag rows, repeated cards |

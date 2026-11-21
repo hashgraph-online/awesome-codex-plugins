@@ -2,7 +2,7 @@
 name: cometchat-android-v6-kotlin-placement
 description: "Where the CometChat Android v6 chat UI goes in a Kotlin XML Views app — the default conversations→message Activity flow, growing to the tab-based app (chats/users/groups/calls + detail, thread and search screens + incoming calls), a single one-to-one screen, or chat embedded in an existing Activity/Fragment, with a correct back stack. Triggers: 'tab based chat android', 'add a chat tab to my app', 'open a chat screen for this user', 'embed cometchat in my activity', 'full chat app android kotlin'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views cohort) — 6.0.x, verified 6.0.5; com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views cohort) — 6.1.x, verified 6.1.1; com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -48,7 +48,7 @@ conversations.setOnSearchClick { startActivity(Intent(this, SearchActivity::clas
 ## Placement 2 — a chat tab in an existing app
 Host `CometChatConversations` in a Fragment inside your existing `BottomNavigationView`/`ViewPager2`. The tab shows the LIST; tapping a row starts the message Activity **full-screen above the tab bar** (not inside the tab), so the composer isn't fighting the nav bar. Reuse the host's navigation graph — additive only, never rewrite it.
 
-**Brownfield theming — the host Activity KEEPS its own theme.** Kit views resolve `?attr/cometchat*` tokens at inflate time: constructed with the host's context (its own Material3 theme), the list crashes on first show — `InflateException … MaterialButton` on `?attr/cometchatPrimaryColor` (verified on device). Do NOT re-parent the `<application>` theme (that's `core`'s greenfield path; it breaks a Material3 host's own screens). Scope instead:
+**Brownfield theming — the host Activity KEEPS its own theme.** Kit views resolve `?attr/cometchat*` tokens at inflate time: constructed with the host's context (its own Material3 theme), the list crashes on first show — `InflateException ... MaterialButton` on `?attr/cometchatPrimaryColor` (verified on device). Do NOT re-parent the `<application>` theme (that's `core`'s greenfield path; it breaks a Material3 host's own screens). Scope instead:
 ```xml
 <!-- res/values/themes.xml — your app theme stays untouched -->
 <style name="Theme.YourApp.Chat" parent="CometChatTheme.DayNight">
@@ -95,7 +95,7 @@ Drop a component into a slice of your own layout: `0dp` + constraints inside a `
 ## Placement 5 — deep entry from an arbitrary screen (known UID/GUID)
 "Open a chat with THIS user" from one of your own screens (an order, an article, a ticket): gate on the same init/login, resolve the entity with the Chat SDK, then start the SAME message Activity from Placement 1 with the entity extra (docs: `core` → `references/docs-map.md` → `one-to-one-chat`):
 ```kotlin
-CometChat.getUser(uid, object : CometChat.CallbackListener<User>() {   // groups: CometChat.getGroup(guid, …)
+CometChat.getUser(uid, object : CometChat.CallbackListener<User>() {   // groups: CometChat.getGroup(guid, ...)
     override fun onSuccess(user: User) {
         startActivity(Intent(this@YourActivity, MessageActivity::class.java).putExtra("user", user))
     }

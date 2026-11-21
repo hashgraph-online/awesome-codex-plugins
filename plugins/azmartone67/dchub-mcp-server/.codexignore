@@ -1,0 +1,19 @@
+# Generated assets, local state, and secret paths kept out of the Codex plugin package.
+node_modules/
+dist/
+build/
+coverage/
+.nyc_output/
+__pycache__/
+sdk/python/dchub.egg-info/
+sdk/python/dist/
+.env
+.env.*
+*.pem
+*.key
+state/
+mcp-publisher
+wt-base/
+.DS_Store
+served-manifest-report.md
+monitor_report.md

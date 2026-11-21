@@ -1,0 +1,41 @@
+{
+  "update_id": 900013,
+  "callback_query": {
+    "id": "4382000000000000004",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "message": {
+      "message_id": 0,
+      "ephemeral_message_id": 5,
+      "date": 1762900005,
+      "chat": {
+        "id": -1001234567890,
+        "type": "supergroup",
+        "title": "Team Orders"
+      },
+      "receiver_user": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alice",
+        "language_code": "en"
+      },
+      "text": "Your order: …",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "text": "Refresh",
+              "callback_data": "panel:refresh"
+            }
+          ]
+        ]
+      }
+    },
+    "chat_instance": "-5550001",
+    "data": "panel:refresh"
+  }
+}

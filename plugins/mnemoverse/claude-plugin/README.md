@@ -15,7 +15,13 @@ One line, no directory and no review queue:
 /plugin install mnemoverse@mnemoverse
 ```
 
-The first command registers this repository as a plugin marketplace; the second installs the plugin from it. Updates arrive with `/plugin marketplace update mnemoverse`.
+The first command registers this repository as a plugin marketplace; the second installs the plugin from it. To update an installed copy, run this in your terminal:
+
+```sh
+claude plugin update mnemoverse@mnemoverse
+```
+
+This refreshes the marketplace and installs the newer plugin version. Start a new Claude Code session to load it. Inside Claude Code, `/plugin marketplace update mnemoverse` refreshes the marketplace catalog. These update instructions were checked against the [Claude Code plugin update reference](https://code.claude.com/docs/en/plugins/cli-reference#plugin-update) and [marketplace update reference](https://code.claude.com/docs/en/plugins/cli-reference#plugin-marketplace-update) on 2026-11-05.
 
 To try it from a local checkout of this repository instead:
 
@@ -57,9 +63,31 @@ mcp_servers:
 
 and run `hermes mcp login mnemoverse` (Hermes opens the browser and waits on a loopback callback). Check with `hermes mcp test mnemoverse`. Keep the name `mnemoverse`: the native entry shadows the plugin's copy, which cannot sign in. Full walkthrough: [Install by host, Hermes Agent](https://mnemoverse.com/docs/api/install-by-host#hermes-agent).
 
+## Google Antigravity
+
+The [`antigravity/`](antigravity/) folder is a self-contained Antigravity plugin with the hosted server and the bundled skills:
+
+```sh
+agy plugin install https://github.com/mnemoverse/claude-plugin/tree/main/antigravity
+```
+
+The plugin installs enabled, and Antigravity opens the browser for the sign-in when the server first connects; there the server is named `mnemoverse_mnemoverse`. Details in [antigravity/README.md](antigravity/README.md). Installing the whole repository with `agy plugin install https://github.com/mnemoverse/claude-plugin` also works: Antigravity reads the server from the root `mcp_config.json` and converts the Claude Code commands into skills.
+
+## Skills in other coding agents (skills.sh)
+
+The seven skills also install on their own into Codex, Cursor, OpenCode and the other coding agents that the [skills](https://skills.sh) CLI supports (Node.js 22.20 or later):
+
+```sh
+npx skills add mnemoverse/claude-plugin
+```
+
+The CLI asks which skills and which agents to install to; skills go into the current project by default, and `-g` makes them available across projects. This adds the skills only, not the memory server: connect the server in that agent with its own steps from [Install by host](https://mnemoverse.com/docs/api/install-by-host).
+
 ## First run: sign in once, no API key
 
-The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste, and access can be revoked at any time from the console. The bundled `setup` skill walks Claude through this if anything goes wrong.
+The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. In Claude Code, installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste. To disconnect, remove the server from your client; resetting your password in the console can also disconnect all connected apps at once. The bundled `setup` skill walks the agent through the current host's sign-in flow if anything goes wrong.
+
+After sign-in, ask the agent to check the connection with `memory_stats`. A successful stats result confirms read access, including when the account is empty. Tools appearing in a list are only discovery; an error or empty response does not confirm the connection. This check does not write a memory or verify writes. If you also asked the agent to save or recall something, that task needs its own successful tool result.
 
 ## What you get
 
@@ -71,12 +99,17 @@ The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Install
 | `/mnemoverse:recall` | search memory before acting, with provenance, surfacing contradictions instead of hiding them |
 | `/mnemoverse:memory-status` | counts, domains, and the newest memories |
 
-**Two skills:**
+**Seven skills:**
 
 - `agent-memory-discipline` (CC0, backend-neutral): standing rules for when to recall and what is worth saving. It names no vendor and works on any memory backend; it ships here so the connected memory is actually used.
-- `setup`: guides Claude through connecting and troubleshooting the MCP server.
+- `setup`: guides the current host through connecting and troubleshooting the MCP server.
+- `memory-search`: searches memory before answering, then rates which recalled memories helped.
+- `memory-save`: saves a decision, preference, correction or lesson as one self-contained fact, never a secret.
+- `memory-catch-up`: lists what was added since a given time, in personal memory or in a shared room.
+- `memory-onboard`: seeds memory with a project's conventions and decisions from its README, CLAUDE.md and AGENTS.md.
+- `mnemoverse-docs`: for developers adding Mnemoverse memory to their own app or agent; picks the form and points to the docs page.
 
-**The tools come from the remote server itself**: reading and writing memories, a newest-first listing, stats, usefulness feedback, shared rooms (beta), and a vault alias listing (aliases only, values are never returned). The current list, with descriptions and schemas, is at the server's [card](https://mcp.mnemoverse.com/.well-known/mcp/server-card.json).
+**The tools come from the remote server itself**: reading and writing memories, a newest-first listing, stats, usefulness feedback, shared rooms, and a vault alias listing (aliases only, values are never returned). The current list, with descriptions and schemas, is at the server's [card](https://mcp.mnemoverse.com/.well-known/mcp/server-card.json).
 
 ## Try these
 
@@ -86,21 +119,21 @@ The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Install
 
 ## What gets stored, and what does not
 
-The plugin stores only what you or Claude explicitly save through the memory tools: single facts, decisions, corrections. It does not record conversations, does not read your chat history, and the bundled skill explicitly refuses to persist secrets, API keys, passwords, payment data, or personal identifiers.
+The plugin stores only what you or the connected agent explicitly save through the memory tools: single facts, decisions, corrections. It does not record conversations, does not read your chat history, and the bundled skill refuses to persist passwords, API keys, tokens, payment data, MFA codes, government IDs or health records.
 
 Memory content lives in your Mnemoverse account. Privacy policy: [mnemoverse.com/docs/legal/privacy-policy](https://mnemoverse.com/docs/legal/privacy-policy).
 
 ## Troubleshooting
 
-- **No sign-in prompt**: Claude Code does not open the browser by itself. Run `/mcp`, select `plugin:mnemoverse:mnemoverse` and choose Authenticate. If the server is not listed, add it for all your projects with `claude mcp add --transport http --scope user mnemoverse https://mcp.mnemoverse.com/mcp`; it then appears in `/mcp` as `mnemoverse`, and you authenticate it the same way.
-- **`401` after it used to work**: the token expired; the next tool call normally refreshes it. If not, run `/mcp`, select the server and choose Re-authenticate.
-- **`malformed_token` in logs**: something is sending an API key as a bearer token. The remote endpoint takes OAuth tokens only; API keys are for the [REST API](https://mnemoverse.com/docs/api/reference) and the local package.
+- **No sign-in prompt in Claude Code**: run `/mcp`, select `plugin:mnemoverse:mnemoverse` and choose Authenticate. If the server is absent from Claude Code's configuration, add it for all your projects with `claude mcp add --transport http --scope user mnemoverse https://mcp.mnemoverse.com/mcp`; it then appears in `/mcp` as `mnemoverse`, and you authenticate it the same way. Other hosts use their own sign-in flows described above.
+- **`401` after it used to work**: authentication failed. Use the same host's sign-in flow for the same server; in Claude Code, run `/mcp` and choose Authenticate or Re-authenticate as offered. Then check `memory_stats` again. A `403` means access was denied, and a timeout leaves the connection unverified; neither proves an expired token.
+- **`malformed_token` in logs**: the bearer token is neither an OAuth token from the sign-in nor a Mnemoverse API key, for example a key copied without its `mk_live_` prefix, or a placeholder left in a config. Since 2026-10-19 the remote endpoint accepts either: a host that cannot complete the sign-in can send an API key as `Authorization: Bearer mk_live_...` ([details](https://mnemoverse.com/docs/api/remote-mcp-server#with-an-api-key-instead-of-the-sign-in)). A revoked or unknown key gets `invalid_api_key` instead.
 
 More: [docs](https://mnemoverse.com/docs/api/remote-mcp-server).
 
 ## Why `.mcp.json` says `http` and `mcp.json` says `streamable-http`
 
-Both files point at the same server, but each is read by a different host with its own vocabulary for the transport. `.mcp.json` is Claude Code's own project MCP config, where `type: "http"` is the canonical value ([code.claude.com/docs/en/mcp.md](https://code.claude.com/docs/en/mcp.md)); `streamable-http` is accepted there only as an alias. Root `mcp.json` follows the Agent Plugins 1.0.0 schema instead, whose `type` enum is `stdio | streamable-http | sse` and rejects `"http"` outright ([agent-plugins.org/schemas/1.0.0/mcp.schema.json](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)). `kimi.plugin.json` and the Cursor/Gemini manifests add two more dialects again (see `scripts/fixtures/`). `scripts/check-manifest-drift.mjs` guards all eight declarations of the server URL against drift while keeping each file's dialect intact; see its CI job, `manifest-drift-guard.yml`, for what it checks.
+Both files point at the same server, but each is read by a different host with its own vocabulary for the transport. `.mcp.json` is Claude Code's own project MCP config, where `type: "http"` is the canonical value ([code.claude.com/docs/en/mcp.md](https://code.claude.com/docs/en/mcp.md)); `streamable-http` is accepted there only as an alias. Root `mcp.json` follows the Agent Plugins 1.0.0 schema instead, whose `type` enum is `stdio | streamable-http | sse` and rejects `"http"` outright ([agent-plugins.org/schemas/1.0.0/mcp.schema.json](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)). `kimi.plugin.json`, the Cursor and Gemini manifests and the Antigravity `mcp_config.json` files add more dialects again (see `scripts/fixtures/`). `scripts/check-manifest-drift.mjs` guards every declaration of the server URL against drift while keeping each file's dialect intact; see its CI job, `manifest-drift-guard.yml`, for what it checks.
 
 ## Support
 

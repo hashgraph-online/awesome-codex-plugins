@@ -1,6 +1,6 @@
 ---
 name: eval
-description: "Quality and performance evaluation with baseline comparison. Sub-modes: correctness, performance, quality, regression. Outputs PASS/WARN/FAIL per dimension. Use for pre-ship evaluation or regression checks."
+description: "Quality and performance evaluation with baseline comparison. Sub-modes: correctness, performance, quality, regression. Outputs PASS/WARN/FAIL/SKIPPED per dimension. Use for pre-ship evaluation or regression checks."
 ---
 
 # Eval — Quality & Regression Gate
@@ -98,6 +98,8 @@ epic eval --json
 
 This runs all enabled dimensions and outputs a JSON result. Capture the output.
 
+overall_verdict is PASS, WARN, FAIL, or SKIPPED. SKIPPED means no dimension was measured and exits 0. Report it as SKIPPED, never as PASS.
+
 If the CLI reports `llm_judge: SKIPPED` (no LLM available in CLI mode), proceed to Step 2 for LLM-as-judge. Otherwise, skip to Step 3.
 
 ### Step 2: LLM-as-Judge (when llm_judge enabled)
@@ -125,6 +127,8 @@ If the quality dimension has `llm_judge: true` and CLI marked it SKIPPED:
 cat $HARNESS_DIR/eval/baselines/latest.json
 ```
 
+Without a baseline, the regression dimension reports SKIPPED with reason no_baseline.
+
 If no baseline exists, the current run BECOMES the first baseline. Save it:
 ```bash
 epic eval --baseline-update
@@ -141,32 +145,33 @@ Combine CLI output + LLM-as-judge results into a single report:
 - Branch: {branch}
 - Commit: {commit_short}
 
-### Correctness: [PASS/WARN/FAIL] — score: {score}
+### Correctness: [PASS/WARN/FAIL/SKIPPED], score: {score}
 - Tests: {passed}/{total} passing ({pass_rate}%)
 - Mutation score: {mutation_score}% (if enabled)
 - Delta vs baseline: {+/-delta}
 
-### Performance: [PASS/WARN/FAIL] — score: {score} (if enabled)
+### Performance: [PASS/WARN/FAIL/SKIPPED], score: {score} (if enabled)
 - Avg latency: {latency}ms (delta: {+/-delta})
 - Throughput: {throughput} (delta: {+/-delta})
 
-### Quality: [PASS/WARN/FAIL] — score: {score}
+### Quality: [PASS/WARN/FAIL/SKIPPED], score: {score}
 - Lint errors: {count}
 - LLM judge: {score}/10 (if enabled)
 
-### Regression: [PASS/FAIL]
+### Regression: [PASS/FAIL/SKIPPED]
 | Dimension | Baseline | Current | Delta | Verdict |
 |-----------|----------|---------|-------|---------|
 | correctness | {prev} | {cur} | {delta} | {pass/fail} |
 | quality | {prev} | {cur} | {delta} | {pass/fail} |
 
-### Overall: [PASS/WARN/FAIL] — {overall_score}
+### Overall: [PASS/WARN/FAIL/SKIPPED]: {overall_score}
 ```
 
 ### Step 5: Act
 
 - **All PASS + no regression**: "Eval passed. Run `/ship` to create a PR."
-- **WARN**: Show warnings. Ask whether to fix before shipping.
+- **WARN**: Show warnings. Ask whether to fix before shipping. Inside `/orbit`, WARN proceeds to Ship without asking.
+- **SKIPPED**: Report SKIPPED, never PASS.
 - **FAIL or regression detected**: List each failure with fix hint. "Fix with `/go`, then re-run `/eval`."
 
 ### Step 6: Save Results
@@ -194,7 +199,7 @@ Results auto-saved to `$HARNESS_DIR/eval/results/EVAL-{timestamp}.json`.
 
 - [ ] `epic eval --json` output captured (all enabled dimensions scored)
 - [ ] Baseline comparison performed (or first baseline established)
-- [ ] Each dimension has PASS/WARN/FAIL verdict
+- [ ] Each dimension has PASS/WARN/FAIL/SKIPPED verdict
 - [ ] No dimension regressed beyond threshold (or explicit user override)
 - [ ] Results saved to `$HARNESS_DIR/eval/results/`
 - [ ] LLM-as-judge scores recorded (if enabled)

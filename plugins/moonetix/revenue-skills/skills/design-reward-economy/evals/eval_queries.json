@@ -1,0 +1,10 @@
+[
+  {"query": "We're launching a rewards app with an offerwall. How many coins should a dollar be worth, and what share of each offer should go to the user?", "should_trigger": true},
+  {"query": "Our get-paid-to site pays users 70% and we also give a sign-up bonus, a daily bonus and 10% referral commission. Are we paying out more than we make?", "should_trigger": true},
+  {"query": "Networks keep reversing conversions three or four weeks after we already paid the user. How long should we hold earnings before withdrawal?", "should_trigger": true},
+  {"query": "I want to run a double coins weekend and a promo code campaign next month. Check whether our margin survives it.", "should_trigger": true},
+  {"query": "User balances keep growing and almost nobody cashes out. Is that a problem for us?", "should_trigger": true},
+  {"query": "Add an offerwall to our site and credit users when the network sends a postback.", "should_trigger": false},
+  {"query": "Stop people from creating fake accounts to farm our sign-up bonus.", "should_trigger": false},
+  {"query": "Design the pricing tiers for our SaaS subscription plans.", "should_trigger": false}
+]

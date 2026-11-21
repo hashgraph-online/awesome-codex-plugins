@@ -1,0 +1,4 @@
+interface:
+  display_name: "Batch lipsync"
+  short_description: "Lipsync every row of a CSV, resumably, within plan limits"
+  default_prompt: "Use $batch-lipsync to lipsync each row of my CSV."

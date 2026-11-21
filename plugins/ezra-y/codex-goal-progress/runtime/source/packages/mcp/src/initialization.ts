@@ -8,7 +8,7 @@ import {
 
 export const GoalProgressInitializeBusinessSchema = GoalContractInitializationSchema.extend({
   contractId: GoalContractIdSchema.optional().describe(
-    "Omit when initializing; the plugin generates this ID. Later writes copy the returned contractId unchanged.",
+    "Omit on initialize; plugin generates this gp_ ID.",
   ),
 });
 

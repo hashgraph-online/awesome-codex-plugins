@@ -26,6 +26,7 @@ def _core(
     *,
     require_approved: bool,
 ) -> None:
+    """Handle core."""
     review.text(item, "owner", path, max_chars=200)
     review.evidence(item, path)
     review.approval(item, path, require_approved=require_approved)
@@ -33,6 +34,7 @@ def _core(
 
 
 def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
+    """Validate."""
     review = Review()
 
     metadata = review.object(data.get("metadata"), "metadata")
@@ -134,6 +136,7 @@ def validate(data: dict[str, Any]) -> tuple[Review, dict[str, int]]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = standard_parser(
         "Audit a bounded local document, record, and external-source register.",
         "Path to the local document-register JSON file",

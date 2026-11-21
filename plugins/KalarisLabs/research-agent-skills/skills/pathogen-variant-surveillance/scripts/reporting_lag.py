@@ -95,6 +95,7 @@ def cohort_curve(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Measure sequence reporting lag and recommend a trust cutoff.",
     )
@@ -115,6 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
 
     try:

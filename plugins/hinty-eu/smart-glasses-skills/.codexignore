@@ -1,0 +1,20 @@
+# Files that should never ship with the Codex plugin: secrets, local state, build output and test material.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+local.properties
+node_modules/
+dist/
+build/
+results/
+.gradle/
+.kotlin/
+.DS_Store
+Thumbs.db
+evals/

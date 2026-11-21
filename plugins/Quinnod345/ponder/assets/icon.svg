@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Ponder logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="50%" stop-color="#3fb950"/>
+      <stop offset="100%" stop-color="#d2a8ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="none" stroke="#30363d" stroke-width="4"/>
+  <!-- Outer convergence ring -->
+  <circle cx="256" cy="256" r="156" fill="none" stroke="url(#ring)" stroke-width="24" stroke-linecap="round" stroke-dasharray="196 49"/>
+  <!-- 4 perspective nodes (Skeptic, Builder, Dreamer, Empath) -->
+  <circle cx="256" cy="100" r="18" fill="#f85149"/>
+  <circle cx="412" cy="256" r="18" fill="#58a6ff"/>
+  <circle cx="256" cy="412" r="18" fill="#d2a8ff"/>
+  <circle cx="100" cy="256" r="18" fill="#f0883e"/>
+  <!-- Center P / check monogram -->
+  <path d="M214 332V180h58c34 0 58 21 58 52s-24 52-58 52h-30v48h-28zm28-74h28c18 0 30-10 30-26s-12-26-30-26h-28v52z" fill="#e6edf3"/>
+  <circle cx="316" cy="320" r="16" fill="#3fb950"/>
+</svg>

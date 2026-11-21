@@ -19,7 +19,7 @@ per session and deleted at the end:
 
 The sheet, the server, the built CSS, the memo, screenshots, any entry file a build
 tool needs, and the pid files below — all in `$WS`. **Nothing is ever written inside
-the project** except the selected changes applied after each choice. If a tool seems
+the project** except the selected changes the main agent applies after each choice. If a tool seems
 to need a file in the project, it doesn't — `references/stylesystems.md` has the flag or
 entry file that keeps it out.
 

@@ -1,0 +1,39 @@
+{
+  "id": "paper-static-mesh-gradient-1960s",
+  "label": "1960s (Paper StaticMeshGradient)",
+  "shader": "StaticMeshGradient",
+  "page": "https://shaders.paper.design/static-mesh-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"1960s\" preset for StaticMeshGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#000000",
+      "#082400",
+      "#b1aa91",
+      "#8e8c15"
+    ],
+    "positions": 42,
+    "waveX": 0.45,
+    "waveXShift": 0,
+    "waveY": 1,
+    "waveYShift": 0,
+    "mixing": 0,
+    "grainMixer": 0.37,
+    "grainOverlay": 0.78
+  }
+}

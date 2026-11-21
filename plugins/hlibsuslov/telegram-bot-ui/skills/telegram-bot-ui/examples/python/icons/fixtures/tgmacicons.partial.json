@@ -1,0 +1,15 @@
+{
+  "_note": "PARTIAL excerpt for offline tests. Ids are the four tgmacicons ids that btc-tracker's owner supplied (bot.py comments); the full set has more stickers. Resolve the real set live with getStickerSet before use.",
+  "ok": true,
+  "result": {
+    "name": "tgmacicons",
+    "title": "TG iOS & macOS Icons",
+    "sticker_type": "custom_emoji",
+    "stickers": [
+      {"emoji": "💼", "custom_emoji_id": "5258389041006518073", "is_animated": false, "is_video": false, "set_name": "tgmacicons"},
+      {"emoji": "🔍", "custom_emoji_id": "5429571366384842791", "is_animated": false, "is_video": false, "set_name": "tgmacicons"},
+      {"emoji": "⚙️", "custom_emoji_id": "5258096772776991776", "is_animated": false, "is_video": false, "set_name": "tgmacicons"},
+      {"emoji": "🔔", "custom_emoji_id": "5260535596941582167", "is_animated": false, "is_video": false, "set_name": "tgmacicons"}
+    ]
+  }
+}

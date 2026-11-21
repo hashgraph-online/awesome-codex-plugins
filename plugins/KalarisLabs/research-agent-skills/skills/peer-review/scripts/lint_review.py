@@ -18,7 +18,7 @@ from _common import (
 AUTHOR_HEADING = "# Comments to authors"
 EDITOR_HEADING = "# Confidential comments to editor"
 COMMENT_HEADING_RE = re.compile(
-    r"^###\s+(?P<kind>Major|Minor)\s+comment(?:\s+(?P<id>[A-Za-z0-9._:-]+))?\s*$",
+    r"^###\s+(?P<kind>Major|Minor)\s+comment(?:\s+(?P<id>[A-Z0-9._:-]+))?\s*$",
     re.IGNORECASE,
 )
 FIELD_RE = re.compile(
@@ -81,11 +81,13 @@ CONFIDENTIAL_MARKER_RE = re.compile(
 
 
 def _content_value(value: str) -> bool:
+    """Handle content value."""
     text = value.strip()
     return bool(text) and not PLACEHOLDER_RE.fullmatch(text)
 
 
 def _comment_blocks(lines: list[str]) -> list[dict[str, Any]]:
+    """Handle comment blocks."""
     starts: list[tuple[int, re.Match[str]]] = []
     for index, line in enumerate(lines):
         match = COMMENT_HEADING_RE.match(line.strip())
@@ -111,6 +113,7 @@ def _comment_blocks(lines: list[str]) -> list[dict[str, Any]]:
 
 
 def lint(markdown: str) -> dict[str, Any]:
+    """Handle lint."""
     lines = markdown.splitlines()
     errors: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
@@ -226,6 +229,7 @@ def lint(markdown: str) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Lint a local structured review for author/editor channel separation, "
@@ -241,6 +245,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = lint(read_markdown(args.review))

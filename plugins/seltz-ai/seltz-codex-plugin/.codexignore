@@ -1,0 +1,6 @@
+.git/
+.env
+.env.*
+!.env.example
+node_modules/
+hol-plugin-scan-report.md

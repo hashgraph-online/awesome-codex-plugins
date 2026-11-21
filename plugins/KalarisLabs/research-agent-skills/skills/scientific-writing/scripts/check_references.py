@@ -21,14 +21,15 @@ from _common import (
 from validate_manifest import validate_source_manifest
 
 TOOL = "check_references"
-EVIDENCE_ID_RE = re.compile(r"^E[0-9]{3,8}$")
-DOI_RE = re.compile(r"^10\.[0-9]{4,9}/\S+$", re.IGNORECASE)
-PMID_RE = re.compile(r"^[1-9][0-9]{0,8}$")
-PMCID_RE = re.compile(r"^PMC[1-9][0-9]{0,8}$", re.IGNORECASE)
+EVIDENCE_ID_RE = re.compile(r"^E\d{3,8}$")
+DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$", re.IGNORECASE)
+PMID_RE = re.compile(r"^[1-9]\d{0,8}$")
+PMCID_RE = re.compile(r"^PMC[1-9]\d{0,8}$", re.IGNORECASE)
 URL_RE = re.compile(r"^https?://[^\s]+$", re.IGNORECASE)
 
 
 def normalize_doi(value: str) -> str:
+    """Normalize doi."""
     normalized = value.strip().lower()
     for prefix in ("https://doi.org/", "http://doi.org/", "doi:"):
         if normalized.startswith(prefix):
@@ -38,18 +39,21 @@ def normalize_doi(value: str) -> str:
 
 
 def normalize_title(value: str) -> str:
+    """Normalize title."""
     decomposed = unicodedata.normalize("NFKD", value).casefold()
     return " ".join(re.findall(r"[a-z0-9]+", decomposed))
 
 
 def normalize_isbn(value: str) -> str:
+    """Normalize isbn."""
     return re.sub(r"[^0-9Xx]", "", value)
 
 
 def valid_isbn(value: str) -> bool:
+    """Handle valid isbn."""
     normalized = normalize_isbn(value)
     if len(normalized) == 10:
-        if not re.fullmatch(r"[0-9]{9}[0-9Xx]", normalized):
+        if not re.fullmatch(r"\d{9}[0-9Xx]", normalized):
             return False
         total = sum(
             (10 - index) * (10 if char.lower() == "x" else int(char))
@@ -72,6 +76,7 @@ def _record_duplicate(
     code: str,
     issues: list[Issue],
 ) -> None:
+    """Handle record duplicate."""
     if not normalized:
         return
     prior = seen.get(normalized)
@@ -89,6 +94,7 @@ def _record_duplicate(
 
 
 def check_sources(data: dict[str, Any]) -> tuple[list[Issue], int]:
+    """Check sources."""
     issues = validate_source_manifest(data, require_verified=False)
     sources = require_list(data.get("sources"), "sources")
     evidence_ids: set[str] = set()
@@ -194,6 +200,7 @@ def check_sources(data: dict[str, Any]) -> tuple[list[Issue], int]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate DOI, PMID, PMCID, ISBN, and URL syntax and flag duplicates "
@@ -205,6 +212,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def cli() -> int:
+    """Handle cli."""
     args = build_parser().parse_args()
     data = require_object(read_json(args.sources), "source_manifest")
     if data.get("schema_version") != "1.0":

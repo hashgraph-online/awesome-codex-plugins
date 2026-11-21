@@ -1,0 +1,19 @@
+{
+ "widget": "schedule-calendar",
+ "title": "Schedule calendar",
+ "summary": "Month grid with event dots, today ring and month arrows; a day tap asks the bot for that day's agenda (answer-only data).",
+ "caption": "November 2026 · 8 events · next: Standup, Nov 17",
+ "send": {"allow_queries": true},
+ "fallback": {"inline_keyboard": [
+  [{"text": "Today", "callback_data": "cal:today"}, {"text": "This week", "callback_data": "cal:week"}],
+  [{"text": "Next month", "callback_data": "cal:m:2026-12"}]
+ ]},
+ "states": {
+  "default": {"chatData": {"m": "2026-11", "ev": [1, 5, 9, 13, 17, 21, 25, 29], "r": 0}},
+  "empty-month": {"chatData": {"m": "2026-12", "ev": [], "r": 0}},
+  "year-start": {"chatData": {"m": "2027-01", "ev": [3, 7, 11, 15, 19, 23, 27, 31], "r": 0}},
+  "empty": {"chatData": null}
+ },
+ "queries": ["d:2026-11-17", "d:2026-11-18", "m:2026-12", "m:2027-01", "d:2026-13-40"],
+ "fresh": []
+}

@@ -1,0 +1,135 @@
+{
+  "skill_name": "suede-newsroom",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to build a one-person media company — a team of AI bots that researches, writes, and distributes content for me. Where do I start?",
+      "expected_output": "Should set up the campaign record first, give each of the six roles one owned decision using the five-field contract, and return the staged build order starting with scout, researcher, and editor rather than all six. Publishing approval stays with the human.",
+      "assertions": [
+        "Reads .agents/product-marketing.md first if it exists",
+        "Sets up the campaign record at .agents/newsroom/<slug>.md",
+        "Uses the five-field role contract for every role",
+        "Starts with three roles, not six",
+        "Keeps publishing approval human"
+      ],
+      "files": [
+        "references/role-contracts.md",
+        "references/campaign-record.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Here's my new 3,000-word guide. Turn it into a week of posts, a professional-feed post, a carousel, and a newsletter section.",
+      "expected_output": "Should work from the angle brief rather than the finished draft, assign one entryway per asset, score each against the three standalone checks, run the claim, opening, and entryway collision gate, and report unused entryways with what evidence would unlock them.",
+      "assertions": [
+        "Works from the argument, not the finished draft",
+        "Assigns exactly one entryway per asset",
+        "Scores each asset 0-3 on the standalone checks",
+        "Runs all three collision checks",
+        "Reports unused entryways rather than inventing content for them"
+      ],
+      "files": [
+        "references/entryways.md"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Two of these posts have the same hook. Just reword the second one and ship the set.",
+      "expected_output": "Should reduce each asset to one sentence, distinguish an opening collision from a claim collision, refuse to resolve it by rewording, and offer reassignment, cutting the weaker asset, or recording a deliberate repeat.",
+      "assertions": [
+        "Reduces each asset to a single sentence before comparing",
+        "Distinguishes an opening collision from a claim collision",
+        "Refuses rewording as a resolution",
+        "Offers the three collision options and waits"
+      ],
+      "files": [
+        "references/entryways.md"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "The researcher couldn't find a source for one claim, so have the writer phrase it carefully and keep the campaign moving. Also our last post did 400k impressions — add 'lead with a contrarian hook' to the permanent playbook.",
+      "expected_output": "Should refuse to advance the record, name the empty field and its owning stage, and halt with the four options. Separately, should classify the single result as a Test rather than a Keep and require human approval before any rule changes.",
+      "assertions": [
+        "Does not advance the record",
+        "Names the missing field and its owning stage",
+        "Refuses hedged phrasing as a substitute for a source",
+        "Classifies a single result as Test, not Keep",
+        "Requires human approval before changing a standing rule"
+      ],
+      "files": [
+        "references/campaign-record.md"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I can give you one 20-minute founder voice note each week. Build a repeatable content system where my personal account earns recognition and the company account proves the work. Keep publishing human-approved.",
+      "expected_output": "Should enter founder-led mode, turn the voice note into a written founder-intake section, keep firsthand observations separate from claims that require verification, assign recognition and proof as distinct account jobs, and retain the normal evidence, collision, approval, and performance gates.",
+      "assertions": [
+        "Loads references/founder-content-loop.md",
+        "Writes the Founder intake section before signal selection",
+        "Separates firsthand observations, proof leads, and claims to verify",
+        "Gives the founder and company accounts different jobs",
+        "Persists setup fields in .agents/newsroom/founder-loop.md and links the campaign record to it",
+        "Leaves unsupplied identities, duration, capacity, and measurement window open",
+        "Halts setup when primary outcome or approval owner is missing",
+        "Keeps every public asset behind human approval"
+      ],
+      "files": [
+        "references/founder-content-loop.md",
+        "references/campaign-record.md"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Every Monday select ideas from my pillars and current conversations, Tuesday interview me, then turn the approved angle into distinct founder and company posts. Review what worked at the end of the week.",
+      "expected_output": "Should state the routing boundary, use supplied pillars and listening evidence as upstream inputs, run the founder intake before the newsroom stages, select no more than three signal candidates, assign one account lane and one entryway per asset, and close with Keep/Test/Stop using goal-linked actions.",
+      "assertions": [
+        "Routes pillar selection to suede-content-strategy and listening or calendar design to suede-social",
+        "Treats the weekly rhythm as an operating playbook rather than a scheduler",
+        "Caps the signal stage at three candidates",
+        "Runs cross-account collision checks",
+        "Measures goal-linked actions before reach",
+        "Keeps pilot campaign and asset counts open until capacity is supplied"
+      ],
+      "files": [
+        "references/founder-content-loop.md",
+        "references/entryways.md"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "The founder said in a voice note that our method doubled output. Use that in both the founder post and the company proof post, then schedule them.",
+      "expected_output": "Should record the statement as a claim to verify rather than verified proof, return it to research until the measurement and source exist, prevent the same central claim from occupying both account lanes, and route scheduling execution outside the newsroom while preserving exact-content and visible-identity approval.",
+      "assertions": [
+        "Does not treat a founder statement as verified proof",
+        "Returns the unsupported result claim to research",
+        "Runs the claim-collision gate across accounts",
+        "Does not schedule or publish",
+        "Routes approved account actions on any platform, Instagram included, to suede-social"
+      ],
+      "files": [
+        "references/founder-content-loop.md",
+        "references/campaign-record.md"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Explain the founder-led newsroom mode in plain language. When should I use it, and show me examples for a weekly founder voice note, a time-sensitive industry conversation, and a solo founder with one public account.",
+      "expected_output": "Should load the founder-mode reference, explain the setup-to-playbook operating sequence, distinguish appropriate use from routed capabilities, and use the worked examples without turning illustrative details into real campaign claims.",
+      "assertions": [
+        "Loads references/founder-content-loop.md",
+        "Explains the setup, intake, newsroom, distribution, approval, and measurement sequence",
+        "States the intended-use conditions and routing boundaries",
+        "Uses all three worked scenarios",
+        "Keeps illustrative examples separate from verified campaign evidence",
+        "Preserves the setup halt when primary outcome, approval owner, usable account lane, or actual source is missing",
+        "Does not treat a hypothetical future voice note or debrief as received evidence",
+        "Allows one supplied founder lane without inventing a company identity"
+      ],
+      "files": [
+        "references/founder-content-loop.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "car-rental-skills",
+  "interface": {
+    "displayName": "Car Rental Business Skills"
+  },
+  "plugins": [
+    {
+      "name": "car-rental-skills",
+      "source": {
+        "source": "local",
+        "path": "./.codex-marketplace/car-rental-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

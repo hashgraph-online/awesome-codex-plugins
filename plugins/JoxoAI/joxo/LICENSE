@@ -1,0 +1,19 @@
+Copyright (c) 2026 Joxo. All rights reserved.
+
+This repository holds the Joxo plugin for Claude Code and related files: plugin manifests, the Joxo
+setup skill, and images.
+
+You may install and use the plugin to use Joxo, subject to the Joxo Terms at https://joxo.ai/terms.
+No other right is granted. Except as needed to install and use the plugin, you may not copy,
+modify, publish, distribute, sublicense, sell, or create derivative works from any part of this
+repository.
+
+The Joxo app, service, and connector are proprietary software. They are not part of this
+repository, and this notice grants no rights in them.
+
+THE FILES IN THIS REPOSITORY ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL JOXO BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING
+FROM, OUT OF OR IN CONNECTION WITH THESE FILES OR THEIR USE.
+
+Questions: support@joxo.ai

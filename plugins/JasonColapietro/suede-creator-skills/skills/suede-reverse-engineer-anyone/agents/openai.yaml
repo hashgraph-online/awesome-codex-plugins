@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Reverse Engineer Anyone Skills"
+  short_description: "Reverse-engineer how any company or creator grew"
+  default_prompt: "Use $suede-reverse-engineer-anyone on [target]. The user wants to know how a company, creator, artist, founder brand, app, or launch grew and what to copy. Build a one-source growth curve and a dated move log from public evidence, find what moved the curve with the timeline script, compare it with the user's own numbers, and return ranked plays, each routed to the Suede skill that runs it with a paste-ready prompt."
+policy:
+  allow_implicit_invocation: true

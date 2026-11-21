@@ -1,0 +1,147 @@
+{
+ "duration": 20.0,
+ "fps": 30,
+ "platform": "youtube",
+ "duck": {
+  "depth_db": 8
+ },
+ "checks": {
+  "voice_over_music_db": 10
+ },
+ "beats": {
+  "beats": [
+   0.512,
+   1.0,
+   1.511,
+   1.998,
+   2.509,
+   2.997,
+   3.508,
+   3.995,
+   4.506,
+   5.017,
+   5.505,
+   6.015,
+   6.503,
+   7.014,
+   7.501,
+   8.012,
+   8.5,
+   9.011,
+   9.498,
+   10.009,
+   10.497,
+   11.008,
+   11.508,
+   12.008,
+   12.508,
+   13.008,
+   13.508,
+   14.008,
+   14.508,
+   15.008,
+   15.508,
+   16.008,
+   16.508,
+   17.008,
+   17.508,
+   18.008,
+   18.508,
+   19.008,
+   19.508
+  ]
+ },
+ "cut_on": "beats",
+ "cuts": [
+  4.0,
+  8.0,
+  13.0,
+  16.0
+ ],
+ "silences": [
+  {
+   "start": 12.0,
+   "end": 13.0,
+   "why": "half a bar of stop before the logo hit (music stops; room tone stays)"
+  }
+ ],
+ "tracks": [
+  {
+   "id": "L01",
+   "role": "voice",
+   "file": "vo/L01.mp3",
+   "start": 0.5,
+   "moment": "opening line over the pulse"
+  },
+  {
+   "id": "L02",
+   "role": "voice",
+   "file": "vo/L02.mp3",
+   "start": 8.25,
+   "moment": "bass enters at 8.0; the line rides it"
+  },
+  {
+   "id": "L03",
+   "role": "voice",
+   "file": "vo/L03.mp3",
+   "start": 14.0,
+   "moment": "after the hit: the name and the promise"
+  },
+  {
+   "id": "bed_a",
+   "role": "music",
+   "file": "music/bed_detailed_2.mp3",
+   "start": 0.0,
+   "trim_start": 0.045,
+   "length": 12.0,
+   "gain_db": -4,
+   "fade_out": 0.03,
+   "moment": "cut on the bar line at 12.0"
+  },
+  {
+   "id": "bed_b",
+   "role": "music",
+   "file": "music/bed_detailed_2.mp3",
+   "start": 13.0,
+   "trim_start": 12.045,
+   "length": 7.0,
+   "gain_db": -4,
+   "fade_out": 1.5,
+   "moment": "music re-enters on the hit"
+  },
+  {
+   "id": "room",
+   "role": "ambience",
+   "file": "sfx/room.mp3",
+   "start": 0.0,
+   "loop": true,
+   "gain_db": 18,
+   "moment": "room tone under everything, also under the stop"
+  },
+  {
+   "id": "click",
+   "role": "sfx",
+   "file": "sfx/click2.mp3",
+   "start": 4.0,
+   "gain_db": 0,
+   "moment": "cursor clicks on the downbeat cut"
+  },
+  {
+   "id": "whoosh",
+   "role": "sfx",
+   "file": "sfx/whoosh.mp3",
+   "at": 13.0,
+   "align": "peak",
+   "gain_db": -4,
+   "moment": "whoosh peaks on the logo hit"
+  },
+  {
+   "id": "impact",
+   "role": "sfx",
+   "file": "sfx/impact.mp3",
+   "start": 13.0,
+   "gain_db": 0,
+   "moment": "logo lands"
+  }
+ ]
+}

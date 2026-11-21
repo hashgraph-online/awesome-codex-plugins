@@ -40,6 +40,9 @@ except ImportError:
     sys.exit(1)
 
 
+DATA_IMAGE_PREFIX = "data:image"
+
+
 class ReviewResult(NamedTuple):
     """The outcome of one quality review.
 
@@ -347,7 +350,7 @@ IMPORTANT - NO FIGURE NUMBERS:
                         if isinstance(url, dict):
                             url = url.get("url", "")
                         
-                        if url and url.startswith("data:image"):
+                        if url and url.startswith(DATA_IMAGE_PREFIX):
                             # Extract base64 data after comma
                             if "," in url:
                                 base64_str = url.split(",", 1)[1]
@@ -363,7 +366,7 @@ IMPORTANT - NO FIGURE NUMBERS:
                 self._log(f"Content type: {type(content)}, length: {len(str(content))}")
             
             # Handle string content
-            if isinstance(content, str) and "data:image" in content:
+            if isinstance(content, str) and DATA_IMAGE_PREFIX in content:
                 match = re.search(r'data:image/[^;]+;base64,([A-Za-z0-9+/=\n\r]+)', content, re.DOTALL)
                 if match:
                     base64_str = match.group(1).replace('\n', '').replace('\r', '').replace(' ', '')
@@ -377,7 +380,7 @@ IMPORTANT - NO FIGURE NUMBERS:
                         url = block.get("image_url", {})
                         if isinstance(url, dict):
                             url = url.get("url", "")
-                        if url and url.startswith("data:image") and "," in url:
+                        if url and url.startswith(DATA_IMAGE_PREFIX) and "," in url:
                             base64_str = url.split(",", 1)[1].replace('\n', '').replace('\r', '').replace(' ', '')
                             self._log(f"Found image in content block {i}")
                             return base64.b64decode(base64_str)
@@ -736,7 +739,7 @@ USER REQUEST: {user_prompt}
 Generate a publication-quality scientific diagram that meets all the guidelines above."""
         
         print(f"\n{'='*60}")
-        print(f"Generating Scientific Schematic")
+        print("Generating Scientific Schematic")
         print(f"{'='*60}")
         print(f"Description: {user_prompt}")
         print(f"Document Type: {doc_type}")
@@ -750,7 +753,7 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
             print("-" * 40)
             
             # Generate image
-            print(f"Generating image...")
+            print("Generating image...")
             image_data = self.generate_image(current_prompt)
             
             if not image_data:
@@ -777,7 +780,7 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
             if review.score is not None:
                 print(f"✓ Score: {review.score}/10 (threshold: {threshold}/10)")
             else:
-                print(f"⚠ Review unavailable — image kept, quality not verified")
+                print("⚠ Review unavailable — image kept, quality not verified")
                 print(f"  Reason: {review.error}")
 
             # Save iteration results
@@ -798,12 +801,12 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
             if not review.needs_improvement:
                 if review.score is not None:
                     print(f"\n✓ Quality meets {doc_type} threshold ({review.score} >= {threshold})")
-                    print(f"  No further iterations needed!")
+                    print("  No further iterations needed!")
                     reason = (f"Quality score {review.score} meets threshold "
                               f"{threshold} for {doc_type}")
                 else:
                     # Regenerating cannot fix a reviewer that did not answer.
-                    print(f"\n⚠ Stopping without a verified score — review the image yourself")
+                    print("\n⚠ Stopping without a verified score — review the image yourself")
                     reason = f"Review did not produce a score: {review.error}"
                 results["final_image"] = str(iter_path)
                 results["final_score"] = review.score
@@ -815,7 +818,7 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
 
             # If this is the last iteration, we're done regardless
             if i == iterations:
-                print(f"\n⚠ Maximum iterations reached")
+                print("\n⚠ Maximum iterations reached")
                 results["final_image"] = str(iter_path)
                 results["final_score"] = review.score
                 results["final_reviewed"] = review.reviewed and review.score is not None
@@ -824,7 +827,7 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
 
             # Quality below threshold - improve prompt for next iteration
             print(f"\n⚠ Quality below threshold ({review.score} < {threshold})")
-            print(f"Improving prompt based on feedback...")
+            print("Improving prompt based on feedback...")
             current_prompt = self.improve_prompt(user_prompt, review.critique, i + 1)
         
         # Copy final version to output path
@@ -842,11 +845,11 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
         print(f"✓ Review log: {log_path}")
         
         print(f"\n{'='*60}")
-        print(f"Generation Complete!")
+        print("Generation Complete!")
         if results["final_score"] is not None:
             print(f"Final Score: {results['final_score']}/10")
         else:
-            print(f"Final Score: unavailable (the review did not produce one)")
+            print("Final Score: unavailable (the review did not produce one)")
         if results["early_stop"]:
             print(f"Iterations Used: {len([r for r in results['iterations'] if r.get('success')])}/{iterations} (early stop)")
         print(f"{'='*60}\n")
@@ -943,7 +946,7 @@ Environment:
                       f" the review produced no score. Check the image yourself.)")
             sys.exit(0)
         else:
-            print(f"\n✗ Generation failed. Check review log for details.")
+            print("\n✗ Generation failed. Check review log for details.")
             sys.exit(1)
     except Exception as e:
         print(f"\n✗ Error: {str(e)}")

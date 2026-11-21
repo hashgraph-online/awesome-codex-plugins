@@ -81,6 +81,7 @@ _UPDATE_FIELDS = frozenset(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan and redact a documented protocols.io write/upload request. "
@@ -147,6 +148,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _payload(path: str | None) -> dict[str, Any]:
+    """Handle payload."""
     if path is None:
         return {}
     value = load_local_json(path)
@@ -158,6 +160,7 @@ def _payload(path: str | None) -> dict[str, Any]:
 
 
 def _sensitive_paths(value: Any, prefix: str = "$") -> list[str]:
+    """Handle sensitive paths."""
     paths: list[str] = []
     if isinstance(value, Mapping):
         for key, item in value.items():
@@ -175,6 +178,7 @@ def _sensitive_paths(value: Any, prefix: str = "$") -> list[str]:
 
 
 def _drop_sensitive(value: Any) -> Any:
+    """Handle drop sensitive."""
     if isinstance(value, Mapping):
         result: dict[str, Any] = {}
         for key, item in value.items():
@@ -195,6 +199,7 @@ def _exact_fields(
     optional: set[str],
     operation: str,
 ) -> None:
+    """Handle exact fields."""
     missing = sorted(required - set(payload))
     unknown = sorted(set(payload) - required - optional)
     if missing:
@@ -206,17 +211,18 @@ def _exact_fields(
 
 
 def _slug(value: str | None, *, name: str) -> str:
+    """Handle slug."""
     if value is None or _SLUG_RE.fullmatch(value) is None:
         raise SafetyError(f"{name} must be a bounded identifier")
     return value
 
 
 def _protocol_uri(value: str | None) -> str:
+    """Handle protocol uri."""
     if (
         value is None
         or _PROTOCOL_URI_RE.fullmatch(value) is None
         or value.isdigit()
-        or value.startswith("protocols.io")
     ):
         raise SafetyError(
             "operation requires an unversioned protocol URI, not an ID or DOI"
@@ -225,6 +231,7 @@ def _protocol_uri(value: str | None) -> str:
 
 
 def _int_id(value: Any, *, name: str) -> int:
+    """Handle int id."""
     if isinstance(value, bool):
         raise SafetyError(f"{name} must be an integer")
     if isinstance(value, int):
@@ -241,6 +248,7 @@ def _int_id(value: Any, *, name: str) -> int:
 
 
 def _validate_update(payload: Mapping[str, Any]) -> None:
+    """Validate update."""
     _exact_fields(
         payload,
         required=set(),
@@ -297,6 +305,7 @@ def _validate_update(payload: Mapping[str, Any]) -> None:
 
 
 def _validate_steps(payload: Mapping[str, Any], *, deleting: bool) -> None:
+    """Validate steps."""
     _exact_fields(
         payload,
         required={"steps"},
@@ -339,6 +348,7 @@ def _validate_steps(payload: Mapping[str, Any], *, deleting: bool) -> None:
 
 
 def _validate_publish(payload: Mapping[str, Any]) -> None:
+    """Validate publish."""
     _exact_fields(
         payload,
         required=set(),
@@ -352,6 +362,7 @@ def _validate_publish(payload: Mapping[str, Any]) -> None:
 
 
 def _validate_comment(payload: Mapping[str, Any]) -> None:
+    """Validate comment."""
     _exact_fields(
         payload,
         required={"body"},
@@ -366,6 +377,7 @@ def _validate_comment(payload: Mapping[str, Any]) -> None:
 
 
 def _validate_ids(payload: Mapping[str, Any], *, operation: str) -> None:
+    """Validate ids."""
     _exact_fields(
         payload,
         required={"ids"},
@@ -380,6 +392,7 @@ def _validate_ids(payload: Mapping[str, Any], *, operation: str) -> None:
 
 
 def _hash_file(path: Path, maximum: int) -> str:
+    """Handle hash file."""
     digest = hashlib.sha256()
     total = 0
     with path.open("rb") as handle:
@@ -402,6 +415,7 @@ def _upload_plan(
     local_max_bytes: int,
     origin: str,
 ) -> tuple[str, dict[str, Any], list[dict[str, Any]]]:
+    """Handle upload plan."""
     if raw_path is None:
         raise SafetyError("upload-file requires --upload-file")
     if not 1 <= local_max_bytes <= MAX_UPLOAD_INSPECTION_BYTES:
@@ -458,6 +472,7 @@ def build_plan(
     local_max_upload_bytes: int,
     confirmation: str | None,
 ) -> dict[str, Any]:
+    """Build plan."""
     core_origin = validate_origin(origin)
     sensitive = _sensitive_paths(payload)
     clean_payload = _drop_sensitive(payload)
@@ -627,14 +642,17 @@ def build_plan(
 
 
 def credential_env_name() -> str:
+    """Handle credential env name."""
     return "PROTOCOLS_IO_ACCESS_TOKEN"
 
 
 def urllib_target(url: str) -> str:
+    """Handle urllib target."""
     return url.rsplit("/", 1)[-1]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = build_plan(

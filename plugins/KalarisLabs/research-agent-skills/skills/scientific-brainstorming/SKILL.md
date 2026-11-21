@@ -307,6 +307,6 @@ The matrix preserves qualitative review and uncertainty and leaves
 
 ## Related skills
 
-- `brainstorming-research-ideas`: Guides researchers through structured ideation frameworks to discover high-impact research directions.
 - `hypothesis-generation`: Formulate evidence-bounded scientific questions, candidate hypotheses, rival explanations, causal or associational claims, discriminating p…
+- `brainstorming-research-ideas`: Guides researchers through structured ideation frameworks to discover high-impact research directions.
 - `peer-review`: Prepare evidence-bounded, constructive peer-review drafts and structured manuscript assessments.

@@ -1,0 +1,30 @@
+[UV_MISSING] uv is required and could not be found.
+
+Every multi-llm command runs through `uv run --project <skill-dir>`, so nothing
+can start until uv resolves. Install it, then re-run the same command:
+
+  1) Official installer - Linux / macOS
+     curl -LsSf https://astral.sh/uv/install.sh | sh
+     (installs to ~/.local/bin/uv)
+  2) Official installer - Windows
+     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+     (installs uv.exe to %USERPROFILE%\.local\bin, i.e. ~/.local/bin/uv.exe
+     under Git Bash)
+  3) Package manager - whichever fits the platform
+     brew install uv | pipx install uv | pip install --user uv
+     winget install --id=astral-sh.uv -e | your distro's package
+
+Already installed? It may not be on PATH yet. uv is looked for in $MULTI_LLM_UV,
+then on PATH, then at:
+  ~/.local/bin/uv[.exe], ~/.cargo/bin/uv[.exe], /opt/homebrew/bin/uv,
+  /usr/local/bin/uv, /opt/local/bin/uv
+Add the install directory to PATH - or just restart the shell, since the
+installers update the profile - and re-run.
+
+There is no bare-`python` fallback, deliberately: this skill's dependencies are
+pinned in uv.lock and resolved by uv from pyproject.toml, so a bare interpreter
+would run against whatever happens to be importable - a ModuleNotFoundError at
+best, a silently wrong dependency version mid-fan-out at worst. The documented
+recovery is always "install uv, re-run".
+
+Docs: https://docs.astral.sh/uv/getting-started/installation/

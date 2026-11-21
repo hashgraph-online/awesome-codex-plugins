@@ -20,6 +20,35 @@
       "icon": "./plugins/RBraga01/a-team/assets/icon.svg"
     },
     {
+      "name": "abliterate",
+      "displayName": "abliterate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/andreaborio/abliterate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Security review of source changes before a push or pull request, with attack-surface, sink and dependency-reachability evidence and SARIF output."
+    },
+    {
+      "name": "actera",
+      "displayName": "Actera",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Actera-AI/actera-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Checks each Codex tool call against Actera workspace policies before it runs, holds calls that need a reviewer's approval, and records every decision and outcome.",
+      "icon": "./plugins/Actera-AI/actera-codex/assets/icon.png"
+    },
+    {
       "name": "aegis",
       "displayName": "Aegis",
       "source": {
@@ -110,6 +139,21 @@
       "icon": "./plugins/summationai/agent-retro/assets/icon.svg"
     },
     {
+      "name": "mobius-connect",
+      "displayName": "Agent Session Lineage",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/agent-session-lineage"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "View indexed Codex and Claude Code sessions and recorded handoff links on Windows using a local Möbius vault.",
+      "icon": "./plugins/TardisBooo/agent-session-lineage/assets/icon.png"
+    },
+    {
       "name": "agent-workflow-system",
       "displayName": "Agent Workflow System",
       "source": {
@@ -123,6 +167,21 @@
       "category": "Development & Workflow",
       "description": "一套中文AI工作流系统：7个协作技能 + 行为规范宪法 + 会话恢复机制，模糊目标→可执行任务，全生命周期引导。Codex & Claude Code 双平台，新手友好。",
       "icon": "./plugins/1139030773-cmd/agent-workflow-system/assets/composer-icon.svg"
+    },
+    {
+      "name": "agentavow-trust",
+      "displayName": "AgentAvow Trust",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AgentAvow/agentavow-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Checks your MCP servers at session start and stops a `codex mcp add` or package install that reads Do not connect, with the reason and a signed 0-100 trust score.",
+      "icon": "./plugins/AgentAvow/agentavow-codex-plugin/icon.png"
     },
     {
       "name": "agentic-readiness-assessment",
@@ -214,6 +273,21 @@
       "icon": "./plugins/AgiFlow/ai-plugin/assets/icon.png"
     },
     {
+      "name": "harness-daily",
+      "displayName": "AI Coding Daily Report",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/ai-coding-daily-report"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Generates a Markdown work report from local AI coding sessions with your chosen writer CLI.",
+      "icon": "./plugins/TardisBooo/ai-coding-daily-report/assets/icon.svg"
+    },
+    {
       "name": "ai-sdlc",
       "displayName": "AI-Native SDLC Loop",
       "source": {
@@ -273,6 +347,21 @@
       "icon": "./plugins/biefan/anchor/assets/icon.svg"
     },
     {
+      "name": "andon",
+      "displayName": "Andon",
+      "source": {
+        "source": "local",
+        "path": "./plugins/PrimeFoldTools/Andon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Stop hooks that stop a coding agent from claiming \"done\" without proof, using a same-session verification log, warn or block mode, and a public defect ledger.",
+      "icon": "./plugins/PrimeFoldTools/Andon/assets/icon.png"
+    },
+    {
       "name": "repobrain",
       "displayName": "Antigravity Workspace Template",
       "source": {
@@ -318,6 +407,21 @@
       "icon": "./plugins/armoriq/armorCodex/assets/armoriq-logo.png"
     },
     {
+      "name": "asitis",
+      "displayName": "AsItIs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Katta041/asitis-agent-tools"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Read-only linter for AGENTS.md, CLAUDE.md and SKILL.md that shows what Codex loads at launch, what gets cut at the 32 KiB limit, and instructions hidden in comments or invisible characters.",
+      "icon": "./plugins/Katta041/asitis-agent-tools/assets/icon.png"
+    },
+    {
       "name": "assay",
       "displayName": "assay",
       "source": {
@@ -361,6 +465,20 @@
       "category": "Development & Workflow",
       "description": "Intake-first Codex plugin that turns a short project request into a structured, resumable execution workflow with one-question-at-a-time intake, project contract files, blocker triage, and resume support.",
       "icon": "./plugins/minsu0707/auto-pilot/assets/auto-pilot.png"
+    },
+    {
+      "name": "aw1-circuit-breaker",
+      "displayName": "AW-1 Circuit Breaker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MvikManners/aw1-circuit-breaker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Application-layer AST and argument policy gate for agent tool calls that checks configured rules before Python execution; complements, but does not replace, operating-system sandbox isolation."
     },
     {
       "name": "babok_analyst",
@@ -422,6 +540,21 @@
       "icon": "./plugins/echoVic/boss-skill/assets/boss-composer-icon.svg"
     },
     {
+      "name": "brief2mp4",
+      "displayName": "brief2mp4",
+      "source": {
+        "source": "local",
+        "path": "./plugins/qualixar/brief2mp4"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Turns a written video brief into a finished MP4 motion graphic with HyperFrames, Three.js or Blender, then measures the file and checks real frames against every line of the brief before delivering it with a report.",
+      "icon": "./plugins/qualixar/brief2mp4/assets/icon.png"
+    },
+    {
       "name": "bringyour-migration-auditor",
       "displayName": "Bring Your AI Migration Auditor",
       "source": {
@@ -452,6 +585,21 @@
       "icon": "./plugins/hyhmrright/brooks-lint/assets/logo.svg"
     },
     {
+      "name": "bulkhead",
+      "displayName": "Bulkhead",
+      "source": {
+        "source": "local",
+        "path": "./plugins/dooly6276/claude-bulkhead"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Guards for machines that run many Codex and other agent sessions at once: a PreToolUse hook on Bash blocks name-based process kills, port collisions, destructive git commands on another session's worktree, whole-disk scans and long foreground sleeps, and holds heavy commands back when RAM runs low.",
+      "icon": "./plugins/dooly6276/claude-bulkhead/.claude-plugin/icon.png"
+    },
+    {
       "name": "casefile",
       "displayName": "Casefile",
       "source": {
@@ -467,6 +615,21 @@
       "icon": "./plugins/x4cc3/casefile/assets/icon.svg"
     },
     {
+      "name": "ccx",
+      "displayName": "ccx",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AaronWong1999/ccx"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Syncs task context between Claude Code, Codex and Antigravity, so a Claude Code session or an Antigravity conversation can be imported into a Codex thread, kept in sync, or handed over.",
+      "icon": "./plugins/AaronWong1999/ccx/assets/icon.png"
+    },
+    {
       "name": "chatgpt-agent",
       "displayName": "ChatGPT Agent",
       "source": {
@@ -480,6 +643,21 @@
       "category": "Development & Workflow",
       "description": "Use ChatGPT as a reviewer, advisor, editor, or implementer in Codex, with ZIP packets by default and an opt-in MCP bridge.",
       "icon": "./plugins/TohmaN233/chatgpt-review-agent-skill/assets/icon.svg"
+    },
+    {
+      "name": "chunsik-garage",
+      "displayName": "Chunsik's Garage",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yeunlee1/chunsik-garage"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "AQ checkup that reads your local Claude Code, Codex, and Gemini CLI records and settings, scores how you set up and use them, and turns off unused Claude Code and Codex skills and MCP servers with your approval and undo.",
+      "icon": "./plugins/yeunlee1/chunsik-garage/skills/aq/assets/composer-icon.png"
     },
     {
       "name": "claude-code",
@@ -691,6 +869,21 @@
       "icon": "./plugins/songyb111-gachon/codex-auto-resume-windows/assets/icon.png"
     },
     {
+      "name": "codexdesign",
+      "displayName": "Codex Design",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ummydev/codexdesign"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A visual design canvas for Codex: compare UI images and live HTML screens side by side in the in-app browser, then refine them on the canvas or in conversation.",
+      "icon": "./plugins/ummydev/codexdesign/assets/composer-icon.png"
+    },
+    {
       "name": "codex-howto",
       "displayName": "Codex How To",
       "source": {
@@ -879,7 +1072,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.",
+      "description": "Keep image-heavy Codex and Claude Code chats small: earlier images go out as short placeholders instead of being sent again with every message, the model fetches the original back by its ID (also after compaction), and the prompt cache keeps working.",
       "icon": "./plugins/chipfighter/context-attachment-manager/assets/logo.png"
     },
     {
@@ -1076,6 +1269,21 @@
       "icon": "./plugins/MedAdemBHA/docflow/assets/icon.svg"
     },
     {
+      "name": "docspring-agent-playbook",
+      "displayName": "DocSpring Agent Playbook",
+      "source": {
+        "source": "local",
+        "path": "./plugins/DocSpring/docspring-agent-playbook"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "DocSpring's engineering principles, AGENTS.md templates and six workflow skills (ticket kickoff, PR review, second-opinion review, fix CI, browser QA, session wrap-up) for Claude Code, Codex and other agents.",
+      "icon": "./plugins/DocSpring/docspring-agent-playbook/assets/icon.png"
+    },
+    {
       "name": "done-gate",
       "displayName": "done-gate",
       "source": {
@@ -1102,6 +1310,21 @@
       },
       "category": "Development & Workflow",
       "description": "Bounded-autonomy plugin that asks only the decisions that belong to the user, builds nothing before the intent is approved, verifies with checks that actually ran, and keeps project decisions as plain Markdown across Codex, Claude Code, Grok Build, Copilot CLI, and Antigravity CLI."
+    },
+    {
+      "name": "e2e",
+      "displayName": "e2e",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tester-army/e2e"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Write, run, and debug end-to-end tests for web and mobile apps with agent skills and an MCP server.",
+      "icon": "./plugins/tester-army/e2e/assets/icon.png"
     },
     {
       "name": "ejentum",
@@ -1134,6 +1357,21 @@
       "icon": "./plugins/ohad6k/emulo/assets/emulo.svg"
     },
     {
+      "name": "endostack",
+      "displayName": "EndoStack",
+      "source": {
+        "source": "local",
+        "path": "./plugins/requie/endostack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Security-first workflows for coding agents that threat-model, security-review and verify code changes before they ship, across Codex, Claude Code, Cursor and Copilot.",
+      "icon": "./plugins/requie/endostack/assets/logo.png"
+    },
+    {
       "name": "epic",
       "displayName": "Epic Harness",
       "source": {
@@ -1163,6 +1401,21 @@
       "icon": "./plugins/mirkobozzetto/espresso/assets/icon.svg"
     },
     {
+      "name": "exam-prep-skills",
+      "displayName": "exam-prep-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/keienhrri-bit/exam-prep-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Exam-prep plugin with nine skills: try-first tutoring, photo-to-report grading with rubric scoring and an independent regrade, checkpoint reviews and Markdown-to-PDF reports.",
+      "icon": "./plugins/keienhrri-bit/exam-prep-skills/assets/icon.svg"
+    },
+    {
       "name": "falsegreen-skill",
       "displayName": "falsegreen-skill",
       "source": {
@@ -1178,6 +1431,21 @@
       "icon": "./plugins/vinicq/falsegreen-skill/assets/icon.svg"
     },
     {
+      "name": "fanout",
+      "displayName": "fanout",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Breadstick-Crumbs/fanout"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Tests parallel Codex and Claude Code sessions’ branches merged together before main, and stops two sessions doing the same task.",
+      "icon": "./plugins/Breadstick-Crumbs/fanout/assets/icon.svg"
+    },
+    {
       "name": "figma-maxxing",
       "displayName": "Figma Maxxing",
       "source": {
@@ -1191,6 +1459,20 @@
       "category": "Development & Workflow",
       "description": "Eight Agent Skills for real Figma files, with Plugin API gotchas, a read-only preflight before any write, checks after the write and before handoff, and open comments turned into fixes with evidence.",
       "icon": "./plugins/thiagoxikota/figma-maxxing/assets/icon.png"
+    },
+    {
+      "name": "figureatlas",
+      "displayName": "FigureAtlas",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/figureatlas"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Pick one of 300 verified figure types for a paper, slide, poster, or video frame, then export HTML or SVG."
     },
     {
       "name": "frappe-agent",
@@ -1236,6 +1518,21 @@
       "category": "Development & Workflow",
       "description": "13 skills for image, video, and audio generation using 100+ models - FLUX, Midjourney v7, Veo3, Kling 3.0, Suno, and HunyuanVideo via muapi.ai.",
       "icon": "./plugins/SamurAIGPT/Generative-Media-Skills/assets/icon.svg"
+    },
+    {
+      "name": "gitranks-contribute",
+      "displayName": "GitRanks Contribute",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gitranks/contribute"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Find open-source GitHub issues matched to your skills, fix one with your agent, and approve the pull request yourself.",
+      "icon": "./plugins/gitranks/contribute/assets/icon.png"
     },
     {
       "name": "codex-goal-progress",
@@ -1312,7 +1609,22 @@
       "icon": "./plugins/arvkonstantin/herdr-codex-subagents/assets/icon.svg"
     },
     {
-      "name": "hol-guard-plugin",
+      "name": "hiway-kit",
+      "displayName": "hiway-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/This-HW/hiway-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Discipline kit for coding agents with 17 skills for planning, automated implementation, testing, debugging, review and multi-session coordination, where work counts as done only when the project's own checks pass.",
+      "icon": "./plugins/This-HW/hiway-kit/assets/icon.png"
+    },
+    {
+      "name": "hol-guard",
       "displayName": "HOL Guard Plugin",
       "source": {
         "source": "local",
@@ -1372,6 +1684,21 @@
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
     },
     {
+      "name": "hypercore",
+      "displayName": "Hypercore",
+      "source": {
+        "source": "local",
+        "path": "./plugins/alpoxdev/hypercore"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Korean-first agent skills for planning, architecture, design, docs, research, issues, and Git delivery, each with declared triggers, workflows, and validation gates.",
+      "icon": "./plugins/alpoxdev/hypercore/assets/icon.svg"
+    },
+    {
       "name": "sirv-media-skills",
       "displayName": "Image & Media Skills",
       "source": {
@@ -1402,6 +1729,36 @@
       "icon": "./plugins/shitianfang/jev-use/assets/icon.svg"
     },
     {
+      "name": "joxo",
+      "displayName": "Joxo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/JoxoAI/joxo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Setup skill that joins Codex to a team's shared Joxo project, where teammates' coding agents share one task board, decisions and handoffs.",
+      "icon": "./plugins/JoxoAI/joxo/assets/icon.png"
+    },
+    {
+      "name": "keep-mac-awake",
+      "displayName": "Keep Mac Awake",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bartdudzic/keepmacawake"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Lets Codex keep a MacBook awake with the lid closed while long tasks run, by starting and stopping timed sessions of the Keep Mac Awake macOS app (a paid app with a free trial).",
+      "icon": "./plugins/bartdudzic/keepmacawake/assets/icon.png"
+    },
+    {
       "name": "kernel",
       "displayName": "Kernel",
       "source": {
@@ -1414,6 +1771,34 @@
       },
       "category": "Development & Workflow",
       "description": "Hook-enforced guardrails for Codex and Claude Code with blocked destructive commands, one-time human tokens for irreversible operations, context-blind verification agents, and SQLite agent memory recalled at session start."
+    },
+    {
+      "name": "kling-ai-cn-plugin",
+      "displayName": "Kling AI China Plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/klingai-tech/claude-plugin-cn"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Official China-region OAuth MCP plugin for Claude and Gemini CLI, with image and video generation, Elements, motion-library browsing, and task tracking."
+    },
+    {
+      "name": "kling-ai-global-plugin",
+      "displayName": "Kling AI Global Plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/klingai-tech/claude-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Official Global-region OAuth MCP plugin for Claude and Gemini CLI, with image and video generation, Elements, and task tracking."
     },
     {
       "name": "krypton",
@@ -1431,6 +1816,21 @@
       "icon": "./plugins/jturntdev/krypton/assets/icon.svg"
     },
     {
+      "name": "lgpd-skills",
+      "displayName": "lgpd-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/goul4rt/lgpd-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Modular Agent Skills toolkit (Claude Code, Codex, Cursor, Gemini CLI, OpenCode) for LGPD & ECA Digital privacy engineering, automated compliance audits, LINDDUN threat modeling, consent ledgers, and DSAR endpoints.",
+      "icon": "./plugins/goul4rt/lgpd-skills/assets/icon.png"
+    },
+    {
       "name": "llm-transpile",
       "displayName": "LLM Transpile",
       "source": {
@@ -1446,19 +1846,34 @@
       "icon": "./plugins/epicsagas/llm-transpile/assets/icon.png"
     },
     {
-      "name": "lvtd-skills",
-      "displayName": "LVTD Skills",
+      "name": "loom",
+      "displayName": "Loom",
       "source": {
         "source": "local",
-        "path": "./plugins/LVTD-LLC/skills"
+        "path": "./plugins/ClickHouse/loom"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Reusable Agent Skills for Codex, Claude Code, and compatible clients, covering Django, Rust, Cookiecutter, SEO, traction, product marketing, and nonfiction publishing workflows.",
-      "icon": "./plugins/LVTD-LLC/skills/assets/app-icon.png"
+      "description": "Self-hosted shared long-term memory and code index (definitions, callers, change impact) for Codex, stored in ClickHouse, with lifecycle hooks that capture each session and MCP tools that save and recall decisions across sessions and teammates.",
+      "icon": "./plugins/ClickHouse/loom/assets/icon.png"
+    },
+    {
+      "name": "macbox",
+      "displayName": "macbox",
+      "source": {
+        "source": "local",
+        "path": "./plugins/opslane/macbox-agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A real Mac for Codex: build, test, run and tap through iOS apps on the iOS simulator from any machine, including Linux and cloud sandboxes.",
+      "icon": "./plugins/opslane/macbox-agent/logo.png"
     },
     {
       "name": "maestro",
@@ -1550,6 +1965,35 @@
       "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin."
     },
     {
+      "name": "memtomem",
+      "displayName": "memtomem",
+      "source": {
+        "source": "local",
+        "path": "./plugins/memtomem/memtomem"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Markdown-first long-term memory for Codex that searches, recalls, saves and indexes project notes, and resumes work from a handoff another session or agent wrote."
+    },
+    {
+      "name": "minicut",
+      "displayName": "MiniCut",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lliu56/minicut-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agent skills for Claude Code, Codex, Cursor and Gemini CLI that make a multi-shot AI short film from an idea (story, shot sheet, takes, voice, music, edit) and run Seedance, Kling and Wan video models, with the price shown before every paid job.",
+      "icon": "./plugins/lliu56/minicut-skills/assets/icon.png"
+    },
+    {
       "name": "ml-pipeline",
       "displayName": "ML Pipeline",
       "source": {
@@ -1562,6 +2006,49 @@
       },
       "category": "Development & Workflow",
       "description": "Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi."
+    },
+    {
+      "name": "model-salt",
+      "displayName": "Model Salt",
+      "source": {
+        "source": "local",
+        "path": "./plugins/modelsalt/model-salt"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Gives the model randomness from outside it before a creative task, so one prompt gives different answers that still do what was asked."
+    },
+    {
+      "name": "multi-llm",
+      "displayName": "Multi-LLM",
+      "source": {
+        "source": "local",
+        "path": "./plugins/beastlabai/multi-llm-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Parallel plan, code, and commit reviews across 19 coding CLIs, with validated findings, task generation, implementation, and automated revision.",
+      "icon": "./plugins/beastlabai/multi-llm-plugin/assets/icon.svg"
+    },
+    {
+      "name": "mycelium",
+      "displayName": "Mycelium",
+      "source": {
+        "source": "local",
+        "path": "./plugins/haabe/mycelium"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A plugin that keeps you and your AI coding agent focused on building the right thing, from first idea to market."
     },
     {
       "name": "nightshift",
@@ -1579,7 +2066,21 @@
       "icon": "./plugins/orwa-mahmoud/nightshift/assets/nightshift-logo.png"
     },
     {
-      "name": "off-the-wall",
+      "name": "notibuddy",
+      "displayName": "notibuddy",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yourbit-network/notibuddy"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "End-to-end encrypted native screens, syntax-highlighted code diffs, forms, Live Activities, encrypted file handoff, and device-signed approval gates on iPhone and Apple Watch for Codex."
+    },
+    {
+      "name": "dude-toldya",
       "displayName": "Off the Wall",
       "source": {
         "source": "local",
@@ -1683,6 +2184,21 @@
       "icon": "./plugins/pixeltable/pixeltable-skill/assets/icon.png"
     },
     {
+      "name": "plugin-stack",
+      "displayName": "Plugin Stack",
+      "source": {
+        "source": "local",
+        "path": "./plugins/theopenapps/plugin-stack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Six agent skills for getting an AI plugin into the ChatGPT, Claude and Cursor stores and found there: submission checks, listing copy, discoverability audits, widget critique and competitor tracking, on live store data from [OpenApps](https://theopenapps.com?ref=plugin-stack).",
+      "icon": "./plugins/theopenapps/plugin-stack/assets/icon.svg"
+    },
+    {
       "name": "project-memory-core",
       "displayName": "PMC",
       "source": {
@@ -1698,6 +2214,21 @@
       "icon": "./plugins/DuncanMain/project-memory-core/assets/icon.svg"
     },
     {
+      "name": "ponder",
+      "displayName": "Ponder",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Quinnod345/ponder"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Coverage-gated, multi-pass deliberative review CLI and skill for Codex and Claude Code where four perspectives argue across passes, retract unverified findings, and block stopping until every unit in scope is graded.",
+      "icon": "./plugins/Quinnod345/ponder/assets/icon.svg"
+    },
+    {
       "name": "praxis",
       "displayName": "Praxis",
       "source": {
@@ -1711,6 +2242,36 @@
       "category": "Development & Workflow",
       "description": "Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.",
       "icon": "./plugins/ouonet/praxis/assets/logo-mark.svg"
+    },
+    {
+      "name": "preview-lab",
+      "displayName": "Preview Lab",
+      "source": {
+        "source": "local",
+        "path": "./plugins/dbalas/preview-lab"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Review the screens Codex changed on screenshots and send approvals and marked areas back to the session.",
+      "icon": "./plugins/dbalas/preview-lab/docs/logo.svg"
+    },
+    {
+      "name": "prewalk",
+      "displayName": "Prewalk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/prewalk"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Completes and verifies a first task, then hands the remaining work to a configured executor.",
+      "icon": "./plugins/TardisBooo/prewalk/assets/icon.svg"
     },
     {
       "name": "pro-launch",
@@ -1740,6 +2301,21 @@
       "category": "Development & Workflow",
       "description": "Turn an idea into a structured project workflow with planning, execution, verification, and handoff.",
       "icon": "./plugins/AlexMi64/codex-project-autopilot/assets/autonomous-project-agent.svg"
+    },
+    {
+      "name": "proxmox-writing-style",
+      "displayName": "Proxmox Writing Style",
+      "source": {
+        "source": "local",
+        "path": "./plugins/msoltanov/Proxmox-Technical-Writing-Style-Skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Unofficial skill that writes, edits, and reviews Proxmox VE, Proxmox Backup Server, and Proxmox Mail Gateway documentation with the rules of the Proxmox Technical Writing Style Guide.",
+      "icon": "./plugins/msoltanov/Proxmox-Technical-Writing-Style-Skill/assets/icon.svg"
     },
     {
       "name": "quality-engineering-skills",
@@ -1890,6 +2466,21 @@
       "icon": "./plugins/KalarisLabs/research-agent-skills/assets/icon.svg"
     },
     {
+      "name": "revenue-skills",
+      "displayName": "Revenue Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/moonetix/revenue-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Eleven Agent Skills for code that moves money: an audit of payment, credit and payout paths that backs each finding with file, line and a request proof or code trace, and builders for ledgers, payment webhooks, refunds, subscriptions, AI usage credits, payouts and referrals.",
+      "icon": "./plugins/moonetix/revenue-skills/assets/icon.svg"
+    },
+    {
       "name": "reviewable-html-workbench",
       "displayName": "Reviewable HTML Workbench",
       "source": {
@@ -1946,6 +2537,21 @@
       "category": "Development & Workflow",
       "description": "Supercharge your coding agent for AI product development — build, deploy, and operate agents, flows, tools, and surfaces on Runtype's managed edge runtime.",
       "icon": "./plugins/runtypelabs/skills/assets/icon.svg"
+    },
+    {
+      "name": "rush-cloud",
+      "displayName": "Rush",
+      "source": {
+        "source": "local",
+        "path": "./plugins/phnx-labs/rush-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Hand a task to a cloud agent that works in its own cloud computer and returns a pull request, a report, files or an answer; start, wait for, reply to and stop tasks through a hosted MCP server with OAuth sign-in.",
+      "icon": "./plugins/phnx-labs/rush-mcp/assets/logo.png"
     },
     {
       "name": "sealos",
@@ -2022,6 +2628,20 @@
       "description": "Writes agent skills that change the output and lints SKILL.md against the Agent Skills spec with a 0-100 health score."
     },
     {
+      "name": "skill-check",
+      "displayName": "skill-check",
+      "source": {
+        "source": "local",
+        "path": "./plugins/louis8408/skill-check"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Warns when a skill you use is out of date compared with its upstream source."
+    },
+    {
       "name": "skill-sync-publisher",
       "displayName": "skill-sync-publisher",
       "source": {
@@ -2037,6 +2657,21 @@
       "icon": "./plugins/liuyewang/skill-sync-publisher/assets/skill-sync-publisher.svg"
     },
     {
+      "name": "smart-glasses-skills",
+      "displayName": "Smart Glasses Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hinty-eu/smart-glasses-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agent skills for building apps on smart glasses from any brand (Even Realities G2, Meta Ray-Ban Display, Rokid, Vuzix Z100, audio-only and USB-C display glasses): choose a target, get text onto the display, handle input and audio, test without hardware, and check what can be published today.",
+      "icon": "./plugins/hinty-eu/smart-glasses-skills/.claude-plugin/icon.png"
+    },
+    {
       "name": "sno-station-standalone",
       "displayName": "Sno Station Skills",
       "source": {
@@ -2050,6 +2685,21 @@
       "category": "Development & Workflow",
       "description": "Peer review, delegation, handoff and self-improvement skills that give Codex and Claude Code the working habits of a real team.",
       "icon": "./plugins/sno-ai/sno-station-skills/.claude-plugin/icon.png"
+    },
+    {
+      "name": "ssh-ops",
+      "displayName": "SSH Ops",
+      "source": {
+        "source": "local",
+        "path": "./plugins/leehom0123/ssh-ops"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.",
+      "icon": "./plugins/leehom0123/ssh-ops/assets/icon.svg"
     },
     {
       "name": "spec-driven",
@@ -2170,6 +2820,21 @@
       "icon": "./plugins/lennney/stop-that-shit/assets/stop-icon.svg"
     },
     {
+      "name": "suede-skills",
+      "displayName": "Suede AI Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/JasonColapietro/suede-creator-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Open-source Codex plugin with SEO and GEO audits, code review with an A-F ship grade, CI gates, AI evals and app shipping skills.",
+      "icon": "./plugins/JasonColapietro/suede-creator-skills/docs/assets/favicon-64.png"
+    },
+    {
       "name": "supercov",
       "displayName": "Supercov",
       "source": {
@@ -2274,6 +2939,36 @@
       "description": "Role-based team delivery framework — Tech Lead-orchestrated 8-role system with 195+ skills, 27 specialist agents, 80+ commands, hooks, and ECC harness for Claude Code, Codex, and OpenCode."
     },
     {
+      "name": "telegram-bot-ui",
+      "displayName": "Telegram Bot UI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hlibsuslov/telegram-bot-ui"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Design, build and audit Telegram bot interfaces (texts, keyboards, colored buttons, streaming AI replies, Rich Messages, channel posts) with a skill updated for every Bot API release.",
+      "icon": "./plugins/hlibsuslov/telegram-bot-ui/assets/icon.svg"
+    },
+    {
+      "name": "tigang-reminder",
+      "displayName": "Tigang Reminder",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TardisBooo/tigang-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Displays a Kegel break reminder after successful Git commits and pushes, with local counts.",
+      "icon": "./plugins/TardisBooo/tigang-plugin/docs/logo.svg"
+    },
+    {
       "name": "tmcra-memory",
       "displayName": "TMCRA Local Memory",
       "source": {
@@ -2347,7 +3042,7 @@
       "icon": "./plugins/TerminallyLazy/tree-ring-memory-codex-plugin/assets/tree-ring-memory-logo.png"
     },
     {
-      "name": "uizze",
+      "name": "uizze-ui-slop",
       "displayName": "UIZZE",
       "source": {
         "source": "local",
@@ -2480,6 +3175,20 @@
       "icon": "./plugins/Eliasjunit/vibestretch/assets/icon.png"
     },
     {
+      "name": "vidbyte-memory",
+      "displayName": "vidbyte-memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cerredz/vidbyte-memory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Correction-driven memory for Codex: turns corrections into facts and pytest checks, stages all repository changes for commits and pushes to origin unless --no-push is used, and installs a Stop hook that keeps turns open until checks pass."
+    },
+    {
       "name": "villagesql",
       "displayName": "VillageSQL Skills",
       "source": {
@@ -2508,6 +3217,20 @@
       "category": "Development & Workflow",
       "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions.",
       "icon": "./plugins/Abhigyan-Shekhar/Waggle-mcp/assets/waggle-icon.png"
+    },
+    {
+      "name": "wavegrain",
+      "displayName": "Wavegrain",
+      "source": {
+        "source": "local",
+        "path": "./plugins/wavegrain/wavegrain-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Makes TikTok slideshows and Instagram carousels in your brand's style through the hosted Wavegrain MCP server, with a content calendar and posting you confirm."
     },
     {
       "name": "wingman",
@@ -2642,6 +3365,21 @@
       "icon": "./plugins/kubec/abuzzhive.com/brand/abuzzhive-mark-1024.png"
     },
     {
+      "name": "admakeai",
+      "displayName": "AdMakeAI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mesmerlord/admakeai-claude-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Design ad images, UGC-style video ads and ad copy for your brand, look up the ads any brand runs in the Meta Ad Library, and prepare Meta campaign drafts through AdMakeAI's hosted MCP server and one skill, with browser sign-in and designs paid from account credits.",
+      "icon": "./plugins/mesmerlord/admakeai-claude-plugin/assets/icon.png"
+    },
+    {
       "name": "amq-cli",
       "displayName": "Agent Message Queue",
       "source": {
@@ -2686,6 +3424,21 @@
       "description": "Claim and manage free subdomains under makes.fyi or agentdomains.co for the sites and APIs AI agents build."
     },
     {
+      "name": "agentdrives",
+      "displayName": "AgentDrives",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AgentDrives/agentdrives-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Look up a SaaS tool, API or provider before your agent picks it: its agent level (0-5), where our agent stopped, and whether an agent can sign up, get a key and pay on its own. Read-only remote MCP server and skill, no key.",
+      "icon": "./plugins/AgentDrives/agentdrives-mcp/assets/logo.svg"
+    },
+    {
       "name": "agentgram",
       "displayName": "Agentgram",
       "source": {
@@ -2713,7 +3466,22 @@
       },
       "category": "Tools & Integrations",
       "description": "Hosted webhook inbox, memory locker, wake-up calls, uptime and heartbeat watch and ask-my-human utilities for agents over remote MCP with OAuth sign-in, paid from a prepaid balance the human tops up.",
-      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/icon.svg"
+      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/icon.png"
+    },
+    {
+      "name": "ahel",
+      "displayName": "Ahel",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ahel-technologies/ahel"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server for data tasks: company and people enrichment, SEO and SERP data, social media data and official EU business registers, each call priced before it runs and paid from a prepaid balance. Website: https://ahel.ai",
+      "icon": "./plugins/ahel-technologies/ahel/assets/ahel-icon.png"
     },
     {
       "name": "aident-loadout",
@@ -2744,6 +3512,21 @@
       "category": "Tools & Integrations",
       "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
       "icon": "./plugins/aient-ai/aient-codex-plugin/assets/aient-icon-beveled-light.png"
+    },
+    {
+      "name": "amazon-search-terms-bytes-counter",
+      "displayName": "Amazon 249-Byte Search Terms Optimizer",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kuaai/amazon-search-terms-bytes-counter"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Optimize Amazon Seller Central backend search terms within 249 UTF-8 bytes, sanitize listing HTML, and format Rufus AI copy.",
+      "icon": "./plugins/kuaai/amazon-search-terms-bytes-counter/assets/icon.svg"
     },
     {
       "name": "anime-reaction-gif",
@@ -2863,6 +3646,51 @@
       "icon": "./plugins/bankbridge-money/bankbridge-plugin/assets/icon.png"
     },
     {
+      "name": "banking-access-index",
+      "displayName": "Banking Access Index",
+      "source": {
+        "source": "local",
+        "path": "./plugins/global-solo/banking-access-index-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill that looks up what 19 US business banking providers publish about US LLC owners who aren't US tax residents, across 8 countries, citing each provider's own page and the date it was read.",
+      "icon": "./plugins/global-solo/banking-access-index-mcp/assets/icon.png"
+    },
+    {
+      "name": "bestprice-shopping",
+      "displayName": "BestPrice",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TheBestCo/bestprice-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official remote MCP server and skill for read-only shopping decisions, product search, Greek merchant offers with delivered totals, and price history from BestPrice.gr.",
+      "icon": "./plugins/TheBestCo/bestprice-mcp/assets/bestprice-mcp-logo-1024.png"
+    },
+    {
+      "name": "bifrost",
+      "displayName": "Bifrost",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gobifrost/bifrost"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Build MSP automation workflows, forms, agents, apps, and Solutions with the Bifrost SDK and CLI through bundled skills for development, setup, migration, and Microsoft 365 Copilot Cowork packaging.",
+      "icon": "./plugins/gobifrost/bifrost/assets/icon.png"
+    },
+    {
       "name": "bkt",
       "displayName": "Bitbucket CLI",
       "source": {
@@ -2878,6 +3706,36 @@
       "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
+      "name": "bowmark",
+      "displayName": "Bowmark",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bowmark-ai/plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Typed, tested functions for live websites like LinkedIn, YouTube and Amazon, from Codex. Start with a free $10.",
+      "icon": "./plugins/bowmark-ai/plugin/assets/icon.svg"
+    },
+    {
+      "name": "brewpage",
+      "displayName": "BrewPage",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kochetkov-ma/brewpage-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill and remote MCP server that publish HTML, Markdown, files and static sites from Codex to an expiring BrewPage HTTPS link with no account or API key.",
+      "icon": "./plugins/kochetkov-ma/brewpage-codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "build-remote-agent",
       "displayName": "Build Remote Agent",
       "source": {
@@ -2891,6 +3749,21 @@
       "category": "Tools & Integrations",
       "description": "Pair a phone as spectator to a local Codex session via gbr-agent (QR / 8-char) and attach at 127.0.0.1:8788 or gbr-mcp.",
       "icon": "./plugins/LinespottingOrg/GrokBuildRemote-Agents/.codex-plugin/icon.svg"
+    },
+    {
+      "name": "bulk-bg-remove",
+      "displayName": "Bulk BG Remove",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Btike/bulk-bg-remove"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remove image backgrounds locally and in bulk with BiRefNet or lighter ONNX models, auto-certify clean cut-outs and export shop-ready white square JPEGs.",
+      "icon": "./plugins/Btike/bulk-bg-remove/assets/icon.svg"
     },
     {
       "name": "bulktranscripts",
@@ -2936,6 +3809,21 @@
       "category": "Tools & Integrations",
       "description": "Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI.",
       "icon": "./plugins/CALLE-AI/call-e-integrations/assets/CALL-E-Icon-Black.svg"
+    },
+    {
+      "name": "candor-finance",
+      "displayName": "Candor Finance",
+      "source": {
+        "source": "local",
+        "path": "./plugins/candorsystems/candor-finance"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Hosted personal finance MCP server and skills that let Codex work from your US bank, card, loan, and investment accounts, keep goals and a budget across sessions, and run a weekly review, with read-only bank access and no tools that move money.",
+      "icon": "./plugins/candorsystems/candor-finance/assets/logo.svg"
     },
     {
       "name": "canvas-apps-plugin-codex",
@@ -3039,6 +3927,36 @@
       "category": "Tools & Integrations",
       "description": "Search 210,000+ vetted startup candidates, review Clera's picks for your open roles, and request intros through Clera's hosted MCP.",
       "icon": "./plugins/getclera/mcp/assets/logo.svg"
+    },
+    {
+      "name": "clickwise",
+      "displayName": "Clickwise",
+      "source": {
+        "source": "local",
+        "path": "./plugins/softdevfz/clickwise-api"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Affiliate programs, deals, tracked links and product search, plus merchant program setup tools.",
+      "icon": "./plugins/softdevfz/clickwise-api/assets/icon.png"
+    },
+    {
+      "name": "cloudgpu",
+      "displayName": "CloudGPU",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mrhy7176/cloudgpu-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
+      "icon": "./plugins/mrhy7176/cloudgpu-mcp/assets/icon.svg"
     },
     {
       "name": "be-serious",
@@ -3145,6 +4063,20 @@
       "icon": "./plugins/BestLemoon/codex-seo/assets/icon.svg"
     },
     {
+      "name": "telegram",
+      "displayName": "Codex Telegram",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AXEG0/codex-telegram"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "One Codex conversation shared between your terminal and Telegram, with files, voice notes, reactions, answer buttons and group topics, that stays connected when the terminal closes."
+    },
+    {
       "name": "codex-tools-bridge",
       "displayName": "Codex Tools Bridge",
       "source": {
@@ -3185,8 +4117,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Offers agent-native backend services for Codex and other coding agents, covering hosting, Postgres, email, storage, containers, LLMs, voice, and third-party APIs, with no-signup setup through MCP or API, free tiers, $5/month in AI and Search credits, and x402 top-ups.",
-      "icon": "./plugins/cohesivity-org/cohesivity-plugin/assets/icon.svg"
+      "description": "Offers agent-native backend services for Codex and other coding agents, covering hosting, Postgres, email, storage, containers, LLMs, voice, and third-party APIs, with no-signup setup through MCP or API, free tiers, $5/month in AI and Search credits, and x402 top-ups."
     },
     {
       "name": "cometchat-skills",
@@ -3204,6 +4135,21 @@
       "icon": "./plugins/cometchat/cometchat-skills/assets/composer-icon.png"
     },
     {
+      "name": "computefirst",
+      "displayName": "ComputeFirst",
+      "source": {
+        "source": "local",
+        "path": "./plugins/321zz321/computefirst-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free hosted MCP server and skill for versioned, deterministic checks, conversions and data transforms, with no API key.",
+      "icon": "./plugins/321zz321/computefirst-skill/assets/icon.svg"
+    },
+    {
       "name": "computer-usage-summary-skill",
       "displayName": "Computer Usage Summary",
       "source": {
@@ -3215,7 +4161,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Privacy-first, local ActivityWatch reports for app time, AFK time, projects, billable work, and redacted timelines across macOS, Windows, and Linux.",
+      "description": "Privacy-first local ActivityWatch reports with deterministic categories, multi-day totals, and foreground browser-page summaries.",
       "icon": "./plugins/liuyewang/computer-usage-summary-skill/assets/icon.svg"
     },
     {
@@ -3247,6 +4193,21 @@
       "category": "Tools & Integrations",
       "description": "Generate compact first-pass repository briefings for coding agents before deeper exploration.",
       "icon": "./plugins/Rothschildiuk/context-pack/skills/context-pack/assets/context-pack-small.svg"
+    },
+    {
+      "name": "converter-studio",
+      "displayName": "Converter Studio",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tariksucu/converter-studio"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Convert video, audio, images, PDFs, documents, e-books, subtitles and archives between 67 formats through Converter Studio's hosted MCP server, with skills for whole folders, web-ready media and audio extraction, paid from account credits (13 free a day). Website: https://converter.studio",
+      "icon": "./plugins/tariksucu/converter-studio/assets/icon.svg"
     },
     {
       "name": "coolify",
@@ -3323,6 +4284,51 @@
       "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
     },
     {
+      "name": "dataxapi",
+      "displayName": "DataXAPI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/data-x-api/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Market research from Codex through skills and a hosted MCP server: posts, comments, creators, trends, transcripts, ads and products on Douyin, Xiaohongshu (RedNote), WeChat, TikTok, YouTube, X and more, paid per call.",
+      "icon": "./plugins/data-x-api/skills/assets/icon.svg"
+    },
+    {
+      "name": "dawn",
+      "displayName": "Dawn",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/dawn"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Compose, arrange and render original songs offline with the Dawn TypeScript music SDK and headless CLI; needs an authorized Dawn private-preview install.",
+      "icon": "./plugins/hraness/product-skills/plugins/dawn/assets/icon.png"
+    },
+    {
+      "name": "dchub",
+      "displayName": "DC Hub",
+      "source": {
+        "source": "local",
+        "path": "./plugins/azmartone67/dchub-mcp-server"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "The orchestration layer for data center and energy intelligence: call execute_plan first for data center, colocation, energy, fiber, site selection and capacity questions, with the Data Center Power Index (DCPI) at https://dchub.cloud/mcp.",
+      "icon": "./plugins/azmartone67/dchub-mcp-server/dchub-logo.png"
+    },
+    {
       "name": "deed-page",
       "displayName": "deed.page",
       "source": {
@@ -3349,8 +4355,53 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Search the coding sessions already on your disk — Codex, Claude Code, Cursor, opencode and nineteen more — including work from before it was installed, indexed locally with no model in the loop.",
+      "description": "Search the coding sessions already on your disk — Codex, Claude Code, Cursor, opencode and thirty-nine more — including work from before it was installed, indexed locally with no model in the loop.",
       "icon": "./plugins/vshulcz/deja-vu/assets/icon.svg"
+    },
+    {
+      "name": "design-os-3d-blender",
+      "displayName": "DESIGN:OS 3D Blender",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jangtrinh/design-os-3d-blender"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Source-available skills and MCP server that let Codex model, render and verify mechanical parts natively in Blender 5.2 LTS, licensed under PolyForm Shield.",
+      "icon": "./plugins/jangtrinh/design-os-3d-blender/docs/images/composer-icon.svg"
+    },
+    {
+      "name": "design-os-code2flow",
+      "displayName": "DESIGN:OS Code2Flow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jangtrinh/design-os-code2flow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free, source-available (PolyForm Shield) local-first mapper that turns a Next.js, React Router, SwiftUI, Flutter or Compose codebase into a Mermaid user-flow graph and audits it for UX gaps like dead-end screens.",
+      "icon": "./plugins/jangtrinh/design-os-code2flow/docs/images/composer-icon.svg"
+    },
+    {
+      "name": "design-os-svg-animation",
+      "displayName": "DESIGN:OS SVG Animation Engine",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jangtrinh/design-os-svg-animation"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free, source-available (PolyForm Shield) deterministic vector motion engine with a virtual-clock player and a 1080p 60fps MP4/WebM compiler for frame-exact product walkthroughs.",
+      "icon": "./plugins/jangtrinh/design-os-svg-animation/docs/images/composer-icon.svg"
     },
     {
       "name": "dex",
@@ -3380,7 +4431,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Open-source AI marketing plugin for agencies — 154 skills, 25 specialist agents, 12-Part Strategy Flow, AEO/GEO, GSC AI Performance Report, Google Ads API v24, EU AI Act Article 50 / C2PA compliance.",
-      "icon": "./plugins/indranilbanerjee/digital-marketing-pro/assets/icon.svg"
+      "icon": "./plugins/indranilbanerjee/digital-marketing-pro/assets/icon.png"
     },
     {
       "name": "dodopayments",
@@ -3426,6 +4477,36 @@
       "category": "Tools & Integrations",
       "description": "Your AI publishes a site to a free HTTPS link or your own .com, and it never pays.",
       "icon": "./plugins/bosmdavid-gif/dropthehassle-skill/assets/icon.png"
+    },
+    {
+      "name": "easybrandkit",
+      "displayName": "easybrandkit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/EminBudak/easybrandkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Saves a website's real logo files, colors, fonts and first screen as a brand kit your agent can read.",
+      "icon": "./plugins/EminBudak/easybrandkit/assets/icon.svg"
+    },
+    {
+      "name": "edeka-shopping",
+      "displayName": "edeka-shopping",
+      "source": {
+        "source": "local",
+        "path": "./plugins/StardawnAI/german-grocery-plugins/plugins/edeka"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Shop EDEKA, E center and Marktkauf online markets in Germany for pickup: offers, basket from plain words, earliest slot, order after confirmation.",
+      "icon": "./plugins/StardawnAI/german-grocery-plugins/plugins/edeka/assets/icon.svg"
     },
     {
       "name": "education-agent-skills",
@@ -3503,6 +4584,21 @@
       "icon": "./plugins/sergebulaev/exotic-car-rental-skills/assets/icon.svg"
     },
     {
+      "name": "fair-value-calculator",
+      "displayName": "Fair Value Calculator",
+      "source": {
+        "source": "local",
+        "path": "./plugins/petz00711/fair-value-calculator-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
+      "icon": "./plugins/petz00711/fair-value-calculator-mcp/assets/logo.png"
+    },
+    {
       "name": "fantasy-football-manager",
       "displayName": "Fantasy Football Manager",
       "source": {
@@ -3576,6 +4672,21 @@
       "icon": "./plugins/mohamedOmar11111/growth-architect-foundry/assets/codex/icon.svg"
     },
     {
+      "name": "frugal",
+      "displayName": "Frugal",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fainir/frugal"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill that has Codex check free tiers, programs, verified promo codes and cheaper alternatives before anything is bought, subscribed to or upgraded.",
+      "icon": "./plugins/fainir/frugal/assets/logo.png"
+    },
+    {
       "name": "fxmacrodata",
       "displayName": "FXMacroData",
       "source": {
@@ -3589,6 +4700,21 @@
       "category": "Tools & Integrations",
       "description": "Official-source macro releases, central-bank rates, release calendars and FX rates for 22 currencies through the hosted FXMacroData MCP server.",
       "icon": "./plugins/fxmacrodata/claude-plugin-fxmacrodata/assets/composer-icon.png"
+    },
+    {
+      "name": "youtube-transcript",
+      "displayName": "GetYouTubeTranscript",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tubeagentkit/youtube-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "YouTube transcripts in any caption language, YouTube search, channel uploads and playlist videos through a hosted MCP server, plus a skill that writes REST API code for transcripts; 100 free credits on sign-up, paid after that.",
+      "icon": "./plugins/tubeagentkit/youtube-mcp/assets/icon.png"
     },
     {
       "name": "gh-project-plugin",
@@ -3618,6 +4744,21 @@
       "category": "Tools & Integrations",
       "description": "Hermes Agent X/Twitter plugin for read-first social research, monitoring, and approval-gated actions through Xquik.",
       "icon": "./plugins/Xquik-dev/hermes-tweet/assets/icon.svg"
+    },
+    {
+      "name": "host0",
+      "displayName": "host0",
+      "source": {
+        "source": "local",
+        "path": "./plugins/host0-ai/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publishes files, sites and apps with a shared database to a link you can share, and manages them through a remote MCP server.",
+      "icon": "./plugins/host0-ai/skills/assets/icon.png"
     },
     {
       "name": "jk",
@@ -3706,6 +4847,21 @@
       },
       "category": "Tools & Integrations",
       "description": "KiCad EDA skills for schematic analysis, PCB layout review, component sourcing, BOM management, and manufacturing preparation."
+    },
+    {
+      "name": "kin",
+      "displayName": "Kin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kinlab-ai/kin-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to your accounts through Kin's hosted MCP server, even two of one service such as a work and a personal GitHub, each with its own rule per action: Allow, Ask me or Block.",
+      "icon": "./plugins/kinlab-ai/kin-plugin/assets/icon.png"
     },
     {
       "name": "crawlberg",
@@ -3828,6 +4984,36 @@
       "icon": "./plugins/BlockchainHB/launchfast_codex_plugin/assets/icon.png"
     },
     {
+      "name": "launch-film",
+      "displayName": "launch-film",
+      "source": {
+        "source": "local",
+        "path": "./plugins/EminBudak/launch-film"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Makes a launch film with music from a website or an App Store page, using its real logo, colors, fonts and screens.",
+      "icon": "./plugins/EminBudak/launch-film/assets/icon.svg"
+    },
+    {
+      "name": "leeway",
+      "displayName": "Leeway",
+      "source": {
+        "source": "local",
+        "path": "./plugins/supersethvos/leeway-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to a Leeway drive your team and its agents share, with skills to save without overwriting, find, undo from history, publish from a workspace and leave a hand-off note.",
+      "icon": "./plugins/supersethvos/leeway-codex/assets/leeway-icon.png"
+    },
+    {
       "name": "liendeadline",
       "displayName": "LienDeadline",
       "source": {
@@ -3903,6 +5089,21 @@
       "icon": "./plugins/colibird-ai/local-mcp-releases/assets/logo.png"
     },
     {
+      "name": "long-form-distribution",
+      "displayName": "Long-form Distribution",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mrowean/long-form-distribution"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Turns a published essay or newsletter issue into LinkedIn, X and Substack Notes posts cut from the author's own sentences, checks each post against the source, and tracks what went live on a local dashboard.",
+      "icon": "./plugins/mrowean/long-form-distribution/.claude-plugin/icon.png"
+    },
+    {
       "name": "loomaly",
       "displayName": "Loomaly",
       "source": {
@@ -3916,6 +5117,36 @@
       "category": "Tools & Integrations",
       "description": "Ranks your site's SEO problems by what to fix first, gives Codex a fix prompt for your framework to apply in your repo, and re-checks the live page once the fix is deployed, via a hosted MCP server and four skills.",
       "icon": "./plugins/loomaly/loomaly/assets/logo-plate.svg"
+    },
+    {
+      "name": "looot",
+      "displayName": "looot",
+      "source": {
+        "source": "local",
+        "path": "./plugins/loootai/looot-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search, price and run paid data APIs for SEO, enrichment, email verification and social from one prepaid balance through the hosted looot MCP server and one skill, with browser sign-in and no provider keys.",
+      "icon": "./plugins/loootai/looot-plugin/plugins/claude-code/looot/.claude-plugin/icon.png"
+    },
+    {
+      "name": "lurkapi",
+      "displayName": "LurkAPI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mesmerlord/lurkapi-claude-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Social media research skills and LurkAPI's hosted MCP server: public posts, profiles, comments, transcripts and Meta, Google, LinkedIn and TikTok ad library results from TikTok, Instagram, YouTube, Reddit, X and more, paid per call with 100 free credits.",
+      "icon": "./plugins/mesmerlord/lurkapi-claude-plugin/assets/icon.png"
     },
     {
       "name": "costguard",
@@ -3948,6 +5179,21 @@
       "icon": "./plugins/magichourhq/skills/assets/logo.svg"
     },
     {
+      "name": "manuwright",
+      "displayName": "ManuWright",
+      "source": {
+        "source": "local",
+        "path": "./plugins/grotyx/Academic_writing_c_claudecode"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Medical manuscript workflow that blocks drafting without approved plans, checks citations against an evidence ledger and checks reported numbers against results CSV files.",
+      "icon": "./plugins/grotyx/Academic_writing_c_claudecode/assets/icon.png"
+    },
+    {
       "name": "maqami-travel",
       "displayName": "MAQAMI Travel",
       "source": {
@@ -3976,6 +5222,36 @@
       "category": "Tools & Integrations",
       "description": "Connects Codex to MATLAB and Simulink through a local MCP server for model inspection, script execution, and engineering workflow automation.",
       "icon": "./plugins/summer521521/MATLAB_Simulink_plugin/assets/icon.svg"
+    },
+    {
+      "name": "metamask-agent-wallet",
+      "displayName": "MetaMask Agent Wallet",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MetaMask/agent-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official MetaMask plugin that gives Codex a self-custodial wallet to swap, bridge, trade Hyperliquid perps and Polymarket markets, earn yield, and pay x402 APIs within user-set limits.",
+      "icon": "./plugins/MetaMask/agent-skills/assets/logo.svg"
+    },
+    {
+      "name": "metis-check",
+      "displayName": "Metis Check",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MetisFoundry/metis-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Checks the citations in an answer at the registries that issue them and files a signed report anyone can recheck; hosted MCP with OAuth sign-in, free for 5 checks a month.",
+      "icon": "./plugins/MetisFoundry/metis-plugins/assets/icon.png"
     },
     {
       "name": "mnemoverse",
@@ -4007,6 +5283,51 @@
       "description": "Decentralized e-commerce skills — deploy self-hosted stores, import products from Shopify/Amazon, configure custom domains and Telegram bots, set up Tor privacy, and manage your store via MCP."
     },
     {
+      "name": "mobbin",
+      "displayName": "Mobbin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mobbin/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search 600,000+ real iOS and web app screens, flows and website sections from Codex through the hosted Mobbin MCP server (OAuth; paid plans), with skills that redesign a screen from patterns real apps ship.",
+      "icon": "./plugins/mobbin/skills/assets/logo.svg"
+    },
+    {
+      "name": "mobile-codex",
+      "displayName": "Mobile Codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/luoz76070-art/MobiCodex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Manage a local gateway to pair your phone with existing Codex Desktop conversations.",
+      "icon": "./plugins/luoz76070-art/MobiCodex/assets/icon.png"
+    },
+    {
+      "name": "moli",
+      "displayName": "Moli Browser",
+      "source": {
+        "source": "local",
+        "path": "./plugins/27painter/dsh-moli"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Local Codex MCP plugin for browser-backed web search, rendered page fetching, screenshots, and PDF capture through Moli.",
+      "icon": "./plugins/27painter/dsh-moli/assets/composer-icon.svg"
+    },
+    {
       "name": "moltnode",
       "displayName": "MoltNode by Chord",
       "source": {
@@ -4033,6 +5354,21 @@
       },
       "category": "Tools & Integrations",
       "description": "AI news tracking skill that monitors 80+ entities across 6 sources (Reddit, HN, GitHub, Hugging Face, arXiv, X) and generates scored daily reports with infographics and message digests."
+    },
+    {
+      "name": "nia-teams-agent-bridge",
+      "displayName": "Nia Teams Agent Bridge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/nia-teams/agent-bridge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill for connecting the local Codex CLI to Nia Teams group chats via the separately installed nia-codex bridge, with two-way messaging and human approval of tool requests.",
+      "icon": "./plugins/nia-teams/agent-bridge/assets/icon.svg"
     },
     {
       "name": "notfair",
@@ -4095,6 +5431,21 @@
       "icon": "./plugins/ndycode/oc-chatgpt-multi-auth/assets/icon.svg"
     },
     {
+      "name": "okdata",
+      "displayName": "okdata",
+      "source": {
+        "source": "local",
+        "path": "./plugins/okdataapi/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Social media and e-commerce research through a hosted MCP server and skills: posts, comments, creators, trends, transcripts and product reviews on TikTok, YouTube, Instagram, X, Reddit, Amazon, Xiaohongshu (RedNote) and Douyin, paid per call.",
+      "icon": "./plugins/okdataapi/skills/assets/icon.svg"
+    },
+    {
       "name": "openproject-codex",
       "displayName": "OpenProject Codex",
       "source": {
@@ -4124,6 +5475,21 @@
       "icon": "./plugins/ophis-fi/skills/assets/icon.svg"
     },
     {
+      "name": "option-desk",
+      "displayName": "Option Desk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Iman/agent-driven-options-desk-and-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skills and a local MCP server for option research on a supplied chain, with Greeks, dealer positioning, strategy payoffs, simulation and backtests.",
+      "icon": "./plugins/Iman/agent-driven-options-desk-and-skills/assets/openai-composer-icon.png"
+    },
+    {
       "name": "orgx-codex-plugin",
       "displayName": "OrgX",
       "source": {
@@ -4137,6 +5503,21 @@
       "category": "Tools & Integrations",
       "description": "MCP access and initiative-aware skills for organizational workflows.",
       "icon": "./plugins/useorgx/orgx-codex-plugin/assets/icon.png"
+    },
+    {
+      "name": "osmo",
+      "displayName": "OsmO Phone Calls",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Mountainheads-Private-limited/osmo-ai-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Lets Codex place real phone calls to businesses and helplines through OsmO's hosted MCP server after you confirm each one, and read back the summary and transcript; 50 free credits for new users in the US, Canada, UK and Australia, paid after that; with free credits, OsmO calls businesses and toll-free numbers; calling your contacts and scheduling calls need an OsmO app plan.",
+      "icon": "./plugins/Mountainheads-Private-limited/osmo-ai-plugins/assets/logo.png"
     },
     {
       "name": "panews",
@@ -4168,6 +5549,21 @@
       "icon": "./plugins/papersflow-ai/papersflow-codex-plugin/assets/plugin-icon.png"
     },
     {
+      "name": "phonedriver",
+      "displayName": "phonedriver",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hridaya423/phonedriver"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Lets Codex see and operate Android phones, emulators, the iOS Simulator and iPhones through a local MCP server and its skill, and asks you before any tap that pays.",
+      "icon": "./plugins/hridaya423/phonedriver/assets/icon.png"
+    },
+    {
       "name": "placecall",
       "displayName": "PlaceCall",
       "source": {
@@ -4181,6 +5577,21 @@
       "category": "Tools & Integrations",
       "description": "Places real outbound phone calls to US businesses (bookings, inquiries, quotes) through the PlaceCall API and returns the outcome and transcript.",
       "icon": "./plugins/voygr-tech/placecall/assets/icon.png"
+    },
+    {
+      "name": "plinth",
+      "displayName": "Plinth",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mr0b0t0/plinth"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publish HTML pages and Markdown documents from Codex to a hosted or self-hosted Plinth, with versions, comments and per-artifact access control, through a remote MCP server and a skill.",
+      "icon": "./plugins/mr0b0t0/plinth/assets/icon.svg"
     },
     {
       "name": "plori",
@@ -4283,6 +5694,21 @@
       "icon": "./plugins/anzy-renlab-ai/pronounce/assets/icon.svg"
     },
     {
+      "name": "publora-skills",
+      "displayName": "Publora Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/publora/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Nine skills that let Codex draft, schedule and publish posts to LinkedIn, X, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon and Telegram through the Publora MCP server.",
+      "icon": "./plugins/publora/skills/assets/icon.png"
+    },
+    {
       "name": "qatom",
       "displayName": "Qatom",
       "source": {
@@ -4309,6 +5735,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Connects OpenAI Codex to the QRStuff platform to generate, customize, and manage 25+ dynamic and static QR code types and scan analytics."
+    },
+    {
+      "name": "questionpunk",
+      "displayName": "QuestionPunk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/questionpunk/codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Create and review survey drafts, publish studies on request, and analyze responses through the QuestionPunk MCP server.",
+      "icon": "./plugins/questionpunk/codex-plugin/assets/questionpunk.svg"
     },
     {
       "name": "omnimodal",
@@ -4400,6 +5841,36 @@
       "icon": "./plugins/tmakersas/revid-skills/assets/logo.png"
     },
     {
+      "name": "rewe-shopping",
+      "displayName": "rewe-shopping",
+      "source": {
+        "source": "local",
+        "path": "./plugins/StardawnAI/german-grocery-plugins/plugins/rewe"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Shop REWE in Germany for pickup: offers, basket from plain words, earliest slot, recipes to basket, order after confirmation.",
+      "icon": "./plugins/StardawnAI/german-grocery-plugins/plugins/rewe/assets/icon.svg"
+    },
+    {
+      "name": "risk-desk",
+      "displayName": "Risk Desk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Iman/agent-driven-risk-desk-and-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skills and a local MCP server for portfolio risk on supplied data, with VaR, Expected Shortfall, backtests, stress tests and counterparty, credit and FRTB figures.",
+      "icon": "./plugins/Iman/agent-driven-risk-desk-and-skills/assets/openai-composer-icon.png"
+    },
+    {
       "name": "roomcomm",
       "displayName": "Roomcomm",
       "source": {
@@ -4413,6 +5884,21 @@
       "category": "Tools & Integrations",
       "description": "Shared rooms where Codex talks with other people's AI agents (Claude Code, DeepSeek Harness, OpenClaw) through the hosted Roomcomm MCP server, with a signed message history and no key needed to start.",
       "icon": "./plugins/kotinder/codex-roomcomm/assets/icon.svg"
+    },
+    {
+      "name": "ru-marketplace-mcp",
+      "displayName": "ru-marketplace-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Vladimir-Human/ru-marketplace-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Read-only Codex plugin (`.codex-plugin/plugin.json`), MCP server, and 15 Agent Skills for buyer-side product search, cards, seller details, reviews, and cross-marketplace price comparison across 12 Russian and Chinese marketplaces and classifieds (Wildberries, Ozon, Yandex Market, Detsky Mir, Avito, AliExpress, Taobao, Megamarket, Lamoda, DNS, Citilink, and Cian real estate) with no API keys required.",
+      "icon": "./plugins/Vladimir-Human/ru-marketplace-mcp/.claude-plugin/icon.svg"
     },
     {
       "name": "ru-text",
@@ -4430,6 +5916,36 @@
       "icon": "./plugins/talkstream/ru-text/assets/icon.png"
     },
     {
+      "name": "runheed",
+      "displayName": "Runheed",
+      "source": {
+        "source": "local",
+        "path": "./plugins/getrunheed/runheed-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Error tracking your coding agent can read: search production errors, read stack traces, fix and resolve them. Hosted MCP server, paid.",
+      "icon": "./plugins/getrunheed/runheed-plugin/assets/icon.png"
+    },
+    {
+      "name": "runlater",
+      "displayName": "RunLater",
+      "source": {
+        "source": "local",
+        "path": "./plugins/runlater-app/runlater-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill that let Codex schedule HTTP requests: once at an exact time or on a cron schedule, with retries and a log of every run; paid, plans from $15/month with a 14-day trial.",
+      "icon": "./plugins/runlater-app/runlater-plugin/assets/icon.png"
+    },
+    {
       "name": "rust-reverse-engineering",
       "displayName": "Rust Reverse Engineering",
       "source": {
@@ -4443,6 +5959,35 @@
       "category": "Tools & Integrations",
       "description": "Triage Rust ELF, Mach-O, and PE binaries, demangle symbols, recover likely crate namespaces, trace runtime and FFI paths, and optionally export pseudocode with headless Ghidra.",
       "icon": "./plugins/jingjing2222/rust-reverse-engineering-skill/assets/icon.svg"
+    },
+    {
+      "name": "s2f-agent",
+      "displayName": "s2f Agent",
+      "source": {
+        "source": "local",
+        "path": "./plugins/JiaqiLi1024/s2f-agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Codex skills and routing playbooks for computational genomics, including sequence-model inference and variant-effect analysis.",
+      "icon": "./plugins/JiaqiLi1024/s2f-agent/assets/icon.svg"
+    },
+    {
+      "name": "scrapely",
+      "displayName": "Scrape.ly",
+      "source": {
+        "source": "local",
+        "path": "./plugins/scrapely-app/scrapely-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Find, run and read ready-made web scrapers for sites like Google Maps, Amazon and LinkedIn from Codex through the hosted Scrape.ly MCP server (OAuth) and the scrapely-scrape skill."
     },
     {
       "name": "just-scrape",
@@ -4490,6 +6035,21 @@
       "icon": "./plugins/hyprh/self-starter/assets/icon.svg"
     },
     {
+      "name": "seltz",
+      "displayName": "Seltz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seltz-ai/seltz-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Live web search and page fetch for current, source-backed answers in Codex through Seltz's hosted MCP server, with browser sign-in to a Seltz account and usage drawn from the account's balance.",
+      "icon": "./plugins/seltz-ai/seltz-codex-plugin/assets/logo.svg"
+    },
+    {
       "name": "legends-seo-dungeon",
       "displayName": "SEO Dungeon",
       "source": {
@@ -4534,6 +6094,21 @@
       "icon": "./plugins/AddisonHoff/sendsets/assets/logo.png"
     },
     {
+      "name": "seonix",
+      "displayName": "Seonix",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seonix-ai/mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to your Seonix SEO project through the hosted Seonix MCP server with OAuth sign-in (Site Health and fix plan, Google Search Console, keyword clusters, draft scoring, eleven SEO playbooks) plus three skills that fix the site in code and ship content; writes run only after you confirm, and the server requires a paid Seonix plan.",
+      "icon": "./plugins/seonix-ai/mcp/assets/icon-128.png"
+    },
+    {
       "name": "serply",
       "displayName": "Serply",
       "source": {
@@ -4547,6 +6122,21 @@
       "category": "Tools & Integrations",
       "description": "Live Google web, news, Scholar, and Maps results plus page scraping in Codex through the hosted Serply MCP server, with the API key read from an environment variable.",
       "icon": "./plugins/serply-inc/skills/assets/icon.png"
+    },
+    {
+      "name": "sfxmint",
+      "displayName": "SFXMint",
+      "source": {
+        "source": "local",
+        "path": "./plugins/flreey/sfxmint-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free CC0 sound effects for apps and games: find AI-generated sounds by game or app event, as a matching set, or by description, and download the MP3 or WAV files into the project through the hosted SFXMint MCP server and skill, with no API key.",
+      "icon": "./plugins/flreey/sfxmint-mcp/assets/icon.png"
     },
     {
       "name": "shots",
@@ -4564,6 +6154,21 @@
       "icon": "./plugins/hitSlop/shots/assets/icon.png"
     },
     {
+      "name": "shopify-liquid-ai-seo",
+      "displayName": "Shopify AI SEO & Liquid",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kuaai/shopify-liquid-ai-seo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Audit Shopify robots.txt for AI search crawlers, generate Product Schema JSON-LD, and build shoppable blog product cards.",
+      "icon": "./plugins/kuaai/shopify-liquid-ai-seo/assets/icon.svg"
+    },
+    {
       "name": "svatlas",
       "displayName": "Silicon Valley Atlas",
       "source": {
@@ -4577,6 +6182,21 @@
       "category": "Tools & Integrations",
       "description": "Search sourced profiles of AI startups, founders and funding, rank the companies most likely to buy a product from its website, and keep outreach lists through a hosted MCP server with OAuth sign-in.",
       "icon": "./plugins/phnx-labs/svatlas-mcp/assets/logo.png"
+    },
+    {
+      "name": "sofya",
+      "displayName": "Sofya",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sofya-co/sofya-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Web search with page content, URL and document reading (PDF, Office) as markdown, single-fact extraction and cited research reports through Sofya's hosted MCP server with browser sign-in, plus search and research skills.",
+      "icon": "./plugins/sofya-co/sofya-mcp/assets/logo.png"
     },
     {
       "name": "solidping",
@@ -4607,6 +6227,36 @@
       "category": "Tools & Integrations",
       "description": "Knowledge-backed SolidWorks design and validation workflows for Codex with standards lookup, CAD evidence gates, and consent-based session learning.",
       "icon": "./plugins/Erfouni/solidworks-GPT-plugin/assets/icon.svg"
+    },
+    {
+      "name": "sponge",
+      "displayName": "Sponge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/sponge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search, cite and annotate the articles and PDFs in your own Sponge reading library through its local CLI and MCP server.",
+      "icon": "./plugins/hraness/product-skills/plugins/sponge/assets/icon.png"
+    },
+    {
+      "name": "stalkchain",
+      "displayName": "StalkChain",
+      "source": {
+        "source": "local",
+        "path": "./plugins/StalkC/stalkchain-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Research public crypto trader wallets, token holders, and on-chain trade flow through a hosted OAuth MCP with metered account credits and optional price alerts that require confirmation.",
+      "icon": "./plugins/StalkC/stalkchain-plugin/assets/icon.png"
     },
     {
       "name": "story-skills",
@@ -4667,6 +6317,21 @@
       "category": "Tools & Integrations",
       "description": "Hosted MCP server and five skills for SwarmMemo, where agents meet, work, and keep their word: read and post on a public board, find paid tasks other agents posted, ask agents from any vendor a question and collect the answers, hold private conversations, and screen text for prompt injection before acting on it, with no key needed to start.",
       "icon": "./plugins/Hugo0/swarmmemo/assets/logo.png"
+    },
+    {
+      "name": "sync",
+      "displayName": "sync. labs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/synchronicity-labs/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official sync. labs plugin: lipsync a video to new audio or a script, make a photo talk, dub videos into other languages with matching lips and fix spoken words in the speaker's own voice, through ten skills and the hosted sync. MCP server with OAuth sign-in and no API key. Paid steps are quoted and confirmed first.",
+      "icon": "./plugins/synchronicity-labs/skills/assets/logo.png"
     },
     {
       "name": "n8n-mcp-synta-codex",
@@ -4757,6 +6422,21 @@
       "icon": "./plugins/6Delta9/task-scheduler-codex-plugin/assets/icon.png"
     },
     {
+      "name": "taskhold",
+      "displayName": "Taskhold",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gettaskhold/taskhold-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill that give Codex a task list you share: it picks up the next task, plans it in steps, reports live progress and blocks with a question when it needs you; paid, $12/month with a 7-day trial.",
+      "icon": "./plugins/gettaskhold/taskhold-plugin/.claude-plugin/icon.png"
+    },
+    {
       "name": "teaching-skills",
       "displayName": "Teaching Skills",
       "source": {
@@ -4770,6 +6450,35 @@
       "category": "Tools & Integrations",
       "description": "Supports university teaching through 15 workflows for course design, lesson planning, assessment, student mentoring, and teaching reflection.",
       "icon": "./plugins/YujxZJCN/teaching-skills-codex/assets/icon.svg"
+    },
+    {
+      "name": "tensorust",
+      "displayName": "Tensorust",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Mattbusel/tensorust-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Public-records skills plus a hosted MCP server: who owns a US company or home, vendor screening against DoD 1260H, Section 889, FCC Covered List, UFLPA and BIOSECURE, BDC loan marks, and dated LLM API prices."
+    },
+    {
+      "name": "textmock",
+      "displayName": "Textmock",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/textmock"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Make iMessage-style conversation links that open as editable copies in Textmock, then save them as images or videos.",
+      "icon": "./plugins/hraness/product-skills/plugins/textmock/assets/icon.png"
     },
     {
       "name": "thermal-fluid-research-workflow",
@@ -4802,18 +6511,49 @@
       "icon": "./plugins/HuaHuiJian/tokenchronicle-marketplace/assets/icon.png"
     },
     {
-      "name": "tokrepo-search",
-      "displayName": "TokRepo Search",
+      "name": "tossithere",
+      "displayName": "tossithere",
       "source": {
         "source": "local",
-        "path": "./plugins/henu-wang/tokrepo-codex-plugin"
+        "path": "./plugins/kush-daga/tossithere-plugin"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex."
+      "description": "Publish the HTML Codex makes as a private link people comment on element by element, then read the comments back and push fixes to the same link, through a hosted MCP server with OAuth sign-in. Website: https://tossithere.com",
+      "icon": "./plugins/kush-daga/tossithere-plugin/assets/icon.svg"
+    },
+    {
+      "name": "treza",
+      "displayName": "Treza",
+      "source": {
+        "source": "local",
+        "path": "./plugins/treza-labs/treza-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Make AI videos from Codex through Treza's hosted MCP server: one clip from a description, edits to media you have, and pipelines that render and post to YouTube and TikTok on a schedule.",
+      "icon": "./plugins/treza-labs/treza-plugin/assets/treza-logo-400.png"
+    },
+    {
+      "name": "tweetapi",
+      "displayName": "TweetAPI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tweetapi/agent-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Read-only lookups of public Twitter/X profiles, tweets, search results, lists, communities and Spaces through TweetAPI's hosted MCP server, with guidance for server-side API reads.",
+      "icon": "./plugins/tweetapi/agent-skill/assets/tweetapi-icon.png"
     },
     {
       "name": "unified-ai-system",
@@ -4875,6 +6615,21 @@
       "icon": "./plugins/val-town/plugins/assets/icon.svg"
     },
     {
+      "name": "varg",
+      "displayName": "varg",
+      "source": {
+        "source": "local",
+        "path": "./plugins/vargHQ/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "How to make any AI video: find the skill, the options to show and the steps (no key needed), with the keyless varg how to MCP and the varg MCP for video, image, voice and music generation.",
+      "icon": "./plugins/vargHQ/skills/assets/varg-512.png"
+    },
+    {
       "name": "vidseeds",
       "displayName": "VidSeeds.ai",
       "source": {
@@ -4901,8 +6656,23 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter/X posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
+      "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
       "icon": "./plugins/prateeks367/voicemoat-skills/assets/icon.png"
+    },
+    {
+      "name": "waiting-gaming",
+      "displayName": "Waiting Gaming",
+      "source": {
+        "source": "local",
+        "path": "./plugins/paranoiadd/waiting-gaming"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Offline 2048 for Windows Codex with opt-in waiting invitations, saved game progress, and remembered window position.",
+      "icon": "./plugins/paranoiadd/waiting-gaming/assets/icon.svg"
     },
     {
       "name": "wakewire",
@@ -4923,15 +6693,15 @@
       "displayName": "WaveSpeed",
       "source": {
         "source": "local",
-        "path": "./plugins/WaveSpeedAI/codex-plugin-wavespeed-cli"
+        "path": "./plugins/WaveSpeedAI/codex-plugins"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Generate and edit AI images, video, audio, and 3D on the WaveSpeed platform with a bundled MCP server and CLI skill, including live catalog search, local-file upload, and price quotes before running.",
-      "icon": "./plugins/WaveSpeedAI/codex-plugin-wavespeed-cli/assets/icon.png"
+      "description": "Generate and edit AI images, video, audio, and 3D on WaveSpeed through the hosted WaveSpeed MCP server and a CLI skill, with live catalog search and price quotes before running.",
+      "icon": "./plugins/WaveSpeedAI/codex-plugins/assets/icon.png"
     },
     {
       "name": "webly",
@@ -4947,6 +6717,36 @@
       "category": "Tools & Integrations",
       "description": "Publish a website or share files and folders from Codex at a live URL in seconds with no account, through the bundled Webly skill and remote MCP server, then let the person claim it, edit it over MCP, and publish drafts they approve.",
       "icon": "./plugins/Webly-AI/webly-plugin/assets/logo.svg"
+    },
+    {
+      "name": "wiro-ai",
+      "displayName": "Wiro AI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/wiroai/Wiro-Plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Run 1,000+ image, video, audio and LLM models on Wiro AI, chain them into workflows and deploy your own AI agents through the hosted Wiro MCP server, five agent skills and eleven ready commands, with browser sign-in and the price shown before each paid run.",
+      "icon": "./plugins/wiroai/Wiro-Plugin/assets/logo.png"
+    },
+    {
+      "name": "worktable",
+      "displayName": "Worktable",
+      "source": {
+        "source": "local",
+        "path": "./plugins/worktable/worktable-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to a Worktable workspace through a hosted MCP server and six skills to create and revise docs, interactive HTML, drawings, records, annotations, and threads shared by people and agents.",
+      "icon": "./plugins/worktable/worktable-plugin/assets/composer-icon.png"
     },
     {
       "name": "x-skills",
@@ -4994,6 +6794,21 @@
       "icon": "./plugins/nebelov/yandex-direct-for-all/assets/icon.png"
     },
     {
+      "name": "yaptake",
+      "displayName": "Yaptake",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/yaptake"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Cut fillers, fix captions and preview edits in the video project open in the Yaptake Mac app through its local MCP server; needs the app.",
+      "icon": "./plugins/hraness/product-skills/plugins/yaptake/assets/icon.png"
+    },
+    {
       "name": "youtube-skills",
       "displayName": "YouTube Skills by TranscriptAPI",
       "source": {
@@ -5007,6 +6822,20 @@
       "category": "Tools & Integrations",
       "description": "Twelve drop-in agent skills for YouTube transcripts, timestamped captions and subtitles, video and channel search, playlists and channel browsing through the TranscriptAPI service.",
       "icon": "./plugins/ZeroPointRepo/youtube-skills/assets/icon.svg"
+    },
+    {
+      "name": "zenifra",
+      "displayName": "Zenifra",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zenifra/zenifra-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Deploy and manage apps, scheduled Jobs, managed databases and AI API keys on Zenifra, a Brazilian cloud with servers in Brazil, through the Zenifra CLI."
     },
     {
       "name": "zotero-research-tools",

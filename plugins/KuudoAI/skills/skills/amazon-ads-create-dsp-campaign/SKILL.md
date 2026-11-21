@@ -3,7 +3,8 @@ name: amazon-ads-create-dsp-campaign
 description: "Create and launch an Amazon DSP Performance+ (P+) or Brand+ (B+) campaign end-to-end using this amazon-ads-mcp server's allv1_* tools. Drives the full setup: gather user inputs, query the advertiser account to resolve the DSP account ID, create the DSP campaign in PAUSED state, attach ASIN conversion tracking, query eligible automated targeting tactics, create one ad group per (inventoryType, tactic) combination, optionally create ads and ad-group associations, then activate everything in strict parent-first order with verification reads between writes. Supports P+ tactics (CUSTOMER_ACQUISITION, REMARKETING, RETENTION, MAXIMIZE_PERFORMANCE) and B+ tactics (PROSPECTING) across DISPLAY, VIDEO_OLV, VIDEO_STV, AUDIO, and LIVE_EVENTS inventory. Trigger whenever the user mentions creating a DSP P+ or B+ campaign, launching automated DSP targeting, setting up Performance+ or Brand+ ad groups, or any variant like 'spin up a P+ campaign', 'launch Brand+ prospecting', 'create DSP automated targeting'."
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "2.2.1"
+  display-name: "Amazon Ads Create DSP Campaign"
+  version: "2.2.2"
   visibility: public
 ---
 

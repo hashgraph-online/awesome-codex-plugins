@@ -1,0 +1,52 @@
+{
+  "skill_name": "suede-influencer-outreach",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Pitch @plantsbypriya for our ceramic planter launch. She's vetted, 48k on Instagram, lists a business email in her bio. Offer is a free planter plus 15% commission, 30-day attribution, paid monthly.",
+      "expected_output": "Should check for product-marketing.md first. Should ask for the missing inputs one at a time (fit evidence or a specific post, brand voice, signer, which CTA the brand can honor) rather than drafting immediately. Should propose two or three angles with a recommendation and wait for a pick. The eventual email should open on a verifiable creator-specific fact framed as audience fit, state 15%, 30 days, monthly payout, and a rough per-sale figure, carry exactly one low-friction ask, and include a Personalization source line. Should not include contract, exclusivity, or disclosure terms.",
+      "assertions": [
+        "Checks for product-marketing.md",
+        "Asks for fit evidence instead of inventing a post",
+        "Asks one question per message",
+        "Proposes 2-3 angles with a recommendation before drafting",
+        "Routes to the listed business email, not a DM",
+        "States commission rate, attribution window, and payout schedule",
+        "Exactly one CTA",
+        "Includes a Personalization source line",
+        "No contract, exclusivity, or disclosure language in the pitch"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Write the first-touch email to the DevOps newsletter writer from our shortlist. $2,000 for a sponsored deep-dive issue. Her issue last week on alert fatigue is why we picked her. She lists a partnerships email. Sign it from Sam, Head of Partnerships.",
+      "expected_output": "Should treat this as B2B and frame the pitch around a business problem her readers have, using the alert-fatigue issue as the opener. Should name the flat fee and budget without a rate card. Deliverable stays a one-line sketch. One low-friction ask. Signed by Sam. Should output the full package with a two-follow-up plan in which each follow-up is one or two sentences and carries a new angle.",
+      "assertions": [
+        "Frames the pitch around the audience's business need",
+        "Opens on the alert-fatigue issue as audience fit",
+        "Names the $2,000 flat fee without a rate card",
+        "Deliverable is a one-line sketch",
+        "Exactly one CTA",
+        "Signed by a named person",
+        "Follow-up plan has two follow-ups, each one or two sentences with a new angle",
+        "No follow-up says 'just checking in' or 'bumping this'"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "This creator lists a talent manager but I'd rather just DM her directly since DMs get faster replies. Write me the DM. Gifted product only, a skincare set.",
+      "expected_output": "Should flag once that the creator lists a manager and recommend pitching the manager, since going around a listed manager can end the conversation. The recommendation is advisory: the skill should not refuse the user's choice. It should offer the manager version and, if the user keeps the DM, write the DM to the 2-4 sentence, no-links rules. Should never plan both a manager pitch and a DM in parallel. Should state plainly that the offer is gifted product with no payment implied, and ask for or flag the missing fit evidence rather than inventing it.",
+      "assertions": [
+        "Flags the listed manager once and recommends that route",
+        "Does not refuse the user's choice to DM",
+        "Never plans a manager pitch and a DM in parallel",
+        "States plainly the offer is gifted product, with no payment implied",
+        "Does not invent a post or fit evidence",
+        "Exactly one CTA"
+      ],
+      "files": []
+    }
+  ]
+}

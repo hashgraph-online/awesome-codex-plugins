@@ -57,11 +57,13 @@ if _SIMPY is not None:
         """Environment that enforces a public, explicit event-processing budget."""
 
         def __init__(self, *, max_events: int):
+            """Initialise the instance."""
             super().__init__()
             self.max_events = max_events
             self.processed_events = 0
 
         def step(self) -> None:
+            """Handle step."""
             if self.processed_events >= self.max_events:
                 raise EventLimitExceeded(
                     f"simulation reached the max_events limit ({self.max_events})"
@@ -75,6 +77,7 @@ else:
         """Unavailable placeholder used only when SimPy is not installed."""
 
         def __init__(self, *, max_events: int):
+            """Initialise the instance."""
             del max_events
             load_simpy()
             raise AssertionError("unreachable")
@@ -193,6 +196,7 @@ class QueueStatistics:
 
 
 def _optional_mean(values: list[float]) -> float | None:
+    """Handle optional mean."""
     return fmean(values) if values else None
 
 
@@ -372,6 +376,7 @@ def run_simulation(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Run a deterministic, finite-horizon queue template. JSON input is "
@@ -394,6 +399,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

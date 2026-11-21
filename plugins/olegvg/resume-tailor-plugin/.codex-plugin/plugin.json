@@ -19,10 +19,6 @@
     "job-search",
     "hiring"
   ],
-  "skills": [
-    "./skills/resume-tailor",
-    "./skills/onboarding"
-  ],
   "interface": {
     "displayName": "Resume Tailor",
     "shortDescription": "Tailor resumes and organize candidate profiles",
@@ -46,5 +42,6 @@
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg",
     "screenshots": []
-  }
+  },
+  "skills": "./skills/"
 }

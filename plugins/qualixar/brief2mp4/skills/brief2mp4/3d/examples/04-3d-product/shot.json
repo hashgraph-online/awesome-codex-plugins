@@ -1,0 +1,31 @@
+{
+  "name": "example 04: parts drop, settle, explode",
+  "duration": 8,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "physics": "build/track.json",
+  "models": [
+    { "src": "build/shell.glb", "track": "shell", "explode": { "start": 3.2, "duration": 1.4, "dirs": { "shell": [0, 0, 0] } } },
+    { "src": "build/cell.glb", "track": "cell", "explode": { "start": 3.2, "duration": 1.4, "dirs": { "cell": [0, 0.022, 0] } } },
+    { "src": "build/board.glb", "track": "board", "explode": { "start": 3.2, "duration": 1.4, "dirs": { "board": [0, 0.044, 0] } } },
+    { "src": "build/cover.glb", "track": "cover", "explode": { "start": 3.2, "duration": 1.4, "dirs": { "cover": [0, 0.068, 0] } } },
+    { "src": "build/lens.glb", "track": "lens", "explode": { "start": 3.2, "duration": 1.4, "dirs": { "lens": [0, 0.096, 0] } } }
+  ],
+  "ground": { "shadow": 0.5 },
+  "camera": {
+    "fov": 28,
+    "keys": [
+      { "t": 0,   "pos": [0.3062, 0.3, 0.3062],    "target": [0, 0.05, 0] },
+      { "t": 2.9, "pos": [0.1088, 0.1134, 0.1884], "target": [0, 0.012, 0] },
+      { "t": 5.0, "pos": [0.1529, 0.1968, 0.3434], "target": [0, 0.06, 0] },
+      { "t": 8,   "pos": [0.0672, 0.1651, 0.3163], "target": [0, 0.06, 0] }
+    ]
+  },
+  "lights": "dramatic",
+  "tonemapping": "neutral",
+  "envIntensity": 0.35,
+  "titles": [
+    { "text": "Everything inside.", "sub": "Five parts, one pocket-sized sensor.", "start": 5.3, "duration": 2.5, "size": 64, "position": "bottom-left" }
+  ]
+}

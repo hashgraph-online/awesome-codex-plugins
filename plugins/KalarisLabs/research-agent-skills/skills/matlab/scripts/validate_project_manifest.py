@@ -55,12 +55,13 @@ REQUIRED = {
 }
 PRODUCT_KEYS = {"name", "purpose", "minimum_release", "license_status"}
 ENTRY_KEYS = {"path", "kind"}
-OCTAVE_VERSION = re.compile(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$")
+OCTAVE_VERSION = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._+()/-]{0,126}$")
 
 
 def _string(value: Any, name: str, *, maximum: int = 500) -> str:
+    """Handle string."""
     if not isinstance(value, str) or not value or len(value) > maximum:
         raise CliError(f"{name} must be a nonempty string up to {maximum} characters")
     if any(ord(character) < 32 for character in value):
@@ -69,6 +70,7 @@ def _string(value: Any, name: str, *, maximum: int = 500) -> str:
 
 
 def _list(value: Any, name: str, *, maximum: int = 500) -> list[Any]:
+    """List."""
     if not isinstance(value, list):
         raise CliError(f"{name} must be an array")
     if len(value) > maximum:
@@ -79,6 +81,7 @@ def _list(value: Any, name: str, *, maximum: int = 500) -> list[Any]:
 def _validate_product(
     value: Any, *, field: str, index: int, warnings: list[str]
 ) -> str:
+    """Validate product."""
     if not isinstance(value, dict) or set(value) != PRODUCT_KEYS:
         raise CliError(
             f"{field}[{index}] must contain exactly {sorted(PRODUCT_KEYS)}"
@@ -113,6 +116,7 @@ def _validate_path(
     kind: str = "any",
     suffixes: set[str] | None = None,
 ) -> str:
+    """Validate path."""
     text = _string(raw, name)
     if allow_missing:
         candidate = Path(text)
@@ -130,8 +134,8 @@ def _validate_path(
     return relative_id(path, root)
 
 
-def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
-    root = checked_root(args.root)
+def _load_manifest(args: argparse.Namespace, root: Path) -> tuple[Path, dict[str, Any]]:
+    """Load the manifest and check its root object, field set and schema version."""
     manifest_path = checked_input(
         args.manifest, root=root, suffixes={".json"}, max_bytes=2 * 1024 * 1024
     )
@@ -146,6 +150,11 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         raise CliError(f"missing manifest fields: {sorted(missing)}")
     if data["schema_version"] != "1.0":
         raise CliError("schema_version must be 1.0")
+    return manifest_path, data
+
+
+def _check_runtime(data: dict[str, Any]) -> tuple[str, str]:
+    """Validate the project name and runtime fields; return both."""
     project_name = _string(data["project_name"], "project_name", maximum=127)
     if not SAFE_NAME.fullmatch(project_name):
         raise CliError("project_name contains unsupported characters")
@@ -154,20 +163,19 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         raise CliError("runtime must be matlab, octave, or both")
     matlab_release = data.get("matlab_release")
     octave_version = data.get("octave_version")
-    if runtime in {"matlab", "both"}:
+    if runtime in {"matlab", "both"} or matlab_release is not None:
         validate_release(_string(matlab_release, "matlab_release"))
-    elif matlab_release is not None:
-        validate_release(_string(matlab_release, "matlab_release"))
-    if runtime in {"octave", "both"}:
+    if runtime in {"octave", "both"} or octave_version is not None:
         version = _string(octave_version, "octave_version")
         if not OCTAVE_VERSION.fullmatch(version):
             raise CliError("octave_version must be a three-part numeric version")
-    elif octave_version is not None:
-        version = _string(octave_version, "octave_version")
-        if not OCTAVE_VERSION.fullmatch(version):
-            raise CliError("octave_version must be a three-part numeric version")
+    return project_name, runtime
 
-    warnings: list[str] = []
+
+def _validate_entry_points(
+    data: dict[str, Any], root: Path, allow_missing: bool, warnings: list[str]
+) -> list[str]:
+    """Validate the entry point list and return the normalized, unique paths."""
     entry_ids: list[str] = []
     for index, entry in enumerate(_list(data["entry_points"], "entry_points", maximum=100)):
         if not isinstance(entry, dict) or set(entry) != ENTRY_KEYS:
@@ -184,7 +192,7 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             entry["path"],
             root=root,
             name=f"entry_points[{index}].path",
-            allow_missing=args.allow_missing_paths,
+            allow_missing=allow_missing,
             kind="file",
             suffixes=suffixes,
         )
@@ -196,22 +204,13 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             )
     if len(set(entry_ids)) != len(entry_ids):
         raise CliError("entry point paths must be unique")
+    return entry_ids
 
-    test_ids = [
-        _validate_path(
-            value,
-            root=root,
-            name=f"test_paths[{index}]",
-            allow_missing=args.allow_missing_paths,
-            kind="any",
-        )
-        for index, value in enumerate(
-            _list(data["test_paths"], "test_paths", maximum=100)
-        )
-    ]
-    if len(set(test_ids)) != len(test_ids):
-        raise CliError("test paths must be unique")
 
+def _validate_products(
+    data: dict[str, Any], runtime: str, warnings: list[str]
+) -> list[str]:
+    """Validate required and optional products and return their casefolded names."""
     product_names: list[str] = []
     for field in ("required_products", "optional_products"):
         for index, value in enumerate(_list(data[field], field, maximum=200)):
@@ -227,7 +226,13 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     }
     if runtime in {"matlab", "both"} and "matlab" not in required_names:
         raise CliError("MATLAB runtime manifests must declare MATLAB as required")
+    return product_names
 
+
+def _validate_octave_packages(
+    data: dict[str, Any], runtime: str, warnings: list[str]
+) -> set[str]:
+    """Validate pinned Octave packages and return their casefolded names."""
     package_names: set[str] = set()
     for index, value in enumerate(
         _list(data["octave_packages"], "octave_packages", maximum=200)
@@ -255,7 +260,13 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         package_names.add(name.casefold())
     if runtime == "matlab" and data["octave_packages"]:
         warnings.append("Octave packages are declared for a MATLAB-only runtime")
+    return package_names
 
+
+def _validate_actions(
+    data: dict[str, Any], root: Path, allow_missing: bool, warnings: list[str]
+) -> None:
+    """Validate startup and shutdown action paths and warn that they need review."""
     action_ids: list[str] = []
     for field in ("startup_actions", "shutdown_actions"):
         for index, value in enumerate(_list(data[field], field, maximum=100)):
@@ -264,7 +275,7 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                     value,
                     root=root,
                     name=f"{field}[{index}]",
-                    allow_missing=args.allow_missing_paths,
+                    allow_missing=allow_missing,
                     kind="file",
                     suffixes={".m"},
                 )
@@ -273,6 +284,35 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         warnings.append(
             "Startup/shutdown actions require explicit code review before a project opens"
         )
+
+
+def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
+    """Validate."""
+    root = checked_root(args.root)
+    manifest_path, data = _load_manifest(args, root)
+    project_name, runtime = _check_runtime(data)
+
+    warnings: list[str] = []
+    entry_ids = _validate_entry_points(data, root, args.allow_missing_paths, warnings)
+
+    test_ids = [
+        _validate_path(
+            value,
+            root=root,
+            name=f"test_paths[{index}]",
+            allow_missing=args.allow_missing_paths,
+            kind="any",
+        )
+        for index, value in enumerate(
+            _list(data["test_paths"], "test_paths", maximum=100)
+        )
+    ]
+    if len(set(test_ids)) != len(test_ids):
+        raise CliError("test paths must be unique")
+
+    product_names = _validate_products(data, runtime, warnings)
+    package_names = _validate_octave_packages(data, runtime, warnings)
+    _validate_actions(data, root, args.allow_missing_paths, warnings)
 
     generated_ids = [
         _validate_path(
@@ -319,6 +359,7 @@ def validate(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
 
 def parser() -> argparse.ArgumentParser:
+    """Handle parser."""
     result = argparse.ArgumentParser(
         description=(
             "Validate a strict local MATLAB/Octave project, product, and license-"
@@ -336,6 +377,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     try:
         report, status = validate(parser().parse_args())
         emit_json(report)

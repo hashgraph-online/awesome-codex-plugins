@@ -30,7 +30,7 @@ Two backends are supported. JSON is the default; the OS keychain is opt-in.
 
 | Backend | Enabled by | Where tokens live | Threat model |
 | --- | --- | --- | --- |
-| JSON (default) | always | `~/.opencode/projects/<project-key>/oc-codex-multi-auth-accounts.json` (per-project pools on by default) or `~/.opencode/oc-codex-multi-auth-accounts.json`; files `0o600`, dirs `0o700` on POSIX (Windows uses the profile's ACLs instead). `.opencode/` is added to `.gitignore` when a pool lands inside a git repo. | Plaintext on disk — protect the home directory like `~/.ssh`. |
+| JSON (default) | always | `~/.opencode/oc-codex-multi-auth-accounts.json` by default, or `~/.opencode/projects/<project-key>/oc-codex-multi-auth-accounts.json` when per-project storage is enabled; files `0o600`, dirs `0o700` on POSIX (Windows uses the profile's ACLs instead). `.opencode/` is added to `.gitignore` when a pool lands inside a git repo. | Plaintext on disk — protect the home directory like `~/.ssh`. |
 | OS keychain (opt-in) | `CODEX_KEYCHAIN=1` | macOS Keychain / Windows Credential Manager / Linux libsecret; service `oc-codex-multi-auth`, account `accounts:<project-key>` (or `accounts:global`) | Ciphertext managed by the OS; only as strong as the login session's keychain unlock. |
 
 - Enabling `CODEX_KEYCHAIN` migrates the JSON pool on the next save, renaming the file `*.migrated-to-keychain.<ts>` for rollback — the original is never auto-deleted.

@@ -17,6 +17,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import wave
 import zlib
 from pathlib import Path
 from typing import Any
@@ -24,18 +25,20 @@ from typing import Any
 _GPU_MARKERS = ("GPU ", "gpu:")
 # Below this, the CLI predates flags and behavior this skill documents. Raise it in
 # the same change as any reference that names a flag the previous release lacked:
-# 0.40.0 is here because the skill names the `classify-onnx` extra; 0.39.0 is
-# here because the `liblib_pill` mark and `auto` routing OpenAI provenance to
-# qwen-zimage arrived with it; 0.38.0 added the receipt gate; `classify` needed
-# 0.37.0 (`--pipeline auto` 0.36.0; chroma-zimage and the doubao video mark
-# 0.35.0; the `microsoft` mark 0.34.0; `--vendor` 0.32.0), and a stale floor
-# told an agent its CLI was current right before it typed a value that build
-# rejects. tests/test_agent_skill.py pins it against the package version and
-# against every "(since CLI X.Y.Z)" annotation in the skill.
-MIN_CLI_VERSION = (0, 47, 0)
+# 0.64.0 adds `video erase`, `video message detect`, the chunkyseal scheme, and
+# audio --vendor/--audio-vendor cohorts;
+# 0.63.0 added audio commands, text --allow-partial/--rewriter-backend/--rewriter-model
+# (text-mlx), video message, --profile auto/wan21-*, and --method dac/focalcodec;
+# 0.48.0 added `classify-source`; 0.39.0 added the `liblib_pill` mark and `auto`
+# routing OpenAI provenance to qwen-zimage (`--pipeline auto` 0.36.0;
+# chroma-zimage and the doubao video mark 0.35.0; the `microsoft` mark 0.34.0;
+# `--vendor` 0.32.0), and a stale floor told an agent its CLI was current right
+# before it typed a value that build rejects. tests/test_agent_skill.py pins it
+# against the package version and against every "(since CLI X.Y.Z)" annotation.
+MIN_CLI_VERSION = (0, 64, 0)
 # Markers a build without the pixel stack prints. The first is the current CLI's own
 # install hint; the rest are what older builds emit before the guard existed, and the
-# Homebrew formula ships exactly such a build.
+# legacy Homebrew installs can still contain such a build.
 _NO_PIXELS_MARKERS = (
     "visible-mark dependencies are not installed",
     "No module named 'cv2'",
@@ -133,7 +136,7 @@ def _pixel_stack(cli_path: str) -> str:
     """Whether the INSTALLED build can actually run a visible-mark command.
 
     A found binary says nothing about this. The default package ships without the
-    pixel extra, so ``cli.found`` reported "ok" for a Homebrew install whose very
+    pixel extra, so ``cli.found`` reported "ok" for a metadata-only install whose very
     first ``visible`` died on a missing cv2. So ask the real seam: run ``visible``
     on a blank image the probe writes itself. Exit 2 is the documented "no mark
     here", which only a working pixel stack can reach.
@@ -171,7 +174,7 @@ def _video_stacks(cli_path: str) -> dict[str, str]:
     native Windows executables) remain unverified; this probe's Python is never a
     substitute for the environment running the installed CLI.
     """
-    unknown = {"pixels": "unknown", "invisible": "unknown"}
+    unknown = {"pixels": "unknown", "invisible": "unknown", "tools": "unknown"}
     try:
         with Path(cli_path).open(encoding="utf-8") as stream:
             lines = [stream.readline() for _ in range(3)]
@@ -199,6 +202,7 @@ def _video_stacks(cli_path: str) -> dict[str, str]:
     if not isinstance(result, dict):
         return unknown
     return {
+        "tools": result.get("tools") if result.get("tools") in {"installed", "missing"} else "unknown",
         "pixels": result.get("pixels") if result.get("pixels") in {"ok", "missing"} else "unknown",
         "invisible": result.get("invisible") if result.get("invisible") in {"installed", "missing"} else "unknown",
     }
@@ -207,7 +211,7 @@ def _video_stacks(cli_path: str) -> dict[str, str]:
 _VIDEO_RUNTIME_CHECK = """
 import json
 import sys
-result = {"pixels": "unknown", "invisible": "unknown"}
+result = {"pixels": "unknown", "invisible": "unknown", "tools": "unknown"}
 try:
     from remove_ai_watermarks.video import _require_video_runtime
     _require_video_runtime()
@@ -226,8 +230,53 @@ try:
         result["invisible"] = "missing"
 except ImportError:
     result["invisible"] = "missing"
+import shutil
+ready = bool(shutil.which("ffmpeg") and shutil.which("ffprobe"))
+if not ready:
+    try:
+        from remove_ai_watermarks.video_tools import bundled_video_tools_available
+        ready = bundled_video_tools_available()
+    except ImportError:
+        ready = False
+result["tools"] = "installed" if ready else "missing"
 sys.stdout.write(json.dumps(result))
 """
+
+
+def _audio_stack(cli_path: str) -> str:
+    """Exercise CPU processing on a temporary WAV without loading neural weights."""
+    with tempfile.TemporaryDirectory(prefix="raiw-audio-probe-") as tmp:
+        source, output = Path(tmp) / "probe.wav", Path(tmp) / "processed.wav"
+        with wave.open(str(source), "wb") as stream:
+            stream.setnchannels(1)
+            stream.setsampwidth(2)
+            stream.setframerate(16000)
+            stream.writeframes(b"\0" * 3200)
+        code, stdout, stderr = _run(
+            [
+                cli_path,
+                "audio",
+                "invisible",
+                str(source),
+                "-o",
+                str(output),
+                "--force",
+                "--no-verify",
+                "--method",
+                "spectral",
+                "--json",
+            ],
+            timeout=60.0,
+        )
+        if "Audio processing requires" in stdout + stderr:
+            return "missing"
+        try:
+            result = json.loads(stdout)
+            if code == 0 and result.get("frames_processed") == 1600 and output.read_bytes()[:4] == b"RIFF":
+                return "ok"
+        except (OSError, ValueError, AttributeError):
+            pass
+    return "unknown"
 
 
 def _has_cuda() -> bool:
@@ -305,9 +354,9 @@ def _advice(
     else:
         video_visible = "ok" if ffmpeg else "needs_ffmpeg"
 
-    if no_pixels or "missing" in video.values():
+    if no_pixels or video["pixels"] == "missing" or video["invisible"] == "missing":
         video_invisible = "needs_video_and_diffusion_extras"
-    elif video != {"pixels": "ok", "invisible": "installed"}:
+    elif video["pixels"] != "ok" or video["invisible"] != "installed":
         video_invisible = "unverified"
     else:
         video_invisible = "ok_cpu_or_gpu" if ffmpeg else "needs_ffmpeg"
@@ -330,7 +379,7 @@ def _advice(
             "The installed CLI has no pixel dependencies. Metadata-only image and video "
             "commands still work, including both metadata batch modes. "
             f"Reinstall with the visible extra using {installer or 'uv, pipx or pip'}. "
-            "A Homebrew install cannot carry extras."
+            "Homebrew users can run brew reinstall wiltodelta/tap/remove-ai-watermarks --with-visible."
         )
     elif pixels == "unknown":
         advice["detail"] = (
@@ -350,10 +399,24 @@ def build_report() -> dict[str, Any]:
     installer = _preferred_installer(installers)
     cli = _cli()
     cuda = _has_cuda()
-    ffmpeg = _which("ffmpeg") is not None
+    ffmpeg = _which("ffmpeg") is not None and _which("ffprobe") is not None
     pixels = _pixel_stack(str(cli["path"])) if cli["found"] else "unknown"
     invisible = _invisible_stack(str(cli["path"])) if cli["found"] else "unknown"
-    video = _video_stacks(str(cli["path"])) if cli["found"] else {"pixels": "unknown", "invisible": "unknown"}
+    video = (
+        _video_stacks(str(cli["path"]))
+        if cli["found"]
+        else {"pixels": "unknown", "invisible": "unknown", "tools": "unknown"}
+    )
+    ffprobe = video.get("tools") == "installed" or (
+        video.get("tools", "unknown") == "unknown" and _which("ffprobe") is not None
+    )
+    ffmpeg = video.get("tools") == "installed" or (video.get("tools", "unknown") == "unknown" and ffmpeg)
+    audio = _audio_stack(str(cli["path"])) if cli["found"] and ffmpeg and ffprobe else "unknown"
+    audio_advice = (
+        "needs_ffmpeg_and_ffprobe"
+        if not (ffmpeg and ffprobe)
+        else {"ok": "processor_ok_decoder_unverified", "missing": "needs_audio_extra", "unknown": "unverified"}[audio]
+    )
     return {
         "os": os.name,
         "platform": sys.platform,
@@ -361,21 +424,26 @@ def build_report() -> dict[str, Any]:
         "cli": cli,
         "cuda": cuda,
         "ffmpeg": ffmpeg,
+        "ffprobe": ffprobe,
+        "audio_stack": audio,
         "pixel_stack": pixels,
         "invisible_stack": invisible,
         "video_stacks": video,
         "installers": {name: path is not None for name, path in installers.items()},
         "preferred_installer": installer,
-        "advice": _advice(
-            cli_found=bool(cli["found"]),
-            pixels=pixels,
-            cuda=cuda,
-            ffmpeg=ffmpeg,
-            installer=installer,
-            outdated=cli["outdated"],
-            invisible=invisible,
-            video=video,
-        ),
+        "advice": {
+            "audio_invisible": audio_advice,
+            **_advice(
+                cli_found=bool(cli["found"]),
+                pixels=pixels,
+                cuda=cuda,
+                ffmpeg=ffmpeg,
+                installer=installer,
+                outdated=cli["outdated"],
+                invisible=invisible,
+                video=video,
+            ),
+        },
     }
 
 

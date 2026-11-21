@@ -23,16 +23,22 @@ Requires: ngspice (install: apt install ngspice / brew install ngspice)
 """
 
 import argparse
+import atexit
+import dataclasses
+import inspect
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
 
 # Allow imports from same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _core_path  # noqa: F401
+from kicad_core.fileio import atomic_write_text, json_load
+from kicad_core.cli import add_compact_arg, add_output_arg, add_text_arg, utf8_text_stdout
+from kicad_core.diagnostics import OnceSink, record
 
 from spice_templates import TEMPLATE_REGISTRY, TOPLEVEL_REGISTRY, list_supported_types, SpiceTestbench
 from spice_results import (
@@ -72,25 +78,25 @@ def find_ngspice():
     return backend.find()
 
 
-def run_ngspice(cir_file, timeout=5):
+def run_ngspice(cir_file, timeout=5, cwd=None):
     """Run ngspice in batch mode on a .cir file.
 
     Legacy wrapper — prefer simulator_backend.run() for multi-simulator.
     """
     from spice_simulator import NgspiceBackend
     backend = NgspiceBackend()
-    return backend.run(cir_file, timeout=timeout)
+    return backend.run(cir_file, timeout=timeout, cwd=cwd)
 
 
 def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
                          parasitics=None, simulator_backend=None,
                          monte_carlo_n=0, mc_distribution="gaussian",
-                         mc_seed=42):
+                         mc_seed=42, model_options=None):
     """Run SPICE simulations for all simulatable subcircuits in the analysis.
 
     Args:
         analysis_json: Parsed JSON dict from analyze_schematic.py
-        workdir: Directory for .cir and output files (default: temp dir)
+        workdir: Directory whose new spice_sim_* subfolder receives the .cir and output files (default: temp dir)
         timeout: Seconds per simulation (default: 5)
         types: List of detector types to simulate, or None for all supported
         parasitics: PCB parasitic data from extract_parasitics.py
@@ -98,6 +104,7 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         monte_carlo_n: Number of Monte Carlo tolerance trials per subcircuit (0=disabled)
         mc_distribution: "gaussian" (3sigma=tolerance) or "uniform"
         mc_seed: Random seed for reproducible Monte Carlo runs
+        model_options: spice_model_cache.ModelOptions (cache dir / offline) or None
 
     Returns:
         Report dict with simulation results
@@ -116,9 +123,9 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         "detect_decoupling": "decoupling_analysis",
         "detect_integrated_ldos": "power_regulators",
     }
-    # KH-388 belt: analysis JSON may still carry duplicate finding objects
-    # (e.g. output from a pre-fix analyzer, or cached analysis/ output) —
-    # don't collect the same subcircuit for simulation twice. id()-based
+    # Analysis JSON may carry duplicate finding objects (e.g. cached
+    # analysis/ output from an older analyzer) — don't collect the
+    # same subcircuit for simulation twice. id()-based
     # dedup is safe for any detector (a dict appearing twice in the same
     # analysis output is always an aliasing quirk, never intentional). The
     # (detector, components) key belt is scoped to detect_voltage_dividers
@@ -162,9 +169,37 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
     cleanup_workdir = False
     if workdir is None:
         workdir = tempfile.mkdtemp(prefix="spice_sim_")
+        # Removed at exit, not on return, so library callers can still read the benches
+        atexit.register(shutil.rmtree, workdir, True)
         cleanup_workdir = True
     else:
+        if os.path.islink(workdir):
+            raise ValueError(f"workdir {workdir} is a symlink")
         os.makedirs(workdir, exist_ok=True)
+    # Benches go into a new private folder, so files a project left in a reused
+    # workdir are never written through or sourced by the simulator
+    run_dir = workdir if cleanup_workdir else tempfile.mkdtemp(prefix="spice_sim_", dir=workdir)
+
+    sim_diagnostics: list = []  # Monte Carlo trials add only records the nominal runs lack
+
+    # An analysis that names no source file, or a relative one not found from the cwd,
+    # caches its models under this run's folder, and so does a project whose spice/ or
+    # spice/models/ is a symlink, which would send cache writes to the link's target.
+    from kicad_core.project import extraction_project_dir
+    if model_options is None or model_options.cache_dir is None:
+        project_dir = extraction_project_dir(analysis_json)
+        linked = None
+        if project_dir is not None:
+            linked = next((p for p in (project_dir / "spice", project_dir / "spice" / "models")
+                           if p.is_symlink()), None)
+            if linked is not None:
+                record(sim_diagnostics, "simulate_subcircuits.simulate_subcircuits",
+                       OSError(f"{linked} is a symlink"),
+                       "part models cached in the run's folder")
+        if project_dir is None or linked is not None:
+            from spice_model_cache import ModelOptions
+            model_options = dataclasses.replace(model_options or ModelOptions(),
+                                                cache_dir=run_dir)
 
     results = []
     total_time = 0
@@ -176,18 +211,26 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         mc_rng = _random.Random(mc_seed)
 
     def _run_single_sim(det_run, det_type, generator, evaluator,
-                        cir_file, out_file, log_file):
+                        cir_file, out_file, log_file, diagnostics=None):
         """Run one simulation: generate -> run -> parse -> evaluate.
 
         Returns (result_dict, elapsed) or (None, 0) on failure/skip.
         """
         nonlocal total_time
-        out_file_spice = out_file.replace("\\", "/")
+        # The simulator runs inside the cir file's directory and sees only
+        # bare filenames, so no path (spaces, backslashes) reaches its
+        # control language.
+        out_file_spice = os.path.basename(out_file)
 
+        gen_kwargs = {"context": analysis_json, "parasitics": parasitics}
+        if model_options is not None and "model_options" in inspect.signature(generator).parameters:
+            gen_kwargs["model_options"] = model_options
+        # Repeated (Monte Carlo) runs hand the generator the once-sink, so a fallback it
+        # already reported is not printed or recorded again.
+        if isinstance(diagnostics, OnceSink) and "diagnostics" in inspect.signature(generator).parameters:
+            gen_kwargs["diagnostics"] = diagnostics
         try:
-            cir_content = generator(det_run, out_file_spice,
-                                    context=analysis_json,
-                                    parasitics=parasitics)
+            cir_content = generator(det_run, out_file_spice, **gen_kwargs)
         except (KeyError, TypeError, ValueError) as e:
             return {"_generator_fail": True,
                     "note": f"testbench generation failed: {type(e).__name__}: {e}"}, 0
@@ -196,23 +239,34 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
             return None, 0
 
         if isinstance(cir_content, SpiceTestbench):
+            if diagnostics is not None:
+                diagnostics.extend(cir_content.diagnostics)
             cir_content = cir_content.render(simulator_backend, out_file_spice)
 
-        with open(cir_file, "w") as f:
+        with open(cir_file, "w", encoding="utf-8", newline="\n") as f:
             f.write(cir_content)
 
         t0 = time.monotonic()
         if simulator_backend:
-            success, stdout, stderr = simulator_backend.run(cir_file, timeout=timeout)
+            success, stdout, stderr = simulator_backend.run(
+                os.path.basename(cir_file), timeout=timeout,
+                cwd=os.path.dirname(os.path.abspath(cir_file)))
         else:
-            success, stdout, stderr = run_ngspice(cir_file, timeout=timeout)
+            success, stdout, stderr = run_ngspice(
+                os.path.basename(cir_file), timeout=timeout,
+                cwd=os.path.dirname(os.path.abspath(cir_file)))
         elapsed = time.monotonic() - t0
         total_time += elapsed
 
-        with open(log_file, "w") as f:
+        with open(log_file, "w", encoding="utf-8", newline="\n") as f:
             f.write(f"=== stdout ===\n{stdout}\n=== stderr ===\n{stderr}\n")
 
         if not success:
+            # the simulator's first error lines (bare deck name; an include error names the include as written)
+            err_lines = [line.strip() for line in (stderr or "").splitlines() if line.strip()]
+            reason = " ".join(err_lines[:3]) or "simulator exited with an error"
+            record(diagnostics, "simulate_subcircuits.run",
+                   RuntimeError(f"{os.path.basename(cir_file)}: {reason}"), "simulation skipped")
             return None, elapsed
 
         if simulator_backend and hasattr(simulator_backend, 'parse_results'):
@@ -238,14 +292,14 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         """Simulate a batch of detections — shared by signal_analysis and top-level loops."""
         for i, det in enumerate(detections):
             label = _make_label(det_type, det, i)
-            cir_file = os.path.join(workdir, f"{label}.cir")
-            out_file = os.path.join(workdir, f"{label}.out")
-            log_file = os.path.join(workdir, f"{label}.log")
+            cir_file = os.path.join(run_dir, f"{label}.cir")
+            out_file = os.path.join(run_dir, f"{label}.out")
+            log_file = os.path.join(run_dir, f"{label}.log")
 
             # Nominal simulation
             result, elapsed = _run_single_sim(
                 det, det_type, generator, evaluator,
-                cir_file, out_file, log_file)
+                cir_file, out_file, log_file, diagnostics=sim_diagnostics)
 
             if result is None:
                 if elapsed > 0:
@@ -285,17 +339,19 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
                 if components:
                     mc_results_list = []
                     sampled_values_list = []
-                    mc_cir = os.path.join(workdir, f"{label}_mc.cir")
-                    mc_out = os.path.join(workdir, f"{label}_mc.out")
-                    mc_log = os.path.join(workdir, f"{label}_mc.log")
+                    mc_cir = os.path.join(run_dir, f"{label}_mc.cir")
+                    mc_out = os.path.join(run_dir, f"{label}_mc.out")
+                    mc_log = os.path.join(run_dir, f"{label}_mc.log")
 
+                    trial_sink = OnceSink(sim_diagnostics)
+                    seeded = len(trial_sink)
                     for _trial in range(monte_carlo_n):
                         sampled_det = sample_detection(
                             det, components, mc_rng, mc_distribution,
                             det_type=det_type)
                         mc_result, _mc_elapsed = _run_single_sim(
                             sampled_det, det_type, generator, evaluator,
-                            mc_cir, mc_out, mc_log)
+                            mc_cir, mc_out, mc_log, diagnostics=trial_sink)
                         if mc_result is not None:
                             mc_results_list.append(mc_result)
                             # Store sampled values for sensitivity analysis
@@ -307,6 +363,7 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
                                 except (KeyError, TypeError, IndexError):
                                     pass
                             sampled_values_list.append(sv)
+                    sim_diagnostics.extend(trial_sink[seeded:])
 
                     # Store original det for component ref lookup
                     result["_det"] = det
@@ -351,7 +408,8 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
                             generator, EVALUATOR_REGISTRY.get(tl_type))
 
     report = build_report(results)
-    report["workdir"] = workdir
+    report["diagnostics"] = sim_diagnostics + report["diagnostics"]
+    report["workdir"] = run_dir
     report["total_elapsed_s"] = round(total_time, 3)
     report["simulator"] = find_ngspice() or None
     report["ngspice"] = report["simulator"]  # backward compat alias
@@ -440,10 +498,10 @@ def _summary_line(report: dict) -> str:
     elapsed = report.get("total_elapsed_s") or 0.0
     return (f"Simulation complete: {s['total']} subcircuits — "
             f"{s['pass']} pass, {s['warn']} warn, {s['fail']} fail, "
-            f"{s['skip']} skip ({elapsed:.1f}s)")
+            f"{s['skip']} skip, {s.get('info', 0)} info ({elapsed:.1f}s)")
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Run SPICE simulations for detected subcircuits"
     )
@@ -461,10 +519,7 @@ def main():
         help="Analysis cache directory. When set, auto-resolves schematic "
              "from current run and writes spice.json into the run folder.",
     )
-    parser.add_argument(
-        "--output", "-o",
-        help="Path to write simulation report JSON (default: stdout)",
-    )
+    add_output_arg(parser, help="Path to write simulation report JSON (default: stdout)")
     parser.add_argument(
         "--workdir", "-w",
         help="Directory for simulation files (default: <run>/spice_work/ "
@@ -481,21 +536,13 @@ def main():
         help="Comma-separated list of detector types to simulate "
              f"(default: all supported: {', '.join(list_supported_types())})",
     )
-    parser.add_argument(
-        "--compact",
-        action="store_true",
-        help="Omit file paths from output (for clean reports)",
-    )
-    parser.add_argument(
-        "--text",
-        action="store_true",
-        help="Human-readable text output instead of JSON",
-    )
+    add_compact_arg(parser, help="Omit file paths from output (for clean reports)")
+    add_text_arg(parser, help="Human-readable text output instead of JSON")
     parser.add_argument(
         "--parasitics",
         help="Path to parasitics JSON (from extract_parasitics.py) for "
-             "PCB-aware simulation. When provided, testbenches include trace "
-             "resistance and via inductance.",
+             "PCB-aware simulation. When provided, RC-filter testbenches "
+             "include trace resistance and via inductance.",
     )
     parser.add_argument(
         "--simulator",
@@ -524,27 +571,37 @@ def main():
         default=42,
         help="Random seed for reproducible Monte Carlo runs (default: 42)",
     )
+    parser.add_argument(
+        "--model-cache-dir",
+        metavar="DIR",
+        help="Directory under which cached SPICE part models are kept as "
+             "DIR/spice/models/ (default: beside the schematic the analysis JSON names)",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Never query distributor APIs or datasheets for part models; use the "
+             "project cache and the built-in lookup table only",
+    )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.text:
+        utf8_text_stdout()
 
     # Resolve input: --schematic, positional, or --analysis-dir auto-resolve
     input_path = args.schematic or args.input
     workdir = args.workdir
     if args.analysis_dir:
         # analysis_cache lives in skills/kicad/scripts/
-        sys.path.insert(0, os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            '..', '..', 'kicad', 'scripts'))
-        from analysis_cache import load_manifest, MANIFEST_FILENAME
+        from analysis_cache import get_current_run, MANIFEST_FILENAME
         analysis_dir = os.path.abspath(args.analysis_dir)
-        manifest = load_manifest(analysis_dir)
-        current = manifest.get('current') if manifest else None
-        if not current:
+        current = get_current_run(analysis_dir)
+        if current is None:
             print(f"Error: no 'current' run in {analysis_dir}/{MANIFEST_FILENAME}. "
                   f"Run analyze_schematic.py --analysis-dir first.",
                   file=sys.stderr)
-            sys.exit(1)
-        run_dir = os.path.join(analysis_dir, current)
+            return 1
+        run_dir = current[0]
         if not input_path:
             input_path = os.path.join(run_dir, 'schematic.json')
         if not workdir:
@@ -562,15 +619,19 @@ def main():
         print("  LTspice: download from analog.com/ltspice", file=sys.stderr)
         print("  Xyce:    download from xyce.sandia.gov", file=sys.stderr)
         print("  Or set NGSPICE_PATH env var to the ngspice binary path.", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     # Read analysis JSON
     try:
-        with open(input_path, "r") as f:
-            analysis = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
+        with open(input_path, "r", encoding="utf-8") as f:
+            analysis = json_load(f)
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
         print(f"Error reading {input_path}: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+    if not isinstance(analysis, dict):
+        print(f"Error reading {input_path}: top level is "
+              f"{type(analysis).__name__}, not an object", file=sys.stderr)
+        return 1
 
     # Parse types filter
     types = None
@@ -579,7 +640,7 @@ def main():
         supported = set(list_supported_types())
         unknown = set(types) - supported
         if unknown:
-            print(f"Warning: unknown types ignored: {', '.join(unknown)}",
+            print(f"Warning: unknown types ignored: {', '.join(sorted(unknown))}",
                   file=sys.stderr)
             types = [t for t in types if t in supported]
 
@@ -587,13 +648,31 @@ def main():
     parasitics_data = None
     if args.parasitics:
         try:
-            with open(args.parasitics, "r") as f:
-                parasitics_data = json.load(f)
+            with open(args.parasitics, "r", encoding="utf-8") as f:
+                parasitics_data = json_load(f)
+            if not isinstance(parasitics_data, dict):
+                parasitics_data = None
+                raise ValueError("top level is not an object")
             n_nets = len(parasitics_data.get("nets", {}))
             print(f"Loaded parasitics for {n_nets} nets from {args.parasitics}",
                   file=sys.stderr)
-        except (json.JSONDecodeError, OSError) as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:
             print(f"Warning: could not load parasitics: {e}", file=sys.stderr)
+
+    from kicad_core.project import load_user_config
+    spice_config = load_user_config().get("spice")
+    trust_project_models = (isinstance(spice_config, dict)
+                            and spice_config.get("trust_project_models") is True)
+    model_options = None
+    if args.model_cache_dir or args.offline or trust_project_models:
+        from spice_model_cache import ModelOptions
+        model_options = ModelOptions(cache_dir=args.model_cache_dir, offline=args.offline,
+                                     trust_project_models=trust_project_models)
+
+    if workdir and os.path.islink(workdir):
+        print(f"Error: workdir {workdir} is a symlink; refusing to write SPICE files "
+              f"through it.", file=sys.stderr)
+        return 1
 
     # Run simulations
     report = simulate_subcircuits(
@@ -606,6 +685,7 @@ def main():
         monte_carlo_n=args.monte_carlo,
         mc_distribution=args.mc_distribution,
         mc_seed=args.mc_seed,
+        model_options=model_options,
     )
 
     # Clean up file paths if compact mode
@@ -617,49 +697,17 @@ def main():
 
     # Analysis cache integration — write spice.json into the current run folder
     # and update the manifest so downstream tools pick it up.
-    if args.analysis_dir:
-        import tempfile
-        from analysis_cache import (hash_source_file, should_create_new_run,
-                                    create_run, overwrite_current,
-                                    CANONICAL_OUTPUTS, MANIFEST_FILENAME,
-                                    save_manifest, _empty_manifest,
-                                    GITIGNORE_CONTENT)
-        os.makedirs(analysis_dir, exist_ok=True)
-        manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
-        if not os.path.isfile(manifest_path):
-            save_manifest(analysis_dir, _empty_manifest())
-        gitignore_path = os.path.join(analysis_dir, '.gitignore')
-        if not os.path.isfile(gitignore_path):
-            with open(gitignore_path, 'w') as f:
-                f.write(GITIGNORE_CONTENT)
-
-        source_hashes = {}
-        h = hash_source_file(os.path.abspath(input_path))
-        if h:
-            source_hashes[os.path.basename(input_path)] = h
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            canonical = CANONICAL_OUTPUTS.get('spice', 'spice.json')
-            tmp_out = os.path.join(tmpdir, canonical)
-            with open(tmp_out, 'w') as f:
-                json.dump(report, f, indent=2)
-
-            if should_create_new_run(analysis_dir, tmpdir):
-                run_id = create_run(analysis_dir, tmpdir,
-                                    source_hashes=source_hashes,
-                                    scripts={'spice': 'simulate_subcircuits.py'})
-                print(f'SPICE simulation cached: new run {run_id}',
-                      file=sys.stderr)
-            else:
-                overwrite_current(analysis_dir, tmpdir,
-                                  source_hashes=source_hashes)
-                print('SPICE simulation cached: updated current run',
-                      file=sys.stderr)
+    # No project-config resolution in this CLI, so the analysis-cache knobs keep their defaults.
+    if args.analysis_dir and not args.output:
+        from output_io import write_primary_run
+        write_primary_run(analysis_dir, json.dumps(report, indent=2), analyzer='spice', source_path=input_path,
+                          script_name='simulate_subcircuits.py', script_entry='simulate_subcircuits.py',
+                          record_project=False)
 
     # Output
     output_json = json.dumps(report, indent=2)
     if args.text:
-        # KH-345: --text parity with the other analyzers. Early-exit
+        # --text matches the other analyzers. Early-exit
         # reports (no simulatable data) omit total_elapsed_s — tolerate it.
         s = report.get("summary", {})
         _elapsed = report.get("total_elapsed_s")
@@ -667,23 +715,22 @@ def main():
                    if isinstance(_elapsed, (int, float)) else "")
         print(f"SPICE simulation: {s.get('total', 0)} subcircuits — "
               f"{s.get('pass', 0)} pass, {s.get('warn', 0)} warn, "
-              f"{s.get('fail', 0)} fail, {s.get('skip', 0)} skip{_suffix}")
-        sys.path.insert(0, os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            '..', '..', 'kicad', 'scripts'))
+              f"{s.get('fail', 0)} fail, {s.get('skip', 0)} skip, "
+              f"{s.get('info', 0)} info{_suffix}")
         from output_filters import format_text
         print(format_text(report.get("findings", []), "designer"))
         if args.output:
-            with open(args.output, "w") as f:
-                f.write(output_json)
+            atomic_write_text(args.output, output_json, follow_symlinks=False)
     elif args.output:
-        with open(args.output, "w") as f:
-            f.write(output_json)
+        atomic_write_text(args.output, output_json, follow_symlinks=False)
         # Print summary to stderr
         print(_summary_line(report), file=sys.stderr)
     elif not args.analysis_dir:
         print(output_json)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
+    sys.exit(main())

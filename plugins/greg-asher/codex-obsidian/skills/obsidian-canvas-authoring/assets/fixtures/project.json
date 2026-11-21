@@ -1,0 +1,12 @@
+{
+  "layout": "project",
+  "cards": [
+    {"key": "decision", "lane": "Decisions", "file": "Atlas/Decision.md", "subpath": "#Decision"},
+    {"key": "rollout", "lane": "Dependencies and risks", "file": "Atlas/Rollout.md", "subpath": "#Implementation"},
+    {"key": "action", "lane": "Next actions", "text": "Review the production redirect URI list.\nThen assign an outage rehearsal owner."}
+  ],
+  "relationships": [
+    {"from": "decision", "to": "rollout", "label": "rollout scope", "evidence": "documented"},
+    {"from": "rollout", "to": "action", "label": "proposed follow-up", "evidence": "inferred"}
+  ]
+}

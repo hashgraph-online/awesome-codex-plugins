@@ -47,7 +47,7 @@ The SDK ships two integration sources and the init path selects between them:
 | Caller | Path | Recorded as |
 | --- | --- | --- |
 | A developer following the docs by hand | the builder-style `init` | `manual` |
-| An agent following this pack | `CometChatUIKit.initFromSettings({ … })` | `ai-agent` |
+| An agent following this pack | `CometChatUIKit.initFromSettings({ ... })` | `ai-agent` |
 
 Verified in the shipped SDK: `INTEGRATION_SOURCE = { AI_AGENT: "ai-agent", MANUAL: "manual" }`, with the builder-style init storing `MANUAL` and `initFromSettings()` storing `AI_AGENT`.
 

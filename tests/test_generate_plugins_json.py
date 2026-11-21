@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,7 +13,313 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+class ActeraNativeBundleTests(unittest.TestCase):
+    def archive(self, include_native=True):
+        files = {
+            "archive/openai-directory/plugin.json": json.dumps({
+                "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+                "name": "actera", "version": "1.0.0",
+            }),
+            "archive/openai-directory/skills/agent-policies/SKILL.md": "Remote policies only",
+        }
+        if include_native:
+            prefix = "archive/plugins/actera/"
+            native = {
+                ".codex-plugin/plugin.json": json.dumps({
+                    "name": "actera", "version": "0.2.0", "skills": "./skills/",
+                    "hooks": "./hooks/hooks.json", "mcpServers": "./.mcp.json",
+                }),
+                ".mcp.json": '{"mcpServers":{"actera":{"command":"node","args":["bin/actera-mcp.mjs"]}}}',
+                "hooks/hooks.json": '{"hooks":{}}',
+                "skills/actera-connect/SKILL.md": "Native agent connection",
+                "bin/actera-mcp.mjs": "import '../vendor/agent-hooks/server.mjs';",
+                "bin/actera-hook.mjs": "import '../vendor/agent-hooks/server.mjs';",
+                "vendor/agent-hooks/server.mjs": "export const bridge = true;",
+                "vendor/agent-hooks/LICENSE": "Bridge attribution",
+                "vendor/agent-hooks/vendor/gitleaks/linux.gz": "Packaged scanner bytes",
+                "LICENSE": "Native package license",
+                "NOTICE": "Native package notices",
+            }
+            files.update({prefix + name: value for name, value in native.items()})
+        raw = io.BytesIO()
+        with MODULE.zipfile.ZipFile(raw, "w") as archive:
+            for name, value in files.items():
+                archive.writestr(name, value)
+        return MODULE.zipfile.ZipFile(io.BytesIO(raw.getvalue()))
+
+    def test_native_package_wins_over_directory_sibling(self):
+        for owner in ("Actera-AI", "actera-ai"):
+            with self.subTest(owner=owner), self.archive() as archive:
+                root = MODULE.resolve_plugin_root(archive, set(archive.namelist()), {
+                    "owner": owner, "repo": "actera-codex", "name": "Actera",
+                })
+                self.assertEqual(root.as_posix(), "archive/plugins/actera")
+
+    def test_missing_native_package_fails_closed(self):
+        with self.archive(include_native=False) as archive:
+            with self.assertRaises(ValueError):
+                MODULE.resolve_plugin_root(archive, set(archive.namelist()), {
+                    "owner": "Actera-AI", "repo": "actera-codex", "name": "Actera",
+                })
+
+    def test_complete_native_runtime_and_notices_are_mirrored(self):
+        with self.archive() as archive, tempfile.TemporaryDirectory() as scratch, patch.object(
+            MODULE, "fetch_repo_archive", return_value=archive
+        ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+            manifest, _, source_root = MODULE.mirror_plugin_bundle({
+                "owner": "Actera-AI", "repo": "actera-codex", "name": "Actera",
+            })
+            dest = Path(scratch) / "Actera-AI/actera-codex"
+            self.assertEqual(manifest["version"], "0.2.0")
+            self.assertEqual(source_root, "plugins/actera")
+            for name in ("bin/actera-mcp.mjs", "bin/actera-hook.mjs",
+                         "vendor/agent-hooks/server.mjs", "vendor/agent-hooks/LICENSE",
+                         "vendor/agent-hooks/vendor/gitleaks/linux.gz", "NOTICE"):
+                self.assertTrue((dest / name).is_file(), name)
+            self.assertFalse((dest / "skills/agent-policies").exists())
+
+    def test_unrelated_packages_keep_existing_selection(self):
+        with self.archive() as archive:
+            root = MODULE.resolve_plugin_root(archive, set(archive.namelist()), {
+                "owner": "another-owner", "repo": "other-plugin", "name": "Actera",
+            })
+            self.assertEqual(root.as_posix(), "archive/openai-directory")
+
+
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_brewpage_root_relative_mcp_config_is_materialized(self):
+        for reference in ("/.mcp.json", "/./.mcp.json"):
+            with self.subTest(reference=reference), tempfile.TemporaryDirectory() as scratch:
+                raw = io.BytesIO()
+                with MODULE.zipfile.ZipFile(raw, "w") as archive:
+                    archive.writestr("archive/.codex-plugin/plugin.json", json.dumps({
+                        "name": "brewpage", "version": "1.0.0", "mcpServers": reference
+                    }))
+                with MODULE.zipfile.ZipFile(io.BytesIO(raw.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "kochetkov-ma", "repo": "brewpage-codex-plugin"})
+                self.assertTrue((Path(scratch) / "kochetkov-ma/brewpage-codex-plugin/.mcp.json").is_file())
+
+    def test_brewpage_missing_mcp_config_uses_documented_server_without_overwriting_source(self):
+        manifest = {"name": "brewpage", "version": "1.0.0", "mcpServers": "./.mcp.json"}
+        for source_config in (None, {"mcpServers": {"custom": {"url": "https://example.com/mcp"}}}):
+            with self.subTest(source_config=source_config), tempfile.TemporaryDirectory() as scratch:
+                buffer = io.BytesIO()
+                with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                    archive.writestr("archive/.codex-plugin/plugin.json", json.dumps(manifest))
+                    if source_config is not None:
+                        archive.writestr("archive/.mcp.json", json.dumps(source_config))
+                with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "kochetkov-ma", "repo": "brewpage-codex-plugin"})
+                config_path = Path(scratch) / "kochetkov-ma/brewpage-codex-plugin/.mcp.json"
+                self.assertTrue(config_path.is_file())
+                config = json.loads(config_path.read_text())
+                self.assertEqual(config, source_config or {
+                    "mcpServers": {"brewpage": {"type": "http", "url": "https://brewpage.app/mcp"}}
+                })
+
+    def test_agent_harness_mirror_preserves_shared_resources_and_validation(self):
+        manifest = {
+            "name": "agent-harness-skills", "version": "0.2.0",
+            "skills": "./skills/",
+            "interface": {"composerIcon": "./assets/icon.svg"},
+        }
+        resources = {
+            "skills/validation-harness-design/SKILL.md":
+                b"Read `../../references/harness-patterns.md`.\n",
+            "references/harness-patterns.md": b"# Shared patterns\n",
+            "references/harness-profiles.json": b'{"templateDirectory": "templates"}\n',
+            "templates/validation-matrix.md": b"# Validation matrix\n",
+            "scripts/check_skill_closure.py": b"print('passed')\n",
+            "scripts/test_check_skill_closure.py": b"# Validator tests\n",
+            ".opencode/plugins/agent-harness-skills.js": b"export default async () => ({});\n",
+            ".claude-plugin/plugin.json": b'{"name": "agent-harness-skills"}\n',
+            ".cursor-plugin/plugin.json": b'{"name": "agent-harness-skills"}\n',
+            "gemini-extension.json": b'{"contextFileName": "GEMINI.md"}\n',
+            "AGENTS.md": b"# Repository instructions\n",
+            "INDEX.md": b"# Skill routing\n",
+            "GEMINI.md": b"Read INDEX.md.\n",
+            "README.zh-CN.md": b"# Translated README\n",
+            "CONTRIBUTING.md": b"# Contributing\n",
+            "CODE_OF_CONDUCT.md": b"# Code of conduct\n",
+            "docs/scenario-tests.md": b"# Scenario evidence\n",
+            "assets/icon.svg": b"<svg/>\n",
+            "package.json": b'{"scripts": {"validate": "python3 scripts/check_skill_closure.py"}}\n',
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("archive/.codex-plugin/plugin.json", json.dumps(manifest))
+                for path, content in resources.items():
+                    archive.writestr("archive/" + path, content)
+                archive.writestr("archive/unrelated/data.txt", b"not part of the plugin")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "yfge", "repo": "agent-harness-skills"})
+            output = Path(scratch) / "yfge/agent-harness-skills"
+            for path, content in resources.items():
+                self.assertTrue((output / path).is_file(), path)
+                self.assertEqual((output / path).read_bytes(), content)
+            self.assertFalse((output / "unrelated/data.txt").exists())
+
+    def test_complete_metis_bundle_is_mirrored_verbatim(self):
+        files = {
+            ".codex-plugin/plugin.json": b'{"name":"metis-check","version":"1.0.3","skills":"./skills/","mcpServers":"./.mcp.json"}\n',
+            ".claude-plugin/plugin.json": b'{"name":"metis-check"}\n',
+            ".mcp.json": b'{"mcpServers":{}}\n',
+            "mcp.json": b'{"servers":{}}\n',
+            "plugin.json": b'{"name":"metis-check"}\n',
+            "LICENSE": b"complete unmodified bundle mirroring permitted\n",
+            "README.md": b"installation instructions\n",
+            "assets/README.txt": b"asset attribution\n",
+            "assets/icon-codex.png": b"codex icon",
+            "assets/icon.png": b"other client icon",
+            "assets/logo.png": b"logo",
+            "skills/metis-check/SKILL.md": b"check citations\n",
+            "skills/setup/SKILL.md": b"configure the service\n",
+            "future/new.json": b'{"keep":"new bundle files too"}\n',
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                for path, content in files.items():
+                    archive.writestr("archive/plugins/metis-check/" + path, content)
+                archive.writestr("archive/dist/music.mp3", b"not licensed for mirroring")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "MetisFoundry", "repo": "metis-plugins"})
+            output = Path(scratch) / "MetisFoundry/metis-plugins"
+            actual = {p.relative_to(output).as_posix(): p.read_bytes()
+                      for p in output.rglob("*") if p.is_file()}
+            self.assertEqual(actual, files)
+
+    def test_deja_hook_mirror_keeps_executable_wrapper_and_dark_logo(self):
+        manifest = {
+            "name": "deja-vu", "version": "1.0.0",
+            "hooks": "./hooks/hooks.json",
+            "interface": {"logoDark": "./assets/logo-dark.svg"},
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                prefix = "archive/codex-plugin/"
+                archive.writestr(prefix + ".codex-plugin/plugin.json", json.dumps(manifest))
+                archive.writestr(prefix + "hooks/hooks.json", '{"hooks": {}}')
+                wrapper = MODULE.zipfile.ZipInfo(prefix + "hooks/deja.sh")
+                wrapper.external_attr = 0o100755 << 16
+                archive.writestr(wrapper, b'#!/bin/sh\nexec deja "$@"\n')
+                archive.writestr(prefix + "assets/logo-dark.svg", b"<svg/>\n")
+                archive.writestr("archive/unrelated.txt", b"not bundled")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "vshulcz", "repo": "deja-vu"})
+            output = Path(scratch) / "vshulcz/deja-vu"
+            self.assertEqual((output / "hooks/deja.sh").read_bytes(), b'#!/bin/sh\nexec deja "$@"\n')
+            self.assertEqual((output / "hooks/deja.sh").stat().st_mode & 0o777, 0o755)
+            self.assertEqual((output / "assets/logo-dark.svg").read_bytes(), b"<svg/>\n")
+            self.assertFalse((output / "unrelated.txt").exists())
+
+    def test_metadata_only_mirror_keeps_dark_logo(self):
+        root = MODULE.PurePosixPath("archive")
+        selected = MODULE.collect_metadata_only_paths(
+            {"interface": {"logoDark": "./assets/logo-dark.svg"}},
+            {"archive/assets/logo-dark.svg", "archive/unrelated.txt"}, root,
+        )
+        self.assertEqual(selected, {".codex-plugin/plugin.json", "assets/logo-dark.svg"})
+
+    def test_suede_inline_mcp_keeps_runtime_and_sibling_dependencies(self):
+        runtime = {
+            "mcp/suede-skills-mcp.mjs": b"import './copy-check.mjs';\n",
+            "mcp/copy-check.mjs": b"export const check = true;\n",
+            "mcp/catalog.json": b'{"skills": []}\n',
+        }
+        manifest = {
+            "name": "suede-skills",
+            "version": "1.0.0",
+            "mcpServers": {
+                "local": {"command": "node", "args": ["./mcp/suede-skills-mcp.mjs"]}
+            },
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("archive/.codex-plugin/plugin.json", json.dumps(manifest))
+                for path, content in runtime.items():
+                    archive.writestr("archive/" + path, content)
+                archive.writestr("archive/unrelated/data.txt", b"not part of the plugin")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "JasonColapietro", "repo": "suede-creator-skills"})
+            output = Path(scratch) / "JasonColapietro/suede-creator-skills"
+            for path, content in runtime.items():
+                self.assertEqual((output / path).read_bytes(), content)
+            self.assertFalse((output / "unrelated/data.txt").exists())
+
+    def test_nested_mirror_retains_nearest_license_without_overwriting_bundle_license(self):
+        cases = (
+            ({"LICENSE": b"repository license\n"}, {"LICENSE": b"repository license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/LICENSE.txt": b"plugin collection license\n"},
+             {"LICENSE.txt": b"plugin collection license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/example/LICENSE.md": b"bundle license\n"},
+             {"LICENSE.md": b"bundle license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/example/COPYING": b"bundle copying terms\n"},
+             {"COPYING": b"bundle copying terms\n"}),
+            ({"license.md": b"lowercase repository license\n"}, {"license.md": b"lowercase repository license\n"}),
+            ({}, {}),
+        )
+        for files, expected in cases:
+            with self.subTest(files=files), tempfile.TemporaryDirectory() as scratch:
+                buffer = io.BytesIO()
+                with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                    archive.writestr("archive/plugins/example/.codex-plugin/plugin.json",
+                                     json.dumps({"name": "example", "version": "1.0.0"}))
+                    for path, content in files.items():
+                        archive.writestr("archive/" + path, content)
+                with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "example", "repo": "example"})
+                output = Path(scratch) / "example/example"
+                self.assertEqual({path.name: path.read_bytes() for path in output.iterdir() if path.is_file()}, expected)
+
+    def test_root_skill_collection_keeps_skills_and_helpers_only(self):
+        root = MODULE.PurePosixPath("archive")
+        for value in (".", "./"):
+            with self.subTest(value=value):
+                selected = MODULE.collect_selected_paths(
+                    {"skills": value},
+                    {f"archive/{path}" for path in (
+                        "alpha/SKILL.md", "alpha/scripts/run.py",
+                        "beta/SKILL.md", "beta/references/guide.md",
+                        "unrelated/data.txt", "alpha/../../outside.txt",
+                    )}, root, {"owner": "example", "repo": "skills"},
+                )
+                self.assertEqual(selected, {
+                    ".codex-plugin/plugin.json", "alpha/SKILL.md",
+                    "alpha/scripts/run.py", "beta/SKILL.md",
+                    "beta/references/guide.md",
+                })
+
+    def test_multi_llm_mirror_retains_mcp_server_and_helpers(self):
+        root = MODULE.PurePosixPath("archive/packaging/codex/multi-llm")
+        paths = {
+            ".codex-plugin/plugin.json", ".mcp.json", "mcp/server.py",
+            "mcp/helpers/dispatch.py", "skills/multi-llm/SKILL.md",
+        }
+        selected = MODULE.collect_selected_paths(
+            {"skills": "./skills/", "mcpServers": "./.mcp.json"},
+            {f"{root}/{path}" for path in paths}, root,
+            {"owner": "beastlabai", "repo": "multi-llm-plugin"},
+        )
+        self.assertEqual(selected, paths)
+
     def test_branch_qualified_readme_entry_uses_source_branch_metadata(self):
         with tempfile.TemporaryDirectory() as scratch:
             readme = Path(scratch) / "README.md"

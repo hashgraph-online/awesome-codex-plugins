@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "e2e",
+  "version": "0.24.0",
+  "description": "Write, run, and debug end-to-end tests for web and mobile apps with e2e, the open source agentic test runner.",
+  "author": {
+    "name": "e2e",
+    "url": "https://e2e.com"
+  },
+  "homepage": "https://e2e.com",
+  "repository": "https://github.com/e2e-inc/e2e",
+  "license": "Apache-2.0",
+  "keywords": [
+    "e2e",
+    "end-to-end",
+    "testing",
+    "qa",
+    "playwright",
+    "browser",
+    "ios",
+    "android",
+    "agentic-testing",
+    "bug-bash"
+  ]
+}

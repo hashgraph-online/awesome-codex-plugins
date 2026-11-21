@@ -1,6 +1,6 @@
 {
   "name": "armorcodex",
-  "version": "0.3.2",
+  "version": "0.3.9",
   "description": "ArmorIQ intent-based security enforcement for Codex: Bash command guardrails with intent verification, optional CSRG cryptographic proofs, and audit logging. Codex hooks currently fire for Bash, apply_patch, and MCP tool calls; non-Bash file/web activity may need supplemental controls. See CODEX_HARNESS_LIMITATIONS.md.",
   "author": {
     "name": "ArmorIQ",
@@ -44,12 +44,6 @@
     ]
   },
   "userConfig": {
-    "api_key": {
-      "type": "string",
-      "title": "ArmorIQ API Key",
-      "description": "Your ArmorIQ API key (get one at https://armoriq.ai). Leave blank to run in local-only mode without backend audit/intent.",
-      "sensitive": true
-    },
     "mode": {
       "type": "string",
       "title": "Enforcement Mode",
@@ -72,6 +66,18 @@
       "type": "boolean",
       "title": "Use Production Endpoints",
       "description": "When true, talks to ArmorIQ production. When false, expects a local backend on 127.0.0.1.",
+      "sensitive": false
+    },
+    "disable_observability": {
+      "type": "boolean",
+      "title": "Disable observability",
+      "description": "Observability (execution traces sent to your ArmorIQ dashboard) is enabled by default. Set to true to turn it off.",
+      "sensitive": false
+    },
+    "disable_usage_sync": {
+      "type": "boolean",
+      "title": "Disable token usage sync",
+      "description": "Applies only while observability is enabled. The usage sync uploads token counts from every local Codex session in ~/.codex/sessions to your ArmorIQ dashboard. Set to true to turn it off. Turning off observability turns it off too.",
       "sensitive": false
     }
   }

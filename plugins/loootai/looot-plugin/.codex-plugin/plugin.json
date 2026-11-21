@@ -1,0 +1,51 @@
+{
+  "name": "looot",
+  "version": "0.2.1",
+  "description": "Find, price and run data APIs for SEO, enrichment, email verification and social from one account. Pay per call, no provider keys.",
+  "author": {
+    "name": "looot",
+    "url": "https://looot.ai"
+  },
+  "homepage": "https://looot.ai/docs",
+  "repository": "https://github.com/loootai/looot-plugin",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "data-apis",
+    "seo",
+    "serp",
+    "enrichment",
+    "email-verification",
+    "social",
+    "pay-per-call"
+  ],
+  "skills": "./plugins/codex/looot/skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "looot",
+    "shortDescription": "Search, price and run data APIs (SEO, enrichment, email, social) from one account, billed per call.",
+    "longDescription": "looot connects your agent to thousands of paid data APIs through one sign-in. Ask for what you need in plain words, such as \"find the work email for this person and verify it\" or \"pull keyword volume for these domains\", and looot finds the endpoints that do it, shows the price and the measured success rate before anything runs, then runs the one you pick and returns the result.\n\nCovered today: SEO and SERP data, keyword volume and backlinks, people and company enrichment, email finding and verification, social profiles and posts, web scraping, and more providers every week.\n\nHow billing works: you top up a prepaid balance on looot.ai (paid through Stripe). Each run reserves its price, settles the real cost, and refunds what was not used. There are no provider accounts or API keys to manage. Every run has an audit record you can open later.\n\nTools: discover and search the catalog, inspect an endpoint (inputs, price, reliability), run it, check or cancel runs, see your balance, and get a top-up link when credits run out.\n\nYou need a looot account with a positive balance to run paid endpoints. Browsing the catalog is free.",
+    "developerName": "looot",
+    "category": "Productivity",
+    "capabilities": [
+      "Search the data API catalog",
+      "Price an endpoint before it runs",
+      "Run paid data APIs from one balance",
+      "Check, cancel and audit runs"
+    ],
+    "websiteURL": "https://looot.ai",
+    "privacyPolicyURL": "https://looot.ai/privacy",
+    "termsOfServiceURL": "https://looot.ai/terms",
+    "defaultPrompt": [
+      "Find the work email for the head of marketing at stripe.com and verify it.",
+      "Pull monthly search volume for these five keywords in the US.",
+      "Enrich the company behind notion.so: size, industry, funding."
+    ],
+    "brandColor": "#004E32",
+    "composerIcon": "./plugins/claude-code/looot/.claude-plugin/icon.png",
+    "logo": "./plugins/claude-code/looot/.claude-plugin/icon.png",
+    "screenshots": [
+      "./assets/hero.png"
+    ]
+  }
+}

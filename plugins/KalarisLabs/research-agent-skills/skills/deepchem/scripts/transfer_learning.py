@@ -39,6 +39,50 @@ PRETRAINED_MODELS = {
 }
 
 
+FINE_TUNING_COMPLETE = "Fine-tuning complete!"
+MODEL_EVALUATION = "Model Evaluation"
+
+
+def _default_metrics(task_type):
+    """Return the standard classification or regression metrics for evaluation."""
+    if task_type == 'classification':
+        return [
+            dc.metrics.Metric(dc.metrics.roc_auc_score, name='ROC-AUC'),
+            dc.metrics.Metric(dc.metrics.accuracy_score, name='Accuracy'),
+        ]
+    return [
+        dc.metrics.Metric(dc.metrics.r2_score, name='R²'),
+        dc.metrics.Metric(dc.metrics.mean_absolute_error, name='MAE'),
+    ]
+
+
+def _fine_tune_and_evaluate(model, n_epochs, task_type, named_datasets, announce_download):
+    """Fit on the first named dataset, then print metrics for every named dataset.
+
+    Returns the model and a dict mapping dataset names to their scores.
+    """
+    print(f"\nFine-tuning for {n_epochs} epochs...")
+    if announce_download:
+        print("(This may take a while on the first run as the model is downloaded)")
+    model.fit(named_datasets[0][1], nb_epoch=n_epochs)
+    print(FINE_TUNING_COMPLETE)
+
+    print("\n" + "=" * 70)
+    print(MODEL_EVALUATION)
+    print("=" * 70)
+
+    metrics = _default_metrics(task_type)
+    results = {}
+    for name, dataset in named_datasets:
+        print(f"\n{name} Set:")
+        scores = model.evaluate(dataset, metrics)
+        results[name] = scores
+        for metric_name, score in scores.items():
+            print(f"  {metric_name}: {score:.4f}")
+
+    return model, results
+
+
 def train_chemberta(train_dataset, valid_dataset, test_dataset, task_type='classification', n_tasks=1, n_epochs=10):
     """
     Fine-tune ChemBERTa on a dataset.
@@ -61,7 +105,7 @@ def train_chemberta(train_dataset, valid_dataset, test_dataset, task_type='class
     print("It uses SMILES strings as input and has learned rich molecular")
     print("representations that transfer well to downstream tasks.")
 
-    print(f"\nLoading pretrained ChemBERTa model...")
+    print("\nLoading pretrained ChemBERTa model...")
     model = dc.models.HuggingFaceModel(
         model=PRETRAINED_MODELS['chemberta']['model_id'],
         task=task_type,
@@ -70,36 +114,13 @@ def train_chemberta(train_dataset, valid_dataset, test_dataset, task_type='class
         learning_rate=2e-5  # Lower LR for fine-tuning
     )
 
-    print(f"\nFine-tuning for {n_epochs} epochs...")
-    print("(This may take a while on the first run as the model is downloaded)")
-    model.fit(train_dataset, nb_epoch=n_epochs)
-    print("Fine-tuning complete!")
-
-    # Evaluate
-    print("\n" + "=" * 70)
-    print("Model Evaluation")
-    print("=" * 70)
-
-    if task_type == 'classification':
-        metrics = [
-            dc.metrics.Metric(dc.metrics.roc_auc_score, name='ROC-AUC'),
-            dc.metrics.Metric(dc.metrics.accuracy_score, name='Accuracy'),
-        ]
-    else:
-        metrics = [
-            dc.metrics.Metric(dc.metrics.r2_score, name='R²'),
-            dc.metrics.Metric(dc.metrics.mean_absolute_error, name='MAE'),
-        ]
-
-    results = {}
-    for name, dataset in [('Train', train_dataset), ('Valid', valid_dataset), ('Test', test_dataset)]:
-        print(f"\n{name} Set:")
-        scores = model.evaluate(dataset, metrics)
-        results[name] = scores
-        for metric_name, score in scores.items():
-            print(f"  {metric_name}: {score:.4f}")
-
-    return model, results
+    return _fine_tune_and_evaluate(
+        model,
+        n_epochs,
+        task_type,
+        [('Train', train_dataset), ('Valid', valid_dataset), ('Test', test_dataset)],
+        announce_download=True,
+    )
 
 
 def train_grover(train_dataset, test_dataset, task_type='classification', n_tasks=1, n_epochs=20):
@@ -123,42 +144,20 @@ def train_grover(train_dataset, test_dataset, task_type='classification', n_task
     print("self-supervised learning. It learns both node and graph-level")
     print("representations through masked atom/bond prediction tasks.")
 
-    print(f"\nCreating GROVER model...")
+    print("\nCreating GROVER model...")
     model = dc.models.GroverModel(
         task=task_type,
         n_tasks=n_tasks,
         model_dir='./grover_pretrained'
     )
 
-    print(f"\nFine-tuning for {n_epochs} epochs...")
-    model.fit(train_dataset, nb_epoch=n_epochs)
-    print("Fine-tuning complete!")
-
-    # Evaluate
-    print("\n" + "=" * 70)
-    print("Model Evaluation")
-    print("=" * 70)
-
-    if task_type == 'classification':
-        metrics = [
-            dc.metrics.Metric(dc.metrics.roc_auc_score, name='ROC-AUC'),
-            dc.metrics.Metric(dc.metrics.accuracy_score, name='Accuracy'),
-        ]
-    else:
-        metrics = [
-            dc.metrics.Metric(dc.metrics.r2_score, name='R²'),
-            dc.metrics.Metric(dc.metrics.mean_absolute_error, name='MAE'),
-        ]
-
-    results = {}
-    for name, dataset in [('Train', train_dataset), ('Test', test_dataset)]:
-        print(f"\n{name} Set:")
-        scores = model.evaluate(dataset, metrics)
-        results[name] = scores
-        for metric_name, score in scores.items():
-            print(f"  {metric_name}: {score:.4f}")
-
-    return model, results
+    return _fine_tune_and_evaluate(
+        model,
+        n_epochs,
+        task_type,
+        [('Train', train_dataset), ('Test', test_dataset)],
+        announce_download=False,
+    )
 
 
 def train_molformer(train_dataset, valid_dataset, test_dataset, task_type='classification', n_tasks=1, n_epochs=10):
@@ -182,7 +181,7 @@ def train_molformer(train_dataset, valid_dataset, test_dataset, task_type='class
     print("\nMolFormer is a transformer pretrained on molecular structures.")
     print("It uses SMILES strings as input via HuggingFaceModel.")
 
-    print(f"\nLoading pretrained MolFormer model...")
+    print("\nLoading pretrained MolFormer model...")
     model = dc.models.HuggingFaceModel(
         model=PRETRAINED_MODELS['molformer']['model_id'],
         task=task_type,
@@ -191,35 +190,13 @@ def train_molformer(train_dataset, valid_dataset, test_dataset, task_type='class
         learning_rate=2e-5
     )
 
-    print(f"\nFine-tuning for {n_epochs} epochs...")
-    print("(This may take a while on the first run as the model is downloaded)")
-    model.fit(train_dataset, nb_epoch=n_epochs)
-    print("Fine-tuning complete!")
-
-    print("\n" + "=" * 70)
-    print("Model Evaluation")
-    print("=" * 70)
-
-    if task_type == 'classification':
-        metrics = [
-            dc.metrics.Metric(dc.metrics.roc_auc_score, name='ROC-AUC'),
-            dc.metrics.Metric(dc.metrics.accuracy_score, name='Accuracy'),
-        ]
-    else:
-        metrics = [
-            dc.metrics.Metric(dc.metrics.r2_score, name='R²'),
-            dc.metrics.Metric(dc.metrics.mean_absolute_error, name='MAE'),
-        ]
-
-    results = {}
-    for name, dataset in [('Train', train_dataset), ('Valid', valid_dataset), ('Test', test_dataset)]:
-        print(f"\n{name} Set:")
-        scores = model.evaluate(dataset, metrics)
-        results[name] = scores
-        for metric_name, score in scores.items():
-            print(f"  {metric_name}: {score:.4f}")
-
-    return model, results
+    return _fine_tune_and_evaluate(
+        model,
+        n_epochs,
+        task_type,
+        [('Train', train_dataset), ('Valid', valid_dataset), ('Test', test_dataset)],
+        announce_download=True,
+    )
 
 
 def load_molnet_dataset(dataset_name, model_type):
@@ -316,6 +293,7 @@ def load_custom_dataset(data_path, target_cols, smiles_col, model_type):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Transfer learning for molecular property prediction'
     )

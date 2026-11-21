@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scrapely-mcp"
+version = "0.3.17"
+description = "Model Context Protocol server for Scrape.ly: find, run and inspect Actors, and read their results."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "TeraShift GmbH" }]
+keywords = ["mcp", "model-context-protocol", "scrape.ly", "scraping", "actors"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "mcp>=2.3,<3",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "jsonschema>=4.21",
+    "starlette>=0.37",
+    "uvicorn>=0.30",
+    "anyio>=4.4",
+]
+
+[project.optional-dependencies]
+sentry = ["sentry-sdk>=2.0"]
+test = ["pytest>=8", "pytest-asyncio>=0.23", "respx>=0.21"]
+
+[project.scripts]
+scrapely-mcp-server = "scrapely_mcp.cli:stdio_main"
+scrapely-mcp-http = "scrapely_mcp.cli:http_main"
+
+[project.urls]
+Homepage = "https://scrape.ly"
+Documentation = "https://scrape.ly/docs/mcp"
+Repository = "https://github.com/scrapely-app/scrapely-mcp"
+Issues = "https://github.com/scrapely-app/scrapely-mcp/issues"
+Changelog = "https://github.com/scrapely-app/scrapely-mcp/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scrapely_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/scrapely_mcp", "README.md", "LICENSE", "CHANGELOG.md", "server.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore::DeprecationWarning"]

@@ -7,11 +7,13 @@
 **保存前，先按模板优先级读取对应模板，基于模板结构生成内容。**
 
 推荐顺序：
+
 1. 若 `.boss/<feature>/` 尚不存在，直接创建目录。
 2. 读取对应模板（项目级优先，其次内置）。
 3. 基于模板结构填充真实内容，用 Write 工具保存到 `.boss/<feature>/`。
 
 模板查找优先级：
+
 1. 项目级模板：`.boss/templates/<name>.template`
 2. Skill 内置模板：`templates/<name>.template`
 
@@ -50,9 +52,10 @@ prd.md ─┬→ architecture.md → tech-review.md → plan.md → tasks.md →
 ## 检查清单
 
 保存产物后，问自己：
+
 - [ ] 文件是否保存到了正确的 `.boss/<feature>/` 目录？
 - [ ] 文件名是否与规范一致？
-- [ ] 内容是否使用了中文（除非 `--lang en`）？
+- [ ] 内容语言是否与用户请求的语言一致（传了 `--lang` 则以它为准）？
 - [ ] 是否优先读取了 `.boss/templates/` 中的项目级模板？
 - [ ] 是否基于对应的 template 生成？
 - [ ] Markdown 产物是否包含 `## 摘要` section？

@@ -48,6 +48,7 @@ class CitationValidator:
     """Validate BibTeX entries for errors and inconsistencies."""
 
     def __init__(self):
+        """Initialise the instance."""
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'CitationValidator/1.0 (Citation Management Tool)'
@@ -339,87 +340,64 @@ class CitationValidator:
                 
         return list(cited_keys)
 
-    def validate_file(self, filepath: str, check_dois: bool = False, min_count: Optional[int] = None, venue: Optional[str] = None, manuscript_filepath: Optional[str] = None) -> Dict:
-        """
-        Validate entire BibTeX file.
-        
-        Args:
-            filepath: Path to BibTeX file
-            check_dois: Whether to verify DOIs (slow)
-            min_count: Optional minimum citation count to enforce
-            venue: Optional venue type to check against standards
-            manuscript_filepath: Optional path to manuscript to cross-check citations
-            
-        Returns:
-            Validation report dictionary
-        """
-        print(f'Parsing {filepath}...', file=sys.stderr)
-        entries = self.parse_bibtex_file(filepath)
-        
-        if not entries:
-            return {
-                'filepath': filepath,
-                'total_entries': 0,
-                'valid_entries': 0,
-                'errors': [{
-                    'type': 'empty_bibtex_file',
-                    'severity': 'high',
-                    'message': f'BibTeX file {filepath} has no valid entries.'
-                }],
-                'warnings': [],
-                'duplicates': [],
-                'venue_standard_checked': venue,
-                'min_count_checked': min_count,
-                'manuscript_results': {'checked': False}
-            }
-        
-        print(f'Found {len(entries)} entries', file=sys.stderr)
-        
+    @staticmethod
+    def _empty_report(filepath: str, min_count: Optional[int], venue: Optional[str]) -> Dict:
+        """Build the report returned when the BibTeX file has no valid entries."""
+        return {
+            'filepath': filepath,
+            'total_entries': 0,
+            'valid_entries': 0,
+            'errors': [{
+                'type': 'empty_bibtex_file',
+                'severity': 'high',
+                'message': f'BibTeX file {filepath} has no valid entries.'
+            }],
+            'warnings': [],
+            'duplicates': [],
+            'venue_standard_checked': venue,
+            'min_count_checked': min_count,
+            'manuscript_results': {'checked': False}
+        }
+
+    def _validate_all_entries(self, entries: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
+        """Validate every entry and tag each issue with its entry key."""
         all_errors = []
         all_warnings = []
-        
-        # Validate each entry
         for i, entry in enumerate(entries):
             print(f'Validating entry {i+1}/{len(entries)}: {entry["key"]}', file=sys.stderr)
             errors, warnings = self.validate_entry(entry)
-            
+
             for error in errors:
                 error['entry'] = entry['key']
                 all_errors.append(error)
-            
+
             for warning in warnings:
                 warning['entry'] = entry['key']
                 all_warnings.append(warning)
-        
-        # Check for duplicates
-        print('Checking for duplicates...', file=sys.stderr)
-        duplicates = self.detect_duplicates(entries)
-        
-        # Verify DOIs if requested
-        doi_errors = []
-        if check_dois:
-            print('Verifying DOIs...', file=sys.stderr)
-            for i, entry in enumerate(entries):
-                doi = entry['fields'].get('doi', '')
-                if doi:
-                    print(f'Verifying DOI {i+1}: {doi}', file=sys.stderr)
-                    is_valid, metadata = self.verify_doi(doi)
-                    
-                    if not is_valid:
-                        doi_errors.append({
-                            'type': 'invalid_doi',
-                            'entry': entry['key'],
-                            'doi': doi,
-                            'severity': 'high',
-                            'message': f'Entry {entry["key"]}: DOI does not resolve: {doi}'
-                        })
-        
-        all_errors.extend(doi_errors)
-        
-        # Count and Venue verification logic
-        count_errors = []
-        count_warnings = []
+        return all_errors, all_warnings
 
+    def _check_dois(self, entries: List[Dict]) -> List[Dict]:
+        """Verify each entry's DOI resolves and return an error per failure."""
+        doi_errors = []
+        print('Verifying DOIs...', file=sys.stderr)
+        for i, entry in enumerate(entries):
+            doi = entry['fields'].get('doi', '')
+            if not doi:
+                continue
+            print(f'Verifying DOI {i+1}: {doi}', file=sys.stderr)
+            is_valid, _metadata = self.verify_doi(doi)
+            if not is_valid:
+                doi_errors.append({
+                    'type': 'invalid_doi',
+                    'entry': entry['key'],
+                    'doi': doi,
+                    'severity': 'high',
+                    'message': f'Entry {entry["key"]}: DOI does not resolve: {doi}'
+                })
+        return doi_errors
+
+    def _resolve_count_target(self, min_count: Optional[int], venue: Optional[str]):
+        """Return (target_min, target_max, venue_name) from the venue and --min-count."""
         target_min = None
         target_max = None
         venue_name = None
@@ -430,30 +408,133 @@ class CitationValidator:
                 target_min, target_max, venue_name = self.venue_standards[v_lower]
             else:
                 print(f"Warning: Unknown venue '{venue}'. Supported venues are: {', '.join(self.venue_standards.keys())}", file=sys.stderr)
-        
+
         if min_count is not None:
             target_min = min_count
             venue_name = f"Custom threshold (min: {min_count})"
             target_max = None
-            
-        # A reference list is never *wrong* for being short -- the right length
-        # is whatever the argument needs -- so a shortfall is reported as a
-        # warning. `--min-count` is the exception: an explicit floor the caller
-        # asked to have enforced, so falling under it is an error.
-        total_count = len(entries)
-        if target_min is not None:
-            if min_count is not None and total_count < min_count:
-                count_errors.append({
-                    'type': 'below_requested_minimum',
-                    'severity': 'high',
-                    'message': f'Total citation entries ({total_count}) is below the requested minimum of {min_count}.'
-                })
-            elif total_count < target_min:
-                count_warnings.append({
-                    'type': 'low_citation_count',
-                    'severity': 'medium',
-                    'message': f'Total citation entries ({total_count}) is below the {venue_name or "specified standard"} rule of thumb of {target_min}-{target_max or "+"}. This is a heuristic, not a submission requirement.'
-                })
+        return target_min, target_max, venue_name
+
+    @staticmethod
+    def _count_shortfall(count: int, min_count: Optional[int], target, error_spec, warning_spec):
+        """Return (errors, warnings) for a citation count that falls below the target.
+
+        A reference list is never *wrong* for being short, so a shortfall is a
+        warning; `--min-count` is the exception, an explicit floor that errors.
+        """
+        target_min, target_max, venue_name = target
+        if target_min is None:
+            return [], []
+        if min_count is not None and count < min_count:
+            error_type, error_template = error_spec
+            return [{
+                'type': error_type,
+                'severity': 'high',
+                'message': error_template.format(count=count, min_count=min_count)
+            }], []
+        if count < target_min:
+            warning_type, warning_template = warning_spec
+            return [], [{
+                'type': warning_type,
+                'severity': 'medium',
+                'message': warning_template.format(
+                    count=count,
+                    standard=venue_name or "specified standard",
+                    target_min=target_min,
+                    target_max=target_max or "+",
+                )
+            }]
+        return [], []
+
+    def _check_manuscript(self, entries: List[Dict], manuscript_filepath: str,
+                          min_count: Optional[int], target,
+                          all_errors: List[Dict], all_warnings: List[Dict],
+                          count_errors: List[Dict], count_warnings: List[Dict]) -> Dict:
+        """Cross-check manuscript citations against the BibTeX keys."""
+        cited_keys = self.parse_manuscript_citations(manuscript_filepath)
+        bib_keys = {entry['key'] for entry in entries}
+
+        # Missing references: cited in manuscript but not defined in BibTeX
+        missing_keys = [key for key in cited_keys if key not in bib_keys]
+        for key in missing_keys:
+            all_errors.append({
+                'type': 'unresolved_citation',
+                'entry': key,
+                'severity': 'high',
+                'message': f'Unresolved citation: Key "@{key}" is cited in manuscript "{manuscript_filepath}" but not defined in the BibTeX file.'
+            })
+
+        # Unused references: defined in BibTeX but not cited in manuscript
+        unused_keys = [key for key in bib_keys if key not in cited_keys]
+        for key in unused_keys:
+            all_warnings.append({
+                'type': 'unused_citation',
+                'entry': key,
+                'severity': 'medium',
+                'message': f'Unused citation: Reference "{key}" is defined in the BibTeX file but not cited in the manuscript.'
+            })
+
+        # Check the count of ACTUALLY used citations
+        actual_count = len(cited_keys) - len(missing_keys)
+        errors, warnings = self._count_shortfall(
+            actual_count, min_count, target,
+            ('manuscript_below_requested_minimum',
+             'The manuscript cites {count} references, below the requested minimum of {min_count}.'),
+            ('low_manuscript_citation_count',
+             'The manuscript cites {count} references, below the {standard} rule of thumb of {target_min}-{target_max}. This is a heuristic, not a submission requirement.'),
+        )
+        count_errors.extend(errors)
+        count_warnings.extend(warnings)
+
+        return {
+            'checked': True,
+            'manuscript_filepath': manuscript_filepath,
+            'cited_keys': cited_keys,
+            'missing_keys': missing_keys,
+            'unused_keys': unused_keys
+        }
+
+    def validate_file(self, filepath: str, check_dois: bool = False, min_count: Optional[int] = None, venue: Optional[str] = None, manuscript_filepath: Optional[str] = None) -> Dict:
+        """
+        Validate entire BibTeX file.
+
+        Args:
+            filepath: Path to BibTeX file
+            check_dois: Whether to verify DOIs (slow)
+            min_count: Optional minimum citation count to enforce
+            venue: Optional venue type to check against standards
+            manuscript_filepath: Optional path to manuscript to cross-check citations
+
+        Returns:
+            Validation report dictionary
+        """
+        print(f'Parsing {filepath}...', file=sys.stderr)
+        entries = self.parse_bibtex_file(filepath)
+
+        if not entries:
+            return self._empty_report(filepath, min_count, venue)
+
+        print(f'Found {len(entries)} entries', file=sys.stderr)
+
+        all_errors, all_warnings = self._validate_all_entries(entries)
+
+        # Check for duplicates
+        print('Checking for duplicates...', file=sys.stderr)
+        duplicates = self.detect_duplicates(entries)
+
+        # Verify DOIs if requested
+        if check_dois:
+            all_errors.extend(self._check_dois(entries))
+
+        # Count and Venue verification logic
+        target = self._resolve_count_target(min_count, venue)
+        count_errors, count_warnings = self._count_shortfall(
+            len(entries), min_count, target,
+            ('below_requested_minimum',
+             'Total citation entries ({count}) is below the requested minimum of {min_count}.'),
+            ('low_citation_count',
+             'Total citation entries ({count}) is below the {standard} rule of thumb of {target_min}-{target_max}. This is a heuristic, not a submission requirement.'),
+        )
 
         # Manuscript checking logic
         manuscript_results = {
@@ -463,54 +544,11 @@ class CitationValidator:
             'missing_keys': [],
             'unused_keys': []
         }
-        
         if manuscript_filepath:
-            manuscript_results['checked'] = True
-            manuscript_results['manuscript_filepath'] = manuscript_filepath
-            
-            # Parse cited keys
-            cited_keys = self.parse_manuscript_citations(manuscript_filepath)
-            manuscript_results['cited_keys'] = cited_keys
-            
-            bib_keys = {entry['key'] for entry in entries}
-            
-            # Missing references: cited in manuscript but not defined in BibTeX
-            missing_keys = [key for key in cited_keys if key not in bib_keys]
-            manuscript_results['missing_keys'] = missing_keys
-            for key in missing_keys:
-                all_errors.append({
-                    'type': 'unresolved_citation',
-                    'entry': key,
-                    'severity': 'high',
-                    'message': f'Unresolved citation: Key "@{key}" is cited in manuscript "{manuscript_filepath}" but not defined in the BibTeX file.'
-                })
-                
-            # Unused references: defined in BibTeX but not cited in manuscript
-            unused_keys = [key for key in bib_keys if key not in cited_keys]
-            manuscript_results['unused_keys'] = unused_keys
-            for key in unused_keys:
-                all_warnings.append({
-                    'type': 'unused_citation',
-                    'entry': key,
-                    'severity': 'medium',
-                    'message': f'Unused citation: Reference "{key}" is defined in the BibTeX file but not cited in the manuscript.'
-                })
-                
-            # Check the count of ACTUALLY used citations
-            actual_count = len(cited_keys) - len(missing_keys)
-            if target_min is not None:
-                if min_count is not None and actual_count < min_count:
-                    count_errors.append({
-                        'type': 'manuscript_below_requested_minimum',
-                        'severity': 'high',
-                        'message': f'The manuscript cites {actual_count} references, below the requested minimum of {min_count}.'
-                    })
-                elif actual_count < target_min:
-                    count_warnings.append({
-                        'type': 'low_manuscript_citation_count',
-                        'severity': 'medium',
-                        'message': f'The manuscript cites {actual_count} references, below the {venue_name or "specified standard"} rule of thumb of {target_min}-{target_max or "+"}. This is a heuristic, not a submission requirement.'
-                    })
+            manuscript_results = self._check_manuscript(
+                entries, manuscript_filepath, min_count, target,
+                all_errors, all_warnings, count_errors, count_warnings,
+            )
 
         all_errors.extend(count_errors)
         all_warnings.extend(count_warnings)
@@ -535,7 +573,7 @@ class CitationValidator:
             'min_count_checked': min_count,
             'manuscript_results': manuscript_results
         }
-    
+
     def _extract_year_crossref(self, message: Dict) -> str:
         """Extract year from CrossRef message."""
         date_parts = message.get('published-print', {}).get('date-parts', [[]])

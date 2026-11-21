@@ -1,0 +1,8 @@
+Actera agent hooks
+Copyright 2026 Actera
+
+This product includes software developed by Actera.
+The bundled scanner uses Gitleaks and other third-party software.
+See vendor/gitleaks/THIRD_PARTY_NOTICES.txt for their license texts and
+vendor/gitleaks/manifest.json for binary versions and checksums.
+The scanner source is in the scanner/ directory of this repository.

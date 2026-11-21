@@ -50,6 +50,7 @@ PLACEHOLDER_MARKERS = ("REPLACE_", "REQUIRES_", "YYYY-MM-DD")
 
 
 def _find_placeholders(value: Any, location: str = "$") -> list[str]:
+    """Find placeholders."""
     findings: list[str] = []
     if isinstance(value, dict):
         for key, nested in value.items():
@@ -62,7 +63,147 @@ def _find_placeholders(value: Any, location: str = "$") -> list[str]:
     return findings
 
 
+def _section(document: dict[str, Any], name: str, fields: tuple[str, ...]) -> dict[str, Any]:
+    """Require ``document[name]`` to be an object with the given nonempty text fields."""
+    section = document.get(name)
+    if not isinstance(section, dict):
+        raise InputError(f"{name} must be an object")
+    for field in fields:
+        require_nonempty_text(section.get(field), f"{name}.{field}")
+    return section
+
+
+def _check_data_boundary(document: dict[str, Any], log: IssueLog) -> None:
+    """Validate the data_boundary block, recording soft errors in the log."""
+    boundary = document.get("data_boundary")
+    if not isinstance(boundary, dict):
+        raise InputError("data_boundary must be an object")
+    if boundary.get("raw_data_supplied") is not False:
+        log.errors.append("data_boundary.raw_data_supplied must be false")
+    if boundary.get("metadata_only") is not True:
+        log.errors.append("data_boundary.metadata_only must be true")
+    for field in ("data_context", "recipient_context", "release_context"):
+        require_nonempty_text(boundary.get(field), f"data_boundary.{field}")
+
+
+def _check_identifier_categories(
+    document: dict[str, Any], summary: dict[str, Any], log: IssueLog
+) -> None:
+    """Validate the Safe Harbor identifier category entries and their coverage."""
+    entries = require_list(
+        document.get("identifier_categories"),
+        "identifier_categories",
+        maximum=18,
+    )
+    observed_ids: set[str] = set()
+    for index, entry in enumerate(entries):
+        field = f"identifier_categories[{index}]"
+        if not isinstance(entry, dict):
+            raise InputError(f"{field} must be an object")
+        identifier = require_nonempty_text(entry.get("id"), f"{field}.id")
+        if identifier not in SAFE_HARBOR_IDS:
+            log.errors.append(f"{field}.id is not a Safe Harbor category")
+        if identifier in observed_ids:
+            log.errors.append(f"Duplicate identifier category: {identifier}")
+        observed_ids.add(identifier)
+        status = require_nonempty_text(entry.get("status"), f"{field}.status")
+        if status not in ALLOWED_STATUS:
+            log.errors.append(f"{field}.status is unsupported")
+        evidence = require_nonempty_text(entry.get("evidence"), f"{field}.evidence")
+        if status == "unresolved":
+            summary["unresolved_categories"].append(identifier)
+        if evidence.lower().startswith(("example:", "value:")):
+            log.errors.append(
+                f"{field}.evidence must not contain an example identifier or value"
+            )
+    missing_ids = sorted(SAFE_HARBOR_IDS - observed_ids)
+    extra_ids = sorted(observed_ids - SAFE_HARBOR_IDS)
+    if missing_ids:
+        log.errors.append("Missing Safe Harbor categories: " + ", ".join(missing_ids))
+    if extra_ids:
+        log.errors.append("Unexpected categories: " + ", ".join(extra_ids))
+
+
+def _check_method_reviews(
+    document: dict[str, Any], method: str, summary: dict[str, Any], log: IssueLog
+) -> None:
+    """Validate the Safe Harbor and expert-determination review blocks for ``method``."""
+    safe_harbor = _section(
+        document, "safe_harbor_review",
+        ("actual_knowledge", "free_text", "derived_fields", "date_age_zip_rules"),
+    )
+    if method == "safe_harbor":
+        if summary["unresolved_categories"]:
+            log.errors.append("Safe Harbor review has unresolved identifier categories")
+        if safe_harbor.get("completed") is not True:
+            log.errors.append("safe_harbor_review.completed must be true")
+        require_nonempty_text(
+            safe_harbor.get("reviewer_role"), "safe_harbor_review.reviewer_role"
+        )
+        require_nonempty_text(
+            safe_harbor.get("review_date"), "safe_harbor_review.review_date"
+        )
+
+    expert = document.get("expert_determination_review")
+    if not isinstance(expert, dict):
+        raise InputError("expert_determination_review must be an object")
+    if method == "expert_determination":
+        for field in (
+            "expert_qualification_reference",
+            "method_document_reference",
+            "risk_threshold_rationale",
+            "residual_risk",
+            "validity_period",
+            "change_triggers",
+            "review_date",
+        ):
+            require_nonempty_text(
+                expert.get(field), f"expert_determination_review.{field}"
+            )
+        if expert.get("completed") is not True:
+            log.errors.append(
+                "expert_determination_review.completed must be true"
+            )
+
+
+def _check_residual_and_review(document: dict[str, Any], log: IssueLog) -> dict[str, Any]:
+    """Validate the residual-risk, human-review and governance blocks; return the review."""
+    residual = _section(
+        document, "residual_risk_review",
+        (
+            "linkage",
+            "differencing",
+            "rare_combinations",
+            "longitudinal_patterns",
+            "geography",
+            "genomics",
+            "prior_releases",
+        ),
+    )
+    if residual.get("completed") is not True:
+        log.errors.append("residual_risk_review.completed must be true")
+
+    review = document.get("human_review")
+    if not isinstance(review, dict):
+        raise InputError("human_review must be an object")
+    if review.get("required") is not True:
+        log.errors.append("human_review.required must be true")
+    require_nonempty_text(review.get("role"), "human_review.role")
+    require_nonempty_text(
+        review.get("approval_boundary"), "human_review.approval_boundary"
+    )
+    if review.get("completed") is not True:
+        log.errors.append("human_review.completed must be true")
+
+    _section(
+        document, "governance",
+        ("version", "owner", "change_summary", "auditability", "monitoring"),
+    )
+    return review
+
+
 def check_documentation(document: dict[str, Any]) -> tuple[IssueLog, dict[str, Any]]:
+    """Check documentation."""
     log = IssueLog()
     summary: dict[str, Any] = {
         "method": None,
@@ -85,131 +226,10 @@ def check_documentation(document: dict[str, Any]) -> tuple[IssueLog, dict[str, A
         if method == "undecided":
             log.errors.append("A qualified human must select and document a method")
 
-        boundary = document.get("data_boundary")
-        if not isinstance(boundary, dict):
-            raise InputError("data_boundary must be an object")
-        if boundary.get("raw_data_supplied") is not False:
-            log.errors.append("data_boundary.raw_data_supplied must be false")
-        if boundary.get("metadata_only") is not True:
-            log.errors.append("data_boundary.metadata_only must be true")
-        for field in ("data_context", "recipient_context", "release_context"):
-            require_nonempty_text(boundary.get(field), f"data_boundary.{field}")
-
-        entries = require_list(
-            document.get("identifier_categories"),
-            "identifier_categories",
-            maximum=18,
-        )
-        observed_ids: set[str] = set()
-        for index, entry in enumerate(entries):
-            field = f"identifier_categories[{index}]"
-            if not isinstance(entry, dict):
-                raise InputError(f"{field} must be an object")
-            identifier = require_nonempty_text(entry.get("id"), f"{field}.id")
-            if identifier not in SAFE_HARBOR_IDS:
-                log.errors.append(f"{field}.id is not a Safe Harbor category")
-            if identifier in observed_ids:
-                log.errors.append(f"Duplicate identifier category: {identifier}")
-            observed_ids.add(identifier)
-            status = require_nonempty_text(entry.get("status"), f"{field}.status")
-            if status not in ALLOWED_STATUS:
-                log.errors.append(f"{field}.status is unsupported")
-            evidence = require_nonempty_text(entry.get("evidence"), f"{field}.evidence")
-            if status == "unresolved":
-                summary["unresolved_categories"].append(identifier)
-            if evidence.lower().startswith(("example:", "value:")):
-                log.errors.append(
-                    f"{field}.evidence must not contain an example identifier or value"
-                )
-        missing_ids = sorted(SAFE_HARBOR_IDS - observed_ids)
-        extra_ids = sorted(observed_ids - SAFE_HARBOR_IDS)
-        if missing_ids:
-            log.errors.append("Missing Safe Harbor categories: " + ", ".join(missing_ids))
-        if extra_ids:
-            log.errors.append("Unexpected categories: " + ", ".join(extra_ids))
-
-        safe_harbor = document.get("safe_harbor_review")
-        if not isinstance(safe_harbor, dict):
-            raise InputError("safe_harbor_review must be an object")
-        for field in (
-            "actual_knowledge",
-            "free_text",
-            "derived_fields",
-            "date_age_zip_rules",
-        ):
-            require_nonempty_text(safe_harbor.get(field), f"safe_harbor_review.{field}")
-        if method == "safe_harbor":
-            if summary["unresolved_categories"]:
-                log.errors.append("Safe Harbor review has unresolved identifier categories")
-            if safe_harbor.get("completed") is not True:
-                log.errors.append("safe_harbor_review.completed must be true")
-            require_nonempty_text(
-                safe_harbor.get("reviewer_role"), "safe_harbor_review.reviewer_role"
-            )
-            require_nonempty_text(
-                safe_harbor.get("review_date"), "safe_harbor_review.review_date"
-            )
-
-        expert = document.get("expert_determination_review")
-        if not isinstance(expert, dict):
-            raise InputError("expert_determination_review must be an object")
-        if method == "expert_determination":
-            for field in (
-                "expert_qualification_reference",
-                "method_document_reference",
-                "risk_threshold_rationale",
-                "residual_risk",
-                "validity_period",
-                "change_triggers",
-                "review_date",
-            ):
-                require_nonempty_text(
-                    expert.get(field), f"expert_determination_review.{field}"
-                )
-            if expert.get("completed") is not True:
-                log.errors.append(
-                    "expert_determination_review.completed must be true"
-                )
-
-        residual = document.get("residual_risk_review")
-        if not isinstance(residual, dict):
-            raise InputError("residual_risk_review must be an object")
-        for field in (
-            "linkage",
-            "differencing",
-            "rare_combinations",
-            "longitudinal_patterns",
-            "geography",
-            "genomics",
-            "prior_releases",
-        ):
-            require_nonempty_text(residual.get(field), f"residual_risk_review.{field}")
-        if residual.get("completed") is not True:
-            log.errors.append("residual_risk_review.completed must be true")
-
-        review = document.get("human_review")
-        if not isinstance(review, dict):
-            raise InputError("human_review must be an object")
-        if review.get("required") is not True:
-            log.errors.append("human_review.required must be true")
-        require_nonempty_text(review.get("role"), "human_review.role")
-        require_nonempty_text(
-            review.get("approval_boundary"), "human_review.approval_boundary"
-        )
-        if review.get("completed") is not True:
-            log.errors.append("human_review.completed must be true")
-
-        governance = document.get("governance")
-        if not isinstance(governance, dict):
-            raise InputError("governance must be an object")
-        for field in (
-            "version",
-            "owner",
-            "change_summary",
-            "auditability",
-            "monitoring",
-        ):
-            require_nonempty_text(governance.get(field), f"governance.{field}")
+        _check_data_boundary(document, log)
+        _check_identifier_categories(document, summary, log)
+        _check_method_reviews(document, method, summary, log)
+        review = _check_residual_and_review(document, log)
 
         if document.get("compliance_claims") is not False:
             log.errors.append("compliance_claims must be false")
@@ -232,6 +252,7 @@ def check_documentation(document: dict[str, Any]) -> tuple[IssueLog, dict[str, A
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description=(
             "Check metadata documenting Safe Harbor or Expert Determination work. "

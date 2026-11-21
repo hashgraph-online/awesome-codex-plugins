@@ -1,5 +1,4 @@
 ---
-
 name: shared/tech-stack-detection
 description: 检测项目技术栈的通用方法，通过分析配置文件识别语言、框架、工具链
 version: 1.0.0
@@ -9,12 +8,11 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-- 需要了解项目技术栈时
-- 技术选型前需要检测现有技术时
-- 生成框架特定的代码或配置时
-  metadata:
+  - 需要了解项目技术栈时
+  - 技术选型前需要检测现有技术时
+  - 生成框架特定的代码或配置时
+metadata:
   internal: true
-
 ---
 
 # 技术栈检测方法
@@ -22,6 +20,7 @@ triggers:
 ## 适用场景
 
 在进行技术选型、架构设计、代码生成前，需要先了解项目当前使用的技术栈，以便：
+
 - 遵循项目现有的技术选择
 - 生成符合项目规范的代码
 - 避免引入不兼容的技术
@@ -43,6 +42,7 @@ triggers:
 | `nuxt.config.js` | Nuxt 配置        | 确认使用 Nuxt                          |
 
 **检测命令**：
+
 ```bash
 # 检测是否存在
 ls package.json tsconfig.json next.config.js vite.config.js 2>/dev/null
@@ -52,6 +52,7 @@ Read(file_path: "package.json")
 ```
 
 **关键依赖识别**：
+
 - `react`: React 项目
 - `vue`: Vue 项目
 - `next`: Next.js 项目
@@ -71,6 +72,7 @@ Read(file_path: "package.json")
 | `setup.py`         | 包配置          | 项目元数据     |
 
 **关键依赖识别**：
+
 - `django`: Django 项目
 - `flask`: Flask 项目
 - `fastapi`: FastAPI 项目
@@ -85,6 +87,7 @@ Read(file_path: "package.json")
 | `go.sum` | 依赖校验和  | 确认依赖锁定   |
 
 **关键依赖识别**：
+
 - `github.com/gin-gonic/gin`: Gin 框架
 - `github.com/gofiber/fiber`: Fiber 框架
 - `gorm.io/gorm`: GORM ORM
@@ -97,6 +100,7 @@ Read(file_path: "package.json")
 | `Cargo.lock` | 依赖锁定   | 确认依赖版本   |
 
 **关键依赖识别**：
+
 - `actix-web`: Actix Web 框架
 - `axum`: Axum 框架
 - `tokio`: 异步运行时
@@ -109,6 +113,7 @@ Read(file_path: "package.json")
 | `build.gradle` | Gradle 配置 | 依赖和任务 |
 
 **关键依赖识别**：
+
 - `spring-boot-starter`: Spring Boot 项目
 - `quarkus`: Quarkus 项目
 - `micronaut`: Micronaut 项目
@@ -121,6 +126,7 @@ Read(file_path: "package.json")
 | `Gemfile.lock` | 依赖锁定     | 确认依赖版本 |
 
 **关键依赖识别**：
+
 - `rails`: Ruby on Rails 项目
 - `sinatra`: Sinatra 项目
 
@@ -135,6 +141,7 @@ Read(file_path: "package.json")
 | `migrations/`          | 数据库迁移目录      |
 
 **数据库类型识别**：
+
 - `postgresql://`: PostgreSQL
 - `mysql://`: MySQL
 - `mongodb://`: MongoDB
@@ -195,6 +202,7 @@ Read(file_path: "package.json")  # 或其他检测到的文件
 ### 步骤3：分析依赖
 
 从配置文件中提取：
+
 - **语言和版本**：如 Node.js 18, Python 3.11, Go 1.21
 - **主框架**：如 Next.js 14, Django 5.0, Gin
 - **数据库**：如 PostgreSQL, MongoDB

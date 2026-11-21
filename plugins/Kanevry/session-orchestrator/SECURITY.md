@@ -4,17 +4,17 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.x | Yes |
-| 2.x and earlier | No |
+| 5.x | Yes |
+| 4.x and earlier | No |
 
-Only the latest 3.x minor receives fixes. See [CHANGELOG.md](CHANGELOG.md) for the
+Only the latest 5.x minor receives fixes. See [CHANGELOG.md](CHANGELOG.md) for the
 current release.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Session Orchestrator, please report it responsibly.
+If you discover a security vulnerability in Session Orchestrator, please report it responsibly and privately.
 
-**Email:** [security@gotzendorfer.at](mailto:security@gotzendorfer.at)
+**Report it through GitHub Private Vulnerability Reporting:** [open a private report](https://github.com/Kanevry/session-orchestrator/security/advisories/new) (repository tab *Security* → *Report a vulnerability*). This is the only channel; please do not open a public issue for a vulnerability.
 
 Please include:
 - Description of the vulnerability
@@ -37,14 +37,37 @@ What it **does** touch:
 - **Your VCS CLI** — spawns `glab` / `gh` using your existing authentication.
 - **Credentials via environment** — reads `GITLAB_TOKEN` (baseline fetch),
   `CLANK_EVENT_SECRET` (event-bus bearer token), and `NPM_TOKEN` from a gitignored
-  `.env.local` (publish flow only). It never persists them; `CLANK_EVENT_SECRET` is
-  transmitted as a bearer token when the event bus is configured. See
-  [.env.example](.env.example).
-- **Outbound network, all opt-in and off by default** — event-bus webhook POSTs
+  `.env.local` (publish flow only). It does not keep them anywhere else, with one
+  exception: the publish flow writes `NPM_TOKEN` to a mode-`0600` file in a private
+  directory under the system temp directory for the duration of each npm call and
+  deletes it afterwards; if deletion fails it prints a warning to delete the file
+  and rotate the token. A hard process kill skips that cleanup.
+  `CLANK_EVENT_SECRET` is transmitted as a bearer token when the event bus is
+  configured. See `.env.example` in the source repository.
+- **Outbound network** — most paths are opt-in: event-bus webhook POSTs
   (only when `CLANK_EVENT_URL` *and* `CLANK_EVENT_SECRET` are set), GitLab API
-  baseline fetches (only with `GITLAB_TOKEN`), and anonymous usage telemetry
+  baseline fetches (only with `GITLAB_TOKEN`), anonymous usage telemetry
   (strictly opt-in, one-time consent, whitelist-projected — see
   [docs/telemetry.md](docs/telemetry.md)).
+  **On by default, two paths:** (1) the SessionStart update check, one GET to
+  the public npm registry, independent of telemetry consent. A successful result
+  is cached for 24 hours per repository; a failed request or cache write can
+  cause another request at the next session. Disable it with
+  `SO_DISABLE_UPDATE_CHECK`, `DO_NOT_TRACK` or
+  `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` (see
+  [docs/telemetry.md](docs/telemetry.md)). (2) The security-pulse background
+  refresher, started from SessionStart when its cache is due (6-hour TTL per
+  part; sooner when HEAD moved or a part failed, at most one start per
+  10 minutes). It fetches the Node release index and the CISA KEV feed, sends the
+  names and versions of the lockfile packages at HEAD (private packages
+  filtered out) to OSV, and, for GitHub remotes, queries open private
+  vulnerability reports through your `gh` login. `security-delta.mode` does not
+  gate it. It does not start when `DO_NOT_TRACK` or
+  `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set (set, non-empty, not `0`,
+  not `false`), the same two flags the update check honours. Its own switch is
+  `SO_SECURITY_PULSE_REFRESH=off`; `SO_DISABLE_STARTUP_PROBES=1` switches off
+  all startup probes. Release and site scripts the operator starts by
+  hand also make network requests.
 - **An optional self-hosted ingest server** — `server/ingest/` is a small HTTP
   service (with `Dockerfile`, rate limiting, SQLite persistence, retention) that an
   operator may deploy to *receive* telemetry. It is not run by the plugin and is not
@@ -53,11 +76,11 @@ What it **does** touch:
 What it does **not** do:
 - Execute user-provided code directly
 - Store or forward credentials to any third party
-- Send anything over the network without an explicit opt-in
+- Send telemetry or event-bus data without an explicit opt-in
 
 Security concerns are most likely to involve:
 - **Hook scripts** (`hooks/*.mjs`) — command injection via crafted file paths or tool input
-- **Skill instructions** — prompt injection that could bypass scope enforcement or safety constraints
+- **Skill instructions** — prompt injection that makes an agent leak data, run foreign code or switch a guard off for other sessions (see [What the guards are, and are not](#what-the-guards-are-and-are-not))
 - **Agent dispatch** — unintended tool access or scope escalation during wave execution
 - **Session Config** — the `*-command` keys are executed via a shell; see
   [Session Config Command Trust](#session-config-command-trust) below
@@ -91,7 +114,8 @@ out-of-repo path is denied.
 command against `blockedCommands[]` using word-boundary matching (so `rm` does not
 match `format`). When `blockedCommands` is empty or absent, a hardcoded fallback
 list applies (`rm -rf`, `git push --force` / `-f`, `git reset --hard`,
-`drop table`, `git checkout -- .`).
+`drop table`, `git checkout --`, which also covers per-file discard and the
+`git restore` forms).
 
 Both wave guards **fail closed**: any unhandled internal error emits a deny,
 never a silent allow. (The session-level destructive-command guard makes the
@@ -169,13 +193,47 @@ Scope constraints change between waves:
 
 | Hook | Protects against |
 |---|---|
-| `pre-bash-destructive-guard.mjs` | Destructive shell commands in the **main** session, per the effective `blocked-commands.json` policy — at least the 14 floor rules from the plugin's policy, plus any additive overlay rules from the repo's policy (`block` or `warn` severity, each citing its source rule; see [Policy floor (blocked-commands)](#policy-floor-blocked-commands)). Bypass requires `allow-destructive-ops: true` in Session Config. |
+| `pre-bash-destructive-guard.mjs` | Destructive shell commands in the **main** session, per the effective `blocked-commands.json` policy — at least the 14 floor rules from the plugin's policy, plus any additive overlay rules from the repo's policy (`block` or `warn` severity, each citing its source rule; see [Policy floor (blocked-commands)](#policy-floor-blocked-commands)). Reads the text of the tool call only; see [What the guards are, and are not](#what-the-guards-are-and-are-not). `allow-destructive-ops: true` in Session Config is ignored (it was agent-writable); the operator relaxes the guard from outside the agent's reach with `SO_HOOK_PROFILE` / host-local `owner.yaml` `hooks.profile`, or switches it off with `SO_DISABLED_HOOKS=pre-bash-destructive-guard`. |
 | `config-protection.mjs` | Edits that *loosen* a quality gate — lowered thresholds, added `eslint-disable`/`@ts-ignore`, rules flipped to `off`, widened `.gitleaks.toml` allowlists, relaxed tsconfig strictness. Warn-by-default, fail-open on internal error. |
 | `pre-bash-staging-fence.mjs` + `wave-scope-commit-guard.mjs` | Concurrent `git add` races between parallel wave-agents, and lint-staged sweeps that re-stage files outside wave scope. Rejects the commit rather than the edit. |
 
 The behavioural rules these guards mechanise are documented in
 [`.claude/rules/parallel-sessions.md`](.claude/rules/parallel-sessions.md) (PSA-003,
 PSA-004, PSA-007).
+
+### What the guards are, and are not
+
+The destructive-command guard, the sessions-ledger guards and the STATE.md path
+guard are **accident guards for a cooperating agent**. They are not a containment
+boundary against an agent that is trying to get around them.
+
+What they see, measured against the code:
+
+- They read the **text** of one tool call. A script file the call runs
+  (`node ./cleanup.mjs`, `sh ./cleanup.sh`) is not inspected.
+- Alias spellings of a protected path are not all recognised: a symlink or
+  Windows junction, an NTFS stream suffix, case variants on a case-insensitive
+  volume, a trailing slash on a directory.
+- On Codex, text typed into an already open interactive shell reaches no hook.
+  On Windows, Codex sends PowerShell text with the tool name `Bash`, which the
+  POSIX rules do not understand.
+- The destructive-command guard no longer honours `allow-destructive-ops: true`
+  in the Session Config block of `CLAUDE.md` / `AGENTS.md`: the guarded agent
+  could write that line itself. The key is ignored with a stderr warning. The
+  operator relaxes the guard from outside the agent's reach (hook profile via
+  `SO_HOOK_PROFILE` at launch or host-local `owner.yaml` `hooks.profile`;
+  profile `relaxed` warns and runs two measured cases only, a truncating
+  redirect onto an unmodified git-tracked file and `git reset --hard` on a
+  clean tree, each only when written as one plain command, and denies
+  everything else) or turns it off with
+  `SO_DISABLED_HOOKS=pre-bash-destructive-guard`. This is not the only way past a
+  guard; the points above are others.
+
+How reports are handled: a further unrecognised spelling or command shape is a
+normal bug or hardening item, not a vulnerability. A guard that leaks data,
+executes foreign code, or is turned off for other sessions remains a security
+report. What the guards do on each harness is listed in
+[docs/codex-setup.md](docs/codex-setup.md) § Which guard runs on which harness.
 
 ## Supply Chain
 
@@ -223,8 +281,10 @@ rejects shell metacharacters as defense-in-depth. Full trust model in
 2. **Prompt injection via VCS content** — issue titles and descriptions fetched via
    `glab`/`gh` are consumed in agent prompts without sanitization. A malicious issue
    body could inject instructions into an agent's context. Mitigated by: issues are
-   typically user-created in controlled workflows, and wave scope enforcement limits
-   the blast radius of any injected instructions.
+   typically user-created in controlled workflows. Wave scope enforcement and the
+   command guards catch accidents by a cooperating agent; they are not a containment
+   boundary against injected instructions that try to get around them (see
+   [What the guards are, and are not](#what-the-guards-are-and-are-not)).
 
 3. **Plugin relies on the host harness** — tool-level enforcement is provided by the
    agent's hook system. The plugin cannot enforce restrictions if hooks are bypassed
@@ -236,7 +296,10 @@ rejects shell metacharacters as defense-in-depth. Full trust model in
 
 5. **Guards are heuristics, not proofs** — `config-protection.mjs` is a
    low-false-positive line/regex heuristic, not an exhaustive AST gate, and fails
-   open by design so a guard bug never blocks legitimate work.
+   open by design so a guard bug never blocks legitimate work. The command and path
+   guards read the text of a tool call (not a script file it runs, not every alias
+   spelling of a path, nothing typed into an already open Codex shell); see
+   [What the guards are, and are not](#what-the-guards-are-and-are-not).
 
 6. **A standalone single-file copy of `check-owner-leakage.mjs` cannot resolve
    its sibling helper modules** (`../config/host-paths.mjs`,

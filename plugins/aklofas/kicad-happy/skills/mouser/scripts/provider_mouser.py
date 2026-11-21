@@ -1,0 +1,268 @@
+"""Mouser adapter: auth, search, response accessors, and the provider's sync_one_part strategy chain; the driver is distributor_core.sync. The adapter constants are the per-provider differences the driver reads."""
+
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+import _core_path  # noqa: F401
+from distributor_core.download import (_USER_AGENT, download_pdf, fetch_page_text,
+                                       note_transport_failure, try_alternative_sources)
+from distributor_core.inputs import mpn_from_value
+from distributor_core.verify import downloaded_entry, other_part, pick_requested
+from distributor_core.manifest import friendly_filename
+
+NAME = "mouser"
+DEFAULT_DELAY = 1.0
+ID_KEYS = ("mouser", "digikey", "lcsc", "element14")
+KEY_PRIORITY = ("mouser",)
+SEARCH_KEY = "mouser"  # the one distributor-specific number this provider can search with
+RENAME_PRESENT = True
+FAILED_DETAIL_WITH_URL = True
+LABELS = {
+    "found": "Found {n} unique parts with MPNs ({k} skipped without an MPN or Mouser part number)",
+    "skipped_key": "skipped_no_mpn",
+    "total_key": "total_parts_with_mpn",
+    "dry_skipped": "Skipped (no MPN or Mouser part number): {k}",
+    "summary_skipped": "  Skipped (no MPN or Mouser part number): {k}",
+}
+
+
+def preflight(**kw):
+    return {}
+
+
+def authenticate():
+    key = _get_api_key()
+    return {"error": "MOUSER_SEARCH_API_KEY not set"} if not key else {"ctx": key}
+
+
+def report_tail(out_dir, downloaded, already_present, failed):
+    return None
+
+
+def _get_api_key() -> str:
+    """Get the Mouser Search API key from environment."""
+    key = os.environ.get("MOUSER_SEARCH_API_KEY", "")
+    if not key:
+        print(
+            "Error: MOUSER_SEARCH_API_KEY environment variable not set.\n"
+            "  Get a free key at mouser.com → My Account → APIs → Search API\n"
+            "  Then: export MOUSER_SEARCH_API_KEY=your-key-here",
+            file=sys.stderr,
+        )
+    return key
+
+
+def search_mouser(mpn: str, api_key: str, allow_family: bool = False) -> dict | None:
+    """Search Mouser API for a part by MPN. Returns first match."""
+    url = f"https://api.mouser.com/api/v1/search/partnumber?apiKey={api_key}"
+    body = json.dumps({
+        "SearchByPartRequest": {
+            "mouserPartNumber": mpn,
+            "partSearchOptions": "Exact",
+        }
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read())
+    except Exception as e:
+        note_transport_failure(e)
+        print(f"[Mouser] Search failed: {e}", file=sys.stderr)
+        return None
+
+    errors = data.get("Errors", [])
+    if errors:
+        for err in errors:
+            print(f"[Mouser] API error: {err.get('Message', err)}", file=sys.stderr)
+        return None
+
+    parts = (data.get("SearchResults") or {}).get("Parts", [])
+    if not parts:
+        return None
+
+    # Prefer the requested part (exact or ordering-suffix MPN), then an exact MPN or Mouser number
+    hit = pick_requested(parts, mpn, lambda p: p.get("ManufacturerPartNumber", ""),
+                         allow_family=allow_family)
+    if hit is not None:
+        return hit
+    mpn_upper = mpn.upper()
+    for p in parts:
+        if mpn_upper in (p.get("ManufacturerPartNumber", "").upper(), (p.get("MouserPartNumber") or "").upper()):
+            return p
+    return parts[0]
+
+
+def scrape_product_page(product_url: str) -> str:
+    """Try to extract a datasheet PDF URL from a Mouser product page.
+
+    Mouser product pages contain datasheet links in the HTML. This tries
+    to fetch the page and extract the link without requiring JS rendering.
+    Returns the datasheet URL or empty string on failure.
+    """
+    if not product_url:
+        return ""
+
+    # Normalize URL
+    if not product_url.startswith("http"):
+        product_url = "https://www.mouser.com" + product_url
+
+    headers = {
+        "User-Agent": _USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    html = fetch_page_text(product_url, headers=headers)
+    if not html:
+        return ""
+
+    # Look for datasheet PDF links in the HTML
+    # Mouser uses patterns like href="/datasheet/..." or data-href with PDF URLs
+    patterns = [
+        r'href="(https?://www\.mouser\.com/datasheet/[^"]+\.pdf[^"]*)"',
+        r'href="(/datasheet/[^"]+\.pdf[^"]*)"',
+        r'href="(https?://[^"]+\.pdf)"[^>]*>[^<]*[Dd]ata\s*[Ss]heet',
+        r'"(https?://www\.mouser\.com/pdfDocs/[^"]+\.pdf)"',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, html, re.IGNORECASE)
+        if match:
+            url = match.group(1)
+            if url.startswith("/"):
+                url = "https://www.mouser.com" + url
+            return url
+
+    return ""
+
+
+def sync_one_part(
+    part: dict,
+    output_dir: Path,
+    delay: float,
+    ctx,
+) -> dict:
+    """Download datasheet for one part. Returns updated manifest entry."""
+    mouser_api_key = ctx
+    mpn = part["mpn"]
+    mouser_pn = part.get("mouser", "")
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Use MPN for display/filename if available, otherwise fall back to Mouser PN
+    display_pn = mpn or mouser_pn
+
+    desc = part.get("description", "")
+    mfg = part.get("manufacturer", "")
+    filename = friendly_filename(display_pn, desc, mfg) + ".pdf"
+    output_path = output_dir / filename
+
+    # Strategy 1: Try the datasheet URL from the schematic itself
+    schematic_url = part.get("datasheet", "")
+    if schematic_url and schematic_url != "~" and "://" in schematic_url:
+        print(f"  Trying schematic URL...", file=sys.stderr)
+        if download_pdf(schematic_url, str(output_path)):
+            return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                    manufacturer=mfg, description=desc, url=schematic_url,
+                                    source="schematic", now=now)
+
+    # Strategy 2: Search Mouser API — try MPN first, then Mouser PN
+    time.sleep(delay)  # Rate limit
+    search_query = mpn or mouser_pn
+    print(f"  Searching Mouser for '{search_query}'...", file=sys.stderr)
+    family = mpn_from_value(part)
+    mouser_part = search_mouser(search_query, mouser_api_key, family and bool(mpn))
+
+    def _other(hit, by_pn):
+        if not hit:
+            return ""
+        return other_part(mouser_pn if by_pn else mpn, hit.get("ManufacturerPartNumber", ""),
+                          [hit.get("MouserPartNumber") or ""], by_pn=by_pn,
+                          allow_family=family, part_mpn=mpn)
+
+    closest = _other(mouser_part, not mpn)
+    if closest:
+        mouser_part = None
+
+    # If MPN search failed but we have a Mouser PN, try that
+    if not mouser_part and mpn and mouser_pn:
+        time.sleep(delay)
+        print(f"  MPN not found, trying Mouser PN '{mouser_pn}'...", file=sys.stderr)
+        mouser_part = search_mouser(mouser_pn, mouser_api_key)
+        mismatch = _other(mouser_part, True)
+        if mismatch:
+            closest, mouser_part = mismatch, None
+
+    mouser_ds_url = ""
+    if mouser_part:
+        mouser_ds_url = mouser_part.get("DataSheetUrl", "")
+        mouser_mfg = mouser_part.get("Manufacturer", mfg)
+        mouser_desc = mouser_part.get("Description", "")
+        if mouser_desc:
+            filename = friendly_filename(display_pn, mouser_desc, mouser_mfg) + ".pdf"
+            output_path = output_dir / filename
+            desc = mouser_desc
+            mfg = mouser_mfg
+
+    # Try Mouser's datasheet URL
+    if mouser_ds_url:
+        print(f"  Trying Mouser datasheet URL...", file=sys.stderr)
+        if download_pdf(mouser_ds_url, str(output_path)):
+            return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                    manufacturer=mfg, description=desc, url=mouser_ds_url,
+                                    source="mouser", now=now)
+
+    # Strategy 3: Scrape Mouser product page for datasheet link
+    if mouser_part:
+        product_url = mouser_part.get("ProductDetailUrl", "")
+        if product_url:
+            print(f"  Scraping product page for datasheet link...", file=sys.stderr)
+            scraped_url = scrape_product_page(product_url)
+            if scraped_url:
+                print(f"  Found datasheet link on product page", file=sys.stderr)
+                if download_pdf(scraped_url, str(output_path)):
+                    return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                            manufacturer=mfg, description=desc, url=scraped_url,
+                                            source="mouser_scrape", now=now)
+
+    # Strategy 4: Try alternative manufacturer sources
+    if display_pn:
+        print(f"  Trying alternative sources...", file=sys.stderr)
+    if display_pn and try_alternative_sources(display_pn, str(output_path)):
+        return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                manufacturer=mfg, description=desc, url=mouser_ds_url,
+                                source="alternative", now=now, warn=False)
+
+    if not mouser_part:
+        return {
+            "manufacturer": mfg,
+            "description": desc,
+            "value": part["value"],
+            "references": part["references"],
+            "status": "not_found",
+            "error": (f"No matching Mouser result for '{display_pn}' (closest: '{closest}', a different part)"
+                      if closest else f"No Mouser results for '{display_pn}'"),
+            "last_attempt": now,
+        }
+
+    return {
+        "manufacturer": mfg,
+        "description": desc,
+        "value": part["value"],
+        "datasheet_url": mouser_ds_url,
+        "references": part["references"],
+        "status": "failed",
+        "error": "All download methods failed",
+        "last_attempt": now,
+    }

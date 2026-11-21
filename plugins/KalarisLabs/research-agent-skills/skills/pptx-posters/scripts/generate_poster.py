@@ -28,6 +28,7 @@ from _pptx import (
 )
 from inventory_images import build_inventory
 
+PPTX_SUFFIX = ".pptx"
 EXPECTED_VERSIONS = {
     "python-pptx": "1.0.2",
     "Pillow": "12.3.0",
@@ -36,6 +37,7 @@ EXPECTED_VERSIONS = {
 
 
 def _require_exact_dependencies() -> dict[str, str]:
+    """Handle require exact dependencies."""
     installed: dict[str, str] = {}
     for distribution, expected in EXPECTED_VERSIONS.items():
         try:
@@ -56,6 +58,7 @@ def _require_exact_dependencies() -> dict[str, str]:
 
 
 def _rgb(value: str, rgb_class: Any) -> Any:
+    """Handle rgb."""
     return rgb_class(
         int(value[1:3], 16),
         int(value[3:5], 16),
@@ -78,6 +81,7 @@ def _set_text_shape(
     MSO_AUTO_SIZE: Any,
     existing_shape: Any | None = None,
 ) -> None:
+    """Set text shape."""
     if existing_shape is None:
         shape = slide.shapes.add_textbox(
             Inches(float(element["x_in"])),
@@ -144,6 +148,7 @@ def _add_picture(
     metadata: dict[str, Any],
     Inches: Any,
 ) -> tuple[str, str]:
+    """Add picture."""
     width_px = int(metadata["width_px"])
     height_px = int(metadata["height_px"])
     box_width = float(element["width_in"])
@@ -172,6 +177,7 @@ def _build_presentation(
     image_inventory: dict[str, Any],
     output_path: Path,
 ) -> dict[str, str]:
+    """Build presentation."""
     try:
         from pptx import Presentation
         from pptx.dml.color import RGBColor
@@ -266,7 +272,7 @@ def generate_poster(
 ) -> dict[str, Any]:
     """Generate, patch, technically inspect, and publish a new PPTX poster."""
     dependency_versions = _require_exact_dependencies()
-    destination = checked_output_file(output_value, suffix=".pptx")
+    destination = checked_output_file(output_value, suffix=PPTX_SUFFIX)
     manifest_path, document, validation = load_and_validate_manifest(
         manifest_value,
         verify_assets=True,
@@ -278,13 +284,13 @@ def generate_poster(
         raise CliError(f"image inventory failed: {messages}")
 
     source_descriptor, source_temp = private_temp_file(
-        destination, suffix=".pptx"
+        destination, suffix=PPTX_SUFFIX
     )
     sanitized_descriptor, sanitized_temp = private_temp_file(
-        destination, suffix=".pptx"
+        destination, suffix=PPTX_SUFFIX
     )
     patched_descriptor, patched_temp = private_temp_file(
-        destination, suffix=".pptx"
+        destination, suffix=PPTX_SUFFIX
     )
     os.close(source_descriptor)
     os.close(sanitized_descriptor)
@@ -392,6 +398,7 @@ def generate_poster(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate one editable, macro-free PPTX poster from strict, approved "
@@ -411,6 +418,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

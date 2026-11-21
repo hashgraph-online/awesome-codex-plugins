@@ -1,0 +1,11 @@
+{
+  "update_id": 961004,
+  "business_message": {
+    "message_id": 77,
+    "date": 1763200300,
+    "business_connection_id": "bizconn_oksana",
+    "chat": {"id": 222222222, "type": "private", "first_name": "Іван"},
+    "from": {"id": 222222222, "is_bot": false, "first_name": "Іван", "language_code": "uk"},
+    "text": "Добрий день! Які у вас години роботи сьогодні?"
+  }
+}

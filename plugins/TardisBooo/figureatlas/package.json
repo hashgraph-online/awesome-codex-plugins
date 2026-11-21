@@ -1,0 +1,50 @@
+{
+  "name": "@tardisbooo/figureatlas",
+  "version": "2.0.0",
+  "description": "300 verified figure types for papers, slides, posters, and video frames. Agents pick a figure id and export HTML or SVG.",
+  "main": "scientific_visual_studio/__init__.py",
+  "author": "TardisBooo <i_chenshaobo@163.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TardisBooo/figureatlas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TardisBooo/figureatlas/issues"
+  },
+  "homepage": "https://github.com/TardisBooo/figureatlas#readme",
+  "keywords": [
+    "dsh-plugin",
+    "dsh-skill",
+    "scientific-visualization",
+    "academic-figures",
+    "figure-catalog",
+    "agent-skill",
+    "claude-code",
+    "cursor",
+    "codex"
+  ],
+  "files": [
+    "skills",
+    "cordis.patch.yml",
+    "plugin.json",
+    ".codex-plugin",
+    "SECURITY.md",
+    "CATALOG.md",
+    "figureatlas.py",
+    "screenshots.json"
+  ],
+  "engines": {
+    "dsh": ">=0.1.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "type": "skill",
+    "category": "skill",
+    "skills": [
+      "skills/visual-storyboard-designer/SKILL.md"
+    ]
+  }
+}

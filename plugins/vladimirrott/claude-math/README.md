@@ -60,7 +60,7 @@ directories at the target). `--copy` forces a real copy instead of symlink.
 ### Manual install
 
 ```bash
-git clone https://github.com/vladimirrott/claude-math \
+git clone https://github.com/agentsmith-tools/claude-math \
   ~/.claude/plugins/local/claude-math
 ```
 
@@ -72,7 +72,7 @@ once is the easiest path.
 ### Via Claude Code's plugin marketplace (recommended)
 
 ```
-/plugin marketplace add vladimirrott/claude-math
+/plugin marketplace add agentsmith-tools/claude-math
 /plugin install claude-math@vladimirrott
 ```
 
@@ -86,7 +86,7 @@ claude-math works in [OpenAI Codex CLI](https://developers.openai.com/codex/) to
 **Native Codex plugin (recommended — no npm):**
 
 ```
-codex plugin marketplace add vladimirrott/claude-math
+codex plugin marketplace add agentsmith-tools/claude-math
 codex plugin add claude-math@vladimirrott
 ```
 
@@ -108,7 +108,7 @@ Use one path or the other, not both — installing via the plugin *and* the CLI 
 Working from a clone (before or after publish):
 
 ```bash
-git clone https://github.com/vladimirrott/claude-math && cd claude-math
+git clone https://github.com/agentsmith-tools/claude-math && cd claude-math
 node bin/claude-math.js install     # uses the cloned directory directly
 node --test test/                   # run the test suite
 ```

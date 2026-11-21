@@ -1,0 +1,51 @@
+{
+  "name": "e2e",
+  "version": "0.24.0",
+  "description": "Write, run, and debug end-to-end tests for web and mobile apps with e2e, the open source agentic test runner.",
+  "author": {
+    "name": "e2e",
+    "url": "https://e2e.com"
+  },
+  "homepage": "https://e2e.com",
+  "repository": "https://github.com/e2e-inc/e2e",
+  "license": "Apache-2.0",
+  "keywords": [
+    "e2e",
+    "end-to-end",
+    "testing",
+    "qa",
+    "playwright",
+    "browser",
+    "ios",
+    "android",
+    "agentic-testing",
+    "bug-bash"
+  ],
+  "interface": {
+    "displayName": "e2e",
+    "shortDescription": "Agentic tests for web & mobile",
+    "longDescription": "Use e2e to add end-to-end tests to a project, write tests that mix agent goals with exact locator assertions, run them in a browser or on an iOS simulator, Android emulator, or phone, and fix failures from the run's trace. Drive the running app over the e2e MCP server to check a UI change, explore an app toward a goal, or bug bash a branch with each bug proven by a repro test.",
+    "developerName": "e2e",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://e2e.com",
+    "privacyPolicyURL": "https://e2e.com/privacy",
+    "termsOfServiceURL": "https://github.com/e2e-inc/e2e/blob/main/LICENSE",
+    "supportURL": "https://e2e.com/contact",
+    "defaultPrompt": [
+      "Add e2e tests for the sign-up flow",
+      "Check my UI change in the running app",
+      "Bug bash this branch and prove each bug with a test"
+    ],
+    "brandColor": "#111111",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

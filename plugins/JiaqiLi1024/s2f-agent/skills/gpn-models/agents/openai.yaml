@@ -1,0 +1,4 @@
+interface:
+  display_name: "GPN Models"
+  short_description: "GPN model selection and workflow guide"
+  default_prompt: "Use $gpn-models to help me choose a GPN framework, load a checkpoint, or run grounded training, embedding, and variant-effect workflows."

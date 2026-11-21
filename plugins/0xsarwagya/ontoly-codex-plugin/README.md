@@ -37,7 +37,5 @@ pnpm ontoly mcp
 ## Validation
 
 ```bash
-python3 /Users/shrey/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
-python3 /Users/shrey/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/ontoly-software-graph
 plugin-scanner scan . --format text
 ```

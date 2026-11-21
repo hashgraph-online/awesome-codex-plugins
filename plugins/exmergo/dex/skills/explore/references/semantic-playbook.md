@@ -161,13 +161,166 @@ format rather than a missing feature:
 - **A metric with no `semantic_models` is a metric whose lineage did not resolve**,
   not one that reads nothing. Ossie carries no metric-to-dataset reference, so Dex
   reports only what a qualified reference in the expression proved, and reports
-  nothing when none did.
+  nothing when none did. A metric named `dataset.metric` is dataset-scoped
+  (`datasets[].metrics`): it aggregates that one dataset's fields, and its lineage
+  is that dataset.
+
+A declared key or join names **fields**, and dex follows each field to the column
+its expression names, so `explore relationships --use-project --verify` probes
+the columns even where a field is named differently. A key or join on a field
+with no column (computed, quoted, non-SQL) is named in a note and never probed.
 
 An element with no `column` is also normal here and the notes say which of four
 reasons applies: a computed expression, a quoted identifier, a query-backed
 dataset source, or a field written only in a non-SQL dialect. In every one of them
 Dex declined to guess a column rather than failed to find one, so do not go looking
 for the column yourself and do not treat the absence as a data problem.
+
+## When the layer is Cube models
+
+`vendor: cube` means the layer is Cube YAML model files in the repository, read
+statically with no Cube server. `list` reads the same shape as anywhere else:
+
+- **A dimension token is `cube.member`**, and a view's member is
+  `view.member`. A view has no `relation`; each of its members carries the cube
+  member it exposes in `vendor_params.source`, and that cube's `relation` is the
+  table to profile.
+- **A measure is listed twice on purpose.** An aggregating measure (`sum`,
+  `count`, ...) is a `measure` and a `simple` metric named `cube.member`. A
+  calculated `number` measure is a `ratio` or `derived` metric only. Measure
+  names are scoped to their cube, so two cubes may each have `count`: read
+  `semantic_model` with the name.
+- **There are no entities.** `primary_key` and joins reach `explore map`,
+  `explore relationships` and `explore profile` through `--use-project`.
+- **`compiled_only` lists what Dex did not read**: a JS model, a templated
+  (Jinja) YAML file, or a cube using `extends`. Those definitions exist; do not
+  report them as missing, and do not guess at their contents.
+- **`query` and `values` need a Cube server, as a renderer.** Dex asks the
+  server at `semantic.cube.url` for the SQL and runs it itself, so
+  `CUBEJS_API_SECRET` must be exported (never put it in config), and a host
+  other than this machine must be named in `DEX_CUBE_ALLOWED_HOSTS`. No Cube
+  server running, or the wrong secret, is an error naming the fix; with none
+  available, use `explore profile` and `explore query` on the relations the
+  catalog names instead.
+- **Speak Cube's dialect.** Metrics and dimensions are `cube.member` (or
+  `view.member`). Cube has no `metric_time`: group by the time dimension with
+  its grain, `--group-by orders.ordered_at__month` (custom granularities work
+  the same way). `--where` takes Cube's JSON filter, one object, a list, or
+  `and`/`or` groups; a date range on the grouped time dimension
+  (`inDateRange`) also bounds a rolling window. `--order-by` names only the
+  query's own members, `--order-by=-orders.revenue` for descending.
+- **A stale-renderer refusal means restart Cube, not fix the query.** Cube
+  outside dev mode never reloads an edited model file, so after a
+  `semantic cube update` the server serves the old model until restarted, and
+  Dex refuses rather than run SQL from a model nobody reviewed. A refusal naming
+  a cube planned over another table than its `sql_table` is the same case: the
+  server holds another model than the repository. A refusal naming a
+  pre-aggregation means Cube would answer from a rollup table; query members it
+  does not cover.
+- **`--api` hands execution to Cube.** The Cube server runs the query over
+  `/v1/load` with its own warehouse connection, so it answers on any warehouse
+  Cube supports (Databricks, ClickHouse and Trino included, which `--local`
+  refuses), with no estimate and no ceiling: `execution: vendor`, a `cost guard
+  unavailable` warning and `cost.paradigm: hosted` on every result. Prefer
+  `--local` where the connector is supported and spend matters. The PII gate
+  still runs first, and a Cube Core still has to serve the repository's model.
+- **On Cube Cloud (`deployment: cube_cloud`) the catalog is the deployment's.**
+  `list` and the default query read Cube Cloud's compiled model, which can
+  include JS, Jinja and `extends` definitions the files only name, but carries
+  no relation or column (declared in `unavailable`), and omits primary keys and
+  private members. Every result says it was not checked against the repository;
+  to hold the deployment to the reviewed files, pass `--local`, which has Cube
+  Cloud render and Dex execute, and refuses a deployment whose members, kinds,
+  aggregations, filters, member SQL, joins or tables differ from the files.
+  `CUBE_API_TOKEN` must be exported (never in config); a host that is not
+  `*.cubecloudapp.dev` / `*.cubecloud.dev` needs `DEX_CUBE_ALLOWED_HOSTS`.
+
+## When the layer is Databricks Metric Views
+
+`vendor: databricks` means the layer is Metric View YAML files in the repository,
+read statically with no workspace connection. `list` reads the same shape as
+anywhere else:
+
+- **A view is named after its file.** `views/orders.yaml` is the view `orders`,
+  whatever it is deployed as in Unity Catalog. Tokens are `view.field` and
+  `view.measure`.
+- **A joined field has no `column`.** `customer.name` sits on the joined table,
+  named in `vendor_params.join`; that table is the one to profile. The view's own
+  `relation` is its `source`.
+- **There are no entities and no time grains.** Joins and `rely` keys reach
+  `explore map`, `relationships` and `profile` through `--use-project`. A field is
+  `time` only where its `format` says date. A time bucket is the field's own SQL.
+- **Read `vendor_params` before trusting a metric.** A window or `partition`
+  measure is listed as `derived` with its spec there, and is not modelled. The
+  view's `filter` is on every metric's `filter`.
+- **`query` and `values` run on the Databricks connector only** (#1362). One
+  view per query; `query` needs at least one measure, while `values` reads a
+  field alone and takes `--metric` only to scope it. A window or `partition`
+  measure, a view declaring `parameters` or a `materialization`, and a measure in
+  `--where` are refused by name. On any other connector, use `explore profile` and
+  `explore query` on the relations the catalog names.
+- **The answer is the reviewed file's, or none.** The deployed view is read back
+  and held to the file on everything the query relies on (#1363). A refusal for
+  a difference names the member and the field: relay it, and the fix is to
+  redeploy the reviewed file or bring the file in line and review it, never to
+  query around it. A view that cannot be read back is refused with its coverage
+  reason. `list --deployed` shows the deployed copy, with each view's coverage.
+- **A `rely` key is a claim Databricks never checks.** A wrong one returns wrong
+  numbers silently, so `explore profile --use-project` and `maintain grain`
+  measure it; a duplicate there is a finding to report.
+- **`deployment: databricks_workspace` reads Unity Catalog alone** (#1364): every
+  Metric View the source allowlist holds, with no file needed, and `query` and
+  `values` run the same way over it. Nothing is held to a file, so every result
+  warns that its definitions were read from Unity Catalog and not checked (and
+  says `source: account` or `definition_source: account`): relay that, and treat
+  a deployed view as the definition, not a reviewed one. A view is named by its
+  Unity Catalog name, not a file's stem. A view a configured file describes is
+  named on its `coverage` (`repository_file`); `--local` holds it to that file.
+  `coverage: refused` for two copies of one name means two allowlisted schemas
+  hold it: narrow with `--scope` (and the schema holding its source tables).
+
+## When the layer is Snowflake Semantic Views
+
+`vendor: snowflake` means the layer is Semantic View YAML files in the
+repository, read statically with no Snowflake connection. `list` reads the same
+shape as anywhere else:
+
+- **Every name carries its view.** A logical table is `view.table`, a member
+  `view.table.member`, a view-level metric `view.metric`. The part after the
+  view is what Snowflake's `SEMANTIC_VIEW(...)` clause takes.
+- **A fact is a dimension row that never groups.** `vendor_params.kind: fact`,
+  `groupable: false`: Snowflake queries facts on their own, never beside a
+  metric, so no metric lists one as groupable.
+- **Entities are real.** A primary key is an entity, and relationships are joins
+  with their arity; they reach `explore map`, `relationships` and `profile`
+  through `--use-project`. There are no time grains.
+- **Read `vendor_params` and `notes` before trusting a metric.** Window metrics,
+  `NON ADDITIVE BY`, `using_relationships` and ASOF or range relationships are
+  carried, not modelled. A private metric or fact is marked `access: private`.
+- **`sample_values` never reach you.** Only their count does: Snowflake does not
+  mask them.
+- **`query` and `values` run against the deployed view, on Snowflake only.**
+  Use the catalog's tokens, one view per query
+  (`sales.orders.revenue --group-by sales.customers.segment`). Facts never go beside a metric or a
+  dimension: query them alone (`--group-by sales.orders.total_price`). A grain
+  is written on the time dimension (`sales.orders.order_date__month`); there is
+  no `--grain` alone. `--where` takes dimensions and facts, never a metric.
+- **A refusal naming a difference means the deployment is stale.** Dex reads
+  the deployed view back and refuses when what the query relies on differs from
+  the repository's file. Report it; redeploying is the maintainer's, never
+  Dex's. `explore semantic list --deployed` shows what the account holds, and
+  its `coverage` says per view whether the read was full.
+- **`deployment: snowflake_account` reads the account alone** (#1357): every
+  semantic view the source allowlist holds, with no file needed, and `query` and
+  `values` run the same way over it. Nothing is held to a file, so every result
+  warns that its definitions were read from the account and not checked (and
+  says `source: account` or `definition_source: account`): relay that, and treat
+  a deployed view as the definition, not a reviewed one. Names come back as
+  Snowflake spells them (`SALES.ORDERS.REVENUE`), and tokens match ignoring
+  case. A view a configured file describes is named on its `coverage`
+  (`repository_file`); `--local` holds it to that file. `coverage: refused` for
+  two copies of one name means two allowlisted schemas hold it: narrow with
+  `--scope`.
 
 ## When the layer is SLayer models
 
@@ -199,6 +352,17 @@ read differently:
   Bucket time with `--grain month`, which applies to the model's
   `default_time_dimension` (its `time_axis` in `list`). Order only by a metric or
   a column you grouped by, with `-` for descending (`--order-by=-orders.revenue`).
+- **A list column groups by its elements, `model.column.value`.** A column
+  declared `type: ARRAY` is listed with `groupable: false` and its
+  `element_type`; its elements are the token to group by and to read with
+  `values` (`--group-by posts.tags.value`, `values posts.tags.value`). Each row
+  counts the parents holding that element, so a post with two tags counts under
+  both: the rows overlap and do not sum to the total, and the result says so.
+  Grouping by the whole list is refused, naming the `.value` token. Filter on
+  membership with `contains(tags, 'dbt')`, `contains_any(tags, ['dbt', 'sql'])`,
+  `contains_all(tags, [...])` or `tags.value = 'dbt'`. A list of PII is screened
+  as its column, so `email.value` is refused wherever `email` would be. Redshift
+  has no native lists, so a list column is refused there.
 - **`--where` is SLayer's filter syntax, not Jinja.** Write
   `--where "status = 'paid'"`, with columns read relative to the query's model;
   a dotted name (`customers.region = 'EU'`) walks a declared join. The gate

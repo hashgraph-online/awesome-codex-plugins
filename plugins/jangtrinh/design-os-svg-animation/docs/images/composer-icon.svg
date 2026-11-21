@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="DESIGN:OS SVG Animation">
+  <rect width="256" height="256" rx="48" fill="#202020"/>
+  <path d="M104 80 L184 128 L104 176 Z" fill="#f5f5f5" stroke="#f5f5f5" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M40 100 H72 M28 128 H72 M40 156 H72" fill="none" stroke="#f5f5f5" stroke-width="12" stroke-linecap="round"/>
+</svg>

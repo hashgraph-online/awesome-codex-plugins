@@ -11,14 +11,14 @@ Supported Draft 2020-12 keywords (the set actually used by
 `skills/kicad/review/schemas/review_annotations.schema.json`):
   type, required, additionalProperties (boolean form only),
   properties, const, enum, items (single subschema form only),
-  minLength, maxLength, minItems, maxItems, format (informational).
+  minLength, maxLength, minItems, maxItems, format (date-time only).
 
 Deliberately NOT supported (raise/yield "unsupported keyword" if
 encountered): $ref, $defs, oneOf, anyOf, allOf, not, if/then/else,
 dependentSchemas, dependentRequired, contains, propertyNames, pattern,
-patternProperties, prefixItems, contentSchema, format ENFORCEMENT
-(matches jsonschema's default permissive behavior — format strings
-are accepted as informational unless an explicit checker is wired).
+patternProperties, prefixItems, contentSchema, and every format other
+than date-time (an unknown format passes, as in jsonschema without a
+format checker).
 
 If a Layer 2 schema grows beyond this surface, switch the offending
 consumer back to the real `jsonschema` package — DO NOT silently

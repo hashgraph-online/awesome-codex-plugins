@@ -1,0 +1,176 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    /* 1080x1920 canvas shown at 0.5 inside the 540x960 panel at (690, 60) */
+    .cta-screen {
+      position: absolute;
+      left: 690px;
+      top: 60px;
+      width: 1080px;
+      height: 1920px;
+      transform: scale(0.5);
+      transform-origin: 0 0;
+      border-radius: 72px;
+      overflow: hidden;
+      background: #f3cdb2;
+    }
+    #cta-sky {
+      position: absolute;
+      left: -60px;
+      top: -60px;
+      width: 1200px;
+      height: 2040px;
+    }
+    #cta-hills-far,
+    #cta-hills-mid,
+    #cta-hills-near {
+      position: absolute;
+      left: -80px;
+      top: 0;
+      width: 1240px;
+      height: 1920px;
+    }
+    #cta-pill-wrap {
+      position: absolute;
+      left: 155px;
+      top: 1072px; /* centre y 1120, height 96 */
+      width: 590px;
+      height: 96px;
+    }
+    #cta-pill {
+      position: absolute;
+      inset: 0;
+      border-radius: 48px;
+      opacity: 0;
+      background: #0e7a5f;
+      box-shadow: 0 10px 30px rgba(20, 30, 25, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 0 40px;
+      font-family: "Inter", sans-serif;
+      font-weight: 800;
+      font-size: 40px;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    #cta-label {
+      display: inline-block;
+    }
+    #cta-arrow {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+    }
+    #cta-ad {
+      position: absolute;
+      left: 155px;
+      top: 1012px;
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.42);
+      font-family: "Inter", sans-serif;
+      font-weight: 700;
+      font-size: 26px;
+      line-height: 40px;
+      letter-spacing: 0.06em;
+      color: #ffffff;
+    }
+    #cta-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="cta"
+    data-width="1920"
+    data-height="1080"
+    data-composition-variables='[{"id":"ctaLabel","type":"string","label":"CTA label","default":"Link in bio: the 3-pack","maxLength":24}]'
+  >
+    <div class="cta-screen">
+      <svg id="cta-sky" data-layout-allow-overflow viewBox="0 0 1200 2040" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="cta-sky-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f7dcc4" />
+            <stop offset="0.45" stop-color="#f0b996" />
+            <stop offset="0.75" stop-color="#d98f7c" />
+            <stop offset="1" stop-color="#b56d6c" />
+          </linearGradient>
+          <radialGradient id="cta-sun-g" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#fff6e8" stop-opacity="1" />
+            <stop offset="0.28" stop-color="#ffecd6" stop-opacity="0.9" />
+            <stop offset="1" stop-color="#ffd9bd" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="1200" height="2040" fill="url(#cta-sky-g)" />
+        <circle cx="790" cy="900" r="460" fill="url(#cta-sun-g)" />
+      </svg>
+      <svg id="cta-hills-far" data-layout-allow-overflow viewBox="0 0 1240 1920" preserveAspectRatio="none">
+        <path d="M0 1150 C 260 1060 520 1130 780 1080 S 1100 1010 1240 1060 V1920 H0Z" fill="#d48f7d" />
+      </svg>
+      <svg id="cta-hills-mid" data-layout-allow-overflow viewBox="0 0 1240 1920" preserveAspectRatio="none">
+        <path d="M0 1330 C 320 1240 640 1310 900 1250 S 1160 1220 1240 1240 V1920 H0Z" fill="#a8656a" />
+      </svg>
+      <svg id="cta-hills-near" data-layout-allow-overflow viewBox="0 0 1240 1920" preserveAspectRatio="none">
+        <path d="M0 1520 C 380 1430 720 1510 1000 1460 S 1200 1440 1240 1450 V1920 H0Z" fill="#6b4458" />
+      </svg>
+
+      <div id="cta-ad">AD</div>
+      <div id="cta-pill-wrap">
+        <div id="cta-pill">
+          <span id="cta-label" data-var-text="ctaLabel">Link in bio: the 3-pack</span>
+          <svg id="cta-arrow" viewBox="0 0 40 40">
+            <path d="M8 20H31M22 11L31 20L22 29" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div id="cta-tag">cta-pill-pop · floating-pill</div>
+  </div>
+  <script>
+    // cubic-bezier() as a GSAP ease (Material 3 motion tokens from the preset)
+    const bez = (x1, y1, x2, y2) => (t) => {
+      const cx = (u) => 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
+      let lo = 0, hi = 1, u = t;
+      for (let i = 0; i < 24; i++) {
+        u = (lo + hi) / 2;
+        if (cx(u) < t) lo = u; else hi = u;
+      }
+      return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+    };
+    const ENTER = bez(0.05, 0.7, 0.1, 1);
+    const EXIT = bez(0.3, 0, 0.8, 0.15);
+    const tl = gsap.timeline({ paused: true });
+    // the "footage": slow parallax drift, constant over the scene
+    tl.fromTo("#cta-sky", { y: 0 }, { y: -24, duration: 3.4, ease: "none" }, 0);
+    tl.fromTo("#cta-hills-far", { x: 0 }, { x: -18, duration: 3.4, ease: "none" }, 0);
+    tl.fromTo("#cta-hills-mid", { x: 0 }, { x: -36, duration: 3.4, ease: "none" }, 0);
+    tl.fromTo("#cta-hills-near", { x: 0 }, { x: -60, duration: 3.4, ease: "none" }, 0);
+    tl.fromTo("#cta-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+
+    // floating-pill preset: pop 0.35 s back.out(1.7), scale 0.6 -> 1
+    const t0 = 0.8;
+    tl.fromTo("#cta-pill", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(1.7)" }, t0);
+    tl.fromTo("#cta-label", { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.25, ease: "power2.out" }, t0 + 0.08);
+    tl.fromTo("#cta-arrow", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out" }, t0 + 0.12);
+    // disclosure tag beside the pill
+    tl.fromTo("#cta-ad", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: ENTER }, t0 + 0.15);
+    // attention beat at +1.2 s: arrow nudges +8 px and back once
+    tl.fromTo("#cta-arrow", { x: 0 }, { x: 8, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 1 }, t0 + 1.2);
+    // exit 0.25 s, Material emphasized accelerate
+    tl.to(["#cta-pill", "#cta-ad"], { opacity: 0, y: 16, duration: 0.25, ease: EXIT }, 3.0);
+    window.__timelines["cta"] = tl;
+  </script>
+</template>

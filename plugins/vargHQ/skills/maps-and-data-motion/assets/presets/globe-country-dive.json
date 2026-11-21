@@ -1,0 +1,263 @@
+{
+  "id": "globe-country-dive",
+  "name": "Globe-to-country dive",
+  "use": "A globe turns and zooms onto one country, which lights up and gets a label.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 9,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Fraunces",
+      "weights": [
+        600,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Fraunces"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "camera_path": {
+      "model": "van Wijk & Nuij",
+      "rho": 1.42,
+      "scale_interpolation": "exponential (log space)",
+      "center_interpolation": "d3.geoInterpolate great arc"
+    },
+    "zoom_rate_zl_per_s": 1.0,
+    "beats_s": {
+      "globe_in": [
+        0.0,
+        1.2
+      ],
+      "telegraph": [
+        1.2,
+        2.0
+      ],
+      "dive": [
+        2.0,
+        6.3
+      ],
+      "reveal": [
+        6.3,
+        7.2
+      ],
+      "label": [
+        7.2,
+        7.8
+      ],
+      "hold": [
+        7.8,
+        9.0
+      ]
+    },
+    "dive_ease": "cubic-bezier(0.65, 0, 0.35, 1)",
+    "enter_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+    "rotation_done_at_dive_fraction": 0.7,
+    "idle_spin_deg_per_s": 4,
+    "globe_diameter": {
+      "16:9": "84% of height",
+      "9:16": "78% of width",
+      "1:1": "80% of side"
+    },
+    "final_fit_padding_pct": 12,
+    "neighbour_dim_opacity": 0.35,
+    "label_size_pct_h": 6.5,
+    "sublabel_size_pct_h": 2.6,
+    "attribution": {
+      "size_pct_h": 1.5,
+      "opacity": 0.7,
+      "corner": "bottom-right",
+      "min_visible_s": 3
+    },
+    "projection_end": "conic (Albers/LCC) if country spans > 15 deg, else orthographic",
+    "data": "Natural Earth 1:110m globe, 1:50m close-up (public domain)"
+  },
+  "presets": [
+    {
+      "id": "globe-country-dive.night-globe",
+      "label": "Night globe",
+      "look": "Dark space, city-lights globe, warm gold country",
+      "params": {
+        "bg": "#05070D",
+        "texture": "NASA Black Marble 2016, 13500x6750",
+        "atmosphere_rim": "#3A6EA5 @ 35%",
+        "fog": {
+          "horizon_blend": 0.02,
+          "star_intensity": 0.6,
+          "space_color": "rgb(11,11,25)"
+        },
+        "highlight": "#FFC861",
+        "highlight_border_px": 3,
+        "highlight_glow_px": 12,
+        "borders": "#2B3A55 0.75px",
+        "label_font": "Inter 800",
+        "label_color": "#FFFFFF",
+        "credit": "NASA Earth Observatory; © OpenStreetMap contributors only if OSM data used"
+      },
+      "sources": [
+        10,
+        12,
+        16,
+        19,
+        26,
+        27,
+        46
+      ]
+    },
+    {
+      "id": "globe-country-dive.atlas-paper",
+      "label": "Atlas paper",
+      "look": "Printed atlas: paper ocean, cream land, terracotta country",
+      "params": {
+        "ocean": "#DCE7EA",
+        "land": "#F3EEE2",
+        "borders": "#9A8F7E 1px",
+        "graticule": "#BFCBD0 0.5px every 15deg",
+        "highlight": "#C8553D",
+        "label_font": "Fraunces 700",
+        "label_color": "#2B2620",
+        "credit": "none required (Natural Earth)"
+      },
+      "sources": [
+        5,
+        12,
+        20,
+        24,
+        46
+      ]
+    },
+    {
+      "id": "globe-country-dive.flat-brand",
+      "label": "Flat brand",
+      "look": "Flat two-tone globe in brand colours",
+      "params": {
+        "ocean": "brand.bg",
+        "land": "brand.bg lightened 12%",
+        "highlight": "brand.accent",
+        "texture": null,
+        "label_font": "Inter 700"
+      },
+      "sources": [
+        5,
+        12,
+        46
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "Joshua Stevens on X: make maps in SVG",
+      "url": "https://x.com/jscarto/status/2114826779596599409"
+    },
+    {
+      "n": 8,
+      "name": "John Nelson (Esri) on X: subtle map animation",
+      "url": "https://x.com/John_M_Nelson/status/2027406545420493180"
+    },
+    {
+      "n": 10,
+      "name": "MapLibre FlyToOptions",
+      "url": "https://maplibre.org/maplibre-gl-js/docs/API/type-aliases/FlyToOptions/"
+    },
+    {
+      "n": 11,
+      "name": "MapLibre camera.ts",
+      "url": "https://github.com/maplibre/maplibre-gl-js/blob/main/src/ui/camera.ts"
+    },
+    {
+      "n": 12,
+      "name": "d3 interpolateZoom",
+      "url": "https://d3js.org/d3-interpolate/zoom"
+    },
+    {
+      "n": 13,
+      "name": "d3-geo math",
+      "url": "https://d3js.org/d3-geo/math"
+    },
+    {
+      "n": 16,
+      "name": "Mapbox example: flyTo options",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/example/flyto-options/"
+    },
+    {
+      "n": 19,
+      "name": "Mapbox guide: Globe and Atmosphere",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/guides/globe/"
+    },
+    {
+      "n": 20,
+      "name": "Mapbox guide: Projections",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/guides/projections/"
+    },
+    {
+      "n": 21,
+      "name": "Mapbox attribution guide",
+      "url": "https://docs.mapbox.com/help/dive-deeper/attribution/"
+    },
+    {
+      "n": 22,
+      "name": "OSMF Attribution Guidelines",
+      "url": "https://osmfoundation.org/wiki/Licence/Attribution_Guidelines"
+    },
+    {
+      "n": 23,
+      "name": "OSMF Tile Usage Policy",
+      "url": "https://operations.osmfoundation.org/policies/tiles/"
+    },
+    {
+      "n": 24,
+      "name": "Natural Earth terms of use",
+      "url": "https://www.naturalearthdata.com/about/terms-of-use/"
+    },
+    {
+      "n": 25,
+      "name": "NASA Blue Marble: Next Generation",
+      "url": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/"
+    },
+    {
+      "n": 26,
+      "name": "NASA Earth at Night maps",
+      "url": "https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps"
+    },
+    {
+      "n": 27,
+      "name": "NASA images and media guidelines",
+      "url": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+    },
+    {
+      "n": 43,
+      "name": "Lisa Charlotte Muth: colors in data vis style guides",
+      "url": "https://www.datawrapper.de/blog/colors-for-data-vis-style-guides"
+    },
+    {
+      "n": 46,
+      "name": "Heer & Robertson: Animated Transitions in Statistical Data Graphics",
+      "url": "https://idl.cs.washington.edu/files/2007-AnimatedTransitions-InfoVis.pdf"
+    },
+    {
+      "n": 52,
+      "name": "Material 3 motion tokens",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 53,
+      "name": "easings.net easings.yml",
+      "url": "https://github.com/ai/easings.net/blob/master/src/easings.yml"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

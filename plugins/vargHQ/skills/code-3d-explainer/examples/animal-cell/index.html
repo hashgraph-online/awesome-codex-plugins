@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Animal cell, built from code</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+} }
+</script>
+<style>
+  @font-face { font-family: 'Inter'; src: url('fonts/inter-var.woff2') format('woff2'); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: 'JetBrains Mono'; src: url('fonts/jetbrains-mono-var.woff2') format('woff2'); font-weight: 100 800; font-display: block; }
+  html, body { margin: 0; width: 100%; height: 100%; background: #05080b; overflow: hidden; }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #05080b; }
+  #root canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; color: #f2f7f6; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .lines { position: absolute; inset: 0; overflow: visible; }
+  .leader { fill: none; stroke: rgba(236, 246, 245, 0.85); stroke-width: 2.25; stroke-linecap: round; }
+  .ring { fill: rgba(255, 83, 21, 0.18); stroke: #ff5315; stroke-width: 3; }
+  .dot { fill: #ffffff; }
+  .label { position: absolute; left: 0; top: 0; isolation: isolate; white-space: nowrap; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7), 0 0 4px rgba(0, 0, 0, 0.6); will-change: transform, opacity; }
+  .label::before { content: ''; position: absolute; inset: -36px -56px -30px -56px; z-index: -1; background: radial-gradient(closest-side, rgba(3, 7, 9, 0.62), rgba(3, 7, 9, 0.36) 55%, rgba(3, 7, 9, 0)); }
+  .label-idx { font: 600 28px/1 'JetBrains Mono', monospace; color: #ff6a33; letter-spacing: 0.12em; margin-bottom: 10px; }
+  .label-name { font: 650 64px/1.0 'Inter', sans-serif; letter-spacing: -0.025em; }
+  .label-fact { font: 450 40px/1.2 'Inter', sans-serif; color: #b4d6d2; margin-top: 10px; letter-spacing: -0.01em; white-space: normal; max-width: 760px; }
+  .label.is-small .label-name { font-size: 46px; font-weight: 600; letter-spacing: -0.015em; }
+  .text { position: absolute; white-space: nowrap; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7); }
+  .text.title { left: 120px; bottom: 210px; font: 700 124px/1 'Inter', sans-serif; letter-spacing: -0.04em; }
+  .text.subtitle { left: 124px; bottom: 140px; font: 500 46px/1 'Inter', sans-serif; color: #ff5315; letter-spacing: -0.01em; }
+  .text.endtitle { left: 120px; top: 96px; font: 680 64px/1.05 'Inter', sans-serif; letter-spacing: -0.03em; }
+  .text.footnote { left: 120px; bottom: 160px; font: 500 44px/1.2 'Inter', sans-serif; color: #eef6f5; }
+  .text.footnote2 { left: 120px; bottom: 100px; font: 500 44px/1.2 'Inter', sans-serif; color: #dbe9e7; }
+  .scalebar { position: absolute; right: 120px; bottom: 104px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .scalebar-text { font: 600 34px/1 'JetBrains Mono', monospace; color: #e8f3f2; letter-spacing: 0.02em; text-shadow: 0 2px 14px rgba(0,0,0,.7); }
+  .scalebar-bar { height: 6px; background: #e8f3f2; border-radius: 3px; box-shadow: 0 0 12px rgba(0,0,0,.6); position: relative; }
+  .scalebar-bar::before, .scalebar-bar::after { content: ''; position: absolute; top: -9px; width: 4px; height: 24px; background: #e8f3f2; border-radius: 2px; }
+  .scalebar-bar::before { left: 0; } .scalebar-bar::after { right: 0; }
+  .dev { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: rgba(0,0,0,.7); color: #fff; font: 14px system-ui; z-index: 9; }
+  .dev input { flex: 1; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-no-timeline data-start="0" data-duration="21" data-width="1920" data-height="1080">
+  <canvas id="gl" width="1920" height="1080" data-layout-allow-overflow></canvas>
+  <div class="overlay"></div>
+</div>
+<script type="module">
+  import { createFilm } from './lib/explainer.js';
+  import { build } from './cell.js';
+  // one promise: capture.ts awaits window.__film.ready; HyperFrames waits on __hf.buildReady
+  let resolveReady, rejectReady;
+  const ready = new Promise((res, rej) => { resolveReady = res; rejectReady = rej; });
+  window.__film = { ready };
+  window.__hf = window.__hf || {}; window.__hf.buildReady = window.__hf.buildReady || {};
+  window.__hf.buildReady['cell'] = ready;
+  (async () => {
+    const story = await (await fetch('story.json')).json();
+    const film = await createFilm({ story, build });
+    Object.assign(window.__film, film);
+    resolveReady(true);
+  })().catch((e) => { console.error(e); window.__film.error = String(e && e.stack || e); rejectReady(e); });
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+schema_version: 1
+id: evo2-inference
+title: Evo 2 Inference
+path: skills/evo2-inference
+status: active
+family: genome-language-model-inference
+tasks:
+  - environment-setup
+  - forward
+  - embedding
+  - generation
+  - hosted-api
+  - variant-effect
+triggers:
+  - evo2
+  - nvcf
+  - nim
+  - flash-attn
+  - return_embeddings
+required_inputs:
+  - hardware-context
+  - execution-path
+optional_inputs:
+  - sequence-or-interval
+  - coordinate-or-interval
+  - ref-alt-or-variant-spec
+  - output-dir
+input_mappings:
+  - hardware-context|query_tokens=gpu,cuda,nvidia,h100,cpu,memory|script_flags=checkpoint-and-runtime-selection
+  - execution-path|query_tokens=local,hosted,api,nim,docker|script_flags=--api-url,local-vs-hosted-path
+  - sequence-or-interval|query_tokens=sequence,interval,fasta,start,end|script_flags=--sequence,--interval
+  - coordinate-or-interval|query_tokens=coordinate,position,pos,site,locus|script_flags=--variant-coordinate
+  - ref-alt-or-variant-spec|query_tokens=ref,alt,variant,mutation,>|script_flags=--variant-spec
+  - output-dir|query_tokens=output,outdir,目录|script_flags=--output-dir,--output-json
+required_env_any:
+  - NVCF_RUN_KEY|EVO2_API_KEY
+constraints:
+  - local-path-needs-linux-or-wsl2-plus-nvidia-cuda
+  - fp8-checkpoints-need-transformer-engine-and-hopper-gpus
+  - variant-effect-is-ref-alt-proxy-not-predict-variant-api
+  - interval-flag-is-0based-half-open-variant-coordinate-flag-is-1based-single-site
+tools:
+  - scripts/run_hosted_api.py
+  - scripts/run_real_evo2_workflow.py
+tool_contracts:
+  - tool: scripts/run_hosted_api.py
+    inputs:
+      - nvcf-key-and-generation-args
+    outputs:
+      - generation-response-json
+    side_effects:
+      - network-calls-to-hosted-api
+    failure_codes:
+      - 1
+  - tool: scripts/run_real_evo2_workflow.py
+    inputs:
+      - interval-and-variant-workflow-args
+    outputs:
+      - plots-and-run-summary-json
+    side_effects:
+      - writes-results-files
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-evo2
+  - prefer-when-task-needs-hosted-generation-or-hardware-aware-checkpoint-choice

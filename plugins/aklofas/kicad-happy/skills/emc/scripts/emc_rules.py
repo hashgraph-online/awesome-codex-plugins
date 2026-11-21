@@ -2,47 +2,55 @@
 
 Each check function returns a list of finding dicts with:
   - category: str (ground_plane, decoupling, io_filtering, etc.)
-  - severity: str (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+  - severity: str (error, warning, info)
   - rule_id: str (e.g., GP-001)
-  - title: str
+  - summary: str
   - description: str
   - components: list[str] (reference designators involved)
   - nets: list[str] (net names involved)
   - layer: str (optional)
   - recommendation: str
 
-Zero external dependencies beyond Python 3.8+ stdlib.
+Zero external dependencies beyond Python 3.10+ stdlib.
 """
 
 import math
-import os
 import re
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 
 from emc_formulas import (
-    lambda_over_20, wavelength_in_pcb, bandwidth_from_rise_time,
+    lambda_over_20,
     knee_frequency, switching_harmonics_in_band, trapezoidal_corner_frequencies,
-    trapezoidal_harmonic_amplitude, dm_radiation_dbuv_m, dm_max_loop_area_m2,
+    trapezoidal_harmonic_amplitude,
     cm_radiation_dbuv_m, get_emission_limit, board_cavity_resonances,
-    harmonic_spectrum, cap_self_resonant_freq, estimate_esl, estimate_esr,
+    estimate_esl, estimate_esr,
     interplane_capacitance_pf_per_cm2, propagation_delay_ps_per_mm,
-    pdn_target_impedance, pdn_impedance_sweep, find_anti_resonances, polygon_area,
+    pdn_target_impedance, pdn_impedance_sweep, find_anti_resonances,
     cap_value_for_srf, round_to_e12,
     diff_pair_skew_ps, diff_pair_cm_voltage, point_to_segment_distance,
     DIFF_PAIR_PROTOCOLS, MARKET_STANDARDS,
     build_power_tree, enrich_power_tree_with_pcb,
     distributed_pdn_impedance_sweep, cross_rail_transient_current,
-    parallel_cap_impedance,
+    parallel_cap_impedance, polygon_area,
 )
-from kicad_utils import lookup_switching_freq as _estimate_switching_freq, build_net_id_map
+from kicad_core.parts import (
+    lookup_switching_freq as _estimate_switching_freq,
+    default_switching_freq as _default_switching_freq,
+)
+from kicad_core.classify import classify_component
+from kicad_core.netnames import (is_ground_name, is_power_net_name, net_leaf,
+                                 RAIL_SIGNAL_SUFFIXES)
+from kicad_core.netquery import build_net_id_map
+from kicad_core.diagnostics import record
+from kicad_core.hotloop import triangle_loop_area
+from kicad_core.project import existing_source_dir
+from kicad_core.render import normalize_severity
+from kicad_core.sexp import unescape_string
 from finding_schema import Det, get_findings
+from pcb.geometry import outline_edge_distance, outline_loops, point_in_outline
 
 try:
-    import os as _os, sys as _sys
-    _ds_scripts = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
-                                '..', '..', 'datasheets', 'scripts')
-    if _os.path.isdir(_ds_scripts):
-        _sys.path.insert(0, _os.path.abspath(_ds_scripts))
+    import _core_path  # noqa: F401
     from datasheet_features import get_mcu_features as _get_mcu_features
 except ImportError:
     def _get_mcu_features(mpn, **kw): return None
@@ -53,7 +61,8 @@ def _schematic_project_dir(schematic):
     analyzer's provenance block (the JSON carries no top-level `file` key)."""
     for p in ((schematic or {}).get('inputs') or {}).get('source_files') or []:
         if isinstance(p, str) and p.lower().endswith(('.kicad_sch', '.sch')):
-            return os.path.dirname(os.path.abspath(p))
+            found = existing_source_dir(p)
+            return str(found) if found is not None else None
     return None
 
 
@@ -62,16 +71,16 @@ def _schematic_project_dir(schematic):
 # ---------------------------------------------------------------------------
 
 
-def _is_power_or_ground(name: str) -> bool:
-    """Check if a net name is power or ground."""
+def _is_power_or_ground_prefix(name: str) -> bool:
+    """Prefix rule for names the shared power rules do not cover (spaced names, PWR, V-)."""
     if not name:
         return False
-    low = name.lower().strip('+')
+    low = unescape_string(name).lower().strip('+')
     for prefix in ('gnd', 'vcc', 'vdd', 'vss', 'vee', 'v+', 'v-',
                    '+3v', '+5v', '+12v', '+1v', '+2v', '+24v', '+48v',
                    '3v3', '5v0', '1v8', '1v2', '0v9', '2v5',
                    'vbat', 'vin', 'vbus', 'vsys', 'vmot', 'vmotor',
-                   'vpwr', 'vm',  # F6: motor supply rails (vm/vmot/vmotor)
+                   'vpwr', 'vm',  # motor supply rails (vm/vmot/vmotor)
                    'avcc', 'avdd', 'dvcc', 'dvdd', 'agnd', 'dgnd',
                    'pgnd', 'earth', 'pwr', 'power'):
         if low == prefix or low.startswith(prefix + '_') or low.startswith(prefix + '/'):
@@ -82,10 +91,35 @@ def _is_power_or_ground(name: str) -> bool:
     return False
 
 
-def _is_ground_net(name: str) -> bool:
-    """Check if a net name is specifically a ground net."""
+def _is_power_or_ground(name: str) -> bool:
+    """Check if a net name is power or ground.
+
+    The shared net-name rules decide first (EARTH counts as ground). Names they
+    do not cover fall back to a prefix rule, except control and status nets of a
+    rail (VCC_EN, 3V3_PG), which are signals.
+    """
     if not name:
         return False
+    if is_ground_name(name) or is_emc_ground_name(name) or is_power_net_name(name):
+        return True
+    leaf = net_leaf(unescape_string(name)).upper()
+    if leaf.rsplit('_', 1)[-1] in RAIL_SIGNAL_SUFFIXES:
+        return False
+    return _is_power_or_ground_prefix(name)
+
+
+def is_emc_ground_name(name: str) -> bool:
+    """Check if a net name is specifically a ground net (the EMC rules' policy).
+
+    Differs from kicad_core.netnames.is_ground_name: also accepts EARTH, VEE
+    and a virtual ground ending in GND (VGND, HP_VGND); does not accept COM,
+    AVSS, DVSS, GROUND, a ground word inside a longer name (AGND_CODEC,
+    ESP_GND2), the 0V<suffix> family (0VA, 0V_A, +0V; only the literal 0V),
+    or battery-negative names (BATT-, VBAT_N, ...).
+    """
+    if not name:
+        return False
+    name = unescape_string(name)
     # Strip hierarchical sheet path prefix (e.g., "/Power Supply/GND" → "GND")
     if "/" in name:
         name = name.rsplit("/", 1)[-1]
@@ -101,7 +135,7 @@ def _is_ground_net(name: str) -> bool:
 
 
 def _touch_nets(pcb: Dict) -> set:
-    """Nets belonging to capacitive-touch pads (from CP-003 findings — KH-378).
+    """Nets belonging to capacitive-touch pads (from CP-003 findings).
 
     The top-level PCB analyzer output always strips the per-pad `pads` list
     from footprint entries (analyze_pcb.py's compact footprint_summary pass)
@@ -109,7 +143,7 @@ def _touch_nets(pcb: Dict) -> set:
     names) — that's the fallback source for older pcb JSON where CP-003
     carries `nets: []`.
 
-    KH-373: a CP-003 finding's component can be a real TestPoint:* library
+    A CP-003 finding's component can be a real TestPoint:* library
     part (bare "TP" refs are not touch-pad evidence) — never let one of
     those demote GP-001 on its net, whether the net came from the finding's
     own `nets` field or the `connected_nets` fallback.
@@ -138,7 +172,7 @@ def _touch_nets(pcb: Dict) -> set:
             fp = fp_by_ref.get(ref)
             if fp:
                 nets.update(n for n in fp.get('connected_nets') or []
-                            if n and not _is_ground_net(n))
+                            if n and not is_emc_ground_name(n))
     return nets
 
 
@@ -167,18 +201,6 @@ def _is_high_speed_net(name: str) -> bool:
         if p in low:
             return True
     return False
-
-
-def _extract_package(footprint_lib: str) -> Optional[str]:
-    """Extract MLCC package size from footprint library ID."""
-    if not footprint_lib:
-        return None
-    m = re.search(r'(\d{4})', footprint_lib)
-    if m:
-        pkg = m.group(1)
-        if pkg in ('0201', '0402', '0603', '0805', '1206', '1210', '1812', '2220'):
-            return pkg
-    return None
 
 
 def _safe_float(val, default=0.0):
@@ -222,7 +244,7 @@ def _suggest_filtering(conn_ref: str, combined_lower: str) -> str:
 
 
 def _suggest_pdn_cap(peak, cap_models, plane_cap_f, z_target, spice_backend,
-                     sweep_before=None):
+                     sweep_before=None, diagnostics=None):
     """Generate a specific cap suggestion for a PDN anti-resonance peak.
 
     # EQ-093: C_suggest = 1/(4π²f²ESL) then round to E12 (PDN cap selection)
@@ -265,7 +287,7 @@ def _suggest_pdn_cap(peak, cap_models, plane_cap_f, z_target, spice_backend,
             }
             ok, before, after = verify_pdn_with_suggested_cap(
                 cap_models, suggested, plane_cap_f, z_target, spice_backend,
-                sweep_before=sweep_before)
+                sweep_before=sweep_before, diagnostics=diagnostics)
             if ok and before is not None and after is not None:
                 if after < before * 0.5:
                     suggestion += (
@@ -279,7 +301,9 @@ def _suggest_pdn_cap(peak, cap_models, plane_cap_f, z_target, spice_backend,
                         f' (SPICE: peak reduced to {after:.2f}Ω but still '
                         f'above target {z_target:.3f}Ω — may need additional caps)'
                     )
-        except Exception:
+        except Exception as exc:
+            record(diagnostics, "emc_rules._suggest_pdn_cap", exc,
+                   "SPICE verification of the suggested PDN cap skipped")
             suggestion += ' (analytical — verify with SPICE)'
     else:
         suggestion += ' (analytical — verify with SPICE if available)'
@@ -287,10 +311,12 @@ def _suggest_pdn_cap(peak, cap_models, plane_cap_f, z_target, spice_backend,
     return suggestion
 
 
-def _connector_refs(footprints: list) -> list:
-    """Find footprints that are likely external connectors."""
+def _connector_refs(footprints: list, include_dnp: bool = False) -> list:
+    """Find fitted footprints (and DNP ones when asked) that are likely external connectors."""
     connectors = []
     for fp in footprints:
+        if fp.get('dnp') and not include_dnp:
+            continue  # not fitted: no cable attaches to it
         ref = fp.get('reference', '')
         raw_val = fp.get('value', '')
         val = (raw_val if isinstance(raw_val, str) else str(raw_val)).lower()
@@ -308,34 +334,57 @@ def _connector_refs(footprints: list) -> list:
     return connectors
 
 
+def _connector_net_names(conn: dict) -> list:
+    """Net names on a connector's pads, from the PCB output's `pad_nets`."""
+    return sorted({v['net'] for v in (conn.get('pad_nets') or {}).values()
+                   if isinstance(v, dict) and v.get('net')})
+
+
+def _resolve_usb_speed(pair: dict, schematic: dict):
+    """USB speed ('FS' / 'HS' / 'SS') from the first trusted MCU extraction among the
+    pair's non-connector ICs, or None."""
+    for ic_ref in pair.get('shared_ics', []):
+        comp = next((c for c in (schematic or {}).get('components', [])
+                     if c.get('reference') == ic_ref), None)
+        if comp and comp.get('type') not in ('connector',):
+            mcu_mpn = comp.get('mpn') or comp.get('value', '')
+            mcu_feat = _get_mcu_features(mcu_mpn, project_dir=_schematic_project_dir(schematic)) if mcu_mpn else None
+            if mcu_feat and not mcu_feat.get('quality', {}).get('trusted', True):
+                mcu_feat = None   # ignore untrusted extractions
+            if mcu_feat:
+                return mcu_feat.get('usb_speed')
+    return None
+
+
+_SUPERSPEED_LANE = re.compile(r'(^|[^A-Z])SS_?[TR]X')
+_TX_RX_LANE = re.compile(r'(^|[^A-Z])[TR]X\d*_?[PN+-]')
+_USB_OR_SS_TOKEN = re.compile(r'(^|[^A-Z])(USB|SS)')
+
+
+def _is_superspeed_net(name: str) -> bool:
+    """A SuperSpeed lane name. A bare TX/RX lane counts only when its own name (not its
+    sheet path, which typed the pair USB) says USB or SS: ETH_TX_P under a USB sheet is not."""
+    leaf = net_leaf(name or '').upper()
+    return bool(_SUPERSPEED_LANE.search(leaf)
+                or (_TX_RX_LANE.search(leaf) and _USB_OR_SS_TOKEN.search(leaf)))
+
+
+def _usb_pair_protocol(pair: dict, usb_speed) -> str:
+    """DIFF_PAIR_PROTOCOLS key for a USB pair given its part's USB speed.
+
+    The 25 ps skew budget is a USB 2.0 high-speed layout guideline; full speed
+    (12 Mb/s, 4-20 ns edges) has none at board scale, so an unknown speed is full
+    speed. On a USB 3 part D+/D- is still a USB 2.0 HS link; only the SuperSpeed
+    TX/RX lanes take the USB 3 budget.
+    """
+    if usb_speed == 'SS' and all(_is_superspeed_net(pair.get(k)) for k in ('positive', 'negative')):
+        return 'USB3'
+    return 'USB-HS' if usb_speed in ('HS', 'SS') else 'USB-FS'
+
+
 # ---------------------------------------------------------------------------
 # Finding construction helper
 # ---------------------------------------------------------------------------
-
-_EMC_SEVERITY_MAP = {
-    'CRITICAL': 'error',
-    'HIGH': 'error',
-    'MEDIUM': 'warning',
-    'LOW': 'info',
-    'INFO': 'info',
-    # Already-normalized pass-through
-    'error': 'error',
-    'warning': 'warning',
-    'info': 'info',
-}
-
-
-def _normalize_severity(sev):
-    """Map legacy EMC uppercase severities to the standard envelope vocabulary.
-
-    Rich-format consumers expect {error, warning, info}. EMC rules were
-    authored against the pre-v1.3 CRITICAL/HIGH/MEDIUM/LOW/INFO scheme —
-    translate here rather than touch every call site.
-    """
-    if not isinstance(sev, str):
-        return 'info'
-    return _EMC_SEVERITY_MAP.get(sev, _EMC_SEVERITY_MAP.get(sev.upper(), 'info'))
-
 
 def _make_finding(category, severity, rule_id, title, description,
                   recommendation='', components=None, nets=None,
@@ -345,33 +394,31 @@ def _make_finding(category, severity, rule_id, title, description,
                   **extra):
     """Build a standardized EMC finding dict with rich format fields.
 
-    All EMC findings flow through this single factory. The rich format
-    fields (detector, summary, pins, evidence_source, report_context)
-    are auto-populated for backward compatibility.
+    All EMC findings flow through this single factory. The dict takes
+    finding_schema.make_finding's key set and order; the `title` argument
+    becomes `summary` (finding_id is assigned later by assign_finding_ids).
     """
     finding = {
-        'category': category,
-        'severity': _normalize_severity(severity),
+        'detector': f'emc_{category}',
         'rule_id': rule_id,
-        'confidence': confidence,
-        'title': title,
+        'category': category,
+        'summary': title,
         'description': description,
         'components': components if components is not None else [],
         'nets': nets if nets is not None else [],
-        'recommendation': recommendation,
-        # Rich format additions
-        'detector': f'emc_{category}',
-        'summary': title,
         'pins': [],
+        'severity': normalize_severity(severity),
+        'confidence': confidence,
         'evidence_source': evidence_source or ('heuristic_rule' if confidence == 'heuristic' else 'topology'),
-        'report_context': {
-            'section': report_section or category.replace('_', ' ').title(),
-            'impact': impact or '',
-            'standard_ref': standard_ref or '',
-        },
+        'recommendation': recommendation,
     }
     if fix_params is not None:
         finding['fix_params'] = fix_params
+    finding['report_context'] = {
+        'section': report_section or category.replace('_', ' ').title(),
+        'impact': impact or '',
+        'standard_ref': standard_ref or '',
+    }
     if extra:
         finding.update(extra)
     return finding
@@ -389,15 +436,38 @@ def check_return_path_coverage(pcb: Dict, severity_threshold: str = 'all') -> Li
     findings = []
     rpc = pcb.get('return_path_continuity') if pcb else None
     if rpc is None:
-        findings.append(_make_finding(
-            'ground_plane', 'INFO', 'GP-001',
-            title='Return path analysis data not available',
-            description=(
+        # --full puts the track segments in the report; a zone carries fill_region_count only
+        # when the file holds filled polygons.
+        zones = pcb.get('zones') if pcb else None
+        if not (pcb and 'segments' in (pcb.get('tracks') or {})):
+            title = 'Return path analysis data not available'
+            description = (
                 'PCB analysis did not include return path continuity data. '
                 'Run the PCB analyzer with --full flag to enable GP-001 '
                 'reference plane coverage checking.'
-            ),
-            recommendation='Re-run PCB analysis with: python3 analyze_pcb.py <file> --full',
+            )
+            recommendation = 'Re-run PCB analysis with: python3 analyze_pcb.py <file> --full'
+        elif not any(isinstance(z, dict) and z.get('fill_region_count') for z in zones or []):
+            title = 'Return path not checked: no ground or power plane fill'
+            description = (
+                'The PCB analysis ran with --full but the board file holds no filled zone '
+                'polygons to check traces against, so return path continuity was not evaluated.'
+            )
+            recommendation = ('Fill the ground or power zones (Edit > Fill All Zones), save the '
+                              'board and re-run the PCB analysis.')
+        else:
+            title = 'Return path analysis data not available'
+            description = (
+                'The PCB analysis has --full data and filled zones but no return path '
+                'continuity result; it was produced by an older analyzer version.'
+            )
+            recommendation = 'Re-run PCB analysis with the current analyzer: python3 analyze_pcb.py <file> --full'
+        findings.append(_make_finding(
+            'ground_plane', 'INFO', 'GP-001',
+            title=title,
+            description=description,
+            recommendation=recommendation,
+            schema_era="v3.0",
         ))
         return findings
 
@@ -428,6 +498,7 @@ def check_return_path_coverage(pcb: Dict, severity_threshold: str = 'all') -> Li
                 trace_mm=round(trace_mm, 2),
                 is_high_speed_or_clock=False,
                 is_touch_net=True,
+                schema_era="v3.0",
             ))
             continue
 
@@ -463,8 +534,80 @@ def check_return_path_coverage(pcb: Dict, severity_threshold: str = 'all') -> Li
             coverage_pct=round(coverage, 1),
             trace_mm=round(trace_mm, 2),
             is_high_speed_or_clock=is_hs,
+            schema_era="v3.0",
         ))
 
+    findings.extend(_split_crossing_findings(pcb, touch))
+    return findings
+
+
+SPLIT_BRIDGE_CAP_MM = 5.0  # a capacitor joining the two plane nets this close carries the return
+
+
+def _split_crossing_findings(pcb: Dict, touch: set) -> List[Dict]:
+    """GP-001 for a high-speed or clock trace whose reference plane changes net.
+
+    Where the plane under a trace changes from one net to another (a split between,
+    say, +3V3 and +5V), the return current has to cross the split through whatever
+    couples the two nets, so the loop grows (Ott, EMC Engineering ch. 16). A crossing
+    with a capacitor joining the two plane nets within SPLIT_BRIDGE_CAP_MM of the
+    crossing or of either sample point bounding it is bridged and not reported. A capacitor is a part the
+    reference designator classifies as one, or a part on a capacitor footprint library
+    whose reference names no passive or active part (classified 'other', or an X
+    reference, which the classifier types 'connector'); a J or P reference, ferrite, inductor or
+    resistor on a capacitor footprint is not one. The high-speed test reads the net's own name, not its
+    sheet path.
+    """
+    caps = []
+    for fp in pcb.get('footprints') or []:
+        nets = set(fp.get('connected_nets') or [])
+        lib = fp.get('library') or ''
+        kind = classify_component(fp.get('reference') or '', lib, fp.get('value') or '',
+                                  footprint=fp.get('footprint') or '')
+        # the classifier types an X reference 'connector'; a J/P reference is one
+        x_ref = kind == 'connector' and (fp.get('reference') or '')[:1].upper() == 'X'
+        is_cap = kind == 'capacitor' or ((kind == 'other' or x_ref)
+                                         and lib.lower().startswith('capacitor'))
+        if (is_cap and not fp.get('dnp') and len(nets) == 2
+                and fp.get('x') is not None and fp.get('y') is not None):
+            caps.append((nets, fp['x'], fp['y']))
+
+    by_net: Dict[str, List[Dict]] = {}
+    for ch in pcb.get('reference_plane_changes') or []:
+        pair = {ch.get('net_a'), ch.get('net_b')}
+        points = list(ch.get('sample_points') or [])
+        if ch.get('x') is not None and ch.get('y') is not None:
+            points.append([ch['x'], ch['y']])  # the crossing itself
+        if points and any(nets == pair and min(math.hypot(x - px, y - py) for px, py in points)
+               <= SPLIT_BRIDGE_CAP_MM for nets, x, y in caps):
+            continue
+        by_net.setdefault(ch.get('net', ''), []).append(ch)
+
+    findings = []
+    for net_name in sorted(by_net):
+        if net_name in touch or not _is_high_speed_net(net_leaf(net_name)):
+            continue
+        changes = by_net[net_name]
+        pairs = sorted({' / '.join(sorted((c['net_a'], c['net_b']))) for c in changes})
+        ref_layers = sorted({c.get('reference_layer') or 'the reference layer' for c in changes})
+        findings.append(_make_finding(
+            'ground_plane', 'HIGH', rule_id='GP-001', detector='emc_ground_plane',
+            title='Signal crosses a split between reference planes',
+            description=(
+                f'Net {net_name} changes reference plane net {len(changes)} time(s) '
+                f'({", ".join(pairs)}) on {", ".join(ref_layers)}. '
+                f'The return current must cross the split through decoupling or stitching capacitors.'
+            ),
+            nets=[net_name],
+            recommendation=(
+                'Route this signal over one continuous plane, or place a stitching '
+                'capacitor between the two plane nets next to the crossing.'
+            ),
+            confidence='heuristic',
+            signal_net=net_name,
+            is_high_speed_or_clock=True,
+            schema_era="v3.0",
+        ))
     return findings
 
 
@@ -476,7 +619,7 @@ def check_ground_zone_coverage(pcb: Dict) -> List[Dict]:
     copper_layers = [l['name'] for l in layers if l.get('type') in ('signal', 'power')]
 
     # Find ground zones
-    gnd_zones = [z for z in zones if _is_ground_net(z.get('net_name', ''))]
+    gnd_zones = [z for z in zones if is_emc_ground_name(z.get('net_name', ''))]
 
     if not gnd_zones and len(copper_layers) >= 2:
         rec = ('Add a solid ground pour on at least one inner layer.'
@@ -491,6 +634,7 @@ def check_ground_zone_coverage(pcb: Dict) -> List[Dict]:
                 f'most important EMC design feature.'
             ),
             recommendation=rec,
+            schema_era="v3.0",
         ))
         return findings
 
@@ -515,6 +659,7 @@ def check_ground_zone_coverage(pcb: Dict) -> List[Dict]:
                     'Check for routing channels that split the ground plane.'
                 ),
                 layer=layer,
+                schema_era="v3.0",
             ))
 
         if fill_ratio < 0.6:
@@ -529,6 +674,7 @@ def check_ground_zone_coverage(pcb: Dict) -> List[Dict]:
                 nets=[gz.get('net_name', 'GND')],
                 recommendation='Reduce routing density on this layer or move signals to other layers.',
                 layer=layer,
+                schema_era="v3.0",
             ))
 
     return findings
@@ -542,7 +688,7 @@ def check_ground_domains(pcb: Dict) -> List[Dict]:
 
     if domain_count > 1:
         domains = gd.get('domains', [])
-        domain_names = [d.get('net_name', '?') for d in domains] if isinstance(domains, list) else []
+        domain_names = [d.get('net', '?') for d in domains] if isinstance(domains, list) else []
         findings.append(_make_finding(
             'ground_plane', 'MEDIUM', 'GP-005',
             title=f'{domain_count} ground domains detected',
@@ -558,6 +704,7 @@ def check_ground_domains(pcb: Dict) -> List[Dict]:
                 '(typically near the ADC for analog/digital split). '
                 'Ensure no signal traces cross the domain boundary.'
             ),
+            schema_era="v3.0",
         ))
 
     return findings
@@ -595,6 +742,7 @@ def check_decoupling_distance(pcb: Dict) -> List[Dict]:
                 description=description,
                 components=[ic_ref] + [c['cap'] for c in nearby[:2]],
                 recommendation=f'Move decoupling cap within 2-3mm of {ic_ref} power pins.',
+                schema_era="v3.0",
             ))
         elif closest > 5.0:
             description = (
@@ -610,6 +758,7 @@ def check_decoupling_distance(pcb: Dict) -> List[Dict]:
                 description=description,
                 components=[ic_ref] + [c['cap'] for c in nearby[:2]],
                 recommendation=f'Move decoupling cap closer to {ic_ref} power pins if layout permits.',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -623,16 +772,27 @@ def check_missing_decoupling(pcb: Dict, schematic: Optional[Dict] = None) -> Lis
 
     # ICs that have decoupling analysis entries
     ics_with_caps = {e.get('ic', '') for e in decoupling}
+    # ESD/TVS arrays the schematic identified need no decoupling capacitor
+    protection_refs = {pd.get('ref') for pd in get_findings(schematic or {}, Det.PROTECTION_DEVICES)
+                       if pd.get('type') != 'fuse'}
+    # A U/IC reference on a part the schematic types as something other than an IC or
+    # oscillator (connector, test point, crystal, motor) has no supply pins to decouple
+    sch_types = {c.get('reference'): c.get('type') for c in (schematic or {}).get('components', [])}
 
     # All IC-like footprints
     for fp in footprints:
         ref = fp.get('reference', '')
         if not re.match(r'^(U|IC)\d', ref):
             continue
+        if sch_types.get(ref) not in (None, 'ic', 'oscillator'):
+            continue
         # Skip known non-ICs (ESD, TVS, etc.)
         raw_val = fp.get('value', '')
         val = (raw_val if isinstance(raw_val, str) else str(raw_val)).lower()
-        if any(p in val for p in ('esd', 'tvs', 'test', 'tp', 'net_tie')):
+        if (ref in protection_refs
+                or any(p in val for p in ('esd', 'tvs', 'test', 'net_tie'))
+                or re.match(r'tpd\d', val)  # TI TPD ESD arrays
+                or 'tp' in re.split(r'[^a-z0-9]+', val)):
             continue
         if ref not in ics_with_caps:
             findings.append(_make_finding(
@@ -655,6 +815,7 @@ def check_missing_decoupling(pcb: Dict, schematic: Optional[Dict] = None) -> Lis
                     'components': [{'type': 'capacitor', 'value': '100n'}],
                     'basis': 'Standard 100nF decoupling per IC',
                 },
+                schema_era="v3.0",
             ))
 
     return findings
@@ -683,7 +844,7 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
     if not via_list:
         return findings
 
-    # KH-341: on 2-layer boards the "via to plane" model doesn't apply —
+    # On 2-layer boards the "via to plane" model doesn't apply —
     # decoupling current returns through pours/traces, not plane vias.
     layers = pcb.get('layers', [])
     copper_layer_count = len([l for l in layers
@@ -699,9 +860,9 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
 
     def _cap_in_same_net_pour(fp: Dict) -> bool:
         """True if the cap sits inside a same-layer zone of one of its own
-        nets — the pour IS the connection, no via needed (KH-341).
+        nets — the pour IS the connection, no via needed.
 
-        KH-356: analyzer output strips pad geometry from footprints, so
+        Analyzer output strips pad geometry from footprints, so
         this works from what survives: footprint center + connected_nets
         (pad_nets fallback). Center containment is a good proxy for a
         chip cap's pad positions.
@@ -768,6 +929,7 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
                         f'Place a via directly adjacent to {cap_ref} pads. '
                         f'Use fat, short traces from cap pads to via.'
                     ),
+                    schema_era="v3.0",
                 ))
 
     return findings
@@ -810,12 +972,6 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
         if is_filter:
             filters.append(fp)
 
-    # Also include protection devices from schematic
-    protection_refs = set()
-    if schematic:
-        for pd in get_findings(schematic, Det.PROTECTION_DEVICES):
-            protection_refs.add(pd.get('reference', ''))
-
     # For each connector, check if there's a filter component nearby
     for conn in connectors:
         cx = conn.get('x') or 0
@@ -833,17 +989,21 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
                 break
 
         # Also check schematic-detected protection
-        if not has_nearby_filter:
-            conn_nets = set()
-            for pad in conn.get('pads', []):
-                n = pad.get('net_name', '')
-                if n and not _is_power_or_ground(n):
-                    conn_nets.add(n)
-
-            if schematic:
+        if not has_nearby_filter and schematic:
+            # The board and the schematic can name one net differently, and a protection
+            # device names the schematic's, so the connector's schematic pin nets count too.
+            sch_pin_nets = {n for c in schematic.get('components', [])
+                            if c.get('reference') == conn_ref
+                            for n in (c.get('pin_nets') or {}).values()}
+            conn_nets = {n for n in set(_connector_net_names(conn)) | sch_pin_nets
+                         if n and not _is_power_or_ground(n)}
+            dnp = {c.get('reference') for c in schematic.get('components', []) if c.get('dnp')}
+            if conn_nets:
                 for pd in get_findings(schematic, Det.PROTECTION_DEVICES):
-                    prot_net = pd.get('protected_net', '')
-                    if prot_net in conn_nets:
+                    # A fuse or a reverse-polarity diode does not filter or clamp an I/O line.
+                    if pd.get('type') in ('fuse', 'reverse_polarity') or pd.get('ref') in dnp:
+                        continue
+                    if conn_nets & {pd.get('protected_net'), *(pd.get('protected_nets') or [])}:
                         has_nearby_filter = True
                         break
 
@@ -860,7 +1020,7 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
                     is_external = True
                     break
 
-            # F6: power-only-connector gate. If every net at this connector
+            # Power-only-connector gate. If every net at this connector
             # is a power/ground rail (no signal lines), the IO-001 fix isn't
             # a board-level ferrite bead — a saturating ferrite on a tens-of-
             # amps DC input would burn. The right answer for power cabling is
@@ -913,6 +1073,7 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
                     'components': [{'type': 'ferrite_bead'}],
                     'basis': 'EMI filter on external I/O',
                 },
+                schema_era="v3.0",
             ))
 
     return findings
@@ -946,7 +1107,7 @@ def check_connector_ground_pins(pcb: Dict,
             net = pad_data.get('net', '') if isinstance(pad_data, dict) else ''
             if not net or net in ('', 'unconnected'):
                 continue
-            if _is_ground_net(net):
+            if is_emc_ground_name(net):
                 gnd_count += 1
             elif not _is_power_or_ground(net):
                 sig_count += 1
@@ -983,6 +1144,7 @@ def check_connector_ground_pins(pcb: Dict,
                     f'distributed among signal pins, not grouped at one end.'
                 ),
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -1071,25 +1233,10 @@ def check_switching_harmonics(schematic: Dict, standard: str = 'fcc-class-b') ->
                            ' Consider spread-spectrum modulation if available.')
                     ),
                     confidence='heuristic',
+                    schema_era="v3.0",
                 ))
 
     return findings
-
-
-def _default_switching_freq(topology: str) -> float | None:
-    """Fallback switching frequency estimate when part is unrecognized.
-
-    Based on typical ranges for each topology. Conservative (low end)
-    to avoid underestimating harmonic reach.
-    """
-    defaults = {
-        'buck': 500e3,
-        'boost': 500e3,
-        'buck-boost': 300e3,
-        'inverting': 300e3,
-        'sepic': 300e3,
-    }
-    return defaults.get(topology.lower()) if topology else None
 
 
 def _has_spread_spectrum(value: str) -> bool:
@@ -1106,16 +1253,30 @@ def _has_spread_spectrum(value: str) -> bool:
 # Category 5: Clock Routing Quality
 # ---------------------------------------------------------------------------
 
+def _outer_layer_ratio(layer_dist: Dict) -> Optional[float]:
+    """Share of a net's routed length on F.Cu/B.Cu; segment counts when no length is given."""
+    outer = total = 0.0
+    for lname, ldata in layer_dist.items():
+        if isinstance(ldata, dict):
+            amount = ldata.get('length_mm', ldata.get('segments', 1))
+        else:
+            amount = ldata
+        if not isinstance(amount, (int, float)):
+            continue
+        total += amount
+        if lname in ('F.Cu', 'B.Cu'):
+            outer += amount
+    return outer / total if total > 0 else None
+
+
 def check_clock_routing(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dict]:
     """Check clock signal routing quality for EMC."""
     findings = []
-    layers = pcb.get('layers', [])
     footprints = pcb.get('footprints', [])
     net_lengths_map = _build_net_length_map(pcb)
 
-    # Determine if stripline layers exist (inner signal layers between planes)
-    copper_layers = [l for l in layers if l.get('type') in ('signal', 'power')]
-    has_inner_layers = len(copper_layers) > 2
+    # Stripline routing needs an inner layer that is not itself a plane
+    has_inner_layers = _has_inner_signal_layer(pcb)
 
     # Identify clock nets from schematic
     clock_nets = set()
@@ -1149,17 +1310,7 @@ def check_clock_routing(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
             continue
 
         # Check if clock is routed on outer layers
-        outer_segs = 0
-        total_segs = 0
-        for lname, ldata in layer_dist.items():
-            seg_count = ldata.get('segments', ldata) if isinstance(ldata, dict) else ldata
-            if isinstance(seg_count, dict):
-                seg_count = seg_count.get('segments', 1)
-            total_segs += seg_count
-            if lname in ('F.Cu', 'B.Cu'):
-                outer_segs += seg_count
-
-        outer_ratio = outer_segs / total_segs if total_segs > 0 else 0
+        outer_ratio = _outer_layer_ratio(layer_dist) or 0
 
         if has_inner_layers and outer_ratio > 0.5:
             findings.append(_make_finding(
@@ -1172,6 +1323,7 @@ def check_clock_routing(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
                 ),
                 nets=[net_name],
                 recommendation='Route clock signals on inner layers (stripline) when possible.',
+                schema_era="v3.0",
             ))
 
         # Check for excessively long clock traces
@@ -1187,6 +1339,7 @@ def check_clock_routing(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
                 nets=[net_name],
                 recommendation='Minimize clock trace length. Place clock source close to destination.',
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -1260,6 +1413,7 @@ def check_clock_near_connector(pcb: Dict,
                         f'Route {net_name} away from {conn_ref}, or add '
                         f'ground guard traces between the clock and connector.'
                     ),
+                    schema_era="v3.0",
                 ))
 
                 if len(findings) > 10:
@@ -1289,7 +1443,7 @@ def check_crystal_guard_ring(pcb: Dict, schematic: Optional[Dict] = None) -> Lis
             fp_pos[ref] = (fp.get('x', 0), fp.get('y', 0))
 
     # Find ground zones with bounding boxes
-    gnd_zones = [z for z in zones if _is_ground_net(z.get('net_name', ''))]
+    gnd_zones = [z for z in zones if is_emc_ground_name(z.get('net_name', ''))]
 
     for xtal in crystals:
         ref = xtal.get('reference', '')
@@ -1334,6 +1488,7 @@ def check_crystal_guard_ring(pcb: Dict, schematic: Optional[Dict] = None) -> Lis
                     f'at least 3mm beyond the crystal footprint on all sides.'
                 ),
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -1379,15 +1534,23 @@ def check_via_stitching(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
                 net_name = net_id_map[v_net]
             else:
                 net_name = ''
-            if _is_ground_net(net_name):
+            if is_emc_ground_name(net_name):
                 gnd_via_count += 1
-        via_count = gnd_via_count if gnd_via_count > 0 else len(via_list)
+        if not gnd_via_count and not _ground_fill_layers(pcb):
+            return findings  # no ground via and no ground fill: nothing to stitch
+        via_count = gnd_via_count
+        via_noun = 'ground vias'
     else:
         via_count = vias.get('count', stats.get('via_count', 0))
+        via_noun = 'vias'
     bbox = board_outline.get('bounding_box', None) or {}
     board_w = bbox.get('width', stats.get('board_width_mm', 50)) or 50
     board_h = bbox.get('height', stats.get('board_height_mm', 50)) or 50
     board_area = board_w * board_h  # mm²
+    # a file with several boards: the summed board area, not the box around them
+    summed = _safe_float(stats.get('board_area_mm2'))
+    if 0 < summed < round(board_area, 1):
+        board_area = summed
 
     if board_area <= 0:
         return findings
@@ -1400,12 +1563,12 @@ def check_via_stitching(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
 
     if avg_spacing is None or avg_spacing > required_spacing_mm * 2:
         spacing_note = (f'~{avg_spacing:.0f}mm avg spacing'
-                       if avg_spacing is not None else 'no vias detected')
+                       if avg_spacing is not None else f'no {via_noun} detected')
         findings.append(_make_finding(
             'via_stitching', 'MEDIUM', 'VS-001',
             title='Via stitching may be insufficient',
             description=(
-                f'Board has {via_count} vias across {board_area:.0f} mm² '
+                f'Board has {via_count} {via_noun} across {board_area:.0f} mm² '
                 f'({spacing_note}). For the highest frequency '
                 f'on this board ({highest_freq/1e6:.0f} MHz), λ/20 stitching '
                 f'requires ≤{required_spacing_mm:.0f}mm spacing.'
@@ -1415,6 +1578,7 @@ def check_via_stitching(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
                 f'intervals, especially at board edges and near connectors.'
             ),
             confidence='heuristic',
+            schema_era="v3.0",
         ))
 
     return findings
@@ -1423,6 +1587,96 @@ def check_via_stitching(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
 # ---------------------------------------------------------------------------
 # Category 7: Stackup Quality
 # ---------------------------------------------------------------------------
+
+# An inner copper layer whose ground or power zone fill covers at least this share of
+# the board area is a reference plane.
+_PLANE_MIN_FILL_FRACTION = 0.25
+
+
+def _plane_fill_board_area(pcb: Dict, fill: Dict[str, float]) -> float:
+    """Board area the plane fill is measured against: the outline's bounding box, or,
+    when the file holds several boards (outer outline loops), their summed area.
+
+    The summed area never drops below the largest layer fill, so an outline the
+    analysis under-reads cannot turn a modest pour into a plane.
+    """
+    board = _safe_float((pcb.get('statistics') or {}).get('board_area_mm2'))
+    edges = (pcb.get('board_outline') or {}).get('edges') or []
+    loops = outline_loops(edges) if board > 0 and edges else None
+    if not loops or len(loops) < 2:
+        return board
+    area = 0.0
+    outer = 0
+    for i, loop in enumerate(loops):
+        others = [other for j, other in enumerate(loops) if j != i]
+        depth = sum(point_in_outline(loop[0][0], loop[0][1], [o]) for o in others)
+        if depth % 2:
+            area -= polygon_area(loop)
+        else:
+            area += polygon_area(loop)
+            outer += 1
+    if outer < 2:
+        return board
+    return min(board, max(area, max(fill.values(), default=0.0)))
+
+
+def _reference_plane_layers(pcb: Dict) -> set:
+    """Copper layers that act as a reference plane.
+
+    KiCad gives a new inner layer the type 'signal' whatever it carries, so an inner
+    layer with ground or power zone fill is judged by that fill: a plane when the fill of
+    its ground and power nets together covers at least _PLANE_MIN_FILL_FRACTION of the
+    board area (_plane_fill_board_area). On a layer KiCad types 'power' or 'mixed' that
+    has such fill, a pour on any other named net adds to it: an island of a split plane
+    can carry a name KiCad made from a pad. An outer layer, or an inner layer with no
+    ground or power fill, is a plane when KiCad types it 'power' or 'mixed' (a 'jumper'
+    layer carries wire jumpers, not a plane).
+    """
+    fill: Dict[str, float] = {}
+    island: Dict[str, float] = {}
+    power_typed = {l.get('name') for l in pcb.get('layers') or []
+                   if l.get('type') in ('power', 'mixed')}
+    for zone in pcb.get('zones') or []:
+        if not isinstance(zone, dict) or zone.get('is_keepout'):
+            continue
+        net = zone.get('net_name') or ''
+        if not net:
+            continue
+        is_rail = _is_power_or_ground(net)
+        for layer in zone.get('layers') or []:
+            area = _zone_layer_area_mm2(zone, layer)
+            if area <= 0:
+                continue
+            if is_rail:
+                fill[layer] = fill.get(layer, 0.0) + area
+            elif layer in power_typed:
+                island[layer] = island.get(layer, 0.0) + area
+    # island fill stays out of the board area, which never drops below the largest fill
+    board = _plane_fill_board_area(pcb, fill)
+    for layer, area in island.items():
+        if layer in fill:
+            fill[layer] += area
+    planes = set()
+    for layer in pcb.get('layers') or []:
+        name = layer.get('name') or ''
+        if not name.endswith('.Cu'):
+            continue
+        if name not in ('F.Cu', 'B.Cu') and name in fill and board > 0:
+            if fill[name] >= _PLANE_MIN_FILL_FRACTION * board:
+                planes.add(name)
+        elif layer.get('type') in ('power', 'mixed'):
+            planes.add(name)
+    return planes
+
+
+def _has_inner_signal_layer(pcb: Dict) -> bool:
+    """True when an inner copper layer is free for stripline routing (not a plane)."""
+    planes = _reference_plane_layers(pcb)
+    return any((l.get('name') or '').endswith('.Cu')
+               and l.get('name') not in ('F.Cu', 'B.Cu')
+               and l.get('name') not in planes
+               for l in pcb.get('layers') or [])
+
 
 def check_stackup(pcb: Dict) -> List[Dict]:
     """Check PCB stackup for EMC best practices."""
@@ -1450,15 +1704,16 @@ def check_stackup(pcb: Dict) -> List[Dict]:
     # Check for adjacent signal layers without reference plane
     layer_types = pcb.get('layers', [])
     layer_type_map = {l['name']: l.get('type', 'signal') for l in layer_types}
+    planes = _reference_plane_layers(pcb)
 
     for i in range(len(copper_layers) - 1):
         l1 = copper_layers[i]
         l2 = copper_layers[i + 1]
-        t1 = layer_type_map.get(l1['name'], 'signal')
-        t2 = layer_type_map.get(l2['name'], 'signal')
+        t1 = 'plane' if l1['name'] in planes else 'signal'
+        t2 = 'plane' if l2['name'] in planes else 'signal'
 
         # Two adjacent signal layers with no ground/power between them.
-        # F9: severity scales by copper-layer count — on a 2-layer board
+        # Severity scales by copper-layer count — on a 2-layer board
         # the designer can't insert a reference plane in this revision
         # (the issue is a stackup choice, not a fixable defect), so demote
         # to info with a "consider 4-layer next revision" recommendation.
@@ -1480,20 +1735,19 @@ def check_stackup(pcb: Dict) -> List[Dict]:
                     'Reorder stackup to place a ground or power plane between '
                     'every pair of signal layers.'
                 ),
+                schema_era="v3.0",
             ))
 
     # Check ground plane proximity (dielectric thickness)
     for i, cl in enumerate(copper_layers):
-        lt = layer_type_map.get(cl['name'], 'signal')
-        if lt != 'signal':
+        if cl['name'] in planes:
             continue
 
         # Find nearest reference plane
         min_dielectric = float('inf')
         nearest_ref = None
         for j, rl in enumerate(copper_layers):
-            rt = layer_type_map.get(rl['name'], 'signal')
-            if rt in ('power', 'ground', 'mixed') or _is_ground_net(rl['name']):
+            if rl['name'] in planes:
                 # Calculate dielectric thickness between layers
                 # Sum dielectric layers between them in the stackup
                 idx_min = min(cl['index'], rl['index'])
@@ -1516,6 +1770,7 @@ def check_stackup(pcb: Dict) -> List[Dict]:
                     f'(0.1-0.2mm) reduces loop area and improves EMC.'
                 ),
                 recommendation='Consider stackup adjustment to reduce signal-to-reference spacing.',
+                schema_era="v3.0",
             ))
 
     # Check for interplane capacitance
@@ -1525,8 +1780,8 @@ def check_stackup(pcb: Dict) -> List[Dict]:
         t1 = layer_type_map.get(l1['name'], 'signal')
         t2 = layer_type_map.get(l2['name'], 'signal')
 
-        if (t1 == 'power' and _is_ground_net(l2['name'])) or \
-           (_is_ground_net(l1['name']) and t2 == 'power'):
+        if (t1 == 'power' and is_emc_ground_name(l2['name'])) or \
+           (is_emc_ground_name(l1['name']) and t2 == 'power'):
             # Power/ground plane pair — check dielectric thickness
             idx_min = min(l1['index'], l2['index'])
             idx_max = max(l1['index'], l2['index'])
@@ -1550,6 +1805,7 @@ def check_stackup(pcb: Dict) -> List[Dict]:
                             f'better high-frequency decoupling.'
                         ),
                         recommendation='Use thin prepreg between power/ground plane pairs.',
+                        schema_era="v3.0",
                     ))
 
     return findings
@@ -1603,6 +1859,7 @@ def estimate_cavity_resonances(pcb: Dict) -> List[Dict]:
             ),
             recommendation='Add decoupling capacitors with SRF near these frequencies.',
             confidence='heuristic',
+            schema_era="v3.0",
         ))
 
     return findings
@@ -1610,7 +1867,7 @@ def estimate_cavity_resonances(pcb: Dict) -> List[Dict]:
 
 def estimate_switching_emissions(schematic: Dict,
                                  standard: str = 'fcc-class-b',
-                                 spice_backend=None) -> List[Dict]:
+                                 spice_backend=None, diagnostics=None) -> List[Dict]:
     """Estimate switching regulator emissions relative to limits.
 
     # EQ-094: V_n = V_peak × 2/(nπ) × sin(nπD) (trapezoidal harmonic envelope)
@@ -1650,7 +1907,8 @@ def estimate_switching_emissions(schematic: Dict,
                 from emc_spice import run_switching_fft
                 ok, harmonics = run_switching_fft(
                     v_peak, duty_cycle, 10e-9, sw_freq,
-                    spice_backend, n_harmonics=10, timeout=15)
+                    spice_backend, n_harmonics=10, timeout=15,
+                    diagnostics=diagnostics)
                 if ok and harmonics:
                     # Compare SPICE harmonics with envelope at a few points
                     fft_samples = []
@@ -1662,8 +1920,9 @@ def estimate_switching_emissions(schematic: Dict,
                             f'h{h["harmonic"]}={h["amplitude_dbuv"]:.0f}dBµV '
                             f'(envelope: {env_dbuv:.0f})')
                     fft_note = ' SPICE FFT: ' + ', '.join(fft_samples[:3]) + '.'
-            except Exception:
-                pass
+            except Exception as exc:
+                record(diagnostics, "emc_rules.estimate_switching_emissions", exc,
+                       "SPICE FFT note omitted")
 
         ss_note = (' Spread-spectrum modulation detected (~-15 dB peak reduction).'
                    if _has_spread_spectrum(val) else '')
@@ -1686,6 +1945,7 @@ def estimate_switching_emissions(schematic: Dict,
                 'loop area reduces emissions by 6 dB.'
             ),
             confidence='heuristic',
+            schema_era="v3.0",
         ))
 
     return findings
@@ -1734,7 +1994,9 @@ def check_switching_node_area(pcb: Optional[Dict],
         for zone in zones:
             if zone.get('net_name') != sw_net:
                 continue
-            a = zone.get('outline_area_mm2') or zone.get('filled_area_mm2') or 0
+            # The fill is the copper; an unfilled zone counts its outline
+            a = (zone['filled_area_mm2'] if 'filled_area_mm2' in zone
+                 else zone.get('outline_area_mm2') or 0)
             if isinstance(a, (int, float)):
                 zone_area += a
 
@@ -1783,25 +2045,25 @@ def check_switching_node_area(pcb: Optional[Dict],
                 f'Remove any copper pour on the switching node net.'
             ),
             confidence='heuristic',
+            schema_era="v3.0",
         ))
 
     return findings
 
 
 def check_input_cap_loop_area(pcb: Optional[Dict],
-                              schematic: Optional[Dict],
-                              spice_backend=None) -> List[Dict]:
-    """SW-003: Estimate hot loop area for switching regulators.
+                              schematic: Optional[Dict]) -> List[Dict]:
+    """SW-003: Hot loop area for switching regulators.
 
     The hot loop (input cap → IC → inductor → back) should be as small
-    as possible. Large loops radiate switching noise. Uses component
-    placement coordinates from PCB data to estimate the enclosed area.
+    as possible. Large loops radiate switching noise. Only a loop the PCB
+    analyzer measured through the pads (a switching_loop_areas record with
+    method "pad", written by analyze_pcb --schematic) is graded.
 
-    For integrated converters (most common), approximates as a triangle:
-    input cap → IC → inductor.
-
-    When SPICE is available, estimates radiated E-field from loop area ×
-    switching current × frequency using dm_radiation_dbuv_m().
+    Without one, the area falls back to the triangle through the footprint
+    centres of the input cap, IC and inductor (also what a record without
+    method holds). The centres say little about the loop through the pads,
+    so a large triangle is reported as an info estimate, not graded.
     """
     # EQ-088: A = polygon_area(cap, IC, inductor) (hot loop area estimation)
     findings = []
@@ -1810,65 +2072,97 @@ def check_input_cap_loop_area(pcb: Optional[Dict],
 
     regulators = get_findings(schematic, Det.POWER_REGULATORS)
 
+    def _not_estimated(ref, val, inductor_ref, cap_ref, loop=None):
+        if not loop or loop.get('method') != 'pad':
+            why = (f'the centres of {cap_ref}, {ref} and {inductor_ref} lie in '
+                   f'a line, so the centre-triangle proxy gives no loop area.')
+        elif loop.get('estimate') == 'pads_unresolved':
+            why = (f'the pads of {cap_ref}, {ref} and {inductor_ref} could not '
+                   f'be matched to the supply, SW and ground nets, so no loop '
+                   f'was measured.')
+        else:
+            why = (f'the loop through the pads of {cap_ref}, {ref} and '
+                   f'{inductor_ref} has an area under 1 mm² across 2 mm or more: '
+                   f'pads in a line or crossing lobes that cancel, so it gives '
+                   f'no loop area.')
+        return _make_finding(
+            'switching_emc', 'INFO', rule_id='SW-003', detector='emc_switching_emc',
+            title=f'Hot loop for {ref} not estimated',
+            description=(
+                f'{ref} ({val}): {why} The hot loop itself runs through the '
+                f'pads, vias and ground return and was not estimated.'
+            ),
+            components=[ref, inductor_ref, cap_ref],
+            recommendation=(
+                f'Check the hot loop by hand: input cap {cap_ref} adjacent to '
+                f'the {ref} VIN and GND pins, with a short ground return.'
+            ),
+            confidence='heuristic',
+            schema_era="v3.0",
+        )
+
+    def _centre_estimate(ref, val, inductor_ref, cap_ref, area_mm2, nets):
+        return _make_finding(
+            'switching_emc', 'INFO', rule_id='SW-003', detector='emc_switching_emc',
+            title=f'Hot loop for {ref} not graded: estimated from part centres',
+            description=(
+                f'{ref} ({val}): the triangle through the centres of {cap_ref}, '
+                f'{ref} and {inductor_ref} spans about {area_mm2:.0f}mm². The hot '
+                f'loop runs through their pads, so this is not its area and the '
+                f'loop is not graded. To measure it from the pads, run '
+                f'analyze_pcb.py <board>.kicad_pcb --schematic <schematic '
+                f'analysis>.json, then analyze_emc.py on that PCB output.'
+            ),
+            components=[ref, inductor_ref, cap_ref],
+            nets=nets,
+            recommendation=(
+                f'Measure the loop from the pads, or check by hand that input '
+                f'cap {cap_ref} sits next to the {ref} VIN and GND pins and '
+                f'{inductor_ref} next to the SW pin.'
+            ),
+            confidence='heuristic',
+            schema_era="v3.0",
+        )
+
     # Prefer pre-computed loop areas from PCB analyzer (enrichment 2.4)
     precomputed = pcb.get('switching_loop_areas', []) if pcb else []
     if precomputed:
         for loop in precomputed:
-            area_mm2 = loop.get('area_mm2', 0)
-            if area_mm2 < 25:
-                continue  # Acceptable
-
             ref = loop.get('regulator_ref', '')
             val = loop.get('regulator_value', '')
             inductor_ref = loop.get('inductor_ref', '')
             cap_ref = loop.get('cap_ref', '')
 
+            area_mm2 = loop.get('area_mm2', 0)
+            if area_mm2 is None:
+                findings.append(_not_estimated(ref, val, inductor_ref, cap_ref, loop))
+                continue
+            if area_mm2 < 25:
+                continue  # Acceptable
+            if loop.get('method') != 'pad':
+                findings.append(_centre_estimate(ref, val, inductor_ref, cap_ref, area_mm2, []))
+                continue
+
             severity = 'HIGH' if area_mm2 > 100 else 'MEDIUM'
 
             desc = (
-                f'{ref} ({val}) hot loop area ≈ {area_mm2:.0f}mm² '
-                f'(triangle: {cap_ref} → {ref} → {inductor_ref}). '
+                f'{ref} ({val}) hot loop area ≈ {area_mm2:.0f}mm², measured '
+                f'through the pads of {cap_ref}, {ref} and {inductor_ref}. '
                 f'Recommended: <25mm² for low EMI.'
             )
-
-            # SPICE radiation estimate
-            spice_note = ''
-            if spice_backend and area_mm2 > 25:
-                reg_match = None
-                for reg in regulators:
-                    if reg.get('ref', reg.get('reference', '')) == ref:
-                        reg_match = reg
-                        break
-                if reg_match:
-                    sw_freq = (reg_match.get('switching_frequency_hz') or
-                               _estimate_switching_freq(val) or
-                               _default_switching_freq(reg_match.get('topology', '')))
-                    if sw_freq:
-                        area_m2 = area_mm2 * 1e-6
-                        pdiss = reg_match.get('power_dissipation', {})
-                        i_sw = pdiss.get('estimated_iout_A', 0.5)
-                        e_dbuv = dm_radiation_dbuv_m(sw_freq, area_m2, i_sw, 3.0,
-                                                      ground_plane=True)
-                        limit = get_emission_limit(sw_freq, 'fcc-class-b')
-                        if limit:
-                            margin = limit[0] - e_dbuv
-                            spice_note = (
-                                f' Estimated radiation at {sw_freq/1e6:.1f}MHz: '
-                                f'{e_dbuv:.0f} dBµV/m (limit: {limit[0]:.0f}, '
-                                f'margin: {margin:.0f}dB).'
-                            )
 
             findings.append(_make_finding(
                 'switching_emc', severity, 'SW-003',
                 title=f'Large hot loop for {ref}',
-                description=desc + spice_note,
+                description=desc,
                 components=[ref, inductor_ref, cap_ref],
                 recommendation=(
-                    f'Place {cap_ref}, {ref}, and {inductor_ref} in a tight triangle. '
-                    f'Minimize trace length between them. Input cap should be adjacent '
-                    f'to the IC with the inductor on the opposite side.'
+                    f'Place {cap_ref} with its pads next to the {ref} VIN and GND '
+                    f'pins and {inductor_ref} next to the SW pin. Minimize trace '
+                    f'length between them.'
                 ),
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
         return findings
 
@@ -1906,55 +2200,17 @@ def check_input_cap_loop_area(pcb: Optional[Dict],
             continue
 
         # Compute triangle area (input cap, IC, inductor)
-        from emc_formulas import polygon_area
-        area_mm2 = polygon_area([cap_pos, ic_pos, ind_pos])
+        area_mm2 = triangle_loop_area([cap_pos, ic_pos, ind_pos])
+        if area_mm2 is None:
+            findings.append(_not_estimated(ref, val, inductor_ref, cap_ref))
+            continue
 
         if area_mm2 < 25:
             continue  # Acceptable
 
-        if area_mm2 > 100:
-            severity = 'HIGH'
-        else:
-            severity = 'MEDIUM'
-
-        desc = (
-            f'{ref} ({val}) hot loop area ≈ {area_mm2:.0f}mm² '
-            f'(triangle: {cap_ref} → {ref} → {inductor_ref}). '
-            f'Recommended: <25mm² for low EMI.'
-        )
-
-        # SPICE enhancement: estimate radiated emission from loop
-        spice_note = ''
-        if spice_backend and area_mm2 > 25:
-            sw_freq = reg.get('switching_frequency_hz') or _estimate_switching_freq(val) or _default_switching_freq(topology)
-            if sw_freq:
-                area_m2 = area_mm2 * 1e-6
-                # Estimate switching current from power dissipation or default 0.5A
-                pdiss = reg.get('power_dissipation', {})
-                i_sw = pdiss.get('estimated_iout_A', 0.5)
-                e_dbuv = dm_radiation_dbuv_m(sw_freq, area_m2, i_sw, 3.0, ground_plane=True)
-                limit = get_emission_limit(sw_freq, 'fcc-class-b')
-                if limit:
-                    margin = limit[0] - e_dbuv
-                    spice_note = (
-                        f' Estimated radiation at {sw_freq/1e6:.1f}MHz: '
-                        f'{e_dbuv:.0f} dBµV/m (limit: {limit[0]:.0f}, '
-                        f'margin: {margin:.0f}dB).'
-                    )
-
-        findings.append(_make_finding(
-            'switching_emc', severity, 'SW-003',
-            title=f'Large hot loop for {ref}',
-            description=desc + spice_note,
-            components=[ref, inductor_ref, cap_ref],
-            nets=[reg.get('sw_net', '')] if reg.get('sw_net') else [],
-            recommendation=(
-                f'Place {cap_ref}, {ref}, and {inductor_ref} in a tight triangle. '
-                f'Minimize trace length between them. Input cap should be adjacent '
-                f'to the IC with the inductor on the opposite side.'
-            ),
-            confidence='heuristic',
-        ))
+        findings.append(_centre_estimate(
+            ref, val, inductor_ref, cap_ref, area_mm2,
+            [reg.get('sw_net', '')] if reg.get('sw_net') else []))
 
     return findings
 
@@ -2062,6 +2318,8 @@ def check_diff_pair_skew(pcb: Optional[Dict],
 
         delta_mm = abs(pos_len - neg_len)
         skew = diff_pair_skew_ps(delta_mm, epsilon_r)
+        if protocol == 'USB':
+            protocol = _usb_pair_protocol(pair, _resolve_usb_speed(pair, schematic))
         proto_info = DIFF_PAIR_PROTOCOLS.get(protocol, {})
         max_skew = proto_info.get('max_skew_ps', 50)
 
@@ -2092,6 +2350,7 @@ def check_diff_pair_skew(pcb: Optional[Dict],
                 f'({max_skew * 0.5 / propagation_delay_ps_per_mm(epsilon_r):.1f}mm). '
                 f'Use length-matched serpentine routing.'
             ),
+            schema_era="v3.0",
         ))
 
     return findings
@@ -2118,26 +2377,11 @@ def check_diff_pair_cm_radiation(pcb: Optional[Dict],
         neg_net = pair.get('negative', '')
         protocol = pair.get('type', 'unknown')
 
-        # Classify USB speed from MCU endpoint extraction
         usb_speed_resolved = None
         if protocol == 'USB':
-            for ic_ref in pair.get('shared_ics', []):
-                comp = next((c for c in (schematic or {}).get('components', [])
-                             if c.get('reference') == ic_ref), None)
-                if comp and comp.get('type') not in ('connector',):
-                    mcu_mpn = comp.get('mpn') or comp.get('value', '')
-                    mcu_feat = _get_mcu_features(mcu_mpn, project_dir=_schematic_project_dir(schematic)) if mcu_mpn else None
-                    if mcu_feat and not mcu_feat.get('quality', {}).get('trusted', True):
-                        mcu_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
-                    if mcu_feat:
-                        usb_speed_resolved = mcu_feat.get('usb_speed')
-                        break
-            if usb_speed_resolved == 'HS':
-                proto_info = DIFF_PAIR_PROTOCOLS.get('USB-HS')
-            elif usb_speed_resolved == 'SS':
-                proto_info = DIFF_PAIR_PROTOCOLS.get('USB3')
-            else:
-                proto_info = DIFF_PAIR_PROTOCOLS.get('USB-FS')
+            usb_speed_resolved = _resolve_usb_speed(pair, schematic)
+            usb_key = _usb_pair_protocol(pair, usb_speed_resolved)
+            proto_info = DIFF_PAIR_PROTOCOLS.get(usb_key)
         else:
             proto_info = DIFF_PAIR_PROTOCOLS.get(protocol)
         if not proto_info:
@@ -2186,6 +2430,8 @@ def check_diff_pair_cm_radiation(pcb: Optional[Dict],
             else:
                 severity = 'HIGH' if margin < 0 else 'MEDIUM'
             proto_label = f'USB-{usb_speed_resolved}' if protocol == 'USB' and usb_speed_resolved else protocol
+            if protocol == 'USB' and usb_key == 'USB-HS':
+                proto_label = 'USB-HS'
             findings.append(_make_finding(
                 'diff_pair', severity, 'DP-002',
                 title=f'{proto_label} skew-induced CM radiation risk',
@@ -2202,6 +2448,7 @@ def check_diff_pair_cm_radiation(pcb: Optional[Dict],
                     f'(CM choke) at the connector.'
                 ),
                 confidence='datasheet-backed',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -2229,6 +2476,9 @@ def check_diff_pair_reference_plane(pcb: Optional[Dict],
         if net:
             trans_map[net] = lt
 
+    gnd_vias = _ground_via_positions(pcb)
+    radius = _stitch_radius_mm(pcb)
+
     for pair in diff_pairs:
         pos_net = pair.get('positive', '')
         neg_net = pair.get('negative', '')
@@ -2247,23 +2497,49 @@ def check_diff_pair_reference_plane(pcb: Optional[Dict],
             if len(layers) <= 1:
                 continue
 
-            findings.append(_make_finding(
-                'diff_pair', 'HIGH', 'DP-003',
-                title=f'{protocol} diff pair changes layers',
-                description=(
-                    f'Net {net_name} (part of {protocol} diff pair) transitions '
+            # Stitched when a ground via sits within RP-001's radius of every signal via;
+            # without a via list nothing can be shown, so it is not stitched.
+            positions = trans.get('via_positions') or []
+            has_via_list = bool((pcb.get('vias') or {}).get('vias'))
+            stitched = bool(positions) and all(
+                _via_stitched(vp, gnd_vias, radius) for vp in positions)
+            lead = (f'Net {net_name} (part of {protocol} diff pair) transitions '
                     f'across {len(layers)} layers ({", ".join(layers)}) with '
-                    f'{via_count} via(s). Each layer transition is a potential '
-                    f'DM-to-CM conversion point. Ensure stitching vias or '
-                    f'decoupling caps at each transition.'
-                ),
+                    f'{via_count} via(s)')
+            if stitched:
+                description = (
+                    f'{lead}, each with a ground via within {radius:g}mm. '
+                    f'A layer change is still a DM-to-CM conversion point.'
+                )
+                recommendation = ('Keep diff pairs on one layer where routing '
+                                  'allows; the transitions are stitched.')
+            else:
+                if has_via_list and positions:
+                    description = (
+                        f'{lead}, not all with a ground via within {radius:g}mm. '
+                        f'Each layer transition is a potential DM-to-CM '
+                        f'conversion point.'
+                    )
+                else:
+                    description = (
+                        f'{lead}. No via list was available, so ground '
+                        f'stitching was not checked; run analyze_pcb --full to '
+                        f'grade it. Each layer transition is a potential '
+                        f'DM-to-CM conversion point.'
+                    )
+                recommendation = (
+                    f'Add a ground stitching via within {radius:g}mm of '
+                    f'each signal via. Preferably route diff pairs on a single '
+                    f'layer to avoid layer transitions entirely.'
+                )
+            findings.append(_make_finding(
+                'diff_pair', 'INFO' if stitched else 'MEDIUM', 'DP-003',
+                title=f'{protocol} diff pair changes layers',
+                description=description,
                 components=pair.get('shared_ics', [])[:3],
                 nets=[net_name],
-                recommendation=(
-                    'Add ground stitching vias within 2× dielectric height of '
-                    'each signal via. Preferably route diff pairs on a single '
-                    'layer to avoid layer transitions entirely.'
-                ),
+                recommendation=recommendation,
+                schema_era="v3.0",
             ))
 
     return findings
@@ -2280,10 +2556,8 @@ def check_diff_pair_layer(pcb: Optional[Dict],
     if not diff_pairs:
         return findings
 
-    layers = pcb.get('layers', [])
-    copper_layers = [l for l in layers if l.get('type') in ('signal', 'power')]
-    if len(copper_layers) <= 2:
-        return findings  # 2-layer board — no inner layers available
+    if not _has_inner_signal_layer(pcb):
+        return findings  # no inner layer free for stripline routing
 
     net_map = _build_net_length_map(pcb)
 
@@ -2295,19 +2569,9 @@ def check_diff_pair_layer(pcb: Optional[Dict],
             if not layer_dist:
                 continue
 
-            outer_segs = 0
-            total_segs = 0
-            for lname, ldata in layer_dist.items():
-                seg_count = ldata.get('segments', ldata) if isinstance(ldata, dict) else ldata
-                if isinstance(seg_count, dict):
-                    seg_count = seg_count.get('segments', 1)
-                total_segs += seg_count
-                if lname in ('F.Cu', 'B.Cu'):
-                    outer_segs += seg_count
-
-            if total_segs <= 0:
+            outer_ratio = _outer_layer_ratio(layer_dist)
+            if outer_ratio is None:
                 continue
-            outer_ratio = outer_segs / total_segs
 
             if outer_ratio > 0.5:
                 findings.append(_make_finding(
@@ -2325,6 +2589,7 @@ def check_diff_pair_layer(pcb: Optional[Dict],
                         'Route differential pairs on inner stripline layers '
                         'when possible for reduced EMI.'
                     ),
+                    schema_era="v3.0",
                 ))
 
     return findings
@@ -2370,6 +2635,11 @@ def _point_to_edges_min_distance(px: float, py: float,
             cx, cy = edge['center'][0], edge['center'][1]
             r = math.hypot(end[0] - cx, end[1] - cy)
             d = abs(math.hypot(px - cx, py - cy) - r)
+        elif etype in ('polygon', 'curve'):
+            # these carry their outline as points, not start and end
+            d = outline_edge_distance(px, py, [edge])
+            if d is None:
+                continue
         else:
             d = point_to_segment_distance(px, py, start[0], start[1],
                                           end[0], end[1])
@@ -2440,6 +2710,7 @@ def check_trace_near_board_edge(pcb: Dict,
                     ),
                     nets=sorted(flagged_nets)[:5],
                     recommendation='Keep signal traces at least 3× dielectric height from board edges.',
+                    schema_era="v3.0",
                 ))
                 return findings
 
@@ -2454,6 +2725,7 @@ def check_trace_near_board_edge(pcb: Dict,
                 ),
                 nets=[net_name],
                 recommendation='Route signal away from board edge or add ground pour to the edge area.',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -2469,7 +2741,7 @@ def check_ground_pour_ring(pcb: Dict) -> List[Dict]:
     if not edges:
         return findings
 
-    gnd_zones = [z for z in zones if _is_ground_net(z.get('net_name', ''))]
+    gnd_zones = [z for z in zones if is_emc_ground_name(z.get('net_name', ''))]
     if not gnd_zones:
         return findings  # GP-002 already flags missing ground planes
 
@@ -2536,6 +2808,7 @@ def check_ground_pour_ring(pcb: Dict) -> List[Dict]:
                     'Add ground pour on outer layers extending to within 2mm '
                     'of all board edges, connected by stitching vias.'
                 ),
+                schema_era="v3.0",
             ))
 
     return findings
@@ -2628,6 +2901,7 @@ def check_connector_area_stitching(pcb: Dict,
                     f'Add ground stitching vias at ≤{required_spacing:.0f}mm '
                     f'intervals around {conn_ref}.'
                 ),
+                schema_era="v3.0",
             ))
 
     return findings
@@ -2759,6 +3033,7 @@ def check_crosstalk_3h_rule(pcb: Dict,
                 f'or insert a ground guard trace between them.'
             ),
             confidence='heuristic',
+            schema_era="v3.0",
         ))
 
         if len(findings) > 15:
@@ -2768,6 +3043,7 @@ def check_crosstalk_3h_rule(pcb: Dict,
                 description='Multiple net pairs violate the 3H spacing rule. Review trace spacing board-wide.',
                 recommendation=f'Increase trace spacing to ≥{threshold_3h:.1f}mm on outer layers.',
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
             break
 
@@ -2778,14 +3054,60 @@ def check_crosstalk_3h_rule(pcb: Dict,
 # Category 12: EMI Filter Verification
 # ---------------------------------------------------------------------------
 
+# A ferrite_bead value is trusted as an inductance only below this; larger
+# numbers are impedances at 100 MHz or free text.
+_FERRITE_MAX_HENRY = 10e-3
+
+
+def _input_lc_filter(schematic: Dict, input_rail: str, *, exclude=()) -> tuple:
+    """(found, lowest fc in Hz) of series-L / shunt-C filters on a regulator input rail.
+
+    C_in is every non-DNP capacitor from input_rail to ground; the inductor has
+    one pin on input_rail and the other on a different power net, so a boost
+    inductor to the switch node is not a filter; nets in `exclude` (the regulator's
+    own switch and output nets) are never the far side. fc = 1 / (2 pi sqrt(L C_in)).
+    """
+    if not input_rail:
+        return False, None
+    parts = [c for c in schematic.get('components', []) if not c.get('dnp')]
+
+    c_in = 0.0
+    for c in parts:
+        if c.get('type') != 'capacitor':
+            continue
+        nets = set((c.get('pin_nets') or {}).values())
+        if input_rail in nets and any(is_ground_name(n) for n in nets - {input_rail}):
+            c_in += c.get('parsed_value') or 0.0
+    if c_in <= 0:
+        return False, None
+
+    best = None
+    for l in parts:
+        kind = l.get('type')
+        henry = l.get('parsed_value')
+        if kind not in ('inductor', 'ferrite_bead') or not henry or henry <= 0:
+            continue
+        if kind == 'ferrite_bead' and henry >= _FERRITE_MAX_HENRY:
+            continue
+        nets = set((l.get('pin_nets') or {}).values())
+        other = nets - {input_rail}
+        if input_rail not in nets or len(other) != 1:
+            continue
+        far = next(iter(other))
+        if far in exclude or is_ground_name(far) or not is_power_net_name(far):
+            continue
+        fc = 1 / (2 * math.pi * math.sqrt(henry * c_in))
+        if best is None or fc < best:
+            best = fc
+    return best is not None, best
+
+
 def check_emi_filter_effectiveness(pcb: Optional[Dict],
-                                   schematic: Optional[Dict],
-                                   spice_backend=None) -> List[Dict]:
+                                   schematic: Optional[Dict]) -> List[Dict]:
     """EF-001: Verify EMI input filter cutoff vs switching frequency.
 
     For each switching regulator, check if there's an LC filter on the
     input rail with cutoff well below the switching frequency.
-    When spice_backend is provided, simulates actual insertion loss.
 
     Ref: Paul, "Introduction to EMC", Ch. 9.
          Analog Devices, "Speed Up the Design of EMI Filters for SMPS".
@@ -2796,8 +3118,6 @@ def check_emi_filter_effectiveness(pcb: Optional[Dict],
         return findings
 
     regulators = get_findings(schematic, Det.POWER_REGULATORS)
-    lc_filters = get_findings(schematic, Det.LC_FILTERS)
-    rc_filters = get_findings(schematic, Det.RC_FILTERS)
 
     if not regulators:
         return findings
@@ -2815,22 +3135,13 @@ def check_emi_filter_effectiveness(pcb: Optional[Dict],
 
         input_rail = reg.get('input_rail', '')
 
-        # Look for an LC filter on the input rail
-        # Match by shared nets between filter components and regulator input
-        has_input_filter = False
-        filter_fc = None
-
-        for lc in lc_filters:
-            # Check if the LC filter shares the input rail net
-            inductor_ref = lc.get('inductor', '')
-            lc_freq = lc.get('resonant_frequency', lc.get('resonant_hz', 0))
-            if lc_freq and lc_freq > 0:
-                # Check if this filter's frequency is in the right range
-                # (well below switching frequency = good EMI filter)
-                if lc_freq < sw_freq:
-                    has_input_filter = True
-                    filter_fc = lc_freq
-                    break
+        has_input_filter, filter_fc = _input_lc_filter(
+            schematic, input_rail,
+            exclude={n for n in (reg.get('sw_net'), reg.get('output_rail')) if n})
+        # A filter whose cutoff is at or above f_sw does not attenuate it; as
+        # before, that is no filter rather than a finding.
+        if has_input_filter and filter_fc >= sw_freq:
+            has_input_filter = False
 
         if not has_input_filter:
             # No input filter detected — INFO only (many designs rely on
@@ -2858,6 +3169,7 @@ def check_emi_filter_effectiveness(pcb: Optional[Dict],
                     f'cutoff to ≤{sw_freq/5/1e6:.2f} MHz.'
                 ),
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
         elif ratio >= 5:
             findings.append(_make_finding(
@@ -2873,6 +3185,7 @@ def check_emi_filter_effectiveness(pcb: Optional[Dict],
                 nets=[input_rail] if input_rail else [],
                 recommendation='Input EMI filter appears adequate.',
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -2908,27 +3221,17 @@ def check_esd_protection_path(pcb: Dict,
 
     net_id_map = build_net_id_map(pcb)
     footprints = pcb.get('footprints', [])
-    connectors = _connector_refs(footprints)
+    # DNP connectors stay in the proximity search: a device placed for an
+    # unfitted connector must not be paired with a farther, fitted one.
+    connectors = _connector_refs(footprints, include_dnp=True)
     if not connectors:
         return findings
 
     # Build footprint position lookup
     fp_positions = {}
-    fp_pads = {}
     for fp in footprints:
         ref = fp.get('reference', '')
         fp_positions[ref] = (fp.get('x') or 0, fp.get('y') or 0)
-        fp_pads[ref] = fp.get('pads', [])
-
-    # Map protection devices to their positions
-    prot_refs = set()
-    prot_by_net = {}
-    for pd in protection:
-        ref = pd.get('reference', pd.get('ref', ''))
-        prot_refs.add(ref)
-        pnet = pd.get('protected_net', '')
-        if pnet:
-            prot_by_net.setdefault(pnet, []).append(pd)
 
     # Count ground vias near each protection device
     vias_data = pcb.get('vias', {})
@@ -2937,7 +3240,8 @@ def check_esd_protection_path(pcb: Dict,
     for pd in protection:
         ref = pd.get('reference', pd.get('ref', ''))
         ptype = pd.get('type', '')
-        if ptype not in ('tvs', 'esd', 'esd_ic', 'tvs_array', 'varistor'):
+        # The protection detector types a discrete TVS by its component type, 'diode'
+        if ptype not in ('tvs', 'esd', 'esd_ic', 'tvs_array', 'varistor', 'diode'):
             continue
 
         if ref not in fp_positions:
@@ -2947,6 +3251,7 @@ def check_esd_protection_path(pcb: Dict,
         # Check distance from nearest external connector
         min_conn_dist = float('inf')
         nearest_conn = ''
+        nearest_dnp = False
         for conn in connectors:
             cx = conn.get('x') or 0
             cy = conn.get('y') or 0
@@ -2954,12 +3259,13 @@ def check_esd_protection_path(pcb: Dict,
             if d < min_conn_dist:
                 min_conn_dist = d
                 nearest_conn = conn.get('reference', '')
+                nearest_dnp = bool(conn.get('dnp'))
 
         if min_conn_dist > 50:
             continue  # Not near any connector
 
         # ES-001: Check distance (trace length proxy)
-        if min_conn_dist > 15:
+        if min_conn_dist > 15 and not nearest_dnp:
             # Estimate trace inductance from distance
             est_inductance_nh = min_conn_dist * 0.7  # ~0.7 nH/mm for microstrip
             est_overshoot_v = est_inductance_nh * 1e-9 * 37.5e9  # V = L × dI/dt
@@ -2983,10 +3289,14 @@ def check_esd_protection_path(pcb: Dict,
                     'components': [{'type': 'tvs_diode'}],
                     'basis': 'ESD protection on external pins',
                 },
+                schema_era="v3.0",
             ))
 
-        # ES-002: Check ground via count near TVS
-        if all_vias:
+        # ES-002: Check ground via count near TVS. A discrete TVS diode or a varistor
+        # clamping to a supply rail or another line has no ground return to count.
+        clamp_net = pd.get('clamp_net')
+        if all_vias and not (ptype in ('diode', 'varistor') and clamp_net
+                             and not is_emc_ground_name(clamp_net)):
             gnd_vias_near = 0
             for via in all_vias:
                 vx = via.get('x', 0)
@@ -2998,7 +3308,7 @@ def check_esd_protection_path(pcb: Dict,
                         net_name = net_id_map.get(net_id, '')
                     else:
                         net_name = via.get('net_name', '') if isinstance(via.get('net_name'), str) else ''
-                    if _is_ground_net(net_name):
+                    if is_emc_ground_name(net_name):
                         gnd_vias_near += 1
 
             if gnd_vias_near == 0:
@@ -3017,6 +3327,7 @@ def check_esd_protection_path(pcb: Dict,
                         f'ground pad. Use fat, short traces to ground plane.'
                     ),
                     confidence='heuristic',
+                    schema_era="v3.0",
                 ))
             elif gnd_vias_near == 1:
                 findings.append(_make_finding(
@@ -3030,6 +3341,7 @@ def check_esd_protection_path(pcb: Dict,
                     components=[ref],
                     recommendation=f'Add a second ground via near {ref} for lower inductance.',
                     confidence='heuristic',
+                    schema_era="v3.0",
                 ))
 
     return findings
@@ -3039,9 +3351,9 @@ def check_esd_protection_path(pcb: Dict,
 # Thermal-EMC Interaction
 # ---------------------------------------------------------------------------
 
-# MLCC DC bias derating — imported from kicad_utils (single source of truth)
-from kicad_utils import (classify_dielectric as _classify_dielectric,
-                         estimate_dc_bias_derating as _estimate_dc_bias_derating)
+# MLCC DC bias derating — imported from kicad_core (single source of truth)
+from kicad_core.passives import (classify_dielectric as _classify_dielectric,
+                                 estimate_dc_bias_derating as _estimate_dc_bias_derating)
 
 
 def check_thermal_emc(pcb: Optional[Dict],
@@ -3066,8 +3378,9 @@ def check_thermal_emc(pcb: Optional[Dict],
     regulators = get_findings(schematic, Det.POWER_REGULATORS)
     for reg in regulators:
         vout = reg.get('vout_estimated') or reg.get('estimated_vout')
-        if not vout or vout <= 0:
+        if not isinstance(vout, (int, float)) or not vout:
             continue
+        v_bias = abs(vout)  # DC bias derating follows the magnitude
 
         output_caps = reg.get('output_capacitors', [])
         ref_reg = reg.get('ref', reg.get('reference', ''))
@@ -3094,15 +3407,15 @@ def check_thermal_emc(pcb: Optional[Dict],
                 rated_v = cap.get('rated_voltage_V')
                 if rated_v is None:
                     rated_v = 10.0
-                    if vout <= 1.8:
+                    if v_bias <= 1.8:
                         rated_v = 6.3
-                    elif vout <= 3.3:
+                    elif v_bias <= 3.3:
                         rated_v = 6.3
-                    elif vout <= 5.0:
+                    elif v_bias <= 5.0:
                         rated_v = 10.0
-                    elif vout <= 12.0:
+                    elif v_bias <= 12.0:
                         rated_v = 25.0
-                remaining = _estimate_dc_bias_derating(dielectric, package, vout / rated_v)
+                remaining = _estimate_dc_bias_derating(dielectric, package, v_bias / rated_v)
 
             effective_uf = farads * remaining * 1e6
             nominal_uf = farads * 1e6
@@ -3127,6 +3440,7 @@ def check_thermal_emc(pcb: Optional[Dict],
                         f'Alternatively, add more caps to compensate.'
                     ),
                     confidence='datasheet-backed',
+                    schema_era="v3.0",
                 ))
 
     # TH-002: Ferrite bead near switching regulator (thermal degradation)
@@ -3151,7 +3465,7 @@ def check_thermal_emc(pcb: Optional[Dict],
         # Find ferrite beads
         for fp in footprints:
             ref = fp.get('reference', '')
-            # KH-326: coerce malformed upstream value (rare parser edge case
+            # Coerce malformed upstream value (rare parser edge case
             # where fp_text value has no text body) to empty string.
             _raw_val = fp.get('value', '')
             val = _raw_val.lower() if isinstance(_raw_val, str) else ''
@@ -3184,6 +3498,7 @@ def check_thermal_emc(pcb: Optional[Dict],
                             'higher-temperature-rated ferrite.'
                         ),
                         confidence='datasheet-backed',
+                        schema_era="v3.0",
                     ))
                     break  # One finding per ferrite
 
@@ -3291,6 +3606,7 @@ def check_shielding_advisory(pcb: Dict,
                     'or adding absorber material.'
                 ),
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
         # Non-coincident connectors: no finding (reduces noise)
 
@@ -3301,7 +3617,7 @@ def check_shielding_advisory(pcb: Dict,
 # PDN Impedance Analysis
 # ---------------------------------------------------------------------------
 
-# KH-377: anti-resonance peaks above this frequency aren't actionable via
+# Anti-resonance peaks above this frequency aren't actionable via
 # board-level decoupling caps (self-resonant frequencies of typical MLCCs
 # top out well below this) and shouldn't drive a HIGH PD-001 finding.
 PDN_RELEVANT_FMAX_HZ = 2e8
@@ -3314,8 +3630,7 @@ _CAP_UNIT_SCALES = (
 def _fmt_cap(farads: float) -> str:
     """Format a capacitance in clean engineering notation (3 sig figs).
 
-    KH-377: descriptions previously printed raw floats, e.g.
-    ``str(0.0001 * 1e6) + "uF"`` -> ``"100.00000000000001uF"``.
+    Avoids raw-float artifacts such as ``"100.00000000000001uF"``.
     """
     if not farads or farads <= 0:
         return "0F"
@@ -3330,10 +3645,75 @@ def _fmt_cap(farads: float) -> str:
     return s + unit
 
 
+# Thinnest dielectric that still makes a rail's zone and a ground zone a plane pair.
+_PLANE_PAIR_MAX_DIELECTRIC_MM = 0.3
+
+
+def _zone_layer_area_mm2(zone: Dict, layer: str) -> float:
+    """Filled copper of *zone* on *layer* (0 without fill data for that layer)."""
+    per_layer = zone.get('filled_layers')
+    if isinstance(per_layer, dict):
+        return per_layer.get(layer) or 0.0
+    if zone.get('layers') == [layer]:
+        return zone.get('filled_area_mm2') or 0.0
+    return 0.0
+
+
+def _rail_plane_cap_f(pcb: Optional[Dict], rail: str) -> float:
+    """Interplane capacitance of *rail*'s own zone copper facing a ground zone.
+
+    Takes the tightest adjacent copper pair (dielectric under 0.3 mm) where the
+    rail fills one layer and a ground net fills the other, and sizes the
+    capacitance by the overlap bound min(rail fill, ground fill) on that pair.
+    0 when the rail has no such plane.
+    """
+    if not pcb or not rail:
+        return 0.0
+    stackup = (pcb.get('setup') or {}).get('stackup') or []
+    copper = [i for i, layer in enumerate(stackup)
+              if isinstance(layer, dict) and layer.get('type') == 'copper']
+    rail_area: Dict[str, float] = {}
+    gnd_area: Dict[str, float] = {}
+    for zone in pcb.get('zones') or []:
+        if not isinstance(zone, dict) or zone.get('is_keepout'):
+            continue
+        net = zone.get('net_name') or ''
+        if net == rail:
+            target = rail_area
+        elif is_ground_name(net):
+            target = gnd_area
+        else:
+            continue
+        for layer in zone.get('layers') or []:
+            target[layer] = target.get(layer, 0.0) + _zone_layer_area_mm2(zone, layer)
+    best = None
+    for a, b in zip(copper, copper[1:]):
+        d_mm, er = 0.0, 4.4
+        for layer in stackup[a + 1:b]:
+            try:
+                d_mm += float(layer.get('thickness') or 0)
+                if layer.get('epsilon_r'):
+                    er = float(layer['epsilon_r'])
+            except (ValueError, TypeError, AttributeError):
+                pass
+        if not 0 < d_mm < _PLANE_PAIR_MAX_DIELECTRIC_MM:
+            continue
+        la, lb = stackup[a].get('name'), stackup[b].get('name')
+        overlap = max(min(rail_area.get(la, 0.0), gnd_area.get(lb, 0.0)),
+                      min(rail_area.get(lb, 0.0), gnd_area.get(la, 0.0)))
+        if overlap > 0 and (best is None or d_mm < best[0]):
+            best = (d_mm, er, overlap)
+    if best is None:
+        return 0.0
+    d_mm, er, area_mm2 = best
+    return interplane_capacitance_pf_per_cm2(d_mm, er) * (area_mm2 / 100.0) * 1e-12
+
+
 def check_pdn_impedance(pcb: Optional[Dict],
                         schematic: Optional[Dict],
                         spice_backend=None,
-                        pdn_transient_a: Optional[float] = None) -> List[Dict]:
+                        pdn_transient_a: Optional[float] = None,
+                        diagnostics=None) -> List[Dict]:
     """PD-001/PD-002: Analyze decoupling network impedance per power rail.
 
     For each power regulator with detected output capacitors, model the
@@ -3358,41 +3738,6 @@ def check_pdn_impedance(pcb: Optional[Dict],
     if not regulators:
         return findings
 
-    # Get interplane capacitance from PCB stackup
-    plane_cap_f = 0
-    if pcb:
-        setup = pcb.get('setup', {})
-        stackup = setup.get('stackup', [])
-        # Find tightest power/ground plane pair
-        for i in range(len(stackup) - 1):
-            l1 = stackup[i]
-            l2 = stackup[i + 1] if i + 1 < len(stackup) else {}
-            # Look for adjacent copper layers (potential plane pair)
-            if l1.get('type') == 'copper' and l2.get('type') != 'copper':
-                # Check the next copper layer after this dielectric
-                for j in range(i + 2, len(stackup)):
-                    if stackup[j].get('type') == 'copper':
-                        d_mm = 0
-                        er = 4.4
-                        for k in range(i + 1, j):
-                            if stackup[k].get('type') != 'copper':
-                                try:
-                                    d_mm += float(stackup[k].get('thickness', 0))
-                                    er_val = stackup[k].get('epsilon_r')
-                                    if er_val:
-                                        er = float(er_val)
-                                except (ValueError, TypeError):
-                                    pass
-                        if d_mm > 0 and d_mm < 0.3:
-                            # Estimate board area from stats
-                            stats = pcb.get('statistics', {})
-                            w = (stats.get('board_width_mm') or 50)
-                            h = (stats.get('board_height_mm') or 50)
-                            area_cm2 = (w * h) / 100
-                            c_pf_per_cm2 = interplane_capacitance_pf_per_cm2(d_mm, er)
-                            plane_cap_f = c_pf_per_cm2 * area_cm2 * 1e-12  # Convert pF to F
-                        break
-
     for reg in regulators:
         ref = reg.get('ref', reg.get('reference', ''))
         val = reg.get('value', '')
@@ -3402,6 +3747,8 @@ def check_pdn_impedance(pcb: Optional[Dict],
 
         if not output_caps or not vout:
             continue
+
+        plane_cap_f = _rail_plane_cap_f(pcb, output_rail)
 
         # Build cap models for PDN sweep
         cap_models = []
@@ -3426,15 +3773,15 @@ def check_pdn_impedance(pcb: Optional[Dict],
         if not cap_models:
             continue
 
-        # Estimate transient current: config override > power-budget-derived
-        # > 0.5A default. KH-377: the old fallback defaulted i_out itself to
-        # 0.5A then doubled it, silently landing on 1.0A with zero real data.
+        # Estimate transient current: config override > twice the regulator's
+        # estimated output current (sized from its output capacitance)
+        # > 0.5A default (the default is used as-is, not doubled).
         pdiss = reg.get('power_dissipation', {})
         i_out = pdiss.get('estimated_iout_A')
         if pdn_transient_a:
             i_transient, transient_source = pdn_transient_a, 'config'
         elif i_out and i_out > 0:
-            i_transient, transient_source = min(i_out * 2, 5.0), 'power_budget'
+            i_transient, transient_source = min(i_out * 2, 5.0), 'output_cap_proxy'
         else:
             i_transient, transient_source = 0.5, 'default'
 
@@ -3449,12 +3796,13 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 from emc_spice import run_pdn_spice
                 ok, spice_sweep = run_pdn_spice(
                     cap_models, plane_cap_f, spice_backend,
-                    freq_start=1e3, freq_stop=1e9)
+                    freq_start=1e3, freq_stop=1e9, diagnostics=diagnostics)
                 if ok and spice_sweep:
                     sweep = spice_sweep
                     spice_verified = True
-            except Exception:
-                pass
+            except Exception as exc:
+                record(diagnostics, "emc_rules.check_pdn_impedance", exc,
+                       "SPICE PDN sweep skipped; analytical sweep used")
         if sweep is None:
             sweep = pdn_impedance_sweep(cap_models, plane_cap_f=plane_cap_f,
                                         freq_start=1e3, freq_stop=1e9)
@@ -3464,7 +3812,7 @@ def check_pdn_impedance(pcb: Optional[Dict],
         # Find anti-resonances
         peaks = find_anti_resonances(sweep, z_target=z_target)
         exceeding = [p for p in peaks if p.get('exceeds_target')]
-        # KH-377: peaks above PDN_RELEVANT_FMAX_HZ aren't actionable via
+        # Peaks above PDN_RELEVANT_FMAX_HZ aren't actionable via
         # board-level decoupling -- don't let them drive severity.
         in_band = [p for p in exceeding if p['freq_mhz'] * 1e6 <= PDN_RELEVANT_FMAX_HZ]
         out_band = [p for p in exceeding if p['freq_mhz'] * 1e6 > PDN_RELEVANT_FMAX_HZ]
@@ -3501,8 +3849,8 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 nets=[output_rail] if output_rail else [],
                 recommendation=_suggest_pdn_cap(
                     in_band[0], cap_models, plane_cap_f, z_target,
-                    spice_backend, sweep_before=sweep),
-                confidence='datasheet-backed' if spice_verified else 'heuristic',
+                    spice_backend, sweep_before=sweep, diagnostics=diagnostics),
+                confidence='heuristic',  # ESR/ESL are package estimates
                 spice_verified=spice_verified,
                 rail=output_rail,
                 target_impedance_ohm=round(z_target, 4),
@@ -3521,6 +3869,7 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 peaks_total=peaks_total,
                 peaks_shown=peaks_shown,
                 **out_of_band_extra,
+                schema_era="v3.0",
             ))
         elif out_band:
             # All exceeding peaks are above the PDN-relevant band -- not
@@ -3542,7 +3891,7 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 components=[ref],
                 nets=[output_rail] if output_rail else [],
                 recommendation='No decoupling action needed for these peaks.',
-                confidence='datasheet-backed' if spice_verified else 'heuristic',
+                confidence='heuristic',  # ESR/ESL are package estimates
                 spice_verified=spice_verified,
                 rail=output_rail,
                 target_impedance_ohm=round(z_target, 4),
@@ -3552,6 +3901,7 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 method='spice' if spice_verified else 'analytical',
                 decoupling_cap_count=len(cap_models),
                 **out_of_band_extra,
+                schema_era="v3.0",
             ))
         elif peaks:
             # Peaks exist but don't exceed target — INFO
@@ -3569,7 +3919,7 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 components=[ref],
                 nets=[output_rail] if output_rail else [],
                 recommendation='PDN impedance is within target. No action needed.',
-                confidence='datasheet-backed' if spice_verified else 'heuristic',
+                confidence='heuristic',  # ESR/ESL are package estimates
                 spice_verified=spice_verified,
                 rail=output_rail,
                 target_impedance_ohm=round(z_target, 4),
@@ -3580,6 +3930,7 @@ def check_pdn_impedance(pcb: Optional[Dict],
                     for p in peaks
                 ],
                 decoupling_cap_count=len(cap_models),
+                schema_era="v3.0",
             ))
 
     return findings
@@ -3625,32 +3976,6 @@ def check_pdn_distributed(pcb: Optional[Dict],
     if pcb:
         enrich_power_tree_with_pcb(tree, pcb)
 
-    # Interplane capacitance (reuse same logic as check_pdn_impedance)
-    plane_cap_f = 0
-    if pcb:
-        setup = pcb.get('setup', {})
-        stackup = setup.get('stackup', [])
-        if stackup:
-            stats = pcb.get('statistics', {})
-            w = stats.get('board_width_mm', 0)
-            h = stats.get('board_height_mm', 0)
-            board_area_cm2 = (w * h) / 100.0 if w and h else 0
-            # Find tightest power/ground plane pair
-            for i in range(len(stackup) - 1):
-                layer = stackup[i]
-                if not isinstance(layer, dict):
-                    continue
-                if layer.get('type') not in ('core', 'prepreg'):
-                    continue
-                try:
-                    d_mm = float(layer.get('thickness', 0))
-                    er = float(layer.get('epsilon_r', 4.4))
-                except (ValueError, TypeError):
-                    continue
-                if 0 < d_mm < 0.3 and board_area_cm2 > 0:
-                    cpf = interplane_capacitance_pf_per_cm2(d_mm, er)
-                    plane_cap_f = max(plane_cap_f, cpf * board_area_cm2 * 1e-12)
-
     # --- PD-003: Distributed rail impedance at IC load point ---
     for rail_name, node in tree.items():
         if not node.get('load_ics'):
@@ -3677,7 +4002,7 @@ def check_pdn_distributed(pcb: Optional[Dict],
 
         # Run distributed sweep
         sweep_result = distributed_pdn_impedance_sweep(
-            node, plane_cap_f=plane_cap_f)
+            node, plane_cap_f=_rail_plane_cap_f(pcb, rail_name))
 
         ic_sweep = sweep_result.get('sweep_at_worst_ic', [])
         worst_ic = sweep_result.get('worst_ic_ref', '')
@@ -3737,6 +4062,7 @@ def check_pdn_distributed(pcb: Optional[Dict],
                     f'reduce impedance at high frequencies, plus bulk cap if '
                     f'low-frequency impedance is too high.'
                 ),
+                schema_era="v3.0",
             ))
 
     # --- PD-004: Cross-rail coupling from downstream switching ---
@@ -3747,6 +4073,7 @@ def check_pdn_distributed(pcb: Optional[Dict],
 
         upstream_v = node['voltage']
         total_reflected = 0.0
+        worst_i = 0.0
         worst_freq = 0
         worst_downstream_ref = ''
 
@@ -3763,7 +4090,8 @@ def check_pdn_distributed(pcb: Optional[Dict],
             i_trans, f_sw = cross_rail_transient_current(ds_node, upstream_v)
             if i_trans > 0 and f_sw > 0:
                 total_reflected += i_trans
-                if i_trans > total_reflected - i_trans:  # this one is the worst
+                if i_trans > worst_i:
+                    worst_i = i_trans
                     worst_freq = f_sw
                     worst_downstream_ref = ds_ref
 
@@ -3807,6 +4135,7 @@ def check_pdn_distributed(pcb: Optional[Dict],
                     f'input (a 10-22µF bulk cap plus 100nF MLCC), or add '
                     f'bulk capacitance on the {rail_name} rail.'
                 ),
+                schema_era="v3.0",
             ))
 
     return findings
@@ -3815,6 +4144,57 @@ def check_pdn_distributed(pcb: Optional[Dict],
 # ---------------------------------------------------------------------------
 # Category 12: Return Path Enhancement
 # ---------------------------------------------------------------------------
+
+def _ground_via_positions(pcb: Dict) -> List[tuple]:
+    """(x, y) of every via on a ground net (empty without the --full via list)."""
+    nets = pcb.get('nets', {})
+    positions = []
+    for via in (pcb.get('vias') or {}).get('vias') or []:
+        net = via.get('net_name', via.get('net', ''))
+        if isinstance(net, int):
+            net = nets.get(net, nets.get(str(net), '')) if isinstance(nets, dict) else ''
+        elif not isinstance(net, str):
+            continue
+        if is_emc_ground_name(str(net)):
+            positions.append((via.get('x', 0), via.get('y', 0)))
+    return positions
+
+
+def _ground_fill_layers(pcb: Dict) -> set:
+    """Copper layers carrying filled copper of a ground-net zone."""
+    layers = set()
+    for zone in pcb.get('zones') or []:
+        if not isinstance(zone, dict) or zone.get('is_keepout'):
+            continue
+        if not is_emc_ground_name(zone.get('net_name') or ''):
+            continue
+        for layer in zone.get('layers') or []:
+            if layer.endswith('.Cu') and _zone_layer_area_mm2(zone, layer) > 0:
+                layers.add(layer)
+    return layers
+
+
+def _stitch_radius_mm(pcb: Dict) -> float:
+    """How near a ground via must be to stitch a layer change: 2x the first dielectric, at least 1 mm."""
+    default_h = 0.2  # mm
+    for layer in pcb.get('setup', {}).get('stackup', []):
+        if layer.get('type') in ('core', 'prepreg'):
+            try:
+                h = float(layer.get('thickness', 0.2))
+                if h > 0:
+                    default_h = h
+                    break
+            except (ValueError, TypeError):
+                pass
+    return max(default_h * 2, 1.0)
+
+
+def _via_stitched(via: Dict, gnd_via_positions: List[tuple], radius: float) -> bool:
+    """True when a ground via lies within *radius* of the signal via."""
+    vx, vy = via.get('x', 0), via.get('y', 0)
+    return any(math.sqrt((vx - gx)**2 + (vy - gy)**2) <= radius
+               for gx, gy in gnd_via_positions)
+
 
 def check_layer_transition_stitching(pcb: Dict,
                                      schematic: Optional[Dict] = None) -> List[Dict]:
@@ -3839,54 +4219,15 @@ def check_layer_transition_stitching(pcb: Dict,
     if not all_vias:
         return findings  # Can't check without individual via positions
 
-    # Build set of ground nets
-    gnd_nets = set()
-    nets = pcb.get('nets', {})
-    if isinstance(nets, dict):
-        for name in nets:
-            if _is_ground_net(name):
-                gnd_nets.add(name)
-    elif isinstance(nets, list):
-        for n in nets:
-            name = n.get('name', '') if isinstance(n, dict) else ''
-            if _is_ground_net(name):
-                gnd_nets.add(name)
+    gnd_via_positions = _ground_via_positions(pcb)
+    if not gnd_via_positions and len(_ground_fill_layers(pcb)) < 2:
+        # No ground via and fewer than two ground-filled layers: no pair of
+        # ground planes for a transition's return current to move between
+        return findings
 
-    # Identify which vias are ground vias (connected to ground nets)
-    gnd_via_positions = []
-    for via in all_vias:
-        net = via.get('net_name', via.get('net', ''))
-        if isinstance(net, str) and _is_ground_net(net):
-            gnd_via_positions.append((via.get('x', 0), via.get('y', 0)))
-        elif isinstance(net, int):
-            # Net number — look up name
-            if isinstance(nets, dict):
-                net_name = nets.get(net, nets.get(str(net), ''))
-            else:
-                net_name = ''
-            if _is_ground_net(str(net_name)):
-                gnd_via_positions.append((via.get('x', 0), via.get('y', 0)))
+    search_radius = _stitch_radius_mm(pcb)
 
-    if not gnd_via_positions:
-        return findings  # Can't determine which vias are ground
-
-    # Get default dielectric height for proximity threshold
-    default_h = 0.2  # mm
-    stackup = pcb.get('setup', {}).get('stackup', [])
-    for layer in stackup:
-        if layer.get('type') in ('core', 'prepreg'):
-            try:
-                h = float(layer.get('thickness', 0.2))
-                if h > 0:
-                    default_h = h
-                    break
-            except (ValueError, TypeError):
-                pass
-
-    search_radius = max(default_h * 2, 1.0)  # At least 1mm, or 2× dielectric height
-
-    # Classify nets as high-speed or diff-pair for severity
-    hs_nets = set()
+    # Diff-pair nets for severity
     dp_nets = set()
     if schematic:
         for pair in schematic.get('design_analysis', {}).get('differential_pairs', []):
@@ -3894,7 +4235,7 @@ def check_layer_transition_stitching(pcb: Dict,
             dp_nets.add(pair.get('negative', ''))
 
     flagged_nets = set()
-    touch = _touch_nets(pcb)  # KH-410: touch-net transitions cross an intentional void
+    touch = _touch_nets(pcb)  # Touch-net transitions cross an intentional void
 
     for lt in layer_trans:
         net_name = lt.get('net', '')
@@ -3916,17 +4257,7 @@ def check_layer_transition_stitching(pcb: Dict,
         total_transitions = len(via_positions)
 
         for vp in via_positions:
-            vx = vp.get('x', 0)
-            vy = vp.get('y', 0)
-
-            # Find nearest ground via
-            min_dist = float('inf')
-            for gx, gy in gnd_via_positions:
-                d = math.sqrt((vx - gx)**2 + (vy - gy)**2)
-                if d < min_dist:
-                    min_dist = d
-
-            if min_dist > search_radius:
+            if not _via_stitched(vp, gnd_via_positions, search_radius):
                 unstitched_count += 1
 
         if unstitched_count == 0:
@@ -3973,6 +4304,7 @@ def check_layer_transition_stitching(pcb: Dict,
             nets=[net_name],
             recommendation=recommendation,
             **extra,
+            schema_era="v3.0",
         ))
 
         # Limit to avoid flooding output on large boards
@@ -3985,6 +4317,7 @@ def check_layer_transition_stitching(pcb: Dict,
                     'ground stitching vias. Review via placement board-wide.'
                 ),
                 recommendation='Add ground stitching vias at all signal layer transitions.',
+                schema_era="v3.0",
             ))
             break
 
@@ -4103,17 +4436,9 @@ def generate_test_plan(schematic: Optional[Dict], pcb: Optional[Dict],
             score = 3  # base
             reasons = []
 
-            # Check protocol
-            conn_nets = set()
-            for pad in conn.get('pads', []):
-                n = pad.get('net_name', '')
-                if n:
-                    conn_nets.add(n)
-            proto = None
-            for n in conn_nets:
-                if n in dp_nets:
-                    proto = dp_nets[n]
-                    break
+            # A connector carrying several pair types is ranked by its riskiest one.
+            proto = max((dp_nets[n] for n in _connector_net_names(conn) if n in dp_nets),
+                        key=lambda p: (protocol_speeds.get(p, 4), p), default=None)
             if proto:
                 score = protocol_speeds.get(proto, 4)
                 reasons.append(f'{proto} interface')
@@ -4121,9 +4446,6 @@ def generate_test_plan(schematic: Optional[Dict], pcb: Optional[Dict],
             if ref in unfiltered_refs:
                 score += 2
                 reasons.append('No EMC filtering detected')
-
-            if not pair.get('has_esd', True) if proto else True:
-                pass  # Can't easily check per-connector ESD from here
 
             plan['interface_risks'].append({
                 'connector': ref,
@@ -4311,7 +4633,7 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
     if not pcb or not schematic:
         return findings
 
-    from kicad_utils import classify_inductor_shielding
+    from kicad_core.passives import classify_inductor_shielding
     from emc_formulas import estimate_inductor_h_field
 
     footprints = pcb.get('footprints', [])
@@ -4388,7 +4710,7 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
 
     # Filter to those with PCB positions
     sensitive = []
-    for ref in sensitive_refs:
+    for ref in sorted(sensitive_refs):
         if ref in fp_pos:
             sensitive.append({'ref': ref, 'x': fp_pos[ref][0], 'y': fp_pos[ref][1]})
 
@@ -4401,9 +4723,9 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
 
     for ind in sw_inductors:
         for sens in sensitive:
-            # EQ-106: Proximity gate — emit ML-001 when d_mm < 15mm AND
-            #   H_field_A_per_m (from EQ-105, assuming I_peak = 1A, package
-            #   = 5mm) exceeds threshold.
+            # EQ-106: Proximity gate — emit ML-001 when d_mm <= 15mm.
+            #   The H_field_A_per_m estimate (from EQ-105, assuming I_peak = 1A,
+            #   package = 5mm) is reported in the finding, not gated on.
             #   d = √((x_ind - x_sens)² + (y_ind - y_sens)²).
             # Source: Threshold from Ott, "EMC Engineering" Ch. 11
             #   rule-of-thumb for unshielded switching inductor coupling to
@@ -4457,6 +4779,7 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
                     'perpendicular to sensitive traces.'
                 ),
                 confidence='heuristic',
+                schema_era="v3.0",
             ))
 
     return findings
@@ -4466,11 +4789,26 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
 # Master runner
 # ---------------------------------------------------------------------------
 
+def filter_by_severity(findings: List[Dict], threshold: str) -> List[Dict]:
+    """Keep the findings at or above `threshold`.
+
+    The threshold may be 'all', error/warning/info, or a legacy name
+    (critical/high/medium/low).
+    """
+    if threshold.lower() == 'all':
+        return findings
+    severity_order = {'error': 0, 'warning': 1, 'info': 2}
+    limit = severity_order[normalize_severity(threshold)]
+    return [f for f in findings
+            if severity_order[normalize_severity(f.get('severity'))] <= limit]
+
+
 def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
                    standard: str = 'fcc-class-b',
                    severity_threshold: str = 'all',
                    spice_backend=None,
-                   pdn_transient_a: Optional[float] = None) -> List[Dict]:
+                   pdn_transient_a: Optional[float] = None,
+                   diagnostics=None) -> List[Dict]:
     """Run all EMC rule checks and return combined findings.
 
     Args:
@@ -4479,15 +4817,14 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         standard: Target EMC standard.
         severity_threshold: Minimum severity to include.
         spice_backend: SimulatorBackend instance for SPICE-enhanced
-                       PDN/filter analysis (optional, None = analytical only).
+                       PDN and switching-harmonic analysis (optional, None = analytical only).
         pdn_transient_a: Transient current override (Amps) for PD-001,
                        typically from project.pdn_transient_current_a.
+        diagnostics: Optional list sink for guarded SPICE-enhancement failures.
 
     Returns:
-        List of finding dicts, sorted by severity.
+        List of finding dicts, in check order.
     """
-    severity_order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'INFO': 4}
-    threshold = severity_order.get(severity_threshold.upper(), 4)
 
     all_findings = []
 
@@ -4524,8 +4861,9 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
 
     if schematic:
         all_findings.extend(check_switching_harmonics(schematic, standard))
-        all_findings.extend(estimate_switching_emissions(schematic, standard, spice_backend))
-        all_findings.extend(check_emi_filter_effectiveness(pcb, schematic, spice_backend))
+        all_findings.extend(estimate_switching_emissions(schematic, standard, spice_backend,
+                                                         diagnostics=diagnostics))
+        all_findings.extend(check_emi_filter_effectiveness(pcb, schematic))
 
     # Checks requiring both schematic and PCB
     if schematic and pcb:
@@ -4534,19 +4872,12 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         all_findings.extend(check_diff_pair_reference_plane(pcb, schematic))
         all_findings.extend(check_diff_pair_layer(pcb, schematic))
         all_findings.extend(check_pdn_impedance(pcb, schematic, spice_backend,
-                                                pdn_transient_a=pdn_transient_a))
+                                                pdn_transient_a=pdn_transient_a,
+                                                diagnostics=diagnostics))
         all_findings.extend(check_pdn_distributed(pcb, schematic, spice_backend))
         all_findings.extend(check_thermal_emc(pcb, schematic))
         all_findings.extend(check_switching_node_area(pcb, schematic, net_id_map))
-        all_findings.extend(check_input_cap_loop_area(pcb, schematic, spice_backend))
+        all_findings.extend(check_input_cap_loop_area(pcb, schematic))
         all_findings.extend(check_inductor_leakage(pcb, schematic))
 
-    # Filter by severity
-    if severity_threshold.lower() != 'all':
-        all_findings = [f for f in all_findings
-                        if severity_order.get(f['severity'], 4) <= threshold]
-
-    # Sort by severity (critical first)
-    all_findings.sort(key=lambda f: severity_order.get(f['severity'], 4))
-
-    return all_findings
+    return filter_by_severity(all_findings, severity_threshold)

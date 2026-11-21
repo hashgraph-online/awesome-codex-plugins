@@ -1,0 +1,131 @@
+{
+  "skill_name": "ai-seo",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "How do I make sure our SaaS product shows up in AI search results? We're a project management tool and we keep getting left out of ChatGPT and Perplexity recommendations when people ask about project management software.",
+      "expected_output": "Should check for product-marketing.md first. Should work the Suede AEO stack bottom-up: Access (OAI-SearchBot, PerplexityBot and other retrieval agents allowed, CDN and JS blockers checked), Entity (consistent Organization schema, sameAs, entity home), Answer (direct answer up top, question headings, quotable facts), Proof (sourced and original data), Presence (third-party corroboration on review sites, communities, analysts), and Measure (prompt panel with share of citations and share of recommendations). Should distinguish being cited from being recommended. Should not quote unsourced lift percentages. Should provide a prioritized plan where each fix names the KPI it moves.",
+      "assertions": [
+        "Checks for product-marketing.md",
+        "Works the AEO stack layers (Access, Entity, Answer, Proof, Presence, Measure)",
+        "Checks OAI-SearchBot and PerplexityBot access, not only GPTBot",
+        "Distinguishes citations from recommendations",
+        "Proposes a prompt panel with share of citations and recommendations",
+        "Does not quote unsourced lift percentages",
+        "Each prioritized fix names the KPI it moves"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Should we block AI crawlers like GPTBot and PerplexityBot in our robots.txt? We're worried about content theft.",
+      "expected_output": "Should separate training crawlers from search and retrieval crawlers. GPTBot, ClaudeBot, Google-Extended and CCBot are training or grounding controls; OAI-SearchBot, Claude-SearchBot, Claude-User, PerplexityBot and Bingbot govern whether the site can be cited. Blocking GPTBot does not remove the site from ChatGPT search; blocking OAI-SearchBot does. Google-Extended does not affect Google Search inclusion. User-initiated fetchers (ChatGPT-User, Perplexity-User) may not follow robots.txt. Should provide a robots.txt that allows retrieval and states the training lines as the owner's licensing decision, and mention checks robots.txt cannot answer (CDN rules, nosnippet).",
+      "assertions": [
+        "Separates training crawlers from retrieval crawlers",
+        "States that OAI-SearchBot, not GPTBot, controls ChatGPT search inclusion",
+        "States that Google-Extended does not affect Google Search inclusion",
+        "Notes user-initiated fetchers may ignore robots.txt",
+        "Provides a robots.txt that allows retrieval and leaves training as the owner's call",
+        "Mentions a non-robots blocker such as CDN rules or snippet directives"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What kind of content gets cited most by AI systems? We want to create content specifically optimized for AI search.",
+      "expected_output": "Should explain that Google says no special format or markup is needed for its AI features, then give the Suede citation-worthy patterns that help readers and every engine: direct answer up top, question headings that name their subject, self-contained passages, quotable sourced facts, original data with methodology, comparison tables in real table markup, named authors and real update dates. Should point to original data as the strongest citation magnet. May reference generative-engine research directionally (sourced statistics, quotations, citations help; keyword stuffing does not) without quoting percentages. Should warn against producing separate AI-only pages (scaled content abuse).",
+      "assertions": [
+        "Notes Google requires no special format for AI features",
+        "Lists citation-worthy patterns (direct answer, question headings, quotable facts)",
+        "Recommends original data with methodology",
+        "Recommends real table markup for comparisons",
+        "Does not quote unsourced citation-share or lift percentages",
+        "Warns against AI-only page variants as scaled content abuse"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "we noticed our competitors are showing up in google AI overviews but we're not. what do we need to change?",
+      "expected_output": "Should explain that AI Overviews draw on core Search ranking with no extra technical requirements beyond being indexed and snippet-eligible, may use query fan-out across subtopics, and favor helpful, original content. Should check indexation, nosnippet or max-snippet directives, and crawl access; compare competitor pages for direct answers, original information, and topic coverage; and recommend measuring through Search Console (Web search type, and the Search Generative AI report where shown) plus a prompt panel.",
+      "assertions": [
+        "Triggers on casual phrasing",
+        "Focuses on Google AI Overviews specifically",
+        "States there are no extra technical requirements beyond indexed and snippet-eligible",
+        "Mentions query fan-out and topic coverage",
+        "Checks snippet controls and crawl access",
+        "Recommends specific answer-first content and original-information changes",
+        "Suggests measuring via Search Console and a prompt panel"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Can you audit our website for AI search readiness? We want to know how visible we are across ChatGPT, Perplexity, Google AI Overviews, and other AI platforms.",
+      "expected_output": "Should run the Suede AEO stack across Access, Entity, Answer, Proof, Presence, and Measure; log prompt-panel runs per engine or mark engines not queried; report per-bot crawler status; sweep entity facts across owned and third-party sources; and fill the AI search visibility report with prioritized fixes that name the KPI each moves.",
+      "assertions": [
+        "Runs the AEO stack audit across layers",
+        "Checks multiple engines with a logged prompt panel or marks them not queried",
+        "Checks retrieval crawler access per bot",
+        "Runs an entity consistency sweep",
+        "Fills the AI search visibility report output contract",
+        "Provides prioritized fixes tied to KPIs"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our organic search traffic has dropped 30% this quarter. Can you do a full SEO audit to figure out what's going on?",
+      "expected_output": "Should recognize this is a traditional SEO audit request, not specifically an AI SEO task. Should defer to or cross-reference the seo-audit skill, which handles comprehensive traditional SEO audits including crawlability, technical foundations, on-page optimization, and content quality. May mention AI search as one factor to investigate but should make clear that seo-audit is the primary skill for this task.",
+      "assertions": [
+        "Recognizes this as a traditional SEO audit request",
+        "Routes to suede-seo-audit",
+        "Does not attempt a full traditional SEO audit using AI SEO patterns",
+        "May mention AI features as one factor and the Search Console Web report"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We're a seed-stage data-quality startup (barely anyone knows us yet). Plan: publish 20 'best data quality tools' style listicles ranking ourselves #1 so ChatGPT and AI Overviews recommend us. Good idea?",
+      "expected_output": "Should not endorse 20 self-ranked listicles as a path to AI recommendations for a low-authority brand. Should distinguish citations from recommendations using the Suede citation ladder (retrieved, cited, mentioned, recommended), explain that engines may extract the competitor names the guide compiles and recommend from broader consensus, and frame this as a hypothesis to test on a prompt panel. Should recommend off-site consensus building (reviews, communities, analysts, PR) as the recommendation lever, while keeping genuinely useful buyer's guides with reset expectations. Should note that recommendation influence often arrives as branded or direct traffic and mention at least two of: prompt panel, self-reported attribution, sales-call notes, branded search trend. Should not quote study percentages.",
+      "assertions": [
+        "Does not endorse 20 self-ranked listicles as a path to AI recommendations for a low-authority brand",
+        "Distinguishes citations from recommendations with the different governing criteria",
+        "References the citation ladder (retrieved/cited/mentioned/recommended)",
+        "Warns the guides may surface competitors in AI answers",
+        "Recommends offsite consensus building (reviews, communities, analysts, or PR) as the recommendation lever",
+        "Does not tell the user to stop publishing buyer's guides entirely",
+        "Mentions the attribution blind spot and at least two of: prompt panel, self-reported attribution, sales-call notes, branded search"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "We ran 40 buying prompts through ChatGPT, Claude, Gemini and Google AI Mode, three runs each. We show up sometimes but competitors show up way more. My plan is to write a new blog post for every prompt where we're missing. Good plan?",
+      "expected_output": "Should load references/measurement.md and push back on writing one post per missing prompt (it also drifts toward scaled content abuse). Should group the prompts into buying topics and count appearances per topic for the brand and each competitor across runs, then start with the biggest consistent gaps (e.g. a competitor in 18 of 25 runs vs the brand in 4) rather than one-off misses. For losing topics: open the sources cited when competitors won and log page, domain, page type and competitor; check whether an existing page should already win and fix it first; rule out indexing, crawler access and internal links; then choose the fix (new page, better existing page, corrected facts, or third-party sources). Should track citations and recommendations separately and rerun the identical panel after changes are crawled.",
+      "assertions": [
+        "Recommends grouping prompts into buying topics instead of fixing prompt by prompt",
+        "Prioritizes topics by the size of the gap with competitors across runs",
+        "Says to inspect the sources cited when competitors won",
+        "Says to check and fix an existing page before creating a new one",
+        "Includes a technical check (indexing, crawler access, internal links) before rewriting",
+        "Says to rerun the identical prompt set after changes are crawled"
+      ],
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Claude never cites us when people ask about our category, and I have no idea what Copilot is searching for when it does or doesn't cite us. Where do I even look?",
+      "expected_output": "Should load references/platform-notes.md. For Claude: note that Anthropic's crawler docs do not name a search index but its subprocessor list names Brave Search for web search, so check whether the site appears at search.brave.com for brand and key terms; if missing, request a crawl at search.brave.com/submit-url, noting it only alerts Brave's crawler, with no webmaster console or sitemap submission, so verify by watching referrals from search.brave.com; and check that Claude-SearchBot and Claude-User are not blocked. For Copilot: point to Bing Webmaster Tools' AI Performance report (public preview), which shows how often pages are cited in Copilot and Bing AI answers and the grounding queries Bing used, which are Bing's interpretation of the request rather than what the user typed, with no click data and no mapping from a query to a specific citation.",
+      "assertions": [
+        "Connects Claude's citations to Brave Search's index without claiming Anthropic documents it as a ranking dependency",
+        "Mentions the Brave submit-url page and that it only requests a crawl (no console or sitemap submission)",
+        "Says to check Claude-SearchBot and Claude-User access",
+        "Points to Bing Webmaster Tools' AI Performance report for Copilot",
+        "Explains grounding queries are Bing's interpretation, not the user's exact words, and lists the report's limits"
+      ],
+      "files": []
+    }
+  ]
+}

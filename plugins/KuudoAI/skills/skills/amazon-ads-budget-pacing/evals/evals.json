@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-ads-budget-pacing",
-  "skill_version": "0.3.0",
+  "skill_version": "0.3.1",
   "evals": [
     {
       "id": 0,

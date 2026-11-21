@@ -1,0 +1,15 @@
+[
+  {"query": "Add credits to our AI writing app. Users buy packs of credits and every generation should cost some, depending on how many tokens it used.", "should_trigger": true},
+  {"query": "Each API call to our image endpoint should use up credits from the customer's prepaid balance, and they should get a 402 when they run out.", "should_trigger": true},
+  {"query": "People open ten tabs and start ten generations with one credit left, and all ten run. How do I stop that?", "should_trigger": true},
+  {"query": "When a transcription job crashes halfway the user's credits are gone anyway. Make failed jobs give the credits back, and make sure a retry is not charged twice.", "should_trigger": true},
+  {"query": "Our Pro plan should include 2,000 credits a month that reset at renewal, on top of the credit packs people can buy.", "should_trigger": true},
+  {"query": "We sell AI credits for our chatbot. Charge each request by the input and output tokens OpenAI and Anthropic report, including cached tokens and reasoning tokens.", "should_trigger": true},
+  {"query": "When users press stop during a streamed Gemini answer we charge nothing. Charge them for what was generated, and do not charge twice when the client retries.", "should_trigger": true},
+  {"query": "Give each agent task in our app a hard credit cap so one runaway run cannot drain an account.", "should_trigger": true},
+  {"query": "Verify the signature on the payment provider's webhook before we mark the order as paid.", "should_trigger": false},
+  {"query": "Let users cash out their earned balance to PayPal with a minimum of 10 dollars.", "should_trigger": false},
+  {"query": "Rate limit our public API to 100 requests per minute per API key.", "should_trigger": false},
+  {"query": "Add streaming responses from the OpenAI API to our chat interface.", "should_trigger": false},
+  {"query": "Set up tracing and latency dashboards for our LLM calls.", "should_trigger": false}
+]

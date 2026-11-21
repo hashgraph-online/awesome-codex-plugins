@@ -1,0 +1,32 @@
+{
+  "id": "paper-perlin-noise-moss",
+  "label": "Moss (Paper PerlinNoise)",
+  "shader": "PerlinNoise",
+  "page": "https://shaders.paper.design/perlin-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Moss\" preset for PerlinNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.02,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 6.666666666666667,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#05ff4a",
+    "colorFront": "#262626",
+    "proportion": 0.65,
+    "softness": 0.35,
+    "octaveCount": 6,
+    "persistence": 1,
+    "lacunarity": 2.55
+  }
+}

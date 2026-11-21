@@ -1,0 +1,49 @@
+{
+  "name": "runheed",
+  "version": "1.0.0",
+  "description": "Error tracking your coding agent can read. Search production errors, read stack traces with context, fix them and mark them resolved.",
+  "author": {
+    "name": "Great Work LLC",
+    "url": "https://runheed.com"
+  },
+  "keywords": [
+    "runheed",
+    "production errors",
+    "error tracking",
+    "stack trace",
+    "exception",
+    "crash",
+    "sentry alternative",
+    "debug production"
+  ],
+  "homepage": "https://runheed.com",
+  "repository": "https://github.com/getrunheed/runheed-plugin",
+  "license": "MIT",
+  "interface": {
+    "displayName": "Runheed",
+    "shortDescription": "Production errors your coding agent can read and resolve",
+    "longDescription": "Runheed is error tracking your coding agent can read. Your app reports exceptions through a Node or Python SDK; Codex connects to https://runheed.com/api/mcp, reads each error with its stack trace and breadcrumbs, fixes the code and resolves the error with a note naming the commit. Sign in once with OAuth. Plans from $29 a month with a 7-day trial.",
+    "developerName": "Great Work LLC",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://runheed.com",
+    "privacyPolicyURL": "https://runheed.com/privacy",
+    "termsOfServiceURL": "https://runheed.com/terms",
+    "defaultPrompt": [
+      "What errors happened since the last deploy?",
+      "Fix the top production error and resolve it",
+      "What should I fix first?"
+    ],
+    "brandColor": "#25262B",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshot-fix-top-error.png"
+    ]
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

@@ -10,30 +10,24 @@ CRAM input or output requires --reference. Existing outputs are never replaced.
 from __future__ import annotations
 
 import argparse
-import json
-import sys
 from collections import Counter
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 import pysam
-
-
-def positive_int(value: str) -> int:
-    parsed = int(value)
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError("must be greater than zero")
-    return parsed
-
-
-def nonnegative_int(value: str) -> int:
-    parsed = int(value)
-    if parsed < 0:
-        raise argparse.ArgumentTypeError("must be zero or greater")
-    return parsed
+from _common import (
+    nonnegative_int,
+    optional_local_file,
+    positive_int,
+    region_coordinate_system,
+    require_local_file,
+    run_report_cli,
+    selected_reads,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -109,16 +103,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def require_local_file(path: Path, label: str) -> Path:
-    resolved = path.expanduser()
-    if not resolved.exists():
-        raise FileNotFoundError(f"{label} does not exist: {resolved}")
-    if not resolved.is_file():
-        raise ValueError(f"{label} is not a regular file: {resolved}")
-    return resolved
-
-
 def alignment_mode(path: Path, *, writing: bool) -> str:
+    """Handle alignment mode."""
     name = path.name.lower()
     if name.endswith(".sam"):
         return "w" if writing else "r"
@@ -129,19 +115,11 @@ def alignment_mode(path: Path, *, writing: bool) -> str:
     raise ValueError("alignment suffix must be .sam, .bam, or .cram")
 
 
-def selected_reads(
-    alignments: pysam.AlignmentFile,
-    region: Optional[str],
-) -> Iterator[pysam.AlignedSegment]:
-    if region is None:
-        return alignments.fetch(until_eof=True)
-    return alignments.fetch(region=region)
-
-
 def exclusion_reasons(
     read: pysam.AlignedSegment,
     args: argparse.Namespace,
 ) -> list[str]:
+    """Handle exclusion reasons."""
     reasons = []
     if args.exclude_unmapped and read.is_unmapped:
         reasons.append("unmapped")
@@ -165,6 +143,7 @@ def validate_destinations(
     output_path: Path,
     summary_path: Optional[Path],
 ) -> None:
+    """Validate destinations."""
     if not output_path.parent.exists():
         raise FileNotFoundError(
             f"output parent does not exist: {output_path.parent}"
@@ -191,6 +170,7 @@ def validate_destinations(
 
 
 def filter_file(args: argparse.Namespace) -> dict[str, Any]:
+    """Filter file."""
     input_path = require_local_file(args.input, "input")
     output_path = args.output.expanduser()
     summary_path = (
@@ -198,16 +178,8 @@ def filter_file(args: argparse.Namespace) -> dict[str, Any]:
     )
     validate_destinations(input_path, output_path, summary_path)
 
-    reference = (
-        require_local_file(args.reference, "reference")
-        if args.reference is not None
-        else None
-    )
-    input_index = (
-        require_local_file(args.input_index, "input index")
-        if args.input_index is not None
-        else None
-    )
+    reference = optional_local_file(args.reference, "reference")
+    input_index = optional_local_file(args.input_index, "input index")
     input_mode = alignment_mode(input_path, writing=False)
     output_mode = alignment_mode(output_path, writing=True)
 
@@ -287,11 +259,7 @@ def filter_file(args: argparse.Namespace) -> dict[str, Any]:
         "sort_order_preserved": sort_order,
         "selection": {
             "region": args.region,
-            "region_coordinate_system": (
-                "1-based inclusive samtools string"
-                if args.region is not None
-                else None
-            ),
+            "region_coordinate_system": region_coordinate_system(args.region),
         },
         "filters": {
             "min_mapq": args.min_mapq,
@@ -316,43 +284,17 @@ def filter_file(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def write_summary(
-    report: dict[str, Any],
-    output: Optional[Path],
-) -> None:
-    text = json.dumps(
-        report,
-        indent=2,
-        ensure_ascii=False,
-        allow_nan=False,
-    )
-    if output is None:
-        sys.stdout.write(text + "\n")
-        return
-    with output.expanduser().open("x", encoding="utf-8") as handle:
-        handle.write(text + "\n")
-
-
 def main(argv: Optional[list[str]] = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
-
-    try:
-        report = filter_file(args)
-        write_summary(report, args.summary)
-    except (
-        FileExistsError,
-        FileNotFoundError,
-        IndexError,
-        KeyError,
-        OSError,
-        TypeError,
-        ValueError,
-        pysam.SamtoolsError,
-    ) as error:
-        print(f"filter_alignments: {error}", file=sys.stderr)
-        return 2
-    return 0
+    return run_report_cli(
+        "filter_alignments",
+        args,
+        filter_file,
+        args.summary,
+        extra_errors=(pysam.SamtoolsError,),
+    )
 
 
 if __name__ == "__main__":

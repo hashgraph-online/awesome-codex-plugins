@@ -1,5 +1,7 @@
 # Pull-request readiness — finite — branch-scoped acceptance before human review
 
+## When to use
+
 Use when the owner names a branch (or change set), an issue with acceptance criteria, and wants
 Nightshift to fix supported gaps, rerun focused gates, and leave a review map — not to approve,
 push, merge, or submit a review on the owner's behalf.
@@ -14,6 +16,8 @@ owner-supplied review comments. Generic code review without an issue anchor or b
 bounded artifact bundle for comparison.
 
 Never select this entry in artifact mode. Do not `git init` a notes folder to simulate a branch.
+
+## Item
 
 ```text
 - [ ] **Pull-request readiness — prepare a named branch for human review.**

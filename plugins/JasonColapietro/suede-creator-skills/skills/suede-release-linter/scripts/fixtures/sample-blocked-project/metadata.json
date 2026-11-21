@@ -1,0 +1,37 @@
+{
+  "release_date": "",
+  "genre": "",
+  "language": "",
+  "description": "",
+  "contributors": [
+    {
+      "name": "Fixture Contributor One",
+      "role": "writer",
+      "master_percent": 50,
+      "publishing_percent": 60,
+      "confirmed": true
+    },
+    {
+      "name": "Fixture Contributor Two",
+      "role": "producer",
+      "master_percent": 30,
+      "publishing_percent": 50,
+      "confirmed": false
+    }
+  ],
+  "rights": {
+    "owner_claim": "",
+    "ownership_status": "unknown",
+    "contains_samples": "yes",
+    "sample_clearance_status": "unknown",
+    "cover_or_interpolation": "unknown",
+    "release_history": "unknown"
+  },
+  "suede": {
+    "intended_services": ["sync", "remix"],
+    "wallet_address": "",
+    "provenance_notes": "",
+    "registry_status": "not-registered",
+    "agent_commerce": false
+  }
+}

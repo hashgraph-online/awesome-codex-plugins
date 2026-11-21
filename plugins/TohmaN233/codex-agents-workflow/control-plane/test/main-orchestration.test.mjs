@@ -32,7 +32,7 @@ test('last semantic Main remains terminal when the declared Host finalizer only 
   }
 });
 import { DEFAULT_CONFIG_PATH,handleRpc } from '../server.mjs';
-import {foregroundActivityCount,inForegroundActivity} from '../lib/foreground-activity.mjs';
+import {foregroundActivityCount,inForegroundActivity,withForegroundActivity} from '../lib/foreground-activity.mjs';
 import { launchEditedWorkflow } from '../web-src/launch-edited-workflow.mjs';
 import { canonicalJSON, digest } from '../lib/workflow-revisions.mjs';
 import {WorkflowExecutor} from '../lib/workflow-executor.mjs';
@@ -100,8 +100,8 @@ function hostCheckFixture({ verified = true, exit = 0, write = true, changed = '
   };
   return { tool, broker, calls, install, registry: { [tool.id]: broker } };
 }
-async function fixture(t, {write = false, resources = {}, mutateWorkflow = () => {}, hostToolRegistry = {}, allowedPaths = ['result.txt'], extraInputs = {},runtimeEnv={},expectedDrainFailure=false,legacyTaskDelivery=false} = {}) {
-  const directory = await mkdtemp(join(tmpdir(), 'main-orchestration-'));
+async function fixture(t, {write = false, resources = {}, mutateWorkflow = () => {}, hostToolRegistry = {}, allowedPaths = ['result.txt'], extraInputs = {},runtimeEnv={},expectedDrainFailure=false,legacyTaskDelivery=false,directory} = {}) {
+  directory ??= await mkdtemp(join(tmpdir(), 'main-orchestration-'));
   let service;
   t.after(async () => {
     if(service){
@@ -443,23 +443,30 @@ test('resource-program completion selects its own pinned scripts while Main sees
 });
 
 test('completion-only bindings reach the exact Host checker without entering current Main context',async t=>{
-  const ledger={record:'PRIVATE_MECHANICAL_RECORD'.repeat(900),execution:{counter:12,source_sha256:'a'.repeat(64)}};
-  const h=hostCheckFixture();
-  const f=await fixture(t,{write:true,hostToolRegistry:h.registry,extraInputs:{machine_record:ledger},mutateWorkflow:w=>{
-    h.install(w);w.inputs_schema.properties.machine_record={type:'object'};w.inputs_schema.required.push('machine_record');
-    w.nodes.find(n=>n.id==='final').completion_contract.host_check.input_bindings={task:'/inputs/task',ledger:'/inputs/machine_record'};
-  }});
-  const handoff=await f.service.call('native_next',{},{model:true,modelThreadId:thread});
-  const task=handoff.task_bundle.task;
-  assert(!task.includes('PRIVATE_MECHANICAL_RECORD'));assert(!task.includes('machine_record'));
-  assert.equal(Object.hasOwn(handoff,'host_check'),false);
-  assert(task.includes('Use our prior conclusions'));
-  const output={conclusion:'Accepted using semantic inputs'};
-  const completed=await f.service.call('orchestration_complete',{output},{model:true,modelThreadId:thread});
-  assert.equal(completed.status,'succeeded');assert.equal(f.sessions(),0);
-  assert.deepEqual(h.calls[0].input,{inputs:{task:'Use our prior conclusions',ledger},output});
-  const record=await f.runtime.runs.read(f.run_id);
-  assert.equal(record.state.nodes.final.attempts[0].host_tool.input_sha256,digest(canonicalJSON(h.calls[0].input)));
+  const directory=await mkdtemp(join(tmpdir(),'main-orchestration-'));
+  // Direct service calls bypass the MCP request's foreground scope.
+  await withForegroundActivity(join(directory,'workflow-runs'),async()=>{
+    const ledger={record:'PRIVATE_MECHANICAL_RECORD'.repeat(900),execution:{counter:12,source_sha256:'a'.repeat(64)}};
+    const h=hostCheckFixture();
+    const f=await fixture(t,{directory,write:true,hostToolRegistry:h.registry,extraInputs:{machine_record:ledger},mutateWorkflow:w=>{
+      h.install(w);w.inputs_schema.properties.machine_record={type:'object'};w.inputs_schema.required.push('machine_record');
+      w.nodes.find(n=>n.id==='final').completion_contract.host_check.input_bindings={task:'/inputs/task',ledger:'/inputs/machine_record'};
+    }});
+    const maintenance=await f.service.historyMaintenance.status();
+    assert.equal(maintenance.automatic_deferred,true,'Background history audit must wait for the interactive Host check');
+    assert.equal(maintenance.phase,'idle');
+    const handoff=await f.service.call('native_next',{},{model:true,modelThreadId:thread});
+    const task=handoff.task_bundle.task;
+    assert(!task.includes('PRIVATE_MECHANICAL_RECORD'));assert(!task.includes('machine_record'));
+    assert.equal(Object.hasOwn(handoff,'host_check'),false);
+    assert(task.includes('Use our prior conclusions'));
+    const output={conclusion:'Accepted using semantic inputs'};
+    const completed=await f.service.call('orchestration_complete',{output},{model:true,modelThreadId:thread});
+    assert.equal(completed.status,'succeeded');assert.equal(f.sessions(),0);
+    assert.deepEqual(h.calls[0].input,{inputs:{task:'Use our prior conclusions',ledger},output});
+    const record=await f.runtime.runs.read(f.run_id);
+    assert.equal(record.state.nodes.final.attempts[0].host_tool.input_sha256,digest(canonicalJSON(h.calls[0].input)));
+  });
 });
 
 test('Host-only completion bindings reject non-upstream and malformed inputs before a Run starts',async t=>{

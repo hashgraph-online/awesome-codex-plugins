@@ -51,7 +51,7 @@ system fit the window — never edge-to-edge WITHOUT inset handling.
 **(4) Loading states render INSIDE the full-size surface — no placeholder→chat jump.**
 The components ship their own loading/empty/error states and render them within the sized
 surface. Mount the sized surface immediately after the gate unlocks and let each component
-show its own state — do NOT swap a small "Loading…" layout for the chat layout (that IS
+show its own state — do NOT swap a small "Loading..." layout for the chat layout (that IS
 the reflow). The only gate ABOVE the surface is init/login (`lifecycle.md`), and the docs'
 gate renders its spinner `fillMaxSize`, so even that swap is full-size → full-size.
 

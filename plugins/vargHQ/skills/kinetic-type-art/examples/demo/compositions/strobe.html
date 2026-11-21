@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  typeface-strobe · frames (assets/presets/typeface-strobe.json)
+  One word, one fixed baseline and cap height, nine OFL faces. Frames 0-5 show the anchor (Anton),
+  then the preset's strobe mix 3 f x 6, 2 f x 12, 3 f x 4 (54 f) lands on the anchor on frame 60
+  (beat 4 at 120 BPM) and holds 30 f. Background stays constant: the flicker lives in the type only.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Bodoni Moda"; src: url("assets/fonts/bodoni-moda-900.woff2") format("woff2"); font-weight: 900; font-display: block; }
+        @font-face { font-family: "UnifrakturMaguntia"; src: url("assets/fonts/unifraktur-maguntia.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Big Shoulders Stencil"; src: url("assets/fonts/big-shoulders-stencil-900.woff2") format("woff2"); font-weight: 900; font-display: block; }
+        @font-face { font-family: "Alfa Slab One"; src: url("assets/fonts/alfa-slab-one.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Michroma"; src: url("assets/fonts/michroma.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Monoton"; src: url("assets/fonts/monoton.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Rubik Mono One"; src: url("assets/fonts/rubik-mono-one.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Pacifico"; src: url("assets/fonts/pacifico.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        #root {
+          position: absolute;
+          inset: 0;
+          background: #000000;
+          overflow: hidden;
+        }
+        #strobe-svg {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+        }
+        #strobe-svg text {
+          fill: #ffffff;
+          opacity: 0;
+        }
+        #strobe-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #ffffff;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="strobe" data-width="1920" data-height="1080">
+        <svg id="strobe-svg" viewBox="0 0 1920 1080" data-layout-allow-overflow>
+          <text id="sf-an" data-face="Anton" data-weight="400" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-bo" data-face="Bodoni Moda" data-weight="900" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-un" data-face="UnifrakturMaguntia" data-weight="400" text-anchor="middle" x="960" y="700">Type</text>
+          <text id="sf-bs" data-face="Big Shoulders Stencil" data-weight="900" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-al" data-face="Alfa Slab One" data-weight="400" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-mi" data-face="Michroma" data-weight="400" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-mo" data-face="Monoton" data-weight="400" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-ru" data-face="Rubik Mono One" data-weight="400" text-anchor="middle" x="960" y="700">TYPE</text>
+          <text id="sf-pa" data-face="Pacifico" data-weight="400" text-anchor="middle" x="960" y="700">Type</text>
+        </svg>
+        <div id="strobe-label" data-layout-ignore>typeface-strobe · frames</div>
+      </div>
+      <script>
+        (function () {
+          const FPS = 30;
+          const H = 1080;
+          const W = 1920;
+          // Cap height 28-35% of frame height (preset cap_height_pct_16x9); 30% chosen,
+          // reduced only if the widest face would leave the 86% width box.
+          const CAP_TARGET = 0.30 * H;
+          const MAX_W = 0.86 * W;
+          const ids = { an: "sf-an", bo: "sf-bo", un: "sf-un", bs: "sf-bs", al: "sf-al", mi: "sf-mi", mo: "sf-mo", ru: "sf-ru", pa: "sf-pa" };
+          const els = {};
+          Object.keys(ids).forEach((k) => (els[k] = document.getElementById(ids[k])));
+
+          const loads = Object.values(els).map((el) =>
+            document.fonts.load(el.dataset.weight + ' 100px "' + el.dataset.face + '"', el.textContent),
+          );
+
+          Promise.all(loads).then(() => {
+            const c = document.createElement("canvas").getContext("2d");
+            const m = {};
+            Object.keys(els).forEach((k) => {
+              const el = els[k];
+              c.font = el.dataset.weight + ' 100px "' + el.dataset.face + '"';
+              const cap = c.measureText("H").actualBoundingBoxAscent / 100;
+              const tm = c.measureText(el.textContent);
+              const width = (tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight) / 100;
+              m[k] = { cap, width };
+            });
+            // Normalise every face to the same cap height (not the same font-size).
+            let cap = CAP_TARGET;
+            Object.keys(m).forEach((k) => {
+              const w = (cap / m[k].cap) * m[k].width;
+              if (w > MAX_W) cap = cap * (MAX_W / w);
+            });
+            const baseline = Math.round(H / 2 + cap / 2);
+            Object.keys(els).forEach((k) => {
+              const el = els[k];
+              el.setAttribute("font-family", el.dataset.face);
+              el.setAttribute("font-weight", el.dataset.weight);
+              el.setAttribute("font-size", (cap / m[k].cap).toFixed(2));
+              el.setAttribute("y", baseline);
+            });
+
+            const tl = gsap.timeline({ paused: true });
+            const at = (f) => Math.max(0, f / FPS - 0.004);
+            const all = Object.values(els);
+            const show = (k, f) => {
+              tl.set(all, { opacity: 0 }, at(f));
+              tl.set(els[k], { opacity: 1 }, at(f));
+            };
+            // Anchor first.
+            show("an", 0);
+            // Strobe mix from the preset: [3 f x 6], [2 f x 12], [3 f x 4] = 54 f.
+            const durations = [].concat(Array(6).fill(3), Array(12).fill(2), Array(4).fill(3));
+            // Alternate silhouettes: serif / wide sans / condensed / blackletter / mono / script / slab / inline.
+            const order = ["bo", "mi", "bs", "un", "ru", "pa", "al", "mo", "an", "bo", "mi", "bs", "pa", "ru", "un", "al", "mo", "bo", "bs", "mi", "pa", "un"];
+            let f = 6;
+            durations.forEach((d, i) => {
+              show(order[i], f);
+              f += d;
+            });
+            // f === 60: land on the anchor on beat 4 and hold 30 f to the cut.
+            show("an", f);
+            window.__timelines["strobe"] = tl;
+          });
+        })();
+      </script>
+    </template>
+  </body>
+</html>

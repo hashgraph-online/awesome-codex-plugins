@@ -23,6 +23,7 @@ except ImportError:
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Generate a theoretical peptide spectrum.")
     parser.add_argument("peptide", help="Amino-acid sequence (OpenMS mod syntax allowed)")
     parser.add_argument("--charge", type=int, default=1, help="Max fragment charge (default 1)")

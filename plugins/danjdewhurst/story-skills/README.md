@@ -35,7 +35,11 @@
   <a href="https://github.com/danjdewhurst/story-skills/blob/main/CONTRIBUTING.md"><b>Contributing</b></a>
 </p>
 
-<br>
+</div>
+
+> **Prefer an app?** [Plothold](https://plothold.com/?ref=story-skills) is a web app built on Story Skills by the same maintainer, with a writing partner and the same continuity engine. It is paid, with a free trial, and stores your book on its servers, as its [privacy policy](https://plothold.com/privacy) explains.
+
+<div align="center">
 
 <img src="https://raw.githubusercontent.com/danjdewhurst/story-skills/main/assets/demo.gif" alt="story continuity flags a character who died in chapter 2 but appears in chapter 4, a payoff that lands before its setup, and a question resolved before it is asked" width="900">
 
@@ -86,7 +90,7 @@ The companion `story` CLI treats the story bible as a checkable contract. Its co
 
 ## Quick start
 
-> **Writing in claude.ai without a terminal?** [Writers: start here](docs/writers-start-here.md) shows how to upload a skill as a zip.
+> **Writing in claude.ai without a terminal?** [Writers: start here](docs/writers-start-here.md) shows how to upload a skill as a zip. To skip setup entirely, [Plothold](#prefer-an-app) is a paid, hosted app built on Story Skills.
 
 **Claude Code.** Type these inside a Claude Code session, not a shell:
 
@@ -112,7 +116,7 @@ Then ask your agent to **"Start a new story"**.
 
 - [Install the skills](docs/getting-started.md#install-the-skills) covers the other agents, including GitHub Copilot, Cursor, Windsurf, Gemini CLI, and OpenCode.
 - [Let your agent install it](docs/getting-started.md#let-your-agent-install-it) has a prompt that installs the skills for you.
-- New to Story Skills? [Getting started](docs/getting-started.md) walks through a first session. The [documentation index](docs/README.md) links every guide.
+- New to Story Skills? [Getting started](docs/getting-started.md) walks through a first session. The [documentation index](docs/README.md) links every guide, and the [documentation website](https://danjdewhurst.github.io/story-skills/) has the same pages with search.
 
 ## The continuity engine
 
@@ -134,6 +138,19 @@ warning: continuity/state.md object-state[0] status active conflicts with worldb
 ```
 
 Each finding names its file and reproduces exactly, and CI asserts this output on every commit. Intentional flashbacks and posthumous appearances stay legal through the chapter `mentions` field. Findings listed in `continuity/exemptions.md` are reported as dismissed. `story doctor` and `story next` turn the same checks into repair actions.
+
+## Prefer an app?
+
+<a href="https://plothold.com/?ref=story-skills">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/danjdewhurst/story-skills/main/assets/readme/plothold-dark.png">
+    <img src="https://raw.githubusercontent.com/danjdewhurst/story-skills/main/assets/readme/plothold-light.png" alt="Plothold with a sample mystery open: the writing partner on the left, and on the right each chapter's promises and open questions, with the story check all clear" width="900">
+  </picture>
+</a>
+
+[Plothold](https://plothold.com/?ref=story-skills) is a web app for writing fiction, built on Story Skills, for writers who would rather not use a terminal or a coding agent. You chat with a writing partner on one side, and the book updates on the other: chapters, cast, world, open threads, and a story check powered by the same continuity engine. It runs in the browser on a laptop or a phone, imports drafts from Word, and exports EPUB, PDF, and Word.
+
+Plothold is a paid product made by the Story Skills maintainer, and its subscriptions fund Story Skills development. It has a free trial. Your book is stored on Plothold's servers; its [privacy policy](https://plothold.com/privacy) says how it is handled. Story Skills itself stays free and MIT-licensed, and Plothold is a separate product built on top of it.
 
 ## Skills
 
@@ -200,6 +217,7 @@ These are the commands writers use most:
 |---------|---------|
 | `story init "The Last Ember"` | Scaffold a story project |
 | `story import draft.md --title "The Lost Coast"` | Split an existing manuscript into a project and list its recurring names |
+| `story collect .` | Rewrite a short-story collection's chapters from the story projects its `stories` list names |
 | `story add character "Sera Voss"` | Create a file for a character, place, scene, promise, clue, or other entity |
 | `story rename character sera-voss "Sera Vale"` | Rename an entity and update its references in frontmatter and links |
 | `story check [path] --strict` | Run validation, link checks, and continuity in one scan; `--strict` also fails on warnings |
@@ -213,6 +231,7 @@ These are the commands writers use most:
 | `story export [path] --out dist/manuscript.md` | Combine front matter, chapters, and back matter into one manuscript |
 | `story build [path] --format epub` | Build an EPUB with the cover, publishing metadata, and accessibility metadata |
 | `story build [path] --format html` | Build a review copy whose paragraphs carry anchors such as `ch03-p12` |
+| `story apply edited.docx --ref sent-to-editor-1` | Write an editor's returned Word file back into the chapters' prose, keeping your own edits since you sent it |
 
 Other build formats are `markdown`, `docx`, `shunn`, `print` (a paged HTML interior for Paged.js, WeasyPrint, or Prince, or a PDF with `--pdf`), `narration`, `codex`, `metadata`, `fountain`, `twee`, and `ink`. The [CLI reference](docs/cli-reference.md) lists every command and option.
 
@@ -227,7 +246,7 @@ story import draft.md --title "The Lost Coast" --genre mystery
 story import brouillon.md --title "La Côte perdue" --language fr
 ```
 
-It splits the manuscript on chapter headings, or imports a folder of chapter files, and builds the full project with word counts and registries. [Import, export, and builds](docs/manuscripts.md#import-an-existing-manuscript) covers the options, including `--force`.
+It reads markdown, plain text, a Word `.docx`, an OpenDocument `.odt`, or an `.epub`. It splits the manuscript on chapter headings, or imports a folder of chapter files, and builds the full project with word counts and registries. [Import, export, and builds](docs/manuscripts.md#import-an-existing-manuscript) covers the options, including `--force`.
 
 ## How it works
 
@@ -366,7 +385,12 @@ A short story in Japanese, set in vertical columns
 A short story in Arabic, built right to left
 
 </td>
-<td width="50%" valign="top"></td>
+<td width="50%" valign="top">
+
+**[tide-tables](examples/tide-tables/)**<br>
+A poetry collection that keeps every line break in its builds
+
+</td>
 </tr>
 </table>
 

@@ -1,0 +1,4 @@
+# Load this skill only when the user types it ($qurl:access), never on its own,
+# like a slash command. The qurl skill covers sharing when the user just asks.
+policy:
+  allow_implicit_invocation: false

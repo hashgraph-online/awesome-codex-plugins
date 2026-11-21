@@ -1,0 +1,41 @@
+<!-- Shared poll widget. public_data = {"q":"…","opts":["…"],"v":[n…],"closed":false,"r":N}
+     Sent once with is_shared + allow_queries, re-sent with sendSharedWidget.
+     Request: "vote:<i>". The bot keys votes on (widget_id, from.id). -->
+<style>
+body{margin:0;padding:0}
+.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}
+.q{font-weight:600;margin-bottom:6px}
+button.opt{display:block;width:100%;text-align:left;margin:4px 0;position:relative;overflow:hidden}
+.bar{position:absolute;left:0;top:0;bottom:0;background:var(--tg-theme-secondary-bg-color);transition:width .3s}
+.lbl{position:relative;display:flex;justify-content:space-between}
+.mine .lbl{font-weight:600}
+.s{color:var(--tg-theme-hint-color);font-size:.9em;min-height:1.3em}
+.e{color:var(--tg-theme-destructive-text-color)}
+@media (prefers-reduced-motion:reduce){.bar{transition:none}}
+</style>
+<div class="c"><div class="q" id="q"></div><div id="o"></div><div class="s" id="s"></div></div>
+<script>
+var W=window.TelegramWidget,P=null,R=-1,mine=null,busy=false;
+try{mine=localStorage.getItem("v")}catch(e){}
+function load(){var p=null;try{p=JSON.parse(W?W.publicData:null)}catch(e){}if(p&&p.r>R){P=p;R=p.r}}
+function draw(){
+ if(!P)return;document.getElementById("q").textContent=P.q;
+ var box=document.getElementById("o");box.innerHTML="";
+ var total=P.v.reduce(function(a,b){return a+b},0)||1;
+ var canAsk=!!(W&&W.viewer)&&!P.closed;
+ P.opts.forEach(function(t,i){
+  var b=document.createElement("button");b.className="opt"+(String(i)===mine?" mine":"");b.disabled=!canAsk||busy;
+  b.innerHTML='<span class="bar" style="width:'+Math.round(100*P.v[i]/total)+'%"></span><span class="lbl"><span></span><span>'+P.v[i]+'</span></span>';
+  b.querySelector(".lbl span").textContent=t;
+  b.onclick=function(){vote(i)};box.appendChild(b)});
+ var s=document.getElementById("s");s.className="s";
+ s.textContent=P.closed?"Poll closed":(!W||!W.viewer?"Open the bot to vote":"");
+}
+function vote(i){
+ busy=true;draw();
+ W.request("vote:"+i).then(function(a){busy=false;var r=null;try{r=JSON.parse(a.result)}catch(e){}
+  if(r&&r.ok){mine=String(i);try{localStorage.setItem("v",mine)}catch(e){}if(r.s&&r.r>R){P=r.s;R=r.r}}
+  draw()},function(e){busy=false;draw();var s=document.getElementById("s");s.className="s e";s.textContent={RATE_LIMITED:"Too fast. Try again in a few seconds",BUSY:"One moment…",TIMEOUT:"The bot didn't answer. Vote not counted",NOT_ALLOWED:"Open the bot to vote"}[e.code]||"Vote not counted. Try again"})}
+if(W){W.onEvent("publicDataChanged",function(){load();draw()});W.watchPublicData()}
+load();draw();if(W)W.ready();
+</script>

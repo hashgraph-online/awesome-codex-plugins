@@ -2,7 +2,7 @@
 
 How to find each schema field in a typical datasheet PDF. Covers section naming conventions by vendor, what language to look for, and common mistakes.
 
-The extraction workflow starts with `datasheet_page_selector.py` identifying the relevant pages (pin table, absolute maximum ratings, operating conditions, electrical characteristics, application circuit). This guide describes what to look for once you have those pages.
+The extraction workflow starts with `datasheet_page_selector.py` identifying the relevant pages (pin table, absolute maximum ratings, operating conditions, electrical characteristics, application circuit). This guide describes what to look for once you have those pages. It is written for the legacy v1.3 schema (`extraction-schema.md`); for v1.4 extractions the schemas under `../schemas/` and the prompts under `../prompts/` define the fields.
 
 Use `null` for any field the datasheet does not specify. Do not guess or interpolate.
 
@@ -145,6 +145,8 @@ Look in the electrical characteristics table under "Logic Input Threshold" or si
 
 Trap: Do not confuse `V_IH` (recommended minimum high input) with `V_OL`/`V_OH` (output levels). The extraction wants input thresholds — what the pin recognizes as logic high or low.
 
+Trap: Record the level that guarantees the state, whatever the column. For `threshold_high_v` that is the lowest voltage guaranteed to read high: the **Min** of a level row (`V_IH` min 0.7 × VDD; its Max, VDD + 0.3 V, is only an overdrive limit), but the **Max** of a rising threshold given as Min/Typ/Max (`V_EN` rising 1.0 / 1.2 / 1.4 V, so 1.4 V). For `threshold_low_v` it is the highest voltage guaranteed to read low: the **Max** of a level row (`V_IL` max 0.3 × VDD; its Min, −0.3 V, is only an undershoot limit), but the **Min** of a falling threshold.
+
 Trap: Some datasheets list thresholds as fractions of VDD (e.g., "0.7 × VDD"). Record the fraction notation in the description, and store the absolute value calculated at the nominal operating voltage in the field.
 
 ### `pins[].required_external`
@@ -198,8 +200,8 @@ Found in the "Electrical Characteristics" table. This table is usually organized
 Which value to record:
 
 - Use **Typ** for `vref_v`, `switching_frequency_khz` (nominal specs)
-- Use **Max** for threshold voltages, quiescent current limits, propagation delay
-- Use **Min** for `dropout_mv` (worst case is what matters for design margin)
+- Use **Max** for quiescent current limits and propagation delay
+- Use **Max** for `dropout_mv` here (the largest V_IN − V_OUT the part needs at the rated load is the worst case for input headroom); `spice_specs.dropout_mv` follows the SPICE rule below
 - Use **Typ** for SPICE model parameters (behavioral accuracy)
 
 Key field lookup:

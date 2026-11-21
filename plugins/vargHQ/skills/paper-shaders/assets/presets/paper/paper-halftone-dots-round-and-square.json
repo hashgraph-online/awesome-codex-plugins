@@ -1,0 +1,38 @@
+{
+  "id": "paper-halftone-dots-round-and-square",
+  "label": "Round and square (Paper HalftoneDots)",
+  "shader": "HalftoneDots",
+  "page": "https://shaders.paper.design/halftone-dots",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Round and square\" preset for HalftoneDots, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "cover",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#141414",
+    "colorFront": "#ff8000",
+    "size": 0.8,
+    "radius": 1,
+    "contrast": 1,
+    "originalColors": false,
+    "inverted": true,
+    "grainMixer": 0.05,
+    "grainOverlay": 0.3,
+    "grainSize": 0.5,
+    "grid": "square",
+    "type": "holes",
+    "image": ""
+  }
+}

@@ -2,7 +2,7 @@
 name: cometchat-android-v6-troubleshooting
 description: "Diagnose a broken CometChat Android v6 integration — dependency and version conflicts, init/login failures, blank or stuck screens, empty lists, missing realtime updates, keyboard/inset layout bugs, release-only crashes, permission and push problems — with a symptom → cause → fix path and what evidence to collect before escalating. Triggers: 'cometchat android not working', 'could not find com.cometchat', 'chat screen is blank android', 'messages not arriving in real time android', 'composer hidden by keyboard'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -26,13 +26,13 @@ metadata:
 **Build / dependencies**
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Could not find com.cometchat:chatuikit-…` | CometChat Maven repo missing | add `maven("https://dl.cloudsmith.io/public/cometchat/cometchat/maven/")` to `settings.gradle(.kts)` `dependencyResolutionManagement.repositories` |
+| `Could not find com.cometchat:chatuikit-...` | CometChat Maven repo missing | add `maven("https://dl.cloudsmith.io/public/cometchat/cometchat/maven/")` to `settings.gradle(.kts)` `dependencyResolutionManagement.repositories` |
 | **`sendMessage` returns `onSuccess` but the message NEVER arrives** (receiver connected, listener registered) | a Dashboard **moderation rule blocked it server-side** — the send genuinely succeeded, so no client error is raised. The UI Kit surfaces "Your message was blocked due to moderation policies"; a headless build sees nothing at all | Dashboard → **Moderation** → check rules/lists. Do NOT chase INTERNET permission or connection status — both are healthy in this case |
-| `Duplicate class android.support.v4.*` (jetifier off) **or** `contains AndroidX dependencies, but the 'android.useAndroidX' property is not enabled` (useAndroidX off) — on a **clean, single-cohort** app | NOT a version conflict. `chat-sdk-android` pulls a pre-AndroidX transitive (`android.arch.lifecycle:extensions` → `com.android.support:support-compat:26.1.0`) that collides with `androidx.core` | set BOTH in `gradle.properties`: `android.useAndroidX=true` + `android.enableJetifier=true` (verified on a clean app; removing either reproduces it) |
-| `Duplicate class org.jetbrains.annotations.*` at dexing | `io.noties:prism4j` pulls `annotations-java5:17` vs `annotations:23` | `configurations.all { exclude(group = "org.jetbrains", module = "annotations-java5") }` |
-| **`Execution failed for JetifyTransform: react-android-*.aar`** at `checkDebugAarMetadata` — appears only AFTER adding **calling** | `calls-sdk-android` 5.0.x bundles a React-Native stack (`react-android`/`hermes`/`react-native-webrtc`) that Jetifier can't transform, and `core` mandates `android.enableJetifier=true` for the Chat SDK's pre-AndroidX transitive — so the two collide the moment calling is added | add to `gradle.properties`: `android.jetifier.ignorelist=react-android,hermes-android,react-native-webrtc` (they're already AndroidX). See `cometchat-android-v6-calls` |
+| `Duplicate class android.support.v4.*` (jetifier off) **or** `contains AndroidX dependencies, but the 'android.useAndroidX' property is not enabled` (useAndroidX off) — on a **clean, single-cohort** app (**6.0.x only**) | NOT a version conflict. `chat-sdk-android` up to 5.0.6 pulls a pre-AndroidX transitive (`android.arch.lifecycle:extensions` → `com.android.support:support-compat:26.1.0`) that collides with `androidx.core` | set BOTH in `gradle.properties`: `android.useAndroidX=true` + `android.enableJetifier=true` (verified on a clean app; removing either reproduces it) — or move to 6.1.1 (chat-sdk 5.0.7 is all-AndroidX; Jetifier not needed, `useAndroidX` still is) |
+| `Duplicate class org.jetbrains.annotations.*` at dexing (6.0.x only; 6.1.1 POMs exclude it) | `io.noties:prism4j` pulls `annotations-java5:17` vs `annotations:23` | `configurations.all { exclude(group = "org.jetbrains", module = "annotations-java5") }` |
+| **`Execution failed for JetifyTransform: react-android-*.aar`** at `checkDebugAarMetadata` — appears only AFTER adding **calling** | `calls-sdk-android` 5.0.x bundles a React-Native stack (`react-android`/`hermes`/`react-native-webrtc`) that Jetifier can't transform, and Jetifier is on (6.0.x needed it for the Chat SDK's pre-AndroidX transitive) — so the two collide the moment calling is added | on 6.1.1, turn Jetifier off if nothing else needs it; otherwise add to `gradle.properties`: `android.jetifier.ignorelist=react-android,hermes-android,react-native-webrtc` (they're already AndroidX). See `cometchat-android-v6-calls` |
 | `requires Android Gradle plugin 8.9.1 or higher` | AGP floor is **8.9.1**, not 8.9 | bump AGP |
-| `kotlin-stdlib … metadata is 2.2.0, expected 2.0.0` / internal compiler error | Kotlin floor is **2.1+**; 2.0.21 fails | bump Kotlin |
+| `kotlin-stdlib ... metadata is 2.2.0, expected 2.0.0` / internal compiler error | Kotlin floor is **2.1+**; 2.0.21 fails | bump Kotlin |
 | Duplicate class / conflicting versions | **version_conflict**: a v4/v5 `chat-uikit-android` alongside v6 `chatuikit-*` | remove the old artifact — never mix majors; migrate via `cometchat-android-v6-migration` |
 | Odd theme/duplicate UI, two kits resolve | both cohorts (`chatuikit-kotlin-android` AND `chatuikit-compose-android`) in one module | pick ONE cohort |
 | `Unsupported class file major version` / Kotlin errors | JVM target mismatch | JVM 11: `compileOptions` + `kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11) } }` (fully-qualified — a mid-file `import` breaks a `.kts`; the `kotlinOptions{}` DSL is deprecated/removed on Kotlin 2.2+) |
@@ -43,7 +43,7 @@ metadata:
 | `ERR_SETTINGS_FILE_NOT_FOUND` | no `app/src/main/assets/cometchat-settings.json` | create it (`core` §4); confirm it's in `assets/`, not `res/` |
 | `ERR_SETTINGS_INVALID` | `appId` or `region` missing/empty in that JSON | fill both |
 | init `onError` about app/auth | wrong **Region** (most common) or wrong App ID | match the Dashboard exactly (`us`/`eu`/`in`) |
-| login `onError` ERR_UID_NOT_FOUND | the UID doesn't exist in this app | use a real user from Dashboard → Users (fresh apps seed `cometchat-uid-1…`), or create it server-side |
+| login `onError` ERR_UID_NOT_FOUND | the UID doesn't exist in this app | use a real user from Dashboard → Users (fresh apps seed `cometchat-uid-1...`), or create it server-side |
 | login "fails silently" / nothing happens | **login called before init resolved** (docs warning) | call login only inside init's `onSuccess` |
 | login error on an already-logged-in user | re-login without logout | guard with `getLoggedInUser() != null`; to switch users, `logout` first |
 | Auth works debug, fails release | release build has no Auth Key but still uses `login(uid)` | use `loginWithAuthToken` (→ `cometchat-android-v6-production`) |
@@ -77,7 +77,7 @@ metadata:
 | Crash: lifecycle-related on a kit view | host isn't a lifecycle-aware Activity | use `AppCompatActivity`/`ComponentActivity`/`FragmentActivity` |
 
 ## Escalating to CometChat support — bring this
-Kit **cohort + exact version** (`chatuikit-compose-android` / `chatuikit-kotlin-android` 6.0.x) and `chat-sdk-android` version · App ID + **region** (never the Auth Key) · the **full `CometChatException`** (`code` AND `message`) from init/login/the failing call · a minimal repro (which component, which screen) · logcat around the failure · device/API level · whether it reproduces in debug and release. Confirm first that it isn't a version_conflict, a Region mismatch, or a swallowed `onError` — those three cover most reports.
+Kit **cohort + exact version** (`chatuikit-compose-android` / `chatuikit-kotlin-android` 6.x) and `chat-sdk-android` version · App ID + **region** (never the Auth Key) · the **full `CometChatException`** (`code` AND `message`) from init/login/the failing call · a minimal repro (which component, which screen) · logcat around the failure · device/API level · whether it reproduces in debug and release. Confirm first that it isn't a version_conflict, a Region mismatch, or a swallowed `onError` — those three cover most reports.
 
 ## Common pitfalls (of debugging itself)
 Empty `onError` blocks · assuming the kit is broken when the container is unsized · changing several things at once · testing against a Dashboard app you didn't verify · treating a debug-only symptom as release-safe (or vice versa) · asking support before capturing the exception code.

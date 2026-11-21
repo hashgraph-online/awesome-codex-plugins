@@ -16,6 +16,7 @@ Exit codes: 0 compatible, 1 incompatible or unidentifiable, 2 usage error.
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
 from pathlib import Path
@@ -83,6 +84,7 @@ def read_sizes(path: Path) -> tuple[dict[str, int], str]:
 
 
 def read_fasta_names(path: Path) -> tuple[dict[str, int], str]:
+    """Read fasta names."""
     sizes: dict[str, int] = {}
     name, count = None, 0
     with path.open() as handle:
@@ -120,6 +122,7 @@ def read_vcf(path: Path) -> tuple[dict[str, int], str]:
 
 
 def read_sam_header(path: Path) -> tuple[dict[str, int], str]:
+    """Read sam header."""
     sizes: dict[str, int] = {}
     with path.open() as handle:
         for line in handle:
@@ -152,6 +155,7 @@ def read_intervals(path: Path, start_col: int, end_col: int) -> tuple[dict[str, 
 
 
 def load(path: Path) -> tuple[dict[str, int], str]:
+    """Load."""
     suffixes = [s.lower() for s in path.suffixes]
     name = path.name.lower()
     if name.endswith((".fai", ".chrom.sizes", ".sizes", ".genome")):
@@ -203,7 +207,7 @@ def identify(sizes: dict[str, int], exact: bool) -> tuple[str, str]:
     fraction, agree, total, build = scores[0]
 
     if not exact:
-        fits = [b for f, _, _, b in scores if f == 1.0]
+        fits = [b for f, _, _, b in scores if math.isclose(f, 1.0, rel_tol=0.0, abs_tol=0.0)]
         if len(fits) == 1:
             return f"consistent with {fits[0]}", "no coordinate overflows this assembly"
         if not fits:
@@ -222,7 +226,10 @@ def identify(sizes: dict[str, int], exact: bool) -> tuple[str, str]:
     detail = f"{agree}/{total} primary chromosome lengths match"
     if build == "GRCh37/hg19" and mito is not None:
         detail += f"; chrM is {mito} bp, i.e. {MITO.get(mito, 'a non-standard mitochondrion')}"
-        build = "hg19" if mito == 16571 else "GRCh37" if mito == 16569 else build
+        if mito == 16571:
+            build = "hg19"
+        elif mito == 16569:
+            build = "GRCh37"
     elif mito is not None and mito not in MITO:
         detail += f"; chrM length {mito} is not a standard human mitochondrion"
     if agree != total:
@@ -236,6 +243,107 @@ def identify(sizes: dict[str, int], exact: bool) -> tuple[str, str]:
 # --------------------------------------------------------------------------
 
 
+def _naming_problem(loaded: list[tuple[Path, dict[str, int], str, bool]]) -> list[str]:
+    """A problem message when the files use different contig naming styles."""
+    styles = {path.name: naming_style(list(sizes)) for path, sizes, _, _ in loaded}
+    distinct = {s for s in styles.values() if s != "empty"}
+    if len(distinct) <= 1:
+        return []
+    detail = ", ".join(f"{name}={style}" for name, style in styles.items())
+    return [
+        f"contig naming differs between files ({detail}). A join on the raw "
+        "name returns zero rows for every contig; rename one side first"
+    ]
+
+
+def _exact_length_clash(
+    name_a: str, fold_a: dict[str, int], name_b: str, fold_b: dict[str, int], shared: set[str]
+) -> list[str]:
+    """Problem message when two exact files disagree on shared contig lengths."""
+    clash = sorted(c for c in shared if fold_a[c] and fold_b[c] and fold_a[c] != fold_b[c])
+    if not clash:
+        return []
+    example = clash[0]
+    return [
+        f"{name_a} and {name_b} disagree on contig length "
+        f"for {', '.join(clash[:5])}"
+        f"{'...' if len(clash) > 5 else ''} "
+        f"(e.g. {example}: {fold_a[example]} vs {fold_b[example]}) -- "
+        "these are different assemblies and their coordinates are "
+        "not comparable"
+    ]
+
+
+def _overflow_problems(
+    path_a: Path,
+    fold_a: dict[str, int],
+    exact_a: bool,
+    path_b: Path,
+    fold_b: dict[str, int],
+    exact_b: bool,
+    shared: set[str],
+) -> list[str]:
+    """Problem messages for an inexact file overflowing a declared contig length.
+
+    One side holds only the largest coordinate observed, so equality proves
+    nothing. Overflowing a declared contig length still does.
+    """
+    pairs = []
+    if exact_b and not exact_a:
+        pairs.append((path_a.name, fold_a, path_b.name, fold_b))
+    if exact_a and not exact_b:
+        pairs.append((path_b.name, fold_b, path_a.name, fold_a))
+    problems: list[str] = []
+    for name_hi, hi, name_lo, lo in pairs:
+        over = sorted(c for c in shared if lo[c] and hi[c] > lo[c])
+        if over:
+            example = over[0]
+            problems.append(
+                f"{name_hi} has coordinates past the end of {name_lo} on "
+                f"{', '.join(over[:5])}{'...' if len(over) > 5 else ''} "
+                f"(e.g. {example}: {hi[example]} > {lo[example]}) -- "
+                "wrong assembly, or an off-by-one from a 1-based source"
+            )
+    return problems
+
+
+def _absent_contigs_problem(
+    name_a: str, fold_a: dict[str, int], name_b: str, fold_b: dict[str, int]
+) -> list[str]:
+    """Problem message when many contigs of file A are absent from file B."""
+    only_a = sorted(set(fold_a) - set(fold_b))
+    if not (only_a and len(only_a) <= len(fold_a) / 2):
+        return []
+    return [
+        f"{len(only_a)} contigs in {name_a} are absent from "
+        f"{name_b} ({', '.join(only_a[:5])}"
+        f"{'...' if len(only_a) > 5 else ''}); records on them are "
+        "dropped silently by most tools"
+    ]
+
+
+def _compare_pair(
+    first: tuple[Path, dict[str, int], str, bool], second: tuple[Path, dict[str, int], str, bool]
+) -> list[str]:
+    """Every problem a join between one pair of loaded files would hit."""
+    path_a, sizes_a, _, exact_a = first
+    path_b, sizes_b, _, exact_b = second
+    fold_a = {canonical_contig(n): v for n, v in sizes_a.items()}
+    fold_b = {canonical_contig(n): v for n, v in sizes_b.items()}
+    shared = set(fold_a) & set(fold_b)
+    if not shared:
+        return [
+            f"{path_a.name} and {path_b.name} share no contigs at all, "
+            "even ignoring the chr prefix"
+        ]
+
+    if exact_a and exact_b:
+        problems = _exact_length_clash(path_a.name, fold_a, path_b.name, fold_b, shared)
+        problems += _absent_contigs_problem(path_a.name, fold_a, path_b.name, fold_b)
+        return problems
+    return _overflow_problems(path_a, fold_a, exact_a, path_b, fold_b, exact_b, shared)
+
+
 def compare(loaded: list[tuple[Path, dict[str, int], str, bool]]) -> list[str]:
     """Report every reason a join between these files would go wrong.
 
@@ -243,76 +351,15 @@ def compare(loaded: list[tuple[Path, dict[str, int], str, bool]]) -> list[str]:
     lengths, False when they are only the largest coordinate observed. Two exact
     files must agree exactly; an inexact one can only ever be caught overflowing.
     """
-    problems: list[str] = []
-    styles = {path.name: naming_style(list(sizes)) for path, sizes, _, _ in loaded}
-    distinct = {s for s in styles.values() if s != "empty"}
-    if len(distinct) > 1:
-        detail = ", ".join(f"{name}={style}" for name, style in styles.items())
-        problems.append(
-            f"contig naming differs between files ({detail}). A join on the raw "
-            "name returns zero rows for every contig; rename one side first"
-        )
-
+    problems = _naming_problem(loaded)
     for i in range(len(loaded)):
         for j in range(i + 1, len(loaded)):
-            path_a, sizes_a, _, exact_a = loaded[i]
-            path_b, sizes_b, _, exact_b = loaded[j]
-            fold_a = {canonical_contig(n): v for n, v in sizes_a.items()}
-            fold_b = {canonical_contig(n): v for n, v in sizes_b.items()}
-            shared = set(fold_a) & set(fold_b)
-            if not shared:
-                problems.append(
-                    f"{path_a.name} and {path_b.name} share no contigs at all, "
-                    "even ignoring the chr prefix"
-                )
-                continue
-
-            if exact_a and exact_b:
-                clash = sorted(
-                    c for c in shared
-                    if fold_a[c] and fold_b[c] and fold_a[c] != fold_b[c]
-                )
-                if clash:
-                    example = clash[0]
-                    problems.append(
-                        f"{path_a.name} and {path_b.name} disagree on contig length "
-                        f"for {', '.join(clash[:5])}"
-                        f"{'...' if len(clash) > 5 else ''} "
-                        f"(e.g. {example}: {fold_a[example]} vs {fold_b[example]}) -- "
-                        "these are different assemblies and their coordinates are "
-                        "not comparable"
-                    )
-            else:
-                # One side holds only the largest coordinate observed, so equality
-                # proves nothing. Overflowing a declared contig length still does.
-                pairs = []
-                if exact_b and not exact_a:
-                    pairs.append((path_a.name, fold_a, path_b.name, fold_b))
-                if exact_a and not exact_b:
-                    pairs.append((path_b.name, fold_b, path_a.name, fold_a))
-                for name_hi, hi, name_lo, lo in pairs:
-                    over = sorted(c for c in shared if lo[c] and hi[c] > lo[c])
-                    if over:
-                        example = over[0]
-                        problems.append(
-                            f"{name_hi} has coordinates past the end of {name_lo} on "
-                            f"{', '.join(over[:5])}{'...' if len(over) > 5 else ''} "
-                            f"(e.g. {example}: {hi[example]} > {lo[example]}) -- "
-                            "wrong assembly, or an off-by-one from a 1-based source"
-                        )
-
-            only_a = sorted(set(fold_a) - set(fold_b))
-            if exact_a and exact_b and only_a and len(only_a) <= len(fold_a) / 2:
-                problems.append(
-                    f"{len(only_a)} contigs in {path_a.name} are absent from "
-                    f"{path_b.name} ({', '.join(only_a[:5])}"
-                    f"{'...' if len(only_a) > 5 else ''}); records on them are "
-                    "dropped silently by most tools"
-                )
+            problems.extend(_compare_pair(loaded[i], loaded[j]))
     return problems
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Identify assemblies and check contig compatibility between files."
     )
@@ -333,6 +380,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
 

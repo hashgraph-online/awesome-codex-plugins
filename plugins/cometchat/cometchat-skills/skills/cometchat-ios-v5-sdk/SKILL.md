@@ -2,7 +2,7 @@
 name: cometchat-ios-v5-sdk
 description: "Add voice & video calling to any iOS app FROM SCRATCH with the headless CometChat Calls SDK v5 (`CometChatCallsSDK`, via Swift Package Manager) — no UI Kit. init→login→generateToken→joinSession into a UIView, CallSession listeners, in-call actions (mute/video/layout/record/transcribe/PiP), meet-style session rooms AND 1:1 ringing (Chat SDK signaling + Calls SDK media). Triggers: 'add calling from scratch ios', 'standalone video call swift', 'headless calls sdk ios', 'build my own call screen ios', 'meeting room join by session id ios', 'one-on-one ringing call without uikit ios'."
 license: "MIT"
-compatibility: "iOS 15.1+ (the Calls SDK package floor; the docs' Podfile sample says 16.0 — that is the SAMPLE APP's target, not the package minimum). CometChatCallsSDK ~> 5.0 (verified against 5.0.4). 1:1 ringing also needs CometChatSDK v4 (verified against 4.1.7 — the version this pack compiles against; the live getting-started page pins a newer 4.1.9, so re-check the docs before overriding) for signaling. Swift/UIKit; the call surface is a UIView, so SwiftUI hosts it via UIViewRepresentable."
+compatibility: "iOS 15.1+ (the Calls SDK package floor; the docs' Podfile sample says 16.0 — that is the SAMPLE APP's target, not the package minimum). CometChatCallsSDK ~> 5.0 (verified against 5.0.4). 1:1 ringing also needs CometChatSDK v4 (Up to Next Major from 4.1.10; verified against 4.1.10, the version UI Kit 5.2.3 also resolves, so a later UI Kit add shares it) for signaling. Swift/UIKit; the call surface is a UIView, so SwiftUI hosts it via UIViewRepresentable."
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -32,11 +32,11 @@ https://github.com/cometchat/calls-sdk-ios
 ```
 ⚠️ **The docs print `github.com/cometchat/cometchat-calls-sdk-ios` — that repo 404s.** Use the URL above. The package vends ONE product, `CometChatCallsSDK`, which bundles **WebRTC** as a second binary target — do not add WebRTC separately.
 
-**1:1 ringing additionally needs the Chat SDK** (`CometChatSDK` v4) for signaling — add it as a second SPM package: URL `https://github.com/cometchat/chat-sdk-ios` (product `CometChatSDK`, verified against 4.1.7). Without it the `import CometChatSDK` on the ringing path does not resolve. (Meet-style / room-only does NOT need it.)
+**1:1 ringing additionally needs the Chat SDK** (`CometChatSDK` v4) for signaling — add it as a second SPM package: URL `https://github.com/cometchat/chat-sdk-ios` (product `CometChatSDK`, rule Up to Next Major from 4.1.10, verified against 4.1.10). Without it the `import CometChatSDK` on the ringing path does not resolve. (Meet-style / room-only does NOT need it.)
 
 **Info.plist — REQUIRED or the call dies on first permission prompt:** `NSCameraUsageDescription` + `NSMicrophoneUsageDescription`. For calls that survive backgrounding, add **Background Modes** → *Audio, AirPlay and Picture in Picture* (+ *Voice over IP* if you use VoIP push).
 
-**Credentials:** App ID · Region · Auth Key (dev only). Load the CLI on demand — `npx @cometchat/skills-cli@3 auth login` → `provision use --app-id <id> --json` (`@3` pins the CLI major that matches the v5 skills). Already have App ID / Region / Auth Key? Just paste them. Mint **auth tokens server-side** for production; never ship the Auth Key.
+**Credentials:** App ID · Region · Auth Key (dev only). Fetch them through the CometChat MCP — `cometchat_whoami` (connected + signed in?), `cometchat_list_apps` (ask which EXISTING app), `cometchat_get_app_credentials`. Already have App ID / Region / Auth Key? Just paste them. Mint **auth tokens server-side** for production; never ship the Auth Key.
 
 ## Init & login ordering (BAKED — invariant)
 Init (once, must succeed) → `CometChatCalls.login(...)` → then `generateToken` / `joinSession` / listeners. Nothing joins before init+login resolve.
@@ -128,14 +128,14 @@ Ringing a user whose app is **backgrounded or terminated** is NOT the Calls SDK'
 | `AudioModeType` (events, session-settings, recording) | **`AudioMode`** — `AudioModeType` exists in neither the interface nor the binary |
 | `CometChat.CallStatus` (ringing) | **`CometChat.callStatus`** — lowercase `c`; Swift is case-sensitive |
 | `.setType(.video)` (ringing, session-settings, join-session, idle-timeout, migration-guide) | **`.setSessionType(.video)`** — `SessionSettingsBuilder` has no `setType` in any spelling |
-| SPM URL `…/cometchat-calls-sdk-ios` (setup) | **`https://github.com/cometchat/calls-sdk-ios`** — documented URL 404s |
+| SPM URL `.../cometchat-calls-sdk-ios` (setup) | **`https://github.com/cometchat/calls-sdk-ios`** — documented URL 404s |
 | `region` is "`us` or `eu`" (setup) | **also `in`** — the SDK only checks the string is non-empty; `in` is a live region |
 | `.setAppId()` / `.setRegion()` (setup) | **`.set(appID:)` / `.set(region:)`** — the `setX` spellings are deprecated in 5.0.4 |
 | `call.callInitiator?.name` (ringing) | **`(call.callInitiator as? User)?.name`** — `callInitiator`/`callReceiver` are `AppEntity?`; only `User` has `name` |
 | `CallType` / `CallTypeVideo` as the session type (5 pages) | **`SessionType` / `SessionType.video`** — `CallType` has **zero** occurrences in `CometChatCallsSDK`. It is a **Chat SDK** type (`CometChat.CallType`), valid ONLY on the ringing path. Never pass it to `SessionSettingsBuilder` |
 | `SessionType.audio` for audio-only | **`.voice`** — `.audio` and `.audioVideo` are `@available(*, deprecated)` in 5.0.4 |
 | The **Objective-C** tabs (setup, session-settings, ringing, voip-calling) | **Do not copy them** — deprecated setters, too few opening brackets, and enum constants wrongly `CometChat`-prefixed. Exact names: `references/docs-map.md` |
-| `participant.pid` / `.isPinned` / `.isAudioMuted` / `.isVideoPaused` / `.isPresenting` / `.raisedHandTimestamp` (actions, participant-management, custom-participant-list — 23×) | **None of these exist on `Participant`.** `pid` → **`uid`**; the five flags have no field — derive them from the participant events. Two review emits failed `swiftc` on exactly this |
+| `participant.pid` / `.isPinned` / `.isAudioMuted` / `.isVideoPaused` / `.isPresenting` / `.raisedHandTimestamp` (actions, participant-management, custom-participant-list — 23x) | **None of these exist on `Participant`.** `pid` → **`uid`**; the five flags have no field — derive them from the participant events. Two review emits failed `swiftc` on exactly this |
 | `CallSession.shared.setAudioMode` / `setLayout` taking an enum | **They take a `String`** — `"SPEAKER"`/`"EARPIECE"`/`"BLUETOOTH"`/`"HEADPHONES"`, `"TILE"`/`"SPOTLIGHT"`/`"SIDEBAR"`. Only the **builder** forms take `AudioMode` / `LayoutType`. Same method name, two different parameter types |
 | docs show only `login(UID:apiKey:)` / `login(authToken:)` | **`login(UID:authKey:)` also exists** in 5.0.4 — the docs are incomplete, the skill's recipe is correct |
 | — (unstated anywhere) | **Chat-SDK enum casing is INCONSISTENT** — `CometChat.CallType`/`.ReceiverType` Capitalised, `CometChat.callStatus` lowercase. Analogy fails to compile; check each. |

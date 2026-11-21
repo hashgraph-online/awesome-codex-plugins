@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Session Lineage"
+  short_description: "Inspect session ancestry and original references"
+  default_prompt: "Use $mobius-memory to inspect the ancestry of the session I select."
+policy:
+  allow_implicit_invocation: false

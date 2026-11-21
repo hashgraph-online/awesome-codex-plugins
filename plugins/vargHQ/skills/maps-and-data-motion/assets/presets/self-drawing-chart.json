@@ -1,0 +1,303 @@
+{
+  "id": "self-drawing-chart",
+  "name": "Self-drawing bar and line chart",
+  "use": "Bars grow from a zero baseline or a line draws with its value riding the tip, then one datum is highlighted.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        600,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Source Serif 4",
+      "weights": [
+        600,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Source+Serif+4"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "rules": {
+      "bars_baseline": 0,
+      "line_baseline": "data-driven; add zero line if values near 0",
+      "highlight": "one series accent, rest grey",
+      "labels": "direct, colour-matched, no legend",
+      "units": "in subtitle or appended to first tick",
+      "curve": "d3.curveMonotoneX",
+      "figures": "tabular-nums"
+    },
+    "transition_s": [
+      0.6,
+      1.2
+    ],
+    "axis_rescale_stage_s": 0.6,
+    "stagger_s": [
+      0.05,
+      0.08
+    ],
+    "max_total_stagger_s": 0.8,
+    "enter_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+    "bar_ease": "cubic-bezier(0.33, 1, 0.68, 1)",
+    "line_ease": "cubic-bezier(0.37, 0, 0.63, 1)",
+    "sizes_pct_h": {
+      "title": [
+        5.5,
+        6.5
+      ],
+      "tick": [
+        2.2,
+        2.6
+      ],
+      "value": [
+        2.6,
+        3.0
+      ]
+    },
+    "line_px": {
+      "key": [
+        5,
+        6
+      ],
+      "context": [
+        2,
+        3
+      ]
+    },
+    "grid": {
+      "light": "#E3E6EA 1px",
+      "dark": "#2A2F37 1px"
+    },
+    "plot_area": {
+      "16:9": "80% w x 62% h",
+      "9:16": "88% w x 46% h (middle band)",
+      "1:1": "84% w x 60% h"
+    },
+    "max_categories": {
+      "16:9": 12,
+      "9:16": 7
+    },
+    "max_lines": 5,
+    "number_format": "Intl.NumberFormat(locale,{notation:'compact',maximumSignificantDigits:3}); deltas signDisplay:'exceptZero'",
+    "contrast": {
+      "marks": 3.0,
+      "text": 4.5
+    }
+  },
+  "presets": [
+    {
+      "id": "self-drawing-chart.bars",
+      "label": "Bars",
+      "look": "Staggered bars from zero, one accent bar with callout",
+      "params": {
+        "beats_s": {
+          "title": [
+            0.0,
+            0.5
+          ],
+          "axis": [
+            0.3,
+            0.8
+          ],
+          "bars": [
+            0.8,
+            2.6
+          ],
+          "values": [
+            1.2,
+            3.0
+          ],
+          "highlight": [
+            3.2,
+            3.9
+          ],
+          "hold": [
+            3.9,
+            6.0
+          ]
+        },
+        "bar_width_of_slot": 0.62,
+        "bar_radius_top_px": 4,
+        "grow_s": 0.7,
+        "stagger_s": 0.07,
+        "grey": "#C9CED6",
+        "accent": "#2F6BFF",
+        "value_font": "Inter 600 tnum",
+        "grow_color": "#7A8494"
+      },
+      "sources": [
+        40,
+        41,
+        43,
+        46,
+        47
+      ]
+    },
+    {
+      "id": "self-drawing-chart.line",
+      "label": "Line",
+      "look": "Accent line draws with riding value; grey context lines; end dot + big label",
+      "params": {
+        "beats_s": {
+          "title_axes": [
+            0.0,
+            0.6
+          ],
+          "context": [
+            0.4,
+            0.9
+          ],
+          "draw": [
+            0.8,
+            3.8
+          ],
+          "end_label": [
+            3.8,
+            4.4
+          ],
+          "hold": [
+            4.4,
+            6.0
+          ]
+        },
+        "key_line": "#E4572E 6px",
+        "context_lines": "#BFC5CC 2.5px",
+        "end_dot_px": 14,
+        "end_label_pct_h": 5,
+        "end_pop": "back.out(1.7)"
+      },
+      "sources": [
+        1,
+        2,
+        42,
+        44,
+        46
+      ]
+    },
+    {
+      "id": "self-drawing-chart.editorial",
+      "label": "Editorial",
+      "look": "Print-editorial: off-white paper, serif title, hairline grid",
+      "params": {
+        "bg": "#FBF8F2",
+        "grid": "#E4DED3 1px",
+        "title_font": "Source Serif 4 700",
+        "accent": "#B23A48",
+        "label_font": "Inter 500",
+        "legend": "narrative legend in subtitle"
+      },
+      "sources": [
+        3,
+        4,
+        40,
+        43
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "John Burn-Murdoch (FT) on X: design details",
+      "url": "https://x.com/jburnmurdoch/status/1369657097227546626"
+    },
+    {
+      "n": 2,
+      "name": "John Burn-Murdoch on X: y-axis to zero",
+      "url": "https://x.com/jburnmurdoch/status/1369657055494238215"
+    },
+    {
+      "n": 3,
+      "name": "John Burn-Murdoch on X: narrative legend",
+      "url": "https://x.com/jburnmurdoch/status/1256313195095977986"
+    },
+    {
+      "n": 4,
+      "name": "John Burn-Murdoch on X: novelty vs understanding",
+      "url": "https://x.com/jburnmurdoch/status/1419917498225512448"
+    },
+    {
+      "n": 34,
+      "name": "GSAP DrawSVGPlugin",
+      "url": "https://gsap.com/docs/v3/Plugins/DrawSVGPlugin/"
+    },
+    {
+      "n": 40,
+      "name": "FT Visual Vocabulary",
+      "url": "https://github.com/Financial-Times/chart-doctor/tree/main/visual-vocabulary"
+    },
+    {
+      "n": 41,
+      "name": "Datawrapper: Why our bar charts start at zero",
+      "url": "https://www.datawrapper.de/academy/why-our-column-and-bar-charts-start-at-zero"
+    },
+    {
+      "n": 42,
+      "name": "Datawrapper: What to consider when creating line charts",
+      "url": "https://www.datawrapper.de/academy/what-to-consider-when-creating-line-charts"
+    },
+    {
+      "n": 43,
+      "name": "Lisa Charlotte Muth: colors in data vis style guides",
+      "url": "https://www.datawrapper.de/blog/colors-for-data-vis-style-guides"
+    },
+    {
+      "n": 44,
+      "name": "Lisa Charlotte Muth: color keys",
+      "url": "https://www.datawrapper.de/blog/color-keys-for-data-visualizations"
+    },
+    {
+      "n": 45,
+      "name": "Datawrapper: axis labels",
+      "url": "https://www.datawrapper.de/academy/why-datawrapper-does-not-include-axis-labels-for-many-charts"
+    },
+    {
+      "n": 46,
+      "name": "Heer & Robertson: Animated Transitions in Statistical Data Graphics",
+      "url": "https://idl.cs.washington.edu/files/2007-AnimatedTransitions-InfoVis.pdf"
+    },
+    {
+      "n": 47,
+      "name": "Mike Bostock: Object Constancy",
+      "url": "https://bost.ocks.org/mike/constancy/"
+    },
+    {
+      "n": 48,
+      "name": "Flourish: animated charts",
+      "url": "https://flourish.studio/blog/animated-charts/"
+    },
+    {
+      "n": 50,
+      "name": "MDN font-variant-numeric",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/font-variant-numeric"
+    },
+    {
+      "n": 51,
+      "name": "MDN Intl.NumberFormat",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat"
+    },
+    {
+      "n": 52,
+      "name": "Material 3 motion tokens",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 53,
+      "name": "easings.net easings.yml",
+      "url": "https://github.com/ai/easings.net/blob/master/src/easings.yml"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

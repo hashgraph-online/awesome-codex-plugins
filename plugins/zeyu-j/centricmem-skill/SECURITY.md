@@ -1,6 +1,6 @@
 # Security
 
-This repository is the public **Skill** for the hosted CentricMem librarian. It does not contain API keys, pairing tokens, or owner passwords.
+This repository is the public **Skill** for the hosted CentricMem librarian. It does not contain API credentials, pairing tokens, or owner passwords.
 
 ## Report a vulnerability
 
@@ -18,9 +18,9 @@ Include:
 
 ## What this package must never contain
 
-- Agent keys, owner session cookies, Stripe secrets, R2 credentials
-- Instructions to paste a key into chat
+- Agent credentials, owner session cookies, Stripe secrets, R2 credentials
+- Instructions to paste a credential into chat
 - `path=` keep of arbitrary librarian-disk files
-- Steps that make an agent print a key value (dumping a credential file to show a key) instead of a fingerprint
+- Steps that make an agent print a credential value (dumping a credential file to show a credential) instead of a fingerprint
 
-Authenticate by asking the agent to send a `/connect?device=` link. Enter the key on that page.
+Authenticate by asking the agent to send a `/connect?device=` link. Enter the credential on that page.

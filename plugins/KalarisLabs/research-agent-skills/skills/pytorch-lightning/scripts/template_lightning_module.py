@@ -29,6 +29,7 @@ class TemplateLightningModule(L.LightningModule):
         hidden_dim: int = 256,
         dropout: float = 0.1,
     ):
+        """Initialise the instance."""
         super().__init__()
 
         # Save hyperparameters (accessible via self.hparams)

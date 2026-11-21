@@ -1,0 +1,271 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "result_line.schema.json",
+  "title": "MULTI_LLM_RESULT payload",
+  "description": "The JSON after `MULTI_LLM_RESULT: ` on the last stdout line of every multi_llm.py invocation, built by utils/cli_common.ResultContext.payload and read by the hosts (the instruction core, the opencode plugin's src/index.mjs, the codex MCP server) through cli_common.parse_result_line or their own parser. Six keys are always present; every other key is present only when it applies, and absent never means a default value: an absent `user_next_step` means no answer, never 'workflow complete'. Strict at the top level: this line is produced and read by one plugin version within one invocation, so an unknown key is drift, and tests/test_result_contract.py fails on it. Nested objects stay open, as their writers grow keys additively; the same test requires every key their builders write to be declared. Nothing validates against this schema at run time. Prose contract: docs/development/dispatcher.md, 'Entrypoint and result protocol'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode", "phase", "state", "exit", "artifacts", "next"],
+  "properties": {
+    "mode": {
+      "type": ["string", "null"],
+      "description": "The mode word that ran (`review-plan`, `status`, `util next-command`, ...); null when no mode was resolved."
+    },
+    "phase": {
+      "type": ["string", "null"],
+      "description": "The phase name (modes.py), which can differ from the mode word: review-code runs code-review."
+    },
+    "state": {
+      "enum": ["done", "error", "nothing-to-do", "needs-human", "running", "died", "partial"],
+      "description": "The exit code's word (cli_common._STATE_BY_EXIT) or one of its overrides: `running`/`died` on a status exit 2 for a run still in flight or whose process is gone, `partial` on an exit 0 with failed model slots."
+    },
+    "exit": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 done, 1 unexpected error, 2 nothing to do or not terminal yet, 3 needs a human; 128+signal when a signal ended the run."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths the invocation produced, in recording order, without duplicates."
+    },
+    "next": {
+      "type": ["string", "null"],
+      "description": "The one mechanical follow-up the caller owes (a tool route may run it unasked); null when none is owed. Never an --internal-* flag."
+    },
+    "consolidation_recommended": {
+      "$ref": "status_file.schema.json#/definitions/consolidation_recommended"
+    },
+    "high_priority_groups": {
+      "$ref": "status_file.schema.json#/definitions/high_priority_groups"
+    },
+    "validation_context": {
+      "$ref": "status_file.schema.json#/definitions/validation_context"
+    },
+    "validation_counts": {
+      "$ref": "status_file.schema.json#/definitions/validation_counts"
+    },
+    "answer_origins": {
+      "$ref": "status_file.schema.json#/definitions/answer_origins"
+    },
+    "notice": {
+      "type": "string",
+      "description": "Advisory workflow prose a terminal status poll carries (the workflow view's notice, a validation-context sentence). Never `next`."
+    },
+    "progress": {
+      "$ref": "status_file.schema.json#/definitions/progress",
+      "description": "The watched run's `.status.json` progress object, whole and unreworded (status, when one run is selected)."
+    },
+    "progress_lines": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "description": "That run already rendered: opaque lines a host may print verbatim (the roster, the current-state line, `just finished:`)."
+    },
+    "user_next_step": {
+      "$ref": "#/definitions/user_next_step"
+    },
+    "user_resume": {
+      "$ref": "#/definitions/user_resume"
+    },
+    "commit_range": {
+      "$ref": "#/definitions/commit_range"
+    },
+    "commit_fixes": {
+      "$ref": "#/definitions/commit_fixes"
+    },
+    "error": {
+      "type": "string",
+      "description": "One plain line saying why the run stopped; only beside state `error` or `needs-human`."
+    },
+    "ran_from_root": {
+      "type": "string",
+      "description": "The repository root a command typed in a subdirectory ran from (cli_common.RAN_FROM_ROOT_KEY)."
+    }
+  },
+  "definitions": {
+    "user_next_step": {
+      "type": "object",
+      "description": "The workflow's next phase as the command the user types (utils/next_phase.NextPhase.to_dict). Never beside a non-null `next`, never on exit 1 or 3. {phase: null, command: null, complete: true} when no required phase is left.",
+      "additionalProperties": true,
+      "required": ["phase", "command", "complete"],
+      "properties": {
+        "phase": { "type": ["string", "null"] },
+        "command": { "type": ["string", "null"] },
+        "complete": { "type": "boolean" },
+        "why": { "type": "string" },
+        "optional_before": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/optional_step"
+          },
+          "description": "Pending optional phases that come before the primary; omitted when empty."
+        },
+        "instead": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/optional_step"
+          }
+        },
+        "answers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "why": { "type": "string" },
+              "answers": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "manual_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "waits_on": { "type": "string" },
+              "after": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "description": "Manual tasks implement deferred that the user still owes."
+        },
+        "manual_tasks_note": { "type": "string" },
+        "manual_tasks_command": { "type": "string" },
+        "markdown": {
+          "type": "string",
+          "description": "The step as the report's closing section, ready to copy."
+        }
+      }
+    },
+    "optional_step": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "phase": { "type": ["string", "null"] },
+        "command": { "type": "string" },
+        "why": { "type": "string" }
+      }
+    },
+    "user_resume": {
+      "type": "object",
+      "description": "The command that resumes a stopped write phase, for the user to type (utils/next_phase.emit_resume, set by `util next-command --blocked`). Nothing may run it unasked.",
+      "additionalProperties": true,
+      "required": ["phase", "command", "flags"],
+      "properties": {
+        "phase": { "type": ["string", "null"] },
+        "mode": { "type": ["string", "null"] },
+        "command": { "type": "string" },
+        "flags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "why": { "type": "string" },
+        "answers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "flags": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "why": { "type": "string" }
+            }
+          }
+        },
+        "answers_text": { "type": "string" },
+        "markdown": { "type": "string" },
+        "error_line": { "type": ["string", "null"] },
+        "error_beside_section": { "type": ["string", "null"] }
+      }
+    },
+    "commit_range": {
+      "type": "object",
+      "description": "The commit range a commit front door acts on, for a tool route to render the commit block from (utils/commit_range.result_payload).",
+      "additionalProperties": true,
+      "properties": {
+        "brief": { "type": ["string", "null"] },
+        "base": { "type": ["string", "null"] },
+        "head": { "type": ["string", "null"] },
+        "commits": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "more": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "full_list": { "type": ["string", "null"] },
+        "window": { "type": ["object", "null"] },
+        "notes": { "type": "array" },
+        "drifted": { "type": "array" },
+        "size": { "type": ["object", "null"] },
+        "selected": {}
+      }
+    },
+    "commit_fixes": {
+      "type": "object",
+      "description": "The [COMMIT_FIXES] decision of a commit review's apply, read from the saved guard (utils/commit_apply.fix_payload).",
+      "additionalProperties": true,
+      "properties": {
+        "source": { "type": "string" },
+        "head": { "type": "string" },
+        "to_apply": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "per_commit": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sha": { "type": "string" },
+              "groups": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "subject": { "type": "string" }
+            }
+          }
+        },
+        "unattributed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped_changed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "skipped_context_plan": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "context_plan": { "type": ["string", "null"] },
+        "unreadable": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "lines": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

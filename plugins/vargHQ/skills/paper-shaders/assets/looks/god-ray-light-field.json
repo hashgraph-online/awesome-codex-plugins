@@ -1,0 +1,312 @@
+{
+  "id": "god-ray-light-field",
+  "name": "God-ray light field",
+  "use": "Rays from a bright core, graded blue, with film grain, behind a title or a reveal",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "god-ray-light-field.overhead",
+      "label": "Overhead",
+      "look": "Shafts falling from above the top edge into deep navy",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "GodRays",
+        "motion": {
+          "timeScale": 0.4,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": -0.8,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#050A18",
+          "colorBloom": "#8FB4FF",
+          "colors": [
+            "#3D7BFF66",
+            "#9CC2FFB3",
+            "#FFFFFF"
+          ],
+          "density": 0.35,
+          "spotty": 0.3,
+          "midSize": 0.15,
+          "midIntensity": 0.6,
+          "intensity": 0.75,
+          "bloom": 0.5
+        },
+        "grainLayer": {
+          "type": "svg-feTurbulence",
+          "baseFrequency": 0.65,
+          "numOctaves": 3,
+          "opacity": 0.08,
+          "blend": "overlay",
+          "seed": "floor(seconds*24)",
+          "note": "or HyperFrames grain-overlay component"
+        }
+      },
+      "sources": [
+        18,
+        20,
+        30,
+        31
+      ]
+    },
+    {
+      "id": "god-ray-light-field.off-center",
+      "label": "Off-center",
+      "look": "Source high and right of frame, rays raking across the left two thirds",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "GodRays",
+        "motion": {
+          "timeScale": 0.4,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0.35,
+          "offsetY": -0.35,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#040814",
+          "colorBloom": "#6E9BFF",
+          "colors": [
+            "#2F6BFF59",
+            "#A9C8FFA6",
+            "#E8F0FF"
+          ],
+          "density": 0.3,
+          "spotty": 0.35,
+          "midSize": 0.12,
+          "midIntensity": 0.55,
+          "intensity": 0.7,
+          "bloom": 0.45
+        },
+        "grainLayer": {
+          "type": "svg-feTurbulence",
+          "baseFrequency": 0.65,
+          "numOctaves": 3,
+          "opacity": 0.08,
+          "blend": "overlay",
+          "seed": "floor(seconds*24)",
+          "note": "or HyperFrames grain-overlay component"
+        }
+      },
+      "sources": [
+        18,
+        20,
+        31
+      ]
+    },
+    {
+      "id": "god-ray-light-field.streaks",
+      "label": "Streaks",
+      "look": "Few long thin streaks, like light through blinds",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "GodRays",
+        "motion": {
+          "timeScale": 0.3,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#03060F",
+          "colorBloom": "#FFFFFF",
+          "colors": [
+            "#148EFFA6",
+            "#C4DFFEBE",
+            "#232A47"
+          ],
+          "density": 0.05,
+          "spotty": 0.8,
+          "midSize": 0.1,
+          "midIntensity": 0.6,
+          "intensity": 0.6,
+          "bloom": 0.6
+        },
+        "grainLayer": {
+          "type": "svg-feTurbulence",
+          "baseFrequency": 0.65,
+          "numOctaves": 3,
+          "opacity": 0.07,
+          "blend": "overlay",
+          "seed": "floor(seconds*24)",
+          "note": "or HyperFrames grain-overlay component"
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "god-ray-light-field.photograph",
+      "label": "Photograph",
+      "look": "Desaturated blue-grey light, heavier grain, like a print of a photo",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "GodRays",
+        "motion": {
+          "timeScale": 0.25,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#0B0E14",
+          "colorBloom": "#B8C4D8",
+          "colors": [
+            "#7F95B866",
+            "#C9D6EA99",
+            "#F2F4F8"
+          ],
+          "density": 0.3,
+          "spotty": 0.3,
+          "midSize": 0.2,
+          "midIntensity": 0.5,
+          "intensity": 0.6,
+          "bloom": 0.25
+        },
+        "grainLayer": {
+          "type": "svg-feTurbulence",
+          "baseFrequency": 0.65,
+          "numOctaves": 3,
+          "opacity": 0.14,
+          "blend": "overlay",
+          "seed": "floor(seconds*24)",
+          "note": "or HyperFrames grain-overlay component"
+        }
+      },
+      "sources": [
+        18,
+        20,
+        30
+      ]
+    },
+    {
+      "id": "god-ray-light-field.bright-core",
+      "label": "Bright core",
+      "look": "Large white-hot core, strong bloom, short rays; reveal ramp over 1.2 s",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "GodRays",
+        "motion": {
+          "timeScale": 0.6,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#060B1C",
+          "colorBloom": "#4D7DFF",
+          "colors": [
+            "#4D7DFF7A",
+            "#CFE0FFF0",
+            "#FFFFFF"
+          ],
+          "density": 0.3,
+          "spotty": 0.3,
+          "midSize": 0.35,
+          "midIntensity": 0.95,
+          "intensity": 0.85,
+          "bloom": 0.8
+        },
+        "grainLayer": {
+          "type": "svg-feTurbulence",
+          "baseFrequency": 0.65,
+          "numOctaves": 3,
+          "opacity": 0.08,
+          "blend": "overlay",
+          "seed": "floor(seconds*24)",
+          "note": "or HyperFrames grain-overlay component"
+        },
+        "paramsAt": "intensity = 0.85*easeOutCubic(min(t/1.2,1)); midIntensity = 0.95*easeOutCubic(min(t/1.2,1))"
+      },
+      "sources": [
+        18,
+        20,
+        31
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 4,
+      "name": "Stephen Haney: GodRays shader",
+      "url": "https://x.com/stephenhaney/status/1889423544523882961"
+    },
+    {
+      "n": 11,
+      "name": "Lucas Pope: blue noise vs Bayer when downscaled; 1080p60 ProRes",
+      "url": "https://x.com/dukope/status/1300260173919866880"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 19,
+      "name": "Paper Shaders source (Apache-2.0)",
+      "url": "https://github.com/paper-design/shaders"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 30,
+      "name": "Jimmy Chion: Grainy Gradients",
+      "url": "https://css-tricks.com/grainy-gradients/"
+    },
+    {
+      "n": 31,
+      "name": "Kenny Mitchell: GPU Gems 3 ch. 13",
+      "url": "https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-13-volumetric-light-scattering-post-process"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

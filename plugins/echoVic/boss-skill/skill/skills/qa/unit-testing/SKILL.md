@@ -1,5 +1,4 @@
 ---
-
 name: qa/unit-testing
 description: 单元测试方法论，覆盖 AAA 模式、Test Doubles、跨语言示例（JS/TS、Python、Go、Java）、前后端单元测试、边界与属性测试、变异测试
 version: 1.0.0
@@ -8,14 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要编写或审查单元测试时
-- 需要测试纯函数、Service 层、组件、Hook 时
-- 需要确定 Mock 边界时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要编写或审查单元测试时
+  - 需要测试纯函数、Service 层、组件、Hook 时
+  - 需要确定 Mock 边界时
+metadata:
   internal: true
-
 ---
 
 # 单元测试方法论
@@ -660,6 +658,7 @@ go test -run TestMutate -v
 ```
 
 **变异算子**：
+
 - `a + b` → `a - b`
 - `a > b` → `a >= b`
 - `&&` → `||`

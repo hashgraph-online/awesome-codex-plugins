@@ -1,0 +1,23 @@
+{
+  "id": "my-tool",
+  "title": "My Tool",
+  "description": "Use My Tool for domain-specific workflows. Use when Codex needs setup, real execution, and troubleshooting guidance for My Tool.",
+  "family": "tool-workflows",
+  "tool_name": "My Tool",
+  "tasks": [
+    "setup",
+    "inference",
+    "plotting",
+    "troubleshooting"
+  ],
+  "triggers": [
+    "my-tool",
+    "my_tool_api"
+  ],
+  "include_references": true,
+  "include_real_run_script": true,
+  "register_in_registry": true,
+  "openai_display_name": "My Tool",
+  "openai_short_description": "Help with My Tool setup and workflows",
+  "openai_default_prompt": "Use $my-tool to build and run real My Tool workflows."
+}

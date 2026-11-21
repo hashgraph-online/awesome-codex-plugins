@@ -1,0 +1,45 @@
+{
+  "id": "halftone-overlay",
+  "label": "Halftone print overlay",
+  "shader": "HalftoneDots",
+  "page": "https://shaders.paper.design/halftone-dots",
+  "paperShaders": "0.0.82",
+  "use": "Print-style halftone of a still: a poster, a product shot or an approved photo. Static; animate scale or opacity on the timeline.",
+  "image": {
+    "role": "still",
+    "required": true,
+    "note": "the image to print; same origin, or a server that sends CORS headers"
+  },
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {
+    "colorBack": "paper",
+    "colorFront": "ink"
+  },
+  "params": {
+    "image": "",
+    "colorBack": "#f4efe6",
+    "colorFront": "#070708",
+    "originalColors": false,
+    "type": "classic",
+    "inverted": false,
+    "grid": "hex",
+    "size": 0.35,
+    "radius": 1.25,
+    "contrast": 0.5,
+    "grainMixer": 0.2,
+    "grainOverlay": 0.15,
+    "grainSize": 0.5,
+    "fit": "cover",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

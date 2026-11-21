@@ -1,6 +1,7 @@
 ---
 name: repo-harness-assessment
 description: Use when evaluating repository agent-readiness, mapping harness roles, choosing the next smallest improvement, or designing and reconciling agent entrypoints such as AGENTS.md, CLAUDE.md, GEMINI.md, Cursor rules, or GitHub instructions.
+license: MIT
 ---
 
 # Repo Harness Assessment

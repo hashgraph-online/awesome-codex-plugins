@@ -1,0 +1,43 @@
+{
+  "name": "asitis",
+  "version": "0.4.7",
+  "description": "Read-only linter for AGENTS.md, CLAUDE.md, SKILL.md and other agent steering files: what each agent loads, token budgets, hidden instructions.",
+  "author": {
+    "name": "AsItIs",
+    "url": "https://asitis.app/?ref=codex-plugin"
+  },
+  "homepage": "https://asitis.app/claude-code",
+  "repository": "https://github.com/Katta041/asitis-agent-tools",
+  "license": "MIT",
+  "keywords": [
+    "agents-md",
+    "claude-md",
+    "skill-md",
+    "lint",
+    "steering-files"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./codex.mcp.json",
+  "interface": {
+    "displayName": "AsItIs",
+    "shortDescription": "Lint AGENTS.md and other steering files, read-only",
+    "longDescription": "Read-only MCP tools that show what Codex, Claude Code, Gemini CLI, Cursor and Copilot load from your AGENTS.md, CLAUDE.md and SKILL.md files, how many tokens that costs, and where hidden or invisible text sits. Runs offline and never writes.",
+    "developerName": "AsItIs",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://asitis.app/claude-code",
+    "privacyPolicyURL": "https://asitis.app/legal/privacy",
+    "defaultPrompt": [
+      "Use AsItIs to lint the AGENTS.md files in this repo.",
+      "Use AsItIs to show what Codex loads when a session starts in this folder."
+    ],
+    "termsOfServiceURL": "https://asitis.app/legal/terms",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshot-lint.png"
+    ]
+  }
+}

@@ -35,6 +35,7 @@ NS = {
     "arxiv": "http://arxiv.org/schemas/atom",
     "opensearch": "http://a9.com/-/spec/opensearch/1.1/",
 }
+TITLE_PATH = "atom:title"
 
 
 def split_version(arxiv_id: str) -> tuple[str, str | None]:
@@ -60,6 +61,7 @@ def id_from_url(url: str) -> str:
 
 
 def link_for(entry: ET.Element, *, rel: str, mime: str | None = None) -> str | None:
+    """Handle link for."""
     for link in entry.findall("atom:link", NS):
         if link.get("rel") != rel:
             continue
@@ -70,6 +72,7 @@ def link_for(entry: ET.Element, *, rel: str, mime: str | None = None) -> str | N
 
 
 def parse_entry(entry: ET.Element) -> dict[str, Any]:
+    """Parse entry."""
     raw_id = collapse_ws(entry.findtext("atom:id", namespaces=NS))
     versioned = id_from_url(raw_id) if raw_id else ""
     arxiv_id, version = split_version(versioned)
@@ -85,7 +88,7 @@ def parse_entry(entry: ET.Element) -> dict[str, Any]:
         "arxiv_id": arxiv_id,
         "arxiv_id_versioned": versioned or None,
         "version": version,
-        "title": collapse_ws(entry.findtext("atom:title", namespaces=NS)),
+        "title": collapse_ws(entry.findtext(TITLE_PATH, namespaces=NS)),
         "abstract": collapse_ws(entry.findtext("atom:summary", namespaces=NS)),
         "authors": [
             collapse_ws(name)
@@ -110,6 +113,7 @@ def parse_entry(entry: ET.Element) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Parse an arXiv Atom feed into JSON records. Exits 3 when the feed is an "
@@ -128,7 +132,38 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def emit_ids(records: list[dict[str, Any]], output: str | None) -> None:
+    """Write one bare arXiv ID per line to the output file or stdout."""
+    text = "".join(f"{record['arxiv_id']}\n" for record in records if record["arxiv_id"])
+    if output:
+        Path(output).write_text(text, encoding="utf-8")
+    else:
+        sys.stdout.write(text)
+
+
+def emit_records(
+    records: list[dict[str, Any]],
+    total: str,
+    echoed_query: str,
+    output: str | None,
+) -> None:
+    """Emit the parsed entries as JSON with the feed-level counts and executed query."""
+    payload: dict[str, Any] = {
+        "total_results": int(total) if total.isdigit() else None,
+        "returned": len(records),
+        "query_as_executed": echoed_query or None,
+        "entries": records,
+    }
+    if not records:
+        payload["note"] = (
+            "zero entries with HTTP 200 is arXiv's genuine no-match response, including for "
+            "an unknown ID in id_list; report it as 'not found in arXiv', not as a failure"
+        )
+    emit(payload, output)
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
 
     try:
@@ -161,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     # The error check must precede any other interpretation: the error feed is a
     # structurally valid one-hit search result.
     for entry in entries:
-        if collapse_ws(entry.findtext("atom:title", namespaces=NS)) == "Error":
+        if collapse_ws(entry.findtext(TITLE_PATH, namespaces=NS)) == "Error":
             reason = collapse_ws(entry.findtext("atom:summary", namespaces=NS))
             fail(f"arXiv returned an error feed: {reason or 'no reason given'}", code=3)
 
@@ -169,30 +204,14 @@ def main(argv: list[str] | None = None) -> int:
     # The feed <title> echoes the query as arXiv actually ran it. An unrecognized
     # field prefix is silently rewritten to `all:`, so this is the only way to see
     # that the executed query is not the one that was sent.
-    echoed_query = collapse_ws(feed.findtext("atom:title", namespaces=NS))
+    echoed_query = collapse_ws(feed.findtext(TITLE_PATH, namespaces=NS))
 
     records = [parse_entry(entry) for entry in entries]
 
     if args.ids_only:
-        text = "".join(f"{record['arxiv_id']}\n" for record in records if record["arxiv_id"])
-        if args.output:
-            Path(args.output).write_text(text, encoding="utf-8")
-        else:
-            sys.stdout.write(text)
-        return 0
-
-    payload: dict[str, Any] = {
-        "total_results": int(total) if total.isdigit() else None,
-        "returned": len(records),
-        "query_as_executed": echoed_query or None,
-        "entries": records,
-    }
-    if not records:
-        payload["note"] = (
-            "zero entries with HTTP 200 is arXiv's genuine no-match response, including for "
-            "an unknown ID in id_list; report it as 'not found in arXiv', not as a failure"
-        )
-    emit(payload, args.output)
+        emit_ids(records, args.output)
+    else:
+        emit_records(records, total, echoed_query, args.output)
     return 0
 
 

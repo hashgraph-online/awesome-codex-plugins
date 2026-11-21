@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-vercel
 description: Vercel 部署方法论，使用 vercel CLI 部署前端和全栈应用（Next.js、React、Vue、静态站点）
 version: 1.0.0
@@ -8,14 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Vercel 时
-- 项目使用 Next.js 或 React 框架时
-- 需要配置 Vercel 部署配置时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Vercel 时
+  - 项目使用 Next.js 或 React 框架时
+  - 需要配置 Vercel 部署配置时
+metadata:
   internal: true
-
 ---
 
 # Vercel 部署
@@ -71,6 +69,7 @@ vercel --yes --prod
 ```
 
 **首次部署输出示例**：
+
 ```
 Vercel CLI 37.0.0
 🔗  Linked to username/project (created .vercel)
@@ -146,6 +145,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `VERCEL_TOKEN`：Vercel Personal Access Token（Settings → Tokens）
 - `ORG_ID`：Vercel 团队/个人 ID
 - `PROJECT_ID`：Vercel 项目 ID

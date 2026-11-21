@@ -7,8 +7,8 @@
     "url": "https://github.com/vladimirrott"
   },
   "license": "MIT",
-  "homepage": "https://github.com/vladimirrott/claude-math",
-  "repository": "https://github.com/vladimirrott/claude-math",
+  "homepage": "https://github.com/agentsmith-tools/claude-math",
+  "repository": "https://github.com/agentsmith-tools/claude-math",
   "keywords": [
     "math",
     "latex",
@@ -29,7 +29,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/vladimirrott/claude-math",
+    "websiteURL": "https://github.com/agentsmith-tools/claude-math",
     "defaultPrompt": [
       "State the Shannon entropy and explain each term.",
       "Write the cohort filter as a set-builder expression.",

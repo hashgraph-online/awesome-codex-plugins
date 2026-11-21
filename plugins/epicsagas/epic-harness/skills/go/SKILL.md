@@ -127,6 +127,7 @@ After all tasks complete:
 4. Run the full test suite
 5. Verify each Acceptance Criterion (AC1, AC2, ...) is demonstrably met
 6. If anything fails, dispatch a fix and re-verify
+7. Append to the spec file's `## Implementation Notes`: decisions the spec left open and how they were made, files touched outside the plan, surprises (a test that lied, a dependency that behaved differently). Append only; never edit the sections above it. This is the record `/audit` and the next session read instead of re-deriving.
 
 ### Go Report
 
@@ -162,6 +163,7 @@ Tell the user: **"Build complete. Run `/audit` to verify before shipping."**
 ## Evidence Required
 
 - [ ] Plan exists with tasks mapped to Requirements
+- [ ] Spec's `## Implementation Notes` appended (or an explicit `- none` line if nothing was learned)
 - [ ] Each task has test(s) that pass
 - [ ] All Acceptance Criteria verified
 - [ ] Full test suite passes

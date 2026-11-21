@@ -1,4 +1,12 @@
-# Current version: 1.5.0-rc.28
+# Current source candidate: 1.5.0-rc.29
+
+The rc.29 source adds a DeepSeek Harness Cordis skill provider, package metadata
+and installation documentation. All three package manifests share this version.
+The translation engine, Python workflow and quality protocol are unchanged.
+No npm package or new GitHub Release is published by this packaging change.
+The last downloadable release remains rc.28, described below.
+
+# Latest downloadable release: 1.5.0-rc.28
 
 The rc.28 source is merged as `fba043bdc6a6d33bc889ac1459171dd18876821f`. The bounded prerelease is published in [GitHub Releases](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/tag/v1.5.0-rc.28). This is a Windows/R1 bounded prerelease, not a stable 1.5.0. See [current validation and limits](windows-stability-review.md). Documentation-only updates may follow the fixed release source without retagging or replacing its assets.
 

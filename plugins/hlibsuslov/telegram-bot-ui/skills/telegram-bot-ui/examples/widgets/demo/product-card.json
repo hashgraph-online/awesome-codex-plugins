@@ -1,0 +1,163 @@
+{
+ "widget": "product-card",
+ "title": "Product card",
+ "summary": "Product with a drawn image, rating, price, colour and size chips, quantity stepper, stock line and Add to cart.",
+ "caption": "Steel bottle · EUR 24.90 · 4.6 stars · in stock",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Add to cart",
+     "callback_data": "shop:add:bottle"
+    },
+    {
+     "text": "Choose options",
+     "callback_data": "shop:opts:bottle"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "n": "Steel bottle",
+    "rt": 46,
+    "rv": 128,
+    "pr": 2490,
+    "cur": "EUR",
+    "c": [
+     "Moss",
+     "Sand",
+     "Ink"
+    ],
+    "z": [
+     "500 ml",
+     "750 ml",
+     "1 L"
+    ],
+    "k": [
+     8,
+     3,
+     0,
+     5,
+     0,
+     2,
+     12,
+     9,
+     4
+    ],
+    "ct": 0,
+    "r": 0
+   }
+  },
+  "low": {
+   "chatData": {
+    "n": "Steel bottle",
+    "rt": 46,
+    "rv": 128,
+    "pr": 2490,
+    "cur": "EUR",
+    "c": [
+     "Moss",
+     "Sand",
+     "Ink"
+    ],
+    "z": [
+     "500 ml",
+     "750 ml",
+     "1 L"
+    ],
+    "k": [
+     0,
+     2,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0
+    ],
+    "ct": 0,
+    "r": 0
+   }
+  },
+  "sold-out": {
+   "chatData": {
+    "n": "Steel bottle",
+    "rt": 46,
+    "rv": 128,
+    "pr": 2490,
+    "cur": "EUR",
+    "c": [
+     "Moss",
+     "Sand",
+     "Ink"
+    ],
+    "z": [
+     "500 ml",
+     "750 ml",
+     "1 L"
+    ],
+    "k": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "ct": 0,
+    "r": 0
+   }
+  },
+  "added": {
+   "chatData": {
+    "n": "Steel bottle",
+    "rt": 46,
+    "rv": 128,
+    "pr": 2490,
+    "cur": "EUR",
+    "c": [
+     "Moss",
+     "Sand",
+     "Ink"
+    ],
+    "z": [
+     "500 ml",
+     "750 ml",
+     "1 L"
+    ],
+    "k": [
+     8,
+     1,
+     0,
+     5,
+     0,
+     2,
+     12,
+     9,
+     4
+    ],
+    "ct": 2,
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "add:1:2",
+  "add:0:1",
+  "add:2:1",
+  "add:9:1",
+  "add:0:0",
+  "add:0:99",
+  "add:x"
+ ],
+ "fresh": []
+}

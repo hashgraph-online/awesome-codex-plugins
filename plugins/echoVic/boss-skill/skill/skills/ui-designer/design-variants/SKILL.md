@@ -1,5 +1,4 @@
 ---
-
 name: ui-designer/design-variants
 description: 设计变体模式，产出2-3个设计方案及 tradeoff 分析，供用户选择后确定最终方案
 version: 1.0.0
@@ -8,14 +7,13 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
-- ui-designer/design-system
-  triggers:
-- PRD 中明确要求提供多个设计方案对比时
-- 用户显式要求"给几个方案选"或"设计变体"时
-- 设计方向存在明显分歧需要决策时
-  metadata:
+  - ui-designer/design-system
+triggers:
+  - PRD 中明确要求提供多个设计方案对比时
+  - 用户显式要求"给几个方案选"或"设计变体"时
+  - 设计方向存在明显分歧需要决策时
+metadata:
   internal: true
-
 ---
 
 # 设计变体模式
@@ -43,6 +41,7 @@ dependencies:
 ### 步骤 2：变体设计
 
 为每个变体（2-3个）产出：
+
 1. **设计理念**：一句话说明这个方案的核心思路
 2. **视觉方案**：基于 design-system 的具体实现
 3. **组件选择**：使用哪些组件、如何组合
@@ -133,6 +132,7 @@ dependencies:
 ### 用户选择后的行为
 
 收到用户选择后：
+
 1. 更新 `ui-design-variants.json` 的 `selectedVariantId` 字段
 2. 将选中方案的 `designData` 写入正式 `ui-design.json`
 3. 基于选中方案生成完整的 `ui-spec.md`

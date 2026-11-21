@@ -1,0 +1,223 @@
+{
+  "id": "type-specimen-grid",
+  "name": "Type specimen grid",
+  "use": "One word set many ways on a ruled Swiss grid, intercut with photos",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 14,
+  "fonts": [
+    {
+      "family": "Archivo",
+      "weights": [
+        100,
+        400,
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Bodoni Moda",
+      "weights": [
+        400,
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bodoni+Moda"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "type-specimen-grid.swiss",
+      "label": "Swiss",
+      "look": "18 cells on a 6x3 ruled grid, black on paper, one red cell",
+      "params": {
+        "bpm": 120,
+        "frames_per_beat_30fps": 15,
+        "cells": 18,
+        "grid_16x9": {
+          "cols": 6,
+          "rows": 3,
+          "margin_px": 96,
+          "gutter_px": 24
+        },
+        "grid_9x16": {
+          "cols": 3,
+          "rows": 6,
+          "margin_px": 72
+        },
+        "axes": {
+          "wght": [
+            100,
+            900
+          ],
+          "wdth": [
+            62,
+            125
+          ]
+        },
+        "cell_fill_pct_of_width": [
+          70,
+          85
+        ],
+        "reveal": {
+          "type": "clip-path inset wipe",
+          "frames": 7,
+          "ease": "power3.out"
+        },
+        "axis_morph": {
+          "frames": 15,
+          "ease": "power2.inOut",
+          "stagger_s": 0.05
+        },
+        "photo_cuts_on_beats": [
+          6,
+          12,
+          18
+        ],
+        "photo_beats": 2,
+        "rules": {
+          "width_px": 1,
+          "color": "#111111",
+          "opacity": 0.4
+        },
+        "label": {
+          "font": "Inter",
+          "weight": 500,
+          "size_px": 15,
+          "tracking_em": 0.1
+        },
+        "bg": "#F2EFE8",
+        "ink": "#111111",
+        "accent": "#E4002B"
+      },
+      "sources": [
+        25,
+        26,
+        27,
+        22,
+        41
+      ]
+    },
+    {
+      "id": "type-specimen-grid.riso",
+      "label": "Riso",
+      "look": "Same grid in two overprinted riso inks",
+      "params": {
+        "bg": "#F4F1EA",
+        "ink_1": "#3255A4",
+        "ink_2": "#FF48B0",
+        "blend": "multiply",
+        "misregistration_px": 2
+      },
+      "sources": [
+        30,
+        5
+      ]
+    },
+    {
+      "id": "type-specimen-grid.serif",
+      "label": "Serif waterfall",
+      "look": "Didone and grotesque pairing, waterfall of sizes",
+      "params": {
+        "display": "Bodoni Moda",
+        "opsz": [
+          6,
+          96
+        ],
+        "label_font": "Inter",
+        "sizes_px": [
+          12,
+          18,
+          28,
+          44,
+          72,
+          120,
+          200
+        ],
+        "opsz_follows_size": true
+      },
+      "sources": [
+        28,
+        29,
+        26
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "@natAndrewson, three-ink riso print",
+      "url": "https://x.com/natAndrewson/status/1262744907355058186"
+    },
+    {
+      "n": 6,
+      "name": "@ilovetypography, variable font picks",
+      "url": "https://x.com/ilovetypography/status/1576905152849510401"
+    },
+    {
+      "n": 9,
+      "name": "@_chenglou, userland text measurement",
+      "url": "https://x.com/_chenglou/status/2037713766205608234"
+    },
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 25,
+      "name": "PRINT, Swiss Style (Callie Budrick)",
+      "url": "https://www.printmag.com/?p=1387"
+    },
+    {
+      "n": 26,
+      "name": "web.dev, Introduction to variable fonts",
+      "url": "https://web.dev/articles/variable-fonts"
+    },
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 28,
+      "name": "Didone (typography), Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Didone_(typography)"
+    },
+    {
+      "n": 29,
+      "name": "indestructible type, Bodoni* README",
+      "url": "https://github.com/indestructible-type/Bodoni"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

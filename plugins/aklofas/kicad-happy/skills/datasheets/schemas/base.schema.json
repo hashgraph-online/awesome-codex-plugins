@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.local/datasheets/schemas/base.schema.json",
   "title": "BaseBlock",
+  "x-schema-version": "1.0",
   "description": "Universal per-IC facts present for every datasheet regardless of category. Referenced from extraction.schema.json under the 'base' key. Category-specific facts live in <category>.schema.json extensions.",
   "type": "object",
   "required": ["family", "package", "absolute_max", "recommended_operating", "pinout"],

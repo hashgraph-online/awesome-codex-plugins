@@ -1,0 +1,51 @@
+schema_version: 1
+id: caduceus-inference
+title: Caduceus Inference
+path: skills/caduceus-inference
+status: active
+family: rc-equivariant-dna-language-models
+tasks:
+  - environment-setup
+  - forward
+  - embedding
+  - variant-effect
+  - fine-tuning
+  - training
+  - troubleshooting
+triggers:
+  - caduceus
+  - caduceus-ph
+  - caduceus-ps
+  - rcps
+  - caduceus VEP
+  - kuleshov-group/caduceus
+required_inputs:
+  - task-objective
+  - target-stack-or-model-family
+optional_inputs:
+  - sequence-or-interval
+  - embedding-target
+  - compute-constraints
+  - runtime-context
+  - hardware-context
+  - requested-outputs
+input_mappings:
+  - task-objective|query_tokens=embedding,VEP,masked,pretrain,fine-tune|script_flags=HF-or-train-entrypoint
+  - target-stack-or-model-family|query_tokens=caduceus,checkpoint,model_name_or_path|script_flags=--model_name_or_path
+  - sequence-or-interval|query_tokens=sequence,FASTA,dataset,benchmark|script_flags=HF-or-vep-input
+  - embedding-target|query_tokens=embedding,representation,pooled|script_flags=embedding-output-selection
+  - compute-constraints|query_tokens=length,seqlen,131k,bp_per_token|script_flags=--seq_len,--bp_per_token
+  - runtime-context|query_tokens=python,conda,HuggingFace|script_flags=internal:runtime-selection
+  - hardware-context|query_tokens=gpu,cuda,torchrun,nproc|script_flags=--nproc-per-node
+  - requested-outputs|query_tokens=embedding,pt,checkpoint,logits|script_flags=--downstream_save_dir,--name
+constraints:
+  - VEP-embedding-script-requires-NCCL-CUDA
+  - caduceus-ps-is-rc-equivariant
+  - benchmark-vep-requires-ref-alt-sequence-fields
+  - keep-model-length-and-tokenization-aligned
+  - sequence-and-coordinate-inputs-use-explicit-0-based-or-1-based-conventions
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-caduceus-or-rcps
+  - prefer-over-hyenadna-when-Caduceus-checkpoint-or-equivariance-is-named

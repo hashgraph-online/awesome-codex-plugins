@@ -15,7 +15,8 @@ description: >
   _for_audiences variants.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.5.0"
+  display-name: "Amazon Marketing Cloud"
+  version: "0.5.2"
 ---
 
 # Amazon Marketing Cloud (AMC) Skill
@@ -96,7 +97,7 @@ Before any AMC API call, establish context. One identity may scope a single inst
 
 ### Always
 
-1. `list_identities` → `set_active_identity` — choose the advertising identity. Its region comes with it (the listing shows each identity's region and profiles); there is no separate region tool.
+1. `list_identities` → `set_active_identity` — choose the advertising identity. With one, use it and say which. With several, ask unless the user named one. Its region comes with it, and there is no separate region tool. The listing's own profile list is partial, so use `ac_listProfiles` for profiles.
 2. Selections (`set_active_identity`, `set_active_profile`, `set_active_account`) belong to the MCP session, so a new session or reconnect starts without them. `get_active_profile` and `get_active_account` report the current selection, and `clear_selection` forgets it. If a call reports no active identity, set it again before retrying.
 3. The Kuudo Amazon Ads MCP lists only `search`, `get_schema`, and `execute`. Its ~765 tools, the `amc_*` ones included, are found with `search` and called by name.
 
@@ -121,6 +122,8 @@ set_active_identity (once)
        amc_listInstances(entity, marketplace)
   → present candidates to the user, let them pick
 ```
+
+`ac_ListAdsAccounts` returns only accounts with marketplace entries. If the account isn't listed, check `allv1_QueryAdvertiserAccount` before saying it doesn't exist.
 
 Without this, an agent will grab the first reachable instance and assume it's "the" one. Discovery itself does **not** require terms acceptance — that's only enforced on per-instance reads.
 

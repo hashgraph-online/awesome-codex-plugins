@@ -1,0 +1,14 @@
+{
+  "name": "anodized_blue",
+  "description": "Blue anodised metal with a thin clear coat.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.18,
+    0.36,
+    0.86
+  ],
+  "metallic": 1.0,
+  "roughness": 0.3,
+  "clearcoat": 0.4,
+  "clearcoatRoughness": 0.15
+}

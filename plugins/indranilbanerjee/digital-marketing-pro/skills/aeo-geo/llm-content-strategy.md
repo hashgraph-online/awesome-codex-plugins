@@ -4,7 +4,7 @@
 
 A content strategy specifically designed to build brand authority in AI-generated answers. Focuses on creating content that AI models trust, cite, and accurately represent.
 
-**Design for Google AI Mode, not just AI Overviews (mid-2026):** AI Mode — the conversational search surface that became the default for opted-in users at I/O (19 May 2026) on a Gemini 3.5 Flash backbone — is a **distinct surface** that cites differently than AI Overviews and supports multi-turn follow-ups. Structure each authority piece so it answers the headline query cleanly *and* holds up to the obvious follow-ups (definitions, comparisons, edge cases, "how do I actually do this"). Publishing structured, **dated** updates on owned channels also makes a brand more legible to the user-configured AI Information Agents launching for AI Pro / Ultra in summer 2026. Audit AI Mode and AI Overviews separately and reconcile actual impressions via `/digital-marketing-pro:gsc-ai-performance`.
+**Design for Google AI Mode, not just AI Overviews (mid-2026):** AI Mode — the conversational search tab (see the AI Mode note in `skills/aeo-geo/SKILL.md`) — is a **distinct surface** that cites differently than AI Overviews and supports multi-turn follow-ups. Structure each authority piece so it answers the headline query cleanly *and* holds up to the obvious follow-ups (definitions, comparisons, edge cases, "how do I actually do this"). Publishing structured, **dated** updates on owned channels also makes a brand more legible to the user-configured AI Information Agents launching for AI Pro / Ultra in summer 2026. Audit AI Mode and AI Overviews separately and reconcile actual impressions via `/digital-marketing-pro:gsc-ai-performance`.
 
 ---
 
@@ -157,7 +157,7 @@ Best for: "[topic] statistics" and benchmark queries
 
 - [ ] Complete AI visibility audit (baseline scores)
 - [ ] Fix all entity consistency issues
-- [ ] Implement Organization, Article, FAQ schema on key pages
+- [ ] Keep Organization and Article structured data that matches the visible page (no schema is required for AI features)
 - [ ] Update or create Wikidata entry
 - [ ] Identify top 5 content gaps for priority queries
 - [ ] Publish 2-3 definitional/comparative pieces on gap topics
@@ -167,7 +167,7 @@ Best for: "[topic] statistics" and benchmark queries
 
 - [ ] Publish 4-6 pillar content pieces on core topics
 - [ ] Create original research or data content (survey, analysis, benchmark)
-- [ ] Implement HowTo schema on procedural content
+- [ ] Write procedures as numbered steps on the page itself (HowTo rich results ended in 2023)
 - [ ] Build internal linking between topic cluster pages
 - [ ] Secure 2-3 external citations (guest posts, press mentions)
 - [ ] Re-test priority queries on all AI platforms (measure improvement)

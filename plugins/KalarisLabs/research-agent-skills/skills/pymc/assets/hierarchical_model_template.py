@@ -4,7 +4,7 @@ PyMC Hierarchical/Multilevel Model Template
 This template provides a complete workflow for Bayesian hierarchical models,
 useful for grouped/nested data (e.g., students within schools, patients within hospitals).
 
-Customize the sections marked with # TODO
+Customize the sections marked with # CUSTOMIZE
 """
 
 import pymc as pm
@@ -13,11 +13,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+POPULATION_MEAN_LABEL = 'Population mean'
+
 # =============================================================================
 # 1. DATA PREPARATION
 # =============================================================================
 
-# TODO: Load your data with group structure
+# CUSTOMIZE: Load your data with group structure
 # Example:
 # df = pd.read_csv('data.csv')
 # groups = df['group_id'].values
@@ -25,7 +27,7 @@ import matplotlib.pyplot as plt
 # y = df['outcome'].values
 
 # For demonstration: Generate hierarchical data
-np.random.seed(42)
+rng = np.random.default_rng(42)
 n_groups = 10
 n_per_group = 20
 n_obs = n_groups * n_per_group
@@ -37,15 +39,15 @@ true_mu_beta = 1.5
 true_sigma_beta = 0.5
 true_sigma = 1.0
 
-group_alphas = np.random.normal(true_mu_alpha, true_sigma_alpha, n_groups)
-group_betas = np.random.normal(true_mu_beta, true_sigma_beta, n_groups)
+group_alphas = rng.normal(true_mu_alpha, true_sigma_alpha, n_groups)
+group_betas = rng.normal(true_mu_beta, true_sigma_beta, n_groups)
 
 # Generate data
 groups = np.repeat(np.arange(n_groups), n_per_group)
-X = np.random.randn(n_obs)
-y = group_alphas[groups] + group_betas[groups] * X + np.random.randn(n_obs) * true_sigma
+X = rng.standard_normal(n_obs)
+y = group_alphas[groups] + group_betas[groups] * X + rng.standard_normal(n_obs) * true_sigma
 
-# TODO: Customize group names
+# CUSTOMIZE: Customize group names
 group_names = [f'Group_{i}' for i in range(n_groups)]
 
 # =============================================================================
@@ -65,7 +67,7 @@ with pm.Model(coords=coords) as hierarchical_model:
     groups_data = pm.Data('groups_data', groups)
 
     # Hyperpriors (population-level parameters)
-    # TODO: Adjust hyperpriors based on your domain knowledge
+    # CUSTOMIZE: Adjust hyperpriors based on your domain knowledge
     mu_alpha = pm.Normal('mu_alpha', mu=0, sigma=10)
     sigma_alpha = pm.HalfNormal('sigma_alpha', sigma=5)
 
@@ -214,14 +216,14 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 8))
 az.plot_forest(idata, var_names=['alpha'], combined=True, ax=axes[0])
 axes[0].set_title('Group-Level Intercepts (α)')
 axes[0].set_yticklabels(group_names)
-axes[0].axvline(idata.posterior['mu_alpha'].mean().item(), color='red', linestyle='--', label='Population mean')
+axes[0].axvline(idata.posterior['mu_alpha'].mean().item(), color='red', linestyle='--', label=POPULATION_MEAN_LABEL)
 axes[0].legend()
 
 # Group slopes
 az.plot_forest(idata, var_names=['beta'], combined=True, ax=axes[1])
 axes[1].set_title('Group-Level Slopes (β)')
 axes[1].set_yticklabels(group_names)
-axes[1].axvline(idata.posterior['mu_beta'].mean().item(), color='red', linestyle='--', label='Population mean')
+axes[1].axvline(idata.posterior['mu_beta'].mean().item(), color='red', linestyle='--', label=POPULATION_MEAN_LABEL)
 axes[1].legend()
 
 plt.tight_layout()
@@ -237,7 +239,7 @@ alpha_means = alpha_samples.mean(axis=0)
 mu_alpha_mean = idata.posterior['mu_alpha'].mean().item()
 
 axes[0].scatter(range(n_groups), alpha_means, alpha=0.6)
-axes[0].axhline(mu_alpha_mean, color='red', linestyle='--', label='Population mean')
+axes[0].axhline(mu_alpha_mean, color='red', linestyle='--', label=POPULATION_MEAN_LABEL)
 axes[0].set_xlabel('Group')
 axes[0].set_ylabel('Intercept')
 axes[0].set_title('Group Intercepts (showing shrinkage to population mean)')
@@ -249,7 +251,7 @@ beta_means = beta_samples.mean(axis=0)
 mu_beta_mean = idata.posterior['mu_beta'].mean().item()
 
 axes[1].scatter(range(n_groups), beta_means, alpha=0.6)
-axes[1].axhline(mu_beta_mean, color='red', linestyle='--', label='Population mean')
+axes[1].axhline(mu_beta_mean, color='red', linestyle='--', label=POPULATION_MEAN_LABEL)
 axes[1].set_xlabel('Group')
 axes[1].set_ylabel('Slope')
 axes[1].set_title('Group Slopes (showing shrinkage to population mean)')
@@ -263,7 +265,7 @@ print("Shrinkage plot saved to 'shrinkage_plot.png'")
 # 8. PREDICTIONS FOR NEW DATA
 # =============================================================================
 
-# TODO: Specify new data
+# CUSTOMIZE: Specify new data
 # For existing groups:
 # new_X = np.array([...])
 # new_groups = np.array([0, 1, 2, ...])  # Existing group indices
@@ -293,20 +295,19 @@ y_pred_samples = post_pred.predictions['y_obs']
 y_pred_mean = y_pred_samples.mean(dim=['chain', 'draw']).values
 y_pred_hdi = az.hdi(y_pred_samples, hdi_prob=0.95).values
 
-print(f"Predictions for existing groups:")
+print("Predictions for existing groups:")
 print(f"{'Group':<10} {'X':<10} {'Mean':<15} {'95% HDI Lower':<15} {'95% HDI Upper':<15}")
 print("-"*65)
 for i, g in enumerate(new_groups):
     print(f"{group_names[g]:<10} {new_X[i]:<10.2f} {y_pred_mean[i]:<15.3f} {y_pred_hdi[i, 0]:<15.3f} {y_pred_hdi[i, 1]:<15.3f}")
 
 # Predict for a new group (using population parameters)
-print(f"\nPrediction for a NEW group (using population-level parameters):")
+print("\nPrediction for a NEW group (using population-level parameters):")
 new_X_newgroup = np.array([0.0])
 
 # Manually compute using population parameters
 mu_alpha_samples = idata.posterior['mu_alpha'].values.flatten()
 mu_beta_samples = idata.posterior['mu_beta'].values.flatten()
-sigma_samples = idata.posterior['sigma'].values.flatten()
 
 # Predicted mean for new group
 y_pred_newgroup = mu_alpha_samples + mu_beta_samples * new_X_newgroup[0]

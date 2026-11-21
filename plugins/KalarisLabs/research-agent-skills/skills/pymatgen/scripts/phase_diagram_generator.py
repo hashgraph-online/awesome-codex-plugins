@@ -291,6 +291,7 @@ def write_plot_new(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Build an offline phase diagram from strict JSON total energies. "
@@ -328,6 +329,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         if len(args.analyze) > 20:

@@ -1,8 +1,9 @@
 # Delegated review loops
 
-Use a separate worker for a multi-round review when the host provides one and
-the user or repository permits delegation. Otherwise keep the review in the
-current session. AMQ does not create background workers or grant edit authority.
+For an independent review, select a seat that did not build the change. The
+current session can review if it meets that condition. If no eligible reviewer is
+available, record the pending review and continue other work. Use the host's
+permitted delegation mechanism.
 
 ## Ownership
 
@@ -17,12 +18,14 @@ approval does not grant permission to commit, push, merge, or expand scope.
 
 ## Message flow
 
-1. Send a `review_request` with paths and the user-visible change.
-2. Keep the existing thread. The reviewer returns `review_response`.
-3. Apply authorized findings, then request review of the changed files.
-4. Stop when review is complete, the assigned limit is reached, or a decision
-   requires the owner. Return the result, unresolved findings, and checks that
-   were not performed.
+1. Send the reviewer the proposed head, base, paths, user-visible change and
+   requested checks.
+2. Reply to the review request ID with `review_response`. Name the inspected
+   commit, findings, checks and omissions.
+3. Return findings to the builder. Request review on the resulting head after changes.
+4. The authorized merger confirms the current head matches the reviewed head and
+   its required checks passed. Record the merge result and user-visible proof in
+   the assignment.
 
 Report progress as in the [co-op progress protocol](coop-mode.md#progress-protocol).
 

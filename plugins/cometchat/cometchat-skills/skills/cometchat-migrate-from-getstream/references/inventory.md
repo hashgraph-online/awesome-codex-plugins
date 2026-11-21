@@ -13,9 +13,9 @@ Search case-insensitively. Skip `node_modules/`, `Pods/`, `build/`, `.dart_tool/
 | Android | `io.getstream:stream-chat-android-client`, `-offline`, `-state`, `-ui-components` (Views), `-compose`, `io.getstream:stream-video-android-*` | `android-v6` (cohort from `android_variant`: Compose → `compose-*`, Views → `kotlin-*`) | `cometchat-android-v6-core` | `cometchat-android-v5-sdk` |
 | Flutter | `stream_chat_flutter`, `stream_chat_flutter_core`, `stream_chat`, `stream_chat_persistence`, `stream_chat_localizations`, `stream_video_flutter` | `flutter-v6` | `cometchat-flutter-v6-core` | the Flutter core's SDK fallback (`cometchat_sdk`, re-exported by the kit) |
 | Video only (no chat) | `@stream-io/video-react-sdk`, `@stream-io/video-client`, `@stream-io/video-react-native-sdk`, `stream-video-swift`, `io.getstream:stream-video-android-*`, `stream_video_flutter` | the matching headless calls peer (`js-calls`, `react-native-calls`, `ios-calls`, `android-calls`, `flutter-calls`) | — | `cometchat-js-v5-sdk` / `cometchat-react-native-v5-sdk` / `cometchat-ios-v5-sdk` / `cometchat-android-v5-calls-sdk` / `cometchat-flutter-v5-sdk` |
-| Server | `stream-chat` (Node, with the API secret), `@stream-io/node-sdk`, Python `stream-chat`/`getstream`, `stream-chat-go`, `stream-chat-ruby`, `get-stream/stream-chat` (PHP), `io.getstream:stream-chat-java`, `stream-chat-net` | — (REST, no UI Kit) | — | CometChat REST (`/rest-api/…`) |
+| Server | `stream-chat` (Node, with the API secret), `@stream-io/node-sdk`, Python `stream-chat`/`getstream`, `stream-chat-go`, `stream-chat-ruby`, `get-stream/stream-chat` (PHP), `io.getstream:stream-chat-java`, `stream-chat-net` | — (REST, no UI Kit) | — | CometChat REST (`/rest-api/...`) |
 
-A platform that isn't in this table (Vue, Svelte, Unity, .NET MAUI…) has no family in this pack → STOP (2): report only.
+A platform that isn't in this table (Vue, Svelte, Unity, .NET MAUI...) has no family in this pack → STOP (2): report only.
 
 ### React Native is a native platform for the build, not a web one
 The migration is not done when Metro bundles: `cd ios && pod install` (the kit's Podfile needs the
@@ -41,7 +41,7 @@ RUN** both platforms. Three failures never appear in CI — only when a person u
 **UI components**:
 - React: `<Chat`, `<ChannelList`, `<Channel`, `<Window`, `<ChannelHeader`, `<MessageList`, `<VirtualizedMessageList`, `<MessageInput`, `<Thread`, `<ThreadList`, `<ChannelSearch`/`<SearchBar`.
   - Hooks: `useChatContext`, `useChannelStateContext`, `useMessageContext`.
-  - CSS: `stream-chat-react/dist/css/…`, `@stream-io/stream-chat-css`.
+  - CSS: `stream-chat-react/dist/css/...`, `@stream-io/stream-chat-css`.
 - Angular: `StreamChatModule`, `StreamAutocompleteTextareaModule`, `ChannelService`, `StreamI18nService`, `<stream-channel-list>`, `<stream-channel>`, `<stream-message-list>`, `<stream-message-input>`, `<stream-thread>`.
 - React Native: `OverlayProvider`, `Chat`, `ChannelList`, `Channel`, `MessageList`, `MessageInput`, `Thread`, `ImageGallery`.
 - iOS: `ChatChannelListVC`, `ChatChannelVC`, `ChatThreadVC`, `Components.default`, `Appearance.default`; SwiftUI `StreamChat(chatClient:)`, `ChatChannelListView`, `ChatChannelView`, `ViewFactory`.
@@ -50,7 +50,7 @@ RUN** both platforms. Three failures never appear in CI — only when a person u
 - Flutter: `StreamChat(`, `StreamChannel(`, `StreamChannelListView`, `StreamChannelListController`, `StreamChannelHeader`, `StreamMessageListView`, `StreamMessageInput`, `StreamChatTheme`.
 
 **Channels**:
-- Handles: `client.channel('<type>', …)`, `channel.watch()`, `queryChannels(`, `cid`, channel types (`messaging`, `team`, `livestream`, `commerce`, `gaming`, custom).
+- Handles: `client.channel('<type>', ...)`, `channel.watch()`, `queryChannels(`, `cid`, channel types (`messaging`, `team`, `livestream`, `commerce`, `gaming`, custom).
 - Members: `members:` (member-based distinct channels → `!members-` IDs), `addMembers`, `removeMembers`, `addModerators`.
 - Invites: `inviteMembers`, `acceptInvite`.
 - State: `channel.update`/`updatePartial`, `hide`, `show`, `truncate`, `freeze`/`frozen`, `enableSlowMode`, `mute`/`unmute`, `pin`/`archive`.
@@ -79,4 +79,4 @@ RUN** both platforms. Three failures never appear in CI — only when a person u
 
 **Env / config**: `STREAM_API_KEY`, `STREAM_API_SECRET`, `STREAM_KEY`, `VITE_STREAM_*`, `NEXT_PUBLIC_STREAM_*`, `EXPO_PUBLIC_STREAM_*`, `REACT_APP_STREAM_*`, keys in plists/`local.properties`/`--dart-define`, and CI secrets named `STREAM_*`.
 
-**Tests / mocks**: `jest.mock('stream-chat…')`, `generateChannel`/`generateUser` test utilities, `getTestClient`.
+**Tests / mocks**: `jest.mock('stream-chat...')`, `generateChannel`/`generateUser` test utilities, `getTestClient`.

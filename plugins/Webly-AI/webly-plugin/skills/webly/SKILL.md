@@ -143,6 +143,10 @@ site**, step 2.
 Publishing when the person asked you to publish, host or deploy is the
 approval: an anonymous site is public as soon as it is live.
 
+Branches need a Webly account: don't try them on an anonymous site. If the
+person wants one, offer to keep the site (**Keep the site**: sign in, free, and
+claim it); branches work on every plan once it's claimed and activated.
+
 ## Linked folders
 
 The first deploy from a project writes `.webly/project.json` at the project's
@@ -160,7 +164,8 @@ and says why when:
 - **The linked site isn't this machine's anonymous site** (it was claimed, or
   the link came from someone else). Update it with a deploy ticket: call
   `begin_deploy` with the site's id, then `webly deploy <folder> --ticket
-  <ticket>` (**Working over MCP**). If `begin_deploy` is a 404 (a fork, another
+  <ticket> --message "<subject>" --body "<what changed and why>"` (**Working
+  over MCP**). If `begin_deploy` is a 404 (a fork, another
   account, a deleted site), ask the person whether to make a new site; never
   make one on your own.
 - **The folder isn't linked and this machine is connected to an account.**
@@ -258,6 +263,10 @@ Managing shared files over MCP (the dashboard's Files page does the same):
   `resume_object_upload` returns what already landed and URLs for only the
   missing parts; run those, then `finalize_object_upload`. Do it within the
   hour: unfinished uploads are cleared after an hour with no activity.
+- Finalizing a big file (hundreds of MB) can take a minute or more. If
+  `finalize_object_upload` times out, or a file comes back with
+  `finalizing: true`, call it again every few seconds until it's ready. Never
+  cancel or re-upload a file that is finalizing.
 - `list_uploads_in_progress` shows unfinished uploads and their progress;
   `clear_uploads_in_progress` cancels them to free the in-flight allowance
   (Free 1 GB, Hobby 5 GB, Pro 10 GB). Ask first.
@@ -387,6 +396,12 @@ one before creating a site, and on `400 workspace_required` ask; never guess.
 `workspaces: "one"` means the connection is limited to one workspace. If they
 need another (`list_workspaces` shows `canUse: false`), they reconnect: in
 Claude Code `/mcp` → webly → re-authenticate, and pick All my workspaces.
+When the owner asks about the "Made with Webly" badge: Hobby and Pro sites go
+without it unless they opt in. `set_workspace_badge` turns it on or off for every
+site, new ones included; `update_website` with `showBadge` sets one site, and that
+always wins (`null` follows the workspace again). Free always shows it: on
+`402 plan_required`, give them `details.upgradeUrl`.
+
 When the owner asks for a team workspace photo, `set_workspace_photo` takes a
 public image `url` or the file as `base64` (PNG, JPEG, WebP or GIF, 2 MB);
 `remove_workspace_photo` clears it. A personal workspace shows the person's own
@@ -408,11 +423,16 @@ as the person. The token stays in the helper; never ask for it or print it.
    whose change it is (`theirsBy`), re-read, re-apply, resend. `force` only
    when the person asks. For a folder on disk (a build's `dist/`, anything with
    bundles or images), call `begin_deploy` with the site's id and straight away
-   run `webly deploy <folder> --ticket <ticket> --message "<what changed>"` (the
-   ticket lasts 5 minutes and one deploy; never echo it back to the person). The
-   message is one line saying what changed ("Button reads Start here"); the
-   site's History shows it, so the people sharing the site can tell your
-   version from everyone else's. The helper builds the project
+   run `webly deploy <folder> --ticket <ticket> --message "<subject>" --body
+   "<what changed and why>"` (the ticket lasts 5 minutes and one deploy; never
+   echo it back to the person). Every write (deploy, `put_source_file`,
+   `str_replace`, deletes) takes a message, written like a git commit message:
+   a subject line of what changed, about 50 characters, imperative ("Show
+   yearly plans first on Pricing"), then a blank line and a body in plain words
+   for the site owner: what changed and why, which pages, anything to check.
+   The site's History shows the subject, and the body when someone opens the
+   version, so the people sharing the site can tell your version from
+   everyone else's. Skip the body only for a trivial change. The helper builds the project
    if needed, uploads it (up to 2000 files; images and video over 1 MiB go
    straight to storage, up to the plan's per-file limit), links
    the folder and prints the draft URL. Never put a bundle's bytes in a tool
@@ -484,38 +504,124 @@ Details are in llms.txt.
 narrower than the task, so tell them which access level covers it. `401` /
 `invalid_token`: call a Webly tool again to re-trigger sign-in; don't start a
 second attempt while one is waiting. Other people and agents may edit the
-same site at once. Prefer `str_replace` for small edits. Send `baseVersion`
+same site at once, and people may edit text, styles, layout,
+sections, new elements and images, pages and brand colours, and component props in the dashboard, on static sites too (History shows them as Editor), so re-read a file before editing it. On a static site the editor's classes compile into `/webly.css`, linked from each page that uses them: keep that file and its `<link>`. Prefer `str_replace` for small edits. Send `baseVersion`
 (the `version` your read returned) with `put_source_file` /
 `delete_source_file`: their edits to other lines are merged with yours;
 `409 merge_conflict` means you both changed the same lines — read the file
 again, re-apply your change keeping theirs, resend with the new version.
 `wait_for_changes` shows what others wrote since a version. Publish with
-`version` set to the one the person previewed. History is linear, so the
-versions between the last publish and that one go live with it (newer ones stay
+`version` set to the one the person previewed. Main's history is one line, so
+the versions on main between the last publish and that one go live with it (newer ones stay
 unpublished); the response's `alsoPublishes` lists the ones other people or
 agents wrote (who, app, message). Tell your person what of theirs went live.
 Publishing an older version puts nothing new live, and `alsoPublishes` is empty.
+To help someone choose a version: `list_changes` and `diff_source_file` (from its
+`parentVersion`, in `list_versions`) show what it changed, and `preview_version` gives a private link
+to how it looked for an hour, changing nothing.
 
 Git: `get_git_access` gives a read-only clone of a signed-in site's source and
-history (one commit per version). Its token lasts one minute, so run its
+history (one commit per version; each open branch is its own ref, and
+`branch` gives that branch's clone and pull). Its token lasts 15 minutes, so run its
 `clone` (or `pull` inside the clone) straight away as
 `WEBLY_GIT_TOKEN=<token> <clone>`, never with the token in the URL. Check `headVersion` with `get_website`
 before asking again. Never `git push`; write through the tools.
+
+### Branches
+
+A branch is a named copy of the site beside `main` with its own preview at
+`https://{branch}--{subdomain}.webly.site`. Use one for a risky or large change
+the person wants to see before it reaches main, or when several agents work on
+one site at once (one branch each). `create_branch` (name: lowercase letters,
+digits, inner hyphens), then pass `branch: "<name>"` to every read and write
+(`put_source_file`, `str_replace`, `deploy_files`, `read_source_files`,
+`list_versions`…). A folder on disk: `begin_deploy` with `branch`, then
+`webly deploy <folder> --ticket <ticket> --branch <name>` (the same branch, or
+`ticket_branch_mismatch`). Give the person the
+branch's `url` to preview it.
+
+A site has up to Free 2, Hobby 8, Pro 20 open branches, plus main; merging or
+deleting one frees its slot. On `402 branch_limit`, merge or delete one, or give
+the owner `details.upgradeUrl`. Branches are for signed-in sites on every plan,
+Free included. A site made without an account (or held) is
+`402 branches_need_account`: claim it (sign in, free) and activate it, then
+create the branch.
+
+`merge_branch` writes one draft version on main and closes the branch. Merging
+is not publishing: send `publish: true` only when the person has said the merged
+result can go live; otherwise show them main's draft and `publish_website` that
+version when they approve. If a merge with `publish: true` answers
+`published: false` (the build isn't ready or failed), it's merged but not live
+yet: tell the person, and publish that version once it builds. Pass
+`expectedHeadVersion` (the branch head they saw; `409 branch_moved` means
+someone wrote to the branch since, so show them again). `diff_branch` shows what
+a merge brings. On `409 merge_conflict`: `update_branch` brings main's changes
+into the branch and keeps the branch's text in the files both changed, listing
+them in `conflicts`; fix those files on the branch, keeping what main changed,
+then merge again. `delete_branch` drops a branch without merging; ask
+first.
+
+### Turn a static site into a React site (or back)
+
+Create a new site of the other kind and port the pages yourself: components,
+and React state for what scripts did (or plain HTML and small scripts the
+other way). Leave the original untouched until your person is happy with the
+new one.
 
 ### Duplicate or move a site
 
 Hobby and Pro, in both workspaces (`402 plan_required` otherwise: give the
 person `details.upgradeUrl`). `duplicate_website` copies a site 1:1: every
 version, media, CMS, form submissions and settings, passwords; it is published
-if the original is, gets its own addresses, and custom domains stay with the
+if the original is (`publish.status: "building"` means a bigger site is still
+building and goes live by itself: tell your person it is still working), gets its own addresses, and custom domains stay with the
 original. `move_website` moves a site into another workspace your person
-admins, at once: everything comes along, it gets a **new** webly.site address
-there and the old one stops working, so confirm first and share the new
-`urls.primary`. `list_move_destinations` lists the workspaces your person
+admins, at once: everything comes along, including its webly.site address and
+custom domains, except form email alerts: their recipients are cleared, so set
+them again there (`set_form_notifications`). Its vanity address changes to the
+new workspace's and links to the old one stop working, so confirm first and
+share `urls.primary`. `list_move_destinations` lists the workspaces your person
 admins and whether the site fits (`reason`: `site_limit`, `storage_limit`,
 `plan_required`); ask which one. Both need a signed-in person (OAuth) to reach
-another workspace. For someone else's workspace, `start_website_transfer`
-returns a code their admin redeems with `accept_website_transfer`.
+another workspace. To give it to someone else, ask for their email and call
+`start_website_transfer { toEmail }`: they're emailed and it waits on their
+Transfers page, where they accept or decline it (or their agent:
+`list_incoming_transfers`, `accept_website_transfer { transferId }`,
+`decline_website_transfer`). There are no transfer codes.
+
+### Other apps (integrations)
+
+Signed-in workspaces can reach Gmail, Google Calendar, Notion, GitHub, Slack and
+1,000+ more apps through the same MCP connection (the tools are hidden where
+it isn't rolled out yet).
+
+1. `search_integration_tools` with the task in plain words ("send a Slack
+   message to #general saying the site is live", not "slack tools"). Follow
+   each result's `recommended_plan_steps` and `known_pitfalls`.
+2. `get_integration_tool_schemas` when you need a tool's inputs.
+3. `run_integration_tool`. It acts in the real app: ask your person before
+   anything that sends, posts, changes or deletes.
+
+Not connected yet: `connect_integration { toolkit }` and give your person the
+`url` to sign in. With an API key (an API key can't sign in to apps), ask your
+person to connect it on the dashboard's Integrations page instead. Never say it's connected until `get_integration` answers
+`status: "active"`. In a team, `shared: true` (for every member) is for owners
+and admins only. Free connects any 2 apps at a time and 100 runs a month
+(`connections` and `usage` in `list_integrations`). On `402
+integration_connection_limit` (a third app) or `integration_limit` (runs used
+up), tell your person and give them `details.upgradeUrl`. Never disconnect one
+of their apps to make room unless they ask.
+
+Their own MCP servers (Hobby and Pro): when your person asks to add one and gives you its
+URL, `add_integration_mcp_server { name, url, auth? }`. The URL is the final
+HTTPS MCP endpoint, with no key or token in it. `auth` is `{ type: "none" }`,
+`{ type: "api_key" }` or `{ type: "oauth" }` (Dynamic Client Registration
+only). With a key or OAuth, give your person `connectUrl` to enter the key or
+sign in; never ask them to paste a key to you. It's ready once
+`list_integration_mcp_servers` says `active`. Its tools are named
+`{toolPrefix}_…`, and search and run like any app's.
+With an API key (no person signed in), `add_integration_mcp_server` isn't
+available: ask your person to add the server on the dashboard's Integrations page.
 
 ### Custom domains
 
@@ -527,7 +633,7 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
 2. For a bare domain, ask first:
    - **`www.example.com` (recommended).** It works with every DNS provider.
      The person then forwards `example.com` to it at their registrar, which is
-     free and takes a minute.
+     free and takes a minute, but usually http-only (see `apexForward` below).
    - **`example.com` directly.** Only if their DNS provider supports CNAME
      flattening or ALIAS at the root (Cloudflare, Namecheap, Porkbun…).
    For a subdomain such as `shop.example.com`, just add it.
@@ -550,7 +656,13 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
    `_acme-challenge` TXT records. The TXT issues the HTTPS (SSL) certificate
    and is always needed; without it HTTPS can take hours. If it isn't in
    `dns.records` yet, call `verify_domain` a few seconds later and give it then.
-   For a www domain, also give the `apexForward` forwarding rule. Provider tips:
+   For a www domain, also give the `apexForward` forwarding rule (URL
+   forwarding at their registrar makes the bare domain work too, usually over
+   plain http only; for `https://` links, a provider with ALIAS can add the
+   bare domain as a second domain on the site: TXT records first, the ALIAS
+   once it's active). Check it with `verify_domain` (`apexForward.ok`,
+   `apexForward.https`), not in a browser: Chrome quietly retries a bare
+   domain with `www`. Provider tips:
    - Type only the Name shown (`www`, or `@` for the root). GoDaddy and
      Namecheap add the domain themselves.
    - On Cloudflare, set the record to "DNS only" (grey cloud).

@@ -1,0 +1,178 @@
+{
+  "id": "crt-scanline-title",
+  "name": "CRT scanline title",
+  "use": "A name and role that crash onto a CRT, then clear to clean type on a transparent frame.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "VT323",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/VT323"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "crt-scanline-title.consumer-tv",
+      "label": "Consumer TV",
+      "look": "Slot mask, soft beam, chroma bleed, vertical roll.",
+      "params": {
+        "scan_period_px_1080p": 4.5,
+        "scan_dark_fraction": 0.45,
+        "hardScan": -8,
+        "hardPix": -3,
+        "warp": [
+          0.031,
+          0.041
+        ],
+        "maskDark": 0.5,
+        "maskLight": 1.5,
+        "mask": "slot",
+        "bloom": 0.15,
+        "chroma_shift_px": 2,
+        "timeline_s": {
+          "power_on": [
+            0,
+            0.2
+          ],
+          "noise": [
+            0.2,
+            0.6
+          ],
+          "type_in": [
+            0.6,
+            1.2
+          ],
+          "crt_hold": [
+            1.2,
+            3.4
+          ],
+          "clear": [
+            3.4,
+            3.8
+          ],
+          "clean_hold": [
+            3.8,
+            6.0
+          ]
+        },
+        "rgb_offset_px": [
+          8,
+          1
+        ],
+        "jitter_px": 2,
+        "name": "VT323 9% H",
+        "role": "IBM Plex Mono 500 3.2% H",
+        "text": "#E9FFF1",
+        "tube_black": "#050607",
+        "output": "alpha (ProRes 4444 / VP9 alpha)"
+      },
+      "sources": [
+        21,
+        36,
+        46,
+        14
+      ]
+    },
+    {
+      "id": "crt-scanline-title.arcade-monitor",
+      "label": "Arcade monitor",
+      "look": "Sharp RGB monitor, aperture grille, little bleed.",
+      "params": {
+        "scan_period_px_1080p": 4,
+        "scan_dark_fraction": 0.55,
+        "mask": "aperture-grille",
+        "triad_px": 3,
+        "chroma_shift_px": 0,
+        "bloom": 0.1,
+        "warp": [
+          0.02,
+          0.03
+        ]
+      },
+      "sources": [
+        21
+      ]
+    },
+    {
+      "id": "crt-scanline-title.terminal-green",
+      "label": "Terminal green",
+      "look": "Monochrome phosphor terminal with persistence.",
+      "params": {
+        "text": "#33FF66",
+        "bg": "#031A0B",
+        "font": "VT323",
+        "persistence": "ffmpeg lagfun decay=0.9",
+        "scan_period_px_1080p": 4,
+        "glow": "0 0 6px rgba(51,255,102,.6)"
+      },
+      "sources": [
+        22,
+        21
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 13,
+      "name": "Chris Salters — Sports lower thirds (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/sports-lower-thirds"
+    },
+    {
+      "n": 14,
+      "name": "Jason Boone — How to make lower third titles that don't suck (Frame.io Insider)",
+      "url": "https://blog.frame.io/2017/12/04/create-lower-thirds-titles-that-dont-suck/"
+    },
+    {
+      "n": 21,
+      "name": "Timothy Lottes — CRT styled scan-line shader (libretro crt-lottes)",
+      "url": "https://github.com/libretro/glsl-shaders/blob/master/crt/shaders/crt-lottes.glsl"
+    },
+    {
+      "n": 22,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 36,
+      "name": "@komm64",
+      "url": "https://x.com/komm64/status/2073558529097834584"
+    },
+    {
+      "n": 37,
+      "name": "@tranmautritam (Tran Mau Tri Tam)",
+      "url": "https://x.com/tranmautritam/status/2079207566526259654"
+    },
+    {
+      "n": 44,
+      "name": "@twoclipping",
+      "url": "https://x.com/twoclipping/status/2103273003555402193"
+    },
+    {
+      "n": 46,
+      "name": "Libretro forums — 240p LCD vs TV",
+      "url": "https://forums.libretro.com/t/240p-lcd-vs-tv/44087"
+    }
+  ]
+}

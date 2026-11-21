@@ -29,7 +29,7 @@ Lock common identity: source image, shape, proportions, materials, colors, cap, 
 
 ## Approve one reference, then branch from it
 
-Inspect the reference. If none exists, generate one with `ai_image_generator_create_image`; use `ai_image_editor_create_image` for changes to an existing source. Solve identity and text before expanding the set. When the user delegates creative decisions, perform the quality check yourself; require their approval only if requested.
+Inspect the reference. If none exists, generate one with `generate_image`; use `edit_image` for changes to an existing source. Solve identity and text before expanding the set. When the user delegates creative decisions, perform the quality check yourself; require their approval only if requested.
 
 Create each placement directly from the same approved reference. Do not make the vertical image from the square image and then the hero from the vertical image: each edit can inherit unnoticed drift. Reuse an accepted variant only for minor repair after identity review. A seed, if exposed, is not an identity lock.
 
@@ -47,7 +47,7 @@ Use the existing creation MCP at `https://mcp.magichour.ai/`; [connection guide]
 
 Check model, aspect ratio, resolution, reference limits, and per-output costs. Confirm the total set fits the authorized budget before the first variant, including source-generation or repair allowance. Do not buy credits or upgrade. Do not generate a collage when separate deliverables were requested. Different placement prompts normally require separate jobs; `image_count` does not assign a different prompt to each image.
 
-For local inputs, obtain a presigned URL with `video_assets_generate_presigned_url`, PUT raw bytes without the API bearer token, verify success, and pass its `file_path`. Create one intended generator/editor job at a time. Save each ID alongside its placement; use `wait_for_image_project`. On the API, use `POST /v1/ai-image-generator` or `/v1/ai-image-editor`, then `GET /v1/image-projects/{id}`. Recover the same job after a wait timeout; never repeat an ambiguous creation request automatically.
+For local inputs, obtain a presigned URL with `get_upload_urls`, PUT raw bytes without the API bearer token, verify success, and pass its `file_path`. Create one intended generator/editor job at a time. Save each ID alongside its placement; use `wait_for_image_project`. On the API, use `POST /v1/ai-image-generator` or `/v1/ai-image-editor`, then `GET /v1/image-projects/{id}`. Recover the same job after a wait timeout; never repeat an ambiguous creation request automatically.
 
 Inspect the first variant before continuing so a broken prompt pattern does not consume the budget. If it passes, create remaining requested placements within the existing authorization. Choose resolution for the actual use: a small preview is not a finished high-resolution campaign asset.
 

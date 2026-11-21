@@ -2,14 +2,14 @@
 name: cometchat-ios-testing
 description: "Test an iOS app that embeds CometChat — what to mock vs exercise for real, keeping the CometChatSDK off the network in unit tests, waiting out the async init→login gate, and a lean XCUITest smoke. Triggers: 'test cometchat ios', 'unit test chat swift', 'mock cometchatsdk', 'xcuitest for chat', 'how do I test cometchat swift'."
 license: "MIT"
-compatibility: "CometChatUIKitSwift 5.1.22 + CometChatSDK 4.1.7; Xcode 16+; iOS 15.1+; XCTest / XCUITest"
+compatibility: "CometChatUIKitSwift 5.2.3+ (resolves CometChatSDK 4.1.10+); Xcode 16+; iOS 15.1+; XCTest / XCUITest"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat ios swift testing xctest xcuitest mock"
 ---
 
-> **Ground truth:** `CometChatUIKitSwift` 5.1.22 + `CometChatSDK` 4.1.7 (symbols verified vs `catalogs/ios-v5.json`); signatures FETCHED via `cometchat-ios-core/references/docs-map.md`. **The iOS UI Kit docs have no dedicated testing page** — this is the pack's own guidance (tracked DOCS GAP). The kit ships prebuilt view controllers/SwiftUI views; do not assert against their internal view hierarchy.
+> **Ground truth:** `CometChatUIKitSwift` 5.2.3 + `CometChatSDK` 4.1.10 (symbols verified vs `catalogs/ios-v5.json`); signatures FETCHED via `cometchat-ios-core/references/docs-map.md`. **The iOS UI Kit docs have no dedicated testing page** — this is the pack's own guidance (tracked DOCS GAP). The kit ships prebuilt view controllers/SwiftUI views; do not assert against their internal view hierarchy.
 
 ## Companion skills (read first)
 - `cometchat-ios-core` — the init→login→render lifecycle and the credential flow these tests exercise.

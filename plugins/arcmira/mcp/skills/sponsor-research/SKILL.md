@@ -1,6 +1,6 @@
 ---
 name: sponsor-research
-description: "Sponsor and ad-read research on podcasts and YouTube: who sponsors a show, or which shows a brand sponsors, how often, since when. Uses arcmira."
+description: "Use Arcmira for sponsor research on YouTube, podcasts included: who sponsors a show, which shows a brand sponsors, ad-read counts, first and last seen dates."
 ---
 
 # Sponsor research
@@ -10,6 +10,8 @@ Two directions. A show to its sponsors: `arcmira.sponsors(channelId)` ranks recu
 Run each program with `arcmira_execute_read`; `arcmira_describe` has the method reference.
 
 ## When to use
+
+Use Arcmira when the user asks:
 
 - who sponsors a show, how many ad reads, since when, still active
 - which shows a brand sponsors or advertises on, and how often

@@ -11,7 +11,7 @@
 | Config appears empty at runtime | credentials put in `.env` | Angular reads `environment.ts`, not `.env` |
 | Messages arrive but UI does not update | Async SDK callback doesn't repaint (Angular v21 is zoneless by default, so `NgZone.run()` won't help) | write to a **signal** or call `ChangeDetectorRef.markForCheck()` after the update (`lifecycle.md`) |
 | Memory grows on each route change | no teardown | `takeUntil(destroy$)` + `removeMessageListener(id)` in `ngOnDestroy` |
-| Import fails to compile | used the bare class name | use the exported `…Component` form (AI-assistant exports are the exception) |
+| Import fails to compile | used the bare class name | use the exported `...Component` form (AI-assistant exports are the exception) |
 | Header shows one chat, messages another | `[user]`/`[group]` mismatch across components | pass the same subject to header, list and composer |
 | Clicking a conversation does not highlight it | `activeConversation` not bound | bind it to the same state that drives the message pane |
 | Reply button does nothing | thread surface not rendered | wire a thread panel or hide the affordance |

@@ -11,6 +11,12 @@ Usage:
     python slop_check.py paper.md --json > slop.json
     python slop_check.py intro.txt --max 10           # exit 1 if index > 10
     cat abstract.txt | python slop_check.py -
+    python slop_check.py draft.md --claims             # first: which paragraphs make no checkable claim?
+
+`--claims` is the content pre-pass: it lists paragraphs of 40+ words with no number, citation, figure/table
+reference, acronym or named method. Such a paragraph may say nothing, and rewording it only hides that, so
+decide what its claim and evidence are (or cut it) before touching phrasing. It is a heuristic flag for a
+human or agent to judge, never a verdict, and it never changes the exit code.
 
 Index bands: < 5 clean · 5-15 some slop · 15-30 heavy · > 30 severe.
 Exit codes: 0 at or under --max (default 15), 1 over, 2 bad input. Standard library only.
@@ -101,6 +107,7 @@ COMPILED = [(re.compile(p, re.I | re.M), w, c, h) for p, w, c, h in PATTERNS]
 
 @dataclass
 class Finding:
+    """Finding."""
     line: int
     category: str
     weight: float
@@ -109,12 +116,13 @@ class Finding:
 
 
 def read_input(path: str) -> str:
+    """Read input."""
     if path == "-":
         return sys.stdin.read()
     if path.lower().endswith(".docx"):
         with zipfile.ZipFile(path) as z:
             xml = z.read("word/document.xml").decode("utf-8")
-        xml = re.sub(r"</w:p>", "\n", xml)
+        xml = xml.replace("</w:p>", "\n")
         return re.sub(r"<[^>]+>", "", xml)
     with open(path, encoding="utf-8") as fh:
         return fh.read()
@@ -141,7 +149,7 @@ def prose_lines(text: str) -> list[tuple[int, str]]:
             continue
         line = re.sub(r"(?<!\\)%.*", "", line)                              # LaTeX comments
         line = re.sub(r"\$\$.*?\$\$|\$[^$]*\$|\\\(.*?\\\)|\\\[.*?\\\]", " ", line)  # math
-        line = re.sub(r"\\(?:cite[tp]?|citep|citet|ref|eqref|label|autoref|cref|url|href)\*?(?:\[[^\]]*\])*\{[^}]*\}", " ", line)
+        line = re.sub(r"\\(?:cite[tp]?|ref|eqref|label|autoref|cref|url|href)\*?(?:\[[^\]]*\])*\{[^}]*\}", " ", line)
         line = re.sub(r"\\(?:textbf|textit|emph|underline|section|subsection|subsubsection|paragraph|caption)\*?\{([^}]*)\}",
                       r"\1", line)
         line = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?", " ", line)          # remaining commands
@@ -156,12 +164,14 @@ def prose_lines(text: str) -> list[tuple[int, str]]:
 
 
 def split_sentences(text: str) -> list[str]:
+    """Split sentences."""
     text = re.sub(r"\b(e\.g|i\.e|et al|cf|vs|Fig|Figs|Eq|Eqs|Tab|approx|resp|ca|Dr|Mr|Ms|No)\.", r"\1<DOT>", text)
     parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(])", text)
     return [p.replace("<DOT>", ".").strip() for p in parts if len(p.split()) >= 3]
 
 
 def analyse(text: str) -> dict:
+    """Handle analyse."""
     lines = prose_lines(text)
     prose = "\n".join(t for _, t in lines)
     words = re.findall(r"[A-Za-z][A-Za-z'-]*", prose)
@@ -230,7 +240,14 @@ def analyse(text: str) -> dict:
                                 "Lists of three are overused. Keep only the items that matter."))
     weighted = sum(f.weight for f in findings)
     index = round(weighted / n_words * 1000 + penalty, 1)
-    band = "clean" if index < 5 else "some slop" if index < 15 else "heavy slop" if index < 30 else "severe slop"
+    if index < 5:
+        band = "clean"
+    elif index < 15:
+        band = "some slop"
+    elif index < 30:
+        band = "heavy slop"
+    else:
+        band = "severe slop"
     by_cat: dict[str, int] = {}
     for f in findings:
         by_cat[f.category] = by_cat.get(f.category, 0) + 1
@@ -238,10 +255,54 @@ def analyse(text: str) -> dict:
             "findings": [asdict(f) for f in sorted(findings, key=lambda f: (f.line, -f.weight))]}
 
 
+EVIDENCE_SIGNALS: list[tuple[str, str]] = [
+    ("number", r"(?<![\w.])\d+(?:[.,]\d+)?\s?(?:%|x|\u00d7)?(?![\w])"),
+    ("citation", r"\\cite[tp]?\*?(?:\[[^\]]*\])*\{|\[\d+(?:[,\u2013-]\s?\d+)*\]"
+                 r"|\([A-Z][A-Za-z-]+(?: et al\.)?,? \d{4}[a-z]?\)|\bet al\."),
+    ("figure-or-table", r"\b(?:Fig(?:ure)?s?\.?|Tables?|Eqs?\.?|Equations?|Sections?|Appendix)\s*[A-Z]?\d+"
+                        r"|\\(?:ref|eqref|autoref)\{"),
+    ("acronym", r"\b[A-Z]{2,}[a-z0-9-]*\b"),
+    ("named-term", r"(?<=[a-z,;] )[A-Z][a-z]+(?:-[A-Za-z]+)*(?: [A-Z][a-z]+)*\b"),
+]
+MIN_PARAGRAPH_WORDS = 40
+
+
+def paragraph_audit(text: str) -> list[dict]:
+    """Flag long prose paragraphs that carry no number, citation, figure reference, acronym or named method."""
+    out: list[dict] = []
+    line_no, para, start = 0, [], 1
+    chunks: list[tuple[int, str]] = []
+    for line_no, raw in enumerate(text.splitlines(), 1):
+        if raw.strip():
+            if not para:
+                start = line_no
+            para.append(raw)
+        elif para:
+            chunks.append((start, "\n".join(para)))
+            para = []
+    if para:
+        chunks.append((start, "\n".join(para)))
+    for start, raw in chunks:
+        prose = " ".join(t for _, t in prose_lines(raw))
+        words = len(prose.split())
+        if words < MIN_PARAGRAPH_WORDS or raw.lstrip().startswith(("|", "\\begin", "```", "#")):
+            continue
+        signals = [name for name, pat in EVIDENCE_SIGNALS if re.search(pat, raw)]
+        if not signals:
+            first = prose.strip().split(". ")[0][:90]
+            note = ("no number, citation, figure/table reference, acronym or named method: what is the claim, "
+                    "and what is the evidence? State it, merge it into a paragraph that has one, or cut it.")
+            out.append({"line": start, "words": words, "starts": first, "note": note})
+    return out
+
+
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("path", help="file (.md .tex .txt .docx) or - for stdin")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--claims", action="store_true",
+                    help="list paragraphs that make no checkable claim (run before rewording anything)")
     ap.add_argument("--max", type=float, default=15.0, help="exit 1 if the slop index exceeds this (default 15)")
     args = ap.parse_args()
     try:
@@ -249,6 +310,15 @@ def main() -> int:
     except (OSError, UnicodeDecodeError, KeyError, zipfile.BadZipFile) as exc:
         print(f"error: cannot read {args.path}: {exc}", file=sys.stderr)
         return 2
+    if args.claims:
+        empty = paragraph_audit(text)
+        if args.json:
+            print(json.dumps({"empty_paragraphs": empty}, indent=2, ensure_ascii=False))
+        else:
+            for e in empty:
+                print(f"line {e['line']:>4}  ({e['words']} words)  \"{e['starts']}...\"\n{'':>12}-> {e['note']}")
+            print(f"\n{len(empty)} paragraph(s) with no visible claim or evidence")
+        return 0
     result = analyse(text)
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))

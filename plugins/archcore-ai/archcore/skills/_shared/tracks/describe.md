@@ -34,7 +34,15 @@ Apply before the type heuristics, with the `describe.read` evidence in hand:
    the closing report. A request to document the subject does not override
    this rule; only a type the subject names (Named type) does. The README,
    the script or target it names, and that script's header answer together; a
-   fact the code already states is not a gap for a new document.
+   fact the code already states is not a gap for a new document. A gap is a
+   fact the code cannot say: the reason behind a choice or a rejected
+   alternative, a constraint no linter or test enforces, knowledge from
+   production or an environment the repository does not reproduce, a
+   contract clause no test covers, or a human procedure absent from scripts
+   and README. Tag each gathered fact `code-says` with its `@path` or
+   `code-cannot-say` with its kind; with no `code-cannot-say` fact and no
+   dependent of the subject's behavior, create nothing and report "the code
+   says this itself" with up to three `@path` citations.
 3. WHEN `search_documents` with `for_path` on the subject's main file already
    returns five matched rows, update or merge into the best-matching owner
    instead of creating a sixth document on that file.

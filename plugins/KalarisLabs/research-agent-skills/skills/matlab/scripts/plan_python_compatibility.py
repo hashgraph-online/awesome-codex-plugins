@@ -20,11 +20,12 @@ from _common import (
 )
 
 TOOL = "plan_python_compatibility"
-PYTHON_VERSION = re.compile(r"^([0-9]{1,2})\.([0-9]{1,2})(?:\.[0-9]{1,3})?$")
-PACKAGE_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+PYTHON_VERSION = re.compile(r"^(\d{1,2})\.(\d{1,2})(?:\.\d{1,3})?$")
+PACKAGE_VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 
 
 def compatibility_data() -> dict[str, Any]:
+    """Handle compatibility data."""
     skill_root = checked_root(Path(__file__).resolve().parents[1])
     path = checked_input(
         skill_root / "assets" / "python_compatibility_r2026a.json",
@@ -38,6 +39,7 @@ def compatibility_data() -> dict[str, Any]:
 
 
 def normalize_python(value: str) -> tuple[str, str]:
+    """Normalize python."""
     match = PYTHON_VERSION.fullmatch(value)
     if not match:
         raise CliError("Python version must look like 3.13 or 3.13.5")
@@ -46,6 +48,7 @@ def normalize_python(value: str) -> tuple[str, str]:
 
 
 def plan(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
+    """Handle plan."""
     release = validate_release(args.matlab_release)
     data = compatibility_data()
     if release != data["matlab_release"]:
@@ -134,6 +137,7 @@ def plan(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
 
 def parser() -> argparse.ArgumentParser:
+    """Handle parser."""
     result = argparse.ArgumentParser(
         description=(
             "Check a requested CPython and MATLAB Engine version against the "
@@ -164,6 +168,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     try:
         report, status = plan(parser().parse_args())
         emit_json(report)

@@ -2,7 +2,7 @@
 name: cometchat-react-v7-patterns
 description: "Framework wiring for the React v7 UI Kit across Vite, Create React App, Next.js, React Router (incl. Remix), and Astro — provider placement, env vars, routing, SSR/islands and build pitfalls. Triggers: 'cometchat with vite', 'cometchat in next.js', 'cometchat in react router', 'cometchat in remix', 'cometchat in astro', 'env vars not working', 'cometchat provider setup', 'SSR window is not defined'."
 license: "MIT"
-compatibility: "React >=18; Vite >=4 / CRA / Next.js >=13 / react-router(-dom) ^6–7 / Astro >=3 (@astrojs/react); @cometchat/chat-uikit-react ^7 (7.1.x, verified 7.1.0)"
+compatibility: "React >=18; Vite >=4 / CRA / Next.js >=13 / react-router(-dom) ^6–7 / Astro >=3 (@astrojs/react); @cometchat/chat-uikit-react ^7 (7.2.x, verified 7.2.4)"
 metadata:
   author: "CometChat"
   version: "1.0.0"

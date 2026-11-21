@@ -254,8 +254,27 @@ agent's or market's guidelines for format and attachment rules.
 Create `submission/tracker.md` from `references/tracker-template.md` the
 first time the user reports sending a submission. Add or update a row each
 time the user reports a submission or a response, using only what they tell
-you. On request, summarize: queries out, partial and full requests, offers,
-declines, and entries with no response after the window the user sets.
+you. After each change, and when the user asks where the book stands, run:
+
+```shell
+story submissions .
+```
+
+It lists the rows, counts each status from the table, and flags every row
+still waiting for a reply after 90 days. Pass `--days <n>` when the user
+gives another response window, such as `--days 60`. Do not count the rows
+by hand; summarize from the command's output: queries out, partial and full
+requests, offers, declines, and the entries due a follow-up. An error means
+a row has an unknown status or a malformed date: ask the user for the right
+value and fix that row. A tracker with no table that has a Status and a
+Date Sent column is an error too: rebuild the table from the template.
+A date after today is a warning: ask the user for the right year. Never
+invent a reply to clear a follow-up. When the user sends a follow-up, note
+its date in Notes; the row stays due until a reply comes, so once the user
+stops waiting, set `no-response`. If the user sets `days` for
+`submissions` in `cli-defaults` in `story.md`, set the same `days` for
+`next`, which takes its own.
+`story next .` also lists the submissions due a follow-up.
 
 ### 9. Short fiction and collections
 
@@ -269,8 +288,9 @@ nowhere else, and an exclusive market needs a story with no open
 submissions. For a market that reads anonymously, add `--anonymous` to the Shunn
 build, which leaves out every name, the running head's surname included.
 To assemble a collection, follow its "Assemble a collection" section:
-choose the stories, find the linking threads, propose an order, and draft
-the acknowledgements from the publication history.
+choose the stories, find the linking threads, propose an order, assemble
+the book with `story collect .` from the collection's `stories` list, and
+draft the acknowledgements from the publication history.
 
 ## Conventions
 
@@ -282,8 +302,9 @@ the acknowledgements from the publication history.
 - Each file has YAML frontmatter with a `type` (`query`, `comps`,
   `synopsis`, `blurb`, `submission-tracker`, and `series-pitch` for the
   file `series-continuity` writes) and `updated: YYYY-MM-DD`.
-- `submission/` is outside the story model: the CLI does not validate it
-  and builds never include it.
+- `submission/` is outside the story model: `story validate` does not check
+  it and builds never include it. `story submissions .` reads and checks
+  the tracker, and never writes it.
 - Word counts in submission copy come from `story wordcount .`, rounded to
   the nearest thousand (`87,000 words`). A Chinese or Japanese book gives
   its length in characters, as `story wordcount .` reports it (`12万字`,
@@ -313,7 +334,7 @@ story prose .
 - **`references/blurb.md`** - Back-cover and retailer description formulas for genre fiction, length, and taglines
 - **`references/comp-titles.md`** - How to choose comparable titles, how to phrase them, and the verification rule
 - **`references/word-count-norms.md`** - Rough word-count ranges by category for the English-language market only, to confirm with the user
-- **`references/tracker-template.md`** - `submission/tracker.md` template and status definitions
+- **`references/tracker-template.md`** - `submission/tracker.md` template, status definitions, and what `story submissions` reads
 - **`references/short-fiction-markets.md`** - Magazine, anthology, and contest submissions (simultaneous and exclusive, rights, response times and status queries, tracker columns, publication history) and assembling a story collection
 
 ## Shared Conventions

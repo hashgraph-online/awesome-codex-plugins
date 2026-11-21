@@ -1,11 +1,10 @@
 ---
-
 name: frontend/component-development
 description: 前端组件开发方法论，包括组件设计原则、状态管理、样式实现和性能优化
 type: methodology
 agent: boss-frontend
 metadata:
-internal: true
+  internal: true
 ---
 
 # 前端组件开发方法论
@@ -67,6 +66,7 @@ ui-design.json > ui-spec.md > 项目现有样式 > 框架默认值
 ### ui-design.json 集成
 
 当 `.boss/<feature>/ui-design.json` 存在时：
+
 1. **读取 tokens**：映射为 CSS 变量或主题对象
 
    ```typescript
@@ -128,6 +128,7 @@ ui-design.json > ui-spec.md > 项目现有样式 > 框架默认值
 ### 契约来源
 
 实现前端 API 调用前，必须阅读：
+
 1. **architecture.md §5（API 设计）**：获取端点列表、请求/响应格式
 2. **后端共享类型**（如有）：复用类型定义
 
@@ -161,6 +162,7 @@ export const userApi = {
 ### Mock 策略
 
 后端未就绪时，基于 architecture.md §5 创建 Mock：
+
 ```typescript
 // services/api/users.mock.ts
 export const mockUserApi = {
@@ -206,12 +208,14 @@ export const mockUserApi = {
 ## 实现检查清单
 
 实现组件前：
+
 - [ ] 阅读 ui-design.json（如有）和 ui-spec.md
 - [ ] 阅读 architecture.md §5 API 设计
 - [ ] 探索项目现有组件模式和样式方案
 - [ ] 确认状态管理方案（本地/共享/服务端）
 
 实现组件后：
+
 - [ ] 组件符合单一职责原则
 - [ ] 添加必要的 Props 类型定义
 - [ ] 实现响应式布局

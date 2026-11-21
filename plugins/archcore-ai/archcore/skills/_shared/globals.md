@@ -1,19 +1,20 @@
 # Global Sources — Local/Global Reading Convention
 
 Plugin runtime asset. Loaded by skills (`init`, `plan`, `document`, `review`)
-**only when** MCP results indicate a project mounts global
-sources. Mirrors the CLI contract `local-overrides-global.rule` /
-`global-sources.spec.md` shipped with the `archcore` CLI.
+**only when** MCP results indicate a project declares global
+sources. Mirrors the CLI contract `local-overrides-source.rule` /
+`source-mounts.spec.md` shipped with the `archcore` CLI.
 
 ## When this applies
 
-A project MAY mount read-only **global sources** (org-wide standards, a
-platform/monorepo-root `.archcore/`) declared in `.archcore/settings.json`
-`globals[]`. The MCP read tools then surface those documents alongside local
-ones, each annotated with source fields.
+A project MAY declare **global sources** (org-wide standards, a
+platform/monorepo-root `.archcore/`) in `.archcore/settings.json` `globals[]`.
+A global source is a read policy: the MCP read tools surface its documents
+alongside local ones, each annotated with source fields. A global source is
+another project. Every project that declares it reads the same documents.
 
 **This file is opt-in by data.** If no result in a tool response carries
-`global: true` / `read_only: true` / `source_kind: "global"`, the project has no
+`source_kind: "global"`, the project has no
 globals in play — ignore everything below and behave exactly as you would
 without globals. No badge, no extra section, no behavioral change. Most projects
 have no globals; the default path must stay unchanged for them.
@@ -21,17 +22,20 @@ have no globals; the default path must stay unchanged for them.
 ## Detecting a global document
 
 Read the source fields the MCP tools return — never infer authority from the
-path or title (`local-overrides-global.rule`):
+path or title (`local-overrides-source.rule`):
 
 | Field | Local | Global |
 |---|---|---|
 | `source_kind` | `"local"` | `"global"` |
 | `source_id` | `"local"` | the source id (e.g. `"company"`) |
-| `global` | absent / `false` | `true` |
-| `read_only` | absent / `false` | `true` |
+| `source_root` | absent | the absolute root of the source project (CLI 0.15.0+) |
 
-`list_documents` and `get_document` always carry these. `search_documents`
-carries them on a current CLI; an older CLI may omit them — when absent, treat
+`list_documents` and `get_document` always carry `source_kind` and `source_id`.
+Detect a global document by `source_kind` only. The top-level `source` of a
+response names the project of the call, not its rows: a search from this
+project answers `"local"` even when every row is global. An older CLI also sends
+`global` and `read_only`; ignore both fields. `search_documents`
+carries `source_kind` and `source_id` on a current CLI; an older CLI may omit them — when absent, treat
 every result as local (the safe no-op default).
 
 A current CLI (v0.8.0+) wraps `search_documents` output in an envelope:
@@ -94,8 +98,7 @@ hide every global match.
   match set. Narrow the query, or scope it with `source`.
 - IF a row carries `body_truncated: true`, THEN its `body` is a prefix. Call
   `get_document` for the rest, and always before `update_document`. Never write
-  back a shortened body. This rule also protects a local document: only a local
-  document is writable.
+  back a shortened body. This rule protects a local document and a global one alike.
 - Use `mode: "full"` to read at most three documents you already identified.
   Use the default `snippets` mode to find candidates.
 
@@ -116,18 +119,21 @@ hide every global match.
 
 ## Write convention
 
-- **All writes target local documents.** Global documents are read-only; the
-  MCP write tools reject them (`cannot ... a read-only global source document`).
-- Never `update_document` / `remove_document` against a global result. Never
-  `add_relation` referencing a global on **either** endpoint (source or target)
-  — relations connect local documents only. If a same-topic global exists and
-  the user wants a change, create or edit the **local** document (an override)
-  instead; corrections to the global itself belong upstream in its source
-  repository.
+A change to a global document changes the source project, and every project
+that declares the source reads the change.
+
+1. WHEN the user asks for a project-specific change on a topic a global covers, create or edit the **local** document (an override).
+2. IF the request does not say whether the change is local or goes to the source, THEN ask the user before the write.
+3. WHEN the user asks to change the global document itself, write it in its source project: pass the row's `source_root` as `project`, and the path relative to that root, starting with `.archcore/`.
+4. IF a global row carries no `source_root`, THEN do not write the document; name its `source_id` and report that the CLI needs `archcore update` (0.15.0+).
+5. Never pass a row path that starts with `../` to a write tool. The CLI refuses it and names the source.
+6. Keep both endpoints of `add_relation` and `remove_relation` in one project. Never join a local document and a global one; a relation between two documents of a source is written with that source's `project`.
+7. After a write to a source, read the `source` field of the response and name it in the report, for example `written to source "company" (shared by every project that declares it)`.
+8. Follow `target-project.md` for the `project` argument, including its Old CLI checks.
 
 ## Presentation
 
 - When you surface a global document to the user, mark it — e.g. append
-  `[global · <source_id> · read-only]` to its line — so project-local knowledge
+  `[global · <source_id>]` to its line — so project-local knowledge
   is visibly distinct from org-wide defaults.
 - When answering from a global while a local override exists, say so explicitly.

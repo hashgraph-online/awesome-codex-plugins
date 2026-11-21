@@ -53,8 +53,8 @@ Produce a single JSON object matching this schema: `{{SCHEMA_PATH}}`.
 3. **Type-exclusive field nulling.**
    - When `transistor_type` is `bjt_*`: all FET fields (`vds_max`, `vgs_max`, `id_max`, `rds_on`, `vgs_th`, `qg`, `qgd`, `ciss`, `coss`, `crss`, `body_diode_vf`) MUST be null.
    - When `transistor_type` is `mosfet_*`, `jfet_*`, or `igbt`: all BJT fields (`vceo_max`, `vcbo_max`, `vebo_max`, `ic_max`, `hfe`, `vce_sat`, `vbe_sat`, `ft`) MUST be null.
-   - When `transistor_type` is `jfet_*`: also null `ciss`, `coss`, `crss`, `body_diode_vf` — these are MOSFET-specific (JFETs use Cgs/Cgd/Cds with different semantics; deferred to v1.5). JFETs DO publish `rds_on` and `vgs_th` — populate those when the datasheet specifies them.
-   - When `transistor_type` is `igbt`: null `body_diode_vf` (IGBTs publish a separate co-pack diode if present, not modeled here in v1.4). Populate the other FET-shared fields when applicable.
+   - When `transistor_type` is `jfet_*`: also null `ciss`, `coss`, `crss`, `body_diode_vf` — these are MOSFET-specific (JFETs use Cgs/Cgd/Cds with different semantics; not modeled). JFETs DO publish `rds_on` and `vgs_th` — populate those when the datasheet specifies them.
+   - When `transistor_type` is `igbt`: null `body_diode_vf` (IGBTs publish a separate co-pack diode if present, not modeled here). Populate the other FET-shared fields when applicable.
 4. **`pin_assignment` populates the 3 pins for the device's type; the other 3 are null.** BJT: base/collector/emitter. FET/JFET: gate/drain/source. IGBT: use `base_pin`/`collector_pin`/`emitter_pin` for gate/collector/emitter.
 5. **OMIT fields you cannot find** with null. No guessing. A missing `vbe_sat` is much better than a hallucinated one.
 6. **Multiple test conditions = multiple SpecValues.** If `hfe` is given at IC=0.1mA AND IC=1mA AND IC=10mA, emit three separate SpecValue entries, each with a distinct `condition` string. Same rule applies to `rds_on` (different VGS), `id_max` (different temperatures), and `power_dissipation` (different temperatures).

@@ -1,0 +1,619 @@
+<!doctype html>
+<!--
+  title-design preview: four title presets in sequence over a calm graded backdrop drawn in code.
+  1920x1080, 30 fps, 16 s. Values come from assets/presets/*.json and the references' "Timing and numbers".
+  Render: see README.md.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --plate: rgba(14, 15, 18, 0.85); /* #0E0F12 at 0.85 */
+        --accent: #ffd23f;
+        --ink: #f2f2f2;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0a0d12;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ---------- calm graded backdrop: defocused studio light, drawn in code ---------- */
+      #bg {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #0a0d12;
+      }
+      #bg-move {
+        position: absolute;
+        left: -80px;
+        top: -60px;
+        width: 2080px;
+        height: 1200px;
+        background:
+          radial-gradient(1200px 900px at 78% 30%, rgba(214, 140, 84, 0.34), rgba(214, 140, 84, 0) 70%),
+          radial-gradient(1100px 900px at 15% 70%, rgba(36, 104, 118, 0.42), rgba(36, 104, 118, 0) 70%),
+          linear-gradient(120deg, #0d1f27 0%, #13262c 35%, #2a2321 70%, #1b1412 100%);
+      }
+      .bokeh {
+        position: absolute;
+        border-radius: 50%;
+      }
+      .bk-warm {
+        background: radial-gradient(circle, rgba(255, 196, 128, 0.32) 0%, rgba(255, 196, 128, 0.16) 45%, rgba(255, 196, 128, 0) 70%);
+      }
+      .bk-cool {
+        background: radial-gradient(circle, rgba(120, 210, 220, 0.22) 0%, rgba(120, 210, 220, 0.1) 45%, rgba(120, 210, 220, 0) 70%);
+      }
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(1500px 950px at 50% 48%, rgba(5, 7, 10, 0) 45%, rgba(5, 7, 10, 0.72) 100%);
+      }
+
+      /* ---------- 1. headline-write-on.display: Inter 800, 12% H, -0.02em ---------- */
+      #h-title {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #h-line {
+        font-family: "Inter", sans-serif;
+        font-weight: 800;
+        font-size: 130px; /* 12% of 1080 */
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        color: var(--ink);
+        white-space: nowrap;
+        text-shadow: 0 6px 40px rgba(0, 0, 0, 0.35);
+      }
+      #h-line .wd {
+        display: inline-block;
+        white-space: nowrap;
+      }
+      #h-line .ch {
+        display: inline-block;
+      }
+
+      /* ---------- 2. name-lower-third.boxed: left 144, block bottom 945 ---------- */
+      #lt {
+        position: absolute;
+        left: 144px;
+        bottom: 135px; /* 1080 - 945 */
+        width: 1000px;
+        height: 200px;
+      }
+      #lt-stack {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .lt-bar {
+        display: inline-block;
+        overflow: hidden;
+      }
+      #lt-name {
+        background: var(--plate);
+        padding: 18px 28px;
+      }
+      #lt-role {
+        background: var(--accent);
+        padding: 10px 28px;
+      }
+      .lt-txt {
+        display: block;
+        white-space: nowrap;
+      }
+      #lt-name .lt-txt {
+        font-family: "Inter", sans-serif;
+        font-weight: 700;
+        font-size: 54px;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+      }
+      #lt-role .lt-txt {
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 32px;
+        line-height: 1.15;
+        color: #111111;
+      }
+
+      /* ---------- 3. block-glitch-title.transparent: JetBrains Mono 800 caps, 12% H, +0.04em ---------- */
+      #g-box {
+        position: absolute;
+        left: 0;
+        top: 462px;
+        width: 1920px;
+        height: 156px;
+      }
+      .g-t {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 156px;
+        text-align: center;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 800;
+        font-size: 130px;
+        line-height: 156px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #f5f5f5;
+        white-space: nowrap;
+      }
+      #g-r {
+        color: #ff0040;
+        mix-blend-mode: screen;
+        opacity: 0;
+      }
+      #g-c {
+        color: #00e5ff;
+        mix-blend-mode: screen;
+        opacity: 0;
+      }
+      #g-main {
+        opacity: 0;
+      }
+      .g-band {
+        opacity: 0;
+      }
+      #g-noise {
+        position: absolute;
+        opacity: 0;
+        image-rendering: pixelated;
+      }
+
+      /* ---------- 4. speaker-plates.ticker + corner-tag ---------- */
+      #tag {
+        position: absolute;
+        left: 96px;
+        top: 54px;
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 24px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #ffffff;
+        white-space: nowrap;
+      }
+      #tag-in {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        opacity: 0;
+      }
+      #tag .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      #tk {
+        position: absolute;
+        left: 96px;
+        top: 956px; /* bar bottom on the 5% graphics-safe line, y 1026 */
+        width: 1728px;
+        height: 70px; /* 6.5% H */
+      }
+      #tk-bar {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        clip-path: inset(0 100% 0 0);
+      }
+      #tk-label {
+        width: 311px; /* 18% of the bar */
+        height: 70px;
+        background: var(--accent);
+        color: #111111;
+        font-family: "Inter", sans-serif;
+        font-weight: 800;
+        font-size: 26px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+      }
+      #tk-area {
+        position: relative;
+        flex: 1;
+        height: 70px;
+        background: rgba(14, 15, 18, 0.9);
+        overflow: hidden;
+      }
+      #tk-strip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        font-size: 38px;
+        color: #ffffff;
+      }
+      #tk-strip .sep {
+        color: var(--accent);
+        padding: 0 0.75em;
+      }
+
+      /* preset label, top-right corner: 1.6% H, 60% opacity */
+      .label {
+        position: absolute;
+        right: 64px;
+        top: 48px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 500;
+        font-size: 17px;
+        letter-spacing: 0.02em;
+        color: rgba(255, 255, 255, 0.6);
+        white-space: nowrap;
+      }
+      .label .n {
+        color: rgba(255, 255, 255, 0.38);
+        margin-right: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="16"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="bg" class="clip" data-start="0" data-duration="16" data-track-index="0">
+        <div id="bg-move">
+          <div id="bk1" class="bokeh bk-warm" style="left: 1380px; top: 120px; width: 420px; height: 420px"></div>
+          <div id="bk2" class="bokeh bk-warm" style="left: 1660px; top: 420px; width: 260px; height: 260px"></div>
+          <div id="bk3" class="bokeh bk-cool" style="left: 120px; top: 560px; width: 520px; height: 520px"></div>
+          <div id="bk4" class="bokeh bk-warm" style="left: 980px; top: -40px; width: 300px; height: 300px"></div>
+          <div id="bk5" class="bokeh bk-cool" style="left: 520px; top: 120px; width: 220px; height: 220px"></div>
+          <div id="bk6" class="bokeh bk-warm" style="left: 1240px; top: 700px; width: 340px; height: 340px"></div>
+        </div>
+        <div id="vignette"></div>
+      </div>
+
+      <!-- 1. headline write-on -->
+      <div id="h-title" class="clip" data-start="0" data-duration="4" data-track-index="1">
+        <div id="h-line">The Quiet Hour</div>
+      </div>
+
+      <!-- 2. name lower third, boxed -->
+      <div id="lt" class="clip" data-start="4" data-duration="4" data-track-index="1">
+        <div id="lt-stack">
+          <div id="lt-name" class="lt-bar"><span class="lt-txt">Mara Lindqvist</span></div>
+          <div id="lt-role" class="lt-bar"><span class="lt-txt">Head of Research, Lumen Labs</span></div>
+        </div>
+      </div>
+
+      <!-- 3. block-glitch title, transparent: bands, RGB split and noise inside the type's box + 15% -->
+      <div id="g-wrap" class="clip" data-start="8" data-duration="3.7" data-track-index="1" style="position:absolute;inset:0">
+        <div id="g-box">
+          <div id="g-r" class="g-t" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-c" class="g-t" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-main" class="g-t">Clear Signal</div>
+          <div id="g-b0" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b1" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b2" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b3" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b4" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b5" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b6" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b7" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b8" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <div id="g-b9" class="g-t g-band" data-layout-allow-overlap>Clear Signal</div>
+          <canvas id="g-noise" width="144" height="24"></canvas>
+        </div>
+      </div>
+
+      <!-- 4. speaker plates: corner tag + ticker -->
+      <div id="tag" class="clip" data-start="12" data-duration="4" data-track-index="2">
+        <div id="tag-in"><span class="dot"></span><span>The Quiet Hour · Ep 04</span></div>
+      </div>
+      <div id="tk" class="clip" data-start="12" data-duration="4" data-track-index="1">
+        <div id="tk-bar">
+          <div id="tk-label">Lumen Labs</div>
+          <div id="tk-area">
+            <div id="tk-strip">
+              Northwind studio opens its doors this spring<span class="sep">•</span>New episodes every
+              Thursday at 9<span class="sep">•</span>Next week: how small teams ship faster<span class="sep">•</span>Northwind
+              studio opens its doors this spring<span class="sep">•</span>New episodes every Thursday at 9
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="lab1" class="label clip" data-start="0" data-duration="4" data-track-index="3">
+        <span class="n">01/04</span>headline-write-on · display
+      </div>
+      <div id="lab2" class="label clip" data-start="4" data-duration="4" data-track-index="3">
+        <span class="n">02/04</span>name-lower-third · boxed
+      </div>
+      <div id="lab3" class="label clip" data-start="8" data-duration="4" data-track-index="3">
+        <span class="n">03/04</span>block-glitch-title · transparent
+      </div>
+      <div id="lab4" class="label clip" data-start="12" data-duration="4" data-track-index="3">
+        <span class="n">04/04</span>speaker-plates · ticker + corner-tag
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const F = 1 / 30;
+        const SEG = 4;
+
+        function bezier(x1, y1, x2, y2) {
+          const b = (u, a, c) => 3 * a * (1 - u) * (1 - u) * u + 3 * c * (1 - u) * u * u + u * u * u;
+          return function (t) {
+            if (t <= 0) return 0;
+            if (t >= 1) return 1;
+            let lo = 0,
+              hi = 1,
+              u = t;
+            for (let i = 0; i < 40; i++) {
+              const x = b(u, x1, x2);
+              if (x < t) lo = u;
+              else hi = u;
+              u = (lo + hi) / 2;
+            }
+            return b(u, y1, y2);
+          };
+        }
+        const IN = bezier(0.05, 0.7, 0.1, 1); // decelerate in
+        const OUT = bezier(0.3, 0, 0.8, 0.15); // accelerate out
+
+        const tl = gsap.timeline({ paused: true });
+
+        // ---------- backdrop: slow push-in and drifting bokeh ----------
+        tl.fromTo("#bg-move", { scale: 1, x: 0 }, { scale: 1.06, x: -40, duration: 16, ease: "none" }, 0);
+        const drift = [
+          ["#bk1", -60, 30],
+          ["#bk2", -40, -30],
+          ["#bk3", 70, -20],
+          ["#bk4", -30, 40],
+          ["#bk5", 50, 30],
+          ["#bk6", -50, -40],
+        ];
+        drift.forEach(([id, dx, dy]) => tl.fromTo(id, { x: 0, y: 0 }, { x: dx, y: dy, duration: 16, ease: "none" }, 0));
+
+        // ---------- labels ----------
+        ["#lab1", "#lab2", "#lab3", "#lab4"].forEach((id, i) => {
+          const s = i * SEG;
+          tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, s + (i === 0 ? 0.15 : 0.05));
+          tl.to(id, { opacity: 0, duration: 0.2, ease: "power2.in" }, s + SEG - 0.24);
+          tl.set(id, { opacity: 0 }, s + SEG - 0.04);
+        });
+
+        // ---------- 1. headline write-on, display ----------
+        // chars y 60% -> 0 + opacity, 0.55 s expo.out, stagger 0.04 s from 0.2 s; exit power2.in 0.3 s, stagger 0.02 s.
+        (function () {
+          const line = document.getElementById("h-line");
+          const text = line.textContent;
+          line.textContent = "";
+          text.split(" ").forEach((word, wi, arr) => {
+            const wd = document.createElement("span");
+            wd.className = "wd";
+            for (const c of word) {
+              const ch = document.createElement("span");
+              ch.className = "ch";
+              ch.textContent = c;
+              wd.appendChild(ch);
+            }
+            line.appendChild(wd);
+            if (wi < arr.length - 1) line.appendChild(document.createTextNode(" "));
+          });
+          const chars = line.querySelectorAll(".ch");
+          tl.fromTo(chars, { yPercent: 60, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.55, ease: "expo.out", stagger: 0.04 }, 0.2);
+          tl.to(chars, { yPercent: -30, opacity: 0, duration: 0.3, ease: "power2.in", stagger: 0.02 }, 3.4);
+          tl.set(chars, { opacity: 0 }, 3.97);
+        })();
+
+        // ---------- 2. name lower third, boxed ----------
+        // bar wipe 0.45 s cubic-bezier(0.05,0.7,0.1,1); text +0.1 s; role bar +0.12 s; out 0.28 s cubic-bezier(0.3,0,0.8,0.15).
+        (function () {
+          const t0 = 4.1;
+          tl.fromTo("#lt-name", { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.45, ease: IN }, t0);
+          tl.fromTo("#lt-name .lt-txt", { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.4, ease: IN }, t0 + 0.1);
+          tl.fromTo("#lt-role", { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.45, ease: IN }, t0 + 0.12);
+          tl.fromTo("#lt-role .lt-txt", { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.4, ease: IN }, t0 + 0.22);
+          const tOut = 7.6; // 3.05 s hold after the build
+          tl.to(["#lt-name", "#lt-role"], { clipPath: "inset(0% 0% 0% 100%)", duration: 0.28, ease: OUT }, tOut);
+          tl.to(["#lt-name .lt-txt", "#lt-role .lt-txt"], { opacity: 0, x: 24, duration: 0.28, ease: OUT }, tOut);
+          tl.set(["#lt-name", "#lt-role"], { opacity: 0 }, tOut + 0.3);
+        })();
+
+        // ---------- 3. block-glitch title, transparent ----------
+        // One burst schedule, seeded by frame (mulberry32(seed + frame)), drives bands, RGB split and noise.
+        (function () {
+          const T0 = 8;
+          const H = 156; // type box height
+          const PAD = Math.round(H * 0.15); // bands only inside the type's box + 15%
+          const SEED = 1307;
+          function mulberry32(a) {
+            return function () {
+              a |= 0;
+              a = (a + 0x6d2b79f5) | 0;
+              let t = Math.imul(a ^ (a >>> 15), 1 | a);
+              t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+              return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+          }
+          const HEIGHTS = [16, 32, 48, 64];
+          const between = (r, a, b) => a + Math.floor(r() * (b - a + 1));
+
+          // noise block: 8 px cells over the type's box + 15%, drawn once from a fixed seed
+          const nc = document.getElementById("g-noise");
+          const ctx = nc.getContext("2d");
+          const nr = mulberry32(SEED * 7);
+          for (let y = 0; y < nc.height; y++)
+            for (let x = 0; x < nc.width; x++) {
+              const v = nr();
+              const g = Math.floor(40 + v * 215);
+              ctx.fillStyle = v > 0.93 ? "#FF0040" : v < 0.05 ? "#00E5FF" : `rgb(${g},${g},${g})`;
+              ctx.fillRect(x, y, 1, 1);
+            }
+          // text bbox measured roughly from the mono advance: 12 chars x 0.64 em x 130 px
+          const textW = 12 * (0.6 + 0.04) * 130;
+          const nW = Math.round(textW * 1.15),
+            nH = H + 2 * PAD;
+          gsap.set(nc, { left: (1920 - nW) / 2, top: -PAD, width: nW, height: nH });
+
+          // burst schedule (frames, local to the title)
+          const bursts = new Set();
+          const r0 = mulberry32(SEED);
+          let f = 12; // heavy section 0.40-1.30 s = frames 12-38
+          while (f < 39) {
+            const on = between(r0, 2, 4);
+            for (let k = 0; k < on && f + k < 39; k++) bursts.add(f + k);
+            f += on + between(r0, 3, 8);
+          }
+          const NOISE_F = [...bursts].sort((a, b) => a - b)[Math.floor(bursts.size / 2)];
+
+          function bandsFor(frame, nShift, maxShift) {
+            const r = mulberry32(SEED + frame);
+            const bands = [];
+            let y = -PAD;
+            while (y < H + PAD && bands.length < 10) {
+              const h = HEIGHTS[Math.floor(r() * 4)];
+              bands.push({ y, h: Math.min(h, H + PAD - y), dx: 0, tint: null });
+              y += h;
+            }
+            const idx = bands.map((_, i) => i).sort(() => r() - 0.5);
+            for (let i = 0; i < Math.min(nShift, bands.length); i++) {
+              const b = bands[idx[i]];
+              b.dx = (r() < 0.5 ? -1 : 1) * between(r, 24, maxShift);
+              r(); // keeps the seeded sequence stable; bands stay white, colour lives only in the RGB split
+            }
+            return bands;
+          }
+
+          const LAST = 111; // exit burst 3.60-3.70 s = frames 108-110, then gone
+          const states = [];
+          for (let fr = 0; fr <= LAST; fr++) {
+            const r = mulberry32(SEED + 1000 + fr);
+            let s = { main: 0, split: 0, bands: null, noise: 0 };
+            if (fr === 4 || fr === 9) {
+              // anticipation: one or two lone bands flicker on an empty frame
+              const b = bandsFor(fr, 2, 160).filter((x) => x.dx !== 0);
+              s.bands = b.slice(0, fr === 4 ? 1 : 2);
+              s.split = 0;
+            } else if (fr >= 12 && fr < 39) {
+              if (bursts.has(fr)) {
+                s.bands = bandsFor(fr, between(r, 3, 7), 160);
+                s.split = between(r, 4, 10);
+                s.noise = fr === NOISE_F ? 1 : 0;
+              } else s.main = 1;
+            } else if (fr === 39 || fr === 40) {
+              // crash, 2 f: every band shifted, split at its maximum (no full-frame invert in the transparent preset)
+              s.bands = bandsFor(fr, 10, 160);
+              s.split = 10;
+            } else if (fr >= 41 && fr <= 52) {
+              // settle, 12 f: split 6 -> 0 with expo.out; residual one-frame bands at 1.50 s and 1.63 s
+              const p = (fr - 41) / 12;
+              s.main = 1;
+              s.split = 6 * (1 - (p === 1 ? 1 : 1 - Math.pow(2, -10 * p)));
+              if (fr === 45 || fr === 49) {
+                s.main = 0;
+                s.bands = bandsFor(fr, fr === 45 ? 2 : 1, 96);
+              }
+            } else if (fr > 52 && fr < 108) {
+              s.main = 1;
+              if (fr === 87) {
+                // micro-glitch: 1 frame, 1 band, 2 px split
+                s.main = 0;
+                s.bands = bandsFor(fr, 1, 48);
+                s.split = 2;
+              }
+            } else if (fr >= 108 && fr <= 110) {
+              s.bands = bandsFor(fr, between(r, 4, 7), 160);
+              s.split = between(r, 6, 10);
+            } else if (fr > 110) {
+              s = { main: 0, split: 0, bands: [], noise: 0 };
+            }
+            states.push(s);
+          }
+
+          const bandEls = Array.from(document.querySelectorAll(".g-band"));
+          states.forEach((s, fr) => {
+            const t = T0 + fr * F;
+            const showText = s.main || (s.bands && s.bands.length);
+            tl.set("#g-main", { opacity: s.main }, t);
+            tl.set("#g-r", { opacity: s.split > 0.05 && showText ? 0.9 : 0, x: -s.split }, t);
+            tl.set("#g-c", { opacity: s.split > 0.05 && showText ? 0.9 : 0, x: s.split }, t);
+            tl.set("#g-noise", { opacity: s.noise ? 0.85 : 0 }, t);
+            bandEls.forEach((el, i) => {
+              const b = s.bands && s.bands[i];
+              if (b) {
+                tl.set(
+                  el,
+                  {
+                    opacity: 1,
+                    x: b.dx,
+                    clipPath: `inset(${b.y}px -400px ${H - b.y - b.h}px -400px)`,
+                  },
+                  t,
+                );
+              } else tl.set(el, { opacity: 0 }, t);
+            });
+          });
+        })();
+
+        // ---------- 4. speaker plates: corner tag + ticker ----------
+        // corner tag in 0.4 s; ticker bar wipes in 0.4 s over a linear crawl at 420 px/s; out 0.28 s.
+        (function () {
+          const t0 = 12.1;
+          tl.fromTo("#tag-in", { opacity: 0, x: -12 }, { opacity: 0.9, x: 0, duration: 0.4, ease: IN }, t0);
+          tl.fromTo("#tk-bar", { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.4, ease: IN }, t0);
+          const areaW = 1728 - 311;
+          // the crawl is already running when the bar wipes in (head at 30% of the text area), so the short
+          // preview shows a full bar; speed stays a constant 420 px/s
+          const crawlStart = t0;
+          const dur = 16 - crawlStart;
+          const x0 = Math.round(areaW * 0.3);
+          tl.fromTo("#tk-strip", { x: x0 }, { x: x0 - 420 * dur, duration: dur, ease: "none" }, crawlStart);
+          const tOut = 15.66;
+          tl.to("#tk-bar", { clipPath: "inset(0% 0% 0% 100%)", duration: 0.28, ease: OUT }, tOut);
+          tl.to("#tag-in", { opacity: 0, duration: 0.28, ease: OUT }, tOut);
+          tl.set(["#tk-bar", "#tag-in"], { opacity: 0 }, 15.97);
+        })();
+
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>

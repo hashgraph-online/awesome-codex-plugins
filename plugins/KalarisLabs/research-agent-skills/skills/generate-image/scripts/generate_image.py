@@ -42,10 +42,15 @@ MODELS_URL = f"{API_BASE}/images/models"
 
 DEFAULT_MODEL = "google/gemini-3.1-flash-image"
 
+_MIME_PNG = "image/png"
+_MIME_JPEG = "image/jpeg"
+_EXT_JPEG = ".jpeg"
+_DATA_PREFIX = "data:"
+
 # media_type -> file extension. Vector-capable models return image/svg+xml.
 EXTENSIONS = {
-    "image/png": ".png",
-    "image/jpeg": ".jpg",
+    _MIME_PNG: ".png",
+    _MIME_JPEG: ".jpg",
     "image/jpg": ".jpg",
     "image/webp": ".webp",
     "image/gif": ".gif",
@@ -55,16 +60,16 @@ EXTENSIONS = {
 # Suffixes that name the same format, so `-o out.jpeg` for an image/jpeg
 # response is not reported as a mismatch.
 SUFFIX_ALIASES = {
-    ".jpg": {".jpg", ".jpeg"},
-    ".jpeg": {".jpg", ".jpeg"},
+    ".jpg": {".jpg", _EXT_JPEG},
+    _EXT_JPEG: {".jpg", _EXT_JPEG},
     ".svg": {".svg", ".svgz"},
 }
 
 # Local file extension -> MIME type, for encoding reference images.
 INPUT_MIME = {
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
+    ".png": _MIME_PNG,
+    ".jpg": _MIME_JPEG,
+    _EXT_JPEG: _MIME_JPEG,
     ".gif": "image/gif",
     ".webp": "image/webp",
 }
@@ -154,7 +159,7 @@ def encode_reference(source: str) -> str:
     HTTP(S) URLs and existing data URLs pass through; local paths are read and
     encoded as base64 data URLs.
     """
-    if source.startswith(("http://", "https://", "data:")):
+    if source.startswith(("http://", "https://", _DATA_PREFIX)):
         return source
 
     path = Path(source)
@@ -425,7 +430,7 @@ def redacted_payload(payload: dict) -> dict:
         trimmed = []
         for ref in references:
             url = ((ref.get("image_url") or {}).get("url")) or ""
-            if url.startswith("data:") and len(url) > 80:
+            if url.startswith(_DATA_PREFIX) and len(url) > 80:
                 head = url.split(",", 1)[0]
                 url = f"{head},<{len(url)} chars of base64>"
             trimmed.append({"type": ref.get("type"), "image_url": {"url": url}})
@@ -474,7 +479,7 @@ def image_bytes(item: dict, timeout: float) -> bytes | None:
     """Decode one response entry, downloading it if it arrived as a URL."""
     payload = item.get("b64_json")
     if payload:
-        if payload.startswith("data:") and "," in payload:
+        if payload.startswith(_DATA_PREFIX) and "," in payload:
             payload = payload.split(",", 1)[1]
         return base64.b64decode(payload)
 
@@ -514,7 +519,7 @@ def save_images(result: dict, requested_output: str | None, timeout: float = 60.
 
     # Numbering is assigned after skipping empty entries so the written files
     # are always _1.._n with no gaps.
-    first_media = decoded[0][0].get("media_type", "image/png")
+    first_media = decoded[0][0].get("media_type", _MIME_PNG)
     paths = output_paths(requested_output, first_media, len(decoded))
     written: list[Path] = []
 
@@ -632,6 +637,7 @@ def model_info(model_id: str, timeout: float) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Generate or edit images via the OpenRouter Image API.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

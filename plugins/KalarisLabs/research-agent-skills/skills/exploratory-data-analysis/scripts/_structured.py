@@ -42,6 +42,7 @@ def _dtype_report(
     *,
     reveal_identifiers: bool,
 ) -> dict[str, Any]:
+    """Handle dtype report."""
     fields = getattr(dtype, "fields", None)
     report: dict[str, Any] = {
         "kind": str(dtype.kind),
@@ -68,6 +69,7 @@ def _dtype_report(
 
 
 def _sample_array(array: Any, np: Any) -> Any:
+    """Handle sample array."""
     size = int(array.size)
     if size <= MAX_ARRAY_SAMPLE:
         return np.asarray(array).reshape(-1)
@@ -88,6 +90,7 @@ def _array_report(
     array_id: str | None,
     reveal_identifiers: bool,
 ) -> dict[str, Any]:
+    """Handle array report."""
     if bool(array.dtype.hasobject):
         raise CliError("NumPy object arrays are not accepted because they require pickle")
     report: dict[str, Any] = {
@@ -234,6 +237,7 @@ def inspect_numpy(
 
 
 def _shape_elements(shape: Any) -> int | None:
+    """Handle shape elements."""
     if shape is None:
         return None
     total = 1
@@ -242,6 +246,146 @@ def _shape_elements(shape: Any) -> int | None:
         if total > 2**63 - 1:
             return None
     return total
+
+
+def _dataset_entry(
+    child: Any,
+    *,
+    object_id: str,
+    already_seen: bool,
+    reveal_identifiers: bool,
+) -> dict[str, Any]:
+    """Describe an HDF5 dataset's metadata without reading its values."""
+    compression = child.compression
+    return {
+        "object_id": object_id,
+        "type": "dataset",
+        "hard_link_alias": already_seen,
+        "shape": [int(value) for value in child.shape]
+        if child.shape is not None
+        else None,
+        "element_count": _shape_elements(child.shape),
+        "dtype": _dtype_report(
+            child.dtype,
+            reveal_identifiers=reveal_identifiers,
+        ),
+        "attribute_count": len(child.attrs),
+        "chunked": child.chunks is not None,
+        "chunk_shape": [int(value) for value in child.chunks]
+        if child.chunks is not None
+        else None,
+        "compressed": compression is not None,
+        "compression_id": display_identifier(
+            str(compression),
+            kind="compression",
+            reveal_identifiers=reveal_identifiers,
+        )
+        if compression is not None
+        else None,
+        "external_storage_file_count": len(child.external or ()),
+        "virtual_dataset": bool(child.is_virtual),
+        "values_read": False,
+    }
+
+
+class _Hdf5Walk:
+    """Bounded, link-safe traversal of HDF5 metadata."""
+
+    def __init__(self, h5py: Any, *, reveal_identifiers: bool) -> None:
+        """Create empty traversal state for the given h5py module."""
+        self.h5py = h5py
+        self.reveal_identifiers = reveal_identifiers
+        self.objects: list[dict[str, Any]] = []
+        self.link_counts = {"hard": 0, "soft_not_followed": 0, "external_not_followed": 0}
+        self.object_limit_reached = False
+        self.depth_limit_reached = False
+        self.seen_addresses: set[int] = set()
+        self.stack: list[tuple[Any, str, int]] = []
+
+    def _record_unfollowed_link(self, link: Any, object_id: str) -> bool:
+        """Record a soft or external link without following it; return True when handled."""
+        if isinstance(link, self.h5py.ExternalLink):
+            counter, kind = "external_not_followed", "external_link"
+        elif isinstance(link, self.h5py.SoftLink):
+            counter, kind = "soft_not_followed", "soft_link"
+        else:
+            return False
+        self.link_counts[counter] += 1
+        self.objects.append({"object_id": object_id, "type": kind, "followed": False})
+        return True
+
+    def _visit_child(self, group: Any, name: str, logical_path: str, depth: int) -> None:
+        """Record one child link of a group and queue subgroups for traversal."""
+        h5py = self.h5py
+        link = group.get(name, getlink=True)
+        child_path = f"/{name}" if logical_path == "/" else f"{logical_path}/{name}"
+        object_id = display_identifier(
+            child_path,
+            kind="hdf_object",
+            reveal_identifiers=self.reveal_identifiers,
+        )
+        if self._record_unfollowed_link(link, object_id):
+            return
+        if not isinstance(link, h5py.HardLink):
+            raise CliError("the HDF5 file contains an unsupported link type")
+        self.link_counts["hard"] += 1
+        child = group.get(name)
+        if child is None:
+            raise CliError("the HDF5 file contains an unresolved hard link")
+        address = int(h5py.h5o.get_info(child.id).addr)
+        already_seen = address in self.seen_addresses
+        self.seen_addresses.add(address)
+        if isinstance(child, h5py.Dataset):
+            self.objects.append(
+                _dataset_entry(
+                    child,
+                    object_id=object_id,
+                    already_seen=already_seen,
+                    reveal_identifiers=self.reveal_identifiers,
+                )
+            )
+        elif isinstance(child, h5py.Group):
+            self.objects.append(
+                {
+                    "object_id": object_id,
+                    "type": "group",
+                    "hard_link_alias": already_seen,
+                    "attribute_count": len(child.attrs),
+                }
+            )
+            self._queue_group(child, child_path, depth, already_seen)
+        else:
+            raise CliError("the HDF5 file contains an unsupported object type")
+
+    def _queue_group(self, child: Any, child_path: str, depth: int, already_seen: bool) -> None:
+        """Queue an unseen subgroup, or flag that the depth limit stopped descent."""
+        if already_seen:
+            return
+        if depth >= MAX_HDF5_DEPTH:
+            self.depth_limit_reached = True
+        else:
+            self.stack.append((child, child_path, depth + 1))
+
+    def _visit_group(self, group: Any, logical_path: str, depth: int) -> None:
+        """Visit up to the remaining object budget of children of one group."""
+        for name in itertools.islice(
+            group.keys(),
+            MAX_HDF5_OBJECTS - len(self.objects) + 1,
+        ):
+            if len(self.objects) >= MAX_HDF5_OBJECTS:
+                self.object_limit_reached = True
+                break
+            self._visit_child(group, name, logical_path, depth)
+
+    def walk(self, root: Any) -> None:
+        """Traverse the file depth-first from its root group."""
+        self.stack = [(root, "/", 0)]
+        while self.stack:
+            group, logical_path, depth = self.stack.pop()
+            if len(self.objects) >= MAX_HDF5_OBJECTS:
+                self.object_limit_reached = True
+                break
+            self._visit_group(group, logical_path, depth)
 
 
 def inspect_hdf5(
@@ -257,126 +401,21 @@ def inspect_hdf5(
         raise CliError(
             'optional dependency missing; install with: uv pip install "h5py==3.16.0"'
         ) from exc
-    objects: list[dict[str, Any]] = []
-    link_counts = {"hard": 0, "soft_not_followed": 0, "external_not_followed": 0}
-    object_limit_reached = False
-    depth_limit_reached = False
-    seen_addresses: set[int] = set()
+    walk = _Hdf5Walk(h5py, reveal_identifiers=reveal_identifiers)
     try:
         with h5py.File(path, "r") as handle:
-            stack: list[tuple[Any, str, int]] = [(handle, "/", 0)]
-            while stack:
-                group, logical_path, depth = stack.pop()
-                if len(objects) >= MAX_HDF5_OBJECTS:
-                    object_limit_reached = True
-                    break
-                for name in itertools.islice(
-                    group.keys(),
-                    MAX_HDF5_OBJECTS - len(objects) + 1,
-                ):
-                    if len(objects) >= MAX_HDF5_OBJECTS:
-                        object_limit_reached = True
-                        break
-                    link = group.get(name, getlink=True)
-                    child_path = (
-                        f"/{name}" if logical_path == "/" else f"{logical_path}/{name}"
-                    )
-                    object_id = display_identifier(
-                        child_path,
-                        kind="hdf_object",
-                        reveal_identifiers=reveal_identifiers,
-                    )
-                    if isinstance(link, h5py.ExternalLink):
-                        link_counts["external_not_followed"] += 1
-                        objects.append(
-                            {
-                                "object_id": object_id,
-                                "type": "external_link",
-                                "followed": False,
-                            }
-                        )
-                        continue
-                    if isinstance(link, h5py.SoftLink):
-                        link_counts["soft_not_followed"] += 1
-                        objects.append(
-                            {
-                                "object_id": object_id,
-                                "type": "soft_link",
-                                "followed": False,
-                            }
-                        )
-                        continue
-                    if not isinstance(link, h5py.HardLink):
-                        raise CliError("the HDF5 file contains an unsupported link type")
-                    link_counts["hard"] += 1
-                    child = group.get(name)
-                    if child is None:
-                        raise CliError("the HDF5 file contains an unresolved hard link")
-                    address = int(h5py.h5o.get_info(child.id).addr)
-                    already_seen = address in seen_addresses
-                    seen_addresses.add(address)
-                    if isinstance(child, h5py.Dataset):
-                        compression = child.compression
-                        external_count = len(child.external or ())
-                        objects.append(
-                            {
-                                "object_id": object_id,
-                                "type": "dataset",
-                                "hard_link_alias": already_seen,
-                                "shape": [int(value) for value in child.shape]
-                                if child.shape is not None
-                                else None,
-                                "element_count": _shape_elements(child.shape),
-                                "dtype": _dtype_report(
-                                    child.dtype,
-                                    reveal_identifiers=reveal_identifiers,
-                                ),
-                                "attribute_count": len(child.attrs),
-                                "chunked": child.chunks is not None,
-                                "chunk_shape": [int(value) for value in child.chunks]
-                                if child.chunks is not None
-                                else None,
-                                "compressed": compression is not None,
-                                "compression_id": display_identifier(
-                                    str(compression),
-                                    kind="compression",
-                                    reveal_identifiers=reveal_identifiers,
-                                )
-                                if compression is not None
-                                else None,
-                                "external_storage_file_count": external_count,
-                                "virtual_dataset": bool(child.is_virtual),
-                                "values_read": False,
-                            }
-                        )
-                    elif isinstance(child, h5py.Group):
-                        objects.append(
-                            {
-                                "object_id": object_id,
-                                "type": "group",
-                                "hard_link_alias": already_seen,
-                                "attribute_count": len(child.attrs),
-                            }
-                        )
-                        if already_seen:
-                            continue
-                        if depth >= MAX_HDF5_DEPTH:
-                            depth_limit_reached = True
-                        else:
-                            stack.append((child, child_path, depth + 1))
-                    else:
-                        raise CliError("the HDF5 file contains an unsupported object type")
+            walk.walk(handle)
     except CliError:
         raise
     except (OSError, RuntimeError, ValueError, TypeError, MemoryError) as exc:
         raise CliError("the HDF5 metadata could not be inspected safely") from exc
     return {
         "profile_type": "hdf5_metadata_only",
-        "object_count_reported": len(objects),
-        "object_limit_reached": object_limit_reached,
-        "depth_limit_reached": depth_limit_reached,
-        "links": link_counts,
-        "objects": objects,
+        "object_count_reported": len(walk.objects),
+        "object_limit_reached": walk.object_limit_reached,
+        "depth_limit_reached": walk.depth_limit_reached,
+        "links": walk.link_counts,
+        "objects": walk.objects,
         "dataset_values_read": False,
         "attributes_values_read": False,
         "soft_links_followed": False,

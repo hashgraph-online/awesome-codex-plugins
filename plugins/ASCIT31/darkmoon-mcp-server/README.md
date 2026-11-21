@@ -1,6 +1,11 @@
 # @darkmoon_ai/mcp-server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an MCP client (Claude Desktop, Goose, Continue, LibreChat, ...) drive [Darkmoon](https://github.com/ASCIT31/Dark-Moon), an open source (GPL-3.0) autonomous AI penetration testing platform.
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-0A2472)](LICENSING.md)
+
+> [!IMPORTANT]
+> **License change.** This repository moved from the GNU GPL v3.0 to the GNU AGPL v3.0 on 20 November 2026; every commit up to `cc7ea74` (including npm v0.1.0) stays under the GNU GPL v3.0. Darkmoon Community is moving to the GNU AGPL v3.0 too (its commits up to `edfe9cb`, 27 October 2026, and earlier outside contributions stay GPL v3.0). Details: [LICENSING.md](LICENSING.md) · [Darkmoon LICENSING.md](https://github.com/ASCIT31/Dark-Moon/blob/master/LICENSING.md).
+
+A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an MCP client (Claude Desktop, Goose, Continue, LibreChat, ...) drive [Darkmoon](https://github.com/ASCIT31/Dark-Moon), an open source (AGPL-3.0) autonomous AI penetration testing platform.
 
 ## Requires Darkmoon Pro
 
@@ -88,4 +93,4 @@ npm test      # mocked Dashboard API, in-memory MCP client and a real stdio proc
 
 ## License
 
-GPL-3.0-only, same as Darkmoon.
+This MCP server is licensed under the GNU AGPL v3.0 (AGPL-3.0-only), see [LICENSE](./LICENSE) and [LICENSING.md](./LICENSING.md). Earlier versions, up to commit `cc7ea74` and npm v0.1.0, stay under GPL-3.0-only. Darkmoon itself is AGPL-3.0, see [LICENSING.md](https://github.com/ASCIT31/Dark-Moon/blob/master/LICENSING.md).

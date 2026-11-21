@@ -183,9 +183,9 @@ Empty/403 → SA campaigns on different entity. Seller IDs: `A2I58...`, vendor: 
 | Scenario | Flow | Where documented |
 |---|---|---|
 | Within one identity, many accounts (typical agency seat case) | `set_active_identity` once → `ac_ListAdsAccounts` → per account/marketplace: `set_active_profile` → `amc_listInstances` | SKILL.md → Pre-Flight Setup → Portfolio / agency fan-out |
-| Across many identities (rare; one user logged into multiple Amazon advertiser accounts) | `list_identities` → for each identity: `set_active_identity` + `ac_listProfiles` → `amc_listInstances` per entity/marketplace | Below |
+| Across several identities on one login | `list_identities` → for each identity: `set_active_identity` + `ac_listProfiles` → `amc_listInstances` per entity/marketplace | Below |
 
-The agency-seat case is much more common. The list_identities flow is for the rare case where a single user has multiple distinct upstream login identities (not multiple brands under one identity).
+Use the across-identities flow when the login has several identities, not for several brands under one identity. It changes the selection, so ask first.
 
 ### Across-identities flow
 

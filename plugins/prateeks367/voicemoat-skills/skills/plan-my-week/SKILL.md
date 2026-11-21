@@ -76,7 +76,10 @@ preview with the exact text, the account and the time, plus a one-time code
 bound to that exact text, and only a second call carrying the code queues it.
 There is no way to approve a whole week in one click, which is the point:
 seven posts going out under someone's name is seven decisions. Show each
-preview and wait for a clear yes before you send its code back.
+preview and wait for a clear yes before you send its code back. The assistant
+may show each preview as a card with its own Schedule button. A press on that
+button is the yes for that one post and sends its code itself, so do not send
+it again.
 
 VoiceMoat also shifts each queued post by up to seven minutes at random, so a
 week of posts does not land on seven identical round numbers, and it tells you

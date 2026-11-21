@@ -6,8 +6,8 @@ description: |
   login, or email verification without parsing HTML manually.
 compatibility: Requires network access and MAILAGENT_API_KEY (hosted or self-host).
 license: MIT
-homepage: https://webmailagent.com/docs/agents.html
-repository: https://github.com/Alex0nder/MailAgent
+homepage: https://agents.navorina.ai/docs/agents.html
+repository: https://github.com/navorinaai/navorina/tree/main/agents-os/agents/mail-agent
 metadata:
   author: mailagent
   version: "0.2.16"
@@ -18,7 +18,7 @@ metadata:
 
 MailAgent provides **programmatic disposable inboxes** for AI agents: receive OTP codes and magic links during signup flows, simulate inbound mail in CI, send/reply on verified domains, and diagnose timeouts.
 
-Official docs: https://webmailagent.com/docs/agents.html
+Official docs: https://agents.navorina.ai/docs/agents.html
 
 ## When to use
 
@@ -37,27 +37,27 @@ MCP in `.cursor/mcp.json` → `@mailagent/mcp` or `mcp/dist/index.js`. Skill aut
 ### Agent Skills catalog (repo root)
 
 ```bash
-npx skills add Alex0nder/MailAgent --skill mailagent
+npx skills add navorina-labs/MailAgent --skill mailagent
 ```
 
 ### OpenAI Codex
 
 ```bash
-codex plugin marketplace add Alex0nder/MailAgent
+codex plugin marketplace add navorina-labs/MailAgent
 codex plugin add mailagent@mailagent
 ```
 
-Guide: https://webmailagent.com/docs/codex.html
+Guide: https://agents.navorina.ai/docs/codex.html
 
 ### npm MCP (any client)
 
 ```bash
-export MAILAGENT_API_URL=https://api.webmailagent.com
+export MAILAGENT_API_URL=https://mail-api.navorina.ai
 export MAILAGENT_API_KEY=ma_…
 npx -y -p @mailagent/mcp@0.2.16 mailagent-mcp
 ```
 
-Remote (no subprocess): `POST https://api.webmailagent.com/mcp` + Bearer token.
+Remote (no subprocess): `POST https://mail-api.navorina.ai/mcp` + Bearer token.
 
 ### SDK (without MCP)
 
@@ -67,11 +67,11 @@ Remote (no subprocess): `POST https://api.webmailagent.com/mcp` + Bearer token.
 | `@mailagent/qa` | `npm install @mailagent/qa` (Playwright) |
 | `mailagent-agent` | `pip install mailagent-agent` (Python) |
 
-**Browser login (no API key in client):** Auth0 OIDC on prod — `auth.oidc: enabled` on `GET /v1/agent`. Operator setup: `npm run wizard:auth0`. Docs: https://webmailagent.com/docs/oauth-idp.html
+**Browser login (no API key in client):** Auth0 OIDC on prod — `auth.oidc: enabled` on `GET /v1/agent`. Operator setup: `npm run wizard:auth0`. Docs: https://agents.navorina.ai/docs/oauth-idp.html
 
 ## Prerequisites
 
-- `MAILAGENT_API_KEY` — [console dashboard](https://webmailagent.com/dashboard.html) team keys, or MailAgent repo `npm run issue:key:db` when self-hosting
+- `MAILAGENT_API_KEY` — [console dashboard](https://agents.navorina.ai/dashboard.html) team keys, or MailAgent repo `npm run issue:key:db` when self-hosting
 - MCP server `mailagent` connected (`codex mcp list` / Cursor MCP refresh)
 - Always set **`service`** preset or **`expectFrom`** (sender allowlist)
 
@@ -167,7 +167,7 @@ Console: `console-inbox.html` → notify relay log.
 | `callbackUrl` on create | Async CI — `waitForCallback` in QA SDK |
 | `notifyEmail` on create | Relay OTP to developer's real inbox |
 
-Full list: `GET https://api.webmailagent.com/v1/agent` → `mcpTools` (44 tools).
+Full list: `GET https://mail-api.navorina.ai/v1/agent` → `mcpTools` (44 tools).
 
 ## Email check (`mailagent_check_email`)
 
@@ -181,7 +181,7 @@ Self-contained: syntax, disposable domains, role accounts, MX via DNS. **No SMTP
 
 **Signup QA flow:** `create_inbox` → form → `verify_signup` (or one-shot verify). On timeout → `diagnose_inbox` → `simulate_message` → retry. Never add `check_email` to that path.
 
-Docs: https://webmailagent.com/docs/agents.html · [docs/EMAIL-CHECK.md](https://github.com/Alex0nder/MailAgent/blob/main/docs/EMAIL-CHECK.md)
+Docs: https://agents.navorina.ai/docs/agents.html · [docs/EMAIL-CHECK.md](https://github.com/navorinaai/navorina/blob/main/agents-os/agents/mail-agent/docs/EMAIL-CHECK.md)
 
 ## Service presets
 
@@ -245,12 +245,12 @@ Eval (B beats full repo on accuracy/tokens): `context-os/eval/` · published run
 
 ## Verify prod (after API/MCP changes)
 
-From a clone of [MailAgent](https://github.com/Alex0nder/MailAgent):
+From a clone of [MailAgent](https://github.com/navorinaai/navorina/tree/main/agents-os/agents/mail-agent):
 
 ```bash
-MAILAGENT_API_URL=https://api.webmailagent.com \
+MAILAGENT_API_URL=https://mail-api.navorina.ai \
 MAILAGENT_API_KEY=ma_… \
   npm run test:prod
 ```
 
-Guide: https://webmailagent.com/docs/autotests.html
+Guide: https://agents.navorina.ai/docs/autotests.html

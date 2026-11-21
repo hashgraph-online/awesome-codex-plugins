@@ -1,0 +1,68 @@
+schema_version: 1
+id: bpnet-skill
+title: BPNet Workflows
+path: skills/bpnet-skill
+status: active
+family: profile-prediction-and-attribution
+tasks:
+  - environment-setup
+  - preprocessing
+  - training
+  - prediction
+  - attribution
+  - motif-analysis
+  - troubleshooting
+triggers:
+  - bpnet-skill
+  - bpnet model
+  - bpnet 2
+  - kundaje bpnet
+  - bpnet-train
+  - bpnet-predict
+  - bpnet-shap
+  - counts-loss-weight
+  - modisco
+  - finemo
+required_inputs:
+  - task-objective
+  - dataset-schema
+optional_inputs:
+  - assembly
+  - runtime-context
+  - hardware-context
+  - compute-constraints
+  - output-dir
+input_mappings:
+  - task-objective|query_tokens=train,predict,shap,attribution,motif,outlier,gc-background|script_flags=--command
+  - dataset-schema|query_tokens=input_data.json,bpnet_params.json,splits.json,signal,loci,bias|script_flags=--input-data,--model-params,--splits
+  - assembly|query_tokens=hg38,hg19,mm10,assembly,genome|script_flags=--chrom-sizes,--reference-genome
+  - runtime-context|query_tokens=python,tensorflow,conda,docker,anvil|script_flags=internal:runtime-selection
+  - hardware-context|query_tokens=gpu,cuda,nvidia,cpu,memory|script_flags=internal:hardware-preflight
+  - compute-constraints|query_tokens=batch,threads,epochs,runtime,budget|script_flags=internal:run-sizing
+  - output-dir|query_tokens=output,outdir,directory|script_flags=--output-dir,--output-directory
+constraints:
+  - upstream-runtime-is-python37-tensorflow241
+  - task-and-split-ids-are-contiguous-from-zero
+  - bias-source-and-smoothing-keys-required
+  - predict-supports-one-or-two-total-signal-tracks
+  - shap-uses-output-directory
+  - motif-discovery-and-hit-calling-are-external
+tools:
+  - scripts/validate_bpnet_inputs.py
+tool_contracts:
+  - tool: scripts/validate_bpnet_inputs.py
+    inputs:
+      - input-data-json
+      - optional-model-params-json
+      - optional-splits-json
+      - optional-reference-assets
+    outputs:
+      - validation-report
+    side_effects:
+      - none
+    failure_codes:
+      - 2
+priority_rules:
+  - prefer-when-user-explicitly-mentions-bpnet-skill-or-bpnet-cli
+  - prefer-when-task-needs-base-resolution-profile-training-or-shap
+  - prefer-over-chrombpnet-for-kundajelab-bpnet-2x-commands

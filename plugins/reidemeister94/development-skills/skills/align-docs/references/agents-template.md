@@ -6,6 +6,12 @@ Use `development-skills` for project work when available.
 Use `development-skills:bro` for plain natural-language text, with necessary context and facts preserved.
 Follow project conventions. Load references only when their subject applies.
 
+**Rule you have to always apply:**
+Every file you produce or modify must be simple, clear, uniform, linear, fluid, and understandable.
+They must be useful to both humans and agents.
+They must be practical, without useless constraints and limitations that only create confusion and noise.
+Use `simplify-stuff` , `bro` , `clean-docs` and `rethink` to elevate the quality of your output.
+
 ## Commands and limits
 
 [Keep verified run and check commands, required setup, and project-specific permission limits.]

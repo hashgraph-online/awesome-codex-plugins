@@ -1,0 +1,117 @@
+<!-- Price alert (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"a":asset,"px":current price in cents,"st":"none|active|triggered","dir":"above|below","th":threshold cents,
+              "mode":"once|every","at":unix of the trigger (triggered),"r":N}   (dir/th/mode appear once an alert exists)
+  Requests: "set:<above|below>:<price>:<once|every>" (absolute, no rev; price like 5.90, steps of 0.05). The slider is drawn
+  with divs and moved with pointer events; the minus/plus buttons do the same in 0.05 steps without dragging. -->
+<style>
+/*@kit tokens.css*/
+.px { font-size: min(1.9em, 10vw); font-weight: 600; line-height: 1.2 }
+.dr { margin: 8px 0 } .dr .ch { flex: 1 }
+.sw { padding: 0 12px; margin-top: 6px }
+.tr { position: relative; height: 32px; touch-action: pan-y; cursor: pointer }
+.ln { position: absolute; top: 13px; left: 0; right: 0; height: 6px; border-radius: 3px; background: var(--k-sec); overflow: hidden }
+.ln i { display: block; height: 100%; background: var(--k-btn) }
+.th { position: absolute; left: 0; top: 4px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: var(--k-btn); box-sizing: border-box; border: 3px solid var(--k-bg) }
+[dir=rtl] .th { left: auto; right: 0; margin: 0 -12px 0 0 }
+.vl .gr { text-align: center }
+.vl b { font-size: 1.33em; font-weight: 600 }
+.vl .ch { min-width: 44px }
+.bn { margin-top: 8px; color: var(--k-ok) } .bn.t { color: var(--k-warn) }
+.hn { color: var(--k-bad); font-size: .87em }
+</style>
+<div class="k">
+  <div class="hd"><span class="tt el" id="as"></span></div>
+  <div class="px" id="px"></div>
+  <div class="bn" id="bn"></div>
+  <div class="rw dr" id="dr"></div>
+  <div class="sw"><div class="tr" id="tr"><div class="ln"><i id="fl"></i></div><div class="th" id="th"></div></div></div>
+  <div class="rw vl" style="margin:6px 0"><button class="ch" id="mi">−</button><div class="gr"><b id="vl"></b><div class="mt" id="ds"></div></div><button class="ch" id="pl">+</button></div>
+  <div class="rw dr" id="md"></div>
+  <div class="hn" id="hn"></div>
+  <button class="wd" id="sv"></button>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { above: "Above", below: "Below", once: "Once", every: "Every time", save: "Save alert", upd: "Update", saved: "Saved", act: "Active", trg: "Triggered", bad: "Wrong side of the price", none: "No data yet. The bot will fill this in." } });/*@end*/
+/*@lang ru*/K.add({ ru: { above: "Выше", below: "Ниже", once: "Один раз", every: "Каждый раз", save: "Сохранить", upd: "Обновить", saved: "Сохранено", act: "Активно", trg: "Сработало", bad: "Не с той стороны от цены", none: "Данных пока нет." } });/*@end*/
+/*@lang uk*/K.add({ uk: { above: "Вище", below: "Нижче", once: "Один раз", every: "Щоразу", save: "Зберегти", upd: "Оновити", saved: "Збережено", act: "Активно", trg: "Спрацювало", bad: "Не з того боку від ціни", none: "Даних ще немає." } });/*@end*/
+var L = { r: -1, dir: "above", th: 0, mode: "once" }, drag = 0;
+function fmt(c) { return K.nf(c / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function range(s) { return [Math.floor(s.px * .7 / 5) * 5, Math.ceil(s.px * 1.3 / 5) * 5]; }
+function valid(s) { return L.dir == "above" ? L.th > s.px : L.th < s.px; }
+function put(el, f) {
+  var rtl = document.documentElement.dir == "rtl";
+  el.style[rtl ? "right" : "left"] = f * 100 + "%";
+}
+function upd() {
+  var s = K.S.chatData, $ = K.$;
+  if (!s) return;
+  var r = range(s), span = r[1] - r[0], f = (L.th - r[0]) / span;
+  put($("th"), f);
+  $("fl").style.width = f * 100 + "%";
+  $("vl").textContent = fmt(L.th);
+  var d = (L.th - s.px) / s.px * 100;
+  $("ds").textContent = (d > 0 ? "+" : "") + d.toFixed(1) + "%";
+  var ok = valid(s);
+  $("hn").textContent = ok ? "" : K.t("bad");
+  $("sv").disabled = !ok || K.busy || !K.can();
+}
+function setTh(c, s) {
+  var r = range(s);
+  L.th = Math.max(r[0], Math.min(r[1], Math.round(c / 5) * 5));
+  upd();
+}
+function draw() {
+  var s = K.S.chatData, $ = K.$;
+  if (!s) { $("as").textContent = K.t("none"); return; }
+  if (L.r != K.R.chatData) {
+    L.r = K.R.chatData; L.dir = s.dir || "above"; L.mode = s.mode || "once";
+    L.th = s.th || s.px + (L.dir == "above" ? 25 : -25);
+  }
+  $("as").textContent = s.a;
+  $("px").textContent = fmt(s.px);
+  var bn = $("bn");
+  bn.className = "bn" + (s.st == "triggered" ? " t" : "");
+  bn.textContent = s.st == "triggered" ? K.t("trg") + " " + K.time(s.at) + ": " + K.t(s.dir) + " " + fmt(s.th)
+    : s.st == "active" ? K.t("act") + ": " + K.t(s.dir) + " " + fmt(s.th) + " · " + K.t(s.mode) : "";
+  [["dr", "dir", ["above", "below"]], ["md", "mode", ["once", "every"]]].forEach(function (g) {
+    var box = $(g[0]); box.innerHTML = "";
+    g[2].forEach(function (v) {
+      var b = K.h("button", "ch" + (L[g[1]] == v ? " on" : ""), K.t(v));
+      b.onclick = function () {
+        L[g[1]] = v;
+        if (g[1] == "dir" && !valid(s)) L.th = s.px + (v == "above" ? 25 : -25);
+        draw();
+      };
+      box.appendChild(b);
+    });
+  });
+  $("sv").textContent = K.t(s.st == "active" ? "upd" : "save");
+  upd();
+}
+(function () {
+  var tr = K.$("tr");
+  function at(e) {
+    var s = K.S.chatData, b = tr.getBoundingClientRect(), r = range(s);
+    var f = Math.max(0, Math.min(1, (e.clientX - b.left) / b.width));
+    if (document.documentElement.dir == "rtl") f = 1 - f;
+    setTh(r[0] + f * (r[1] - r[0]), s);
+  }
+  tr.addEventListener("pointerdown", function (e) {
+    if (!K.S.chatData) return;
+    drag = 1;
+    try { tr.setPointerCapture(e.pointerId); } catch (x) {}
+    at(e);
+  });
+  tr.addEventListener("pointermove", function (e) { if (drag) at(e); });
+  ["pointerup", "pointercancel"].forEach(function (n) { tr.addEventListener(n, function () { drag = 0; }); });
+  K.$("mi").onclick = function () { if (K.S.chatData) setTh(L.th - 5, K.S.chatData); };
+  K.$("pl").onclick = function () { if (K.S.chatData) setTh(L.th + 5, K.S.chatData); };
+  K.$("sv").onclick = function () {
+    K.ask("set:" + L.dir + ":" + (L.th / 100).toFixed(2) + ":" + L.mode, { done: K.t("saved") });
+  };
+})();
+K.start(draw);
+</script>

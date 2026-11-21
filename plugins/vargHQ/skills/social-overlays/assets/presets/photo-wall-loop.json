@@ -1,0 +1,235 @@
+{
+  "id": "photo-wall-loop",
+  "name": "Photo wall loop",
+  "use": "Columns of photo cards scrolling at different speeds, seamless loop.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 16,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "rules": [
+    "Speed per column = k*H/D for an exact loop [29]",
+    "Vary k for depth",
+    "Real permissioned photos [21]",
+    "Text on top inside universal box, scrim for 4.5:1 [42]"
+  ],
+  "loop_math": {
+    "y(t)": "-(((t/D)*k*H) % H)",
+    "reverse": "-H + (((t/D)*k*H) % H)",
+    "H": "cards_per_set*(card_h+gap)",
+    "max_px_per_frame_30fps": 12
+  },
+  "presets": [
+    {
+      "id": "photo-wall-loop.three-column",
+      "label": "Three column",
+      "look": "3 columns upward, k=1/2/1",
+      "params": {
+        "columns": 3,
+        "k": [
+          1,
+          2,
+          1
+        ],
+        "dir": [
+          1,
+          1,
+          1
+        ],
+        "card_px": [
+          300,
+          400
+        ],
+        "gap_px": 20,
+        "radius_px": 24,
+        "cards_per_set": 6,
+        "H_px": 2520,
+        "D_s": 16,
+        "speed_px_s_k1": 157.5,
+        "border": "1px rgba(255,255,255,0.12)",
+        "shadow": "0 8px 24px rgba(0,0,0,.3)"
+      },
+      "sources": [
+        29
+      ]
+    },
+    {
+      "id": "photo-wall-loop.opposing",
+      "label": "Opposing",
+      "look": "Middle column runs down",
+      "params": {
+        "columns": 3,
+        "k": [
+          1,
+          1,
+          1
+        ],
+        "dir": [
+          1,
+          -1,
+          1
+        ],
+        "card_px": [
+          300,
+          420
+        ]
+      },
+      "sources": [
+        29
+      ]
+    },
+    {
+      "id": "photo-wall-loop.tilted",
+      "label": "Tilted",
+      "look": "Wall rotated -12 deg with perspective",
+      "params": {
+        "columns": 4,
+        "rotate_z_deg": -12,
+        "scale": 1.25,
+        "perspective_px": 1600,
+        "k": [
+          1,
+          2,
+          1,
+          2
+        ]
+      },
+      "sources": [
+        40
+      ]
+    },
+    {
+      "id": "photo-wall-loop.landscape-rows",
+      "label": "Landscape rows",
+      "look": "16:9 horizontal rows",
+      "params": {
+        "rows": 3,
+        "k": [
+          1,
+          2,
+          1
+        ],
+        "dir": [
+          1,
+          -1,
+          1
+        ],
+        "card_px": [
+          420,
+          300
+        ]
+      },
+      "sources": [
+        29
+      ]
+    }
+  ],
+  "headline": {
+    "font": "Inter 800",
+    "px": [
+      72,
+      88
+    ],
+    "center_y_px": [
+      760,
+      900
+    ],
+    "scrim": "rgba(0,0,0,0.5)"
+  },
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 3,
+      "name": "TikTok Ads Help: Creative best practices for performance ads",
+      "url": "https://ads.tiktok.com/help/article/creative-best-practices?lang=en"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 21,
+      "name": "FTC: Final rule banning fake reviews and testimonials (2024)",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials"
+    },
+    {
+      "n": 29,
+      "name": "GSAP docs: seamlessLoop helper (horizontalLoop / verticalLoop)",
+      "url": "https://gsap.com/docs/v3/HelperFunctions/helpers/seamlessLoop"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "W3C: Understanding WCAG 2.1 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html"
+    }
+  ]
+}

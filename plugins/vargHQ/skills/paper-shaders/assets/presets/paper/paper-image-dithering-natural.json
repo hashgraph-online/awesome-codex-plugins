@@ -1,0 +1,37 @@
+{
+  "id": "paper-image-dithering-natural",
+  "label": "Natural (Paper ImageDithering)",
+  "shader": "ImageDithering",
+  "page": "https://shaders.paper.design/image-dithering",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Natural\" preset for ImageDithering, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "mount": {
+    "minPixelRatio": 1
+  },
+  "roles": {},
+  "params": {
+    "fit": "cover",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorFront": "#ffffff",
+    "colorBack": "#000000",
+    "colorHighlight": "#ffffff",
+    "type": "8x8",
+    "size": 2,
+    "colorSteps": 5,
+    "originalColors": true,
+    "inverted": false,
+    "image": ""
+  }
+}

@@ -21,7 +21,7 @@ Base `https://api-${SENDBIRD_APP_ID}.sendbird.com/v3`, with header `Api-Token: $
 | Group channels | `GET /group_channels?limit=100&show_empty=true&show_member=true` | `next` token |
 | Channel members | `GET /group_channels/{channel_url}/members?limit=100` | `next` token |
 | Messages | `GET /group_channels/{channel_url}/messages?message_ts=<ms>&prev_limit=0&next_limit=200&include=false&with_sorted_meta_array=true` | advance `message_ts` past the last `created_at` |
-| Open channels (+ messages) | `GET /open_channels?limit=100`, `GET /open_channels/{channel_url}/messages?…` | same |
+| Open channels (+ messages) | `GET /open_channels?limit=100`, `GET /open_channels/{channel_url}/messages?...` | same |
 
 Honor Sendbird's rate limits (back off on HTTP 429). Write each export to `export/*.jsonl` so a failed run can resume without re-exporting.
 
@@ -67,7 +67,7 @@ Base `https://${COMETCHAT_APP_ID}.api-${COMETCHAT_REGION}.cometchat.io/v3/data_i
 Finish by printing counts: exported, imported, converted (admin→text), skipped (deleted / beyond the 6-month retention window / empty), failed (with a pointer to the error file).
 
 ## README.md for the script (emit it)
-1. Create a **REST API key** (full access) in the CometChat dashboard.
+1. Create a **REST API key** (full access) in the CometChat dashboard. If the CometChat MCP is connected and signed in, you can do it for the user instead — with their OK, `cometchat_create_api_key` (scope `fullAccess`, name e.g. `data-import`) — and write the returned key straight into the script's `.env`; never echo it.
 2. Export the five env vars.
 3. Dry run: `node scripts/cometchat-migration/migrate.mjs --dry-run`. This exports and transforms, then prints counts without importing.
 4. Import: `node scripts/cometchat-migration/migrate.mjs`.

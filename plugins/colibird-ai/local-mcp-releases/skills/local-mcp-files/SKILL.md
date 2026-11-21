@@ -18,4 +18,4 @@ exists on macOS and Windows unless marked otherwise.
 ## Good practice
 - For "find my invoice from March", use `file_search` (or `finder_search` on macOS) then `pdf_read`/`excel_read`.
 - Office create tools take structured input (rows, slides, headings) — build the content, then create.
-- Some locations are off-limits (credential stores; on Windows, paths outside the allowed folders); if a read is denied, tell the user which path/permission is needed rather than retrying.
+- Some locations are off-limits (system-protected folders; on Windows, paths outside the allowed folders); if a read is denied, tell the user which path/permission is needed rather than retrying.

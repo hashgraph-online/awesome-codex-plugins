@@ -1,0 +1,12 @@
+{
+  "name": "silicon_die",
+  "description": "Dark silicon die.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.08,
+    0.08,
+    0.12
+  ],
+  "metallic": 0.7,
+  "roughness": 0.15
+}

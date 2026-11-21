@@ -1,0 +1,41 @@
+{
+  "name": "minicut",
+  "version": "0.1.3",
+  "description": "Make AI short dramas from Codex: MiniCut writes the script, plans every shot, makes the video and edits the episode. Plus MiniAPI, one key for Seedance 2.5, Kling 3.0 and other video, image and voice models.",
+  "author": {
+    "name": "MiniCut",
+    "url": "https://www.minicut.ai"
+  },
+  "homepage": "https://www.minicut.ai",
+  "repository": "https://github.com/lliu56/minicut-skills",
+  "license": "MIT",
+  "keywords": [
+    "ai video",
+    "video generation",
+    "short drama",
+    "ai film",
+    "seedance",
+    "kling"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "MiniCut",
+    "shortDescription": "Make AI short films and run video models from Codex",
+    "category": "media",
+    "websiteURL": "https://www.minicut.ai",
+    "composerIcon": "./assets/icon.png",
+    "longDescription": "Make a multi-shot AI short film from an idea inside Codex. The minicut-film-studio skill installs the MiniCut CLI, which writes the story, plans every shot, makes character and location pictures, video takes, voice lines and music, and edits the cut, with a check after every step. The miniapi-video skill runs Seedance, Kling, Wan and other video, image and voice models on one MiniAPI key. Every paid job prints its price and waits for a yes.",
+    "developerName": "MiniCut",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "privacyPolicyURL": "https://www.minicut.ai/legal/privacy",
+    "termsOfServiceURL": "https://www.minicut.ai/legal/terms",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshot-models.jpg"
+    ]
+  }
+}

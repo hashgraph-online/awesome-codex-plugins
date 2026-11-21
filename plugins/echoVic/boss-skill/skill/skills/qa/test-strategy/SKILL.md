@@ -1,5 +1,4 @@
 ---
-
 name: qa/test-strategy
 description: 测试策略与测试金字塔原则，定义测试优先级、风险驱动测试、测试类型决策、环境与数据策略
 version: 2.0.0
@@ -8,13 +7,12 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 开始测试工作时
-- 需要制定测试计划时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 开始测试工作时
+  - 需要制定测试计划时
+metadata:
   internal: true
-
 ---
 
 # 测试策略与测试金字塔
@@ -35,6 +33,7 @@ dependencies:
 ### E2E 测试是强制要求
 
 **每个项目必须编写 E2E 测试**，最少覆盖：
+
 - 创建流程
 - 编辑流程
 - 删除流程
@@ -74,6 +73,7 @@ dependencies:
 ```
 
 **规则**：
+
 - 单一函数逻辑 → 单元测试即可
 - 跨函数/跨模块 → 单元 + 集成
 - 暴露 API → 单元 + 接口 + 集成
@@ -93,6 +93,7 @@ dependencies:
 ### 风险评估维度
 
 评估每个变更的风险时，考虑：
+
 1. **影响范围**：影响多少用户/功能？
 2. **失败后果**：失败会导致什么（数据丢失/资金损失/体验下降）？
 3. **变更复杂度**：改动了多少文件/模块？
@@ -337,6 +338,7 @@ const testPhone = `1380000${String(Math.random()).slice(2, 6)}`;
 ## 检查清单
 
 制定测试策略时，对照确认：
+
 - [ ] 测试金字塔比例合理（70/20/10）
 - [ ] E2E 测试已规划，覆盖核心用户路径
 - [ ] 变更风险已评估，测试优先级已确定

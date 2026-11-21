@@ -148,6 +148,7 @@ export function createMacosCommandHandlers(
       const app = await requireSingleCodexMacosApp();
       return {
         realAppPath: app.realAppPath,
+        realExecutablePath: app.realExecutablePath,
         bundleId: app.bundleId,
         teamId: app.teamId,
       };

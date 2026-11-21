@@ -1,0 +1,760 @@
+{
+  "scenario": "r22-booking",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Haircut</b>\nPick a day. Greyed days have no free time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Mon 16 · past",
+                "disabled": {}
+              },
+              {
+                "text": "Tue 17",
+                "callback_data": "bk:1:day:20261117"
+              }
+            ],
+            [
+              {
+                "text": "Wed 18 · full",
+                "disabled": {}
+              },
+              {
+                "text": "Thu 19",
+                "callback_data": "bk:1:day:20261119"
+              }
+            ],
+            [
+              {
+                "text": "Fri 20",
+                "callback_data": "bk:1:day:20261120"
+              },
+              {
+                "text": "Sat 21",
+                "callback_data": "bk:1:day:20261121"
+              }
+            ],
+            [
+              {
+                "text": "Sun 22 · closed",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:1:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq1",
+        "text": "No free time that day.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Haircut</b> · Thu 19\nPick a time. Greyed times are taken.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "10:00",
+                "callback_data": "bk:2:slot:1795078800"
+              },
+              {
+                "text": "11:00 ✕",
+                "disabled": {}
+              },
+              {
+                "text": "12:00",
+                "callback_data": "bk:2:slot:1795086000"
+              }
+            ],
+            [
+              {
+                "text": "14:00",
+                "callback_data": "bk:2:slot:1795093200"
+              },
+              {
+                "text": "15:00",
+                "callback_data": "bk:2:slot:1795096800"
+              },
+              {
+                "text": "16:00",
+                "callback_data": "bk:2:slot:1795100400"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:2:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Confirm your visit</b>\nHaircut · €35\n<tg-time unix=\"1795082400\" format=\"wDT\">Thu 19.11 11:00</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Confirm",
+                "callback_data": "bk:3:book",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:3:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Confirm your visit</b>\nHaircut · €35\n<tg-time unix=\"1795086000\" format=\"wDT\">Thu 19.11 12:00</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Confirm",
+                "callback_data": "bk:4:book",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:4:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Запись на визит</b>\nЧто хотите?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Стрижка · €35",
+                "callback_data": "bk:1:svc:cut"
+              }
+            ],
+            [
+              {
+                "text": "Окрашивание · €80",
+                "callback_data": "bk:1:svc:color"
+              }
+            ],
+            [
+              {
+                "text": "Борода · €20",
+                "callback_data": "bk:1:svc:beard"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Стрижка</b>\nВыберите день. Серые дни без свободного времени.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Пн 16 · прошло",
+                "disabled": {}
+              },
+              {
+                "text": "Вт 17",
+                "callback_data": "bk:2:day:20261117"
+              }
+            ],
+            [
+              {
+                "text": "Ср 18 · занято",
+                "disabled": {}
+              },
+              {
+                "text": "Чт 19",
+                "callback_data": "bk:2:day:20261119"
+              }
+            ],
+            [
+              {
+                "text": "Пт 20",
+                "callback_data": "bk:2:day:20261120"
+              },
+              {
+                "text": "Сб 21",
+                "callback_data": "bk:2:day:20261121"
+              }
+            ],
+            [
+              {
+                "text": "Вс 22 · выходной",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "bk:2:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq6"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Стрижка</b> · Чт 19\nВыберите время. Серое время занято.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "10:00",
+                "callback_data": "bk:3:slot:1795078800"
+              },
+              {
+                "text": "11:00 ✕",
+                "disabled": {}
+              },
+              {
+                "text": "12:00",
+                "callback_data": "bk:3:slot:1795086000"
+              }
+            ],
+            [
+              {
+                "text": "14:00",
+                "callback_data": "bk:3:slot:1795093200"
+              },
+              {
+                "text": "15:00",
+                "callback_data": "bk:3:slot:1795096800"
+              },
+              {
+                "text": "16:00",
+                "callback_data": "bk:3:slot:1795100400"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "bk:3:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Подтвердите визит</b>\nСтрижка · €35\n<tg-time unix=\"1795086000\" format=\"wDT\">Чт 19.11 12:00</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Подтвердить",
+                "callback_data": "bk:4:book",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "bk:4:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>You are booked</b> · B-1001\nHaircut\n<tg-time unix=\"1795086000\" format=\"wDT\">Thu 19.11 12:00</tg-time>\nWe remind you 24 h and 2 h before.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Reschedule",
+                "callback_data": "bk:5:resched:B-1001"
+              }
+            ],
+            [
+              {
+                "text": "Cancel visit",
+                "callback_data": "bk:5:cancel:B-1001"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq9"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq10",
+        "text": "This list is out of date. Use the latest message."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq11",
+        "text": "Это время только что заняли. Выберите другое.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Стрижка</b> · Чт 19\nВыберите время. Серое время занято.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "10:00",
+                "callback_data": "bk:5:slot:1795078800"
+              },
+              {
+                "text": "11:00 ✕",
+                "disabled": {}
+              },
+              {
+                "text": "12:00 ✕",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "14:00",
+                "callback_data": "bk:5:slot:1795093200"
+              },
+              {
+                "text": "15:00",
+                "callback_data": "bk:5:slot:1795096800"
+              },
+              {
+                "text": "16:00",
+                "callback_data": "bk:5:slot:1795100400"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "bk:5:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Haircut</b>\nPick a day. Greyed days have no free time.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Mon 16 · past",
+                "disabled": {}
+              },
+              {
+                "text": "Tue 17",
+                "callback_data": "bk:6:day:20261117"
+              }
+            ],
+            [
+              {
+                "text": "Wed 18 · full",
+                "disabled": {}
+              },
+              {
+                "text": "Thu 19",
+                "callback_data": "bk:6:day:20261119"
+              }
+            ],
+            [
+              {
+                "text": "Fri 20",
+                "callback_data": "bk:6:day:20261120"
+              },
+              {
+                "text": "Sat 21",
+                "callback_data": "bk:6:day:20261121"
+              }
+            ],
+            [
+              {
+                "text": "Sun 22 · closed",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:6:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq12"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Haircut</b> · Thu 19\nPick a time. Greyed times are taken.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "10:00",
+                "callback_data": "bk:7:slot:1795078800"
+              },
+              {
+                "text": "11:00 ✕",
+                "disabled": {}
+              },
+              {
+                "text": "12:00",
+                "callback_data": "bk:7:slot:1795086000"
+              }
+            ],
+            [
+              {
+                "text": "14:00",
+                "callback_data": "bk:7:slot:1795093200"
+              },
+              {
+                "text": "15:00",
+                "callback_data": "bk:7:slot:1795096800"
+              },
+              {
+                "text": "16:00",
+                "callback_data": "bk:7:slot:1795100400"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:7:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq13"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Move your visit</b>\nHaircut\nFrom <tg-time unix=\"1795086000\" format=\"wDT\">Thu 19.11 12:00</tg-time>\nTo <tg-time unix=\"1795093200\" format=\"wDT\">Thu 19.11 14:00</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Confirm",
+                "callback_data": "bk:8:book",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "bk:8:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq14"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>You are booked</b> · B-1001\nHaircut\n<tg-time unix=\"1795093200\" format=\"wDT\">Thu 19.11 14:00</tg-time>\nWe remind you 24 h and 2 h before.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Reschedule",
+                "callback_data": "bk:9:resched:B-1001"
+              }
+            ],
+            [
+              {
+                "text": "Cancel visit",
+                "callback_data": "bk:9:cancel:B-1001"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq15"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq16",
+        "text": "This list is out of date. Use the latest message."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq17",
+        "text": "Эта запись другого человека.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Reminder</b> · 24 h to go\nHaircut\n<tg-time unix=\"1795093200\" format=\"wDT\">Thu 19.11 14:00</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "I'll be there",
+                "callback_data": "br:2:ok:B-1001",
+                "style": "success"
+              },
+              {
+                "text": "Reschedule",
+                "callback_data": "br:2:mv:B-1001"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqr1",
+        "text": "Эта запись другого человека.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 777,
+        "parse_mode": "HTML",
+        "text": "See you at <tg-time unix=\"1795093200\" format=\"wDT\">Thu 19.11 14:00</tg-time>."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqr2"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqr3",
+        "text": "This list is out of date. Use the latest message."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Cancel this visit?</b>\nHaircut · <tg-time unix=\"1795093200\" format=\"wDT\">Thu 19.11 14:00</tg-time>\nThe time goes back to other clients.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Yes, cancel",
+                "callback_data": "bk:a:cancel_yes:B-1001",
+                "style": "danger"
+              }
+            ],
+            [
+              {
+                "text": "Keep it",
+                "callback_data": "bk:a:back",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq18"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "Visit B-1001 is cancelled. Reminders are off.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Book again",
+                "callback_data": "bk:b:home"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq19"
+      }
+    }
+  ]
+}

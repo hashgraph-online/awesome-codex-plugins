@@ -1,0 +1,57 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "rush-cloud",
+  "version": "1.2.0",
+  "description": "Hand Rush a task: an agent does the work in its own cloud computer and returns a pull request, a report, files or an answer, with a record of what it did.",
+  "author": {
+    "name": "Phoenix Horizon, Inc.",
+    "email": "contact@phoenix.so",
+    "url": "https://getrush.ai"
+  },
+  "homepage": "https://getrush.ai/docs/concepts/mcp-server/",
+  "keywords": [
+    "agents",
+    "cloud",
+    "automation",
+    "code review",
+    "pull requests",
+    "sandbox"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/phnx-labs/rush-mcp",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Rush",
+        "shortDescription": "Hand a task to a cloud agent",
+        "longDescription": "Rush runs an agent on a task in its own cloud computer, with a browser and a terminal, and hands back the result with proof: a pull request with checks, a report, files or an answer, plus every step the agent took.\n\nAsk in plain language to fix a bug, review a pull request, write tests, investigate an incident or produce a report. Rush starts the work at once and keeps going while you do something else; check on it, reply to it, or stop it from the conversation.\n\nA task can work on a connected GitHub repository or on none. It reaches only the accounts and repository you name.\n\nSign in with your Rush account. Runs use the model account you connected to Rush, or Rush's own models.",
+        "developerName": "Phoenix Horizon, Inc.",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Start a task on a cloud agent, with or without a GitHub repository",
+          "Wait for one or several tasks and read their answers",
+          "Read the files a task changed, with the diff",
+          "Download the files and reports a task produced",
+          "Reply to a running task, or stop it",
+          "Save reusable agents with standing instructions",
+          "Connect an account a task needs through a sign-in link you open yourself"
+        ],
+        "websiteURL": "https://getrush.ai",
+        "supportURL": "https://github.com/phnx-labs/rush-mcp/issues",
+        "privacyPolicyURL": "https://getrush.ai/legal/privacy/",
+        "termsOfServiceURL": "https://getrush.ai/legal/terms/",
+        "defaultPrompt": [
+          "Ask Rush to review my latest pull request and list what it would change",
+          "Have Rush write tests for the parser module in my repo and open a PR",
+          "Ask Rush to research our three biggest competitors' pricing and send back a report"
+        ],
+        "brandColor": "#C9A962",
+        "composerIcon": "./assets/logo.png",
+        "composerIconDark": "./assets/logo-dark.png",
+        "logo": "./assets/logo.png",
+        "logoDark": "./assets/logo-dark.png"
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md"
+    }
+  }
+}

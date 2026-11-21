@@ -18,6 +18,83 @@ matter. A finding without a consequence and a remedy is not a finding — it is 
 > - "Post-Report Triage" — only in interactive sessions after the report is output
 > - "History Tracking" — only after the Health Score is computed
 
+## Evidence Before Scoring
+
+First separate established findings, supported tradeoffs, and unresolved questions.
+A direct import, repeated statement, surviving mutation, or omitted file is an
+observation, not by itself an actionable defect. Establish the governing contract
+or maintenance obligation and the causal consequence before assigning severity.
+If the obligation itself is unknown, retain the question and contrasting outcomes
+outside Findings and the scored ledger; a low-severity deduction is not a substitute
+for missing diagnosis. A locally proven violation may still be a finding when its
+production reach is unknown: state the local scope and do not invent deployment
+exposure. Optional design alternatives without an established burden stay unscored.
+
+When a diagnosis depends on behavior or change propagation, retain a compact causal
+witness in the final report: relevant inputs or a specific change, the affected
+call/test path, and expected versus observed or predicted outcomes. A runnable
+snippet or precise reference to existing assertions is sufficient; a list of test
+categories is not. Keep this evidence even when shortening the report. Distinguish
+executed results with tool receipts from predictions derived by inspection. A
+scoring-tool receipt proves score calculation, not that tests or witnesses ran.
+
+## Contract domain and validation duties
+
+Before constructing a defect witness, distinguish caller preconditions from
+callee obligations: record the permitted input domain, promised behavior within
+that domain, and any explicit obligation to reject other inputs. A function
+specified for finite integers need not validate arbitrary JavaScript values unless
+that validation duty is separately established. An out-of-domain counterexample
+cannot justify a defect, coverage deduction or repair. Conversely, do not invent
+an unstated bound to dismiss a witness inside the supplied domain.
+
+If contract wording supports competing readings, explain the readings and the
+fact needed to choose between them; keep the disputed allegation unscored and do
+not broaden behavior by patching it. For test-quality claims, compare the supplied
+baseline with a concrete contract-breaking mutant under the same assertions;
+state predicted results when execution is unavailable. A novel issue is admissible
+only with its own obligation and causal witness, not merely because a checklist
+or frozen expected-finding inventory omits it.
+
+## Severity Calibration
+
+After completing each Iron Law diagnosis, choose severity from its evidenced
+consequence and affected scope, before calculating the score. This calibration
+governs every risk-specific severity guide and numeric smell threshold: a pattern,
+ratio, file count, business label, or missing test is a diagnostic signal, not an
+automatic severity assignment.
+
+- **🔴 Critical:** evidence establishes serious impact and relevant exposure, such
+  as data loss, security compromise, a widespread failure of an essential workflow,
+  or an architectural/test barrier that makes a high-impact change unsafe. State
+  the affected behavior, reach, and evidence in the Consequence. A hypothetical
+  worst case or the risk code alone is insufficient.
+- **🟡 Warning:** a demonstrated behavior defect, meaningful protection gap in
+  changed behavior, or recurring change burden needs correction, but the evidence
+  does not establish Critical impact. A bounded business-rule inconsistency or
+  mocking the subject under test normally belongs here.
+- **🟢 Suggestion:** a supported local maintainability or regression-protection
+  improvement with limited evidenced impact. Missing tests in a small, isolated
+  module alone may justify this tier; do not promote it merely because tests could
+  prevent future bugs. Style preferences without a concrete consequence are not
+  findings.
+
+Distinguish a current defect from an additional recommendation to guard against its
+recurrence. Do not inherit the defect's severity for that recommendation. Conversely,
+do not downgrade an evidenced high-impact condition merely because its code is short.
+If impact evidence is missing, state the limitation and use the lowest tier supported
+by what was inspected; do not invent production scale, release exposure, or urgency.
+State the selected tier explicitly in every finding's title using the literal English
+word `Critical`, `Warning`, or `Suggestion`, even when the report is localized.
+Emoji, color, a priority code, or ordering alone is not a severity label. Explain
+the impact and scope supporting that tier in the Consequence; do not infer them
+from the label. Check each finding's title, severity heading, emoji, prose, and
+score deduction for agreement before emitting the report.
+
+Apply an explicit project `severity` override after this assessment and identify the
+override when it changes the tier. `strictness` changes deduction weights and framing,
+not the evidence threshold for Critical or the finding's severity.
+
 ## Project Config
 
 Before executing the review, attempt to read `.brooks-lint.yaml` from the project root.
@@ -57,10 +134,10 @@ maturity stages. One of:
 
 See **Health Score Calculation** below for the per-preset deduction weights.
 
-**`sweep`** — Full Sweep only. `max_iterations` (default 3) caps how many
-non-critical re-scan rounds the sweep pipeline runs before it stops and reports
-the remainder as unresolved. Critical findings are exempt from the cap — they
-iterate until resolved or retired. Ignored by every other mode.
+**`sweep`** — Full Sweep only. `max_iterations` (default 3) caps all repair
+rounds, including the initial and Critical-only rounds. Use a positive integer;
+warn and fall back to 3 otherwise. Stop earlier on no progress or a user budget,
+and report the remainder as unresolved. Ignored by every other mode.
 
 **Minimal example:**
 ```yaml
@@ -101,6 +178,18 @@ Use `balanced` for `<preset>` when `strictness` is unset. Include N and M even i
 Omit this line if no config file was found.
 
 ---
+
+## Runner Capabilities
+
+Follow the runner's declared scope and capabilities before applying auto scope detection.
+A runner that supplies only text cannot read omitted files, run tests, edit code, or
+write history. Do not claim those actions happened. State missing evidence as a
+limitation; an empty input or failed input collection is not a clean review.
+
+The CI runner supports `review` on an actual collected diff only. Other modes need
+an interactive agent with the required project access. API evals may diagnose
+explicitly supplied fixtures with the five read-only modes; they cannot execute
+Full Sweep. All six modes remain available to interactive agents.
 
 ## Auto Scope Detection
 
@@ -144,6 +233,18 @@ book titles, principle and smell names (e.g. "Shotgun Surgery", "Divergent Chang
 and fixed structural headers from the template below (`Findings`, `Summary`,
 `Module Dependency Graph`, `Critical`, `Warning`, `Suggestion`).
 
+**Machine-readable report contract:** Emit one integer score from 0 through 100 on
+the score line. Use `Health Score` for review/audit/debt/test, `Composite Score` for
+health and sweep's final dashboard. Historical sweep reports may use
+`After: N/100`; the parser retains that compatibility. Keep current score labels in English, including when prose is translated. Do not emit a score for
+onboarding, skipped runs, or an incomplete review. Every finding must include its
+risk code in the bold title, an explicit severity, and non-empty Symptom, Source,
+Consequence, and Remedy fields. Include the literal English severity word in each
+bold finding title as below, including standalone, Top Findings, and residual
+entries. Severity headings and matching emoji may accompany the title, but never
+replace its severity word. If no findings remain, say so explicitly;
+do not substitute a score for evidence that the review ran.
+
 ````
 # Brooks-Lint Review
 
@@ -174,7 +275,7 @@ graph TD
 
 ### 🔴 Critical
 
-**[Risk Name] — [Short descriptive title]**
+**[Risk Code] [Risk Name] — [Short descriptive title] (Critical)**
 Symptom: [exactly what was observed in the code]
 Source: [Book title — Principle or Smell name]
 Consequence: [what breaks or gets worse if this is not fixed]
@@ -182,7 +283,7 @@ Remedy: [concrete, specific action]
 
 ### 🟡 Warning
 
-**[Risk Name] — [Short descriptive title]**
+**[Risk Code] [Risk Name] — [Short descriptive title] (Warning)**
 Symptom: ...
 Source: ...
 Consequence: ...
@@ -190,7 +291,7 @@ Remedy: ...
 
 ### 🟢 Suggestion
 
-**[Risk Name] — [Short descriptive title]**
+**[Risk Code] [Risk Name] — [Short descriptive title] (Suggestion)**
 Symptom: ...
 Source: ...
 Consequence: ...
@@ -259,6 +360,9 @@ downgraded to info in future runs. Entry fields: `risk` (code), `pattern` (file 
 
 **Suppress matching at scan time:** for each `suppress:` entry, match `risk` code and file `pattern` against findings.
 - Both match → downgrade to info (not counted in Health Score, shown under collapsed "Suppressed" section).
+- Render that section as `<details><summary>Suppressed</summary>` followed by the
+  suppressed entries and a closing `</details>`. Do not nest details blocks.
+  After the block, give any active findings their own explicit severity heading.
 - `expires` is past → ignore entry, finding resurfaces. Note in Summary: "N suppressed findings have expired and are now active again."
 
 ## Reference Files

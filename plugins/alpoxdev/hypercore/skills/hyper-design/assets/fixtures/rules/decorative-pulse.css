@@ -1,0 +1,2 @@
+.new-badge { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }

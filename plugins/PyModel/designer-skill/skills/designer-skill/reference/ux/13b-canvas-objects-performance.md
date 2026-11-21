@@ -238,7 +238,10 @@ Common in whiteboard apps.
 .sticky-note__content {
   font-size: 16px;
   line-height: 1.4;
-  outline: none;
+}
+.sticky-note__content:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .sticky-note__author {

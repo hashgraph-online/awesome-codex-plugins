@@ -1,0 +1,74 @@
+{
+  "skill_name": "add-usage-credits",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL sells PDF exports. Add prepaid credits: packs are bought through the existing verified payment webhook, an export costs 2 credits, and users can see their balance.",
+      "expected_output": "A credit ledger fed by the verified payment webhook, an export that takes 2 credits in one conditional statement before the work runs, and a balance shown to the user, with tests.",
+      "assertions": [
+        "A migration creates a ledger table for credits with a unique constraint on the kind and reference columns, or extends an existing ledger, and no handler updates a credits counter directly.",
+        "The pack is granted inside the handler of the verified payment event with the order id as the reference, and delivering that event twice raises the balance once.",
+        "The export cost is read from a server-side table, and a cost or credits field in the request body does not change the amount charged.",
+        "The debit is a single UPDATE with the balance condition in its WHERE clause, or runs under a row lock, and the code checks the number of rows changed before the export starts.",
+        "The export handler takes an idempotency key, and the project's tests show that the same key sent twice is charged once and the export runs once.",
+        "The tests include a failing export, after which the balance equals the balance before the request.",
+        "A request from an account with fewer than 2 credits is answered with status 402 and no export is rendered."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our FastAPI service calls a language model and charges credits by tokens used, but only after the response is back. Users with almost no credits start many requests at once and end up far below zero. Fix it.",
+      "expected_output": "Credits reserved before the model is called and settled to the actual token cost afterwards, so that parallel requests cannot spend more than the account holds, with a concurrency test.",
+      "assertions": [
+        "Before the model is called, a reservation row is created and the account's reserved amount rises through one conditional statement that compares balance minus reserved with the bound.",
+        "The reserved amount is computed from the same output limit that is passed to the model call.",
+        "When the model call succeeds, one usage entry is posted for the cost computed from the usage the provider reported, never more than the reserved amount, and the reserved amount falls back.",
+        "When the model call raises or times out with nothing delivered, the reservation is released and the balance is unchanged.",
+        "A second commit or release of the same reservation changes neither the balance nor the reserved amount.",
+        "A scheduled job or command releases open reservations whose expiry time has passed, and a test covers it.",
+        "A test starts several requests in parallel against a balance that covers one bound and asserts that only one model call was made.",
+        "No database transaction is held open while the model call is in flight."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add a monthly allowance of 500 credits to our paid plan in this Laravel app on MySQL. Unused allowance credits expire at the end of the billing period, purchased credits never expire, and allowance credits should be used up first.",
+      "expected_output": "A 500 credit monthly allowance granted once per verified renewal, used before purchased credits, and expired at the end of the period, while purchased credits never expire, with tests.",
+      "assertions": [
+        "The allowance is granted by the handler of the verified renewal event with a reference built from the subscription id and the period, and the same event delivered twice grants once.",
+        "Each positive entry has a grant row with an expiry time, which is empty for purchased credits and the period end for allowance credits.",
+        "A debit lowers the remaining amount of the grants ordered by soonest expiry, with grants that never expire last.",
+        "An expiry job posts one ledger entry per expired grant for its remaining credits, through the same function as every other balance change, and running the job twice posts nothing the second time.",
+        "The ledger insert treats MySQL error 1062 as an entry that is already posted, and does not use INSERT IGNORE.",
+        "The credits endpoint returns the available amount and the amount and date of the next expiry, read from the database at request time.",
+        "For every account in the test database the cached balance equals the sum of its ledger entries after the tests have run."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Next.js app sells AI credits and streams answers from OpenAI's Responses API. Users who close the tab in the middle of an answer are never charged, and when we changed our prices last month, requests that were already running were charged the new price. Fix the metering.",
+      "expected_output": "A reservation priced from the counted prompt and the max output tokens before the call, a price version stored on the reservation, and a settle on the server that runs on every path, including a user who disconnects, with tests.",
+      "assertions": [
+        "Before the OpenAI call, credits are reserved for a bound computed from a prompt token count and the same max_output_tokens value that is passed to the request.",
+        "Prices are read from a table of integer prices with versions, and the reservation row stores the version that the commit later uses.",
+        "The cost is computed from the usage on the response.completed (or response.incomplete) event, with cached and cache-written input tokens taken out of input_tokens and priced separately, and reasoning tokens priced as output.",
+        "The settle runs in a finally block or an equivalent server-side path, so a closed browser connection aborts the provider request and still commits the cost of what was delivered.",
+        "A stream cut without a usage report is charged from the counted prompt and the counted delivered output, never more than the reserved bound.",
+        "A test closes the client connection during a stream and asserts one usage entry and a reserved amount of zero afterwards."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Our Python agent calls Anthropic's Messages API in a loop and runs tools between the calls. One task sometimes uses up a user's whole balance, and users who start several tasks at once end up below zero. Add limits that hold.",
+      "expected_output": "A credit budget per agent run that is reserved before the run starts, steps that take their bound from it with a conditional update, a step limit and a timeout, and a test with parallel runs and parallel steps.",
+      "assertions": [
+        "Each run reserves a capped amount against balance minus reserved with one conditional statement before the first model call.",
+        "Before each model call, the step's bound is taken from the run's budget with a conditional update that compares spent plus held plus the bound with the cap.",
+        "After each step, its cost is added to the run's spent amount in the database, and the run commits that amount once at the end.",
+        "The run has a maximum number of steps and a wall-clock timeout shorter than its reservation's lifetime.",
+        "Output tokens are priced from usage.output_tokens, which includes thinking tokens, and input from input_tokens plus the cache read and cache creation fields at their own prices.",
+        "A test starts several runs in parallel against a balance that covers fewer of them and asserts that the balance never goes below zero."
+      ]
+    }
+  ]
+}

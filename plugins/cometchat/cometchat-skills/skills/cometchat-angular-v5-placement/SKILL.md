@@ -2,14 +2,14 @@
 name: cometchat-angular-v5-placement
 description: "Where CometChat components go in an Angular app — the chat shell layout, thread and details panels, search, routing a chat page, and the mobile one-pane fallback. Triggers: 'add a chat page', 'put chat in my dashboard', 'conversation list beside messages', 'open a thread panel', 'chat route', 'make chat responsive'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat angular placement v5 layout routing panels responsive shell"
 ---
 
-> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.0 verified). Uses only components in the `angular-v5` catalog. The layouts here are built FROM the live task guides — `{DOCS_BASE}/ui-kit/angular/guides/new-chat.md`, `/guides/group-chat.md`, `/guides/threaded-messages.md`, `/guides/search-messages.md`, plus `/angular-conversation`, `/angular-one-to-one-chat`, `/angular-tab-based-chat` and `/api-reference/chat-state-service.md`; base + paths in `cometchat-angular-v5-core/references/docs-map.md`. Fetch layout-specific inputs from the component's `.md` twin rather than reading the installed bundle. **APPEND to the user's app — additive only** (`RULES.md`).
+> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.2 verified). Uses only components in the `angular-v5` catalog. The layouts here are built FROM the live task guides — `{DOCS_BASE}/ui-kit/angular/guides/new-chat.md`, `/guides/group-chat.md`, `/guides/threaded-messages.md`, `/guides/search-messages.md`, plus `/angular-conversation`, `/angular-one-to-one-chat`, `/angular-tab-based-chat` and `/api-reference/chat-state-service.md`; base + paths in `cometchat-angular-v5-core/references/docs-map.md`. Fetch layout-specific inputs from the component's `.md` twin rather than reading the installed bundle. **APPEND to the user's app — additive only** (`RULES.md`).
 
 ## Companion skills (read first)
 - `cometchat-angular-v5-core` — install, credentials, `init→login→render`, and `references/layout.md` for the sizing rules this skill assumes.

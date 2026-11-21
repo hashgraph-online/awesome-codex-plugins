@@ -33,6 +33,7 @@ INITIAL_STATES = {"excited", "ground", "plus"}
 
 @dataclass(frozen=True)
 class SimulationConfig:
+    """Simulation config."""
     solver: str
     initial_state: str
     omega: float
@@ -49,6 +50,7 @@ class SimulationConfig:
 
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "SimulationConfig":
+        """Handle from namespace."""
         solver = str(args.solver)
         if solver not in {"mesolve", "mcsolve"}:
             raise CliError("solver must be mesolve or mcsolve")
@@ -130,14 +132,15 @@ class SimulationConfig:
             raise CliError("atol must be no greater than rtol")
         if (
             config.solver == "mcsolve"
-            and config.decay_rate == 0.0
-            and config.dephasing_rate == 0.0
+            and math.isclose(config.decay_rate, 0.0, rel_tol=0.0, abs_tol=0.0)
+            and math.isclose(config.dephasing_rate, 0.0, rel_tol=0.0, abs_tol=0.0)
         ):
             raise CliError("mcsolve requires at least one nonzero collapse rate")
         return config
 
 
 def _initial_state(qutip: Any, label: str) -> Any:
+    """Handle initial state."""
     excited = qutip.basis(2, 0)
     ground = qutip.basis(2, 1)
     if label == "excited":
@@ -148,6 +151,7 @@ def _initial_state(qutip: Any, label: str) -> Any:
 
 
 def _state_audit(state: Any, tolerance: float) -> dict[str, Any]:
+    """Handle state audit."""
     if state is None:
         return {"available": False}
     if state.isket:
@@ -184,6 +188,7 @@ def _state_audit(state: Any, tolerance: float) -> dict[str, Any]:
 
 
 def _seed_manifest(seeds: Any) -> list[Any] | None:
+    """Handle seed manifest."""
     if seeds is None:
         return None
     manifest: list[Any] = []
@@ -270,7 +275,7 @@ def run_simulation(
         "ground": 0.0,
         "plus": 0.5,
     }[config.initial_state]
-    analytic_applicable = config.drive == 0.0
+    analytic_applicable = math.isclose(config.drive, 0.0, rel_tol=0.0, abs_tol=0.0)
     analytic_population = (
         initial_population * np.exp(-config.decay_rate * times)
         if analytic_applicable
@@ -351,6 +356,7 @@ def run_simulation(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Run a bounded two-level Lindblad or quantum-jump simulation and "
@@ -379,6 +385,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     config = SimulationConfig.from_namespace(args)
     report = run_simulation(config)

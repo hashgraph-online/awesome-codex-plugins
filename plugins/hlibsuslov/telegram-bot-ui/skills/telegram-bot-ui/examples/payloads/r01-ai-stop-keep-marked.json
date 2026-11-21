@@ -1,0 +1,100 @@
+{
+  "scenario": "r01-ai-stop-keep-marked",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48127,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48127,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Searching the sources…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48127,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Telegram added a Stop button to drafts. It is controlled by can_stop."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Telegram added a Stop button to drafts. It is controlled by can_stop."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop keeps the partial draft visible for a short time"
+            },
+            {
+              "type": "footer",
+              "text": "Stopped by you — the answer is incomplete."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Continue",
+                "callback_data": "gen:continue:a1b2c3"
+              },
+              {
+                "text": "Try again",
+                "callback_data": "gen:retry:a1b2c3"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

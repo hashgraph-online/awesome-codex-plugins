@@ -1,0 +1,35 @@
+{
+  "id": "paper-spiral-swirl",
+  "label": "Swirl (Paper Spiral)",
+  "shader": "Spiral",
+  "page": "https://shaders.paper.design/spiral",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Swirl\" preset for Spiral, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.45,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#b3e6d9",
+    "colorFront": "#1a2b4d",
+    "density": 0.2,
+    "distortion": 0,
+    "strokeWidth": 0.5,
+    "strokeTaper": 0,
+    "strokeCap": 0,
+    "noise": 0,
+    "noiseFrequency": 0.3,
+    "softness": 0.5
+  }
+}

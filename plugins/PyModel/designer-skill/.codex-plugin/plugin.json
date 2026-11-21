@@ -1,10 +1,13 @@
 {
   "name": "designer-skill",
-  "version": "0.22.0",
+  "version": "0.27.0",
   "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.",
   "repository": "https://github.com/PyModel/designer-skill",
   "license": "MIT",
-  "author": "PyModel",
+  "author": {
+    "name": "PyModel",
+    "url": "https://github.com/PyModel"
+  },
   "homepage": "https://github.com/PyModel/designer-skill",
   "keywords": [
     "design",
@@ -31,6 +34,13 @@
       "design-system",
       "mcp-server",
       "coding-agent"
+    ],
+    "websiteURL": "https://github.com/PyModel/designer-skill",
+    "privacyPolicyURL": "https://github.com/PyModel/designer-skill/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/PyModel/designer-skill/blob/main/LICENSE",
+    "logo": "./assets/icon.webp",
+    "screenshots": [
+      "./assets/review-and-gate.png"
     ]
   }
 }

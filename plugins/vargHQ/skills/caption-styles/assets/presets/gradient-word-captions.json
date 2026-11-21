@@ -1,0 +1,211 @@
+{
+  "id": "gradient-word-captions",
+  "name": "Gradient-fill word captions",
+  "use": "The spoken word fills with a two-colour gradient (blue to pink by default) inside a dark rounded box while the other words stay white.",
+  "formats": [
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "Poppins",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Poppins",
+      "weights": [
+        800
+      ]
+    },
+    {
+      "family": "Outfit",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Outfit",
+      "weights": [
+        800
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "gradient-word-captions.blue-pink-box",
+      "label": "Blue to pink on dark box",
+      "look": "Active word gradient #5AA9FF→#FF5EDB at 100deg, box #0B0B12 at 82%",
+      "params": {
+        "font_family": "Poppins",
+        "font_weight": 800,
+        "font_size_px": 84,
+        "box_color": "rgba(11,11,18,0.82)",
+        "box_padding_em": [
+          0.18,
+          0.4
+        ],
+        "box_radius_em": 0.36,
+        "text_color": "#FFFFFF",
+        "active_gradient": "linear-gradient(100deg,#5AA9FF 0%,#FF5EDB 100%)",
+        "active_fallback_color": "#FF5EDB",
+        "lead_frames": 1,
+        "words_per_page": [
+          2,
+          4
+        ],
+        "max_width_px": 696
+      },
+      "sources": [
+        8,
+        15,
+        23
+      ]
+    },
+    {
+      "id": "gradient-word-captions.sunset",
+      "label": "Sunset",
+      "look": "Warm gradient for lifestyle and food",
+      "params": {
+        "active_gradient": "linear-gradient(100deg,#FFB347 0%,#FF5E62 100%)",
+        "active_fallback_color": "#FFB347"
+      },
+      "sources": [
+        8
+      ]
+    },
+    {
+      "id": "gradient-word-captions.sweep-fill",
+      "label": "Sweep fill",
+      "look": "Gradient wipes left to right across the word over its duration",
+      "params": {
+        "active_gradient": "linear-gradient(90deg,#5AA9FF 0%,#FF5EDB 50%,#FFFFFF 50%,#FFFFFF 100%)",
+        "background_size": "200% 100%",
+        "sweep": {
+          "from_position": "100% 0",
+          "to_position": "0% 0",
+          "duration": "word",
+          "ease": "none"
+        }
+      },
+      "sources": [
+        20,
+        23
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 9,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 2.3.1 Three Flashes or Below Threshold",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 19,
+      "name": "GreenSock (GSAP) — Eases docs + gsap-core.js 3.12.5",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    },
+    {
+      "n": 20,
+      "name": "Aegisub — ASS override tags",
+      "url": "https://aegisub.org/docs/latest/ass_tags/"
+    },
+    {
+      "n": 21,
+      "name": "MDN — box-decoration-break",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/box-decoration-break"
+    },
+    {
+      "n": 23,
+      "name": "MDN — background-clip",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/background-clip"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    },
+    {
+      "n": 45,
+      "name": "HeyGen HyperFrames registry — Caption components (registry-item.json descriptions)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components"
+    }
+  ]
+}

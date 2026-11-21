@@ -194,6 +194,7 @@ def generate_summary(df: pd.DataFrame, output_file: Path) -> None:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Batch molecular filtering using medchem",
         formatter_class=argparse.RawDescriptionHelpFormatter,

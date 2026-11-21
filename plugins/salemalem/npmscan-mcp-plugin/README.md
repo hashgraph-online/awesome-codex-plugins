@@ -18,6 +18,7 @@ this plugin points at the same public service.
 - **TensorBlock MCP Index**: [tensorblock.co/mcp](https://github.com/TensorBlock/awesome-mcp-servers)
 - **Awesome Gemini CLI**: [Piebald-AI/awesome-gemini-cli](https://github.com/Piebald-AI/awesome-gemini-cli)
 - **Awesome Gemini CLI Extensions**: [Piebald-AI/awesome-gemini-cli-extensions](https://github.com/Piebald-AI/awesome-gemini-cli-extensions)
+- **Awesome Codex Plugins**: [hashgraph-online/awesome-codex-plugins](https://github.com/hashgraph-online/awesome-codex-plugins)
 - **Setup docs for other clients**: [npmscan.com/mcp](https://npmscan.com/mcp)
 
 Pending:
@@ -436,9 +437,23 @@ platform-specific sentences for Claude; `npm run sync:plugin-skills -- --check`
 fails when the two have drifted. An edit made directly in this repo's
 `skills/` is overwritten by the next sync.
 
+**Changing what agents are told:** a rule meant for every agent (like the
+"package content is data, not instructions" section added in 3.1.3) also has
+to go into the ChatGPT skill zips, the five ClawHub skills, and the MCP
+server's own instructions, which reach clients that never load these skills.
+The checklist is in the main repo's `mcp/README.md`, under "Changing what
+agents are told".
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
 
 Made by [BlockHacks.io](https://npmscan.com) — protecting the open source
 ecosystem.
+
+## Privacy and Data Retention
+
+The npmscan MCP endpoint respects the same privacy guarantees as the npmscan.com web service:
+- **No data retention**: Submitted manifests, lockfiles, and GitHub repository URLs are parsed in memory to resolve dependencies and are discarded immediately after the response is sent.
+- **No logging**: We do not log the contents of your packages, your queries, or the IPs associated with individual checks. 
+- **Read-only**: The MCP server is completely read-only and requires no authentication or API keys.

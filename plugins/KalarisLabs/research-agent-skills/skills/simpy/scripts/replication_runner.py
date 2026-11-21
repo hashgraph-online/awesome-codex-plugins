@@ -27,12 +27,14 @@ EXPERIMENT_KEYS = {"confidence", "model", "replications"}
 
 @dataclass(frozen=True)
 class ExperimentConfig:
+    """Experiment config."""
     model: QueueConfig
     replications: int = 20
     confidence: float = 0.95
 
     @classmethod
     def from_mapping(cls, value: dict[str, Any] | None) -> "ExperimentConfig":
+        """Handle from mapping."""
         value = {} if value is None else dict(value)
         validate_keys(
             value, allowed=EXPERIMENT_KEYS, context="replication configuration"
@@ -77,6 +79,7 @@ def _interval_or_unavailable(
     metric: str,
     confidence: float,
 ) -> dict[str, Any]:
+    """Handle interval or unavailable."""
     values = [report["metrics"][metric] for report in reports]
     missing = sum(value is None for value in values)
     if missing:
@@ -157,6 +160,7 @@ def run_experiment(config: ExperimentConfig) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Run 2-1000 deterministic, independent queue replications from an "
@@ -174,6 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

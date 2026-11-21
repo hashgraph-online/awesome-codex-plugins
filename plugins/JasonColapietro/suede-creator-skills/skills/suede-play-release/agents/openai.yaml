@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Google Play Release Skills"
+  short_description: "Google Play delivery with a proven readback"
+  default_prompt: "Use $suede-play-release to upload or promote an Android build on Google Play. Preflight the credential with a real API call that opens and deletes an edit: a new service account returns 403 until the Play Console grants it, and that grant is a Console UI action to hand to the user. Pull before every fastlane command, because fastlane reads the working tree and a stale checkout produces a run that succeeds and does nothing. Write a changelog per locale per versionCode first; a missing one is a silent skip that serves the previous version's notes. Verify the AAB rather than the source tree: signature, versionCode in the merged manifest, and a hash match for any changed asset. Upload to a testing track, then promote that exact versionCode instead of re-uploading, which Play rejects. Finish by reading the track back from the Play API and reporting versionCode, status and userFraction, because a green fastlane summary cannot tell you whether the release landed staged or completed."
+policy:
+  allow_implicit_invocation: true

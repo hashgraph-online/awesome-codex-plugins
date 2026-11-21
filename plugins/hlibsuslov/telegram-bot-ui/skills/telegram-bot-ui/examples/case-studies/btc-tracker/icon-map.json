@@ -1,0 +1,22 @@
+{
+  "bot": "btc-tracker (github.com/hlibsuslov/btc-tracker, commit 857b8bd)",
+  "source": "CUSTOM_EMOJI_IDS in bot.py; ids supplied by the bot owner, set names from the code comments (not re-resolved via getCustomEmojiStickers)",
+  "icons": {
+    "btc":           {"id": "5438577856969983536", "set": null,                       "fallback": "₿"},
+    "key":           {"id": "6005570495603282482", "set": "TgAndroidIcons",           "family": "Telegram Android", "fallback": "🔑"},
+    "done":          {"id": "5287306183932140156", "set": "ninecandles",              "fallback": "✅"},
+    "list":          {"id": "5258389041006518073", "set": "tgmacicons",               "family": "Telegram iOS/macOS", "fallback": "💼"},
+    "match":         {"id": "5870892901159932239", "set": "UnigramIcons",             "family": "Unigram", "fallback": "🔄"},
+    "add":           {"id": "5897850551156084824", "set": null,                       "fallback": "➕"},
+    "search":        {"id": "5429571366384842791", "set": "tgmacicons",               "family": "Telegram iOS/macOS", "fallback": "🔍"},
+    "rename":        {"id": "5787344001862471785", "set": "DMJUnigramAnimationEmoji", "family": "Unigram animated", "animated": true, "fallback": "✏️"},
+    "back":          {"id": "5805693412116008721", "set": "Balticbookworms",          "fallback": "←"},
+    "settings":      {"id": "5258096772776991776", "set": "tgmacicons",               "family": "Telegram iOS/macOS", "fallback": "⚙️"},
+    "language":      {"id": "5776233299424843260", "set": "tgiosicons",               "family": "Telegram iOS/macOS", "fallback": "🌐"},
+    "notifications": {"id": "5260535596941582167", "set": "tgmacicons",               "family": "Telegram iOS/macOS", "fallback": "🔔"},
+    "delete":        {"id": "5870875489362513438", "set": "UnigramIcons",             "family": "Unigram", "fallback": "🗑"}
+  },
+  "text_prefixes": {
+    "list": "💼", "key": "🔑", "settings": "⚙️", "notifications": "🔔", "search": "🔎", "back": "🔙", "delete": "🗑", "done": "✅"
+  }
+}

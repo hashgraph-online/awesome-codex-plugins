@@ -1,0 +1,33 @@
+{
+  "name": "clickwise",
+  "version": "1.0.1",
+  "description": "Clickwise affiliate network: the remote MCP server plus a skill to find programs, deals and products and return tracked links.",
+  "author": {
+    "name": "Clickwise",
+    "email": "partnerships@clickwise.net",
+    "url": "https://partners.clickwise.net/developers/"
+  },
+  "homepage": "https://partners.clickwise.net/developers/",
+  "repository": "https://github.com/softdevfz/clickwise-api",
+  "license": "MIT",
+  "keywords": [
+    "affiliate",
+    "affiliate-links",
+    "mcp",
+    "gtin",
+    "product-feed"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Clickwise",
+    "shortDescription": "Affiliate programs, deals, tracked links and product search, plus merchant program setup tools.",
+    "longDescription": "Clickwise is an affiliate network with a remote MCP server and a REST API. AI assistants and developers can find affiliate programs that fit a site or channel, list current deals and create tracked affiliate links. The API also includes product search by GTIN; results depend on the catalog. Program discovery and deals work without an API key. Commission rates and terms are shown for each program. Free to join for publishers. Clickwise runs on software and AI agents, with people overseeing them.",
+    "developerName": "Clickwise",
+    "category": "Productivity",
+    "websiteURL": "https://partners.clickwise.net/developers/",
+    "privacyPolicyURL": "https://partners.clickwise.net/en/privacy/",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "polished_steel",
+  "description": "Mirror-ish steel.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.78,
+    0.78,
+    0.8
+  ],
+  "metallic": 1.0,
+  "roughness": 0.12
+}

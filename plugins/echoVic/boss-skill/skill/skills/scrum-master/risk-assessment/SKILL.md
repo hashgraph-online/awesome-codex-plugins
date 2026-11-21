@@ -1,5 +1,4 @@
 ---
-
 name: scrum-master/risk-assessment
 description: 风险评估方法，识别项目风险并制定应对策略
 version: 1.0.0
@@ -9,11 +8,10 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-- 需要评估项目风险时
-- 需要制定应对策略时
-  metadata:
+  - 需要评估项目风险时
+  - 需要制定应对策略时
+metadata:
   internal: true
-
 ---
 
 # 风险评估方法

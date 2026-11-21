@@ -1,5 +1,4 @@
 ---
-
 name: devops/deploy-flyio
 description: Fly.io 部署方法论，使用 flyctl CLI 通过 Docker 部署全球边缘后端服务，支持任意语言、PostgreSQL、Redis、Volumes
 version: 1.0.0
@@ -8,14 +7,13 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-- shared/tech-stack-detection
-  triggers:
-- 需要部署到 Fly.io 时
-- 项目使用 Docker 容器部署时
-- 需要全球边缘低延迟后端时
-  metadata:
+  - shared/tech-stack-detection
+triggers:
+  - 需要部署到 Fly.io 时
+  - 项目使用 Docker 容器部署时
+  - 需要全球边缘低延迟后端时
+metadata:
   internal: true
-
 ---
 
 # Fly.io 部署
@@ -49,6 +47,7 @@ dependencies:
 Fly.io 是 **Docker 优先**的平台，项目必须有 `Dockerfile`。
 
 **多阶段构建示例（Node.js）**：
+
 ```dockerfile
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -68,6 +67,7 @@ CMD ["node", "dist/server.js"]
 ```
 
 **Python 示例**：
+
 ```dockerfile
 FROM python:3.12-slim
 WORKDIR /app
@@ -79,6 +79,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 **Go 示例**：
+
 ```dockerfile
 FROM golang:1.22-alpine AS builder
 WORKDIR /app
@@ -163,6 +164,7 @@ fly logs
 ```
 
 **部署输出示例**：
+
 ```
 ==> Verifying app config
 Validating /path/to/fly.toml
@@ -295,6 +297,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `FLY_API_TOKEN`：Fly.io API Token（Account → Access Tokens）
 
 ## 项目类型适配

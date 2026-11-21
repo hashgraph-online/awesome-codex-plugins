@@ -1,0 +1,213 @@
+{
+  "id": "block-glitch-title",
+  "name": "Block glitch title",
+  "use": "A title that snaps in through a heavy block glitch, crashes, and settles into clean type.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "Space Grotesk",
+      "weights": [
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Space+Grotesk"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "block-glitch-title.black",
+      "label": "On black",
+      "look": "Hard glitch on black, white title.",
+      "params": {
+        "burst_on_f": [
+          2,
+          4
+        ],
+        "burst_off_f": [
+          3,
+          8
+        ],
+        "slices_per_burst": [
+          3,
+          7
+        ],
+        "slice_heights_px": [
+          16,
+          32,
+          48,
+          64
+        ],
+        "slice_shift_px": [
+          24,
+          160
+        ],
+        "rgb_split_px": [
+          6,
+          14
+        ],
+        "noise_block_px": 8,
+        "crash": {
+          "t_s": 1.3,
+          "frames": 2,
+          "mode": "invert"
+        },
+        "settle": {
+          "frames": 12,
+          "split_px": [
+            6,
+            0
+          ],
+          "ease": "expo.out"
+        },
+        "seed": "mulberry32(seed + frame)",
+        "sync": "slices, split, flicker and audio share one burst schedule",
+        "font": "Space Grotesk 700 caps",
+        "size": "10-13% H",
+        "tracking_em": 0.04,
+        "text": "#F5F5F5",
+        "bg": "#000000",
+        "channel_colors": [
+          "#FF0040",
+          "#00E5FF"
+        ],
+        "timeline_s": {
+          "anticipation": [
+            0,
+            0.4
+          ],
+          "heavy": [
+            0.4,
+            1.3
+          ],
+          "crash": [
+            1.3,
+            1.37
+          ],
+          "settle": [
+            1.37,
+            1.77
+          ],
+          "hold": [
+            1.77,
+            5.5
+          ],
+          "exit": [
+            5.5,
+            6.0
+          ]
+        },
+        "font_alt": "JetBrains Mono 800 caps"
+      },
+      "sources": [
+        24,
+        25,
+        23,
+        37,
+        44,
+        7
+      ]
+    },
+    {
+      "id": "block-glitch-title.transparent",
+      "label": "Transparent",
+      "look": "Same glitch confined to the title box, over footage, alpha output.",
+      "params": {
+        "slice_region": "text bbox + 15%",
+        "full_frame_invert": false,
+        "rgb_split_px": [
+          4,
+          10
+        ],
+        "output": "alpha (ProRes 4444 / VP9 alpha)"
+      },
+      "sources": [
+        25,
+        23
+      ]
+    },
+    {
+      "id": "block-glitch-title.stepped",
+      "label": "Stepped",
+      "look": "Glitch layer posterized to 12 fps for an anime feel; clean type on ones.",
+      "params": {
+        "glitch_layer_quantize": "floor(t*12)/12",
+        "type_layer": "full frame rate"
+      },
+      "sources": [
+        40,
+        45
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 7,
+      "name": "Matthew Butterick — Practical Typography: Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 14,
+      "name": "Jason Boone — How to make lower third titles that don't suck (Frame.io Insider)",
+      "url": "https://blog.frame.io/2017/12/04/create-lower-thirds-titles-that-dont-suck/"
+    },
+    {
+      "n": 22,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 23,
+      "name": "Wikipedia — Macroblock",
+      "url": "https://en.wikipedia.org/wiki/Macroblock"
+    },
+    {
+      "n": 24,
+      "name": "Andrew Kramer — Colorful Glitch FX, 100% AE (Video Copilot)",
+      "url": "https://www.videocopilot.net/tutorials/colorful_glitch_fx"
+    },
+    {
+      "n": 25,
+      "name": "Rich Young — Glitches in After Effects (ProVideo Coalition)",
+      "url": "https://www.provideocoalition.com/glitches-in-after-effects/"
+    },
+    {
+      "n": 37,
+      "name": "@tranmautritam (Tran Mau Tri Tam)",
+      "url": "https://x.com/tranmautritam/status/2079207566526259654"
+    },
+    {
+      "n": 40,
+      "name": "@ohey_official (OHEY | Top Effects)",
+      "url": "https://x.com/ohey_official/status/1846868254595469793"
+    },
+    {
+      "n": 44,
+      "name": "@twoclipping",
+      "url": "https://x.com/twoclipping/status/2103273003555402193"
+    },
+    {
+      "n": 45,
+      "name": "@niqteh (niqte)",
+      "url": "https://x.com/niqteh/status/2079011658467266574"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "id": "paper-liquid-metal-default",
+  "label": "Default (Paper LiquidMetal)",
+  "shader": "LiquidMetal",
+  "page": "https://shaders.paper.design/liquid-metal",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for LiquidMetal, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#AAAAAC",
+    "colorTint": "#ffffff",
+    "distortion": 0.07,
+    "repetition": 2,
+    "shiftRed": 0.3,
+    "shiftBlue": 0.3,
+    "contour": 0.4,
+    "softness": 0.1,
+    "angle": 70,
+    "shape": "diamond",
+    "image": ""
+  }
+}

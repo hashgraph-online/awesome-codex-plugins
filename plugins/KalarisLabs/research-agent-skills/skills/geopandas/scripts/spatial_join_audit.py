@@ -34,6 +34,7 @@ ABSOLUTE_MAX_PAIRS = 10_000_000
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit a bounded local binary-predicate or nearest spatial join. "
@@ -103,6 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _work_frame(frame: Any, row_column: str, attributes: list[str]) -> Any:
+    """Handle work frame."""
     active = frame.geometry.name
     columns = [active, *attributes]
     work = frame.loc[:, columns].copy()
@@ -113,6 +115,7 @@ def _work_frame(frame: Any, row_column: str, attributes: list[str]) -> Any:
 
 
 def _counter_summary(counter: Counter[int], total_features: int) -> dict[str, int]:
+    """Handle counter summary."""
     matched = len(counter)
     return {
         "matched_features": matched,
@@ -137,6 +140,7 @@ def _run_chunked_join(
     attributes: list[str],
     max_pairs: int,
 ) -> dict[str, Any]:
+    """Run chunked join."""
     try:
         import geopandas as gpd
     except ImportError as exc:
@@ -195,7 +199,93 @@ def _run_chunked_join(
     }
 
 
+def _check_crs(left: Any, right: Any, blockers: list[str]) -> bool:
+    """Append CRS blockers and return whether both CRS values are equivalent."""
+    try:
+        from pyproj import CRS
+    except ImportError as exc:
+        raise CliError("pyproj is required for CRS comparison") from exc
+    if left.crs is None or right.crs is None:
+        blockers.append("both inputs require explicit CRS metadata")
+        return False
+    same_crs = CRS.from_user_input(left.crs).equals(CRS.from_user_input(right.crs))
+    if not same_crs:
+        blockers.append("input CRS values are not equivalent")
+    return same_crs
+
+
+def _check_inputs(
+    args: argparse.Namespace, left: Any, right: Any, left_state: Any, right_state: Any
+) -> tuple[bool, list[str]]:
+    """Collect input-level blockers (CRS, geometry validity, attribute columns)."""
+    blockers: list[str] = []
+    same_crs = _check_crs(left, right, blockers)
+    if left_state["invalid"] or right_state["invalid"]:
+        blockers.append("invalid input geometries require separate repair review")
+    for attribute in args.on_attribute:
+        if attribute not in left.columns or attribute not in right.columns:
+            blockers.append("an on_attribute column is absent from one input")
+            break
+    return same_crs, blockers
+
+
+def _predicate_blockers(
+    args: argparse.Namespace, left: Any, right: Any, blockers: list[str]
+) -> float | None:
+    """Validate predicate-mode options, appending blockers; return the distance."""
+    distance: float | None = None
+    if args.exclusive or args.max_distance is not None:
+        blockers.append("--exclusive/--max-distance apply only to nearest mode")
+    if args.predicate == "dwithin":
+        if args.distance is None:
+            blockers.append("predicate dwithin requires --distance")
+        else:
+            distance = finite_number(args.distance, name="distance")
+            if distance <= 0:
+                blockers.append("distance must be greater than zero")
+    elif args.distance is not None:
+        blockers.append("--distance is valid only for predicate dwithin")
+    if not blockers:
+        valid = set(left.sindex.valid_query_predicates) & set(
+            right.sindex.valid_query_predicates
+        )
+        if args.predicate not in valid:
+            blockers.append("predicate is not supported by both spatial indexes")
+    return distance
+
+
+def _nearest_blockers(args: argparse.Namespace, blockers: list[str]) -> float | None:
+    """Validate nearest-mode options, appending blockers; return the max distance."""
+    max_distance: float | None = None
+    if args.distance is not None or args.on_attribute:
+        blockers.append("--distance/--on-attribute apply only to predicate mode")
+    if args.max_distance is not None:
+        max_distance = finite_number(args.max_distance, name="max_distance")
+        if max_distance <= 0:
+            blockers.append("max_distance must be greater than zero")
+    return max_distance
+
+
+def _audit_warnings(args: argparse.Namespace, left_state: Any, right_state: Any) -> list[str]:
+    """Build the fixed and state-dependent warning list for the report."""
+    warnings = [
+        "intersects includes boundary contact; contains/within and covers/covered_by differ at boundaries.",
+        "All GeoPandas joins are planar and ignore Z.",
+        "Declare expected cardinality separately and compare it with this aggregate audit.",
+    ]
+    if args.mode == "nearest":
+        warnings.append(
+            "Nearest returns every equidistant match and has no k parameter."
+        )
+    if left_state["missing"] or left_state["empty"]:
+        warnings.append("Missing/empty left geometries remain unmatched.")
+    if right_state["missing"] or right_state["empty"]:
+        warnings.append("Missing/empty right geometries remain unmatched.")
+    return warnings
+
+
 def audit(args: argparse.Namespace) -> dict[str, Any]:
+    """Run the bounded spatial join audit and return the JSON report."""
     max_features = bounded_limit(
         args.max_features,
         name="max_features",
@@ -234,52 +324,14 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
     left_id = duplicate_column_state(left, args.left_id)
     right_id = duplicate_column_state(right, args.right_id)
 
-    try:
-        from pyproj import CRS
-    except ImportError as exc:
-        raise CliError("pyproj is required for CRS comparison") from exc
-    blockers: list[str] = []
-    same_crs = False
-    if left.crs is None or right.crs is None:
-        blockers.append("both inputs require explicit CRS metadata")
-    else:
-        same_crs = CRS.from_user_input(left.crs).equals(CRS.from_user_input(right.crs))
-        if not same_crs:
-            blockers.append("input CRS values are not equivalent")
-    if left_state["invalid"] or right_state["invalid"]:
-        blockers.append("invalid input geometries require separate repair review")
-    for attribute in args.on_attribute:
-        if attribute not in left.columns or attribute not in right.columns:
-            blockers.append("an on_attribute column is absent from one input")
-            break
+    same_crs, blockers = _check_inputs(args, left, right, left_state, right_state)
 
     distance: float | None = None
     max_distance: float | None = None
     if args.mode == "predicate":
-        if args.exclusive or args.max_distance is not None:
-            blockers.append("--exclusive/--max-distance apply only to nearest mode")
-        if args.predicate == "dwithin":
-            if args.distance is None:
-                blockers.append("predicate dwithin requires --distance")
-            else:
-                distance = finite_number(args.distance, name="distance")
-                if distance <= 0:
-                    blockers.append("distance must be greater than zero")
-        elif args.distance is not None:
-            blockers.append("--distance is valid only for predicate dwithin")
-        if not blockers:
-            valid = set(left.sindex.valid_query_predicates) & set(
-                right.sindex.valid_query_predicates
-            )
-            if args.predicate not in valid:
-                blockers.append("predicate is not supported by both spatial indexes")
+        distance = _predicate_blockers(args, left, right, blockers)
     else:
-        if args.distance is not None or args.on_attribute:
-            blockers.append("--distance/--on-attribute apply only to predicate mode")
-        if args.max_distance is not None:
-            max_distance = finite_number(args.max_distance, name="max_distance")
-            if max_distance <= 0:
-                blockers.append("max_distance must be greater than zero")
+        max_distance = _nearest_blockers(args, blockers)
 
     geographic = bool(left.crs is not None and left.crs.is_geographic)
     if args.mode == "nearest" and geographic:
@@ -301,19 +353,7 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
             max_pairs=max_pairs,
         )
 
-    warnings = [
-        "intersects includes boundary contact; contains/within and covers/covered_by differ at boundaries.",
-        "All GeoPandas joins are planar and ignore Z.",
-        "Declare expected cardinality separately and compare it with this aggregate audit.",
-    ]
-    if args.mode == "nearest":
-        warnings.append(
-            "Nearest returns every equidistant match and has no k parameter."
-        )
-    if left_state["missing"] or left_state["empty"]:
-        warnings.append("Missing/empty left geometries remain unmatched.")
-    if right_state["missing"] or right_state["empty"]:
-        warnings.append("Missing/empty right geometries remain unmatched.")
+    warnings = _audit_warnings(args, left_state, right_state)
 
     return {
         "ok": not blockers,
@@ -355,6 +395,7 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = audit(args)

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "maqami-travel",
+  "version": "1.0.9",
+  "description": "Official MCP server for MAQAMI, a hotel and flight booking platform with 3M+ hotels. Search hotels and flights, read hotel details, then send the customer a secure checkout link on book.maqami.co. Remote Streamable HTTP endpoint, no API key required.",
+  "author": {
+    "name": "MAQAMI",
+    "email": "info@maqami.co",
+    "url": "https://maqami.co"
+  },
+  "homepage": "https://maqami.co",
+  "repository": "https://github.com/negm17111995/mcp-server",
+  "license": "MIT",
+  "keywords": ["travel", "hotel", "hotels", "flight", "flights", "booking", "trip"]
+}

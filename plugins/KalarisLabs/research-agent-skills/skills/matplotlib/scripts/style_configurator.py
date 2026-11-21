@@ -25,23 +25,37 @@ from matplotlib.gridspec import GridSpec
 import argparse
 
 
+# rcParams keys used more than once below
+RC_FIGSIZE = 'figure.figsize'
+RC_FIGURE_DPI = 'figure.dpi'
+RC_SAVEFIG_DPI = 'savefig.dpi'
+RC_FONT_SIZE = 'font.size'
+RC_LABELSIZE = 'axes.labelsize'
+RC_TITLESIZE = 'axes.titlesize'
+RC_LINEWIDTH = 'lines.linewidth'
+RC_AXES_GRID = 'axes.grid'
+RC_GRID_ALPHA = 'grid.alpha'
+X_AXIS_LABEL = 'X axis'
+Y_AXIS_LABEL = 'Y axis'
+
+
 # Predefined style presets
 STYLE_PRESETS = {
     'publication': {
-        'figure.figsize': (8, 6),
-        'figure.dpi': 100,
-        'savefig.dpi': 300,
+        RC_FIGSIZE: (8, 6),
+        RC_FIGURE_DPI: 100,
+        RC_SAVEFIG_DPI: 300,
         'savefig.bbox': 'tight',
         'font.family': 'sans-serif',
         'font.sans-serif': ['Arial', 'Helvetica'],
-        'font.size': 11,
-        'axes.labelsize': 12,
-        'axes.titlesize': 14,
+        RC_FONT_SIZE: 11,
+        RC_LABELSIZE: 12,
+        RC_TITLESIZE: 14,
         'axes.linewidth': 1.5,
-        'axes.grid': False,
+        RC_AXES_GRID: False,
         'axes.spines.top': False,
         'axes.spines.right': False,
-        'lines.linewidth': 2,
+        RC_LINEWIDTH: 2,
         'lines.markersize': 8,
         'xtick.labelsize': 10,
         'ytick.labelsize': 10,
@@ -57,31 +71,31 @@ STYLE_PRESETS = {
         'legend.edgecolor': 'black',
     },
     'presentation': {
-        'figure.figsize': (12, 8),
-        'figure.dpi': 100,
-        'savefig.dpi': 150,
-        'font.size': 16,
-        'axes.labelsize': 20,
-        'axes.titlesize': 24,
+        RC_FIGSIZE: (12, 8),
+        RC_FIGURE_DPI: 100,
+        RC_SAVEFIG_DPI: 150,
+        RC_FONT_SIZE: 16,
+        RC_LABELSIZE: 20,
+        RC_TITLESIZE: 24,
         'axes.linewidth': 2,
-        'lines.linewidth': 3,
+        RC_LINEWIDTH: 3,
         'lines.markersize': 12,
         'xtick.labelsize': 16,
         'ytick.labelsize': 16,
         'legend.fontsize': 16,
-        'axes.grid': True,
-        'grid.alpha': 0.3,
+        RC_AXES_GRID: True,
+        RC_GRID_ALPHA: 0.3,
     },
     'web': {
-        'figure.figsize': (10, 6),
-        'figure.dpi': 96,
-        'savefig.dpi': 150,
-        'font.size': 11,
-        'axes.labelsize': 12,
-        'axes.titlesize': 14,
-        'lines.linewidth': 2,
-        'axes.grid': True,
-        'grid.alpha': 0.2,
+        RC_FIGSIZE: (10, 6),
+        RC_FIGURE_DPI: 96,
+        RC_SAVEFIG_DPI: 150,
+        RC_FONT_SIZE: 11,
+        RC_LABELSIZE: 12,
+        RC_TITLESIZE: 14,
+        RC_LINEWIDTH: 2,
+        RC_AXES_GRID: True,
+        RC_GRID_ALPHA: 0.2,
         'grid.linestyle': '--',
     },
     'dark': {
@@ -94,36 +108,36 @@ STYLE_PRESETS = {
         'xtick.color': 'white',
         'ytick.color': 'white',
         'grid.color': 'gray',
-        'grid.alpha': 0.3,
-        'axes.grid': True,
+        RC_GRID_ALPHA: 0.3,
+        RC_AXES_GRID: True,
         'legend.facecolor': '#1e1e1e',
         'legend.edgecolor': 'white',
         'savefig.facecolor': '#1e1e1e',
     },
     'minimal': {
-        'figure.figsize': (10, 6),
+        RC_FIGSIZE: (10, 6),
         'axes.spines.top': False,
         'axes.spines.right': False,
         'axes.spines.left': False,
         'axes.spines.bottom': False,
-        'axes.grid': False,
+        RC_AXES_GRID: False,
         'xtick.bottom': True,
         'ytick.left': True,
         'axes.axisbelow': True,
-        'lines.linewidth': 2.5,
-        'font.size': 12,
+        RC_LINEWIDTH: 2.5,
+        RC_FONT_SIZE: 12,
     }
 }
 
 
 def generate_preview_data():
     """Generate sample data for style preview."""
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
     x = np.linspace(0, 10, 100)
-    y1 = np.sin(x) + 0.1 * np.random.randn(100)
-    y2 = np.cos(x) + 0.1 * np.random.randn(100)
-    scatter_x = np.random.randn(100)
-    scatter_y = 2 * scatter_x + np.random.randn(100)
+    y1 = np.sin(x) + 0.1 * rng.standard_normal(100)
+    y2 = np.cos(x) + 0.1 * rng.standard_normal(100)
+    scatter_x = rng.standard_normal(100)
+    scatter_y = 2 * scatter_x + rng.standard_normal(100)
     categories = ['A', 'B', 'C', 'D', 'E']
     bar_values = [25, 40, 30, 55, 45]
 
@@ -148,8 +162,8 @@ def create_style_preview(style_dict=None):
     ax1 = fig.add_subplot(gs[0, 0])
     ax1.plot(data['x'], data['y1'], label='sin(x)', marker='o', markevery=10)
     ax1.plot(data['x'], data['y2'], label='cos(x)', linestyle='--')
-    ax1.set_xlabel('X axis')
-    ax1.set_ylabel('Y axis')
+    ax1.set_xlabel(X_AXIS_LABEL)
+    ax1.set_ylabel(Y_AXIS_LABEL)
     ax1.set_title('Line Plot')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
@@ -159,8 +173,8 @@ def create_style_preview(style_dict=None):
     colors = np.sqrt(data['scatter_x']**2 + data['scatter_y']**2)
     scatter = ax2.scatter(data['scatter_x'], data['scatter_y'],
                          c=colors, cmap='viridis', alpha=0.6, s=50)
-    ax2.set_xlabel('X axis')
-    ax2.set_ylabel('Y axis')
+    ax2.set_xlabel(X_AXIS_LABEL)
+    ax2.set_ylabel(Y_AXIS_LABEL)
     ax2.set_title('Scatter Plot')
     cbar = plt.colorbar(scatter, ax=ax2)
     cbar.set_label('Distance')
@@ -187,8 +201,8 @@ def create_style_preview(style_dict=None):
     ax4.plot(data['x'], data['y2'], label='Signal 2', linewidth=2)
     ax4.fill_between(data['x'], data['y2'] - 0.2, data['y2'] + 0.2,
                      alpha=0.3)
-    ax4.set_xlabel('X axis')
-    ax4.set_ylabel('Y axis')
+    ax4.set_xlabel(X_AXIS_LABEL)
+    ax4.set_ylabel(Y_AXIS_LABEL)
     ax4.set_title('Time Series with Uncertainty')
     ax4.legend()
     ax4.grid(True, alpha=0.3)
@@ -311,24 +325,24 @@ def interactive_mode():
         if choice == '1':
             width = input("  Figure width (inches, default 10): ").strip() or '10'
             height = input("  Figure height (inches, default 6): ").strip() or '6'
-            style_dict['figure.figsize'] = (float(width), float(height))
+            style_dict[RC_FIGSIZE] = (float(width), float(height))
 
         elif choice == '2':
             base = input("  Base font size (default 12): ").strip() or '12'
-            style_dict['font.size'] = float(base)
-            style_dict['axes.labelsize'] = float(base) + 2
-            style_dict['axes.titlesize'] = float(base) + 4
+            style_dict[RC_FONT_SIZE] = float(base)
+            style_dict[RC_LABELSIZE] = float(base) + 2
+            style_dict[RC_TITLESIZE] = float(base) + 4
 
         elif choice == '3':
             lw = input("  Line width (default 2): ").strip() or '2'
-            style_dict['lines.linewidth'] = float(lw)
+            style_dict[RC_LINEWIDTH] = float(lw)
 
         elif choice == '4':
             grid = input("  Enable grid? (y/n): ").strip().lower()
-            style_dict['axes.grid'] = grid == 'y'
-            if style_dict['axes.grid']:
+            style_dict[RC_AXES_GRID] = grid == 'y'
+            if style_dict[RC_AXES_GRID]:
                 alpha = input("  Grid transparency (0-1, default 0.3): ").strip() or '0.3'
-                style_dict['grid.alpha'] = float(alpha)
+                style_dict[RC_GRID_ALPHA] = float(alpha)
 
         elif choice == '5':
             print("  Theme options: 1=Light, 2=Dark")

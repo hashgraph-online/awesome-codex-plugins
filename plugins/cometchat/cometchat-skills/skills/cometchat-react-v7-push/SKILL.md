@@ -2,7 +2,7 @@
 name: cometchat-react-v7-push
 description: "Add web push notifications to a React app with the CometChat v7 SDK — FCM via Firebase, registered through CometChatNotifications, with the Dashboard FCM provider as the sender. THIN + docs-first: the full setup is FETCHED from CometChat's notifications docs; this skill bakes only the hardening deltas + the token lifecycle. Triggers: 'add push notifications', 'web push', 'FCM push', 'notify on new message when app closed', 'cometchat push react'."
 license: "MIT"
-compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.1.x); @cometchat/chat-sdk-javascript ^4.1.9 (ships CometChatNotifications); firebase ^10.3.1 (FCM web SDK)"
+compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.2.x); @cometchat/chat-sdk-javascript ^4.1.9 (ships CometChatNotifications); firebase ^10.3.1 (FCM web SDK)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -22,7 +22,7 @@ metadata:
 2. **Dashboard prerequisite:** set up the **FCM provider in the CometChat Dashboard** (it is the SENDER). Self-hosted VAPID / a custom webhook is NOT the v7 web path. Confirm this is done or push delivers nothing.
 3. **Install:** `npm i firebase@^10.3.1` (the FCM web SDK). `CometChatNotifications` ships with the already-installed `@cometchat/chat-sdk-javascript` — no extra CometChat package.
 
-## Baked SDK symbols (verified vs installed 7.1.x SDK — do NOT guess these)
+## Baked SDK symbols (verified vs installed SDK 4.2.1 — do NOT guess these)
 ```ts
 import { CometChat, CometChatNotifications } from "@cometchat/chat-sdk-javascript";
 // Register AFTER login, with the FCM token you got from firebase getToken():
@@ -50,4 +50,4 @@ await CometChatNotifications.unregisterPushToken();
 Static verification only: the SDK symbols resolve + the app compiles + the SW registers (check the browser Application → Service Workers). **Live delivery is a manual, device-dependent check** (real HTTPS origin + a registered SW + the Dashboard FCM provider + `granted` permission → send a message with the app backgrounded). This is the one skill whose live gate is inherently **blocked-external** — do NOT claim delivery works from a build alone.
 
 ## Close (after it builds)
-End with the shared 3-option selectable menu and WAIT for the pick — **① add another feature** (suggest a few not-yet-wired) · **② customize theming** · **③ test it manually** (stop; let the user check). Same contract as the `cometchat-react-v7-core` close (`RULES.md` §19).
+End with the shared 3-option selectable menu and WAIT for the pick — **(1) add another feature** (suggest a few not-yet-wired) · **(2) customize theming** · **(3) test it manually** (stop; let the user check). Same contract as the `cometchat-react-v7-core` close (`RULES.md` §19).

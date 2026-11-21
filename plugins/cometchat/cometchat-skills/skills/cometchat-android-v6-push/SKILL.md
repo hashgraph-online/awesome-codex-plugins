@@ -2,7 +2,7 @@
 name: cometchat-android-v6-push
 description: "Add push notifications (FCM) to an Android v6 CometChat app — Firebase + Dashboard provider setup, the push dependency, token registration after login, token refresh, unregister on logout, manifest/service wiring, badge count and notification navigation. THIN + docs-first: fetches the notifications docs for exact payloads. Triggers: 'add push notifications android cometchat', 'fcm cometchat android', 'notifications not arriving android', 'badge count android'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x); com.cometchat:chat-sdk-android ^5; Firebase BoM (firebase-messaging)"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x); com.cometchat:chat-sdk-android ^5; Firebase BoM (firebase-messaging)"
 metadata:
   author: "CometChat"
   version: "1.0.0"

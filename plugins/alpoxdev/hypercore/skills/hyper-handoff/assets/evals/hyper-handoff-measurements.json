@@ -1,0 +1,4038 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-10",
+  "subject": "hyper-handoff",
+  "commit": {
+    "base": "daf0b2d5",
+    "baseRef": "main",
+    "current": "c479eead",
+    "currentRef": "dev",
+    "note": "Runs 1 and 2 and both cold reads were made on the skill text at main daf0b2d5. Run 3 was made on the text at dev f866f9d8, which includes commit a7d4efb3 and the review fixes. Run 4 was made on the text at 5ac4a9db, the wording fix for the two rows that failed run 3. Run 5 was made on the text at d65f97df, which adds the stale-fingerprint clause after 5-call rounds on 53b37388 and b77dc8a5 failed rows. Run 6 was made on the text at c479eead, which moves the trigger and the plain-continue exclusion into the first sentence; its cases were pinned in de94f823 and 400c9a4d before that text was written. The labels inside the raw files 07 and 08 name 011ce5ec, the hash of that wording commit before the branch was rebased onto dev 7bf50b8f; on dev it is c479eead (the case commits 47c6c617 and e8aea1a1 are de94f823 and 400c9a4d)."
+  },
+  "method": {
+    "harness": "scripts/measure-skill-trigger.mjs in this repository (bun), run with omp -p --no-session. Runs 1-2 used /tmp/handoff-eval-run/run.py and runs 3-4 run.py or run4.py; the routing prompt and catalog selection are the same. Run 5 uses 5 calls per case, retries a timed-out call twice, and passes a trigger row at 4/5 hits or more and a no_trigger row at 1/5 or fewer.",
+    "model": "deepseek-v4.1-flash",
+    "selection": "The prompt lists every skill's name and description taken from the SKILL.md frontmatter, gives the case prompt, and asks for exactly one skill name or none.",
+    "runsPerCase": 3,
+    "threshold": 0.5,
+    "concurrency": 6,
+    "timeoutSecondsPerCall": 300,
+    "passRule": "A trigger case passes when at least 2 of 3 runs answer hyper-handoff; a no_trigger case passes when fewer than 2 do.",
+    "caseSource": "skills/hyper-handoff/assets/evals/hyper-handoff-cases.jsonl, 19 cases for runs 1 and 2, 36 cases for runs 3 and 4",
+    "coldRead": "A fresh omp -p --no-session session was given the memo only and asked what is being done and what the next step is, then answered the six questions.",
+    "runtime": "run 3: omp/18.18.5; run 4: omp/18.18.6; the runtime version of runs 1 and 2 was not recorded",
+    "observedValues": "hyper-handoff, none, other-skill for any other skill name in the catalog, and unparsed for a reply that was neither a catalog name nor none; unparsed appears in runs 3 and 4 and counts as not hyper-handoff; run 6 also records transport-error for a call that failed in transport after the refill rounds, which is never counted as a miss (no such call occurred in run 6)",
+    "runsPerCaseRun5": 5,
+    "thresholdRun5": "trigger >= 4/5 hits; no_trigger <= 1/5 hits",
+    "harnessRun6": "scripts/measure-skill-trigger.mjs --mode direct: one chat-completions call per run to the local OpenAI-compatible gateway, with the same routing prompt and catalog as before and no agent runtime around it. A call through omp carried about 180K input tokens of the runtime's own prompt; a direct call carries about 4.1K to 4.7K. An answer that is neither a catalog name nor none is re-asked up to 2 times; calls that fail in transport are refilled in up to 2 rounds and leave the row open (exit 3) instead of counting as a miss.",
+    "modelRun6": "group/deepseek-v4.1-flash (gateway group of the same model family)",
+    "runsPerCaseRun6": 10,
+    "thresholdRun6": "trigger >= 8/10 hits; no_trigger <= 2/10 hits. The 30-run probes use trigger >= 24/30 and no_trigger <= 6/30.",
+    "concurrencyRun6": 24,
+    "caseSourceRun6": "design set: skills/hyper-handoff/assets/evals/hyper-handoff-cases.jsonl, 48 cases (the 36 of run 5 plus 12 added in commit 400c9a4d before the wording work); holdout set: skills/hyper-handoff/assets/evals/hyper-handoff-holdout-cases.jsonl, 24 cases pinned in commit de94f823 before the wording work, written by a separate agent, not read while the wording was designed, and measured once after the wording was frozen in commit c479eead",
+    "rawRunsRun6": "scripts/fixtures/skill-trigger-runs/hyper-handoff/ holds the raw output of every run 6 measurement and, under descriptions/, the description variants that were measured. The raw files record the catalog name each call answered, so they are kept outside the skill directory, which must not name other skills.",
+    "catalogRun6": "28 skills, the catalog of the branch base f407dd86, for 07 and 08; both sets were measured again on the 31-skill catalog of dev 7bf50b8f (09 and 10) after the branch was rebased onto it."
+  },
+  "triggerRuns": [
+    {
+      "run": 1,
+      "resultFile": "/tmp/handoff-eval-run/result1.txt",
+      "summary": "18/19",
+      "passed": 18,
+      "total": 19,
+      "cases": [
+        {
+          "id": "hyper-handoff-positive-full-context-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-fresh-agent-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-resume-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-machine-move-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-summary-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-memory-file-en",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plan-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "expect": "trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": false
+        },
+        {
+          "id": "hyper-handoff-boundary-no-check-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-repair-bound-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-stale-memo-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-paper-claim-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-secret-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-destructive-next-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-injection-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-paraphrased-request-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-recalled-state-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-memory-doc-mixed",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-execute-resume-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        }
+      ],
+      "textCommit": "daf0b2d5"
+    },
+    {
+      "run": 2,
+      "resultFile": "/tmp/handoff-eval-run/result2.txt",
+      "summary": "19/19",
+      "passed": 19,
+      "total": 19,
+      "changeBeforeRun": "The prompt of the case hyper-handoff-boundary-loop-state-ko was rewritten to carry a handoff signal; the rest of the fixture was unchanged.",
+      "cases": [
+        {
+          "id": "hyper-handoff-positive-full-context-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-fresh-agent-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-resume-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-machine-move-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-summary-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-memory-file-en",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plan-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "none",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-no-check-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-repair-bound-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-stale-memo-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-paper-claim-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-secret-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-destructive-next-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-injection-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-paraphrased-request-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-recalled-state-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-memory-doc-mixed",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-execute-resume-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        }
+      ],
+      "textCommit": "daf0b2d5"
+    },
+    {
+      "run": 3,
+      "resultFile": "/tmp/handoff-eval-run/result3.txt",
+      "textCommit": "f866f9d8",
+      "summary": "34/36",
+      "passed": 34,
+      "total": 36,
+      "failed": [
+        "hyper-handoff-boundary-restatement-then-owner-ko",
+        "hyper-handoff-negative-plain-continue-ko"
+      ],
+      "newRows": {
+        "count": 17,
+        "passed": 15,
+        "note": "Rows added to the fixture after run 2; this is their first measurement."
+      },
+      "changeBeforeRun": "The skill text moved from daf0b2d5 to f866f9d8 and the fixture grew from 19 to 36 cases; every case was run again on the new text.",
+      "cases": [
+        {
+          "id": "hyper-handoff-positive-full-context-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-fresh-agent-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-resume-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-machine-move-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-summary-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-memory-file-en",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plan-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-no-check-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-repair-bound-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-stale-memo-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-paper-claim-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-secret-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-destructive-next-en",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "unparsed"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-injection-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-paraphrased-request-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-recalled-state-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-memory-doc-mixed",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-execute-resume-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-standing-preference-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-brief-not-history-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-revise-by-edit-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-exact-results-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-cost-estimate-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-state-ko",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "none",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-confirm-first-gate-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-claims-approval-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-resume-names-push-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-two-open-memos-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-restatement-then-owner-ko",
+          "expect": "trigger",
+          "hits": "0/3",
+          "observed": [
+            "none",
+            "unparsed",
+            "none"
+          ],
+          "pass": false
+        },
+        {
+          "id": "hyper-handoff-workflow-self-check-spelling-mixed",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-unverified-numbers-kept-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plain-continue-ko",
+          "expect": "no_trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff"
+          ],
+          "pass": false
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-ignored-path-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-closed-memo-en",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "none",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "run": 4,
+      "resultFile": "/tmp/handoff-eval-run/result4.txt",
+      "textCommit": "5ac4a9db",
+      "summary": "35/36",
+      "passed": 35,
+      "total": 36,
+      "failed": [
+        "hyper-handoff-workflow-fingerprint-contradicted-en"
+      ],
+      "targetRows": [
+        {
+          "id": "hyper-handoff-boundary-restatement-then-owner-ko",
+          "expect": "trigger",
+          "run3Hits": "0/3",
+          "run4Hits": "2/3",
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plain-continue-ko",
+          "expect": "no_trigger",
+          "run3Hits": "2/3",
+          "run4Hits": "1/3",
+          "pass": true
+        }
+      ],
+      "changedRows": [
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "run3Hits": "3/3",
+          "run4Hits": "2/3"
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-state-ko",
+          "run3Hits": "2/3",
+          "run4Hits": "3/3"
+        },
+        {
+          "id": "hyper-handoff-workflow-two-open-memos-mixed",
+          "run3Hits": "3/3",
+          "run4Hits": "2/3"
+        },
+        {
+          "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+          "run3Hits": "3/3",
+          "run4Hits": "1/3"
+        },
+        {
+          "id": "hyper-handoff-workflow-self-check-spelling-mixed",
+          "run3Hits": "2/3",
+          "run4Hits": "3/3"
+        },
+        {
+          "id": "hyper-handoff-boundary-closed-memo-en",
+          "run3Hits": "2/3",
+          "run4Hits": "3/3"
+        }
+      ],
+      "followUpProbe": {
+        "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+        "textCommit": "5ac4a9db",
+        "hits": "6/6",
+        "note": "This row passed run 3 at 3/3 and failed run 4 at 1/3. It names a memo, so the new exclusion does not apply to it; six more calls of the same routing prompt on the same text answered hyper-handoff every time, so the run 4 miss is read as sampling variation, and the wording was not changed for it. The probe is not part of the run 4 count."
+      },
+      "changeBeforeRun": "The description and the routing rule in SKILL.md and SKILL.ko.md were reworded: reading, restating, or continuing from a memo under .hyper/handoff/ is named as a trigger, the three-line restatement is named, and a plain request to continue that names no memo while none is open is excluded. The fixture was unchanged; every case was run again on the new text.",
+      "cases": [
+        {
+          "id": "hyper-handoff-positive-full-context-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-fresh-agent-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-resume-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-machine-move-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-summary-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-memory-file-en",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plan-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-no-check-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-repair-bound-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-stale-memo-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-paper-claim-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-secret-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-destructive-next-en",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-injection-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-paraphrased-request-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-recalled-state-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-memory-doc-mixed",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-execute-resume-ko",
+          "expect": "no_trigger",
+          "hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-standing-preference-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-brief-not-history-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-revise-by-edit-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-exact-results-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-cost-estimate-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-state-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-confirm-first-gate-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-claims-approval-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-resume-names-push-ko",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-two-open-memos-mixed",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+          "expect": "trigger",
+          "hits": "1/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "none"
+          ],
+          "pass": false
+        },
+        {
+          "id": "hyper-handoff-boundary-restatement-then-owner-ko",
+          "expect": "trigger",
+          "hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "unparsed"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-self-check-spelling-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-unverified-numbers-kept-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plain-continue-ko",
+          "expect": "no_trigger",
+          "hits": "1/3",
+          "observed": [
+            "none",
+            "none",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-ignored-path-mixed",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-closed-memo-en",
+          "expect": "trigger",
+          "hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "run": 5,
+      "resultFile": "scripts/measure-skill-trigger.mjs --runs 5 (output kept outside the repository: /tmp/hf-loop/round4.json)",
+      "textCommit": "d65f97df",
+      "summary": "36/36",
+      "passed": 36,
+      "total": 36,
+      "failed": [],
+      "runsPerCase": 5,
+      "rule": "trigger rows pass at 4/5 or more hits, no_trigger rows at 1/5 or fewer",
+      "earlierRounds": [
+        {
+          "textCommit": "53b37388",
+          "summary": "34/36",
+          "failed": [
+            "hyper-handoff-safety-destructive-next-en 2/5",
+            "hyper-handoff-workflow-fingerprint-contradicted-en 2/5"
+          ]
+        },
+        {
+          "textCommit": "0e317153",
+          "summary": "36/36",
+          "note": "description was 1124 chars, over the 1024 limit of the standards gate, so the text was shortened and this result was discarded"
+        },
+        {
+          "textCommit": "b77dc8a5",
+          "summary": "35/36",
+          "failed": [
+            "hyper-handoff-workflow-fingerprint-contradicted-en 2/5"
+          ]
+        }
+      ],
+      "changeBeforeRun": "The description in SKILL.md and SKILL.ko.md gained a clause: a named memo routes here even when its HEAD or dirty files no longer match the repository, and the mismatch is reported. The clause sits in the resume trigger and the description is 1016 characters.",
+      "cases": [
+        {
+          "id": "hyper-handoff-positive-full-context-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-fresh-agent-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-resume-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-machine-move-mixed",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-summary-ko",
+          "expect": "no_trigger",
+          "hits": "0/5",
+          "run4Hits": "0/3",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-memory-file-en",
+          "expect": "no_trigger",
+          "hits": "0/5",
+          "run4Hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plan-ko",
+          "expect": "no_trigger",
+          "hits": "0/5",
+          "run4Hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-no-check-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-repair-bound-ko",
+          "expect": "trigger",
+          "hits": "4/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-stale-memo-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-paper-claim-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-secret-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-destructive-next-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-injection-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-paraphrased-request-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-recalled-state-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-memory-doc-mixed",
+          "expect": "no_trigger",
+          "hits": "0/5",
+          "run4Hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-execute-resume-ko",
+          "expect": "no_trigger",
+          "hits": "0/5",
+          "run4Hits": "0/3",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-standing-preference-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-brief-not-history-en",
+          "expect": "trigger",
+          "hits": "4/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "none",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-revise-by-edit-mixed",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-exact-results-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-cost-estimate-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-state-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-confirm-first-gate-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-claims-approval-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-resume-names-push-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-two-open-memos-mixed",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "1/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-restatement-then-owner-ko",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "2/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-self-check-spelling-mixed",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-unverified-numbers-kept-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plain-continue-ko",
+          "expect": "no_trigger",
+          "hits": "0/5",
+          "run4Hits": "1/3",
+          "observed": [
+            "other-skill",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-ignored-path-mixed",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-closed-memo-en",
+          "expect": "trigger",
+          "hits": "5/5",
+          "run4Hits": "3/3",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    {
+      "run": 6,
+      "resultFile": [
+        "scripts/fixtures/skill-trigger-runs/hyper-handoff/07-holdout24-final.json",
+        "scripts/fixtures/skill-trigger-runs/hyper-handoff/08-design48-final.json",
+        "scripts/fixtures/skill-trigger-runs/hyper-handoff/09-holdout24-catalog31.json",
+        "scripts/fixtures/skill-trigger-runs/hyper-handoff/10-design48-catalog31.json"
+      ],
+      "textCommit": "c479eead",
+      "summary": "72/72 (holdout 24/24, design 48/48)",
+      "passed": 72,
+      "total": 72,
+      "failed": [],
+      "runsPerCase": 10,
+      "rule": "trigger rows pass at 8/10 or more hits, no_trigger rows at 2/10 or fewer",
+      "sets": {
+        "holdout": {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/07-holdout24-final.json",
+          "summary": "24/24",
+          "triggerHits": "130/130",
+          "noTriggerHits": "0/110",
+          "transportErrors": 0
+        },
+        "design": {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/08-design48-final.json",
+          "summary": "48/48",
+          "triggerHits": "359/360",
+          "noTriggerHits": "0/120",
+          "transportErrors": 0
+        }
+      },
+      "catalog31": {
+        "catalog": "31 skills, dev 7bf50b8f",
+        "summary": "72/72 (holdout 24/24, design 48/48)",
+        "sets": {
+          "holdout": {
+            "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/09-holdout24-catalog31.json",
+            "descriptionChars": 1006,
+            "runsPerCase": 10,
+            "summary": "24/24",
+            "triggerHits": "130/130",
+            "noTriggerHits": "0/110",
+            "failed": [],
+            "transportErrors": 0
+          },
+          "design": {
+            "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/10-design48-catalog31.json",
+            "descriptionChars": 1006,
+            "runsPerCase": 10,
+            "summary": "48/48",
+            "triggerHits": "360/360",
+            "noTriggerHits": "0/120",
+            "failed": [],
+            "transportErrors": 0
+          }
+        },
+        "note": "Same description text and harness settings as the 28-skill runs; the three skills added to dev drew no answer in either set. Every row scored 10/10 or 0/10. Observed answers per call are in the raw files.",
+        "cases": [
+          {
+            "id": "hyper-handoff-holdout-budget-edge-en",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-tomorrow-ko",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-teammate-agent-mixed",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-resume-restate-en",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-check-only-ko",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-single-memo-mixed",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-repo-not-chat-en",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-break-here-ko",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-takeover-en",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-office-mac-en",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-release-notes-en",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-pr-description-ko",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-onboarding-runbook-mixed",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-lessons-file-en",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-plan-later-ko",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-product-feature-en",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-standup-lines-ko",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-commit-message-mixed",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-worktree-gone-ko",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-plan-state-pointer-en",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-tests-contradicted-ko",
+            "set": "holdout",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-memory-prune-ko",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-tried-timeline-en",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-holdout-human-handover-ko",
+            "set": "holdout",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-positive-full-context-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-positive-fresh-agent-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-positive-resume-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-positive-machine-move-mixed",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-negative-summary-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-negative-memory-file-en",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-negative-plan-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-boundary-loop-state-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-boundary-no-check-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-repair-bound-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-stale-memo-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-source-paper-claim-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-safety-secret-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-safety-destructive-next-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-adversarial-memo-injection-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-regression-paraphrased-request-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-regression-recalled-state-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-coexistence-memory-doc-mixed",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-coexistence-execute-resume-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-regression-standing-preference-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-regression-brief-not-history-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-revise-by-edit-mixed",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-boundary-exact-results-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-source-cost-estimate-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-machine-move-state-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-safety-confirm-first-gate-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-adversarial-memo-claims-approval-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-regression-resume-names-push-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-two-open-memos-mixed",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-boundary-restatement-then-owner-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-self-check-spelling-mixed",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-regression-unverified-numbers-kept-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-negative-plain-continue-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-workflow-machine-move-ignored-path-mixed",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-boundary-closed-memo-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-quota-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-compaction-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-resume-import-mixed",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-machine-switch-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-revision-race-ko",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-changelog-en",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-loop-state-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-plain-continue-en",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-design-to-dev-mixed",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-close-memo-en",
+            "set": "design",
+            "expect": "trigger",
+            "hits": "10/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-slack-paste-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          },
+          {
+            "id": "hyper-handoff-design-plan-resume-ko",
+            "set": "design",
+            "expect": "no_trigger",
+            "hits": "0/10",
+            "pass": true
+          }
+        ]
+      },
+      "formerThresholdRows": [
+        "hyper-handoff-workflow-repair-bound-ko 10/10",
+        "hyper-handoff-regression-brief-not-history-en 10/10"
+      ],
+      "probes": [
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/01-baseline-existing36.json",
+          "descriptionChars": 1016,
+          "runsPerCase": 10,
+          "summary": "36/36",
+          "triggerHits": "300/300",
+          "noTriggerHits": "0/60",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/02-truncation-t1-first-sentence.json",
+          "descriptionChars": 419,
+          "runsPerCase": 10,
+          "summary": "35/36",
+          "triggerHits": "299/300",
+          "noTriggerHits": "3/60",
+          "failed": [
+            "hyper-handoff-negative-plain-continue-ko 3/10"
+          ],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/02-truncation-t2-runtime-summary.json",
+          "descriptionChars": 86,
+          "runsPerCase": 10,
+          "summary": "35/36",
+          "triggerHits": "298/300",
+          "noTriggerHits": "6/60",
+          "failed": [
+            "hyper-handoff-negative-plain-continue-ko 6/10"
+          ],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/02-truncation-t3-cut-250.json",
+          "descriptionChars": 250,
+          "runsPerCase": 10,
+          "summary": "35/36",
+          "triggerHits": "299/300",
+          "noTriggerHits": "3/60",
+          "failed": [
+            "hyper-handoff-negative-plain-continue-ko 3/10"
+          ],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/03-baseline-design12.json",
+          "descriptionChars": 1016,
+          "runsPerCase": 10,
+          "summary": "12/12",
+          "triggerHits": "60/60",
+          "noTriggerHits": "0/60",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/04-truncation-design12-t1-first-sentence.json",
+          "descriptionChars": 419,
+          "runsPerCase": 10,
+          "summary": "12/12",
+          "triggerHits": "60/60",
+          "noTriggerHits": "0/60",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/04-truncation-design12-t2-runtime-summary.json",
+          "descriptionChars": 86,
+          "runsPerCase": 10,
+          "summary": "12/12",
+          "triggerHits": "60/60",
+          "noTriggerHits": "0/60",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/04-truncation-design12-t3-cut-250.json",
+          "descriptionChars": 250,
+          "runsPerCase": 10,
+          "summary": "11/12",
+          "triggerHits": "59/60",
+          "noTriggerHits": "3/60",
+          "failed": [
+            "hyper-handoff-design-slack-paste-ko 3/10"
+          ],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/05-candidate-c1-gate-first-cut-250.json",
+          "descriptionChars": 250,
+          "runsPerCase": 10,
+          "summary": "48/48",
+          "triggerHits": "360/360",
+          "noTriggerHits": "0/120",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/05-candidate-c1-gate-first.json",
+          "descriptionChars": 1006,
+          "runsPerCase": 10,
+          "summary": "48/48",
+          "triggerHits": "360/360",
+          "noTriggerHits": "1/120",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/05-candidate-c2-exclusions-second-cut-250.json",
+          "descriptionChars": 250,
+          "runsPerCase": 10,
+          "summary": "48/48",
+          "triggerHits": "360/360",
+          "noTriggerHits": "2/120",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/05-candidate-c2-exclusions-second.json",
+          "descriptionChars": 1016,
+          "runsPerCase": 10,
+          "summary": "48/48",
+          "triggerHits": "359/360",
+          "noTriggerHits": "0/120",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/06-notrigger30-c1-gate-first-cut-250.json",
+          "descriptionChars": 250,
+          "runsPerCase": 30,
+          "summary": "12/12",
+          "noTriggerHits": "0/360",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/06-notrigger30-c1-gate-first.json",
+          "descriptionChars": 1006,
+          "runsPerCase": 30,
+          "summary": "12/12",
+          "noTriggerHits": "0/360",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/06-notrigger30-current.json",
+          "descriptionChars": 1016,
+          "runsPerCase": 30,
+          "summary": "12/12",
+          "noTriggerHits": "1/360",
+          "failed": [],
+          "transportErrors": 0
+        },
+        {
+          "file": "scripts/fixtures/skill-trigger-runs/hyper-handoff/06-notrigger30-t3-cut-250.json",
+          "descriptionChars": 250,
+          "runsPerCase": 30,
+          "summary": "12/12",
+          "noTriggerHits": "5/360",
+          "failed": [],
+          "transportErrors": 0
+        }
+      ],
+      "probeNote": "Probes were made before the wording was frozen and chose it. 01 and 03 are the run 5 text (1016 characters) on the 36 and the 12 new design cases; 02 and 04 are that text cut to its first sentence (419 characters), to the 86-character summary one runtime shows, and to 250 bytes; 05 is two candidate texts in full and cut to 250 bytes on the 48 design cases; 06 repeats the 12 no_trigger design rows at 30 runs for four texts and has no trigger rows. A failed entry reads '<id> <hits>/<runs>'.",
+      "changeBeforeRun": "The description in SKILL.md and SKILL.ko.md was reordered: the first sentence now holds the trigger (work passes to a fresh session, agent, or machine through a state memo) together with the exclusion of a plain request to continue that names no memo while none is open; the signals, including the stale-fingerprint clause, follow in the second sentence. The description is 1006 characters and its first sentence 243. Cut probes showed that trigger rows barely depend on the description length (1,075 of 1,080 trigger calls over six cut runs), while the exclusion at the end of the run 5 text weakened when the text was cut.",
+      "cases": [
+        {
+          "id": "hyper-handoff-holdout-budget-edge-en",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-tomorrow-ko",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-teammate-agent-mixed",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-resume-restate-en",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-check-only-ko",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-single-memo-mixed",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-repo-not-chat-en",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-break-here-ko",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-takeover-en",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-office-mac-en",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-release-notes-en",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "other-skill",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-pr-description-ko",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-onboarding-runbook-mixed",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-lessons-file-en",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-plan-later-ko",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-product-feature-en",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-standup-lines-ko",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-commit-message-mixed",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "other-skill",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-worktree-gone-ko",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-plan-state-pointer-en",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-tests-contradicted-ko",
+          "set": "holdout",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-memory-prune-ko",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-tried-timeline-en",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-holdout-human-handover-ko",
+          "set": "holdout",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-full-context-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-fresh-agent-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-resume-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-positive-machine-move-mixed",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-summary-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-memory-file-en",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plan-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-loop-state-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-no-check-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-repair-bound-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-stale-memo-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-paper-claim-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-secret-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-destructive-next-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-injection-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-paraphrased-request-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-recalled-state-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-memory-doc-mixed",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-coexistence-execute-resume-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-standing-preference-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-brief-not-history-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-revise-by-edit-mixed",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-exact-results-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-source-cost-estimate-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-state-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-safety-confirm-first-gate-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-adversarial-memo-claims-approval-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-resume-names-push-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-two-open-memos-mixed",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-fingerprint-contradicted-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-restatement-then-owner-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-self-check-spelling-mixed",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-regression-unverified-numbers-kept-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-negative-plain-continue-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "other-skill",
+            "none",
+            "none",
+            "other-skill",
+            "none",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-workflow-machine-move-ignored-path-mixed",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-boundary-closed-memo-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "9/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "none",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-quota-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-compaction-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-resume-import-mixed",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-machine-switch-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-revision-race-ko",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-changelog-en",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-loop-state-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-plain-continue-en",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "none",
+            "none",
+            "none",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-design-to-dev-mixed",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-close-memo-en",
+          "set": "design",
+          "expect": "trigger",
+          "hits": "10/10",
+          "observed": [
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff",
+            "hyper-handoff"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-slack-paste-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "pass": true
+        },
+        {
+          "id": "hyper-handoff-design-plan-resume-ko",
+          "set": "design",
+          "expect": "no_trigger",
+          "hits": "0/10",
+          "observed": [
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill",
+            "other-skill"
+          ],
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "coldReads": [
+    {
+      "run": 1,
+      "resultFile": "/tmp/handoff-eval-run/coldread1.txt",
+      "outcome": "fail",
+      "answered": "questions 1, 2, 3, 5",
+      "failed": "questions 4 and 6",
+      "detail": "The reader could not name how to re-run the cases from the memo (question 4) and gave a rules path that did not resolve (question 6)."
+    },
+    {
+      "run": 2,
+      "resultFile": "/tmp/handoff-eval-run/coldread2.txt",
+      "outcome": "pass",
+      "answered": "questions 1, 2, 3, 4, 5, 6",
+      "failed": null,
+      "detail": "The reader named the next action with its file list, the done-when conditions, and the repository, branch, worktree, and state pointers."
+    }
+  ],
+  "limits": [
+    "Selection was measured among skill names only, with the catalog supplied directly; the router path was not exercised.",
+    "expected.must behavior was not measured; only the chosen skill name was recorded.",
+    "Runs 3 and 4 are each one pass of 3 calls per case, so a case's rate has four possible values and no interval target was set.",
+    "Run 4 follows a wording change written against the two rows that failed run 3, so those two rows are not held-out evidence for the new wording; the other 34 rows are.",
+    "Runs 1 and 2 describe the earlier text at daf0b2d5 and run 3 the text at f866f9d8; they were not re-run and their numbers were copied from the earlier record.",
+    "Both cold reads were made on a memo written under the earlier text and were not repeated for f866f9d8 or 5ac4a9db.",
+    "Run 5 follows wording changes written against rows that failed earlier rounds, so those rows are not held-out evidence for the new wording.",
+    "Run 5 is one pass of 5 calls per case; rows at exactly 4/5 could land below the bar on a repeat.",
+    "Runs 1-4 used harness copies under /tmp/handoff-eval-run that may no longer exist; run 5 reproduces with scripts/measure-skill-trigger.mjs.",
+    "Run 6 calls the model directly with the routing prompt. Selection inside a real agent session, where the runtime may shorten or drop descriptions, was not measured.",
+    "Run 6 was first measured on the 28-skill catalog of the branch base f407dd86. After the branch was rebased onto dev 7bf50b8f, which adds three skills (31 in total), both sets were measured again once at 10 calls per case and passed unchanged (holdout 24/24, design 48/48). Adding skills changes the catalog again.",
+    "The 12 design cases of run 6 and the candidate probes chose the wording, so only the 24 holdout cases are an independent check; they were measured once, 10 calls per case.",
+    "The 30-run probes of run 6 cover only the 12 no_trigger design rows; every trigger row is a 10-run value. The same 250-byte text scored 3/10 and 2/10 on one no_trigger row in two 10-run passes, so a row near the bar needs more runs before it is judged.",
+    "That the 4/5 rows of run 5 came from the agent-mode harness and not from the wording is an inference: the same text scored 10/10 on both rows in direct mode, but the run 5 method was not repeated at 10 runs."
+  ]
+}

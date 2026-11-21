@@ -51,8 +51,8 @@ OVERSTATEMENT_RE = re.compile(
 CAUSAL_RE = re.compile(
     r"\b(?:causes?|caused|proves?|demonstrates? that)\b", re.IGNORECASE
 )
-CLAIM_MARKER_RE = re.compile(r"\[claim:C[0-9]{3,8}\]")
-EVIDENCE_MARKER_RE = re.compile(r"(?:\[evidence:E[0-9]|\[@E[0-9])")
+CLAIM_MARKER_RE = re.compile(r"\[claim:C\d{3,8}\]")
+EVIDENCE_MARKER_RE = re.compile(r"(?:\[evidence:E\d|\[@E\d)")
 OBSERVATIONAL_DESIGNS = {
     "observational",
     "cohort",
@@ -63,6 +63,7 @@ OBSERVATIONAL_DESIGNS = {
 
 
 def load_manifest(path: str | None) -> tuple[dict[str, Any] | None, list[Issue]]:
+    """Load manifest."""
     if path is None:
         return None, [
             issue(
@@ -86,6 +87,7 @@ def load_manifest(path: str | None) -> tuple[dict[str, Any] | None, list[Issue]]
 
 
 def lint_text(text: str, manifest: dict[str, Any] | None) -> list[Issue]:
+    """Handle lint text."""
     issues: list[Issue] = []
     study_design = str((manifest or {}).get("study_design", "")).casefold()
     submission_ready = (manifest or {}).get("submission_ready") is True
@@ -140,6 +142,7 @@ def lint_text(text: str, manifest: dict[str, Any] | None) -> list[Issue]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Lint local Markdown without echoing source text. Flags unresolved "
@@ -156,6 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def cli() -> int:
+    """Handle cli."""
     args = build_parser().parse_args()
     manifest, issues = load_manifest(args.manifest)
     text = read_text(args.manuscript, {".md", ".markdown"})

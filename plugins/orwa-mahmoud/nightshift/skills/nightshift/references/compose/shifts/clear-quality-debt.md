@@ -1,5 +1,7 @@
 # Clear quality debt — finite — the backlog your tools already know about
 
+## When to use
+
 The finite counterpart to the hunts: the work is a list your own tooling produces, so it ends when
 that list is clear. Quality uses this entry in either launch mode: Review first scans without writes
 and waits for an explicit disposition; Run directly composes, arms, and works the findings without
@@ -22,6 +24,8 @@ Never require git, a package manager, or repository tooling. Do not `git init` a
 Requires named domain rules the owner supplied. Write those rules into the receipt before ranking
 dataset issues, and validate against them only — never infer business data rules from type
 definitions alone.
+
+## Item
 
 ```text
 - [ ] **Clear quality debt — fix what the project's own tooling reports.**

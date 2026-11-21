@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run_hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/agentavow_precheck.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run_hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/agentavow_pretool_gate.py\"",
+            "timeout": 8
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run_hook.sh\" \"${CLAUDE_PLUGIN_ROOT}/scripts/agentavow_pre_install.py\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

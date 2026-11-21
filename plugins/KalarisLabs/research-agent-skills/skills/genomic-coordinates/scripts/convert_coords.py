@@ -71,6 +71,7 @@ def convert_one(
     out_start, out_end = from_canonical(dst, start0, end0)
 
     def render(conv: Convention, s: int, e: int) -> str:
+        """Render."""
         if conv.name in REGION_STRING_FORMATS:
             return format_region(contig, s, e, strand)
         return f"{s}-{e}"
@@ -117,6 +118,7 @@ def read_intervals(path: str, conv: Convention) -> list[tuple[str, int, int, str
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Convert intervals between genomic coordinate conventions.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -136,6 +138,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
 

@@ -1,11 +1,10 @@
 ---
-
 name: backend/testing-guide
 description: 后端测试编写指南，包括单元测试、集成测试和E2E测试的编写方法和最佳实践
 type: methodology
 agent: boss-backend
 metadata:
-internal: true
+  internal: true
 ---
 
 # 后端测试编写指南
@@ -581,6 +580,7 @@ it('handles concurrent requests', async () => {
 - 行覆盖率：≥ 80%
 
 运行覆盖率报告：
+
 ```bash
 npm test -- --coverage
 ```
@@ -590,6 +590,7 @@ npm test -- --coverage
 实现完成后，在输出中包含：
 
 **测试添加**：
+
 | 类型         | 文件                                     | 描述                        |
 | ------------ | ---------------------------------------- | --------------------------- |
 | 单元测试     | `src/services/userService.test.ts`       | UserService 业务逻辑测试    |
@@ -597,6 +598,7 @@ npm test -- --coverage
 | **E2E 测试** | `e2e/user-crud.test.ts`                  | 用户 CRUD 完整流程 E2E 测试 |
 
 **测试结果**：
+
 - 通过：42 / 失败：0
 - 覆盖率：87%
 - E2E 测试：✅ 已编写并通过

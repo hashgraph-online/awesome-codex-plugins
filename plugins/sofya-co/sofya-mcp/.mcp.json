@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sofya": {
+      "type": "http",
+      "url": "https://mcp.sofya.co/mcp"
+    }
+  }
+}

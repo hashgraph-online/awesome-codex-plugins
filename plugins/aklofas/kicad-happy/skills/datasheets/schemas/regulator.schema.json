@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.local/datasheets/schemas/regulator.schema.json",
   "title": "RegulatorExtension",
-  "description": "Category extension for voltage regulators (LDO, switching, charge pump, isolated). Layered on top of base per spec §7. Version 0.3 — many fields may be added in v0.x.",
-  "x-schema-version": "0.3",
+  "description": "Category extension for voltage regulators (LDO, switching, charge pump, isolated). Layered on top of base per spec §7. Version 0.4 — many fields may be added in v0.x.",
+  "x-schema-version": "0.4",
   "type": "object",
   "required": ["topology"],
   "additionalProperties": false,
@@ -96,8 +96,8 @@
       "properties": {
         "cap_types_allowed": {
           "type": "array",
-          "description": "Output-capacitor technology families this regulator is stable with. Closed vocabulary covers Class 1 (c0g/np0, temperature-stable), Class 2 ceramic (x5r/x7r/x7s), and bulk types. Adding a family requires a minor schema bump.",
-          "items": {"type": "string", "enum": ["ceramic_c0g", "ceramic_x5r", "ceramic_x7r", "ceramic_x7s", "tantalum", "polymer", "electrolytic", "film"]}
+          "description": "Output-capacitor technology families this regulator is stable with. Closed vocabulary covers Class 1 (c0g/np0, temperature-stable), Class 2 ceramic (x5r/x7r/x7s), generic `ceramic` (the datasheet says ceramic without a dielectric), and bulk types. Adding a family requires a minor schema bump.",
+          "items": {"type": "string", "enum": ["ceramic", "ceramic_c0g", "ceramic_x5r", "ceramic_x7r", "ceramic_x7s", "tantalum", "polymer", "electrolytic", "film"]}
         },
         "esr_range": {
           "type": ["array", "null"],

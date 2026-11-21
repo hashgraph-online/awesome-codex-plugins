@@ -7,6 +7,7 @@ Use this template when creating a new character file at `characters/{character-n
 name: "{Full Name}"
 role: {protagonist|antagonist|supporting|minor|narrator|deuteragonist}
 status: {alive|deceased|unknown|missing|cut}
+# born: {YYYY-MM-DD or YYYY}  (optional; a day or a year of the story calendar when story.md has one)
 # died-in: {chapter-NN}  (deceased characters only)
 aliases:
   - "{Alias 1}"

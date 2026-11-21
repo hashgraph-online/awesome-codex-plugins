@@ -1,6 +1,7 @@
 ---
 name: repo-contracts-and-boundaries
 description: Use when turning architecture, layering, ownership, dependency direction, schemas, structural metrics, quality thresholds, baselines, allowlists, or generated quality snapshots into repository checks.
+license: MIT
 ---
 
 # Repo Contracts And Boundaries

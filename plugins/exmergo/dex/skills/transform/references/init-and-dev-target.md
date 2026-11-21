@@ -3,7 +3,25 @@
 What you must and must not do is in `SKILL.md`; this file is the per-connector
 detail.
 
-## `transform init "<name>" --connector <c>`
+## Complete setup with `init`
+
+Use `init` through this skill's `scripts/run.py` wrapper for complete onboarding.
+`init <name> --connector <c>` creates a dbt-backed Dex project.
+`init <name> --mode demo` adds the local seeded DuckDB warehouse.
+`init --mode adopt` adopts existing dbt without replacing its configuration or
+profiles, and `init --mode explore` configures exploration without creating dbt.
+A standalone semantic
+setup is preserved. When several projects exist, select `--project-dir <path>`.
+
+The repository root holds `.dex/`, the README, and agent instructions. Named dbt
+projects live below it; `.` or `--in-place` uses the root. Existing configuration
+changes require the returned diff to be confirmed. Reruns preserve authored
+content and update only managed README/procedure sections. Initialization verifies
+the connection, reports `data.readiness`, and names missing inputs and recovery
+steps. It never explores data, builds models, or answers spending questions.
+Installing skills does not necessarily install a `dex` executable.
+
+## Legacy `transform init "<name>" --connector <c>`
 
 The engine renders the whole skeleton (`dbt_project.yml`, `models/staging/` and
 `models/marts/`, a `profiles.yml` with a single `dev` target and no secrets) and

@@ -8,13 +8,13 @@ This guide covers the full architecture, when to use each eval type, how to inte
 
 ## 1. Eval System Architecture
 
-Eight scripts work together to form the evaluation pipeline. Each script is a standalone Python tool (stdlib only, zero external dependencies) that can run independently or be orchestrated by the master runner.
+Eight scripts work together to form the evaluation pipeline. Each script is a standalone Python tool that can run independently or be orchestrated by the master runner. Most are stdlib only; content-scorer and readability-analyzer need `textstat` and brand-voice-scorer needs `nltk` (`setup.py --install lite`).
 
 ### Script Inventory
 
 | Script | Role | Input | Output |
 |--------|------|-------|--------|
-| `eval-runner.py` | Master orchestrator | Content text/file + options | Composite report with weighted scores, grade, pass/fail |
+| `eval-runner.py` | Master orchestrator | Content text/file + options | Composite report: weighted scores, grade, `decision` (PASS / WARN / BLOCKED; exit 3 when BLOCKED), every flagged item in `issues` |
 | `hallucination-detector.py` | Fabrication detection | Content text/file | Hallucination risk score + flagged items |
 | `claim-verifier.py` | Evidence cross-check | Content + evidence JSON | Claim verification score + per-claim status |
 | `output-validator.py` | Structure validation | Content + schema name | Structure score + missing sections/format issues |
@@ -60,7 +60,7 @@ The eval-runner calls each script via subprocess, collects JSON output from each
 
 ### Key Design Decisions
 
-- **Subprocess isolation**: Each evaluator runs in its own process. A failure in one dimension does not block the others. The eval-runner captures errors and reports partial results.
+- **Subprocess isolation**: Each evaluator runs in its own process. A failure in one dimension does not block the others. The eval-runner captures errors and reports the result as partial: `"partial": true`, the failed dimensions in `missing_dimensions`, and a grade of "incomplete" (fewer than two dimensions ran) or at most B. A dimension that doesn't apply (no evidence file, no schema, no brand) is skipped without making the result partial.
 - **JSON-in, JSON-out**: Every script reads arguments from CLI flags and writes structured JSON to stdout. This makes them composable and testable.
 - **Brand-aware**: All scripts resolve the active brand from `~/.claude-marketing/brands/_active-brand.json` when no `--brand` flag is provided. This means eval config, quality history, and A/B tests are all scoped per brand.
 
@@ -424,8 +424,9 @@ The prompt-ab-tester tracks variant performance over time. Use it when you want 
 ### Setting Up a Test
 
 ```
+# write with the Write tool first: {data_file} holds {"description":"Testing email subject line styles for Q1 campaign"}
 python prompt-ab-tester.py --action create-test --test-name email-subject-q1 \
-    --data '{"description":"Testing email subject line styles for Q1 campaign"}'
+    --data "@{data_file}"
 ```
 
 ### Logging Variants
@@ -433,11 +434,13 @@ python prompt-ab-tester.py --action create-test --test-name email-subject-q1 \
 Run each variant through `eval-runner.py`, then log the scores:
 
 ```
+# write with the Write tool first: {data_file} holds {"description":"Direct benefit","scores":{"content_quality":85,"brand_voice":78,"composite":82}}
 python prompt-ab-tester.py --action log-variant --test-name email-subject-q1 \
-    --variant A --data '{"description":"Direct benefit","scores":{"content_quality":85,"brand_voice":78,"composite":82}}'
+    --variant A --data "@{data_file}"
 
+# write with the Write tool first: {data_file} holds {"description":"Question-based","scores":{"content_quality":78,"brand_voice":82,"composite":80}}
 python prompt-ab-tester.py --action log-variant --test-name email-subject-q1 \
-    --variant B --data '{"description":"Question-based","scores":{"content_quality":78,"brand_voice":82,"composite":80}}'
+    --variant B --data "@{data_file}"
 ```
 
 ### Minimum Sample Sizes
@@ -504,7 +507,8 @@ python eval-config-manager.py --action get-config
 python eval-config-manager.py --action set-threshold --dimension hallucination --threshold 80 --content-type ad_copy
 
 # Create an A/B test
-python prompt-ab-tester.py --action create-test --test-name headline-test --data '{"description":"Testing headline styles"}'
+# write with the Write tool first: {data_file} holds {"description":"Testing headline styles"}
+python prompt-ab-tester.py --action create-test --test-name headline-test --data "@{data_file}"
 
 # Get A/B test results
 python prompt-ab-tester.py --action get-results --test-name headline-test

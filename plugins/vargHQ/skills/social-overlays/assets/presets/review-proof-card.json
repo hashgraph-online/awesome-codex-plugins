@@ -1,0 +1,243 @@
+{
+  "id": "review-proof-card",
+  "name": "Review proof card",
+  "use": "Real customer review or rating over footage as social proof.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Roboto",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Roboto"
+    }
+  ],
+  "data_contract": {
+    "required": [
+      "source",
+      "rating",
+      "quote",
+      "author",
+      "date",
+      "permission"
+    ],
+    "optional": [
+      "count",
+      "title",
+      "verified"
+    ],
+    "refuse_if": [
+      "permission != true",
+      "date missing"
+    ]
+  },
+  "rules": [
+    "Only real, permissioned reviews; no AI/fake reviews [21]",
+    "Date + review's own stars beside the quote; no out-of-context quotes; disclose if only 5-star [23]",
+    "Official platform marks unmodified; App Store badge never animated [23][24]",
+    "4.0-4.7 is the credibility sweet spot; verified label +15% odds [25]"
+  ],
+  "presets": [
+    {
+      "id": "review-proof-card.app-store-style",
+      "label": "App-store style",
+      "look": "Light card, icon, fractional stars, title, quote",
+      "params": {
+        "card": "#FFFFFF",
+        "stars": "#FFB400 (house)",
+        "star_base": "#D1D1D6 (house)",
+        "star_px": 44,
+        "star_gap_px": 6,
+        "sweep_s": 0.6,
+        "sweep_ease": "power2.out",
+        "card_w_px": 768,
+        "radius_px": 36,
+        "quote_px": 40,
+        "quote_max_lines": 3,
+        "chars_per_line_max": 34,
+        "in_s": 0.45,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "hold_min_s": 3.0,
+        "out_s": 0.25,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "card_w_note": "768 = universal safe box width; ≤660 if any part sits below y 840"
+      },
+      "sources": [
+        26,
+        40
+      ]
+    },
+    {
+      "id": "review-proof-card.local-review-style",
+      "label": "Local review style",
+      "look": "Initial avatar, stars, time-ago, quote",
+      "params": {
+        "card": "#FFFFFF",
+        "stars": "#FBBC04 (house)",
+        "font": "Roboto 500/400"
+      },
+      "sources": []
+    },
+    {
+      "id": "review-proof-card.review-platform",
+      "label": "Review-platform",
+      "look": "Official logo + star asset + 'TrustScore x.x · n reviews'",
+      "params": {
+        "assets": "official files, unmodified",
+        "required_text": [
+          "TrustScore next to number",
+          "review count or date stamp"
+        ]
+      },
+      "sources": [
+        23
+      ]
+    },
+    {
+      "id": "review-proof-card.marketplace-style",
+      "label": "Marketplace style",
+      "look": "Stars + Verified Purchase + headline",
+      "params": {
+        "stars": "#FFA41C (house)",
+        "verified_label": "#C45500 (house)",
+        "font": "Inter"
+      },
+      "sources": [
+        25
+      ]
+    },
+    {
+      "id": "review-proof-card.rating-badge",
+      "label": "Rating badge",
+      "look": "Compact pill: star 4.7 · 2,318 reviews",
+      "params": {
+        "pill": "rgba(0,0,0,0.7)",
+        "height_px": 72,
+        "star_px": 36,
+        "text_px": 34,
+        "count_up_s": 0.8
+      },
+      "sources": [
+        25
+      ]
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 3,
+      "name": "TikTok Ads Help: Creative best practices for performance ads",
+      "url": "https://ads.tiktok.com/help/article/creative-best-practices?lang=en"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 21,
+      "name": "FTC: Final rule banning fake reviews and testimonials (2024)",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials"
+    },
+    {
+      "n": 22,
+      "name": "FTC: Disclosures 101 for social media influencers",
+      "url": "https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers"
+    },
+    {
+      "n": 23,
+      "name": "Trustpilot: Legal brand guidelines (Feb 2023)",
+      "url": "https://corporate.trustpilot.com/legal/for-businesses/legal-brand-guidelines/feb-2023"
+    },
+    {
+      "n": 24,
+      "name": "Apple: App Store marketing guidelines",
+      "url": "https://developer.apple.com/app-store/marketing/guidelines/"
+    },
+    {
+      "n": 25,
+      "name": "Spiegel Research Center: How online reviews influence sales",
+      "url": "https://spiegel.medill.northwestern.edu/how-online-reviews-influence-sales/"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

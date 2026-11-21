@@ -35,6 +35,8 @@ except ImportError:
     print("Error: pydeseq2 not installed. Install with: uv pip install pydeseq2==0.5.4")
     sys.exit(1)
 
+LOG_PADJ_COLUMN = "-log10(padj)"
+
 
 def load_and_validate_data(counts_path, metadata_path, transpose_counts=True):
     """Load count matrix and metadata, perform basic validation."""
@@ -48,7 +50,7 @@ def load_and_validate_data(counts_path, metadata_path, transpose_counts=True):
     print(f"Loading metadata from {metadata_path}...")
     metadata = pd.read_csv(metadata_path, index_col=0)
 
-    print(f"\nData loaded:")
+    print("\nData loaded:")
     print(f"  Counts shape: {counts_df.shape} (samples × genes)")
     print(f"  Metadata shape: {metadata.shape} (samples × variables)")
 
@@ -71,7 +73,7 @@ def load_and_validate_data(counts_path, metadata_path, transpose_counts=True):
 
 def filter_data(counts_df, metadata, min_counts=10, condition_col=None):
     """Filter low-count genes and samples with missing data."""
-    print(f"\nFiltering data...")
+    print("\nFiltering data...")
 
     initial_genes = counts_df.shape[1]
     initial_samples = counts_df.shape[0]
@@ -141,7 +143,7 @@ def infer_shrink_coeff(dds, contrast):
 
 def run_statistical_tests(dds, contrast, alpha=0.05, shrink_lfc=True, inference=None, shrink_coeff=None):
     """Perform Wald tests and compute p-values."""
-    print(f"\nPerforming statistical tests...")
+    print("\nPerforming statistical tests...")
     print(f"  Contrast: {contrast}")
     print(f"  Significance threshold: {alpha}")
 
@@ -235,18 +237,18 @@ def create_plots(ds, output_dir):
     print("\nGenerating plots...")
 
     # Volcano plot
-    results["-log10(padj)"] = -np.log10(results.padj.fillna(1))
+    results[LOG_PADJ_COLUMN] = -np.log10(results.padj.fillna(1))
 
     plt.figure(figsize=(10, 6))
     significant = results.padj < 0.05
     plt.scatter(
         results.loc[~significant, "log2FoldChange"],
-        results.loc[~significant, "-log10(padj)"],
+        results.loc[~significant, LOG_PADJ_COLUMN],
         alpha=0.3, s=10, c='gray', label='Not significant'
     )
     plt.scatter(
         results.loc[significant, "log2FoldChange"],
-        results.loc[significant, "-log10(padj)"],
+        results.loc[significant, LOG_PADJ_COLUMN],
         alpha=0.6, s=10, c='red', label='Significant (padj < 0.05)'
     )
     plt.axhline(-np.log10(0.05), color='blue', linestyle='--', linewidth=1, alpha=0.5)
@@ -287,6 +289,7 @@ def create_plots(ds, output_dir):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Run PyDESeq2 differential expression analysis",
         formatter_class=argparse.RawDescriptionHelpFormatter,

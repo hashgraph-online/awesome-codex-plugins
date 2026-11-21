@@ -8,7 +8,7 @@ Call Bitbucket REST APIs directly for endpoints that do not yet have first-class
 
 Examples:
   bkt api /rest/api/1.0/projects
-  bkt api /repositories --workspace my-team --param pagelen=50
+  bkt api /repositories/my-team --param pagelen=50
   bkt api /rest/api/1.0/projects/ABC/repos --method POST --field name=demo --field scmId=git
 
 ### Usage

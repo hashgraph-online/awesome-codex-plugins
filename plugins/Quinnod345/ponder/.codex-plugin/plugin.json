@@ -1,0 +1,43 @@
+{
+  "name": "ponder",
+  "version": "1.1.2",
+  "description": "Convergent deliberation loop for coding agents - multi-pass, coverage-gated, append-only ledger review and planning.",
+  "author": {
+    "name": "Quinn O'Donnell",
+    "email": "90010678+Quinnod345@users.noreply.github.com",
+    "url": "https://github.com/Quinnod345"
+  },
+  "homepage": "https://github.com/Quinnod345/ponder",
+  "repository": "https://github.com/Quinnod345/ponder",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "skills",
+    "code-review",
+    "audit",
+    "deliberation",
+    "verification",
+    "agents"
+  ],
+  "skills": "./skill/",
+  "interface": {
+    "displayName": "Ponder",
+    "shortDescription": "Coverage-gated multi-pass review and planning loop for coding agents.",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "Ponder runs repeated grading passes over a codebase, UI, or plan across four perspectives (Skeptic, Builder, Dreamer, Empath) with an append-only ledger and a coverage gate that refuses to stop until every unit is graded.",
+    "developerName": "Quinn O'Donnell",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Ponder our codebase and grade every module for reliability and edge cases.",
+      "Ponder the UI screens and verify coverage before stopping."
+    ],
+    "websiteURL": "https://github.com/Quinnod345/ponder",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service"
+  }
+}

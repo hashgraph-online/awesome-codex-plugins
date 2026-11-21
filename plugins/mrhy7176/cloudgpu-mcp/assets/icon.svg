@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="CloudGPU">
+  <rect width="512" height="512" rx="96" fill="#F3F3F4"/>
+  <path d="M108 268C176 268 188 156 256 156C324 156 336 268 404 268" fill="none" stroke="#111111" stroke-width="36" stroke-linecap="round"/>
+  <rect x="132" y="312" width="248" height="28" rx="14" fill="#6E6E6E"/>
+  <rect x="132" y="368" width="248" height="28" rx="14" fill="#9A9A9A"/>
+</svg>

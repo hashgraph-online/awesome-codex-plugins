@@ -2,8 +2,7 @@
 
 ## Supported version
 
-Security and correctness fixes are applied to the current supported source line,
-currently `0.7.x`.
+Security and correctness fixes target the latest published version, currently `0.17.1`. Check the [GitHub Release](https://github.com/GreenLv/codex-context-guard/releases/latest) for the published package. The [versioning policy](docs/VERSIONING.md) explains how source and package changes are verified.
 
 ## Reporting a vulnerability
 
@@ -23,17 +22,24 @@ make an untrusted Hook safe, prove semantic correctness, or replace operating
 system access controls. Users must review and trust the exact Hook definition
 before enabling it.
 
-Schema-5 turn dispositions are private, turn-bound control declarations. They
-do not grant authority, prove that a dependency is real, or prove that evidence
-is semantically relevant. A yielded turn keeps every unverified requirement
-pending; only a valid private checkpoint can complete the guarded contract.
-Under Stop protocol 1.1.0, legacy `continue` is advisory and cannot force
-another turn. Only a hash-verified explicit-persistence instruction or an
-uncheckpointed whole-task completion claim can activate a correction turn.
+Private session state uses schema 13 with turn-bound private control records.
+They do not grant authority, prove that a dependency is real, or prove that
+evidence is semantically relevant. A yielded turn keeps every unverified
+requirement pending; only a valid private checkpoint can complete the guarded
+contract. Under Stop protocol 5.0.0, legacy `continue` remains advisory and
+cannot force another turn; only a hash-verified explicit-persistence
+instruction or an uncheckpointed whole-task completion claim can activate a
+correction turn.
 
-Historical cache repair trusts only the archive SHA-256 index. A missing,
-unindexed, symlinked, or hash-mismatched archive fails closed; `--apply` never
-uses a corrupt archive as repair input and archives are not automatically
-deleted. `context-guard diagnose` exposes bounded hashes, protocol/control
-sources, declared dispositions, reason codes, and observed diagnostic outcomes,
-not raw prompts or replies.
+Consumed versioned caches are immutable. This product provides no archive
+repair or automatic deletion of old caches; installation uses official Codex
+marketplace operations. A cache's continued presence does not prove which
+runtime an existing task loads. `context-guard diagnose` exposes bounded
+hashes, protocol/control sources, declared dispositions, reason codes and
+observed diagnostic outcomes, not raw prompts or replies.
+
+Redaction in derived evidence, diagnostics, and exports covers the documented
+supported domain (see [privacy](docs/PRIVACY.md)): common structured
+credential fields, authorization headers, URL userinfo and query values, and
+several common token shapes. It is defense in depth, not recognition of
+arbitrary unknown secrets; review every export before sharing it.

@@ -1,6 +1,6 @@
 {
   "name": "eigenheim-market",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Berlin real estate market data for Codex: daily price per m² by locality, rental yields, land values (Bodenrichtwerte), market overview, population forecast and active listings. Read-only remote MCP, no login.",
   "author": {
     "name": "Eigenheim Invest",

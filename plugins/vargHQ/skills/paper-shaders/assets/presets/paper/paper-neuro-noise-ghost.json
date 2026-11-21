@@ -1,0 +1,30 @@
+{
+  "id": "paper-neuro-noise-ghost",
+  "label": "Ghost (Paper NeuroNoise)",
+  "shader": "NeuroNoise",
+  "page": "https://shaders.paper.design/neuro-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Ghost\" preset for NeuroNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.55,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorFront": "#ffffff",
+    "colorMid": "#000000",
+    "colorBack": "#ffffff",
+    "brightness": 0,
+    "contrast": 1
+  }
+}

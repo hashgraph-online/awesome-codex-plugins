@@ -4,7 +4,7 @@ PyMC Linear Regression Template
 This template provides a complete workflow for Bayesian linear regression,
 including data preparation, model building, diagnostics, and predictions.
 
-Customize the sections marked with # TODO
+Customize the sections marked with # CUSTOMIZE
 """
 
 import pymc as pm
@@ -17,21 +17,21 @@ import matplotlib.pyplot as plt
 # 1. DATA PREPARATION
 # =============================================================================
 
-# TODO: Load your data
+# CUSTOMIZE: Load your data
 # Example:
 # df = pd.read_csv('data.csv')
 # X = df[['predictor1', 'predictor2', 'predictor3']].values
 # y = df['outcome'].values
 
 # For demonstration:
-np.random.seed(42)
+rng = np.random.default_rng(42)
 n_samples = 100
 n_predictors = 3
 
-X = np.random.randn(n_samples, n_predictors)
+X = rng.standard_normal((n_samples, n_predictors))
 true_beta = np.array([1.5, -0.8, 2.1])
 true_alpha = 0.5
-y = true_alpha + X @ true_beta + np.random.randn(n_samples) * 0.5
+y = true_alpha + X @ true_beta + rng.standard_normal(n_samples) * 0.5
 
 # Standardize predictors for better sampling
 X_mean = X.mean(axis=0)
@@ -42,7 +42,7 @@ X_scaled = (X - X_mean) / X_std
 # 2. BUILD MODEL
 # =============================================================================
 
-# TODO: Customize predictor names
+# CUSTOMIZE: Customize predictor names
 predictor_names = ['predictor1', 'predictor2', 'predictor3']
 
 coords = {
@@ -55,7 +55,7 @@ with pm.Model(coords=coords) as linear_model:
     X_data = pm.Data('X_scaled', X_scaled, dims=('obs_id', 'predictors'))
 
     # Priors
-    # TODO: Adjust prior parameters based on your domain knowledge
+    # CUSTOMIZE: Adjust prior parameters based on your domain knowledge
     alpha = pm.Normal('alpha', mu=0, sigma=1)
     beta = pm.Normal('beta', mu=0, sigma=1, dims='predictors')
     sigma = pm.HalfNormal('sigma', sigma=1)
@@ -196,11 +196,11 @@ for i, name in enumerate(predictor_names):
 # 8. PREDICTIONS FOR NEW DATA
 # =============================================================================
 
-# TODO: Provide new data for predictions
+# CUSTOMIZE: Provide new data for predictions
 # X_new = np.array([[...], [...], ...])  # New predictor values
 
 # For demonstration, use some test data
-X_new = np.random.randn(10, n_predictors)
+X_new = rng.standard_normal((10, n_predictors))
 X_new_scaled = (X_new - X_mean) / X_std
 
 # Update model data and predict

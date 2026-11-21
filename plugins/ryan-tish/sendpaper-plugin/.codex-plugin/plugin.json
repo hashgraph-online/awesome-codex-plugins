@@ -1,6 +1,6 @@
 {
   "name": "sendpaper",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Print and mail real postcards and letters to US addresses via USPS First-Class. The agent drafts the mail and shows an exact print preview; you pay on Sendpaper's checkout page, or approve a one-time Stripe Link payment.",
   "author": {
     "name": "Sendpaper",
@@ -105,7 +105,7 @@
         "countries": [
           "US"
         ],
-        "release_notes": "Send the same postcard or letter to up to 25 people with one payment (recipients). Earlier: postcards and letters with an exact print preview, PDF letters, Certified Mail, express, agent payments, status and cancel."
+        "release_notes": "Senders outside the US: the return address can be in any country (from.country). Earlier: send the same postcard or letter to up to 25 people with one payment (recipients); postcards and letters with an exact print preview, PDF letters, Certified Mail, express, agent payments, status and cancel."
       }
     }
   }

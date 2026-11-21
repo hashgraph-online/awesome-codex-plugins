@@ -1,0 +1,96 @@
+<!-- Mini game "Stop the beat" (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"b":bot-side best score 0..500,"k":rank (0 = none),"n":players,"r":N}
+  Play is local: a marker sweeps a bar, a tap stops it, the distance to a green zone scores 0-100, five rounds.
+  Request: "score:<0..500>" once at the end. The device best lives in localStorage (try/catch). -->
+<style>
+/*@kit tokens.css*/
+.bar { display: block; position: relative; width: 100%; height: 56px; padding: 0; border: 0; margin: 8px 0; border-radius: var(--k-r); background: var(--k-sec); touch-action: manipulation }
+.bar[disabled] { background: var(--k-sec) }
+.zn { position: absolute; top: 0; bottom: 0; background: var(--k-ok) }
+.mk { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: var(--k-btn); box-shadow: 0 0 0 1px var(--k-bg) }
+.ac { margin-top: 8px }
+.ac button { min-height: 36px }
+.pt { font-size: 1.6em; font-weight: 600; min-height: 1.3em }
+</style>
+<div class="k">
+  <div class="hd"><span class="tt" id="ti"></span><span class="mt" id="rd"></span></div>
+  <button class="bar" id="bar" dir="ltr"><i class="zn" id="zn"></i><i class="mk" id="mk"></i></button>
+  <div class="mt pt" id="ms"></div>
+  <div class="rw ac" id="ac"></div>
+  <div class="mt" id="bs"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { ti: "Stop the beat", hint: "Tap the bar when the marker is inside the green zone", go: "Start", sb: "Submit score",
+        pa: "Play again", tot: "Total", bl: "Best here", bb: "Bot best", ok: "Score sent" } });/*@end*/
+/*@lang ru*/K.add({ ru: { ti: "Останови ритм", hint: "Нажмите на полосу, когда маркер в зелёной зоне", go: "Старт", sb: "Отправить результат",
+        pa: "Ещё раз", tot: "Итого", bl: "Лучший тут", bb: "Лучший у бота", ok: "Результат отправлен" } });/*@end*/
+/*@lang uk*/K.add({ uk: { ti: "Зупини ритм", hint: "Натисніть на смугу, коли маркер у зеленій зоні", go: "Старт", sb: "Надіслати результат",
+        pa: "Ще раз", tot: "Разом", bl: "Кращий тут", bb: "Кращий у бота", ok: "Результат надіслано" } });/*@end*/
+var ph = 0, rd = 0, sc = [], tg = 0, zw = 0, el = 0, tm = 0, run = 0, sent = 0, pos = 0, pts = 0, loc = 0,
+    rm = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+try { loc = +localStorage.getItem("tb") || 0; } catch (e) {}
+function sum() { return sc.reduce(function (a, b) { return a + b; }, 0); }
+function frame(ts) {
+  if (!run) return;
+  if (tm) el += (ts - tm) / 1000;
+  tm = ts;
+  var x = el * (.45 + .08 * rd) * (rm ? .5 : 1);
+  pos = 1 - Math.abs(1 - 2 * (x % 1));
+  if (rm) pos = Math.round(pos * 12) / 12;
+  K.$("mk").style.left = pos * 100 + "%";
+  requestAnimationFrame(frame);
+}
+function go() {
+  run = 1; tm = 0; el = 0; ph = 1; rd = sc.length;
+  zw = .26 - .03 * rd;
+  tg = zw / 2 + .04 + Math.random() * (1 - zw - .08);
+  requestAnimationFrame(frame);
+}
+K.$("bar").onclick = function () {
+  if (ph != 1) return;
+  run = 0; ph = 2;
+  pts = Math.max(0, Math.round(100 - Math.abs(pos - tg) * 250));
+  sc.push(pts);
+  draw();
+  setTimeout(function () {
+    if (sc.length < 5) go();
+    else {
+      ph = 3;
+      if (sum() > loc) { loc = sum(); try { localStorage.setItem("tb", loc); } catch (e) {} }
+    }
+    draw();
+  }, 800);
+};
+if (W) {
+  W.onEvent("deactivated", function () { run = 0; });
+  W.onEvent("activated", function () { if (ph == 1 && !run) { run = 1; tm = 0; requestAnimationFrame(frame); } });
+}
+function draw() {
+  var s = K.S.chatData, $ = K.$, ac = $("ac"), b, z = $("zn"), t = ph == 0 || ph == 3;
+  ac.innerHTML = "";
+  $("ti").textContent = K.t("ti");
+  $("rd").textContent = t ? "" : K.nf(Math.min(sc.length + (ph == 1), 5)) + "/" + K.nf(5);
+  $("bar").disabled = ph != 1;
+  $("bar").setAttribute("aria-label", K.t("hint"));
+  z.hidden = $("mk").hidden = t;
+  z.style.left = (tg - zw / 2) * 100 + "%"; z.style.width = zw * 100 + "%";
+  $("ms").textContent = ph == 0 ? "" : ph == 1 ? "" : ph == 2 ? "+" + K.nf(pts) : K.t("tot") + " " + K.nf(sum()) + "/" + K.nf(500);
+  if (ph == 0) $("ms").textContent = K.t("hint");
+  if (ph == 3 && !sent) {
+    b = K.h("button", "gr", K.t("sb"));
+    b.disabled = K.busy || !K.can() || !s;
+    b.onclick = function () { K.ask("score:" + sum(), { done: K.t("ok"), then: function (r) { if (r.ok) sent = 1; } }); };
+    ac.appendChild(b);
+  }
+  if (t) {
+    b = K.h("button", ph ? "ch" : "gr", K.t(ph ? "pa" : "go"));
+    b.onclick = function () { sc = []; sent = 0; go(); draw(); };
+    ac.appendChild(b);
+  }
+  $("bs").textContent = K.t("bl") + " " + K.nf(loc) + (s && s.k ? " · " + K.t("bb") + " " + K.nf(s.b) + " · #" + K.nf(s.k) : "");
+}
+K.start(draw);
+</script>

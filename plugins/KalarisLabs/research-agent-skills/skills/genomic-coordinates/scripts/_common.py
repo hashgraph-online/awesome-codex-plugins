@@ -33,6 +33,7 @@ class Convention:
 
     @property
     def label(self) -> str:
+        """Handle label."""
         closure = "half-open" if self.half_open else "inclusive"
         return f"{self.base}-based {closure}"
 
@@ -67,6 +68,7 @@ REGION_STRING_FORMATS = {"ucsc", "ensembl", "samtools", "igv"}
 
 
 def get_convention(name: str) -> Convention:
+    """Get convention."""
     key = name.strip().lower()
     if key not in CONVENTIONS:
         known = ", ".join(sorted(CONVENTIONS))
@@ -183,6 +185,7 @@ def naming_style(names: list[str]) -> str:
 
 
 def strip_chr(name: str) -> str:
+    """Handle strip chr."""
     return name[3:] if name.startswith("chr") else name
 
 
@@ -217,6 +220,7 @@ class Reference:
     """
 
     def __init__(self, path: str | Path) -> None:
+        """Initialise the instance."""
         self.path = Path(path)
         if not self.path.exists():
             raise ReferenceError(f"reference not found: {self.path}")
@@ -232,6 +236,7 @@ class Reference:
             self._alias.setdefault(canonical_contig(name), name)
 
     def _load_fai(self, fai: Path) -> None:
+        """Load fai."""
         for line in fai.read_text().splitlines():
             if not line.strip():
                 continue
@@ -242,6 +247,7 @@ class Reference:
             self._index[name] = (int(length), int(offset), int(linebases), int(linewidth))
 
     def _load_all(self) -> None:
+        """Load all."""
         name = None
         chunks: list[str] = []
         with self.path.open() as handle:
@@ -257,6 +263,7 @@ class Reference:
             self._cache[name] = "".join(chunks)
 
     def _resolve(self, contig: str) -> str:
+        """Resolve."""
         if contig in self._index or contig in self._cache:
             return contig
         alias = self._alias.get(canonical_contig(contig))
@@ -272,11 +279,13 @@ class Reference:
 
     @property
     def contigs(self) -> dict[str, int]:
+        """Handle contigs."""
         if self._index:
             return {name: meta[0] for name, meta in self._index.items()}
         return {name: len(seq) for name, seq in self._cache.items()}
 
     def length(self, contig: str) -> int:
+        """Handle length."""
         return self.contigs[self._resolve(contig)]
 
     def fetch(self, contig: str, start0: int, end0: int) -> str:

@@ -1,0 +1,104 @@
+schema_version: 1
+id: nucleotide-transformer-v3
+title: Nucleotide Transformer v3
+path: skills/nucleotide-transformer-v3
+status: active
+family: transformers-ntv3
+tasks:
+  - embedding
+  - track-prediction
+  - fine-tuning
+  - environment-setup
+  - troubleshooting
+triggers:
+  - ntv3
+  - species-conditioning
+  - species-conditioned
+  - post-trained
+  - bigwig
+  - annotation
+  - ntv3-finetuning
+  - ntv3-mode
+  - full-train
+  - training_history
+  - best_checkpoint
+  - train-command
+required_inputs:
+  - species
+  - sequence-or-interval
+optional_inputs:
+  - assembly
+  - output-head
+  - output-dir
+  - task-objective
+  - dataset-schema
+  - compute-constraints
+input_mappings:
+  - species|query_tokens=species,human,mouse|script_flags=--species
+  - sequence-or-interval|query_tokens=sequence,interval,fasta,start,end,bed,.bed,file,path|script_flags=--interval,--chrom,--start,--end,--bed
+  - assembly|query_tokens=assembly,hg38,hg19,mm10,chm13|script_flags=--assembly
+  - output-head|query_tokens=head,track,bigwig,bed,trackplot,轨道|script_flags=posttrained-track-head-selection
+  - output-dir|query_tokens=output,outdir,目录|script_flags=--output-dir
+  - task-objective|query_tokens=fine-tuning,finetune,training,objective,classification,regression,annotation,bigwig|script_flags=notebook-config:task-objective
+  - dataset-schema|query_tokens=csv,schema,tracks,labels,columns,bigwig,bed|script_flags=notebook-config:dataset-schema
+  - compute-constraints|query_tokens=gpu,cpu,memory,batch,accumulation,budget|script_flags=notebook-config:compute-constraints
+required_env:
+  - HF_TOKEN
+constraints:
+  - input-length-must-follow-divisibility-rules
+  - center-crop-head-output-may-apply
+  - hf-first-path-recommended
+  - interval-is-0based-half-open-ucsc-fetched
+tools:
+  - scripts/check_valid_length.py
+  - scripts/run_track_prediction.py
+  - scripts/run_track_prediction_bed_batch.py
+  - scripts/train_csv_binary_classification.py
+tool_contracts:
+  - tool: scripts/check_valid_length.py
+    inputs:
+      - sequence-length
+    outputs:
+      - length-validity-report
+    side_effects:
+      - none
+    failure_codes:
+      - 1
+  - tool: scripts/run_track_prediction.py
+    inputs:
+      - species-assembly-and-interval
+    outputs:
+      - track-plot-and-metadata
+    side_effects:
+      - writes-output-artifacts
+    failure_codes:
+      - 1
+  - tool: scripts/run_track_prediction_bed_batch.py
+    inputs:
+      - bed-intervals
+      - species-assembly-and-output-dir
+    outputs:
+      - per-interval-track-plots-and-result-json
+      - ntv3-batch-summary-json
+    side_effects:
+      - writes-output-artifacts
+    failure_codes:
+      - 1
+  - tool: scripts/train_csv_binary_classification.py
+    inputs:
+      - train-dev-test-csv-sequence-label
+      - context-length
+      - execution-device
+    outputs:
+      - eval-metrics-json
+      - training-history-json
+      - best-checkpoint-pt
+    side_effects:
+      - writes-output-artifacts
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-ntv3
+  - prefer-when-task-needs-species-conditioned-track-prediction
+  - prefer-for-fine-tuning-when-request-explicitly-targets-ntv3-bigwig-or-annotation-workflows
+  - prefer-for-fine-tuning-when-request-explicitly-targets-ntv3-full-training-or-ntv3-mode-train

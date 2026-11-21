@@ -1,0 +1,96 @@
+{
+  "scenario": "r46-team-group-personal-replies",
+  "status": "production",
+  "context": "supergroup",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "CI #142 failed: 3 of 60 E2E specs.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "My failures",
+                "callback_data": "ci142:mine"
+              },
+              {
+                "text": "Send me the log",
+                "callback_data": "ci142:log"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "4382000000980001"
+        },
+        "text": "Your failing tests:\n• checkout.spec.ts › pays with saved card",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Refresh",
+                "callback_data": "panel:refresh"
+              },
+              {
+                "text": "Close",
+                "callback_data": "panel:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000980001"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "4382000000980002"
+        },
+        "text": "Your failing tests:\n• search.spec.ts › filters by price\n• search.spec.ts › empty query",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Refresh",
+                "callback_data": "panel:refresh"
+              },
+              {
+                "text": "Close",
+                "callback_data": "panel:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000980002"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000980004",
+        "show_alert": true,
+        "text": "Logs go to the operator's private chat only."
+      }
+    }
+  ]
+}

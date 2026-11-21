@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Revenue Operations Skills"
+  short_description: "Lifecycle, scoring, routing, CRM rules, and AI agents"
+  default_prompt: "Use $suede-revops on [target]. The user is defining lead qualification, routing leads to sales, or fixing the handoff between marketing and revenue. Work through lead scoring and routing, MQL and SQL definitions, pipeline stages, CRM hygiene, and the marketing-to-sales handoff, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

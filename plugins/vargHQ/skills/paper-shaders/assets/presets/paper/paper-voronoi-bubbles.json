@@ -1,0 +1,34 @@
+{
+  "id": "paper-voronoi-bubbles",
+  "label": "Bubbles (Paper Voronoi)",
+  "shader": "Voronoi",
+  "page": "https://shaders.paper.design/voronoi",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Bubbles\" preset for Voronoi, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.75,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#83c9fb"
+    ],
+    "stepsPerColor": 1,
+    "colorGlow": "#ffffff",
+    "colorGap": "#ffffff",
+    "distortion": 0.4,
+    "gap": 0,
+    "glow": 1
+  }
+}

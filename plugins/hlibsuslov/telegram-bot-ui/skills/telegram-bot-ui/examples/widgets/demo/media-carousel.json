@@ -1,0 +1,18 @@
+{
+ "widget": "media-carousel",
+ "title": "Media carousel",
+ "summary": "Five inline-SVG slides with swipe, arrows and dots; a favorite heart toggles through one stale-checked request.",
+ "caption": "Nordic light · 5 pictures · 1 favorite",
+ "send": {"allow_queries": true},
+ "fallback": {"inline_keyboard": [
+  [{"text": "◀", "callback_data": "car:prev"}, {"text": "1/5", "callback_data": "car:noop"}, {"text": "▶", "callback_data": "car:next"}],
+  [{"text": "Save to favorites", "callback_data": "car:fav:0"}]
+ ]},
+ "states": {
+  "default": {"chatData": {"f": 0, "c": ["Lofoten at dawn", "Harbour waves", "Aurora over Tromsø", "Fjord ferry timetable", "Midnight sun rings"], "r": 0}},
+  "favorited": {"chatData": {"f": 5, "c": ["Lofoten at dawn", "Harbour waves", "Aurora over Tromsø", "Fjord ferry timetable", "Midnight sun rings"], "r": 0}},
+  "empty": {"chatData": null}
+ },
+ "queries": ["fav:0@0", "fav:3@0", "fav:2@7", "fav:9@0"],
+ "fresh": []
+}

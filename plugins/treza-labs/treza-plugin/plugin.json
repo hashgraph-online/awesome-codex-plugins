@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "treza",
+  "version": "1.4.0",
+  "description": "Make AI videos from your agent: one clip from a description, edits to media you have, and video pipelines that render and post to YouTube and TikTok.",
+  "author": {
+    "name": "Treza Labs",
+    "email": "hello@trezalabs.com",
+    "url": "https://www.trezalabs.com"
+  },
+  "homepage": "https://www.trezalabs.com/connect",
+  "repository": "https://github.com/treza-labs/treza-plugin",
+  "license": "MIT",
+  "keywords": ["mcp", "video", "ai-video", "youtube", "tiktok", "pipelines", "veo", "seedance", "x402"]
+}

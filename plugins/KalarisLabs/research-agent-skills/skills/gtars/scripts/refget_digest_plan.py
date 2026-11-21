@@ -32,6 +32,7 @@ _MD5 = re.compile(r"^[0-9a-f]{32}$")
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a local refget metadata JSON document and optionally compare "
@@ -67,6 +68,7 @@ def sha512t24u(sequence: bytes) -> str:
 
 
 def _normalize_expected_digest(value: object) -> str | None:
+    """Normalize expected digest."""
     if not isinstance(value, str):
         return None
     if value.lower().startswith("sq."):
@@ -80,12 +82,14 @@ def _read_fasta(
     max_bytes: int,
     max_records: int,
 ) -> list[dict[str, object]]:
+    """Read fasta."""
     records: list[dict[str, object]] = []
     name: str | None = None
     chunks: list[bytes] = []
     names: set[str] = set()
 
     def finish() -> None:
+        """Handle finish."""
         nonlocal name, chunks
         if name is None:
             return
@@ -138,20 +142,18 @@ def _read_fasta(
     return records
 
 
-def validate(args: argparse.Namespace) -> tuple[dict, int]:
-    assembly = args.assembly.strip()
-    if not assembly or len(assembly) > 200:
-        raise SafetyError("assembly must contain 1-200 characters")
-    metadata_path = local_path(args.metadata, kind="file")
-    document = load_json(
-        metadata_path,
-        max_bytes=min(args.max_bytes, 64 * 1024**2),
-    )
-    if not isinstance(document, dict):
-        raise SafetyError("metadata root must be a JSON object")
+def _bump(counts: dict[str, int], code: str) -> None:
+    """Increment the counter for an error or warning code."""
+    counts[code] = counts.get(code, 0) + 1
 
-    errors: dict[str, int] = {}
-    warnings: dict[str, int] = {}
+
+def _check_metadata_header(
+    document: dict,
+    assembly: str,
+    errors: dict[str, int],
+    warnings: dict[str, int],
+) -> object:
+    """Check schema, assembly, coordinate system and collection digest; return the digest."""
     if document.get("schema_version") != "1.0":
         errors["metadata:unsupported_schema_version"] = 1
     if document.get("assembly") != assembly:
@@ -166,6 +168,134 @@ def validate(args: argparse.Namespace) -> tuple[dict, int]:
         errors["metadata:invalid_collection_digest_shape"] = 1
     else:
         warnings["collection_digest_shape_only_not_recomputed"] = 1
+    return collection_digest
+
+
+def _check_expected_item(item: dict, errors: dict[str, int]) -> None:
+    """Record errors for the length, digest and md5 fields of one expected sequence."""
+    length = item.get("length")
+    digest = _normalize_expected_digest(item.get("sha512t24u"))
+    md5 = item.get("md5")
+    if type(length) is not int or length < 1:
+        _bump(errors, "metadata:invalid_sequence_length")
+    if digest is None:
+        _bump(errors, "metadata:invalid_sha512t24u")
+    if not isinstance(md5, str) or not _MD5.fullmatch(md5.lower()):
+        _bump(errors, "metadata:invalid_md5")
+
+
+def _index_expected_sequences(
+    expected: list, errors: dict[str, int]
+) -> dict[str, dict]:
+    """Index the expected sequence records by name, counting malformed or duplicate ones."""
+    expected_by_name: dict[str, dict] = {}
+    for item in expected:
+        if not isinstance(item, dict):
+            _bump(errors, "metadata:non_object_sequence_record")
+            continue
+        name = item.get("name")
+        if not isinstance(name, str) or not name or len(name) > 1_000:
+            _bump(errors, "metadata:invalid_sequence_name")
+            continue
+        if name in expected_by_name:
+            _bump(errors, "metadata:duplicate_sequence_name")
+            continue
+        expected_by_name[name] = item
+        _check_expected_item(item, errors)
+    return expected_by_name
+
+
+def _count_digest_mismatches(
+    expected_by_name: dict[str, dict],
+    actual_by_name: dict[object, dict[str, object]],
+) -> tuple[int, int, int]:
+    """Count length, sha512t24u and md5 mismatches among sequences present on both sides."""
+    length_mismatch = 0
+    sha_mismatch = 0
+    md5_mismatch = 0
+    for name in set(expected_by_name) & set(actual_by_name):
+        expected_item = expected_by_name[name]
+        actual_item = actual_by_name[name]
+        if expected_item.get("length") != actual_item["length"]:
+            length_mismatch += 1
+        expected_sha = _normalize_expected_digest(expected_item.get("sha512t24u"))
+        if expected_sha != actual_item["sha512t24u"]:
+            sha_mismatch += 1
+        expected_md5 = expected_item.get("md5")
+        if (
+            not isinstance(expected_md5, str)
+            or expected_md5.lower() != actual_item["md5"]
+        ):
+            md5_mismatch += 1
+    return length_mismatch, sha_mismatch, md5_mismatch
+
+
+def _compare_fasta(
+    args: argparse.Namespace,
+    expected_by_name: dict[str, dict],
+    errors: dict[str, int],
+) -> dict:
+    """Recompute FASTA digests, compare them with the metadata and describe the FASTA."""
+    fasta_path = local_path(args.fasta, kind="file")
+    actual = _read_fasta(
+        fasta_path,
+        max_bytes=args.max_bytes,
+        max_records=args.max_records,
+    )
+    actual_by_name = {item["name"]: item for item in actual}
+    missing = set(expected_by_name) - set(actual_by_name)
+    unexpected = set(actual_by_name) - set(expected_by_name)
+    length_mismatch, sha_mismatch, md5_mismatch = _count_digest_mismatches(
+        expected_by_name, actual_by_name
+    )
+    for code, count in (
+        ("fasta:missing_sequences", len(missing)),
+        ("fasta:unexpected_sequences", len(unexpected)),
+        ("fasta:length_mismatches", length_mismatch),
+        ("fasta:sha512t24u_mismatches", sha_mismatch),
+        ("fasta:md5_mismatches", md5_mismatch),
+    ):
+        if count:
+            errors[code] = count
+    fasta_digest, fasta_bytes = sha256_file(
+        fasta_path,
+        max_bytes=args.max_bytes,
+    )
+    return {
+        "path": display_path(fasta_path, 2, args.path_mode),
+        "sha256": fasta_digest,
+        "size_bytes": fasta_bytes,
+        "sequence_count": len(actual),
+        "all_sequence_digests_match": not any(
+            (missing, unexpected, length_mismatch, sha_mismatch, md5_mismatch)
+        ),
+    }
+
+
+_APPROVED_EXECUTION_PLAN = [
+    "prefer RefgetStore.open_local for a reviewed local store",
+    "for a new store use RefgetStore.in_memory, verify, then persist explicitly",
+    "before open_remote record an HTTPS allowlist, immutable revision, expected digests, cache path, byte quota, and approval",
+    "treat get_substring and stream_sequence on a remote store as network reads",
+]
+
+
+def validate(args: argparse.Namespace) -> tuple[dict, int]:
+    """Validate the metadata (and optional FASTA) and return the report with its exit status."""
+    assembly = args.assembly.strip()
+    if not assembly or len(assembly) > 200:
+        raise SafetyError("assembly must contain 1-200 characters")
+    metadata_path = local_path(args.metadata, kind="file")
+    document = load_json(
+        metadata_path,
+        max_bytes=min(args.max_bytes, 64 * 1024**2),
+    )
+    if not isinstance(document, dict):
+        raise SafetyError("metadata root must be a JSON object")
+
+    errors: dict[str, int] = {}
+    warnings: dict[str, int] = {}
+    collection_digest = _check_metadata_header(document, assembly, errors, warnings)
 
     expected = document.get("sequences")
     if not isinstance(expected, list) or not expected:
@@ -173,91 +303,11 @@ def validate(args: argparse.Namespace) -> tuple[dict, int]:
     if len(expected) > args.max_records:
         raise SafetyError("metadata sequence count exceeds max-records")
 
-    expected_by_name: dict[str, dict] = {}
-    for item in expected:
-        if not isinstance(item, dict):
-            errors["metadata:non_object_sequence_record"] = (
-                errors.get("metadata:non_object_sequence_record", 0) + 1
-            )
-            continue
-        name = item.get("name")
-        length = item.get("length")
-        digest = _normalize_expected_digest(item.get("sha512t24u"))
-        md5 = item.get("md5")
-        if not isinstance(name, str) or not name or len(name) > 1_000:
-            errors["metadata:invalid_sequence_name"] = (
-                errors.get("metadata:invalid_sequence_name", 0) + 1
-            )
-            continue
-        if name in expected_by_name:
-            errors["metadata:duplicate_sequence_name"] = (
-                errors.get("metadata:duplicate_sequence_name", 0) + 1
-            )
-            continue
-        expected_by_name[name] = item
-        if type(length) is not int or length < 1:
-            errors["metadata:invalid_sequence_length"] = (
-                errors.get("metadata:invalid_sequence_length", 0) + 1
-            )
-        if digest is None:
-            errors["metadata:invalid_sha512t24u"] = (
-                errors.get("metadata:invalid_sha512t24u", 0) + 1
-            )
-        if not isinstance(md5, str) or not _MD5.fullmatch(md5.lower()):
-            errors["metadata:invalid_md5"] = errors.get("metadata:invalid_md5", 0) + 1
+    expected_by_name = _index_expected_sequences(expected, errors)
 
     fasta_report = None
     if args.fasta:
-        fasta_path = local_path(args.fasta, kind="file")
-        actual = _read_fasta(
-            fasta_path,
-            max_bytes=args.max_bytes,
-            max_records=args.max_records,
-        )
-        actual_by_name = {item["name"]: item for item in actual}
-        missing = set(expected_by_name) - set(actual_by_name)
-        unexpected = set(actual_by_name) - set(expected_by_name)
-        length_mismatch = 0
-        sha_mismatch = 0
-        md5_mismatch = 0
-        for name in set(expected_by_name) & set(actual_by_name):
-            expected_item = expected_by_name[name]
-            actual_item = actual_by_name[name]
-            if expected_item.get("length") != actual_item["length"]:
-                length_mismatch += 1
-            expected_sha = _normalize_expected_digest(
-                expected_item.get("sha512t24u")
-            )
-            if expected_sha != actual_item["sha512t24u"]:
-                sha_mismatch += 1
-            expected_md5 = expected_item.get("md5")
-            if (
-                not isinstance(expected_md5, str)
-                or expected_md5.lower() != actual_item["md5"]
-            ):
-                md5_mismatch += 1
-        for code, count in (
-            ("fasta:missing_sequences", len(missing)),
-            ("fasta:unexpected_sequences", len(unexpected)),
-            ("fasta:length_mismatches", length_mismatch),
-            ("fasta:sha512t24u_mismatches", sha_mismatch),
-            ("fasta:md5_mismatches", md5_mismatch),
-        ):
-            if count:
-                errors[code] = count
-        fasta_digest, fasta_bytes = sha256_file(
-            fasta_path,
-            max_bytes=args.max_bytes,
-        )
-        fasta_report = {
-            "path": display_path(fasta_path, 2, args.path_mode),
-            "sha256": fasta_digest,
-            "size_bytes": fasta_bytes,
-            "sequence_count": len(actual),
-            "all_sequence_digests_match": not any(
-                (missing, unexpected, length_mismatch, sha_mismatch, md5_mismatch)
-            ),
-        }
+        fasta_report = _compare_fasta(args, expected_by_name, errors)
     else:
         warnings["fasta_not_supplied_digest_values_not_recomputed"] = 1
 
@@ -287,17 +337,13 @@ def validate(args: argparse.Namespace) -> tuple[dict, int]:
         "fasta": fasta_report,
         "errors": dict(sorted(errors.items())),
         "warnings": dict(sorted(warnings.items())),
-        "approved_execution_plan": [
-            "prefer RefgetStore.open_local for a reviewed local store",
-            "for a new store use RefgetStore.in_memory, verify, then persist explicitly",
-            "before open_remote record an HTTPS allowlist, immutable revision, expected digests, cache path, byte quota, and approval",
-            "treat get_substring and stream_sequence on a remote store as network reads",
-        ],
+        "approved_execution_plan": list(_APPROVED_EXECUTION_PLAN),
     }
     return report, 0 if not errors else 2
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report, status = validate(args)

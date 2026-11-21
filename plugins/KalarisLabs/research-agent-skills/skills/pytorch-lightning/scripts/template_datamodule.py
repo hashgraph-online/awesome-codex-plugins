@@ -84,6 +84,7 @@ class TemplateDataModule(L.LightningDataModule):
         train_val_split: float = 0.8,
         pin_memory: bool = True,
     ):
+        """Initialise the instance."""
         super().__init__()
 
         # Save hyperparameters

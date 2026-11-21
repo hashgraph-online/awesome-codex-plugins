@@ -137,7 +137,8 @@ needs is settled:
 2. terminal acceptance, each criterion with its proving evidence;
 3. authority: reads, writes, external effects, Git, and when agents must ask;
 4. numeric wave and goal [budgets and the HOLD threshold](../craft-goal/SKILL.md#budgets-and-hold);
-5. the first falsifiable question.
+5. the first falsifiable question;
+6. the tracker the goal runs on and its root epic, or that the first wave creates it.
 
 While the caller is still here, [test the settled answers](references/stress-test.md#test-the-settled-answers)
 once. Then hand over the lists; the caller starts the next step: Craft Goal

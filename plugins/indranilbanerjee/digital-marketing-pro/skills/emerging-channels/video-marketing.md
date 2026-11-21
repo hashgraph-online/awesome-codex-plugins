@@ -17,8 +17,7 @@
 | **YouTube (long-form)** | Horizontal | 16:9 | 12 hours | 8-15 min (most topics) | 1920x1080 (min), 3840x2160 (ideal) |
 | **YouTube Shorts** | Vertical | 9:16 | 3 min | 30-60 sec | 1080x1920 |
 | **TikTok** | Vertical | 9:16 | 10 min | 15-60 sec (sweet spot: 21-34 sec) | 1080x1920 |
-| **Instagram Reels** | Vertical | 9:16 | 15 min | 15-30 sec (discovery), 60-90 sec (engagement) | 1080x1920 |
-| **Instagram Feed Video** | Square or Vertical | 1:1 or 4:5 | 60 min | 30-60 sec | 1080x1080 or 1080x1350 |
+| **Instagram Reels** | Vertical | 9:16 | 20 min (platform_specs.json: instagram.reel_max_seconds); over 3 min isn't recommended to new audiences | 15-30 sec (discovery), 60-90 sec (engagement) | 1080x1920 |
 | **Instagram Stories** | Vertical | 9:16 | 60 sec/story | 15 sec per story | 1080x1920 |
 | **LinkedIn Video** | Horizontal or Square | 16:9 or 1:1 | 10 min (native) | 1-3 min | 1920x1080 or 1080x1080 |
 | **Twitter/X Video** | Horizontal or Square | 16:9 or 1:1 | 2 min 20 sec | 30-60 sec | 1920x1080 or 1080x1080 |

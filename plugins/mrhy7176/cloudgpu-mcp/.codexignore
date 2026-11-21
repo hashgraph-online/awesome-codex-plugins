@@ -1,0 +1,10 @@
+node_modules/
+.git/
+.env
+.env.*
+*.log
+npm-debug.log*
+.DS_Store
+dist/
+coverage/
+.hol-plugin-scanner-dist/

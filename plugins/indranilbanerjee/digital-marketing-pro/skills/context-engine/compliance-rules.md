@@ -69,7 +69,7 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Editorial-responsibility carve-out** | Human reviewer must (a) be identifiable, (b) have authority to alter or reject the AI output, (c) have a documented review record. A pure rubber-stamp does not satisfy the carve-out. | A documented reviewer scorecard (e.g. the quality-assurance agent's logged eval) satisfies (c), but a named human editor must still sign off and that name must be on the published piece (byline, masthead, or accessible "About this article" link). |
 | **Enforcement priority** | National regulators are expected to prioritise (1) deepfakes, (2) AI-generated political/health content, (3) AI-generated content marketed without any provenance metadata at all. Routine commercial creative with C2PA is low priority. | Brands using C2PA across EU-distributed AI assets are in a strong defensive posture under the final guidelines. |
 
-**Action items for brands with EU exposure before 2 August 2026:**
+**Action items for brands with EU exposure (Article 50 applies since 2 August 2026):**
 
 1. **Audit your EU AI-asset inventory now.** Catalogue any AI-generated image, video, audio, deepfake-style synthetic content, and AI-written long-form copy distributed to EU users in the last 12 months. Identify which carry C2PA and which don't.
 2. **Lock in your C2PA signing-cert procurement immediately — Article 50 applies 2 August 2026.** See `docs/c2pa-production-cert-guide.md` for the four recognised authorities. Allow 2–4 weeks for Adobe Content Credentials approval.

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "babeldoc-pdf-translate",
+  "version": "1.5.0-rc.29",
+  "description": "Layout-preserving PDF translation with BabelDOC, bilingual output and custom terminology.",
+  "author": {
+    "name": "reliable-ly0411",
+    "url": "https://github.com/reliable-ly0411"
+  },
+  "homepage": "https://github.com/reliable-ly0411/babeldoc-pdf-translate",
+  "repository": "https://github.com/reliable-ly0411/babeldoc-pdf-translate",
+  "license": "MIT AND AGPL-3.0-only"
+}

@@ -49,6 +49,7 @@ else:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit immutable local dataset files without network access and without "
@@ -94,6 +95,7 @@ def _data_root_from_manifest(
     manifest_root: str,
     relative_root: str,
 ) -> Path:
+    """Handle data root from manifest."""
     base = checked_root(manifest_root)
     candidate = base / relative_root
     current = base
@@ -110,6 +112,7 @@ def _data_root_from_manifest(
 
 
 def _field_names(row: Mapping[str, Any], *, context: str) -> tuple[str, ...]:
+    """Handle field names."""
     if not row or len(row) > 128:
         raise CliError(f"{context} must contain 1 to 128 fields")
     fields: list[str] = []
@@ -169,6 +172,7 @@ def _rows_from_document(
 
 
 def _digest(value: Any) -> str:
+    """Handle digest."""
     return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
 
 
@@ -178,6 +182,7 @@ def _bounded_groups(
     maximum: int,
     cross_split_only: bool,
 ) -> list[dict[str, Any]]:
+    """Handle bounded groups."""
     result: list[dict[str, Any]] = []
     for digest in sorted(groups):
         occurrences = groups[digest]
@@ -212,6 +217,7 @@ def audit(
     max_evidence_groups: int,
     manifest_sha256: str,
 ) -> dict[str, Any]:
+    """Handle audit."""
     label_field = manifest["label_field"]
     identity_fields = manifest["identity_fields"]
     exact_groups: dict[str, list[tuple[str, int]]] = defaultdict(list)
@@ -351,6 +357,7 @@ def audit(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         max_file_bytes = bounded_int(

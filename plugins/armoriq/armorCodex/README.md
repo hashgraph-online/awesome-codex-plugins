@@ -38,6 +38,9 @@ codex plugin install armorcodex@armoriq
 
 ## Documentation
 
+For the anonymous daily ping, its opt outs, and the daily sign in reminder, see
+[Data & Privacy](../../README.md#data--privacy).
+
 - Full docs: https://docs.armoriq.ai/armorcodex
 - Source repo: https://github.com/armoriq/armorCodex
 - ArmorIQ platform: https://armoriq.ai

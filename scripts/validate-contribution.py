@@ -522,6 +522,10 @@ def list_open_pull_requests(repository: str, pull_request_number: int | None) ->
     for payload in payloads:
         if not isinstance(payload, dict):
             continue
+        # A manually dispatched number can name a closed or merged pull request;
+        # skip it so the gate never posts to a pull request that is no longer open.
+        if payload.get("state", "open") != "open":
+            continue
         number = payload.get("number")
         title = payload.get("title")
         head = payload.get("head")
@@ -669,7 +673,7 @@ def scan_open_pull_requests(
                 report_lines.append(f"  - `{contribution}`: **FAIL** — {error}")
                 continue
 
-            contribution_row = {"owner": entry.owner, "repo": entry.repo}
+            contribution_row = {"owner": entry.owner, "repo": entry.repo, "name": entry.display_name}
             if entry.source_ref:
                 contribution_row["ref"] = entry.source_ref
             scanner_contributions.append(contribution_row)
@@ -739,7 +743,7 @@ def write_matrix(path: Path, entries: list[Contribution]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     matrix = []
     for entry in entries:
-        contribution = {"owner": entry.owner, "repo": entry.repo}
+        contribution = {"owner": entry.owner, "repo": entry.repo, "name": entry.display_name}
         if entry.source_ref:
             contribution["ref"] = entry.source_ref
         matrix.append(contribution)

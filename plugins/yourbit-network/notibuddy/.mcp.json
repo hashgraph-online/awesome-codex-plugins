@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "notibuddy": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "notibuddy@0.4.0",
+        "mcp",
+        "--client",
+        "codex"
+      ]
+    }
+  }
+}

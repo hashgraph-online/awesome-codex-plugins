@@ -1,0 +1,16 @@
+[
+ {
+  "id": "G3",
+  "question": "Do case, serif or sans, width and weight match the want card?",
+  "pass_example": "Want condensed sans caps: yes",
+  "fail_example": "Serif lowercase",
+  "ct_rule": "Under 24 px cap height"
+ },
+ {
+  "id": "G6",
+  "question": "Is it real use: film title, printed page, on-air, street?",
+  "pass_example": "Photographed poster",
+  "fail_example": "Template mockup",
+  "ct_rule": "Crop shows no context"
+ }
+]

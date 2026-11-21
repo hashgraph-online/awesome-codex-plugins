@@ -1,0 +1,22 @@
+---
+title: "Session and network"
+---
+stateDiagram-v2
+  direction LR
+  state "all at once" as regions {
+    state "Account" as region0 {
+      s0: Signed out
+      s3: Signed in
+      [*] --> s0
+      s0 --> s3: sign in #91;when Online#93;
+      s3 --> s0: sign out
+    }
+    --
+    state "Network" as region1 {
+      s1: Online
+      s2: Offline
+      [*] --> s1
+      s1 --> s2: connection drops
+      s2 --> s1: connection returns
+    }
+  }

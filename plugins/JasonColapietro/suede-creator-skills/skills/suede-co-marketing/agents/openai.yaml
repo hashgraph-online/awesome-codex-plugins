@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Co-Marketing Skills"
+  short_description: "Find and run partner campaigns"
+  default_prompt: "Use $suede-co-marketing on [target]. The user is looking for co-marketing partners or planning a joint campaign or cross-promotion. Work through partner selection, joint offer design, audience overlap, and splitting the work and the credit, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

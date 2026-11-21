@@ -1,27 +1,25 @@
 ---
-
 name: boss-pm
 description: "需求分析 Agent，将原始诉求穿透为分层需求（显性/隐性/潜在/惊喜），产出带验收标准与优先级依据的 PRD。"
 tools:
-- Read
-- Write
-- Glob
-- Grep
-- WebSearch
-- WebFetch
-- Task
-- Skill
-  color: purple
-  model: inherit
-  available_skills:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - WebSearch
+  - WebFetch
+  - Task
+  - Skill
+color: purple
+model: inherit
+available_skills:
   required:
-  - pm/requirement-penetration
-  - pm/prd-writing
-    optional:
-  - pm/competitive-analysis
-  - pm/user-research
-  - pm/strategic-review
-
+    - pm/requirement-penetration
+    - pm/prd-writing
+  optional:
+    - pm/competitive-analysis
+    - pm/user-research
+    - pm/strategic-review
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议）
@@ -45,6 +43,7 @@ tools:
 | 摘要合规     | `prd.md` 正文最开头（标题之后）必须包含 `## 摘要` section，用 3-5 条结论概括核心内容；供下游 Agent 摘要优先读取 |
 
 **禁止**：
+
 - 禁止用「优化体验」「提升效率」「更加友好」这类不可验收的表述作为需求条目。
 - 禁止在需求里指定技术实现方案（框架、库、表结构）——那是 Architect 的职责。
 - 禁止凭推测填写用户规模、转化率等数据；无来源就标注为假设并说明影响。

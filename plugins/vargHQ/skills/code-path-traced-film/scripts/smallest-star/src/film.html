@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>The Smallest Star: render</title></head>
+<body style="margin:0;background:#000">
+<canvas id="c"></canvas>
+<script type="module">
+import { Engine } from './engine.js';
+import { state, toUniforms, setTimeline } from './shots.js';
+
+const post = (path, body) => fetch(path, { method: 'POST', body });
+const log = (...a) => post('/log', a.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(' '));
+window.onerror = (m, s, l, c, e) => { post('/fail', `${m} @${s}:${l}:${c}\n${e && e.stack || ''}`); };
+window.onunhandledrejection = (e) => { post('/fail', String(e.reason && e.reason.stack || e.reason)); };
+
+function setPath(obj, path, val) {
+  const ks = path.split('.'); let o = obj;
+  for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+  o[ks[ks.length - 1]] = val;
+}
+
+const job = await (await fetch('/job')).json();
+setTimeline(await (await fetch('/timeline.json')).json());
+const eng = new Engine(document.getElementById('c'), job.w, job.h, job.quality, log);
+document.getElementById('c').addEventListener('webglcontextlost', () => post('/fail', 'webgl context lost'));
+await log(`engine ready ${job.w}x${job.h} q=${job.quality} compile=${eng.compileMs.toFixed(0)}ms`);
+
+for (const fr of job.frames) {
+  const t0 = performance.now();
+  const dev = fr.shot ? { shot: fr.shot, k: fr.k ?? 0 } : null;
+  const at = (t) => {
+    const S = state(t, dev);
+    for (const [k, v] of Object.entries(job.set || {})) setPath(S, k, v);
+    for (const [k, v] of Object.entries(fr.set || {})) setPath(S, k, v);
+    return toUniforms(S);
+  };
+  const mulS = state(fr.t ?? 0, dev).sppMul ?? 1;
+  const o = { spp: Math.max(1, Math.round((fr.spp ?? job.spp) * (job.flatSpp ? 1 : mulS))), shutter: dev ? 0 : (job.shutter ?? 1 / 48), seed: fr.seed ?? Math.round((fr.t ?? 0) * 24) + 1, mode: fr.mode ?? job.mode ?? 0, denoise: fr.denoise ?? job.denoise, sig: job.sig };
+  const postU = eng.accumulate(at, fr.t ?? 0, o);
+  const modes = job.modes || [o.mode];
+  let lost = false;
+  for (const m of modes) {
+    const px = eng.resolve(postU, { ...o, mode: m });
+    if (eng.gl.isContextLost()) { await post('/fail', 'webgl context lost at ' + fr.name); lost = true; break; }
+    const ms = performance.now() - t0;
+    const name = job.modes ? fr.name.replace('.png', `_m${m}.png`) : fr.name;
+    await post(`/frame?name=${encodeURIComponent(name)}&ms=${ms.toFixed(0)}&last=${m === modes[modes.length - 1] ? 1 : 0}`, px);
+  }
+  if (lost) break;
+}
+await post('/done', 'ok');
+</script>
+</body>
+</html>

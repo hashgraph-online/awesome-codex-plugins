@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Site to iOS App Skills"
+  short_description: "Turn websites into App Store-ready iOS app plans and shells"
+  default_prompt: "$site-to-ios-app Audit this site and plan its conversion into an iOS app: "
+policy:
+  allow_implicit_invocation: true

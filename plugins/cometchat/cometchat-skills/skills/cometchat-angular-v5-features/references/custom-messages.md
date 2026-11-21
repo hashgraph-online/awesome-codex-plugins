@@ -52,13 +52,13 @@ Both constants are `readonly string[]`. Spreading them keeps every built-in type
 ## 3. Render it — `MessageBubbleConfigService.setBubbleView()`
 Register a template against your type key. This is the documented API — do **not** reach for `[listItemTemplate]`, and do not reverse-engineer the bubble internals.
 
-> ⚠️ **The key is `{type}_{category}` — NOT your bare type.** A custom `location` message registers under **`location_custom`**, because its category is `custom`. This trips everyone: `setBubbleView('location', …)` is accepted silently, never matches, and the bubble renders the kit's fallback **"This message type is not supported."** — which reads like a missing feature rather than a key typo. Built-in keys follow the same rule (`text_message`, `image_message`). Verified against the kit: `type MessageTypeKey` — *"Format: `{type}_{category}`"*.
+> ⚠️ **The key is `{type}_{category}` — NOT your bare type.** A custom `location` message registers under **`location_custom`**, because its category is `custom`. This trips everyone: `setBubbleView('location', ...)` is accepted silently, never matches, and the bubble renders the kit's fallback **"This message type is not supported."** — which reads like a missing feature rather than a key typo. Built-in keys follow the same rule (`text_message`, `image_message`). Verified against the kit: `type MessageTypeKey` — *"Format: `{type}_{category}`"*.
 
 ```ts
 import { Component, ViewChild, TemplateRef, inject, AfterViewInit } from '@angular/core';
 import { MessageBubbleConfigService } from '@cometchat/chat-uikit-angular';
 
-@Component({ /* … */ })
+@Component({ /* ... */ })
 export class ChatComponent implements AfterViewInit {
   @ViewChild('locationBubble', { static: true }) locationBubble!: TemplateRef<unknown>;
   private bubbleConfig = inject(MessageBubbleConfigService);

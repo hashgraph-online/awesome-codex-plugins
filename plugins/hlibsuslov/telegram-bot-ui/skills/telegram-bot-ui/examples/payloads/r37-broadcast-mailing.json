@@ -1,0 +1,201 @@
+{
+  "scenario": "r37-broadcast-mailing",
+  "status": "production",
+  "context": "private chats (subscribers)",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 201,
+        "text": "Hi, Anna! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 4
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 202,
+        "text": "Hi, <b>Bo_b*</b>! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 12
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 203,
+        "text": "Hi, Олена! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 5
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 203,
+        "text": "Hi, Олена! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 5
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 204,
+        "text": "Hi, Chen! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 4
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 205,
+        "text": "Hi, Dmytro! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 6
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 206,
+        "text": "Hi, Eve! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 3
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 204,
+        "text": "Hi, Chen! The winter market opens on Saturday.\n\nYou get this because you subscribed to event alerts.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 4,
+            "length": 4
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Unsubscribe",
+                "callback_data": "alerts:off"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

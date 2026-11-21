@@ -1,0 +1,11 @@
+{
+ "request": {
+  "kind": "tlc",
+  "cfgText": "INIT Init\nNEXT Next\nINVARIANT Bad\nCHECK_DEADLOCK TRUE",
+  "wrapper": null
+ },
+ "exit": 75,
+ "stdout": "@!@!@STARTMSG 2262:0 @!@!@\nTLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)\n@!@!@ENDMSG 2262 @!@!@\n@!@!@STARTMSG 2187:0 @!@!@\nRunning breadth-first search Model-Checking with fp 0 and seed -1381604383096942960 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 7285] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).\n@!@!@ENDMSG 2187 @!@!@\n@!@!@STARTMSG 2220:0 @!@!@\nStarting SANY...\n@!@!@ENDMSG 2220 @!@!@\nParsing file /work/endostack/skills/statechart/scripts/test/corpus/first-fails/Typo.tla\nParsing file /tmp/statechart-rec-ZCT6Po/02-verdict-1/tlc.tmp/Naturals.tla\nSemantic processing of module Naturals\nSemantic processing of module Typo\n@!@!@STARTMSG 2219:0 @!@!@\nSANY finished.\n@!@!@ENDMSG 2219 @!@!@\n@!@!@STARTMSG 2185:0 @!@!@\nStarting... (2026-10-27 16:48:31)\n@!@!@ENDMSG 2185 @!@!@\n@!@!@STARTMSG 2189:0 @!@!@\nComputing initial states...\n@!@!@ENDMSG 2189 @!@!@\n@!@!@STARTMSG 2102:1 @!@!@\n@!@!@STARTMSG 2154:0 @!@!@\nAttempted to apply the operator overridden by the Java method\npublic static tlc2.value.impl.IntValue tlc2.module.Naturals.Plus(tlc2.value.impl.IntValue,tlc2.value.impl.IntValue),\nbut it produced the following error:\nCannot cast tlc2.value.impl.StringValue to tlc2.value.impl.IntValue\n@!@!@ENDMSG 2154 @!@!@\nWhile working on the initial state:\nx = 0\n\n@!@!@ENDMSG 2102 @!@!@\n@!@!@STARTMSG 2103:1 @!@!@\nThe error occurred when TLC was evaluating the nested\nexpressions at the following positions:\n0. Line 4, column 9 to line 4, column 13 in Typo\n1. Line 6, column 8 to line 6, column 18 in Typo\n2. Line 6, column 8 to line 6, column 14 in Typo\n\n\n@!@!@ENDMSG 2103 @!@!@\n@!@!@STARTMSG 2200:0 @!@!@\nProgress(1) at 2026-10-27 16:48:31: 1 states generated (119 s/min), 1 distinct states found (119 ds/min), 1 states left on queue.\n@!@!@ENDMSG 2200 @!@!@\n@!@!@STARTMSG 2199:0 @!@!@\n1 states generated, 1 distinct states found, 1 states left on queue.\n@!@!@ENDMSG 2199 @!@!@\n@!@!@STARTMSG 2186:0 @!@!@\nFinished in 507ms at (2026-10-27 16:48:31)\n@!@!@ENDMSG 2186 @!@!@\n",
+ "stderr": "Picked up JAVA_TOOL_OPTIONS: \n",
+ "dot": null
+}

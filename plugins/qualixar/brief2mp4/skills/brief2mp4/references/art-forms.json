@@ -1,0 +1,1527 @@
+{
+ "version": 1,
+ "checked": "2026-11-17",
+ "families": {
+  "craft": "Craft and handmade",
+  "drawn": "Drawn and painted",
+  "geometry": "Geometry, pixels and 3D",
+  "type": "Type, data and retro"
+ },
+ "forms": [
+  {
+   "id": "claymation",
+   "name": "Claymation",
+   "aliases": [
+    "clay animation",
+    "plasticine animation"
+   ],
+   "family": "craft",
+   "what": "Figures of clay or plasticine, posed and photographed one frame at a time. Soft, lumpy, a little uneven, and never perfectly smooth in motion.",
+   "origin": "Plasticine dates from 1897. Art Clokey (Gumby) and Aardman, founded in 1972, made the look famous.",
+   "rules": [
+    "Rounded volumes with small lumps and dents, never a perfect sphere",
+    "Matte, high-roughness surfaces under soft light",
+    "Saturated colour, few of them",
+    "Small asymmetries; a silhouette that changes slightly between poses",
+    "A miniature set: a floor, a backdrop, shallow depth"
+   ],
+   "timing": "Shot on doubles: about 12 pose changes a second inside a 24 frames-a-second film. Each held pose sits a hair differently from the last.",
+   "fps": 12,
+   "build": [
+    "Three.js: `MeshStandardMaterial` with roughness about 0.9, metalness 0, and a noise canvas as `bumpMap`",
+    "Push each vertex in or out by a few percent with a seeded hash, then `computeVertexNormals()`",
+    "Pose from stepped time: `held(t, 12)`",
+    "Add a seeded nudge per drawing to position and rotation (about 2% of the size)",
+    "A hemisphere light plus one soft key; no hard specular highlights"
+   ],
+   "assets": "Geometry in code (spheres, capsules, lathes) for simple characters. Fingerprint or noise detail as a generated bump texture. A real character needs modelling.",
+   "sound": "Close foley on pose changes (soft thuds, squelches), light percussion. Practice note.",
+   "pitfalls": [
+    "Smooth 24 or 30 frames-a-second motion: it reads as CG, not clay",
+    "Glossy plastic highlights",
+    "Perfect symmetry and clean edges"
+   ],
+   "route": "Three.js inside HyperFrames",
+   "blender": "Use Blender when the clay needs real subsurface scattering, soft area-light shadows or sculpted detail.",
+   "keywords": [
+    "clay",
+    "claymation",
+    "plasticine",
+    "aardman",
+    "wallace",
+    "gumby",
+    "stop motion clay",
+    "play-doh",
+    "clay 3d"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Clay_animation",
+    "https://en.wikipedia.org/wiki/Stop_motion"
+   ],
+   "looks": [
+    "claymation"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "stop-motion",
+   "name": "Stop-motion look",
+   "aliases": [],
+   "family": "craft",
+   "what": "Any real object moved and photographed a pose at a time. On screen it shows as stepped motion, tiny position errors and light that flickers a little.",
+   "origin": "As old as film: stop tricks appear in the 1890s. Pixilation, cut-out and puppet animation are all forms of it.",
+   "rules": [
+    "Real materials: wood, card, cloth, plastic",
+    "Position jitter of a pixel or two between drawings",
+    "Lighting that varies slightly frame to frame",
+    "Hard cuts between poses, no in-between blur"
+   ],
+   "timing": "On twos (12 changes a second) is the usual cadence; action sometimes on ones, held moments on threes or more.",
+   "fps": 12,
+   "build": [
+    "Quantise time before anything else: `const ts = held(t, 12)`",
+    "GSAP: `ease: \"steps(12)\"` on a one-second tween does the same for a tween",
+    "Jitter and flicker keyed to the frame number: `jit(frameOf(t, 12), i, 1.2)`",
+    "Keep the camera and background steady: step the subject, not the world"
+   ],
+   "assets": "None needed. Everything is procedural.",
+   "sound": "Foley that lands on pose changes. A bed that is not too smooth. Practice note.",
+   "pitfalls": [
+    "Stepping the camera and background together, so everything strobes",
+    "Easing between held poses, which defeats the look",
+    "Jitter so large the object vibrates"
+   ],
+   "route": "HyperFrames (canvas or DOM) or Three.js",
+   "blender": "",
+   "keywords": [
+    "stop motion",
+    "stop-motion",
+    "frame by frame",
+    "stepped",
+    "on twos",
+    "handmade",
+    "lego",
+    "brickfilm"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Stop_motion",
+    "https://en.wikipedia.org/wiki/Clay_animation",
+    "https://gsap.com/docs/v3/Eases/SteppedEase/"
+   ],
+   "looks": [
+    "stop-motion"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "paper-cutout",
+   "name": "Paper cut-out",
+   "aliases": [
+    "papercraft",
+    "cutout animation"
+   ],
+   "family": "craft",
+   "what": "Flat shapes cut from paper or card, layered, and moved a pose at a time. Parts hinge at joints; nothing bends.",
+   "origin": "Lotte Reiniger's The Adventures of Prince Achmed (1926) is the oldest surviving animated feature. Terry Gilliam's Monty Python animations and the South Park pilot used cut paper.",
+   "rules": [
+    "Flat fills with hard, slightly uneven cut edges",
+    "Layers stacked with a small, tight shadow under each",
+    "Rigid parts that rotate about a pivot",
+    "Paper grain over everything",
+    "A limited, slightly muted palette"
+   ],
+   "timing": "Stop-motion cadence, usually on twos. Motion is rotation about joints and sliding, with pops and holds.",
+   "fps": 12,
+   "build": [
+    "Each part is its own shape; nudge the corners with a seeded hash so edges look cut by hand",
+    "Canvas: `shadowOffsetY` 3 to 4 px with `shadowBlur` 4 to 5 px per layer. DOM: `filter: drop-shadow()`",
+    "Joints: rotate about a pivot (`transformOrigin` in GSAP, `translate` then `rotate` on a canvas)",
+    "Paper grain: a noise texture drawn once and laid over with `multiply`",
+    "SVG route: `feTurbulence` into `feDisplacementMap` (scale 2 to 4) roughens an edge"
+   ],
+   "assets": "Shapes drawn in code or as SVG. Photo cut-outs need images you own, or generated ones.",
+   "sound": "Paper rustle, snips, soft ticks on pose changes. Practice note.",
+   "pitfalls": [
+    "Smooth vector motion with no stepping",
+    "Perfect edges",
+    "Large soft shadows, which look like interface cards, not paper"
+   ],
+   "route": "HyperFrames (canvas, SVG or DOM)",
+   "blender": "Use Blender for real folded paper with thickness and light passing through it.",
+   "keywords": [
+    "paper",
+    "cut-out",
+    "cutout",
+    "papercraft",
+    "paper craft",
+    "south park",
+    "collage paper",
+    "layered paper",
+    "craft"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Cutout_animation",
+    "https://en.wikipedia.org/wiki/Lotte_Reiniger",
+    "https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feDisplacementMap"
+   ],
+   "looks": [
+    "paper-cutout"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "felt",
+   "name": "Felt and fabric craft",
+   "aliases": [
+    "needle felt",
+    "fabric craft"
+   ],
+   "family": "craft",
+   "what": "Shapes that look needle-felted or sewn: a fuzzy edge of loose fibres, a matte mottled surface, visible stitches.",
+   "origin": "Needle felting tangles wool fibres with barbed needles to make flat pictures and soft figures.",
+   "rules": [
+    "A halo of short fibres along every edge",
+    "Matte, slightly mottled colour",
+    "Stitches: a dashed line just inside the edge",
+    "Chunky, simple forms in wool colours"
+   ],
+   "timing": "Stop-motion cadence, on twos. Gentle bobbing and nudging.",
+   "fps": 12,
+   "build": [
+    "Draw the shape, then several hundred short strokes outward from its edge, each angled by a seeded hash",
+    "Stitches: `setLineDash([9, 7])` on a path just inside the edge (SVG: `stroke-dasharray`)",
+    "Mottle: a grain texture clipped to the shape with `multiply`",
+    "SVG route: high-frequency `feTurbulence` (0.8 to 1.2) with displacement scale 3 to 6 on the edge"
+   ],
+   "assets": "Procedural. A felt texture from an image model helps for close-ups.",
+   "sound": "Soft, warm, acoustic. Practice note.",
+   "pitfalls": [
+    "Crisp vector edges",
+    "Flat plastic colour",
+    "No fibre fuzz"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "Use Blender hair or fur for real fibre fuzz on 3D figures.",
+   "keywords": [
+    "felt",
+    "fabric",
+    "wool",
+    "needle felt",
+    "knitted",
+    "sewn",
+    "stitched",
+    "textile",
+    "plush"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Needle_felting"
+   ],
+   "looks": [
+    "felt"
+   ],
+   "thin": "The craft is well documented; its use in animation is a practice note, not sourced."
+  },
+  {
+   "id": "origami",
+   "name": "Origami",
+   "aliases": [],
+   "family": "craft",
+   "what": "Paper folded from a flat sheet: sharp creases, flat facets, each fold a clean move followed by a pause.",
+   "origin": "Japanese paper folding. Modern computational origami works from crease patterns.",
+   "rules": [
+    "Sharp mountain and valley creases",
+    "Flat facets, each shaded as one plane",
+    "Paper coloured on one side, white on the other",
+    "Soft, even light so the creases read"
+   ],
+   "timing": "Folds are eased moves of about 0.8 seconds with a short hold after each. Smooth, not stepped.",
+   "fps": null,
+   "build": [
+    "2D: a fold is a point travelling across the crease; draw the moving flap from the crease to that point",
+    "Shade the flap by its angle, and swap to the paper's other colour past 90 degrees",
+    "3D: flat-shaded polygons, child groups rotating about the crease axis",
+    "An orthographic camera gives a diagram-clean view"
+   ],
+   "assets": "Geometry in code. A faint paper grain.",
+   "sound": "Light paper crinkle on each fold, soft piano or music box. Practice note.",
+   "pitfalls": [
+    "Faces passing through each other",
+    "Folding with no hold, so the eye cannot follow",
+    "Light that hides the creases"
+   ],
+   "route": "HyperFrames (canvas or SVG), or Three.js",
+   "blender": "Use Blender when the paper has to bend or show thickness.",
+   "keywords": [
+    "origami",
+    "fold",
+    "folding",
+    "paper crane",
+    "folded paper",
+    "crease"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Origami",
+    "https://github.com/amandaghassaei/OrigamiSimulator"
+   ],
+   "looks": [
+    "origami"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "shadow-puppet",
+   "name": "Shadow puppetry",
+   "aliases": [
+    "shadow play",
+    "Ravana Chhaya",
+    "wayang kulit",
+    "silhouette animation"
+   ],
+   "family": "craft",
+   "what": "Flat figures held between a lamp and a cloth screen: dark silhouettes with punched patterns on a warm, glowing field.",
+   "origin": "An old tradition across Asia. Ravana Chhaya of Odisha uses uncoloured deerskin puppets with no joints; wayang kulit of Java and Bali was recognised by UNESCO in 2003. Lotte Reiniger brought silhouettes to film.",
+   "rules": [
+    "Black silhouettes on a warm lit screen, never on white",
+    "Interior detail made of perforations: rows of holes and cut patterns",
+    "A lamp that flickers",
+    "The shadow softens and grows as the puppet moves away from the screen",
+    "Rods visible below the figures"
+   ],
+   "timing": "Live puppets move continuously on rods; film versions are stop-motion, so use twos. Stiff, deliberate moves; no squash and stretch.",
+   "fps": 12,
+   "build": [
+    "One path per puppet filled with the even-odd rule, so holes are part of the figure",
+    "Screen: a radial gradient from warm yellow to deep brown",
+    "Flicker: scale the lamp brightness by a seeded value per drawing",
+    "Distance from the screen: `filter: blur()` growing with distance, and lower opacity",
+    "Ravana Chhaya style: no joints, move and tilt the whole puppet. Wayang style: hinge the arms"
+   ],
+   "assets": "Simple figures in code. Ornate traditional figures need drawing or tracing with care.",
+   "sound": "Narrator, singers and percussion in the tradition: cymbals and drums for Ravana Chhaya, gamelan for wayang.",
+   "pitfalls": [
+    "Black on white, which loses the lamp",
+    "Smooth modern vector motion",
+    "Careless drawings of sacred figures: check the iconography with a source"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "Use Blender for real light through translucent coloured leather.",
+   "keywords": [
+    "shadow puppet",
+    "shadow play",
+    "silhouette",
+    "ravana chhaya",
+    "wayang",
+    "puppet",
+    "lotte reiniger",
+    "lamp",
+    "leather puppet"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Shadow_play",
+    "https://en.wikipedia.org/wiki/Ravana_Chhaya",
+    "https://en.wikipedia.org/wiki/Lotte_Reiniger"
+   ],
+   "looks": [
+    "shadow-puppet"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "collage",
+   "name": "Collage and mixed media",
+   "aliases": [
+    "photomontage",
+    "mixed media"
+   ],
+   "family": "craft",
+   "what": "Pieces of different papers, photographs and print stuck together: mismatched scale and texture, torn edges, hard shadows.",
+   "origin": "From the French coller, to glue. Braque and Picasso brought it into modern art around 1912; Dada followed with photomontage.",
+   "rules": [
+    "Torn or cut edges",
+    "Mixed materials: flat colour, halftone photograph, tape",
+    "Overlap with a hard, offset shadow",
+    "Mismatched scale on purpose",
+    "One palette holding it together"
+   ],
+   "timing": "On twos or threes. Pieces pop into place on the beat with a small rotation, then hold.",
+   "fps": 8,
+   "build": [
+    "Torn edge: walk the outline of a rectangle and nudge every point with a seeded hash",
+    "Hard shadow: `shadowBlur: 0` with an offset of 5 to 6 px",
+    "Halftone a photo: dots on a staggered grid sized by brightness",
+    "Entrance: scale from 1.25 to 1 with a quarter-turn of rotation over a quarter of a second"
+   ],
+   "assets": "Paper textures in code. Photo fragments need images you own, or generated ones.",
+   "sound": "Bright percussive music, staccato effects on each pop. Practice note.",
+   "pitfalls": [
+    "Everything neatly aligned",
+    "No shadows",
+    "Too many unrelated colours and typefaces"
+   ],
+   "route": "HyperFrames (canvas or DOM)",
+   "blender": "",
+   "keywords": [
+    "collage",
+    "mixed media",
+    "photomontage",
+    "scrapbook",
+    "zine",
+    "torn paper",
+    "cut and paste",
+    "gilliam"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Collage",
+    "https://en.wikipedia.org/wiki/Cutout_animation"
+   ],
+   "looks": [
+    "collage"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "risograph",
+   "name": "Risograph and halftone print",
+   "aliases": [
+    "riso",
+    "halftone print"
+   ],
+   "family": "craft",
+   "what": "The look of a cheap stencil print: two to four bright inks laid over each other, visible grain, dot screens, and layers that never quite line up.",
+   "origin": "The Risograph duplicator dates from 1980: one ink per drum, so each colour is a separate pass. Halftone dots go back to the 1860s.",
+   "rules": [
+    "Two to four spot colours, often pink, blue and yellow",
+    "Inks overprint to make new colours (multiply)",
+    "Each layer sits a pixel or two off register",
+    "Grain and dot screens; no smooth gradients",
+    "Off-white paper"
+   ],
+   "timing": "Print is still. Animate by re-rolling the misregistration and swapping the grain 8 to 12 times a second.",
+   "fps": 8,
+   "build": [
+    "Each ink is its own layer drawn with `mix-blend-mode: multiply` (canvas: `globalCompositeOperation`)",
+    "Offset each layer by a seeded amount per drawing: `jit(frameOf(t, 8), layer, 3)`",
+    "Tone as dots: a staggered grid of circles whose radius follows the tone",
+    "Grain: several pre-made noise tiles, cycled by frame number",
+    "Three.js `HalftonePass` exists for 3D scenes; SVG `feColorMatrix` separates a photo into one ink"
+   ],
+   "assets": "All procedural. A chunky sans or slab typeface.",
+   "sound": "Lo-fi, tape hiss. Practice note.",
+   "pitfalls": [
+    "Gradients",
+    "Perfect registration",
+    "More than four colours"
+   ],
+   "route": "HyperFrames (canvas or DOM)",
+   "blender": "",
+   "keywords": [
+    "riso",
+    "risograph",
+    "halftone",
+    "print",
+    "screen print",
+    "overprint",
+    "zine print",
+    "duotone print",
+    "ben-day"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Risograph",
+    "https://en.wikipedia.org/wiki/Halftone",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode"
+   ],
+   "looks": [
+    "risograph"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "cel-shaded",
+   "name": "Anime and cel shading",
+   "aliases": [
+    "anime",
+    "toon shading"
+   ],
+   "family": "drawn",
+   "what": "Light broken into two or three flat tones with a hard edge between them, and an ink outline around every form.",
+   "origin": "Named after the celluloid sheets of hand-drawn animation. In 3D it became toon shading, as in Jet Set Radio and The Wind Waker.",
+   "rules": [
+    "Two or three tone bands with hard edges",
+    "Shadows tinted with colour, not black",
+    "A clean outline",
+    "Flat, detailed backgrounds behind simpler characters",
+    "Limited animation: holds, then sudden moves"
+   ],
+   "timing": "On twos as the baseline, ones for key action, threes and holds for dialogue.",
+   "fps": 12,
+   "build": [
+    "Three.js `MeshToonMaterial` with a `gradientMap`: a three-texel `DataTexture` with `NearestFilter`, so light snaps to bands",
+    "Outline by inverted hull: a second copy of each mesh, slightly larger, drawn back faces only in black",
+    "`OutlineEffect` and `SobelOperatorShader` in the three.js examples are the two other routes",
+    "Step the pose time: `held(t, 12)`",
+    "2D: flat SVG shapes, a thick outline, `steps()` timing"
+   ],
+   "assets": "The gradient map is three bytes. Characters need modelling or generated models.",
+   "sound": "Whoosh and impact effects on key poses. Practice note.",
+   "pitfalls": [
+    "Smooth interpolation at 24 frames a second",
+    "More than three bands",
+    "Shadows that are only a darker grey"
+   ],
+   "route": "Three.js inside HyperFrames",
+   "blender": "Use Blender for Freestyle line art and shader-to-RGB ramps on real characters.",
+   "keywords": [
+    "anime",
+    "cel",
+    "cel-shaded",
+    "toon",
+    "manga",
+    "cartoon shader",
+    "ghibli",
+    "spider-verse",
+    "japanese animation"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Cel_shading",
+    "https://en.wikipedia.org/wiki/Limited_animation",
+    "https://github.com/mrdoob/three.js"
+   ],
+   "looks": [
+    "cel-shaded"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "flat-explainer",
+   "name": "2D flat vector explainer",
+   "aliases": [
+    "motion graphics explainer"
+   ],
+   "family": "drawn",
+   "what": "The plain explainer look: flat fills, a few colours, simple shapes and icons, smooth eased motion.",
+   "origin": "Flat design comes from Swiss style and modernism; in animation its ancestor is the stylised, limited look of the UPA studio.",
+   "rules": [
+    "Flat fills, three to five colours, one accent",
+    "Geometric shapes with one stroke width",
+    "Plenty of space; one idea per frame",
+    "Clean sans type"
+   ],
+   "timing": "Smooth ease-out moves of 0.4 to 0.8 seconds, staggered, with holds long enough to read.",
+   "fps": null,
+   "build": [
+    "HTML or SVG with GSAP: this is what HyperFrames is best at",
+    "Stagger related items 0.15 to 0.25 seconds apart",
+    "Draw check marks and connectors on with `stroke-dashoffset`",
+    "Move a highlight instead of cutting"
+   ],
+   "assets": "All in code.",
+   "sound": "Soft interface blips, a light bed, voice-led pacing. Practice note.",
+   "pitfalls": [
+    "A grid of identical cards",
+    "Gradients and shadows creeping in",
+    "Too much on screen at once"
+   ],
+   "route": "HyperFrames (DOM, SVG)",
+   "blender": "",
+   "keywords": [
+    "explainer",
+    "flat",
+    "vector",
+    "motion graphics",
+    "corporate",
+    "saas",
+    "icon animation",
+    "infographic style"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Flat_design",
+    "https://en.wikipedia.org/wiki/United_Productions_of_America"
+   ],
+   "looks": [
+    "flat-explainer"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "whiteboard",
+   "name": "Whiteboard and doodle",
+   "aliases": [
+    "video scribing",
+    "chalkboard"
+   ],
+   "family": "drawn",
+   "what": "Marker lines that draw themselves on a white board, in the order someone would draw them. The chalkboard is the same recipe, inverted.",
+   "origin": "Also called video scribing. A 2016 study found little evidence that it teaches better than other formats, so use it for its tone, not as a learning trick.",
+   "rules": [
+    "Black marker lines with a slight wobble",
+    "Strokes appear in drawing order",
+    "One or two accent colours",
+    "Chalk variant: a dark board, dusty broken strokes, a little smudge"
+   ],
+   "timing": "Each element draws on over 0.3 to 1.5 seconds, paced to the narration. The line boils at about 10 changes a second.",
+   "fps": 10,
+   "build": [
+    "Draw-on: a polyline drawn up to a fraction of its length (SVG: `stroke-dashoffset`)",
+    "Boil: nudge every point by a seeded amount keyed to `frameOf(t, 10)`",
+    "Chalk: three thin passes of the same stroke with different dash patterns at half opacity, over a speckled board",
+    "rough.js (MIT) generates sketchy shapes and hatching to animate afterwards"
+   ],
+   "assets": "All in code. A marker or chalk typeface if the system has one.",
+   "sound": "Marker squeak, voice-led. Practice note.",
+   "pitfalls": [
+    "Perfect vector lines",
+    "A hand that covers the drawing",
+    "Paragraphs of text"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "whiteboard",
+    "doodle",
+    "scribe",
+    "sketch",
+    "hand-drawn",
+    "marker",
+    "chalkboard",
+    "chalk",
+    "blackboard"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Whiteboard_animation",
+    "https://github.com/rough-stuff/rough"
+   ],
+   "looks": [
+    "whiteboard",
+    "chalkboard"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "watercolour",
+   "name": "Watercolour",
+   "aliases": [
+    "watercolor"
+   ],
+   "family": "drawn",
+   "what": "Transparent washes on textured paper: colour that spreads, pools darker at its edge, and lets the paper show through.",
+   "origin": "Pigment in water on paper. Wet-on-wet blends softly; wet-on-dry gives crisp edges.",
+   "rules": [
+    "Transparent colour; overlaps make new colours",
+    "Darker pigment at the edge of each wash",
+    "Irregular, soft outlines",
+    "Paper grain visible everywhere",
+    "Unpainted paper as the highlight"
+   ],
+   "timing": "Slow. A wash grows over 1 to 3 seconds with an ease-out. Hold drawings at 12 a second for a hand-painted feel.",
+   "fps": 12,
+   "build": [
+    "Each wash: an irregular closed outline, clipped, filled with a radial gradient that is darkest near the rim",
+    "Layer washes with `multiply`",
+    "Paper grain over everything with `multiply`",
+    "SVG route: low-frequency `feTurbulence` (0.01 to 0.03) into `feDisplacementMap` (scale 10 to 25) for bleeding edges",
+    "3D: a Kuwahara filter as a custom pass gives a painterly result; three.js ships none"
+   ],
+   "assets": "Procedural. A scanned paper texture improves close-ups.",
+   "sound": "Slow, gentle, acoustic. Practice note.",
+   "pitfalls": [
+    "Opaque flat colour",
+    "A uniform blur, which looks out of focus, not painted",
+    "No paper texture"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "watercolour",
+    "watercolor",
+    "painted",
+    "wash",
+    "painterly",
+    "aquarelle",
+    "soft paint"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Watercolor_painting",
+    "https://blog.maximeheckel.com/posts/on-crafting-painterly-shaders",
+    "https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feTurbulence"
+   ],
+   "looks": [
+    "watercolour"
+   ],
+   "thin": "The edge-darkening rule is a practice note; the technique sources cover the filter, not the look."
+  },
+  {
+   "id": "ink-wash",
+   "name": "Ink wash (sumi-e)",
+   "aliases": [
+    "sumi-e",
+    "ink painting"
+   ],
+   "family": "drawn",
+   "what": "Black ink in every shade from deep black to pale grey, laid down in tapered brush strokes on rice paper, with a great deal left empty.",
+   "origin": "Chinese ink wash painting from the Tang dynasty, carried to Japan by Zen monks. Shanghai Animation Film Studio made ink-wash films from 1960.",
+   "rules": [
+    "One ink, many dilutions",
+    "Strokes that taper from thick to a point",
+    "Empty paper as part of the picture",
+    "One small red seal",
+    "Soft grey washes behind sharp strokes"
+   ],
+   "timing": "Slow and fluid. A stroke accelerates and lifts. On twos.",
+   "fps": 12,
+   "build": [
+    "A stroke is a row of overlapping dots whose radius tapers along its length, drawn up to a fraction",
+    "Vary each dot's opacity with a seeded hash for a dry-brush break",
+    "Washes: soft radial gradients with `multiply`",
+    "SVG route: variable-width filled paths revealed by a mask"
+   ],
+   "assets": "Procedural. Rice-paper grain.",
+   "sound": "Sparse: flute, single plucked notes, silence. Practice note.",
+   "pitfalls": [
+    "Pure black on pure white",
+    "Uniform stroke width",
+    "Filling the frame"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "ink",
+    "sumi-e",
+    "sumi",
+    "ink wash",
+    "brush",
+    "calligraphy",
+    "zen",
+    "chinese painting",
+    "japanese ink"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Ink_wash_painting",
+    "https://en.wikipedia.org/wiki/Shanghai_Animation_Film_Studio"
+   ],
+   "looks": [
+    "ink-wash"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "line-art",
+   "name": "Line art",
+   "aliases": [
+    "minimal line"
+   ],
+   "family": "drawn",
+   "what": "One weight of line on a plain ground, no shading: the drawing draws itself, then quivers slightly as if redrawn each frame.",
+   "origin": "Drawing with line alone, where tone comes only from hatching or stippling.",
+   "rules": [
+    "A constant or tapered stroke with round ends",
+    "No fills, or one flat tone",
+    "Plenty of empty space",
+    "One accent colour at most"
+   ],
+   "timing": "Draw-on over 1 to 2 seconds, then a boil at 8 to 12 changes a second.",
+   "fps": 10,
+   "build": [
+    "Draw-on with `stroke-dashoffset` (canvas: a polyline to a fraction of its length)",
+    "Boil: a seeded nudge of 1 to 2 px per point, keyed to the frame number",
+    "SVG route: `feTurbulence` with `seed` set from the frame number, into `feDisplacementMap` (scale 1.5 to 3)",
+    "`vector-effect: non-scaling-stroke` keeps the weight when scaled"
+   ],
+   "assets": "All in code.",
+   "sound": "A pencil or pen sound under the draw-on. Practice note.",
+   "pitfalls": [
+    "Jitter so strong the line turns to noise",
+    "Filters that re-run on a large area every frame and slow the render"
+   ],
+   "route": "HyperFrames (SVG or canvas)",
+   "blender": "",
+   "keywords": [
+    "line art",
+    "line drawing",
+    "one line",
+    "minimal line",
+    "outline",
+    "continuous line",
+    "pen drawing"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Line_art",
+    "https://camillovisini.com/coding/simulating-hand-drawn-motion-with-svg-filters"
+   ],
+   "looks": [
+    "line-art"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "rotoscope",
+   "name": "Rotoscope look",
+   "aliases": [],
+   "family": "drawn",
+   "what": "Real movement traced by hand: lifelike motion, flat colour fields that drift, and an outline that shimmers.",
+   "origin": "Max Fleischer built the rotoscope. A Scanner Darkly, Waking Life and the a-ha video for Take On Me are the well-known examples.",
+   "rules": [
+    "Motion with the timing of live action",
+    "Flat or posterised colour fields",
+    "Outlines that change slightly every drawing",
+    "Colour that sits a little off the line"
+   ],
+   "timing": "Every frame or on twos. The boil is keyed to the drawing.",
+   "fps": 12,
+   "build": [
+    "From footage: draw each video frame to a canvas, posterise it, find edges (three.js has `SobelOperatorShader`), then nudge the edges per drawing",
+    "From code: a figure built from joints, drawn twice: thick flat colour offset by a seeded amount, then a thin outline with its own nudge",
+    "Re-encode source video with a keyframe on every frame so seeking is exact"
+   ],
+   "assets": "Footage you own, or a figure built in code.",
+   "sound": "The original scene audio, or music-led. Practice note.",
+   "pitfalls": [
+    "Edge noise that flickers out of control",
+    "Losing the subject in the treatment",
+    "Tracing footage you have no right to use"
+   ],
+   "route": "HyperFrames (canvas over video)",
+   "blender": "Dedicated tools do true painterly rotoscoping better than a browser.",
+   "keywords": [
+    "rotoscope",
+    "rotoscoping",
+    "traced",
+    "scanner darkly",
+    "take on me",
+    "waking life"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Rotoscoping"
+   ],
+   "looks": [
+    "rotoscope"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "motion-comic",
+   "name": "Motion comic",
+   "aliases": [],
+   "family": "drawn",
+   "what": "Comic panels brought to life: layers inside a panel slide at different speeds under a slow camera move, then a hard cut to the next panel.",
+   "origin": "Watchmen: Motion Comic (2008) is the usual first example.",
+   "rules": [
+    "Ink outlines, flat colour, halftone shading",
+    "A panel border",
+    "Foreground, figure and background on separate layers",
+    "Bursts and lettering as graphic elements"
+   ],
+   "timing": "Slow pushes and pans of 2 to 4 seconds, hard cuts between panels, a pop for a burst.",
+   "fps": null,
+   "build": [
+    "Layers in a clipped panel; move far layers less than near ones",
+    "A slow scale from 1 to about 1.07 on the whole panel",
+    "Halftone shading: dots that shrink across the tone",
+    "Cut to the next panel by switching the scene at a time, not by cross-fading"
+   ],
+   "assets": "Drawn panels in layers. Artwork needs an illustrator or generated images cut into layers.",
+   "sound": "Voice, music and effects carry it. Practice note.",
+   "pitfalls": [
+    "A slow zoom on one flat image, which reads as a slideshow",
+    "No separation between figure and background"
+   ],
+   "route": "HyperFrames (DOM or canvas)",
+   "blender": "",
+   "keywords": [
+    "motion comic",
+    "comic",
+    "graphic novel",
+    "panels",
+    "manga panels",
+    "comic book"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Motion_comic",
+    "https://en.wikipedia.org/wiki/Limited_animation"
+   ],
+   "looks": [
+    "motion-comic"
+   ],
+   "thin": "Pan-and-zoom staging is a practice note; the source describes the format, not the technique."
+  },
+  {
+   "id": "upa-midcentury",
+   "name": "UPA and mid-century modern",
+   "aliases": [
+    "mid-century modern",
+    "limited animation"
+   ],
+   "family": "drawn",
+   "what": "Flat, stylised design from 1950s cartoons: geometric characters, abstract backgrounds, colour printed slightly off its outline, and very few drawings.",
+   "origin": "United Productions of America turned away from Disney realism and made limited animation a style. Gerald McBoing-Boing won an Academy Award in 1950.",
+   "rules": [
+    "Characters built from triangles, circles and lines",
+    "Flat colour blocks that do not meet their outlines",
+    "Abstract backgrounds: a few shapes, no perspective",
+    "A warm, muted palette"
+   ],
+   "timing": "Limited animation: a pose is held, then pops to the next. Eight or fewer changes a second.",
+   "fps": 8,
+   "build": [
+    "Flat shapes; draw the outline 6 to 9 px away from the fill",
+    "Two or three poses, switched on a frame count with no in-betweens",
+    "Paper grain with `multiply`"
+   ],
+   "assets": "All in code.",
+   "sound": "Jazz combo, sound effects as music. Practice note.",
+   "pitfalls": [
+    "Smooth, fluid motion",
+    "Gradients and realistic light"
+   ],
+   "route": "HyperFrames (canvas, SVG)",
+   "blender": "",
+   "keywords": [
+    "upa",
+    "mid-century",
+    "midcentury",
+    "1950s",
+    "retro cartoon",
+    "limited animation",
+    "saul bass",
+    "mid century modern"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/United_Productions_of_America",
+    "https://en.wikipedia.org/wiki/Limited_animation"
+   ],
+   "looks": [
+    "upa-midcentury"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "rubber-hose",
+   "name": "Rubber-hose cartoon",
+   "aliases": [],
+   "family": "drawn",
+   "what": "The 1920s cartoon: limbs like hoses with no elbows or knees, round bodies that bounce to the music, black and white film.",
+   "origin": "Credited to Bill Nolan on Felix the Cat. The Fleischer studio kept it longest; Cuphead revived it.",
+   "rules": [
+    "Curved tubular limbs",
+    "Round forms",
+    "Black and white or sepia, high contrast",
+    "Film grain, scratches and a frame that weaves slightly",
+    "Everything moves to the beat"
+   ],
+   "timing": "Bouncy loops locked to the music, on twos, with squash and stretch.",
+   "fps": 12,
+   "build": [
+    "A limb is a quadratic curve between two points; move the control point to bend it",
+    "Squash and stretch: scale the body on one axis by the inverse of the other",
+    "Grain: cycle a few noise tiles by frame; gate weave: shift the whole picture by a seeded pixel or two",
+    "Sepia with `feColorMatrix` if wanted"
+   ],
+   "assets": "All in code. Original characters only.",
+   "sound": "Hot jazz, slide whistles, effects on every bounce. Practice note.",
+   "pitfalls": [
+    "Stiff jointed limbs",
+    "Clean modern gradients",
+    "Copying characters that are still under copyright"
+   ],
+   "route": "HyperFrames (canvas, SVG)",
+   "blender": "",
+   "keywords": [
+    "rubber hose",
+    "rubberhose",
+    "1920s cartoon",
+    "1930s cartoon",
+    "cuphead",
+    "fleischer",
+    "vintage cartoon",
+    "steamboat"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Rubber_hose_animation"
+   ],
+   "looks": [
+    "rubber-hose"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "linocut",
+   "name": "Linocut and woodcut print",
+   "aliases": [],
+   "family": "drawn",
+   "what": "A relief print: bold flat shapes in one to three inks, with white gouge marks where the block was carved.",
+   "origin": "Carved in linoleum or wood; the uncut surface prints. Each colour is a separate block.",
+   "rules": [
+    "Bold shapes, no fine detail",
+    "Short white cut marks inside the ink, all leaning one way",
+    "One to three inks, laid slightly off register",
+    "Paper showing at the edges"
+   ],
+   "timing": "Each colour arrives as a pull, top to bottom, then holds. On twos or slower.",
+   "fps": 8,
+   "build": [
+    "Draw each block to its own canvas, then cut marks out of it: short strokes with `destination-out`",
+    "Print blocks over each other with `multiply`, the second one offset a few pixels",
+    "Reveal a block by widening a clip from the top",
+    "SVG route: `feTurbulence` through a hard threshold makes rough voids"
+   ],
+   "assets": "All in code.",
+   "sound": "A roller, a press, paper lifting. Practice note.",
+   "pitfalls": [
+    "Gradients",
+    "Thin delicate lines",
+    "Too many colours"
+   ],
+   "route": "HyperFrames (canvas, SVG)",
+   "blender": "",
+   "keywords": [
+    "linocut",
+    "woodcut",
+    "block print",
+    "relief print",
+    "printmaking",
+    "carved"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Linocut"
+   ],
+   "looks": [
+    "linocut"
+   ],
+   "thin": "The source covers the technique; the visual rules are practice notes."
+  },
+  {
+   "id": "isometric",
+   "name": "Isometric",
+   "aliases": [],
+   "family": "geometry",
+   "what": "A parallel projection seen from above at an angle: no perspective, three visible faces per block, a tidy model world.",
+   "origin": "A technical drawing projection. Games use a 2:1 pixel slope, about 26.6 degrees, which is strictly dimetric.",
+   "rules": [
+    "No perspective: parallel lines stay parallel",
+    "Three tones per object: top lightest, one side mid, one side darkest",
+    "One light direction for everything",
+    "A grid floor"
+   ],
+   "timing": "The camera does not orbit. Objects drop, stack and slide along the three axes, staggered by grid position.",
+   "fps": null,
+   "build": [
+    "2D: `x = (gx - gy) * s`, `y = (gx + gy) * s / 2 - gz * s`; draw the two side faces, then the top",
+    "Sort by `gx + gy`, then by height, so nearer cubes cover farther ones",
+    "Three.js: an `OrthographicCamera` placed at equal x, y and z looking at the origin",
+    "CSS: `rotateX(60deg) rotateZ(-45deg)` on a flat layer"
+   ],
+   "assets": "All in code.",
+   "sound": "Soft clicks as pieces land. Practice note.",
+   "pitfalls": [
+    "A perspective camera by accident",
+    "Shadows that disagree with the light",
+    "Uneven block heights"
+   ],
+   "route": "HyperFrames (canvas, SVG) or Three.js",
+   "blender": "Use Blender for bevelled, ambient-occluded isometric scenes.",
+   "keywords": [
+    "isometric",
+    "iso",
+    "isometric city",
+    "diorama",
+    "blocks",
+    "tiles",
+    "monument valley"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Isometric_video_game_graphics"
+   ],
+   "looks": [
+    "isometric"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "low-poly",
+   "name": "Low-poly 3D",
+   "aliases": [],
+   "family": "geometry",
+   "what": "Meshes with few polygons, each face lit as one flat facet. A hardware limit that became a style.",
+   "origin": "From the era of early 3D consoles; chosen on purpose since about 2013.",
+   "rules": [
+    "Visible facets, flat shaded",
+    "A limited, saturated palette",
+    "Simple lighting and a gradient or flat sky",
+    "Chunky silhouettes"
+   ],
+   "timing": "Clean, so smooth: slow eased orbits and dollies at the full frame rate.",
+   "fps": null,
+   "build": [
+    "Low segment counts and `flatShading: true` on `MeshStandardMaterial`",
+    "Displace a plane's vertices with a seeded hash for terrain, then `computeVertexNormals()`",
+    "A hemisphere light plus one directional key; fog in the sky colour for depth",
+    "Camera position from `t` directly"
+   ],
+   "assets": "Geometry in code for landscapes and props. Characters need modelling.",
+   "sound": "Calm, spacious. Practice note.",
+   "pitfalls": [
+    "Smooth normals, which erase the facets",
+    "Detailed textures that fight the flat colour"
+   ],
+   "route": "Three.js inside HyperFrames",
+   "blender": "Use Blender for modelling and baked light.",
+   "keywords": [
+    "low poly",
+    "low-poly",
+    "lowpoly",
+    "faceted",
+    "polygon",
+    "polygonal"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Low_poly"
+   ],
+   "looks": [
+    "low-poly"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "voxel",
+   "name": "Voxel",
+   "aliases": [],
+   "family": "geometry",
+   "what": "Everything built from cubes of one size on a grid, like a three-dimensional pixel picture.",
+   "origin": "A voxel is a value on a 3D grid. Minecraft made the look familiar.",
+   "rules": [
+    "One cube size, integer positions",
+    "Each face one flat tone",
+    "A small palette",
+    "Small floating scenes"
+   ],
+   "timing": "On twos. Things appear cube by cube or layer by layer; moves snap to the grid.",
+   "fps": 12,
+   "build": [
+    "One `InstancedMesh` of a box for all the cubes: one draw call",
+    "Set each cube's matrix from stepped time; hide a cube by scaling it to nothing",
+    "Cubes slightly under size (0.96) so the seams read",
+    "`MeshLambertMaterial` and a hemisphere light"
+   ],
+   "assets": "Models as arrays in code, or made with a voxel editor.",
+   "sound": "Blocky, percussive, chiptune. Practice note.",
+   "pitfalls": [
+    "Cubes at non-integer positions",
+    "Faces flickering where cubes touch at full size"
+   ],
+   "route": "Three.js inside HyperFrames",
+   "blender": "",
+   "keywords": [
+    "voxel",
+    "voxels",
+    "minecraft",
+    "cubes",
+    "blocky",
+    "magicavoxel"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Voxel",
+    "https://github.com/danielesteban/cubitos"
+   ],
+   "looks": [
+    "voxel"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "pixel-art",
+   "name": "Pixel art",
+   "aliases": [
+    "8-bit"
+   ],
+   "family": "geometry",
+   "what": "A tiny picture placed pixel by pixel and scaled up with hard edges: a few colours, no blur, sprites that step.",
+   "origin": "From early video games; the term dates from 1982.",
+   "rules": [
+    "A small canvas scaled by a whole number",
+    "A limited palette, often 8 to 32 colours",
+    "No anti-aliasing, no soft gradients",
+    "Sprites animate in a few frames"
+   ],
+   "timing": "Walk cycles of 4 to 8 frames at about 8 a second. Scrolling moves in whole pixels.",
+   "fps": 8,
+   "build": [
+    "Draw on a small canvas (160 by 90), then `drawImage` it up with `imageSmoothingEnabled = false`",
+    "CSS: `image-rendering: pixelated` on an upscaled canvas",
+    "Sprites as arrays of palette indexes",
+    "Three.js: `RenderPixelatedPass` renders a 3D scene to low resolution with nearest filtering"
+   ],
+   "assets": "Sprites as data in code, or drawn in a pixel editor.",
+   "sound": "Chiptune. Practice note.",
+   "pitfalls": [
+    "Scaling by a fraction",
+    "Mixed pixel sizes on one screen",
+    "Smooth vector edges or too many colours"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "pixel art",
+    "pixel",
+    "8-bit",
+    "16-bit",
+    "retro game",
+    "sprite",
+    "arcade",
+    "chiptune"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Pixel_art",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/image-rendering"
+   ],
+   "looks": [
+    "pixel-art"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "product-render",
+   "name": "3D product render",
+   "aliases": [],
+   "family": "geometry",
+   "what": "A studio shot of an object: a seamless backdrop, soft key, fill and rim lights, controlled reflections, a slow turn.",
+   "origin": "Product photography lighting, done in 3D.",
+   "rules": [
+    "A seamless backdrop",
+    "Key light to one side and above, a softer fill opposite, a rim light behind",
+    "A contact shadow under the object",
+    "True materials: gloss, metal, glass",
+    "One slow move"
+   ],
+   "timing": "Smooth and slow at the full frame rate. The opposite of the handmade looks.",
+   "fps": null,
+   "build": [
+    "`MeshPhysicalMaterial` with `clearcoat` for lacquer, `metalness: 1` for metal",
+    "Three directional lights in the key, fill and rim positions, plus a hemisphere light",
+    "Contact shadow: a plane with a radial-gradient texture, `depthWrite: false`",
+    "Rotation from `t` directly; ease the camera, not the turntable"
+   ],
+   "assets": "A model of the product: built in code, made with the 3D pack, or supplied.",
+   "sound": "Minimal: a low bed and one accent on the reveal. Practice note.",
+   "pitfalls": [
+    "No reflections, so it looks like plastic",
+    "One harsh light",
+    "An object floating with no shadow"
+   ],
+   "route": "Three.js, the 3D pack, or Blender",
+   "blender": "Use Blender when the brief asks for photoreal glass, caustics or depth of field.",
+   "keywords": [
+    "product render",
+    "product shot",
+    "studio",
+    "turntable",
+    "packshot",
+    "photoreal",
+    "hero product"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Three-point_lighting"
+   ],
+   "looks": [
+    "product-render"
+   ],
+   "thin": "The lighting source is about photography; applying it to rendering is a practice note."
+  },
+  {
+   "id": "kinetic-type",
+   "name": "Kinetic typography",
+   "aliases": [
+    "motion typography"
+   ],
+   "family": "type",
+   "what": "Moving words as the whole picture: scale, weight and timing carry the meaning.",
+   "origin": "Saul Bass's title sequences for North by Northwest (1959) and Psycho (1960) made it a form.",
+   "rules": [
+    "Type is the image; nothing competes with it",
+    "Strong contrast of size and weight",
+    "Words arrive in reading order, on the beat",
+    "One idea per frame"
+   ],
+   "timing": "Each word lands in 0.3 to 0.5 seconds with a small overshoot, then the line holds long enough to read.",
+   "fps": null,
+   "build": [
+    "HyperFrames: split text into inline-block spans and stagger with GSAP",
+    "Canvas: `fillText` with a transform per word",
+    "Timing from the narration: one start time per word",
+    "Hold for (words / 3) + 0.5 seconds before the next line"
+   ],
+   "assets": "A typeface with enough weights. No pictures.",
+   "sound": "Cut to the voice or the beat. Practice note.",
+   "pitfalls": [
+    "Words faster than they can be read",
+    "Effects that add no meaning",
+    "Everything moving at once"
+   ],
+   "route": "HyperFrames (DOM)",
+   "blender": "",
+   "keywords": [
+    "kinetic",
+    "typography",
+    "type animation",
+    "text animation",
+    "title sequence",
+    "words",
+    "quote video"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Kinetic_typography"
+   ],
+   "looks": [
+    "kinetic-type"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "infographic",
+   "name": "Infographic and data animation",
+   "aliases": [
+    "data-viz animation"
+   ],
+   "family": "type",
+   "what": "A chart that builds in a sensible order: axes, then the data from an honest baseline, then the exact values.",
+   "origin": "From Playfair's first charts in 1786 to animated infographics in music videos in 2002.",
+   "rules": [
+    "One chart type that fits the data",
+    "Direct labels, not a legend",
+    "An honest axis: bars start at zero",
+    "One colour for the point being made"
+   ],
+   "timing": "Axes in about half a second, each series over 0.8 to 1.5 seconds with an ease-out, then a hold to read.",
+   "fps": null,
+   "build": [
+    "Drive the chart from one time value; never use a chart library's own transitions",
+    "Bars grow from the baseline; counters show the rounded value as it grows and end on the exact figure",
+    "SVG or canvas with scale maths; D3 scales are enough",
+    "Every number needs a source in the brief"
+   ],
+   "assets": "The data, with its source.",
+   "sound": "A tick or tone per value, a bed that stays out of the way. Practice note.",
+   "pitfalls": [
+    "Numbers that were not checked",
+    "3D bars",
+    "An axis cut off to exaggerate a difference"
+   ],
+   "route": "HyperFrames (SVG, canvas)",
+   "blender": "",
+   "keywords": [
+    "infographic",
+    "data",
+    "chart",
+    "graph",
+    "statistics",
+    "data viz",
+    "bar chart",
+    "numbers",
+    "report"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Infographic"
+   ],
+   "looks": [
+    "infographic"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "lyric-video",
+   "name": "Lyric video",
+   "aliases": [],
+   "family": "type",
+   "what": "The words of a song as the main image, each line timed to the vocal and the active word lit.",
+   "origin": "Lyric text appears in music videos from the 1980s; the format took off on video sites in the 2010s.",
+   "rules": [
+    "Three to eight words on screen",
+    "The word being sung is brighter or larger",
+    "A background that never fights the text",
+    "One typographic system for the whole song"
+   ],
+   "timing": "Locked to the music. A word changes exactly on its beat; a few frames late is visible.",
+   "fps": null,
+   "build": [
+    "Word start times from forced alignment or a beat grid",
+    "Compute the active line and word from `t`",
+    "A pulse from the beat phase: `1 - (beat % 1)` drives scale and background",
+    "Measure words first so the line is centred"
+   ],
+   "assets": "The audio, with the right to use it, and its word timings.",
+   "sound": "The song.",
+   "pitfalls": [
+    "Timing that drifts",
+    "Text over a busy background",
+    "Music you have no licence for"
+   ],
+   "route": "HyperFrames (DOM, canvas)",
+   "blender": "",
+   "keywords": [
+    "lyric",
+    "lyrics",
+    "song",
+    "karaoke",
+    "music video",
+    "sing-along"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Lyric_video",
+    "https://en.wikipedia.org/wiki/Kinetic_typography"
+   ],
+   "looks": [
+    "lyric-video"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "vhs-glitch",
+   "name": "VHS and glitch",
+   "aliases": [
+    "glitch",
+    "retro VHS"
+   ],
+   "family": "type",
+   "what": "The damage of old tape and broken data: colour that bleeds sideways, scan lines, a band of noise at the bottom, sudden torn slices.",
+   "origin": "VHS records colour at far lower resolution than brightness, which is why colour smears. Glitch art uses such errors on purpose.",
+   "rules": [
+    "Colour offset from brightness by a few pixels and softer",
+    "Scan lines",
+    "A tracking band of noise near the bottom",
+    "A date stamp in a blocky face",
+    "Glitch: slices displaced sideways, in short bursts"
+   ],
+   "timing": "Full frame rate, with bursts of a fifth of a second. Seeds come from the frame number so every render matches.",
+   "fps": 30,
+   "build": [
+    "Draw the clean frame to its own canvas first, then the damage on top",
+    "Redraw it in thin horizontal strips with a per-strip offset; large offsets only during a burst",
+    "Chroma bleed: a blurred copy drawn again a few pixels to the side with `screen`",
+    "Scan lines: a dark row every third pixel",
+    "Three.js: `FilmPass`, `RGBShiftShader` and `GlitchPass` exist; `GlitchPass` picks its own random timing, so check it repeats before relying on it"
+   ],
+   "assets": "All in code.",
+   "sound": "Tape hiss, hum, a click on each burst. Practice note.",
+   "pitfalls": [
+    "Constant glitching, which tires the eye",
+    "Glitching text the viewer has to read",
+    "Unseeded randomness, so two renders differ"
+   ],
+   "route": "HyperFrames (canvas) or Three.js post-processing",
+   "blender": "",
+   "keywords": [
+    "vhs",
+    "glitch",
+    "retro",
+    "tape",
+    "analog",
+    "crt",
+    "static",
+    "distortion",
+    "80s video",
+    "90s video"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/VHS",
+    "https://en.wikipedia.org/wiki/Glitch_art"
+   ],
+   "looks": [
+    "vhs-glitch"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "blueprint",
+   "name": "Blueprint and technical drawing",
+   "aliases": [],
+   "family": "type",
+   "what": "White lines on blue: a grid, an object drawn in outline, centre lines, dimensions and a title block.",
+   "origin": "The blueprint is a cyanotype copy of an engineering drawing, introduced in 1842: white lines on blue.",
+   "rules": [
+    "White or pale lines on a deep blue",
+    "A faint grid",
+    "Dashed centre lines, dimension lines with end ticks",
+    "A title block in a monospace face"
+   ],
+   "timing": "Steady: lines draw on, then dimensions and labels fade in. No bounce.",
+   "fps": null,
+   "build": [
+    "Grid: thin lines every 30 px at low opacity (CSS: `repeating-linear-gradient`)",
+    "Draw-on with `stroke-dashoffset` or a partial polyline",
+    "Dashed centre lines with `setLineDash`",
+    "Dimension lines: a line, two end ticks and a centred label"
+   ],
+   "assets": "All in code.",
+   "sound": "A pen plotter, a pencil. Practice note.",
+   "pitfalls": [
+    "A neon blue",
+    "Labels that say nothing",
+    "Perspective in the drawing"
+   ],
+   "route": "HyperFrames (SVG, canvas)",
+   "blender": "",
+   "keywords": [
+    "blueprint",
+    "technical drawing",
+    "schematic",
+    "cad",
+    "engineering",
+    "plan",
+    "wireframe drawing"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Blueprint"
+   ],
+   "looks": [
+    "blueprint"
+   ],
+   "thin": ""
+  },
+  {
+   "id": "neon-sign",
+   "name": "Neon sign",
+   "aliases": [],
+   "family": "type",
+   "what": "Glass tubes bent into letters and lit: a bright core, a coloured glow, a dark wall, tubes that light one by one and sometimes flicker.",
+   "origin": "Glass tubing filled with gas and lit by electrodes; sections can be switched in sequence.",
+   "rules": [
+    "One continuous line per letter, one width",
+    "A white-hot core inside a coloured halo",
+    "A dark wall behind",
+    "Letters light in sequence"
+   ],
+   "timing": "Tubes come on in order with a short stutter each; now and then one dims for a frame.",
+   "fps": 24,
+   "build": [
+    "Each tube is drawn three times: a wide faint stroke, a medium one, a thin white core, all with `shadowBlur`",
+    "Add them with the `lighter` blend (CSS: `mix-blend-mode: plus-lighter` or `screen`)",
+    "Flicker from `hash(frame, tube)`, never from a random call",
+    "Three.js: `UnrealBloomPass` for bloom on emissive geometry"
+   ],
+   "assets": "Letter paths in code. A brick or plaster texture can be drawn.",
+   "sound": "A low electrical hum, a tick as each tube lights. Practice note.",
+   "pitfalls": [
+    "A glow so wide the word cannot be read",
+    "Filled letters instead of a single tube",
+    "Flicker that differs between renders"
+   ],
+   "route": "HyperFrames (canvas, SVG)",
+   "blender": "",
+   "keywords": [
+    "neon",
+    "neon sign",
+    "glow",
+    "bar sign",
+    "tube",
+    "night",
+    "cyberpunk sign"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Neon_sign",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode"
+   ],
+   "looks": [
+    "neon-sign"
+   ],
+   "thin": ""
+  }
+ ]
+}

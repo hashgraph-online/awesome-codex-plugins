@@ -77,16 +77,13 @@ an `ok` source, say so under inferences and limits, or omit the claim.
 
 ## Report shape
 
-The report is a non-empty markdown file. These headings are required, in any order after the
-title:
-
-- `## Executive summary` — what was asked, what was found, what remains unknown
-- `## Sources` — the manifest ids, locators, retrieval times, and unavailable reasons
-- `## Observations` — sourced facts only
-- `## Inferences` — conclusions, confidence, and limits
+The report is a non-empty markdown file, laid out however the question is best answered. It says
+what was asked, what was found and what remains unknown; lists the sources with their locators,
+retrieval times and unavailable reasons; keeps sourced facts apart from conclusions; and states
+confidence and limits.
 
 Every `ok` id must appear as `[ID]` somewhere in the report. Every `unavailable` id must appear
-in `## Sources` with a reason. An `[ID]` that is not in the manifest is a fabricated citation.
+in the report with a reason. An `[ID]` that is not in the manifest is a fabricated citation.
 
 ## Private material stays off the wire
 
@@ -109,7 +106,7 @@ Before ticking, run:
 ```
 
 Exit 0 is a complete cited report. Exit 2 is a contract failure (empty or missing files,
-missing headings, uncited `ok` sources, unrecorded unavailable sources, fabricated ids, or
+uncited `ok` sources, unrecorded unavailable sources, fabricated ids, or
 secret lines). Fix the report; do not weaken the checker.
 
 In artifact mode, record the same output paths in the item receipt after the checker is green.

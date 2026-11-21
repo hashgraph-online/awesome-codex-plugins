@@ -21,13 +21,13 @@ npm uninstall @cometchat/uikit-elements @cometchat/uikit-resources @cometchat/ui
 | Package | v4 | v5 |
 |---|---|---|
 | `@cometchat/chat-uikit-angular` | `^4.x` | `^5.0.0` (5.1.0 verified) |
-| `@cometchat/chat-sdk-javascript` | `^4.x` | `^4.1.13` (peer) |
+| `@cometchat/chat-sdk-javascript` | `^4.x` | `^4.2.0` (peer of 5.2.x; `^4.1.13` for 5.1.0) |
 | `@cometchat/uikit-elements` / `-resources` / `-shared` | required (web-component substrate shared across React/Angular/Vue) | **removed** — v5 is pure Angular standalone components |
 | `@cometchat/cards-angular` | — | **new peer**, `^1.0.0` — required by 5.1.0, absent from the v4→v5 guide (a tracked docs gap, `cometchat-angular-v5-core/SKILL.md`) |
 | Angular | v4-kit-compatible range | `>=17.0.0 <22.0.0` (verified 5.1.0; 22 hard-fails `npm install` today) |
 
 ## 2. Symbol removals — verified vs a real v4.3.36 → v5.1.0 EXPORT diff
-> **146 v4 public exports have no v5 form under either name.** A separate 33 are **not removed** — only renamed, bare → `…Component` suffix (§2b). Don't grep-and-panic on a bare name before checking §2b first.
+> **146 v4 public exports have no v5 form under either name.** A separate 33 are **not removed** — only renamed, bare → `...Component` suffix (§2b). Don't grep-and-panic on a bare name before checking §2b first.
 
 **Composite components — no v5 replacement; compose from modules instead.**
 
@@ -50,13 +50,13 @@ npm uninstall @cometchat/uikit-elements @cometchat/uikit-resources @cometchat/ui
 `CometChatContacts` · `CometChatTransferOwnership` · `CometChatUserMemberWrapper` · `CometChatAddMembers` · `CometChatBannedMembers` (v5: `<cometchat-group-members>`'s built-in ban/unban view — `cometchat-angular-v5-components/references/host-composed.md`) · `CometChatCreateGroup` · `CometChatJoinGroup` (both host-composed in v5 — no kit component; same file) · `CometChatDocumentBubble` (v5 keeps only `CometChatFileBubble` for documents) · `CometChatCallLogDetails` / `-History` / `-Participants` / `-Recordings` (no v5 call-log detail sub-components at all — `cometchat-angular-v5-calls` for what v5 does ship).
 
 **Customization-layer classes removed — the whole v4 decorator/DataSource pattern is gone:**
-`DataSource`, `DataSourceDecorator`, `ChatConfigurator`, `ExtensionsDataSource`, `AIExtensionDataSource`, and one `*Decorator`/`*Extension` pair per built-in extension (`PollsExtensionDecorator`, `StickersExtensionDecorator`, `MessageTranslationExtensionDecorator`, `LinkPreviewExtensionDecorator`, `ImageModerationExtensionDecorator`, `TextModeratorExtensionDecorator`, `ThumbnailGenerationExtensionDecorator`, `CollaborativeDocumentExtensionDecorator`, `CollaborativeWhiteBoardExtensionDecorator`, `CallingExtensionDecorator`, `AIAssistBotDecorator`, `AIConversationStarterDecorator`, `AIConversationSummaryDecorator`, `AISmartRepliesExtensionDecorator`, and their non-`Decorator` counterparts). **v5 replacement depends on what the decorator did:** a custom message type → `MessageBubbleConfigService.setBubbleView()` (`cometchat-angular-v5-features/references/custom-messages.md`); a built-in extension (polls, stickers, translation, …) → nothing to register at all, most are auto-rendered once enabled in the dashboard (`cometchat-angular-v5-features/SKILL.md`'s classify table — verify against `needs_stitching` in `features.angular-v5.json`, never assume).
+`DataSource`, `DataSourceDecorator`, `ChatConfigurator`, `ExtensionsDataSource`, `AIExtensionDataSource`, and one `*Decorator`/`*Extension` pair per built-in extension (`PollsExtensionDecorator`, `StickersExtensionDecorator`, `MessageTranslationExtensionDecorator`, `LinkPreviewExtensionDecorator`, `ImageModerationExtensionDecorator`, `TextModeratorExtensionDecorator`, `ThumbnailGenerationExtensionDecorator`, `CollaborativeDocumentExtensionDecorator`, `CollaborativeWhiteBoardExtensionDecorator`, `CallingExtensionDecorator`, `AIAssistBotDecorator`, `AIConversationStarterDecorator`, `AIConversationSummaryDecorator`, `AISmartRepliesExtensionDecorator`, and their non-`Decorator` counterparts). **v5 replacement depends on what the decorator did:** a custom message type → `MessageBubbleConfigService.setBubbleView()` (`cometchat-angular-v5-features/references/custom-messages.md`); a built-in extension (polls, stickers, translation, ...) → nothing to register at all, most are auto-rendered once enabled in the dashboard (`cometchat-angular-v5-features/SKILL.md`'s classify table — verify against `needs_stitching` in `features.angular-v5.json`, never assume).
 
 **`*Style` config-object inputs — an entire category, not individually deprecated.** Every per-component style object (`AvatarStyle`, `BadgeStyle`, `ButtonGroupStyle`, `CallscreenStyle`, `CardStyle`, `CheckboxStyle`, `ConfirmDialogStyle`, `ConversationsStyle`, `CreateGroupStyle`, `DateStyle`, `DocumentBubbleStyle`, `DropdownStyle`, `EmojiKeyboardStyle`, `FileBubbleStyle`, `FullScreenViewerStyle`, `IconStyle`, `ImageBubbleStyle`, `InputStyle`, `JoinGroupStyle`, `LabelStyle`, `ListItemStyle`, `LoaderStyle`, `MediaRecorderStyle`, `MenuListStyle`, `MessageInputStyle`, `ModalStyle`, `PanelStyle`, `PopoverStyle`, `PreviewStyle`, `QuickViewStyle`, `RadioButtonStyle`, `ReceiptStyle`, `SearchInputStyle`, `SingleSelectStyle`, `TextBubbleStyle`, `TextInputStyle`, `ThumbnailGenerationExtensionStyle` — ~35 total) is **removed**. Do not hunt for a v5 renamed form; there isn't one. Delete the input and its object, then set the same values via CSS variables (§3).
 
 **Small v4 UI atoms/primitives with no direct v5 export** (were public in v4, are internal to their host component in v5, OR have a differently-shaped v5 counterpart worth checking against the catalog before assuming gone): `CometChatIcon`, `CometChatLabel`, `CometChatInput`, `CometChatTextInput`, `CometChatSearchInput`, `CometChatDropdown`, `CometChatSingleSelect`, `CometChatModal`, `CometChatPanel`, `CometChatLoader`, `CometChatDivider`, `CometChatBackdrop`, `CometChatDraggable`, `CometChatQuickView`, `CometChatPreview`, `CometChatStatusIndicator`, `CometChatMenuList`, `CometChatList`, `CometChatReceipt`, `CometChatMessageInput`, `CometChatCard`. If one of these was load-bearing in the v4 app, check `cometchat-angular-v5-components/references/catalog.md` for a same-purpose v5 atom (`CometChatButtonComponent`, `CometChatAvatarComponent`, `CometChatDateComponent`, `CometChatPopoverComponent`, `CometChatCheckboxComponent`, `CometChatListItemComponent` cover several of these) before concluding the feature is gone.
 
-## 2b. Renames — bare v4 name → `…Component` suffix, SAME component (33)
+## 2b. Renames — bare v4 name → `...Component` suffix, SAME component (33)
 Not a removal. v4 exported the bare class name directly; v5's export always carries the `Component` suffix (the bare form is internal-only — `cometchat-angular-v5-core/SKILL.md` "Class name ≠ selector ≠ docs title"). Mechanical `sed`-safe rename, one for one:
 
 `CometChatConversations` · `CometChatUsers` · `CometChatGroups` · `CometChatGroupMembers` · `CometChatMessageHeader` · `CometChatMessageList` · `CometChatMessageComposer` · `CometChatMessageBubble` · `CometChatMessageInformation` · `CometChatIncomingCall` · `CometChatOutgoingCall` · `CometChatOngoingCall` · `CometChatCallButtons` · `CometChatCallLogs` · `CometChatAvatar` · `CometChatButton` · `CometChatCheckbox` · `CometChatRadioButton` · `CometChatDate` · `CometChatPopover` · `CometChatContextMenu` · `CometChatActionSheet` · `CometChatConfirmDialog` · `CometChatChangeScope` · `CometChatFullScreenViewer` · `CometChatEmojiKeyboard` · `CometChatMediaRecorder` · `CometChatListItem` · `CometChatTextBubble` · `CometChatImageBubble` · `CometChatVideoBubble` · `CometChatAudioBubble` · `CometChatFileBubble`
@@ -97,7 +97,7 @@ Mechanical per call site — drop `on`, lower-case the first letter after, move 
 
 ## 5. `DataSource`/`ChatConfigurator` → direct composition
 ```diff
-- class MyDecorator extends DataSourceDecorator { getTextMessageBubble() { /* … */ } }
+- class MyDecorator extends DataSourceDecorator { getTextMessageBubble() { /* ... */ } }
 - ChatConfigurator.enable(new MyDecorator());
 ```
 ```ts
@@ -152,7 +152,7 @@ v5 adds a `translate` pipe (`{{ 'SEND_MESSAGE' | translate }}`) and expands to 1
 - [ ] `npm uninstall @cometchat/uikit-elements @cometchat/uikit-resources @cometchat/uikit-shared`
 - [ ] Remove `CUSTOM_ELEMENTS_SCHEMA` + any `import "@cometchat/uikit-elements"` side-effect import
 - [ ] Convert to standalone components; every kit component in `imports: []` (§6)
-- [ ] Rebuild every composite (`…WithMessages`, `…WithDetails`, `CometChatThreadedMessages`) from modules (§2)
+- [ ] Rebuild every composite (`...WithMessages`, `...WithDetails`, `CometChatThreadedMessages`) from modules (§2)
 - [ ] Grep for the 33 §2b bare names → add `Component` suffix
 - [ ] Grep for `CometChatThemeService` → `ThemeService`, migrate to CSS variables + `initFromPreference()` (§3) — not the guide's own `matchMedia` example
 - [ ] Delete every `*Style` input + object (§2), replace with CSS variable overrides

@@ -1,0 +1,11 @@
+{
+ "request": {
+  "kind": "sany",
+  "cfgText": null,
+  "wrapper": null
+ },
+ "exit": 1,
+ "stdout": "",
+ "stderr": "Picked up JAVA_TOOL_OPTIONS: \n\nFatal errors while parsing TLA+ spec in file /work/endostack/skills/statechart/scripts/test/corpus/sany-error/Broken.tla\n\ntla2sany.semantic.AbortException\n*** Abort messages: 1\n\nIn module Broken\n\nCould not parse module Broken from file /work/endostack/skills/statechart/scripts/test/corpus/sany-error/Broken.tla\n\n\nException in thread \"main\" tla2sany.xml.XMLExportingException: spec null is malformed - does not have a root module\n\tat tla2sany.xml.XMLExporter.main(XMLExporter.java:110)\n",
+ "dot": null
+}

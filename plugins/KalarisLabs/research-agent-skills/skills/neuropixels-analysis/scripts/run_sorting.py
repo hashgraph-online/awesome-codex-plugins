@@ -65,7 +65,7 @@ def run_sorting(
         **params,
     )
 
-    print(f"\nSorting complete!")
+    print("\nSorting complete!")
     print(f"  Units found: {len(sorting.unit_ids)}")
     print(f"  Total spikes: {sum(len(sorting.get_unit_spike_train(uid)) for uid in sorting.unit_ids)}")
 
@@ -77,6 +77,7 @@ def run_sorting(
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description='Run spike sorting')
     parser.add_argument('input', help='Path to preprocessed recording')
     parser.add_argument('--output', '-o', default='sorting/', help='Output directory')

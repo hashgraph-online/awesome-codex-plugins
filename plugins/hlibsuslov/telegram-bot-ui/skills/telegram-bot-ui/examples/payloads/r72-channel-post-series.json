@@ -1,0 +1,83 @@
+{
+  "scenario": "r72-channel-post-series",
+  "status": "production (fixture ids; Fragment route)",
+  "context": "channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": "@example_channel",
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000044\">📣</tg-emoji> Version 2.4 is out</b>\n\nFaster sync and a calmer menu.\n\n<b><tg-emoji emoji-id=\"0100000000000045\">▪️</tg-emoji> New</b>\n<tg-emoji emoji-id=\"0200000000000006\">🔸</tg-emoji> Offline drafts\n<tg-emoji emoji-id=\"0200000000000006\">🔸</tg-emoji> Two-step delete\n\n<b><tg-emoji emoji-id=\"0100000000000018\">✅</tg-emoji> Fixed</b>\nDuplicate alerts after a restart.\n\n<tg-emoji emoji-id=\"0100000000000046\">👉</tg-emoji> <a href=\"https://example.com/changelog\">Read the changelog</a>"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": "@example_channel",
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000044\">📣</tg-emoji> How to export your data</b>\n\n<b><tg-emoji emoji-id=\"0100000000000045\">▪️</tg-emoji> Steps</b>\n<tg-emoji emoji-id=\"0200000000000006\">🔸</tg-emoji> Open Settings\n<tg-emoji emoji-id=\"0200000000000006\">🔸</tg-emoji> Tap Export\n<tg-emoji emoji-id=\"0200000000000006\">🔸</tg-emoji> Pick CSV\n\n<b><tg-emoji emoji-id=\"0100000000000020\">❌</tg-emoji> Don&#x27;t</b>\nShare the export link in public chats.\n\n<tg-emoji emoji-id=\"0100000000000046\">👉</tg-emoji> <a href=\"https://t.me/example_bot?start=export\">Open the bot</a>"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": "@example_channel",
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000044\">📣</tg-emoji> Live Q&amp;A on Friday</b>\n\nBring your questions about the 2.4 release.\n\n<b><tg-emoji emoji-id=\"0100000000000045\">▪️</tg-emoji> When</b>\nFriday, 18:00 UTC\n\n<tg-emoji emoji-id=\"0100000000000046\">👉</tg-emoji> <a href=\"https://example.com/qa.ics\">Add to calendar</a>"
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": "@example_channel",
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 1,
+              "text": [
+                {
+                  "type": "custom_emoji",
+                  "custom_emoji_id": "0100000000000044",
+                  "alternative_text": "📣"
+                },
+                " Version 2.4 is out"
+              ]
+            },
+            {
+              "type": "heading",
+              "size": 3,
+              "text": [
+                {
+                  "type": "custom_emoji",
+                  "custom_emoji_id": "0100000000000045",
+                  "alternative_text": "▪️"
+                },
+                " New"
+              ]
+            },
+            {
+              "type": "heading",
+              "size": 3,
+              "text": [
+                {
+                  "type": "custom_emoji",
+                  "custom_emoji_id": "0100000000000045",
+                  "alternative_text": "▪️"
+                },
+                " Fixed"
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Duplicate alerts after a restart."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

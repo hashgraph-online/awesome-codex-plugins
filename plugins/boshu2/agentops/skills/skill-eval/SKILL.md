@@ -52,6 +52,17 @@ and its native results own the measurements.
   arms run by run, swap which goes first in each pair and rerun a dead run in
   its own slot; one whole arm and then the other turns load, rate limits and
   time of day into an apparent skill effect.
+- **Shape the case as the caller does.** For a skill another skill or a
+  standing instruction invokes, word the task as that caller passes it, put
+  pre-existing items of the same kind in the files the run touches, and have
+  the grader fail work outside the asked scope: unrequested edits, new files,
+  commits. A looser task credits the skill with the agent's own extras, and a
+  clean tree lets "touch only the current work" pass trivially.
+- **Locate the change against what the harness fixes.** A replayed transcript,
+  pinned stub or frozen upstream output hides any change made before that
+  point; report it as not measured. A defect that appears only after compaction
+  or resume needs a case holding only what survives; a full-context run can
+  pass both arms.
 - **Confirm the skill loaded.** Before reading a zero or small delta as no
   benefit, check each treatment run for the skill actually being loaded or
   injected. A run where it never loaded measures routing, not content. When the
@@ -59,20 +70,30 @@ and its native results own the measurements.
   that file; a run that did not still counts; read its miss as the body's
   pointer to the reference failing, not the reference's rule, and report how
   many treatment runs opened the file. The behavioral probe injects only
-  SKILL.md or a prelude, so it cannot answer this. Likewise, a case the
-  no-skill arm already passes nearly in full has no headroom: report no
-  headroom, not no value, and write a harder case ([seeding](references/seeding.md)).
+  SKILL.md or a prelude, so it cannot answer this.
+- **Screen each case for headroom first.** A case the no-skill arm already
+  passes nearly in full cannot show a benefit: report it as no headroom, not
+  no value, keep it only as a regression or cost control, and write a harder
+  case ([seeding](references/seeding.md)). Read a perfect score in every run of
+  either arm as a suspect test until the grader check below shows it can fail.
 - **Calibrate the grader.** Before trusting scores, confirm the judge or
   discriminator passes a response that plainly meets each criterion and fails
   one that plainly does not. A weak judge can fail correct responses wholesale.
+- **Name the model and harness.** A result holds for the model, effort,
+  runner and host it ran on. The same model can score several points apart on
+  another harness or machine, so do not carry a result to a different model or
+  runner, and do not compare arms run on different ones.
 - **Small samples are directional.** Report uncertainty with every difference.
   A difference without it shows neither benefit nor equivalence, and a
   zero-crossing interval is not equivalence. For two unpaired success rates,
-  give each arm a Wilson interval, the difference with its own interval and
-  Fisher's exact test, not a normal approximation, which breaks at 0/n, n/n and
-  a handful of runs. AgentOps ships no tool for this; the stock calls are
-  `scipy.stats.binomtest(k, n).proportion_ci(method="wilson")` and
-  `scipy.stats.fisher_exact`. Beside an inconclusive result, state the runs per
+  give each arm a Wilson interval, the difference with a Newcombe hybrid score
+  interval and Fisher's exact test, not a normal approximation, which breaks at
+  0/n, n/n and a handful of runs. AgentOps ships no tool for this; the stock
+  calls need the third-party scipy and statsmodels Python packages:
+  `scipy.stats.binomtest(k, n).proportion_ci(method="wilson")`,
+  `statsmodels.stats.proportion.confint_proportions_2indep(k1, n1, k2, n2, method="newcomb")`
+  and `scipy.stats.fisher_exact`. If they are absent, say so; do not fall back
+  to a normal approximation. Beside an inconclusive result, state the runs per
   arm needed to detect the smallest effect that would change the decision, and
   return insufficient evidence; running them is a new measurement with its own
   fixed stop and the caller's authorization, never an extension of this one.
@@ -81,8 +102,8 @@ and its native results own the measurements.
 - **Know the noise before cutting.** Before trimming or retuning skill text for
   a new model, measure how much identical arms differ on the same cases. A cut
   must clear a bar fixed before the run, above that spread. A static read of
-  the text is not a behavioral result. Saving a result means keeping the
-  completed run; rerunning to save it adds another sample and more spend.
+  the text is not a behavioral result. If a run's output was lost, a rerun is
+  a new sample that spends the same limits; it does not restore the lost one.
 
 ## Choose the question
 
@@ -118,16 +139,11 @@ Select the intersection of the caller's runtime authority, an available adapter
 and the named question. A runner's presence grants no runtime permission. If no
 route meets all three, return **insufficient evidence** with the missing route;
 do not automatically substitute another runtime or build a replacement runner.
-Forced SKILL.md injection, natural-request routing and installed-package coding
-comparisons answer different questions.
 
 When Claude Code is explicitly authorized and its evaluator is available,
-`claude plugin eval <plugin-path> --model <id>` is an optional route. It
-runs the cases in the plugin's eval directory (`evals/` by default) with the
-plugin and, by default (`--ablation with-without`), without it, scores each
-response with the case graders (LLM graders use `--judge-model`, default haiku)
-and reports the score delta. `--runs` sets repetitions per case,
-`--max-cost-usd` caps spend and `--json` writes per-run results. The model
+`claude plugin eval <plugin-path> --model <id>` is an optional route that runs
+the plugin's eval cases with and without the plugin. LLM graders default to a
+haiku judge (`--judge-model`). The model
 decides whether to load each skill, so the delta mixes routing with content.
 By default it also publishes its HTML report (prompts, responses and verdicts)
 to claude.ai and writes results under the plugin's eval directory: pass
@@ -160,8 +176,7 @@ installing or starting a replacement.
    and get the caller's authorization before any live run. Smoke runs, retries
    and interrupted attempts spend the same limits; a new configuration does not
    renew them. Token counters are not billing enforcement.
-2. **Choose the smallest measurement that answers it.** Probes for one act,
-   coding tasks for engineering outcomes, separate later sessions for memory.
+2. **Choose the smallest measurement that answers it** from the table above.
    Keep the deployed model and effort unless the decision is about effort. Keep
    easy cases as regression and cost controls; never weaken the control arm to
    manufacture separation.
@@ -193,7 +208,11 @@ installing or starting a replacement.
    A repeated helper is a candidate bundled script under
    [Skill Builder](../skill-builder/SKILL.md)'s occurrence rule. A reproduced
    defect with clean controls supports a provisional narrow repair; general
-   improvement needs a held-out comparison. Do not auto-publish a lesson.
+   improvement needs a held-out comparison. Remove needs treatment runs where
+   the skill loaded, cases with headroom drawn from use, and a difference
+   interval whose upper bound stays below the A/A bar fixed before the run,
+   weighed against the context each load costs; a skill that never loads gets
+   revise (loading), not remove. Do not auto-publish a lesson.
 
 Raw trials and new proof go to caller-selected protected storage outside Git;
 only sanitized public fixtures cleared for that destination belong in Git
@@ -220,8 +239,7 @@ none counts as demonstrated skill benefit.
 
 ## References
 
-- Behavioral runner and conventions: [`scripts/probe-skill.sh`](https://github.com/boshu2/agentops/blob/main/scripts/probe-skill.sh), [`evals/skill-probes/README.md`](https://github.com/boshu2/agentops/blob/main/evals/skill-probes/README.md), [seeding](references/seeding.md).
-- Plugin A/B suites and grader: [`evals/plugin-eval/README.md`](https://github.com/boshu2/agentops/blob/main/evals/plugin-eval/README.md).
-- Behavioral verdicts and non-verdict incidents: [`LEDGER.md`](https://github.com/boshu2/agentops/blob/main/evals/skill-probes/LEDGER.md), [`RUNBOOK.md`](https://github.com/boshu2/agentops/blob/main/evals/skill-probes/RUNBOOK.md).
-- Existing coverage and headroom gates: [`check-skill-probe-coverage.sh`](https://github.com/boshu2/agentops/blob/main/scripts/check-skill-probe-coverage.sh), [`check-skill-probe-headroom.sh`](https://github.com/boshu2/agentops/blob/main/scripts/check-skill-probe-headroom.sh).
-- Evidence and overclaim limits: ADR-0011, ADR-0016 and [`RPI traversal`](https://github.com/boshu2/agentops/blob/main/docs/architecture/rpi-traversal.md).
+AgentOps source checkout only: probe coverage is gated by
+[`check-skill-probe-coverage.sh`](https://github.com/boshu2/agentops/blob/main/scripts/check-skill-probe-coverage.sh)
+and headroom by
+[`check-skill-probe-headroom.sh`](https://github.com/boshu2/agentops/blob/main/scripts/check-skill-probe-headroom.sh).

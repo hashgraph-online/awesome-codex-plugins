@@ -1,0 +1,38 @@
+{
+  "id": "paper-halftone-dots-mosaic",
+  "label": "Mosaic (Paper HalftoneDots)",
+  "shader": "HalftoneDots",
+  "page": "https://shaders.paper.design/halftone-dots",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Mosaic\" preset for HalftoneDots, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "cover",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorFront": "#b2aeae",
+    "size": 0.6,
+    "radius": 2,
+    "contrast": 0.01,
+    "originalColors": true,
+    "inverted": false,
+    "grainMixer": 0,
+    "grainOverlay": 0,
+    "grainSize": 0.5,
+    "grid": "hex",
+    "type": "classic",
+    "image": ""
+  }
+}

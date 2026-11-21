@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling>=1.20.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aw1-circuit-breaker"
+version = "2.2.1"
+description = "Deterministic sub-0.2ms AST security circuit breaker, statutory decision assurance, and out-of-band agent containment engine."
+readme = "README.md"
+authors = [
+    { name = "Manners Vela Ikhutseng", email = "vela@laveto.net" }
+]
+maintainers = [
+    { name = "Laveto Sovereign Architecture Core", email = "dev@laveto.net" }
+]
+license = { text = "Apache-2.0" }
+keywords = [
+    "mcp",
+    "ai-safety",
+    "ast-security",
+    "circuit-breaker",
+    "agentic-ai",
+    "autonomous-agents",
+    "langchain",
+    "langgraph",
+    "crewai"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "build>=1.0.0",
+    "twine>=4.0.0"
+]
+
+[project.scripts]
+aw1-circuit-breaker = "aw1_breaker.cli:main"
+
+[project.urls]
+Homepage = "https://p20.laveto.net/wisdom"
+Documentation = "https://p20.laveto.net/wisdom/docs"
+Repository = "https://github.com/MvikManners/aw1-circuit-breaker"
+Integration = "https://p20.laveto.net/wisdom/integration"
+Telemetry = "https://p20.laveto.net/wisdom/api/v1/telemetry/recent"

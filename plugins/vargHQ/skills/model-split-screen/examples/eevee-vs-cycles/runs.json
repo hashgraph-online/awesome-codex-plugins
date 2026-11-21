@@ -1,0 +1,6 @@
+{
+  "prompt": "A lantern orb drifts up a low-poly forest valley at dusk (blender-code-film/scripts/film.py, --no-haze, 960x540, 216 frames)",
+  "machine": "Apple Silicon Mac, Blender 5.3.0, 2026-11-10",
+  "left": {"name": "Eevee", "command": "blender -b --factory-startup -P film.py -- --no-haze --percent 50 --out render/split_eevee", "seconds": 149, "per_frame_s": 0.69},
+  "right": {"name": "Cycles", "command": "blender -b --factory-startup -P film.py -- --no-haze --engine cycles --samples 48 --percent 50 --out render/split_cycles", "seconds": 499, "per_frame_s": 2.31}
+}

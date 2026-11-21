@@ -2,7 +2,7 @@
 name: cometchat-flutter-v5-sdk
 description: "Add voice & video calling to any Flutter app FROM SCRATCH with the headless CometChat Calls SDK v5 (`cometchat_calls_sdk`, pub.dev) — no UI Kit. init→login→generateCallToken→joinSession, which hands back a Flutter `Widget?` you mount in your tree; CallSession listeners, in-call actions (mute/video/layout/record/PiP/raise-hand), meet-style session rooms AND 1:1 ringing (Chat SDK signaling + Calls SDK media). Triggers: 'add calling from scratch flutter', 'standalone video call dart', 'headless calls sdk flutter', 'build my own call screen flutter', 'meeting room join by session id flutter', 'one-on-one ringing call without uikit flutter'."
 license: "MIT"
-compatibility: "Flutter >=2.5.0, Dart >=2.17.0 <4.0.0 · Android minSdk 26 (Android 8.0) · iOS 15.1. cometchat_calls_sdk ^5.0.3 — resolves to 5.0.7, which this skill is verified against. 1:1 ringing also needs cometchat_sdk v5 (>=5.0.6; the pinned harness resolves 5.0.7 — the signaling symbols are identical across both) for signaling."
+compatibility: "Flutter >=2.5.0, Dart >=2.17.0 <4.0.0 · Android minSdk 26 (Android 8.0) · iOS 15.1. cometchat_calls_sdk ^5.0.3 — resolves to 5.0.9 (latest); compiler-verified vs 5.0.7, and 5.0.8/5.0.9 source-checked with no API removed. 1:1 ringing also needs cometchat_sdk v5 (>=5.0.6, latest 5.0.8 — the signaling symbols are identical across them) for signaling."
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -23,7 +23,7 @@ metadata:
 ```yaml
 # pubspec.yaml
 dependencies:
-  cometchat_calls_sdk: ^5.0.7   # verified against 5.0.7
+  cometchat_calls_sdk: ^5.0.9   # latest; API compiler-verified vs 5.0.7, unchanged through 5.0.9
 ```
 then `flutter pub get`.
 
@@ -32,9 +32,9 @@ then `flutter pub get`.
 **Permissions — REQUIRED or the call dies on the first permission prompt.**
 - `android/app/src/main/AndroidManifest.xml`: `INTERNET`, `CAMERA`, `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS`, `ACCESS_NETWORK_STATE`. On **API 23+ you must ALSO request camera + mic at runtime** — the manifest alone is not enough, and this is the single most common "the SDK is broken" report on Android.
 - `ios/Runner/Info.plist`: `NSCameraUsageDescription` + `NSMicrophoneUsageDescription`.
-- Android **`minSdkVersion 26`**, iOS **`platform :ios, '15.1'`** — the real 5.0.7 floors. **The docs say 24 and iOS 12; both fail at BUILD time.** iOS moved 13.0 → 15.1 *in 5.0.7*, so an app can break on a routine `pub upgrade`.
+- Android **`minSdkVersion 26`**, iOS **`platform :ios, '15.1'`** — the real floors (5.0.7 through 5.0.9). **The docs say 24 and iOS 12; both fail at BUILD time.** iOS moved 13.0 → 15.1 *in 5.0.7*, so an app can break on a routine `pub upgrade`.
 
-**Credentials:** App ID · Region · Auth Key (dev only), via the CLI — `npx @cometchat/skills-cli@3 auth login` → `provision use --app-id <id> --json` (`@3` pins the CLI major that matches the v5 skills). Mint **auth tokens server-side** for production; never ship the Auth Key.
+**Credentials:** App ID · Region · Auth Key (dev only), fetched through the CometChat MCP — `cometchat_whoami` (connected + signed in?), `cometchat_list_apps` (ask which EXISTING app), `cometchat_get_app_credentials`, or pasted from Dashboard → Credentials. Mint **auth tokens server-side** for production; never ship the Auth Key.
 
 ## Init & login ordering (BAKED — invariant)
 Init (once, must succeed) → `CometChatCalls.login(...)` → then `generateCallToken` / `joinSession` / listeners. Nothing joins before init+login resolve. `CometChatCalls.isInitialized` is the guard.
@@ -85,7 +85,7 @@ An emit that ignores the `onSuccess` argument **joins the call successfully and 
 
 ## SDK method map (BAKED closed list — from the catalog; signatures → FETCH from docs)
 - **Lifecycle:** `CometChatCalls.initFromSettings` · `CometChatCalls.init` · `CallAppSettingBuilder` → `CallAppSettings` · `CometChatCalls.isInitialized` · `login` · `loginWithAuthToken` · `logout` · `getLoggedInUser` → `User?`
-- **Session:** `CometChatCalls.generateCallToken(sessionId, …)` → `CallToken` · `joinSession(…)` → `Widget?` · `SessionSettingsBuilder` → `SessionSettings` · `SessionType`
+- **Session:** `CometChatCalls.generateCallToken(sessionId, ...)` → `CallToken` · `joinSession(...)` → `Widget?` · `SessionSettingsBuilder` → `SessionSettings` · `SessionType`
 - **⚠️ TWO join paths, both real in 5.0.7** — pick one: `generateCallToken(sessionId)` → `joinSession(callToken:sessionSettings:)`, **or** `joinSession(sessionId:sessionSettings:)` directly.
 - **In-call actions — on `CallSession.getInstance()`, for CUSTOM controls ONLY** (the returned widget already renders them; see pitfall #1): `leaveSession` · `muteAudio`/`unMuteAudio` · `pauseVideo`/`resumeVideo` · `setLayout` · `setAudioModeType` · `switchCamera` · `raiseHand`/`lowerHand` · `startRecording`/`stopRecording` · `startScreenShare`/`stopScreenShare`/`toggleScreenShare` · `pinParticipant`/`unPinParticipant` · `muteParticipant` · `pauseParticipantVideo` · `enablePictureInPictureLayout`/`disablePictureInPictureLayout` · `enterPipMode`/`isPipSupported` · `setChatButtonUnreadCount` · `isCallSessionActive`
   - **Toggles** (Flutter-only, no iOS analogue): `toggleMuteAudio` · `togglePauseVideo` · `toggleCameraSource` · `toggleRaiseHand`
@@ -102,7 +102,7 @@ An emit that ignores the `onSuccess` argument **joins the call successfully and 
 ## Listener lifecycle (BAKED)
 **All five listener types are `abstract class`es you IMPLEMENT — they are NOT constructible.**
 The live docs build every one of them with named callbacks
-(`SessionStatusListeners(onSessionJoined: () {…})`); an abstract class cannot be instantiated, so
+(`SessionStatusListeners(onSessionJoined: () {...})`); an abstract class cannot be instantiated, so
 none of those examples compile. `flutter analyze` reports `instantiate_abstract_class`.
 ```dart
 class _Status extends SessionStatusListeners {
@@ -156,7 +156,7 @@ Two things that are NOT on the join path and are easy to get wrong:
 
 | The docs write | It does not compile — use |
 |---|---|
-| `generateToken(sessionId: …)` → `CallToken` (13 pages) | **`generateCallToken(sessionId, onSuccess:, onError:)`** → `CallToken`. `generateToken` is `@Deprecated`, takes two POSITIONAL args, and yields `GenerateToken`. **No page mentions `generateCallToken` at all** |
+| `generateToken(sessionId: ...)` → `CallToken` (13 pages) | **`generateCallToken(sessionId, onSuccess:, onError:)`** → `CallToken`. `generateToken` is `@Deprecated`, takes two POSITIONAL args, and yields `GenerateToken`. **No page mentions `generateCallToken` at all** |
 | `Participant.pid` / `.role` / `.audioMuted` / `.videoPaused` / `.isPinned` / `.isPresenting` / `.raisedHandTimestamp` | **None exist.** `Participant` has 7 fields; track the rest from events |
 
 Docs PR cometchat/docs#492 fixes the first seven classes (56 → 3 analyzer errors). **Five more —
@@ -168,7 +168,7 @@ and were never machine-checked, so the table is a floor, not a total.
 - **Forgetting to mount the returned widget (the #1 Flutter mistake)** — `joinSession` renders nothing itself. Store the `Widget?` from `onSuccess` in State and return it from `build()`.
 - **Don't duplicate the built-in call controls (the #1 mistake everywhere else).** The joined widget renders a COMPLETE call UI — mute, camera, layout, participants, leave. Do NOT add your own buttons around it. The `CallSession.getInstance()` action methods are for CUSTOM controls ONLY — reach for them **just when the user EXPLICITLY asks** to replace the defaults, and hide the built-ins first via the `..hide*Button` setters on `SessionSettingsBuilder`. To merely REACT to the built-in leave button, use `ButtonClickListeners(onLeaveSessionButtonClicked:)` — do not add a second button.
 - **Removing a listener you did not keep** — construct once into a field; `remove*Listener` matches by instance.
-- **`User` is exported by BOTH barrels** — ringing imports both SDKs; `ambiguous_import` until one hides it (`… hide User;`). No page says so.
+- **`User` is exported by BOTH barrels** — ringing imports both SDKs; `ambiguous_import` until one is imported with a prefix (`... as calls;`, then `calls.CallSession` etc.). No page says so.
 - **Ringing teardown needs BOTH SDKs** — `leaveSession()` ends your media, `CometChat.endCall(sessionId)` tells the peer and completes the log. Only the first, and the peer still thinks the call is live.
 - **There is no `cancelCall`** — cancel your own outgoing call with `rejectCall(sessionId, CometChatCallStatus.cancelled)`.
 - **Manifest permissions without the runtime request** — on Android 6+ the manifest alone grants nothing; request camera/mic before joining or the call is black and silent.
@@ -178,7 +178,7 @@ and were never machine-checked, so the table is a floor, not a total.
 - **Double init** — `init` after `initFromSettings` silently re-attributes telemetry to `"manual"`.
 - **Handling `onSessionLeft` but not `onSessionTimedOut`** — idle timeout (default **300s**, `0` disables) fires a DIFFERENT callback; miss it and the user sits on a dead call screen.
 - **Emitting an API Flutter lacks** — no presentation mode, no first-party push package. Say so rather than emitting code that cannot resolve. The two PiPs are also different calls: `enablePictureInPictureLayout()` is the in-app layout, `enterPipMode()` is Android system PiP.
-- **Screen share — the control methods DO ship (docs lag them).** `CallSession.getInstance()` has real `startScreenShare()`/`stopScreenShare()`/`toggleScreenShare()` + an `isScreenSharing` getter (barrel-reachable in 5.0.7; the method channel invokes a native `startScreenShare` and web routes to `getDisplayMedia`), and `hideScreenSharingButton` defaults to **`false`** so the built-in button is visible. So an emit calling `startScreenShare()` COMPILES and dispatches — do NOT tell the user local screen share is impossible or "invented." The **`/calls/flutter/screen-sharing` DOC page still says "receive-only"** — it documents only the RECEIVE side (`onParticipantStartedScreenShare`, `participant.isPresenting`, viewing a web participant's share); the shipped local-share control API is undocumented there. Reflect the shipped methods, and note the page lags them.
+- **Screen share — the control methods DO ship (docs lag them).** `CallSession.getInstance()` has real `startScreenShare()`/`stopScreenShare()`/`toggleScreenShare()` + an `isScreenSharing` getter (barrel-reachable in 5.0.7; the method channel invokes a native `startScreenShare` and web routes to `getDisplayMedia`), and `hideScreenSharingButton` defaults to **`false`** so the built-in button is visible. **From 5.0.8, Android local share is opt-in:** without two manifest entries the plugin hides the share button (`references/platform-notes.md` → Screen share on Android). So an emit calling `startScreenShare()` COMPILES and dispatches — never say local screen share is impossible or "invented." The **`/calls/flutter/screen-sharing` DOC page still says "receive-only"** — it documents only the RECEIVE side (`onParticipantStartedScreenShare`, `participant.isPresenting`, viewing a web participant's share); the shipped local-share control API is undocumented there. Reflect the shipped methods, and note the page lags them.
 - **Joining before init+login resolve** — chain from the success callbacks.
 - **Assuming a signature** — event names, `SessionSettings` fields and action params are FETCHED from docs, never guessed.
 

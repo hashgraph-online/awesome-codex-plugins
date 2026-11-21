@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-calls
 description: "Add voice & video calling to a Flutter app with the CometChat v6 UI Kit — turn calling on in settings, wire the native config and the root navigatorKey (the kit presents incoming/outgoing call screens itself), and add call-log surfaces. Triggers: 'add voice and video calls in flutter', 'add calling to my flutter chat', 'enable video call flutter', 'add call buttons flutter', 'show call logs flutter'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0); cometchat_calls_sdk ^5 (5.0.x — separate package)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0); cometchat_calls_sdk ^5.0.8 (5.0.9 latest — separate package)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -20,18 +20,18 @@ metadata:
 "add voice & video calls", "enable video call", "add call buttons", "show call logs". Precondition: chat already works (core done).
 
 ## Prerequisites & install
-`cometchat_chat_uikit` **already depends on `cometchat_calls_sdk`** (`^5.0.4`, in the kit's own `dependencies:` — verified in the 6.1.x pubspec), so the WebRTC engine is pulled in transitively; you do **not** need to add it. Add an explicit direct dependency **only** if you import `cometchat_calls_sdk` symbols directly (then pin it to keep resolution predictable):
+`cometchat_chat_uikit` **already depends on `cometchat_calls_sdk`** (`^5.0.8`, in the kit's own `dependencies:` — verified in the 6.2.0 pubspec; 6.1.x asked for `^5.0.4`), so the WebRTC engine is pulled in transitively; you do **not** need to add it. Add an explicit direct dependency **only** if you import `cometchat_calls_sdk` symbols directly (then pin it to keep resolution predictable):
 ```bash
 flutter pub add cometchat_calls_sdk   # optional — only if you import the package directly
 ```
 Then the native config the docs require — **all four steps, or calling silently never rings**:
-1. `cometchat_calls_sdk` (transitive via the kit; pin `^5.0.4` in `pubspec.yaml` only if you added it directly).
+1. `cometchat_calls_sdk` (transitive via the kit; pin `^5.0.8` in `pubspec.yaml` only if you added it directly: the 6.2.0 kit does not compile against older).
 2. **Android** `android/app/build.gradle.kts`: `minSdk = 26`.
 3. **iOS** `ios/Podfile`: `platform :ios, '15.1'`, then `pod install`.
 4. **Permissions** — camera + microphone (`AndroidManifest.xml`; `NSCameraUsageDescription` / `NSMicrophoneUsageDescription` in `Info.plist`). Without them the call surface opens black.
 > **⚠️ The docs' floors are too low and these are compiler-verified instead.** `cometchat_calls_sdk`
 > pins `minSdkVersion 26` in its `android/build.gradle` and `platform :ios, '15.1'` in its podspec
-> (5.0.7; it was 13.0 through 5.0.6). Gradle and CocoaPods take the MAXIMUM across the dependency
+> (5.0.7 through 5.0.9; it was 13.0 through 5.0.6). Gradle and CocoaPods take the MAXIMUM across the dependency
 > graph, so a lower app-level value is a build error, not a warning. Docs say 24 / 13.0 —
 > DOCS-BACKLOG D7. Platform floors do move: re-verify against the installed package, not the page.
 
@@ -68,7 +68,7 @@ Widget app(Widget home) => MaterialApp(
     );
 ```
 
-**2. That's it for incoming calls — the kit does the rest.** Do **NOT** add your own root `CallListener` or present `CometChatIncomingCall` yourself. When `uiKit.enableCalling` is true, the kit's `CallEventService` registers its **own** `CometChat.addCallListener(...)` on login and shows the incoming-call overlay automatically via `IncomingCallOverlay` (verified in `cometchat_chat_uikit` 6.1.x). Adding a second listener + a manual overlay produces a **DOUBLE** incoming-call screen. All you owe it is the `navigatorKey` from step 1 (that is how the overlay finds a context to present — without it the kit logs *"Incoming call overlay cannot be shown"*).
+**2. That's it for incoming calls — the kit does the rest.** Do **NOT** add your own root `CallListener` or present `CometChatIncomingCall` yourself. When `uiKit.enableCalling` is true, the kit's `CallEventService` registers its **own** `CometChat.addCallListener(...)` on login and shows the incoming-call overlay automatically via `IncomingCallOverlay` (verified in `cometchat_chat_uikit` 6.1.x and 6.2.0). Adding a second listener + a manual overlay produces a **DOUBLE** incoming-call screen. All you owe it is the `navigatorKey` from step 1 (that is how the overlay finds a context to present — without it the kit logs *"Incoming call overlay cannot be shown"*).
 
 **To customize the incoming/outgoing/call-button surfaces, pass a `CallingConfiguration`** — not a hand-rolled listener. On the classic builder path: `..callingConfiguration = CallingConfiguration(incomingCallConfiguration: ..., outgoingCallConfiguration: ..., callButtonsConfiguration: ...)`. `CallingConfiguration` (with `incomingCallConfiguration` / `outgoingCallConfiguration` / `callButtonsConfiguration`) is the kit's supported entry point; fetch its fields via the twin (`call-features`).
 
@@ -85,12 +85,16 @@ Widget outgoing(Call call, User user) => CometChatOutgoingCall(call: call, user:
 ```
 > **Call buttons are already in `CometChatMessageHeader`** — do NOT hand-roll them. They appear once calling is enabled; hide with `hideVoiceCallButton` / `hideVideoCallButton`. `CometChatCallButtons` is for placing them somewhere else (e.g. a profile screen).
 
+### Huddle / docked call — Flutter how-to (BAKED — verified vs cometchat_chat_uikit 6.2.0 + cometchat_calls_sdk 5.0.9)
+Slack-style huddle (start from the channel header, Join opens your dock, leave cleans up): `references/huddle.md`. Pattern: `cometchat-onboarding/references/clone-mode.md` → *Huddle / drop-in room pattern*.
+
 ## Common pitfalls (BAKED — the ones that actually bite)
 - **Enabled in only one place** — SDK installed but `enableCalling` false (or vice-versa) ⇒ every call affordance stays hidden, with no error.
 - **Missing camera/mic permissions** ⇒ the call surface opens black. Test on a real device; simulators have no camera.
 - **Adding your own root `CallListener` + `CometChatIncomingCall`** ⇒ a DOUBLE incoming-call screen. The kit's `CallEventService` already listens and shows the overlay when calling is enabled — don't duplicate it; customize via `CallingConfiguration`.
 - **No `navigatorKey`** (`CallNavigationContext.navigatorKey` on your `MaterialApp`) ⇒ the kit's overlay has no context to present from and logs *"Incoming call overlay cannot be shown"*.
 - **A call surface with no bounded height** ⇒ zero-dimension video (`../cometchat-flutter-v6-core/references/layout.md`).
+- **A docked or mini call opened full screen** — the group call button and the meeting bubble's Join both open `CallScreenOverlay` (a full-screen overlay). For a dock, replace both and join the session into your own box (`references/huddle.md`).
 - **Group calls do not ring** the way 1:1 does — group calling is join-based. Verify the behaviour you promise against `call-features`.
 - **Details screens are host-composed** — there is no `CometChatCallLogDetails` widget; build it from `guide-call-log-details`.
 
@@ -98,4 +102,4 @@ Widget outgoing(Call call, User user) => CometChatOutgoingCall(call: call, user:
 On TWO real devices (not simulators): calling enabled in the settings file and the Calls SDK installed → the header shows call buttons → placing a call rings the other device → accept shows the ongoing surface with real video → decline/end returns both sides cleanly → the call appears in `CometChatCallLogs`. A black surface means permissions; no ring means the enable pair or a missing `navigatorKey`; two incoming screens means a hand-added listener/`CometChatIncomingCall`.
 > Build the feature; do not write tests unless asked (`RULES.md`) — the above is an advisory human pass.
 
-**Close (after it builds):** end with the shared 3-option selectable menu and WAIT — **① add another feature · ② customize theming · ③ test it manually** (same contract as core, `RULES.md` §19).
+**Close (after it builds):** end with the shared 3-option selectable menu and WAIT — **(1) add another feature · (2) customize theming · (3) test it manually** (same contract as core, `RULES.md` §19).

@@ -71,7 +71,7 @@ bkt status commit <sha> [flags]
   bkt status commit 6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a
 
   # Output as JSON
-  bkt status commit abc1234 --output json
+  bkt status commit abc1234 --json
 ```
 
 ## bkt status pipeline
@@ -119,7 +119,7 @@ bkt status pipeline <uuid> [flags]
   bkt status pipeline {c0ffee42-abcd-1234-ef56-789012345678} --workspace myteam --repo backend
 
   # Output as JSON
-  bkt status pipeline {c0ffee42-abcd-1234-ef56-789012345678} --output json
+  bkt status pipeline {c0ffee42-abcd-1234-ef56-789012345678} --json
 ```
 
 ## bkt status pr
@@ -166,7 +166,7 @@ bkt status pr <id> [flags]
   bkt status pr 42 --project MYPROJ --repo my-service
 
   # Output as JSON
-  bkt status pr 42 --output json
+  bkt status pr 42 --json
 ```
 
 ## bkt status rate-limit
@@ -202,7 +202,7 @@ bkt status rate-limit [flags]
   bkt status rate-limit
 
   # Show rate limits as JSON
-  bkt status rate-limit --output json
+  bkt status rate-limit --json
 
   # Check rate limits for a specific context
   bkt status rate-limit --context my-cloud-ctx

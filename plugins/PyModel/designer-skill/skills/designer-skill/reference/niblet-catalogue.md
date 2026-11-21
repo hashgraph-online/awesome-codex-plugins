@@ -2,7 +2,7 @@
 
 The Niblet reference catalogue ([niblet.pymodel.com](https://niblet.pymodel.com)) supplies real-screen references, design references, and materials. It is optional: every other workflow in this skill runs from local product evidence alone. Retrieval is advisory context, never a style mandate, and a reference screenshot never overrides the product's own tokens, components, or content.
 
-Account keys (`niblet_at_…`, created at [niblet.pymodel.com/account](https://niblet.pymodel.com/account)) authorize catalogue access. Keep keys in the host's secret store; never paste one into chat, commits, or queries.
+Account keys (`niblet_at_…`) authorize catalogue access. To get one: sign up at [niblet.pymodel.com](https://niblet.pymodel.com), create an MCP key at [niblet.pymodel.com/account](https://niblet.pymodel.com/account), set it as `NIBLET_TOKEN` in the designer-skill MCP server's environment and restart the client. When references would have helped and no key is set, tell the user this once and continue. Keep keys in the host's secret store; never paste one into chat, commits, or queries.
 
 ## Deployment surfaces and what each exposes
 
@@ -10,9 +10,11 @@ Account keys (`niblet_at_…`, created at [niblet.pymodel.com/account](https://n
 | --- | --- | --- |
 | Niblet MCP package (`npx -y @pymodel/niblet`) | `find_ui_references`, `find_ui_materials`, `get_design_reference` | Local stdio adapter; images arrive as MCP image content |
 | Hosted MCP (`https://niblet-api.pymodel.com/mcp`) | all four, including `get_ui_component` | Account key header or OAuth |
-| This server's REST wrapper | `find_ui_references` (search + selected-screen metadata), `get_design_reference`, `find_ui_materials` (setup guidance) | Text and returned URLs only; never fetches URLs itself; degrades to setup guidance without `NIBLET_TOKEN` |
+| designer-skill MCP (this server) | all four, passed through from the hosted MCP | Needs `NIBLET_TOKEN`; text and images, marked untrusted and size-bounded; without a key, disabled or unreachable it answers guidance text, never a tool error |
 
-Discover capabilities on the connected server rather than treating installation or an older skill's tool count as proof. Hosted MCP has a fourth tool that the local adapter does not expose. When names collide, use the host's server-qualified tool identity: prefer the Niblet server for images and materials; this designer server is only a text/routing fallback. Do not query both for the same question.
+Discover capabilities on the connected server rather than treating installation or an older skill's tool count as proof. Hosted MCP has a fourth tool that the local adapter does not expose. When a Niblet server is also connected directly the names collide: use the host's server-qualified tool identity and pick one provider per question; both reach the same catalogue. Do not query both for the same question.
+
+**When the catalogue is off.** A catalogue tool that answers "not configured", "disabled", "unavailable" or "skipped" has sent nothing useful and proves nothing about the catalogue: do not retry it in a loop (the server already retried a transient failure three times and then skips the catalogue for 60 seconds), do not report it as a failure of the task, and continue from the product brief, the local design system and the bundled references.
 
 Use one shared product-grounded contract, not separate competing approvals. Niblet's Persuade/Operate/Read/Experience modes identify the surface's job; this skill's audit/plan/refine/implement/system modes constrain execution. A reference never changes either scope or product authority.
 
@@ -21,9 +23,9 @@ The four documented catalogue tools and their inputs:
 - **`find_ui_references`** — required `query` (1–240 characters, describe the screen by what it does); optional `platform` (`ios` or `web`), `limit` (1–3, default 2), `selectedIds` (one to three screen IDs, each 1–160 characters), and `clientSkillVersion` (1–64 characters). Without `selectedIds` it searches and attaches thumbnails; with `selectedIds` it returns those exact screens at inspection quality. `query` stays required in both cases. IDs the catalogue does not hold are skipped, not failed.
 - **`get_design_reference`** — one of `screenId` (from a reference) or `packSlug`; optional `sections` subset of `overview`, `colors`, `typography`, `components`, `provenance`, and `clientSkillVersion`. Only web screens have a recorded design reference; an iOS screen answers "only web screens have one" — treat that as an answer, not an error, and continue from the local design system.
 - **`find_ui_materials`** — required `query` plus `kind`: `font`, `icon`, `animated_icon`, `component`, or `pack`. Discover the deployment's schema: component discovery is accepted by the shared contract, but source retrieval requires hosted `get_ui_component`. Optional `platform`, `limit`, `selectedId`, `userConfirmed: true`, `clientSkillVersion`. `kind: "pack"` returns a plain refusal before any request: no deployment supplies packs. The compatibility fields `selectedId`/`userConfirmed` establish no installation or extra automation.
-- **`get_ui_component`** — remote-only (hosted MCP, not the local adapter). Required `id`: lowercase letters, digits, `-`, `_`, up to 160 characters — the `name` returned by `find_ui_materials` with `kind: "component"`. Returns a shadcn registry item: `files` (path + content), npm `dependencies`, `registryDependencies`, `license`, and `attribution`. An unknown id answers `component: null`, not an error.
+- **`get_ui_component`** — hosted MCP and this server's pass-through (not the local `@pymodel/niblet` adapter). Required `id`: lowercase letters, digits, `-`, `_`, up to 160 characters — the `name` returned by `find_ui_materials` with `kind: "component"`. Returns a shadcn registry item: `files` (path + content), npm `dependencies`, `registryDependencies`, `license`, and `attribution`. An unknown id answers `component: null`, not an error.
 
-All four schemas accept `clientSkillVersion`. Pass the installed Niblet skill's version (the `metadata.version` in its `SKILL.md`) when the host knows it; this server's wrapper also accepts it as a pass-through argument.
+All four schemas accept `clientSkillVersion`. Pass the installed Niblet skill's version (the `metadata.version` in its `SKILL.md`) when the host knows it; this server passes it through.
 
 ## Bounded retrieval
 

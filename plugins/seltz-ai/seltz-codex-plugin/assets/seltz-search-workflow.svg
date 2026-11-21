@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-labelledby="title desc">
+  <title id="title">Seltz web search in Codex</title>
+  <desc id="desc">A synthetic marketplace preview showing a Seltz search request and source-backed results.</desc>
+  <rect width="1280" height="800" rx="28" fill="#f4fbf8"/>
+  <rect x="48" y="44" width="1184" height="712" rx="20" fill="#fff" stroke="#c9e8df" stroke-width="2"/>
+  <rect x="48" y="44" width="1184" height="78" rx="20" fill="#0d1019"/>
+  <circle cx="91" cy="83" r="20" fill="#1dc19c"/>
+  <path d="M91 69c-8 0-14 6-14 14s6 14 14 14 14-6 14-14-6-14-14-14Zm0 6a8 8 0 1 1 0 16 8 8 0 0 1 0-16Z" fill="#0d1019"/>
+  <text x="128" y="91" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700">Seltz</text>
+  <text x="88" y="174" fill="#0d1019" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700">Current, source-backed web knowledge</text>
+  <text x="88" y="207" fill="#5a6870" font-family="Inter,Arial,sans-serif" font-size="16">A synthetic preview for marketplace review; no live account data.</text>
+  <rect x="88" y="250" width="1104" height="106" rx="16" fill="#f4fbf8" stroke="#c9e8df"/>
+  <text x="116" y="286" fill="#0d1019" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700">SEARCH QUERY</text>
+  <text x="116" y="326" fill="#25343b" font-family="Inter,Arial,sans-serif" font-size="20">What changed in AI regulation this month?</text>
+  <rect x="88" y="390" width="1104" height="282" rx="16" fill="#fff" stroke="#c9e8df"/>
+  <text x="116" y="432" fill="#0d1019" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">Seltz results</text>
+  <rect x="116" y="458" width="1038" height="58" rx="10" fill="#f4fbf8"/>
+  <circle cx="142" cy="487" r="10" fill="#1dc19c"/>
+  <text x="166" y="482" fill="#0d1019" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">Official regulatory update</text>
+  <text x="166" y="504" fill="#5a6870" font-family="Inter,Arial,sans-serif" font-size="13">Source URL · publication date · relevant passage</text>
+  <rect x="116" y="532" width="1038" height="58" rx="10" fill="#f4fbf8"/>
+  <circle cx="142" cy="561" r="10" fill="#1dc19c"/>
+  <text x="166" y="556" fill="#0d1019" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">Independent analysis</text>
+  <text x="166" y="578" fill="#5a6870" font-family="Inter,Arial,sans-serif" font-size="13">Source URL · publication date · relevant passage</text>
+  <text x="116" y="630" fill="#5a6870" font-family="Inter,Arial,sans-serif" font-size="13">Verify linked sources before relying on time-sensitive claims.</text>
+</svg>

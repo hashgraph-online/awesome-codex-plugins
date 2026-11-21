@@ -1,0 +1,13 @@
+interface:
+  display_name: "Suede AI Launch Packaging Skills"
+  short_description: "Package and ship Suede work as a real launch"
+  default_prompt: |
+    Use $suede-launch-packaging to package finished Suede work for a public launch others can install.
+
+    Choose one lane, or run both in order:
+    - Package: prepare source, live surface, docs, install command, release note, or launch copy. Verify branch, remote, commit, build, and exact URLs; add proof links, copy/SEO/link checks, and a handoff.
+    - Install support: repair Codex or Claude installs, GitHub or raw-URL commands, MCP and marketplace setup. Lead with public GitHub installs; after pushing, test the exact command in a temporary destination. Keep @personal paths out of public docs.
+
+    This skill organizes and prepares; it does not clear rights, confirm ownership, approve payouts, write registries, or guarantee outcomes. Call a launch live only after public readback, and an install working only after the exact test. Do not name competitors. End meaningful launches with one plain explanation a 10-year-old can follow, the usual breakdown, then "Cue Suede".
+policy:
+  allow_implicit_invocation: true

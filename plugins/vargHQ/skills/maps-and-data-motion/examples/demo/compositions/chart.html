@@ -1,0 +1,232 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #ffffff;
+      font-family: "Inter", sans-serif;
+      color: #1d232b;
+    }
+    .ch-head {
+      position: absolute;
+      left: 192px;
+      top: 112px;
+    }
+    .ch-head h1 {
+      font-weight: 700;
+      font-size: 64px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .ch-head p {
+      margin-top: 14px;
+      font-weight: 500;
+      font-size: 28px;
+      color: #5b6573;
+    }
+    #ch-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    #ch-svg text {
+      font-family: "Inter", sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #1d232b;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="chart" data-width="1920" data-height="1080">
+    <div class="ch-head" id="ch-head">
+      <h1>Seats sold per route in May</h1>
+      <p>Northwind Air, thousands of seats · illustrative sample data</p>
+    </div>
+    <svg id="ch-svg" viewBox="0 0 1920 1080" aria-hidden="true">
+      <g id="ch-grid"></g>
+      <g id="ch-bars"></g>
+      <line id="ch-base" x1="192" x2="1728" y1="920" y2="920" stroke="#1D232B" stroke-width="2" />
+      <g id="ch-callout" opacity="0">
+        <line id="ch-call-line" stroke="#2F6BFF" stroke-width="2" />
+        <text id="ch-call-1" font-size="30" font-weight="700" fill="#2F6BFF">+38% on April</text>
+        <text id="ch-call-2" font-size="28" font-weight="500" fill="#5B6573">busiest route this spring</text>
+      </g>
+    </svg>
+    <div class="lbl" id="ch-lbl" data-layout-ignore>self-drawing-chart · bars</div>
+  </div>
+  <script>
+    (function () {
+      // preset self-drawing-chart.bars (assets/presets/self-drawing-chart.json), beats compressed to 4.0 s
+      const D = 4.0;
+      const DATA = [
+        ["Madrid", 42],
+        ["Paris", 58],
+        ["Berlin", 49],
+        ["Helsinki", 96],
+        ["Rome", 64],
+        ["Oslo", 38],
+        ["Dublin", 27],
+        ["Vienna", 51],
+      ];
+      const KEY = "Helsinki";
+      const P = {
+        barWidthOfSlot: 0.62,
+        radius: 4,
+        grow: 0.7,
+        stagger: 0.07,
+        grey: "#C9CED6",
+        accent: "#2F6BFF",
+        start: "#7A8494", // bars grow in a neutral slate, then all but one go grey and the key bar turns accent
+      };
+      const T = { head: [0, 0.5], axis: [0.3, 0.8], bars: 0.7, highlight: [2.0, 2.6] };
+      const X0 = 192,
+        X1 = 1728,
+        TOP = 290,
+        BASE = 920,
+        PLOT_X0 = 300;
+      const MAX = 100; // d3 nice() of 96
+      const NS = "http://www.w3.org/2000/svg";
+      const bez = (x1, y1, x2, y2) => (t) => {
+        let u = t;
+        for (let i = 0; i < 8; i++) {
+          const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u - t;
+          const dx = 3 * (1 - u) * (1 - u) * x1 + 6 * (1 - u) * u * (x2 - x1) + 3 * u * u * (1 - x2);
+          if (Math.abs(dx) < 1e-6) break;
+          u = Math.min(1, Math.max(0, u - x / dx));
+        }
+        return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+      };
+      const emphDecel = bez(0.05, 0.7, 0.1, 1);
+      const barEase = bez(0.33, 1, 0.68, 1);
+      const p2o = gsap.parseEase("power2.out");
+      const p2io = gsap.parseEase("power2.inOut");
+      const clamp = (v) => Math.max(0, Math.min(1, v));
+      const prog = (t, [a, b]) => clamp((t - a) / (b - a));
+      const y = (v) => BASE - ((BASE - TOP) * v) / MAX;
+      const mix = (a, b, k) => {
+        const pa = parseInt(a.slice(1), 16),
+          pb = parseInt(b.slice(1), 16);
+        const c = [16, 8, 0].map((s) => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k));
+        return `rgb(${c.join(",")})`;
+      };
+
+      // gridlines + ticks (unit on the top tick, none on the axis)
+      const grid = document.getElementById("ch-grid");
+      const ticks = [0, 25, 50, 75, 100];
+      for (const v of ticks) {
+        if (v > 0) {
+          const l = document.createElementNS(NS, "line");
+          l.setAttribute("x1", X0);
+          l.setAttribute("x2", X1);
+          l.setAttribute("y1", y(v));
+          l.setAttribute("y2", y(v));
+          l.setAttribute("stroke", "#E3E6EA");
+          l.setAttribute("stroke-width", "1");
+          grid.appendChild(l);
+        }
+        const tx = document.createElementNS(NS, "text");
+        tx.setAttribute("x", X0);
+        tx.setAttribute("y", y(v) - 10);
+        tx.setAttribute("font-size", "28");
+        tx.setAttribute("font-weight", "500");
+        tx.setAttribute("fill", "#5B6573");
+        tx.textContent = v === 100 ? "100k" : String(v);
+        grid.appendChild(tx);
+      }
+
+      const barsG = document.getElementById("ch-bars");
+      const slot = (X1 - PLOT_X0) / DATA.length;
+      const bw = slot * P.barWidthOfSlot;
+      const bars = DATA.map(([name, v], i) => {
+        const x = PLOT_X0 + i * slot + (slot - bw) / 2;
+        const path = document.createElementNS(NS, "path");
+        barsG.appendChild(path);
+        const val = document.createElementNS(NS, "text");
+        val.setAttribute("x", x + bw / 2);
+        val.setAttribute("text-anchor", "middle");
+        val.setAttribute("font-size", "30");
+        val.setAttribute("font-weight", "600");
+        val.setAttribute("fill", "#1D232B");
+        barsG.appendChild(val);
+        const cat = document.createElementNS(NS, "text");
+        cat.setAttribute("x", x + bw / 2);
+        cat.setAttribute("y", BASE + 40);
+        cat.setAttribute("text-anchor", "middle");
+        cat.setAttribute("font-size", "28");
+        cat.setAttribute("font-weight", "500");
+        cat.setAttribute("fill", "#3A4350");
+        cat.textContent = name;
+        barsG.appendChild(cat);
+        return { name, v, x, path, val, cat, start: T.bars + i * P.stagger };
+      });
+      const key = bars.find((b) => b.name === KEY);
+      const cl = document.getElementById("ch-call-line");
+      const c1 = document.getElementById("ch-call-1");
+      const c2 = document.getElementById("ch-call-2");
+      const cx = key.x + bw + 22;
+      const cy = y(key.v) + 18;
+      cl.setAttribute("x1", key.x + bw + 6);
+      cl.setAttribute("x2", cx - 4);
+      cl.setAttribute("y1", cy - 9);
+      cl.setAttribute("y2", cy - 9);
+      c1.setAttribute("x", cx + 4);
+      c1.setAttribute("y", cy);
+      c2.setAttribute("x", cx + 4);
+      c2.setAttribute("y", cy + 36);
+      const callout = document.getElementById("ch-callout");
+      const head = document.getElementById("ch-head");
+      const base = document.getElementById("ch-base");
+
+      function barPath(x, top, w, r) {
+        const h = BASE - top;
+        if (h <= 0.01) return "";
+        const rr = Math.min(r, h, w / 2);
+        return `M${x} ${BASE} L${x} ${top + rr} Q${x} ${top} ${x + rr} ${top} L${x + w - rr} ${top} Q${x + w} ${top} ${x + w} ${top + rr} L${x + w} ${BASE} Z`;
+      }
+
+      function render(t) {
+        const h = emphDecel(prog(t, T.head));
+        head.style.opacity = h.toFixed(3);
+        head.style.transform = `translateY(${(16 * (1 - h)).toFixed(1)}px)`;
+        const ax = p2o(prog(t, T.axis));
+        grid.setAttribute("opacity", ax.toFixed(3));
+        base.setAttribute("x2", (X0 + (X1 - X0) * ax).toFixed(1));
+        const hl = p2io(prog(t, T.highlight));
+        for (const b of bars) {
+          const g = barEase(prog(t, [b.start, b.start + P.grow]));
+          const v = b.v * g;
+          b.path.setAttribute("d", barPath(b.x, y(v), bw, P.radius));
+          const isKey = b === key;
+          b.path.setAttribute("fill", mix(P.start, isKey ? P.accent : P.grey, hl));
+          // value counts with its bar and fades in over the last 40 % of the grow
+          b.val.textContent = String(Math.round(v));
+          b.val.setAttribute("y", (y(v) - 14).toFixed(1));
+          b.val.setAttribute("opacity", clamp((g - 0.6) / 0.4).toFixed(3));
+          b.val.setAttribute("fill", isKey ? mix("#1D232B", P.accent, hl) : mix("#1D232B", "#5B6573", hl));
+          b.cat.setAttribute("opacity", ax.toFixed(3));
+          b.cat.setAttribute("font-weight", isKey && hl > 0.5 ? "700" : "500");
+        }
+        callout.setAttribute("opacity", hl.toFixed(3));
+        callout.setAttribute("transform", `translate(${(12 * (1 - hl)).toFixed(1)} 0)`);
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#ch-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.2);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["chart"] = tl;
+    })();
+  </script>
+</template>

@@ -57,7 +57,7 @@ RULES: tuple[tuple[str, str, str, re.Pattern[str]], ...] = (
         "shell_execution",
         "critical",
         "Shell entry point can execute external commands.",
-        re.compile(r"(?:^\s*!|\b(?:system|unix|dos)\s*\()", re.IGNORECASE),
+        re.compile(r"(?:(?:^\s*!)|(?:\b(?:system|unix|dos)\s*\())", re.IGNORECASE),
     ),
     (
         "python_execution",
@@ -100,7 +100,7 @@ RULES: tuple[tuple[str, str, str, re.Pattern[str]], ...] = (
         "mat_load",
         "high",
         "Loading MAT/object data can invoke installed class deserialization code.",
-        re.compile(r"(?:^\s*load(?:\s|\()|\bload\s*\()", re.IGNORECASE),
+        re.compile(r"(?:(?:^\s*load[\s(])|(?:\bload\s*\())", re.IGNORECASE),
     ),
     (
         "deserialization_callback",
@@ -175,6 +175,7 @@ RULES: tuple[tuple[str, str, str, re.Pattern[str]], ...] = (
 
 
 def _without_comments(line: str, *, in_block: bool) -> tuple[str, bool]:
+    """Handle without comments."""
     stripped = line.lstrip()
     if in_block:
         if stripped.startswith("%}"):
@@ -206,6 +207,7 @@ def _without_comments(line: str, *, in_block: bool) -> tuple[str, bool]:
 def scan_source(
     path: Path, root: Path, *, max_file_bytes: int
 ) -> list[dict[str, Any]]:
+    """Handle scan source."""
     findings: list[dict[str, Any]] = []
     text = read_text(path, max_bytes=max_file_bytes)
     in_block = False
@@ -238,6 +240,7 @@ def scan_source(
 
 
 def _opaque_finding(path: Path, root: Path) -> dict[str, Any] | None:
+    """Handle opaque finding."""
     suffix = path.suffix.casefold()
     details = OPAQUE_SUFFIXES.get(suffix)
     if suffix.startswith(".mex"):
@@ -268,6 +271,7 @@ def collect(
     max_file_bytes: int,
     max_total_bytes: int,
 ) -> list[Path]:
+    """Collect."""
     if source.is_file():
         suffix = source.suffix.casefold()
         supported = (
@@ -323,6 +327,7 @@ def collect(
 
 
 def scan(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
+    """Handle scan."""
     root = checked_root(args.root)
     source = checked_input(args.input, root=root, kind="any")
     max_files = bounded_int(
@@ -398,6 +403,7 @@ def scan(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
 
 def parser() -> argparse.ArgumentParser:
+    """Handle parser."""
     result = argparse.ArgumentParser(
         description=(
             "Statically triage reviewed MATLAB text and flag opaque artifacts. "
@@ -421,6 +427,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     try:
         report, status = scan(parser().parse_args())
         emit_json(report)

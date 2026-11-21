@@ -87,11 +87,11 @@ def customize_template(template_path, output_path, **kwargs):
         print(f"\n⚠️  Template copied to: {output_path}")
         print("   No customizations applied (no matching placeholders found or no values provided)")
     
-    print(f"\nNext steps:")
+    print("\nNext steps:")
     print(f"1. Open {output_path} in your LaTeX editor")
-    print(f"2. Replace remaining placeholders")
-    print(f"3. Add your content")
-    print(f"4. Compile with pdflatex or your preferred LaTeX compiler")
+    print("2. Replace remaining placeholders")
+    print("3. Add your content")
+    print("4. Compile with pdflatex or your preferred LaTeX compiler")
 
 def interactive_mode():
     """Run in interactive mode."""
@@ -153,6 +153,7 @@ def interactive_mode():
     )
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Customize LaTeX templates with author and project information",
         formatter_class=argparse.RawDescriptionHelpFormatter,

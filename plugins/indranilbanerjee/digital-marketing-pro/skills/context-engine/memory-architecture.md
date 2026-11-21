@@ -34,7 +34,7 @@ The plugin uses a **5-layer memory architecture**. Each layer serves a different
 - Brand profile (identity, voice, audiences, competitors, goals)
 - Active brand state (`_active-brand.json`)
 
-**Query pattern:** Loaded at session start by the brand-context step of each skill (`setup.py --summary`); no hook involved — the plugin ships zero hooks by design.
+**Query pattern:** Loaded at session start by the brand-context step of each skill (`setup.py --summary`); no hook involved — the plugin ships no session hook by design.
 
 **Setup:** Zero config. Works out of the box with `setup.py` and `campaign-tracker.py`.
 
@@ -82,7 +82,8 @@ Examples:
 
 **Storage via:**
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action prepare-store --data '{"content": "...", "content_type": "campaign-learning", "tags": [...]}'
+# write with the Write tool first: {data_file} holds {"content": "...", "content_type": "campaign-learning", "tags": [...]}
+python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action prepare-store --data "@{data_file}"
 ```
 The script prepares the payload, then the MCP store call writes it to the vector database. (Put `content_type` inside `--data`; the `--type` flag is a filter for read actions and is ignored by `prepare-store`.)
 
@@ -132,7 +133,8 @@ Examples:
 
 **Storage via:**
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action prepare-graph --data '{"entity_type": "campaign", "name": "...", "relationships": [...]}'
+# write with the Write tool first: {data_file} holds {"entity_type": "campaign", "name": "...", "relationships": [...]}
+python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action prepare-graph --data "@{data_file}"
 ```
 (There is no `--entity-type` flag — put `entity_type` inside `--data`.)
 

@@ -5,6 +5,7 @@ description: >
   business rules, security policy, what is intentional — and writes the project docs at the entry
   points agents already read. Use when the user invokes the `migration` skill on an existing
   project. Requires git.
+disable-model-invocation: true
 ---
 
 # migration

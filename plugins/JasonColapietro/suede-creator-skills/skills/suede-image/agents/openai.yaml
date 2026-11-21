@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Image Skills"
+  short_description: "Create and optimise marketing imagery"
+  default_prompt: "Use $suede-image on [target]. Discover the currently callable and authorized image, browser, design, or local production surface; verify current capabilities, rights, data boundaries, and maximum cost; then produce or specify truthful marketing imagery with deterministic product UI and exact-text fallbacks."
+policy:
+  allow_implicit_invocation: true

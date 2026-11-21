@@ -44,6 +44,7 @@ class ResourceMonitor:
         resource: simpy.Resource,
         name: str = "resource",
     ):
+        """Initialise the instance."""
         simpy_module = load_simpy()
         if not isinstance(
             resource,
@@ -69,6 +70,7 @@ class ResourceMonitor:
         self._patch()
 
     def _record(self, event: str, *, at: float | None = None) -> None:
+        """Handle record."""
         time = float(self.env.now if at is None else at)
         self.samples.append(
             ResourceSample(
@@ -81,14 +83,17 @@ class ResourceMonitor:
         )
 
     def _patch(self) -> None:
+        """Handle patch."""
         @wraps(self._original_request)
         def monitored_request(*args: Any, **kwargs: Any) -> Any:
+            """Handle monitored request."""
             requested_at = float(self.env.now)
             request = self._original_request(*args, **kwargs)
             self._request_times[request] = requested_at
             self._record("request")
 
             def granted(_: Any) -> None:
+                """Handle granted."""
                 start = self._request_times.pop(request, None)
                 if start is not None:
                     self.wait_times.append(float(self.env.now) - start)
@@ -101,6 +106,7 @@ class ResourceMonitor:
 
             @wraps(original_cancel)
             def monitored_cancel() -> None:
+                """Handle monitored cancel."""
                 original_cancel()
                 self._request_times.pop(request, None)
                 self._record("cancel")
@@ -116,6 +122,7 @@ class ResourceMonitor:
 
         @wraps(self._original_release)
         def monitored_release(*args: Any, **kwargs: Any) -> Any:
+            """Handle monitored release."""
             released = self._original_release(*args, **kwargs)
             self._record("release")
             return released
@@ -145,6 +152,7 @@ class ResourceMonitor:
         start: float,
         end: float,
     ) -> float:
+        """Handle time weighted."""
         if start < self.samples[0].time:
             raise CliError("monitor window starts before monitoring began")
         if end <= start:
@@ -245,6 +253,7 @@ class MultiResourceMonitor:
     """Manage uniquely named ResourceMonitor instances in one environment."""
 
     def __init__(self, env: simpy.Environment):
+        """Initialise the instance."""
         load_simpy()
         self.env = env
         self.monitors: dict[str, ResourceMonitor] = {}
@@ -252,6 +261,7 @@ class MultiResourceMonitor:
     def add_resource(
         self, resource: simpy.Resource, name: str
     ) -> ResourceMonitor:
+        """Add resource."""
         if not name or name in self.monitors:
             raise CliError("resource monitor names must be non-empty and unique")
         monitor = ResourceMonitor(self.env, resource, name)
@@ -259,12 +269,14 @@ class MultiResourceMonitor:
         return monitor
 
     def finalize(self, *, at: float | None = None) -> None:
+        """Handle finalize."""
         for monitor in self.monitors.values():
             monitor.finalize(at=at)
 
     def summaries(
         self, *, start: float = 0.0, end: float | None = None
     ) -> dict[str, dict[str, Any]]:
+        """Handle summaries."""
         return {
             name: monitor.summary(start=start, end=end)
             for name, monitor in self.monitors.items()
@@ -280,6 +292,7 @@ class ContainerMonitor:
         container: simpy.Container,
         name: str = "container",
     ):
+        """Initialise the instance."""
         load_simpy()
         if getattr(container, "_simpy_skill_monitor_attached", False):
             raise CliError("this container already has a ContainerMonitor")
@@ -295,6 +308,7 @@ class ContainerMonitor:
         self._patch()
 
     def _record(self, event: str, *, at: float | None = None) -> None:
+        """Handle record."""
         self.samples.append(
             (
                 float(self.env.now if at is None else at),
@@ -306,8 +320,10 @@ class ContainerMonitor:
     def _patch_operation(
         self, operation: Callable[..., Any], event_name: str
     ) -> Callable[..., Any]:
+        """Handle patch operation."""
         @wraps(operation)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Handle wrapper."""
             event = operation(*args, **kwargs)
             if event.callbacks is not None:
                 event.callbacks.append(lambda _: self._record(event_name))
@@ -316,10 +332,12 @@ class ContainerMonitor:
         return wrapper
 
     def _patch(self) -> None:
+        """Handle patch."""
         self.container.put = self._patch_operation(self._original_put, "put")
         self.container.get = self._patch_operation(self._original_get, "get")
 
     def finalize(self, *, at: float | None = None) -> None:
+        """Handle finalize."""
         final_time = float(self.env.now if at is None else at)
         if final_time < self.samples[-1][0]:
             raise CliError("monitor final time cannot precede its latest sample")
@@ -328,6 +346,7 @@ class ContainerMonitor:
     def average_level(
         self, *, start: float = 0.0, end: float | None = None
     ) -> float:
+        """Handle average level."""
         final = self.samples[-1][0] if end is None else float(end)
         if final <= start:
             raise CliError("monitor window end must be greater than start")
@@ -362,6 +381,7 @@ class EventTraceRecorder:
         *,
         max_records: int = 100_000,
     ):
+        """Initialise the instance."""
         load_simpy()
         self.env = env
         self.max_records = integer(
@@ -376,8 +396,10 @@ class EventTraceRecorder:
         self._patch()
 
     def _patch(self) -> None:
+        """Handle patch."""
         @wraps(self._original_step)
         def tracing_step() -> None:
+            """Handle tracing step."""
             queue = getattr(self.env, "_queue", None)
             if queue:
                 if len(self.records) < self.max_records:
@@ -398,6 +420,7 @@ class EventTraceRecorder:
         self.env.step = tracing_step
 
     def detach(self) -> None:
+        """Handle detach."""
         self.env.step = self._original_step
 
     def export_jsonl(self, output: str, *, force: bool = False) -> None:
@@ -418,12 +441,14 @@ class EventTraceRecorder:
 
 
 def _demo() -> tuple[dict[str, Any], ResourceMonitor]:
+    """Handle demo."""
     simpy_module = load_simpy()
     env = simpy_module.Environment()
     resource = simpy_module.Resource(env, capacity=2)
     monitor = ResourceMonitor(env, resource, "demo_server")
 
     def user(identifier: int) -> Any:
+        """Handle user."""
         yield env.timeout(identifier * 0.5)
         with resource.request() as request:
             yield request
@@ -437,6 +462,7 @@ def _demo() -> tuple[dict[str, Any], ResourceMonitor]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Run a finite synthetic Resource-monitor demonstration and emit a "
@@ -450,6 +476,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

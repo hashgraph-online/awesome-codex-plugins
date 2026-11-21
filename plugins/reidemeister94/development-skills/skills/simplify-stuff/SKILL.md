@@ -1,6 +1,6 @@
 ---
 name: simplify-stuff
-description: Remove unnecessary content and simplify files while preserving useful behavior and project knowledge.
+description: "Use when the user asks to remove unnecessary content or simplify files while keeping useful behavior and project knowledge."
 argument-hint: [files, directories, or plugin to simplify]
 disable-model-invocation: true
 ---

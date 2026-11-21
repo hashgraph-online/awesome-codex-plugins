@@ -1,0 +1,15 @@
+{
+  "source": "monitoring webhook (not a Telegram update): one JSON object per incoming event",
+  "base_time": 1763200000,
+  "events": [
+    {"id": "ev-1001", "target": "api", "severity": "critical", "value": 99999, "at": 1763200060},
+    {"id": "ev-1001", "target": "api", "severity": "critical", "value": 99999, "at": 1763200061},
+    {"id": "ev-1002", "target": "api", "severity": "critical", "value": 99999, "at": 1763200180},
+    {"id": "ev-1003", "target": "btc", "severity": "warning", "value": 61000, "at": 1763200300},
+    {"id": "ev-1004", "target": "eth", "severity": "warning", "value": 2900, "at": 1763200360},
+    {"id": "ev-1005", "target": "shop", "severity": "info", "value": 900, "at": 1763200420},
+    {"id": "ev-1006", "target": "shop", "severity": "warning", "value": 950, "at": 1763201000},
+    {"id": "ev-1007", "target": "shop", "severity": "warning", "value": 940, "at": 1763249400},
+    {"id": "ev-1008", "target": "shop", "severity": "critical", "value": 2000, "at": 1763250300}
+  ]
+}

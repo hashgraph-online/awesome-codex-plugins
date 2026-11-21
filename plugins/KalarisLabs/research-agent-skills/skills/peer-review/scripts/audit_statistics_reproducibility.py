@@ -81,6 +81,7 @@ SPECIALIST_TRIGGER_IDS = {
 
 
 def load_checklist(payload: Any) -> dict[str, Any]:
+    """Load checklist."""
     root = require_object(payload, "checklist")
     require_exact_keys(
         root,
@@ -184,6 +185,7 @@ def load_checklist(payload: Any) -> dict[str, Any]:
 
 
 def audit(checklist: dict[str, Any]) -> dict[str, Any]:
+    """Handle audit."""
     errors: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     items_by_id = {item["id"]: item for item in checklist["items"]}
@@ -239,17 +241,18 @@ def audit(checklist: dict[str, Any]) -> dict[str, Any]:
             issue("SPECIALIST_REVIEW_DECLARATION_RECHECK", "specialist_review.needed")
         )
 
+    if errors:
+        status = "INVALID_CHECKLIST"
+    elif gaps_by_category:
+        status = "VALID_WITH_REVIEW_GAPS"
+    else:
+        status = "VALID_NO_RECORDED_GAPS"
+
     return {
         "schema_version": "2.0",
         "checklist_id": checklist["checklist_id"],
         "valid": not errors,
-        "status": (
-            "INVALID_CHECKLIST"
-            if errors
-            else "VALID_WITH_REVIEW_GAPS"
-            if gaps_by_category
-            else "VALID_NO_RECORDED_GAPS"
-        ),
+        "status": status,
         "errors": errors,
         "warnings": warnings,
         "study_design": checklist["study_design"],
@@ -277,6 +280,7 @@ def audit(checklist: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit a local statistics/reproducibility checklist and emit only "
@@ -292,6 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = audit(load_checklist(read_json(args.checklist)))

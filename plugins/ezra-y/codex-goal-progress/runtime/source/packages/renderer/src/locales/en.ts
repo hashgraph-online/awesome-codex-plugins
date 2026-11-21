@@ -1,4 +1,4 @@
-import type { GoalProgressMessages } from "../locale.js";
+import type { GoalProgressMessages } from "../locale-core.js";
 
 export const enMessages: GoalProgressMessages = {
   phasePaused: "Paused",

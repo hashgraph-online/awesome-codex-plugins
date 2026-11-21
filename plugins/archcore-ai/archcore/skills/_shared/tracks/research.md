@@ -75,8 +75,9 @@ Create each artifact with composed `content`; do not create an empty template
 and fill it in a second call. A ready report supplies frame inputs without a
 frame interview. An explicit material supplies the frame for standalone
 `evidence`; record that fact under Clarifications in the evidence draft.
-This entry needs no parent investigation. A global match is read-only
-context, never a write target or relation endpoint.
+This entry needs no parent investigation. A global match is context: the
+evidence is written to the local project, and a relation never joins a local
+and a global document.
 
 ## Evidence writes
 

@@ -1,0 +1,76 @@
+<!-- Receipt (private chat, production). Source: build with scripts/build_widget.py.
+  chat_data: {"m":"merchant","no":"INV-20481","at":unix,"it":[[name,qty,line total in minor units]],"cur":"EUR",
+              "tl":"tax label e.g. VAT 20%","tx":tax in minor units (included in the total),"to":total in minor units,
+              "ps":0 paid|1 refunded|2 pending,"rq":1 when a refund was requested,"r":N}
+  Requests: "refund" (only while paid). Copy number and Download PDF are local taps (copyText, openLink): no request. -->
+<style>
+/*@kit tokens.css*/
+.pl { font-size: .8em; font-weight: 600; padding: 1px 8px; border: 2px solid currentColor; border-radius: 6px; white-space: nowrap }
+.s0 { color: var(--k-ok) } .s1 { color: var(--k-hint) } .s2 { color: var(--k-warn) }
+.nr { margin: 6px 0 }
+.nr .ch { padding: 4px 10px }
+.tb { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; padding: 8px 0; margin: 6px 0; border-top: 1px solid var(--k-sep); border-bottom: 1px solid var(--k-sep) }
+.tb > :nth-child(3n+2) { color: var(--k-hint) } .tb > :nth-child(3n) { text-align: end }
+.tx { display: flex; justify-content: space-between }
+.to { font-weight: 600; font-size: 1.13em; margin-top: 2px }
+.ac { margin-top: 8px } .ac button { width: 100%; min-height: 36px }
+.ac .ch { margin-top: 6px; border-radius: var(--k-r) }
+</style>
+<div class="k">
+  <div class="hd"><span class="tt el" id="ti"></span><span class="pl" id="pl"></span></div>
+  <div class="rw nr"><button class="ch" id="no"></button><span class="mt gr el" id="dt"></span></div>
+  <div class="tb" id="tb"></div>
+  <div class="tx mt" id="tx"></div>
+  <div class="tx to" id="to"></div>
+  <div class="ac" id="ac"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { p0: "PAID", p1: "REFUNDED", p2: "PENDING", tot: "Total", copy: "Copied", pdf: "Download PDF", ref: "Refund request",
+        rq: "Refund requested", none: "No receipt yet. The bot will fill this in." } });/*@end*/
+/*@lang ru*/K.add({ ru: { p0: "ОПЛАЧЕНО", p1: "ВОЗВРАТ", p2: "ОЖИДАЕТ", tot: "Итого", copy: "Скопировано", pdf: "Скачать PDF", ref: "Запросить возврат",
+        rq: "Возврат запрошен", none: "Чека пока нет. Бот его пришлёт." } });/*@end*/
+/*@lang uk*/K.add({ uk: { p0: "СПЛАЧЕНО", p1: "ПОВЕРНЕННЯ", p2: "ОЧІКУЄ", tot: "Разом", copy: "Скопійовано", pdf: "Завантажити PDF", ref: "Запит на повернення",
+        rq: "Повернення запрошено", none: "Чека поки немає. Бот його надішле." } });/*@end*/
+function draw() {
+  var s = K.S.chatData, $ = K.$, dis = K.busy || !K.can();
+  ["tb", "ac", "tx", "to"].forEach(function (x) { $(x).innerHTML = ""; });
+  $("no").hidden = 1;
+  if (!s) { $("ti").textContent = K.t("none"); $("pl").textContent = $("dt").textContent = ""; return; }
+  var m = function (v) { return K.money(v, s.cur); }, no = $("no"), p = s.ps | 0;
+  $("ti").textContent = s.m;
+  $("pl").textContent = K.t("p" + p);
+  $("pl").className = "pl s" + p;
+  no.hidden = 0; no.textContent = s.no;
+  no.onclick = function () {
+    if (K.can() && W.copyText) { W.copyText(s.no); K.st(K.t("copy"), "ok"); }
+  };
+  $("dt").textContent = K.time(s.at, { dateStyle: "medium", timeStyle: "short" });
+  s.it.forEach(function (x) {
+    $("tb").appendChild(K.h("span", "el", x[0]));
+    $("tb").appendChild(K.h("span", "", "×" + x[1]));
+    $("tb").appendChild(K.h("span", "", m(x[2])));
+  });
+  $("tx").appendChild(K.h("span", "", s.tl)); $("tx").appendChild(K.h("span", "", m(s.tx)));
+  $("to").appendChild(K.h("span", "", K.t("tot"))); $("to").appendChild(K.h("span", "", m(s.to)));
+  var ac = $("ac"), pdf = K.h("button", "", K.t("pdf"));
+  pdf.disabled = !K.can();
+  pdf.onclick = function () {
+    try { if (W && W.openLink) W.openLink("https://example.com/r/" + s.no.replace(/\D/g, "")); } catch (e) {}
+  };
+  ac.appendChild(pdf);
+  if (p == 0) {
+    if (s.rq) ac.appendChild(K.h("div", "mt", K.t("rq")));
+    else {
+      var rf = K.h("button", "ch", K.t("ref"));
+      rf.style.width = "100%";
+      rf.disabled = dis;
+      rf.onclick = function () { K.ask("refund"); };
+      ac.appendChild(rf);
+    }
+  }
+}
+K.start(draw);
+</script>

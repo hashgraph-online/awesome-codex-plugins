@@ -49,7 +49,7 @@ def build_inputs(
         Explicit run_id. **In production every analyzer call site passes
         this explicitly from `capability_mode_ref["run_id"]`** so the
         envelope's `inputs.run_id` is byte-identical to the canonical
-        capability_mode record (audit A1/A2, locked harness-side by
+        capability_mode record (locked harness-side by
         `validate/validate_run_id.py`). The auto-gen fallback below
         only triggers for test fixtures and synthetic harness cases
         that intentionally bypass capability_mode (see

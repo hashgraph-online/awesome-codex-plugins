@@ -30,7 +30,10 @@ from setup_config import (
     ENV_USER_ID,
     ConfigError,
     normalize_eln_api_url,
+    run_cli,
 )
+
+_ACCESS_KEY_ID_LABEL = "Access Key ID"
 
 
 _ELN_COMPONENT = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -48,6 +51,7 @@ _OFFICIAL_VECTOR = {
 
 
 def _require_text(value: str, label: str) -> str:
+    """Handle require text."""
     normalized = value.strip()
     if not normalized:
         raise ConfigError(f"{label} must not be empty")
@@ -55,12 +59,14 @@ def _require_text(value: str, label: str) -> str:
 
 
 def _require_secret(value: str, label: str) -> str:
+    """Handle require secret."""
     if not value:
         raise ConfigError(f"{label} must not be empty")
     return value
 
 
 def _expires_ms(value: int | None = None) -> int:
+    """Handle expires ms."""
     selected = time.time_ns() // 1_000_000 if value is None else value
     if selected < 0:
         raise ConfigError("expires must be a non-negative epoch-millisecond value")
@@ -78,7 +84,7 @@ def create_signature(
     No separators are inserted. The result is not URI-encoded.
     """
 
-    key_id = _require_text(access_key_id, "Access Key ID")
+    key_id = _require_text(access_key_id, _ACCESS_KEY_ID_LABEL)
     method_input = _require_text(api_method_input, "API method input")
     secret = _require_secret(access_password, "Access Password")
     expires = _expires_ms(expires_ms)
@@ -109,7 +115,7 @@ def build_eln_auth_params(
     expires = _expires_ms(expires_ms)
     signature = create_signature(access_key_id, method, expires, access_password)
     return {
-        "akid": _require_text(access_key_id, "Access Key ID"),
+        "akid": _require_text(access_key_id, _ACCESS_KEY_ID_LABEL),
         "expires": str(expires),
         "sig": signature,
     }
@@ -134,7 +140,7 @@ def build_inventory_headers(
     signature = create_signature(access_key_id, path, expires, access_password)
     return {
         "X-LabArchives-UId": _require_text(user_id, "Inventory user ID"),
-        "X-LabArchives-AKId": _require_text(access_key_id, "Access Key ID"),
+        "X-LabArchives-AKId": _require_text(access_key_id, _ACCESS_KEY_ID_LABEL),
         "X-LabArchives-LabId": _require_text(lab_id, "Inventory Lab ID"),
         "X-LabArchives-Signature": signature,
         "X-LabArchives-Expires": str(expires),
@@ -178,10 +184,12 @@ def validate_inventory_path(value: str) -> str:
 
 
 def _secret_fingerprint(value: str) -> str:
+    """Handle secret fingerprint."""
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
 
 
 def _dump(payload: Mapping[str, Any], *, compact: bool, stream: Any) -> None:
+    """Handle dump."""
     if compact:
         json.dump(payload, stream, sort_keys=True, separators=(",", ":"))
     else:
@@ -192,6 +200,7 @@ def _dump(payload: Mapping[str, Any], *, compact: bool, stream: Any) -> None:
 def _load_credentials(
     args: argparse.Namespace, env: Mapping[str, str]
 ) -> tuple[str, str]:
+    """Load credentials."""
     access_key_id = env.get(ENV_ACCESS_KEY_ID, "").strip()
     if not access_key_id:
         raise ConfigError(
@@ -209,6 +218,7 @@ def _load_credentials(
 
 
 def command_self_test(args: argparse.Namespace) -> int:
+    """Handle command self test."""
     actual = create_signature(
         _OFFICIAL_VECTOR["access_key_id"],
         _OFFICIAL_VECTOR["api_method_input"],
@@ -230,6 +240,7 @@ def command_self_test(args: argparse.Namespace) -> int:
 def command_eln_plan(
     args: argparse.Namespace, env: Mapping[str, str] | None = None
 ) -> int:
+    """Handle command eln plan."""
     selected_env = os.environ if env is None else env
     access_key_id, access_password = _load_credentials(args, selected_env)
     api_class = validate_eln_component(args.api_class, "ELN API class")
@@ -264,6 +275,7 @@ def command_eln_plan(
 def command_inventory_plan(
     args: argparse.Namespace, env: Mapping[str, str] | None = None
 ) -> int:
+    """Handle command inventory plan."""
     selected_env = os.environ if env is None else env
     access_key_id, access_password = _load_credentials(args, selected_env)
     user_id = selected_env.get(ENV_USER_ID, "")
@@ -299,6 +311,7 @@ def command_inventory_plan(
 
 
 def _add_plan_options(parser: argparse.ArgumentParser) -> None:
+    """Add plan options."""
     parser.add_argument(
         "--expires-ms",
         type=int,
@@ -316,6 +329,7 @@ def _add_plan_options(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate redacted, offline LabArchives signing plans. "
@@ -357,24 +371,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-    try:
-        return int(args.handler(args))
-    except ConfigError as exc:
-        _dump(
-            {
-                "valid": False,
-                "error": str(exc),
-                "remote_request_performed": False,
-            },
-            compact=getattr(args, "compact", False),
-            stream=sys.stderr,
-        )
-        return 2
-    except KeyboardInterrupt:
-        print('{"valid":false,"error":"cancelled"}', file=sys.stderr)
-        return 130
+    """Run the command-line interface."""
+    return run_cli(build_parser(), argv)
 
 
 if __name__ == "__main__":

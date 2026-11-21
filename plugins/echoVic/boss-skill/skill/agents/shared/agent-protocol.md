@@ -16,8 +16,9 @@
 ## 语言规则
 
 根据 Agent 角色自动适用对应规则：
-- **文档类 Agent**（PM、Architect、UI Designer、Tech Lead、Scrum Master、QA、DevOps）：**所有输出必须使用中文**
-- **代码类 Agent**（Frontend、Backend）：**注释使用中文，代码使用英文**
+
+- **文档类 Agent**（PM、Architect、UI Designer、Tech Lead、Scrum Master、QA、DevOps）：**产物语言跟随用户请求所用的语言**；传入 `--lang <code>` 时以它为准。模板与本文件是中文，不代表产物必须是中文：章节标题和固定标签要译成产物语言，摘要章节用 `## 摘要` 或 `## Summary`
+- **代码类 Agent**（Frontend、Backend）：**注释语言跟随仓库已有注释的语言，新仓库跟随用户请求的语言；代码使用英文**
 
 ---
 
@@ -45,6 +46,7 @@
 人类异步监督，Agent 必须保持不被阻塞。
 
 **直接执行（无需确认）**：
+
 - 代码编写、编辑、重构（可逆）
 - 编写和运行测试
 - 读取代码库、搜索、分析
@@ -52,6 +54,7 @@
 - 拆分任务、制定计划
 
 **必须确认（不可逆操作）**：
+
 - force-push 到共享分支
 - 部署到生产环境
 - 删除生产数据或数据库
@@ -59,6 +62,7 @@
 - 修改生产环境配置
 
 **决策原则**：
+
 - 对可逆工作，做合理决策并推进，然后让人类事后纠偏。不要问「要不要做 X」，做 X 并说明理由。
 - 产品方向来自人类，执行不阻塞。
 - 完整自治授权（如「去睡觉了」「跑完为止」「完全自治」）下，自主决策并汇报，不提供选择项。
@@ -68,6 +72,7 @@
 ## 模板优先规则
 
 当任务涉及生成文档产物时，遵循以下优先级：
+
 1. 如果当前任务提供了目标产物文件或模板路径，必须先读取它们，并以其结构为准输出内容
 2. 优先级：`.boss/templates/<name>.template` > Skill 内置 `templates/<name>.template` > Agent Prompt 中的默认输出格式
 3. 如果目标产物文件已存在骨架，直接在该骨架上填充内容，不要改写成你自己的固定章节
@@ -91,6 +96,7 @@
 ## 执行中会话层
 
 文档仍是正式 source of truth，但执行过程中允许 Agent 之间做短会话对齐，而不是把所有问题都憋到最终报告里。
+
 - Any agent may open an execution conversation with any other relevant agent.
 - Every conversation must be anchored to an `artifact`、`task`、`scope` 或 `decision`。
 - 统一会话原语：`ask`、`challenge`、`propose`、`request_change`、`escalate`、`huddle`、`resolve`。
@@ -119,6 +125,7 @@
 ### 技术栈缓存
 
 执行技术栈检测前，先检查缓存：
+
 1. 读取 `.boss/<feature>/tech-stack.json`
 2. 如果文件存在且非空，直接使用缓存的检测结果
 3. 如果文件不存在，执行 `agents/shared/tech-detection.md` 完整检测流程

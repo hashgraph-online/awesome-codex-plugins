@@ -127,18 +127,43 @@ Power nets typically have names like `GND`, `+3V3`, `+5V`, `VBUS`.
 
 ## Footprint Extraction
 
-After extracting footprint blocks with depth-tracking (see above), extract pads from each block:
+After extracting footprint blocks with depth-tracking (see above), split each block into its `(pad ...)` sub-blocks the same way and read every field from that pad's own text. A single regex over the whole footprint block is not safe: a pad with no `(net ...)` would take the next pad's net.
 
 ```python
+def pad_blocks(block):
+    """Yield each top-level (pad ...) sub-block of a footprint block."""
+    start = None
+    depth = 0
+    in_str = False
+    for i, ch in enumerate(block):
+        if ch == '"':
+            in_str = not in_str
+        elif in_str:
+            continue
+        elif ch == '(':
+            if start is None and block.startswith('(pad', i):
+                start, depth = i, 0
+            depth += 1 if start is not None else 0
+        elif ch == ')' and start is not None:
+            depth -= 1
+            if depth == 0:
+                yield block[start:i + 1]
+                start = None
+
+pads = []
 for ref, fp in footprints.items():
-    # KiCad ≤9: (net 5 "+3V3"), KiCad 10: (net "+3V3")
-    pads = re.findall(
-        r'\(pad\s+"([^"]+)"\s+(\w+)\s+\w+\s+'
-        r'\(at\s+([\d.-]+)\s+([\d.-]+).*?\)'
-        r'\s+\(size\s+([\d.-]+)\s+([\d.-]+)\).*?'
-        r'\(net\s+(?:(\d+)\s+)?"([^"]*)"',
-        fp['block'], re.DOTALL)
-    # pads: list of (pad_num, type, rel_x, rel_y, size_w, size_h, net_id_or_empty, net_name)
+    for pb in pad_blocks(fp['block']):
+        m_pad = re.match(r'\(pad\s+"([^"]+)"\s+(\w+)', pb)
+        m_at = re.search(r'\(at\s+([\d.-]+)\s+([\d.-]+)', pb)
+        m_size = re.search(r'\(size\s+([\d.-]+)\s+([\d.-]+)\)', pb)
+        # KiCad <=9: (net 5 "+3V3"), KiCad 10: (net "+3V3"); no (net ...) = unconnected
+        m_net = re.search(r'\(net\s+(?:\d+\s+)?"([^"]*)"', pb)
+        if m_pad and m_at and m_size:
+            pads.append((ref, m_pad.group(1), m_pad.group(2),
+                         float(m_at.group(1)), float(m_at.group(2)),
+                         float(m_size.group(1)), float(m_size.group(2)),
+                         m_net.group(1) if m_net else ""))
+    # pads: (ref, pad_num, type, rel_x, rel_y, size_w, size_h, net_name)
 ```
 
 ### Absolute Pad Positions
@@ -206,13 +231,14 @@ def arc_length(sx, sy, mx, my, ex, ey):
     ux = (by * (ax*ax + ay*ay) - ay * (bx*bx + by*by)) / D + mx
     uy = (ax * (bx*bx + by*by) - bx * (ax*ax + ay*ay)) / D + my
     radius = math.hypot(sx - ux, sy - uy)
-    # Angle subtended
+    # Angle swept from start through mid to end
     a1 = math.atan2(sy - uy, sx - ux)
     a2 = math.atan2(ey - uy, ex - ux)
-    angle = abs(a2 - a1)
-    if angle > math.pi:
-        angle = 2 * math.pi - angle
-    return radius * angle
+    am = math.atan2(my - uy, mx - ux)
+    sweep = (a2 - a1) % (2 * math.pi)          # counter-clockwise, start -> end
+    if (am - a1) % (2 * math.pi) > sweep:      # the mid point is on the other way round
+        sweep = 2 * math.pi - sweep
+    return radius * sweep
 ```
 
 ### Vias
@@ -278,6 +304,8 @@ for line in lines:
         if m: zone_info['net'] = int(m.group(1))
         m = re.search(r'\(net_name\s+"([^"]*)"', line)
         if m: zone_info['net_name'] = m.group(1)
+        m = re.search(r'\(net\s+"([^"]*)"\)', line)  # KiCad 10: (net "GND")
+        if m: zone_info['net_name'] = m.group(1)
         m = re.search(r'\(layer\s+"([^"]+)"', line)
         if m: zone_info['layer'] = m.group(1)
         m = re.search(r'\(priority\s+(\d+)\)', line)
@@ -291,73 +319,37 @@ for line in lines:
 
 ### Zone Fill Polygon Extraction
 
-Only extract filled polygon data when you actually need zone containment tests:
+Extract filled polygons only when containment tests need them. Select zones by net name and fills by layer; an empty result is not proof that copper is absent. `<skill-path>` is the installed kicad skill directory (as in SKILL.md). This reads fills through the shared parser, so if the parser itself rejects the file, use the line-based zone header above and read the fills by hand. In a KiCad 5 board (zones without `(filled_areas_thickness no)`), KiCad grows each stored fill by half the zone's `min_thickness`, so these polygons are slightly smaller than the copper.
 
 ```python
-def extract_zone_polygon(lines, zone_net, zone_layer):
-    """Extract filled_polygon vertices for a specific zone."""
-    in_target_zone = False
-    in_filled_poly = False
-    points = []
-    depth = 0
+import sys
+sys.path.insert(0, '<skill-path>/scripts')
+from kicad_core.sexp import parse_file, find_all, get_value
 
-    for line in lines:
-        if '(zone' in line:
-            in_target_zone = False
-            # Check if this is our target zone
-        if in_target_zone and '(filled_polygon' in line:
-            if f'(layer "{zone_layer}")' in line:
-                in_filled_poly = True
-                depth = line.count('(') - line.count(')')
+def extract_zone_polygons(pcb_file, zone_net, zone_layer):
+    """Return the filled polygons of zones on net name zone_net, one list of (x, y) per fill on zone_layer."""
+    polygons = []
+    for zone in find_all(parse_file(pcb_file), 'zone'):
+        name = get_value(zone, 'net_name') or get_value(zone, 'net')
+        if str(name) != str(zone_net):
+            continue
+        for fill in find_all(zone, 'filled_polygon'):
+            # KiCad 5 fills carry no (layer): they belong to the zone's own layer
+            if (get_value(fill, 'layer') or get_value(zone, 'layer')) != zone_layer:
                 continue
-        if in_filled_poly:
-            for m in re.finditer(r'\(xy\s+([\d.-]+)\s+([\d.-]+)\)', line):
-                points.append((float(m.group(1)), float(m.group(2))))
-            depth += line.count('(') - line.count(')')
-            if depth <= 0:
-                return points
-    return points
+            for pts in find_all(fill, 'pts'):
+                polygons.append([
+                    (float(xy[1]), float(xy[2]))
+                    for xy in find_all(pts, 'xy')
+                ])
+    return polygons
 ```
 
 ---
 
 ## Board Outline
 
-Extract graphical primitives on the `Edge.Cuts` layer:
-
-```python
-outline_segments = []
-for line in lines:
-    if 'Edge.Cuts' in line:
-        # Check parent block for gr_line, gr_arc, gr_rect, gr_circle
-        pass
-
-# Simpler: use buffer accumulation for gr_line blocks
-buf = None
-for line in lines:
-    if '(gr_line' in line or '(gr_arc' in line or '(gr_rect' in line:
-        buf = line
-    elif buf:
-        buf += line
-        if line.strip().endswith(')'):
-            if 'Edge.Cuts' in buf:
-                if '(gr_line' in buf:
-                    m = re.search(r'\(start\s+([\d.-]+)\s+([\d.-]+)\).*?\(end\s+([\d.-]+)\s+([\d.-]+)\)', buf, re.DOTALL)
-                    if m:
-                        outline_segments.append({
-                            'type': 'line',
-                            'start': (float(m.group(1)), float(m.group(2))),
-                            'end': (float(m.group(3)), float(m.group(4)))
-                        })
-            buf = None
-
-# Bounding box from all outline segments
-if outline_segments:
-    all_x = [s['start'][0] for s in outline_segments] + [s['end'][0] for s in outline_segments]
-    all_y = [s['start'][1] for s in outline_segments] + [s['end'][1] for s in outline_segments]
-    width = max(all_x) - min(all_x)
-    height = max(all_y) - min(all_y)
-```
+When the shared parser is available, use `pcb.reader.extract_board_outline(parse_file(pcb_file))` for Edge.Cuts geometry and bounds (it returns `edge_count`, `edges`, `bounding_box`, `width_mm`, `height_mm`). For an independent fallback, accumulate complete expressions with quote-aware parenthesis tracking before interpreting them, and include arc extrema in the bounds; endpoints alone are not enough.
 
 ---
 
@@ -401,7 +393,7 @@ KiCad 5 PCB files use `(module ...)` instead of `(footprint ...)`, and `(fp_text
 | `(property "Reference" "U1" ...)` | `(fp_text reference "U1" ...)` |
 | `(property "Value" "STM32" ...)` | `(fp_text value "STM32" ...)` |
 | `(uuid "...")` | `(tstamp HEXID)` |
-| Layer numbers: F.Cu=0, B.Cu=2 | Layer numbers: F.Cu=0, B.Cu=31 |
+| Layer numbers: F.Cu=0, B.Cu=2 (KiCad 9-10; KiCad 6-8 use B.Cu=31) | Layer numbers: F.Cu=0, B.Cu=31 |
 
 ### Net Classes (KiCad 5 only)
 

@@ -1,3 +1,5 @@
+# [🚀观看我的哔哩哔哩视频](https://space.bilibili.com/3493277319825652)
+
 # Chrome DevTools Codex Plugin
 
 This repository wraps the upstream [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) package as a Codex plugin that is ready for one-click installation in the Codex app.

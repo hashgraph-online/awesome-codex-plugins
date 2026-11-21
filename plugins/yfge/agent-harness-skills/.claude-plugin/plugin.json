@@ -1,0 +1,19 @@
+{
+  "name": "agent-harness-skills",
+  "description": "Reusable skills for building agent-ready repository harnesses.",
+  "version": "0.2.1",
+  "author": {
+    "name": "Agent Harness Skills contributors"
+  },
+  "homepage": "https://github.com/yfge/agent-harness-skills",
+  "repository": "https://github.com/yfge/agent-harness-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "agent-harness",
+    "repository",
+    "validation",
+    "runtime-evidence",
+    "delivery"
+  ]
+}

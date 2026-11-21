@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -82,6 +83,7 @@ _TEXT_ROLES = {
 
 
 def _identifier(value: Any, *, context: str) -> str:
+    """Handle identifier."""
     text = require_string(value, context=context, maximum=64)
     if not _ID.fullmatch(text):
         raise CliError(
@@ -91,7 +93,15 @@ def _identifier(value: Any, *, context: str) -> str:
     return text
 
 
+def _orientation_for(width: float, height: float) -> str:
+    """Name the orientation of a width by height box, treating near-equal sides as square."""
+    if abs(width - height) <= 1e-6:
+        return "square"
+    return "landscape" if width > height else "portrait"
+
+
 def _nullable_source_id(value: Any, *, context: str) -> str | None:
+    """Handle nullable source id."""
     if value is None:
         return None
     return _identifier(value, context=context)
@@ -104,6 +114,7 @@ def _string_list(
     minimum: int,
     maximum: int,
 ) -> list[str]:
+    """Handle string list."""
     if not isinstance(value, list):
         raise CliError(f"{context} must be an array")
     if not minimum <= len(value) <= maximum:
@@ -120,6 +131,7 @@ def _string_list(
 
 
 def _source_id_list(value: Any, *, context: str) -> list[str]:
+    """Handle source id list."""
     raw = _string_list(value, context=context, minimum=1, maximum=16)
     return [
         _identifier(item, context=f"{context}[{index}]")
@@ -135,6 +147,7 @@ def manifest_content_hash(document: dict[str, Any]) -> str:
 
 
 def _validate_document(value: Any) -> dict[str, Any]:
+    """Validate document."""
     document = reject_unknown_keys(
         value,
         context="document",
@@ -160,6 +173,7 @@ def _validate_document(value: Any) -> dict[str, Any]:
 
 
 def _validate_canvas(value: Any) -> tuple[dict[str, Any], float, float]:
+    """Validate canvas."""
     canvas = reject_unknown_keys(
         value,
         context="canvas",
@@ -185,6 +199,7 @@ def _validate_canvas(value: Any) -> tuple[dict[str, Any], float, float]:
 def _validate_physical_output(
     value: Any,
 ) -> tuple[dict[str, Any], float, float, float, float, float, float]:
+    """Validate physical output."""
     physical = reject_unknown_keys(
         value,
         context="physical_output",
@@ -234,11 +249,7 @@ def _validate_physical_output(
         context="physical_output.orientation",
         maximum=16,
     )
-    expected = (
-        "square"
-        if abs(trim_width - trim_height) <= 1e-6
-        else ("landscape" if trim_width > trim_height else "portrait")
-    )
+    expected = _orientation_for(trim_width, trim_height)
     if orientation != expected:
         raise CliError(
             "physical_output.orientation does not match the trim dimensions "
@@ -258,6 +269,7 @@ def _validate_physical_output(
 
 
 def _validate_sources(value: Any) -> dict[str, dict[str, Any]]:
+    """Validate sources."""
     if not isinstance(value, list) or not 1 <= len(value) <= MAX_SOURCES:
         raise CliError(f"sources must contain between 1 and {MAX_SOURCES} objects")
     result: dict[str, dict[str, Any]] = {}
@@ -298,6 +310,7 @@ def _validate_requirements(
     safe_margin: float,
     print_scale: float,
 ) -> tuple[dict[str, Any], set[str]]:
+    """Validate requirements."""
     requirements = reject_unknown_keys(
         value,
         context="requirements",
@@ -355,11 +368,7 @@ def _validate_requirements(
             "requirements.conference.orientation must be portrait, landscape, "
             "square, or either"
         )
-    physical_orientation = (
-        "square"
-        if abs(trim_width - trim_height) <= 1e-6
-        else ("landscape" if trim_width > trim_height else "portrait")
-    )
+    physical_orientation = _orientation_for(trim_width, trim_height)
     if (
         conference_orientation != "either"
         and conference_orientation != physical_orientation
@@ -476,6 +485,7 @@ def _validate_requirements(
 
 
 def _validate_quality(value: Any) -> tuple[dict[str, Any], set[str]]:
+    """Validate quality."""
     quality = reject_unknown_keys(
         value,
         context="quality",
@@ -542,6 +552,7 @@ def _validate_palette(
     *,
     enforce_thresholds: bool = True,
 ) -> tuple[dict[str, Any], dict[str, str], dict[str, dict[str, Any]]]:
+    """Validate palette."""
     palette = reject_unknown_keys(
         value,
         context="palette",
@@ -615,6 +626,7 @@ def _validate_palette(
 
 
 def _validate_asset_path_syntax(value: Any, *, context: str) -> str:
+    """Validate asset path syntax."""
     path = require_string(value, context=context, maximum=512)
     if not _RELATIVE_PATH.fullmatch(path) or path.startswith(("/", "\\")):
         raise CliError(f"{context} must be a relative local path")
@@ -633,6 +645,7 @@ def _validate_assets(
     manifest_path: Path,
     verify_assets: bool,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Path], set[str]]:
+    """Validate assets."""
     if not isinstance(value, list) or len(value) > MAX_ASSETS:
         raise CliError(f"assets must be an array with at most {MAX_ASSETS} objects")
     assets: dict[str, dict[str, Any]] = {}
@@ -747,6 +760,7 @@ def _validate_box(
     canvas_width: float,
     canvas_height: float,
 ) -> tuple[float, float, float, float]:
+    """Validate box."""
     x = finite_number(item["x_in"], context=f"{context}.x_in", minimum=0.0)
     y = finite_number(item["y_in"], context=f"{context}.y_in", minimum=0.0)
     width = finite_number(
@@ -758,6 +772,382 @@ def _validate_box(
     if x + width > canvas_width + 1e-6 or y + height > canvas_height + 1e-6:
         raise CliError(f"{context} extends beyond the PowerPoint canvas")
     return x, y, width, height
+
+
+_ELEMENT_COMMON_KEYS = {
+    "id",
+    "type",
+    "reading_order",
+    "x_in",
+    "y_in",
+    "width_in",
+    "height_in",
+    "source_ids",
+    "author_approved",
+    "allow_in_bleed",
+}
+_TEXT_ELEMENT_KEYS = _ELEMENT_COMMON_KEYS | {
+    "role",
+    "text",
+    "font_size_pt_design",
+    "font_face",
+    "bold",
+    "align",
+    "vertical_align",
+    "contrast_pair_id",
+    "line_color_id",
+    "line_width_pt",
+    "margin_in",
+}
+_IMAGE_ELEMENT_KEYS = _ELEMENT_COMMON_KEYS | {
+    "asset_id",
+    "fit",
+    "fallback_text_element_id",
+    "long_description_element_id",
+}
+
+
+@dataclass(frozen=True)
+class _ElementRules:
+    """Document-level constraints every poster element is validated against."""
+
+    title: str
+    canvas_width: float
+    canvas_height: float
+    print_scale: float
+    safe_inset_design: float
+    quality: dict[str, Any]
+    colors: dict[str, str]
+    contrast_pairs: dict[str, dict[str, Any]]
+    assets: dict[str, dict[str, Any]]
+
+
+def _read_element(item: Any, *, context: str) -> dict[str, Any]:
+    """Check the element is an object of a known type and has exactly its type's keys."""
+    if not isinstance(item, dict):
+        raise CliError(f"{context} must be an object")
+    element_type = require_string(
+        item.get("type"), context=f"{context}.type", maximum=16
+    )
+    allowed = _TEXT_ELEMENT_KEYS if element_type == "text" else _IMAGE_ELEMENT_KEYS
+    if element_type not in {"text", "image"}:
+        raise CliError(f"{context}.type must be text or image")
+    return reject_unknown_keys(
+        item,
+        context=context,
+        allowed=allowed,
+        required=allowed,
+    )
+
+
+def _validate_approval_and_bleed(
+    element: dict[str, Any],
+    *,
+    context: str,
+    box: tuple[float, float, float, float],
+    rules: _ElementRules,
+) -> bool:
+    """Require author approval and keep non-bleed elements inside the final safe margin."""
+    x, y, width, height = box
+    if not require_bool(
+        element["author_approved"], context=f"{context}.author_approved"
+    ):
+        raise CliError(f"{context}.author_approved must be true")
+    allow_in_bleed = require_bool(
+        element["allow_in_bleed"], context=f"{context}.allow_in_bleed"
+    )
+    inset = rules.safe_inset_design
+    if not allow_in_bleed and (
+        x < inset - 1e-6
+        or y < inset - 1e-6
+        or x + width > rules.canvas_width - inset + 1e-6
+        or y + height > rules.canvas_height - inset + 1e-6
+    ):
+        raise CliError(
+            f"{context} crosses the confirmed final safe margin; "
+            "only intentional bleed imagery may set allow_in_bleed=true"
+        )
+    return allow_in_bleed
+
+
+def _validate_text_font(
+    element: dict[str, Any], *, context: str, rules: _ElementRules
+) -> tuple[float, bool]:
+    """Validate font size, face and weight; return the final font size and bold flag."""
+    design_font = finite_number(
+        element["font_size_pt_design"],
+        context=f"{context}.font_size_pt_design",
+        minimum=1.0,
+        maximum=500.0,
+    )
+    final_font = design_font * rules.print_scale
+    minimum_font = float(rules.quality["minimum_font_pt_final"])
+    if final_font + 1e-6 < minimum_font:
+        raise CliError(
+            f"{context} final font is {final_font:.2f} pt, below the "
+            f"manifest's {minimum_font:.2f} pt minimum"
+        )
+    require_string(element["font_face"], context=f"{context}.font_face", maximum=100)
+    bold = require_bool(element["bold"], context=f"{context}.bold")
+    return final_font, bold
+
+
+def _validate_text_alignment(element: dict[str, Any], *, context: str) -> None:
+    """Validate horizontal and vertical text alignment values."""
+    align = require_string(element["align"], context=f"{context}.align", maximum=16)
+    if align not in {"left", "center", "right"}:
+        raise CliError(f"{context}.align must be left, center, or right")
+    vertical = require_string(
+        element["vertical_align"],
+        context=f"{context}.vertical_align",
+        maximum=16,
+    )
+    if vertical not in {"top", "middle", "bottom"}:
+        raise CliError(f"{context}.vertical_align must be top, middle, or bottom")
+
+
+def _validate_text_contrast(
+    element: dict[str, Any],
+    *,
+    context: str,
+    final_font: float,
+    bold: bool,
+    rules: _ElementRules,
+) -> None:
+    """Validate the referenced contrast pair is a text pair suited to the final font size."""
+    pair_id = _identifier(
+        element["contrast_pair_id"],
+        context=f"{context}.contrast_pair_id",
+    )
+    if pair_id not in rules.contrast_pairs:
+        raise CliError(f"{context} references unknown contrast pair {pair_id!r}")
+    usage = rules.contrast_pairs[pair_id]["usage"]
+    if usage == "non_text":
+        raise CliError(f"{context} must use a text contrast pair")
+    if usage == "large_text":
+        is_large = final_font >= 18.0 or (bold and final_font >= 14.0)
+        if not is_large:
+            raise CliError(
+                f"{context} uses a large_text contrast pair but is not "
+                "at least 18 pt final, or 14 pt final and bold"
+            )
+
+
+def _validate_text_outline_and_margin(
+    element: dict[str, Any],
+    *,
+    context: str,
+    width: float,
+    height: float,
+    rules: _ElementRules,
+) -> None:
+    """Validate the optional text outline colour and width and the inner margin."""
+    line_color_id = element["line_color_id"]
+    if line_color_id is not None:
+        line_id = _identifier(line_color_id, context=f"{context}.line_color_id")
+        if line_id not in rules.colors:
+            raise CliError(f"{context} references unknown line color {line_id!r}")
+    line_width = finite_number(
+        element["line_width_pt"],
+        context=f"{context}.line_width_pt",
+        minimum=0.0,
+        maximum=72.0,
+    )
+    if line_color_id is None and line_width != 0:
+        raise CliError(f"{context}.line_width_pt must be 0 when line_color_id is null")
+    margin = finite_number(
+        element["margin_in"],
+        context=f"{context}.margin_in",
+        minimum=0.0,
+        maximum=5.0,
+    )
+    if 2 * margin >= min(width, height):
+        raise CliError(f"{context}.margin_in consumes the text box")
+
+
+def _validate_text_element(
+    element: dict[str, Any],
+    *,
+    context: str,
+    box: tuple[float, float, float, float],
+    allow_in_bleed: bool,
+    rules: _ElementRules,
+) -> bool:
+    """Validate a text element and return whether it is the exact document title."""
+    if allow_in_bleed:
+        raise CliError(f"{context}: text must not be placed in the bleed area")
+    role = require_string(element["role"], context=f"{context}.role", maximum=32)
+    if role not in _TEXT_ROLES:
+        raise CliError(f"{context}.role must be one of {', '.join(sorted(_TEXT_ROLES))}")
+    text = require_string(element["text"], context=f"{context}.text", maximum=20_000)
+    is_title = role == "title" and text == rules.title
+    final_font, bold = _validate_text_font(element, context=context, rules=rules)
+    _validate_text_alignment(element, context=context)
+    _validate_text_contrast(
+        element, context=context, final_font=final_font, bold=bold, rules=rules
+    )
+    _validate_text_outline_and_margin(
+        element, context=context, width=box[2], height=box[3], rules=rules
+    )
+    return is_title
+
+
+def _validate_qr_image_fields(
+    element: dict[str, Any],
+    *,
+    context: str,
+    width: float,
+    height: float,
+) -> None:
+    """Validate the visible-fallback requirements that apply to QR-code images."""
+    _identifier(
+        element["fallback_text_element_id"],
+        context=f"{context}.fallback_text_element_id",
+    )
+    if abs(width - height) > 1e-6:
+        raise CliError(f"{context}: QR placement box must be square")
+    if element["long_description_element_id"] is not None:
+        raise CliError(
+            f"{context}.long_description_element_id must be null for "
+            "QR assets; use the required visible fallback text"
+        )
+
+
+def _validate_image_element(
+    element: dict[str, Any],
+    *,
+    context: str,
+    box: tuple[float, float, float, float],
+    source_ids: list[str],
+    rules: _ElementRules,
+) -> str:
+    """Validate an image element against the asset table and return its asset id."""
+    assets = rules.assets
+    asset_id = _identifier(element["asset_id"], context=f"{context}.asset_id")
+    if asset_id not in assets:
+        raise CliError(f"{context} references unknown asset {asset_id!r}")
+    if assets[asset_id]["source_id"] not in source_ids:
+        raise CliError(f"{context}.source_ids must include the asset's exact source_id")
+    fit = require_string(element["fit"], context=f"{context}.fit", maximum=16)
+    if fit != "contain":
+        raise CliError(f"{context}.fit must be contain")
+    long_description_id = element["long_description_element_id"]
+    if long_description_id is not None:
+        _identifier(
+            long_description_id,
+            context=f"{context}.long_description_element_id",
+        )
+    if assets[asset_id]["role"] == "qr_code":
+        _validate_qr_image_fields(element, context=context, width=box[2], height=box[3])
+    elif element["fallback_text_element_id"] is not None:
+        raise CliError(
+            f"{context}.fallback_text_element_id must be null for non-QR assets"
+        )
+    return asset_id
+
+
+def _validate_reading_order(reading_orders: list[int]) -> None:
+    """Require reading orders to be unique, contiguous from 1, and listed in order."""
+    expected_order = list(range(1, len(reading_orders) + 1))
+    if sorted(reading_orders) != expected_order:
+        raise CliError(
+            "elements.reading_order values must be unique and contiguous from 1"
+        )
+    if reading_orders != expected_order:
+        raise CliError(
+            "elements must be listed in ascending reading_order so generation "
+            "does not silently reorder approved content"
+        )
+
+
+def _validate_title_element(
+    elements: dict[str, dict[str, Any]], *, title_matches: int, document_title: str
+) -> None:
+    """Require exactly one verbatim title element, placed first in reading order."""
+    if title_matches != 1:
+        raise CliError("exactly one title element must match document.title verbatim")
+    title = next(
+        element
+        for element in elements.values()
+        if element["type"] == "text"
+        and element["role"] == "title"
+        and element["text"] == document_title
+    )
+    if title["reading_order"] != 1:
+        raise CliError(
+            "the exact title element must have reading_order 1 so it can be the "
+            "native PowerPoint slide title"
+        )
+
+
+def _validate_long_description(
+    element: dict[str, Any],
+    *,
+    element_id: str,
+    elements: dict[str, dict[str, Any]],
+) -> None:
+    """Validate an image's long-description element exists, has a valid role, and follows the image."""
+    long_description_id = element["long_description_element_id"]
+    description = elements.get(long_description_id)
+    if description is None or description["type"] != "text":
+        raise CliError(
+            f"image {element_id!r} references missing text long description "
+            f"{long_description_id!r}"
+        )
+    if description["role"] not in {"body", "caption", "other"}:
+        raise CliError(
+            f"long description {long_description_id!r} must have role "
+            "'body', 'caption', or 'other'"
+        )
+    if description["reading_order"] <= element["reading_order"]:
+        raise CliError(
+            f"long description {long_description_id!r} must follow image "
+            f"{element_id!r} in reading order"
+        )
+    if not set(element["source_ids"]).issubset(description["source_ids"]):
+        raise CliError(
+            f"long description {long_description_id!r} must include every "
+            f"source_id used by image {element_id!r}"
+        )
+
+
+def _validate_qr_fallback(
+    element: dict[str, Any],
+    *,
+    element_id: str,
+    asset: dict[str, Any],
+    elements: dict[str, dict[str, Any]],
+) -> None:
+    """Validate a QR image's visible text fallback exists and carries the exact target URL."""
+    fallback_id = element["fallback_text_element_id"]
+    fallback = elements.get(fallback_id)
+    if fallback is None or fallback["type"] != "text":
+        raise CliError(
+            f"QR image {element_id!r} references missing text fallback "
+            f"{fallback_id!r}"
+        )
+    if fallback["role"] != "qr_fallback":
+        raise CliError(f"QR fallback {fallback_id!r} must have role 'qr_fallback'")
+    if asset["qr_target"] not in fallback["text"]:
+        raise CliError(
+            f"QR fallback {fallback_id!r} must contain the exact QR target URL"
+        )
+
+
+def _validate_image_links(
+    elements: dict[str, dict[str, Any]], assets: dict[str, dict[str, Any]]
+) -> None:
+    """Validate cross-element references made by image elements."""
+    for element_id, element in elements.items():
+        if element["type"] != "image":
+            continue
+        asset = assets[element["asset_id"]]
+        if element["long_description_element_id"] is not None:
+            _validate_long_description(element, element_id=element_id, elements=elements)
+        if asset["role"] == "qr_code":
+            _validate_qr_fallback(
+                element, element_id=element_id, asset=asset, elements=elements
+            )
 
 
 def _validate_elements(
@@ -774,6 +1164,7 @@ def _validate_elements(
     contrast_pairs: dict[str, dict[str, Any]],
     assets: dict[str, dict[str, Any]],
 ) -> tuple[dict[str, dict[str, Any]], set[str], set[str]]:
+    """Validate every poster element and return them with the source and asset ids they use."""
     if not isinstance(value, list) or not 1 <= len(value) <= MAX_ELEMENTS:
         raise CliError(f"elements must contain between 1 and {MAX_ELEMENTS} objects")
     elements: dict[str, dict[str, Any]] = {}
@@ -781,66 +1172,32 @@ def _validate_elements(
     used_assets: set[str] = set()
     reading_orders: list[int] = []
     title_matches = 0
-    safe_inset_design = (bleed + safe_margin) / print_scale
-
-    common = {
-        "id",
-        "type",
-        "reading_order",
-        "x_in",
-        "y_in",
-        "width_in",
-        "height_in",
-        "source_ids",
-        "author_approved",
-        "allow_in_bleed",
-    }
-    text_keys = common | {
-        "role",
-        "text",
-        "font_size_pt_design",
-        "font_face",
-        "bold",
-        "align",
-        "vertical_align",
-        "contrast_pair_id",
-        "line_color_id",
-        "line_width_pt",
-        "margin_in",
-    }
-    image_keys = common | {
-        "asset_id",
-        "fit",
-        "fallback_text_element_id",
-        "long_description_element_id",
-    }
+    rules = _ElementRules(
+        title=document["title"],
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+        print_scale=print_scale,
+        safe_inset_design=(bleed + safe_margin) / print_scale,
+        quality=quality,
+        colors=colors,
+        contrast_pairs=contrast_pairs,
+        assets=assets,
+    )
 
     for index, item in enumerate(value):
         context = f"elements[{index}]"
-        if not isinstance(item, dict):
-            raise CliError(f"{context} must be an object")
-        element_type = require_string(
-            item.get("type"), context=f"{context}.type", maximum=16
-        )
-        allowed = text_keys if element_type == "text" else image_keys
-        if element_type not in {"text", "image"}:
-            raise CliError(f"{context}.type must be text or image")
-        element = reject_unknown_keys(
-            item,
-            context=context,
-            allowed=allowed,
-            required=allowed,
-        )
+        element = _read_element(item, context=context)
         element_id = _identifier(element["id"], context=f"{context}.id")
         if element_id in elements:
             raise CliError(f"duplicate element id: {element_id}")
-        order = positive_int(
-            element["reading_order"],
-            context=f"{context}.reading_order",
-            maximum=MAX_ELEMENTS,
+        reading_orders.append(
+            positive_int(
+                element["reading_order"],
+                context=f"{context}.reading_order",
+                maximum=MAX_ELEMENTS,
+            )
         )
-        reading_orders.append(order)
-        x, y, width, height = _validate_box(
+        box = _validate_box(
             element,
             context=context,
             canvas_width=canvas_width,
@@ -850,223 +1207,35 @@ def _validate_elements(
             element["source_ids"], context=f"{context}.source_ids"
         )
         used_sources.update(source_ids)
-        if not require_bool(
-            element["author_approved"], context=f"{context}.author_approved"
-        ):
-            raise CliError(f"{context}.author_approved must be true")
-        allow_in_bleed = require_bool(
-            element["allow_in_bleed"], context=f"{context}.allow_in_bleed"
+        allow_in_bleed = _validate_approval_and_bleed(
+            element, context=context, box=box, rules=rules
         )
-        if not allow_in_bleed:
-            if (
-                x < safe_inset_design - 1e-6
-                or y < safe_inset_design - 1e-6
-                or x + width > canvas_width - safe_inset_design + 1e-6
-                or y + height > canvas_height - safe_inset_design + 1e-6
-            ):
-                raise CliError(
-                    f"{context} crosses the confirmed final safe margin; "
-                    "only intentional bleed imagery may set allow_in_bleed=true"
-                )
-
-        if element_type == "text":
-            if allow_in_bleed:
-                raise CliError(f"{context}: text must not be placed in the bleed area")
-            role = require_string(
-                element["role"], context=f"{context}.role", maximum=32
+        if element["type"] == "text":
+            is_title = _validate_text_element(
+                element,
+                context=context,
+                box=box,
+                allow_in_bleed=allow_in_bleed,
+                rules=rules,
             )
-            if role not in _TEXT_ROLES:
-                raise CliError(
-                    f"{context}.role must be one of {', '.join(sorted(_TEXT_ROLES))}"
-                )
-            text = require_string(
-                element["text"], context=f"{context}.text", maximum=20_000
-            )
-            if role == "title" and text == document["title"]:
-                title_matches += 1
-            design_font = finite_number(
-                element["font_size_pt_design"],
-                context=f"{context}.font_size_pt_design",
-                minimum=1.0,
-                maximum=500.0,
-            )
-            final_font = design_font * print_scale
-            minimum_font = float(quality["minimum_font_pt_final"])
-            if final_font + 1e-6 < minimum_font:
-                raise CliError(
-                    f"{context} final font is {final_font:.2f} pt, below the "
-                    f"manifest's {minimum_font:.2f} pt minimum"
-                )
-            require_string(
-                element["font_face"], context=f"{context}.font_face", maximum=100
-            )
-            bold = require_bool(element["bold"], context=f"{context}.bold")
-            align = require_string(
-                element["align"], context=f"{context}.align", maximum=16
-            )
-            if align not in {"left", "center", "right"}:
-                raise CliError(f"{context}.align must be left, center, or right")
-            vertical = require_string(
-                element["vertical_align"],
-                context=f"{context}.vertical_align",
-                maximum=16,
-            )
-            if vertical not in {"top", "middle", "bottom"}:
-                raise CliError(
-                    f"{context}.vertical_align must be top, middle, or bottom"
-                )
-            pair_id = _identifier(
-                element["contrast_pair_id"],
-                context=f"{context}.contrast_pair_id",
-            )
-            if pair_id not in contrast_pairs:
-                raise CliError(f"{context} references unknown contrast pair {pair_id!r}")
-            pair = contrast_pairs[pair_id]
-            usage = pair["usage"]
-            if usage == "non_text":
-                raise CliError(f"{context} must use a text contrast pair")
-            if usage == "large_text":
-                is_large = final_font >= 18.0 or (bold and final_font >= 14.0)
-                if not is_large:
-                    raise CliError(
-                        f"{context} uses a large_text contrast pair but is not "
-                        "at least 18 pt final, or 14 pt final and bold"
-                    )
-            line_color_id = element["line_color_id"]
-            if line_color_id is not None:
-                line_id = _identifier(
-                    line_color_id, context=f"{context}.line_color_id"
-                )
-                if line_id not in colors:
-                    raise CliError(f"{context} references unknown line color {line_id!r}")
-            line_width = finite_number(
-                element["line_width_pt"],
-                context=f"{context}.line_width_pt",
-                minimum=0.0,
-                maximum=72.0,
-            )
-            if line_color_id is None and line_width != 0:
-                raise CliError(
-                    f"{context}.line_width_pt must be 0 when line_color_id is null"
-                )
-            margin = finite_number(
-                element["margin_in"],
-                context=f"{context}.margin_in",
-                minimum=0.0,
-                maximum=5.0,
-            )
-            if 2 * margin >= min(width, height):
-                raise CliError(f"{context}.margin_in consumes the text box")
+            title_matches += int(is_title)
         else:
-            asset_id = _identifier(
-                element["asset_id"], context=f"{context}.asset_id"
+            used_assets.add(
+                _validate_image_element(
+                    element,
+                    context=context,
+                    box=box,
+                    source_ids=source_ids,
+                    rules=rules,
+                )
             )
-            if asset_id not in assets:
-                raise CliError(f"{context} references unknown asset {asset_id!r}")
-            used_assets.add(asset_id)
-            if assets[asset_id]["source_id"] not in source_ids:
-                raise CliError(
-                    f"{context}.source_ids must include the asset's exact source_id"
-                )
-            fit = require_string(element["fit"], context=f"{context}.fit", maximum=16)
-            if fit != "contain":
-                raise CliError(f"{context}.fit must be contain")
-            fallback_id = element["fallback_text_element_id"]
-            long_description_id = element["long_description_element_id"]
-            if long_description_id is not None:
-                _identifier(
-                    long_description_id,
-                    context=f"{context}.long_description_element_id",
-                )
-            if assets[asset_id]["role"] == "qr_code":
-                _identifier(
-                    fallback_id,
-                    context=f"{context}.fallback_text_element_id",
-                )
-                if abs(width - height) > 1e-6:
-                    raise CliError(f"{context}: QR placement box must be square")
-                if long_description_id is not None:
-                    raise CliError(
-                        f"{context}.long_description_element_id must be null for "
-                        "QR assets; use the required visible fallback text"
-                    )
-            elif fallback_id is not None:
-                raise CliError(
-                    f"{context}.fallback_text_element_id must be null for non-QR assets"
-                )
         elements[element_id] = element
 
-    expected_order = list(range(1, len(value) + 1))
-    if sorted(reading_orders) != expected_order:
-        raise CliError(
-            "elements.reading_order values must be unique and contiguous from 1"
-        )
-    if reading_orders != expected_order:
-        raise CliError(
-            "elements must be listed in ascending reading_order so generation "
-            "does not silently reorder approved content"
-        )
-    if title_matches != 1:
-        raise CliError(
-            "exactly one title element must match document.title verbatim"
-        )
-    title = next(
-        element
-        for element in elements.values()
-        if element["type"] == "text"
-        and element["role"] == "title"
-        and element["text"] == document["title"]
+    _validate_reading_order(reading_orders)
+    _validate_title_element(
+        elements, title_matches=title_matches, document_title=document["title"]
     )
-    if title["reading_order"] != 1:
-        raise CliError(
-            "the exact title element must have reading_order 1 so it can be the "
-            "native PowerPoint slide title"
-        )
-
-    for element_id, element in elements.items():
-        if element["type"] != "image":
-            continue
-        asset = assets[element["asset_id"]]
-        long_description_id = element["long_description_element_id"]
-        if long_description_id is not None:
-            description = elements.get(long_description_id)
-            if description is None or description["type"] != "text":
-                raise CliError(
-                    f"image {element_id!r} references missing text long description "
-                    f"{long_description_id!r}"
-                )
-            if description["role"] not in {"body", "caption", "other"}:
-                raise CliError(
-                    f"long description {long_description_id!r} must have role "
-                    "'body', 'caption', or 'other'"
-                )
-            if description["reading_order"] <= element["reading_order"]:
-                raise CliError(
-                    f"long description {long_description_id!r} must follow image "
-                    f"{element_id!r} in reading order"
-                )
-            if not set(element["source_ids"]).issubset(description["source_ids"]):
-                raise CliError(
-                    f"long description {long_description_id!r} must include every "
-                    f"source_id used by image {element_id!r}"
-                )
-        if asset["role"] != "qr_code":
-            continue
-        fallback_id = element["fallback_text_element_id"]
-        fallback = elements.get(fallback_id)
-        if fallback is None or fallback["type"] != "text":
-            raise CliError(
-                f"QR image {element_id!r} references missing text fallback "
-                f"{fallback_id!r}"
-            )
-        if fallback["role"] != "qr_fallback":
-            raise CliError(
-                f"QR fallback {fallback_id!r} must have role 'qr_fallback'"
-            )
-        if asset["qr_target"] not in fallback["text"]:
-            raise CliError(
-                f"QR fallback {fallback_id!r} must contain the exact QR target URL"
-            )
+    _validate_image_links(elements, assets)
     return elements, used_sources, used_assets
 
 
@@ -1076,6 +1245,7 @@ def _validate_approval(
     content_hash: str,
     require_approval: bool,
 ) -> dict[str, Any]:
+    """Validate approval."""
     approval = reject_unknown_keys(
         value,
         context="approval",

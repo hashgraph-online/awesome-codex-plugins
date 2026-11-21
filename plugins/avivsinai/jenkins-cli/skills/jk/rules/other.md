@@ -17,8 +17,11 @@ jk log <jobPath> <buildNumber> [flags]
 | Flag | Short | Description |
 |---|---|---|
 | `--follow` |  | Stream log output until the run finishes |
+| `--grep` |  | Select completed-log lines matching a Go regular expression (before --tail) |
 | `--interval` |  | Polling interval while following live logs |
 | `--plain` |  | Disable headings and additional formatting |
+| `--step` |  | Show an isolated Pipeline stage or step log (requires Pipeline Graph View) |
+| `--tail` |  | Show the last N matching lines of a completed log |
 
 #### Inherited Flags
 

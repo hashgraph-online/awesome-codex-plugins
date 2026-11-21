@@ -1,18 +1,15 @@
 ---
 name: rethink
-description: "Use when the user wants a proposal or approach reconsidered from first principles, or when evidence shows the current design is weak."
+description: "Use when choosing or changing a design, yours or the user's; when the user asks to rethink an approach; or when the user dislikes your proposal."
 user-invocable: true
 ---
 
-# Rethink
+Use critical thinking and first-principles reasoning, free from all biases and assumptions, and then:
 
-Rebuild the proposal from the required outcome and verified real-world constraints.
-Identify assumptions, remove those that evidence does not support, and test the remaining constraints against concrete cases.
+Re-evaluate the proposal and design, yours or the user's, from the ground up, considering only the absolutely necessary real-world constraints and objectives.
 
-Compare genuinely different approaches.
-State each approach's costs, failure modes, reversibility, and proof needs.
-Use `development-skills:best-practices` when current external evidence can change the choice.
+If necessary, conduct online research using official documentation, articles, authoritative engineering blogs, active and highly starred GitHub projects, and other top sources. For these searches, use `development-skills:best-practices` following the [research guidance](../../shared/development-loop.md#standards), and save the results to temporary local files.
 
-Recommend the simplest consistent design that meets the outcome.
-Explain why it is better than the current proposal and what evidence would overturn the recommendation.
-Return the result to the active development workflow before implementation.
+Ultimately, arrive at a design solution that is simple, consistent, elegant, and efficient, enabling a straightforward, clear, and effective outcome.
+
+Present the design with its trade-offs. When it changes a decision the user made or opens a new one, settle it with the user through `brainstorming` before implementation.

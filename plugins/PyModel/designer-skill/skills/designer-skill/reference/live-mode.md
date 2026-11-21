@@ -18,7 +18,7 @@ Without a browser/native preview, useful static analysis remains possible; rende
 4. **Inspect:** use the discovered browser/native tools, exercise relevant states and viewports, and view any screenshots before describing them. Tool names vary by host.
 5. **Decide:** record the user's choice or the previously delegated decision. No control selection silently authorizes additional writes or a new identity.
 6. **Promote/clean:** apply the accepted design within scope and remove only task-owned prototype scaffolding. Preserve user-owned preview config and concurrent edits.
-7. **Verify:** rerun affected checks against the final source and follow `verification-and-recovery`. Neither `detect_antipatterns` nor `anti_slop_checklist` is a rendered-readiness certificate.
+7. **Verify:** rerun affected checks against the final source and follow `verification-and-recovery`. `detect_antipatterns` is not a rendered-readiness certificate; for a local page, `verify_rendered` adds real-browser evidence.
 
 ## Isolation and cleanup
 

@@ -1,0 +1,16 @@
+{
+  "update_id": 960102,
+  "message": {
+    "message_id": 206,
+    "date": 1763330060,
+    "chat": {"id": 111111111, "type": "private", "first_name": "Alice"},
+    "from": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+    "document": {
+      "file_name": "archive.zip",
+      "mime_type": "application/zip",
+      "file_id": "BQACAgIAAxkBAAIDemo0archive",
+      "file_unique_id": "AgADdemoArchive",
+      "file_size": 1048576
+    }
+  }
+}

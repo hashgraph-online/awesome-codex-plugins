@@ -1,0 +1,10 @@
+# Local artifacts and generated media: keep out of plugin bundles and security scans
+node_modules/
+dist/
+out/
+*.mp4
+*.webm
+*.mov
+.env
+.env.*
+.brv/

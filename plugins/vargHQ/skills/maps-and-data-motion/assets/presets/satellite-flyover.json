@@ -1,0 +1,253 @@
+{
+  "id": "satellite-flyover",
+  "name": "Satellite flyover between two places",
+  "use": "Camera lifts off over place A on satellite imagery, flies an arc and settles over place B while the route draws.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        600,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "beats_s": {
+      "establish_a": [
+        0.0,
+        0.8
+      ],
+      "lift": [
+        0.8,
+        2.2
+      ],
+      "travel": [
+        2.2,
+        5.6
+      ],
+      "descend": [
+        5.6,
+        7.0
+      ],
+      "settle": [
+        7.0,
+        8.0
+      ]
+    },
+    "camera_path": {
+      "rho": 1.42,
+      "ease": "cubic-bezier(0.65, 0, 0.35, 1)",
+      "peak": "fit both points or minZoom"
+    },
+    "zoom_endpoints": {
+      "start_end_zoom": [
+        10,
+        12
+      ],
+      "zoom_rate_ceiling_zl_per_s": 1.0
+    },
+    "pitch": {
+      "high": 0,
+      "near_ground": [
+        45,
+        65
+      ],
+      "ramp": "last 30% of descend"
+    },
+    "bearing_drift_total_deg": 15,
+    "orbit_on_holds_deg_per_s": 2,
+    "terrain_exaggeration": 1.5,
+    "close_pass_altitude_m": 4000,
+    "route": {
+      "width_px": [
+        4,
+        6
+      ],
+      "cap": "round",
+      "join": "round",
+      "glow_width_mult": [
+        2,
+        3
+      ],
+      "glow_opacity": [
+        0.25,
+        0.35
+      ],
+      "flight_geometry": "great circle, 128 samples"
+    },
+    "pin_drop": {
+      "duration_s": 0.35,
+      "ease": "back.out(1.6)"
+    },
+    "render": "per-frame map.jumpTo from timeline time, wait for idle; never flyTo clock",
+    "safe_9x16": "pins in middle 60% of height; labels never in bottom 22%"
+  },
+  "presets": [
+    {
+      "id": "satellite-flyover.daylight",
+      "label": "Daylight",
+      "look": "True-colour satellite, white route, soft blue haze",
+      "params": {
+        "imagery": "licensed satellite (Mapbox Satellite / Esri World Imagery)",
+        "route": "#FFFFFF",
+        "route_px": 5,
+        "glow": "#FFFFFF 10px @ 25%",
+        "pins": "#FF4D3D",
+        "fog_horizon_blend": 0.4,
+        "pitch_end": 60,
+        "credit": "© Mapbox © OpenStreetMap © Maxar  |  or  Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+      },
+      "sources": [
+        14,
+        15,
+        16,
+        21,
+        28
+      ]
+    },
+    {
+      "id": "satellite-flyover.city-lights",
+      "label": "City lights",
+      "look": "Night Earth, gold lights, cyan route",
+      "params": {
+        "imagery": "NASA Black Marble 2016 13500x6750 (above ~zoom 7 only)",
+        "space": "#05070D",
+        "route": "#6FE3FF",
+        "route_px": 4,
+        "glow": "#6FE3FF 14px @ 35%",
+        "pins": "#FFC861",
+        "credit": "NASA Earth Observatory"
+      },
+      "sources": [
+        16,
+        19,
+        26,
+        27
+      ]
+    },
+    {
+      "id": "satellite-flyover.slate",
+      "label": "Slate",
+      "look": "Desaturated graphite basemap with one accent route",
+      "params": {
+        "basemap_filter": "saturate(0) brightness(0.55)",
+        "ffmpeg_grade": "eq=saturation=0:brightness=-0.12",
+        "route": "brand.accent",
+        "route_px": 5,
+        "pins": "#FFFFFF 14px, 3px accent ring"
+      },
+      "sources": [
+        14,
+        15,
+        21
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 7,
+      "name": "Steven Bernard (FT) on X: Blender relief settings",
+      "url": "https://x.com/sdbernard/status/1122180337612787713"
+    },
+    {
+      "n": 10,
+      "name": "MapLibre FlyToOptions",
+      "url": "https://maplibre.org/maplibre-gl-js/docs/API/type-aliases/FlyToOptions/"
+    },
+    {
+      "n": 11,
+      "name": "MapLibre camera.ts",
+      "url": "https://github.com/maplibre/maplibre-gl-js/blob/main/src/ui/camera.ts"
+    },
+    {
+      "n": 12,
+      "name": "d3 interpolateZoom",
+      "url": "https://d3js.org/d3-interpolate/zoom"
+    },
+    {
+      "n": 13,
+      "name": "d3-geo math",
+      "url": "https://d3js.org/d3-geo/math"
+    },
+    {
+      "n": 14,
+      "name": "Mapbox: Building Cinematic Route Animations",
+      "url": "https://www.mapbox.com/blog/building-cinematic-route-animations-with-mapboxgl"
+    },
+    {
+      "n": 15,
+      "name": "Mapbox example: free camera path",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/example/free-camera-path/"
+    },
+    {
+      "n": 16,
+      "name": "Mapbox example: flyTo options",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/example/flyto-options/"
+    },
+    {
+      "n": 17,
+      "name": "Mapbox example: ant path",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/example/animate-ant-path/"
+    },
+    {
+      "n": 18,
+      "name": "Mapbox Style Spec: layers",
+      "url": "https://docs.mapbox.com/style-spec/reference/layers/"
+    },
+    {
+      "n": 19,
+      "name": "Mapbox guide: Globe and Atmosphere",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/guides/globe/"
+    },
+    {
+      "n": 21,
+      "name": "Mapbox attribution guide",
+      "url": "https://docs.mapbox.com/help/dive-deeper/attribution/"
+    },
+    {
+      "n": 25,
+      "name": "NASA Blue Marble: Next Generation",
+      "url": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/"
+    },
+    {
+      "n": 26,
+      "name": "NASA Earth at Night maps",
+      "url": "https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps"
+    },
+    {
+      "n": 27,
+      "name": "NASA images and media guidelines",
+      "url": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+    },
+    {
+      "n": 28,
+      "name": "Esri World Imagery",
+      "url": "https://doc.arcgis.com/en/data-appliance/latest/imagery-elevation/world-imagery.htm"
+    },
+    {
+      "n": 29,
+      "name": "EOxCloudless licence",
+      "url": "https://cloudless.eox.at/documentation/license"
+    },
+    {
+      "n": 30,
+      "name": "Google Earth Studio attribution",
+      "url": "https://earth.google.com/studio/docs/attribution/"
+    },
+    {
+      "n": 53,
+      "name": "easings.net easings.yml",
+      "url": "https://github.com/ai/easings.net/blob/master/src/easings.yml"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

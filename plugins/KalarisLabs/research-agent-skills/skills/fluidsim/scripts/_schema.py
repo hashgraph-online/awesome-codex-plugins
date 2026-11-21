@@ -50,6 +50,15 @@ PYFFTW_VERSION = "0.15.1"
 MPI4PY_VERSION = "4.1.2"
 REVIEW_DATE = "2026-07-23"
 
+# Solver keys that appear in several of the static tables below.
+NS3D_BOUSS = "ns3d.bouss"
+NS3D_STRAT = "ns3d.strat"
+NS2D_BOUSS = "ns2d.bouss"
+SW1L_ONLYWAVES = "sw1l.onlywaves"
+NS2D_STRAT = "ns2d.strat"
+SW1L_MODIFIED = "sw1l.modified"
+SW1L_EXACTLIN = "sw1l.exactlin"
+
 # Static allowlist from FluidSim 0.9.0 pyproject entry points. No module name is
 # ever derived from user text.
 SOLVER_IMPORTS = {
@@ -61,18 +70,18 @@ SOLVER_IMPORTS = {
     "models0d.predaprey": "fluidsim.solvers.models0d.predaprey.solver",
     "nl1d": "fluidsim.solvers.nl1d.solver",
     "ns2d": "fluidsim.solvers.ns2d.solver",
-    "ns2d.bouss": "fluidsim.solvers.ns2d.bouss.solver",
-    "ns2d.strat": "fluidsim.solvers.ns2d.strat.solver",
+    NS2D_BOUSS: "fluidsim.solvers.ns2d.bouss.solver",
+    NS2D_STRAT: "fluidsim.solvers.ns2d.strat.solver",
     "ns3d": "fluidsim.solvers.ns3d.solver",
-    "ns3d.bouss": "fluidsim.solvers.ns3d.bouss.solver",
-    "ns3d.strat": "fluidsim.solvers.ns3d.strat.solver",
+    NS3D_BOUSS: "fluidsim.solvers.ns3d.bouss.solver",
+    NS3D_STRAT: "fluidsim.solvers.ns3d.strat.solver",
     "plate2d": "fluidsim.solvers.plate2d.solver",
     "sphere.ns2d": "fluidsim.solvers.sphere.ns2d.solver",
     "sphere.sw1l": "fluidsim.solvers.sphere.sw1l.solver",
     "sw1l": "fluidsim.solvers.sw1l.solver",
-    "sw1l.exactlin": "fluidsim.solvers.sw1l.exactlin.solver",
-    "sw1l.modified": "fluidsim.solvers.sw1l.modified.solver",
-    "sw1l.onlywaves": "fluidsim.solvers.sw1l.onlywaves.solver",
+    SW1L_EXACTLIN: "fluidsim.solvers.sw1l.exactlin.solver",
+    SW1L_MODIFIED: "fluidsim.solvers.sw1l.modified.solver",
+    SW1L_ONLYWAVES: "fluidsim.solvers.sw1l.onlywaves.solver",
     "waves2d": "fluidsim.solvers.waves2d.solver",
 }
 
@@ -80,31 +89,31 @@ SOLVER_IMPORTS = {
 # and rendered by the bundled tools.
 CONFIG_SOLVER_DIMENSIONS = {
     "ns2d": 2,
-    "ns2d.bouss": 2,
-    "ns2d.strat": 2,
+    NS2D_BOUSS: 2,
+    NS2D_STRAT: 2,
     "ns3d": 3,
-    "ns3d.bouss": 3,
-    "ns3d.strat": 3,
+    NS3D_BOUSS: 3,
+    NS3D_STRAT: 3,
     "plate2d": 2,
     "sw1l": 2,
-    "sw1l.exactlin": 2,
-    "sw1l.modified": 2,
-    "sw1l.onlywaves": 2,
+    SW1L_EXACTLIN: 2,
+    SW1L_MODIFIED: 2,
+    SW1L_ONLYWAVES: 2,
     "waves2d": 2,
 }
 
 STATE_FIELD_COUNTS = {
     "ns2d": (3, 2),
-    "ns2d.bouss": (4, 3),
-    "ns2d.strat": (4, 3),
+    NS2D_BOUSS: (4, 3),
+    NS2D_STRAT: (4, 3),
     "ns3d": (3, 4),
-    "ns3d.bouss": (4, 5),
-    "ns3d.strat": (4, 5),
+    NS3D_BOUSS: (4, 5),
+    NS3D_STRAT: (4, 5),
     "plate2d": (3, 3),
     "sw1l": (3, 4),
-    "sw1l.exactlin": (3, 4),
-    "sw1l.modified": (3, 4),
-    "sw1l.onlywaves": (3, 4),
+    SW1L_EXACTLIN: (3, 4),
+    SW1L_MODIFIED: (3, 4),
+    SW1L_ONLYWAVES: (3, 4),
     "waves2d": (2, 3),
 }
 
@@ -137,7 +146,7 @@ INIT_TYPES = {
     "jet",
     "noise",
 }
-_DURATION = re.compile(r"^(?:\d{1,4}):[0-5]\d:[0-5]\d$")
+_DURATION = re.compile(r"^\d{1,4}:[0-5]\d:[0-5]\d$")
 
 TOP_LEVEL_KEYS = {
     "schema_version",
@@ -228,10 +237,12 @@ PERIOD_SAVE_KEYS = {
 def _record(
     target: list[dict[str, str]], code: str, message: str
 ) -> None:
+    """Handle record."""
     target.append({"code": code, "message": message})
 
 
 def _validate_parameter_structure(parameters: Mapping[str, Any]) -> None:
+    """Validate parameter structure."""
     validate_keys(
         parameters, allowed=PARAMETER_KEYS, required={"oper", "time_stepping"}, context="parameters"
     )
@@ -309,23 +320,9 @@ def _validate_parameter_structure(parameters: Mapping[str, Any]) -> None:
         )
 
 
-def validate_config(document: Any) -> dict[str, Any]:
-    """Validate a strict FluidSim planning configuration without imports."""
-
-    config = require_mapping(document, context="configuration")
-    validate_keys(
-        config,
-        allowed=TOP_LEVEL_KEYS,
-        required=TOP_LEVEL_KEYS,
-        context="configuration",
-    )
-    errors: list[dict[str, str]] = []
-    warnings: list[dict[str, str]] = []
-
-    if config["schema_version"] != "1.1":
-        _record(errors, "schema_version", "schema_version must be '1.1'")
-
-    solver = require_text(config["solver"], name="solver", maximum=80)
+def _check_solver(raw_solver: Any, errors: list[dict[str, str]]) -> str:
+    """Validate the solver key against the static allowlist and profile table."""
+    solver = require_text(raw_solver, name="solver", maximum=80)
     if solver not in SOLVER_IMPORTS:
         _record(errors, "unknown_solver", "solver is not a FluidSim 0.9 entry-point key")
     if solver not in CONFIG_SOLVER_DIMENSIONS:
@@ -334,75 +331,102 @@ def validate_config(document: Any) -> dict[str, Any]:
             "unsupported_parameter_profile",
             "bundled config tools cover Cartesian FluidSim CFD solver profiles only",
         )
+    return solver
 
-    parameters = require_mapping(config["parameters"], context="parameters")
-    _validate_parameter_structure(parameters)
-    oper = require_mapping(parameters["oper"], context="parameters.oper")
-    time = require_mapping(
-        parameters["time_stepping"], context="parameters.time_stepping"
-    )
 
+def _collect_grid_sizes(
+    solver: str,
+    oper: Mapping[str, Any],
+    dimension: int,
+    errors: list[dict[str, str]],
+) -> list[int]:
+    """Validate each required axis and return the valid grid sizes."""
+    sizes: list[int] = []
+    for axis in ("x", "y", "z")[:dimension]:
+        n_key, length_key = f"n{axis}", f"L{axis}"
+        if n_key not in oper or length_key not in oper:
+            _record(
+                errors,
+                "incomplete_grid",
+                f"oper requires {n_key} and {length_key} for {solver}",
+            )
+            continue
+        try:
+            size = bounded_int(
+                oper[n_key],
+                name=f"oper.{n_key}",
+                minimum=2,
+                maximum=MAX_DIMENSION,
+            )
+            sizes.append(size)
+            finite_float(oper[length_key], name=f"oper.{length_key}", minimum=1e-15)
+        except ToolError as exc:
+            _record(errors, "invalid_grid", str(exc))
+    return sizes
+
+
+def _check_grid(solver: str, oper: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the Cartesian grid sizes, box lengths and point budget for a solver."""
     dimension = CONFIG_SOLVER_DIMENSIONS.get(solver)
-    dimensions: list[int] = []
-    if dimension is not None:
-        required_axes = ("x", "y", "z")[:dimension]
-        for axis in required_axes:
-            n_key, length_key = f"n{axis}", f"L{axis}"
-            if n_key not in oper or length_key not in oper:
-                _record(
-                    errors,
-                    "incomplete_grid",
-                    f"oper requires {n_key} and {length_key} for {solver}",
-                )
-                continue
-            try:
-                size = bounded_int(
-                    oper[n_key],
-                    name=f"oper.{n_key}",
-                    minimum=2,
-                    maximum=MAX_DIMENSION,
-                )
-                dimensions.append(size)
-                finite_float(
-                    oper[length_key], name=f"oper.{length_key}", minimum=1e-15
-                )
-            except ToolError as exc:
-                _record(errors, "invalid_grid", str(exc))
-        for axis in ("x", "y", "z")[dimension:]:
-            if f"n{axis}" in oper or f"L{axis}" in oper:
-                _record(
-                    errors,
-                    "extra_grid_axis",
-                    f"{solver} does not use Cartesian {axis}-axis grid fields",
-                )
-        if dimensions:
-            points = 1
-            for size in dimensions:
-                points *= size
-            if points > MAX_GRID_POINTS:
-                _record(errors, "grid_too_large", "grid-point product exceeds hard bound")
+    if dimension is None:
+        return
+    dimensions = _collect_grid_sizes(solver, oper, dimension, errors)
+    for axis in ("x", "y", "z")[dimension:]:
+        if f"n{axis}" in oper or f"L{axis}" in oper:
+            _record(
+                errors,
+                "extra_grid_axis",
+                f"{solver} does not use Cartesian {axis}-axis grid fields",
+            )
+    if dimensions:
+        points = 1
+        for size in dimensions:
+            points *= size
+        if points > MAX_GRID_POINTS:
+            _record(errors, "grid_too_large", "grid-point product exceeds hard bound")
+
+
+def _check_dealiasing(
+    oper: Mapping[str, Any],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Require an explicit dealiasing coefficient and warn above the 2/3 rule."""
     if "coef_dealiasing" not in oper:
         _record(errors, "missing_dealiasing", "oper.coef_dealiasing must be explicit")
-    else:
-        try:
-            coefficient = finite_float(
-                oper["coef_dealiasing"],
-                name="oper.coef_dealiasing",
-                minimum=1e-12,
-                maximum=1.0,
+        return
+    try:
+        coefficient = finite_float(
+            oper["coef_dealiasing"],
+            name="oper.coef_dealiasing",
+            minimum=1e-12,
+            maximum=1.0,
+        )
+        if coefficient is not None and coefficient > 2 / 3 + 1e-12:
+            _record(
+                warnings,
+                "dealiasing_above_two_thirds",
+                "justify truncation above 2/3 or use a verified phase-shift scheme",
             )
-            if coefficient is not None and coefficient > 2 / 3 + 1e-12:
-                _record(
-                    warnings,
-                    "dealiasing_above_two_thirds",
-                    "justify truncation above 2/3 or use a verified phase-shift scheme",
-                )
-        except ToolError as exc:
-            _record(errors, "invalid_dealiasing", str(exc))
+    except ToolError as exc:
+        _record(errors, "invalid_dealiasing", str(exc))
+
+
+def _check_operator(
+    solver: str,
+    oper: Mapping[str, Any],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Validate the operator block: grid, dealiasing and FFT method."""
+    _check_grid(solver, oper, errors)
+    _check_dealiasing(oper, errors, warnings)
     if not isinstance(oper.get("type_fft", "default"), str):
         _record(errors, "invalid_fft_method", "oper.type_fft must be a string")
 
-    required_time = {
+
+_REQUIRED_TIME_KEYS = frozenset(
+    {
         "USE_CFL",
         "USE_T_END",
         "cfl_coef",
@@ -412,45 +436,58 @@ def validate_config(document: Any) -> dict[str, Any]:
         "t_end",
         "type_time_scheme",
     }
-    missing_time = sorted(required_time - set(time))
+)
+
+
+def _check_time_bounds(time: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the numeric time-step and end-time bounds."""
+    try:
+        finite_float(time["deltat0"], name="deltat0", minimum=1e-15)
+        finite_float(time["deltat_max"], name="deltat_max", minimum=1e-15)
+        finite_float(time["t_end"], name="t_end", minimum=0.0)
+        if time["USE_CFL"]:
+            finite_float(time["cfl_coef"], name="cfl_coef", minimum=1e-6, maximum=2.0)
+    except ToolError as exc:
+        _record(errors, "invalid_time_bound", str(exc))
+
+
+def _check_time_stepping(
+    time: Mapping[str, Any],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Require explicit, bounded time-stepping settings and a known scheme."""
+    missing_time = sorted(_REQUIRED_TIME_KEYS - set(time))
     if missing_time:
         _record(
             errors,
             "incomplete_time_bounds",
             f"time_stepping must explicitly set: {', '.join(missing_time)}",
         )
-    else:
-        if not isinstance(time["USE_CFL"], bool) or not isinstance(
-            time["USE_T_END"], bool
-        ):
-            _record(errors, "invalid_time_flags", "USE_CFL and USE_T_END must be booleans")
-        try:
-            finite_float(time["deltat0"], name="deltat0", minimum=1e-15)
-            finite_float(time["deltat_max"], name="deltat_max", minimum=1e-15)
-            finite_float(time["t_end"], name="t_end", minimum=0.0)
-            if time["USE_CFL"]:
-                finite_float(
-                    time["cfl_coef"], name="cfl_coef", minimum=1e-6, maximum=2.0
-                )
-        except ToolError as exc:
-            _record(errors, "invalid_time_bound", str(exc))
-        if not isinstance(time["max_elapsed"], str) or not _DURATION.fullmatch(
-            time["max_elapsed"]
-        ):
-            _record(
-                errors,
-                "invalid_max_elapsed",
-                "max_elapsed must use bounded HH:MM:SS text",
-            )
-        if time["type_time_scheme"] not in TIME_SCHEMES:
-            _record(errors, "unknown_time_scheme", "unsupported FluidSim 0.9 time scheme")
-        if not time["USE_T_END"]:
-            _record(
-                warnings,
-                "iteration_termination",
-                "USE_T_END is false; verify it_end is explicit and bounded",
-            )
+        return
+    if not isinstance(time["USE_CFL"], bool) or not isinstance(time["USE_T_END"], bool):
+        _record(errors, "invalid_time_flags", "USE_CFL and USE_T_END must be booleans")
+    _check_time_bounds(time, errors)
+    if not isinstance(time["max_elapsed"], str) or not _DURATION.fullmatch(
+        time["max_elapsed"]
+    ):
+        _record(
+            errors,
+            "invalid_max_elapsed",
+            "max_elapsed must use bounded HH:MM:SS text",
+        )
+    if time["type_time_scheme"] not in TIME_SCHEMES:
+        _record(errors, "unknown_time_scheme", "unsupported FluidSim 0.9 time scheme")
+    if not time["USE_T_END"]:
+        _record(
+            warnings,
+            "iteration_termination",
+            "USE_T_END is false; verify it_end is explicit and bounded",
+        )
 
+
+def _check_dissipation(parameters: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the non-negative viscosity coefficients."""
     for key in ("nu_2", "nu_4", "nu_8", "nu_m4"):
         if key in parameters:
             try:
@@ -458,6 +495,9 @@ def validate_config(document: Any) -> dict[str, Any]:
             except ToolError as exc:
                 _record(errors, "invalid_dissipation", str(exc))
 
+
+def _check_initial_fields(parameters: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the initialization type and any restart file path."""
     init = require_mapping(parameters.get("init_fields", {}), context="init_fields")
     init_type = init.get("type")
     if init_type not in INIT_TYPES:
@@ -474,43 +514,57 @@ def validate_config(document: Any) -> dict[str, Any]:
         except ToolError as exc:
             _record(errors, "unsafe_restart_path", str(exc))
 
+
+def _check_forcing_numbers(forcing: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the forcing rate and the forced wavenumber band."""
+    try:
+        finite_float(forcing.get("forcing_rate"), name="forcing_rate", minimum=0.0)
+        minimum_k = finite_float(
+            forcing.get("nkmin_forcing"), name="nkmin_forcing", minimum=0.0
+        )
+        maximum_k = finite_float(
+            forcing.get("nkmax_forcing"), name="nkmax_forcing", minimum=0.0
+        )
+        if minimum_k is not None and maximum_k is not None and maximum_k < minimum_k:
+            _record(errors, "forcing_band", "nkmax_forcing is below nkmin_forcing")
+    except ToolError as exc:
+        _record(errors, "invalid_forcing", str(exc))
+
+
+def _check_enabled_forcing(forcing: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the settings required when forcing is enabled."""
+    if forcing.get("type") not in FORCING_TYPES:
+        _record(errors, "unknown_forcing", "forcing.type is not recognized")
+    for key in ("forcing_rate", "nkmin_forcing", "nkmax_forcing"):
+        if key not in forcing:
+            _record(errors, "incomplete_forcing", f"forcing.{key} must be explicit")
+    _check_forcing_numbers(forcing, errors)
+    if forcing.get("type") == "tcrandom":
+        tcrandom = forcing.get("tcrandom")
+        if not isinstance(tcrandom, Mapping) or "time_correlation" not in tcrandom:
+            _record(
+                errors,
+                "missing_time_correlation",
+                "forcing.tcrandom.time_correlation must be explicit",
+            )
+
+
+def _check_forcing(parameters: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the forcing block."""
     forcing = require_mapping(parameters.get("forcing", {}), context="forcing")
     forcing_enabled = forcing.get("enable", False)
     if not isinstance(forcing_enabled, bool):
         _record(errors, "invalid_forcing_enable", "forcing.enable must be a boolean")
     if forcing_enabled:
-        if forcing.get("type") not in FORCING_TYPES:
-            _record(errors, "unknown_forcing", "forcing.type is not recognized")
-        for key in ("forcing_rate", "nkmin_forcing", "nkmax_forcing"):
-            if key not in forcing:
-                _record(errors, "incomplete_forcing", f"forcing.{key} must be explicit")
-        try:
-            finite_float(
-                forcing.get("forcing_rate"), name="forcing_rate", minimum=0.0
-            )
-            minimum_k = finite_float(
-                forcing.get("nkmin_forcing"), name="nkmin_forcing", minimum=0.0
-            )
-            maximum_k = finite_float(
-                forcing.get("nkmax_forcing"), name="nkmax_forcing", minimum=0.0
-            )
-            if (
-                minimum_k is not None
-                and maximum_k is not None
-                and maximum_k < minimum_k
-            ):
-                _record(errors, "forcing_band", "nkmax_forcing is below nkmin_forcing")
-        except ToolError as exc:
-            _record(errors, "invalid_forcing", str(exc))
-        if forcing.get("type") == "tcrandom":
-            tcrandom = forcing.get("tcrandom")
-            if not isinstance(tcrandom, Mapping) or "time_correlation" not in tcrandom:
-                _record(
-                    errors,
-                    "missing_time_correlation",
-                    "forcing.tcrandom.time_correlation must be explicit",
-                )
+        _check_enabled_forcing(forcing, errors)
 
+
+def _check_output(
+    parameters: Mapping[str, Any],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Validate output flags, sub-directory and save periods."""
     output = require_mapping(parameters.get("output", {}), context="output")
     for key in ("HAS_TO_SAVE", "ONLINE_PLOT_OK"):
         if key not in output or not isinstance(output[key], bool):
@@ -534,16 +588,20 @@ def validate_config(document: Any) -> dict[str, Any]:
             "online_plotting",
             "disable online plotting for unattended/HPC runs",
         )
-    if output.get("HAS_TO_SAVE") and isinstance(periods_save, Mapping):
-        if float(periods_save.get("phys_fields", 0.0)) <= 0:
-            _record(
-                warnings,
-                "no_restart_checkpoint",
-                "physical-field saves are disabled, so no new restart checkpoint is planned",
-            )
+    if (
+        output.get("HAS_TO_SAVE")
+        and isinstance(periods_save, Mapping)
+        and float(periods_save.get("phys_fields", 0.0)) <= 0
+    ):
+        _record(
+            warnings,
+            "no_restart_checkpoint",
+            "physical-field saves are disabled, so no new restart checkpoint is planned",
+        )
 
-    scientific = require_mapping(config["scientific"], context="scientific")
-    scientific_required = {
+
+_SCIENTIFIC_REQUIRED = frozenset(
+    {
         "units_or_nondimensionalization",
         "boundary_conditions",
         "initial_conditions",
@@ -554,13 +612,19 @@ def validate_config(document: Any) -> dict[str, Any]:
         "convergence_and_refinement",
         "acceptance_criteria",
     }
+)
+
+
+def _check_scientific(config: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate the scientific-justification block and the periodic-boundary statement."""
+    scientific = require_mapping(config["scientific"], context="scientific")
     validate_keys(
         scientific,
-        allowed=scientific_required,
-        required=scientific_required,
+        allowed=_SCIENTIFIC_REQUIRED,
+        required=_SCIENTIFIC_REQUIRED,
         context="scientific",
     )
-    for key in scientific_required - {"conservation_and_budgets", "acceptance_criteria"}:
+    for key in _SCIENTIFIC_REQUIRED - {"conservation_and_budgets", "acceptance_criteria"}:
         require_text(scientific[key], name=f"scientific.{key}", maximum=2_000)
     require_text_list(
         scientific["conservation_and_budgets"],
@@ -576,8 +640,9 @@ def validate_config(document: Any) -> dict[str, Any]:
             "Cartesian bundled pseudospectral solver plans must state periodic boundaries",
         )
 
-    resources = require_mapping(config["resources"], context="resources")
-    resource_keys = {
+
+_RESOURCE_KEYS = frozenset(
+    {
         "cpu_cores",
         "mpi_ranks",
         "threads_per_rank",
@@ -586,10 +651,18 @@ def validate_config(document: Any) -> dict[str, Any]:
         "wall_time_minutes",
         "max_output_files",
     }
+)
+
+
+def _check_resources(
+    config: Mapping[str, Any], errors: list[dict[str, str]]
+) -> Mapping[str, Any]:
+    """Validate resource bounds and CPU oversubscription; return the resources mapping."""
+    resources = require_mapping(config["resources"], context="resources")
     validate_keys(
         resources,
-        allowed=resource_keys,
-        required=resource_keys,
+        allowed=_RESOURCE_KEYS,
+        required=_RESOURCE_KEYS,
         context="resources",
     )
     try:
@@ -633,7 +706,15 @@ def validate_config(document: Any) -> dict[str, Any]:
             )
     except ToolError as exc:
         _record(errors, "invalid_resource_bound", str(exc))
+    return resources
 
+
+def _check_execution(
+    config: Mapping[str, Any],
+    resources: Mapping[str, Any],
+    errors: list[dict[str, str]],
+) -> None:
+    """Validate the execution block and its consistency with the MPI rank count."""
     execution = require_mapping(config["execution"], context="execution")
     execution_keys = {"mode", "output_root", "random_seed", "script_name"}
     validate_keys(
@@ -662,62 +743,99 @@ def validate_config(document: Any) -> dict[str, Any]:
         _record(errors, "invalid_execution", str(exc))
     if mode == "serial" and resources.get("mpi_ranks") != 1:
         _record(errors, "serial_ranks", "serial mode requires mpi_ranks = 1")
-    if mode == "mpi-preview" and isinstance(resources.get("mpi_ranks"), int):
-        if resources["mpi_ranks"] < 2:
-            _record(errors, "mpi_ranks", "mpi-preview requires at least two ranks")
+    if (
+        mode == "mpi-preview"
+        and isinstance(resources.get("mpi_ranks"), int)
+        and resources["mpi_ranks"] < 2
+    ):
+        _record(errors, "mpi_ranks", "mpi-preview requires at least two ranks")
 
+
+_PROVENANCE_TEXT_KEYS = (
+    "config_id",
+    "created_utc",
+    "dependency_lock_sha256",
+    "fluidfft",
+    "fluidsim",
+    "python",
+)
+
+
+def _check_restart_provenance(
+    provenance: Mapping[str, Any], errors: list[dict[str, str]]
+) -> None:
+    """Validate the optional restart record in the provenance block."""
+    if "restart" not in provenance:
+        return
+    restart = require_mapping(provenance["restart"], context="provenance.restart")
+    validate_keys(
+        restart,
+        allowed={"path", "sha256", "source_fluidsim"},
+        required={"path", "sha256", "source_fluidsim"},
+        context="provenance.restart",
+    )
+    safe_relative_path(
+        restart["path"],
+        name="provenance.restart.path",
+        suffixes={".nc", ".h5", ".hdf5", ".json"},
+        allow_nested=True,
+    )
+    if not re.fullmatch(r"[0-9a-f]{64}", str(restart["sha256"])):
+        _record(errors, "restart_digest", "restart sha256 must be 64 lowercase hex")
+
+
+def _check_provenance(config: Mapping[str, Any], errors: list[dict[str, str]]) -> None:
+    """Validate provenance fields and the pinned FluidSim and FluidFFT versions."""
     provenance = require_mapping(config["provenance"], context="provenance")
-    provenance_keys = {
-        "config_id",
-        "created_utc",
-        "dependency_lock_sha256",
-        "fluidfft",
-        "fluidsim",
-        "python",
-        "restart",
-    }
+    provenance_keys = {*_PROVENANCE_TEXT_KEYS, "restart"}
     validate_keys(
         provenance,
         allowed=provenance_keys,
-        required={
-            "config_id",
-            "created_utc",
-            "dependency_lock_sha256",
-            "fluidfft",
-            "fluidsim",
-            "python",
-        },
+        required=set(_PROVENANCE_TEXT_KEYS),
         context="provenance",
     )
-    for key in (
-        "config_id",
-        "created_utc",
-        "dependency_lock_sha256",
-        "fluidfft",
-        "fluidsim",
-        "python",
-    ):
+    for key in _PROVENANCE_TEXT_KEYS:
         require_text(provenance[key], name=f"provenance.{key}", maximum=256)
     if provenance["fluidsim"] != FLUIDSIM_VERSION:
         _record(errors, "fluidsim_version", f"pin fluidsim to {FLUIDSIM_VERSION}")
     if provenance["fluidfft"] != FLUIDFFT_VERSION:
         _record(errors, "fluidfft_version", f"pin fluidfft to {FLUIDFFT_VERSION}")
-    if "restart" in provenance:
-        restart = require_mapping(provenance["restart"], context="provenance.restart")
-        validate_keys(
-            restart,
-            allowed={"path", "sha256", "source_fluidsim"},
-            required={"path", "sha256", "source_fluidsim"},
-            context="provenance.restart",
-        )
-        safe_relative_path(
-            restart["path"],
-            name="provenance.restart.path",
-            suffixes={".nc", ".h5", ".hdf5", ".json"},
-            allow_nested=True,
-        )
-        if not re.fullmatch(r"[0-9a-f]{64}", str(restart["sha256"])):
-            _record(errors, "restart_digest", "restart sha256 must be 64 lowercase hex")
+    _check_restart_provenance(provenance, errors)
+
+
+def validate_config(document: Any) -> dict[str, Any]:
+    """Validate a strict FluidSim planning configuration without imports."""
+
+    config = require_mapping(document, context="configuration")
+    validate_keys(
+        config,
+        allowed=TOP_LEVEL_KEYS,
+        required=TOP_LEVEL_KEYS,
+        context="configuration",
+    )
+    errors: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+
+    if config["schema_version"] != "1.1":
+        _record(errors, "schema_version", "schema_version must be '1.1'")
+
+    solver = _check_solver(config["solver"], errors)
+    parameters = require_mapping(config["parameters"], context="parameters")
+    _validate_parameter_structure(parameters)
+    oper = require_mapping(parameters["oper"], context="parameters.oper")
+    time = require_mapping(
+        parameters["time_stepping"], context="parameters.time_stepping"
+    )
+    _check_operator(solver, oper, errors, warnings)
+    _check_time_stepping(time, errors, warnings)
+    _check_dissipation(parameters, errors)
+    _check_initial_fields(parameters, errors)
+    _check_forcing(parameters, errors)
+    _check_output(parameters, errors, warnings)
+    _check_scientific(config, errors)
+    resources = _check_resources(config, errors)
+    _check_execution(config, resources, errors)
+    _check_provenance(config, errors)
 
     return {
         "errors": errors,

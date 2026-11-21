@@ -1,5 +1,7 @@
 # Owner walkthrough — open-ended — pursue one owner-supplied objective until quitting time
 
+## When to use
+
 A custom hours-cycle for a goal the owner names. Nightshift keeps the objective verbatim, derives
 the next concrete unit from the work target, and implements, verifies, and reassesses until the
 objective is verifiably satisfied or the clock ends the shift.
@@ -19,6 +21,8 @@ Supported in a persistent project workspace whose objective can be advanced thro
 engineering work. Publishing, deployment, spending, production-data mutation, secrets, and legal or
 licensing decisions remain outside the coding-work authorization.
 
+## Item
+
 ```text
 - [ ] **Owner walkthrough — pursue the owner's objective until quitting time.**
   - Ending: open-ended — hours and a deadline are required; verified objective satisfaction may
@@ -33,7 +37,7 @@ licensing decisions remain outside the coding-work authorization.
     non-goals, and a time-fit unit plan in a
     `mode: owner-work` receipt from `receipts/cycle-specialist-evidence.md`, derived from the verbatim objective and
     work-target evidence. Underspecified areas choose reversible defaults within the coding-work authority
-    boundary and record them — never silently expand scope.
+    boundary and record them; the scope stays as agreed.
   - Establish the continuation record before implementation: use the single `Status: building`
     entry in opportunity-map.md. Preserve the owner objective in Scope, derive observable
     Acceptance from it and the work target, and record Current phase, Completed, Decisions,

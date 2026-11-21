@@ -22,7 +22,7 @@ Initialize a new story project with a structured markdown folder layout. Creates
 
 1. Ask for basic story information (if a `premise-workshop` session produced a premise, logline, genre, and form, reuse them rather than asking again):
    - Title
-   - Form: `novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, or `chapter-book`. Without `--form`, `story init` writes no `form` and no `target-words`, so if the user doesn't choose, pass `--form novel`
+   - Form: `novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, `chapter-book`, or `poetry-collection` (a book of poems: hand the poems to `verse-craft`). Without `--form`, `story init` writes no `form` and no `target-words`, so if the user doesn't choose, pass `--form novel`
    - Genre and sub-genre
    - Brief synopsis (2-3 sentences)
    - Setting era/time period

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "prewalk",
+  "version": "1.0.9+codex.20260911080835",
+  "description": "Prewalk for Codex: a frontier model explores + plans + lands the first verified edit, then hands off to a cheaper executor subagent.",
+  "author": {
+    "name": "TardisBooo",
+    "url": "https://github.com/TardisBooo/prewalk"
+  },
+  "homepage": "https://github.com/TardisBooo/prewalk",
+  "repository": "https://github.com/TardisBooo/prewalk",
+  "license": "MIT",
+  "keywords": ["prewalk", "cost", "planner", "executor", "model-routing", "fork-handoff"]
+}

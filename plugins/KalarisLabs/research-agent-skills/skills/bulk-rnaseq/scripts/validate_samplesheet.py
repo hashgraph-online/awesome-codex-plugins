@@ -37,16 +37,20 @@ class Report:
     """Collects errors (fatal) and warnings (advisory)."""
 
     def __init__(self) -> None:
+        """Initialise the instance."""
         self.errors: list[str] = []
         self.warnings: list[str] = []
 
     def error(self, msg: str) -> None:
+        """Handle error."""
         self.errors.append(msg)
 
     def warn(self, msg: str) -> None:
+        """Handle warn."""
         self.warnings.append(msg)
 
     def summarize(self) -> int:
+        """Summarize."""
         for w in self.warnings:
             print(f"  WARN  {w}")
         for e in self.errors:
@@ -60,10 +64,58 @@ class Report:
 
 
 def _is_remote(path: str) -> bool:
+    """Return whether remote."""
     return str(path).startswith(REMOTE_PREFIXES)
 
 
+def _check_fastq_file(label: str, fp: str, ln: int, sample: str, rep: Report) -> None:
+    """Check one FASTQ path for existence and extension, recording errors or warnings."""
+    if not fp:
+        return
+    if _is_remote(fp):
+        rep.warn(f"row {ln} ({sample}): {label} is remote; existence not checked")
+    elif not Path(fp).is_file():
+        rep.error(f"row {ln} ({sample}): {label} not found: {fp}")
+    elif not fp.endswith((".fastq.gz", ".fq.gz", ".fastq", ".fq")):
+        rep.warn(f"row {ln} ({sample}): {label} has an unusual extension: {fp}")
+
+
+def _check_sheet_row(row: pd.Series, ln: int, has_r2: bool, has_strand: bool,
+                     check_files: bool, rep: Report) -> None:
+    """Validate a single samplesheet row (required fields, strandedness, file paths)."""
+    sample, r1 = row["sample"], row["fastq_1"]
+    r2 = row["fastq_2"] if has_r2 else ""
+
+    if not sample:
+        rep.error(f"row {ln}: empty 'sample'")
+    if not r1:
+        rep.error(f"row {ln}: empty 'fastq_1'")
+    if r1 and r2 and r1 == r2:
+        rep.error(f"row {ln} ({sample}): fastq_1 and fastq_2 are the same file")
+
+    if has_strand:
+        s = row["strandedness"].lower()
+        if s and s not in VALID_STRANDEDNESS:
+            rep.error(f"row {ln} ({sample}): strandedness '{s}' not in {sorted(VALID_STRANDEDNESS)}")
+
+    if check_files:
+        for label, fp in (("fastq_1", r1), ("fastq_2", r2)):
+            _check_fastq_file(label, fp, ln, sample, rep)
+
+
+def _check_pairing_consistency(df: pd.DataFrame, rep: Report) -> None:
+    """Flag samples that mix paired/single-end rows and samples spread over multiple rows."""
+    for sample, grp in df.groupby("sample"):
+        layouts = {"paired" if r2 else "single" for r2 in grp["fastq_2"]}
+        if len(layouts) > 1:
+            rep.error(f"sample '{sample}' mixes paired-end and single-end rows")
+    dup_samples = df["sample"][df["sample"].duplicated()].unique()
+    if len(dup_samples):
+        rep.warn(f"samples appear on multiple rows (will be lane-merged): {list(dup_samples)}")
+
+
 def validate_samplesheet(path: Path, check_files: bool, rep: Report) -> pd.DataFrame | None:
+    """Validate the samplesheet CSV, recording problems on ``rep`` and returning the frame."""
     if not path.is_file():
         rep.error(f"samplesheet not found: {path}")
         return None
@@ -84,33 +136,10 @@ def validate_samplesheet(path: Path, check_files: bool, rep: Report) -> pd.DataF
     seen_r1: dict[str, int] = {}
     for i, row in df.iterrows():
         ln = i + 2  # +1 for header, +1 for 1-based
-        sample, r1 = row["sample"], row["fastq_1"]
-        r2 = row["fastq_2"] if has_r2 else ""
-
-        if not sample:
-            rep.error(f"row {ln}: empty 'sample'")
-        if not r1:
-            rep.error(f"row {ln}: empty 'fastq_1'")
-        if r1 and r2 and r1 == r2:
-            rep.error(f"row {ln} ({sample}): fastq_1 and fastq_2 are the same file")
+        _check_sheet_row(row, ln, has_r2, has_strand, check_files, rep)
+        r1 = row["fastq_1"]
         if r1:
             seen_r1[r1] = seen_r1.get(r1, 0) + 1
-
-        if has_strand:
-            s = row["strandedness"].lower()
-            if s and s not in VALID_STRANDEDNESS:
-                rep.error(f"row {ln} ({sample}): strandedness '{s}' not in {sorted(VALID_STRANDEDNESS)}")
-
-        if check_files:
-            for label, fp in (("fastq_1", r1), ("fastq_2", r2)):
-                if not fp:
-                    continue
-                if _is_remote(fp):
-                    rep.warn(f"row {ln} ({sample}): {label} is remote; existence not checked")
-                elif not Path(fp).is_file():
-                    rep.error(f"row {ln} ({sample}): {label} not found: {fp}")
-                elif not fp.endswith((".fastq.gz", ".fq.gz", ".fastq", ".fq")):
-                    rep.warn(f"row {ln} ({sample}): {label} has an unusual extension: {fp}")
 
     for r1, n in seen_r1.items():
         if n > 1:
@@ -118,13 +147,7 @@ def validate_samplesheet(path: Path, check_files: bool, rep: Report) -> pd.DataF
 
     # Per-sample paired/single-end consistency (same sample over lanes is allowed in nf-core).
     if has_r2:
-        for sample, grp in df.groupby("sample"):
-            layouts = {"paired" if r2 else "single" for r2 in grp["fastq_2"]}
-            if len(layouts) > 1:
-                rep.error(f"sample '{sample}' mixes paired-end and single-end rows")
-        dup_samples = df["sample"][df["sample"].duplicated()].unique()
-        if len(dup_samples):
-            rep.warn(f"samples appear on multiple rows (will be lane-merged): {list(dup_samples)}")
+        _check_pairing_consistency(df, rep)
 
     print(f"samplesheet: {df['sample'].nunique()} unique sample(s) across {len(df)} row(s)")
     return df
@@ -132,6 +155,7 @@ def validate_samplesheet(path: Path, check_files: bool, rep: Report) -> pd.DataF
 
 def validate_metadata(meta_path: Path, sheet: pd.DataFrame | None,
                       condition_col: str, min_rep: int, rep: Report) -> None:
+    """Validate metadata."""
     if not meta_path.is_file():
         rep.error(f"metadata not found: {meta_path}")
         return
@@ -180,6 +204,7 @@ def validate_metadata(meta_path: Path, sheet: pd.DataFrame | None,
 
 
 def main() -> None:
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )

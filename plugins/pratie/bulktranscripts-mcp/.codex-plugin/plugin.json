@@ -1,7 +1,7 @@
 {
   "name": "bulktranscripts",
-  "version": "1.2.0",
-  "description": "YouTube transcripts for one video, a whole channel or a playlist, plus YouTube search and free new-upload tracking.",
+  "version": "1.1.0",
+  "description": "YouTube transcripts for one video, a whole channel or a playlist, plus YouTube search and free new-upload tracking, from the hosted BulkTranscripts MCP server.",
   "author": {
     "name": "BulkTranscripts",
     "email": "hello@bulktranscripts.co",
@@ -11,17 +11,13 @@
   "repository": "https://github.com/pratie/bulktranscripts-mcp",
   "license": "MIT",
   "keywords": [
+    "bulktranscripts",
     "youtube",
-    "youtube-transcript",
     "transcripts",
-    "captions",
-    "channel-transcripts",
-    "playlist",
-    "research",
-    "mcp"
+    "mcp",
+    "youtube transcript"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "logo": "https://bulktranscripts.co/logo-mark.png",
   "interface": {
     "displayName": "BulkTranscripts: YouTube Transcripts",
     "shortDescription": "YouTube transcripts in bulk",
@@ -45,5 +41,7 @@
     "screenshots": [
       "./assets/screenshot.png"
     ]
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

@@ -26,18 +26,30 @@ output_contract: process exit status and captured Codex output artifact
 # Codex Exec — one-shot runtime adapter
 
 Run exactly one caller-supplied Codex prompt as one process and capture its
-result. This skill does not choose work, retry, validate or continue.
+result. This skill does not choose work, retry, validate or continue. It worked
+when the command closes stdin, uses the sandbox the declared effects need,
+runs under one deadline fixed before the first attempt, and the report names
+the exit code's meaning instead of calling a timeout a result.
 
 ## Rules that change the command
 
 - **Sandbox from declared effects.** `-s read-only` for review or analysis,
   `workspace-write` only for authorized edits, and network or wider access only
   when the caller explicitly requires those effects. "In case it needs it" is
-  not a declared effect. A permission denial inside the run (`EPERM`, "Operation
-  not permitted") shows only what the mode blocks, not whether the host or the
-  code would fail. Quote it and report the check as sandbox-limited under not
-  run / `not_checked`: neither a pass nor a failed check. A host-side
-  observation still stands; a host run is the caller's decision.
+  not a declared effect. `-s` limits only Codex's shell commands; the user's
+  `config.toml` still starts its MCP servers. For review and CI add
+  `--ignore-user-config` (auth still loads), or report the inherited MCP
+  servers as undeclared effects. A permission denial inside the run (`EPERM`,
+  "Operation not permitted") shows only what the mode blocks, not whether the
+  host or the code would fail. Quote it and list the check under
+  `not_as_briefed` as sandbox-limited: neither a pass nor a failed check. A
+  host-side observation still stands; a host run is the caller's decision.
+- **Persist the transcript a receipt needs.** `--ephemeral` writes no session
+  file under `$CODEX_HOME/sessions`. A validator whose
+  [judgment receipt](../validate/references/judgment-receipts.md) the
+  caller requires runs without `--ephemeral`, and the caller copies that
+  run's `rollout-*.jsonl` into protected evidence storage. Add `--ephemeral`
+  only when no receipt is required.
 - **Close stdin.** `codex exec` reads the prompt from stdin when no prompt
   argument is given, and appends piped stdin to a prompt argument. A non-TTY run
   (CI, a script) with an open stdin can wait forever: the **stdin hang**. Feed
@@ -63,6 +75,7 @@ echo detection:
 # AGENTOPS_ROOT: the agentops source checkout. DEADLINE_EPOCH: absolute Unix
 # time fixed once by the caller and reused by every invocation in its scope.
 . "$AGENTOPS_ROOT/scripts/lib/codex-exec.sh"
+CODEX_EXEC_EXTRA_ARGS=(--ignore-user-config)  # add --ephemeral only when no receipt is required
 CODEX_EXEC_DIR="$WORKSPACE" CODEX_EXEC_SANDBOX=read-only \
 CODEX_EXEC_PROMPT_FILE="$PROMPT_FILE" CODEX_EXEC_DEADLINE_EPOCH="$DEADLINE_EPOCH" \
 CODEX_EXEC_MAX_OUTPUT_BYTES=10485760 CODEX_EXEC_OUT_FILE="$OUTPUT" \
@@ -70,7 +83,7 @@ CODEX_EXEC_MAX_OUTPUT_BYTES=10485760 CODEX_EXEC_OUT_FILE="$OUTPUT" \
 ```
 
 Outside a Git repository add `CODEX_EXEC_SKIP_GIT_CHECK=1`; to keep the final
-message outside the cap, assign `CODEX_EXEC_EXTRA_ARGS=(-o "$LAST")` on its own line first.
+message outside the cap, add `-o "$LAST"` to that array (assigned on its own line).
 
 An installed skill ships no scripts, so `scripts/lib/codex-exec.sh` is absent
 outside a source checkout. Run `codex exec` directly instead, with bash or zsh
@@ -80,11 +93,11 @@ outside a source checkout. Run `codex exec` directly instead, with bash or zsh
 ```bash
 case "${DEADLINE_EPOCH:-}" in ''|0*|*[!0-9]*) echo "no valid deadline; not launched" >&2; exit 2;; esac
 TO=$(command -v timeout || command -v gtimeout) || { echo "no timeout; not launched" >&2; exit 2; }
-remaining=$(( DEADLINE_EPOCH - $(date +%s) ))
-[ "$remaining" -gt 0 ] || { echo "deadline passed; not launched" >&2; exit 124; }
+remaining=$(( DEADLINE_EPOCH - $(date +%s) - 10 ))  # keep the 10 s KILL grace inside
+[ "$remaining" -gt 0 ] || { echo "deadline passed or within 10 s; not launched" >&2; exit 124; }
 set -o pipefail  # bash and zsh: $? is the failing stage, not head's
 "$TO" -k 10 "$remaining" \
-  codex exec -C "$WORKSPACE" -s read-only - <"$PROMPT_FILE" 2>&1 \
+  codex exec --ignore-user-config -C "$WORKSPACE" -s read-only - <"$PROMPT_FILE" 2>&1 \
   | head -c 10485760 >"$OUTPUT"
 rc=$?  # 124 timed out, 137 killed after grace, 127 no codex, else codex's status
 ```
@@ -107,8 +120,9 @@ detection; report both as not enforced.
 | other | Codex's own nonzero status, preserved |
 
 Reserved codes are runtime evidence, never a semantic verdict. A Codex 124 or
-137 returns 124 with the STALL line and a Codex 2 or 123 returns silently, so
-check the capture and elapsed time before reading one as the runner's.
+137 returns 124 with the STALL line; a Codex 2, 122, 123, 129, 130 or 143
+returns with no `codex-exec:` stderr line, so check stderr, the capture and
+elapsed time before reading one as the runner's.
 [Guarded runner internals](references/guarded-runner.md) covers inputs, host
 requirements, process supervision and the external sandbox wrapper.
 
@@ -121,12 +135,15 @@ bound:    absolute deadline and seconds remaining at launch
 capture:  output path, byte cap, truncated yes/no
 exit:     status and its meaning from the table
 cleanup:  library result, or "not enforced" for the direct fallback
+not_as_briefed: steps the output reports refused or sandbox-limited, quoted | none reported
 ```
 
 A Codex validator follows the
-[judgment receipt convention](../agent-native/references/judgment-receipts.md)
-and the [model-dispatch recipe](../agent-native/references/model-dispatch.md#association-before-execution):
+[judgment receipt convention](../validate/references/judgment-receipts.md)
+and the [model-dispatch recipe](../validate/references/model-dispatch.md#association-before-execution):
 a requested model flag or the model's own description does not prove which
-model ran. Siblings: [claude-exec](../claude-exec/SKILL.md) (one headless
-Claude prompt), [agy-native](../agy-native/SKILL.md) (AGY) and
-[agent-native](../agent-native/SKILL.md) (worker batches).
+model ran.
+
+- Use [claude-exec](../claude-exec/SKILL.md) for one headless Claude prompt.
+- Use [agy-native](../agy-native/SKILL.md) when AGY is named.
+- Use [orchestrate](../orchestrate/SKILL.md) for a batch of workers.

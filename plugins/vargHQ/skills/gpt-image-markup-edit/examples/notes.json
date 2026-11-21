@@ -1,0 +1,7 @@
+{
+  "units": "fraction",
+  "shapes": [
+    {"type": "rect", "box": [0.60, 0.56, 0.96, 0.78], "color": "blue", "label": "turn the book into a wrapped present with a gold ribbon", "note": "GIFT"},
+    {"type": "arrow", "from": [0.30, 0.20], "to": [0.18, 0.40], "color": "green", "label": "put a small sleeping kitten next to the cat", "note": "KITTEN"}
+  ]
+}

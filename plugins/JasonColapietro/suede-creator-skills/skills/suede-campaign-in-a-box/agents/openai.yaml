@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Campaign in a Box Skills"
+  short_description: "Package a complete artist campaign end to end"
+  default_prompt: "Use $suede-campaign-in-a-box to turn this song, release, era, catalog moment, show, or drop into a complete artist campaign: pick a lane (identity, era, song-to-universe, hooks, stunts, fan rituals, visualizer, merch, setlist, catalog revival, collab matchmaking) or run the full announce, teaser, release-week, and post-drop package with copy, calendar, email, site sections, press angles, fan actions, and build-next CTAs."
+policy:
+  allow_implicit_invocation: true

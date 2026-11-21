@@ -1,0 +1,39 @@
+{
+  "version": "8.30.1",
+  "protocol": 1,
+  "sourceSha256": "f1a8665dd4d769f33f822e2a605f5f6cbc1ddb3e260aabeafbb72c43753b883f",
+  "goVersion": "go version go1.27.0 windows/amd64",
+  "module": "github.com/zricethezav/gitleaks/v8",
+  "binaries": {
+    "darwin-arm64": {
+      "file": "darwin-arm64.gz",
+      "sha256": "d2d424ebfd5a7d211648cf6d4a09cd280649b992249723481c842cfeb3eb51a1",
+      "compressedSha256": "08caea0c09141b6951b5853c5dc09abb14fc5a0a4b557c73d47fcf39a82b9c8b"
+    },
+    "darwin-x64": {
+      "file": "darwin-x64.gz",
+      "sha256": "27cf2a9417a364cceb16632669489c9aba7b48a202cd3f3342c3325116e16b57",
+      "compressedSha256": "97db858929e72cdf88de9da72a7e402f0cd1fc9087130f56e5ad49e146282687"
+    },
+    "linux-arm64": {
+      "file": "linux-arm64.gz",
+      "sha256": "e15c88c023ef0f8f53e65e509da596eb265b762fc694f53af857ceb3fec3de89",
+      "compressedSha256": "6228d19977863ab49928d4dae8f7b6fb50ca703609ed5e521519511094e356f9"
+    },
+    "linux-x64": {
+      "file": "linux-x64.gz",
+      "sha256": "1b8aec03d4e9aa961360edeab42047abe573eebd9ef98119375dd3d89abfae54",
+      "compressedSha256": "90a87055806b27d1f68077f6e2e3db6b0d75c5eb55c1e0e1ecb4effa8b579468"
+    },
+    "win32-arm64": {
+      "file": "win32-arm64.gz",
+      "sha256": "d399d4ef93c8e3fe626372c133630d21275702937da9d2916635f1f36fbbdce5",
+      "compressedSha256": "97666cd1d66efdea7f8c4e8507f26f2d49b366fc270356b944ecacd1847d722a"
+    },
+    "win32-x64": {
+      "file": "win32-x64.gz",
+      "sha256": "c54d9df868c3522e9182d48e5ff613d2f7e83e95f824de44fc0e812fea223f66",
+      "compressedSha256": "23dc1d97ee74431bbd788b50e9dd2e459bd81746a9815e8e3699af0afb8d6187"
+    }
+  }
+}

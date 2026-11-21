@@ -1,0 +1,25 @@
+[
+ {
+  "id": "T1",
+  "core": true,
+  "needs": "material",
+  "question": "Name the material from visible detail, not from the scene. Is it as asked?",
+  "pass_example": "Concrete with visible aggregate and chips",
+  "fail_example": "Smooth surface with no visible detail",
+  "ct_rule": "Material area under 256 px"
+ },
+ {
+  "id": "T2",
+  "question": "On this native 512 px crop, does detail continue without smearing, repeating or melting?",
+  "pass_example": "Weave continues across a fold",
+  "fail_example": "Waxy pores, repeating tile",
+  "ct_rule": "Upscaled or compressed so that detail cannot be seen"
+ },
+ {
+  "id": "T4",
+  "question": "Does the surface catch light as asked?",
+  "pass_example": "Want matte: no specular streak",
+  "fail_example": "Glossy highlight",
+  "ct_rule": "No directional light on it"
+ }
+]

@@ -15,9 +15,9 @@ Using the official Codex CLI rather than OpenCode? The sibling project [`codex-m
 
 ## What it does
 
-- **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.opencode`, with per-project pools under `projects/<project-key>/` on by default.
+- **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.opencode`, with a shared global pool by default; set `CODEX_AUTH_PER_PROJECT_ACCOUNTS=1` to opt into per-project pools under `projects/<project-key>/`.
 - **Rotation** — health-scored hybrid selection picks the best enabled account per request, with cooldowns, automatic token refresh, and failover on rate limits.
-- **Model catalog** — 11 base models covering 59 variants: GPT-6.1 Sol, GPT-6 Astra/Sol/Luna, the GPT-5.6 tiers, GPT-5.5, and more, routed through the stateless Codex contract (`store: false` + `reasoning.encrypted_content`).
+- **Model catalog** — 14 base models covering 77 variants: GPT-6.1 Sol/Terra, GPT-6 Astra/Sol/Luna, the GPT-5.6 tiers, GPT-5.5, and more, routed through the stateless Codex contract (`store: false` + `reasoning.encrypted_content`).
 - **Quota in the prompt** — the TUI prompt line shows remaining quota for the serving account, the whole pool, or banked reset credits, with rotating screens.
 - **`codex-*` tools** — 24 in-session tools for switching, labeling, tagging, limits, diagnostics, and repair.
 - **Standalone CLI** — the same package runs `status`, `list`, `limits`, `doctor`, and friends directly — no agent, no token cost.
@@ -40,9 +40,9 @@ With no flag, the installer only registers the plugin: it adds the plugin entry 
 | Flag | Effect |
 | --- | --- |
 | (none) / `--plugin-only` | Register the plugin entries only |
-| `--modern` | Also install the compact catalog: 11 base models with 59 variants |
-| `--full` | Also install the compact bases plus 59 explicit selector IDs (`openai/gpt-5.5-medium`) |
-| `--legacy` | Install the explicit-only catalog (59 entries) for older OpenCode |
+| `--modern` | Also install the compact catalog: 14 base models with 77 variants |
+| `--full` | Also install the compact bases plus 77 explicit selector IDs (`openai/gpt-5.5-medium`) |
+| `--legacy` | Install the explicit-only catalog (77 entries) for older OpenCode |
 | `--v2` | Register for OpenCode V2 instead (plugin only; see below) |
 | `--dry-run` | Show what would change without writing |
 | `--no-cache-clear` | Skip clearing the OpenCode plugin cache |
@@ -81,6 +81,8 @@ Headless or remote shell? Four OAuth methods are available (browser, open URL ma
 
 OpenCode **2.0.16+** loads the plugin through a V2 adapter; the account pool, OAuth login, and request pipeline are shared with V1.
 
+The V2 plugin service does not open a browser. Interactive `opencode auth login` opens the authorization URL; in the TUI, press `o` or open the displayed URL yourself. If the client and service run on different machines, forward the service's callback port 1455 or choose **Device Code** or **Manual URL Paste** before starting login. See [remote login](docs/getting-started.md#remote-or-headless-login).
+
 ```bash
 npx -y oc-codex-multi-auth@latest --v2
 opencode service restart
@@ -88,6 +90,28 @@ opencode auth login   # OpenAI -> Codex OAuth (Add account — ChatGPT Plus/Pro)
 ```
 
 `--v2` writes a `plugins` entry only — no model catalog — and refuses an existing `opencode.jsonc` or V1 `plugin` entries rather than migrating them (edit the JSONC `plugins` list by hand instead). In V2, tool names normalize to `codex_list`, `codex_switch`, and so on; `/codex-accounts` and the **Codex accounts** palette command list the pool, and **Codex quota details** shows quota. V1's entrypoint remains for OpenCode 1.18.29+. See [Troubleshooting](docs/troubleshooting.md) for V2-specific issues.
+
+### Subscription image generation
+
+On OpenCode 2.2.7+ hosts with the native `@opencode/ai/providers/openai/images` driver,
+select a **Codex OAuth** connection under
+OpenAI and request `openai/gpt-image-2`. The plugin routes generation and edits
+to Codex's subscription endpoint. Images use the host's selected OpenAI account
+and its token refresh; they do not rotate through the chat account pool.
+
+Only `gpt-image-2` is enabled on this subscription route. Other image models are
+hidden rather than silently replaced. API-key connections retain the standard
+image API route and separate API billing. The newer **Sign in with ChatGPT**
+token-sharing flow is separate and currently excludes image generation.
+
+Image requests retain the native provider (including JSON image edits), not
+the plugin's language-model bridge. A subscription image request should use
+`https://chatgpt.com/backend-api/codex`, not `https://api.openai.com/v1`.
+Account and workspace permissions still apply; a rejection is not retried with
+another account or billing route.
+
+References: [Codex image generation](https://developers.openai.com/codex/image-generation),
+[token-sharing limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).
 
 ## Command map
 
@@ -120,17 +144,20 @@ These accept `--json` and `--config-path <file>` (`install`/`update` reject `--c
 
 ## Rotation, in one paragraph
 
-Each request picks the healthiest enabled account (`rotationStrategy`, default `hybrid`): health scores drop on failures and rate limits, cooldowns keep a burned account out of the running, tokens refresh as needed, and failover walks the pool within a bounded retry budget. Logging into the same account again updates its entry rather than duplicating it. Pools are **per-project by default** — the plugin walks up from the working directory looking for a project marker (`.git`, `package.json`, `.opencode`, and friends), stopping at your home directory; without a marker it uses global storage. Set `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0` to force the global pool.
+Each request picks the healthiest enabled account (`rotationStrategy`, default `hybrid`): health scores drop on failures and rate limits, cooldowns keep a burned account out of the running, tokens refresh as needed, and failover walks the pool within a bounded retry budget. Logging into the same account again updates its entry rather than duplicating it. The shared global pool is the default. Set `CODEX_AUTH_PER_PROJECT_ACCOUNTS=1` to opt into per-project pools; the plugin then walks up from the working directory looking for a project marker (`.git`, `package.json`, `.opencode`, and friends), stopping at your home directory. Without that opt-in, it uses `~/.opencode/oc-codex-multi-auth-accounts.json`.
 
 Accounts whose plan quota is used up are left alone until it resets, even when they hold Codex credits. Set `spendCredits: true` to spend those credits once no account has plan quota left; a toast names the account and its remaining balance. See [Spending Codex credits](docs/configuration.md#spending-codex-credits).
 
 ## Models
 
-`--modern` and `--full` install **11 base models** covering **59 variants** (selectable via `--variant`); `--legacy` installs the 59 as explicit IDs.
+`--modern` and `--full` install **14 base models** covering **77 variants** (selectable via `--variant`); `--legacy` installs the 77 as explicit IDs.
 
 | Base | Notes |
 | --- | --- |
 | `gpt-6.1-sol` | newest workhorse; the OpenAI Codex catalog's default since 2026-09-29 |
+| `gpt-6.1-terra` | distinct model with low, medium, high, xhigh, max, and ultra efforts; default low |
+| `gpt-6.2-astra` | GPT-6.2 frontier model released 2026-11-17; low through max plus the client-side ultra tier |
+| `gpt-6.2-sol` | GPT-6.2 everyday-work model released 2026-11-17; low through max plus the client-side ultra tier |
 | `gpt-6-astra` | frontier; rolled out 2026-09-03 |
 | `gpt-6-sol` | workhorse coding model |
 | `gpt-6-luna` | fast, affordable |
@@ -145,7 +172,7 @@ Retired IDs still route if typed — `gpt-5.4-mini`, `gpt-5-codex`, `gpt-5.1-cod
 
 ## Quota status
 
-The TUI prompt line shows quota for the account that served the last request. `quotaStatus.mode` in `~/.opencode/openai-codex-auth-config.json` controls it:
+The TUI prompt line shows quota for the account that served the current session's last request (OpenCode V2: the last request overall). `quotaStatus.mode` in `~/.opencode/openai-codex-auth-config.json` controls it:
 
 - `active` (default): the serving account's remaining quota
 - `overview`: the whole pool on one line, weighted by plan
@@ -170,7 +197,7 @@ Plugin settings are re-read per request — most edits need no restart. Boolean 
 
 | Setting | Effect |
 | --- | --- |
-| `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0` | Force the global account pool |
+| `CODEX_AUTH_PER_PROJECT_ACCOUNTS=1` | Opt into per-project account pools |
 | `CODEX_KEYCHAIN=1` | Store accounts in the OS keychain |
 | `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin\|custom` | Account selection strategy |
 | `CODEX_AUTH_SPEND_CREDITS=1` | Spend Codex credits once no account has plan quota left |
@@ -211,7 +238,7 @@ Most issues resolve by signing in again or running `codex-doctor fix=true` insid
 
 ## Release notes
 
-- Current stable: [v6.29.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
+- Current stable: [v6.33.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
 - Full release archive: [CHANGELOG.md](CHANGELOG.md)
 
 ## Terms and license

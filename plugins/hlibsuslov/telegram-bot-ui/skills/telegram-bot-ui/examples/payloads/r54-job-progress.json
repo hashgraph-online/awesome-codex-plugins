@@ -1,0 +1,109 @@
+{
+  "scenario": "r54-job-progress",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (checked 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<style>:root{--k-tx:var(--tg-theme-text-color,#000);--k-hint:var(--tg-theme-hint-color,#707579);--k-btn:var(--tg-theme-button-color,#2481cc);--k-sec:var(--tg-theme-secondary-bg-color,#f1f1f4);--k-bad:var(--tg-theme-destructive-text-color,#e53935);--k-ok:light-dark(#2e8b3e,#5ec46e);--k-r:10px;color-scheme:light dark}body{margin:0;padding:0}.k{padding:10px 12px max(10px,env(safe-area-inset-bottom),var(--tg-content-safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}.hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.tt{font-weight:600;font-size:1.07em;margin:0}.mt{color:var(--k-hint);font-size:.87em}.rw{display:flex;align-items:center;gap:8px}.el{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sf{background:var(--k-sec);border-radius:var(--k-r);padding:8px 10px}.wd{width:100%;margin-top:8px}.st{min-height:1.35em;margin-top:6px;color:var(--k-hint);font-size:.87em}.st.e{color:var(--k-bad)}.st.ok{color:var(--k-ok)}.br{height:6px;border-radius:3px;background:var(--k-sec);overflow:hidden}.br>i{display:block;height:100%;background:var(--k-btn);border-radius:3px;transition:width .3s}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.pg{margin:8px 0}.pg .rw{justify-content:space-between;margin-top:4px}.sg{margin:8px 0}.sg>div{display:flex;gap:8px;padding:3px 0;color:var(--k-hint)}.sg b{width:1.2em;flex:none;text-align:center;font-weight:400}.sg .dn2{color:var(--k-ok)}.sg .cur{color:var(--k-tx);font-weight:600}.sg .bad{color:var(--k-bad);font-weight:600}.er{color:var(--k-bad);font-size:.93em;margin-top:6px}</style> <div class=\"k\"><div class=\"hd\"><span class=\"tt el\" id=\"ti\"></span><span class=\"mt\" id=\"pc\"></span></div><div class=\"pg\"><div class=\"br\"><i id=\"pb\"></i></div><div class=\"rw mt\"><span id=\"pn\"></span><span id=\"eta\"></span></div></div><div class=\"sg sf\" id=\"sg\"></div><div class=\"rw mt\"><span id=\"el\"></span></div><div class=\"er\" id=\"er\"></div><button class=\"wd\" id=\"bt\"></button><div class=\"st\" id=\"st\"></div></div> <script>var W=window.TelegramWidget||null;var K={lang:String(navigator.language||\"en\").slice(0,2),S:{},R:{},I:{},busy:0,t:function(k){var d=K.I[K.lang]||K.I[Object.keys(K.I)[0]]||{};return k in d?d[k]:k;},add:function(o){for(var l in o)K.I[l]=Object.assign(K.I[l]||{},o[l]);},$:function(i){return document.getElementById(i);},h:function(tag,cls,txt){var e=document.createElement(tag);e.className=cls||\"\";if(txt!=null)e.textContent=txt;return e;},take:function(f,s){if(!s||typeof s!=\"object\"||(f in K.R&&+s.r<K.R[f]))return 0;K.R[f]=+s.r||0;K.S[f]=s;return 1;},load:function(f){try{K.take(f,JSON.parse(W[f]));}catch(e){}},can:function(){return!!(W&&W.viewer&&!W.isPreview);},st:function(txt,kind){var n=K.$(\"st\");if(n){n.textContent=txt||\"\";n.className=\"st \" +(kind||\"\");}},ask:function(data,o){o=o||{};if(!K.can()||K.busy)return 0;K.busy=1;K.st(K.t(\"wait\"));K.draw();new Promise(function(r){r(W.request(data));}).then(function(a){var r={};try{r=JSON.parse(a.result)||{};}catch(e){}\nK.busy=0;K.take(o.f||\"chatData\",r.s);var ok=r.ok&&!r.err;K.st(r.msg||(ok?o.done:K.t(r.err||\"INVALID_ANSWER\")),ok?\"ok\":\"e\");try{W.HapticFeedback.notificationOccurred(ok?\"success\":\"error\");}catch(e){}\nif(o.then)o.then(r);K.draw();},function(e){K.busy=0;K.st(K.t(e.code||\"FAILED\"),\"e\");if(o.fail)o.fail(e);K.draw();});return 1;},sync:function(data,f){if(W&&W.chatType==\"private\"&&K.can()&&!W.isForward&&!K.busy)\nW.request(data).then(function(a){try{if(K.take(f||\"chatData\",JSON.parse(a.result).s))K.draw();}catch(e){}},function(){});},nf:function(n,o){try{return new Intl.NumberFormat(K.lang,o).format(n);}catch(e){return \"\" + n;}},money:function(minor,cur){return K.nf(minor / 100,{style:\"currency\",currency:cur});},time:function(sec,o){try{return new Intl.DateTimeFormat(K.lang,o||{hour:\"2-digit\",minute:\"2-digit\"}).format(sec*1000);}catch(e){return \"\";}},start:function(draw,o){o=o||{};K.draw=draw;var d=document.documentElement;if(!d.dir)d.dir=/^(ar|he|fa|ur)/.test(K.lang)?\"rtl\":\"ltr\";if(W){K.load(\"chatData\");K.load(\"publicData\");W.onEvent(\"chatDataChanged\",function(){K.load(\"chatData\");draw();});W.onEvent(\"publicDataChanged\",function(){K.load(\"publicData\");draw();});W.onEvent(\"themeChanged\",draw);if(o.watch)W.watchPublicData();if(o.sync)W.onEvent(\"activated\",function(){K.sync(o.sync,o.f);});}\ndraw();if(o.sync)K.sync(o.sync,o.f);if(W)W.ready();}};</script> <script>K.add({en:{wait:\"Sending…\",NOT_ALLOWED:\"Open the bot for this\",BUSY:\"One moment…\",RATE_LIMITED:\"Too fast, wait a bit\",TIMEOUT:\"No answer. Nothing changed\",FAILED:\"Couldn't reach the bot\",INVALID_ANSWER:\"Unexpected answer\",stale:\"Changed meanwhile, check again\",not_allowed:\"Only the owner can do this\",failed:\"Not saved, try again\",busy:\"Busy, try again\",bad_request:\"Not available\"}});</script> <script>K.add({en:{g0:\"Queued\",g1:\"Fetching\",g2:\"Transforming\",g3:\"Uploading\",g4:\"Done\",el:\"Elapsed\",eta:\"ETA\",can:\"Cancel\",sure:\"Tap again to cancel\",open:\"Open file\",retry:\"Retry\",none:\"No job yet. The bot will start one.\",fin:\"Finished in\"}});var armed=0;function mmss(x){x=Math.max(0,Math.floor(x));var s=x%60;return Math.floor(x / 60)+ \":\" +(s<10?\"0\":\"\")+ s;}\nfunction live(){var s=K.S.chatData,$=K.$;if(!s)return;var now=Date.now()/ 1000,run=s.st==\"running\"||s.st==\"queued\";$(\"el\").textContent=(s.st==\"done\"?K.t(\"fin\"):K.t(\"el\"))+ \" \" + mmss((run?now:s.end)- s.t0);$(\"eta\").textContent=s.st==\"running\"?K.t(\"eta\")+ \" \" + mmss(s.eta -(now - s.at)):\"\";}\nfunction draw(){var s=K.S.chatData,$=K.$,off=K.busy||!K.can(),b=$(\"bt\");if(!s){$(\"ti\").textContent=K.t(\"none\");b.style.display=\"none\";return;}\n$(\"ti\").textContent=s.ti;var pct=s.n?Math.round(s.p / s.n*100):0,fail=s.st==\"failed\";$(\"pc\").textContent=pct + \"%\";$(\"pb\").style.width=pct + \"%\";$(\"pb\").style.background=fail?\"var(--k-bad)\":s.st==\"done\"?\"var(--k-ok)\":\"\";$(\"pn\").textContent=K.nf(s.p)+ \" / \" + K.nf(s.n);var sg=$(\"sg\");sg.innerHTML=\"\";for(var i=0;i<5;i++){var cur=i==s.sg,past=i<s.sg||s.st==\"done\";var d=K.h(\"div\",past?\"dn2\":cur?(fail?\"bad\":\"cur\"):\"\");d.appendChild(K.h(\"b\",\"\",past?\"✓\":cur?(fail?\"✕\":\"●\"):\"○\"));d.appendChild(K.h(\"span\",\"\",K.t(\"g\" + i)));sg.appendChild(d);}\n$(\"er\").textContent=fail?s.err:\"\";live();b.style.display=\"\";if(s.st==\"done\"){b.textContent=K.t(\"open\");b.disabled=!window.TelegramWidget;b.onclick=function(){if(window.TelegramWidget&&s.url)window.TelegramWidget.openLink(s.url);};return;}\nb.disabled=off;if(fail){b.textContent=K.t(\"retry\");b.onclick=function(){K.ask(\"retry\");};return;}\nb.textContent=K.t(armed?\"sure\":\"can\");b.onclick=function(){if(!armed){armed=1;setTimeout(function(){armed=0;draw();},3000);draw();return;}\narmed=0;K.ask(\"cancel\");};}\nsetInterval(live,1000);K.start(draw,{sync:\"sync\"});</script>\n",
+        "caption": "Exporting 12,480 rows to CSV · 60% · ETA 0:58",
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"queued\",\"sg\":0,\"p\":0,\"n\":12480,\"t0\":1794736788,\"at\":1794736788,\"eta\":90,\"r\":0}",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Status",
+                "callback_data": "job:sync"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "job:cancel"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"running\",\"sg\":1,\"p\":0,\"n\":12480,\"t0\":1794736805,\"at\":1794736805,\"eta\":90,\"r\":1}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"running\",\"sg\":1,\"p\":1386,\"n\":12480,\"t0\":1794736805,\"at\":1794736815,\"eta\":80,\"r\":2}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"running\",\"sg\":1,\"p\":2773,\"n\":12480,\"t0\":1794736805,\"at\":1794736825,\"eta\":70,\"r\":3}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"running\",\"sg\":1,\"p\":3466,\"n\":12480,\"t0\":1794736805,\"at\":1794736830,\"eta\":65,\"r\":4}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012354001",
+        "data": "{\"ok\":true,\"s\":{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"running\",\"sg\":1,\"p\":3466,\"n\":12480,\"t0\":1794736805,\"at\":1794736830,\"eta\":65,\"r\":4},\"r\":4}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"failed\",\"sg\":1,\"p\":3466,\"n\":12480,\"t0\":1794736805,\"at\":1794736830,\"eta\":65,\"end\":1794736830,\"err\":\"Cancelled by you\",\"r\":5}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012354002",
+        "data": "{\"ok\":true,\"s\":{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"failed\",\"sg\":1,\"p\":3466,\"n\":12480,\"t0\":1794736805,\"at\":1794736830,\"eta\":65,\"end\":1794736830,\"err\":\"Cancelled by you\",\"r\":5},\"r\":5}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012354003",
+        "data": "{\"ok\":true,\"err\":\"bad_request\",\"s\":{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"failed\",\"sg\":1,\"p\":3466,\"n\":12480,\"t0\":1794736805,\"at\":1794736830,\"eta\":65,\"end\":1794736830,\"err\":\"Cancelled by you\",\"r\":5},\"r\":5}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"queued\",\"sg\":0,\"p\":0,\"n\":12480,\"t0\":1794736830,\"r\":6}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012354004",
+        "data": "{\"ok\":true,\"s\":{\"ti\":\"Exporting 12,480 rows to CSV\",\"st\":\"queued\",\"sg\":0,\"p\":0,\"n\":12480,\"t0\":1794736830,\"r\":6},\"r\":6}"
+      }
+    }
+  ]
+}

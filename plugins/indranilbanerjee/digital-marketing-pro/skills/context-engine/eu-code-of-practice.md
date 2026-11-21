@@ -10,8 +10,8 @@ This document is the canonical reference for any DMP skill that produces, valida
 
 - **Final EU Code of Practice** — ✅ PUBLISHED 10 June 2026. Citations in this doc now point at the final text. The **initial-signatory window closed 22 July 2026** (late signing remains possible); one time-sensitive obligation remains: Article 50 obligations **apply from 2 August 2026**.
 - **Standardized EU disclosure icons** — ✅ published: three icons (Basic / Fully AI-Generated / Partially AI-Modified), optional to use but labelling itself is mandatory; label visible at first exposure and when reshared or downloaded. Details and source below under "The official EU icons" (Commission page updated 13 Oct 2026).
-- **FTC endorsement guidance (May 2026)** — the US FTC's updated endorsement/testimonial guidance covers AI-generated testimonials and synthetic-creator content. Verify the current text against ftc.gov and fold specifics into `skills/influencer-creator/ftc-compliance.md` and `skills/c2pa-metadata/SKILL.md`.
-- **New York synthetic-performer disclosure law (effective June 2026)** — applies to synthetic influencers and AI-generated endorsements ($1K–$5K per violation, $10K repeat). Verify scope/effective date against a primary source before relying on the figures.
+- **FTC rules on endorsements and reviews**: the Endorsement Guides (16 CFR Part 255, revised 2023) and the Consumer Reviews and Testimonials Rule (16 CFR Part 465, in force 2024-10-21), which bans fake reviews and testimonials, AI-generated ones included; the FTC's Q&A says an AI avatar can still be a testimonial and can deceive ([FTC Q&A](https://www.ftc.gov/business-guidance/resources/consumer-reviews-testimonials-rule-questions-answers)). Specifics for creators are in `skills/influencer-creator/ftc-compliance.md`.
+- **New York synthetic-performer disclosure law** (S.8420-A, signed 2025-12-11, in force 2026-06-09: an ad that uses an AI-generated synthetic performer must disclose it conspicuously; $1,000 for a first violation and $5,000 for each later one; applies to ads reaching New York audiences ([Governor's release](https://www.governor.ny.gov/news/governor-hochul-signs-legislation-protect-consumers-and-boost-ai-transparency-film-industry), 2025-12-11; the effective date and penalties as reported by law-firm summaries)).
 
 ## What Article 50 actually requires
 
@@ -87,7 +87,7 @@ DMP is a **deployer**, not a provider — and the same logic applies to any othe
 
 ### Mandatory disclosure paths used by the plugin
 
-1. **Machine-readable mark** — embed a C2PA manifest with the `c2pa.ai-disclosure` assertion (spec 2.4, April 2026) via `/digital-marketing-pro:c2pa-metadata`. **This satisfies the Section 1 secured-metadata requirement automatically.** Note: the Code Section 1 also requires a watermarking layer — this is a *provider* obligation, but if you're stitching together outputs from multiple providers (e.g., AI-generated images composited in a separate design tool), verify the marks survive your post-processing pipeline.
+1. **Machine-readable mark** — embed a C2PA manifest with the `c2pa.ai-disclosure` assertion (added in spec 2.4, April 2026; the current spec is 2.5, October 2026) via `/digital-marketing-pro:c2pa-metadata`. **This satisfies the Section 1 secured-metadata requirement automatically.** Note: the Code Section 1 also requires a watermarking layer — this is a *provider* obligation, but if you're stitching together outputs from multiple providers (e.g., AI-generated images composited in a separate design tool), verify the marks survive your post-processing pipeline.
 2. **Visible deepfake disclosure** — for any AI-generated image/video/audio that resembles a real person, place, or object: visible icon/label/disclaimer on the asset OR in the adjacent caption / alt text / publication metadata. DMP's content pipeline auto-adds this when `c2pa_auto_sign: true` is on for the brand and the generator emitted `ai-claim: ai-generated-content`. **Anticipate the standardized EU icon** — the standardized EU disclosure icons shipped in the final Code annex (10 June 2026), DMP will adopt the standardized EU disclosure icon from the annex.
 3. **Editorial-review proof for AI-generated text** — if you're publishing long-form AI-written articles to inform the public on matters of public interest, the editorial-review exception applies only if a human editor signed off with editorial responsibility. Your documented review records (the quality-assurance agent's logged evals, reviewer scorecards, sign-off notes) serve as evidence; **archive them for at least 3 years** (typical regulatory retention).
 
@@ -103,7 +103,7 @@ Under the final Code, the C2PA `c2pa.ai-disclosure` + IPTC digital-source-type p
 
 ## Operational checklist for marketing teams (Aug 2 readiness)
 
-Run this checklist before 2 August 2026 for any brand with EU target markets:
+Run this checklist for any brand with EU target markets (Article 50 applies since 2 August 2026; systems on the market before then have until 2 December 2026 for the 50(2) marking):
 
 - [ ] `brand.profile.json → target_markets` reviewed; EU jurisdictions identified
 - [ ] `c2pa_auto_sign: true` enabled for any brand with EU markets

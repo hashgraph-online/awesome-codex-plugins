@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Eval Skills"
+  short_description: "Design AI evals and failure rubrics"
+  default_prompt: "Use $suede-ai-eval to audit this AI-powered surface, define failure modes, write an AI-SPEC, and design eval cases with acceptance gates."
+policy:
+  allow_implicit_invocation: true

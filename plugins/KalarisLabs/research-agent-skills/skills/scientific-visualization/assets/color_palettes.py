@@ -137,6 +137,8 @@ PALETTES: Final = {
     "tol_light": TOL_LIGHT,
 }
 
+_TOL_SOURCE_URL: Final = "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf"
+
 PALETTE_METADATA: Final = {
     "okabe_ito": {
         "kind": "qualitative",
@@ -150,43 +152,43 @@ PALETTE_METADATA: Final = {
     },
     "tol_bright": {
         "kind": "qualitative",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "maximum_categories": 7,
     },
     "tol_high_contrast": {
         "kind": "qualitative",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "maximum_categories": 3,
         "caveat": "Designed to retain separation in grayscale.",
     },
     "tol_vibrant": {
         "kind": "qualitative",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "maximum_categories": 7,
     },
     "tol_muted": {
         "kind": "qualitative",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "maximum_categories": 9,
     },
     "tol_medium_contrast": {
         "kind": "qualitative-pairs",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "maximum_categories": 6,
     },
     "tol_pale": {
         "kind": "text-background",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "caveat": "Not intended for plot lines or categorical maps.",
     },
     "tol_dark": {
         "kind": "text-foreground",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "caveat": "Not intended as a multi-category plot palette.",
     },
     "tol_light": {
         "kind": "labeled-cell-fill",
-        "source": "https://sronpersonalpages.nl/~pault/data/colourschemes.pdf",
+        "source": _TOL_SOURCE_URL,
         "maximum_categories": 9,
     },
 }

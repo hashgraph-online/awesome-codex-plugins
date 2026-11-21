@@ -38,8 +38,11 @@ facts decide whether one runs and what it shows (checked 2026-10-25):
   replayable set at all.
 - **Exit 0 is not reproduction.** A replay reproduces a stored result only when
   its scorecard reports `evaluator_matches_capture: true`. Every committed set
-  replays with `false`, which the coverage gate labels `evaluator-stale`, so
-  treat the committed sets as historical.
+  replays with `false`, and the coverage gate rejects each as ineligible by its
+  first failing check: the 2026-09-03 sets show `evidence-unverified` after the
+  warning "capture evaluator hashes do not match the exact repo-local evaluator
+  files"; `evaluator-stale` appears only once a set's recorded evaluator hashes
+  match. Treat the committed sets as historical.
 - **Live reps and names are bound.** A live capture, only inside an authorized
   envelope, takes `--reps` equal to `probe.json` `reps` (2 on every committed
   probe) or omits it, plus a new `--fixtures` name and `--output` path each

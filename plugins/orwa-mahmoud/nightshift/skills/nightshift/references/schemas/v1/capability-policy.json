@@ -1,5 +1,0 @@
-{
-  "schemaVersion": 1,
-  "policies": ["existing-tools", "auto-add", "review-missing"],
-  "defaultPolicy": "existing-tools"
-}

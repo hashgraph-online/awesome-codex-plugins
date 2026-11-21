@@ -1,0 +1,423 @@
+{
+  "scenario": "r60-inline-mode",
+  "status": "production",
+  "context": "inline",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "answerInlineQuery",
+      "params": {
+        "inline_query_id": "6000000000000960001",
+        "is_personal": true,
+        "cache_time": 60,
+        "button": {
+          "text": "Open the bot for more",
+          "start_parameter": "search"
+        },
+        "results": [
+          {
+            "type": "article",
+            "id": "kaffa",
+            "title": "Kaffa Roasters",
+            "description": "Podil · Filter coffee, oat milk",
+            "input_message_content": {
+              "message_text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:kaffa",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_kaffa"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "article",
+            "id": "pie",
+            "title": "Pie Lab",
+            "description": "Podil · Apple pie",
+            "input_message_content": {
+              "message_text": "<b>Pie Lab</b>\nPodil · Apple pie\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:pie",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_pie"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "article",
+            "id": "tea",
+            "title": "Tea Room",
+            "description": "Lukianivka · Oolong, quiet tables",
+            "input_message_content": {
+              "message_text": "<b>Tea Room</b>\nLukianivka · Oolong, quiet tables\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:tea",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_tea"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "next_offset": ""
+      }
+    },
+    {
+      "method": "answerInlineQuery",
+      "params": {
+        "inline_query_id": "6000000000000960002",
+        "is_personal": true,
+        "cache_time": 60,
+        "results": [
+          {
+            "type": "article",
+            "id": "kaffa",
+            "title": "Kaffa Roasters",
+            "description": "Podil · Filter coffee, oat milk",
+            "input_message_content": {
+              "message_text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:kaffa",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_kaffa"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "article",
+            "id": "jam",
+            "title": "Jam Espresso",
+            "description": "Centre · Espresso bar, open late",
+            "input_message_content": {
+              "message_text": "<b>Jam Espresso</b>\nCentre · Espresso bar, open late\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:jam",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_jam"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "article",
+            "id": "bean",
+            "title": "Bean There",
+            "description": "Pechersk · Pour-over flights",
+            "input_message_content": {
+              "message_text": "<b>Bean There</b>\nPechersk · Pour-over flights\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:bean",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_bean"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "next_offset": "3"
+      }
+    },
+    {
+      "method": "answerInlineQuery",
+      "params": {
+        "inline_query_id": "6000000000000960003",
+        "is_personal": true,
+        "cache_time": 60,
+        "results": [
+          {
+            "type": "article",
+            "id": "mono",
+            "title": "Mono Cup",
+            "description": "Obolon · Cardamom bun",
+            "input_message_content": {
+              "message_text": "<b>Mono Cup</b>\nObolon · Cardamom bun\n\nWho is in? Tap the button.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "👍 I'm in",
+                    "callback_data": "pl:vote:mono",
+                    "style": "primary"
+                  }
+                ],
+                [
+                  {
+                    "text": "Open in the bot",
+                    "url": "https://t.me/placecards_bot?start=place_mono"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "next_offset": ""
+      }
+    },
+    {
+      "method": "answerInlineQuery",
+      "params": {
+        "inline_query_id": "6000000000000960004",
+        "is_personal": true,
+        "cache_time": 60,
+        "button": {
+          "text": "Нічого не знайшли: у бот",
+          "start_parameter": "search"
+        },
+        "results": [],
+        "next_offset": ""
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "AQAAAKx2nwABCDEF",
+        "text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nGoing (1): Alice",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍 I'm in · 1 going",
+                "callback_data": "pl:vote:kaffa",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Open in the bot",
+                "url": "https://t.me/placecards_bot?start=place_kaffa"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq101",
+        "text": "You are in ✓"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "AQAAAKx2nwABCDEF",
+        "text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nGoing (2): Alice, Богдан",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍 I'm in · 2 going",
+                "callback_data": "pl:vote:kaffa",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Open in the bot",
+                "url": "https://t.me/placecards_bot?start=place_kaffa"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq102",
+        "text": "Ви йдете ✓"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "AQAAAKx2nwABCDEF",
+        "text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nGoing (3): Alice, Богдан, Eve &lt;script&gt;",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍 I'm in · 3 going",
+                "callback_data": "pl:vote:kaffa",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Open in the bot",
+                "url": "https://t.me/placecards_bot?start=place_kaffa"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq103",
+        "text": "You are in ✓"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "AQAAAKx2nwABCDEF",
+        "text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nGoing (2): Богдан, Eve &lt;script&gt;",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍 I'm in · 2 going",
+                "callback_data": "pl:vote:kaffa",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Open in the bot",
+                "url": "https://t.me/placecards_bot?start=place_kaffa"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq104",
+        "text": "Removed: you are not going"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq105",
+        "text": "Картку більше не відстежуємо. Поділіться знову."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq106",
+        "text": "This card is out of date. Share it again."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "AQAAAKx2nwABCDEF",
+        "text": "<b>Kaffa Roasters</b>\nPodil · Filter coffee, oat milk\n\nGoing (1): Eve &lt;script&gt;",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍 I'm in · 1 going",
+                "callback_data": "pl:vote:kaffa",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Open in the bot",
+                "url": "https://t.me/placecards_bot?start=place_kaffa"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqdup",
+        "text": "Скасовано: ви не йдете"
+      }
+    }
+  ]
+}

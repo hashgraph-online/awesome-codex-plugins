@@ -1,0 +1,18 @@
+{
+  "name": "neon_emissive",
+  "description": "Glowing orange emitter (the only preset that wants bloom).",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.05,
+    0.05,
+    0.05
+  ],
+  "metallic": 0.0,
+  "roughness": 0.4,
+  "emissiveStrength": 8.0,
+  "emissive": [
+    1.0,
+    0.35,
+    0.1
+  ]
+}

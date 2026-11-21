@@ -136,15 +136,22 @@ collections have their facts to hand:
 Fill each field from the user's contract or acceptance; leave a field blank
 rather than guess it.
 
-When summarising, report stories out by market, exclusive submissions still
-open, holds, entries past their window, and stories with no submission out.
+When summarising, run `story submissions .` for the rows, the count of each
+status, and the entries past the window (`--days <n>` sets one window for
+every row, so use the shortest response time among the markets and check
+each flagged row against its own market's window in Notes), then report stories out by market, exclusive submissions
+still open, holds, entries past their window, and stories with no
+submission out. The command reads a tracker inside a story project only; a
+shared tracker in a plain folder outside any project is summarised by
+reading its table.
 
 ## Assemble a collection
 
 A collection gathers one author's stories; an anthology gathers several
 authors' stories, usually under an editor. The steps below fit both. Each
 story stays an ordinary Story Skills project; the book is one more project
-with each story as a chapter and no `form`. Its `story.md` `labels:` list
+with each story as a chapter and no `form`, which `story collect` writes from
+the story projects its `stories` list names. Its `story.md` `labels:` list
 holds `chapter-heading: "{title}"`, so each heading shows the title alone. A
 `labels` entry in a chapter's frontmatter has no effect. In an anthology, put
 the editor in `story.md` `editor` and each story's writer in its chapter's
@@ -171,7 +178,20 @@ layout, the bylines, and the builds.
    reader will feel the echo. A linked collection with a through-line or
    shared timeline orders by that. Present the order with a line on why each
    story sits where it does; the user decides.
-4. **Collect the acknowledgements.** Every previously published story needs
+4. **Assemble the book.** Put the collection project beside the story
+   projects, and list the story folders in its `story.md` `stories`, in the
+   chosen order, such as `stories: [../low-tide, ../salt]`. Run
+   `story collect . --dry-run` and show the user the chapters it would
+   write, then run `story collect .`. It writes each story as one chapter,
+   with a writer other than the collection's `author` in the chapter's
+   `author`, and reports which stories changed since the last run. Edit a
+   story only in its own project, then run `story collect .` again. Never
+   edit a collected chapter (one with `collected-from`) in the collection:
+   collect refuses to replace the edit, and `--force` discards it, so ask the
+   user before you pass `--force`. A missing story project stops it with
+   nothing written; fix the `stories` entry it names. Then run
+   `story reindex .`, `story wordcount . --write`, and `story check .`.
+5. **Collect the acknowledgements.** Every previously published story needs
    a credit line: the title, the venue, and the year it first appeared, in
    the form the user's publisher asks for, such as
    `"Title" first appeared in {Venue}, {year}.` Take each fact from the
@@ -181,7 +201,7 @@ layout, the bylines, and the builds.
    In the collection project, put the credits on a back-matter page:
    `story add matter 'Acknowledgements' --placement back`, then write the
    lines into `matter/acknowledgements.md`, then run `story reindex .`, `story wordcount . --write`, and `story check .`.
-5. **Check the stories against each other.** In a linked collection, run
+6. **Check the stories against each other.** In a linked collection, run
    each story's checks (`story check .`) and compare
    shared names, dates, and facts by reading. Note contradictions for the
    user; fix them with `revision-continuity`.

@@ -60,10 +60,10 @@ Compose holds it in state / a nav route.
 **Target (required):** `setUser(user)` ⇄ `user =` OR `setGroup(group)` ⇄ `group =` — without one the list shows only its loading indicator (docs Warning).
 **Callbacks:**
 - `setOnThreadRepliesClick { message -> }` ⇄ `onThreadRepliesClick = { message -> }` — receives the parent `BaseMessage`; navigate to the thread screen (default-on; hide only on explicit opt-out via `setReplyInThreadOptionVisibility(View.GONE)` / Compose hide-option param — FETCH the Compose name from `message-list.md` if needed).
-  ⚠️ **Signature note:** the installed 6.0.5 kit takes a single `BaseMessage` in BOTH cohorts (`fun setOnThreadRepliesClick(callback: ((BaseMessage) -> Unit)?)`); the docs page's `{ context, baseMessage, template -> }` fence is stale — bake the single-arg shape.
+  ⚠️ **Signature note:** the installed 6.0.5 and 6.1.1 kits take a single `BaseMessage` in BOTH cohorts (`fun setOnThreadRepliesClick(callback: ((BaseMessage) -> Unit)?)`); the docs page's `{ context, baseMessage, template -> }` fence is stale — bake the single-arg shape.
 - `setOnError { exception -> }` ⇄ `onError` · `setOnLoad { messages -> }` ⇄ `onLoad` · `setOnEmpty { }` ⇄ `onEmpty`.
 **Functionality:** `setMessagesRequestBuilder(MessagesRequest.MessagesRequestBuilder()...)` ⇄ `messagesRequestBuilder =` (same pass-the-builder-not-`.build()` rule) · `setStartFromUnreadMessages(true)` ⇄ `startFromUnreadMessages = true` · `setEnableMultipleAttachments(true)` ⇄ `enableMultipleAttachments = true` (default true).
-**Thread mode:** `setParentMessageId(id)` (Views, `Long`) ⇄ `parentMessageId = message.id` (Compose, default `-1` = main conversation) — a parent-scoped list for the thread screen. ⚠️ The `guide-threaded-messages.md` Views fence calls `messageList.setParentMessage(it.id)` — that setter doesn't exist on the list; the real one is `setParentMessageId` (verified in kit source + master app).
+**Thread mode:** `setParentMessageId(id)` (Views, `Long`) ⇄ `parentMessageId = message.id` (Compose, default `-1` = main conversation) — a parent-scoped list for the thread screen. ⚠️ The `guide-threaded-messages.md` Views fence calls `messageList.setParentMessage(it.id)` — on 6.0.5 that setter doesn't exist on the list; the real one is `setParentMessageId` (verified in kit source + master app). **6.1.1** adds `setParentMessage(BaseMessage)` ⇄ `parentMessage =` (preferred; `parentMessageId` still works) and `setThreaded(true)` ⇄ `threaded = true` (empty state instead of the whole conversation when the parent is missing).
 
 ## CometChatMessageComposer
 **XML tag:** `<com.cometchat.uikit.kotlin.presentation.messagecomposer.ui.CometChatMessageComposer />` (height `wrap_content`; create it in the Activity's `onCreate` — it registers an `ActivityResultLauncher` for permissions, docs Warning).
@@ -107,7 +107,7 @@ it (round-trip). Scope to one conversation with `setUid("...")`/`setGuid("...")`
 
 ---
 
-## Import paths (verified against 6.0.5)
+## Import paths (verified against 6.0.5 and 6.1.1)
 
 Views components live at `com.cometchat.uikit.kotlin.presentation.<area>.ui.<Component>` —
 `conversations.ui.CometChatConversations`, `messagelist.ui.CometChatMessageList`,
@@ -115,14 +115,14 @@ Views components live at `com.cometchat.uikit.kotlin.presentation.<area>.ui.<Com
 `groups.ui.CometChatGroups`, `calllogs.ui.CometChatCallLogs`,
 `notificationfeed.ui.CometChatNotificationFeed`.
 
-**The three calling components have NO `.ui` segment** (verified against 6.0.5) — inferring the
+**The three calling components have NO `.ui` segment** (verified against 6.0.5 and 6.1.1) — inferring the
 pattern gives `Unresolved reference 'ui'`:
 
 | Component | Import |
 |---|---|
-| `CometChatIncomingCall` | `…presentation.incomingcall.CometChatIncomingCall` |
-| `CometChatOutgoingCall` | `…presentation.outgoingcall.CometChatOutgoingCall` |
-| `CometChatCallButtons` | `…presentation.callbuttons.CometChatCallButtons` |
+| `CometChatIncomingCall` | `...presentation.incomingcall.CometChatIncomingCall` |
+| `CometChatOutgoingCall` | `...presentation.outgoingcall.CometChatOutgoingCall` |
+| `CometChatCallButtons` | `...presentation.callbuttons.CometChatCallButtons` |
 
 SDK types the golden path also emits (not UI-Kit components, and not under `presentation`):
 
@@ -160,9 +160,10 @@ Session: `CometChatUIKit`, `UIKitSettings` (`com.cometchat.uikit.core`).
 Core surface: `CometChatConversations` · `CometChatMessageHeader` · `CometChatMessageList` · `CometChatMessageComposer` · `CometChatThreadHeader` · `CometChatSearch`.
 Grow set (on request): `CometChatUsers` · `CometChatGroups` · `CometChatGroupMembers` · `CometChatCallLogs` · `CometChatIncomingCall` · `CometChatNotificationFeed` · `CometChatAIAssistantChatHistory`.
 Namespaces: Views `com.cometchat.uikit.kotlin.presentation.<area>.ui.*` · Compose `com.cometchat.uikit.compose.presentation.<area>.ui.*`.
-**Not in the catalog ⇒ does not exist.** v6 ships **no combined shell** — `CometChatConversationsWithMessages`/`CometChatUI` are v4-era names. `CometChatMessageTemplate` is documented but **absent from 6.0.5** — verify before use. Full catalog: `cometchat-android-v6-{kotlin,compose}-components`.
+**Not in the catalog ⇒ does not exist.** v6 ships **no combined shell** — `CometChatConversationsWithMessages`/`CometChatUI` are v4-era names. `CometChatMessageTemplate` is documented but **absent from 6.0.5 and 6.1.1** — verify before use. Full catalog: `cometchat-android-v6-{kotlin,compose}-components`.
 
 > ⚠️ **Docs drift — trust the reference table, not the docs.** `guide-threaded-messages` (Views tab) shows a **3-arg**
 > `setOnThreadRepliesClick { context, baseMessage, template -> }` and `messageList.setParentMessage(id)`.
-> Neither exists in 6.0.5: the callback takes **one** `BaseMessage`, and the list setter is
-> **`setParentMessageId(Long)`**. Logged internally.
+> Neither exists in 6.0.5 or 6.1.1: the callback takes **one** `BaseMessage`, and the list setter is
+> **`setParentMessageId(Long)`** (6.1.1 also adds `setParentMessage(BaseMessage)`, which takes the
+> message, not its id). Logged internally.

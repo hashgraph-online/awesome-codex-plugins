@@ -1,0 +1,47 @@
+{
+  "id": "paper-pulsing-border-default",
+  "label": "Default (Paper PulsingBorder)",
+  "shader": "PulsingBorder",
+  "page": "https://shaders.paper.design/pulsing-border",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for PulsingBorder, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colors": [
+      "#0dc1fd",
+      "#d915ef",
+      "#ff3f2ecc"
+    ],
+    "roundness": 0.25,
+    "thickness": 0.1,
+    "margin": 0,
+    "marginLeft": 0,
+    "marginRight": 0,
+    "marginTop": 0,
+    "marginBottom": 0,
+    "aspectRatio": "auto",
+    "softness": 0.75,
+    "intensity": 0.2,
+    "bloom": 0.25,
+    "spots": 4,
+    "spotSize": 0.5,
+    "pulse": 0.25,
+    "smoke": 0.3,
+    "smokeSize": 0.6
+  }
+}

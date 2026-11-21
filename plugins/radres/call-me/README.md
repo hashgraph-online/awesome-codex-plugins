@@ -10,11 +10,12 @@
 
 <p align="center">
   <a href="https://callmemcp.com/go/readme"><img src="assets/app-store-badge.svg" height="60" alt="Download on the App Store"></a>
+  <a href="https://callmemcp.com/go/play-readme"><img src="assets/google-play-badge.svg" height="60" alt="Get it on Google Play"></a>
   <br>
   <a href="https://mcpservers.org/servers/radres/call-me"><img src="https://mcpservers.org/badge.svg" alt="Listed on mcpservers.org"></a>
 </p>
 
-Your AI agents ring your actual iPhone, read you a question, an update or
+Your AI agents ring your actual phone, iPhone or Android, read you a question, an update or
 your day ahead, and get your spoken reply back as text — or just text you. Works from any AI that
 speaks MCP; nothing to install.
 
@@ -25,7 +26,8 @@ train or walk. Calls speak and understand 90+ languages.
 
 ## 1. Get the app
 
-**[callme on the App Store](https://callmemcp.com/go/readme)**.
+**[callme on the App Store](https://callmemcp.com/go/readme)** for iPhone, or
+**[on Google Play](https://callmemcp.com/go/play-readme)** for Android.
 No registration, no email. Open it, tap *Agree & Continue*, and it shows your
 personal **callme number**: 10 digits, and all an agent needs to reach you.
 
@@ -142,7 +144,7 @@ the number or use that client's explicit pairing flow; never guess it.
 
 | Tool | What it does |
 |---|---|
-| `call` | Rings your iPhone, reads your text aloud (a question, an update, a summary of the day ahead), returns your spoken reply as text. Holds ~30s, then hands the AI a `call_id` to poll. `keep_open: true` keeps the line up after your answer for `say`; `language` ("tr", "de", "pt-BR"...) is the language the AI speaks |
+| `call` | Rings your phone, reads your text aloud (a question, an update, a summary of the day ahead), returns your spoken reply as text. Holds ~30s, then hands the AI a `call_id` to poll. `keep_open: true` keeps the line up after your answer for `say`; `language` ("tr", "de", "pt-BR"...) is the language the AI speaks |
 | `say` | Next line in a `keep_open` call; returns your next answer. While the AI thinks you hear a soft keyboard sound, and anything you say meanwhile comes back as `said_while_waiting` |
 | `hang_up` | Ends a `keep_open` call, with an optional goodbye |
 | `poll_result` | Finishes a call that was still ringing |
@@ -293,8 +295,11 @@ what the panel sends over the network are in that repository's README.
 ## How it works
 
 - `call` creates a VoIP call (LiveKit WebRTC — no real telephony); your
-  iPhone rings through CallKit like a real call, TTS reads your text,
+  phone rings like a real call (CallKit on iPhone, a full-screen incoming
+  call on Android), TTS reads your text,
   your spoken reply is transcribed and returned to the agent.
-- Your number is a bearer capability: anyone who knows it can reach you,
-  nobody who doesn't can. Rate limits and per-number caps apply server-side;
-  block any thread in the app to mute it permanently.
+- Your number works like a phone number: anyone who has it can reach you,
+  nobody who doesn't can. It cannot act for you: reading your history,
+  deleting the number or moving it needs the app on your phone. Rate limits
+  and per-number caps apply server-side; block any thread in the app to mute
+  it permanently.

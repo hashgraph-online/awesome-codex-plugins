@@ -51,8 +51,8 @@ Leader prepares commit -> user approves -> push
 
 ## Progress protocol
 
-When work starts, reply with `kind=status` and an ETA. Use `urgent` only for
-work that must interrupt the current activity.
+When work starts, reply with `kind=status` and an ETA. Use urgent priority for a
+time-critical verdict or unblocking request.
 
 Reply to the initiator, preserve the existing thread, send status at start and
 phase boundaries, and finish with changes and verification.
@@ -75,16 +75,21 @@ phase boundaries, and finish with changes and verification.
 
 ## Interrupts
 
-- Urgent messages labeled `interrupt` trigger an interrupt notice when wake is
-  running. The label never enables Ctrl+C by itself; real SIGINT requires the
-  explicit destructive opt-in `--interrupt-cmd ctrl-c`.
-- Input injection can activate a focused permission or approval dialog. Payload
-  text alone may match single-key shortcuts, so removing Enter is not safe.
+- To request an interrupt notice, check the receiving wake's interrupt enablement,
+  priority and label with `amq wake config --me <handle>`. Use the configured
+  priority and label. Sending a real interrupt to the process requires the
+  separate, explicit `--interrupt-cmd ctrl-c` setting.
+- The default wake is a plain doorbell, so input injection can activate a
+  focused permission or approval dialog. Payload text alone may match
+  single-key shortcuts, so removing Enter is not safe. The dialog guard is
+  opt-in: `amq wake install-dialog-hook --harness claude|codex|cursor` (Codex
+  also needs the entries trusted in `/hooks`); `amq coop exec` prints
+  `dialog guard: plain` or `dialog guard: proper (<harness>)`.
 - `--defer-while-input` reduces collisions with recent typing but cannot detect
   modal state; an idle dialog looks like an idle composer.
-- Cursor and Grok show no signal AMQ can read for their approval prompts, so
-  their seats keep the full doorbell, and a doorbell during an approval prompt
-  can answer it (known limit).
+- Grok shows no signal AMQ can read for its approval prompt, and Cursor runs
+  no hook for prompts it shows before any tool call, so a doorbell during
+  such a prompt can answer it (known limit).
 - For an AMQ-enforced zero-input watcher, run `amq wake --inject-mode none` or
   `amq coop exec --require-wake --wake-inject-mode none <agent>`. This mode
   writes notices to wake stderr, turns urgent interrupts into one bell plus the

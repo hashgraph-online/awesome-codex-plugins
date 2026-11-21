@@ -1,0 +1,62 @@
+{
+  "skill_name": "add-payouts",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL has a ledger and a postEntry function. Add POST /api/payouts so users can withdraw earned coins as gift cards through our provider client in lib/giftcards.js. Minimum 500 coins, at most 5000 coins per day.",
+      "expected_output": "POST /api/payouts that reserves the coins and creates the payout in one transaction, enforces the 500 coin minimum and the 5000 coin daily cap, and calls lib/giftcards.js with the payout id as the idempotency key, with tests.",
+      "assertions": [
+        "The handler posts the debit through the existing posting function and inserts the payout row in one transaction that commits before the provider client is called.",
+        "The provider client is called with the payout id as its idempotency key, and no code path creates a second key for the same payout row.",
+        "A timeout or thrown error from the provider client leaves the payout in a non-final status and posts no refund entry.",
+        "A definite failure from the provider posts exactly one refund entry with the payout id as reference, in the same transaction that sets the status to failed, and applying the failure twice changes the balance once.",
+        "Every UPDATE of the payout status has the expected current status in its WHERE clause.",
+        "The project's tests include five parallel requests against a balance that covers one payout and assert that exactly one payout row and one debit exist.",
+        "An amount of 499, 0, -500, 600.5 or the string \"1000\" is answered with a 4xx status and creates no payout row.",
+        "Requests that would take the total of the last 24 hours above 5000 coins are refused."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our Django app marks a payout as failed and returns the money whenever the provider request raises an exception. Last week 12 users were paid and refunded. Fix the flow so that cannot happen, and add whatever is needed to settle payouts whose result we do not know.",
+      "expected_output": "A payout flow where a provider error or timeout leaves the payout in an unknown status instead of refunding it, and a scheduled resolver that asks the provider and settles each payout once.",
+      "assertions": [
+        "An exception or timeout from the provider call no longer leads to a refund: the payout stays in a status that means the result is unknown.",
+        "A scheduled command or task looks up payouts in that status at the provider by the app's own payout id or the stored provider reference, and applies paid or failed from the answer.",
+        "The command never creates a new transfer with a new idempotency key for an existing payout.",
+        "The refund runs only when a guarded status change from the unknown status to failed changed one row, and a second run of the command for the same payout changes nothing.",
+        "The mapping from provider answers to a final failure is an explicit list, and answers that are not on it are treated as unknown.",
+        "A test simulates a timeout followed by a provider lookup that reports the payout as paid, and asserts that the user's balance was lowered once and never raised.",
+        "A query or command lists payouts that have been in the unknown status longer than a configured time."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "In this Laravel app on MySQL users earn points from offers, get bonus points from promo codes and can withdraw to a PayPal address. Make only earned points withdrawable after a 14 day hold, add a 48 hour wait after the PayPal address is changed, and send first payouts to a review queue for our support staff.",
+      "expected_output": "A withdrawable amount computed on the server from earned points older than 14 days, a 48 hour block after the PayPal address changes, and first payouts routed to a review queue for staff, each with tests.",
+      "assertions": [
+        "The withdrawable amount is computed on the server from dated ledger entries of an explicit list of earned kinds, and promo entries are not on that list.",
+        "A test credits an offer and requests a payout at once, and the request is refused; after the test clock moves past 14 days the same request succeeds.",
+        "A test shows that an account holding only promo points cannot withdraw any of them.",
+        "Changing the PayPal address requires the password or a second factor in the same request and stores a time before which the new address cannot be used.",
+        "A payout request within 48 hours of an address change is refused, and a payout created before the change still carries the old address.",
+        "The first payout of an account is created in a review status with the points already deducted, and the provider is not called for it until a staff member approves it.",
+        "Approve and reject record the staff member's identity from the session, a rejection returns the points exactly once, and a staff member cannot approve a payout of their own account.",
+        "The debit and the limit checks run in one transaction that locks the account row with SELECT ... FOR UPDATE or uses a conditional UPDATE, and the code checks the number of rows changed."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Rails app lets creators withdraw their earnings. A double click sometimes creates two withdrawals, and the transfer API is called inside the same transaction that deducts the balance. Fix it.",
+      "expected_output": "A payout request that locks the account, returns the earlier payout for a repeated key, debits through the ledger and inserts the payout in one transaction, and a send that runs after the commit through a conditional claim, with tests.",
+      "assertions": [
+        "The request runs in one transaction that first locks the account row with lock or with_lock.",
+        "A unique index on account id and request key exists, and a repeated key returns the earlier payout without a second debit.",
+        "The debit is a ledger entry with the payout id as reference, posted in the same transaction as the payout row.",
+        "The transfer API is called from a job enqueued after the transaction commits, never inside it.",
+        "The job claims the payout with an update_all that requires the pending status and checks that one row changed before calling the API.",
+        "A test sends the same request key twice in parallel and asserts one payout and one debit."
+      ]
+    }
+  ]
+}

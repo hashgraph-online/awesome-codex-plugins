@@ -34,6 +34,7 @@ EXIT_FINDINGS = 1
 EXIT_INPUT_ERROR = 2
 
 TINY = 1e-300
+_XY_LENGTH_MSG = "x and y must be the same length"
 
 
 class InputError(Exception):
@@ -213,12 +214,14 @@ def z_ppf(p: float) -> float:
 
 
 def mean(values: Sequence[float]) -> float:
+    """Handle mean."""
     if not values:
         raise InputError("mean of an empty sequence")
     return math.fsum(values) / len(values)
 
 
 def sample_sd(values: Sequence[float]) -> float:
+    """Handle sample sd."""
     n = len(values)
     if n < 2:
         return float("nan")
@@ -235,6 +238,7 @@ def rsd_percent(values: Sequence[float]) -> float:
 
 
 def median(values: Sequence[float]) -> float:
+    """Handle median."""
     if not values:
         raise InputError("median of an empty sequence")
     s = sorted(values)
@@ -276,13 +280,16 @@ class LinearFit:
     weights: list[float] = field(default_factory=list)
 
     def predict(self, x: float) -> float:
+        """Predict."""
         return self.intercept + self.slope * x
 
     def slope_ci(self, level: float = 0.95) -> tuple[float, float]:
+        """Handle slope ci."""
         t = t_ppf(0.5 + level / 2.0, self.df)
         return (self.slope - t * self.se_slope, self.slope + t * self.se_slope)
 
     def intercept_ci(self, level: float = 0.95) -> tuple[float, float]:
+        """Handle intercept ci."""
         t = t_ppf(0.5 + level / 2.0, self.df)
         return (self.intercept - t * self.se_intercept, self.intercept + t * self.se_intercept)
 
@@ -293,7 +300,7 @@ def fit_linear(
     """Fit y = a + b*x by (optionally weighted) least squares."""
     n = len(xs)
     if n != len(ys):
-        raise InputError("x and y must be the same length")
+        raise InputError(_XY_LENGTH_MSG)
     if n < 3:
         raise InputError("a regression needs at least 3 points")
     w = [1.0] * n if weights is None else [float(v) for v in weights]
@@ -471,6 +478,7 @@ class PrecisionComponents:
     n_effective: float
 
     def rsd(self, sd: float) -> float:
+        """Handle rsd."""
         if abs(self.grand_mean) < 1e-15:
             return float("nan")
         return 100.0 * sd / abs(self.grand_mean)
@@ -574,13 +582,14 @@ def deming(
     """
     n = len(xs)
     if n != len(ys):
-        raise InputError("x and y must be the same length")
+        raise InputError(_XY_LENGTH_MSG)
     if n < 3:
         raise InputError("Deming regression needs at least 3 points")
     if lambda_ratio <= 0:
         raise InputError("lambda_ratio must be > 0")
 
     def _fit(xv: Sequence[float], yv: Sequence[float]) -> tuple[float, float]:
+        """Fit."""
         xb, yb = mean(xv), mean(yv)
         sxx = math.fsum((x - xb) ** 2 for x in xv)
         syy = math.fsum((y - yb) ** 2 for y in yv)
@@ -639,7 +648,7 @@ def passing_bablok(xs: Sequence[float], ys: Sequence[float]) -> dict[str, Any]:
     """
     n = len(xs)
     if n != len(ys):
-        raise InputError("x and y must be the same length")
+        raise InputError(_XY_LENGTH_MSG)
     if n < 5:
         raise InputError("Passing-Bablok needs at least 5 points")
 
@@ -661,6 +670,7 @@ def passing_bablok(xs: Sequence[float], ys: Sequence[float]) -> dict[str, Any]:
     shift = sum(1 for s in slopes if s < -1.0)
 
     def _shifted_median(offset: int) -> float:
+        """Handle shifted median."""
         idx = n_slopes // 2 + offset
         if n_slopes % 2:
             return slopes[min(max(idx, 0), n_slopes - 1)]
@@ -698,7 +708,7 @@ def bland_altman(
     """Bias and limits of agreement between paired measurements."""
     n = len(xs)
     if n != len(ys):
-        raise InputError("x and y must be the same length")
+        raise InputError(_XY_LENGTH_MSG)
     if n < 3:
         raise InputError("Bland-Altman needs at least 3 pairs")
     means = [0.5 * (x + y) for x, y in zip(xs, ys)]
@@ -854,6 +864,7 @@ def parse_rows(text: str, path_hint: str | None = None) -> list[dict[str, str]]:
 
 
 def require_columns(rows: list[dict[str, str]], columns: Iterable[str]) -> None:
+    """Handle require columns."""
     present = set(rows[0].keys())
     missing = [c for c in columns if c not in present]
     if missing:
@@ -863,6 +874,7 @@ def require_columns(rows: list[dict[str, str]], columns: Iterable[str]) -> None:
 
 
 def to_float(value: str, column: str, row_index: int) -> float:
+    """Handle to float."""
     try:
         return float(str(value).strip())
     except (TypeError, ValueError) as exc:
@@ -923,6 +935,7 @@ def emit(rows: list[dict[str, Any]], fmt_name: str, stream=None) -> None:
 
 
 def _json_default(obj: Any) -> Any:
+    """Handle json default."""
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
         return None
     if isinstance(obj, tuple):
@@ -936,10 +949,12 @@ def note(message: str) -> None:
 
 
 def finding(message: str) -> None:
+    """Handle finding."""
     print(f"finding: {message}", file=sys.stderr)
 
 
 def add_common_args(parser: argparse.ArgumentParser) -> None:
+    """Add common args."""
     parser.add_argument(
         "--format",
         choices=("table", "tsv", "json"),

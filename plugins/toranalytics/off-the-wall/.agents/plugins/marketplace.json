@@ -1,11 +1,11 @@
 {
-  "name": "off-the-wall",
+  "name": "dude-toldya",
   "interface": {
-    "displayName": "off-the-wall"
+    "displayName": "dude-toldya"
   },
   "plugins": [
     {
-      "name": "off-the-wall",
+      "name": "dude-toldya",
       "source": {
         "source": "local",
         "path": "./"

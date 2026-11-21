@@ -33,11 +33,13 @@ UNITS = {
 
 
 def _gaussian(phase: float, center: float, width: float) -> float:
+    """Handle gaussian."""
     distance = min(abs(phase - center), 1.0 - abs(phase - center))
     return math.exp(-0.5 * (distance / width) ** 2)
 
 
 def _event_times(duration: float, interval: float) -> list[float]:
+    """Handle event times."""
     first = interval
     return [
         first + index * interval
@@ -120,6 +122,7 @@ def generate_rows(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate a deterministic local CSV of analytic biosignal-like fixtures. "
@@ -147,6 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     duration = finite_float(
         args.duration, name="--duration", minimum=0.1, maximum=3600.0

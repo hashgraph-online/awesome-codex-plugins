@@ -1,0 +1,14 @@
+{
+  "name": "car_paint_red",
+  "description": "Deep red lacquer under a glossy coat.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.62,
+    0.03,
+    0.04
+  ],
+  "metallic": 0.4,
+  "roughness": 0.35,
+  "clearcoat": 1.0,
+  "clearcoatRoughness": 0.04
+}

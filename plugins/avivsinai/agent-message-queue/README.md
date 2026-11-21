@@ -39,7 +39,8 @@ amq drain --root .agent-mail/demo --me bob --include-body
 This walkthrough connects **Claude Code** and **Codex CLI** on one machine.
 Install both agent CLIs and put `claude` and `codex` on `PATH` first.
 Use macOS, Linux, or WSL; native Windows supports a subset (see the
-[platform matrix](INSTALL.md#platform-capability-matrix)).
+[platform matrix](INSTALL.md#platform-capability-matrix)). For a lead and two
+workers, follow [Run a fleet](COOP.md#run-a-fleet).
 
 ### 1. Install the binary
 
@@ -91,10 +92,19 @@ backend, it prints one command per agent and exits with code `6` (action
 required). Paste each complete command into a separate terminal; do not
 shorten or rebuild it.
 
+By default the wake rings a plain doorbell (text and Enter) on every harness,
+so it always rings; a doorbell that lands on an open dialog can answer it.
 Optional, for Claude Code: `amq wake install-dialog-hook` keeps the wake from
 typing into an open AskUserQuestion, plan, or permission dialog. Add
-`--harness codex` or `--harness cursor` (or `--harness all`) for their
-approval prompts.
+`--harness codex` (then trust the entries in Codex `/hooks`) or
+`--harness cursor` (or `--harness all`) for their approval prompts.
+`amq coop exec` prints `dialog guard: plain` or
+`dialog guard: proper (<harness>)` to show which one a seat gets.
+
+If you use only the Claude Code or Codex desktop app, `amq launch` has no
+terminal to start. Skip this step and follow
+[Claude Code desktop app](COOP.md#claude-code-desktop-app) or
+[Codex desktop app](COOP.md#codex-desktop-app).
 
 Start both agents before sending the first message. Messages that arrive
 before a recipient's wake starts remain unread but do not trigger that new
@@ -155,8 +165,10 @@ each host keeps control of its own queue.
 ## Remote control
 
 The optional [remote companion](cmd/amq-remote/README.md) gives a running
-Claude Code or Codex session its own Buzz agent, so you can DM that session
-from the Buzz app or Buzz Desktop. Inside the session, type `/amq-remote`
+Claude Code or Codex session its own private Buzz channel, so you can write to
+that session from the Buzz app. One machine agent per machine runs inside
+`amq-remote serve`; set it up once with the owner's signed grant.
+No Buzz desktop app is needed. Inside the session, type `/amq-remote`
 (in Codex, `$amq-remote`); `/amq-remote off` disconnects it. Setup, commands,
 and the trust model are in that README.
 

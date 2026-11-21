@@ -70,10 +70,10 @@ def check_pytorch():
             print(f"    - Number of GPUs: {torch.cuda.device_count()}")
             return True, True
         else:
-            print(f"  ⚠ CUDA not available (will run on CPU)")
+            print("  ⚠ CUDA not available (will run on CPU)")
             return True, False
     except ImportError:
-        print(f"  ✗ PyTorch not installed")
+        print("  ✗ PyTorch not installed")
         return False, False
 
 
@@ -129,8 +129,8 @@ def check_esm():
         print(f"  ✓ ESM installed (version: {esm.__version__ if hasattr(esm, '__version__') else 'unknown'})")
         return True
     except ImportError:
-        print(f"  ⚠ ESM not installed (needed for protein sequence folding)")
-        print(f"    Install with: uv pip install fair-esm")
+        print("  ⚠ ESM not installed (needed for protein sequence folding)")
+        print("    Install with: uv pip install fair-esm")
         return False
 
 
@@ -155,23 +155,23 @@ def check_diffdock_installation():
             missing_files.append(filename)
 
     if found_files:
-        print(f"  ✓ Found DiffDock files in current directory:")
+        print("  ✓ Found DiffDock files in current directory:")
         for f in found_files:
             print(f"    - {f}")
     else:
-        print(f"  ⚠ DiffDock files not found in current directory")
+        print("  ⚠ DiffDock files not found in current directory")
         print(f"    Current directory: {os.getcwd()}")
-        print(f"    Make sure you're in the DiffDock repository root")
+        print("    Make sure you're in the DiffDock repository root")
 
     # Check for model checkpoints
     model_dir = Path('./workdir/v1.1/score_model')
     confidence_dir = Path('./workdir/v1.1/confidence_model')
 
     if model_dir.exists() and confidence_dir.exists():
-        print(f"  ✓ Model checkpoints found")
+        print("  ✓ Model checkpoints found")
     else:
-        print(f"  ⚠ Model checkpoints not found in ./workdir/v1.1/")
-        print(f"    Models will be downloaded on first run")
+        print("  ⚠ Model checkpoints not found in ./workdir/v1.1/")
+        print("    Models will be downloaded on first run")
 
     return len(found_files) > 0
 
@@ -236,6 +236,7 @@ Recommendation: Use GPU for practical applications
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Check DiffDock environment setup',
         formatter_class=argparse.RawDescriptionHelpFormatter

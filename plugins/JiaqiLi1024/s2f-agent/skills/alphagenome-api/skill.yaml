@@ -1,0 +1,103 @@
+schema_version: 1
+id: alphagenome-api
+title: AlphaGenome API
+path: skills/alphagenome-api
+status: active
+family: api-variant-prediction
+tasks:
+  - variant-effect
+  - track-prediction
+  - interval-prediction
+  - plotting
+  - troubleshooting
+triggers:
+  - alphagenome
+  - dna_client
+  - predict_variant
+  - predict_interval
+  - rna_seq
+  - track_prediction
+required_inputs:
+  - assembly
+  - coordinate-or-interval
+  - ref-alt-or-variant-spec
+optional_inputs:
+  - species
+  - output-head
+  - vcf-input
+  - sequence-or-interval
+  - requested-outputs
+  - ontology-terms
+  - output-dir
+  - runtime-context
+  - network-proxy-endpoint
+  - vcf-info-passthrough
+  - indel-handling
+input_mappings:
+  - assembly|query_tokens=assembly,hg38,hg19,mm10,chm13|script_flags=--assembly
+  - species|query_tokens=human,mouse,species|script_flags=--species
+  - output-head|query_tokens=output_head,head,modality,rna_seq,rna-seq,atac,cage,dnase,chip,procap|script_flags=--output-head
+  - sequence-or-interval|query_tokens=sequence,interval,chr,start,end,bed,.bed,区间|script_flags=--interval,--bed
+  - coordinate-or-interval|query_tokens=chr,coordinate,position,pos,site,locus,位点,坐标|script_flags=--coordinate,--chrom,--position
+  - ref-alt-or-variant-spec|query_tokens=ref,alt,variant,mutation,突变,变异,>|script_flags=--variant-spec,--alt
+  - vcf-input|query_tokens=vcf,.vcf,variant_call_format|script_flags=--input
+  - output-dir|query_tokens=output,outdir,目录|script_flags=--output-dir
+  - requested-outputs|query_tokens=requested_outputs,output,modality|script_flags=internal:requested_outputs
+  - ontology-terms|query_tokens=ontology,uberon,tissue,组织|script_flags=internal:ontology_terms
+  - vcf-info-passthrough|query_tokens=info,passthrough,annotation,透传|script_flags=internal:info_passthrough
+  - indel-handling|query_tokens=indel,insertion,deletion,非snp|script_flags=internal:indel_handling
+required_env:
+  - ALPHAGENOME_API_KEY
+optional_env:
+  - http_proxy
+  - https_proxy
+  - grpc_proxy
+constraints:
+  - python>=3.10
+  - keep-interval-at-or-below-1Mbp
+  - use-grounded-API-surface-only
+  - set-timeout-and-proxy-fallback-for-real-runs
+  - interval-input-is-0based-half-open
+  - variant-coordinate-is-1based-vcf-pos-direct
+  - supports-variant-effect-and-track-prediction
+  - vcf-input-supports-snp-and-indel
+  - info-fields-transparently-passed-through-to-output
+scripts:
+  - name: run_alphagenome_predict_variant
+    path: scripts/run_alphagenome_predict_variant.py
+    description: Single-variant effect prediction with RNA-seq overlay plot
+    inputs: [assembly, coordinate-or-interval, ref-alt-or-variant-spec, output-dir]
+  - name: run_alphagenome_vcf_batch
+    path: scripts/run_alphagenome_vcf_batch.py
+    description: Batch multi-tissue variant-effect prediction from VCF; outputs wide TSV with all INFO fields and per-tissue mean_diff/log2fc
+    inputs: [vcf-input, assembly, ontology-terms, output-dir]
+    flags:
+      - --input VCF_PATH
+      - --assembly hg38|hg19
+      - --output-dir PATH
+      - --limit N
+      - --resume
+      - --delay SECONDS
+      - --request-timeout-sec SECONDS
+  - name: run_alphagenome_track_prediction_bed_batch
+    path: scripts/run_alphagenome_track_prediction_bed_batch.py
+    description: Real track prediction from BED batch or single interval using predict_interval; saves per-interval result JSON, plot, NPZ and a summary JSON
+    inputs: [species, assembly, sequence-or-interval, output-head, ontology-terms, output-dir]
+    flags:
+      - --bed BED_PATH
+      - --interval chr:start-end
+      - --species human|mouse
+      - --assembly hg38|hg19|mm10|chm13
+      - --output-head RNA_SEQ|ATAC|CAGE|DNASE|...
+      - --ontology-term UBERON_OR_CL_TERM
+      - --output-dir PATH
+      - --output-prefix PREFIX
+      - --interval-width 16384|131072|524288|1048576
+      - --request-timeout-sec SECONDS
+      - --proxy-url URL
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-alphagenome
+  - prefer-when-task-is-single-variant-effect-with-api-workflow
+  - prefer-when-task-is-track-prediction-with-alphagenome-context

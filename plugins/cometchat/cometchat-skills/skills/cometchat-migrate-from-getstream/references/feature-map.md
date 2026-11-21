@@ -10,7 +10,7 @@
 - `REMOVE` → UNSUPPORTED: remove it fully (SKILL step 6) and list it in the report.
 - `CHANGE` → keep the capability on the closest CometChat equivalent, and list the difference under "Behavior changes".
 
-**Enablement:** a feature whose `features.json` entry says `needs_dashboard`, or is an extension/AI feature, still migrates in code. Add "enable <feature> in the CometChat dashboard" to the action items. `@cometchat/skills-cli features enable` can do it after `auth login`.
+**Enablement:** a feature whose `features.json` entry says `needs_dashboard`, or is an extension/AI feature, still migrates in code. Add "enable <feature> in the CometChat dashboard" to the action items. The CometChat MCP can do it (`cometchat_set_feature`, check `confirmed`).
 
 **Rows are grouped by area.** Columns: Stream feature (signals) · CometChat id · Via · If absent.
 
@@ -61,7 +61,7 @@
 |---|---|---|---|
 | Livestream channels (`livestream` type, large audiences) | `users-groups` (a **public** group) | core | CHANGE (over 300 members → no receipts/typing) |
 | Join a public/preview channel (channel preview + Join button, `addMembers`, `channel.watch`) | join a public group: `CometChatGroups` (joinable list) + the SDK's `CometChat.joinGroup(guid, type)` (`/sdk/<platform>/groups-join-leave`) | components / SDK | REMOVE |
-| Member-based 1:1 channels (`!members-…`, 2 members) | a **user** conversation | core | — |
+| Member-based 1:1 channels (`!members-...`, 2 members) | a **user** conversation | core | — |
 | Channel name, image, custom fields (`channel.data`, `extraData`) — incl. editing them | group name / icon / metadata; editing = the SDK's update-group call (`/sdk/<platform>/update-group`) | core / SDK | — |
 | Channel roles, permissions, grants (`channel_role`, custom roles) | group scopes admin / moderator / participant (+ CometChat roles, docs) | components / docs | CHANGE |
 | Ban / remove members, banned list + unban (`banUser`, `removeMembers`, `unbanUser`) | group member management: the kit's members list + the SDK's banned-members request + unban (`/sdk/<platform>/group-kick-ban-members`) | components / SDK | REMOVE |

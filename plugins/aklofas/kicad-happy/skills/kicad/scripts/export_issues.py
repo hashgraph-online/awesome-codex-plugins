@@ -3,7 +3,9 @@
 
 Reads analyzer JSON output and creates GitHub Issues via the ``gh`` CLI.
 Dry-run by default — previews issues to stdout. Use ``--create`` to push.
-Label-based dedup prevents duplicates.
+Each issue body starts with a hidden ``finding_id`` marker and an open issue
+carrying that marker is never exported again; issues without a marker are
+matched once by exact title.
 
 Usage:
     export_issues.py schematic.json --repo owner/repo
@@ -11,16 +13,22 @@ Usage:
     export_issues.py schematic.json --repo owner/repo --rule-id RG-001,CP-001
     export_issues.py schematic.json --repo owner/repo --create
 
-Python 3.8+ stdlib only. Requires ``gh`` CLI (https://cli.github.com/).
+Python 3.10+ stdlib only. Requires ``gh`` CLI (https://cli.github.com/).
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
+
+from diff_engine import _canonical, _fid_stem, finding_key
+from kicad_core.fileio import json_loads
+from kicad_core.executables import find_executable
 
 # ---------------------------------------------------------------------------
 # Severity ranking: lower number = higher priority
@@ -42,13 +50,135 @@ _SEV_RANK: dict[str, int] = {
 # ---------------------------------------------------------------------------
 
 def _norm_severity(s: str) -> str:
-    """Normalize a severity string to one of: high / warning / info."""
+    """Normalize a severity string to one of: error / warning / info."""
     s = (s or "").lower().strip()
     if s in ("critical", "high", "error"):
-        return "high"
+        return "error"
     if s in ("warning", "medium", "warn"):
         return "warning"
     return "info"
+
+
+# First page size of `gh issue list`; a full page is retried with a larger
+# limit, up to LIST_CAP, beyond which the listing is refused as truncated.
+LIST_LIMIT = 1000
+LIST_CAP = 100_000
+
+_MARKER_RE = re.compile(
+    r"^<!-- kicad-happy:finding_id=(.*?)(?: key=([0-9a-f]{16}))? -->$"
+)
+
+
+class IssueListError(Exception):
+    """The open-issue listing is unavailable or may be incomplete."""
+
+
+def _escape_html_comment(text: str) -> str:
+    """Make text safe to place in a body without opening or closing a comment."""
+    return text.replace("<!--", "&lt;!--").replace("-->", "--&gt;")
+
+
+def _inert(text: str) -> str:
+    """Escape comment delimiters and keep @mentions from notifying anyone."""
+    return _escape_html_comment(text).replace("@", "@\u200b")
+
+
+def _md_inline(text: str) -> str:
+    """Escape the characters that open a link, emphasis, code span or raw HTML."""
+    for ch in ("\\", "`", "*", "[", "]"):
+        text = text.replace(ch, "\\" + ch)
+    return text.replace("<", "&lt;")
+
+
+def _md_cell(text: str) -> str:
+    """One table cell: inline escapes, pipes escaped, line breaks flattened."""
+    return (_md_inline(text).replace("|", "\\|")
+            .replace("\r", " ").replace("\n", " "))
+
+
+def _code(text: str) -> str:
+    """Text for a code span: backslashes print literally there, so drop the
+    backticks and line breaks that would end the span instead."""
+    return text.replace("`", "").replace("\r", " ").replace("\n", " ")
+
+
+def _paragraph(text: str) -> str:
+    """Inline escapes, with a line-leading heading, quote, rule or list
+    marker made literal. Line breaks stay."""
+    out = []
+    for line in _md_inline(text).splitlines():
+        body = line.lstrip()
+        if body[:1] in ("#", ">", "=", "-", "+"):
+            line = line[:len(line) - len(body)] + "\\" + body
+        out.append(line)
+    return "\n".join(out)
+
+
+def finding_marker(finding: dict) -> str:
+    """Return the hidden marker line for a finding, or '' when it has no id.
+
+    The line carries the analyzer's id and a content key. A positional id
+    (``X#1``) follows list order and an unnamed-net id follows wiring edits,
+    so for those the key is what identifies the finding across runs.
+    """
+    fid = finding.get("finding_id")
+    if not isinstance(fid, str) or not fid.strip():
+        return ""
+    fid = _escape_html_comment(" ".join(fid.split()))
+    content = finding_key(finding, positional=True)
+    key = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    return f"<!-- kicad-happy:finding_id={fid} key={key} -->"
+
+
+def parse_marker(line: str) -> "tuple[str, str | None] | None":
+    """(finding id, content key or None) from a marker line, else None."""
+    m = _MARKER_RE.match(line.strip())
+    return (m.group(1), m.group(2)) if m else None
+
+
+def marker_id(body: "str | None") -> "tuple[str, str | None] | None":
+    """The marker in an issue body's first line, else None.
+
+    Only the first line counts: the exporter writes the marker there and
+    escapes comment delimiters in everything it interpolates.
+    """
+    first = (body or "").lstrip("\ufeff").split("\n", 1)[0]
+    return parse_marker(first)
+
+
+def positional_stems(findings: "list[dict]") -> set:
+    """Id stems that follow list order in this run, as diff_engine.match_findings finds them.
+
+    A stem is positional when two findings share it or any member carries a
+    ``#N`` suffix; the unsuffixed member of such a group is positional too.
+    """
+    counts: dict[str, int] = {}
+    positional: set = set()
+    for f in findings:
+        fid = f.get("finding_id")
+        if isinstance(fid, str) and fid:
+            stem = _fid_stem(fid)
+            counts[stem] = counts.get(stem, 0) + 1
+            if stem != fid:
+                positional.add(stem)
+    positional.update(stem for stem, n in counts.items() if n > 1)
+    return positional
+
+
+def _sig(finding: dict) -> str:
+    return json.dumps(finding, sort_keys=True, default=str)
+
+
+def _distinct(findings: "list[dict]") -> "list[dict]":
+    """The findings with exact duplicates (the same object content) dropped."""
+    seen: set = set()
+    unique = []
+    for f in findings:
+        sig = _sig(f)
+        if sig not in seen:
+            seen.add(sig)
+            unique.append(f)
+    return unique
 
 
 def load_findings(path: str) -> list[dict]:
@@ -58,8 +188,10 @@ def load_findings(path: str) -> list[dict]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         raise SystemExit(f"error: cannot read {path!r}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise SystemExit(f"error: {path!r} is not a JSON object")
 
     raw = data.get("findings", [])
     if not isinstance(raw, list):
@@ -100,7 +232,7 @@ def filter_findings(
     return result
 
 
-def format_issue_title(finding: dict) -> str:
+def format_issue_title(finding: dict, inert: bool = True) -> str:
     """Build an issue title: ``[{rule_id}] {summary}``.
 
     If the finding has exactly one component and its reference is not already
@@ -121,7 +253,7 @@ def format_issue_title(finding: dict) -> str:
         if ref and ref not in summary:
             title = f"{title} ({ref})"
 
-    return title
+    return _inert(title) if inert else title
 
 
 def format_issue_body(finding: dict) -> str:
@@ -136,19 +268,25 @@ def format_issue_body(finding: dict) -> str:
       - ## Recommendation  (omitted if empty)
       - Footer attribution line
     """
-    rule_id = finding.get("rule_id", "")
+    esc = _inert
+    rule_id = esc(str(finding.get("rule_id", "")))
     severity = _norm_severity(finding.get("severity", "info"))
-    confidence = finding.get("confidence", "")
-    evidence = finding.get("evidence_source", "")
-    category = finding.get("category", "")
-    detector = finding.get("detector", "")
+    confidence = _md_cell(esc(str(finding.get("confidence", ""))))
+    evidence = _md_cell(esc(str(finding.get("evidence_source", ""))))
+    category = _md_cell(esc(str(finding.get("category", ""))))
+    detector = esc(str(finding.get("detector", "")))
 
     lines: list[str] = []
+
+    marker = finding_marker(finding)
+    if marker:
+        lines.append(marker)
+        lines.append("")
 
     # --- Metadata table ---
     lines.append("| Field | Value |")
     lines.append("|-------|-------|")
-    lines.append(f"| **Rule** | `{rule_id}` |")
+    lines.append(f"| **Rule** | `{_code(rule_id)}` |")
     lines.append(f"| **Severity** | {severity} |")
     if confidence:
         lines.append(f"| **Confidence** | {confidence} |")
@@ -157,11 +295,11 @@ def format_issue_body(finding: dict) -> str:
     if category:
         lines.append(f"| **Category** | {category} |")
     if detector:
-        lines.append(f"| **Detector** | `{detector}` |")
+        lines.append(f"| **Detector** | `{_code(detector)}` |")
     lines.append("")
 
     # --- Summary ---
-    summary = (finding.get("summary") or "").strip()
+    summary = _paragraph(esc((finding.get("summary") or "").strip()))
     if summary:
         lines.append("## Summary")
         lines.append("")
@@ -169,7 +307,7 @@ def format_issue_body(finding: dict) -> str:
         lines.append("")
 
     # --- Description ---
-    description = (finding.get("description") or "").strip()
+    description = _paragraph(esc((finding.get("description") or "").strip()))
     if description:
         lines.append("## Description")
         lines.append("")
@@ -183,9 +321,9 @@ def format_issue_body(finding: dict) -> str:
         lines.append("")
         for comp in components:
             if isinstance(comp, dict):
-                ref = comp.get("ref") or comp.get("reference") or comp.get("name") or ""
-                val = comp.get("value") or ""
-                fp = comp.get("footprint") or ""
+                ref = _code(esc(str(comp.get("ref") or comp.get("reference") or comp.get("name") or "")))
+                val = _md_cell(esc(str(comp.get("value") or "")))
+                fp = _md_cell(esc(str(comp.get("footprint") or "")))
                 parts = [f"`{ref}`" if ref else ""]
                 if val:
                     parts.append(val)
@@ -193,7 +331,7 @@ def format_issue_body(finding: dict) -> str:
                     parts.append(f"({fp})")
                 lines.append(f"- {' '.join(p for p in parts if p)}")
             elif isinstance(comp, str):
-                lines.append(f"- `{comp}`")
+                lines.append(f"- `{_code(esc(comp))}`")
         lines.append("")
 
     # --- Nets ---
@@ -203,14 +341,14 @@ def format_issue_body(finding: dict) -> str:
         lines.append("")
         for net in nets:
             if isinstance(net, str):
-                lines.append(f"- `{net}`")
+                lines.append(f"- `{_code(esc(net))}`")
             elif isinstance(net, dict):
                 name = net.get("name") or net.get("net") or str(net)
-                lines.append(f"- `{name}`")
+                lines.append(f"- `{_code(esc(str(name)))}`")
         lines.append("")
 
     # --- Recommendation ---
-    recommendation = (finding.get("recommendation") or "").strip()
+    recommendation = _paragraph(esc((finding.get("recommendation") or "").strip()))
     if recommendation:
         lines.append("## Recommendation")
         lines.append("")
@@ -258,11 +396,18 @@ def issue_labels(finding: dict, extra_labels: "list[str]") -> list[str]:
 # GitHub CLI integration
 # ---------------------------------------------------------------------------
 
+def _gh() -> str:
+    path = find_executable("gh")
+    if path is None:
+        raise FileNotFoundError("gh not found on PATH")
+    return path
+
+
 def check_gh_available() -> bool:
     """Return True if ``gh`` is installed and authenticated."""
     try:
         result = subprocess.run(
-            ["gh", "auth", "status"],
+            [_gh(), "auth", "status"],
             capture_output=True,
             timeout=15,
         )
@@ -271,31 +416,142 @@ def check_gh_available() -> bool:
         return False
 
 
-def find_existing_issues(repo: str, rule_id: str) -> list[dict]:
-    """Return open issues that carry the dedup label ``kicad-happy:{rule_id}``.
+def list_open_issues(repo: str) -> "list[dict]":
+    """Return the open issues carrying the ``kicad-happy`` label.
 
-    Uses ``gh issue list --json number,title`` for machine-readable output.
-    Returns an empty list on any error.
+    Each item has ``number``, ``title`` and ``body``. A full page is retried
+    with a ten times larger limit until it is no longer full. Raises
+    IssueListError when the listing fails or still fills the page at
+    LIST_CAP, so nothing is exported against an unknown or truncated state.
     """
-    label = f"kicad-happy:{rule_id}"
-    try:
-        result = subprocess.run(
-            [
-                "gh", "issue", "list",
-                "--repo", repo,
-                "--label", label,
-                "--state", "open",
-                "--json", "number,title",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if result.returncode != 0:
-            return []
-        return json.loads(result.stdout) if result.stdout.strip() else []
-    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
-        return []
+    limit = LIST_LIMIT
+    while True:
+        try:
+            result = subprocess.run(
+                [
+                    _gh(), "issue", "list",
+                    f"--repo={repo}",
+                    "--label=kicad-happy",
+                    "--state=open",
+                    f"--limit={limit}",
+                    "--json=number,title,body",
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=60,
+            )
+            data = None
+            if result.returncode == 0:
+                data = json_loads(result.stdout) if result.stdout.strip() else []
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            data = None
+        if not isinstance(data, list):
+            raise IssueListError(f"cannot list open issues in {repo!r}; nothing exported.")
+        if len(data) < limit:
+            return data
+        if limit >= LIST_CAP:
+            raise IssueListError(
+                f"{repo!r} has at least {limit} open kicad-happy issues; the listing "
+                "may be truncated, so nothing was exported."
+            )
+        limit = min(limit * 10, LIST_CAP)
+
+
+class IssueIndex:
+    """Open issues: marked ones as (number, finding id, content key or None),
+    unmarked ones by title."""
+
+    def __init__(self, issues: "list[dict]"):
+        self.marked: list = []
+        self.legacy: dict[str, list] = {}
+        self.used: set = set()
+        for issue in issues:
+            if not isinstance(issue, dict):
+                continue
+            num = issue.get("number")
+            m = marker_id(issue.get("body"))
+            if m is not None:
+                self.marked.append((num, m[0], m[1]))
+            else:
+                self.legacy.setdefault(issue.get("title") or "", []).append(num)
+
+    def _take(self, nums) -> "object | None":
+        for num in nums:
+            if num not in self.used:
+                self.used.add(num)
+                return num
+        return None
+
+    def assign(self, findings: "list[dict]") -> dict:
+        """Map each finding's JSON text to the open issue it already has.
+
+        ``findings`` is every distinct finding of the run. A finding is stable
+        when its id is not positional in this run (see ``positional_stems``;
+        a stem an open marker carries with ``#N`` counts too, since that group
+        has shrunk) and names no unnamed net. Claims run in a fixed order so
+        input order never decides them:
+
+        1. a stable finding takes the issue carrying its id;
+        2. unstable findings sharing a content key take the remaining issues
+           with that key in canonical content order, one each;
+        3. a stable finding still without an issue takes one with its key,
+           unless that issue carries the id of a finding present in this run;
+        4. an unstable finding still without an issue takes one whose marker
+           carries its exact id and no key (written before markers had keys).
+        """
+        stems = positional_stems(findings) | {
+            _fid_stem(fid) for _, fid, _ in self.marked if _fid_stem(fid) != fid}
+        marked_id = {num: fid for num, fid, _ in self.marked}
+        by_id: dict[str, list] = {}
+        by_key: dict[str, list] = {}
+        keyless: dict[str, list] = {}
+        for num, fid, key in self.marked:
+            by_id.setdefault(fid, []).append(num)
+            if key:
+                by_key.setdefault(key, []).append(num)
+            else:
+                keyless.setdefault(fid, []).append(num)
+
+        stable, unstable, present = [], [], set()
+        for f in findings:
+            parsed = parse_marker(finding_marker(f))
+            if parsed is None:
+                continue
+            present.add(parsed[0])
+            raw = f["finding_id"]
+            is_stable = finding_key(f, positional=_fid_stem(raw) in stems) == raw
+            (stable if is_stable else unstable).append((f, *parsed))
+        for group in (stable, unstable):
+            group.sort(key=lambda item: (_canonical(item[0]), item[1]))
+
+        claims: dict = {}
+        for f, fid, _ in stable:
+            claims[_sig(f)] = self._take(by_id.get(fid, []))
+        for f, _, key in unstable:
+            claims[_sig(f)] = self._take(by_key.get(key, []))
+        for f, fid, key in stable:
+            if claims[_sig(f)] is None:
+                claims[_sig(f)] = self._take(
+                    n for n in by_key.get(key, []) if marked_id[n] not in present)
+        for f, fid, _ in unstable:
+            if claims[_sig(f)] is None:
+                claims[_sig(f)] = self._take(keyless.get(fid, []))
+        return {sig: num for sig, num in claims.items() if num is not None}
+
+    def claim_title(self, titles: "list[str]") -> "object | None":
+        """An unmarked open issue with one of these titles; each serves one finding."""
+        for title in titles:
+            num = self._take(self.legacy.get(title, []))
+            if num is not None:
+                return num
+        return None
+
+    def add_created(self, num, finding: dict, title: str) -> None:
+        """Record an issue made this run for a finding without an id, so a
+        later one with the same title is not filed twice."""
+        if not finding_marker(finding):
+            self.legacy.setdefault(title, []).append(num)
 
 
 def create_issue(
@@ -313,22 +569,24 @@ def create_issue(
     """
     cmd = [
         "gh", "issue", "create",
-        "--repo", repo,
-        "--title", title,
-        "--body", body,
+        f"--repo={repo}",
+        f"--title={title}",
+        f"--body={body}",
     ]
     for label in labels:
-        cmd += ["--label", label]
+        cmd.append(f"--label={label}")
     if assignee:
-        cmd += ["--assignee", assignee]
+        cmd.append(f"--assignee={assignee}")
     if milestone:
-        cmd += ["--milestone", milestone]
+        cmd.append(f"--milestone={milestone}")
 
     try:
+        cmd[0] = _gh()
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=60,
         )
         if result.returncode == 0:
@@ -368,7 +626,7 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
     )
     ap.add_argument(
         "--severity",
-        help="Minimum severity filter (high/warning/info)",
+        help="Minimum severity filter (error/warning/info)",
     )
     ap.add_argument(
         "--rule-id",
@@ -404,7 +662,7 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
         if args.severity.lower() not in known:
             ap.error(
                 f"unknown --severity {args.severity!r} — "
-                "accepted: high/critical/error, warning/medium/warn, info/low"
+                "accepted: error/critical/high, warning/medium/warn, info/low"
             )
 
     rule_ids: "list[str] | None" = None
@@ -501,11 +759,14 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
     # --create mode
     # -----------------------------------------------------------------------
 
-    # Batch dedup: query once per unique rule_id, not once per finding
-    unique_rule_ids = {f.get("rule_id", "") for f in findings}
-    existing_by_rule = {
-        rid: find_existing_issues(args.repo, rid) for rid in unique_rule_ids if rid
-    }
+    try:
+        index = IssueIndex(list_open_issues(args.repo))
+    except IssueListError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    claims = index.assign(_distinct(all_findings))
+    findings = _distinct(findings)
 
     created = 0
     skipped = 0
@@ -514,16 +775,16 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
     for finding in findings:
         rule_id = finding.get("rule_id", "")
 
-        # Dedup check (uses pre-fetched results)
-        existing = existing_by_rule.get(rule_id, [])
-        if existing:
-            nums = ", ".join(f"#{e['number']}" for e in existing)
+        title = format_issue_title(finding)
+        existing = claims.get(_sig(finding))
+        if existing is None:
+            existing = index.claim_title([title, format_issue_title(finding, inert=False)])
+        if existing is not None:
             summary = (finding.get("summary") or "")[:60]
-            print(f"SKIP  [{rule_id}] {summary}  (already open: {nums})")
+            print(f"SKIP  [{rule_id}] {summary}  (already open: #{existing})")
             skipped += 1
             continue
 
-        title = format_issue_title(finding)
         body = format_issue_body(finding)
         labels = issue_labels(finding, args.labels)
         url = create_issue(
@@ -532,6 +793,8 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
         if url:
             print(f"CREATED  {url}")
             created += 1
+            tail = url.rstrip("/").rsplit("/", 1)[-1]
+            index.add_created(int(tail) if tail.isdigit() else tail, finding, title)
         else:
             print(f"ERROR  [{rule_id}] {title[:60]}", file=sys.stderr)
             errors += 1
@@ -544,4 +807,10 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

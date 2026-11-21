@@ -1,0 +1,499 @@
+# providers.yaml - Multi-LLM provider configuration (BASE layer)
+#
+# Layers, lowest first, each deep-merged over the one below (a LIST replaces
+# the one below wholesale):
+#   1. this file (base; always present)
+#   2. <git-root>/.multi-llm/providers.yaml   (per project; scaffold with `--init`)
+#   3. MULTI_LLM_PROVIDERS_CONFIG=/path.yaml   (env escape hatch)
+#
+# What each key means and why: docs/configuration.md#base-config-reference in
+# the repository (https://github.com/beastlabai/multi-llm-plugin); a bare
+# `#anchor` below is a section of that page. Comments here keep only what you
+# need to set a value correctly. Flags, arguments and
+# the binary itself live in the adapters under utils/providers/, never here.
+
+# default_timeout: slot seconds. max_concurrent: parallel slots of that CLI.
+# models: the --interactive menu, the first being the provider's default.
+# Model ids: keep each CLI's own spelling; an id OpenRouter serves may not exist
+# in a native CLI catalog. Most providers take an optional ":effort" suffix,
+# split on the LAST colon; an unknown suffix stays part of the model name.
+# Listing commands, effort rules: docs/configuration.md#provider-blocks.
+# Catalog refreshed 2026-11-19.
+providers:
+  claude-code:
+    default_timeout: 1800
+    max_concurrent: 2
+    # ":effort" -> --effort: low, medium, high, xhigh, max. Aliases move with
+    # releases; explicit ids pin a generation.
+    models:
+      - sonnet
+      - opus
+      - fable
+      - haiku
+      - claude-sonnet-5-5
+      - claude-opus-5-5
+      - claude-fable-5-2
+      - claude-haiku-5-5
+    # --fallback-model stand-ins; empty = no flag. Each entry must be a model
+    # listed above, not repeated, not its own primary (#claude-code-keys):
+    #   fallback_models:
+    #     sonnet: [haiku]
+    #   fallback_models_default: [haiku]   # primaries with no entry above
+    fallback_models: {}
+    # auto | always | never: strip ANTHROPIC_API_KEY/_AUTH_TOKEN/_CUSTOM_HEADERS
+    # so a subscription login is not billed per token (#claude-code-keys).
+    strip_vendor_keys: auto
+    # auto | keep | strip: an inherited CLAUDE_CODE_USE_* backend; `auto` keeps
+    # only one named in this block's `env:` (#claude-code-keys).
+    vendor_backend: auto
+
+  cursor-agent:
+    default_timeout: 1200
+    max_concurrent: 2
+    # auto | on | off: run cursor on a throwaway profile so --model and --trust
+    # never touch yours; auto = Linux only (#cursor-agent-keys).
+    isolate_profile: "auto"
+    # Effort is part of cursor's own model names; no ":effort" suffix.
+    models:
+      - auto
+      - composer-2.5
+      - gpt-5.6-sol-xhigh
+      - gpt-5.6-terra-xhigh
+      - gpt-5.6-luna-high
+      - gemini-4-carbon-high
+      - gemini-4-neon-high
+      - gemini-4-hydrogen-high
+      - gemini-3.8-flash-high
+      - kimi-k3-high
+      - kimi-k3-max
+      - glm-5.2-high
+      - glm-5.2-max
+      - grok-4.7-high
+      - claude-sonnet-5-5-xhigh
+      - claude-opus-5-5-xhigh
+      - claude-fable-5-2-high
+      - claude-haiku-5-5-thinking-high
+      - muse-wonder-1.0-xhigh
+      - muse-spark-1.3-xhigh
+
+  gemini:
+    default_timeout: 1200  # Gemini can be slower
+    # No ":effort": set thinking with a custom alias in ~/.gemini/settings.json
+    # and list the alias here (#provider-blocks).
+    models:
+      - gemini-4-carbon
+      - gemini-4-neon
+      - gemini-4-hydrogen
+      - gemini-3.8-flash
+      - gemini-3.5-flash-lite
+      - gemini-flash-latest
+
+  grok:
+    default_timeout: 1200
+    # ":effort" -> --reasoning-effort: none, minimal, low, medium, high, xhigh,
+    # max. `grok models` lists the catalog.
+    models:
+      - grok-4.6:high
+
+  fx:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Vercel fx (not the npm/Homebrew JSON viewer of the same name). OpenRouter
+    # slugs; no ":effort".
+    models:
+      - openai/gpt-6-luna
+
+  opencode:
+    default_timeout: 1200
+    # First opencode version to refuse, e.g. "2.0.0"; "" = no ceiling. Write the
+    # breakage it guards in a comment beside it (#version-ceilings).
+    max_version_exclusive: ""
+    # on | auto | off: run with an empty config home so your opencode.json cannot
+    # change the model, agent or permissions (#opencode-keys). Quoted on purpose.
+    hermetic: "on"
+    # A provider defined only in your own opencode config must be declared here
+    # to stay usable under `hermetic` (no credentials; #opencode-keys):
+    #   config_providers:
+    #     my-gateway:
+    #       options:
+    #         baseURL: https://gateway.example.com/v1
+    #       models:
+    #         my-model: {}
+    #
+    # ":effort" -> run --variant <name>; names are model-specific. Catalog:
+    # `opencode models`; Zen (`opencode/*`) ids retire server-side.
+    models:
+      - opencode/big-pickle
+      - opencode/nemotron-3.5-super-vl-free
+      - google/gemini-4-carbon
+      - openai/gpt-6.2-sol
+      - openai/gpt-6.2-astra
+      # Needs stored OpenRouter auth (`opencode auth login`). Leave it without
+      # ":effort": a --variant hung the earlier V4 Flash, and this one is unprobed.
+      - openrouter/deepseek/deepseek-v4.1-flash-1017
+
+  codex:
+    default_timeout: 1800
+    # strip_vendor_keys is deliberately unset (= never): codex has no
+    # zero-network login check to strip against (#codex-keys).
+    # ":effort" -> -c model_reasoning_effort=: none, minimal, low, medium, high,
+    # xhigh, max (ultra = max). Without one, ~/.codex/config.toml decides.
+    models:
+      - gpt-6.2-sol
+      - gpt-6.2-sol:xhigh
+      - gpt-6.2-astra
+      - gpt-6.2-astra:xhigh
+      - gpt-6.1-terra
+      - gpt-6-luna
+    # auto | contained | off: what codex's read-only phases do where its own
+    # sandbox cannot start. A project layer can only narrow it. Never enable
+    # use_legacy_landlock globally. See docs/configuration.md#safety.
+    sandbox_fallback: auto
+
+  kilocode:
+    default_timeout: 1200
+    # backend/provider/model. ":variant" -> run --variant: none, minimal, low,
+    # medium, high, xhigh, max, thinking, instant; but a variant the MODEL does
+    # not publish is ignored silently: check tests/fixtures/kilocode/
+    # model_variants.json (`kilocode models <backend> --refresh --verbose`).
+    max_concurrent: 2
+    models:
+      - openrouter/moonshotai/kimi-k3.1-pro:max
+      - openrouter/nvidia/nemotron-3-ultra-550b-a55b
+      - openrouter/z-ai/glm-5.3:max
+      - kilo/z-ai/glm-5.3
+      - openrouter/minimax/minimax-m3.1-flash
+      - openrouter/x-ai/grok-4.7
+      - openrouter/xiaomi/mimo-v2.6-pro
+      - openrouter/qwen/qwen4-max:xhigh
+      - openrouter/tencent/hy4:high
+      - openrouter/stepfun/step-5-preview:high
+      - openrouter/openai/gpt-6.2-astra-pro
+      - openai/gpt-6.2-astra
+      - openrouter/nex-agi/nex-n2.6
+      - openrouter/google/gemini-3.8-flash
+      - openrouter/google/gemini-4-carbon
+      - openrouter/google/gemini-4-neon
+      - google/gemini-4-carbon
+      - openrouter/deepseek/deepseek-v4-pro-0813
+      - openrouter/anthropic/claude-sonnet-5.5
+      - openrouter/anthropic/claude-fable-5.2
+      - openrouter/meta/muse-wonder
+
+  cline:
+    default_timeout: 1200
+    # <cline-backend>/<model-id>, e.g. openrouter/z-ai/glm-5.3. -m rewrites
+    # the saved default in ~/.cline, hence the cap. ":effort" -> --thinking:
+    # none, low, medium, high, xhigh (anything else: cline exits 1).
+    max_concurrent: 2
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
+
+  goose:
+    default_timeout: 1200
+    # <goose-backend>/<model-id>; openrouter needs OPENROUTER_API_KEY exported.
+    # ":effort" -> GOOSE_THINKING_EFFORT: off, none, low, medium, high, max,
+    # xhigh (ignored silently where goose sees no reasoning model).
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
+
+  aider:
+    default_timeout: 1200
+    # litellm specs passed verbatim to --model; openrouter/ needs
+    # OPENROUTER_API_KEY exported. ":effort" -> --reasoning-effort: none,
+    # minimal, low, medium, high, xhigh.
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
+
+  agy:
+    # Also sets agy's own --print-timeout (30 s under it).
+    default_timeout: 1200
+    # Exact display names from `agy models` (an unknown one is rejected).
+    # ":effort" -> --effort: low, medium, high, e.g. "Gemini 4 Neon (High):high".
+    models:
+      - "Gemini 4 Neon (High)"
+      - "Gemini 4 Neon (Medium)"
+      - "Gemini 4 Neon (Low)"
+      - "Gemini 3.8 Flash (High)"
+      - "Gemini 3.8 Flash (Medium)"
+      - "Gemini 3.8 Flash (Low)"
+      - "Claude Opus 5.5 (High)"
+      - "Claude Opus 5.5 (Medium)"
+      - "Claude Opus 5.5 (Low)"
+      - "Claude Sonnet 5.5 (High)"
+      - "Claude Sonnet 5.5 (Medium)"
+      - "Claude Sonnet 5.5 (Low)"
+      - "GPT-OSS 120B (Medium)"
+
+  muse:
+    # Generous on purpose: muse retries a failing call up to 10 times.
+    default_timeout: 1800
+    # ":effort" -> --reasoning-effort: none, minimal, low, medium, high, xhigh,
+    # ultra (anything else fails). Without one, ~/.config/muse/settings.json
+    # decides. Wonder Full needs a Power or Maximum Usage subscription. muse
+    # has no OpenRouter provider (`--provider openrouter` is refused); Wonder
+    # through OpenRouter is kilocode:openrouter/meta/muse-wonder.
+    models:
+      - muse-wonder-1.0
+      - muse-wonder-1.0:xhigh
+      - muse-wonder-full-1.0
+      - muse-spark-1.3
+      - muse-spark-1.3:xhigh
+
+  pi:
+    default_timeout: 1200
+    # pi model patterns, verbatim to --model (`pi --list-models`). ":effort" ->
+    # --thinking: off, minimal, low, medium, high, xhigh, max.
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
+
+  kimi:
+    default_timeout: 1200
+    max_concurrent: 2
+    # OpenRouter slugs (a Kimi Code subscription is a different catalog). No
+    # ":effort": a third ":" segment is part of the id.
+    models:
+      - moonshotai/kimi-k3.1-pro
+
+  qwen-code:
+    default_timeout: 1200
+    max_concurrent: 2
+    # OpenRouter slugs (a Qwen first-party plan is a different catalog). No
+    # ":effort": a stray suffix reaches the backend as part of the id.
+    models:
+      - qwen/qwen3.8-27b
+      - qwen/qwen4-max
+
+  copilot:
+    default_timeout: 1200
+    max_concurrent: 2
+    # OpenRouter slugs, BYOK (a Copilot seat's catalog does not apply).
+    # ":effort": none, minimal, low, medium, high, xhigh, max.
+    models:
+      - openai/gpt-6-luna
+
+  vibe:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Aliases, not slugs: each needs a matching [[models]] entry in
+    # $VIBE_HOME/config.toml. ":effort" -> VIBE_THINKING: off, low, medium,
+    # high, max.
+    models:
+      - openai/gpt-6-luna
+
+  omp:
+    default_timeout: 1200
+    # omp SELECTORS, verbatim to --model: copy `selector` (not `id`) from
+    # `omp models openrouter --json`. ":effort" -> --thinking: off, minimal,
+    # low, medium, high, xhigh, max (omp itself validates nothing).
+    models:
+      - openrouter/openai/gpt-6-luna
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3.1-pro
+      - openrouter/openai/gpt-6.2-astra
+
+
+# Default provider when model name doesn't include provider prefix
+default_provider: cursor-agent
+
+# ---------------------------------------------------------------------------
+# driver: how --exec-subagents dispatches materialized subagent prompts (D3)
+# ---------------------------------------------------------------------------
+# Only consulted when the Python executor is the invoker (`--exec-subagents`,
+# or a host whose capability entry has no native subagent tool). A host with
+# native subagents (Claude Code, Cursor) never reads these on a default run —
+# the key configures the *executor's* runner, not the session's model.
+#
+# Merge semantics are the ordinary three-layer chain: this base block is always
+# present and fully populated, an override layer merges key-by-key (so setting
+# `subagent_runner` alone inherits the rest), a blank value (`subagent_runner:`
+# → YAML None) is SKIPPED and keeps the base value, and unknown keys under
+# `driver:` are rejected at load time so a typo is never silently a no-op.
+# Leaving `subagent_runner` unset in a repo shared by several hosts is the
+# healthy arrangement: each host then resolves its own CLI.
+driver:
+  # Any provider:model spec with an implemented adapter. Validated at load time
+  # (parseable spec, known adapter, declares the profile the phase needs).
+  subagent_runner: claude-code:sonnet
+  # Used for tasks whose materialized `capability_tier` is `cheap`; falls back
+  # to `subagent_runner` when unset.
+  subagent_runner_cheap: claude-code:haiku
+  # User preference, not the effective limit: the executor takes the minimum of
+  # this, the runner provider's own `max_concurrent` above, and the host's
+  # documented ceiling.
+  max_concurrent_subagents: 4
+  # WRITE phases (apply-*, implement) get their own ceiling and it defaults to 1:
+  # the batchers partition by artifact (one plan file per apply batch, one source
+  # file per code-fix batch), so the read path's fan-out would be two agents
+  # editing one file. Raising this only PERMITS parallelism — the batch must also
+  # declare `can_parallelize`, the declared file sets must be pairwise disjoint at
+  # dispatch time, and shared-artifact phases stay pinned to 1 regardless.
+  max_concurrent_write_subagents: 1
+  # null = the runner provider's `default_timeout`. A positive integer overrides it.
+  subagent_timeout_s: null
+  # Seconds a WRITE subagent may print nothing, with no tool call running, before
+  # it is stopped and what it printed is read: an unreadable closing report after
+  # edits gets the one report re-ask, as for any runner that died. Not a cap on
+  # how long it works: a long test suite in its shell keeps the clock off. Only
+  # for runners that print events as they work (codex); claude-code prints its
+  # answer at exit, so it never has this timer. 0 turns it off.
+  subagent_idle_timeout_s: 900
+  # Re-dispatches for TRANSPORT-shaped failures only (timeout, no parsed text,
+  # parse_output failure). A result that parsed but failed schema validation is
+  # never retried — that is a deterministic disagreement a retry would launder.
+  # A write batch that already changed files is never re-dispatched: a retry
+  # would apply it twice. It stops as a partial application, or, in an apply
+  # phase whose closing report was unreadable, is asked once to restate it.
+  subagent_retries: 1
+  # The repository's OWN post-write check, run ONCE by the executor after a
+  # code-editing phase (implement, apply-code-fixes) applied at least one batch.
+  # A shell command string — `pnpm typecheck && pnpm lint:fix`, `cargo check`,
+  # `make lint test` — run with cwd at the pinned repo root. The markdown apply
+  # phases (apply-suggestions, apply-task-suggestions) skip it: a typecheck has
+  # nothing to say about a plan file.
+  # null (the default) means THIS REPO DECLARES NO CHECK, and the phase says so
+  # in one line rather than completing silently — the two are different facts.
+  # A non-zero exit rolls NOTHING back (every batch was already verified against
+  # its own snapshot, and a revert would destroy what a human needs to read) but
+  # ends the phase at exit 3, naming the command and the tail of its output: a
+  # repo whose own check fails needs a human, not the next phase.
+  verify_command: null
+  # Wall-clock ceiling for the command above. Not optional and not inherited from
+  # a provider — nothing else knows how long this repo's build takes.
+  verify_timeout_s: 600
+  # How apply-code-fixes batches run `verify_command` under --exec-subagents:
+  # `full` (the default) has every batch run it as written. `scoped` has each
+  # batch run it narrowed to the tests of the files it changed, and the phase
+  # then owes one full run before it can complete. Worth it only for a slow
+  # suite; it applies to a pytest command only, and a later batch can break a
+  # test the narrowed runs skipped (the full run then stops the phase at exit 3).
+  batch_checks: full
+  # The declared write policy for edit-capable dispatches, resolved against the
+  # pinned repo root and enforced TWICE: pre-dispatch against the batch's declared
+  # file set (refused before the runner starts) and post-run against the set the
+  # snapshot diff actually observed (batch failed, files restored, run exits 3).
+  # `.multi-llm/**` is denied to the RUNNER because the EXECUTOR owns those bytes.
+  # The runner's own sandbox stays the preventive control; this is the second,
+  # detective layer that makes a violation loud.
+  write_paths:
+    allow:
+      - '**'
+    deny:
+      - .git/**
+      - .multi-llm/**
+      - '**/.env'
+      - '**/.env.*'
+      - '**/*.pem'
+      - '**/id_rsa*'
+      - '**/.ssh/**'
+      - '**/.aws/**'
+      - '**/.npmrc'
+      - '**/node_modules/**'
+
+
+# ---------------------------------------------------------------------------
+# progress: how often a running fan-out says it is still alive
+# ---------------------------------------------------------------------------
+# A closed set: an unknown key is rejected at load. Read once per run.
+# docs/configuration.md#good-to-know explains the two cadences.
+progress:
+  # Seconds between `[PROGRESS]` lines; 0 silences them, otherwise >= 5.
+  interval_s: 30
+  # Seconds between host polls, and the `--wait` default; >= 5, no 0, clamped
+  # under the host's shell cap.
+  poll_s: 90
+
+# ---------------------------------------------------------------------------
+# git_env: the non-interactive git environment every spawned CLI inherits
+# ---------------------------------------------------------------------------
+# auto | wipe | keep. auto wipes credential.helper on the read-only lanes only,
+# keep never wipes, wipe wipes on agent-write too. Settable per provider under
+# providers.<name>.git_env; MULTI_LLM_GIT_CREDENTIAL_HELPER overrides both.
+# An unknown value is rejected at load (docs/configuration.md#git_env).
+git_env:
+  credential_helper: auto
+
+# ---------------------------------------------------------------------------
+# code_review: how `review-code` groups the paths in its scope
+# ---------------------------------------------------------------------------
+# collapse_paths: glob lists (repo-relative; `**/` any depth, a pattern with no
+# `/` matches the file name anywhere); `[]` switches a rule off. A path matching
+# `generated` (or marked linguist-generated) or `fixtures` is listed, not diffed.
+# commit_reviews_dir: relative to the repository root; no absolute path, `..`,
+# `.` or empty string. docs/configuration.md#good-to-know has both keys.
+code_review:
+  collapse_paths:
+    generated: []
+    fixtures:
+      - "**/tests/fixtures/**"
+      - "**/tests/golden/**"
+  commit_reviews_dir: plans/commit-reviews
+
+# off | on: on passes provider children only an allow-listed environment. Ships
+# off until its per-CLI matrix is measured (docs/configuration.md#env_allowlist).
+# Quoted on purpose: YAML 1.1 reads a bare on/off as a boolean.
+env_allowlist: "off"
+
+# Default models to use when no models are specified on CLI
+# If set, skips interactive selection and uses these models automatically
+# Use --interactive flag to override and force interactive selection
+defaults:
+  models:
+    #- cursor-agent:composer-2.5
+    #- cursor-agent:gpt-5.6-sol-xhigh
+    - cursor-agent:gemini-4-carbon-high
+    - cursor-agent:grok-4.7-high
+    #- cursor-agent:kimi-k3-high
+    #- opencode:opencode/big-pickle
+    - opencode:openrouter/deepseek/deepseek-v4.1-flash-1017
+    # kilocode ignores an unpublished variant silently; these match
+    # tests/fixtures/kilocode/model_variants.json.
+    - kilocode:openrouter/moonshotai/kimi-k3.1-pro:max
+    - kilocode:openrouter/nvidia/nemotron-3-ultra-550b-a55b:high
+    - kilocode:openrouter/z-ai/glm-5.3:max
+    - kilocode:openrouter/minimax/minimax-m3.1-flash
+    - kilocode:openrouter/xiaomi/mimo-v2.6-pro:high
+    - kilocode:openrouter/qwen/qwen4-max:xhigh
+    - codex:gpt-6.2-astra:xhigh
+    - claude-code:claude-fable-5-2:high
+    #- grok:grok-4.6
+    #- cline:openrouter/z-ai/glm-5.3
+    #- goose:openrouter/z-ai/glm-5.3
+    #- aider:openrouter/z-ai/glm-5.3
+    #- "agy:Gemini 4 Neon (High)"
+    #- pi:openrouter/z-ai/glm-5.3
+    #- omp:openrouter/openai/gpt-6-luna
+    #- muse:muse-wonder-1.0:xhigh
+    #- kimi:moonshotai/kimi-k3.1-pro
+    #- qwen-code:qwen/qwen4-max
+    #- copilot:openai/gpt-6-luna
+    #- vibe:openai/gpt-6-luna
+    #- fx:openai/gpt-6-luna
+
+  # Lightweight model subset for the --quick / -q flag
+  # Used instead of defaults.models for faster reviews with fewer models
+  # Omit --quick to use the full defaults.models list, or pass --interactive to pick manually
+  quick_models:
+    - cursor-agent:grok-4.7-high
+    - codex:gpt-6.2-astra:xhigh
+    - claude-code:claude-fable-5-2:high
+
+  # Optional: only use defaults for specific modes
+  # modes:
+  #   review-plan:
+  #     models:
+  #       - cursor-agent:auto
+  #       - gemini:gemini-3.8-flash
+  #     quick:
+  #       - cursor-agent:auto
+  #   code-review:
+  #     models:
+  #       - cursor-agent:gpt-5.6-sol-xhigh

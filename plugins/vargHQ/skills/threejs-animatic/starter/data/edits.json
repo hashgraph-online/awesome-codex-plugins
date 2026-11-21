@@ -1,0 +1,5 @@
+{
+ "version": 1,
+ "note": "Camera edits, status and notes saved from the review UI. Overrides js/shots.js.",
+ "shots": {}
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "since-cutoff",
+  "version": "0.5.0",
+  "description": "Find which dependency APIs your code uses changed after your coding model's training cutoff, and write short AGENTS.md notes from the API diff, each with its source.",
+  "author": {
+    "name": "Mohammad Hijjawi",
+    "url": "https://github.com/MohammadHijjawi97"
+  },
+  "homepage": "https://mohammadhijjawi97.github.io/since-cutoff/",
+  "repository": "https://github.com/MohammadHijjawi97/since-cutoff",
+  "license": "MIT",
+  "keywords": [
+    "python",
+    "dependencies",
+    "knowledge-cutoff",
+    "api-changes",
+    "agents-md",
+    "static-analysis",
+    "type-checking",
+    "coding-agents",
+    "mcp"
+  ]
+}

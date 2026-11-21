@@ -25,6 +25,7 @@ except ImportError:
 
 
 def collect_ms1(exp):
+    """Collect ms1."""
     rts, mz_arrays, int_arrays = [], [], []
     for spec in exp:
         if spec.getMSLevel() != 1:
@@ -37,6 +38,7 @@ def collect_ms1(exp):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Extract TIC/BPC/XIC chromatograms.")
     parser.add_argument("input", help="Input mzML/mzXML")
     parser.add_argument("--tic", action="store_true", help="Compute total ion chromatogram")

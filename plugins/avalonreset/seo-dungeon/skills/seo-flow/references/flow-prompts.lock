@@ -1,9 +1,9 @@
-# flow-prompts.lock — SHA-256 baseline for synced FLOW prompts
+# flow-prompts.lock - SHA-256 baseline for synced FLOW prompts
 # Ref: HEAD | format: <sha256hex>  <rel_path> (sha256sum-compatible)
 
 1f7e5d60194c252a6b38ba1eb78970cdf5bea2f096563c508bfad36f7e445f75  skills/seo-flow/references/bibliography.md
 029c009e0fd5fc77763a530af24a83bf8cf21eb703158317bde8518446af0887  skills/seo-flow/references/flow-framework.md
-26e434454595c47c63e3ef5c4c5d975a8a8208ca01887e51ab09a45eb679085a  skills/seo-flow/references/prompts/README.md
+f7af26f454240c9096d7661bbe5812e06f9317997e831a9d7a04c220bdf963c0  skills/seo-flow/references/prompts/README.md
 0bab3257ca8c588ffe6e96adc97d2201fc1fb4cfd5a8674cfeb97a640ab78ce1  skills/seo-flow/references/prompts/find/content-planning-for-topical-relevance-prompt.md
 e8d12ec0b02de03de7b0066a1b29b4e5523f49413bb276c3d936ca068f1645b0  skills/seo-flow/references/prompts/find/content-prioritization-prompt.md
 3bd3c230f682c65c328324d37dada59a76ca85326bfe97fbf3acf6849e36525d  skills/seo-flow/references/prompts/find/keyword-research-prompt.md

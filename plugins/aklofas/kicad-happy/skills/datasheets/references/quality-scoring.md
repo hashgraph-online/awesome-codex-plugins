@@ -1,6 +1,8 @@
 # Quality Scoring Reference
 
-The scorer (`datasheet_score.py`) evaluates a completed extraction against a five-dimension completeness rubric and returns a total score from 0.0 to 10.0. The score determines whether the extraction is good enough to cache and use for design review.
+This guide describes the **legacy v1.3 0–10 rubric** (`score_extraction()`). Current v1.4 extractions are scored by `score_v14_extraction()` on 0–100: pinout completeness 20 %, base completeness 25 %, category completeness 25 %, and a reserved 30 % awarded in full. `merge_results.py` stores the score at `extraction.quality_score`. `lookup()` reports it without gating; the dict helpers and `datasheet_verify.py` treat a score below 60 as untrusted. Only the regulator category has a field rubric; any other category payload that is present gets full category credit. The rubric below still applies to v1.3 caches.
+
+The scorer (`datasheet_score.py`) evaluates a completed legacy extraction against a five-dimension completeness rubric and returns a total score from 0.0 to 10.0. The score determines whether the extraction is good enough to cache and use for design review.
 
 ---
 
@@ -155,7 +157,7 @@ Returns:
 
 ```python
 {
-    "total": 8.2,
+    "total": 8.3,
     "pin_coverage": 9.0,
     "voltage_ratings": 8.5,
     "application_info": 7.0,

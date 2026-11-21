@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.local/datasheets/schemas/opamp.schema.json",
   "title": "OpampExtension",
-  "description": "Category extension for operational amplifiers (general-purpose, precision, rail-to-rail I/O, rail-to-rail output, JFET-input, CMOS-input, chopper, instrumentation, comparator). Layered on top of base per spec §7. Version 1.0. Field union from LM358 (Fairchild → ON Semi BJT general-purpose dual single-supply, SOIC-8/PDIP-8) + MCP6004 (Microchip CMOS rail-to-rail I/O quad, SOIC-14/PDIP-14/TSSOP-14). v1.4 omits noise_voltage_density / noise_current_density / phase_margin — deferred to v1.5 to avoid spec_value unit enum sprawl (V/√Hz, A/√Hz, degrees).",
+  "description": "Category extension for operational amplifiers (general-purpose, precision, rail-to-rail I/O, rail-to-rail output, JFET-input, CMOS-input, chopper, instrumentation, comparator). Layered on top of base per spec §7. Version 1.0. Field union from LM358 (Fairchild → ON Semi BJT general-purpose dual single-supply, SOIC-8/PDIP-8) + MCP6004 (Microchip CMOS rail-to-rail I/O quad, SOIC-14/PDIP-14/TSSOP-14). Omits noise_voltage_density / noise_current_density / phase_margin (not modeled, to avoid spec_value unit enum sprawl: V/√Hz, A/√Hz, degrees).",
   "x-schema-version": "1.0",
   "type": "object",
   "required": ["opamp_topology", "channels"],
@@ -120,7 +120,7 @@
     "package": {
       "type": ["object", "null"],
       "additionalProperties": false,
-      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b option A convention — inner keys align with base.schema.json body_mm shape).",
+      "description": "Package physical characteristics. body_mm uses nested object shape (nested-object convention — inner keys align with base.schema.json body_mm shape).",
       "required": ["evidence"],
       "properties": {
         "code": {
@@ -138,7 +138,7 @@
         "body_mm": {
           "type": ["object", "null"],
           "additionalProperties": false,
-          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "description": "Package body dimensions in millimeters. Nested object using the nested-object convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
           "properties": {
             "length": {
               "type": "number",

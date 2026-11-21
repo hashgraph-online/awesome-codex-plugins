@@ -91,7 +91,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 **Use when**: Request is specific and actionable.
 
 1. Read the user's request + any existing docs (PRD, README, AGENTS.md)
-2. Generate spec directly at `$HARNESS_DIR/specs/SPEC-{timestamp}.md` with `status: approved`
+2. Generate spec directly at `$HARNESS_DIR/specs/SPEC-{timestamp}.md`, run the **Readiness gate** from `skills/spec/SKILL.md` (step 3) on it, settle every `GAP:` from the request and codebase yourself, record each as `GAP: … → settled: … (assumption)` under the spec's `## Readiness Gate`, then write `status: approved`. If a gap cannot be settled without the user, downgrade to `council` mode instead of guessing.
 3. Record via `epic mem add --title "Orbit: {mode} mode decision" --type decision --importance 0.9 --body "CONTEXT"`
 4. **Proceed immediately to Step 3** — no approval gate
 
@@ -102,7 +102,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 1. Gather the user's request from conversation context
 2. Launch 4 parallel sub-agents (Architect, Skeptic, Pragmatist, Critic) — each receives ONLY the request + codebase context, NOT the full conversation (anti-anchoring)
 3. Synthesize: list agreement/disagreement, produce recommended approach
-4. Generate spec at `$HARNESS_DIR/specs/SPEC-{timestamp}.md` with `status: approved`
+4. Generate spec at `$HARNESS_DIR/specs/SPEC-{timestamp}.md`, run the **Readiness gate** (spec skill step 3), settle every `GAP:` from the council output and record each under `## Readiness Gate`, then write `status: approved`
 5. Record via `epic mem add --title "Orbit: council decision" --type decision --importance 0.9 --body "CONTEXT"`
 6. **Proceed immediately to Step 3** — no approval gate, no "orbit go"
 
@@ -160,6 +160,8 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
    - `benchmarks/eval_runner.py` in CWD (auto-detected benchmark)
 2. If eval is active, run `epic eval --json` via the **eval** skill
 3. **Eval PASS** → proceed to Ship
+3a. **Eval WARN**: record `"eval": "WARN"` with the warnings in `phase_history` and proceed to Ship. WARN does not increment `audit_fail_count`.
+3b. **Eval SKIPPED** (nothing measured, or no baseline yet): record "eval": "SKIPPED" in the pipeline state and proceed to Ship. SKIPPED is not a failure and does not increment audit_fail_count.
 4. **Eval FAIL (regression detected)** → increment `audit_fail_count`:
    - `< 3`: plan fixes, execute, return to Step 4
    - `≥ 3`: **PAUSE** — ask user "continue or abort?"
@@ -180,12 +182,25 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
    ```bash
    gh pr checks <PR_NUMBER> --json name,state
    ```
-   - Checks exist → run `gh pr checks <PR_NUMBER> --watch`, auto-fix failures.
-   - Empty result (no CI configured on the repo) → **skip the watch**. Log
-     "No CI configured, skipping CI watch", append a `phase_history` entry
-     recording `"ci_watch": "skipped"`, and proceed to Step 7 (evolve runs
-     regardless of CI outcome, so the pipeline must never wait on checks
-     that will never appear).
+   - Checks exist: run `gh pr checks <PR_NUMBER> --watch`, auto-fix failures.
+   - Empty result: an empty list does not prove that no CI exists, because
+     workflow runs that need maintainer approval create no checks. Look up the
+     runs for the PR head:
+     ```bash
+     HEAD=$(gh pr view <PR_NUMBER> --json headRefOid --jq .headRefOid)
+     gh run list --commit "$HEAD" --json databaseId,name,status,conclusion,url
+     ```
+     - Any run with conclusion `action_required`: append a `phase_history`
+       entry recording `"ci_status": "approval_required"` with the run URLs,
+       **skip the watch** (it can never finish), report CI as BLOCKED (not PASS,
+       not N/A) because a maintainer must approve the runs, and proceed to
+       Step 7. Step 7 item 2 (green-CI extras) does not run.
+     - No runs: no CI configured on the repo. **Skip the watch**. Log
+       "No CI configured, skipping CI watch", append a `phase_history` entry
+       recording `"ci_watch": "skipped"`, and proceed to Step 7 (evolve runs
+       regardless of CI outcome, so the pipeline must never wait on checks
+       that will never appear).
+     - Runs exist without `action_required`: do not call `gh pr checks --watch` (with no checks it exits at once with "no checks reported" and reads as a failure, which is not a CI failure). Watch each run for the HEAD commit with `gh run watch <run-id>` (the `databaseId` above) and treat its result as the CI result. If the runs cannot be watched, report CI as BLOCKED.
 6. **Exit worktree**: Return to original directory and keep the worktree
 
 ## Step 7: Evolve
@@ -206,7 +221,7 @@ Run the evolution engine to analyze this session and generate/improve skills.
    ```
    Unconsumed manifests leave the template skill body in place.
 
-2. **If CI green** (all checks passed): additionally run
+2. **If CI green** (all checks passed; not when CI is BLOCKED or skipped): additionally run
    ```bash
    epic-harness reflect --context --days 1
    ```
@@ -239,7 +254,8 @@ Run the evolution engine to analyze this session and generate/improve skills.
 | Spec | approved | 0 |
 | Go | complete | 0 |
 | Audit | PASS | {count} |
-| Eval | {PASS|SKIPPED} | 0 |
+| Eval | {PASS|WARN|SKIPPED} | 0 |
+| CI | {PASS|FAIL|BLOCKED|N/A} | 0 |
 | Ship | complete | 0 |
 | Evolve | complete | 0 |
 

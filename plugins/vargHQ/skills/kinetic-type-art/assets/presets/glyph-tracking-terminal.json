@@ -1,0 +1,155 @@
+{
+  "id": "glyph-tracking-terminal",
+  "name": "Glyph-tracking terminal camera",
+  "use": "A virtual camera tracks the newest glyphs of an agent terminal across beat-timed shots",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "glyph-tracking-terminal.dark",
+      "label": "Dark",
+      "look": "Dark terminal, green prompt, white output",
+      "params": {
+        "bg": "#0B0B0D",
+        "text": "#E6E6E6",
+        "prompt": "#33FF8A",
+        "accent": "#FF8A1F",
+        "font": "JetBrains Mono",
+        "font_size_px_1x": [
+          22,
+          28
+        ],
+        "line_height": 1.4,
+        "shots": 12,
+        "shot_frames": 17.5,
+        "bpm_for_one_shot_per_beat": 103,
+        "shot_start_frame": "round(i*17.5)",
+        "move": {
+          "frames": [
+            6,
+            8
+          ],
+          "ease": "power3.inOut"
+        },
+        "hard_cut_every_n_shots": 3,
+        "zoom": {
+          "wide": 1,
+          "medium": [
+            2.2,
+            3
+          ],
+          "close": [
+            4,
+            6
+          ]
+        },
+        "lead_frames": [
+          2,
+          4
+        ],
+        "stream_ink": {
+          "from": "#777777",
+          "frames": [
+            4,
+            6
+          ]
+        },
+        "window_inset_px": 120,
+        "final_wide_f": 30
+      },
+      "sources": [
+        9,
+        38,
+        41,
+        4,
+        55
+      ]
+    },
+    {
+      "id": "glyph-tracking-terminal.light",
+      "label": "Light",
+      "look": "Light terminal for keynote looks",
+      "params": {
+        "bg": "#F7F7F5",
+        "text": "#1A1A1A",
+        "accent": "#3255A4"
+      },
+      "sources": [
+        41
+      ]
+    },
+    {
+      "id": "glyph-tracking-terminal.tilt",
+      "label": "Tilt",
+      "look": "Close-ups in 3D around the line",
+      "params": {
+        "perspective_px": 1400,
+        "rotateY_deg": [
+          -10,
+          10
+        ],
+        "rotateX_deg": 6
+      },
+      "sources": [
+        4
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 4,
+      "name": "@jh3yy, blow-out text along z",
+      "url": "https://x.com/jh3yy/status/1702790661911494765"
+    },
+    {
+      "n": 9,
+      "name": "@_chenglou, userland text measurement",
+      "url": "https://x.com/_chenglou/status/2037713766205608234"
+    },
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 38,
+      "name": "Silverman Sound, BPM to FPS calculator",
+      "url": "https://www.silvermansound.com/bpm-to-fps-calculator"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 55,
+      "name": "Pushing Pixels, John LePore (Perception)",
+      "url": "https://pushing-pixels.org/?p=12751"
+    }
+  ]
+}

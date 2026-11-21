@@ -9,11 +9,11 @@ cp .env.example .env
 chmod +x scripts/run-mailagent-mcp.sh
 ```
 
-Put secrets in `.env` (gitignored). `MAILAGENT_API_URL` defaults to `https://api.webmailagent.com`.
+Put secrets in `.env` (gitignored). `MAILAGENT_API_URL` defaults to `https://mail-api.navorina.ai`.
 `MAILAGENT_API_KEY` may also come from the parent process environment. Do not log or paste the key.
 
 ```dotenv
-MAILAGENT_API_URL=https://api.webmailagent.com
+MAILAGENT_API_URL=https://mail-api.navorina.ai
 MAILAGENT_API_KEY=ma_or_mak_replace_me
 ```
 
@@ -41,7 +41,7 @@ If the form is already submitted, use `mailagent_verify_signup` to wait and extr
 ## Remote MCP (OAuth)
 
 For Streamable HTTP without a local subprocess, see
-[OAuth IdP docs](https://webmailagent.com/docs/oauth-idp.html) and use `https://api.webmailagent.com/mcp`
+[OAuth IdP docs](https://agents.navorina.ai/docs/oauth-idp.html) and use `https://mail-api.navorina.ai/mcp`
 with a short-lived `mat_` bearer token.
 
 This bundle keeps stdio MCP via `npx -y -p @mailagent/mcp@0.2.16 mailagent-mcp`.
@@ -49,8 +49,8 @@ This bundle keeps stdio MCP via `npx -y -p @mailagent/mcp@0.2.16 mailagent-mcp`.
 ## Install from GitHub marketplace
 
 ```bash
-codex plugin marketplace add Alex0nder/MailAgent
+codex plugin marketplace add navorina-labs/MailAgent
 codex plugin add mailagent@mailagent
 ```
 
-Docs: https://webmailagent.com/docs/codex.html
+Docs: https://agents.navorina.ai/docs/codex.html

@@ -1,4 +1,4 @@
-# DMA + Consent Mode v2 — click-through impact diagnostic
+# DMA + Consent Mode v2 - click-through impact diagnostic
 
 EU traffic flowing through Google Search has been subject to the
 **Digital Markets Act** since 2024-03-07. The DMA limits how Google
@@ -24,7 +24,7 @@ GA4 + Ads in EU. The operational effect for SEO audits:
    has `eu_data_collection_disabled` or denies ad_storage by default,
    note "EU traffic counts are conservative; conversion-modelled
    uplift may apply."
-3. **Do not lecture the user on cookie consent UX** — that's a legal
+3. **Do not lecture the user on cookie consent UX** - that's a legal
    team / engineering concern outside SEO scope. Just attach the
    diagnostic note.
 

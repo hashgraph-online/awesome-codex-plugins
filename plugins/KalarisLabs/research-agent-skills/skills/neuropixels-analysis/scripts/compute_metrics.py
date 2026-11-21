@@ -143,14 +143,14 @@ def compute_metrics(
     for label in labels.values():
         label_counts[label] = label_counts.get(label, 0) + 1
 
-    print(f"\nCuration summary:")
+    print("\nCuration summary:")
     print(f"  Good: {label_counts.get('good', 0)}")
     print(f"  MUA: {label_counts.get('mua', 0)}")
     print(f"  Noise: {label_counts.get('noise', 0)}")
     print(f"  Total: {len(labels)}")
 
     # Metrics summary
-    print(f"\nMetrics summary:")
+    print("\nMetrics summary:")
     for col in ['snr', 'isi_violations_ratio', 'presence_ratio', 'firing_rate']:
         if col in metrics.columns:
             print(f"  {col}: {metrics[col].median():.4f} (median)")
@@ -159,6 +159,7 @@ def compute_metrics(
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description='Compute quality metrics')
     parser.add_argument('sorting', help='Path to sorting directory')
     parser.add_argument('recording', help='Path to preprocessed recording')

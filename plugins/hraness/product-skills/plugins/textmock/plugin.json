@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "textmock",
+  "version": "0.1.3",
+  "description": "Make iMessage-style conversations and save them as images or videos.",
+  "author": {
+    "name": "Hraness",
+    "url": "https://hraness.com"
+  },
+  "homepage": "https://textmock.com/docs/agents",
+  "repository": "https://github.com/hraness/product-skills",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "Textmock",
+        "shortDescription": "iMessage mockups.",
+        "longDescription": "Make iMessage-style conversations and save them as images or videos.\n\nThe included share-link helper requires Node.js 24.0.0 or later. Open its link in Textmock to export an image or video.",
+        "developerName": "Hraness",
+        "category": "Productivity",
+        "capabilities": [],
+        "websiteURL": "https://textmock.com",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      }
+    }
+  }
+}

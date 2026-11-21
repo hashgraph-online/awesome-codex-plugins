@@ -1,0 +1,9 @@
+{
+  "update_id": 960005,
+  "chosen_inline_result": {
+    "result_id": "kaffa",
+    "from": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+    "inline_message_id": "AQAAAKx2nwABCDEF",
+    "query": "coffee"
+  }
+}

@@ -37,6 +37,22 @@ CENTRAL_SPEC.loader.exec_module(CENTRAL)
 
 
 class BranchQualifiedContributionTests(unittest.TestCase):
+    def test_manual_pull_request_number_skips_closed_pull_requests(self) -> None:
+        def payload(state: str) -> dict[str, object]:
+            return {
+                "number": 7,
+                "state": state,
+                "title": "Add example plugin",
+                "user": {"login": "octocat"},
+                "head": {"ref": "add-plugin", "sha": "a" * 40, "repo": {"full_name": "octocat/awesome-codex-plugins"}},
+                "base": {"ref": "main", "sha": "b" * 40},
+            }
+
+        for state, expected in (("open", [7]), ("closed", [])):
+            with patch.object(VALIDATOR, "github_json", return_value=payload(state)):
+                pull_requests = VALIDATOR.list_open_pull_requests("hashgraph-online/awesome-codex-plugins", 7)
+            self.assertEqual([pull.number for pull in pull_requests], expected)
+
     def parse_added_entry(self, url: str):
         base = "## Community Plugins\n"
         head = f"{base}\n- [WTFM]({url}) - Example plugin.\n"
@@ -282,7 +298,7 @@ class BranchQualifiedContributionTests(unittest.TestCase):
             matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
             self.assertEqual(
                 matrix,
-                [{"pr_number": 558, "owner": "SupportPages-io", "repo": "wtfm", "ref": "codex-plugin"}],
+                [{"pr_number": 558, "owner": "SupportPages-io", "repo": "wtfm", "name": "WTFM", "ref": "codex-plugin"}],
             )
             self.assertIn("centralized score scan", report_path.read_text(encoding="utf-8"))
 
@@ -299,8 +315,8 @@ class BranchQualifiedContributionTests(unittest.TestCase):
             self.assertEqual(
                 json.loads(matrix_path.read_text(encoding="utf-8")),
                 [
-                    {"owner": "SupportPages-io", "repo": "wtfm", "ref": "codex-plugin"},
-                    {"owner": "example", "repo": "default-plugin"},
+                    {"owner": "SupportPages-io", "repo": "wtfm", "name": "WTFM", "ref": "codex-plugin"},
+                    {"owner": "example", "repo": "default-plugin", "name": "WTFM"},
                 ],
             )
 
@@ -357,6 +373,7 @@ class BranchQualifiedContributionTests(unittest.TestCase):
                         "pr_number": 558,
                         "owner": "SupportPages-io",
                         "repo": "wtfm",
+                        "name": "WTFM",
                         "ref": "codex-plugin",
                     }
                 ],

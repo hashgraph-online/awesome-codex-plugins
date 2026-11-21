@@ -11,7 +11,7 @@ metadata:
 
 Deliver a watchable explanation with a beginning, a useful idea and an ending, plus its editable script. A folder of disconnected clips is not the finished video.
 
-Use the connected Magic Hour MCP at `https://mcp.magichour.ai/` or the project's existing API integration. Use the [connection guide](https://github.com/magichourhq/skills/blob/main/docs/quickstart.md#connect-once) if needed. Verify `account_retrieve` and discover current image, audio and video tool schemas. Discover a local or connected compositor before promising an assembled video; Magic Hour generation tools do not imply a general-purpose assembly endpoint.
+Use the connected Magic Hour MCP at `https://mcp.magichour.ai/` or the project's existing API integration. Use the [connection guide](https://github.com/magichourhq/skills/blob/main/docs/quickstart.md#connect-once) if needed. Verify `get_account_info` and discover current image, audio and video tool schemas. Discover a local or connected compositor before promising an assembled video; Magic Hour generation tools do not imply a general-purpose assembly endpoint.
 
 ## Convert the brief into a clear story
 
@@ -29,7 +29,7 @@ Record each created audio ID and use `wait_for_audio_project`. Retrieve and meas
 
 Create one style image with AI Image Generator, or edit an authorized reference with AI Image Editor. Inspect it before animation. Keep the same reference, palette, character details, line treatment and aspect ratio across scenes. Diagram labels and exact words belong in editable layout layers. Reuse an accepted still for a new scene when appropriate; avoid text-to-video when identity matters.
 
-Animate approved stills with `image_to_video_create_video` only where motion helps explain the idea. A precisely composed diagram, still with a purposeful camera move or local timeline animation can communicate better than a paid generated clip. Keep those methods accurately labeled. Budget narration, stills, motion and repairs together, and do not add paid motion merely to use every tool.
+Animate approved stills with `create_video_from_image` only where motion helps explain the idea. A precisely composed diagram, still with a purposeful camera move or local timeline animation can communicate better than a paid generated clip. Keep those methods accurately labeled. Budget narration, stills, motion and repairs together, and do not add paid motion merely to use every tool.
 
 ## Assemble and deliver the whole explanation
 

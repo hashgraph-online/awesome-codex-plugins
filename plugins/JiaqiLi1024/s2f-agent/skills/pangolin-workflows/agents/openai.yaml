@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pangolin workflows"
+  short_description: "Pangolin tissue-specific splice prediction workflows"
+  default_prompt: "Use $pangolin-workflows to help me with Pangolin tissue-specific splice prediction workflows."

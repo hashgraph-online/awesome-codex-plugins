@@ -1,0 +1,68 @@
+{
+  "skill_name": "suede-ops-architecture",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We want to add AI to our intake. Right now a form comes in, someone types it into the CRM, assigns it by territory, and posts to Slack. What should we build?",
+      "expected_output": "Should apply the Written Rule Test and classify this as a deterministic automation with no model, because territory assignment is a lookup table and every branch is enumerable. Should say explicitly that adding a model here buys nondeterminism and per-call cost for nothing. Should name the entity the form writes and confirm a single write path. Should return the Output Contract sections.",
+      "assertions": [
+        "Classifies the work unit as automation, not agent",
+        "States that no model is needed for deterministic work",
+        "Names the entity and its canonical writer",
+        "Returns the Output Contract format"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our agent should read inbound support email and issue refunds under $200 automatically.",
+      "expected_output": "Should split this into extraction plus a written refund rule rather than a single agent decision. Should apply the blast-radius override because issuing a refund moves money and is not reversible, shipping it as automation prepares and human releases. Should not approve autonomous refund issuance.",
+      "assertions": [
+        "Applies the blast-radius override to the refund action",
+        "Separates extraction from the refund decision rule",
+        "Requires human approval before money moves"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We have 22 tools and a spreadsheet everything actually runs on. Help us decide what to cut.",
+      "expected_output": "Should require a proof path per tool and refuse to classify from a config entry or memory alone. Should apply absorb, keep, or kill with the stated criteria, marking tools with no evidence as unknown rather than kill. Should identify the spreadsheet as a write-path collision under Step 2 and halt with the named options.",
+      "assertions": [
+        "Requires a proof path such as a last-write timestamp or invoice line",
+        "Marks unproven tools unknown rather than kill",
+        "Flags the spreadsheet as a competing writer",
+        "Uses the halt format with resolution options"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Projects run about 45 days and nobody opens a closed project twice a year. Plan our migration off the old system.",
+      "expected_output": "Should choose the cutover date path, because cycle length is short and closed records are rarely reopened, and should say the old system empties itself within one cycle with no backfill. Should set the switch date at least two weeks out with training before it and put a dated cancellation line on the old tools.",
+      "assertions": [
+        "Chooses the cutover date path over full migration",
+        "Explains that no backfill is needed given the cycle length",
+        "Sets a communicated switch date with training beforehand",
+        "Dates the old tool cancellation"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Sequence the build. We want the agents first so leadership can see something.",
+      "expected_output": "Should hold the ordering law and place schema first, then workflows, then agents, explaining that an agent on unstable data returns confident answers built on partial context. Should give each phase a completion standard proved by a command rather than a judgment, and should offer visible progress through working demonstrations without reordering the phases.",
+      "assertions": [
+        "Keeps schema before workflows before agents",
+        "Explains the failure mode of agents on fragmented data",
+        "Gives each phase a command-proved completion gate",
+        "Does not reorder phases to produce an early demo"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Set up our lead scoring and route MQLs to the right sales rep in HubSpot.",
+      "expected_output": "Should decline to own this and route to suede-revops, which owns lead lifecycle, scoring, stage definitions, and CRM routing rules. May offer the write-path check as a follow-on if the CRM is one of several systems writing the same contact record, but should not run the six steps on a request this skill does not own.",
+      "assertions": [
+        "Routes to suede-revops",
+        "Does not run the six architecture steps on a lifecycle-rules request"
+      ]
+    }
+  ]
+}

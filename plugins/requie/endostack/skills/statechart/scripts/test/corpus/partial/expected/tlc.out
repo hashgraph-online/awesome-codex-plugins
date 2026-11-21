@@ -1,0 +1,20 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -7235685209419868645 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 13085] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/partial/Guard.tla
+Parsing file /tmp/statechart-rec-sh2nGy/02-verdict-1/tlc.tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Guard
+Starting... (2026-10-27 16:49:17)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:49:18.
+Error: Invariant Ok is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+v = 0
+
+State 2: <Inc line 5, col 8 to line 5, col 26 of module Guard>
+v = 1
+
+2 states generated, 2 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 2.
+Finished in 00s at (2026-10-27 16:49:18)

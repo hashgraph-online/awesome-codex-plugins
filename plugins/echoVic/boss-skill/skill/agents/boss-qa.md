@@ -1,27 +1,25 @@
 ---
-
 name: boss-qa
 description: "QA 验证 Agent，审查已有测试质量、补充边界与安全用例、执行测试并产出可核验的证据（命令、退出码、覆盖率、失败详情）。"
 tools:
-- Read
-- Glob
-- Grep
-- Bash
-- Agent
-- Skill
-  color: green
-  model: inherit
-  available_skills:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Agent
+  - Skill
+color: green
+model: inherit
+available_skills:
   required:
-  - qa/test-strategy
-  - qa/unit-testing
-  - qa/test-execution
-  - qa/e2e-playwright
-  - qa/api-testing
-  - qa/integration-testing
-    optional:
-  - shared/tech-stack-detection
-
+    - qa/test-strategy
+    - qa/unit-testing
+    - qa/test-execution
+    - qa/e2e-playwright
+    - qa/api-testing
+    - qa/integration-testing
+  optional:
+    - shared/tech-stack-detection
 ---
 
 > 📋 通用规则见 `agents/shared/agent-protocol.md`（语言、模板优先级、状态协议、技术适配协议）
@@ -46,6 +44,7 @@ tools:
 **产物格式要求**：`qa-report.md` 正文最开头（标题之后）必须包含 `## 摘要` section，概括验证结论、通过率、覆盖率与遗留风险；供下游 Agent 摘要优先读取。
 
 **禁止**：
+
 - 禁止在未实际执行的情况下声明任何测试通过。
 - 禁止用「应该能通过」「预期通过」「已覆盖」等推测性表述代替退出码。
 - 禁止把跳过（skipped）计入通过数。

@@ -1,0 +1,75 @@
+/* 报告基础版式：A4、三线表、衬线正文、无衬线标题。配色和字号固定，不每次重新设计。 */
+:root {
+  --ink: #1c1c1a; --ink2: #52514e; --muted: #898781; --hair: #e1e0d9; --base: #c3c2b7; --wash: #f5f4f0;
+  --accent: #2a78d6; --good: #0a7d0a; --bad: #c23535; --warn: #a86b00;
+  --serif: "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --sans: "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --kai: "KaiTi", "STKaiti", "Kaiti SC", "AR PL UKai CN", "Noto Serif CJK SC", serif;
+}
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; background: #fff; color: var(--ink); font-family: var(--serif); font-size: 9.8pt; line-height: 1.72; }
+h1, h2, h3, h4, table, figcaption, .sans, .tile, .kicker, .tag, .legend, .card .ct { font-family: var(--sans); }
+h1 { font-size: 22pt; line-height: 1.25; margin: 0 0 8pt; font-weight: 700; letter-spacing: 0.3pt; }
+h2 { font-size: 13.5pt; margin: 20pt 0 7pt; padding-bottom: 3pt; border-bottom: 1.1pt solid var(--ink); break-after: avoid; font-weight: 700; }
+h2 .num { color: var(--accent); margin-right: 6pt; }
+h3 { font-size: 10.6pt; margin: 12pt 0 4pt; break-after: avoid; font-weight: 700; }
+h4 { font-size: 9.9pt; margin: 10pt 0 3pt; break-after: avoid; font-weight: 700; }
+p { margin: 0 0 5.5pt; text-align: justify; }
+ol, ul { margin: 2pt 0 7pt; padding-left: 17pt; }
+li { margin: 0 0 3.5pt; }
+b, strong { font-weight: 700; }
+sub, sup { font-size: 72%; line-height: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; line-height: 1.5; margin: 5pt 0 9pt; }
+th { text-align: left; font-weight: 700; border-top: 1pt solid var(--ink); border-bottom: 0.6pt solid var(--ink); padding: 3pt 4pt; vertical-align: bottom; }
+td { border-bottom: 0.4pt solid var(--hair); padding: 2.6pt 4pt; vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0.9pt solid var(--ink); }
+tr { break-inside: avoid; }
+tr.sub td { background: var(--wash); font-weight: 700; }
+td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.c, th.c { text-align: center; white-space: nowrap; }
+.nowrap { white-space: nowrap; }
+/* 判定标记：<span class="ok">对</span> <span class="no">错</span> <span class="part">部分</span> */
+.ok { color: var(--good); font-weight: 700; white-space: nowrap; }
+.no { color: var(--bad); font-weight: 700; white-space: nowrap; }
+.part { color: var(--warn); font-weight: 700; white-space: nowrap; }
+/* 提示框 ::: key（蓝，结论） */
+.key { border-left: 2.6pt solid var(--accent); background: var(--wash); padding: 6pt 9pt 3pt; margin: 7pt 0 10pt; break-inside: avoid; }
+.note { font-size: 8.4pt; color: var(--ink2); line-height: 1.6; }
+/* 封面块 */
+.cover { padding: 4pt 0 6pt; border-bottom: 1.1pt solid var(--ink); margin-bottom: 8pt; }
+.kicker { font-size: 9pt; color: var(--accent); font-weight: 700; letter-spacing: 0.6pt; margin-bottom: 6pt; }
+.meta { font-size: 8.4pt; color: var(--ink2); line-height: 1.65; }
+/* 四格数字 */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin: 9pt 0 6pt; }
+.tile { border-top: 2pt solid var(--ink); padding-top: 4pt; }
+.tile .big { font-size: 21pt; font-weight: 700; line-height: 1.1; }
+.tile .big small { font-size: 10pt; font-weight: 700; color: var(--ink2); }
+.tile .lab { font-size: 8pt; color: var(--ink2); line-height: 1.45; margin-top: 2pt; }
+figure { margin: 6pt 0 10pt; break-inside: avoid; }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 8pt; color: var(--ink2); line-height: 1.55; margin-top: 3pt; }
+.tag { display: inline-block; font-size: 7.6pt; padding: 0 4pt; border: 0.6pt solid var(--base); border-radius: 2pt; color: var(--ink2); margin-left: 3pt; vertical-align: 1pt; line-height: 1.5; }
+.pb { break-before: page; }
+.twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14pt; align-items: start; }
+/* 学生原话：行内 <span class="you">…</span> 用楷体 */
+span.you { font-family: var(--kai); color: #3d3c39; }
+.eqbox { background: var(--wash); border-radius: 2pt; padding: 3pt 8pt; margin: 4pt 0 7pt; break-inside: avoid; }
+.eqbox p { margin: 2pt 0; }
+.katex { font-size: 1.04em; }
+.katex-display { margin: 4pt 0 6pt; }
+.grade td:nth-child(1), .grade td:nth-child(2) { white-space: nowrap; }
+/* 模型卡 */
+.card { border: 0.8pt solid var(--ink2); border-radius: 3pt; padding: 0; margin: 8pt 0 11pt; break-inside: avoid; }
+.card .ct { background: var(--ink); color: #fff; font-weight: 700; font-size: 9.4pt; padding: 3pt 8pt; border-radius: 2.4pt 2.4pt 0 0; }
+.card .ct span { font-weight: 400; color: #d8d7d0; margin-left: 6pt; font-size: 8.2pt; }
+.card table { margin: 0; font-size: 8.4pt; }
+.card td { border-bottom: 0.4pt solid var(--hair); padding: 3pt 8pt; }
+.card tr:last-child td { border-bottom: none; }
+.card td.k { width: 17%; font-family: var(--sans); font-weight: 700; color: var(--ink2); white-space: nowrap; }
+/* 必背清单 */
+.must { columns: 2; column-gap: 16pt; font-size: 8.5pt; line-height: 1.6; }
+.must h4 { margin: 4pt 0 2pt; font-size: 9pt; color: var(--accent); break-after: avoid; }
+.must ul { margin: 0 0 5pt; padding-left: 12pt; }
+.must li { margin: 0 0 2.2pt; break-inside: avoid; }
+.rule { border: 1pt solid var(--ink); border-radius: 3pt; padding: 6pt 10pt 4pt; margin: 6pt 0 10pt; break-inside: avoid; }
+.rule h4 { margin-top: 2pt; }

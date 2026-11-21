@@ -2,7 +2,7 @@
 name: cometchat-android-v6-builder-settings
 description: "The CometChat Android v6 settings and session API reference — the assets/cometchat-settings.json file that initFromSettings reads (appId, region, credentials, uiKit toggles), the legacy UIKitSettings builder, and the CometChatUIKit session methods (login, loginWithAuthToken, logout, getLoggedInUser, createUser). Use when configuring init options or wiring auth beyond the core golden path. Triggers: 'cometchat settings json android', 'uikitsettings builder options', 'login with auth token android', 'create a cometchat user from the app', 'enable calling in settings'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -36,7 +36,7 @@ Same kit + init as `core`. Everything here is `com.cometchat.uikit.core` — no 
 - `appId` + `region` are **required** — missing either fails with `ERR_SETTINGS_INVALID`; a missing file fails with `ERR_SETTINGS_FILE_NOT_FOUND`.
 - `credentials.authKey` is **optional and dev-only** — omit it in production builds and log in with a server-minted auth token.
 - `uiKit.subscribePresenceForAllUsers` defaults to `true`.
-- `uiKit.enableCalling` defaults to `false`. Setting it `true` makes `initFromSettings` auto-initialize the **Calls SDK** — **which means the `com.cometchat:calls-sdk-android` dependency becomes MANDATORY.** Without it the app throws `NoClassDefFoundError: CometChatCalls$SessionSettingsBuilder` from `initCometChatCalls` **during `onCreate`, before any UI renders** (verified on device). The two must always change together (→ `cometchat-android-v6-calls`).
+- `uiKit.enableCalling` defaults to `false`. Setting it `true` makes `initFromSettings` auto-initialize the **Calls SDK** — **which means the `com.cometchat:calls-sdk-android` dependency becomes MANDATORY.** Without it, 6.0.x throws `NoClassDefFoundError: CometChatCalls$SessionSettingsBuilder` from `initCometChatCalls` **during `onCreate`, before any UI renders** (verified on device); 6.1.1 skips Calls init with a log line instead, so calling silently stays off (source-checked). The two must always change together (→ `cometchat-android-v6-calls`).
 - The Chat SDK may read an optional `chatSDK` section from the same file. It is **not required** — init succeeds without it. `/sdk/android/v5/setup.md` documents only the classic programmatic `init()` + `AppSettings`, so it will NOT tell you the section's keys; do not send the user there for them.
 
 ## The legacy `UIKitSettings` builder (know it, don't default to it)

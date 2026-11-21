@@ -2,14 +2,14 @@
 name: cometchat-ios-core
 description: "Add CometChat chat to an iOS app end-to-end — detect the project, get & verify dashboard credentials, init→login→render, and the drop-in conversation UI composed into a chat screen. The core knowledge every other iOS skill builds on. Triggers: 'integrate cometchat swift', 'set up cometchat credentials ios', 'show conversations and messages ios'."
 license: "MIT"
-compatibility: "Xcode 16+; iOS 15.1+ (the kit's deployment floor); Swift 5.0+; CometChatUIKitSwift 5.1.22 + CometChatSDK 4.1.7 + CometChatCallsSDK 5.0.3 (exact — see Install)"
+compatibility: "Xcode 16+; iOS 15.1+ (the kit's deployment floor); Swift 5.0+; CometChatUIKitSwift 5.2.3+ (Up to Next Major; it resolves CometChatSDK 4.1.10+ itself). CometChatCallsSDK 5.0.4+ only for calling. See Install"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat ios swift uikit core chat integration v5 setup credentials"
 ---
 
-> **Ground truth:** `CometChatUIKitSwift` 5.1.22 (a prebuilt binary xcframework) + `CometChatSDK` 4.1.7. Every symbol below is verified against the shipped `.swiftinterface` (`catalogs/ios-v5.json`); the golden-path composition and its layout constraints are verified on a simulator by the native harness, not reasoned from the web pack. This file is the THIN map loaded every run; deep detail lives in `references/*`, loaded only when the task needs it.
+> **Ground truth:** `CometChatUIKitSwift` 5.2.3 (a prebuilt binary xcframework) + `CometChatSDK` 4.1.10. Every symbol below is verified against the shipped 5.2.3 `.swiftinterface` (`catalogs/ios-v5.json`) and the code blocks type-check against the 5.2.3 binaries; the golden-path composition and its layout constraints were verified on a simulator by the native harness on 5.1.22, not reasoned from the web pack. This file is the THIN map loaded every run; deep detail lives in `references/*`, loaded only when the task needs it.
 
 <!-- core is the companion the other iOS skills read; it has no Companion block of its own. -->
 
@@ -20,13 +20,13 @@ metadata:
 Setter-based API (not props) · **no** composite component in v5 (the `*WithMessages` names are v4) · navigation stack, not side-by-side panes. Full detail + why each one compiles-but-fails: `references/anti-patterns.md`.
 
 ## Install — Swift Package Manager only
-**SPM only. Never CocoaPods**, even if a `Podfile` exists (its distribution is winding down; a Podfile is a detection signal, not an instruction). Add three packages at EXACT versions — the kit is a prebuilt binary compiled against one Chat SDK version and SPM will not resolve that transitively: `CometChatUIKitSwift` **5.1.22** · `CometChatSDK` **4.1.7** · `CometChatCallsSDK` **5.0.3** (required even for chat-only — see `references/install.md` for the repos, the Calls-SDK reason, and the Xcode steps).
-> **Why `CometChatSDK` 4.1.7 and not the newer 4.1.9 in the docs' setup pages:** these are the versions the pinned 5.1.22 UI Kit binary was built and verified against here (catalog + simulator smoke). The kit is a prebuilt xcframework that links a specific Chat SDK — bumping only `CometChatSDK` risks a binary-compat mismatch SPM won't catch. Do NOT flip the pin on your own; it moves together with the UI Kit when this pack next upgrades the iOS family.
+**SPM only. Never CocoaPods**, even if a `Podfile` exists (its distribution is winding down; a Podfile is a detection signal, not an instruction). Add ONE package: `CometChatUIKitSwift`, rule **Up to Next Major Version from 5.2.3**. Its `Package.swift` pulls in `CometChatSDK` (from 4.1.10) and `CometChatCardsSwift` itself, so do not add the Chat SDK by hand. `CometChatCallsSDK` (from 5.0.4) is added only for calling (`cometchat-ios-calls`): 5.2.3 builds and launches without it. Repos, the 5.2.3 floor and Xcode steps: `references/install.md`.
+> **Floor is 5.2.3, not any 5.2.x:** 5.2.0 to 5.2.2 crash at launch when the Calls SDK is absent, and 5.1.19 to 5.1.22 do not build without it. If the project already pins `CometChatSDK` exactly (older guidance), loosen it to Up to Next Major from 4.1.10 or remove it.
 
 ## Setup & credentials (essentials — full chain: `references/setup-credentials.md`)
 1. **Detect** the project shape AND its lifecycle — a stock Xcode project is a SwiftUI `@main App` with **no AppDelegate/SceneDelegate**, so there is no launch hook for `init → login` until you add one (`references/swiftui.md`). A `Podfile` is a detection signal only; integrate via SPM.
 2. **version_conflict — STOP** if a non-v5 kit is installed (v4 shows `*WithMessages` components). Reconcile first, never mix majors (`RULES.md`); v4 → v5 is `cometchat-ios-migration`.
-3. **Credentials — OFFER to fetch from the dashboard FIRST; never silently default to "paste it yourself."** Load the CLI on demand (`references/setup-credentials.md` has the exact command), ask which EXISTING app, never auto-create. Manual paste is the fallback.
+3. **Credentials — OFFER to fetch from the dashboard FIRST; never silently default to "paste it yourself."** Fetch through the CometChat MCP's account tools (`references/setup-credentials.md` has the steps), ask which EXISTING app, never auto-create. Manual paste is the fallback.
 4. **Wire them**: gitignored `Secrets.xcconfig` → ATTACH to the build configurations → DECLARE each key in `Info.plist` as `$(COMETCHAT_APP_ID)` → read via `Bundle.main`, rejecting the literal `$(`. Miss a step and you get the literal, not the value. Modern projects generate `Info.plist` and cannot take custom keys through build settings — `references/setup-credentials.md` §2-§3.
 5. **Authorize** = init and login both resolve. An auth failure is usually the wrong Region.
 
@@ -48,8 +48,8 @@ let settings = UIKitSettings()
 // `initFromSettings` stamps integrationSource = "ai-agent". It takes no parameters because it
 // reads a bundled `cometchat-settings.json` (see references/setup-credentials.md §6). Skip it and
 // the app is stamped "manual" — attributed to a hand-written integration, which is worse than
-// unattributed. On 5.1.19 it does NOT initialise the UI Kit layer, so calling it INSTEAD of the
-// classic init makes login fail with Err_101; it runs BEFORE, never in place of.
+// unattributed. It runs BEFORE the classic init, never in place of it: that is the order measured
+// on a device (on 5.1.19, initFromSettings alone failed login with Err_101 = no Auth Key found).
 CometChatUIKit.initFromSettings { _, _ in
     // Ignore the result deliberately: attribution is best-effort. A missing or malformed
     // settings file must not stop the app from initialising below.
@@ -90,8 +90,8 @@ Grow set (on request): `CometChatUsers`, `CometChatGroups`, `CometChatGroupMembe
 ## Hot-path API (BAKED — the golden path needs NO fetch)
 - `CometChatConversations`: `set(onItemClick:)` (push the chat screen) · `set(conversationRequestBuilder:)` (scope the list) · `onSearchClick` (**property**, not a setter) · `set(subtitleView:)` / `set(trailView:)`.
 - `CometChatMessageHeader` / `CometChatMessageList` / `CometChatCompactMessageComposer`: `set(user:)` **or** `set(group:)` — exactly one · `set(controller:)` on all three.
-- **Thread scoping — the LIST takes its parent in the SAME call as its target.** `CometChatMessageList.set(user:parentMessage:withParent:)` (or `set(group:parentMessage:)`). A separate `set(user:)` followed by `set(parentMessageId:)` does NOT scope the list: the first call already built a request for the whole conversation, so the thread screen renders the entire conversation with the parent in it. The COMPOSER is different — `set(user:)` then `set(parentMessageId:)`. The header takes `set(parentMessage:)`. **Three components, three shapes** — verified against the shipped 5.1.22 interface by compiling each.
-- Styles are **properties**, not setters: `conversations.avatarStyle = …`, `.badgeStyle`, `.dateStyle`, `.receiptStyle`, `.statusIndicatorStyle`, `.typingIndicatorStyle`.
+- **Thread scoping — the LIST takes its parent in the SAME call as its target.** `CometChatMessageList.set(user:parentMessage:withParent:)` (or `set(group:parentMessage:)`). A separate `set(user:)` followed by `set(parentMessageId:)` does NOT scope the list: the first call already built a request for the whole conversation, so the thread screen renders the entire conversation with the parent in it. The COMPOSER is different — `set(user:)` then `set(parentMessageId:)`. The header takes `set(parentMessage:)`. **Three components, three shapes** — verified against the shipped 5.2.3 interface by compiling each.
+- Styles are **properties**, not setters: `conversations.avatarStyle = ...`, `.badgeStyle`, `.dateStyle`, `.receiptStyle`, `.statusIndicatorStyle`, `.typingIndicatorStyle`.
 > Exhaustive API or any other component → fetch its `.md` twin via `references/docs-map.md`. **Never** read the `.swiftinterface` or guess from memory.
 
 ## Golden path — the production-ready CORE surface
@@ -166,7 +166,7 @@ final class MessagesVC: UIViewController {
 }
 ```
 
-> **Swift concurrency: several kit initialisers are `@MainActor`-isolated** (`CometChatUsers` among them). Any factory method that constructs kit components must be `@MainActor` too, or the build fails with *"call to main actor-isolated initializer … in a synchronous nonisolated context"*. Inside a `UIViewController` this is free — it is already main-actor — so it only bites in a `static`/`enum` factory.
+> **Swift concurrency: several kit initialisers are `@MainActor`-isolated** (`CometChatUsers` among them). Any factory method that constructs kit components must be `@MainActor` too, or the build fails with *"call to main actor-isolated initializer ... in a synchronous nonisolated context"*. Inside a `UIViewController` this is free — it is already main-actor — so it only bites in a `static`/`enum` factory.
 > **The message header has NO tap callback.** `CometChatMessageHeader` exposes no `onItemClick`; its only interactive surface is `set(options:)` taking `[CometChatPopupMenu.MenuItem]`. So "tap the header to open details" is not a thing on iOS — a details or members screen is an overflow **menu item** you add.
 
 **The five rules — each one compiles fine and fails at runtime:**
@@ -181,7 +181,7 @@ final class MessagesVC: UIViewController {
 > ```swift
 > conversations.set(onError: { error in /* surface it — do not swallow */ })
 > ```
-> **Wire or hide every default-on affordance.** `CometChatConversations` HIDES its search entry by default (`hideSearch` is true on `CometChatListBase`). Assigning `onSearchClick` alone renders NOTHING — measured: 0 search fields. To ship search you need BOTH `conversations.hideSearch = false` and `conversations.onSearchClick = { … }` (which then shows 1 search field); wire it to `CometChatSearch` or leave search off deliberately. `CometChatMessageList` shows a thread indicator that dead-ends until `set(onThreadRepliesClick:)` opens a thread screen. Anything you PRESENT modally owns its own dismissal; a pushed screen gets its back control from the navigation controller for free.
+> **Wire or hide every default-on affordance.** `CometChatConversations` HIDES its search entry by default (`hideSearch` is true on `CometChatListBase`). Assigning `onSearchClick` alone renders NOTHING — measured: 0 search fields. To ship search you need BOTH `conversations.hideSearch = false` and `conversations.onSearchClick = { ... }` (which then shows 1 search field); wire it to `CometChatSearch` or leave search off deliberately. `CometChatMessageList` shows a thread indicator that dead-ends until `set(onThreadRepliesClick:)` opens a thread screen. Anything you PRESENT modally owns its own dismissal; a pushed screen gets its back control from the navigation controller for free.
 > **Scope the list to the request.** A 1:1-only ask should not show the app's seeded groups — use `set(conversationRequestBuilder:)` with `ConversationRequest.ConversationRequestBuilder(limit: 30).setConversationType(conversationType: .user)` (`.group` for groups-only). Note the method is **`setConversationType(conversationType:)`**, not `set(conversationType:)`, and the cases are `.user` / `.group` / `.none` — there is **no `.both`**; omit the call entirely to keep both.
 > **Grows on request → the full app.** Users/groups tabs, group details, call logs, threads, calls — `cometchat-ios-placement` (composition) and `cometchat-ios-features` (per-feature).
 
@@ -201,6 +201,6 @@ Build and run → `init` then `login` both resolve → the conversation list ren
 
 ## Explain what you built (REQUIRED close)
 After it builds, tell the user briefly: **(1) what I wired** (3–5 bullets, NAME the files); **(2) decisions & why**, flagging dev-only as dev-only (the **Auth Key** is dev-only → server-minted auth token for production; the `<uid>` you used); **(3) what I did NOT touch** (additive — their navigation, auth and styling are intact). Then **offer these THREE options as a selectable choice and WAIT — do not auto-continue:**
-- **① Add another feature** → first read what is already wired and ASK which dashboard-gated features are on, then suggest only the GAP (calls · search · threads · push · AI) → `cometchat-ios-features` / `cometchat-ios-calls`.
-- **② Customize theming** → ask whether they have a brand/preset or want to talk through options → `cometchat-ios-customization`.
-- **③ Test it manually** → do nothing further; hand it back.
+- **(1) Add another feature** → first read what is already wired and ASK which dashboard-gated features are on, then suggest only the GAP (calls · search · threads · push · AI) → `cometchat-ios-features` / `cometchat-ios-calls`.
+- **(2) Customize theming** → ask whether they have a brand/preset or want to talk through options → `cometchat-ios-customization`.
+- **(3) Test it manually** → do nothing further; hand it back.

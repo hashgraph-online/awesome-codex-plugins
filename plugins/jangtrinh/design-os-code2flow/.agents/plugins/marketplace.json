@@ -1,0 +1,20 @@
+{
+  "name": "design-os-code2flow",
+  "interface": {
+    "displayName": "DESIGN:OS Code2Flow"
+  },
+  "plugins": [
+    {
+      "name": "design-os-code2flow",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

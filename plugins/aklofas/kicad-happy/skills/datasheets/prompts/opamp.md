@@ -66,7 +66,7 @@ Produce a single JSON object matching this schema: `{{SCHEMA_PATH}}`.
 2. **Every SpecValue requires `evidence`** with `page` (1-based integer), `section` (string or null), `confidence` (`"high"`, `"medium"`, or `"low"`), `method` (one of `table`, `prose`, `curve`, `calculated`, `derived`). Use `"table"` for parameter tables; `"curve"` for values read off a graph; `"prose"` for values from descriptive text.
 3. **iq_per_amp is per-channel, not total.** If the datasheet publishes only total ICC (e.g. 1mA for a dual op-amp), divide by `channels` (0.5mA → `5e-4`). Document this in the `notes` field.
 4. **shutdown_pin matches base.pinout[*].numbers.** If the part has a shutdown/enable/standby pin, the pin number string must match the number recorded in the base pinout extraction.
-5. **Deferred fields — omit entirely.** `noise_voltage_density`, `noise_current_density`, and `phase_margin` are NOT in this schema (deferred to v1.5 due to V/√Hz and degrees unit issues). Do not attempt to squeeze them into other fields.
+5. **Unmodeled fields — omit entirely.** `noise_voltage_density`, `noise_current_density`, and `phase_margin` are NOT in this schema (not modeled because of V/√Hz and degrees unit issues). Do not attempt to squeeze them into other fields.
 6. **OMIT fields you cannot find** with null. No guessing. A missing `slew_rate` is better than a hallucinated one.
 7. **vout_swing_high and vout_swing_low are positive headroom numbers.** They represent the gap between the output rail and V+/V−, NOT the absolute output voltage. For a rail-to-rail part with VOH=VDD−25mV, store `vout_swing_high=0.025`.
 
@@ -145,12 +145,7 @@ Example (LM358 — Fairchild/ON Semi BJT general-purpose dual single-supply, SOI
   "unity_gain_stable": true,
   "shutdown_pin": null,
   "thermal_resistance": {
-    "rtheta_ja": [
-      {"min": null, "typ": null, "max": 150, "unit": "°C/W",
-       "condition": "SOIC-8 package, free air",
-       "notes": "Typical value for SOIC-8; not explicitly tabulated in this datasheet.",
-       "evidence": {"page": 2, "section": "Absolute Maximum Ratings", "confidence": "medium", "method": "prose"}}
-    ],
+    "rtheta_ja": null,
     "rtheta_jc": null,
     "rtheta_jl": null
   },

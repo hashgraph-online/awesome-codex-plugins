@@ -1,6 +1,6 @@
 ---
 name: purge
-description: Permanently delete this project's Nightshift state; does not uninstall the plugin.
+description: Permanently delete this project's Nightshift state, including punch lists, rules, receipts and archives; does not uninstall the plugin.
 license: MIT
 metadata:
   internal: true

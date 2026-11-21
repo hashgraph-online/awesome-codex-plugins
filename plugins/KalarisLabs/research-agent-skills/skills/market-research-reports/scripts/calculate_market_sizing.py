@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ MAX_VALUE = 1e18
 def _identifier_array(
     value: Any, context: str, *, minimum: int = 0
 ) -> list[str]:
+    """Handle identifier array."""
     items = require_list(value, context, minimum=minimum, maximum=100)
     parsed = [
         require_identifier(item, f"{context}[{index}]")
@@ -42,6 +44,7 @@ def _identifier_array(
 
 
 def _metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Handle metadata."""
     raw = require_object(payload.get("metadata"), "metadata")
     required = (
         "market_id",
@@ -86,6 +89,7 @@ def _metadata(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _top_down(payload: dict[str, Any], denominator_id: str) -> tuple[float, list[str]]:
+    """Handle top down."""
     section = require_object(payload.get("top_down"), "top_down")
     components = require_list(
         section.get("components"),
@@ -146,6 +150,7 @@ def _top_down(payload: dict[str, Any], denominator_id: str) -> tuple[float, list
 def _bottom_up(
     payload: dict[str, Any], denominator_id: str
 ) -> tuple[float, list[str]]:
+    """Handle bottom up."""
     section = require_object(payload.get("bottom_up"), "bottom_up")
     components = require_list(
         section.get("components"),
@@ -225,6 +230,7 @@ def _bottom_up(
 
 
 def _scenarios(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Handle scenarios."""
     raw_scenarios = require_list(
         payload.get("scenarios"),
         "scenarios",
@@ -283,6 +289,7 @@ def _scenarios(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def calculate(payload: dict[str, Any]) -> dict[str, Any]:
+    """Calculate."""
     schema_version = require_text(
         payload.get("schema_version"), "schema_version", maximum=10
     )
@@ -302,7 +309,7 @@ def calculate(payload: dict[str, Any]) -> dict[str, Any]:
     midpoint = (top_down_tam + bottom_up_tam) / 2.0
     reconciliation_percent = (
         0.0
-        if midpoint == 0.0
+        if math.isclose(midpoint, 0.0, rel_tol=0.0, abs_tol=0.0)
         else abs(top_down_tam - bottom_up_tam) / midpoint * 100.0
     )
     warnings: list[str] = []
@@ -361,6 +368,7 @@ def calculate(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Calculate local top-down and bottom-up TAM/SAM/SOM scenarios, "
@@ -376,6 +384,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         payload = require_object(read_json(args.input), "root")

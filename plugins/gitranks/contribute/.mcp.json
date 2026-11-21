@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gitranks": {
+      "type": "http",
+      "url": "https://mcp.gitranks.com/mcp"
+    }
+  }
+}

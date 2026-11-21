@@ -1,0 +1,41 @@
+{
+  "id": "brand-mesh",
+  "label": "Brand mesh background",
+  "shader": "MeshGradient",
+  "page": "https://shaders.paper.design/mesh-gradient",
+  "paperShaders": "0.0.82",
+  "use": "Full-frame background behind titles, product cards and lower thirds.",
+  "motion": {
+    "timeScale": 0.3,
+    "frame": 0
+  },
+  "roles": {
+    "colors": [
+      "accent",
+      "base",
+      "accent-light",
+      "deep"
+    ]
+  },
+  "params": {
+    "colors": [
+      "#ff5315",
+      "#070708",
+      "#ff9a5c",
+      "#24124f"
+    ],
+    "distortion": 0.8,
+    "swirl": 0.1,
+    "grainMixer": 0,
+    "grainOverlay": 0.15,
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

@@ -27,7 +27,8 @@ Work through these four steps in order.
 
 ### Step 1: Full Decay Risk Scan
 
-Scan for all six decay risks across the entire codebase. List every finding before scoring
+Scan for all six decay risks within the requested scope; label sampling and omitted
+areas. List every finding before scoring
 any of them. This prevents anchoring on early findings and missing systemic patterns.
 
 For each risk, look for:
@@ -50,9 +51,26 @@ Are there modules with no clear layering position?
 **Domain Model Distortion:** Is business logic in the right layer?
 Do code names match business names? Are domain objects anemic?
 
+For Knowledge Duplication, distinguish multiple owners of the same decision from
+similar mechanics governed by independent policies. A re-export or delegate to one
+authoritative implementation is not another owner. State the shared requirement
+and a concrete one-sided change: what changes in one place, what remains unchanged,
+and which observable result or required coordination demonstrates the burden.
+Include a runnable comparison or precise checks when feasible, labeling predicted
+outcomes honestly. Repeated syntax and the possibility of hypothetical future
+divergence alone do not establish debt; keep optional consolidation unscored when
+its maintenance obligation or benefit is not established. Do not couple unrelated
+policies merely to remove visually similar code.
+
 ### Step 2: Score Each Finding with Pain × Spread
 
-After listing all findings, score each one:
+After listing all findings, score each one using observed change history, supplied
+maintenance evidence or a concrete traced change obligation. Cite the basis for
+each factor; file count alone does not establish frequency, effort or team impact.
+If Pain or Spread cannot be established, mark that factor and the product `unknown`;
+do not assign 1, invent a precise rank, or discard supported findings elsewhere.
+If a bounded factor range is justified, show its priority range and leave overlapping
+ranks tied pending the fact that distinguishes them. Do not manufacture estimates.
 
 **Pain score (1–3):** How much does this slow down development today?
 - 3: Developers actively avoid touching this area; it causes bugs on most changes
@@ -78,9 +96,13 @@ After listing all findings, score each one:
 | 4–6 | Scheduled debt | Plan within quarter |
 | 1–3 | Monitored debt | Log and watch |
 
+These are debt-work priority classifications, not finding severity overrides.
+Assign each finding's severity under `common.md` Severity Calibration; a high
+Pain × Spread score alone does not establish Critical impact.
+
 ### Step 3: Classify Debt Intent
 
-After scoring, classify each finding as intentional or accidental:
+After scoring, classify each finding's intent where the evidence supports it:
 
 **Intentional debt** — a conscious shortcut taken to meet a deadline, with the expectation
 of paying it back. The team knows about it. It may be legitimate (a strategic prototype,
@@ -90,14 +112,20 @@ a known temporary workaround during a migration).
 did not choose it and may not even know it exists. This is the kind Ward Cunningham's
 original definition warned against — not a tactical trade-off, but structural erosion.
 
-Mark each finding with `[intentional]` or `[accidental]` in the Debt Summary Table.
-Intentional debt with no visible payback plan — no linked ticket, no code comment, no
-documented decision — should be treated as accidental for prioritization purposes.
-Focus remediation energy on accidental debt first; intentional debt at least has an owner.
+Mark intent as `[intentional]`, `[accidental]`, or `[unknown]`, citing the decision
+record or supplied history. Missing documentation does not prove accidental origin;
+known intentional debt with no repayment plan remains intentional with that missing
+plan noted. Intent is context, not a priority override. Rank observed pain and spread,
+then stated deadlines, dependency constraints and feasible repayment cost; do not
+prefer low-impact accidental debt over a costly intentional burden merely by label.
+Unknown intent alone does not block an otherwise supported priority.
 
 ### Step 4: Group by Decay Risk
 
 Report findings grouped by risk type, not by file or module.
+Use risk grouping for navigation, not scheduling: an average across a risk category
+can hide the highest-impact individual item. Order the actionable findings first;
+keep unknown priorities visible with the one fact needed to compare them.
 Grouping by risk reveals systemic patterns:
 - "Change Propagation is systemic" → architectural intervention needed
 - "Cognitive Overload is isolated" → localized refactoring sufficient
@@ -108,18 +136,23 @@ Grouping by risk reveals systemic patterns:
 
 Use the standard Report Template from `../_shared/common.md`. Mode: Tech Debt Assessment.
 
-After Findings, append a Debt Summary Table:
+After Findings, append a Debt Summary Table. Compute Avg Priority only from fully
+known factors and show the known/total count alongside it; use `unknown` if none
+are known. Do not replace unknown factors with zero or hide them in an average.
+Mixed intent and priority classifications remain explicit, not forced into one label.
 
 ```
 ## Debt Summary
-| Risk | Findings | Avg Priority | Classification | Intent |
+| Risk | Findings | Avg Priority (known/total) | Classification | Intent |
 |------|----------|-------------|----------------|--------|
-| Cognitive Overload      | N | X.X | Monitored/Scheduled/Critical | intentional/accidental |
+| Cognitive Overload      | N | X.X | Monitored/Scheduled/Critical | intentional/accidental/unknown |
 | Change Propagation      | N | X.X | ... | ... |
 | Knowledge Duplication   | N | X.X | ... | ... |
 | Accidental Complexity   | N | X.X | ... | ... |
 | Dependency Disorder     | N | X.X | ... | ... |
 | Domain Model Distortion | N | X.X | ... | ... |
 
-**Recommended focus:** [risks with highest average priority]
+**Recommended next action:** [finding ID, evidence-backed priority or unresolved tie,
+ smallest repayment step, required dependency/authority, and a check that it reduces
+ the demonstrated coordination/change burden without coupling independent policies]
 ```

@@ -1,0 +1,608 @@
+{
+ "title": "The animal cell",
+ "fps": 30,
+ "duration": 21,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [
+  "650 64px Inter",
+  "450 40px Inter",
+  "600 24px 'JetBrains Mono'"
+ ],
+ "safe": {
+  "x": 96,
+  "top": 80,
+  "bottom": 96
+ },
+ "palette": {
+  "orange": "#ff5315",
+  "membrane": "#0f6f6c",
+  "membraneRim": "#3fe0d0",
+  "nucleus": "#16414f",
+  "nucleusRim": "#6fd8ee",
+  "pore": "#bfeff2",
+  "chromatin": "#2f8f9a",
+  "nucleolus": "#ff9a3c",
+  "nucleolusGlow": "#5a1d00",
+  "er": "#1b8a7e",
+  "erRim": "#7cf0dc",
+  "golgi": "#5fd6bf",
+  "mito": "#ff5315",
+  "mitoCap": "#ff9a6e",
+  "ribo": "#d9ccb4",
+  "lyso": "#8a3a14",
+  "lysoGlow": "#2a0c00",
+  "cyto": "#bff7ef",
+  "cutFill": "#11414a",
+  "nucCutFill": "#1d5a70",
+  "golgiCis": "#1f7f8a",
+  "lysoRim": "#ffb27a",
+  "lysoGranule": "#b0603a",
+  "erEdge": "#7a2a0a"
+ },
+ "look": {
+  "background": "#05080b",
+  "exposure": 1.0,
+  "bloom": {
+   "strength": 0.5,
+   "radius": 0.5,
+   "threshold": 0.72
+  },
+  "dof": {
+   "aperture": 0.0012,
+   "maxblur": 0.005
+  },
+  "vignette": 0.34,
+  "grain": 0.022,
+  "backGlow": "#0a2224"
+ },
+ "timing": {
+  "membrane": [
+   0.0,
+   1.8
+  ],
+  "xray": [
+   2.9,
+   3.8
+  ],
+  "nucleus": [
+   3.0,
+   3.9
+  ],
+  "nucleusXray": [
+   4.9,
+   5.6
+  ],
+  "nucleolus": [
+   5.0,
+   5.8
+  ],
+  "er": [
+   6.6,
+   7.9
+  ],
+  "golgi": [
+   8.6,
+   9.5
+  ],
+  "mito": [
+   10.6,
+   11.1
+  ],
+  "ribo": [
+   12.05,
+   12.65
+  ],
+  "lyso": [
+   14.05,
+   14.55
+  ],
+  "cyto": [
+   15.2,
+   16.2
+  ],
+  "cut": [
+   17.0,
+   18.5
+  ]
+ },
+ "cutDegrees": 100,
+ "labels": [
+  {
+   "id": "membrane",
+   "part": "membrane",
+   "in": 1.1,
+   "out": 3.85,
+   "anchor": "membrane",
+   "side": "left",
+   "name": "Plasma membrane",
+   "fact": "A lipid bilayer about 5 nm thick",
+   "factId": "F1",
+   "offset": [
+    -190,
+    -150
+   ]
+  },
+  {
+   "id": "nucleus",
+   "part": "nucleus",
+   "in": 3.75,
+   "out": 6.1,
+   "anchor": "nucleusSurf",
+   "side": "left",
+   "name": "Nucleus",
+   "fact": "Holds nearly all the cell's DNA",
+   "factId": "F2",
+   "offset": [
+    -190,
+    -150
+   ]
+  },
+  {
+   "id": "nucleolus",
+   "part": "nucleolus",
+   "in": 5.6,
+   "out": 7.6,
+   "anchor": "nucleolus",
+   "side": "right",
+   "name": "Nucleolus",
+   "fact": "Assembles ribosome subunits",
+   "factId": "F3",
+   "offset": [
+    190,
+    -150
+   ]
+  },
+  {
+   "id": "er",
+   "part": "er",
+   "in": 7.3,
+   "out": 10.1,
+   "anchor": "er",
+   "side": "left",
+   "name": "Rough ER",
+   "fact": "Ribosome-studded sheets joined to the nucleus",
+   "factId": "F4",
+   "offset": [
+    -190,
+    -120
+   ]
+  },
+  {
+   "id": "golgi",
+   "part": "golgi",
+   "in": 9.35,
+   "out": 12.0,
+   "anchor": "golgi",
+   "side": "right",
+   "name": "Golgi apparatus",
+   "fact": "Modifies, sorts and ships proteins",
+   "factId": "F5",
+   "offset": [
+    190,
+    -150
+   ]
+  },
+  {
+   "id": "mito",
+   "part": "mito",
+   "in": 11.2,
+   "out": 13.4,
+   "anchor": "mito",
+   "side": "left",
+   "name": "Mitochondria",
+   "fact": "Make ATP by aerobic respiration",
+   "factId": "F6",
+   "offset": [
+    -190,
+    -150
+   ]
+  },
+  {
+   "id": "ribo",
+   "part": "ribo",
+   "in": 12.65,
+   "out": 15.6,
+   "anchor": "ribo",
+   "side": "right",
+   "name": "Ribosomes",
+   "fact": "Build proteins · real ones are 25–30 nm",
+   "factId": "F7",
+   "offset": [
+    200,
+    230
+   ]
+  },
+  {
+   "id": "lyso",
+   "part": "lyso",
+   "in": 14.45,
+   "out": 17.1,
+   "anchor": "lyso",
+   "side": "left",
+   "name": "Lysosomes",
+   "fact": "Break down waste in an acidic interior",
+   "factId": "F8",
+   "offset": [
+    -190,
+    -150
+   ]
+  },
+  {
+   "id": "cyto",
+   "part": "cyto",
+   "in": 15.95,
+   "out": 18.35,
+   "anchor": "mt",
+   "side": "right",
+   "name": "Cytoskeleton",
+   "fact": "Protein filaments for shape and transport",
+   "factId": "F9",
+   "offset": [
+    190,
+    -150
+   ]
+  },
+  {
+   "id": "t-nucleus",
+   "small": true,
+   "in": 18.4,
+   "out": 21.5,
+   "anchor": "nucleusCut",
+   "side": "left",
+   "name": "Nucleus",
+   "factId": "F2",
+   "column": "left"
+  },
+  {
+   "id": "t-nucleolus",
+   "small": true,
+   "in": 18.5,
+   "out": 21.5,
+   "anchor": "nucleolusCut",
+   "side": "left",
+   "name": "Nucleolus",
+   "factId": "F3",
+   "column": "left"
+  },
+  {
+   "id": "t-er",
+   "small": true,
+   "in": 18.6,
+   "out": 21.5,
+   "anchor": "er",
+   "side": "left",
+   "name": "Rough ER",
+   "factId": "F4",
+   "column": "left"
+  },
+  {
+   "id": "t-golgi",
+   "small": true,
+   "in": 18.7,
+   "out": 21.5,
+   "anchor": "golgi",
+   "side": "right",
+   "name": "Golgi apparatus",
+   "factId": "F5",
+   "column": "right"
+  },
+  {
+   "id": "t-mito",
+   "small": true,
+   "in": 18.8,
+   "out": 21.5,
+   "anchor": "mito",
+   "side": "right",
+   "name": "Mitochondria",
+   "factId": "F6",
+   "column": "right"
+  }
+ ],
+ "texts": [
+  {
+   "id": "title",
+   "in": 0.3,
+   "out": 2.7,
+   "class": "title",
+   "text": "The animal cell",
+   "factId": "F0"
+  },
+  {
+   "id": "subtitle",
+   "in": 0.5,
+   "out": 2.7,
+   "class": "subtitle",
+   "text": "Built one part at a time",
+   "factId": "F0b"
+  },
+  {
+   "id": "end",
+   "in": 18.0,
+   "out": 21.5,
+   "class": "endtitle",
+   "text": "One animal cell, ~20 µm across",
+   "factId": "F10"
+  },
+  {
+   "id": "foot1",
+   "in": 18.4,
+   "out": 21.5,
+   "class": "footnote",
+   "text": "Simplified: far fewer parts, colours invented",
+   "factId": "F11"
+  },
+  {
+   "id": "foot2",
+   "in": 18.5,
+   "out": 21.5,
+   "class": "footnote2",
+   "text": "Small parts drawn larger than real",
+   "factId": "F11b"
+  }
+ ],
+ "scaleBar": {
+  "in": 3.2,
+  "out": 21.5,
+  "minPx": 150,
+  "hide": [
+   [
+    12.35,
+    15.95
+   ]
+  ]
+ },
+ "camera": [
+  {
+   "t": 0.0,
+   "pos": [
+    -3,
+    5,
+    58
+   ],
+   "look": [
+    -11,
+    1,
+    0
+   ],
+   "fov": 30
+  },
+  {
+   "t": 2.6,
+   "pos": [
+    1.5,
+    4,
+    38
+   ],
+   "look": [
+    -2.5,
+    0.2,
+    0
+   ],
+   "fov": 30
+  },
+  {
+   "t": 3.9,
+   "pos": {
+    "at": "nucleus",
+    "off": [
+     5,
+     5,
+     19
+    ]
+   },
+   "look": "nucleus",
+   "fov": 30
+  },
+  {
+   "t": 4.9,
+   "pos": {
+    "at": "nucleus",
+    "off": [
+     5,
+     5,
+     19
+    ]
+   },
+   "look": "nucleus",
+   "fov": 30,
+   "push": 0.93
+  },
+  {
+   "t": 5.9,
+   "pos": {
+    "at": "nucleolusC",
+    "off": [
+     3.5,
+     3,
+     12
+    ]
+   },
+   "look": "nucleolusC",
+   "fov": 30
+  },
+  {
+   "t": 6.6,
+   "pos": {
+    "at": "nucleolusC",
+    "off": [
+     3.5,
+     3,
+     12
+    ]
+   },
+   "look": "nucleolusC",
+   "fov": 30,
+   "push": 0.93
+  },
+  {
+   "t": 7.6,
+   "pos": [
+    9.9,
+    3.8,
+    14.0
+   ],
+   "look": "erLook",
+   "fov": 30
+  },
+  {
+   "t": 9.2,
+   "pos": [
+    9.9,
+    3.8,
+    14.0
+   ],
+   "look": "erLook",
+   "fov": 30,
+   "push": 0.92
+  },
+  {
+   "t": 9.6,
+   "pos": "golgiCam",
+   "look": "golgi",
+   "fov": 36
+  },
+  {
+   "t": 10.9,
+   "pos": "golgiCam",
+   "look": "golgi",
+   "fov": 36,
+   "push": 0.9
+  },
+  {
+   "t": 11.45,
+   "pos": {
+    "at": "mito",
+    "off": [
+     -3.0,
+     1.3,
+     3.4
+    ]
+   },
+   "look": "mito",
+   "fov": 38
+  },
+  {
+   "t": 12.15,
+   "pos": {
+    "at": "mito",
+    "off": [
+     -3.0,
+     1.3,
+     3.4
+    ]
+   },
+   "look": "mito",
+   "fov": 38,
+   "push": 0.9
+  },
+  {
+   "t": 12.8,
+   "pos": {
+    "at": "ribo",
+    "off": [
+     -0.8,
+     0.45,
+     1.5
+    ]
+   },
+   "look": "ribo",
+   "fov": 40
+  },
+  {
+   "t": 14.5,
+   "pos": {
+    "at": "ribo",
+    "off": [
+     -0.8,
+     0.45,
+     1.5
+    ]
+   },
+   "look": "ribo",
+   "fov": 40,
+   "push": 0.88
+  },
+  {
+   "t": 14.95,
+   "pos": {
+    "at": "lyso",
+    "off": [
+     -2.2,
+     1.1,
+     1.6
+    ]
+   },
+   "look": "lyso",
+   "fov": 40
+  },
+  {
+   "t": 15.75,
+   "pos": {
+    "at": "lyso",
+    "off": [
+     -2.2,
+     1.1,
+     1.6
+    ]
+   },
+   "look": "lyso",
+   "fov": 40,
+   "push": 0.9
+  },
+  {
+   "t": 16.35,
+   "pos": [
+    12,
+    10,
+    36
+   ],
+   "look": "centrosome",
+   "fov": 30
+  },
+  {
+   "t": 16.8,
+   "pos": [
+    12,
+    10,
+    36
+   ],
+   "look": "centrosome",
+   "fov": 30,
+   "push": 0.96
+  },
+  {
+   "t": 18.6,
+   "pos": [
+    24.94,
+    30.96,
+    38.2
+   ],
+   "look": [
+    -3.2,
+    -2.1,
+    0
+   ],
+   "fov": 30
+  },
+  {
+   "t": 21.0,
+   "pos": [
+    28.58,
+    31.71,
+    34.88
+   ],
+   "look": [
+    -3.2,
+    -2.1,
+    0
+   ],
+   "fov": 30
+  }
+ ],
+ "cutTurn": 28,
+ "columns": {
+  "left": 520,
+  "right": 1430
+ }
+}

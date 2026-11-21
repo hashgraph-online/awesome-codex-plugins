@@ -128,6 +128,7 @@ def _resolve(test, effect_size, alpha, alternative, **kw):
 # correlation power (Fisher z transform) -- closed form, no statsmodels solver
 # --------------------------------------------------------------------------- #
 def _corr_power(r, n, alpha, alternative):
+    """Handle corr power."""
     from scipy import stats
     z = math.atanh(r)
     se = 1.0 / math.sqrt(n - 3)
@@ -139,6 +140,7 @@ def _corr_power(r, n, alpha, alternative):
 
 
 def _corr_sample_size(r, alpha, power, alternative):
+    """Handle corr sample size."""
     from scipy import stats
     z = abs(math.atanh(r))
     if alternative == "two-sided":
@@ -165,6 +167,7 @@ def _reg_power(f2, n, df_num, k_total, alpha):
 
 
 def _reg_sample_size(f2, df_num, k_total, alpha, power):
+    """Handle reg sample size."""
     n = k_total + 2  # smallest n with df_denom >= 1
     while _reg_power(f2, n, df_num, k_total, alpha) < power:
         n += 1

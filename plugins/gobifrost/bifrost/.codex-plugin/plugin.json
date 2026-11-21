@@ -1,0 +1,36 @@
+{
+  "name": "bifrost",
+  "version": "2.0.0",
+  "description": "Bifrost — MSP automation platform. Build automation artifacts, migrate legacy Apps, and migrate Rewst automation with private API extraction, planning, testing, and cutover guidance.",
+  "author": {
+    "name": "Jack Musick",
+    "url": "https://github.com/gobifrost/bifrost"
+  },
+  "homepage": "https://github.com/gobifrost/bifrost",
+  "repository": "https://github.com/gobifrost/bifrost",
+  "license": "AGPL-3.0",
+  "skills": "./plugins/bifrost/skills/",
+  "interface": {
+    "displayName": "Bifrost",
+    "shortDescription": "Build, set up, and package Bifrost automation artifacts",
+    "longDescription": "Use Bifrost skills to build workflows, forms, agents, Apps, Solutions, tables, and files; migrate legacy Apps or Rewst automation; set up development; and package agents as Microsoft 365 Copilot Cowork plugins.",
+    "developerName": "Jack Musick",
+    "category": "Engineering",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Help me build an independent Bifrost App, Solution, workflow, form, agent, table, or managed-file experience.",
+      "Set up this project for local Bifrost development.",
+      "Package a Bifrost agent as a Microsoft 365 Copilot Cowork plugin.",
+      "Plan my Rewst migration, guide source extraction, and define testing and cutover gates."
+    ],
+    "websiteURL": "https://github.com/gobifrost/bifrost",
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

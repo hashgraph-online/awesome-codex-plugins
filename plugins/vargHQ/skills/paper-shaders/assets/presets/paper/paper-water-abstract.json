@@ -1,0 +1,34 @@
+{
+  "id": "paper-water-abstract",
+  "label": "Abstract (Paper Water)",
+  "shader": "Water",
+  "page": "https://shaders.paper.design/water",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Abstract\" preset for Water, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "cover",
+    "scale": 3,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#909090",
+    "colorHighlight": "#ffffff",
+    "highlights": 0,
+    "layering": 0,
+    "edges": 1,
+    "waves": 1,
+    "caustic": 0.4,
+    "size": 0.15,
+    "image": ""
+  }
+}

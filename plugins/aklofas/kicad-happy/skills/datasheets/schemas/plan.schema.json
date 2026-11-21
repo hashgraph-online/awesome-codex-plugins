@@ -2,16 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.local/datasheets/schemas/plan.schema.json",
   "title": "Plan",
-  "description": "Orchestration plan consumed by the dispatcher + merge tools. Phase 3a extraction plans (one file per MPN: <mpn>.plan.json) and Phase 4 review plans share this schema. Top-level oneOf gates per-shape required fields; task-item required is gated on task_type via if/then.",
+  "description": "Orchestration plan consumed by the dispatcher + merge tools. Extraction plans (one file per MPN: <mpn>.plan.json) and review plans share this schema. Top-level oneOf gates per-shape required fields; task-item required is gated on task_type via if/then.",
   "x-schema-version": "1.0",
   "type": "object",
   "required": ["tasks"],
   "additionalProperties": false,
   "properties": {
     "plan_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
-    "schema_version": {"type": "string", "description": "Phase 4 review plan top-level version (extraction plans use plan_version)."},
-    "plan_id": {"type": "string", "description": "Phase 4 review plan identifier."},
-    "purpose": {"type": "string", "description": "Phase 4 review plan purpose tag (e.g. phase4_review)."},
+    "schema_version": {"type": "string", "description": "Review plan top-level version (extraction plans use plan_version)."},
+    "plan_id": {"type": "string", "description": "Review plan identifier."},
+    "purpose": {"type": "string", "description": "Review plan purpose tag (e.g. phase4_review)."},
     "mpn": {"type": "string", "minLength": 1},
     "pdf_path": {"type": "string"},
     "pdf_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
@@ -29,7 +29,7 @@
           "task_type": {
             "enum": ["extraction", "review"],
             "default": "extraction",
-            "description": "Phase 4 amendment per spec §4.5: task family for dispatcher routing."
+            "description": "Task family for dispatcher routing."
           },
           "subagent_role": {"type": "string", "enum": ["base", "pinout", "regulator", "mcu", "opamp", "transistor", "diode", "crystal"]},
           "tier": {"type": "string", "enum": ["A", "B", "C"]},
@@ -39,10 +39,10 @@
           "depends_on": {"type": "array", "items": {"type": "string"}},
           "status": {"type": "string", "enum": ["pending", "complete", "failed"]},
           "result_ref": {"type": ["string", "null"], "description": "Filename of the wrapped result file relative to cache_dir."},
-          "prompt_path": {"type": "string", "description": "Phase 4 review task prompt path relative to repo root."},
-          "result_path": {"type": "string", "description": "Phase 4 review task result output path."},
-          "result_schema": {"type": "string", "description": "Phase 4 review task result schema path relative to repo root."},
-          "input_artifacts": {"type": "array", "items": {"type": "string"}, "description": "Phase 4 review task input artifact paths."}
+          "prompt_path": {"type": "string", "description": "Review task prompt path relative to repo root."},
+          "result_path": {"type": "string", "description": "Review task result output path."},
+          "result_schema": {"type": "string", "description": "Review task result schema path relative to repo root."},
+          "input_artifacts": {"type": "array", "items": {"type": "string"}, "description": "Review task input artifact paths."}
         },
         "if": {
           "not": {"properties": {"task_type": {"const": "review"}}, "required": ["task_type"]}

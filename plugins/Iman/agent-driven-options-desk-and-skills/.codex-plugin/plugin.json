@@ -1,0 +1,48 @@
+{
+  "name": "option-desk",
+  "version": "0.3.1",
+  "description": "Option analytics an agent can drive: chains, the full Greek ladder, dealer positioning, twenty-three structures with ranking, a GARCH-t simulation, backtests with modelled premiums, and a paper forward test. Research software, not investment advice.",
+  "author": {
+    "name": "Iman Samizadeh"
+  },
+  "homepage": "https://github.com/Iman/agent-driven-options-desk-and-skills",
+  "repository": "https://github.com/Iman/agent-driven-options-desk-and-skills",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "keywords": [
+    "options",
+    "greeks",
+    "volatility",
+    "risk",
+    "trading",
+    "quantitative-finance",
+    "backtesting",
+    "mcp",
+    "skills",
+    "claude-skills",
+    "agent-skills",
+    "langgraph",
+    "options-pricing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Option Desk",
+    "shortDescription": "Research listed options.",
+    "longDescription": "Build option-chain research artifacts, inspect Greeks and positioning, show plots, compare structures, simulate outcomes, and backtest rules. Research software, not investment advice.",
+    "developerName": "Iman Samizadeh",
+    "category": "Finance",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Iman/agent-driven-options-desk-and-skills",
+    "logo": "./assets/openai-directory-icon.png",
+    "composerIcon": "./assets/openai-composer-icon.png",
+    "brandColor": "#2F6FEB",
+    "defaultPrompt": [
+      "Show SPY option plots for the nearest expiry.",
+      "Read dealer positioning for QQQ.",
+      "Compare option structures for a neutral TLT view."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

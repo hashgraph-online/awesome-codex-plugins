@@ -2,7 +2,7 @@
 name: cometchat-react-v7-customization
 description: "Theme and brand the React v7 UI Kit — light/dark mode, CSS custom-property design tokens, per-component style overrides. Triggers: 'change chat colors', 'dark mode chat', 'match my brand', 'customize cometchat theme', 'override message list styles'."
 license: "MIT"
-compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.1.x, verified 7.1.0)"
+compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.2.x, verified 7.2.4)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -16,6 +16,8 @@ metadata:
 
 ## Use this skill when
 Branding/theming: colors, fonts, light/dark mode, or per-component style overrides.
+
+**Cloning a named app, or mixing kit components with your own UI?** Measure the target's colors, type, spacing and radii into ONE token source, theme the kit from it, and style every custom component from the same tokens so kit and custom parts look like one design; host a kit component in your own dialog/panel when only its placement differs. Flow: `cometchat-onboarding` → `references/clone-mode.md` (Design sync, build levels L0–L6).
 
 ## Prerequisites & install
 Covered by core. No new package.
@@ -38,12 +40,12 @@ import "./cometchat-overrides.css";   // AFTER the kit styles
 .cometchat[data-theme="dark"]  { --cometchat-primary-color: #bb86fc; }
 .cometchat-message-list { /* BEM class to scope tokens per component */ }
 ```
-> **Per-theme COLOURS go on the `data-theme` element — NOT the bare `.cometchat` class (AUDIT-033).** `CometChatProvider` renders one wrapper `<div data-theme="light|dark" class="cometchat">` (compiled bundle: `jsx("div",{ "data-theme": internalTheme, className: "cometchat" })`), and the kit defines its tokens on `[data-theme=light]` / `[data-theme=dark]`. **But several components render their OWN nested `<div class="cometchat …">` with NO `data-theme`** — verified for `CometChatSearch` (also popovers / portaled surfaces). So a colour on the bare `.cometchat` class ALSO lands on that nested wrapper and **re-pins the base (light) value there**: in dark mode the search stays light while everything else goes dark. Scope per-theme colours to `.cometchat[data-theme="light"]` / `.cometchat[data-theme="dark"]` so the nested wrapper matches neither and **inherits** the provider's theme. Keep only theme-independent tokens (font-family, radii) on bare `.cometchat`. (Earlier docs claimed `[data-theme="dark"] .cometchat` matches nothing — that's wrong: it DOES match those nested wrappers. It's still not the right selector for brand tokens; use the `.cometchat[data-theme]` form above.) To retint a kit INTERNAL per theme, use the kit's own pattern — `[data-theme="dark"] .cometchat-message-list { … }`.
+> **Per-theme COLOURS go on the `data-theme` element — NOT the bare `.cometchat` class (AUDIT-033).** `CometChatProvider` renders one wrapper `<div data-theme="light|dark" class="cometchat">` (compiled bundle: `jsx("div",{ "data-theme": internalTheme, className: "cometchat" })`), and the kit defines its tokens on `[data-theme=light]` / `[data-theme=dark]`. **But several components render their OWN nested `<div class="cometchat ...">` with NO `data-theme`** — verified for `CometChatSearch` (also popovers / portaled surfaces). So a colour on the bare `.cometchat` class ALSO lands on that nested wrapper and **re-pins the base (light) value there**: in dark mode the search stays light while everything else goes dark. Scope per-theme colours to `.cometchat[data-theme="light"]` / `.cometchat[data-theme="dark"]` so the nested wrapper matches neither and **inherits** the provider's theme. Keep only theme-independent tokens (font-family, radii) on bare `.cometchat`. (Earlier docs claimed `[data-theme="dark"] .cometchat` matches nothing — that's wrong: it DOES match those nested wrappers. It's still not the right selector for brand tokens; use the `.cometchat[data-theme]` form above.) To retint a kit INTERNAL per theme, use the kit's own pattern — `[data-theme="dark"] .cometchat-message-list { ... }`.
 
 ## What's swappable
 - Global tokens on `.cometchat` (primary color, fonts, radii, spacing — fetch the full token names from the theming `.md` twin).
 - Per-theme overrides via `[data-theme="..."]`.
-- Per-component scoping via BEM classes (`.cometchat-conversations`, `.cometchat-message-list`, …).
+- Per-component scoping via BEM classes (`.cometchat-conversations`, `.cometchat-message-list`, ...).
 - Exact token names/defaults: fetch the theming `.md` twin (`{DOCS_BASE}/ui-kit/react/theming.md`, via core `references/docs-map.md`) — do NOT bake the token table.
 
 ### Differentiating a nested surface — an opaque sub-surface needs its OWN var override (BAKED — verified vs 7.1.0)
@@ -68,17 +70,49 @@ import "./cometchat-overrides.css";   // AFTER the kit styles
 > ```
 > The `--cometchat-message-list-bg` override above is still **required** — the header token only paints the header; it does not touch the opaque message list. Use `--cometchat-thread-header-background` only when you want the header a *different* shade from the list; if you want them to match, the header already inherits `-01` and needs no override.
 
+### Avatar and sender name on every message (BAKED — 7.2.4 source; plugin path run live in a 1:1 chat)
+What to check and why: `cometchat-onboarding/references/clone-mode.md` → *Message chrome*. This is the React how-to.
+**Kit default:** avatar and sender name only on INCOMING messages in a GROUP (7.2.4: `shouldShowAvatar = isIncoming && group != null && !hideAvatar`, with `isIncoming = alignment === "left"`). Your own messages and every 1:1 chat get none.
+- **Groups / channels: `messageAlignment={CometChatMessageListAlignment.left}`** (`0`) on `CometChatMessageList`. The kit decides "incoming" from the alignment, so with everything on the left your own messages also get the avatar and name in groups. One prop, no plugin.
+- **1:1 chats and your own messages: wrap the default plugins. Do this yourself whenever the target shows avatars/names in DMs; the alignment prop alone can't.** A plugin's `renderLeadingView` / `renderHeaderView` replace the avatar and name slot for every message it handles, own or not, 1:1 or group. `CometChatProvider` puts your `plugins` BEFORE `defaultPlugins` and the first match wins, so a wrapped copy overrides the default:
+```tsx
+import type { BaseMessage } from "@cometchat/chat-sdk-javascript";
+import { CometChatAvatar, defaultPlugins, type CometChatMessagePlugin } from "@cometchat/chat-uikit-react";
+
+const senderAvatar = (m: BaseMessage) => (
+  <CometChatAvatar.Root name={m.getSender().getName()} image={m.getSender().getAvatar()} size="medium">
+    <CometChatAvatar.Image />
+    <CometChatAvatar.Initials />
+  </CometChatAvatar.Root>
+);
+const isBatchTail = (pos?: string) => pos === "middle" || pos === "last"; // multi-attachment batch: once
+
+// Module scope: a new array on every render rebuilds the plugin registry.
+export const senderPlugins: CometChatMessagePlugin[] = defaultPlugins
+  .filter((p) => p.messageCategories.includes("message") || p.messageCategories.includes("custom"))
+  .map((p) => ({
+    ...p,
+    renderLeadingView: (m, ctx) => (isBatchTail(ctx.batchPosition) ? null : senderAvatar(m)),
+    renderHeaderView: (m, ctx) => (isBatchTail(ctx.batchPosition) ? null : <span className="cc-sender-name">{m.getSender().getName()}</span>),
+  }));
+// <CometChatProvider plugins={senderPlugins}> + <CometChatMessageList messageAlignment={CometChatMessageListAlignment.left} />
+```
+  Action and call rows (category `action` / `call`) are left out: they render centered with no avatar. Style `.cc-sender-name` from your token source (e.g. `font: 600 15px var(--cometchat-font-family)`); unstyled it falls back to the browser's serif font. Import `BaseMessage` as a named type, not `CometChat.BaseMessage` (strict TS6133).
+- **Once per run** isn't reachable: a plugin can't see the previous message (L4).
+
 ## Structural customization — view slots & composition (beyond tokens)
 Theming changes how it LOOKS (tokens); changing WHAT renders is **view slots** + composition, not CSS. Every list/message component exposes view-slot props to inject custom UI **IN** the component (never as a sibling on top): e.g. Conversations `headerView` / `searchView`; MessageHeader `trailingView` / `auxiliaryButtonView`; MessageList `headerView` / `footerView`; Composer `auxiliaryButtonView` / `headerView`. Baked slot map: `cometchat-react-v7-core/references/component-props.md`. For the exhaustive per-component slot list, fetch the component's `.md` twin (`core/references/docs-map.md`) — do NOT read `.d.ts`. (Custom message **bubbles** are a separate capability — the message **plugin** architecture; see `cometchat-react-v7-features` + `COVERAGE.md`.)
 
 ## Common pitfalls (BAKED)
 - Importing UI Kit CSS more than once, or overrides BEFORE the kit styles (specificity lost). Hardcoding hex in components instead of tokens. Assuming v6 theme classes — v7 uses `--cometchat-*` tokens + `data-theme`; fetch current names.
-- **Writing a per-theme override as `[data-theme="dark"] .cometchat { … }` — it matches NOTHING and silently no-ops.** The provider puts `data-theme` and `class="cometchat"` on the SAME div, so there is no `.cometchat` nested inside a `[data-theme]` ancestor. Use `.cometchat[data-theme="dark"]` (same element) for brand tokens, or `[data-theme="dark"] .cometchat-<bem>` (ancestor + kit-internal descendant, the kit's own pattern) to retint an internal. (Verified vs 7.1.0.)
-- **Hand-write brand/per-theme overrides — do NOT put per-theme tokens (colors, background, font) on bare `:root` (AUDIT-049/057).** A background or font pinned on `:root` has LOWER specificity than the kit's own `.cometchat[data-theme]` tokens, so it either loses (font silently doesn't apply) or forces the light value even in dark mode (breaks the OS-follow default, AUDIT-004/033). Scope every per-theme token to `.cometchat[data-theme="light"]` / `.cometchat[data-theme="dark"]` (theme-independent tokens like radii can stay on bare `.cometchat`). Theming is the SKILL's job — hand-write the scoped CSS (there is no CLI codegen for it).
+- **Writing a per-theme override as `[data-theme="dark"] .cometchat { ... }` — it matches NOTHING and silently no-ops.** The provider puts `data-theme` and `class="cometchat"` on the SAME div, so there is no `.cometchat` nested inside a `[data-theme]` ancestor. Use `.cometchat[data-theme="dark"]` (same element) for brand tokens, or `[data-theme="dark"] .cometchat-<bem>` (ancestor + kit-internal descendant, the kit's own pattern) to retint an internal. (Verified vs 7.1.0.)
+- **Hand-write brand/per-theme overrides — do NOT put per-theme tokens (colors, background, font) on bare `:root` (AUDIT-049/057).** A background or font pinned on `:root` has LOWER specificity than the kit's own `.cometchat[data-theme]` tokens, so it either loses (font silently doesn't apply) or forces the light value even in dark mode (breaks the OS-follow default, AUDIT-004/033). Scope every per-theme token to `.cometchat[data-theme="light"]` / `.cometchat[data-theme="dark"]` (theme-independent tokens like radii can stay on bare `.cometchat`). Theming is the SKILL's job — hand-write the scoped CSS (no generator does it).
 - **Setting a background on a WRAPPER to differentiate a nested surface, and expecting it to show.** An opaque kit sub-surface (the message list paints its own `--cometchat-message-list-bg`) covers the wrapper background — the wrapper bg only shows through non-opaque children. To differentiate the sub-surface, override THAT surface's own token (above), never the wrapper alone and never its internal `.cometchat-*` class. This is why the thread message-list keeps looking undifferentiated from the main list even after a thread-wrapper background is set (AUDIT-020/024).
+- **A sent message's row remounts when it's confirmed (verified vs 7.2.4).** `CometChatMessageList` keys each row `String(msg.getId() || msg.getMuid())` and each date separator `date-${sentAt}`. The pending copy has no id and a local `sentAt`, so on success both the row and the "Today" separator unmount and mount again. Anything stateful in your custom bubble views (entrance animation, image load state, animated emoji) restarts and shows as a glitch. Key that state by `muid`, keep custom views free of first-render effects, and never animate or patch rows by watching the DOM. Check it by recording the last row's position and size from send to confirmed: only the status icon may change.
+- **Theming tokens alone leave kit-opened surfaces in kit style.** The thread header (`CometChatThreadHeader`), message information (from the hover toolbar), reactions list, emoji keyboard and context menu each need their own overrides. In a clone, either theme each one to the target, replace it, or hide the option that opens it (`hideMessageInfoOption`, ...), and open each one to check.
 - **Assuming the kit follows the OS theme — it doesn't.** `theme` defaults to `light` and there's no `theme="system"`; a plain integration ignores the user's OS dark-mode setting. Sync to `prefers-color-scheme` if OS-follow is wanted (AUDIT-004).
 
 ## Verify it works
 Your theme / `--cometchat-*` overrides apply in the running app (colors, light/dark), and the kit CSS is imported once at the app root.
 
-**Close (after it builds):** end with the shared 3-option selectable menu and WAIT for the pick — **① add another feature** (suggest a few not-yet-wired) · **② customize theming** (further tweaks) · **③ test it manually** (stop; let the user check). Tailor suggestions to what's not yet done. Same contract as the `cometchat-react-v7-core` close (`RULES.md` §19).
+**Close (after it builds):** end with the shared 3-option selectable menu and WAIT for the pick — **(1) add another feature** (suggest a few not-yet-wired) · **(2) customize theming** (further tweaks) · **(3) test it manually** (stop; let the user check). Tailor suggestions to what's not yet done. Same contract as the `cometchat-react-v7-core` close (`RULES.md` §19).

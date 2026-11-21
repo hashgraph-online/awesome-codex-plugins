@@ -26,7 +26,9 @@ output_contract: code changes with regression evidence
 
 Refactor changes structure while preserving observable behavior. It performs one
 caller-selected transformation and reports the result. "Behavior-preserving" is
-a claim to prove with before/after checks, never to assert.
+a claim to prove with before/after checks, never to assert. A user sees it
+worked when the report shows the same checks run before and after with
+identical results, and any suspected bug listed unfixed.
 
 ## What counts as behavior
 
@@ -57,11 +59,12 @@ Unless the caller explicitly excluded a surface, all of these must survive:
 1. Name the preserved behavior, the focused acceptance surface and the concrete
    structural problem for its callers, in the caller's domain terms.
 2. Run the focused check and the smallest regression check the changed surface
-   justifies, and record that honest baseline, including reproducible ambient
-   failures. Add any characterization test the transformation needs now, before
-   the edit, so it is part of the baseline. For output-producing surfaces
-   (generators, serializers, formatters, reports), hash the output over fixed
-   inputs. For an evaluation comparing executable behavior, pin the starting
+   justifies, error paths included, and record that honest baseline, including
+   reproducible ambient failures. Add any characterization test the
+   transformation needs now, before the edit, so it is part of the baseline.
+   For output-producing surfaces (generators, serializers, formatters,
+   reports), hash the output over fixed inputs. When the caller's evaluation
+   compares the built program before and after the change, pin the starting
    source, build its baseline before edits and keep that binary and the
    comparison inputs.
 3. Apply one bounded transformation: extract, move, rename, inline, simplify a
@@ -73,8 +76,8 @@ Unless the caller explicitly excluded a surface, all of these must survive:
 4. A bug or suspicious inconsistency found on the way is reported separately
    (location, why it looks wrong) and left unfixed. Fixing it inside the
    refactor hides a behavior change the caller did not authorize.
-5. Rerun the same checks over the same inputs, including error paths, and
-   compare any output hashes byte-for-byte.
+5. Rerun exactly the step-2 checks over the same inputs and compare any
+   output hashes byte-for-byte.
 6. Report, then stop. A red result is evidence for the caller; this skill does
    not revert, narrow, retry, commit, validate, or route subsequent work.
 
@@ -105,10 +108,19 @@ the gates did not cover under `not checked`.
 
 ## Boundaries and tests
 
-Choosing where to restructure, or a new module boundary, is
-[Architecture](../architecture/SKILL.md#procedure)'s job; this skill executes
-one transformation in the area the caller selected. Reject a wrapper that only
-adds another name or pushes the same coordination into its callers. Keep
+Refactoring after a check goes green is the step of test-driven development
+that held for agents
+([practice ledger](https://github.com/boshu2/agentops/blob/main/docs/practice-ledger.md#holds-in-a-different-shape)).
+
+- Use [Implement](../implement/SKILL.md) to change behavior; it tidies its own
+  fresh change under its acceptance checks.
+- Use Refactor when restructuring is the request, or reaches code the behavior
+  change did not touch; that green result is the baseline.
+- Use [Architecture](../architecture/SKILL.md#procedure) to choose where to
+  restructure or a new module boundary; this skill executes one transformation
+  in the area the caller selected.
+
+Reject a wrapper that only adds another name or pushes the same coordination into its callers. Keep
 internal test seams private when callers need no substitution. Exercise the
 preserved behavior through the caller-facing boundary; retain existing tests
 until equivalent coverage of their distinct cases is demonstrated. Moving a
@@ -118,8 +130,10 @@ Use the caller's vocabulary for extracted operations and types. A naming
 ambiguity that changes behavior belongs with the existing domain definition;
 consult [Domain](../domain/SKILL.md) only when that distinction needs work.
 
-When the transformation needs a seam — an extraction boundary, interface, or
-module split — and more than one candidate seam exists, probe before you cut.
+When the caller-chosen transformation can be cut more than one way (which
+lines an extraction takes, where a chosen interface sits), probe before you
+cut. A choice between module boundaries the caller has not made goes to
+Architecture first.
 Run the probe in disposable isolation (a scratch branch, worktree, or copied
 tree the caller's policy allows): rough in the seam, see what it forces —
 signature churn, import cycles, test rewrites — then discard the probe and
@@ -132,4 +146,4 @@ because reverting it now costs more than living with it.
 ## References
 
 - [Behavior-preserving simplification](references/behavior-preserving-simplification.md) — refactoring catalog and per-pattern safety checks
-- [Upstream capability reference](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md) — Matt Pocock; original AgentOps adaptation.
+- [Codebase design](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md) — Matt Pocock; the wrapper and test-seam rules under Boundaries and tests adapt it.

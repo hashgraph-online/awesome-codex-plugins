@@ -38,6 +38,7 @@ SHAPE_GEOMETRY = {
 
 
 def positive_argument(value: str) -> int:
+    """Handle positive argument."""
     try:
         parsed = int(value, 10)
     except ValueError as exc:
@@ -48,6 +49,7 @@ def positive_argument(value: str) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan or execute a read-only JSON export of annotations and ROI "
@@ -150,10 +152,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def call_or_none(obj: Any, method: str) -> Any:
-    function = getattr(obj, method, None)
-    if not callable(function):
+    """Handle call or none."""
+    bound = getattr(obj, method, None)
+    if not callable(bound):
         return None
-    return function()
+    return bound()
 
 
 def normalized(
@@ -162,6 +165,7 @@ def normalized(
     max_string_length: int,
     max_value_items: int,
 ) -> Any:
+    """Handle normalized."""
     return json_safe(
         unwrap_omero(value),
         max_string_length=max_string_length,
@@ -175,6 +179,7 @@ def owner_record(
     include_owner_names: bool,
     max_string_length: int,
 ) -> dict[str, Any]:
+    """Handle owner record."""
     details = call_or_none(obj, "getDetails")
     owner = call_or_none(details, "getOwner") if details is not None else None
     record = {
@@ -204,6 +209,7 @@ def annotation_record(
     max_string_length: int,
     max_value_items: int,
 ) -> dict[str, Any]:
+    """Handle annotation record."""
     kind = getattr(
         annotation,
         "OMERO_CLASS",
@@ -265,6 +271,7 @@ def shape_record(
     include_labels: bool,
     max_string_length: int,
 ) -> dict[str, Any]:
+    """Handle shape record."""
     model_name = type(shape).__name__
     shape_type = model_name.removesuffix("I")
     record: dict[str, Any] = {
@@ -319,6 +326,7 @@ def roi_record(
     include_labels: bool,
     max_string_length: int,
 ) -> dict[str, Any]:
+    """Handle roi record."""
     shapes = take_bounded(roi.copyShapes(), max_shapes)
     return {
         "id": normalized(
@@ -345,6 +353,7 @@ def export_one_image(
     image_id: int,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
+    """Export one image."""
     image = connection.getObject("Image", image_id)
     if image is None:
         return {"id": image_id, "accessible": False}
@@ -406,6 +415,7 @@ def scope_payload(
     args: argparse.Namespace,
     image_ids: list[int],
 ) -> dict[str, Any]:
+    """Handle scope payload."""
     return {
         "image_ids": image_ids,
         "group_id": args.group_id,
@@ -420,6 +430,7 @@ def scope_payload(
 
 
 def redaction_payload(args: argparse.Namespace) -> dict[str, bool]:
+    """Handle redaction payload."""
     return {
         "annotation_values_included": args.include_annotation_values,
         "owner_names_included": args.include_owner_names,
@@ -432,6 +443,7 @@ def redaction_payload(args: argparse.Namespace) -> dict[str, bool]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
@@ -542,9 +554,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     except (
-        ConfigError,
-        DependencyError,
-        OutputPathError,
         FileExistsError,
         ValueError,
         RuntimeError,

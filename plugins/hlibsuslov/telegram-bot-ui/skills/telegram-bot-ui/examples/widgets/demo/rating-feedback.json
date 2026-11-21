@@ -1,0 +1,19 @@
+{
+ "widget": "rating-feedback",
+ "title": "Rating feedback",
+ "summary": "Five stars, tag chips that follow the rating, one absolute submit, a copyable coupon, and a deep link for free-text comments.",
+ "caption": "Rate order #4821 · Burger Lab · delivered 09:42",
+ "send": {"allow_queries": true},
+ "fallback": {"inline_keyboard": [
+  [{"text": "★★★★★", "callback_data": "rate:4821:5"}, {"text": "★★★", "callback_data": "rate:4821:3"}, {"text": "★", "callback_data": "rate:4821:1"}],
+  [{"text": "Write a comment", "url": "https://t.me/example_bot?start=comment"}]
+ ]},
+ "states": {
+  "default": {"chatData": {"o": "Order #4821 · Burger Lab", "h": "How was your delivery?", "pos": ["Fast delivery", "Hot food", "Friendly courier", "Great value"], "neg": ["Late", "Cold food", "Missing item", "Rude courier"], "v": 0, "m": 0, "k": 0, "r": 0}},
+  "thanks": {"chatData": {"o": "Order #4821 · Burger Lab", "h": "How was your delivery?", "pos": ["Fast delivery", "Hot food", "Friendly courier", "Great value"], "neg": ["Late", "Cold food", "Missing item", "Rude courier"], "v": 4, "m": 5, "k": 1, "c": "THANKS10", "r": 1}},
+  "already-rated": {"chatData": {"o": "Order #4790 · Sushi Haru", "h": "How was your delivery?", "pos": ["Fast delivery", "Hot food", "Friendly courier", "Great value"], "neg": ["Late", "Cold food", "Missing item", "Rude courier"], "v": 2, "m": 3, "k": 2, "r": 1}},
+  "empty": {"chatData": null}
+ },
+ "queries": ["r:5:3", "r:2:6", "r:4:0", "r:9:0", "r:3:99"],
+ "fresh": []
+}

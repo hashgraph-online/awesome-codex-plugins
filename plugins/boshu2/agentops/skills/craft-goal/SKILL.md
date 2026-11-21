@@ -24,7 +24,7 @@ metadata:
   canonical_status: canonical
   disposition: keep_strategy
   stability: stable
-output_contract: 'human-readable SAFE_TO_CREATE, USE_RPI, or UNSAFE_GOAL decision; copy-paste outer-goal prompt when safe; exact budgets, assumptions, and lint findings'
+output_contract: 'human-readable SAFE_TO_CREATE, USE_PLAN, or UNSAFE_GOAL decision; copy-paste outer-goal prompt when safe; exact budgets, assumptions, and lint findings'
 ---
 
 # Craft Goal
@@ -58,7 +58,7 @@ notes; BD is one); the exact experiment graph may still be unknown. Write each
 terminal criterion as a Given/When/Then with an observable result and name
 each domain term once; the caller can settle these with Interview first.
 
-- `USE_RPI`: one shaped change with no verdict-driven follow-on; hand it to
+- `USE_PLAN`: one shaped change with no verdict-driven follow-on; hand it to
   [Plan](../plan/SKILL.md) or native execution (RPI only if the caller selects it).
 - `SAFE_TO_CREATE`: a terminal outcome that may need several related
   experiments, with those decisions and the budgets below supplied. A shaped
@@ -128,7 +128,7 @@ and keep every line.
 | bead graph | names the tracker and the root epic or its bounded bootstrap rule, and ties each experiment to an unmet criterion or named blocking uncertainty. |
 | experiment boundary | makes one build bead one bounded experiment (native execution, or one RPI when the caller selects it; decision beads resolve as Navigate names), takes checks and CI as an ordinary bead's result, limits fresh validation to the costly cases and consumes verdicts unchanged. |
 | ratchet | counts progress only as evidence tied to an unmet criterion or blocking uncertainty, never activity, counts or digests. |
-| discovery | keeps all three classes (necessary-now, linked-follow-up, HOLD/rescope) and never downgrades a necessary finding. |
+| discovery | keeps all three classes (necessary-now, linked-follow-up, HOLD/rescope) and never downgrades a necessary-now discovery to linked-follow-up. |
 | wave budget | sets numeric experiment, concurrency, time or token and live-attempt limits per wave, with a checkpoint. |
 | hard budget | sets numeric campaign totals that nothing resets, naming the enforcing control or the unmeasured aggregate. |
 | breaker | sets the numeric no-ratchet threshold and every HOLD trigger in the template's breaker. |
@@ -144,13 +144,16 @@ headings and terminal semantics and replace every angle-bracket field. Return,
 in order:
 
 1. A first line that starts with exactly one decision: `SAFE_TO_CREATE`,
-   `USE_RPI` or `UNSAFE_GOAL`. `SAFE_TO_CREATE` judges prompt content; it does
+   `USE_PLAN` or `UNSAFE_GOAL`. `SAFE_TO_CREATE` judges prompt content; it does
    not certify native enforcement or create a goal.
 2. For `UNSAFE_GOAL`, each missing decision; the caller can settle them with
    Interview.
 3. When safe, the filled prompt; the settings: for each hard limit, the native
    control the caller sets to enforce it (such as the goal runtime's own token
-   cap), or that it stays unmeasured; and the assumptions made.
+   cap), or that it stays unmeasured; and the assumptions made, which cover
+   only reversible wording or sourced facts. A number, criterion or authority
+   the caller did not supply is a missing decision, never an assumption; label
+   any suggested value a proposal.
 4. Lint lines. In lint mode, one per rubric dimension: pass, n/a, or the
    finding. In craft mode, only the rows the draft still fails; each is a
    missing decision, so the decision cannot be `SAFE_TO_CREATE`.

@@ -1,5 +1,4 @@
 ---
-
 name: pm/prd-writing
 description: 产品需求文档(PRD)的标准编写格式和内容要求，确保输出完整、清晰、可执行的产品文档
 version: 1.0.0
@@ -8,13 +7,12 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
-- pm/requirement-penetration
-  triggers:
-- 需求分析完成，准备输出PRD时
-- 需要标准化PRD格式时
-  metadata:
+  - pm/requirement-penetration
+triggers:
+  - 需求分析完成，准备输出PRD时
+  - 需要标准化PRD格式时
+metadata:
   internal: true
-
 ---
 
 # PRD 编写指南
@@ -256,6 +254,7 @@ journey
 ## 质量检查清单
 
 在输出PRD前，检查以下项目：
+
 - [ ] 摘要部分是否清晰，能让读者快速理解核心内容
 - [ ] 需求穿透分析是否完整（显性、隐性、潜在、惊喜四层）
 - [ ] 每个功能需求是否有明确的验收标准

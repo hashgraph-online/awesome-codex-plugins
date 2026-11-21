@@ -13,13 +13,13 @@ These skills turn your AI coding agent into a full-fledged electronics design as
 
 ## 🔬 What it looks like in practice
 
-Point your agent at a KiCad project and it does the rest — parses every schematic and PCB file, traces every net, computes every voltage, and tells you what's wrong before you spend money on boards.
+Point your agent at a KiCad project and it does the rest — parses your schematic and PCB files, traces the nets, computes rail voltages from the feedback dividers it finds, and tells you what's wrong before you spend money on boards.
 
 > "Analyze my KiCad project at `hardware/rev2/`"
 
 Here's a condensed example from an open-source robot controller board. The agent found all of this automatically:
 
-**It builds your power tree** — tracing every regulator from input to load, computing output voltages from feedback dividers:
+**It builds your power tree** — tracing each regulator it recognises from input to load, computing output voltages from feedback dividers:
 
 ```
 VBUS (USB-C / battery input, fused)
@@ -30,7 +30,7 @@ VBUS (USB-C / battery input, fused)
     └── Decoupling: 16 caps, 10.8µF total
 ```
 
-**It identifies every subcircuit** — not just passives, but the functional blocks and how they connect:
+**It identifies subcircuits** — not just passives, but the functional blocks and how they connect:
 
 | Subcircuit  | Details                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------- |
@@ -40,7 +40,7 @@ VBUS (USB-C / battery input, fused)
 | Sensors     | Onboard sensor interface, crystal oscillator with load cap validation                         |
 | Protection  | ESD clamp on USB D+/D-, dual input fuses (0.75A signal, 2.5A motor)                          |
 
-**It audits every connector for ESD protection** — and flags the ones that are exposed:
+**It audits connectors for ESD protection** — and flags the ones that are exposed:
 
 ```
 ESD coverage: 19 connectors audited
@@ -196,7 +196,7 @@ The analysis scripts are **pure Python 3.10+** with zero required dependencies. 
 
 ### Release candidates
 
-The stable install commands above always resolve to the latest stable release on `main` (currently v2.1.0). When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
+The stable install commands above always resolve to the latest stable release on `main`. When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
 
 **Claude Code:**
 
@@ -230,7 +230,7 @@ See the **[GitHub Action setup guide](github-action.md)** for workflow examples,
 | Skill         | What it does                                                                                                                                                                             |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **kicad**     | ⚡ Parse and analyze KiCad schematics, PCB layouts, Gerbers, and PDF reference designs. Automated subcircuit detection, design review, DFM.                                               |
-| **spice**     | 🔬 SPICE simulation — generates testbenches for detected subcircuits, validates filter frequencies, opamp gains, divider ratios. Monte Carlo tolerance analysis. ngspice, LTspice, Xyce. |
+| **spice**     | 🔬 SPICE simulation — generates testbenches for detected subcircuits, validates filter frequencies, opamp gains, divider ratios. Monte Carlo tolerance analysis. ngspice, LTspice, Xyce; explicit-only PSpice runner for complete external decks. |
 | **emc**       | 📡 EMC pre-compliance — 44 rule checks for radiated emission risks, PDN impedance, diff pair skew, ESD paths. FCC/CISPR/automotive/military.                                             |
 | **datasheets**| 📄 Extract structured specs from datasheet PDFs — pinouts, electrical characteristics, peripherals, topology. Per-MPN caching with quality scoring. Consumed by kicad/emc/spice/thermal. |
 | **bom**       | 📋 Full BOM lifecycle — analyze, source, price, export tracking CSVs, generate per-supplier order files.                                                                                 |
@@ -281,7 +281,7 @@ The agent runs the analysis scripts, then autonomously digs deeper — tracing n
 
 The **spice** skill goes beyond static analysis. It automatically generates SPICE testbenches for detected subcircuits — RC/LC filters, voltage dividers, opamp stages, feedback networks, transistor switches, crystal oscillators — runs them, and reports whether simulated behavior matches calculated values.
 
-For recognized opamps (~100 parts), it uses **per-part behavioral models** with the real GBW, slew rate, and output swing from distributor APIs or a built-in lookup table. When both schematic and PCB exist, it injects **PCB trace parasitics** into the simulation.
+For op-amps it can resolve (49 in the built-in table, more through distributor APIs), it uses **per-part behavioral models** with the real GBW, slew rate, and output swing from distributor APIs or a built-in lookup table. When both schematic and PCB exist, it inserts **PCB trace parasitics** into low-pass RC-filter simulations.
 
 ```
 Simulation: 14 pass, 1 warn, 0 fail
@@ -308,7 +308,7 @@ Monte Carlo (N=100): RC filter R5/C3
   Voltage divider R5/R6: ratio 0.32 → 0.50 (+56.4%)
 ```
 
-Requires ngspice, LTspice, or Xyce (auto-detected). Without one, simulation is skipped — the rest of the analysis still works. For the full methodology — see **[SPICE Integration Guide](spice-integration.md)**.
+Requires ngspice, LTspice, or Xyce (auto-detected; PSpice is available only through the explicit `run_external_deck.py` runner for complete external decks). Without one, simulation is skipped — the rest of the analysis still works. For the full methodology — see **[SPICE Integration Guide](spice-integration.md)**.
 
 ## 📡 EMC pre-compliance
 
@@ -318,16 +318,16 @@ Requires ngspice, LTspice, or Xyce (auto-detected). Without one, simulation is s
 
 > "Check my differential pairs for skew-induced common-mode radiation"
 
-The **emc** skill predicts the most common causes of EMC test failures — ground plane voids, insufficient decoupling, unfiltered I/O cables, switching regulator harmonics, differential pair skew, and more. It operates on the schematic and PCB analyzer output using geometric rule checks and analytical emission formulas (Ott, Paul, Bogatin). When ngspice is available, PDN impedance and EMI filter checks are SPICE-verified for higher accuracy — otherwise analytical models are used as fallback.
+The **emc** skill predicts the most common causes of EMC test failures — ground plane voids, insufficient decoupling, unfiltered I/O cables, switching regulator harmonics, differential pair skew, and more. It operates on the schematic and PCB analyzer output using geometric rule checks and analytical emission formulas (Ott, Paul, Bogatin). With `--spice-enhanced` and a simulator, the PDN impedance check runs an AC sweep of the same network (PDN findings stay heuristic) — otherwise analytical models are used.
 
 ```
-EMC risk score: 73/100
-  CRITICAL: 1 — SPI_CLK crosses ground plane void on In1.Cu
-  HIGH:     2 — USB diff pair 5.2mm skew (exceeds 25ps limit),
+EMC risk score: 68.5/100
+  error:    3 — SPI_CLK crosses ground plane void on In1.Cu,
+                USB diff pair 5.2mm skew (exceeds 25ps limit),
                 no ground via near TVS U5
-  MEDIUM:   3 — decoupling cap 7mm from U3, clock on outer layer,
+  warning:  3 — decoupling cap 7mm from U3, clock on outer layer,
                 via stitching gap near J2
-  INFO:     4 — cavity resonance at 715 MHz, switching harmonics
+  info:     4 — cavity resonance at 715 MHz, switching harmonics
                 in 30-88 MHz band
 
 Pre-compliance test plan:
@@ -348,7 +348,7 @@ Datasheets flow through kicad-happy in two stages:
 
 **Sync (download).** Pulls PDFs for every component with an MPN from DigiKey, LCSC, element14, or Mouser into a local `datasheets/` directory. 96% success rate across 240+ manufacturers. Each PDF is verified against the expected part number.
 
-**Extract (parse).** The **datasheets** skill turns those PDFs into structured JSON — pinouts, voltage ratings, electrical characteristics, peripherals, topology, SPICE model coefficients. Extractions are cached per-MPN under `<project>/datasheets/extracted/` and scored on a five-dimension quality rubric. Analyzer skills (`kicad`, `emc`, `spice`, `thermal`) consume the cache through a shared helper API with trust gates — so a schematic finding tagged `confidence: datasheet-backed` means a scored extraction produced the underlying fact, not a keyword match on the part number.
+**Extract (parse).** The **datasheets** skill turns those PDFs into structured JSON — pinouts, voltage ratings, electrical characteristics, peripherals, topology, SPICE model coefficients. Extractions are cached per-MPN under `<project>/datasheets/extracted/` and scored (typed extractions on a 0–100 pinout/base/category rubric; legacy caches on the older five-dimension rubric). Analyzer skills (`kicad`, `emc`, `spice`, `thermal`) consume the cache through a shared helper API with trust gates — so a schematic finding tagged `confidence: datasheet-backed` means a scored extraction produced the underlying fact, not a keyword match on the part number.
 
 For the full pipeline — page selection, the quality rubric, the consumer API, and what it deliberately doesn't do — see **[Datasheet Extraction Guide](datasheet-extraction.md)**.
 
@@ -392,7 +392,7 @@ Fabrication Release Gate — 8 check categories
   Schematic ↔ PCB match    ✓ PASS  296 components matched, 0 orphans
   Gerber verification      ✓ PASS  All layers present, drill file valid
   Thermal analysis         ⚠ WARN  U3 junction temp 92°C (margin: 18°C)
-  EMC pre-compliance       ⚠ WARN  Score 73/100 — 2 HIGH findings
+  EMC pre-compliance       ⚠ WARN  Score 68.5/100 — 3 error findings
 
   Result: CONDITIONAL PASS (3 warnings to review before ordering)
 ```
@@ -424,7 +424,7 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 | element14 | `ELEMENT14_API_KEY`                          | [partner.element14.com](https://partner.element14.com/) |
 | LCSC      | *none*                                       | Free community API                                      |
 
-**Optional Python packages**: `requests` (better HTTP), `playwright` (JS-heavy datasheet sites), `pdftotext` (PDF text extraction).
+**Optional**: Python packages `requests` 2.32.2 or newer (some manufacturer sites, such as analog.com, time out over urllib but answer requests; an older `requests` is used only with `datasheets.allow_private_hosts`) and `playwright` (JS-heavy datasheet sites; used only with `datasheets.allow_private_hosts` in `~/.kicad-happy.json`, because the browser resolves each host itself); the `pdftotext` executable (poppler-utils) for PDF text extraction.
 
 ## ✅ KiCad version support
 
@@ -439,35 +439,41 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 
 ## 🎯 Release notes
 
-**Current release: v2.3.2 — backport.** AM-001 absolute-maximum checks resolve the `<domain>_max` keys real datasheet extractions carry; the datasheets scripts are UTF-8-safe on Windows; PU-001 skips no-connect pins, PP-001 skips gate-driver bootstrap pins, RS-001 reports heuristic confidence on rails it recognises only by name, and `cross_analysis.py` gives a usage error instead of a traceback on a bad input path. Upgrading: additive except the RS-001 confidence shift on name-only rails.
+**Current release: v3.0.2 — signal over noise.** Fixes only. The analyzers read keep-out areas, `.kicad_dru` rules, bus member names and multi-board files the way KiCad does, and read power and ground net names more carefully; the false findings that came from misreading them go away: `V24.RX` or `EN_VCC` is a signal, not a rail; `COM` is ground only when a power symbol names it; KO-001 tests the keep-out's real outline and the footprint's courtyard (#70), which takes it from 2,271 to 145 findings on the regression corpus. Datasheet downloads connect only to the address the URL check approved (through a proxy, the proxy resolves the host). Upgrading: findings move on most designs (fewer rail findings on signals named like rails, new rail-source warnings on `V-` and `VMOT`, nets that cross a sheet through a bus renamed); a `datasheets/` folder with no PDF gets DS-001 or DS-002; the headless-browser datasheet fallback runs only with `datasheets.allow_private_hosts`; `design_intent.ipc_class` is no longer raised to 3 from an inferred market.
+
+**Previous: v3.0.1 — audit fixes.** The fixes from an independent audit of v3.0.0: datasheet downloads limited to public addresses, no writes through symlinks, and SPICE netlists that cannot pick up simulator commands; net names chosen by KiCad's driver priority and tie-break, and pins, DNP, values and KiCad 10 variants read as KiCad reads them, and KiCad 5 pins and sheet connections corrected; fewer false signals (rails named like `VCC_EN`, parallel parts, lifecycle single-source); a new GP-001 check for high-speed traces whose reference plane changes; no-connect-type pins kept on nets of their own, supplies recognised by their pins, net ties joining rail and power-pin audits (#50) and switching hot loops measured from pads (#62); UTF-8 output and LF JSON and reports on Windows; and two contributed tools, a harmonic-limit screen (`analyze_harmonic_limits.py`, #63) and an explicit-only PSpice external-deck runner (`run_external_deck.py`, #64), both by janos-varga. Upgrading: findings move on most designs (net names on hierarchical schematics, rail findings, outer-layer `impedance_ohm`); `fab_release_gate.py` exits 1 on a FAIL verdict; SW-003 grades a hot loop only when `analyze_pcb.py --schematic` measured it from pads; `translate_bom_pnp.py pnp` needs `--units` when the position file states none.
+
+**Previous: v3.0.0 — the v3 refactor.** Same analyzers, same CLIs, same rule IDs; the code behind them is now a stdlib-only core plus `schematic/`, `pcb/` and `distributor_core/` packages. Output changes are additive except: EMC findings drop their duplicate `title`, every envelope gains `diagnostics`, and the datasheet-verification / summary tools use `error`/`warning`/`info`. Scripts that imported `kicad_utils`, `sexp_parser` or the analyzer modules' helpers: see the migration table in the CHANGELOG.
+
+**Previous: v2.3.2 — backport.** AM-001 now reads the `<domain>_max` keys datasheet extractions use, so it fires on real extractions; every datasheets script reads and writes UTF-8; PU-001 and PP-001 stop flagging no-connect pins and gate-driver bootstrap pins; RS-001 says when it recognised a rail by name only; `cross_analysis.py` gives a usage error instead of a traceback on a directory. Upgrading: RS-001 on a name-only rail now carries `heuristic` confidence.
+
+**Previous: v2.3.1 — maintenance batch.** One shared, case-insensitive part-number alias set (`Manufacturer P/N`, `Digikey P/N`, ...) for the schematic analyzer, the PCB analyzer and the BOM manager, with manufacturer-specific names ranked above generic ones; CP-003 and via-in-pad use the real outline of round and oval pads; VM-001 stops flagging a correct GPIO-to-EN connection when an extraction lacks the EN threshold. Upgrading: on symbols with both a manufacturer-specific and a generic part-number field, the manufacturer-specific one now wins.
 
 **Previous: v2.3.0 — correctness batch.** Eighteen verified fixes plus three community contributions: CP-003 touch-pad clearance is measured against real copper (it reported 0.0 mm on most boards and fired on test points), decoupling-distance findings only pair capacitors that actually share a supply net with the IC, the power budget and sleep-current audit stop dropping loads and rails, PD-001 no longer mistakes feedback feedforward caps for decouplers, and the datasheet-authority gates finally receive the project directory. New: **SP-001** catches a two-pin part wired to a single net (invisible to ERC), and `search_lcsc.py` searches the LCSC/JLCPCB catalog from the terminal. Datasheet sync no longer crashes on Windows when it re-saves its manifest. Upgrading: the EMC PD-001 field `transient_amps` is now `transient_a`; everything else is additive.
 
-**Previous: v2.2.1 — maintenance batch.** Twenty-five verified fixes: the GP-001 via-antipad and power-rail-classification false positives from the field are gone, no-connect markers no longer absorb pins into wires passing beneath them (community-contributed, `kicad-cli`-verified), internal-oscillator IC descriptions stop triggering false clock findings, and a whole class of output nondeterminism was eliminated with a CI guard to keep it that way. Skipped or degraded analysis is now visible (`checks_run` manifest, connectivity-error notes, conditional-rule skip counts). Upgrading: GitHub Action users with multi-project repos must set the `schematic`/`pcb` inputs explicitly (auto-detect now fails loudly instead of guessing), and `analyze_pcb.py --schematic analysis/schematic.json` now classifies your declared power rails correctly.
+**Previous: v2.2.1 — maintenance batch.** Twenty-five verified fixes: the GP-001 via-antipad and power-rail-classification false positives from the field are gone, no-connect markers no longer absorb pins into wires passing beneath them (community-contributed, `kicad-cli`-verified), internal-oscillator IC descriptions stop triggering false clock findings, and a whole class of output nondeterminism was eliminated with a CI guard to keep it that way. Skipped or degraded analysis is now visible (`checks_run` manifest, connectivity-error notes, conditional-rule skip counts). Upgrading: GitHub Action users with multi-project repos must set the `schematic`/`pcb` inputs explicitly (auto-detect now fails loudly instead of guessing), and `analyze_pcb.py --schematic analysis/<run_id>/schematic.json` now classifies your declared power rails correctly.
 
 Per-release stories are in [release-notes.md](release-notes.md); line-level detail in the [CHANGELOG](CHANGELOG.md).
 
 ## 🧪 Test harness
 
-Everything above was validated against a [corpus of 5,800+ open-source KiCad projects](https://github.com/aklofas/kicad-happy-testharness) — the kind of designs real engineers actually build. The corpus spans hobby boards, production hardware, motor controllers, RF frontends, battery management systems, IoT devices, audio amplifiers, and everything in between. KiCad 5 through 10. Single-sheet and multi-sheet hierarchical. 2-layer through 6-layer. For full methodology and reproducibility instructions, see [VALIDATION.md](VALIDATION.md).
+Everything above was run against a [corpus of 5,800+ open-source KiCad projects](https://github.com/aklofas/kicad-happy-testharness) — the kind of designs real engineers actually build. The corpus spans hobby boards, production hardware, motor controllers, RF frontends, battery management systems, IoT devices, audio amplifiers, and everything in between. KiCad 5 through 10. Single-sheet and multi-sheet hierarchical. 2-layer through 6-layer. The corpus checks stability: a change in analyzer output is caught and has to be declared. It does not prove the output is correct. For full methodology and reproducibility instructions, see [VALIDATION.md](VALIDATION.md).
 
 **The numbers:**
 
-| Metric                       | Value                                        |
-| ---------------------------- | -------------------------------------------- |
-| Repos in corpus              | 5,800+                                       |
-| Schematic files analyzed     | 6,845 (100% success)                         |
-| PCB files analyzed           | 3,498 (99.9%)                                |
-| Gerber directories analyzed  | 1,050 (100% success)                         |
-| EMC pre-compliance analyses  | 6,853 (100% success, 141K+ findings)         |
-| Components parsed            | 312,956                                      |
-| Nets traced                  | 531,418                                      |
-| SPICE subcircuit simulations | 30,646 across 17 types                       |
-| SPICE-verified EMC findings  | 169 (PDN impedance via ngspice)              |
-| Regression assertions        | 808K+ at 100% pass rate                      |
-| Equations tracked & verified | 86 with source citations                     |
-| Bugfix regression guards     | 67 (100% pass — no fixed bugs have returned) |
-| Closed analyzer issues       | 193                                          |
+| Metric                       | Value                                         |
+| ---------------------------- | --------------------------------------------- |
+| Repos in corpus              | 5,858                                         |
+| Schematic files analyzed     | 36,463                                        |
+| PCB files analyzed           | 18,722                                        |
+| Gerber directories analyzed  | 5,505                                         |
+| EMC pre-compliance analyses  | 36,544                                        |
+| SPICE simulation runs        | 36,544                                        |
+| Components parsed            | 1,304,449                                     |
+| Nets traced                  | 1,882,743                                     |
+| Regression assertions        | 2,714,810 at 100.0% pass rate                 |
+| Bugfix regression guards     | 175 (100% pass — no fixed bugs have returned) |
+| Closed analyzer issues       | 758                                           |
 
 Three-layer regression testing catches drift at every level:
 

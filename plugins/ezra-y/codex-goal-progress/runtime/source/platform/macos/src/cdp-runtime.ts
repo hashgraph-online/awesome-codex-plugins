@@ -474,7 +474,7 @@ async function isProcessDescendant(
 }
 
 export async function verifyCodexCdpListenerOwnership(
-  app: CodexMacosAppIdentity,
+  app: Pick<CodexMacosAppIdentity, "realExecutablePath">,
   mainPid: number,
   port: number,
   runner: CommandRunner = runSystemCommand,

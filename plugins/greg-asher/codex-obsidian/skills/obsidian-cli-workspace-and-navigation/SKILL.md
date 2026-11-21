@@ -37,8 +37,10 @@ Assume these must be true before relying on this skill:
 In Codex Desktop on macOS, prefer this wrapper:
 
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian ...'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian ...'
 ```
+
+Set `CODEX_OBSIDIAN_ZSH_PATH` to override the default `/usr/local/bin/zsh` path. The override must be an absolute path to a Zsh-compatible executable.
 
 Escalate the wrapped command only when required by sandbox boundaries.
 

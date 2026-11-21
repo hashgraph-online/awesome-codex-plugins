@@ -1,0 +1,155 @@
+<!--
+  Russian resume template. Square-bracket slots are author-editing placeholders.
+  Replace every retained slot with supported facts and HTML-escape plain text.
+  Duplicate skill paragraphs, roles and achievement items only as needed; there
+  is no required number of categories, roles or bullets. Delete unused items,
+  optional sections and dangling separators. Remove authoring comments before
+  export. Keep review/analysis outside the CV.
+
+  Optional education, certifications and languages: retain only when supported,
+  relevant and allowed by the user's visibility/output preferences. Photo is
+  absent by default. Include it only at the user's request or when verified
+  recipient instructions require it; explicit user omission takes priority.
+  Do not infer personal details such as birth date, marital status or salary.
+
+  Copy this installed asset into the chosen workspace before editing.
+  Optional export with an interpreter that already has WeasyPrint:
+    python -m weasyprint "/chosen/workspace/resume-[SLUG].html" "/chosen/workspace/[NAME]-[TARGET_ROLE].pdf"
+  Read document-export.md for optional prerequisites and verification.
+  If runtime libraries are missing, diagnose the local setup before changing it.
+  Inspect every PDF page and extracted text; page count follows content, not a
+  fixed limit. Edit wording before reducing the readable type sizes below.
+-->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>[FULL_NAME_RU] - [TARGET_ROLE] Резюме</title>
+<style>
+  /* Default A4: adapt A4/Letter to the actual recipient, independently of language. */
+  @page { size: A4; margin: 16mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, "DejaVu Sans", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.42;
+    color: #222;
+  }
+  p, h1, h2, h3, ul { margin: 0; }
+  a { color: #2a5da8; text-decoration: underline; overflow-wrap: anywhere; }
+
+  /* Every block stays in source order in a single column. */
+  .resume-header { margin-bottom: 12pt; padding-bottom: 9pt; border-bottom: 1.5pt solid #2a5da8; }
+  h1 { font-size: 22pt; line-height: 1.15; margin-bottom: 4pt; }
+  .subtitle { font-size: 12pt; margin-bottom: 5pt; }
+  .contacts { font-size: 10pt; line-height: 1.45; }
+  .photo { display: block; width: 24mm; height: 24mm; object-fit: cover; margin-bottom: 7pt; }
+
+  .section { margin-top: 12pt; }
+  h2 {
+    font-size: 12pt;
+    line-height: 1.25;
+    color: #2a5da8;
+    border-bottom: 0.5pt solid #c9cdd2;
+    padding-bottom: 3pt;
+    margin-bottom: 7pt;
+    break-after: avoid;
+  }
+  h3 { font-size: 11.5pt; line-height: 1.3; margin-bottom: 2pt; break-after: avoid; }
+  .skill { margin-bottom: 3pt; }
+  .summary, .section-text { orphans: 2; widows: 2; }
+
+  /* Keep the short introduction with the first text; let a long role split. */
+  .role { margin-bottom: 10pt; break-inside: auto; }
+  .role-intro { break-inside: avoid; break-after: avoid; }
+  .role-meta { margin-bottom: 3pt; }
+  .role-context, .role-scope, .role-desc { margin-bottom: 4pt; }
+  .achievements { padding-left: 15pt; margin: 0 0 4pt; }
+  .achievements li { padding-left: 1pt; margin-bottom: 3pt; orphans: 2; widows: 2; }
+  .role-tech { font-size: 10pt; line-height: 1.4; color: #444; }
+  .condensed .role-intro { break-after: auto; }
+  .entry { margin-bottom: 7pt; }
+  .entry p { margin-bottom: 2pt; orphans: 2; widows: 2; }
+</style>
+</head>
+<body>
+<main>
+  <header class="resume-header">
+    <!-- OPTIONAL PHOTO: include above the name at the user's request or when
+         verified recipient instructions require it. Explicit user omission wins.
+    <img class="photo" src="[PHOTO_PATH]" alt="">
+    -->
+    <h1>[FULL_NAME_RU]</h1>
+    <p class="subtitle">[SUBTITLE]</p>
+    <!-- Remove missing contacts with their separators. Link labels must be readable. -->
+    <p class="contacts">[LOCATION_RU] · <a href="mailto:[EMAIL]">[EMAIL]</a> · <a href="[TELEGRAM_URL]">[TELEGRAM_DISPLAY]</a> · <a href="[LINKEDIN_URL]">[LINKEDIN_DISPLAY]</a> · <a href="[GITHUB_URL]">[GITHUB_DISPLAY]</a></p>
+  </header>
+
+  <section class="section" aria-label="Краткое описание">
+    <h2>Краткое описание</h2>
+    <p class="summary">[EXECUTIVE_SUMMARY_RU]</p>
+  </section>
+
+  <section class="section" aria-label="Навыки">
+    <h2>Навыки</h2>
+    <!-- Repeat this inline paragraph for each relevant category; remove empty rows. -->
+    <p class="skill"><strong>[CATEGORY_1_RU]:</strong> [SKILLS_1]</p>
+  </section>
+
+  <section class="section" aria-label="Опыт работы">
+    <h2>Опыт работы</h2>
+    <!-- Repeat roles in the chosen order. Detail follows relevance and evidence. -->
+    <article class="role">
+      <!-- Keep this introduction short. Remove missing context/scope paragraphs. -->
+      <div class="role-intro">
+        <h3>[COMPANY]</h3>
+        <p class="role-meta"><strong>[JOB_TITLE]</strong> · [START] - [END] · [LOCATION_RU]</p>
+        <p class="role-context">[COMPANY_CONTEXT_RU]</p>
+        <p class="role-scope">[SCOPE_1_2_SENTENCES_RU]</p>
+      </div>
+      <!-- Repeat supported outcomes; a meaningful result need not contain a metric. -->
+      <ul class="achievements">
+        <li>[ACHIEVEMENT_1_RU]</li>
+      </ul>
+      <!-- OPTIONAL: remove the entire paragraph when no relevant stack is supported. -->
+      <p class="role-tech">[TECH_STACK_DOT_SEPARATED]</p>
+    </article>
+
+    <!-- Condensed alternative. Remove when unused; never retain placeholder roles.
+         The legacy METRICS slot also accepts a supported qualitative result. -->
+    <article class="role condensed">
+      <div class="role-intro">
+        <h3>[COMPANY]</h3>
+        <p class="role-meta"><strong>[JOB_TITLE]</strong> · [START] - [END] · [LOCATION_RU]</p>
+        <p class="role-context">[COMPANY_CONTEXT_RU]</p>
+        <p class="role-desc">[1_2_SENTENCES_WITH_METRICS_RU]</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- OPTIONAL EDUCATION: delete the whole section if omitted; repeat sourced entries. -->
+  <section class="section" data-optional="education" aria-label="Образование">
+    <h2>Образование</h2>
+    <div class="entry">
+      <h3>[EDUCATION_INSTITUTION_RU]</h3>
+      <p>[EDUCATION_QUALIFICATION_RU] · [EDUCATION_DATES]</p>
+      <!-- OPTIONAL details: remove this paragraph if empty. -->
+      <p>[EDUCATION_DETAILS_RU]</p>
+    </div>
+  </section>
+
+  <!-- OPTIONAL CERTIFICATIONS: delete the whole section if omitted; repeat sourced entries. -->
+  <section class="section" data-optional="certifications" aria-label="Сертификаты">
+    <h2>Сертификаты</h2>
+    <p class="section-text">[CERTIFICATION_NAME_RU] · [CERTIFICATION_ISSUER_RU] · [CERTIFICATION_DATE]</p>
+  </section>
+
+  <!-- OPTIONAL LANGUAGES: delete the whole section when excluded or unsupported. -->
+  <section class="section" data-optional="languages" aria-label="Языки">
+    <h2>Языки</h2>
+    <p class="section-text">[LANGUAGES_RU]</p>
+  </section>
+</main>
+</body>
+</html>

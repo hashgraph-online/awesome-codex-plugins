@@ -1,0 +1,482 @@
+{
+ "cut_hsv_delta": {
+  "value": 12.0,
+  "unit": "mean HSV delta",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "black_luma": {
+  "value": 16.0,
+  "unit": "mean luma 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "black_std": {
+  "value": 6.0,
+  "unit": "luma std",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "black_glitch_max_s": {
+  "value": 0.25,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "a longer black is treated as a choice and reported as info"
+ },
+ "freeze_mad": {
+  "value": 0.06,
+  "unit": "mean abs diff 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "freeze_min_s": {
+  "value": 0.4,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "freeze_motion_around": {
+  "value": 0.5,
+  "unit": "mean abs diff 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "repeat_mad": {
+  "value": 0.08,
+  "unit": "mean abs diff 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "repeat_motion_around": {
+  "value": 0.4,
+  "unit": "mean abs diff 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "repeat_share": {
+  "value": 0.02,
+  "unit": "share of moving frames",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "glitch_min_mad": {
+  "value": 6.0,
+  "unit": "mean abs diff 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "glitch_min_cell": {
+  "value": 18.0,
+  "unit": "max 8x8 cell diff 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "glitch_return": {
+  "value": 0.35,
+  "unit": "ratio",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "seam_shot_s": {
+  "value": 0.12,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "about 3 frames at 24 fps"
+ },
+ "flicker_step": {
+  "value": 0.6,
+  "unit": "luma per frame",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "flicker_flip_hz": {
+  "value": 4.0,
+  "unit": "reversals per s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "flicker_cell_rms": {
+  "value": 2.5,
+  "unit": "cell luma high-pass rms",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "flash_per_s": {
+  "value": 3.0,
+  "unit": "flashes per s",
+  "status": "published",
+  "source": "WCAG 2.2 success criterion 2.3.1, https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html"
+ },
+ "dark_luma": {
+  "value": 60,
+  "unit": "median luma 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "cambi_visible": {
+  "value": 5.0,
+  "unit": "CAMBI",
+  "status": "published",
+  "source": "Netflix: about 5 starts to annoy, 24 is the worst seen. https://github.com/Netflix/vmaf/blob/master/resource/doc/cambi.md"
+ },
+ "ocr_word_conf": {
+  "value": 0.6,
+  "unit": "OCR confidence",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "text_scale_ratio": {
+  "value": 1.3,
+  "unit": "largest over smallest block height",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "text_scale_share": {
+  "value": 0.5,
+  "unit": "share of frames",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "words_on_screen": {
+  "value": 18,
+  "unit": "words at once",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "reading_cps": {
+  "value": 20,
+  "unit": "characters per second",
+  "status": "convention",
+  "source": "Netflix timed text limit for adult English subtitles; on-screen titles can run shorter, so read this as a ceiling"
+ },
+ "text_contrast": {
+  "value": 3.0,
+  "unit": "WCAG contrast ratio",
+  "status": "published",
+  "source": "WCAG 2.2 SC 1.4.3 large text, https://www.w3.org/TR/WCAG22/#contrast-minimum"
+ },
+ "text_min_height_pct": {
+  "value": 2.6,
+  "unit": "text height as % of the short side",
+  "status": "convention",
+  "source": "HyperFrames review rule: under 2.6% of the short side, 28 px on 1080"
+ },
+ "counter_jitter_pct": {
+  "value": 1.0,
+  "unit": "shake of a held digit as % of digit height",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "no_lead_peaks": {
+  "value": 8,
+  "unit": "attention peaks",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "no_lead_dominance": {
+  "value": 0.3,
+  "unit": "share of attention mass in the top peak",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "blob_scale_ratio": {
+  "value": 1.25,
+  "unit": "biggest over second",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "clutter_edges": {
+  "value": 0.16,
+  "unit": "share of edge pixels",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "clutter_elements": {
+  "value": 60,
+  "unit": "edge blobs",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "camera_move_pct_s": {
+  "value": 1.0,
+  "unit": "% of frame width per s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "cause_window_s": {
+  "value": 0.3,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "drift_share": {
+  "value": 0.6,
+  "unit": "share of shots",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "drift_cv": {
+  "value": 0.45,
+  "unit": "speed variation",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "drift_max_pct_s": {
+  "value": 12.0,
+  "unit": "% width per s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "shake_px": {
+  "value": 2.5,
+  "unit": "px at 480 wide",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_scene_std": {
+  "value": 8.0,
+  "unit": "temporal std",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_still_std": {
+  "value": 2.5,
+  "unit": "temporal std",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_detail": {
+  "value": 4.0,
+  "unit": "Laplacian",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_ring_ratio": {
+  "value": 3.0,
+  "unit": "ratio",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "label_drift_pct": {
+  "value": 1.5,
+  "unit": "% of frame width",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "face_min_px": {
+  "value": 48,
+  "unit": "px",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "sface_same_cos": {
+  "value": 0.363,
+  "unit": "cosine",
+  "status": "published",
+  "source": "OpenCV sample samples/dnn/face_detect.py: cosine_similarity_threshold = 0.363. Set on faces, not on AI video, where within-clip drift is larger"
+ },
+ "outfit_delta_e": {
+  "value": 18,
+  "unit": "CIEDE2000",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "face_light_l": {
+  "value": 18,
+  "unit": "L* levels",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "group_delta_e": {
+  "value": 15,
+  "unit": "CIEDE2000",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "lufs_low": {
+  "value": -20,
+  "unit": "LUFS",
+  "status": "convention",
+  "source": "No platform publishes a target. -14 is convention, so this flags only clear misses"
+ },
+ "lufs_high": {
+  "value": -9,
+  "unit": "LUFS",
+  "status": "convention",
+  "source": "No platform publishes a target. -14 is convention, so this flags only clear misses"
+ },
+ "true_peak": {
+  "value": -1.0,
+  "unit": "dBTP",
+  "status": "published",
+  "source": "EBU R128 and Spotify: -1 dBTP"
+ },
+ "clip_runs": {
+  "value": 3,
+  "unit": "runs of 3+ samples at full scale",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "dropout_db": {
+  "value": 45,
+  "unit": "dB under the loud level",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "dropout_min_s": {
+  "value": 0.03,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "dropout_max_s": {
+  "value": 1.0,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "av_length_s": {
+  "value": 0.25,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "sync_window_s": {
+  "value": 0.4,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "late_ms": {
+  "value": 125,
+  "unit": "ms",
+  "status": "published",
+  "source": "ITU-R BT.1359: sound late becomes detectable at 125 ms. Measured on lip sync, not on cuts"
+ },
+ "early_ms": {
+  "value": 45,
+  "unit": "ms",
+  "status": "published",
+  "source": "ITU-R BT.1359: sound early becomes detectable at 45 ms. Measured on lip sync, not on cuts"
+ },
+ "on_cut_tol_s": {
+  "value": 0.05,
+  "unit": "s",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "on_beat_tol_s": {
+  "value": 0.07,
+  "unit": "s",
+  "status": "published",
+  "source": "Standard beat tracking evaluation window, +/-70 ms"
+ },
+ "abrupt_end_db": {
+  "value": -6,
+  "unit": "dB vs body",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "script_wer": {
+  "value": 0.08,
+  "unit": "word error rate",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "sharpness_var": {
+  "value": 60,
+  "unit": "Laplacian variance at 960 wide",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "clip_share": {
+  "value": 0.08,
+  "unit": "share of pixels",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "beat_clarity_min": {
+  "value": 0.12,
+  "unit": "autocorrelation peak",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "level_jump_db": {
+  "value": 12,
+  "unit": "dB between shots",
+  "status": "calibrated_on_fixtures",
+  "source": "Video Use treats an end card 15 dB under dialogue as a bug"
+ },
+ "object_jump": {
+  "value": 1.0,
+  "unit": "object motion rise, mean abs diff",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "camera_jump": {
+  "value": 1.5,
+  "unit": "camera speed rise, px per frame at 480 wide",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "motion_ratio": {
+  "value": 1.0,
+  "unit": "rise as a multiple of the shot's level",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "light_side_delta": {
+  "value": 25,
+  "unit": "luma levels, change in left minus right cheek",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_crisp": {
+  "value": 1.6,
+  "unit": "edge strength over the frame median",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "counter_match": {
+  "value": 0.92,
+  "unit": "template match score that says a digit kept its value",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_min_travel_pct": {
+  "value": 6.0,
+  "unit": "% of frame width the camera path predicts",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "pinned_persist": {
+  "value": 0.8,
+  "unit": "match score against the shot's average",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "dropout_edge_db": {
+  "value": 25,
+  "unit": "dB fall within 2 hops, about 23 ms",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "soft_shot_ratio": {
+  "value": 0.25,
+  "unit": "share of the film's median sharpness",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ },
+ "black_p99": {
+  "value": 40,
+  "unit": "99th percentile luma 0-255",
+  "status": "calibrated_on_fixtures",
+  "source": "real film: a dim terminal screen is not black"
+ },
+ "repeat_ratio": {
+  "value": 0.05,
+  "unit": "share of the motion around it",
+  "status": "calibrated_on_fixtures",
+  "source": "fixtures in tests/"
+ }
+}

@@ -88,6 +88,8 @@ article voice on a social feed reads as a press release.
 
 Never make the second call on your own. Show the person the exact preview the
 first call returns and wait for a clear yes before you send the one-time code
-back. Never make both calls in one step.
+back. Never make both calls in one step. The assistant may show the preview as
+a card with its own Post now or Schedule button. A press on that button is the
+person's yes and sends the code itself, so do not send it again.
 
 VoiceMoat is at voicemoat.com. The connector needs the Pro or Enterprise plan.

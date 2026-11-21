@@ -1,0 +1,55 @@
+{
+  "name": "candor-finance",
+  "version": "1.3.6",
+  "description": "Candor is a personal finance app that helps you reach your money goals with ChatGPT, Claude, or the AI agent you already use. Your agent works from your real bank, card, loan, and investment accounts: it sets up goals and a budget with you, finds money you are losing to fees, price increases, or missed refunds, and remembers your plan and decisions between conversations. Candor reviews your spending, bills, debt, savings, and investments and tells your agent what's worth talking through and why. Candor never moves money.",
+  "author": {
+    "name": "Candor",
+    "email": "support@candor.money",
+    "url": "https://candor.money"
+  },
+  "homepage": "https://candor.money",
+  "repository": "https://github.com/candorsystems/candor-finance",
+  "license": "LicenseRef-Candor-Proprietary",
+  "keywords": [
+    "finance",
+    "personal-finance",
+    "budgeting",
+    "money-management",
+    "financial-planning"
+  ],
+  "interface": {
+    "displayName": "Candor Finance",
+    "shortDescription": "Your budget and money goals",
+    "longDescription": "Tell ChatGPT what you want with your money, like paying off the cards, buying a home, or working four days a week, even if you haven't worked it out yet. With Candor, ChatGPT works from your real bank, card, loan, and investment accounts, connected or added from your statements, and sets up the plan with you: goals with a target, a date, and a monthly amount, a budget that pays for them, and every charge in the right category.\n\nThen it keeps you on it. Candor reviews your spending, bills, debt, savings, and investments, finds what's worth talking through, and tells ChatGPT why, like a goal slipping, a bill that went up, a refund that never arrived, or cash earning too little.\n\nAsk where your money goes each month, whether you can afford a move, or what changed since last time. ChatGPT can show cash flow, spending, budget, and goal charts in the conversation, keep transactions in the right categories, catch duplicate charges and price increases, and remember what to check on and when.\n\nEvery figure is computed from your records. Your goals, budget, decisions, and the reasons behind them stay saved in Candor across conversations, and you can see each change ChatGPT made and why. Your data is not sold or used to train models.\n\nRequires a Candor account. ChatGPT can add your accounts from statements and exports, or you connect US bank, card, loan, and investment accounts on Candor's website, with read-only access. Candor does not transfer money or execute trades.",
+    "developerName": "Candor",
+    "category": "Finance",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://candor.money",
+    "supportURL": "https://candor.money/support",
+    "privacyPolicyURL": "https://candor.money/privacy",
+    "termsOfServiceURL": "https://candor.money/terms",
+    "defaultPrompt": [
+      "Help me pay off my credit cards.",
+      "Where does my money go each month?",
+      "What should I know about my money this week?"
+    ],
+    "brandColor": "#DC5A38",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": []
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/candor-get-started/SKILL.md",
+      "publication": {
+        "release_notes": "You can now start without connecting a bank: ChatGPT adds your accounts from statements and exports, and you can connect US banks later. Candor now sets up your money goals and a budget from your real accounts, and its review tells ChatGPT what's worth talking through. ChatGPT can now help you get started, plan a goal, set a budget, check in on how things are going, run a full checkup, sort transactions, find money you're losing, get ready for taxes, and add records your bank doesn't send. Charts update live in the conversation."
+      }
+    }
+  }
+}

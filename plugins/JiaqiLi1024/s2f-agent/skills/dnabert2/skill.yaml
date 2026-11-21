@@ -1,0 +1,68 @@
+schema_version: 1
+id: dnabert2
+title: DNABERT-2
+path: skills/dnabert2
+status: active
+family: transformer-embedding-and-finetuning
+tasks:
+  - embedding
+  - gue-evaluation
+  - fine-tuning
+  - csv-validation
+triggers:
+  - dnabert2
+  - zhihan1996/DNABERT-2-117M
+  - gue
+required_inputs:
+  - sequence-or-interval
+optional_inputs:
+  - embedding-target
+  - dataset-schema
+  - compute-constraints
+  - output-dir
+input_mappings:
+  - sequence-or-interval|query_tokens=sequence,interval,fasta,start,end|script_flags=--interval,--chrom,--start,--end
+  - embedding-target|query_tokens=embedding,pooled,token,representation|script_flags=--save-token-embeddings
+  - dataset-schema|query_tokens=csv,schema,columns,label|script_flags=--data-dir,--csv
+  - compute-constraints|query_tokens=gpu,cpu,memory,batch,budget|script_flags=train-runtime-selection
+  - output-dir|query_tokens=output,outdir,目录|script_flags=--output-dir
+constraints:
+  - transformers-version-path-is-conditional
+  - trust-remote-code-required
+  - use-kmer-minus-one-for-dnabert2-finetuning
+  - interval-is-0based-half-open-ucsc-fetched
+tools:
+  - scripts/validate_dataset_csv.py
+  - scripts/recommend_max_length.py
+  - scripts/embed_interval_plot.py
+tool_contracts:
+  - tool: scripts/validate_dataset_csv.py
+    inputs:
+      - data-dir-or-csv
+    outputs:
+      - validation-summary-json
+    side_effects:
+      - none
+    failure_codes:
+      - 1
+  - tool: scripts/recommend_max_length.py
+    inputs:
+      - sequence-length-or-csv
+    outputs:
+      - recommended-model-max-length
+    side_effects:
+      - none
+    failure_codes:
+      - 1
+  - tool: scripts/embed_interval_plot.py
+    inputs:
+      - sequence-or-interval
+    outputs:
+      - embedding-plot-and-metadata
+    side_effects:
+      - writes-output-artifacts
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-dnabert2
+  - prefer-when-task-is-dna-csv-validation-or-dnabert2-finetuning

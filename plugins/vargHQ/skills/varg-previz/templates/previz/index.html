@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Previz</title>
+<link rel="icon" href="data:,">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<style>
+  :root {
+    --bg: #0b0d14; --panel: #12151f; --line: #232838; --text: #e6e9f2; --muted: #8a91a6;
+    --orange: #ff5315; --ok: #3dff9a; --fix: #ffb020;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, -apple-system, sans-serif; overflow: hidden; }
+  #gl { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; }
+  .app { position: relative; z-index: 1; display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+  button, select, input { font: inherit; color: inherit; }
+  button { background: #1c2130; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: #3a4260; }
+  button.on { background: #2a2f45; border-color: var(--orange); color: #fff; }
+  button:disabled { opacity: .4; cursor: default; }
+  kbd { font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; }
+
+  header { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 14px; margin: 0 10px 0 0; font-weight: 650; letter-spacing: .02em; }
+  header h1 small { color: var(--muted); font-weight: 400; }
+  header .grp { display: flex; gap: 4px; align-items: center; }
+  header .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+  #t-now { font: 12px var(--mono); color: var(--muted); min-width: 120px; }
+  #save-state { font-size: 12px; color: var(--muted); } #save-state.dirty { color: var(--fix); }
+  #b-play { min-width: 64px; } body.playing #b-play::after { content: ' ❚❚'; } body:not(.playing) #b-play::after { content: ' ▶'; }
+
+  main { display: flex; gap: 10px; padding: 10px; min-height: 0; }
+  .col-shot { flex: none; position: relative; align-self: center; } /* sized from config.aspect in main.js */
+  .view { position: relative; width: 100%; height: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; touch-action: none; }
+  #view-shot { cursor: default; }
+  body.framing #view-shot { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); cursor: grab; }
+  .col-map { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .col-map .bar { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+  #view-map { flex: 1; cursor: grab; }
+  aside { width: 340px; flex: none; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+  body.is-cinema .col-map, body.is-cinema aside { display: none; }
+  body.is-cinema main { justify-content: center; }
+  body.is-export header, body.is-export aside, body.is-export .col-map, body.is-export footer, body.is-export .hud,
+  body.is-export .guides, body.is-export #frame-bar, body.is-export #onion { display: none !important; }
+  body.is-export .col-shot { position: fixed; left: 0; top: 0; }
+  body.is-export .view { border: 0; border-radius: 0; }
+
+  /* shot view HUD */
+  .hud { position: absolute; pointer-events: none; font-family: var(--mono); text-shadow: 0 1px 2px #000; }
+  #hud-top { top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  #hud-id { font-weight: 700; font-size: 15px; }
+  #hud-scene { color: var(--c); margin-left: 6px; }
+  #hud-beatdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #444; margin-left: 6px; vertical-align: middle; }
+  #hud-beatdot.on { background: var(--orange); }
+  #hud-kbar { top: 0; left: 0; right: 0; height: 3px; background: #0006; } #hud-k { height: 100%; background: var(--orange); }
+  #hud-lyric { bottom: 11%; left: 6%; right: 6%; text-align: center; font: 700 clamp(13px, 2.2vh, 20px)/1.2 system-ui; color: #fff; }
+  #hud-code { bottom: 5%; left: 6%; right: 6%; text-align: center; font-size: 11px; color: #ffd0b8; }
+  #hud-code:not(:empty) { border: 1px dashed #ff531588; background: #0008; padding: 3px 6px; border-radius: 4px; }
+  #hud-card { top: 18%; left: 8%; right: 8%; text-align: center; font: 800 clamp(16px, 3vh, 28px)/1.15 system-ui; color: #fff; background: #000a; padding: 6px; border-radius: 6px; }
+  #hud-card[data-pos=center] { top: 42%; } #hud-card[data-pos=bottom] { top: auto; bottom: 26%; }
+  #hud-card[data-pos=full] { inset: 0; display: grid; place-items: center; border-radius: 0; background: #000c; letter-spacing: .08em; }
+  .guides { position: absolute; inset: 0; pointer-events: none; display: none; }
+  body.is-guides .guides { display: block; }
+  .guides i { position: absolute; background: #ffffff22; }
+  .guides .safe { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(45deg, #ffffff08 0 6px, transparent 6px 12px); border-color: #ffffff22; border-style: dashed; border-width: 0; }
+  #onion { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .45; pointer-events: none; display: none; }
+  body.is-onion #onion { display: block; }
+  #frame-bar { position: absolute; left: 6px; right: 6px; bottom: 6px; display: none; background: #0b0d14ee; border: 1px solid var(--orange); border-radius: 6px; padding: 7px; font-size: 12px; gap: 6px; flex-direction: column; }
+  body.framing #frame-bar { display: flex; }
+  body.framing #hud-lyric, body.framing #hud-code { display: none; }
+  #frame-bar .row { display: flex; gap: 6px; align-items: center; }
+  #frame-bar input[type=range] { flex: 1; min-width: 0; }
+  #frame-bar .val { font-family: var(--mono); min-width: 88px; text-align: right; color: var(--muted); }
+  #f-size { font-family: var(--mono); color: #ffd0b8; }
+  #frame-bar .help { color: var(--muted); font-size: 11px; }
+
+  /* panel */
+  .p-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  #p-id { font: 700 22px var(--mono); }
+  #p-scene { color: var(--c); font-weight: 600; }
+  #p-time { color: var(--muted); font: 12px var(--mono); width: 100%; }
+  #p-lyric { font-weight: 650; margin: 8px 0 4px; }
+  #p-picture { color: #c9cede; }
+  #p-meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  #p-meta div { margin: 1px 0; }
+  #p-meta .warn { color: var(--fix); }
+  .stills { display: flex; gap: 8px; margin-top: 10px; align-items: flex-start; }
+  #p-still { width: 120px; aspect-ratio: 9/16; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: #000; }
+  .stills .cap { color: var(--muted); font-size: 11px; }
+  .stills .cap.warn { color: var(--fix); }
+  h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+  #p-spec { background: #0b0d14; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+  .muted { color: var(--muted); }
+  table.cam { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+  table.cam td { padding: 3px 2px; vertical-align: middle; }
+  table.cam td:first-child { color: var(--muted); width: 52px; }
+  table.cam .v { font-family: var(--mono); font-size: 11px; }
+  table.cam input { width: 52px; background: #0b0d14; border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; font-family: var(--mono); font-size: 11px; }
+  .k-a { color: var(--ok); } .k-b { color: var(--orange); }
+  .row-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  select { background: #0b0d14; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
+  #p-changed { color: var(--fix); font-size: 11px; }
+  #p-status button[data-s=ok].on { border-color: var(--ok); color: var(--ok); }
+  #p-status button[data-s=fix].on { border-color: var(--fix); color: var(--fix); }
+  #p-note { width: 100%; min-height: 70px; margin-top: 6px; background: #0b0d14; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font: inherit; resize: vertical; }
+  .keys { color: var(--muted); font-size: 11px; line-height: 1.7; }
+
+  /* timeline */
+  footer { background: var(--panel); border-top: 1px solid var(--line); padding: 6px 12px 10px; user-select: none; }
+  #timeline { position: relative; cursor: ew-resize; touch-action: none; }
+  #tl-scenes { position: relative; height: 18px; }
+  .tl-scene { position: absolute; top: 0; height: 16px; font-size: 10px; color: var(--c); border-bottom: 2px solid var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; }
+  #tl-shots { position: relative; height: 34px; margin-top: 2px; }
+  .tl-shot { position: absolute; top: 0; height: 100%; background: color-mix(in srgb, var(--c) 28%, #12151f); border-top: 2px solid var(--c); border-radius: 2px; font: 10px var(--mono); padding: 2px 2px 0; overflow: hidden; }
+  .tl-shot b { font-weight: 600; }
+  .tl-shot .dot { position: absolute; bottom: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: transparent; }
+  .tl-shot[data-status=ok] .dot { background: var(--ok); }
+  .tl-shot[data-status=fix] .dot { background: var(--fix); }
+  #tl-bars { position: absolute; inset: 20px 0 0 0; pointer-events: none; }
+  #tl-bars i { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff10; }
+  #tl-bars i.major { background: #ffffff26; }
+  #playhead { position: absolute; top: 0; bottom: -4px; width: 2px; background: #fff; box-shadow: 0 0 6px #fff; pointer-events: none; }
+  #toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px); background: #1c2130; border: 1px solid var(--orange); padding: 8px 14px; border-radius: 8px; opacity: 0; transition: .2s; z-index: 5; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #audio-warn { color: var(--fix); font-size: 12px; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="app">
+  <header>
+    <h1><span id="title">Previz</span> <small id="subtitle"></small></h1>
+    <div class="grp">
+      <button id="b-prev" title="Previous shot (←)">◀◀</button>
+      <button id="b-play" title="Play / pause (space)"></button>
+      <button id="b-next" title="Next shot (→)">▶▶</button>
+      <span id="t-now"></span>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="b-loop" title="Loop the current shot (L)">⟲ loop</button>
+      <button id="b-frame" title="Frame: drive the shot camera (F)">✎ frame</button>
+      <button id="b-onion" title="Overlay the shot's still on the frame (O)">still</button>
+      <input id="onion-op" type="range" min="0.1" max="0.9" step="0.05" value="0.45" title="Still opacity" style="width:70px">
+      <button id="b-guides" title="Thirds and safe zones (G)">guides</button>
+      <button id="b-cinema" title="Frame only, like an animatic (C)">animatic</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="b-save" title="Save edits to data/edits.json (⌘S)">Save</button>
+      <button id="b-export" title="Camera plan as Markdown">Export plan</button>
+      <span id="save-state"></span>
+      <span id="audio-warn" hidden></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="col-shot">
+      <div id="view-shot" class="view">
+        <img id="onion" alt="">
+        <div class="guides">
+          <i style="left:33.33%;top:0;bottom:0;width:1px"></i><i style="left:66.66%;top:0;bottom:0;width:1px"></i>
+          <i style="top:33.33%;left:0;right:0;height:1px"></i><i style="top:66.66%;left:0;right:0;height:1px"></i>
+          <div class="safe" id="safe-top" style="top:0;border-bottom-width:1px"></div>
+          <div class="safe" id="safe-bottom" style="bottom:0;border-top-width:1px"></div>
+        </div>
+        <div class="hud" id="hud-kbar"><div id="hud-k"></div></div>
+        <div class="hud" id="hud-top"><span><span id="hud-id"></span><span id="hud-scene"></span></span><span><span id="hud-beat"></span><span id="hud-beatdot"></span></span></div>
+        <div class="hud" id="hud-card" hidden></div>
+        <div class="hud" id="hud-lyric"></div>
+        <div class="hud" id="hud-code"></div>
+        <div id="frame-bar" class="no-rig">
+          <div class="row"><b>Framing</b><span id="f-size"></span></div>
+          <div class="row">FOV <input id="f-fov" type="range" min="8" max="110" step="0.5"><span class="val" id="f-fov-v"></span></div>
+          <div class="row">Roll <input id="f-roll" type="range" min="-45" max="45" step="0.5"><span class="val" id="f-roll-v"></span></div>
+          <div class="row"><button id="f-to-a" class="k-a">→ write START</button><button id="f-to-b" class="k-b">→ write END</button><button id="f-exit">Exit (Esc)</button></div>
+          <div class="help">drag: orbit · shift+drag: pan/tilt in place · right-drag: truck · wheel: dolly · alt+wheel: FOV · WASD/QE: fly</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-map">
+      <div class="bar">
+        <b style="color:var(--text)">Set map</b>
+        <span>frustums: <span class="k-a">■ START</span> <span class="k-b">■ END</span> <span style="color:#ffd23d">■ now</span></span>
+        <button id="b-ghosts" title="Show the cameras of every shot in this set (H)">all cameras</button>
+        <button id="b-map-home" title="Reset the map view (M)">⌂ home</button>
+        <span>drag: orbit · shift: pan · right: truck · wheel: dolly · WASD/QE</span>
+      </div>
+      <div id="view-map" class="view"></div>
+    </div>
+
+    <aside>
+      <div class="p-head"><span id="p-id"></span><span id="p-scene"></span><span id="p-time"></span></div>
+      <div id="p-lyric"></div>
+      <div id="p-picture"></div>
+      <div id="p-meta"></div>
+      <div class="stills"><img id="p-still" alt=""><div class="cap" id="p-still-cap"></div></div>
+
+      <h3>Camera</h3>
+      <div id="p-spec"></div>
+      <table class="cam">
+        <tr><td class="k-a">START</td><td class="v">pos <span id="p-a-p"></span><br>look at <span id="p-a-t"></span></td></tr>
+        <tr><td></td><td>FOV <input id="p-a-fov" type="number" step="0.5"> <span id="p-a-mm" class="muted"></span> · roll <input id="p-a-roll" type="number" step="0.5"></td></tr>
+        <tr><td class="k-b">END</td><td class="v">pos <span id="p-b-p"></span><br>look at <span id="p-b-t"></span></td></tr>
+        <tr><td></td><td>FOV <input id="p-b-fov" type="number" step="0.5"> <span id="p-b-mm" class="muted"></span> · roll <input id="p-b-roll" type="number" step="0.5"></td></tr>
+      </table>
+      <div class="row-btns">
+        <button id="p-go-a" class="k-a" title="Go to START and frame (1)">✎ START</button>
+        <button id="p-go-b" class="k-b" title="Go to END and frame (2)">✎ END</button>
+        <select id="p-ease" title="Move curve">
+          <option value="inOut">ease in-out</option><option value="linear">linear</option><option value="in">ease in</option>
+          <option value="out">ease out</option><option value="whip">whip</option><option value="hold">hold on START</option>
+        </select>
+        <button id="p-reset">Reset</button>
+        <span id="p-changed" hidden>edited</span>
+      </div>
+
+      <h3>Approval</h3>
+      <div class="row-btns" id="p-status"><button data-s="ok">✓ Approved</button><button data-s="fix">✎ Needs a fix</button></div>
+      <textarea id="p-note" placeholder="Note for this shot: what to change in the frame, camera, action…"></textarea>
+
+      <h3>Keys</h3>
+      <div class="keys">
+        <kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> shot · <kbd>L</kbd> loop shot · <kbd>F</kbd> frame ·
+        <kbd>1</kbd>/<kbd>2</kbd> edit START/END · <kbd>O</kbd> still · <kbd>G</kbd> guides · <kbd>C</kbd> animatic ·
+        <kbd>H</kbd> all cameras · <kbd>M</kbd> map home · <kbd>⌘S</kbd> save
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div id="timeline">
+      <div id="tl-scenes"></div>
+      <div id="tl-shots"></div>
+      <div id="tl-bars"></div>
+      <div id="playhead"></div>
+    </div>
+  </footer>
+</div>
+<div id="toast"></div>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

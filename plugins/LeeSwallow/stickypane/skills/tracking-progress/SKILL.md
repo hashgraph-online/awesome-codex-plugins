@@ -22,23 +22,17 @@ stickypane todo refactor check "move"
 stickypane log worklog --time "refactor done: 14 files, tests green"
 ```
 
-Each command prints where the note stands (`refactor.md: 2/3`). Report
-that; do not read the note.
+Each command prints where the note stands (`refactor.md: 2/3`); report
+that. `${CLAUDE_PLUGIN_ROOT}/rules/touching-the-board.md` has the rest of
+the commands and what the board writes itself.
 
 ## Rules
 
-- One note per task the user follows. Update the one that exists; a second
-  checklist for the same task is noise.
-- Change it with the commands above, never by rewriting the file: the user
-  may have ticked or added items from the board.
 - A step is a line a reader understands without the chat: "move the
-  function", not "step 2".
+  function", not "step 2". How to word one:
+  `${CLAUDE_PLUGIN_ROOT}/rules/writing-notes.md`.
 - Tick an item when it is done, not when you start it.
-- Leave the finished note where it is: it is the record. Delete it only
-  when the user asks.
-- When the work needs the user's decision, use the `asking-the-user` skill;
-  to tell the user something as you go, `talking-in-chat`.
-- A chart of how far along it is: `connecting-notes` (`from:`), not counts
-  you keep yourself.
-- `${CLAUDE_PLUGIN_ROOT}/rules/touching-the-board.md` and
-  `${CLAUDE_PLUGIN_ROOT}/rules/writing-notes.md` apply.
+- Leave the finished note where it is: it is the record.
+- A decision that is the user's: `asking-the-user`. Telling the user
+  something as you go: `talking-in-chat`. A chart of how far along it is:
+  `connecting-notes` (`from:`), not counts you keep yourself.

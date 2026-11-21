@@ -1,0 +1,4 @@
+interface:
+  display_name: "Caduceus inference"
+  short_description: "Caduceus long-range DNA model inference"
+  default_prompt: "Use $caduceus-inference to help me with Caduceus long-range DNA model inference."

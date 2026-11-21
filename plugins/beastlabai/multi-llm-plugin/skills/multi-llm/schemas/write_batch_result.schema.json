@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "write_batch_result.schema.json",
+  "title": "Write-batch result (D3g)",
+  "description": "The JSON a write subagent prints on stdout for an apply-* or implement batch. It is the batch's `output_path` (apply_batch_N.json / implement_batch_<task id>.json), validated exactly like a validation result before anything is written — a runner that returns prose fails the task instead of being counted as applied (D3f). It is NOT the verdict: the executor's own pre-batch snapshot / post-run byte comparison decides applied vs. clean failure vs. partial application, and `summary` is the field `prior_changes.py append` takes its one-liner from, which is why it is part of the contract rather than a nicety.",
+  "type": "object",
+  "required": ["status", "summary"],
+  "additionalProperties": true,
+  "properties": {
+    "status": {
+      "enum": ["applied", "no-op", "failed"],
+      "description": "The runner's own claim. `applied` = it edited files; `no-op` = nothing needed changing (already applied by a prior batch, or every item declined); `failed` = it could not apply the batch. Never the verdict on its own: a claim of `applied` with an empty snapshot diff is a clean failure, and a claim of `failed` with a non-empty diff is a partial application."
+    },
+    "ids": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "The suggestion/group/task ids this batch actually applied. Compared against the task's `expected_ids` so 'some of them landed' is detected as a partial application rather than read as success."
+    },
+    "declined": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {"type": "string"},
+          "reason": {"type": "string"}
+        }
+      },
+      "description": "The apply phases' items the batch deliberately did not apply, each with the reason (fix round 18, Codex racing run 7: a batch said in `notes` that it left a fix out because the implementation record calls that code deliberate, `ids` could only list the applied one, and the batch stopped as a partial application on every resume). An expected id that comes back here with a non-empty reason is declined: not applied, never counted as applied, named with its reason in summary.md, the result notice and `status`, and not a partial application; a batch whose every expected id is applied or declined is complete. An id in both `ids` and `declined`, an id the batch does not hold, and an entry without a reason are read as that id not coming back (`subagent_executor.declined_items`). `implement` has no such field: a task its runner will not do is `failed`, answered with `--human-task <id>=skip|done`, so a `declined` naming the task is read as `failed`. Optional, so an older reply stays valid; `id` and `reason` are not `required` on purpose, so an incomplete entry is a named contract problem rather than a schema rejection."
+    },
+    "files_touched": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "The files the runner says it edited, repo-root-relative. Cross-checked against the observed diff; the observed set — not this one — is what the write policy is enforced against post-run."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "One line, <= 200 chars. Goes verbatim into `prior_changes.py append --summary`, which is why the contract requires it: the injected prior-batch context must come from a structured field, never from compressing a chat reply."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional free-text detail for the batch report and the implementation summary. Never parsed."
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional runner-reported usage. Absent means NOT REPORTED, never zero (D3j); the executor records duration itself either way and never derives token counts."
+    },
+    "check": {
+      "additionalProperties": true,
+      "description": "A check task's structured result (an implement task that declares no files), and since fix round 14 a code batch's report of the checks it ran on its own edits (implement's tasks that declare files, apply-code-fixes' batches): the contract asks for it only there. Optional, so an older reply stays valid. On a code batch, `passed: false` or any `findings` entry records the batch applied with a failing check — never a plain success, and never a hold (`subagent_executor.batch_check_findings`; a `check` that says neither is no report there). On a check task: `passed: false` or any `findings` entry records the task `check-findings` instead of `verified`: no file changed, the tasks that do not depend on it go on, the tasks that do are not run, and the findings reach summary.md, the reports, `status` and review-code (racing re-run 4, 2026-10-05; fix round 11). Read from this field, never from `notes`. No `type` here or below on purpose (fix round 11): a near-miss shape (`passed: \"false\"`, `findings: \"one problem\"`, a number as a finding, `check: {}`) used to fail the reply's validation, and implement had no report re-ask then, so the run stopped for good (it has one since fix round 14; the lenient reading stays). `subagent_executor.check_findings_from` reads every shape instead, and only a clear pass with nothing listed is a pass; `check: null` is an unknown result, not a missing one (fix round 12).",
+      "properties": {
+        "passed": {
+          "description": "true only when every check the task names ran and met its acceptance criteria; on a code batch, true only when the last run of every check it ran passed. A run the runner corrected (a wrong flag or mode, then the right one) reports the corrected run (fix round 16), only when that run is the same check over the same scope, the full command the task or the repository names, never a narrower one (fewer files or tests, a filter, `--passWithNoTests`; fix round 17). Read leniently (true/false, 1/0, \"true\"/\"false\"); anything else is an unknown result, never a pass."
+        },
+        "could_not_run": {
+          "description": "true when a check the task names could not run (its command missing, a crash, a timeout, no result printed); the reply is then `failed` and the task stops implement, whatever `findings` lists. Read leniently (true, 1, \"true\", \"yes\"). Without it a `failed` reply whose `findings` lists problems is recorded `check-findings`, as a check that ran (fix round 12: runners answer `failed` for a check that ran and failed)."
+        },
+        "findings": {
+          "description": "One string per problem a check reported, from the last run of each check (an attempt the runner corrected is not a finding, fix round 16; the corrected run is the same check over the same scope, never a narrower one, so a narrower pass leaves the failure to report, fix round 17); empty when passed is true. A check that could not run is not a finding: the reply is `failed` with `could_not_run: true`. An object is read as its values, a bare string or number as one finding — except a bare \"none\", \"n/a\", \"no problems found\", \"\" or 0 beside a passed that reads true, which is no finding (fix round 12)."
+        },
+        "ran": {
+          "description": "A code batch's checks (fix round 26): each check command it ran on its own edits mapped to how its last run ended, \"passed\" or \"failed\" (read as leniently as an apply-code-fixes batch's `listed`; a list of \"<command>: <outcome>\" strings or of {command, outcome} objects is read too). Asked for in every code batch's reply. Empty (or every entry \"not run\", or only the contract's own <placeholder> copied as it is, as a key, a string or an object's command) says the batch ran no check: never a pass, whatever `passed` says (`subagent_executor.ran_no_check`); recorded as no check (`util batch-done --own-check none` on the native leg) unless it names a finding or says `passed: false`, which is a failing check (fix round 27, references/own-check.md). A command it maps to \"failed\" is a failing check whatever `passed` says."
+        },
+        "not_run": {
+          "description": "Beside an empty `ran` (fix round 26): why the batch could run no check on its edits. A `not_run` reason with no `ran` at all says it ran nothing too (fix round 27, references/own-check.md)."
+        },
+        "note": {
+          "description": "A code batch's own words about the checks it ran (fix round 28, live run 12: a released task wrote \"(known problem the user accepted in T002)\" into its finding, which the strict match then read as its own failure). Recorded and shown beside the check (`subagent_executor.batch_check_note`; `util batch-done --note`), never read as a finding or matched on; a string, anything else is ignored."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "model": "jev-1.14.0",
+  "state": {
+    "ticket": {
+      "channel": "email",
+      "subject": "Payouts have been failing since Monday",
+      "message": "My payouts have been failing since Monday. I already re-entered my bank details twice. I have supplier invoices due this week.",
+      "opened_at": "2026-09-29T08:12:00Z"
+    },
+    "customer": {
+      "plan": "growth",
+      "open_orders": [
+        { "id": "ord_8121", "status": "pending" },
+        { "id": "ord_8144", "status": "delivered" }
+      ]
+    },
+    "policy": {
+      "sensitive_credentials": ["password", "security code", "API key"]
+    }
+  },
+  "questions": {
+    "needs_human": {
+      "type": "noul",
+      "instructions": "Does this ticket need a human agent, rather than an automated reply?",
+      "criteria": {
+        "true": "The customer asks for something only a person can decide, such as a manual payout retry or a refund.",
+        "false": "The linked help article or the account data in state answers the question."
+      }
+    },
+    "any_queue_fits": {
+      "type": "noul",
+      "instructions": "Does this ticket belong to one of the queues listed in the companion routing question: billing, technical, account, or other?",
+      "criteria": {
+        "true": "At least one listed queue describes the work this ticket needs.",
+        "false": "No listed queue describes the work this ticket needs, so a person has to decide where it goes."
+      }
+    },
+    "queue": {
+      "type": "choice",
+      "instructions": "Which queue should own this ticket? Pick the closest queue; the companion question decides whether any queue actually fits.",
+      "criteria": {
+        "billing": "Charges, payouts, invoices, refunds.",
+        "technical": "Bugs, outages, integrations, API errors.",
+        "account": "Login, plan changes, team membership.",
+        "other": "A last resort: the ticket is real work but no listed queue describes it."
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this ticket for the customer right now?",
+      "criteria": [
+        "Can wait: no money or access is blocked this week.",
+        "Time-boxed: money or access is blocked within the next few days.",
+        "Blocking: the customer cannot operate and is losing money today."
+      ]
+    }
+  }
+}

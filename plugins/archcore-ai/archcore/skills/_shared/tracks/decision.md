@@ -40,8 +40,10 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Global matches: when the duplicate check in `decision.classify` matches a
   global document (`source_kind: "global"`), the executing skill loads
   `skills/_shared/globals.md`, records the decision as a local document that
-  refines or overrides the global, and never modifies the global or targets it
-  with `add_relation`. This constraint binds every relation in this track.
+  refines or overrides the global. WHEN the user asks to record the decision in
+  the source itself, the track writes it there per that file's write
+  convention. A relation never joins a local and a global document; this
+  constraint binds every relation in this track.
   Absent any global match, the track proceeds as usual.
 - Cascade question: the source offered the cpat opt-in as a separate question;
   this track merges that offer into the `decision.cascade` gate's single
@@ -142,7 +144,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
   - blocking: every cascade document was created after a recorded user confirmation (request wording that names the cascade counts), never before.
   - blocking: every created cascade document carries its relation from the Produces list.
   - blocking: each created rule carries every section that `skills/_shared/rule-contract.md` requires; each created spec carries every section that `skills/_shared/spec-contract.md` requires.
-  - blocking: each created guide carries every section `skills/_shared/guide-contract.md` requires; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies; each created cpat covers What Changed, Why, Before, After, Scope.
+  - blocking: each created guide carries every section `skills/_shared/guide-contract.md` requires; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies, and its Tasks follow `skills/_shared/plan-contract.md`; each created cpat covers What Changed, Why, Before, After, Scope.
   - blocking: WHEN the architecture cascade creates a spec, the spec passes the user-owned choice check of `sdd.design` (`skills/_shared/tracks/sdd.md`) before the plan is created; a failed check keeps the spec's state block and creates no plan.
   - advisory: WHEN grounding surfaced a concrete file or module for a plan task, the created plan annotates that task with `@path` notation — parity with the plan skill's task-mapping step.
   - advisory: the closing report lists document paths, relation edges, and one recommended next action.

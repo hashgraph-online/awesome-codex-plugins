@@ -226,6 +226,7 @@ def run(arguments: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Convert a quantity between units with pint, including context-only "
@@ -266,6 +267,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     arguments = build_parser().parse_args(argv)
     try:
         document = run(arguments)

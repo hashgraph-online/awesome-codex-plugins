@@ -1,0 +1,47 @@
+{
+  "id": "god-rays-reveal",
+  "label": "God-rays logo reveal",
+  "shader": "GodRays",
+  "page": "https://shaders.paper.design/god-rays",
+  "paperShaders": "0.0.82",
+  "use": "Light rays behind a logo or a product as it appears; ramp intensity and midIntensity up from 0 over the first second.",
+  "motion": {
+    "timeScale": 0.6,
+    "frame": 0
+  },
+  "roles": {
+    "colorBack": "base",
+    "colorBloom": "accent",
+    "colors": [
+      "accent@0.48",
+      "accent-light@0.94",
+      "highlight",
+      "deep"
+    ]
+  },
+  "params": {
+    "colorBack": "#070708",
+    "colorBloom": "#ff5315",
+    "colors": [
+      "#ff53157a",
+      "#ff9a5cf0",
+      "#ffffff",
+      "#24124f"
+    ],
+    "density": 0.3,
+    "spotty": 0.3,
+    "midIntensity": 0.45,
+    "midSize": 0.25,
+    "intensity": 0.8,
+    "bloom": 0.4,
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

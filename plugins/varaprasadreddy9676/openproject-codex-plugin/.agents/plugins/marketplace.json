@@ -1,0 +1,22 @@
+{
+  "name": "openproject-codex-marketplace",
+  "interface": {
+    "displayName": "OpenProject Codex"
+  },
+  "plugins": [
+    {
+      "name": "openproject-codex",
+      "displayName": "OpenProject Codex",
+      "description": "Manage OpenProject projects, teams, work packages, bulk workflows, and reporting from Codex.",
+      "source": {
+        "source": "local",
+        "path": "./plugins/openproject-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

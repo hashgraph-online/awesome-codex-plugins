@@ -2,6 +2,10 @@
 
 Use this reference when the user asks to match Han Hu's style, infer preferences from a prior workspace, revise a review article, write about open datasets/software/benchmarks, prepare an Overleaf or journal submission package, or make thermal-fluid AI writing feel like the user's own work.
 
+## Concise Section Revisions
+
+Use the description-observation-explanation-conclusion sequence in [technical-writing-analysis.md](technical-writing-analysis.md). Combine related plots when they explain one consistent story, and add a short purpose statement when needed to connect a subsection. Prefer essential table notes in the main text over an explanatory paragraph below the table; preserve venue-required footnotes. Apply the same concision to conclusions while retaining the principal finding and its evidence boundary.
+
 ## Core Research Posture
 
 Frame work as a useful contribution to a technical community, not as self-promotion.

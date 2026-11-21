@@ -39,7 +39,7 @@
             },
             "is_family": {
               "type": ["boolean", "null"],
-              "description": "True when scout flags this as a catalog-style datasheet. Reserved for v1.5 Tier 2 family extraction; always null in v1.4."
+              "description": "True when scout flags this as a catalog-style datasheet. Reserved for Tier 2 family extraction; always null today."
             }
           }
         }

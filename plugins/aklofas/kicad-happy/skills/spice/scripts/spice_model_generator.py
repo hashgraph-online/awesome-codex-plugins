@@ -12,7 +12,7 @@ All models use the same 5-pin interface: inp, inn, out, vcc, vee
 
 import math
 import re
-from spice_models import _format_eng as _eng
+from spice_models import _format_eng as _eng, spice_text
 
 
 def sanitize_mpn(mpn):
@@ -74,7 +74,7 @@ def generate_opamp_model(mpn, specs):
 
     return f"""\
 .subckt {name} inp inn out vcc vee
-* Behavioral model for {mpn}
+* Behavioral model for {spice_text(mpn)}
 * GBW={gbw/1e6:.1f}MHz, SR={slew}V/us, Vos={vos}mV, Aol={aol_db}dB
 * Source: kicad-happy part library (Phase 2)
 *
@@ -122,7 +122,7 @@ def generate_ldo_model(mpn, specs):
         # Fixed-output LDO: simpler model, no FB pin
         return f"""\
 .subckt {name} vin vout gnd
-* Behavioral LDO model for {mpn} (fixed {vref}V output)
+* Behavioral LDO model for {spice_text(mpn)} (fixed {vref}V output)
 * Dropout={dropout*1000:.0f}mV, Iq={iq*1e6:.0f}uA
 * Source: kicad-happy part library (Phase 2)
 *
@@ -137,7 +137,7 @@ Riq vin gnd {_eng(1/iq if iq > 0 else 1e12)}
         # Adjustable LDO with FB pin
         return f"""\
 .subckt {name} vin vout gnd fb
-* Behavioral LDO model for {mpn} (adjustable, Vref={vref}V)
+* Behavioral LDO model for {spice_text(mpn)} (adjustable, Vref={vref}V)
 * Dropout={dropout*1000:.0f}mV, Iq={iq*1e6:.0f}uA
 * Source: kicad-happy part library (Phase 2)
 *
@@ -185,8 +185,8 @@ Eout out 0 VALUE = {{ IF(V(comp_out) > 0, V(vcc), V(vee)) }}
 
     return f"""\
 .subckt {name} inp inn out vcc vee
-* Behavioral comparator model for {mpn}
-* Propagation delay: {delay}ns, output: {output_type}
+* Behavioral comparator model for {spice_text(mpn)}
+* Propagation delay: {delay}ns, output: {spice_text(output_type)}
 * Source: kicad-happy part library (Phase 2)
 *
 * Compare inputs
@@ -217,7 +217,7 @@ def generate_vref_model(mpn, specs):
 
     return f"""\
 .subckt {name} out gnd
-* Behavioral voltage reference model for {mpn}
+* Behavioral voltage reference model for {spice_text(mpn)}
 * Vref={vref}V, Zout={zout}ohm
 * Source: kicad-happy part library (Phase 2)
 *

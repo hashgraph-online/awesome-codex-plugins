@@ -35,7 +35,7 @@ mental pass count.
 - Claim the file lock using this skill’s `scripts/figma_lock.py`, with explicit
 agent/task identity. Same-file single writer remains the invariant. A conflict,
 missing/broken lock script or uncertain owner keeps writes blocked. Never
-release another task’s lock, override autonomously on “disjoint pages”, or use
+release another task's lock, override autonomously on "disjoint pages", or use
 an empty process snapshot as permission to bypass.
 
 [gate-checks.md](references/gate-checks.md) explains tool alternatives, targets,
@@ -43,7 +43,7 @@ variables, reuse and states when a check needs detail.
 [file-lock.md](references/file-lock.md) documents the existing TTL lock CLI and
 release rules. Release only your exact agent/task lock in cleanup/finally.
 An explicit user exception must name what is waived; it does not waive every
-gate, fix missing access or authorize another task’s lock release by analogy.
+gate, fix missing access or authorize another task's lock release by analogy.
 
 ## Execution and proof
 

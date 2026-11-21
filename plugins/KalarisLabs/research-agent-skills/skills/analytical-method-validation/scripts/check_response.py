@@ -55,6 +55,7 @@ WEIGHT_SCHEMES = {
 
 
 def build_weights(xs: list[float], scheme: str) -> list[float] | None:
+    """Build weights."""
     if scheme == "none":
         return None
     fn = WEIGHT_SCHEMES[scheme]
@@ -64,6 +65,7 @@ def build_weights(xs: list[float], scheme: str) -> list[float] | None:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Check a calibration response for linearity.")
     parser.add_argument("--input", "-i", help="CSV/TSV/JSON file, or '-' for stdin")
     parser.add_argument("--weight", choices=sorted(WEIGHT_SCHEMES), default="none",

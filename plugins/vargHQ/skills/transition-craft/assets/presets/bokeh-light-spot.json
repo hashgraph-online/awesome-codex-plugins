@@ -1,0 +1,178 @@
+{
+  "id": "bokeh-light-spot",
+  "name": "Bokeh light-spot transition",
+  "use": "The shot defocuses into giant highlight bokeh, cuts under the blur, and the next shot resolves into focus.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 1,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "bokeh-light-spot.warm-night",
+      "label": "Warm night",
+      "look": "City lights bloom into big warm heptagons, cut, resolve",
+      "params": {
+        "duration_s": 1.0,
+        "fps": 30,
+        "blur_in_s": 0.4,
+        "blur_in_ease": "power2.in",
+        "cut_at_s": 0.43,
+        "resolve_s": 0.57,
+        "resolve_ease": "expo.out",
+        "base_blur_sigma_pct_of_frame_h": [
+          2.5,
+          4
+        ],
+        "disc_size_pct_of_frame_h": [
+          14,
+          22
+        ],
+        "disc_count": 24,
+        "iris_sides": 7,
+        "roundness": 0.3,
+        "highlight_threshold_luma": 0.78,
+        "highlight_gain": 1.7,
+        "tint": "#FFB86B",
+        "tint_strength": 0.15,
+        "blend": "screen",
+        "disc_rim_brightness": 1.1,
+        "fringing": 0.0
+      },
+      "sources": [
+        8,
+        25,
+        26,
+        27,
+        28
+      ]
+    },
+    {
+      "id": "bokeh-light-spot.clean-circle",
+      "label": "Clean circle",
+      "look": "Modern lens, round discs, neutral colour",
+      "params": {
+        "duration_s": 0.8,
+        "iris": "circle (curvature 100)",
+        "disc_size_pct_of_frame_h": [
+          10,
+          16
+        ],
+        "disc_count": 18,
+        "highlight_threshold_luma": 0.82,
+        "highlight_gain": 1.4,
+        "fringing": 0
+      },
+      "sources": [
+        26,
+        27,
+        28
+      ]
+    },
+    {
+      "id": "bokeh-light-spot.flash-through",
+      "label": "Flash-through",
+      "look": "Discs swell to a near-white flash for two frames at the cut",
+      "params": {
+        "duration_s": 0.9,
+        "disc_size_pct_of_frame_h": [
+          20,
+          30
+        ],
+        "highlight_gain": 2.0,
+        "white_flash": {
+          "opacity": 0.85,
+          "frames": 2,
+          "at": "cut"
+        }
+      },
+      "sources": [
+        8,
+        25
+      ]
+    },
+    {
+      "id": "bokeh-light-spot.anamorphic-oval",
+      "label": "Anamorphic oval",
+      "look": "Vertical oval discs with a slight blue fringe",
+      "params": {
+        "duration_s": 1.0,
+        "bokeh_ratio": 35,
+        "fringing": 0.03,
+        "tint": "#9CC8FF",
+        "disc_count": [
+          6,
+          10
+        ],
+        "disc_size_pct_of_frame_h": [
+          20,
+          28
+        ]
+      },
+      "sources": [
+        25,
+        27
+      ]
+    },
+    {
+      "id": "bokeh-light-spot.vertical-soft",
+      "label": "Vertical soft",
+      "look": "9:16 phone footage, smaller and gentler discs",
+      "params": {
+        "format": "9:16",
+        "duration_s": 1.1,
+        "disc_size_pct_of_frame_h": [
+          8,
+          14
+        ],
+        "disc_count": 18,
+        "highlight_threshold_luma": 0.75,
+        "highlight_gain": 1.3
+      },
+      "sources": [
+        27,
+        41,
+        46
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 8,
+      "name": "Zaid Alkuheli, OverseerOS — How long should video transitions be",
+      "url": "https://www.overseeros.com/blog/how-long-should-video-transitions-be"
+    },
+    {
+      "n": 25,
+      "name": "Maxon Universe — Bokeh Transition",
+      "url": "https://help.maxon.net/rg/en-us/Content/html/Transitions_bokeh-transition.html.md"
+    },
+    {
+      "n": 26,
+      "name": "Boris FX — BCC+ Rack Focus Dissolve",
+      "url": "https://borisfx.com/documentation/continuum/bcc-plus-rack-focus-dissolve/"
+    },
+    {
+      "n": 27,
+      "name": "Boris FX — Sapphire BokehLights",
+      "url": "https://borisfx.com/documentation/sapphire/ae/bokehlights"
+    },
+    {
+      "n": 28,
+      "name": "Wikipedia — Circle of confusion",
+      "url": "https://en.wikipedia.org/wiki/Circle_of_confusion"
+    },
+    {
+      "n": 41,
+      "name": "Yaori (@Pashoke1) on X",
+      "url": "https://x.com/Pashoke1/status/2115041115590037582"
+    },
+    {
+      "n": 46,
+      "name": "After Effects Tricks (@jesiccaesthetic) on X",
+      "url": "https://x.com/jesiccaesthetic/status/1925128197424951329"
+    }
+  ]
+}

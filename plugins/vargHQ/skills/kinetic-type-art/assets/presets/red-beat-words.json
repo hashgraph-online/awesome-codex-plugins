@@ -1,0 +1,179 @@
+{
+  "id": "red-beat-words",
+  "name": "One-word-per-beat red slam",
+  "use": "Big condensed words, one per beat, full frame on red",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    },
+    {
+      "family": "Bebas Neue",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bebas+Neue"
+    },
+    {
+      "family": "League Gothic",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/League+Gothic"
+    }
+  ],
+  "presets": [
+    {
+      "id": "red-beat-words.slam",
+      "label": "Slam",
+      "look": "White condensed caps on red, hard cuts",
+      "params": {
+        "bg": "#E4002B",
+        "ink": "#FFFFFF",
+        "font": "Anton",
+        "case": "upper",
+        "tracking_em": [
+          0,
+          0.02
+        ],
+        "bpm": 120,
+        "frames_per_word": 15,
+        "transition": "hard cut",
+        "fit_width_pct_16x9": [
+          86,
+          92
+        ],
+        "max_cap_height_pct": 38,
+        "fit_width_pct_9x16": 84,
+        "center_y_pct_9x16": 45,
+        "final_hold_beats": 2,
+        "word_chars_best": [
+          3,
+          8
+        ]
+      },
+      "sources": [
+        50,
+        53,
+        22,
+        38,
+        41
+      ]
+    },
+    {
+      "id": "red-beat-words.punch",
+      "label": "Punch",
+      "look": "Each word scales 112% to 100% in 3 frames",
+      "params": {
+        "from_scale": 1.12,
+        "frames": 3,
+        "ease": "expo.out",
+        "rotate_alternate_deg": [
+          1,
+          2
+        ],
+        "shake_px": [
+          6,
+          12
+        ],
+        "shake_decay_f": 4
+      },
+      "sources": [
+        41
+      ]
+    },
+    {
+      "id": "red-beat-words.riso",
+      "label": "Riso",
+      "look": "Riso red with black overprint and grain",
+      "params": {
+        "bg": "#F65058",
+        "ink": "#000000",
+        "blend": "multiply",
+        "offset_px": 1,
+        "paper_texture": "paper-shaders paper-finish"
+      },
+      "sources": [
+        30,
+        42
+      ]
+    },
+    {
+      "id": "red-beat-words.invert",
+      "label": "Invert accent",
+      "look": "Every 4th word inverts to red on white",
+      "params": {
+        "invert_on_beats": [
+          4
+        ],
+        "accent_bar_px": [
+          12,
+          16
+        ],
+        "invert_note": "every 4th word; in an 8-beat piece beat 8 sits inside the final word hold"
+      },
+      "sources": [
+        38
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 37,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 38,
+      "name": "Silverman Sound, BPM to FPS calculator",
+      "url": "https://www.silvermansound.com/bpm-to-fps-calculator"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "vargHQ/skills paper-shaders",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 50,
+      "name": "Art of the Title, Enter the Void (Tom Kan)",
+      "url": "https://www.artofthetitle.com/title/enter-the-void"
+    },
+    {
+      "n": 53,
+      "name": "Art of the Title, Se7en (Kyle Cooper)",
+      "url": "https://www.artofthetitle.com/title/se7en/"
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 ---
-
 name: pm/requirement-penetration
 description: 深度挖掘用户需求的方法论，通过5W2H追问和需求分层模型，识别显性、隐性、潜在和惊喜需求
 version: 1.0.0
@@ -9,12 +8,11 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-- 用户提出新功能需求时
-- 需要理解用户真实意图时
-- 开始PRD编写前的需求分析阶段
-  metadata:
+  - 用户提出新功能需求时
+  - 需要理解用户真实意图时
+  - 开始PRD编写前的需求分析阶段
+metadata:
   internal: true
-
 ---
 
 # 需求穿透方法论
@@ -46,6 +44,7 @@ triggers:
 ```
 
 **四层需求定义**：
+
 1. **显性需求**：用户明确表达的需求
    - 直接从用户原话中提取
    - 这是需求分析的起点，不是终点
@@ -80,6 +79,7 @@ triggers:
 | **How much** | 愿意付出多少？（时间/金钱/学习成本）   | 评估价值     |
 
 **追问技巧**：
+
 - 至少追问 "为什么" 5次，直到触及根本动机
 - 不要满足于第一个答案
 - 关注用户的情绪和语气，往往隐藏着真实需求

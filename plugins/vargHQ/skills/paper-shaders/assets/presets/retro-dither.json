@@ -1,0 +1,35 @@
+{
+  "id": "retro-dither",
+  "label": "Retro dither texture",
+  "shader": "Dithering",
+  "page": "https://shaders.paper.design/dithering",
+  "paperShaders": "0.0.82",
+  "use": "Two-ink retro texture for interstitials, end cards and section breaks.",
+  "motion": {
+    "timeScale": 0.6,
+    "frame": 0
+  },
+  "mount": {
+    "minPixelRatio": 1
+  },
+  "roles": {
+    "colorBack": "base",
+    "colorFront": "accent"
+  },
+  "params": {
+    "colorBack": "#070708",
+    "colorFront": "#ff5315",
+    "shape": "warp",
+    "type": "4x4",
+    "size": 3,
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

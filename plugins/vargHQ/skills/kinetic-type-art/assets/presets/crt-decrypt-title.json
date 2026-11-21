@@ -1,0 +1,200 @@
+{
+  "id": "crt-decrypt-title",
+  "name": "CRT decrypt title",
+  "use": "Two rows of glowing type decrypt on a side-angle CRT among dim labels",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 3,
+  "fonts": [
+    {
+      "family": "VT323",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/VT323"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "Share Tech Mono",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Share+Tech+Mono"
+    },
+    {
+      "family": "Shippori Mincho",
+      "weights": [
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Shippori+Mincho"
+    }
+  ],
+  "presets": [
+    {
+      "id": "crt-decrypt-title.amber",
+      "label": "Amber",
+      "look": "Orange phosphor on black, side-angle monitor",
+      "params": {
+        "type": "#FF8A1F",
+        "glow": "#FF5A00",
+        "bg": "#050403",
+        "font": "VT323",
+        "rotateY_deg": 28,
+        "perspective_px": 1200,
+        "power_on_f": 6,
+        "row1": {
+          "start_f": 6,
+          "revealDelay_s": 0.2,
+          "lock_frames": [
+            24,
+            30
+          ],
+          "speed": 0.8
+        },
+        "row2_offset_f": [
+          8,
+          10
+        ],
+        "glyph_refresh_every_f": 2,
+        "chars": "0123456789ABCDEF",
+        "hold_flicker_pct": [
+          2,
+          3
+        ],
+        "scan_bar": {
+          "opacity": 0.12,
+          "period_s": 1.5
+        },
+        "crt": {
+          "scanline_weight": 6.0,
+          "gap_brightness": 0.12,
+          "mask_brightness": 0.7,
+          "bloom_factor": 1.5,
+          "curvature": [
+            0.1,
+            0.15
+          ],
+          "gamma_in": 2.4,
+          "gamma_out": 2.2
+        },
+        "bloom_blur_px": [
+          8,
+          14
+        ],
+        "cap_height_pct_per_row": [
+          9,
+          12
+        ]
+      },
+      "sources": [
+        20,
+        2,
+        36,
+        41
+      ]
+    },
+    {
+      "id": "crt-decrypt-title.green",
+      "label": "Green",
+      "look": "Green phosphor, flat-on",
+      "params": {
+        "type": "#33FF8A",
+        "bg": "#020604",
+        "font": "Share Tech Mono",
+        "rotateY_deg": 0,
+        "chars": "01"
+      },
+      "sources": [
+        36,
+        20
+      ]
+    },
+    {
+      "id": "crt-decrypt-title.serif",
+      "label": "Serif",
+      "look": "Compressed Mincho decrypts, mono labels",
+      "params": {
+        "font": "Shippori Mincho",
+        "weight": 800,
+        "scaleX": 0.65,
+        "type": "#FF8A1F",
+        "label_font": "JetBrains Mono",
+        "label_size_px": [
+          12,
+          14
+        ],
+        "label_opacity": 0.35,
+        "chars": "█▓▒░▄▀■"
+      },
+      "sources": [
+        52,
+        55
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "@jh3yy, CSS scramble with steps()",
+      "url": "https://x.com/jh3yy/status/1852465034481598662"
+    },
+    {
+      "n": 3,
+      "name": "@jh3yy, glyph flip glitch",
+      "url": "https://x.com/jh3yy/status/1762979019446698310"
+    },
+    {
+      "n": 12,
+      "name": "@jh3yy, ways to scramble text",
+      "url": "https://x.com/jh3yy/status/1867330835415707959"
+    },
+    {
+      "n": 20,
+      "name": "GSAP ScrambleTextPlugin docs",
+      "url": "https://gsap.com/docs/v3/Plugins/ScrambleTextPlugin/"
+    },
+    {
+      "n": 33,
+      "name": "FFmpeg filters documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 36,
+      "name": "libretro crt-pi shader (davej)",
+      "url": "https://raw.githubusercontent.com/libretro/glsl-shaders/master/crt/shaders/crt-pi.glsl"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 52,
+      "name": "Fonts In Use, Neon Genesis Evangelion (Peiran Tan)",
+      "url": "https://fontsinuse.com/uses/28760/neon-genesis-evangelion"
+    },
+    {
+      "n": 54,
+      "name": "Pushing Pixels, David Sheldon-Hicks (Territory Studio)",
+      "url": "https://www.pushing-pixels.org/2014/08/07/the-craft-of-screen-graphics-and-movie-user-interfaces-interview-with-david-sheldon-hicks-of-territory-studio.html"
+    },
+    {
+      "n": 55,
+      "name": "Pushing Pixels, John LePore (Perception)",
+      "url": "https://pushing-pixels.org/?p=12751"
+    }
+  ]
+}

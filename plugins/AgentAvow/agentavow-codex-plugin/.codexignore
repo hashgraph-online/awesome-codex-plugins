@@ -1,0 +1,6 @@
+# Local files that never belong in the plugin bundle (read by the HOL plugin scanner).
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*

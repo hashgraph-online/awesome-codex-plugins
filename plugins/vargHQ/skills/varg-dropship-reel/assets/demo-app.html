@@ -1,0 +1,126 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>ProductRadar demo app</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;height:900px;overflow:hidden;font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#0f172a;background:#f4f6fa}
+.shell{display:flex;height:900px}
+.side{width:250px;background:#0b1530;color:#cbd5e1;padding:28px 22px;display:flex;flex-direction:column;gap:6px}
+.logo{display:flex;align-items:center;gap:12px;color:#fff;font-weight:800;font-size:27px;margin-bottom:30px}
+.logo i{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle,#22c55e 0 5px,transparent 6px),conic-gradient(from 20deg,#22c55e55,transparent 30%),#14284f;border:3px solid #22c55e;display:block}
+.nav{padding:13px 14px;border-radius:12px;font-size:20px;font-weight:600}
+.nav.on{background:#16244a;color:#fff;box-shadow:inset 4px 0 0 #22c55e}
+.main{flex:1;display:flex;flex-direction:column}
+.top{height:76px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 36px}
+.search{width:520px;height:46px;border-radius:12px;background:#f1f5f9;color:#94a3b8;font-size:19px;display:flex;align-items:center;padding:0 18px}
+.ava{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600}
+.ava b{width:42px;height:42px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center}
+.content{padding:24px 28px;flex:1;zoom:1.22}
+.crumb{font-size:18px;color:#64748b;margin-bottom:16px}
+.card{background:#fff;border-radius:22px;box-shadow:0 2px 14px #0f172a12;padding:28px}
+h1{font-size:42px;letter-spacing:-.5px}
+.green{color:#16a34a}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:#22c55e;color:#fff;font-weight:800;font-size:24px;border-radius:14px;padding:18px 34px}
+.pill{display:inline-block;padding:6px 14px;border-radius:999px;background:#dcfce7;color:#15803d;font-weight:700;font-size:17px}
+/* product */
+.prod{display:flex;gap:28px;align-items:flex-start}
+.prod .img{width:330px;height:330px;border-radius:18px;background:#fff;border:1px solid #eef2f7;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.prod .img img{width:100%;height:100%;object-fit:contain}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+.stat{border:2px solid #e2e8f0;border-radius:16px;padding:14px 18px}
+.stat small{display:block;font-size:17px;color:#64748b;margin-bottom:4px;font-weight:600}
+.stat b{font-size:44px;letter-spacing:-1px}
+.stat.hl{border-color:#22c55e;background:#f0fdf4}
+.chart{border:2px solid #e2e8f0;border-radius:16px;padding:14px 18px;height:150px;position:relative}
+.chart small{font-size:18px;color:#64748b;font-weight:600}
+.chart .tag{position:absolute;right:18px;top:12px}
+.chart svg{position:absolute;left:18px;bottom:10px}
+/* settings */
+.check{display:flex;align-items:center;gap:20px;padding:24px 4px;border-bottom:1px solid #eef2f7;font-size:30px;font-weight:700}
+.check i{width:44px;height:44px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:26px}
+.check span{margin-left:auto;font-size:20px;color:#64748b;font-weight:600}
+.toggle{width:64px;height:36px;border-radius:18px;background:#22c55e;position:relative;margin-left:auto}
+.toggle:after{content:"";position:absolute;right:4px;top:4px;width:28px;height:28px;border-radius:50%;background:#fff}
+.payb{margin-left:auto;display:flex;gap:10px}
+.payb em{font-style:normal;font-size:18px;font-weight:800;padding:8px 14px;border-radius:10px;background:#f1f5f9;color:#334155}
+/* orders */
+table{width:100%;border-collapse:collapse;font-size:23px}
+th{text-align:left;color:#64748b;font-size:18px;padding:12px 10px;border-bottom:2px solid #e2e8f0}
+td{padding:17px 10px;border-bottom:1px solid #eef2f7;font-weight:600}
+.st{color:#15803d;background:#dcfce7;border-radius:999px;padding:6px 14px;font-size:18px;font-weight:800}
+/* landing */
+.land{height:900px;background:linear-gradient(180deg,#0b1530,#13234d);color:#fff;padding:34px 70px}
+.land nav{display:flex;align-items:center;justify-content:space-between;font-size:20px;color:#cbd5e1}
+.land h2{font-size:76px;line-height:1.04;letter-spacing:-2px;margin:58px 0 18px;max-width:1050px}
+.land p{font-size:27px;color:#cbd5e1;margin-bottom:30px}
+.trend{display:flex;gap:22px;margin-top:44px}
+.trend div{width:300px;background:#fff;border-radius:18px;padding:14px;color:#0f172a}
+.trend img{width:100%;height:170px;object-fit:contain}
+.trend b{display:block;font-size:19px;margin-top:6px}
+.trend span{font-size:18px;color:#16a34a;font-weight:800}
+/* storefront */
+.store{background:#fff;height:900px}
+.ann{background:#111;color:#fff;text-align:center;font-size:19px;font-weight:700;letter-spacing:1px;padding:10px}
+.shead{display:flex;justify-content:space-between;align-items:center;padding:20px 60px;border-bottom:1px solid #eee;font-size:20px;color:#444}
+.brand{font-size:34px;font-weight:900;letter-spacing:3px;color:#111}
+.sp{display:flex;gap:50px;padding:30px 50px;zoom:1.12}
+.sp .img{width:560px;height:560px;background:#f7f7f7;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.sp .img img{width:92%;height:92%;object-fit:contain}
+.sp h3{font-size:48px;letter-spacing:-.5px;margin-bottom:12px}
+.stars{color:#f5a524;font-size:28px;margin-bottom:22px}.stars span{color:#666;font-size:20px}
+.price{display:flex;align-items:center;gap:20px;margin-bottom:28px}
+.price b{font-size:72px;letter-spacing:-2px}.price s{font-size:34px;color:#999}
+.save{background:#e11d48;color:#fff;font-weight:900;font-size:20px;padding:8px 14px;border-radius:8px}
+.cart{background:#111;color:#fff;font-weight:900;font-size:26px;letter-spacing:2px;text-align:center;padding:24px;border-radius:12px;width:560px;margin-bottom:24px}
+.perks{display:flex;gap:16px;font-size:19px;font-weight:700;color:#333}.perks div{border:1px solid #e5e5e5;border-radius:10px;padding:12px 16px}
+.pw{position:absolute;bottom:18px;right:60px;font-size:16px;color:#888}
+/* adtool */
+.ad{height:900px;background:#0d0b14;color:#fff;font-family:-apple-system,Arial,sans-serif}
+.adtop{display:flex;align-items:center;gap:14px;padding:26px 50px;font-size:28px;font-weight:900}
+.adtop i{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#f0f,#7c3aed);display:block}
+.adbody{padding:20px 90px;zoom:1.15}
+.adbody h2{font-size:64px;letter-spacing:-1.5px;margin:40px 0 12px}
+.adbody p{font-size:26px;color:#a1a1aa;margin-bottom:40px}
+.inp{display:flex;gap:16px}
+.inp div{flex:1;height:84px;border-radius:18px;background:#1c1828;border:2px solid #3b3355;font-size:26px;color:#e4e4e7;display:flex;align-items:center;padding:0 26px}
+.inp b{width:260px;border-radius:18px;background:linear-gradient(90deg,#d946ef,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:28px}
+.grid{display:flex;gap:26px;margin-top:30px}
+.grid div{width:262px;height:466px;border-radius:18px;overflow:hidden;position:relative;background:#222}
+.grid img{width:100%;height:100%;object-fit:cover}
+.grid div:after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:40px;width:84px;height:84px;border-radius:50%;background:#0008;display:flex;align-items:center;justify-content:center}
+.grid span{position:absolute;left:12px;bottom:12px;font-size:17px;font-weight:800;background:#000a;border-radius:8px;padding:5px 10px;z-index:2}
+/* flow */
+.flow{height:900px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:46px}
+.flow h2{font-size:54px;letter-spacing:-1px}
+.frow{display:flex;align-items:center;gap:36px}
+.soc{display:flex;flex-direction:column;gap:18px}
+.soc div{width:240px;height:84px;border-radius:20px;color:#fff;font-size:30px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.arrow{font-size:110px;color:#22c55e;font-weight:900}
+.box{width:300px;height:300px;border-radius:36px;background:#0b1530;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:34px;font-weight:900}
+.box em{font-style:normal;font-size:90px;color:#22c55e}
+</style></head><body><div id="root"></div>
+<script>
+// Product data comes from the URL (all optional):
+//   ?screen=product|store|orders|home|settings|adpaste|adresults|flow
+//   &name=LED%20Pet%20Nail%20Clipper&img=<image URL>&cat=Pets&cost=4.47&ship=2.10&price=24.99&was=49.99&store=PAWLY
+//   &trend=<img1>,<img2>,<img3>,<img4>   (landing page row)   &thumbs=<img1>,…   (AI ad results)
+const Q=new URLSearchParams(location.search)
+const P={custom:{name:Q.get('name')||'Your Product',img:Q.get('img')||'',cat:Q.get('cat')||'Trending',cost:+(Q.get('cost')||4.47),ship:+(Q.get('ship')||2.10),price:+(Q.get('price')||24.99),was:+(Q.get('was')||49.99),store:Q.get('store')||'YOURSTORE',cust:(Q.get('customers')||'Emily · Austin,Jake · Denver,Sara · Miami,Mike · Seattle').split(',')}}
+const TREND=(Q.get('trend')||'').split(',').filter(Boolean)
+const q=new URLSearchParams(location.search), s=q.get('screen'), p=P.custom, thumbs=(q.get('thumbs')||'').split(',').filter(Boolean)
+const $=x=>x.toFixed(2), profit=p?p.price-p.cost-p.ship:0
+const side=on=>`<div class="side"><div class="logo"><i></i>ProductRadar</div>${['Discover','Products','My Store','Orders','Ads'].map(n=>`<div class="nav ${n===on?'on':''}">${n}</div>`).join('')}</div>`
+const topbar=`<div class="top"><div class="search">🔍&nbsp; Search 20M+ winning products…</div><div class="ava">My account <b>A</b></div></div>`
+const app=(on,html)=>`<div class="shell">${side(on)}<div class="main">${topbar}<div class="content">${html}</div></div></div>`
+const chart=`<svg style="width:calc(100% - 36px)" height="110" viewBox="0 0 760 110" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient></defs><path d="M0,100 L80,96 L160,98 L240,88 L320,90 L400,76 L480,64 L560,48 L640,26 L700,14 L760,6 L760,110 L0,110Z" fill="url(#g)"/><polyline fill="none" stroke="#22c55e" stroke-width="6" stroke-linejoin="round" points="0,100 80,96 160,98 240,88 320,90 400,76 480,64 560,48 640,26 700,14 760,6"/></svg>`
+const V={
+home:()=>`<div class="land"><nav><div class="logo" style="margin:0"><i></i>ProductRadar</div><div>Products &nbsp;·&nbsp; Pricing &nbsp;·&nbsp; Log in</div></nav><h2>Your #1 dropshipping product research tool &amp; supplier</h2><p>Find winning products, import them to your store in one click — we ship.</p><div class="btn">Start for free</div><div class="trend">${(TREND.length?TREND:[p.img]).map(src=>`<div><img src="${src}"><b>Trending now</b><span>▲ +212% demand</span></div>`).join('')}</div></div>`,
+product:()=>app('Discover',`<div class="crumb">Discover › ${p.cat} › Added Oct 2026</div><div class="card prod"><div class="img"><img src="${p.img}"></div><div style="flex:1"><h1>${p.name}</h1><div class="stats"><div class="stat"><small>Product cost</small><b>$${$(p.cost)}</b></div><div class="stat"><small>Shipping</small><b>$${$(p.ship)}</b></div><div class="stat"><small>Sell price</small><b>$${$(p.price)}</b></div><div class="stat hl"><small>Profit / order</small><b class="green">$${$(profit)}</b></div></div><div class="chart"><small>Demand · last 90 days</small><span class="pill tag">▲ Exceptionally high</span>${chart}</div><div style="margin-top:20px" class="btn">Generate my store</div></div></div>`),
+settings:()=>app('My Store',`<div class="crumb">My Store › Launch</div><div class="card"><h1 style="margin-bottom:10px">Launch your store</h1><div class="check"><i>✓</i>Product imported<span>1 click</span></div><div class="check"><i>✓</i>Free shipping on all orders<div class="toggle"></div></div><div class="check"><i>✓</i>Payments connected<div class="payb"><em>VISA</em><em>Mastercard</em><em>PayPal</em><em>Apple Pay</em></div></div><div style="margin-top:28px" class="btn">🚀&nbsp; Launch store</div></div>`),
+orders:()=>app('Orders',`<div class="crumb">Orders · Fulfilled by ProductRadar</div><div class="card"><h1 style="margin-bottom:14px">New orders <span class="pill">Auto-fulfilled</span></h1><table><tr><th>Customer</th><th>Product</th><th>Customer paid</th><th>You pay</th><th>Status</th></tr>${p.cust.map((c,i)=>`<tr><td>${c}</td><td>${p.name}</td><td class="green">$${$(p.price)}</td><td>$${$(p.cost+p.ship)}</td><td><span class="st">Shipped ✓</span></td></tr>`).join('')}</table></div>`),
+store:()=>`<div class="store"><div class="ann">FREE SHIPPING ON ALL ORDERS</div><div class="shead"><div class="brand">${p.store}</div><div>Shop &nbsp; Track order &nbsp; 🛒</div></div><div class="sp"><div class="img"><img src="${p.img}"></div><div><h3>${p.name}</h3><div class="stars">★★★★★ <span>Loved by customers</span></div><div class="price"><b>$${$(p.price)}</b><s>$${$(p.was)}</s><span class="save">SAVE 50%</span></div><div class="cart">ADD TO CART</div><div class="perks"><div>🚚 Free shipping</div><div>↩ 30-day returns</div><div>🔒 Secure checkout</div></div></div></div><div class="pw">Powered by ProductRadar</div></div>`,
+adpaste:()=>`<div class="ad"><div class="adtop"><i></i>AdSpark AI</div><div class="adbody"><h2>Make a video ad in one click</h2><p>Paste your product link. AdSpark writes, shoots and edits viral videos for TikTok, Reels and Shorts.</p><div class="inp"><div>https://your-store.com/products/…</div><b>Generate ✦</b></div></div></div>`,
+adresults:()=>`<div class="ad"><div class="adtop"><i></i>AdSpark AI</div><div class="adbody" style="padding-top:0"><h2 style="margin-top:6px;font-size:52px">4 viral videos ready ✦</h2><div class="grid">${thumbs.map((t,i)=>`<div><img src="${t}"><span>${['Hook A','Hook B','Demo','UGC'][i]}</span></div>`).join('')}</div></div></div>`,
+flow:()=>`<div class="flow"><h2>Post the videos → link in bio → your store</h2><div class="frow"><div class="soc"><div style="background:#111">TikTok</div><div style="background:linear-gradient(90deg,#f59e0b,#ec4899,#8b5cf6)">Reels</div><div style="background:#ef4444">Shorts</div></div><div class="arrow">→</div><div class="box"><em>$</em>Your store</div></div></div>`,
+}
+document.getElementById('root').innerHTML=V[s]()
+</script></body></html>

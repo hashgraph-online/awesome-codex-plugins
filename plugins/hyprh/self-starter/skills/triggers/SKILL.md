@@ -1,21 +1,35 @@
 ---
 license: MIT
 name: triggers
-description: Create and manage triggers that watch for something (a job that finishes, a service that goes down, a failing CI run, a new release, a price crossing a threshold) and hand a task to Codex when it happens. Use when the user wants to be told, or wants something done, "when X happens", and when handling a message that starts with [self-starter].
+description: Create and manage triggers that watch for something (a job that finishes, a service that goes down, a failing CI run, a new release, a price crossing a threshold) and hand a task to Codex when it happens. Use when the user wants to be told, or wants something done, "when X happens", when offering or setting up a watch for an in-flight asynchronous task (such as PR CI/reviews or a detached job), and when handling a message that starts with [self-starter].
 ---
 
 # Self-Starter
 
 A trigger is a small probe program that checks something, rules for when the result counts as "it happened", and what to do then. A background service runs the probe on a schedule and evaluates the rules; no model is involved until the trigger fires. Then the task goes to Codex: back into the thread where the trigger was created, or into a thread dedicated to the trigger.
 
+## Offering a watch
+
+When a turn leaves the user waiting on something asynchronous, you may add one short sentence at the end of your reply offering to watch it:
+
+- You just opened or pushed to a pull request and CI checks or review comments are still pending (for example: "Want me to watch CI on this PR and investigate in this thread if a check fails?").
+- You just started a detached long-running job—training, benchmark, build, migration or deployment—writing to a log or status endpoint (for example: "Want me to watch `runs/exp42/train.log` and compare the metrics when it finishes?").
+- The user has manually re-checked the same status across turns (`gh pr checks`, `nvidia-smi`, a health endpoint or a release feed).
+
+Keep offers unobtrusive and consent-first:
+
+- Call **no** `trigger_*` tools when making an unsolicited offer; wait until the user says yes before calling `trigger_draft` or `trigger_activate`.
+- Offer at most once for a given task; if the user ignores or declines it, do not repeat it.
+- Do not offer on ordinary edits, synchronous commands that already finished, general questions, or while handling a `[self-starter]` fire.
+
 ## Creating a trigger
 
 1. **Clarify first**, in one short question if anything important is ambiguous: the exact condition (intraday price or close? which log line means done?), how quickly the user needs to know, whether to act once or every time, and what should happen when it fires: only a notification, or a task for Codex (which one?).
-2. **Check the ready-made recipes** with `trigger_recipes`. If one fits, use it: pass `recipe` to `trigger_draft` with only its parameters, and skip writing a probe.
+2. **Check the ready-made recipes** with `trigger_recipes` (such as `github-ci`, `log-watch`, `http-health`, `futu-news`, `ibkr-account`). If one fits, use it: pass `recipe` to `trigger_draft` with only its parameters, and skip writing a probe.
 3. **Otherwise, find where to look.** The probe runs on the user's machine with their permissions, so it can read files and logs, run the commands and CLIs the user has (`git`, `gh`, `docker`, the scripts of another skill), talk to local services, or call web APIs. Prefer output that is already structured: a JSON API, a command with `--json`. If an API key is needed, ask the user to store it in a terminal with `self-starter secret set NAME`. Never ask for a key in the chat, and never put one in the code or the params.
 4. **Write the probe and the definition** following the contract below.
 5. **Call `trigger_draft`.** It checks everything, saves the draft and runs the probe once. If the trial run fails or its result looks wrong, fix it and call `trigger_draft` again.
-6. **Decide whether to ask before starting it.** A trigger keeps running on its own, possibly for weeks. Ask first, in one or two sentences (what it checks, how often, what you will do when it fires, then "Start it?"), when the task acts for the user when it fires (changes files, runs commands with side effects, sends messages, places orders), when it checks often or for a long time, or when the request left room for interpretation. When the user asked for exactly this and it only tells them or reports back ("let me know when the build finishes"), start it right away and say what you set up. Either way, mention warnings that matter, such as "the condition already holds, so it will fire right away".
+6. **Decide whether to ask before starting it.** A trigger keeps running on its own, possibly for weeks. Ask first, in one or two sentences (what it checks, how often, what you will do when it fires, then "Start it?"), when the task acts for the user when it fires (changes files, runs commands with side effects, sends messages, places orders), when it checks often or for a long time, or when the request left room for interpretation. When the user asked for exactly this and it only tells them or reports back ("let me know when the build finishes", or saying yes to a notify-only or read-only watch you just offered), start it right away and say what you set up. Either way, mention warnings that matter, such as "the condition already holds, so it will fire right away".
 7. **Call `trigger_activate`** with the draft id.
 
 ## The probe
@@ -157,7 +171,7 @@ target:
   cwd: /path/to/project         # working folder of the probe and of the dedicated thread
 notify:
   when: receipt                 # receipt: when Codex says it matters | always | never
-  channels: [desktop, email]    # leave out to use the user's default; email works once the user ran `self-starter channel email`
+  channels: [desktop, feishu]   # leave out to use the user's default; see service_status for configured channels
 ```
 
 Choosing settings:
@@ -167,7 +181,7 @@ Choosing settings:
 - **for** filters out blips (a service that is down for one check); **cooldown** and **max_fires** limit repeats; `max_fires: 1` with `expires_at` suits "tell me once, within the next week".
 - **action**: use `notify` when the user only wants to know. Use `agent` when there is work to do, and write `prompt` as a self-contained task: a dedicated thread does not see this conversation.
 - **action.sandbox**: how Codex runs a fire when nobody is watching: in a dedicated thread, or in the origin thread when the Self-Starter service wakes it because no Codex app has it open. `workspace-write` (the default) lets it change files and run commands in its folder (`target.cwd` for a dedicated thread; an origin thread keeps this conversation's folder), without network access. Nobody is there to approve anything, so requests for more access are declined. Use `read-only` when it should only look, and `danger-full-access` (no sandbox) only when the task needs the network or files outside the project, and say so when you describe the trigger.
-- **notify.channels**: leave it out unless the user asks for email; `service_status` shows whether email is set up. If it is not, ask the user to run `self-starter channel email <their address>` in a terminal (it knows the servers of Gmail, iCloud, Yahoo, Fastmail, QQ, 163, 126 and Aliyun, asks for an app password and sends a test email; Outlook and Hotmail addresses cannot send this way). Never handle the app password in the chat.
+- **notify.channels**: leave it out unless the user asks for specific channels; `service_status` lists `channels.available` (`desktop`, any named push/webhook channels such as `feishu`, `wecom`, `dingtalk`, `slack`, `discord`, `telegram`, `bark`, `ntfy`, and `email`). If a requested channel is not set up yet, ask the user to open `self-starter ui` or run `self-starter channel add [<name>] <url>` / `self-starter channel telegram` / `self-starter channel email <address>` in a terminal. Never handle webhook URLs, bot tokens or app passwords in the chat.
 - **target**: `origin` suits one-off triggers tied to the current work ("tell me when this CI run finishes"); the task arrives in this thread: right away when it is open in a Codex app, otherwise Self-Starter opens the thread in the background about 20 seconds later and Codex handles it there. `dedicated` suits long-running watches: each fire goes to the trigger's own thread the same way (set `target.cwd` to the project folder). `origin` is the default when `max_fires` is 1, `dedicated` otherwise.
 
 ## When a message starts with [self-starter]
@@ -191,4 +205,4 @@ A fire message says how often the trigger fired in the last 24 hours and the las
 - Change the probe code or the mode: `trigger_draft` with the same id and `replace: true`, then `trigger_activate`.
 - `trigger_pause`, `trigger_resume`, `trigger_delete` do what they say.
 - If a tool reports that the background service is unavailable, suggest running `self-starter doctor` in a terminal.
-- Commands for the user's terminal (`self-starter secret set`, `self-starter channel email`, `self-starter doctor`) need the `self-starter` command. If the user installed only the Codex plugin, it is not on their PATH: check with `command -v self-starter`, and if it is missing, give them the command as `~/.self-starter/bin/self-starter ...`, which the plugin sets up.
+- Commands for the user's terminal (`self-starter ui`, `self-starter secret set`, `self-starter channel add`, `self-starter doctor`) need the `self-starter` command. If the user installed only the Codex plugin, it is not on their PATH: check with `command -v self-starter`, and if it is missing, give them the command as `~/.self-starter/bin/self-starter ...`, which the plugin sets up.

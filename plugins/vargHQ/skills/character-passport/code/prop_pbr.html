@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PBR prop sheet</title>
+<style>
+  html, body { margin: 0; background: #ece9e2; overflow: hidden; }
+  .lbl { position: absolute; top: 10px; font: 600 15px/1 Helvetica, Arial, sans-serif; color: #eee; letter-spacing: .08em; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// Prop: a worn fisherman's tackle box.
+// Body = Poly Haven CC0 "green_metal_rust" PBR set (paint + rust wear already in the maps).
+// Fittings = real brass values from physicallybased.info, roughened because the brass is old.
+const W = 1500, H = 500, VIEWS = ['3/4 HERO', 'SIDE', 'TOP-DOWN'];
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.setScissorTest(true);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+
+const ph = (asset) => fetch(`https://api.polyhaven.com/files/${asset}`).then(r => r.json());
+const [tex, hdriFiles, pbList] = await Promise.all([
+  ph('green_metal_rust'), ph('studio_small_09'),
+  fetch('https://api.physicallybased.info/materials').then(r => r.json()).catch(() => []),
+]);
+const env = await new HDRLoader().loadAsync(hdriFiles.hdri['1k'].hdr.url);
+env.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = env; scene.background = new THREE.Color(0x45433f);
+
+const tl = new THREE.TextureLoader();
+const load = (url, srgb) => tl.loadAsync(url).then(t => { if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; });
+const [diff, rough, nor] = await Promise.all([
+  load(tex.Diffuse['1k'].jpg.url, true), load(tex.Rough['1k'].jpg.url), load(tex.nor_gl['1k'].jpg.url),
+]);
+const paint = new THREE.MeshStandardMaterial({ map: diff, roughnessMap: rough, normalMap: nor, metalness: 0.3 });
+
+const brassRef = pbList.find(m => m.name === 'Brass') || { color: [0.91, 0.778, 0.423], metalness: 1, roughness: 0 };
+const brass = new THREE.MeshStandardMaterial({
+  color: new THREE.Color().setRGB(...brassRef.color, THREE.SRGBColorSpace),
+  metalness: brassRef.metalness, roughness: Math.max(brassRef.roughness, 0.42), // physicallybased gives polished brass; wear it down
+});
+const rubber = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.9 });
+
+const box = new THREE.Group(); scene.add(box);
+const mesh = (g, m, x, y, z) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); box.add(o); return o; };
+mesh(new RoundedBoxGeometry(1.6, 0.6, 0.8, 4, 0.04), paint, 0, 0.3, 0);                   // body
+mesh(new RoundedBoxGeometry(1.64, 0.22, 0.84, 4, 0.05), paint, 0, 0.71, 0);               // lid
+const handle = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 12, 32, Math.PI), brass); // carry handle
+handle.position.set(0, 0.82, 0); box.add(handle);
+for (const x of [-0.22, 0.22]) mesh(new THREE.BoxGeometry(0.1, 0.04, 0.12), brass, x, 0.82, 0);
+for (const x of [-0.55, 0.55]) {                                                            // latches
+  mesh(new THREE.BoxGeometry(0.14, 0.2, 0.03), brass, x, 0.6, 0.42);
+  mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.04, 12), brass, x, 0.52, 0.44).rotation.x = Math.PI / 2;
+}
+for (const x of [-0.7, 0.7]) for (const z of [-0.32, 0.32]) mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 12), rubber, x, -0.015, z); // feet
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshStandardMaterial({ color: 0x2b2a28, roughness: 0.95 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -0.03; scene.add(floor);
+const key = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set(3, 4, 2); scene.add(key);
+
+const persp = (pos, look) => { const c = new THREE.PerspectiveCamera(30, (W / 3) / H, 0.1, 50); c.position.set(...pos); c.lookAt(...look); return c; };
+const cams = [persp([2.4, 1.7, 2.8], [0, 0.4, 0]), persp([3.8, 0.6, 0], [0, 0.4, 0]), persp([0, 4.2, 0.01], [0, 0, 0])];
+VIEWS.forEach((name, i) => {
+  const x = i * W / 3;
+  renderer.setViewport(x, 0, W / 3, H); renderer.setScissor(x, 0, W / 3, H);
+  renderer.render(scene, cams[i]);
+  const d = document.createElement('div'); d.className = 'lbl'; d.textContent = name; d.style.left = (x + 14) + 'px'; document.body.appendChild(d);
+});
+console.log('expressions: brass from physicallybased.info =', JSON.stringify(brassRef.color));
+window.__done = true;
+</script>
+</body>
+</html>

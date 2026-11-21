@@ -1,0 +1,92 @@
+{
+ "widget": "job-progress",
+ "title": "Job progress",
+ "summary": "Long export with stage list, percent bar, processed/total, ETA, a local elapsed timer, in-widget cancel confirmation, Open file and Retry.",
+ "caption": "Exporting 12,480 rows to CSV \u00b7 60% \u00b7 ETA 0:58",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Status",
+     "callback_data": "job:sync"
+    },
+    {
+     "text": "Cancel",
+     "callback_data": "job:cancel"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "ti": "Exporting 12,480 rows to CSV",
+    "st": "running",
+    "sg": 2,
+    "p": 7440,
+    "n": 12480,
+    "t0": 1794736666,
+    "at": 1794736800,
+    "eta": 58,
+    "r": 0
+   }
+  },
+  "queued": {
+   "chatData": {
+    "ti": "Exporting 12,480 rows to CSV",
+    "st": "queued",
+    "sg": 0,
+    "p": 0,
+    "n": 12480,
+    "t0": 1794736788,
+    "at": 1794736788,
+    "eta": 90,
+    "r": 0
+   }
+  },
+  "done": {
+   "chatData": {
+    "ti": "Exporting 12,480 rows to CSV",
+    "st": "done",
+    "sg": 4,
+    "p": 12480,
+    "n": 12480,
+    "t0": 1794736666,
+    "at": 1794736800,
+    "eta": 0,
+    "r": 0,
+    "end": 1794736780,
+    "url": "https://files.example.com/exports/orders-12480.csv"
+   }
+  },
+  "failed": {
+   "chatData": {
+    "ti": "Exporting 12,480 rows to CSV",
+    "st": "failed",
+    "sg": 3,
+    "p": 9120,
+    "n": 12480,
+    "t0": 1794736666,
+    "at": 1794736800,
+    "eta": 58,
+    "r": 0,
+    "end": 1794736770,
+    "err": "Upload failed: storage quota exceeded"
+   }
+  }
+ },
+ "queries": [
+  "sync",
+  "cancel",
+  "retry",
+  "pause"
+ ],
+ "fresh": [
+  "t0",
+  "at",
+  "end"
+ ]
+}

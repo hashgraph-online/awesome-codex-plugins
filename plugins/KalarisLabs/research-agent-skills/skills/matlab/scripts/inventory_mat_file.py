@@ -36,6 +36,7 @@ OBJECT_LIKE_CLASSES = {
 
 
 def identify_header(path: Path) -> dict[str, Any]:
+    """Handle identify header."""
     try:
         with path.open("rb") as handle:
             prefix = handle.read(8192)
@@ -68,6 +69,7 @@ def identify_header(path: Path) -> dict[str, Any]:
 
 
 def _redacted_name(name: str, index: int, kind: str) -> dict[str, Any]:
+    """Handle redacted name."""
     return {
         "id": f"{kind}-{index:06d}",
         "name_emitted": False,
@@ -78,6 +80,7 @@ def _redacted_name(name: str, index: int, kind: str) -> dict[str, Any]:
 def scipy_inventory(
     path: Path, *, max_nodes: int
 ) -> tuple[list[dict[str, Any]], list[str]]:
+    """Handle scipy inventory."""
     try:
         from scipy import io as scipy_io
     except ImportError as exc:
@@ -111,36 +114,113 @@ def scipy_inventory(
     return output, warnings
 
 
-def hdf5_inventory(
-    path: Path, *, max_nodes: int, max_depth: int
-) -> tuple[list[dict[str, Any]], list[str], dict[str, int]]:
-    try:
-        import h5py
-    except ImportError as exc:
-        raise CliError(
-            "h5py is optional and not installed; use --backend header or "
-            "install a pinned h5py in an approved environment"
-        ) from exc
+class _Hdf5Walker:
+    """Walk an HDF5 file collecting redacted node metadata without reading values."""
 
-    records: list[dict[str, Any]] = []
-    warnings: list[str] = []
-    link_counts: Counter[str] = Counter()
-    seen_objects: set[int] = set()
+    def __init__(self, h5py: Any, max_nodes: int, max_depth: int) -> None:
+        """Store the h5py module, the traversal limits and empty result containers."""
+        self.h5py = h5py
+        self.max_nodes = max_nodes
+        self.max_depth = max_depth
+        self.records: list[dict[str, Any]] = []
+        self.warnings: list[str] = []
+        self.link_counts: Counter[str] = Counter()
+        self.seen_objects: set[int] = set()
 
-    def append_record(path_name: str, kind: str, details: dict[str, Any]) -> None:
-        if len(records) >= max_nodes:
-            raise CliError(f"HDF5 object/link count exceeds {max_nodes}")
-        records.append(
+    def append_record(self, path_name: str, kind: str, details: dict[str, Any]) -> None:
+        """Append one redacted node record, enforcing the node limit."""
+        if len(self.records) >= self.max_nodes:
+            raise CliError(f"HDF5 object/link count exceeds {self.max_nodes}")
+        self.records.append(
             {
-                **_redacted_name(path_name, len(records) + 1, "hdf5-node"),
+                **_redacted_name(path_name, len(self.records) + 1, "hdf5-node"),
                 "kind": kind,
                 **details,
             }
         )
 
-    def walk(group: Any, prefix: str, depth: int) -> None:
-        if depth > max_depth:
-            raise CliError(f"HDF5 group depth exceeds {max_depth}")
+    def _record_unfollowed_link(self, link: Any, full_name: str) -> bool:
+        """Record a soft or external link without following it; return whether it was one."""
+        h5py = self.h5py
+        if isinstance(link, h5py.SoftLink):
+            label, kind = "soft", "soft_link"
+        elif isinstance(link, h5py.ExternalLink):
+            label, kind = "external", "external_link"
+        else:
+            return False
+        self.link_counts[label] += 1
+        self.append_record(full_name, kind, {"followed": False, "target_emitted": False})
+        self.warnings.append(f"{label} HDF5 link found and not followed")
+        return True
+
+    @staticmethod
+    def _base_details(obj: Any, object_key: int, seen_objects: set[int]) -> dict[str, Any]:
+        """Return the attribute metadata shared by every HDF5 object record."""
+        attribute_names = sorted(str(key) for key in obj.attrs.keys())
+        if len(attribute_names) > 1000:
+            raise CliError("HDF5 object has more than 1000 attributes")
+        return {
+            "attribute_count": len(attribute_names),
+            "attribute_names_emitted": False,
+            "attribute_name_hashes": [
+                hashlib.sha256(attribute.encode("utf-8")).hexdigest()
+                for attribute in attribute_names
+            ],
+            "hard_link_revisited": object_key in seen_objects,
+            "values_loaded": False,
+        }
+
+    def _record_dataset(
+        self, obj: Any, full_name: str, base: dict[str, Any], object_key: int
+    ) -> None:
+        """Record dataset metadata and flag object or reference dtypes."""
+        h5py = self.h5py
+        dtype_text = str(obj.dtype)
+        if len(dtype_text) > 500:
+            dtype_text = dtype_text[:500] + "..."
+        reference_dtype = h5py.check_dtype(ref=obj.dtype) is not None
+        object_like = bool(reference_dtype or obj.dtype.kind == "O")
+        self.append_record(
+            full_name,
+            "dataset",
+            {
+                **base,
+                "chunks": list(obj.chunks) if obj.chunks is not None else None,
+                "compression": obj.compression,
+                "dtype": dtype_text,
+                "object_like": object_like,
+                "shape": [int(value) for value in obj.shape],
+            },
+        )
+        if object_like:
+            self.warnings.append("HDF5 object/reference dtype found; values were not read")
+        self.seen_objects.add(object_key)
+
+    def _visit_hard_link(self, group: Any, name: str, full_name: str, depth: int) -> None:
+        """Record the object behind a hard link and descend into unseen groups."""
+        h5py = self.h5py
+        self.link_counts["hard"] += 1
+        try:
+            obj = group[name]
+            object_key = hash(obj.id)
+        except Exception as exc:
+            raise CliError(f"cannot inspect HDF5 object metadata: {exc}") from exc
+        base = self._base_details(obj, object_key, self.seen_objects)
+        if isinstance(obj, h5py.Dataset):
+            self._record_dataset(obj, full_name, base, object_key)
+        elif isinstance(obj, h5py.Group):
+            self.append_record(full_name, "group", base)
+            if object_key not in self.seen_objects:
+                self.seen_objects.add(object_key)
+                self.walk(obj, full_name, depth + 1)
+        else:
+            self.append_record(full_name, "unknown_hdf5_object", base)
+            self.warnings.append("unknown HDF5 object type found")
+
+    def walk(self, group: Any, prefix: str, depth: int) -> None:
+        """Visit every member of ``group`` up to the depth limit."""
+        if depth > self.max_depth:
+            raise CliError(f"HDF5 group depth exceeds {self.max_depth}")
         try:
             names = sorted(group.keys())
         except Exception as exc:
@@ -151,86 +231,36 @@ def hdf5_inventory(
                 link = group.get(name, getlink=True)
             except Exception as exc:
                 raise CliError(f"cannot inspect HDF5 link metadata: {exc}") from exc
-            if isinstance(link, h5py.SoftLink):
-                link_counts["soft"] += 1
-                append_record(
-                    full_name,
-                    "soft_link",
-                    {"followed": False, "target_emitted": False},
-                )
-                warnings.append("soft HDF5 link found and not followed")
+            if self._record_unfollowed_link(link, full_name):
                 continue
-            if isinstance(link, h5py.ExternalLink):
-                link_counts["external"] += 1
-                append_record(
-                    full_name,
-                    "external_link",
-                    {"followed": False, "target_emitted": False},
-                )
-                warnings.append("external HDF5 link found and not followed")
-                continue
-            link_counts["hard"] += 1
-            try:
-                obj = group[name]
-                object_key = hash(obj.id)
-            except Exception as exc:
-                raise CliError(f"cannot inspect HDF5 object metadata: {exc}") from exc
-            attribute_names = sorted(str(key) for key in obj.attrs.keys())
-            if len(attribute_names) > 1000:
-                raise CliError("HDF5 object has more than 1000 attributes")
-            base = {
-                "attribute_count": len(attribute_names),
-                "attribute_names_emitted": False,
-                "attribute_name_hashes": [
-                    hashlib.sha256(name.encode("utf-8")).hexdigest()
-                    for name in attribute_names
-                ],
-                "hard_link_revisited": object_key in seen_objects,
-                "values_loaded": False,
-            }
-            if isinstance(obj, h5py.Dataset):
-                dtype_text = str(obj.dtype)
-                if len(dtype_text) > 500:
-                    dtype_text = dtype_text[:500] + "..."
-                reference_dtype = h5py.check_dtype(ref=obj.dtype) is not None
-                object_like = bool(reference_dtype or obj.dtype.kind == "O")
-                append_record(
-                    full_name,
-                    "dataset",
-                    {
-                        **base,
-                        "chunks": list(obj.chunks) if obj.chunks is not None else None,
-                        "compression": obj.compression,
-                        "dtype": dtype_text,
-                        "object_like": object_like,
-                        "shape": [int(value) for value in obj.shape],
-                    },
-                )
-                if object_like:
-                    warnings.append(
-                        "HDF5 object/reference dtype found; values were not read"
-                    )
-                seen_objects.add(object_key)
-            elif isinstance(obj, h5py.Group):
-                append_record(full_name, "group", base)
-                if object_key not in seen_objects:
-                    seen_objects.add(object_key)
-                    walk(obj, full_name, depth + 1)
-            else:
-                append_record(full_name, "unknown_hdf5_object", base)
-                warnings.append("unknown HDF5 object type found")
+            self._visit_hard_link(group, name, full_name, depth)
 
+
+def hdf5_inventory(
+    path: Path, *, max_nodes: int, max_depth: int
+) -> tuple[list[dict[str, Any]], list[str], dict[str, int]]:
+    """Handle hdf5 inventory."""
+    try:
+        import h5py
+    except ImportError as exc:
+        raise CliError(
+            "h5py is optional and not installed; use --backend header or "
+            "install a pinned h5py in an approved environment"
+        ) from exc
+
+    walker = _Hdf5Walker(h5py, max_nodes, max_depth)
     try:
         with h5py.File(path, "r") as handle:
-            walk(handle, "", 0)
+            walker.walk(handle, "", 0)
     except CliError:
         raise
     except Exception as exc:
         raise CliError(f"h5py could not inventory HDF5 metadata: {exc}") from exc
-    return records, warnings, dict(sorted(link_counts.items()))
+    return walker.records, walker.warnings, dict(sorted(walker.link_counts.items()))
 
 
 def inventory(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle inventory."""
     root = checked_root(args.root)
     max_file_bytes = bounded_int(
         args.max_file_bytes,
@@ -318,6 +348,7 @@ def inventory(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def parser() -> argparse.ArgumentParser:
+    """Handle parser."""
     result = argparse.ArgumentParser(
         description=(
             "Inventory local MAT technical metadata without MATLAB, loadmat, "
@@ -339,6 +370,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     try:
         report = inventory(parser().parse_args())
         emit_json(report)

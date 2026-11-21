@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 376" role="img" aria-labelledby="title desc">
+  <title id="title">维纳驻波实验中的斜感光板与波腹交线</title>
+  <desc id="desc">底部水平反射镜形成垂直方向的驻波，镜面是电场波节，第一层波腹距镜面 λ/4，往上每隔 λ/2 一层平行于镜面的波腹。一块缓慢倾斜的感光玻璃片穿过三个波腹平面，交于 A、B、C，沿斜板相邻条纹距离为波腹竖直间距除以 sin(theta)。</desc>
+  <rect width="720" height="376" fill="#f8fafc"/>
+  <text x="22" y="32" font-family="Noto Sans CJK SC, sans-serif" font-size="22" fill="#1e2d40" font-weight="bold">图 3｜维纳实验：斜放感光板把驻波节距展开</text>
+  <rect x="64" y="306" width="590" height="12" rx="3" fill="#6d9bb8"/>
+  <text x="472" y="345" font-family="Noto Sans CJK SC, sans-serif" font-size="18" fill="#537c9a">反射镜 M（近似电场波节）</text>
+  <path d="M90 306 L610 146" stroke="#289d80" stroke-width="9" stroke-opacity=".7" fill="none"/>
+  <path d="M90 306 L610 146" stroke="#117e66" stroke-width="2.7" fill="none"/>
+  <text x="487" y="136" font-family="Noto Sans CJK SC, sans-serif" font-size="18" fill="#137e68">感光板 G</text>
+  <g stroke="#cd9551" stroke-width="2.5" stroke-dasharray="8 6" fill="none">
+    <path d="M60 286 H650"/><path d="M60 246 H650"/><path d="M60 206 H650"/>
+  </g>
+  <text x="18" y="282" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#af7e3a">波腹</text>
+  <text x="18" y="242" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#af7e3a">波腹</text>
+  <text x="18" y="202" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#af7e3a">波腹</text>
+  <circle cx="155" cy="286" r="7" fill="#c7594f"/><circle cx="285" cy="246" r="7" fill="#c7594f"/><circle cx="415" cy="206" r="7" fill="#c7594f"/>
+  <text x="139" y="275" font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#a9433b">A</text>
+  <text x="270" y="234" font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#a9433b">B</text>
+  <text x="400" y="193" font-family="Noto Sans CJK SC, sans-serif" font-size="20" fill="#a9433b">C</text>
+  <line x1="668" y1="246" x2="668" y2="286" stroke="#4e5c6d" stroke-width="2"/>
+  <path d="M663 252 L668 246 L673 252 M663 280 L668 286 L673 280" fill="none" stroke="#4e5c6d" stroke-width="2"/>
+  <text x="678" y="271" font-family="Noto Sans CJK SC, sans-serif" font-size="17" fill="#4e5c6d">λ/2</text>
+  <line x1="668" y1="290" x2="668" y2="306" stroke="#4e5c6d" stroke-width="2"/>
+  <path d="M664 295 L668 290 L672 295" fill="none" stroke="#4e5c6d" stroke-width="2"/>
+  <text x="678" y="303" font-family="Noto Sans CJK SC, sans-serif" font-size="15" fill="#4e5c6d">λ/4</text>
+  <path d="M135 306 A45 45 0 0 0 133 292.8" stroke="#b17b3c" stroke-width="2" fill="none"/>
+  <text x="166" y="303" font-family="Noto Sans CJK SC, sans-serif" font-size="21" fill="#b17b3c">θ</text>
+  <line x1="275" y1="112" x2="275" y2="166" stroke="#bd594c" stroke-width="3"/>
+  <path d="M268 158 L275 169 L282 158" fill="#bd594c"/>
+  <text x="205" y="98" font-family="Noto Sans CJK SC, sans-serif" font-size="16" fill="#a7473e">入射波向下</text>
+  <line x1="374" y1="164" x2="374" y2="100" stroke="#3986b3" stroke-width="3"/>
+  <path d="M367 109 L374 98 L381 109" fill="#3986b3"/>
+  <text x="386" y="99" font-family="Noto Sans CJK SC, sans-serif" font-size="16" fill="#286f9c">反射波向上</text>
+  <text x="25" y="365" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#617185">镜面为波节，首层波腹距镜面 λ/4，相邻波腹 λ/2；AB=λ/(2 sinθ)。图中 θ 被夸大。</text>
+</svg>

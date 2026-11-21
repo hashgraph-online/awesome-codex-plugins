@@ -15,10 +15,11 @@
     "knowledge-cutoff",
     "api-changes",
     "agents-md",
+    "static-analysis",
+    "type-checking",
+    "coding-agents",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "since-cutoff",
     "shortDescription": "Which of your pinned Python dependencies changed their API after the model's training cutoff.",
@@ -38,5 +39,8 @@
     "brandColor": "#F0883E",
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "hooks": "./hooks/hooks.json"
 }

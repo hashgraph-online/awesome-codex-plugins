@@ -1,0 +1,60 @@
+/* Theme: editorial. Serif body, wide margins, restrained color.
+ * A quarterly-review or research-note look that reads well in print.
+ */
+
+:root {
+  --page-size: A4;
+  --page-width: 210mm;
+  --page-height: 297mm;
+  --page-margin-x: 19mm;
+  --page-margin-top: 20mm;
+
+  --paper: #ffffff;
+  --ink: #16180f;
+  --muted: #6b6a61;
+  --muted-strong: #3d3f33;
+  --rule: #d9d7cf;
+  --rule-strong: #16180f;
+  --accent: #7a2f22;
+  --surface: #f6f4ee;
+  --code-bg: #f2efe8;
+
+  --font-body: "Apple SD Gothic Neo", "AppleMyungjo", "Noto Serif KR", serif;
+  --font-heading: "Apple SD Gothic Neo", "AppleMyungjo", "Noto Serif KR", serif;
+  --font-mono: "SF Mono", ui-monospace, "Menlo", monospace;
+  --font-size: 10.4pt;
+  --line-height: 1.68;
+}
+
+h1 {
+  font-weight: 700;
+}
+
+h2 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cover h1 {
+  font-weight: 700;
+}
+
+.cite {
+  font-size: 0.78em;
+  vertical-align: super;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.toc-l1 .toc-title {
+  font-weight: 700;
+}
+
+.toc-l2 {
+  padding-left: 6mm;
+  font-size: 0.94em;
+}
+
+.toc-l2 .toc-title {
+  color: var(--muted-strong);
+}

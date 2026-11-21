@@ -1,0 +1,67 @@
+{
+  "scenario": "r84-journey",
+  "status": "offline-model",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 101,
+        "text": "<b>Review reported message</b>\nCase 17 · group -100123. State: awaiting review.\nThis demo records a decision; it does not delete messages.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Dismiss report",
+                "callback_data": "r84:1:dismiss"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "foreign-user",
+        "text": "Open your own menu with /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-0"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Review reported message</b>\nCase 17 · group -100123. State: decision recorded.\nThis demo records a decision; it does not delete messages.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Show status",
+                "callback_data": "r84:2:status"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "old-screen",
+        "text": "This screen changed. Use the latest buttons."
+      }
+    }
+  ]
+}

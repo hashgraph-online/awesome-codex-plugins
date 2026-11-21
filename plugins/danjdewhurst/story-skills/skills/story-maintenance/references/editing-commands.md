@@ -1,6 +1,6 @@
 # Editing Commands
 
-How the commands that create, rename, move, split, merge, and remove entity files, and the `import` that builds a project from a manuscript, behave, and what to check after them. `SKILL.md` says when to run each command; read the matching section here before running one or explaining its result. Run any of them with `--dry-run` first when the change touches many files. `docs/cli-reference.md` lists every flag.
+How the commands that create, rename, move, split, merge, and remove entity files, the `impact` that tests such a change first, and the `import` that builds a project from a manuscript, behave, and what to check after them. `SKILL.md` says when to run each command; read the matching section here before running one or explaining its result. Run any of them with `--dry-run` first when the change touches many files. `docs/cli-reference.md` lists every flag.
 
 After a command changes files, run `story reindex .`, `story wordcount . --write`, and `story check .` in that project. After `import`, run them in the new project folder that the output names, not in the folder you ran it from: `story reindex <folder>`, `story wordcount <folder> --write`, and `story check <folder>`.
 
@@ -37,6 +37,17 @@ After a command changes files, run `story reindex .`, `story wordcount . --write
 
 See the `revision-continuity` skill.
 
+## impact
+
+`impact` to test a structural or plot change before making it, and to answer "what breaks if ...".
+
+- `story impact <command> <args...>` takes `rename`, `remove`, `move`, `split`, or `merge` with exactly the arguments and flags that command takes (`story impact move scene chapter-03-scene-02 --chapter chapter-09`), or `die <character-id> <chapter-id>`, which sets the character's `died-in` to that chapter and `status` to `deceased` (kept as it is for an `outline` chapter, a planned death, with a `planned-death` warning). For a character revived before that chapter it records a second death as a `status` progression.
+- It copies the project to a scratch folder, runs `story check` there, makes the change, runs `story check` again, and prints the files the change would touch, the change's own warnings, and only the findings it adds and clears, each with its check. Findings the project already has are left out, so a project with open errors can still be tested; one the change only gives new ids (a renamed entity, a renumbered chapter) is counted as carried over, not added.
+- It never writes to the project, takes no lock, and leaves the undo log alone. It refuses what the command would refuse, with the same message and exit code, and refuses while an interrupted change is in the project.
+- It exits 1 when the change adds an error, and with `--strict` when it adds or gives a warning; `--json` gives `data.changes`, `data.added`, `data.cleared`, `data.carried`, `data.before`, and `data.after`, with the added findings as diagnostics.
+- Show the user what the change adds before you make it. When it adds errors, say which files the user (or you, once they approve) must fix after the change, such as moving a dead character from later casts to `mentions`. To compare options, run it once per option, for example a death in chapter 5 and in chapter 9.
+- Then make the change with the command itself (with `--dry-run` first when it touches many files) and run the maintenance block above.
+
 ## add matter
 
 `add matter` when the user wants a dedication, epigraph, copyright page, acknowledgments, author's note, about-the-author, or also-by page.
@@ -62,5 +73,19 @@ See the `research` skill.
 
 - Follow up by creating character and location files from the printed entity candidates, and by setting `form` and `target-words` in `story.md` (import refuses `--form`; without them `story validate` never checks length and `story progress` has no target).
 - Directory sources import in natural file-name order (`chapter-2` before `chapter-10`).
+- A `.docx` source, or a `.docx` file in a source folder, is read as a Word document. A `docx-content-left-out` warning means the document had comments, footnotes, images, text boxes, tables, list numbering, ruby readings, or tracked changes that the import did not carry over (tracked changes are read as accepted). Tell the user which, since a comment or footnote may hold text they meant to keep. Chapters split only on chapter headings and lines, such as `Chapter 1: The Arrival` or `Prologue`, in a heading style or in a paragraph of their own. If the import gives one long chapter, the chapter titles are probably bare titles or numbered by Word's list numbering: ask the user to type `Chapter N` into each chapter title and import again.
+- An `.odt` (OpenDocument text) or `.epub` source, or such a file in a source folder, is read the same way, with no Pandoc needed: an EPUB in its reading order, one XHTML document after another. An `import-content-left-out` warning names what the file had that the import did not carry over, such as footnotes, images, tables, or EPUB documents outside the reading order: tell the user which. An EPUB's front matter (title page, copyright page, epigraph) imports as a chapter titled `Opening`; ask the user whether to delete it or move it into `matter/`. An EPUB locked with DRM is refused; ask the user for the manuscript the ebook was made from.
 - `import --force` into an existing directory deletes every `chapter-NN.md` in `chapters/` before writing the imported chapters, so confirm with the user before forcing an import over a project with drafted chapters. It first saves the project as snapshot `before-import-<n>` and prints `story snapshot --restore before-import-<n>`; tell the user that name, since that restore puts the old chapters back.
 - A Story Skills chapter file keeps its `author`; for a collection or anthology of other files, add `--bylines` to set each chapter's `author` from the by-line opening its prose (`By Ben Other`, taken out of the prose) or its file's frontmatter `author`. A line that is not clearly a by-line stays in the prose, so check the chapters left without `author` and set it by hand.
+
+## collect
+
+`collect` in a collection or anthology project when its `story.md` `stories` lists the story projects it gathers, in reading order, such as `stories: [../low-tide, ../salt]`. Each entry is a story project folder beside the collection.
+
+- It writes each story as one chapter, as `import` makes one from the story's chapter file: the story's `story.md` title, its chapters' prose joined by `* * *`, and its writer in the chapter's `author` when that is not the collection's own `author`. It writes the word counts and rebuilds the registries.
+- Each line of its report says whether a story was `added`, `changed` since the last run, or `unchanged`. Tell the user which stories changed.
+- It changes only chapters with `collected-from`. A chapter the user wrote in the collection keeps its file and number, and the stories fill the other numbers. A `collect-hand-written-copy` warning names a hand-written chapter with a story's title, most likely an old copy: ask the user before you delete it.
+- A story taken out of `stories` has its chapter removed. Reorder `stories` to reorder the book.
+- It refuses, and writes nothing, when a `stories` entry is not a story project (the `collection-story-*` codes, which `story links` also reports), and when a collected chapter was edited in the collection. Make that edit in the story project instead. `--force` discards the edit after it saves snapshot `before-collect-<n>`, so ask the user first and tell them the snapshot name.
+- It refuses to move or remove a chapter that a scene, or a frontmatter field such as a character's `died-in`, names. Keep those records in each story's own project.
+- Run `story collect . --dry-run` first when the user wants to see the changes. Then run `story reindex .`, `story wordcount . --write`, and `story check .`.

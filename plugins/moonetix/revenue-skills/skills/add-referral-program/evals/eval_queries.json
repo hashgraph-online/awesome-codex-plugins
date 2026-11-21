@@ -1,0 +1,13 @@
+[
+  {"query": "Add an invite-a-friend feature: every user gets a code, and when a friend they invited makes a first purchase the inviter gets 500 credits.", "should_trigger": true},
+  {"query": "People are creating fake accounts with their own referral link to collect the sign-up bonus. Fix our referral system so that stops.", "should_trigger": true},
+  {"query": "We want referrers to earn 10 percent of what their referred users earn from offers, for the first year, and lose it again when an offer is reversed.", "should_trigger": true},
+  {"query": "When a referred customer gets a refund, the referrer keeps the bonus. Make the bonus go away with the refund.", "should_trigger": true},
+  {"query": "Build a refer and earn page where users see their code, who signed up with it and which rewards are still pending.", "should_trigger": true},
+  {"query": "Add invite codes to our Django app: the inviter gets credits when the friend pays for the first time.", "should_trigger": true},
+  {"query": "Our Rails referral bonus is paid at sign-up and people farm it with fake accounts. Change it.", "should_trigger": true},
+  {"query": "Add promo codes that give 20 percent off the first order, limited to one use per customer.", "should_trigger": false},
+  {"query": "We need a partner program where external affiliates get tracking links, click reports and monthly invoices.", "should_trigger": false},
+  {"query": "Let users withdraw their balance to a bank account once it is above 20 dollars.", "should_trigger": false},
+  {"query": "Add share buttons for posts to X and Facebook.", "should_trigger": false}
+]

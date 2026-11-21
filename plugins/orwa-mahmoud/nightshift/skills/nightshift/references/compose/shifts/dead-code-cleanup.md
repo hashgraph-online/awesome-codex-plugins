@@ -1,5 +1,7 @@
 # Dead-code cleanup — finite — code proven unused by tooling the repository already trusts
 
+## When to use
+
 Unused exports, files, branches, or dependencies reported by analyzers and build tools already in
 the project. Each deletion carries evidence; dynamic or uncertain references stay untouched.
 
@@ -11,6 +13,8 @@ Use only when the repository already has a dead-code, unused-export, dependency,
 coverage tool capable of producing findings. Supported stacks are whatever that configured tool
 supports. If no such tool is configured, this shift is unsupported and must not start.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **Dead-code cleanup — remove only code the project's existing tooling proves unused.**

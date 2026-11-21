@@ -1,0 +1,30 @@
+{
+  "id": "paper-neuro-noise-default",
+  "label": "Default (Paper NeuroNoise)",
+  "shader": "NeuroNoise",
+  "page": "https://shaders.paper.design/neuro-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for NeuroNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorFront": "#ffffff",
+    "colorMid": "#47a6ff",
+    "colorBack": "#000000",
+    "brightness": 0.05,
+    "contrast": 0.3
+  }
+}

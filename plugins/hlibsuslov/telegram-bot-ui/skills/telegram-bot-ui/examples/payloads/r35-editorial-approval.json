@@ -1,0 +1,255 @@
+{
+  "scenario": "r35-editorial-approval",
+  "status": "production",
+  "context": "editor private chat + channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Tram line 4 reopens\n\nNight trams run on Saturday until 01:00.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 19
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Timetable",
+                "url": "https://example.com/tram4"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Draft d42 · v1 → City News. The preview is above.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve and publish",
+                "callback_data": "pub:approve:d42:1",
+                "style": "success"
+              }
+            ],
+            [
+              {
+                "text": "Edit text",
+                "callback_data": "pub:edit:d42:1"
+              },
+              {
+                "text": "Reject",
+                "callback_data": "pub:reject:d42:1",
+                "style": "danger"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Unconfirmed rumour about fares."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Draft d43 · v1 → City News. The preview is above.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve and publish",
+                "callback_data": "pub:approve:d43:1",
+                "style": "success"
+              }
+            ],
+            [
+              {
+                "text": "Edit text",
+                "callback_data": "pub:edit:d43:1"
+              },
+              {
+                "text": "Reject",
+                "callback_data": "pub:reject:d43:1",
+                "style": "danger"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4383000000000000001",
+        "text": "Only editors can do this.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4383000000000000002"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Send the corrected text for draft d42.",
+        "reply_markup": {
+          "force_reply": true,
+          "input_field_placeholder": "New text"
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Tram line 4 reopens\n\nTram line 4 reopens on Friday, not Saturday. Night trams run until 01:00.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 19
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Timetable",
+                "url": "https://example.com/tram4"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Draft d42 · v2 → City News. The preview is above.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve and publish",
+                "callback_data": "pub:approve:d42:2",
+                "style": "success"
+              }
+            ],
+            [
+              {
+                "text": "Edit text",
+                "callback_data": "pub:edit:d42:2"
+              },
+              {
+                "text": "Reject",
+                "callback_data": "pub:reject:d42:2",
+                "style": "danger"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4383000000000000004",
+        "text": "Outdated preview: v2 is current.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Tram line 4 reopens\n\nTram line 4 reopens on Friday, not Saturday. Night trams run until 01:00.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 19
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Timetable",
+                "url": "https://example.com/tram4"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4383000000000000005",
+        "text": "Published."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1006,
+        "text": "Draft d42 · v2 published by Alice.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open the post",
+                "url": "https://t.me/demo_city_news/1008"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4383000000000000006",
+        "text": "Already published."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4383000000000000007",
+        "text": "Rejected."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1008,
+        "text": "Draft d43 rejected by Alice."
+      }
+    }
+  ]
+}

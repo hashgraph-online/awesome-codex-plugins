@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>VRM expression sheet</title>
+<style>
+  html, body { margin: 0; background: #ece9e2; overflow: hidden; }
+  .lbl { position: absolute; font: 600 15px/1 Helvetica, Arial, sans-serif; color: #333; letter-spacing: .08em; text-transform: uppercase; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.5.5/lib/three-vrm.module.min.js"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+// VRM 1.0 preset expressions (spec: VRMC_vrm-1.0/expressions.md). Emotions: happy angry sad relaxed surprised (+ neutral).
+// Visemes aa ih ou ee oh, blink/blinkLeft/blinkRight, lookUp/Down/Left/Right also exist.
+const SHEET = [
+  ['neutral', {}], ['happy', { happy: 1 }], ['angry', { angry: 1 }],
+  ['sad', { sad: 1 }], ['relaxed', { relaxed: 1 }], ['surprised', { surprised: 1, aa: 0.4 }],
+];
+const MODEL = new URLSearchParams(location.search).get('model') || 'models/Seed-san.vrm';
+const COLS = 3, ROWS = 2, CW = 400, CH = 400, W = CW * COLS, H = CH * ROWS;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.setScissorTest(true);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x999080, 1.4));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0); sun.position.set(1, 2, 3); scene.add(sun);
+
+const loader = new GLTFLoader();
+loader.register((parser) => new VRMLoaderPlugin(parser));
+const gltf = await loader.loadAsync(MODEL);
+const vrm = gltf.userData.vrm;
+VRMUtils.removeUnnecessaryVertices(gltf.scene);
+VRMUtils.rotateVRM0(vrm); // no-op for VRM 1.0, turns VRM 0.x models to face +Z
+scene.add(vrm.scene);
+
+// Relax the T-pose so shoulders read naturally in a head-and-shoulders frame.
+const bone = (n) => vrm.humanoid.getNormalizedBoneNode(n);
+const flip = vrm.meta?.metaVersion === '0' ? -1 : 1; // VRM 0.x is turned 180 deg, so arm rotations mirror
+bone('leftUpperArm').rotation.z = -1.2 * flip;
+bone('rightUpperArm').rotation.z = 1.2 * flip;
+vrm.update(0);
+
+const headPos = new THREE.Vector3();
+bone('head').getWorldPosition(headPos);
+const cam = new THREE.PerspectiveCamera(22, CW / CH, 0.05, 20);
+cam.position.set(headPos.x + 0.15, headPos.y + 0.06, headPos.z + 1.45);
+cam.lookAt(headPos.x, headPos.y + 0.05, headPos.z);
+
+const presets = Object.keys(vrm.expressionManager.expressionMap);
+console.log('expressions in model:', presets.join(', '));
+
+SHEET.forEach(([name, weights], i) => {
+  for (const p of presets) vrm.expressionManager.setValue(p, 0);
+  for (const [k, v] of Object.entries(weights)) {
+    // VRM 0.x has no 'surprised' preset; VRoid exports it as a custom 'Surprised' clip
+    const key = presets.includes(k) ? k : presets.find(p => p.toLowerCase() === k);
+    if (key) vrm.expressionManager.setValue(key, v);
+  }
+  vrm.update(0); // applies expression weights (and spring bones) for this frame
+  const col = i % COLS, row = Math.floor(i / COLS);
+  const x = col * CW, y = (ROWS - 1 - row) * CH; // WebGL viewport origin is bottom-left
+  renderer.setViewport(x, y, CW, CH); renderer.setScissor(x, y, CW, CH);
+  renderer.setClearColor((col + row) % 2 ? 0xe2ded6 : 0xece9e2);
+  renderer.render(scene, cam);
+  const d = document.createElement('div'); d.className = 'lbl'; d.textContent = name;
+  d.style.left = (col * CW + 12) + 'px'; d.style.top = (row * CH + 12) + 'px'; document.body.appendChild(d);
+});
+document.title = 'expressions: ' + presets.join(',');
+window.__done = true;
+</script>
+</body>
+</html>

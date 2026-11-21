@@ -1,0 +1,61 @@
+---
+name: {{ID}}
+description: {{DESCRIPTION}}
+---
+
+# {{TITLE}}
+
+## Overview
+
+Use this skill for {{TOOL_NAME}} workflows.
+
+## Follow This Decision Flow
+
+1. Confirm environment and prerequisites for {{TOOL_NAME}}.
+   - Ask for OS, Python version, and whether a GPU or API key is required.
+   - If setup status is unknown, read `references/setup-and-troubleshooting.md` before writing any commands.
+   - State incompatibilities explicitly (OS, hardware, missing credentials) before offering install steps.
+
+2. Choose the execution path.
+   - Use local inference when the user has the required hardware and can install the package.
+   - Use hosted API when an API key is available and local setup is impractical or unsupported.
+   - For API-dependent tasks, confirm the required env var is exported before generating code.
+
+3. Apply {{TOOL_NAME}}-specific constraints.
+   - Read `references/constraints.md` before writing any code.
+   - State sequence or window length limits, tokenization rules, and coordinate conventions explicitly.
+   - If the tool's coordinate system differs from the user's input, resolve the mapping before running.
+
+4. Run real inference and save artifacts.
+   - Use `scripts/run_real_{{ID_UNDERSCORE}}_workflow.py` as the starting point.
+   - Save both a figure and a `_meta.json` file to `output/{{ID}}/`.
+   - The output JSON must include: tool name, input parameters, and path to any plots produced.
+
+5. Verify and troubleshoot.
+   - If the run fails, read `references/setup-and-troubleshooting.md` for ordered failure checks.
+   - Report the exact error message before proposing a fix.
+   - For installation failures, confirm the dependency stack before adding new packages.
+
+## Grounded API/CLI Surface
+
+Populate this section with exact import paths, class names, function signatures, and CLI arguments
+verified against the installed {{TOOL_NAME}} package or official documentation.
+Do not invent API names — verify each entry against a real source before listing it.
+
+Example entries to replace:
+
+- `from <package> import <Class>`
+- `<Class>("<model-name>")`
+- `<instance>.<method>(input_ids, **kwargs)`
+- `python scripts/run_real_{{ID_UNDERSCORE}}_workflow.py --help`
+
+## References
+
+- `references/setup-and-troubleshooting.md`
+- `references/constraints.md`
+- `references/inference-patterns.md`
+- `references/family-selection.md`
+
+## Scripts
+
+- `scripts/run_real_{{ID_UNDERSCORE}}_workflow.py`

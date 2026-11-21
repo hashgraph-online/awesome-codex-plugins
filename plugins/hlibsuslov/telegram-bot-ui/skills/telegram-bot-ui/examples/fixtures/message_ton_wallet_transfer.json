@@ -1,0 +1,24 @@
+{
+  "update_id": 900020,
+  "message": {
+    "message_id": 501,
+    "date": 1762900200,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "ton_wallet_transfer": {
+      "transaction_id": "",
+      "peer_address": "UQAsampleMerchant00000000000000000000000000000005",
+      "amount": "-1250000000",
+      "comment": "order 42"
+    }
+  }
+}

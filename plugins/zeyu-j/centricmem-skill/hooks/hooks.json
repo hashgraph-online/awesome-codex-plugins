@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}/hooks/ambient.mjs\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}/goose/wire-recipes.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}/hooks/close.mjs\"",
+            "timeout": 25
+          }
+        ]
+      }
+    ]
+  }
+}

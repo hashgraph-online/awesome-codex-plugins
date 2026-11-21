@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI SEO Audit Skills"
+  short_description: "Scored technical, on-page and generative SEO audit"
+  default_prompt: "Use $suede-seo-audit to audit [URL or source file]. Read the current search guidance reference, inspect live behavior, and run the nine lanes: technical access, search intent, metadata, structure and internal links, supported schema, answer extractability, copy, E-E-A-T, and topic clusters. Add Lane 0 query research when discovery is requested, with demand marked unknown unless a dated source supports it. Return ranked findings with evidence, exact rewrites and JSON-LD, the KPI each fix should move, lane grades, and a ship gate."
+policy:
+  allow_implicit_invocation: true

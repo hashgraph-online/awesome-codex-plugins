@@ -18,15 +18,16 @@
   const body = document.body.innerText;
   const path = location.pathname;
 
+  const pageKind = (p) => {
+    if (/\/pages\/orders\/quote\//.test(p)) return 'checkout';
+    if (/\/part\/[^/]+\/(configuration|threads|feedback)/.test(p)) return 'part-modal';
+    if (/\/pages\/quotes\/[0-9a-f-]{36}/.test(p)) return 'quote';
+    return 'other';
+  };
+
   const out = {
-    url: location.origin + path,
-    page: /\/pages\/orders\/quote\//.test(path)
-      ? 'checkout'
-      : /\/part\/[^/]+\/(configuration|threads|feedback)/.test(path)
-        ? 'part-modal'
-        : /\/pages\/quotes\/[0-9a-f-]{36}/.test(path)
-          ? 'quote'
-          : 'other',
+    url: `${location.origin}${path}`,
+    page: pageKind(path),
     quoteId: (path.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) || [null])[0],
     quoteName: null,
     banner: null,
@@ -100,7 +101,7 @@
       quantityNote: lines(c[4]).join(' ') || null,
       price: lines(c[5]),
       needsManualQuote: /Please request a quote/.test(txt(c[5])),
-      selected: !!(c[0].querySelector('input[type=checkbox]') || {}).checked,
+      selected: Boolean((c[0].querySelector('input[type=checkbox]') || {}).checked),
     });
   });
 
@@ -109,7 +110,7 @@
   if (sIdx >= 0) {
     const seg = body.slice(sIdx + 9, sIdx + 1500).split('\n').map((s) => s.trim()).filter(Boolean);
     const keys = ['Part production', 'Shipping', 'Tax', 'Order total', 'Ship by', 'Est. Delivery', 'Shipping address'];
-    for (let i = 0; i < seg.length; i++) {
+    for (let i = 0; i < seg.length; i += 1) {
       const k = keys.find((kk) => seg[i].startsWith(kk));
       if (k && out.summary[seg[i]] === undefined) out.summary[seg[i]] = seg[i + 1] || null;
       if (/Your dedicated account manager/.test(seg[i])) break;
@@ -157,19 +158,31 @@
   L.push(`QUOTE ${out.quoteName || '?'} id=${out.quoteId || '?'} page=${out.page} analyzing=${out.analyzing}`);
   L.push(`STAGE ${out.banner || '-'} | use=${out.useClassification || '-'}${out.usaOnly ? ' | USA-only' : ''}`);
   if (out.leadTimeTiers.length) {
-    L.push('TIERS ' + out.leadTimeTiers.map((t) =>
-      `${t.selected ? '*' : ''}${t.key}:${(t.label || '').replace(/ production days?/, 'd')}:${t.price}`).join(' | '));
+    const tierText = out.leadTimeTiers.map((t) => {
+      const mark = t.selected ? '*' : '';
+      const label = (t.label || '').replace(/ production days?/, 'd');
+      return `${mark}${t.key}:${label}:${t.price}`;
+    }).join(' | ');
+    L.push(`TIERS ${tierText}`);
   }
   out.parts.forEach((p, i) => {
-    L.push(`P${i + 1} ${p.file} ${p.revision || ''} | ${p.configured ? [p.process, p.material, ...p.finishAndOptions].join(' / ') : 'NOT CONFIGURED'}`
-      + ` | qty ${p.quantity || '-'} | ${p.needsManualQuote ? 'MANUAL QUOTE' : p.price.join(' ')}`
-      + `${p.dfmIssueCount ? ` | DFM ${p.dfmIssueCount}` : ''}${p.productionDetails ? ` | ${p.productionDetails}` : ''}`);
+    const config = p.configured
+      ? [p.process, p.material, ...p.finishAndOptions].join(' / ')
+      : 'NOT CONFIGURED';
+    const priceText = p.needsManualQuote ? 'MANUAL QUOTE' : p.price.join(' ');
+    const dfmText = p.dfmIssueCount ? ` | DFM ${p.dfmIssueCount}` : '';
+    const detailsText = p.productionDetails ? ` | ${p.productionDetails}` : '';
+    L.push(`P${i + 1} ${p.file} ${p.revision || ''} | ${config} | qty ${p.quantity || '-'} | ${priceText}${dfmText}${detailsText}`);
   });
   const s = Object.entries(out.summary).map(([k, v]) => (k === 'note' ? `NOTE: ${v.slice(0, 90)}` : `${k}=${v}`));
-  if (s.length) L.push('SUMMARY ' + s.join(' | '));
-  L.push('BUTTONS ' + Object.entries(out.buttons).map(([k, v]) => `${k}:${v}`).join(' | '));
-  if (out.checkout) L.push('CHECKOUT ' + Object.entries(out.checkout).map(([k, v]) => `${k}=${v}`).join(' | '));
-  out.openDialogs.forEach((d) => L.push('DIALOG ' + d.replace(/\n/g, ' / ').slice(0, 200)));
+  if (s.length) L.push(`SUMMARY ${s.join(' | ')}`);
+  const buttonText = Object.entries(out.buttons).map(([k, v]) => `${k}:${v}`).join(' | ');
+  L.push(`BUTTONS ${buttonText}`);
+  if (out.checkout) {
+    const checkoutText = Object.entries(out.checkout).map(([k, v]) => `${k}=${v}`).join(' | ');
+    L.push(`CHECKOUT ${checkoutText}`);
+  }
+  out.openDialogs.forEach((d) => L.push(`DIALOG ${d.replace(/\n/g, ' / ').slice(0, 200)}`));
   window.__fictivStateText = L.join('\n');
   return window.__fictivStateText;
 })();

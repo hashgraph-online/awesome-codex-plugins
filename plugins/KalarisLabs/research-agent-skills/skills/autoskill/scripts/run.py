@@ -1,3 +1,5 @@
+"""Run helpers."""
+
 # research-agent-skills: utf-8 console output
 import sys as _ras_sys
 for _ras_stream in (_ras_sys.stdout, _ras_sys.stderr):
@@ -25,10 +27,12 @@ class ScreenpipeUnreachable(RuntimeError):
 
 
 def _default_now() -> str:
+    """Handle default now."""
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
 
 
 def _cluster_query(cluster: dict) -> str:
+    """Handle cluster query."""
     parts = ["apps: " + ", ".join(cluster["apps"])]
     if cluster.get("example_titles"):
         parts.append("titles: " + "; ".join(cluster["example_titles"]))
@@ -36,6 +40,7 @@ def _cluster_query(cluster: dict) -> str:
 
 
 def _write_plan(proposed_path: Path, clusters: list[dict]) -> None:
+    """Write plan."""
     lines = ["# Dry-run plan", ""]
     for i, c in enumerate(clusters, 1):
         lines += [
@@ -50,6 +55,7 @@ def _write_plan(proposed_path: Path, clusters: list[dict]) -> None:
 
 
 def _write_report(proposed_path: Path, results: list[dict]) -> None:
+    """Write report."""
     lines = ["# autoskill report", ""]
     if not results:
         lines.append("No clusters met the minimum size threshold. Nothing to propose.")
@@ -73,6 +79,7 @@ def _write_report(proposed_path: Path, results: list[dict]) -> None:
 def run(config, *, start_time, end_time, out_dir,
         screenpipe_client, backend, embedder, skills_dir,
         screenpipe_token=None, now=None, dry_run=False):
+    """Run."""
     now = now or _default_now
     try:
         events = fetch_window(screenpipe_client, start_time, end_time,
@@ -138,6 +145,7 @@ def run(config, *, start_time, end_time, out_dir,
 
 
 def main(argv=None):
+    """Run the command-line interface."""
     import argparse
     import sys
 
@@ -182,6 +190,7 @@ def main(argv=None):
         )
 
         def embedder(text: str):
+            """Handle embedder."""
             return list(map(float, model.encode(text)))
 
     proposed = run(

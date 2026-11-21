@@ -1,0 +1,31 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed 3762390211239080892 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 3340] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/big/Grid.tla
+Parsing file /tmp/statechart-rec-7NtHsi/02-verdict-1/tlc.tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Grid
+Starting... (2026-10-27 16:48:03)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:03.
+Error: Invariant NotCorner is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ x = 0
+/\ y = 0
+
+State 2: <Right line 6, col 10 to line 6, col 38 of module Grid>
+/\ x = 1
+/\ y = 0
+
+State 3: <Right line 6, col 10 to line 6, col 38 of module Grid>
+/\ x = 2
+/\ y = 0
+
+State 4: <Up line 7, col 7 to line 7, col 35 of module Grid>
+/\ x = 2
+/\ y = 1
+
+9 states generated, 8 distinct states found, 3 states left on queue.
+The depth of the complete state graph search is 4.
+The average outdegree of the complete state graph is 2 (minimum is 1, the maximum 2 and the 95th percentile is 2).
+Finished in 00s at (2026-10-27 16:48:03)

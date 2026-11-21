@@ -1,8 +1,8 @@
 # Quiver
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/yagizdo/quiver/releases)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue)](https://github.com/yagizdo/quiver/releases)
 
-Quiver is a development lifecycle plugin for AI coding CLIs. Purpose-built skills for brainstorming, planning, execution, debugging, code review, and session handover, plus specialized agents for review and debugging. Every step leaves evidence on disk (a spec, a plan, a ledger, a report, a handover), and nothing is called done without it.
+Quiver is a development lifecycle plugin for Claude Code, Codex, Cursor and OpenCode. Purpose-built skills for brainstorming, planning, execution, debugging, code review, and session handover, plus specialized agents for review and debugging. Every step leaves evidence on disk (a spec, a plan, a ledger, a report, a handover), and nothing is called done without it.
 
 ## Contents
 
@@ -186,7 +186,7 @@ After the build and the checks, `/ship` runs `/quiver:review` on the branch. Eac
 
 | Situation | Command | What happens |
 |-----------|---------|--------------|
-| About to merge, want multi-agent review | `/quiver:review` | Dispatches 5 review agents, synthesizes findings into one report |
+| About to merge, want multi-agent review | `/quiver:review` | Dispatches 5 review agents, checks each finding against the code, and writes one report without the findings the code disproves |
 | Want a quick senior dev sanity check | `/senior-review` | One pragmatic reviewer evaluates structure, quality, risks |
 | Got a review report, not sure which findings matter | `/report-check` | Audits the report for noise, false positives, and overkill |
 

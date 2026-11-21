@@ -1,0 +1,20 @@
+{
+  "name": "design-os-3d-blender",
+  "interface": {
+    "displayName": "DESIGN:OS 3D Blender Agent"
+  },
+  "plugins": [
+    {
+      "name": "design-os-3d-blender",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

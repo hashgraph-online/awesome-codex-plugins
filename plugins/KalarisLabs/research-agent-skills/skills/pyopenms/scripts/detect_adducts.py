@@ -34,6 +34,7 @@ DEFAULT_NEG = "H-1:-:0.6,Cl:-:0.2,H-3O-1:-:0.1,CH2O2H-1:-:0.1"
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Detect adducts / decharge a feature map.")
     parser.add_argument("input", help="Input featureXML")
     parser.add_argument("--out-features", help="Output decharged featureXML (default: <input>_decharged.featureXML)")

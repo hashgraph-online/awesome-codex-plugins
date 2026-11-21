@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sofya",
+  "version": "1.1.0",
+  "description": "Web search, page fetch, extraction and cited research from Sofya's own search index. Search returns page content, not just snippets; fetch returns clean markdown, PDFs and Office files included.",
+  "author": {
+    "name": "Sofya, Inc.",
+    "email": "support@sofya.co",
+    "url": "https://sofya.co"
+  },
+  "homepage": "https://sofya.co/docs",
+  "repository": "https://github.com/sofya-co/sofya-mcp",
+  "license": "MIT",
+  "keywords": [
+    "web search",
+    "search the web",
+    "fetch url",
+    "read webpage",
+    "pdf to markdown",
+    "extract",
+    "research",
+    "citations",
+    "current events",
+    "news",
+    "sofya"
+  ]
+}

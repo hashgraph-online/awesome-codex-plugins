@@ -1,0 +1,161 @@
+{
+  "id": "echo-halftone-portrait",
+  "name": "Echo stack over halftone portrait",
+  "use": "Two words in stacked echoes over a dot-screened portrait, torn away to a moire contour face",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    },
+    {
+      "family": "League Gothic",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/League+Gothic"
+    }
+  ],
+  "presets": [
+    {
+      "id": "echo-halftone-portrait.mono",
+      "label": "Mono",
+      "look": "Black dot portrait on paper, black echo type",
+      "params": {
+        "paper": "#F2EFE8",
+        "ink": "#111111",
+        "dot_cell_px": 10,
+        "screen_angle_deg": 45,
+        "dots_grow": {
+          "frames": 12,
+          "ease": "power2.out"
+        },
+        "echoes": 5,
+        "echo_lag_s": 0.06,
+        "echo_opacities": [
+          0.8,
+          0.6,
+          0.4,
+          0.25,
+          0.12
+        ],
+        "word_beats": [
+          1,
+          2
+        ],
+        "bpm": 120,
+        "stack_offset_of_cap": [
+          0.18,
+          0.25
+        ],
+        "tear": {
+          "start_f": 84,
+          "frames": 12,
+          "ease": "power2.in",
+          "jag_step_px": [
+            20,
+            40
+          ]
+        },
+        "moire": {
+          "line_period_px": [
+            6,
+            8
+          ],
+          "line_px": [
+            2,
+            4
+          ],
+          "angles_deg": [
+            0,
+            4
+          ]
+        },
+        "type_cap_height_pct": [
+          20,
+          30
+        ]
+      },
+      "sources": [
+        41,
+        40,
+        42
+      ]
+    },
+    {
+      "id": "echo-halftone-portrait.riso",
+      "label": "Riso",
+      "look": "Blue dots, fluorescent pink echoes",
+      "params": {
+        "dots": "#3255A4",
+        "type": "#FF48B0",
+        "paper": "#F4F1EA",
+        "blend": "multiply"
+      },
+      "sources": [
+        30,
+        5
+      ]
+    },
+    {
+      "id": "echo-halftone-portrait.night",
+      "label": "Night",
+      "look": "White dots on black, red echo stack",
+      "params": {
+        "bg": "#0B0B0D",
+        "dots": "#F2EFE8",
+        "type": "#F15060"
+      },
+      "sources": [
+        30
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "@natAndrewson, three-ink riso print",
+      "url": "https://x.com/natAndrewson/status/1262744907355058186"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 31,
+      "name": "Envato Tuts+, photocopy and xerox textures",
+      "url": "https://design.tutsplus.com/tutorials/how-to-create-photocopy-and-xerox-textures--cms-109034"
+    },
+    {
+      "n": 33,
+      "name": "FFmpeg filters documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 40,
+      "name": "US10560604B2, Halftone screens",
+      "url": "https://patents.google.com/patent/US10560604"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "vargHQ/skills paper-shaders",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    }
+  ]
+}

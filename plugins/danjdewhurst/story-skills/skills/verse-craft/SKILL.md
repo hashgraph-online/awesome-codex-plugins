@@ -1,6 +1,6 @@
 ---
 name: verse-craft
-description: This skill should be used when the user asks to "write a poem", "write a limerick", "write a sonnet", "haiku", "villanelle", "ballad", "song lyrics", "a song for my character", "a rhyme", "rhyming couplets", "does this scan", "check the meter", "fix the rhythm of this poem", "rhyme scheme", "iambic pentameter", "a prophecy in verse", "a nursery rhyme", "rhyming picture book", or wants verse written, scanned, or revised, whether inside a story project or as a standalone poem. NOT for accidental rhymes in prose (use line-editing) or permissions for quoting someone else's poem or song lyrics (use editorial-review).
+description: This skill should be used when the user asks to "write a poem", "write a limerick", "write a sonnet", "haiku", "villanelle", "ballad", "song lyrics", "a song for my character", "a rhyme", "rhyming couplets", "does this scan", "check the meter", "fix the rhythm of this poem", "rhyme scheme", "iambic pentameter", "a prophecy in verse", "a nursery rhyme", "rhyming picture book", "poetry collection", "book of poems", or wants verse written, scanned, or revised, whether inside a story project or as a standalone poem. NOT for accidental rhymes in prose (use line-editing) or permissions for quoting someone else's poem or song lyrics (use editorial-review).
 ---
 
 # Verse Craft
@@ -9,8 +9,8 @@ description: This skill should be used when the user asks to "write a poem", "wr
 
 Write, scan, and revise verse: fixed forms such as the limerick, sonnet,
 haiku, and villanelle; ballads and song lyrics; rhyming picture-book
-text; and verse that lives inside a story (a character's song, a
-prophecy, a skipping rhyme). Every claim that a line scans is shown, not
+text; verse that lives inside a story (a character's song, a prophecy, a
+skipping rhyme); and a poetry collection kept as a story project. Every claim that a line scans is shown, not
 asserted: the agent marks the stresses, counts the syllables, and labels
 the rhyme scheme so the author can check the work. The author's poem is
 the standard; propose changes, do not rewrite it wholesale.
@@ -20,7 +20,8 @@ the standard; propose changes, do not rewrite it wholesale.
 None. A standalone poem needs no project: save it where the user asks,
 as a plain `.md` file. Verse that belongs to a story needs the story
 project, `story.md` (POV, tone, era), and the file of the character who
-speaks or sings it.
+speaks or sings it. A poetry collection is a story project with
+`form: poetry-collection` (see step 7).
 
 ## When to Use
 
@@ -34,9 +35,10 @@ speaks or sings it.
 - NOT for unintended rhymes or jingles in prose (use `line-editing`)
 - NOT for permissions when quoting another writer's poem or lyrics (use
   `editorial-review`)
-- NOT for a poetry collection as a story project: the CLI checks fiction
-  entities, so keep a collection as plain files and do not run `story init`
-  for it
+- A poetry collection: a book of poems with EPUB, print, and review-copy
+  builds, kept as a story project with `form: poetry-collection` (step 7)
+- NOT for a nonfiction book or a collection of essays: the story project
+  model does not cover nonfiction
 
 ## Hard Rules
 
@@ -62,7 +64,8 @@ speaks or sings it.
 ### 1. Mode and constraints
 
 1. Work out the mode: **write** new verse, **critique** a poem, **fix** a
-   poem's meter or rhyme, or **story verse** that sits inside a chapter.
+   poem's meter or rhyme, **story verse** that sits inside a chapter, or
+   a **collection** of poems kept as a story project (step 7).
 2. Pin the constraints, asking only for what the request leaves open:
    form, meter, rhyme scheme, line and stanza count, refrain, subject,
    tone, and any words that must appear. `references/forms.md` gives each
@@ -154,7 +157,10 @@ story add matter 'Epigraph' --heading=false
 2. Keep line breaks through every build: end each line of a stanza,
    except the last, with a backslash (`\`), and leave a blank line
    between stanzas. For verse set off from the prose, put the stanza in
-   a blockquote and end each quoted line the same way.
+   a blockquote and end each quoted line the same way. A chapter that is
+   all verse (a poem standing alone between prose chapters) can set
+   `verse: true` instead: then every line break is kept with no
+   backslashes, as in a poetry collection (step 7).
 3. Record the verse's facts in the usual places: a song that recurs is a
    motif (`theme-craft`), a prophecy is a promise (`plot-structure`).
 4. Run maintenance:
@@ -164,6 +170,43 @@ story reindex .
 story wordcount . --write
 story check .
 ```
+
+### 7. A poetry collection
+
+1. Ask for the collection's title, then make the project:
+
+```shell
+story init 'Tide Tables' --form poetry-collection
+```
+
+   `--form poetry-collection` sets `genre: poetry` and no word target:
+   a collection is measured in poems and pages, not words.
+2. Add one chapter per poem with `story add chapter 'Poem Title'`, and
+   write the poem under `## Chapter Text`. Every chapter of a poetry
+   collection is verse: each line break is kept in the EPUB, HTML,
+   print, and DOCX builds, and a blank line is a stanza break, so no
+   backslashes are needed. A backslash at a line end still works and
+   never prints. Set `verse: false` on a chapter that is prose, such as
+   an afterword told as a story.
+3. A poem gives no scene records, POV, or chapter hook, and `story
+   check` and `story pacing` do not ask for them in a verse chapter.
+   `story wordcount` and `story progress` count each poem's lines as
+   well as its words. Fill `characters`, `mentions`, and `locations`
+   only when a poem names someone or somewhere the project tracks.
+4. Put a dedication, epigraph, notes, or acknowledgements in `matter/`
+   with `story add matter`. Matter pages are not verse: end each line of
+   a poem quoted there with a backslash.
+5. Run maintenance after adding or revising poems:
+
+```shell
+story reindex .
+story wordcount . --write
+story check .
+```
+
+`examples/tide-tables` in the Story Skills repository is a small
+poetry collection. Nonfiction is outside the story project model: do not
+make a project for an essay collection or a nonfiction book.
 
 If `story` is not installed, use the bundled fallback
 `node ../story-maintenance/scripts/story.js` with the same arguments.
