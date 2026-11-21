@@ -37,7 +37,7 @@ licensing decisions remain outside the coding-work authorization.
     non-goals, and a time-fit unit plan in a
     `mode: owner-work` receipt from `receipts/cycle-specialist-evidence.md`, derived from the verbatim objective and
     work-target evidence. Underspecified areas choose reversible defaults within the coding-work authority
-    boundary and record them — never silently expand scope.
+    boundary and record them; the scope stays as agreed.
   - Establish the continuation record before implementation: use the single `Status: building`
     entry in opportunity-map.md. Preserve the owner objective in Scope, derive observable
     Acceptance from it and the work target, and record Current phase, Completed, Decisions,

@@ -1,0 +1,40 @@
+{
+  "name": "s2f-agent",
+  "version": "0.1.0",
+  "description": "Codex skills and routing playbooks for computational genomics model workflows.",
+  "author": {
+    "name": "Jiaqi Li",
+    "url": "https://github.com/JiaqiLi1024"
+  },
+  "homepage": "https://github.com/JiaqiLi1024/s2f-agent#readme",
+  "repository": "https://github.com/JiaqiLi1024/s2f-agent",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "skills",
+    "genomics",
+    "variant-effect",
+    "sequence-models",
+    "bioinformatics"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "s2f Agent",
+    "shortDescription": "Computational genomics skills for Codex.",
+    "longDescription": "s2f Agent packages Codex skills for AlphaGenome, Borzoi, DNABERT-2, Evo 2, GPN, Nucleotide Transformer v3, SegmentNT, and reusable skill scaffolding workflows.",
+    "developerName": "Jiaqi Li",
+    "category": "Research",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/JiaqiLi1024/s2f-agent",
+    "defaultPrompt": [
+      "Use $alphagenome-api to plan a variant-effect workflow.",
+      "Use $borzoi-workflows to score regulatory variants.",
+      "Use $skill-factory to scaffold a genomics skill."
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

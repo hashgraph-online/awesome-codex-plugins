@@ -1,7 +1,7 @@
 {
   "name": "deja-vu",
   "version": "0.24.3",
-  "description": "deja-vu: memory for coding agents from the sessions already on your disk — Claude Code, Codex, Cursor, opencode and forty-six more — including work from before it was installed.",
+  "description": "deja-vu: memory for coding agents from the sessions already on your disk — Claude Code, Codex, Cursor, opencode and forty-seven more — including work from before it was installed.",
   "author": {
     "name": "vshulcz",
     "url": "https://github.com/vshulcz"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "deja-vu",
     "shortDescription": "Search and recall your own past AI coding sessions.",
-    "longDescription": "deja indexes the sessions you already have on this machine — Claude Code, Codex, Cursor, opencode and forty-six more agents — and gives Codex tools to search them. Ask what you fixed before instead of debugging it twice.",
+    "longDescription": "deja indexes the sessions you already have on this machine — Claude Code, Codex, Cursor, opencode and forty-seven more agents — and gives Codex tools to search them. Ask what you fixed before instead of debugging it twice.",
     "developerName": "vshulcz",
     "category": "Productivity",
     "capabilities": [],

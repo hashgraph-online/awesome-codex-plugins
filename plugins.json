@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-20",
-  "total": 460,
+  "last_updated": "2026-11-21",
+  "total": 461,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -4035,6 +4035,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jingjing2222/rust-reverse-engineering-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "s2f Agent",
+      "url": "https://github.com/JiaqiLi1024/s2f-agent",
+      "owner": "JiaqiLi1024",
+      "repo": "s2f-agent",
+      "description": "Codex skills and routing playbooks for computational genomics, including sequence-model inference and variant-effect analysis.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/JiaqiLi1024/s2f-agent/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Scrape.ly",

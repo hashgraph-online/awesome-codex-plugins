@@ -49,7 +49,7 @@ exist.
 | `population.parent` | `{"model": <model, seed or snapshot, the project's or an installed package's>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
 | `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
 
-| `assumptions[].column` | optional: the output or source column the decision governs. `data.identifier_conversions` reads it: a conversion that drops, merges or respells identifiers of a column an assumption names is `declared` rather than `undeclared` (#861). Use it when a repair excludes identifiers of a second scheme or merges `7` and `007` on purpose, with the evidence that settles it. Join coverage reads it too: on an INNER join used as a filter, an assumption naming the driving key column (or a `population.filters` entry on it) says the unmatched rows are meant to be dropped, so the join is `satisfied` rather than `join_orphans` (#1162) |
+| `assumptions[].column` | optional: the output or source column the decision governs. `data.identifier_conversions` reads it: a conversion that drops, merges or respells identifiers of a column an assumption names is `declared` rather than `undeclared` (#861). Use it when a repair excludes identifiers of a second scheme or merges `7` and `007` on purpose, with the evidence that settles it. Join coverage reads it too: on an INNER join used as a filter, an assumption naming the driving key column (or a `population.filters` entry on it) says the unmatched rows are meant to be dropped, so the join is `satisfied` rather than `join_orphans` (#1162), unless the key declares a `references` to the joined relation, which requires every non-null key to match whatever an assumption says (#1459) |
 
 A field Dex does not know is refused by name, so a typo cannot silently drop
 part of a declaration.
@@ -72,7 +72,7 @@ the models that read it.
 | `description` (model or column) | dbt's own `description` |
 | a single-column `grain` | `unique` and `not_null` tests on that column |
 | `null_rule: never` | `not_null` on that column |
-| `foreign_key` with `references` | a `relationships` test (`arguments: {to, field}`) |
+| `references`, whatever the `role` | a `relationships` test (`arguments: {to, field}`): every non-null value exists in the parent, and `maintain verify` holds a join the model makes into that parent to the same claim, on a LEFT join too (#1459) |
 | a fact a generated test checks, where `declarations.render_tests` turns it on | that generated test, tagged with its cadence ([below](#generated-tests-an-opt-in-switch-and-a-cadence-tag)) |
 | `grain`, `population`, `assumptions` | model `config.meta.dex` |
 | `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references` | column `config.meta.dex` |
@@ -164,11 +164,13 @@ test keeps failing, and the last run in which a claim was checked and passed.
 
 The three tests above are the **built-ins**. They always render. A **generated
 test** is one Dex writes for a declared fact the built-ins cannot check: a
-composite grain, a population filter, a parent's population. Each kind arrives
-with its own issue (#1452 onward); this release renders three,
+composite grain, a population filter, a parent's population, a fraction's
+range. Each kind arrives with its own issue (#1452 onward); this release
+renders four,
 [`dex_unique_combination`](#dex_unique_combination-a-composite-grain),
-[`dex_population_filter`](#dex_population_filter-a-population-filter) and
-[`dex_parent_population`](#dex_parent_population-a-parents-population). The switch
+[`dex_population_filter`](#dex_population_filter-a-population-filter),
+[`dex_parent_population`](#dex_parent_population-a-parents-population) and
+[`dex_unit_range`](#dex_unit_range-a-fraction). The switch
 and the tag below are what every kind follows. Generated tests run in the
 project's production runs. Dex does not run those and the project pays for them,
 so two rules hold:
@@ -407,6 +409,50 @@ the project as the others' do: `macros/dex_parent_population.sql` (the
 [shipped macro](macros.md#dex_parent_population)) as a `macro_sql` diff where
 neither the project nor the plan defines the test. A parent drafted by Dex
 (`drafted.population_parent`) is never written, so it renders no test.
+
+#### `dex_unit_range`: a fraction
+
+A column declared `unit: fraction` renders `dex_unit_range` under it, tagged
+`dex_every_run`, with no arguments: the range is the unit's own.
+
+```yaml
+columns:
+  - name: discount_rate
+    data_tests:
+      - dex_unit_range:
+          config:
+            tags: [dex_every_run]
+            meta:
+              disable_test_samples: true
+              dex: {claim: <id>}
+```
+
+It fails with the count of rows whose value sits below 0 or above 1, the
+`out_of_range_rows` that `maintain verify`'s `unit_out_of_range` states, and it
+agrees with that finding on every connector:
+
+- **A NULL is no value.** It never counts, and a column holding only NULLs
+  passes, where `maintain verify` notes it as not checked.
+- **A column that is not a number is checked by neither.** Text, a boolean, a
+  date, a UUID, JSON: `maintain verify` names it in a note, and the test, reading
+  the column's type from the relation's metadata, compiles to a count of
+  nothing. Where that read finds nothing (an ephemeral model), the column is
+  compared as it is.
+- **Counts only.** The test returns the count, never a value.
+
+**A percent renders no test.** A column declared `unit: percent` is listed
+under `data.generated_tests` as `not_rendered` with `reason: heuristic_only`.
+`maintain verify` flags a percent whose every value sits within 0 to 1, which is
+what a fraction stored as a percent looks like, and also what a column of
+genuinely small percentages looks like: the finding is a question, and a test
+that failed a production run on it would fail correct data. Run
+`maintain verify` (or `transform build --verify`) to ask it.
+
+A column the model's SQL provably does not output renders no test
+(`column_not_output`). Its macro reaches the project as the others' do:
+`macros/dex_unit_range.sql` (the [shipped macro](macros.md#dex_unit_range)) as
+a `macro_sql` diff where neither the project nor the plan defines the test; a
+plan declaring only percent columns writes none.
 
 ### A versioned model
 

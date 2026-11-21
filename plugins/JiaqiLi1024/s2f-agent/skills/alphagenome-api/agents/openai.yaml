@@ -1,0 +1,4 @@
+interface:
+  display_name: "AlphaGenome API"
+  short_description: "AlphaGenome variant-effect and track-prediction workflows"
+  default_prompt: "Use $alphagenome-api to help me install AlphaGenome, run predict_variant / predict_interval workflows, or debug an API run."

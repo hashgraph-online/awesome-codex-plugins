@@ -21,8 +21,8 @@ directory persists between calls. Each `$NS/...` path below is where the current
 
 Read `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/compose/execution-modes.md` before composing: it
 carries the state map, who selects work, when the clock starts, direct-mode authority, the tooling
-policy, and how several entries become one shift. If `$NS/` does not exist yet, run Setup's flow
-(`skills/setup/SKILL.md`, at most four questions) first, then continue with the same sentence.
+policy, and how several entries become one shift. If `$NS/` does not exist yet, run the Setup skill
+(at most four questions) first, then continue with the same sentence.
 Never send the owner away to run Setup.
 
 ## 0. Read the sentence first

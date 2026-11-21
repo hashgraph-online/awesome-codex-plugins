@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Factory"
+  short_description: "Scaffold consistent skills from JSON specs"
+  default_prompt: "Use $skill-factory to create a new tool-specific skill package from a JSON spec."

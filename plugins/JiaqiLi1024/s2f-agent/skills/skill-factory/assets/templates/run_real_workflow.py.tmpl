@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Run a real {{TOOL_NAME}} workflow and save plot + metadata."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run real {{TOOL_NAME}} workflow.")
+    parser.add_argument("--species", default="human")
+    parser.add_argument("--assembly", default="hg38")
+    parser.add_argument("--chrom", default="chr19")
+    parser.add_argument("--start", type=int, default=6_700_000)
+    parser.add_argument("--end", type=int, default=6_732_768)
+    parser.add_argument("--model", default=None, help="Model name or checkpoint path")
+    parser.add_argument("--output-dir", default="output/{{ID}}")
+    parser.add_argument("--output-prefix", default="{{ID}}_real_run")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    out_dir = Path(args.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- Env var check ---
+    # If {{TOOL_NAME}} requires an API key, check it here and warn early.
+    # api_key = os.environ.get("TODO_API_KEY_VAR")
+    # if not api_key:
+    #     print("WARNING: TODO_API_KEY_VAR is not set. API calls will fail.", file=sys.stderr)
+
+    # --- Load model ---
+    # TODO: Replace with real {{TOOL_NAME}} model load.
+    # Example:
+    #   from <package> import <Model>
+    #   model = <Model>(args.model or "<default-checkpoint>")
+
+    # --- Run inference ---
+    # TODO: Replace with real inference call.
+    # Example:
+    #   result = model.predict(chrom=args.chrom, start=args.start, end=args.end)
+    #   # result shape: TODO (e.g. ndarray of shape (seq_len, n_tracks))
+
+    # --- Save metadata ---
+    meta = {
+        "tool": "{{TOOL_NAME}}",
+        "model": args.model,
+        "species": args.species,
+        "assembly": args.assembly,
+        "chrom": args.chrom,
+        "start": args.start,
+        "end": args.end,
+        # "output_shape": list(result.shape),  # uncomment after real inference
+        # "plot": str(plot_path),               # uncomment after saving figure
+    }
+    meta_path = out_dir / f"{args.output_prefix}_meta.json"
+    with meta_path.open("w") as f:
+        json.dump(meta, f, indent=2)
+    print(f"saved meta: {meta_path}")
+
+    # --- Save figure (optional) ---
+    # TODO: Replace with real plot logic.
+    # import matplotlib.pyplot as plt
+    # fig, ax = plt.subplots()
+    # ax.plot(result[:, 0])  # plot first track
+    # plot_path = out_dir / f"{args.output_prefix}_plot.png"
+    # fig.savefig(plot_path, dpi=150)
+    # plt.close(fig)
+    # print(f"saved plot: {plot_path}")
+    # meta["plot"] = str(plot_path)
+    # with meta_path.open("w") as f:
+    #     json.dump(meta, f, indent=2)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

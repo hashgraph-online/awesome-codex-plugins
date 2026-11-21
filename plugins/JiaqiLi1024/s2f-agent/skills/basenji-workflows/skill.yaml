@@ -1,0 +1,59 @@
+schema_version: 1
+id: basenji-workflows
+title: Basenji Workflows
+path: skills/basenji-workflows
+status: active
+family: quantitative-regulatory-activity
+tasks:
+  - environment-setup
+  - preprocessing
+  - training
+  - prediction
+  - variant-effect
+  - attribution
+  - motif-analysis
+  - troubleshooting
+triggers:
+  - basenji
+  - basenji_train
+  - basenji_predict
+  - basenji_sad
+  - basenji_sed
+  - basenji_sat
+  - SNP Activity Difference
+  - SAD score
+required_inputs:
+  - task-objective
+  - target-stack-or-model-family
+  - compute-constraints
+optional_inputs:
+  - sequence-or-interval
+  - assembly
+  - coordinate-or-interval
+  - ref-alt-or-variant-spec
+  - vcf-input
+  - dataset-schema
+  - requested-outputs
+input_mappings:
+  - task-objective|query_tokens=train,predict,SAD,SED,SAT,motif,gradient|script_flags=basenji-script-selection
+  - target-stack-or-model-family|query_tokens=basenji,model,checkpoint,params|script_flags=internal:model-selection
+  - compute-constraints|query_tokens=gpu,cpu,memory,batch,threads|script_flags=internal:run-sizing
+  - sequence-or-interval|query_tokens=data,HDF5,TFR,FASTA,sequence|script_flags=positional-data-input
+  - assembly|query_tokens=genome,hg38,assembly|script_flags=-f-or-g
+  - coordinate-or-interval|query_tokens=chr,region,interval,coordinate|script_flags=region-subset
+  - ref-alt-or-variant-spec|query_tokens=REF,ALT,variant,SNP,allele|script_flags=VCF-alleles
+  - vcf-input|query_tokens=VCF,variant-file|script_flags=positional-vcf-file
+  - dataset-schema|query_tokens=targets,track,TSS,gene,expression|script_flags=internal:data-schema
+  - requested-outputs|query_tokens=output,BigWig,preds.h5,SAD,SED,motif|script_flags=-o-and-output-selection
+constraints:
+  - quantitative-binned-sequence-to-signal-model
+  - sequence-and-coordinate-inputs-use-explicit-0-based-or-1-based-conventions
+  - SAD-needs-biallelic-vcf
+  - SED-needs-tss-bed
+  - legacy-tensorflow-runtime
+  - keep-akita-saluki-borzoi-scripts-separate
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-basenji-or-basenji-command
+  - prefer-over-bpnet-when-output-is-binned-activity-or-SAD-SED

@@ -1,0 +1,50 @@
+# Inference Patterns — {{TOOL_NAME}}
+
+Provide at least one minimal, fully executable inference example for {{TOOL_NAME}}.
+Replace all TODO blocks with real code verified against the installed package.
+
+## Minimal End-to-End Example
+
+```python
+# TODO: Replace with verified import path
+# from <package> import <Model>, <Tokenizer>
+
+# --- 1. Load model ---
+# model = <Model>.from_pretrained("<checkpoint>")
+# model.eval()
+
+# --- 2. Prepare input ---
+# sequence = "ACGT" * 100  # example sequence
+# inputs = tokenizer(sequence, return_tensors="pt")
+# # Input shape: (batch, seq_len)  — verify with constraints.md
+
+# --- 3. Run inference ---
+# with torch.no_grad():
+#     outputs = model(**inputs)
+# # Output shape: TODO (e.g. (batch, seq_len, vocab_size))
+
+# --- 4. Extract results ---
+# logits = outputs.logits  # or outputs["logits"] — verify key name
+# probs = logits.softmax(dim=-1)
+```
+
+## Variant-Effect Pattern (if applicable)
+
+```python
+# TODO: If {{TOOL_NAME}} supports variant scoring, document the REF/ALT comparison pattern.
+# score_ref = model(ref_input)["logits"]
+# score_alt = model(alt_input)["logits"]
+# log_ratio = (score_alt - score_ref).mean()
+```
+
+## Embedding Extraction Pattern (if applicable)
+
+```python
+# TODO: Document which layer or key yields embeddings.
+# embeddings = outputs.hidden_states[-1]  # shape: (batch, seq_len, hidden_dim)
+```
+
+## Notes
+
+- All patterns above must be verified against `references/constraints.md` before use.
+- Replace every TODO comment with a real, runnable line before marking this skill as production-ready.

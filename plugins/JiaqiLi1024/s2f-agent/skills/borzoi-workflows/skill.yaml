@@ -1,0 +1,44 @@
+schema_version: 1
+id: borzoi-workflows
+title: Borzoi Workflows
+path: skills/borzoi-workflows
+status: active
+family: sequence-to-signal
+tasks:
+  - environment-setup
+  - training
+  - variant-effect
+  - interpretation
+  - structural-variant-analysis
+triggers:
+  - borzoi
+  - westminster
+  - baskerville
+  - score_variants
+  - interpret_sequence
+required_inputs:
+  - task-objective
+  - assembly
+optional_inputs:
+  - species
+  - sequence-or-interval
+  - coordinate-or-interval
+  - ref-alt-or-variant-spec
+  - output-head
+input_mappings:
+  - task-objective|query_tokens=objective,training,variant,effect,interpretation,prediction|script_flags=tutorial-script-selection
+  - assembly|query_tokens=assembly,hg38,mm10,hg19|script_flags=--genome,--assembly
+  - sequence-or-interval|query_tokens=sequence,interval,fasta,start,end|script_flags=input-fasta-or-interval
+  - coordinate-or-interval|query_tokens=coordinate,position,pos,site,locus,chr|script_flags=variant-score-interval-flags
+  - ref-alt-or-variant-spec|query_tokens=ref,alt,variant,mutation,>|script_flags=variant-score-ref-alt-flags
+  - output-head|query_tokens=head,track,coverage,rna,splice|script_flags=score-type-selection
+constraints:
+  - python310-and-tf215-grounded-path
+  - latest-tutorials-preferred-over-legacy
+  - route-segmentborzoi-api-requests-to-segment-nt
+  - interval-is-0based-half-open-variant-coordinate-is-1based-vcf-style
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-borzoi-or-calico-tutorials
+  - prefer-when-task-is-borzoi-variant-scoring-or-sequence-interpretation

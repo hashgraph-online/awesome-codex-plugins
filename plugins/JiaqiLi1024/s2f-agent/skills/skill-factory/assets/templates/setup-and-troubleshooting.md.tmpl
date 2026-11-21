@@ -1,0 +1,47 @@
+# Setup and Troubleshooting — {{TOOL_NAME}}
+
+Use this file when {{TOOL_NAME}} setup or runtime fails.
+Work through failure modes in the order listed — environment issues cause most downstream errors.
+
+## Recommended Environment Baseline
+
+- Python: TODO (e.g. 3.10 or 3.11 — check tool docs)
+- OS: TODO (e.g. Linux x86_64 required for CUDA, macOS supported for CPU-only)
+- GPU: TODO (e.g. NVIDIA with CUDA 12.1+, or CPU-only supported)
+- Install command: TODO (e.g. `pip install <package>==<version>`)
+- Verify install: TODO (e.g. `python -c "import <package>; print(<package>.__version__)"`)
+
+## Ordered Failure Diagnosis
+
+### 1. Environment mismatch
+- Check Python version matches the requirement above.
+- Check OS and architecture (x86_64 vs arm64).
+- Check CUDA version with `nvcc --version` and `nvidia-smi`.
+- Fix: create a fresh virtual environment and reinstall from scratch.
+
+### 2. Dependency conflict
+- Run `pip check` to surface incompatible packages.
+- Pin the exact version stack from the tool's `requirements.txt` or install docs.
+- Fix: `pip install --upgrade <package>==<pinned-version>`
+
+### 3. Model download or cache failure
+- First run downloads weights — this can take minutes and fail mid-download.
+- Interrupted downloads leave partial cache artifacts that cause silent errors on retry.
+- Fix: clear the cache directory (e.g. `~/.cache/huggingface/`) and re-run.
+- Fix: set `HF_HOME` or tool-specific cache env var to a path with sufficient disk space.
+
+### 4. Hardware resource pressure
+- OOM errors: reduce batch size, use a smaller checkpoint, or switch to CPU.
+- Slow inference: confirm GPU is visible (`torch.cuda.is_available()`).
+- Fix: start with the smallest available checkpoint and the shortest valid input.
+
+### 5. Network or credentials failure
+- Gated model repos require `huggingface-cli login` or `token=...` in `from_pretrained`.
+- API-key-dependent tools: confirm env var is exported (`echo $API_KEY_VAR`).
+- Fix: re-authenticate and retry; use `--local-files-only` if weights are already cached.
+
+## Common Error Messages
+
+| Error Message | Likely Cause | Fix |
+|---|---|---|
+| TODO: `<error text>` | TODO: cause | TODO: fix |

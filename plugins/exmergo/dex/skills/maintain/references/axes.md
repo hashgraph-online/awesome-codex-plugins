@@ -260,8 +260,13 @@ Needs no baseline. The classes of finding:
   `data.join_coverage`, one record per join:
   - `declared`: what the declaration says about the join. It is `required` when
     a column it supplies is declared `null_rule: never` on a LEFT join, or the
-    column carrying the driving key is a `foreign_key` whose `references`
-    names the joined relation. `optional` is set when every column it supplies
+    column carrying the driving key declares a `references` that names the
+    joined relation, whatever its `role` and on a LEFT join too (#1459): a
+    `references` means every non-null value exists in the parent, which is how
+    the `relationships` test it renders reads it, so a missing reference is
+    written as a NULL and passes both. A version label
+    (`dim_teams.v2.team_id`) names that version's relation, and a bare name
+    the version an unversioned `ref()` resolves to. `optional` is set when every column it supplies
     states a NULL rule other than `never`. NULL keys are `excluded`, or
     counted `unmatched` where the key's column is `null_rule: never`.
   - `measured` and `coverage`: eligible, matched and unmatched rows and
@@ -321,7 +326,7 @@ Needs no baseline. The classes of finding:
   - `join_orphans` and `join_zero_overlap`: on a required join any unmatched
     row (`threshold_source: contract`, high). Otherwise the stated defaults,
     0.2 and 0.9 of eligible rows (`threshold_source: default`). On a LEFT join
-    with no requirement, unmatched rows are the optional relationship the join
+    with no requirement (no `references` on its driving key), unmatched rows are the optional relationship the join
     writes: no `join_orphans`, and `join_zero_overlap` at medium. On an INNER
     join with no requirement whose unmatched rows the declaration accounts for
     (an `assumptions` entry whose `column` names the driving key column, or a

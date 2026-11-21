@@ -1,0 +1,52 @@
+schema_version: 1
+id: sei-workflows
+title: Sei Workflows
+path: skills/sei-workflows
+status: active
+family: chromatin-profile-sequence-class
+tasks:
+  - environment-setup
+  - prediction
+  - variant-effect
+  - interpretation
+  - training
+  - troubleshooting
+triggers:
+  - sei
+  - Sei model
+  - sequence class
+  - chromatin profiles
+  - raw_sc_score
+  - varianteffect_sc_score
+required_inputs:
+  - task-objective
+  - sequence-or-interval
+optional_inputs:
+  - target-stack-or-model-family
+  - assembly
+  - vcf-input
+  - requested-outputs
+  - runtime-context
+  - hardware-context
+  - dataset-schema
+input_mappings:
+  - task-objective|query_tokens=sequence,variant,profile,class,score,train|script_flags=numbered-script-selection
+  - sequence-or-interval|query_tokens=bed,fasta,sequence,region|script_flags=1_sequence_prediction
+  - target-stack-or-model-family|query_tokens=sei,model,Selene|script_flags=internal:model-selection
+  - assembly|query_tokens=hg19,hg38,genome,assembly|script_flags=--genome
+  - vcf-input|query_tokens=vcf,variant|script_flags=1_variant_effect_prediction
+  - requested-outputs|query_tokens=output,hdf5,npy,tsv,sequence-class|script_flags=2_score-script-selection
+  - runtime-context|query_tokens=python,selene,conda|script_flags=internal:runtime-selection
+  - hardware-context|query_tokens=gpu,cuda,cpu,memory|script_flags=--cuda
+  - dataset-schema|query_tokens=profiles,targets,row_labels|script_flags=internal:label-alignment
+constraints:
+  - hg19-or-hg38-required-for-bed-and-vcf
+  - prediction-writes-chromatin-profiles-hdf5
+  - variant-class-score-is-alt-minus-ref-with-histone-normalization
+  - rows-and-columns-must-use-upstream-label-files
+  - sequence-and-coordinate-inputs-use-explicit-0-based-or-1-based-conventions
+tools: []
+tool_contracts: []
+priority_rules:
+  - prefer-when-user-explicitly-mentions-sei-or-sequence-classes
+  - prefer-when-request-needs-21907-chromatin-profiles-or-40-class-projection

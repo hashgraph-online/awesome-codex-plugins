@@ -60,6 +60,22 @@ apart, as `dex_parent_population_text(column_name)` and
 `dex_parent_population_literal(text)`, written per warehouse as
 `dex_population_filter`'s are.
 
+## `dex_unit_range`
+
+The generic test a column declared a fraction renders
+([declarations](declarations.md#dex_unit_range-a-fraction)), where
+`declarations.render_tests` turns it on; a `percent` column renders none. A
+declaration plan adds it for you; this command scaffolds or diffs it on its own.
+It fails with the count of rows whose value sits below 0 or above 1 (a NULL
+never counts), and never selects a value. It reads the column's type from the
+relation's metadata and compares a column only where its type is a number as
+`maintain verify` reads one (a numeric type name, and no boolean or temporal
+one), so text, a boolean, a date, a UUID or JSON is not compared; dbt's own
+`Column.is_number()` is not used, since it reads `DECIMAL(2,1)`, `FLOAT64` and `NUMBER(38,0)` as no
+number. The SQL goes through dbt's dispatch, `default__dex_unit_range` holds on
+every connector, and a project overrides one warehouse with its own
+`<adapter>__dex_unit_range(model, column_name)` macro.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

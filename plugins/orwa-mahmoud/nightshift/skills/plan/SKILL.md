@@ -140,7 +140,7 @@ templates or a checklist while discussing.
 When the owner says "just do it" or "implement it": the room still holds. Say plainly that nothing
 can be built in this conversation while the plan room is open, and give the exits (section 6). Build
 nothing through any tool, the shell included: no code written into the staging folder to copy out
-later, no scripts that change the project, and no asking another conversation to make the change.
+later, no scripts that change the project, and no handing the change to another conversation.
 
 ## 5. Keep the plan record current
 

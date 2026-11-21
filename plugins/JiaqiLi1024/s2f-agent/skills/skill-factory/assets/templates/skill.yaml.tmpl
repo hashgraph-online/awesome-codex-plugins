@@ -1,0 +1,38 @@
+schema_version: 1
+id: {{ID}}
+title: {{TITLE}}
+path: {{SKILL_PATH}}
+status: active
+family: {{FAMILY}}
+tasks:
+{{TASKS_YAML}}triggers:
+{{TRIGGERS_YAML}}required_inputs:
+  - task-objective
+  - execution-path
+optional_inputs:
+  - model-name
+  - output-dir
+  - api-key-or-credentials
+input_mappings:
+  - task-objective|query_tokens=task,run,predict,score,embed,generate,setup
+  - execution-path|query_tokens=local,api,hosted,install
+  - model-name|query_tokens=model,checkpoint,version|script_flags=--model-name
+  - output-dir|query_tokens=output,outdir,save|script_flags=--output-dir
+required_env_any: []
+constraints:
+  - verify-api-surface-against-installed-package-before-use
+  - output-must-include-metadata-json-with-input-params
+  - execution-path-must-be-stated-explicitly-before-code
+tools:
+  - scripts/run_real_{{ID_UNDERSCORE}}_workflow.py
+tool_contracts:
+  - tool: scripts/run_real_{{ID_UNDERSCORE}}_workflow.py
+    inputs:
+      - task-args-and-credentials
+    outputs:
+      - plot-and-metadata-json
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-{{ID}}
+  - prefer-when-task-needs-{{TOOL_NAME}}-workflow

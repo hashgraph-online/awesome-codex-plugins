@@ -1,0 +1,71 @@
+schema_version: 1
+id: chrombpnet-skill
+title: ChromBPNet
+path: skills/chrombpnet-skill
+status: active
+family: bias-factorized-accessibility-modeling
+tasks:
+  - environment-setup
+  - preprocessing
+  - bias-model-training
+  - training
+  - prediction
+  - attribution
+  - motif-analysis
+  - footprinting
+  - troubleshooting
+triggers:
+  - chrombpnet
+  - chrombpnet-skill
+  - bias factorized
+  - chrombpnet_nobias
+  - pred_bw
+  - contribs_bw
+required_inputs:
+  - task-objective
+  - assembly
+optional_inputs:
+  - dataset-schema
+  - runtime-context
+  - hardware-context
+  - output-head
+  - output-dir
+input_mappings:
+  - task-objective|query_tokens=setup,preprocess,train,bias,qc,predict,contribs,motif,footprint,troubleshoot|script_flags=--mode,chrombpnet-subcommand
+  - assembly|query_tokens=assembly,hg38,hg19,mm10,genome,chrom-sizes|script_flags=--genome,--chrom-sizes
+  - dataset-schema|query_tokens=bam,fragment,tagalign,peaks,nonpeaks,narrowpeak,fold|script_flags=--bam,--fragments,--tagalign,--peaks,--nonpeaks,--fold
+  - runtime-context|query_tokens=conda,docker,python,tensorflow,runtime|script_flags=execution-path-selection
+  - hardware-context|query_tokens=gpu,cuda,nvidia,memory,batch|script_flags=--batch-size
+  - output-head|query_tokens=bigwig,profile,counts,contribution,motif,footprint|script_flags=pred_bw,contribs_bw,--profile-or-counts,footprints
+  - output-dir|query_tokens=output,outdir,run-directory|script_flags=--output-dir,--output-prefix
+constraints:
+  - exactly-one-of-bam-fragment-or-tagalign
+  - peaks-and-nonpeaks-are-exactly-10-column-narrowpeak
+  - summit-is-0based-offset-from-start
+  - fold-train-valid-test-chromosomes-are-nonempty-and-disjoint
+  - python38-tensorflow28-is-repository-grounded-path
+  - practical-training-requires-nvidia-gpu
+  - current-parser-does-not-expose-snp-score-or-modisco-motifs
+  - output-run-children-must-not-already-exist
+tools:
+  - scripts/validate_chrombpnet_inputs.py
+tool_contracts:
+  - tool: scripts/validate_chrombpnet_inputs.py
+    inputs:
+      - mode-and-assay
+      - reference-fasta-and-chromosome-sizes
+      - peaks-nonpeaks-and-fold-json
+      - exactly-one-read-input
+      - bias-model-or-bias-threshold
+      - output-directory
+    outputs:
+      - validation-report-json
+      - rendered-chrombpnet-command
+    side_effects:
+      - optionally-writes-json-report
+    failure_codes:
+      - 1
+priority_rules:
+  - prefer-when-user-explicitly-mentions-chrombpnet
+  - prefer-over-generic-bpnet-when-enzyme-bias-atac-or-dnase-context-is-present
+  - route-generic-bpnet-requests-without-chrombpnet-context-to-bpnet

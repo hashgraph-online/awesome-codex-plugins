@@ -1,0 +1,4 @@
+interface:
+  display_name: "SegmentNT Family"
+  short_description: "SegmentNT/Enformer/Borzoi segmentation, constraints, and rescaling"
+  default_prompt: "Use $segment-nt to help me run SegmentNT, SegmentEnformer, or SegmentBorzoi inference, including pmap setup, token counts (with/without CLS), sequence constraints, and SegmentNT rescaling_factor."

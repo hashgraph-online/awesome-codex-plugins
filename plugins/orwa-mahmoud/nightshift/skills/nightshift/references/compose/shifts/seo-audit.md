@@ -25,7 +25,7 @@ and `check-report` verification. Typical hours: 2–4.
 
 SEO audit runs in exactly one evidence mode per shift (or a declared combination when the owner
 supplies multiple approved source types). Discovery records the mode before findings are drafted.
-Schemas: `references/schemas/v1/local-inventory.json`, `live-crawl.json`, `connected-export.json`.
+Schemas: `$NIGHTSHIFT_PLUGIN_ROOT/config/schemas/v1/local-inventory.json`, `live-crawl.json`, `connected-export.json`.
 Build inventories and crawl snapshots from owner-supplied files or tree metadata, record them in a
 `# seo` receipt from `receipts/cycle-specialist-evidence.md`, then cite them in the manifest.
 

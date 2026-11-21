@@ -1,0 +1,4 @@
+interface:
+  display_name: "HyenaDNA inference"
+  short_description: "HyenaDNA long-context DNA embeddings and training"
+  default_prompt: "Use $hyenadna-inference to help me with HyenaDNA long-context DNA embeddings and training."

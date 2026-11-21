@@ -1,0 +1,4 @@
+interface:
+  display_name: "Basenji workflows"
+  short_description: "Basenji regulatory activity and variant workflows"
+  default_prompt: "Use $basenji-workflows to help me with Basenji regulatory activity and variant workflows."

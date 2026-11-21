@@ -5,20 +5,24 @@
   </picture>
 </p>
 
-<p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 50 coding agents.</b><br>
+<p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 51 coding agents.</b><br>
 Local inverted index in a single Go binary — zero LLM calls, 0.7–0.8 ms in-process lookups, ~4% index footprint.</p>
 
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
 
 <p align="center">
+  <a href="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml"><img src="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="CI"></a>
+  <a href="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-88%25-brightgreen" alt="Coverage"></a>
+  <a href="https://github.com/vshulcz/deja-vu/releases"><img src="https://img.shields.io/github/v/release/vshulcz/deja-vu" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  &middot;
   <a href="https://vshulcz.github.io/deja-vu/">Website</a> &middot; <a href="https://vshulcz.github.io/deja-vu/view/">Live demo</a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/getting-started.html">Docs</a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/benchmarks.html">Benchmarks</a> &middot; <a href="docs/ARCHITECTURE.md">Architecture</a>
 </p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/vshulcz/deja-vu/main/assets/demo.gif" width="720" alt="deja-vu answering a question from prior session history"></p>
 
 ```sh
-brew install deja-vu && deja install --auto          # Homebrew (macOS / Linux)
-npx @vshulcz/deja-vu install --auto                  # npm wrapper, no Homebrew required
+npx @vshulcz/deja-vu install --auto                # install and wire detected agents
 curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh && deja install --auto
 claude plugin marketplace add vshulcz/deja-vu && claude plugin install deja-vu@deja-vu
 codex plugin marketplace add https://github.com/vshulcz/deja-vu && codex plugin add deja-vu@deja-vu
@@ -27,7 +31,7 @@ opencode plugin add opencode-deja
 ```
 
 ```sh
-$ deja "jwt refresh token"             # lexical + structural search across 50 coding agents
+$ deja "jwt refresh token"             # lexical + structural search across 51 coding agents
 $ deja handoff --to codex              # transfer goal, decisions & open work across agents
 $ deja restore internal/auth/jwt.go    # recover an edit span replaced before git commit
 $ deja blame internal/auth/jwt.go:42   # trace which agent session wrote or replaced a line
@@ -36,9 +40,9 @@ $ deja audit                           # inspect store paths, cleanup risk & ind
 
 ## Overview
 
-Coding agents already persist transcripts to local JSONL and SQLite stores (`~/.claude`, `~/.codex`, Cursor `state.vscdb`, OpenCode, Gemini CLI, Hermes, and the remaining supported harnesses). `deja` indexes those transcripts in place into an append-only inverted index under `~/.cache/deja` and exposes history through a terminal TUI, CLI, MCP server, and lifecycle hooks. Measured at 97.2% R@5 on LongMemEval-S (88.9% hit@1 on the 470-question cleaned set), 58% fewer tokens on repeated repository tasks (`scripts/taskcost`), and 0.7–0.8 ms in-process lookups.
+Coding agents already persist transcripts to local JSONL and SQLite stores (`~/.claude`, `~/.codex`, Cursor `state.vscdb`, OpenCode, Gemini CLI, Hermes, and the remaining supported harnesses). `deja` indexes those transcripts in place into an append-only inverted index under `~/.cache/deja` and exposes history through a terminal TUI, CLI, MCP server, and lifecycle hooks.
 
-- **Works retroactively from day one.** Existing transcripts across all [fifty agents](#supported-harnesses) are searchable immediately without capture daemons or API keys.
+- **Works retroactively from day one.** Existing transcripts across all [fifty-one agents](#supported-harnesses) are searchable immediately without capture daemons or API keys.
 - **Survives `/compact` and context resets.** Captures pre-compaction tasks, settled decisions, files, and verification commands and injects a bounded recovery packet on the next turn ([details](docs/compaction.md)).
 - **Cross-agent handoff (`deja handoff`).** Transfers goal, standing constraints, touched files, passed checks, and open work between harnesses.
 - **Code recovery and attribution (`deja restore`, `deja blame`, `deja origin`).** Indexes recorded edit spans, opened files, and exit-coded shell commands to recover clobbered uncommitted changes and map commits/lines back to agent sessions.
@@ -186,10 +190,10 @@ Reference: [CLI commands](https://vshulcz.github.io/deja-vu/guide/commands.html)
 
 ## Supported harnesses
 
-All fifty supported coding agents share one index, CLI, and MCP server (`DEJA_*_ROOT` and upstream relocation env vars are honored; [session format registry](https://vshulcz.github.io/deja-vu/registry/README.html)). TRAE IDE transcripts live in an encrypted database, so `deja install trae-ide` wires MCP and skills (plus hooks under `trae-ide-auto` once enabled in IDE settings) without transcript ingestion.
+All fifty-one supported coding agents share one index, CLI, and MCP server (`DEJA_*_ROOT` and upstream relocation env vars are honored; [session format registry](https://vshulcz.github.io/deja-vu/registry/README.html)). TRAE IDE transcripts live in an encrypted database, so `deja install trae-ide` wires MCP and skills (plus hooks under `trae-ide-auto` once enabled in IDE settings) without transcript ingestion.
 
 <!-- matrix:start -->
-aider &middot; Amp &middot; Ante &middot; Antigravity &middot; Cherry Studio &middot; Claude Code &middot; Claw Code &middot; Cline &middot; CodeArts Desktop &middot; CodeBuddy Code &middot; CodeWhale &middot; Codex CLI &middot; Command Code &middot; Continue &middot; Copilot CLI &middot; VS Code Copilot Chat &middot; Crush &middot; Cursor &middot; DeepSeek Harness &middot; Devin CLI &middot; Gemini CLI &middot; gajae-code &middot; Goose &middot; Grok Build &middot; Hermes &middot; JetBrains AI Assistant &middot; Junie &middot; Kilo Code &middot; Kimchi Coding &middot; Kimi Code &middot; Kiro &middot; MiniMax Code &middot; MiMo-Code &middot; Muse Code &middot; Omnigent &middot; omp (Oh My Pi) &middot; OpenClaw &middot; opencode &middot; Orca &middot; pi &middot; prime-agent (PrimeIntellect) &middot; Qoder &middot; Qwen Code &middot; Reasonix &middot; Roo Code &middot; Senpi &middot; TRAE CLI &middot; Windsurf / Devin Desktop &middot; ZCode &middot; Zed.
+aider &middot; Amp &middot; Ante &middot; Antigravity &middot; Cherry Studio &middot; Claude Code &middot; Claw Code &middot; Cline &middot; CodeArts Desktop &middot; CodeBuddy Code &middot; CodeWhale &middot; Codex CLI &middot; Command Code &middot; Continue &middot; Copilot CLI &middot; VS Code Copilot Chat &middot; Crush &middot; Cursor &middot; DeepSeek Harness &middot; Devin CLI &middot; Doubao &middot; Gemini CLI &middot; gajae-code &middot; Goose &middot; Grok Build &middot; Hermes &middot; JetBrains AI Assistant &middot; Junie &middot; Kilo Code &middot; Kimchi Coding &middot; Kimi Code &middot; Kiro &middot; MiniMax Code &middot; MiMo-Code &middot; Muse Code &middot; Omnigent &middot; omp (Oh My Pi) &middot; OpenClaw &middot; opencode &middot; Orca &middot; pi &middot; prime-agent (PrimeIntellect) &middot; Qoder &middot; Qwen Code &middot; Reasonix &middot; Roo Code &middot; Senpi &middot; TRAE CLI &middot; Windsurf / Devin Desktop &middot; ZCode &middot; Zed.
 
 <details>
 <summary>What each one supports</summary>
@@ -216,6 +220,7 @@ aider &middot; Amp &middot; Ante &middot; Antigravity &middot; Cherry Studio &mi
 | Cursor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | sqlite3 (IDE chats, CLI tool output) |
 | DeepSeek Harness | ✅ | ✅ | ✅ | ✅ | ✕ | ✅ | zstd |
 | Devin CLI | ✅ | ✅ | ✅ | ✕ | ✅ | ✅ | sqlite3 |
+| Doubao | ⚠ | ⚠ | ⚠ | ⚠ | ✕ | paste | — |
 | Gemini CLI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | gajae-code | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | none |
 | Goose | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | deja goose |
@@ -327,7 +332,7 @@ deja bench read       # SQLite store parser scaling benchmark
 
 | Model | History before install | Capture step | Runtime dependency | File recovery |
 | --- | --- | --- | --- | --- |
-| **deja-vu** (transcript index) | Full existing stores across 50 harnesses | None | Single Go binary | `deja restore <path>` |
+| **deja-vu** (transcript index) | Full existing stores across 51 harnesses | None | Single Go binary | `deja restore <path>` |
 | Record-forward MCP servers | Starts empty from install | Explicit writes / observer hooks | Background worker / LLM calls | No |
 | Raw transcript grep | Full logs | None | Manual search, high noise | No |
 

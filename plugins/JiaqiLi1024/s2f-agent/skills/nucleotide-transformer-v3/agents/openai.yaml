@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nucleotide Transformer v3"
+  short_description: "NTv3 HF-first inference, species conditioning, and length-safe workflows"
+  default_prompt: "Use $nucleotide-transformer-v3 to help me run NTv3 with Hugging Face Transformers (primary), including species conditioning, divisibility checks, center-cropped outputs, and setup troubleshooting."

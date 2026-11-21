@@ -1,0 +1,4 @@
+interface:
+  display_name: "BPNet Workflows"
+  short_description: "BPNet training, prediction, SHAP, and motif workflows"
+  default_prompt: "Use $bpnet-skill to validate my BPNet inputs and plan a grounded train, predict, or SHAP workflow."

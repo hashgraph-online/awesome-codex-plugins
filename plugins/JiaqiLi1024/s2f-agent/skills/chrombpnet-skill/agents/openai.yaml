@@ -1,0 +1,4 @@
+interface:
+  display_name: "ChromBPNet"
+  short_description: "Train and interpret bias-corrected accessibility models"
+  default_prompt: "Use $chrombpnet-skill to plan and validate a ChromBPNet ATAC-seq or DNase-seq workflow."

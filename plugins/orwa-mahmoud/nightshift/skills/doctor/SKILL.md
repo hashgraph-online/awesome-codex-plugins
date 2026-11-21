@@ -110,7 +110,7 @@ prior owner is suspected.
 Offer the classified repairs after the report. If the owner explicitly asks to apply a `[safe]`
 leftover while no shift is armed, they are no longer in Doctor — follow stop/start/setup as those
 skills specify. Until that explicit ask, change nothing. During an unattended shift, the offer is
-informational only: continue the active work without asking or writing state.
+informational only: continue the active work; ask nothing and write no state.
 
 Two repairs the report names are separate owner actions, never Doctor's own:
 
