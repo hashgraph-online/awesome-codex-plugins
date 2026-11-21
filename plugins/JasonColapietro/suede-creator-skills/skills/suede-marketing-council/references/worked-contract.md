@@ -1,4 +1,4 @@
-# Suede AI Marketing Council Skills: Worked Contract
+# Suede Marketing Council Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Verify the synthesis contains one recommendation, at least one explicit disagree
 
 ## Detailed scope and routing
 
-Suede AI marketing council: twelve role-based simulated advisors (Positioning Strategist, Offer Strategist, Search Visibility Strategist, Brand Reach Scientist, and others) apply named Suede frameworks to one bounded marketing decision, map the disagreements and the evidence that would settle each, and return a chair's synthesis with next steps and skill handoffs. Use when the user wants expert lenses, a simulated advisory board, a pressure test of a contested or irreversible bet, or a skeptic's read before committing. NOT FOR: impersonating or quoting real people, primary research (use suede-customer-research), writing the plan itself (use suede-marketing-plan), or executing the chosen tactic (route to the relevant Suede skill).
+Suede marketing council: twelve role-based simulated advisors (Positioning Strategist, Offer Strategist, Search Visibility Strategist, Brand Reach Scientist, and others) apply named Suede frameworks to one bounded marketing decision, map the disagreements and the evidence that would settle each, and return a chair's synthesis with next steps and skill handoffs. Use when the user wants expert lenses, a simulated advisory board, a pressure test of a contested or irreversible bet, or a skeptic's read before committing. NOT FOR: impersonating or quoting real people, primary research (use suede-customer-research), writing the plan itself (use suede-marketing-plan), or executing the chosen tactic (route to the relevant Suede skill).

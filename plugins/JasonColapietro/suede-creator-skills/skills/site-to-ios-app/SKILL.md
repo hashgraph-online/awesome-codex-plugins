@@ -1,11 +1,11 @@
 ---
 name: site-to-ios-app
-description: "Suede AI Site to iOS App Skills. Use when asked to \"turn this site into an iOS app\" or convert a PWA: inspect the URL, choose shell or native strategy, then deliver an audit, build plan and release evidence. NOT FOR: Android builds (android-app-factory), Play rollout (suede-play-release), store listing strategy (suede-aso), or a native iOS app with no website."
+description: "Suede Site to iOS App Skills. Use when asked to \"turn this site into an iOS app\" or convert a PWA: inspect the URL, choose shell or native strategy, then deliver an audit, build plan and release evidence. NOT FOR: Android builds (android-app-factory), Play rollout (suede-play-release), store listing strategy (suede-aso), or a native iOS app with no website."
 metadata:
-  display-name: "Suede AI Site to iOS App Skills"
+  display-name: "Suede Site to iOS App Skills"
 ---
 
-# Suede AI Site to iOS App Skills
+# Suede Site to iOS App Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.
@@ -143,5 +143,5 @@ Do not call the app release-ready until:
 - Constants that must match across iOS, Android, and web →
   `suede-parity-contract`.
 - A native iOS app with no website behind it, or repair of an existing
-  Capacitor shell, is outside this pack (private Suede AI companions, not in
+  Capacitor shell, is outside this pack (private Suede companions, not in
   this pack).

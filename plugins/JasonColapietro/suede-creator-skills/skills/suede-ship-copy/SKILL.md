@@ -2,10 +2,10 @@
 name: suede-ship-copy
 description: "Produce one high-stakes public draft with parallel research, agent-claim audits, message ownership, adversarial review, publish readiness, and an evidence record. Use when asked to \"research and draft this launch page\" or rigorously develop one landing page, email, post, README, ad, or store listing. Preserves requester-supplied facts and writes drafts only. NOT FOR: routine or bulk copy (use suede-copy), code changes (use suede-graph-flo-xr), or cleaning existing prose (use suede-deslop)."
 metadata:
-  display-name: "Suede AI Ship Copy Skills"
+  display-name: "Suede Ship Copy Skills"
 ---
 
-# Suede AI Ship Copy Skills
+# Suede Ship Copy Skills
 
 ## Compatibility
 

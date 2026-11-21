@@ -2,10 +2,10 @@
 name: suede-design
 description: "Use when asked \"review this UI diff\" or \"audit this flow\"; to design interface hierarchy, tokens, color, type, accessibility or a design system; run a whole-flow review; restyle a dashboard; or verify a visual build. NOT FOR: component state workbenches or live variants (use suede-component-lab), source-backed effect explanations (use suede-interface-explain), sales copy (use suede-copy), funnel architecture (use suede-site-alchemy), or general code/security review (use suede-code)."
 metadata:
-  display-name: "Suede AI Design Skills"
+  display-name: "Suede Design Skills"
 ---
 
-# Suede AI Design Skills
+# Suede Design Skills
 
 Make interfaces feel intentional, legible, and specific to the product they
 serve. Covers product UI, brand and launch surfaces, dashboards, component
@@ -42,7 +42,7 @@ concrete safety boundary. Continue independent work.
 
 ## Brand mark
 
-For authorized Suede AI asset work, use only `docs/assets/suede-ai-logo-transparent.png`
+For authorized Suede asset work, use only `docs/assets/suede-ai-logo-transparent.png`
 from `JasonColapietro/suede-creator-skills` (SHA-256
 `83a7ee0317e4debe2e7b076c20ba067feb76a587f9e829dc6310ae4be4b44dfa`). Outside
 that checkout, the same approved source is

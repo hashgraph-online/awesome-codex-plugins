@@ -56,6 +56,27 @@ test('uses opener data only for an exact method and body match', async () => {
   );
 });
 
+test('loads the sidebar through its App API when the host delivers no private opener metadata', async () => {
+  const inbox = createBootstrapInbox();
+  inbox.receive({ content: [], structuredContent: { view: 'workflows' } });
+  const requests = [];
+  const result = await inbox.request('/api/workflow/list', 'POST', { include_legacy: true },
+    async (...args) => {
+      requests.push(args);
+      return { body: [{ id: 'from-app' }], status: 200 };
+    });
+  assert.deepEqual(result, [{ id: 'from-app' }]);
+  assert.deepEqual(requests, [['/api/workflow/list', 'POST', { include_legacy: true }]]);
+});
+
+test('surfaces an opener tool failure without restarting its first read', async () => {
+  const inbox = createBootstrapInbox();
+  inbox.receive({ isError: true, content: [{ type: 'text', text: 'Workbench connection denied' }] });
+  await assert.rejects(inbox.request('/api/config', 'GET', undefined, async () => {
+    assert.fail('a failed opener must not reach the App API');
+  }), /Workbench connection denied/);
+});
+
 test('invalidates unconsumed opener failures after a successful configuration mutation', async () => {
   const inbox = createBootstrapInbox();
   inbox.receive({

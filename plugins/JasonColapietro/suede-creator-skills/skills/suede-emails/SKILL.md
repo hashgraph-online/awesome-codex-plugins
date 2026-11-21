@@ -1,12 +1,12 @@
 ---
 name: suede-emails
-description: "Use when asked \"build a welcome email sequence\" or to design nurture, onboarding, win-back, post-purchase or trigger-based lifecycle email flows. Suede AI returns entry and exit criteria, timing, exact copy, sender-rule checks and a measurement plan. NOT FOR: cold outbound (use suede-cold-email), SMS (use suede-sms), in-product onboarding (use suede-onboarding), or broader lifecycle operations (use suede-revops)."
+description: "Use when asked \"build a welcome email sequence\" or to design nurture, onboarding, win-back, post-purchase or trigger-based lifecycle email flows. Suede returns entry and exit criteria, timing, exact copy, sender-rule checks and a measurement plan. NOT FOR: cold outbound (use suede-cold-email), SMS (use suede-sms), in-product onboarding (use suede-onboarding), or broader lifecycle operations (use suede-revops)."
 metadata:
-  display-name: "Suede AI Lifecycle Email Skills"
+  display-name: "Suede Lifecycle Email Skills"
   version: 2.1.0
 ---
 
-# Suede AI Lifecycle Email Skills
+# Suede Lifecycle Email Skills
 
 Design lifecycle email as a consent-aware system of triggers, message roles, pacing, and measurable next actions. Create sequences that move a known audience toward value without inventing intent, exhausting the list, or confusing lifecycle messaging with cold outreach.
 

@@ -1,12 +1,12 @@
 ---
 name: suede-churn-prevention
-description: "Suede AI Churn Prevention Skills. Use when asked to \"reduce subscription churn\" or design cancel flows, reason-matched save offers, failed-payment recovery and win-back measurement. NOT FOR: lifecycle email copy (suede-emails), pricing architecture (suede-pricing), paywalls (suede-paywalls), or tracking implementation (suede-analytics)."
+description: "Suede Churn Prevention Skills. Use when asked to \"reduce subscription churn\" or design cancel flows, reason-matched save offers, failed-payment recovery and win-back measurement. NOT FOR: lifecycle email copy (suede-emails), pricing architecture (suede-pricing), paywalls (suede-paywalls), or tracking implementation (suede-analytics)."
 metadata:
-  display-name: "Suede AI Churn Prevention Skills"
+  display-name: "Suede Churn Prevention Skills"
   version: 2.1.0
 ---
 
-# Suede AI Churn Prevention Skills
+# Suede Churn Prevention Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

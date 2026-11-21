@@ -1,12 +1,12 @@
 ---
 name: suede-onboarding
-description: "Suede AI Onboarding Skills: time to value, ranked friction audits, first-value flows, empty states, checklists, and measurement. Use when asked \"users sign up but never activate\" or to improve registration and first-run setup. NOT FOR: non-account forms (suede-site-alchemy), lifecycle email copy (suede-emails), paywalls (suede-paywalls), cancellation (suede-churn-prevention), or unreviewed auth deployment."
+description: "Suede Onboarding Skills: time to value, ranked friction audits, first-value flows, empty states, checklists, and measurement. Use when asked \"users sign up but never activate\" or to improve registration and first-run setup. NOT FOR: non-account forms (suede-site-alchemy), lifecycle email copy (suede-emails), paywalls (suede-paywalls), cancellation (suede-churn-prevention), or unreviewed auth deployment."
 metadata:
-  display-name: "Suede AI Onboarding Skills"
+  display-name: "Suede Onboarding Skills"
   version: 3.0.0
 ---
 
-# Suede AI Onboarding Skills
+# Suede Onboarding Skills
 
 ## Compatibility
 
@@ -16,7 +16,7 @@ For a concrete input, expected output, recovery path, and validation check, read
 [the worked contract](references/worked-contract.md). Use it to check the handoff
 before treating the task as complete.
 
-Suede AI treats signup and onboarding as one path: the visitor who wants the product, the account that gets created, and the first moment the product proves itself. Remove friction at the registration boundary, define activation from retention evidence, sequence the first session, and instrument every step before claiming an "aha moment."
+Suede treats signup and onboarding as one path: the visitor who wants the product, the account that gets created, and the first moment the product proves itself. Remove friction at the registration boundary, define activation from retention evidence, sequence the first session, and instrument every step before claiming an "aha moment."
 
 ## Initial Assessment
 

@@ -1,12 +1,12 @@
 ---
 name: suede-campaign-in-a-box
-description: "Suede AI Campaign in a Box Skills. Use when asked to \"plan a release campaign\" for a song, era, show or catalog: select a lane and build announce, tease, launch and follow-up assets with rights gaps and fan actions. NOT FOR: isolated copy (suede-copy), sync packages (suede-sync-packaging), rights resolution (suede-rights-passport), or software releases (suede-launch-packaging)."
+description: "Suede Campaign in a Box Skills. Use when asked to \"plan a release campaign\" for a song, era, show or catalog: select a lane and build announce, tease, launch and follow-up assets with rights gaps and fan actions. NOT FOR: isolated copy (suede-copy), sync packages (suede-sync-packaging), rights resolution (suede-rights-passport), or software releases (suede-launch-packaging)."
 metadata:
-  display-name: "Suede AI Campaign in a Box Skills"
+  display-name: "Suede Campaign in a Box Skills"
   version: 1.0.0
 ---
 
-# Suede AI Campaign in a Box Skills
+# Suede Campaign in a Box Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.
@@ -89,7 +89,7 @@ evidence boundaries below apply to every lane and stay here.
 ## Public Copy Gate (applies to every lane)
 
 Before outputting captions, emails, DMs, press angles, site copy, bios, one
-sheets, CTAs, or pitch language, run the Suede AI anti-slop line edit (`suede-deslop`). Name the
+sheets, CTAs, or pitch language, run the Suede anti-slop line edit (`suede-deslop`). Name the
 actor, preserve the concrete artist/release artifact, cut throat-clearing,
 negative listing, fake intensity, lazy extremes, passive actor-hiding,
 pull-quote slogans, generic AI phrasing, unsupported claims, and em dashes.

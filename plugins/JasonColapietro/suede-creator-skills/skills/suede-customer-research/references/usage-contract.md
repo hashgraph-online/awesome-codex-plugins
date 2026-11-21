@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Customer Research Skills
+# Worked contract: Suede Customer Research Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

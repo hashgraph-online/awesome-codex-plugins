@@ -29,7 +29,7 @@ The execution half is [agent-dealer](docs/DIRECTION.md): queue tasks against a d
 
 > **macOS required.** API key secrets, OAuth client secrets, and OAuth tokens are stored in **macOS Keychain**. Linux and Windows are not supported for production use yet.
 
-**Requirements:** Node.js 20+ · npm · Dashboard via `agent-deck start` / `agent-deck open` (listens on `127.0.0.1:1111`) · Agent Deck MCP `http://127.0.0.1:1110/mcp`
+**Requirements:** Node.js 22+ · npm · Dashboard via `agent-deck start` / `agent-deck open` (listens on `127.0.0.1:1111`) · Agent Deck MCP `http://127.0.0.1:1110/mcp`
 
 **1. Install and launch** (managed install — auto-updates, keeps existing `~/.agent-deck` data):
 

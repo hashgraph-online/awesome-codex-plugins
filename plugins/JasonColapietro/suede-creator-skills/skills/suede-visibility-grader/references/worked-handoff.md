@@ -1,4 +1,4 @@
-# Suede AI Visibility Grader Skills: Worked Handoff
+# Suede Visibility Grader Skills: Worked Handoff
 
 ## Inputs
 

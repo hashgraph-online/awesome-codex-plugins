@@ -1,4 +1,4 @@
-# Suede AI Release Linter Skills: Worked Handoff
+# Suede Release Linter Skills: Worked Handoff
 
 ## Inputs
 

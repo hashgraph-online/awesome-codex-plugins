@@ -1,12 +1,12 @@
 ---
 name: suede-cold-email
-description: "Use when asked \"write a cold email\" or to repair B2B outbound to qualified prospects. Suede AI produces sourced personalization, short subjects, bodies under 75 words, one ask and bounded follow-ups, with current sender-rule checks. NOT FOR: prospect qualification (use suede-prospecting), opted-in lifecycle email (use suede-emails), or broader sales collateral (use suede-sales-enablement)."
+description: "Use when asked \"write a cold email\" or to repair B2B outbound to qualified prospects. Suede produces sourced personalization, short subjects, bodies under 75 words, one ask and bounded follow-ups, with current sender-rule checks. NOT FOR: prospect qualification (use suede-prospecting), opted-in lifecycle email (use suede-emails), or broader sales collateral (use suede-sales-enablement)."
 metadata:
-  display-name: "Suede AI Cold Email Skills"
+  display-name: "Suede Cold Email Skills"
   version: 2.1.1
 ---
 
-# Suede AI Cold Email Skills
+# Suede Cold Email Skills
 
 Use this cold-email playbook to write concise, evidence-grounded outreach that sounds human and respects the recipient.
 

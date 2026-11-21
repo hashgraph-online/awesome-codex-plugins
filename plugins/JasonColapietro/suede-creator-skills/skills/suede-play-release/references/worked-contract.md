@@ -1,4 +1,4 @@
-# Suede AI Google Play Release Skills: Worked Contract
+# Suede Google Play Release Skills: Worked Contract
 
 Synthetic release evidence example; the values are not a live package or an executed rollout.
 
@@ -20,4 +20,4 @@ Compare the artifact's versionCode against both source testing and target produc
 
 ## Detailed scope and routing
 
-Suede AI Google Play delivery skill: ship an Android release from the agent interface and prove what is live. Preflight the publishing credential with a real Play API call, upload an AAB to a testing track, promote that exact versionCode, stage or complete a rollout, write per-locale release notes, and read back versionCode, status, and userFraction from the Play Developer API. One step stays a Play Console action the user takes: the first release-access grant for the service account. Use when uploading or promoting an Android build, wiring a Play service account and fastlane supply lanes, fixing per-versionCode changelogs, raising or halting a staged rollout, or answering what production is really serving. NOT FOR: planning, building, or policy-checking the app (use android-app-factory); Play listing, keyword, and screenshot work (use suede-aso); CI required checks (use suede-ci-gate).
+Suede Google Play delivery skill: ship an Android release from the agent interface and prove what is live. Preflight the publishing credential with a real Play API call, upload an AAB to a testing track, promote that exact versionCode, stage or complete a rollout, write per-locale release notes, and read back versionCode, status, and userFraction from the Play Developer API. One step stays a Play Console action the user takes: the first release-access grant for the service account. Use when uploading or promoting an Android build, wiring a Play service account and fastlane supply lanes, fixing per-versionCode changelogs, raising or halting a staged rollout, or answering what production is really serving. NOT FOR: planning, building, or policy-checking the app (use android-app-factory); Play listing, keyword, and screenshot work (use suede-aso); CI required checks (use suede-ci-gate).

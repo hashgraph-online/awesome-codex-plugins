@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
-import { lstat, readFile, readdir, unlink } from 'node:fs/promises';
-import { extname, isAbsolute, join, relative } from 'node:path';
+import { lstat, readFile, unlink } from 'node:fs/promises';
+import { extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCodexToolBroker } from './codex-tool-broker.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { requireValue } from '../workflow-paths.mjs';
 import {PROGRAM_ENVIRONMENT_ADMISSION} from './host-tool-runner.mjs';
+import {changedWorkspacePaths,snapshotWorkspace} from './workspace-snapshot.mjs';
 
 const name='workflow-resource-program';
 const version='1';
@@ -17,22 +18,8 @@ export function workflowResourceProgramIdentity(){
   return {name,version,sha256:digest(canonicalJSON({name,version,implementation}))};
 }
 
-async function snapshot(workspace){
-  const files=new Map();
-  async function visit(directory){
-    for(const item of await readdir(directory,{withFileTypes:true})){
-      if(item.name==='.git')continue;
-      const absolute=join(directory,item.name),path=relative(workspace,absolute).replaceAll('\\','/');
-      const stat=await lstat(absolute);
-      requireValue(!stat.isSymbolicLink(),'WORKFLOW_RESOURCE_SCOPE','Workflow resource execution encountered a workspace link');
-      if(stat.isDirectory()){await visit(absolute);continue;}
-      if(stat.isFile())files.set(path,digest(await readFile(absolute)));
-    }
-  }
-  await visit(workspace);return files;
-}
 function effects(before,after,writePaths){
-  const changed=[...new Set([...before.keys(),...after.keys()])].filter(path=>before.get(path)!==after.get(path)).sort();
+  const changed=changedWorkspacePaths(before,after);
   return {observed:true,changed_paths:changed.filter(path=>writePaths.some(root=>within(path,root))),
     outside_paths:changed.filter(path=>!writePaths.some(root=>within(path,root))),artifacts:[]};
 }
@@ -55,8 +42,10 @@ export function workflowResourceProgramRegistry(){
       const resource=context.resources?.find(item=>item.path===resourcePath);
       requireValue(resource&&digest(resource.bytes)===resource.sha256,'WORKFLOW_RESOURCE_PIN','Executable resource is absent or differs from its Run pin');
       requireValue(permissions.write_paths.some(root=>within(scratch,root)),'WORKFLOW_RESOURCE_SCOPE','Scratch directory is outside the Host write scope');
-      const before=await snapshot(context.workspace);
-      const entry={before,workspace:context.workspace,writePaths:permissions.write_paths,broker:null};
+      const snapshot=()=>snapshotWorkspace(context.workspace,{codePrefix:'WORKFLOW_RESOURCE',
+        hashPaths:permissions.read_paths.filter(path=>path!=='.'),requiredPaths:permissions.write_paths});
+      const before=await snapshot();
+      const entry={before,snapshot,writePaths:permissions.write_paths,broker:null};
       active.set(key(context),entry);
       const authorize=async()=>{requireValue(!signal?.aborted,'WORKFLOW_RESOURCE_CANCELLED','Resource execution authority was revoked');};
       const materialized=(context.resources??[]).map(item=>({path:item.path,sha256:item.sha256,
@@ -111,7 +100,7 @@ export function workflowResourceProgramRegistry(){
             catch(cleanupError){if(cleanupError.code!=='ENOENT')throw cleanupError;}}
         }finally{active.delete(key(context));}
       }
-      const observed=effects(before,await snapshot(context.workspace),permissions.write_paths);
+      const observed=effects(before,await snapshot(),permissions.write_paths);
       const outside=observed.outside_paths.length>0;
       let output=null;
       if(!error&&run?.exit_code===0&&!outside){try{output=JSON.parse(run.stdout);}
@@ -123,7 +112,7 @@ export function workflowResourceProgramRegistry(){
     async cancel({context}){
       const entry=active.get(key(context));
       if(entry?.broker){const result=await entry.broker.quiesce();requireValue(result.quiescent&&!result.error,'WORKFLOW_RESOURCE_STOP','Program cancellation did not confirm termination');}
-      const observed=entry?effects(entry.before,await snapshot(entry.workspace),entry.writePaths):emptyEffects();
+      const observed=entry?effects(entry.before,await entry.snapshot(),entry.writePaths):emptyEffects();
       return {termination_confirmed:true,evidence:[{kind:'workflow-resource-program-quiescent',sha256:digest(canonicalJSON({context,broker_id}))}],effects:observed};
     },
   }};

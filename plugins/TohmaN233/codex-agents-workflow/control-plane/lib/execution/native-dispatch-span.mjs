@@ -9,6 +9,7 @@ import {assignedFanoutWritePaths,assertFanoutWriteScopesDisjoint} from './fanout
 import {readNativeTaskProjection} from './node-input-materials.mjs';
 import {readStartedEvent} from '../workflow-events.mjs';
 import {retireOwnedFile} from '../owned-file-retirement.mjs';
+import {isUnneededGeneratedCache} from './workspace-snapshot.mjs';
 
 const MAX_ENTRIES=20000,MAX_BYTES=2*1024*1024*1024;
 const identical=(a,b)=>['dev','ino','mode','nlink','size','mtimeNs','ctimeNs','birthtimeNs'].every(key=>a[key]===b[key]);
@@ -36,7 +37,7 @@ export function nativePreparationNotStarted(pins,definition,attempt){
 // wrote a path. Include hidden entries, .git, types and directory topology.
 // Descriptor/path identity and directory listing checks make partial or
 // unstable coverage an error instead of a successful empty effect report.
-export async function captureNativeWorkspace(workspace,{subtree=null,hashPaths=null}={}){
+export async function captureNativeWorkspace(workspace,{subtree=null,hashPaths=null,excludeGeneratedCaches=subtree===null}={}){
   const root=resolve(workspace),entries=[];let bytes=0,hashed=0;
   const hashFile=path=>hashPaths===null||hashPaths.some(scope=>pathBoundaryContains(scope,path));
   await noSymlinks(root);
@@ -48,10 +49,13 @@ export async function captureNativeWorkspace(workspace,{subtree=null,hashPaths=n
     fail(!before.isSymbolicLink(),'COVERAGE',`Symbolic workspace entry: ${path}`);
     if(hashPaths===null)fail(entries.length<MAX_ENTRIES,'LIMIT','Native span exceeds its entry bound');
     if(before.isDirectory()){
-      const names=(await readdir(absolute)).sort();entries.push({path,kind:'directory',mode:Number(before.mode)});
+      const children=async()=> (await readdir(absolute,{withFileTypes:true}))
+        .filter(entry=>!excludeGeneratedCaches||!isUnneededGeneratedCache(entry,path?`${path}/${entry.name}`:entry.name,hashPaths??[]))
+        .map(entry=>entry.name).sort();
+      const names=await children();entries.push({path,kind:'directory',mode:Number(before.mode)});
       for(const name of names)await visit(join(absolute,name),path?`${path}/${name}`:name);
       const after=await lstat(absolute,{bigint:true});
-      fail(identical(before,after)&&same(names,(await readdir(absolute)).sort()),'UNSTABLE',`Directory changed during native snapshot: ${path}`);return;
+      fail(identical(before,after)&&same(names,await children()),'UNSTABLE',`Directory changed during native snapshot: ${path}`);return;
     }
     fail(before.isFile(),'COVERAGE',`Unsupported workspace entry: ${path}`);
     if(!hashFile(path)){
@@ -77,6 +81,7 @@ export async function captureNativeWorkspace(workspace,{subtree=null,hashPaths=n
     try{await visit(resolve(subtree),path);}catch(error){if(error.code!=='ENOENT')throw error;fail(entries.length===0,'UNSTABLE','Material subtree disappeared during capture');}
   }else await visit(root,'');
   return {schema_version:1,coverage:subtree===null?'whole_workspace':'exact_material_subtree',workspace:root,entries,
+    ...(excludeGeneratedCaches?{excludes_generated_caches:true}:{}),
     ...(hashPaths===null?{}:{hash_paths:[...hashPaths]})};
 }
 
@@ -341,7 +346,8 @@ export async function settleNativeSpan(runtime,record,definition,attempt,binding
     'UNSETTLED','Every possibly-started spawn, follow-up and Host check must settle before native group evidence');
   const before=await artifact(runtime,record.state.run_id,span.before_ref),values=await publications(runtime,record.state.run_id,span);
   fail(same(before.identity,span.identity)&&before.snapshot.coverage==='whole_workspace','BINDING','Native initial snapshot is not its sealed whole-root evidence');
-  const current=await captureNativeWorkspace(span.identity.workspace,{hashPaths:before.snapshot.hash_paths??null});verifyPublications(current,values);
+  const current=await captureNativeWorkspace(span.identity.workspace,{hashPaths:before.snapshot.hash_paths??null,
+    excludeGeneratedCaches:before.snapshot.excludes_generated_caches===true});verifyPublications(current,values);
   for(const value of values)for(const packet of value.packets)await readNativeTaskProjection(packet);
   const publicationEntries=new Map(values.flatMap(value=>value.entries).map(entry=>[entry.path,entry]));
   const changes=nativeWorkspaceChanges(before.snapshot,current),changed_paths=[];
@@ -402,6 +408,7 @@ export async function requireNativeSpanCompletion(runtime,runId,record,definitio
   fail(span?.settled_ref&&same(proof?.reference,span.settled_ref),'EVIDENCE','Native completion lacks the exact settled group evidence');
   const settled=await artifact(runtime,runId,span.settled_ref);
   fail(settled.kind==='native_dispatch_settled'&&same(settled.identity,span.identity)&&same(settled.before_ref,span.before_ref),'BINDING','Settled native evidence belongs to another span');
-  fail(same(settled.snapshot,await captureNativeWorkspace(span.identity.workspace,{hashPaths:settled.snapshot.hash_paths??null})),'STALE','Workspace changed after native span settled');
+  fail(same(settled.snapshot,await captureNativeWorkspace(span.identity.workspace,{hashPaths:settled.snapshot.hash_paths??null,
+    excludeGeneratedCaches:settled.snapshot.excludes_generated_caches===true})),'STALE','Workspace changed after native span settled');
   return settled.changed_paths;
 }

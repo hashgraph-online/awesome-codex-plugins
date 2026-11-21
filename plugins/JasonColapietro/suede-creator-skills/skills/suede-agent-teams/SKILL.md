@@ -1,11 +1,11 @@
 ---
 name: suede-agent-teams
-description: "Suede AI Agent Teams Skills. Use when asked to \"split this work across agents\" or run coordinated shared changes in lanes with exclusive file ownership, collision checks, worktrees, rollback plans and evidence handoffs; also supports bounded contribution programs. NOT FOR: one bundled code DAG (suede-graph-flo-xr), diff review (suede-code), CI wiring (suede-ci-gate), or choosing one skill (suede-workflow-skills)."
+description: "Suede Agent Teams Skills. Use when asked to \"split this work across agents\" or run coordinated shared changes in lanes with exclusive file ownership, collision checks, worktrees, rollback plans and evidence handoffs; also supports bounded contribution programs. NOT FOR: one bundled code DAG (suede-graph-flo-xr), diff review (suede-code), CI wiring (suede-ci-gate), or choosing one skill (suede-workflow-skills)."
 metadata:
-  display-name: "Suede AI Agent Teams Skills"
+  display-name: "Suede Agent Teams Skills"
 ---
 
-# Suede AI Agent Teams Skills
+# Suede Agent Teams Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

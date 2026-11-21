@@ -1,12 +1,12 @@
 ---
 name: suede-product-marketing
-description: "Suede AI Product Marketing Skills: versioned audience, ICP, positioning, alternatives, objections, verbatim customer language, proof, goals, and entity facts. Use when asked \"create our product marketing context\" or to update .agents/product-marketing.md from supplied records or a codebase. NOT FOR: campaign writing (suede-campaign-in-a-box), new interviews (suede-customer-research), contested positioning (suede-marketing-council), or publishing claims."
+description: "Suede Product Marketing Skills: versioned audience, ICP, positioning, alternatives, objections, verbatim customer language, proof, goals, and entity facts. Use when asked \"create our product marketing context\" or to update .agents/product-marketing.md from supplied records or a codebase. NOT FOR: campaign writing (suede-campaign-in-a-box), new interviews (suede-customer-research), contested positioning (suede-marketing-council), or publishing claims."
 metadata:
-  display-name: "Suede AI Product Marketing Skills"
+  display-name: "Suede Product Marketing Skills"
   version: 2.2.0
 ---
 
-# Suede AI Product Marketing Skills
+# Suede Product Marketing Skills
 
 ## Compatibility
 
@@ -16,7 +16,7 @@ For a concrete input, expected output, recovery path, and validation check, read
 [the worked contract](references/worked-contract.md). Use it to check the handoff
 before treating the task as complete.
 
-Suede AI Product Marketing maintains the shared evidence layer for audience,
+Suede Product Marketing maintains the shared evidence layer for audience,
 positioning, objections, customer language, and proof. The Suede growth suite
 reads this context so each downstream skill starts from the same verified
 product story.

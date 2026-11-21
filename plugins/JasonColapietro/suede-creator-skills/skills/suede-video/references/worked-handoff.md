@@ -1,4 +1,4 @@
-# Suede AI Video Skills: Worked Handoff
+# Suede Video Skills: Worked Handoff
 
 ## Inputs
 

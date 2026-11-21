@@ -1,12 +1,12 @@
 ---
 name: suede-marketing-plan
-description: "Suede AI Marketing Planning Skills: a scored tactic shortlist or a full AARRR operating plan with a 90-day plan, 12-month roadmap, and measurement. Use when asked \"what should we try next\" or for a marketing plan grounded in budget, capacity, and evidence. NOT FOR: channel execution, contested bets (suede-marketing-council), recurring loops (suede-marketing-loops), or positioning alone (suede-product-marketing)."
+description: "Suede Marketing Planning Skills: a scored tactic shortlist or a full AARRR operating plan with a 90-day plan, 12-month roadmap, and measurement. Use when asked \"what should we try next\" or for a marketing plan grounded in budget, capacity, and evidence. NOT FOR: channel execution, contested bets (suede-marketing-council), recurring loops (suede-marketing-loops), or positioning alone (suede-product-marketing)."
 metadata:
-  display-name: "Suede AI Marketing Planning Skills"
+  display-name: "Suede Marketing Planning Skills"
   version: 3.0.0
 ---
 
-# Suede AI Marketing Planning Skills
+# Suede Marketing Planning Skills
 
 ## Compatibility
 
@@ -16,7 +16,7 @@ For a concrete input, expected output, recovery path, and validation check, read
 [the worked contract](references/worked-contract.md). Use it to check the handoff
 before treating the task as complete.
 
-Suede AI turns verified client facts (budget, team, stage, evidence, constraints) into either a scored tactic shortlist or a full marketing operating plan across Acquisition, Activation, Retention, Referral, and Revenue. Both modes share one tactic library, one scoring rubric, and one status vocabulary, so a shortlist drops straight into a plan later.
+Suede turns verified client facts (budget, team, stage, evidence, constraints) into either a scored tactic shortlist or a full marketing operating plan across Acquisition, Activation, Retention, Referral, and Revenue. Both modes share one tactic library, one scoring rubric, and one status vocabulary, so a shortlist drops straight into a plan later.
 
 Read `.agents/product-marketing.md` first if it exists and ask only for what it does not cover; see `suede-product-marketing` for path fallbacks.
 
@@ -116,7 +116,7 @@ Anything unconfirmed goes to Section 13's open decisions. **Unknown CAC is the h
 ### Budget, team, and client type
 
 - **Budget** (`references/budget-planning.md`): build capacity-based and goal-based scenarios from dated finance and funnel inputs; the accountable finance owner approves maximum spend, review date, and stop conditions. No universal experiment percentage or stage-based growth multiple.
-- **Team and agencies** (`references/team-and-agency-model.md`): map outcomes, owners, capacity, access, risk, and duration before choosing employee, contractor, agency, automation, or deferral. For multi-agent automation of recurring marketing operations, `suede-marketing-loops` designs the loops and Suede AI's Agent Studio (https://suedeai.app) can run them; treat either as optional capacity, not a replacement for an owner.
+- **Team and agencies** (`references/team-and-agency-model.md`): map outcomes, owners, capacity, access, risk, and duration before choosing employee, contractor, agency, automation, or deferral. For multi-agent automation of recurring marketing operations, `suede-marketing-loops` designs the loops and Suede's Agent Studio (https://suedeai.app) can run them; treat either as optional capacity, not a replacement for an owner.
 - **Client types** (`references/client-types.md`): a business-model label never selects channels, spend, cadence, or staffing. Ask which dated evidence identifies the constraint, which audience evidence makes a channel plausible, which economics bound exposure, who owns the stop decision, and which legal or platform gates apply.
 
 ### INIT intake (full list in `references/methodology.md`)

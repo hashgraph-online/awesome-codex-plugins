@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Directory Submissions Skills
+# Worked contract: Suede Directory Submissions Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

@@ -106,7 +106,7 @@ python3 -B <kit-root>/tools/lsp_query.py symbols --root . --file src/main.c
 실행 허용**이다. 명시적 상대 경로와 `./`는 flag가 있어도 거부한다. AST 도구의 상대 PATH
 결과는 실행 전에 항상 거부한다. 알려진 basename도 실행 파일의 신뢰를 보증하지 않는다.
 명시한 알려진 서버에도 기본 인자를 붙인다(`ruff server`, pyright/TypeScript `--stdio`,
-clangd `--background-index=false --log=error`). `--server-arg=<인자>`는 하나라도 있으면
+clangd의 비인덱스 경로 `--background-index=false --log=error`). 자동 C/C++ 인덱스 경로는 아래 고정 설정을 쓴다. `--server-arg=<인자>`는 하나라도 있으면
 `--allow-custom-server`가 필요하고 기본 인자 뒤에 추가된다. 모드 교체나 안전 경계가 아니다.
 기본 모드에서는 자식 PATH의 빈 항목·상대 경로·해석 불가 항목·작업 공간 하위 경로를 제거한다.
 custom-server opt-in이면 원래 PATH를 유지하지만 아래 환경 변수 거부 규칙은 유지한다.
@@ -120,8 +120,39 @@ custom-server opt-in이면 원래 PATH를 유지하지만 아래 환경 변수 �
 
 진단 pull을 지원하는 서버에서는 완결된 응답을 검증한다(`complete: true`). push만 지원하는
 서버의 결과는 `complete: false`, `status: unverified`인 잠정 결과다. 빈 push도 진단 완료를
-뜻하지 않는다. rename/applyEdit는 수행하지 않는다. 일회성 프로세스이므로
-대형 프로젝트의 인덱스 준비 전에 참조가 불완전할 수 있다. 공개 API 변경은 테스트·컴파일로 함께 검증한다.
+뜻하지 않는다. rename/applyEdit는 수행하지 않는다.
+
+C/C++ `definition`·`references`는 기본 clangd의 background index를 사용해 다른 번역 단위까지
+찾는다. 자동 인덱싱은 일회성 프로세스이며 상주 daemon은 띄우지 않는다. 인덱스는 사용자 캐시에
+저장된다. 결과 JSON의 `index.cache_path`에는 캐시의 절대 경로가 표시된다. CDB의 컴파일 인자는 clangd에 그대로 전달되므로 신뢰한 프로젝트에서만 쓴다.
+저장 위치: `XDG_CACHE_HOME/hiway-kit/code-intel/clangd`, 또는 `HOME/.cache/hiway-kit/code-intel/clangd`.
+한 번에 최대 16개 키와 키당 128 MiB, 전체 512 MiB를 정리 목표로 삼고 오래된 비활성 키를
+제거한다. 임시 preamble은 별도 512 MiB 표본 한도를 적용하고 시작·종료 시 정리한다.
+임시 공간 초과(`index_transient_limit`)는 부분 결과를 반환하며 영속 shard는 유지한다.
+이것은 OS 차원의 물리 용량 한도가 아니며 파일시스템 쓰기량이 잠시 목표를 넘을 수 있다.
+캐시를 직접 지울 때는 실행 중인 code-intel LSP 조회가 없을 때만 해당 `clangd` 캐시 디렉터리를
+삭제한다. `HIWAY_CODE_INTEL_INDEX=0`은 자동 인덱싱을 끄는 단일 환경 스위치다.
+
+새 캐시 키의 첫 조회는 최대 30초, 기존 키는 최대 5초를 쓴다(각각 정리 시간 포함). 첫 호출이
+`index_deadline`으로 끝났더라도 검증된 TU coverage가 늘었으면 같은 조회를 다시 실행해 진행할 수
+있다. 이때 결과의 `index.progress_increased`가 `true`인지 확인하고, 추가 조회는 최대 두 번이다.
+coverage가 늘지 않았거나 다른 `reason`이면 동일 조회를 반복하지 말고 grep·빌드 도구로 보완한다.
+대형 프로젝트는 여러 작업에 걸쳐 partial일 수 있고, 캐시 LRU 정리 뒤에는 긴 첫 조회 비용이
+다시 생길 수 있다. 30초는 완료 보장이 아니다.
+
+`complete: true`는 clangd progress 종료, compile database의 모든 TU에 대한 검증된 인덱스 shard,
+그리고 완전히 검증된 최종 응답이 모두 확인된 경우에만 반환된다. `reason`은 고정 코드이고
+`message`는 설명이다. `status: unverified`, `complete: false`, rc2는 유효한 부분 결과를 뜻한다.
+반환 위치를 활용하되 전체 결과로 간주하지 않는다. `no_compile_db`, `compile_db_unsupported`,
+`config_unsupported`, `index_disabled`, `lock_timeout`, `index_deadline`, coverage/resource 오류는
+부분 결과를 만들 수 있다. 빈 결과는 대상이 없다는 증거가 아니다. 프로젝트에 `.clangd`, 사용자
+clangd 설정, `compile_flags.txt`, 또는 지원 범위를 벗어난 compile database가 있으면 자동 인덱싱은
+비활성화되고 기존 partial 경로를 쓴다. 사용자 설정을 임의로 무시하거나 YAML을 해석하지 않는다.
+
+`--server-arg`를 붙여도 자동 인덱싱에 참여하지 않는다. clangd references 결과 상한은 0(무제한)으로
+설정한다. `symbols`는 파일 단위 documentSymbol이며 이 인덱스 분류의 대상이 아니다. 진단과 다른
+언어의 기존 응답 계약은 유지된다.
+공개 API 변경은 테스트·컴파일로 함께 검증한다.
 
 ## 결과 판정
 
@@ -129,7 +160,7 @@ custom-server opt-in이면 원래 PATH를 유지하지만 아래 환경 변수 �
 | --- | --- |
 | 0 | 조회 응답 검증 성공, 규칙 preview 수렴 또는 rule-test 일치. 진단이면 완결된 응답에 오류 없음 |
 | 1 | rule-test의 실제 기대 불일치 또는 언어 서버의 오류 진단. 진단 완료 여부는 `complete`를 별도 확인 |
-| 2 | 경로/패턴/프로토콜/자원 제한 오류 또는 잠정 진단 — 미검증 |
+| 2 | 경로/패턴/프로토콜/자원 제한 오류, 잠정 진단, 또는 C/C++ 정의·참조의 유효한 부분 결과 — `status`·`reason` 확인 |
 | 3 | 지원되는 서버/실행 파일·안전한 파일 읽기 기능 없음 또는 규칙 모드 최소 엔진 버전 미달 — 미검증, 설치 요청을 반복하지 않는다 |
 
 진단이 비어도 프로그램 동작이 검증된 것은 아니다. 정상 파일과 의도적으로 깨진 파일의

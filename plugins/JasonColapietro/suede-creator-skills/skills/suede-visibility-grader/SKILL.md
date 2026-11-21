@@ -2,10 +2,10 @@
 name: suede-visibility-grader
 description: "Grade one public page A-F across findability, first-screen clarity, CTA pull, proof and trust, AI citation readiness, and design signal, with up to five ranked fixes. Use when asked to \"grade this page before promotion\" or give a quick readiness check of a landing page, README, docs, or campaign. NOT FOR: deep SEO and schema audits (use suede-seo-audit), AI crawler/citation measurement (use suede-ai-seo), or implementing conversion changes (use suede-site-alchemy)."
 metadata:
-  display-name: "Suede AI Visibility Grader Skills"
+  display-name: "Suede Visibility Grader Skills"
 ---
 
-# Suede AI Visibility Grader Skills
+# Suede Visibility Grader Skills
 
 ## Compatibility
 

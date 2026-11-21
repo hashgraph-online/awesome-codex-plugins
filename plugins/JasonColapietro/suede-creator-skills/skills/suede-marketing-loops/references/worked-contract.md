@@ -1,4 +1,4 @@
-# Suede AI Marketing Loop Skills: Worked Contract
+# Suede Marketing Loop Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Replay the same export twice: only one draft action should exist for the same pa
 
 ## Detailed scope and routing
 
-Suede AI recurring marketing workflow design: turns repeatable work into agent-ready loops with a check cadence, action condition, self-check, durable state and dedupe, human checkpoint, stop condition, and output, drawn from a 46-loop catalog across SEO and AI-search visibility, paid, earned, activation, retention, revenue, referral, and ops. Returns a complete loop spec plus scheduling proof or a manual cadence. Use when the user wants repeatable ad-fatigue, content-refresh, ranking-drop, AI-citation watch, churn-watch, or weekly-review loops, or wants agents to run marketing operations on a schedule. NOT FOR: one-off tactics or plans (use suede-marketing-plan), experiment design (use suede-ab-testing), or creating a live automation without explicit scheduling authority.
+Suede recurring marketing workflow design: turns repeatable work into agent-ready loops with a check cadence, action condition, self-check, durable state and dedupe, human checkpoint, stop condition, and output, drawn from a 46-loop catalog across SEO and AI-search visibility, paid, earned, activation, retention, revenue, referral, and ops. Returns a complete loop spec plus scheduling proof or a manual cadence. Use when the user wants repeatable ad-fatigue, content-refresh, ranking-drop, AI-citation watch, churn-watch, or weekly-review loops, or wants agents to run marketing operations on a schedule. NOT FOR: one-off tactics or plans (use suede-marketing-plan), experiment design (use suede-ab-testing), or creating a live automation without explicit scheduling authority.

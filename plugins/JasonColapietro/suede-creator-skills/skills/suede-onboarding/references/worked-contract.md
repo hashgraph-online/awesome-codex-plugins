@@ -1,4 +1,4 @@
-# Suede AI Onboarding Skills: Worked Contract
+# Suede Onboarding Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Walk a new account through each step, including back, dismiss, validation failur
 
 ## Detailed scope and routing
 
-Suede AI activation path from signup conversion to first value: audits account creation, registration, and trial start (field friction, progressive profiling, passkeys and social sign-in, NIST-aligned password rules, verification, mobile), then designs first-run sequencing, empty states, setup checklists, activation milestones, time to value, and retention-linked measurement. Returns a ranked signup audit or an onboarding flow spec with metrics and up to 3 test hypotheses. Use when visitors start but don't finish signup, or users sign up but never reach first value. NOT FOR: lead-capture and non-account forms (use suede-site-alchemy), lifecycle email sequences (use suede-emails), upgrade prompts and paywalls (use suede-paywalls), cancel flows (use suede-churn-prevention), or deploying auth changes without review.
+Suede activation path from signup conversion to first value: audits account creation, registration, and trial start (field friction, progressive profiling, passkeys and social sign-in, NIST-aligned password rules, verification, mobile), then designs first-run sequencing, empty states, setup checklists, activation milestones, time to value, and retention-linked measurement. Returns a ranked signup audit or an onboarding flow spec with metrics and up to 3 test hypotheses. Use when visitors start but don't finish signup, or users sign up but never reach first value. NOT FOR: lead-capture and non-account forms (use suede-site-alchemy), lifecycle email sequences (use suede-emails), upgrade prompts and paywalls (use suede-paywalls), cancel flows (use suede-churn-prevention), or deploying auth changes without review.

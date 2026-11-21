@@ -1,4 +1,4 @@
-# Suede AI Site Alchemy Skills: Worked Handoff
+# Suede Site Alchemy Skills: Worked Handoff
 
 ## Inputs
 

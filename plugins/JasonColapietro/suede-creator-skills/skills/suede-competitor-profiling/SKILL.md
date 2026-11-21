@@ -1,12 +1,12 @@
 ---
 name: suede-competitor-profiling
-description: "Use when asked \"research these competitors\" or to refresh named competitor profiles. Suede AI competitive intelligence captures current public evidence for positioning, pricing, product, reviews, search and AI visibility, separating facts, inferences and unknowns. NOT FOR: publishing comparison pages (use suede-competitors), sales battle cards (use suede-sales-enablement), or pricing decisions (use suede-pricing)."
+description: "Use when asked \"research these competitors\" or to refresh named competitor profiles. Suede competitive intelligence captures current public evidence for positioning, pricing, product, reviews, search and AI visibility, separating facts, inferences and unknowns. NOT FOR: publishing comparison pages (use suede-competitors), sales battle cards (use suede-sales-enablement), or pricing decisions (use suede-pricing)."
 metadata:
-  display-name: "Suede AI Competitor Profiling Skills"
+  display-name: "Suede Competitor Profiling Skills"
   version: 2.1.0
 ---
 
-# Suede AI Competitor Profiling Skills
+# Suede Competitor Profiling Skills
 
 Use this competitive-intelligence playbook to turn current public evidence into structured profiles with fact, inference, and unknowns kept separate.
 

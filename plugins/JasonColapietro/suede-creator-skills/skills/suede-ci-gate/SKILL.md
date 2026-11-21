@@ -1,11 +1,11 @@
 ---
 name: suede-ci-gate
-description: "Suede AI CI Gate Skills. Use when asked to \"fix a required check stuck pending\" or set up branch protection and path-aware CI, runtime/lockfile pinning and one aggregator gate from the real repository. Returns workflows and settings. NOT FOR: reviewing implementation (suede-code), designing AI evals (suede-ai-eval), or release packaging (suede-launch-packaging)."
+description: "Suede CI Gate Skills. Use when asked to \"fix a required check stuck pending\" or set up branch protection and path-aware CI, runtime/lockfile pinning and one aggregator gate from the real repository. Returns workflows and settings. NOT FOR: reviewing implementation (suede-code), designing AI evals (suede-ai-eval), or release packaging (suede-launch-packaging)."
 metadata:
-  display-name: "Suede AI CI Gate Skills"
+  display-name: "Suede CI Gate Skills"
 ---
 
-# Suede AI CI Gate Skills
+# Suede CI Gate Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

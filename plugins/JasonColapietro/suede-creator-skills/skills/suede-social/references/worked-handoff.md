@@ -1,4 +1,4 @@
-# Suede AI Social Skills: Worked Handoff
+# Suede Social Skills: Worked Handoff
 
 ## Inputs
 

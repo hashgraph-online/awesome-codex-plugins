@@ -2,11 +2,11 @@
 name: suede-video
 description: "Plan or produce marketing video with scripts, storyboards, shot and asset lists, consent-aware AI or avatar choices, programmatic rendering, edit decisions, pacing, export specs, and video-search metadata. Use when asked to \"turn this demo into a short video\" or build a repeatable production pipeline. NOT FOR: social calendars (use suede-social), clip-to-guide bridges (use suede-clip-to-guide), paid ad concepts (use suede-ad-creative), still images (use suede-image), or unapproved publishing."
 metadata:
-  display-name: "Suede AI Video Skills"
+  display-name: "Suede Video Skills"
   version: 2.2.1
 ---
 
-# Suede AI Video Skills
+# Suede Video Skills
 
 ## Compatibility
 

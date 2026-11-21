@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Reverse Engineer Anyone Skills
+# Worked contract: Suede Reverse Engineer Anyone Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

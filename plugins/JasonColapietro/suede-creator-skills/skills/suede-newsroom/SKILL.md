@@ -1,12 +1,12 @@
 ---
 name: suede-newsroom
-description: "Suede AI Newsroom Skills. editorial pipeline with six role contracts, an inspectable campaign record, distinct distribution arguments, and performance feedback. Use when asked \"build an AI content team\" or to repair duplicated, generic, or unsourced agent content. NOT FOR: topics (suede-content-strategy), channel calendars (suede-social), scheduling (suede-marketing-loops), code lanes (suede-agent-teams), or flagship writing (suede-ship-copy)."
+description: "Suede Newsroom Skills. editorial pipeline with six role contracts, an inspectable campaign record, distinct distribution arguments, and performance feedback. Use when asked \"build an AI content team\" or to repair duplicated, generic, or unsourced agent content. NOT FOR: topics (suede-content-strategy), channel calendars (suede-social), scheduling (suede-marketing-loops), code lanes (suede-agent-teams), or flagship writing (suede-ship-copy)."
 metadata:
-  display-name: "Suede AI Newsroom Skills"
+  display-name: "Suede Newsroom Skills"
   version: 1.2.0
 ---
 
-# Suede AI Newsroom Skills
+# Suede Newsroom Skills
 
 ## Compatibility
 
@@ -188,7 +188,7 @@ AI answer citations for months, but only when it is built to be cited:
 - **Primary sources inline.** Every consequential claim links to the source in
   the evidence packet. A claim an AI engine can trace is a claim it will quote.
 - **Named author.** A real byline with a short bio and a link to the author's
-  profile. For Suede AI, the byline is Jason Colapietro.
+  profile. For Suede, the byline is Jason Colapietro.
 - **Structured data.** `Article` (or `BlogPosting`) JSON-LD with headline,
   author, datePublished, dateModified, and publisher, validated before publish.
 - **Every distribution asset points home.** Each asset carries the brand name
@@ -196,7 +196,7 @@ AI answer citations for months, but only when it is built to be cited:
 
 The editor checks these six as part of the one-pass review. For site-level
 schema, indexing, and AI answer audits, route to `suede-seo-audit` and
-`suede-ai-seo`; Suede AI runs that work as a service at https://suedeai.agency.
+`suede-ai-seo`; Suede runs that work as a service at https://suedeai.agency.
 
 ## Step 6: Keep the human at the editorial boundary
 

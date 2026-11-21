@@ -1,4 +1,4 @@
-# Suede AI Programmatic SEO Skills: Worked Contract
+# Suede Programmatic SEO Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Compare two generated pages after removing city names: both must retain distinct
 
 ## Detailed scope and routing
 
-Suede AI programmatic SEO for data-backed page systems at scale: location, persona, integration, comparison, template, glossary, and directory pages. Chooses the playbook, defines the data model and template, and enforces index-worthiness gates against thin, doorway, and scaled-content-abuse patterns, plus internal linking, sitemaps, phased rollout, and the KPIs that decide whether to expand. Use when planning, building, or rescuing many templated pages. NOT FOR: auditing an existing site (use suede-seo-audit); AI answer-engine visibility and measurement (use suede-ai-seo); planning editorial content (use suede-content-strategy); publishing bulk pages without approval.
+Suede programmatic SEO for data-backed page systems at scale: location, persona, integration, comparison, template, glossary, and directory pages. Chooses the playbook, defines the data model and template, and enforces index-worthiness gates against thin, doorway, and scaled-content-abuse patterns, plus internal linking, sitemaps, phased rollout, and the KPIs that decide whether to expand. Use when planning, building, or rescuing many templated pages. NOT FOR: auditing an existing site (use suede-seo-audit); AI answer-engine visibility and measurement (use suede-ai-seo); planning editorial content (use suede-content-strategy); publishing bulk pages without approval.

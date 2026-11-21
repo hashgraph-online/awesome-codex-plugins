@@ -1,12 +1,12 @@
 ---
 name: suede-ab-testing
-description: "Suede AI A/B Testing Skills. Use when asked to \"design an A/B test\", compare variants, assess reliability, or build an experiment backlog: hypothesis, power, duration, guardrails and a predeclared decision rule. NOT FOR: instrumentation (suede-analytics), funnel diagnosis (suede-site-alchemy), variant copy (suede-copy), or channel incrementality (suede-attribution)."
+description: "Suede A/B Testing Skills. Use when asked to \"design an A/B test\", compare variants, assess reliability, or build an experiment backlog: hypothesis, power, duration, guardrails and a predeclared decision rule. NOT FOR: instrumentation (suede-analytics), funnel diagnosis (suede-site-alchemy), variant copy (suede-copy), or channel incrementality (suede-attribution)."
 metadata:
-  display-name: "Suede AI A/B Testing Skills"
+  display-name: "Suede A/B Testing Skills"
   version: 2.1.0
 ---
 
-# Suede AI A/B Testing Skills
+# Suede A/B Testing Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

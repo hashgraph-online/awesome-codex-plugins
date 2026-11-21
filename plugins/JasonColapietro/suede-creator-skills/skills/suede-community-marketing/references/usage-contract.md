@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Community Marketing Skills
+# Worked contract: Suede Community Marketing Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

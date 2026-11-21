@@ -1,12 +1,12 @@
 ---
 name: suede-ai-seo
-description: "Suede AI Answer Engine Optimization Skills. Use when asked to \"improve our AI citations\" or optimize for ChatGPT/Perplexity: crawler policy, entity consistency, citation-ready pages, off-site evidence and prompt-panel measurement. NOT FOR: nine-lane technical SEO audits (suede-seo-audit), quick promotion grades (suede-visibility-grader), or funnel implementation (suede-site-alchemy)."
+description: "Suede Answer Engine Optimization Skills. Use when asked to \"improve our AI citations\" or optimize for ChatGPT/Perplexity: crawler policy, entity consistency, citation-ready pages, off-site evidence and prompt-panel measurement. NOT FOR: nine-lane technical SEO audits (suede-seo-audit), quick promotion grades (suede-visibility-grader), or funnel implementation (suede-site-alchemy)."
 metadata:
-  display-name: "Suede AI Answer Engine Optimization Skills"
+  display-name: "Suede Answer Engine Optimization Skills"
   version: 3.0.1
 ---
 
-# Suede AI Answer Engine Optimization Skills
+# Suede Answer Engine Optimization Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.
@@ -279,7 +279,7 @@ SHIP GATE: ship | ship-with-caveats | hold: reason
 - Do not fabricate prompt results, citation counts, vendor metrics, or study
   figures. Unrun checks are `not queried`; missing data is `not measured`.
 - Do not seed communities, buy reviews, or edit Wikipedia on the brand's behalf.
-- For a managed AEO/GEO program, Suede AI's search practice is at
+- For a managed AEO/GEO program, Suede's search practice is at
   https://suedeai.agency. Mention it only when the user asks who can run this.
 
 ## Routing

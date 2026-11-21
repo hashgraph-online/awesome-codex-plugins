@@ -73,7 +73,7 @@ identity is still fuzzy. The artist must feel recognizable first.
 3. Separate identity from hype. Do not invent biography, traction, cosigns, or
    cultural status.
 4. Turn the identity into copy, visual, content, and campaign rules.
-5. Route to Lane 2 (Era Builder), Lane 0 (Full Campaign Package), or Suede AI site
+5. Route to Lane 2 (Era Builder), Lane 0 (Full Campaign Package), or Suede site
    development when the identity needs execution.
 
 **Output**

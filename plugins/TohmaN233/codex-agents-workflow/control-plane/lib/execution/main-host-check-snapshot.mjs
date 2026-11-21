@@ -1,20 +1,27 @@
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
-import { requireValue } from '../workflow-paths.mjs';
+import { requireValue, statNoSymlinks } from '../workflow-paths.mjs';
+import { pathBoundaries } from '../workflow-bindings.mjs';
+import { isUnneededGeneratedCache } from './workspace-snapshot.mjs';
 
-// The check can read arbitrary task inputs. Write grants cannot prove which
-// bytes affect its verdict, so pin the whole workspace, including .git and
-// directory topology. Unlike a scope audit, incomplete read coverage is fatal.
-async function capture(workspace) {
+// Seal a check's declared inputs and outputs. An explicit workspace-wide
+// contract still needs freshness coverage for the workspace it can read.
+async function capture(workspace, declaredPaths) {
   const entries = []; let bytes = 0;
+  const wholeWorkspace = !declaredPaths || declaredPaths.includes('.');
   const visit = async (absolute, path) => {
     const before = await lstat(absolute);
     requireValue(!before.isSymbolicLink(), 'MAIN_ORCHESTRATION_HOST_CHECK_SNAPSHOT', `Completion check workspace contains a symbolic link: ${path || '.'}`);
     if (before.isDirectory()) {
       entries.push({ path, kind: 'directory' });
       requireValue(entries.length <= 20000, 'MAIN_ORCHESTRATION_HOST_CHECK_SNAPSHOT', 'Completion check workspace exceeds its snapshot entry bound');
-      for (const name of (await readdir(absolute)).sort()) await visit(join(absolute,name),path ? `${path}/${name}` : name);
+      const children = (await readdir(absolute,{withFileTypes:true})).sort((left,right)=>left.name<right.name?-1:left.name>right.name?1:0);
+      for (const child of children) {
+        const childPath = path ? `${path}/${child.name}` : child.name;
+        if (declaredPaths && isUnneededGeneratedCache(child,childPath,declaredPaths)) continue;
+        await visit(join(absolute,child.name),childPath);
+      }
       return;
     }
     requireValue(before.isFile(), 'MAIN_ORCHESTRATION_HOST_CHECK_SNAPSHOT', `Completion check workspace contains an unsupported entry: ${path}`);
@@ -26,24 +33,31 @@ async function capture(workspace) {
       'MAIN_ORCHESTRATION_HOST_CHECK_SNAPSHOT', `Completion check workspace changed while being read: ${path}`);
     entries.push({ path, kind: 'file', bytes: content.length, sha256: digest(content) });
   };
-  await visit(workspace,'');
-  return { schema_version: 1, coverage: 'whole_workspace', workspace: resolve(workspace), entries };
+  if (wholeWorkspace) await visit(workspace,'');
+  else for (const path of pathBoundaries(declaredPaths)) {
+    const absolute = join(workspace,path);
+    try { await statNoSymlinks(absolute); }
+    catch(error) { if(error.code==='ENOENT')continue; throw error; }
+    await visit(absolute,path);
+  }
+  return { schema_version: 1, coverage: wholeWorkspace?'whole_workspace':'declared_paths', workspace: resolve(workspace), entries,
+    ...(declaredPaths ? {declared_paths:declaredPaths} : {}) };
 }
 
-export async function saveMainHostCheckSnapshot(runtime, runId, attemptId, workspace) {
-  return runtime.runs.saveArtifact(runId, `completion-snapshot-${attemptId}`, canonicalJSON(await capture(workspace)));
+export async function saveMainHostCheckSnapshot(runtime, runId, attemptId, workspace, declaredPaths = []) {
+  return runtime.runs.saveArtifact(runId, `completion-snapshot-${attemptId}`, canonicalJSON(await capture(workspace,declaredPaths)));
 }
 
 export async function readMainHostCheckSnapshot(runtime, runId, workspace, reference) {
   requireValue(reference && typeof reference === 'object', 'MAIN_ORCHESTRATION_HOST_CHECK_SNAPSHOT_REQUIRED', 'Successful completion check has no durable workspace snapshot');
   const saved = JSON.parse((await runtime.runs.readArtifact(runId,reference)).toString('utf8'));
-  requireValue(saved.schema_version === 1 && saved.coverage === 'whole_workspace' && saved.workspace === resolve(workspace)
+  requireValue(saved.schema_version === 1 && ['whole_workspace','declared_paths'].includes(saved.coverage) && saved.workspace === resolve(workspace)
     && Array.isArray(saved.entries) && saved.entries.length <= 20000, 'MAIN_ORCHESTRATION_HOST_CHECK_SNAPSHOT_REQUIRED', 'Completion check snapshot has no exact workspace content coverage');
   return saved;
 }
 
 export async function requireMainHostCheckFreshness(runtime, runId, workspace, reference) {
-  const saved = await readMainHostCheckSnapshot(runtime,runId,workspace,reference), current = await capture(workspace);
+  const saved = await readMainHostCheckSnapshot(runtime,runId,workspace,reference), current = await capture(workspace,saved.declared_paths);
   requireValue(canonicalJSON(saved) === canonicalJSON(current), 'MAIN_ORCHESTRATION_HOST_CHECK_STALE',
     'Workspace content changed after the successful completion check; its receipt cannot accept the current products');
 }

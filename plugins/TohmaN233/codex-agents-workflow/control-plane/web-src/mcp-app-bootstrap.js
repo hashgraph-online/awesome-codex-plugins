@@ -53,7 +53,15 @@ export function createBootstrapInbox() {
     const bootstrap = meta && typeof meta === 'object' ? meta.bootstrap : undefined;
     const statuses = meta && typeof meta === 'object' ? meta.bootstrapStatus : undefined;
     const requests = meta && typeof meta === 'object' ? meta.bootstrapRequests : undefined;
-    if (!bootstrap || typeof bootstrap !== 'object' || Array.isArray(bootstrap)) {
+    if (result?.isError === true) {
+      const text = Array.isArray(result.content)
+        ? result.content.find(block => block?.type === 'text' && typeof block.text === 'string')?.text
+        : undefined;
+      captureError = new Error(text || 'The MCP App opener failed.');
+    } else if (bootstrap === undefined && statuses === undefined && requests === undefined) {
+      // This host delivered no private cache. The view can read its data over
+      // the existing App-only API after the host connection is ready.
+    } else if (!bootstrap || typeof bootstrap !== 'object' || Array.isArray(bootstrap)) {
       captureError = new Error('The MCP App opener result is missing a valid _meta.bootstrap map.');
     } else if (!statuses || typeof statuses !== 'object' || Array.isArray(statuses)) {
       captureError = new Error('The MCP App opener result is missing a valid _meta.bootstrapStatus map.');

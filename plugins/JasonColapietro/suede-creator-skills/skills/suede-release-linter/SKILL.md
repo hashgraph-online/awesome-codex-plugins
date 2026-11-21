@@ -2,10 +2,10 @@
 name: suede-release-linter
 description: "Find missing files, malformed metadata, artwork and stem issues, split gaps, AI involvement, and delivery blockers in local music or media release folders. Use when asked to \"check this release folder\" or explain a delivery rejection. Writes scored Markdown and JSON reports; unknown facts remain unknown. NOT FOR: resolving rights or building a transfer package (use suede-rights-passport), sync one-sheets (use suede-sync-packaging), or rollout campaigns (use suede-campaign-in-a-box)."
 metadata:
-  display-name: "Suede AI Release Linter Skills"
+  display-name: "Suede Release Linter Skills"
 ---
 
-# Suede AI Release Linter Skills
+# Suede Release Linter Skills
 
 ## Compatibility
 
@@ -87,7 +87,7 @@ Read each bundled reference at the moment it is needed, not up front:
 - `references/lint-rules.md`: before classifying findings, or when hand-linting without the script: categories, severity levels, score, and status bands.
 - `references/metadata-fields.md`: when metadata is missing, malformed, or being authored: recommended fields, accepted aliases, and confirmation values.
 - `references/fix-guidance.md`: when turning findings into next actions or a fix plan.
-- `references/passport-context.md`: when the user asks how the lint report relates to Suede AI review or the Suede Creator Passport.
+- `references/passport-context.md`: when the user asks how the lint report relates to Suede review or the Suede Creator Passport.
 
 The script writes:
 
@@ -147,7 +147,7 @@ If any of these appear in your reasoning, stop and re-read the core principle:
 A clean release-lint report is a portable review artifact. It can support a
 release, registry, licensing conversation, collaborator handoff, marketplace
 review, label review, advisor review, or
-Suede AI review without claiming that any
+Suede review without claiming that any
 downstream system has accepted, cleared, registered, paid, or approved the work.
 
 ## Routing

@@ -2,11 +2,11 @@
 name: suede-sms
 description: "Design consent-aware SMS/MMS programs: channel fit, welcome, cart recovery, post-purchase and win-back flows, exact copy, segment counts, cadence, quiet hours, platform selection, and measurement. Use when asked to \"draft our SMS welcome flow\" or audit a text program. Checks current consent, opt-out, and registration requirements. NOT FOR: email (use suede-emails), capture UX (use suede-site-alchemy), legal certification, or sending, scheduling, importing, or registering anything."
 metadata:
-  display-name: "Suede AI SMS Skills"
+  display-name: "Suede SMS Skills"
   version: 1.1.0
 ---
 
-# Suede AI SMS Skills
+# Suede SMS Skills
 
 ## Compatibility
 

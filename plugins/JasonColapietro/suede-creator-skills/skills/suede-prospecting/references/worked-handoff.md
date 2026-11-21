@@ -1,4 +1,4 @@
-# Suede AI Prospecting Skills: Worked Handoff
+# Suede Prospecting Skills: Worked Handoff
 
 ## Inputs
 

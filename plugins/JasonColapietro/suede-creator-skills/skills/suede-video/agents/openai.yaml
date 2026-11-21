@@ -1,5 +1,5 @@
 interface:
-  display_name: "Suede AI Video Skills"
+  display_name: "Suede Video Skills"
   short_description: "Suede rights-aware video planning and production"
   default_prompt: "Use $suede-video on [target]. The user is planning, scripting, or repurposing video content for marketing or social. Work through format selection, hook structure, short-form pacing, scripting, and repurposing one shoot into many cuts, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
 policy:

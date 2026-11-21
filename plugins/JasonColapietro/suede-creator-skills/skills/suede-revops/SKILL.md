@@ -2,11 +2,11 @@
 name: suede-revops
 description: "Define lifecycle stages, fit and engagement scores, MQL/SQL handoffs, routing SLAs, pipeline hygiene, CRM automation, deal-desk tiers, and dashboard metrics. Use when asked to \"fix our lead routing\" or specify revenue operations. Returns implementation-ready rules with owners and measurement. NOT FOR: prospect lists (use suede-prospecting), outbound copy (use suede-cold-email), lifecycle campaigns (use suede-emails), pricing strategy (use suede-pricing), or unapproved production CRM changes."
 metadata:
-  display-name: "Suede AI Revenue Operations Skills"
+  display-name: "Suede Revenue Operations Skills"
   version: 2.0.1
 ---
 
-# Suede AI Revenue Operations Skills
+# Suede Revenue Operations Skills
 
 ## Compatibility
 
@@ -15,7 +15,7 @@ Works from supplied CRM schemas, exports, and process evidence. Live CRM inspect
 For a concrete input, expected handoff, and failure check, read
 [the worked handoff](references/worked-handoff.md).
 
-Suede AI RevOps maps the lifecycle rules, data contracts, scoring, routing, and
+Suede RevOps maps the lifecycle rules, data contracts, scoring, routing, and
 handoffs that connect acquisition, sales, and customer success. It produces
 implementation-ready operating logic while keeping production CRM mutation
 behind live-schema review and approval.
@@ -338,7 +338,7 @@ Agents are good at the repetitive middle of revops: enriching a new lead, checki
 2. Anything that contacts a prospect, changes ownership, or alters a deal amount stays behind a human checkpoint unless the user explicitly authorizes otherwise with caps.
 3. Measure the agent like a rep: speed-to-lead, routing accuracy, and error rate per week.
 
-Suede AI's Agent Studio (https://suedeai.app) builds and runs multi-agent workflows like these for teams that want them operated end to end; `suede-marketing-loops` designs the recurring checks and checkpoints either way.
+Suede's Agent Studio (https://suedeai.app) builds and runs multi-agent workflows like these for teams that want them operated end to end; `suede-marketing-loops` designs the recurring checks and checkpoints either way.
 
 ---
 

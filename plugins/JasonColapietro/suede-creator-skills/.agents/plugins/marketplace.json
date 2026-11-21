@@ -2,7 +2,7 @@
   "name": "suede-codex",
   "description": "Open-source AI skills for SEO, marketing, and business operations in Claude Code and Codex.",
   "interface": {
-    "displayName": "Suede AI Skills"
+    "displayName": "Suede Skills"
   },
   "plugins": [
     {

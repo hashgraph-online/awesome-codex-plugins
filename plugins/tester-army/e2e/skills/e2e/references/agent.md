@@ -361,10 +361,11 @@ of sleeping.
 
 A redacted snapshot of the screen (roles, names, text, states), prior-step
 summaries, and your context; never raw HTML, cookies, headers, environment
-values, or a `Secret`'s value; password fields masked. The first
-screen of a step arrives whole; later action results report what changed,
-keyed by node ids stable while an element exists, or the whole screen when
-most changed. Pixels arrive through `vision` on a judgment or the act loop's
+values, or a `Secret`'s value; password fields masked, unless a page
+script hides one from e2e. The first screen of a step arrives whole; later
+action results report what changed, keyed by node ids stable while an
+element exists, or the whole screen when most changed.
+Pixels arrive through `vision` on a judgment or the act loop's
 `screenshot` and point tools, with secure fields masked. When
 the browser engine's tree capture times out, the model gets a screenshot and
 a warning, a judgment needs `vision: true`, and no control may be inferred
@@ -503,7 +504,10 @@ before writing the AI trace.
   https://e2e.com/docs/tools#read-a-nodes-computed-style.
 - `createToolLoopExecutor` keeps the loop and replaces prompt and tool
   vocabulary; spread `createGrammarTools(ctx, { guard })` into its tools and
-  start its `system` with `BASE_RULES` to keep the built-in actions.
+  start its `system` with `BASE_RULES` to keep the built-in actions. A
+  `complete_step` sent in the same turn as other calls waits for the calls
+  before it, and is refused when one failed or the last one changed
+  nothing; calls after it don't run.
 - Any `StepExecutor` (`{ name, version?, cache?, runStep(ctx) }`) goes under
   `executor`; the runner still owns observations, actions, budgets, and the
   report, and `system` or `tools` beside `executor` is `INVALID_CONFIG`.

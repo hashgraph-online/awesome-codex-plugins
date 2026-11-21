@@ -7,6 +7,12 @@ Make AI videos from your coding agent. This plugin connects Cursor, Codex, Gemin
 - Docs: https://docs.trezalabs.com/api/mcp-server
 - Privacy: https://docs.trezalabs.com/terms-and-privacy/privacy
 
+## What Treza makes
+
+![Four short clips made with Treza: a red hover car racing through a neon city, an astronaut walking over a Martian dune at sunset, an orchid mantis on a leaf, and espresso pouring into a cup](https://raw.githubusercontent.com/treza-labs/treza-labs/main/assets/treza-demo.gif)
+
+These clips were made with [Treza](https://www.trezalabs.com), and the [integrations page](https://www.trezalabs.com/integrations) shows how to connect each app.
+
 ## Install
 
 The first connection signs you in to Treza with Google and creates your account. There is no key to paste.

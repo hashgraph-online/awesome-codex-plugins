@@ -1,12 +1,12 @@
 ---
 name: suede-customer-research
-description: "Use when asked \"synthesize these interviews\" or to discover what a defined customer segment says, needs and resists. Suede AI analyzes transcripts, surveys, tickets, reviews and forums into traceable VOC quotes, jobs to be done, personas and buyer questions. NOT FOR: competitor-only profiling (use suede-competitor-profiling), final copy (use suede-copy), or unsupported product prioritization (use suede-product-marketing)."
+description: "Use when asked \"synthesize these interviews\" or to discover what a defined customer segment says, needs and resists. Suede analyzes transcripts, surveys, tickets, reviews and forums into traceable VOC quotes, jobs to be done, personas and buyer questions. NOT FOR: competitor-only profiling (use suede-competitor-profiling), final copy (use suede-copy), or unsupported product prioritization (use suede-product-marketing)."
 metadata:
-  display-name: "Suede AI Customer Research Skills"
+  display-name: "Suede Customer Research Skills"
   version: 2.1.1
 ---
 
-# Suede AI Customer Research Skills
+# Suede Customer Research Skills
 
 Use this customer-research playbook to ground positioning, product, and copy in traceable customer evidence rather than assumption.
 

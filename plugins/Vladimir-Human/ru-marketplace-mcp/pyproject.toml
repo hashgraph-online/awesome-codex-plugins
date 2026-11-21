@@ -1,6 +1,6 @@
 [project]
 name = "ru-marketplace-mcp"
-version = "2.11.1"
+version = "2.11.2"
 description = "Read-only MCP servers and cross-marketplace price comparison for 12 Russian and Chinese platforms: Wildberries, Ozon, Yandex Market, Avito, AliExpress, Taobao, DNS, Citilink, Megamarket, Lamoda, Detsky Mir, and Cian real estate"
 readme = "README.md"
 requires-python = ">=3.12"

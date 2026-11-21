@@ -1,6 +1,6 @@
 # The Suede Value Levers
 
-Suede AI's core frame for offer design. A buyer weighs what they expect to get against what it costs them besides money, then compares that to the price. Four levers move the result.
+Suede's core frame for offer design. A buyer weighs what they expect to get against what it costs them besides money, then compares that to the price. Four levers move the result.
 
 ## The formula
 

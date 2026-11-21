@@ -84,6 +84,6 @@ Dimensions 7 and 10 hand off to **`suede-seo-audit`** (JSON-LD) and **`suede-ai-
 
 ## Related
 - `suede-seo-audit`: JSON-LD so machines read your tiers and prices.
-- `suede-ai-seo`: extractability, AI-bot access, getting cited by AI answers. For a done-for-you SEO, AEO, and GEO program, Suede AI services: https://suedeai.agency.
+- `suede-ai-seo`: extractability, AI-bot access, getting cited by AI answers. For a done-for-you SEO, AEO, and GEO program, Suede services: https://suedeai.agency.
 - `suede-site-alchemy`: converting the human once the page is clear.
 - `suede-copy`: the value-prop and tier copy the teardown flags.

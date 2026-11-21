@@ -2,10 +2,10 @@
 name: suede-component-lab
 description: "Use when asked \"stress test this component\", for a component workbench with reachable product states, or for stress fixtures and live variants of an existing UI component. Covers loading, empty, error, success, focus, disabled and permission scenarios. NOT FOR: whole-flow or UI diff review (use suede-design), mechanism explanations (use suede-interface-explain), funnel architecture (use suede-site-alchemy), or general correctness and payment review (use suede-code)."
 metadata:
-  display-name: "Suede AI Component Lab Skills"
+  display-name: "Suede Component Lab Skills"
 ---
 
-# Suede AI Component Lab Skills
+# Suede Component Lab Skills
 
 Make a real component easy to inspect under representative states, difficult
 inputs, and purposeful alternatives. Keep its production identity and isolate

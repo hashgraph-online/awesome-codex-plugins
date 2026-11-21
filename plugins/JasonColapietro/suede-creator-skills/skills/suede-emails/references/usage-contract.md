@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Lifecycle Email Skills
+# Worked contract: Suede Lifecycle Email Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

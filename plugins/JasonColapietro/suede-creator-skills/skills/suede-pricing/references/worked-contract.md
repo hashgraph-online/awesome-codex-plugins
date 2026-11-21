@@ -1,4 +1,4 @@
-# Suede AI Pricing Skills: Worked Contract
+# Suede Pricing Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Recompute margins using consistent monthly units, including high-usage cohorts. 
 
 ## Detailed scope and routing
 
-Suede AI pricing and packaging: chooses the value metric (seats, usage, credits, outcomes), structures tiers, compares free trial, freemium, and reverse trial, plans willingness to pay research and price increases with grandfathering, and tears down a pricing page for buyer clarity and for search and AI-assistant readability (text prices, matching schema, quotable FAQ). Returns a Pricing Decision Brief or a scored teardown. Use when deciding what to charge, restructuring tiers, pricing AI features with variable compute cost, raising prices, or fixing a pricing page that buyers or AI answers misread. NOT FOR: in-product upgrade screens (use suede-paywalls), offer bonuses and guarantees (use suede-offers), or executing billing changes.
+Suede pricing and packaging: chooses the value metric (seats, usage, credits, outcomes), structures tiers, compares free trial, freemium, and reverse trial, plans willingness to pay research and price increases with grandfathering, and tears down a pricing page for buyer clarity and for search and AI-assistant readability (text prices, matching schema, quotable FAQ). Returns a Pricing Decision Brief or a scored teardown. Use when deciding what to charge, restructuring tiers, pricing AI features with variable compute cost, raising prices, or fixing a pricing page that buyers or AI answers misread. NOT FOR: in-product upgrade screens (use suede-paywalls), offer bonuses and guarantees (use suede-offers), or executing billing changes.

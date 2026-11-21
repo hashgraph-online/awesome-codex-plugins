@@ -1,12 +1,12 @@
 ---
 name: suede-community-marketing
-description: "Use when asked \"plan our community launch\" or to audit or drive product community growth. Suede AI returns member identity, platform choice, a seeding plan, rituals, moderation paths, ambassador design and health metrics with denominators. NOT FOR: public social content (use suede-social), referral payouts (use suede-referrals), or customer interviews (use suede-customer-research)."
+description: "Use when asked \"plan our community launch\" or to audit or drive product community growth. Suede returns member identity, platform choice, a seeding plan, rituals, moderation paths, ambassador design and health metrics with denominators. NOT FOR: public social content (use suede-social), referral payouts (use suede-referrals), or customer interviews (use suede-customer-research)."
 metadata:
-  display-name: "Suede AI Community Marketing Skills"
+  display-name: "Suede Community Marketing Skills"
   version: 2.1.0
 ---
 
-# Suede AI Community Marketing Skills
+# Suede Community Marketing Skills
 
 Use this community-growth playbook to create genuine member value and measurable business outcomes without manufacturing engagement.
 

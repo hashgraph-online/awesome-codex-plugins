@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Influencer Outreach Skills
+# Worked contract: Suede Influencer Outreach Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

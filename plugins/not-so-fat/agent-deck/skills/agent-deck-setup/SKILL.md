@@ -10,7 +10,7 @@ Treat setup as three separate layers: daemon health, host transport, then deck b
 1. Run `agent-deck status` and check `http://127.0.0.1:1110/health` (or `<mcp-url>/health`
    from `.agent-deck/use.json` if present).
 2. If agent-deck is missing, older than 2.1.0 (`agent-deck --version`), or the daemon is down, tell the user to run the matching fix:
-   - Not installed (macOS, Node.js 20+, npm): `npx @agent-deck/cli@latest install`, then `export PATH="$HOME/.local/bin:$PATH"` (managed install: launcher in `~/.local/bin`, versions under `~/.agent-deck/`).
+   - Not installed (macOS, Node.js 22+, npm): `npx @agent-deck/cli@latest install`, then `export PATH="$HOME/.local/bin:$PATH"` (managed install: launcher in `~/.local/bin`, versions under `~/.agent-deck/`).
    - Outdated: `agent-deck upgrade` (`agent-deck upgrade --check` reports whether one is available).
    - Daemon down: `agent-deck start --daemon`.
    - `agent-deck doctor` prints any harness repair as `agent-deck setup --client <client>`; run it, then restart that host.

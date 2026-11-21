@@ -1,4 +1,4 @@
-# Suede AI Offer Design Skills: Worked Contract
+# Suede Offer Design Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Check every bonus against a named objection, every deadline against a real capac
 
 ## Detailed scope and routing
 
-Suede AI offer design and persuasion mechanics: scores the offer on the Suede Value Levers (outcome, confidence, wait, effort), then builds bonuses that each remove an objection, guarantees and risk reversal matched to the buyer's real risk, honest scarcity and deadlines that meet FTC, UK, and EU consumer rules, naming, and payment structure, plus evidence-tiered behavioral models (anchoring, framing, social proof, loss aversion, defaults) stated as testable hypotheses. Returns an Offer Brief. Use when building or diagnosing a service, course, coaching, info-product, agency, or high ticket B2B offer, or when the user asks which psychological lever applies and how to test it. NOT FOR: SaaS tier and value-metric architecture (use suede-pricing), sales-page copy (use suede-copy), in-product upgrade prompts (use suede-paywalls), or clinical and mental-health advice.
+Suede offer design and persuasion mechanics: scores the offer on the Suede Value Levers (outcome, confidence, wait, effort), then builds bonuses that each remove an objection, guarantees and risk reversal matched to the buyer's real risk, honest scarcity and deadlines that meet FTC, UK, and EU consumer rules, naming, and payment structure, plus evidence-tiered behavioral models (anchoring, framing, social proof, loss aversion, defaults) stated as testable hypotheses. Returns an Offer Brief. Use when building or diagnosing a service, course, coaching, info-product, agency, or high ticket B2B offer, or when the user asks which psychological lever applies and how to test it. NOT FOR: SaaS tier and value-metric architecture (use suede-pricing), sales-page copy (use suede-copy), in-product upgrade prompts (use suede-paywalls), or clinical and mental-health advice.

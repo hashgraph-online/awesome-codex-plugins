@@ -1,4 +1,4 @@
-# Suede AI Revenue Operations Skills: Worked Handoff
+# Suede Revenue Operations Skills: Worked Handoff
 
 ## Inputs
 

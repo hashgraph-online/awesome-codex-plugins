@@ -1,12 +1,12 @@
 ---
 name: suede-ops-assessment
-description: "Suede AI Operations Assessment Skills: map real work, silos, friction, ownership, costs, and adoption signals from operator evidence. Use when asked \"where is our team losing time\" or to rank operational opportunities before designing automation. NOT FOR: choosing and building the target architecture (suede-ops-architecture), auditing requester-supplied figures, or unapproved system access."
+description: "Suede Operations Assessment Skills: map real work, silos, friction, ownership, costs, and adoption signals from operator evidence. Use when asked \"where is our team losing time\" or to rank operational opportunities before designing automation. NOT FOR: choosing and building the target architecture (suede-ops-architecture), auditing requester-supplied figures, or unapproved system access."
 metadata:
-  display-name: "Suede AI Operations Assessment Skills"
+  display-name: "Suede Operations Assessment Skills"
   version: 1.0.0
 ---
 
-# Suede AI Operations Assessment Skills
+# Suede Operations Assessment Skills
 
 ## Compatibility
 

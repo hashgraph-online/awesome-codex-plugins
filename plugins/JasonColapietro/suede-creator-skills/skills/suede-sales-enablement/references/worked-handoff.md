@@ -1,4 +1,4 @@
-# Suede AI Sales Enablement Skills: Worked Handoff
+# Suede Sales Enablement Skills: Worked Handoff
 
 ## Inputs
 

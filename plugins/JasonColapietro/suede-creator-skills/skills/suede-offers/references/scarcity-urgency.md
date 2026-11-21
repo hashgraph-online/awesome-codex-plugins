@@ -4,7 +4,7 @@ The reason to buy now, not later.
 
 This is the most misused offer lever. Done right, it gives buyers a real reason to decide and respects their time. Done wrong (fake countdown timers, lies about inventory), it converts once, burns trust, and creates legal exposure (see Legal guardrails below).
 
-The Suede AI rule: **only ship real scarcity.** If the scarcity is fake, take it off the page.
+The Suede rule: **only ship real scarcity.** If the scarcity is fake, take it off the page.
 
 ## Scarcity vs urgency
 

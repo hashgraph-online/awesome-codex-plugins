@@ -2,10 +2,10 @@
 name: suede-interface-explain
 description: "Use when asked to \"explain this interface\", trace a visual mechanism from source, or identify how a site's layout, layers, styles, assets or motion work. NOT FOR: interface audits or fixes (use suede-design), component state fixtures or live variants (use suede-component-lab), general code or security review (use suede-code), or sales copy (use suede-copy)."
 metadata:
-  display-name: "Suede AI Interface Explain Skills"
+  display-name: "Suede Interface Explain Skills"
 ---
 
-# Suede AI Interface Explain Skills
+# Suede Interface Explain Skills
 
 Explain the mechanism behind the interface the user named. Connect the visible
 result to its component structure, styles, state and assets, and give evidence

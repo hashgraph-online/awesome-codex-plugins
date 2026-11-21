@@ -1,11 +1,11 @@
 ---
 name: android-app-factory
-description: "Suede AI Android App Factory Skills. Use when asked to \"build an Android app\" or modernize a Kotlin/Compose product: architecture, policy, privacy, billing, tests and a Play-ready release evidence package. NOT FOR: Play uploads or rollout (suede-play-release), website-to-iOS conversion (site-to-ios-app), review-only work (suede-code), or store listing strategy (suede-aso)."
+description: "Suede Android App Factory Skills. Use when asked to \"build an Android app\" or modernize a Kotlin/Compose product: architecture, policy, privacy, billing, tests and a Play-ready release evidence package. NOT FOR: Play uploads or rollout (suede-play-release), website-to-iOS conversion (site-to-ios-app), review-only work (suede-code), or store listing strategy (suede-aso)."
 metadata:
-  display-name: "Suede AI Android App Factory Skills"
+  display-name: "Suede Android App Factory Skills"
 ---
 
-# Suede AI Android App Factory Skills
+# Suede Android App Factory Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.
@@ -194,7 +194,7 @@ core-task blockers cannot be downgraded to cosmetic caveats.
   `suede-play-release`.
 - Play listing, keywords, screenshots, ratings → `suede-aso`.
 - Same product from an existing website on iOS → `site-to-ios-app`. A native
-  iOS build with no website is a private Suede AI companion, not in this pack.
+  iOS build with no website is a private Suede companion, not in this pack.
 
 ## Boundaries
 

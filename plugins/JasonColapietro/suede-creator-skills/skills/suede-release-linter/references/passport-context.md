@@ -1,12 +1,12 @@
 # Suede Creator Passport Context
 
-The Suede Creator Passport is a planned Suede AI record of creator work:
+The Suede Creator Passport is a planned Suede record of creator work:
 registered IP, declared rights, release linting, rights packages, signed
-transfers, and other verified activity in Suede AI products such as Suede Sing.
+transfers, and other verified activity in Suede products such as Suede Sing.
 
 This public linter does not issue stamps, allocate rewards, gate access, write
 to a registry, or promise legal clearance. It creates an offline
-release-readiness report that a Suede AI reviewer, or any other reviewer, can read later:
+release-readiness report that a Suede reviewer, or any other reviewer, can read later:
 
 - `release-lint-report.md`
 - `release-lint-report.json`

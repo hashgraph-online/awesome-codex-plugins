@@ -1,11 +1,11 @@
 ---
 name: suede-ai-eval
-description: "Suede AI Eval Skills. Use when asked to \"write evals for this AI feature\" or assess LLM, RAG, agent, classifier or generated-media behavior: AI-SPEC, failure rubric, executable cases, coverage and acceptance evidence. NOT FOR: implementation review (suede-code), wiring existing evals into CI (suede-ci-gate), or coordinating builder lanes (suede-agent-teams)."
+description: "Suede Eval Skills. Use when asked to \"write evals for this AI feature\" or assess LLM, RAG, agent, classifier or generated-media behavior: AI-SPEC, failure rubric, executable cases, coverage and acceptance evidence. NOT FOR: implementation review (suede-code), wiring existing evals into CI (suede-ci-gate), or coordinating builder lanes (suede-agent-teams)."
 metadata:
-  display-name: "Suede AI Eval Skills"
+  display-name: "Suede Eval Skills"
 ---
 
-# Suede AI Eval Skills
+# Suede Eval Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

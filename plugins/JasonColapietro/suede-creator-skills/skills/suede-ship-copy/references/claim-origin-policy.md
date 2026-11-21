@@ -1,4 +1,4 @@
-# Suede AI Ship Copy Skills: Claim Origin Policy
+# Suede Ship Copy Skills: Claim Origin Policy
 
 ## Complete claim-origin policy
 

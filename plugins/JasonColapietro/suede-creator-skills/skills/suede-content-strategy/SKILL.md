@@ -1,12 +1,12 @@
 ---
 name: suede-content-strategy
-description: "Use when asked \"plan our content strategy\" or to decide what to publish, refresh or stop. Suede AI maps audience questions, pillars, topic clusters, AI answer gaps and original-data assets to priorities, cadence, distribution and KPIs. NOT FOR: drafting an asset (use suede-copy), SEO audits (use suede-seo-audit), AI visibility measurement (use suede-ai-seo), or social production (use suede-social)."
+description: "Use when asked \"plan our content strategy\" or to decide what to publish, refresh or stop. Suede maps audience questions, pillars, topic clusters, AI answer gaps and original-data assets to priorities, cadence, distribution and KPIs. NOT FOR: drafting an asset (use suede-copy), SEO audits (use suede-seo-audit), AI visibility measurement (use suede-ai-seo), or social production (use suede-social)."
 metadata:
-  display-name: "Suede AI Content Strategy Skills"
+  display-name: "Suede Content Strategy Skills"
   version: 2.0.1
 ---
 
-# Suede AI Content Strategy Skills
+# Suede Content Strategy Skills
 
 Use this Suede content-strategy playbook to plan evidence-backed content that earns search, sharing, trust, or qualified demand.
 

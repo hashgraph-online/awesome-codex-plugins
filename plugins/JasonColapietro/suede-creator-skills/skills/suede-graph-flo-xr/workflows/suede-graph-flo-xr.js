@@ -7,7 +7,7 @@
 export const meta = {
   name: 'suede-graph-flo-xr',
   description: 'Bounded Suede Thought Graph shipping search: Generate -> Score -> KeepBestN -> paired Refute -> Improve -> Aggregate -> Select -> winner-only Build -> Gate -> Handoff',
-  whenToUse: 'Any nontrivial change to a Suede repo that touches more than one file or surface. The bundled runner requires Claude Code on macOS, registered Suede Graph Flo XR agents, and sandbox-exec. Pass args: { repo, scope, agentBudget, agentNamespace, workerModel?, deploys?, liveUrl?, vault? }',
+  whenToUse: 'Any nontrivial change to a Suede repo that touches more than one file or surface. The bundled runner requires Claude Code on macOS, registered Suede Graph Flo XR agents, and sandbox-exec. Pass args: { repo, scope, agentBudget, agentNamespace, helperDir, workerModel?, deploys?, liveUrl?, vault? }',
   phases: [
     { title: 'Scout', detail: 'fetch origin, dirty files, worktree, Vercel api/ landmines — manifest only' },
     { title: 'Research', detail: 'multi-modal sweep: code path, contracts, history, prior decisions, external docs' },
@@ -21,7 +21,7 @@ export const meta = {
   ],
 }
 
-// Workflow({ name: 'suede-graph-flo-xr', args: { repo: '/absolute/path/to/my-app', scope: '...', agentBudget: 'standard', agentNamespace: 'suede-skills', workerModel: 'sonnet', deploys: true, liveUrl: 'https://example.com', vault: '/path/to/context' } })
+// Workflow({ name: 'suede-graph-flo-xr', args: { repo: '/absolute/path/to/my-app', scope: '...', agentBudget: 'standard', agentNamespace: 'suede-skills', helperDir: '/absolute/path/to/skill/workflows/helpers', workerModel: 'sonnet', deploys: true, liveUrl: 'https://example.com', vault: '/path/to/context' } })
 // Falls back to: Workflow({ scriptPath: '~/.claude/workflows/suede-graph-flo-xr.js', args: {...} })
 
 // args can arrive as an object or as a JSON-encoded string depending on how the
@@ -92,7 +92,9 @@ const canonicalHttpUrl = raw => {
 }
 const REPO = canonicalAbsolutePath(ownArg('repo'))
 const SCOPE = ownArg('scope') || null
-const DEPLOYS = !!ownArg('deploys')
+const rawDeploys = ownArg('deploys')
+if (rawDeploys !== undefined && typeof rawDeploys !== 'boolean') throw new Error('args.deploys must be a boolean when provided')
+const DEPLOYS = rawDeploys === true
 // Total agent budget. The caller is required to ask the user which range they want
 // before launching (see SKILL.md); missing or malformed choices fail closed.
 const BUDGETS = {
@@ -513,6 +515,9 @@ const validateOperationGraph = operations => {
   for (const operation of operations) {
     if (!operation || !operation.id) throw new Error('operation requires an id')
     if (byId.has(operation.id)) throw new Error(`duplicate operation ${operation.id}`)
+    if (new Set(operation.predecessorIds).size !== operation.predecessorIds.length) {
+      throw new Error(`duplicate predecessor in operation ${operation.id}`)
+    }
     byId.set(operation.id, operation)
     operation.successorIds = []
   }
@@ -1098,13 +1103,14 @@ not invent work.`,
 ]
 
 reserveBatch(LENSES.length, 'Research', LENSES.map(lens => `research:${lens.key}`))
-const sweep = (await settledParallel(LENSES.map(l => () => callAgent(
+const researchBatch = await evidenceParallel(LENSES.map(l => () => callAgent(
   `${BASE}\n\n${l.prompt}`,
   {
-    label: `research:${l.key}`, phase: 'Research', schema: RESEARCH, effort: l.effort, authority: 'read-only',
+    label: `research:${l.key}`, phase: 'Research', schema: RESEARCH, effort: l.effort, authority: 'read-only', requireResult: true,
     agentType: l.key === 'external' || l.key === 'history' ? WEB_READER_AGENT : CODE_READER_AGENT,
   }
-)))).filter(Boolean)
+)))
+const sweep = researchBatch.values.map(item => item.value)
 const snapshotResearchEvidence = items => {
   const rawConstraints = items.flatMap(item => item.constraints || [])
   evidence.researchFacts = items.flatMap(item => item.facts || [])
@@ -1116,11 +1122,19 @@ const snapshotResearchEvidence = items => {
   evidence.unread = [...new Set(items.flatMap(item => item.unread || []))]
 }
 snapshotResearchEvidence(sweep)
+if (researchBatch.budgetFailure) throw researchBatch.budgetFailure
+if (researchBatch.failures.length) {
+  evidence.researchFailures = researchBatch.failures.map(({ index, error }) => ({ lens: LENSES[index].key, error }))
+  for (const failure of evidence.researchFailures) {
+    graph.dropped.push({ operation: 'Research', inputs: { lens: failure.lens }, reason: 'research agent failure', error: failure.error })
+  }
+  return { halted: true, reason: 'research agent failure', graph, ...evidence }
+}
 
 // -------------------------------------------------------------- 2. gap fill
 // What a sweep misses is invisible to the sweep. One critic, one bounded round.
 phase('Gaps')
-const critic = await callAgent(
+const criticBatch = await evidenceParallel([() => callAgent(
   `Scope: ${SCOPE}
 Research so far: ${JSON.stringify(sweep)}
 Everything the lenses flagged as unread: ${JSON.stringify([...new Set(sweep.flatMap(r => r.unread))])}
@@ -1131,26 +1145,42 @@ listed as unread but is central to the scope? Where do two lenses contradict eac
 Return at most 4 gaps, each with the specific file, command, or search that closes it.
 An unresolved contradiction between two lenses is always a gap. If coverage is genuinely
 sufficient, return an empty array — padding this list costs a round of agents.`,
-  { schema: GAPS, phase: 'Gaps', effort: 'high', authority: 'read-only', agentType: CODE_READER_AGENT }
-)
-evidence.researchGaps = critic && Array.isArray(critic.gaps) ? critic.gaps : []
+  { schema: GAPS, phase: 'Gaps', effort: 'high', authority: 'read-only', agentType: CODE_READER_AGENT, requireResult: true }
+)])
+if (criticBatch.budgetFailure) throw criticBatch.budgetFailure
+if (criticBatch.failures.length) {
+  const { error } = criticBatch.failures[0]
+  graph.dropped.push({ operation: 'Gaps', inputs: { lens: 'completeness' }, reason: 'gap critic failure', error })
+  return { halted: true, reason: 'gap critic failure', graph, ...evidence }
+}
+const critic = criticBatch.values[0].value
+evidence.researchGaps = critic.gaps
 
-const gapsToFill = critic && critic.gaps.length ? critic.gaps.slice(0, BUDGET.gapFills) : []
+const gapsToFill = critic.gaps.slice(0, BUDGET.gapFills)
 reserveBatch(gapsToFill.length, 'Gaps', gapsToFill.map(gap => `gap:${gap.missing.slice(0, 30)}`))
-const gapFills = gapsToFill.length
-  ? (await settledParallel(gapsToFill.map(g => () => callAgent(
+const gapBatch = await evidenceParallel(gapsToFill.map(g => () => callAgent(
       `${BASE}\n\nLens: GAP FILL. Close exactly this gap and nothing else.
 Missing: ${g.missing}
 Why it matters: ${g.whyItMatters}
 How to close it: ${g.howToClose}`,
-      { label: `gap:${g.missing.slice(0, 30)}`, phase: 'Gaps', schema: RESEARCH, effort: 'medium', authority: 'read-only', agentType: CODE_READER_AGENT }
-    )))).filter(Boolean)
-  : []
-
+      { label: `gap:${g.missing.slice(0, 30)}`, phase: 'Gaps', schema: RESEARCH, effort: 'medium', authority: 'read-only', agentType: CODE_READER_AGENT, requireResult: true }
+    )))
+const gapFills = gapBatch.values.map(item => item.value)
 const research = [...sweep, ...gapFills]
 snapshotResearchEvidence(research)
+const unattemptedGaps = critic.gaps.slice(gapsToFill.length).map(g => g.missing)
+evidence.unread = [...new Set([...evidence.unread, ...unattemptedGaps])]
+if (gapBatch.budgetFailure) throw gapBatch.budgetFailure
+if (gapBatch.failures.length) {
+  evidence.researchFailures = gapBatch.failures.map(({ index, error }) => ({ gap: gapsToFill[index].missing, error }))
+  for (const failure of evidence.researchFailures) {
+    graph.dropped.push({ operation: 'Gaps', inputs: { gap: failure.gap }, reason: 'gap fill agent failure', error: failure.error })
+  }
+  evidence.unread.push(...evidence.researchFailures.map(failure => failure.gap))
+  return { halted: true, reason: 'gap fill agent failure', graph, ...evidence }
+}
 const claimed = research.flatMap(r => r.constraints)
-const stillUnread = [...new Set(research.flatMap(r => r.unread))]
+const stillUnread = evidence.unread
 
 // SKEPTIC #1 — provenance audit on constraints only (not every fact; constraints
 // are what the planner is actually bound by). A hallucinated constraint is the
@@ -1246,7 +1276,7 @@ evidence.droppedConstraints = rejected
 evidence.unread = stillUnread
 evidence.constraintAuditComplete = constraintAuditComplete
 if (rejected.length) log(`skeptic dropped ${rejected.length} constraint(s): ${rejected.map(a => `${a.verdict} — ${a.rule}`).join(' | ')}`)
-log(`research: ${research.length} lenses · ${research.flatMap(r => r.facts).length} sourced facts · ${constraints.length}/${claimed.length} constraints survived audit · ${critic ? critic.gaps.length : 0} gaps filled · ${stillUnread.length} still unread`)
+log(`research: ${research.length} lenses · ${research.flatMap(r => r.facts).length} sourced facts · ${constraints.length}/${claimed.length} constraints survived audit · ${gapFills.length}/${critic.gaps.length} gap-fill reports · ${stillUnread.length} still unread`)
 
 // ---------------------------------------------------------------- 3. plan
 phase('Plan')
@@ -2500,7 +2530,7 @@ Lens — ${lens}
 
 Report only defects you can point at a specific line for. No style preferences,
 no "consider extracting". If the code is clean, return an empty findings array.`,
-      { label: `review:${lane.name}`, phase: 'Review', schema: FINDINGS, effort: 'medium', authority: 'read-only', agentType: CODE_READER_AGENT, allowedFiles: selectedAllowlists.get(lane.name) }
+      { label: `review:${lane.name}`, phase: 'Review', schema: FINDINGS, requireResult: true, effort: 'medium', authority: 'read-only', agentType: CODE_READER_AGENT, allowedFiles: selectedAllowlists.get(lane.name) }
     )))
     const reviews = reviewBatch.values.map(item => item.value).filter(Boolean)
     const reported = reviews.filter(Boolean).flatMap(r => r.findings)
@@ -2862,7 +2892,7 @@ ${DEPLOYS ? `This repo deploys. Scout's blocking deploy-surface verdicts were al
 Report exit codes and the real failure text. Do not claim a check passed that you
 did not run, and do not describe a failure as "minor" — quote it.`,
   {
-    schema: GATE, phase: 'Gate', effort: 'medium', authority: 'read-only', agentType: VERIFIER_AGENT, allowedCommands: gateCommands,
+    schema: GATE, phase: 'Gate', requireResult: true, effort: 'medium', authority: 'read-only', agentType: VERIFIER_AGENT, allowedCommands: gateCommands,
     allowedWriteRoots: gateModuleBuildRoots,
     bashCommandClamp: gateExecutionCommands.map(command => `Bash(${command})`),
   }
@@ -2901,8 +2931,9 @@ gate = gate && {
     ? `UNVERIFIED: the restricted Gate attempt has no trusted runner execution receipts. Agent report: ${gate.output}`
     : `UNVERIFIED: the Gate command report is incomplete or contains unexpected commands. Agent report: ${gate.output || ''}`,
 }
-evidence.gate = gate
-evidence.gatePassed = false
+evidence.gate = gate ?? null
+evidence.gatePassed = gate ? false : null
+evidence.shipVerdict = 'hold'
 evidence.gateVerified = false
 
 // Gate commands may create ignored build artifacts, but they must not alter the source
@@ -3003,7 +3034,7 @@ even when you find zero risks.`,
   ]
   const releaseBatch = await evidenceParallel(releaseLenses.map(lens => () => callAgent(
     `${RELEASE_BASE}\n\n${lens.prompt}`,
-    { label: `release:${lens.key}`, phase: 'Release', schema: RELEASE, effort: 'high', authority: 'read-only-production', agentType: WEB_READER_AGENT }
+    { label: `release:${lens.key}`, phase: 'Release', schema: RELEASE, requireResult: true, effort: 'high', authority: 'read-only-production', agentType: WEB_READER_AGENT }
   )))
   release = releaseBatch.values.map(item => item.value).filter(Boolean)
   evidence.release = release
@@ -3053,116 +3084,67 @@ const graphObjections = graph.thoughts.flatMap(thought =>
     plan: thought.state.plan || null,
     objection,
   })))
-const handoffBudget = { name: BUDGET_NAME, projected: ceiling, ceiling, used: agentCalls + 1, remaining: ceiling - agentCalls - 1 }
-let handoff
-try {
-  handoff = await callAgent(
-  `Write the delivery record for this run. Facts only — every field below is required,
-and a missing field means status "held", not "done".
-
-Target: ${REPO} · worktree ${scout.worktreePath} · base ${scout.baseSha}
-Handoff key: ${evidence.runKey}
-Scope: ${SCOPE}
-Winning thought: ${JSON.stringify(selectedThought)}
-Lineage: ${JSON.stringify(graph.thoughts.map(thought => ({ id: thought.id, parentIds: thought.parentIds, operation: thought.operation, status: thought.status })))}
-Scores: ${JSON.stringify(graph.thoughts.filter(thought => thought.score).map(thought => ({ id: thought.id, score: thought.score })))}
-Pruned candidates: ${JSON.stringify(graph.pruned)}
-Dropped candidates: ${JSON.stringify(graph.dropped)}
-Refuted candidates: ${JSON.stringify(refutedCandidates)}
-All graph objections: ${JSON.stringify(graphObjections)}
-Agent budget: ${JSON.stringify(handoffBudget)}
-Lanes: ${JSON.stringify(plan.lanes.map(l => ({ name: l.name, tier: l.tier, files: l.files })))}
-Stalled lanes: ${JSON.stringify(stalled.map(l => ({ lane: l.lane.name, state: l.built && l.built.state, notes: l.built && l.built.notes })))}
-Build concerns carried from authors: ${JSON.stringify(evidence.buildConcerns || [])}
-Fix concerns carried from authors: ${JSON.stringify(evidence.fixConcerns || [])}
-Confirmed findings: ${JSON.stringify(confirmed)}
-Findings that were NEVER VERIFIED — minors, and anything past the per-lane refutation cap.
-No verifier was spent on these, so each is a reviewer's unchallenged assertion rather than
-a confirmed defect. Say exactly that under Caveats; do not present them as findings and do
-not quietly drop them either: ${JSON.stringify(unverified)}
-Blockers confirmed but left unfixed (past the fix cap): ${JSON.stringify(blockers.slice(FIX_CAP))}
-Blocker patches applied but pending semantic verification. These force a hold even when
-the Gate agent claims its restricted checks passed: ${JSON.stringify(evidence.fixedBlockersPendingVerification)}
-Gate: ${JSON.stringify(gate)}
-Gate command audit: ${JSON.stringify(evidence.gateAudit)}
-Gate verification: ${evidence.gateVerified ? 'verified by trusted runner receipts' : 'UNVERIFIED — no trusted runner execution receipts were supplied'}
-Mutation boundary audit: ${evidence.mutationAudit}
-Execution evidence boundary: Bash clamps constrain a Bash call only if the agent invokes
-it. Apply, worktree-verifier, and Gate structured results are model attestations, not
-host-certified execution receipts. The authority and allowed-files fields are audit
-metadata, not host filesystem permissions. State this distinction under Caveats and do
-not describe the run as host-certified.
-Release verification (${shipVerdict}): ${JSON.stringify(release)}
-Plan refutations and objections from graph search: ${JSON.stringify(objections)}
-Build and repair records: ${JSON.stringify({ builds: evidence.builds, fixes: evidence.fixes })}
-Cross-worktree overlap — these lane files are ALSO in flight on other unlanded branches,
-so this work will need a rebase or a merge resolution against them. Name each one and the
-branch it collides with under Caveats; this is the caveat most likely to be discovered by
-someone else, days later, as a conflict with no explanation: ${JSON.stringify(crossWorktree)}
-Constraints dropped by the skeptic (research asserted these; audit rejected them): ${JSON.stringify(rejected)}
-Sources never read: ${JSON.stringify(stillUnread)}
-Advisory hazards from scout (NOT fixed by this run): ${JSON.stringify(scout.hazards)}
-
-Produce markdown with exactly these headings: Target, Changed, Commands,
-Verification, Release Risk, Status, Caveats, Next.
-
-Under Release Risk: the advisory verdict, every blocker and irreversible risk with its
-evidence, the written undo procedure for anything not revert-able, and the live baseline
-readback. If this is not a deploying repo, write "n/a" and move on. The verdict is advice
-attached to the work — it does not change what was done, and nothing here was blocked by it.
-
-Status must be one of: changed locally | verified locally | reviewed | committed |
-pushed | deployed | verified live | held | blocked. "changed locally" is not
-"verified locally". THIS RUN DOES NOT DEPLOY — never write "deployed", "verified live",
-or "released" on the strength of the release verifier, which only read production. Those
-states require an actual deploy that has not happened here.
-Because this runner exposes no trusted required-tool execution receipts, Status MUST be
-exactly "held" for this run even when the Gate agent claims its restricted commands passed.
-When fixedBlockersPendingVerification is nonempty, Status must be "held" even if Gate passed.
-List every unfixed major/minor finding under Caveats. Omitting a caveat to make the
-handoff look clean is the failure mode this section exists to prevent.`,
-  { phase: 'Handoff', effort: 'low', authority: 'read-only', agentType: CODE_READER_AGENT }
-  )
-} catch (error) {
-  if (error && error.code === 'AGENT_BUDGET_EXHAUSTED') throw error
-  const handoffFailure = { message: error && error.message ? error.message : String(error), code: (error && error.code) || null }
-  evidence.handoffFailure = handoffFailure
-  graph.dropped.push({ operation: 'Handoff', inputs: { budget: handoffBudget }, reason: 'handoff agent failure', error: handoffFailure })
-  evidence.shipVerdict = 'hold'
-  return { halted: true, reason: 'handoff agent failure', graph, ...evidence }
-}
-evidence.handoff = handoff
-const requiredHandoffHeadings = ['Target', 'Changed', 'Commands', 'Verification', 'Release Risk', 'Status', 'Caveats', 'Next']
-const handoffHeadingMatches = typeof handoff === 'string'
-  ? [...handoff.matchAll(/^## ([^\r\n]+)\s*$/gm)]
-  : []
-const handoffHeadings = handoffHeadingMatches.map(match => match[1].trim())
-const handoffSections = handoffHeadingMatches.map((match, index) => {
-  const start = match.index + match[0].length
-  const end = index + 1 < handoffHeadingMatches.length ? handoffHeadingMatches[index + 1].index : handoff.length
-  return handoff.slice(start, end).trim()
-})
-const handoffSectionsComplete = handoffSections.every(section => section.length > 0)
-const reportedHandoffStatus = handoffHeadings.indexOf('Status') >= 0
-  ? handoffSections[handoffHeadings.indexOf('Status')].split(/\r?\n/)[0].trim().toLowerCase()
-  : null
-const handoffValid = nonEmptyString(handoff) &&
-  handoffHeadings.join('\u0000') === requiredHandoffHeadings.join('\u0000') &&
-  handoffSectionsComplete && reportedHandoffStatus === 'held'
-if (!handoffValid) {
-  evidence.handoffFailure = {
-    message: 'handoff output is missing the exact required markdown headings, section content, or mandatory held status',
-    code: 'INVALID_HANDOFF',
-  }
-  graph.dropped.push({
-    operation: 'Handoff',
-    inputs: { requiredHeadings: requiredHandoffHeadings, reportedHeadings: handoffHeadings },
-    reason: 'invalid handoff output',
-    error: evidence.handoffFailure,
-  })
-  evidence.shipVerdict = 'hold'
-  return { halted: true, reason: 'invalid handoff', graph, ...evidence }
-}
+// Only fixed strings can introduce markdown structure. JSON escapes line
+// breaks inside evidence strings; escaping backticks also prevents a value
+// from resembling a fence while preserving round-trip JSON semantics.
+const evidenceBlock = data => '```json\n' +
+  JSON.stringify(data, null, 2).replace(/`/g, '\\u0060') + '\n```'
+const handoffSections = [
+  ['Target', evidenceBlock({
+    Repository: REPO,
+    Worktree: scout.worktreePath,
+    Base: scout.baseSha,
+    'Handoff key': evidence.runKey,
+    Scope: SCOPE,
+    'Agent budget': graph.budget,
+    'Winning thought': selectedThought,
+    Lineage: graph.thoughts.map(({ id, parentIds, operation, status }) => ({ id, parentIds, operation, status })),
+    Scores: graph.thoughts.filter(thought => thought.score).map(({ id, score }) => ({ id, score })),
+    'Pruned candidates': graph.pruned,
+    'Dropped candidates': graph.dropped,
+    'Refuted candidates': refutedCandidates,
+    'All graph objections': graphObjections,
+    'Plan refutations': objections,
+    'Score reliability': evidence.scoreReliability,
+  })],
+  ['Changed', evidenceBlock({
+    Lanes: plan.lanes.map(({ name, tier, files }) => ({ name, tier, files })),
+    'Reported changed files': reportedMutationFiles,
+    'Build and repair records': { builds: evidence.builds, fixes: evidence.fixes },
+  })],
+  ['Commands', 'The Gate commands below are agent-reported, not verified execution.\n\n' +
+    evidenceBlock(evidence.gateAudit)],
+  ['Verification', evidenceBlock({
+    Gate: gate,
+    'Verified Gate': evidence.gateVerified,
+    'Mutation boundary audit': evidence.mutationAudit,
+    'Post-Gate mutation attestation': evidence.gateMutationAttestation,
+    'Confirmed findings': confirmed,
+    'Blocker patches pending semantic verification': evidence.fixedBlockersPendingVerification,
+  })],
+  ['Release Risk', DEPLOYS ? 'Read-only production review. No deployment was performed.\n\n' +
+    evidenceBlock({ Verdict: shipVerdict, 'Release verification': release }) : 'n/a'],
+  ['Status', 'held'],
+  ['Caveats', [
+    'Apply, worktree-verifier, and Gate results are model attestations, not host-certified execution receipts.',
+    'Bash clamps only constrain Bash when an agent calls it. The authority and allowed-files fields are audit metadata, not host filesystem permissions.',
+    'Unverified findings are unchallenged reviewer assertions, not confirmed defects.',
+    evidenceBlock({
+      'Stalled lanes': stalled.map(({ lane, built }) => ({ name: lane.name, state: built && built.state, notes: built && built.notes })),
+      'Build concerns': evidence.buildConcerns || [],
+      'Fix concerns': evidence.fixConcerns || [],
+      'Unverified findings': unverified,
+      'Unfixed confirmed blocker findings': blockers.slice(FIX_CAP),
+      'Confirmed non-blocker findings': confirmed.filter(finding => finding.severity !== 'blocker'),
+      'Cross-worktree overlap': crossWorktree,
+      'Constraints rejected by the skeptic': rejected,
+      'Sources never read': stillUnread,
+      'Advisory Scout hazards': scout.hazards,
+    }),
+  ].join('\n\n')],
+  ['Next', 'Review the selected diff and outstanding findings. Obtain trusted execution receipts for the selected acceptance commands while keeping the sandbox restrictions. Verify applied blocker fixes before reconsidering the hold.'],
+]
+evidence.handoff = handoffSections.map(([heading, body]) => `## ${heading}\n\n${body}`).join('\n\n') + '\n'
 
 return {
   agentBudget: BUDGET_NAME,

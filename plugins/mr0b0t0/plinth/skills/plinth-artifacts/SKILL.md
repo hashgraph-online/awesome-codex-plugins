@@ -124,6 +124,13 @@ People may be editing the doc right on its page while you work. Always send `bas
 is published and their unsaved edits are merged onto it or reviewed by them. It needs no action;
 never wait, poll or retry for them. The draft text is never shown to you.
 
+People edit a doc on its page as formatted text, never as Markdown, and Plinth writes their
+changes back as Markdown: emphasis as `*…*`, a `<` at the start of a block as `\<`, now and then a
+character next to a mark as a character reference (`*重要，*&#x7684;`, which renders as "的"), and
+a block they did not touch keeps its bytes. Constructs the page cannot show faithfully as formatted text
+(a code block inside a list item, a reference definition inside a quote) stay as you wrote them;
+people ask you to change those, and to add or replace images.
+
 - The type cannot change. If the person wants a doc turned into a designed page (or the reverse),
   ask before publishing a new artifact for it.
 - People can print a doc or save it as PDF with **Print or save as PDF** in the artifact page's
@@ -1254,7 +1261,11 @@ request reaches you as a mention.
 
 - `list_mentions` lists it with `target` `@claude`, `@codex`, or `@agent:other` for every client
   that is not Claude or Codex (ChatGPT, Cursor, Gemini…). Its `anchor` is the element on an HTML
-  page (`selector`, `text`) or the design board the person picked. No anchor means the whole page.
+  page (`selector`, `text`) or the design board the person picked, or, from a doc being edited, a
+  page anchor (`kind: "page"`): the doc renderer sends `ask` with block anchors; other types don't
+  yet. `block-3` is the doc's third top-level block (a heading, paragraph, list, table, quote, code
+  block or image, counted from the top of the draft the person was editing), and `block-3:image`
+  asks you to add or replace an image there. No anchor means the whole page.
 - `claim_mention` it, read the artifact with `get_artifact` at its `version_number`, publish the
   change with `update_artifact` and `base_version`, then `reply_comment` with `result_version`
   (or `failed: true` and why). The thread shows the request done and links your version.

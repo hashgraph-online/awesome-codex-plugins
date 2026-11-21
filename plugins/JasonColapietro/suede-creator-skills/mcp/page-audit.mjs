@@ -1,4 +1,4 @@
-// Live page audit for the Suede AI Skills MCP.
+// Live page audit for the Suede Skills MCP.
 //
 // Fetches one public URL plus its robots.txt, sitemap and llms.txt, then grades
 // what is actually served: the raw HTML a crawler or answer engine receives.

@@ -1,5 +1,5 @@
 interface:
-  display_name: "Suede AI Launch Packaging Skills"
+  display_name: "Suede Launch Packaging Skills"
   short_description: "Package and ship Suede work as a real launch"
   default_prompt: |
     Use $suede-launch-packaging to package finished Suede work for a public launch others can install.

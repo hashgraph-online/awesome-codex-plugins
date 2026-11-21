@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Code Skills
+# Worked contract: Suede Code Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

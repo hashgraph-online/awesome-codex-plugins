@@ -1,12 +1,12 @@
 ---
 name: suede-aso
-description: "Suede AI App Store Optimization Skills. Use when asked to \"improve our App Store listing\" or prepare prelaunch keyword, title, subtitle, description and screenshot fields from app and console evidence. NOT FOR: app builds (android-app-factory or site-to-ios-app), release rollout (suede-play-release), paid assets (suede-ad-creative), or install instrumentation (suede-analytics)."
+description: "Suede App Store Optimization Skills. Use when asked to \"improve our App Store listing\" or prepare prelaunch keyword, title, subtitle, description and screenshot fields from app and console evidence. NOT FOR: app builds (android-app-factory or site-to-ios-app), release rollout (suede-play-release), paid assets (suede-ad-creative), or install instrumentation (suede-analytics)."
 metadata:
-  display-name: "Suede AI App Store Optimization Skills"
+  display-name: "Suede App Store Optimization Skills"
   version: 2.0.1
 ---
 
-# Suede AI App Store Optimization Skills
+# Suede App Store Optimization Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.
@@ -377,6 +377,6 @@ Play) is always **blocks the listing**: see `references/google-play-specs.md`.
 - Need paid app-install creative -> use `suede-ad-creative`.
 - Need install attribution or in-app events -> use `suede-analytics`.
 - Need customer language for listing copy -> use `suede-customer-research`.
-- Need an iOS or Android product build -> use `site-to-ios-app` or `android-app-factory`; native iOS from scratch is a private Suede AI companion, not in this pack: ios-app-factory.
+- Need an iOS or Android product build -> use `site-to-ios-app` or `android-app-factory`; native iOS from scratch is a private Suede companion, not in this pack: ios-app-factory.
 - Need App Store metadata authored for an app that has not shipped yet -> stay in `suede-aso` and run Pre-Launch Metadata Mode.
 - From those skills, route listing audits, metadata strategy, and screenshot sequencing back to `suede-aso`.

@@ -1,12 +1,12 @@
 ---
 name: suede-ad-creative
-description: "Suede AI Ad Creative Skills. Use when asked to \"write Google ad variants\" or iterate hooks, headlines, RSA/PMax assets, static or motion concepts from product and performance evidence. Returns grounded variants and a limit-checked review package. NOT FOR: budgets/targeting (suede-ads), experiment design (suede-ab-testing), organic posts (suede-social), general imagery (suede-image), or landing copy (suede-copy)."
+description: "Suede Ad Creative Skills. Use when asked to \"write Google ad variants\" or iterate hooks, headlines, RSA/PMax assets, static or motion concepts from product and performance evidence. Returns grounded variants and a limit-checked review package. NOT FOR: budgets/targeting (suede-ads), experiment design (suede-ab-testing), organic posts (suede-social), general imagery (suede-image), or landing copy (suede-copy)."
 metadata:
-  display-name: "Suede AI Ad Creative Skills"
+  display-name: "Suede Ad Creative Skills"
   version: 2.9.1
 ---
 
-# Suede AI Ad Creative Skills
+# Suede Ad Creative Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

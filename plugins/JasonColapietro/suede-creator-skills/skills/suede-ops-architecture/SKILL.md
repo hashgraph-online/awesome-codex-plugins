@@ -1,12 +1,12 @@
 ---
 name: suede-ops-architecture
-description: "Suede AI Operations Architecture Skills: simplify workflows, choose bounded automation, define ownership, rollout, and verification. Use when asked \"turn this ops assessment into a plan\" or to design a practical operating system. NOT FOR: discovering and quantifying current operations (suede-ops-assessment), code implementation, or production changes without authority."
+description: "Suede Operations Architecture Skills: simplify workflows, choose bounded automation, define ownership, rollout, and verification. Use when asked \"turn this ops assessment into a plan\" or to design a practical operating system. NOT FOR: discovering and quantifying current operations (suede-ops-assessment), code implementation, or production changes without authority."
 metadata:
-  display-name: "Suede AI Operations Architecture Skills"
+  display-name: "Suede Operations Architecture Skills"
   version: 1.0.0
 ---
 
-# Suede AI Operations Architecture Skills
+# Suede Operations Architecture Skills
 
 ## Compatibility
 

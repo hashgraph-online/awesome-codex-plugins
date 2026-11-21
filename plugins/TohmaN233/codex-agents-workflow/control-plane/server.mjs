@@ -46,6 +46,8 @@ const SERVER_VERSION = JSON.parse(await readFile(new URL('./package.json', impor
 const DEFAULT_CONSOLE_PORT = 58712;
 const MAX_HTTP_BODY = MAX_WORKBENCH_BODY;
 const MODERN_PROTOCOL_VERSION = '2026-07-28';
+const MODERN_CACHEABLE_METHODS = new Set(['server/discover', 'tools/list', 'resources/list',
+  'resources/templates/list', 'resources/read']);
 const MODEL_EXECUTION_ENTRYPOINTS = new Set(['workflow_start', 'workflow_start_prepared', 'workflow_native_next', 'workflow_native_spawned_batch',
   'workflow_native_followed_up', 'workflow_orchestration_complete']);
 const MODEL_THREAD_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -410,13 +412,13 @@ export async function handleRpc(request, options = {}) {
 
 async function handleRpcResponse(request, options) {
   const response = await handleRpcRequest(request, options);
-  // node-v0.1.0/docs/spec.md discovery example uses the modern MCP result
-  // envelope and reserved identity metadata. Keep the legacy initialize
-  // handshake separate; new-era requests negotiate via per-request metadata.
+  // The modern protocol requires a result type and, for cacheable responses,
+  // explicit cache metadata. Legacy initialize keeps its original envelope.
   const modern = request?.method === 'server/discover'
     || (request?.method !== 'initialize' && request?.params?._meta?.['io.modelcontextprotocol/protocolVersion'] === MODERN_PROTOCOL_VERSION);
   if (modern && response?.result) {
-    return { ...response, result: { ...response.result, resultType: 'complete',
+    const cache = MODERN_CACHEABLE_METHODS.has(request.method) ? { ttlMs: 0, cacheScope: 'private' } : {};
+    return { ...response, result: { ...cache, ...response.result, resultType: 'complete',
       _meta: { ...response.result._meta, 'io.modelcontextprotocol/serverInfo': serverIdentity() } } };
   }
   return response;

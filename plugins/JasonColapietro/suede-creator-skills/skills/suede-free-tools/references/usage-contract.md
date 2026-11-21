@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Free Tools Skills
+# Worked contract: Suede Free Tools Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

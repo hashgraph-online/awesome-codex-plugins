@@ -76,6 +76,25 @@ number. The SQL goes through dbt's dispatch, `default__dex_unit_range` holds on
 every connector, and a project overrides one warehouse with its own
 `<adapter>__dex_unit_range(model, column_name)` macro.
 
+## `dex_join_coverage`
+
+The generic test an INNER join a declared `references` requires (or a LEFT
+join to a parent the model filters) renders
+([declarations](declarations.md#dex_join_coverage-a-join-a-references-requires)),
+where `declarations.render_tests` turns it on. A declaration plan adds it for
+you; this command scaffolds or diffs it on its own. It reads the join's two
+inputs (`child`, `parent`, their key columns, and the `child_where` and
+`parent_where` filters the model applies before joining) and fails with the
+count of eligible driving rows that find no parent row, matching the parent's
+`DISTINCT` keys through a hit flag, so a duplicated parent key multiplies
+nothing and a warehouse that fills an unmatched column with a default still
+counts a miss. A row with a NULL key component is left out unless `null_keys`
+is `unmatched`. It never selects a key. The SQL goes through dbt's dispatch,
+`default__dex_join_coverage` holds on every connector, and a project overrides
+one warehouse with its own `<adapter>__dex_join_coverage(model, child,
+child_columns, parent, parent_columns, child_where, parent_where, null_keys)`
+macro.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

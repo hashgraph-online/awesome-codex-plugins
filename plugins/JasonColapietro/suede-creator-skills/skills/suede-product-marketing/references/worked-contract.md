@@ -1,4 +1,4 @@
-# Suede AI Product Marketing Skills: Worked Contract
+# Suede Product Marketing Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Diff the saved context against its previous version. Confirm the version/changel
 
 ## Detailed scope and routing
 
-Suede AI product-marketing context: drafts and versions the shared .agents/product-marketing.md record of product, audience, ICP, personas, positioning against real alternatives, objections, switching forces, verbatim customer language, sourced proof, goals, and canonical entity facts (official names, one-line description, sameAs profiles, the buyer questions search engines and AI assistants should answer). Every other Suede marketing skill reads it first. Use when a project needs that shared record created, auto-drafted from a codebase, or updated. NOT FOR: writing a campaign (use suede-campaign-in-a-box), conducting new customer interviews (use suede-customer-research), debating a contested positioning bet (use suede-marketing-council), or publishing brand claims.
+Suede product-marketing context: drafts and versions the shared .agents/product-marketing.md record of product, audience, ICP, personas, positioning against real alternatives, objections, switching forces, verbatim customer language, sourced proof, goals, and canonical entity facts (official names, one-line description, sameAs profiles, the buyer questions search engines and AI assistants should answer). Every other Suede marketing skill reads it first. Use when a project needs that shared record created, auto-drafted from a codebase, or updated. NOT FOR: writing a campaign (use suede-campaign-in-a-box), conducting new customer interviews (use suede-customer-research), debating a contested positioning bet (use suede-marketing-council), or publishing brand claims.

@@ -2,10 +2,10 @@
 name: suede-rights-passport
 description: "Audit rights gaps in ownership, contributors, splits, samples, licenses, provenance, and AI involvement, or assemble a hashed offline handoff package with a validated manifest. Use when asked to \"prepare a rights handoff\" or assess release, licensing, or royalty-routing evidence. Keeps confirmed facts separate from open questions. NOT FOR: release file linting (use suede-release-linter), sync pitching (use suede-sync-packaging), or rollout campaigns (use suede-campaign-in-a-box)."
 metadata:
-  display-name: "Suede AI Rights Passport Skills"
+  display-name: "Suede Rights Passport Skills"
 ---
 
-# Suede AI Rights Passport Skills
+# Suede Rights Passport Skills
 
 ## Compatibility
 
@@ -186,7 +186,7 @@ Read each bundled reference at the moment it is needed, not up front:
 - `references/ddex-c2pa-crosswalk.md`: before external standards mapping or any DDEX/C2PA claim.
 - `references/optimization-checklist.md`: when writing `optimization-brief.md`.
 - `references/creator-questions.md`: when information is missing: ask only the questions that block package quality.
-- `references/passport-context.md`: when the user asks how the package relates to Suede AI review or the Suede Creator Passport.
+- `references/passport-context.md`: when the user asks how the package relates to Suede review or the Suede Creator Passport.
 
 Use the bundled assets as templates when creating or repairing a package:
 
@@ -201,7 +201,7 @@ Use the bundled assets as templates when creating or repairing a package:
 
 ## Public Safety Rules
 
-- Do not say Suede AI owns, controls, or has cleared a work unless the user provides explicit proof.
+- Do not say Suede owns, controls, or has cleared a work unless the user provides explicit proof.
 - Do not call the package a legal contract.
 - Do not ask for private keys, seed phrases, unreleased account secrets, or full payment credentials.
 - Do not include private implementation details, private endpoints, internal provider names, or non-public pricing.
@@ -261,7 +261,7 @@ Artifacts produced by this skill (`RIGHTS_PASSPORT.md`, `suede-intake.json`,
 `provenance.md`, `credits-and-splits.md`, `license-notes.md`) are portable
 review materials. They can support a release, registry, licensing conversation,
 collaborator handoff, marketplace review, label review, advisor review, or
-Suede AI review without claiming that any downstream system has accepted, cleared,
+Suede review without claiming that any downstream system has accepted, cleared,
 registered, paid, or approved the work.
 
 ## Routing

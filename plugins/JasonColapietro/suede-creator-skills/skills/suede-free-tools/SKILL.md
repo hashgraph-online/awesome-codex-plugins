@@ -1,12 +1,12 @@
 ---
 name: suede-free-tools
-description: "Use when asked \"scope a free calculator\" or to choose a lead, link, education or adoption tool tied to a paid product. Suede AI scores calculators, graders and generators, scopes an MVP and defines an indexable tool page, worked example, schema and KPIs. NOT FOR: downloads (use suede-lead-magnets), full-site implementation (use suede-site-alchemy), or search diagnostics (use suede-seo-audit)."
+description: "Use when asked \"scope a free calculator\" or to choose a lead, link, education or adoption tool tied to a paid product. Suede scores calculators, graders and generators, scopes an MVP and defines an indexable tool page, worked example, schema and KPIs. NOT FOR: downloads (use suede-lead-magnets), full-site implementation (use suede-site-alchemy), or search diagnostics (use suede-seo-audit)."
 metadata:
-  display-name: "Suede AI Free Tools Skills"
+  display-name: "Suede Free Tools Skills"
   version: 2.0.0
 ---
 
-# Suede AI Free Tools Skills
+# Suede Free Tools Skills
 
 Suede uses engineering as marketing when a genuinely useful tool can create qualified discovery and a natural bridge to the paid product. Select, score, and scope the smallest maintainable calculator, grader, generator, or utility whose output earns attention rather than merely capturing it.
 

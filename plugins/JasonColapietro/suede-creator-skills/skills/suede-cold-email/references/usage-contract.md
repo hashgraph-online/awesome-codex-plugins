@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Cold Email Skills
+# Worked contract: Suede Cold Email Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

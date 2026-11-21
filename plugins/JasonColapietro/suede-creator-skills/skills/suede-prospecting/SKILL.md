@@ -2,11 +2,11 @@
 name: suede-prospecting
 description: "Build a source-backed, scored prospect list across SaaS, B2B, local business, or early demand signals. Use when asked to \"find our first design partners\", define an ICP, enrich leads, run gap plays or warm-path network mining, or document disqualification evidence. Includes source dates, confidence, licensed-data checks, and a qualification handoff. NOT FOR: sending outreach (use suede-cold-email), CRM routing (use suede-revops), or competitor profiles (use suede-competitor-profiling)."
 metadata:
-  display-name: "Suede AI Prospecting Skills"
+  display-name: "Suede Prospecting Skills"
   version: 1.2.1
 ---
 
-# Suede AI Prospecting Skills
+# Suede Prospecting Skills
 
 ## Compatibility
 
@@ -15,7 +15,7 @@ Works from supplied URLs, exports, or source text; live sourcing needs an author
 For a concrete input, expected handoff, and failure check, read
 [the worked handoff](references/worked-handoff.md).
 
-Suede AI Prospecting turns an approved ICP into a source-backed, scored lead sheet
+Suede Prospecting turns an approved ICP into a source-backed, scored lead sheet
 across B2B SaaS, general B2B, local business, and early demand-signal motions.
 Every candidate carries qualification evidence, disqualification logic, and a
 compliance-aware handoff before outreach begins.

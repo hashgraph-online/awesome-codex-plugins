@@ -1,4 +1,4 @@
-# Suede AI Ship Copy Skills: Worked Handoff
+# Suede Ship Copy Skills: Worked Handoff
 
 ## Inputs
 

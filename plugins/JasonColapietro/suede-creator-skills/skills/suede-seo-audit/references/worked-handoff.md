@@ -1,4 +1,4 @@
-# Suede AI SEO Audit Skills: Worked Handoff
+# Suede SEO Audit Skills: Worked Handoff
 
 ## Inputs
 

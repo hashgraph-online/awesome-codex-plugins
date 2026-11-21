@@ -1,13 +1,13 @@
 ---
 name: suede-deslop
-description: "Use when asked \"deslop this draft\" or to audit finished prose before shipping. Suede AI Slop Stop Skills removes filler, false agency, formulaic rhythm, chat residue and misplaced formatting while preserving voice and protected facts. Returns edited prose and a 50-point score, or findings only. NOT FOR: rewriting the argument (use suede-copy), research orchestration (use suede-ship-copy), authorship detection, or certifying facts."
+description: "Use when asked \"deslop this draft\" or to audit finished prose before shipping. Suede Slop Stop Skills removes filler, false agency, formulaic rhythm, chat residue and misplaced formatting while preserving voice and protected facts. Returns edited prose and a 50-point score, or findings only. NOT FOR: rewriting the argument (use suede-copy), research orchestration (use suede-ship-copy), authorship detection, or certifying facts."
 metadata:
-  display-name: "Suede AI Slop Stop Skills"
+  display-name: "Suede Slop Stop Skills"
 ---
 
-# Suede AI Slop Stop Skills
+# Suede Slop Stop Skills
 
-The one anti-slop method for the Suede AI writing stack. suede-copy and
+The one anti-slop method for the Suede writing stack. suede-copy and
 suede-ship-copy both call it; neither keeps a second recipe.
 
 ## Compatibility
@@ -70,9 +70,9 @@ quotes, first-person experience, or specificity that the source did not supply.
 
 ---
 
-## Suede AI house bans
+## Suede house bans
 
-On Suede AI public copy, a short list is banned outright rather than weighed
+On Suede public copy, a short list is banned outright rather than weighed
 in context: em dashes in new prose, "moreover", delve, game-changer, unlock,
 elevate, seamless, landscape (abstract), tapestry, "it's important to note",
 rule-of-three rhythm by default, heavy parallel structure, and promotional

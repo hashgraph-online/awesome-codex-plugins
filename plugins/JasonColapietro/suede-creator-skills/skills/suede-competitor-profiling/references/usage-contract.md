@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Competitor Profiling Skills
+# Worked contract: Suede Competitor Profiling Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

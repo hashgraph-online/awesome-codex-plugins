@@ -1,4 +1,4 @@
-# Suede AI Lead Magnet Skills: Worked Contract
+# Suede Lead Magnet Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Have a reader complete the checklist without a sales call. Check that each form 
 
 ## Detailed scope and routing
 
-Suede AI lead-magnet strategy: choosing a format (checklist, template, swipe file, guide, quiz, mini-course, original data), setting useful depth, deciding what to gate and what to publish as an indexable page that earns links and AI citations, landing page and delivery, and measuring qualified capture. Use when the user needs a downloadable or gated resource exchanged for contact details, or wants a lead magnet that also ranks. NOT FOR: interactive calculators, graders, or generators (use suede-free-tools), lifecycle sequences after capture (use suede-emails), or production copy (use suede-copy).
+Suede lead-magnet strategy: choosing a format (checklist, template, swipe file, guide, quiz, mini-course, original data), setting useful depth, deciding what to gate and what to publish as an indexable page that earns links and AI citations, landing page and delivery, and measuring qualified capture. Use when the user needs a downloadable or gated resource exchanged for contact details, or wants a lead magnet that also ranks. NOT FOR: interactive calculators, graders, or generators (use suede-free-tools), lifecycle sequences after capture (use suede-emails), or production copy (use suede-copy).

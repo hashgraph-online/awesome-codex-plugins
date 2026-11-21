@@ -5,6 +5,28 @@ import {join,resolve} from 'node:path';
 import {tmpdir} from './physical-tempdir.mjs';
 import {snapshotWorkspace,changedWorkspacePaths} from '../lib/execution/workspace-snapshot.mjs';
 
+test('automatic Python caches cannot gate validation unless explicitly required',async t=>{
+  const {root}=await fixture(t);
+  const pytestCache=join(root,'allowed','.pytest_cache');
+  const bytecodeCache=join(root,'__pycache__');
+  await fs.mkdir(pytestCache);
+  await fs.mkdir(bytecodeCache);
+  await fs.writeFile(join(root,'.pytest_cache'), 'ordinary file');
+  const error=Object.assign(new Error('private pytest cache'),{code:'EPERM'});
+  const fileSystem={...fs,readdir:async(path,...args)=>{
+    if(path===pytestCache)throw error;
+    return fs.readdir(path,...args);
+  }};
+  const before=await snapshotWorkspace(root,{fileSystem});
+  await fs.writeFile(join(bytecodeCache,'generated.pyc'),'bytecode');
+  await fs.writeFile(join(root,'allowed/result.txt'),'updated result');
+  const after=await snapshotWorkspace(root,{fileSystem});
+  assert.deepEqual(changedWorkspacePaths(before,after),['allowed/result.txt']);
+  assert(after.has('.pytest_cache'));
+  await assert.rejects(snapshotWorkspace(root,{fileSystem,requiredPaths:['allowed/.pytest_cache/report.json']}),{code:'EPERM'});
+  await assert.rejects(snapshotWorkspace(root,{fileSystem,hashPaths:['allowed/.pytest_cache/report.json']}),{code:'EPERM'});
+});
+
 test('scoped metadata observation excludes unrelated large contents while preserving change detection',async t=>{
  const f=await fixture(t),outside=join(f.root,'large-unrelated');await fs.writeFile(outside,'first');
  const fileSystem={...fs,lstat:async(path,...args)=>{const info=await fs.lstat(path,...args);if(path===outside)info.size=typeof info.size==='bigint'?2147483649n:2147483649;return info;},

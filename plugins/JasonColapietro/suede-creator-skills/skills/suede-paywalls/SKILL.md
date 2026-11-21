@@ -1,12 +1,12 @@
 ---
 name: suede-paywalls
-description: "Suede AI Paywall Skills: paywalls, entitlement gates, usage limits, trial expiry, screen copy, trigger rules, experiment plans, and mobile subscription-app paywalls. Use when asked \"improve this upgrade prompt\" after users experience value, or \"design our App Store subscription paywall.\" NOT FOR: public pricing-page or tier architecture (suede-pricing), cancellation and save flows (suede-churn-prevention), or unapproved billing changes."
+description: "Suede Paywall Skills: paywalls, entitlement gates, usage limits, trial expiry, screen copy, trigger rules, experiment plans, and mobile subscription-app paywalls. Use when asked \"improve this upgrade prompt\" after users experience value, or \"design our App Store subscription paywall.\" NOT FOR: public pricing-page or tier architecture (suede-pricing), cancellation and save flows (suede-churn-prevention), or unapproved billing changes."
 metadata:
-  display-name: "Suede AI Paywall Skills"
+  display-name: "Suede Paywall Skills"
   version: 2.0.1
 ---
 
-# Suede AI Paywall Skills
+# Suede Paywall Skills
 
 ## Compatibility
 
@@ -16,7 +16,7 @@ For a concrete input, expected output, recovery path, and validation check, read
 [the worked contract](references/worked-contract.md). Use it to check the handoff
 before treating the task as complete.
 
-Suede AI designs in-product monetization around a truthful entitlement boundary and a value-aware moment, not interruption volume. Define when the user has enough context to evaluate an upgrade, what the paid change actually unlocks, and how to test the prompt without obscuring price, consent, or exit.
+Suede designs in-product monetization around a truthful entitlement boundary and a value-aware moment, not interruption volume. Define when the user has enough context to evaluate an upgrade, what the paid change actually unlocks, and how to test the prompt without obscuring price, consent, or exit.
 
 ## Initial Assessment
 

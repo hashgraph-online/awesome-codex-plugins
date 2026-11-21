@@ -1,4 +1,4 @@
-# Suede AI Site Alchemy Skills: Hypothesis Recipes
+# Suede Site Alchemy Skills: Hypothesis Recipes
 
 ## A/B Test Hypothesis Generator
 

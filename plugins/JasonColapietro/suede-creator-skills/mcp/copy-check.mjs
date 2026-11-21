@@ -1,4 +1,4 @@
-// Deterministic copy checks for the Suede AI Skills MCP.
+// Deterministic copy checks for the Suede Skills MCP.
 //
 // The rules come from the pack's own copy skills: the house bans and kill list
 // in skills/suede-deslop, the pre-ship checklist in skills/suede-copy, and the

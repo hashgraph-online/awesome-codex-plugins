@@ -2,10 +2,10 @@
 name: suede-sync-packaging
 description: "Prepare a song for sync review: scene fit, supervisor one-sheet, asset checklist, lyric flags, mood tags, AI disclosure, and open clearance questions. Use when asked to \"make a sync one-sheet\" or package a track for film, TV, ads, games, trailers, or creator campaigns. Drafts pitch materials with open clearance questions labeled. NOT FOR: rights investigations or transfer packages (use suede-rights-passport), folder linting (use suede-release-linter), or rollouts (use suede-campaign-in-a-box)."
 metadata:
-  display-name: "Suede AI Sync Packaging Skills"
+  display-name: "Suede Sync Packaging Skills"
 ---
 
-# Suede AI Sync Packaging Skills
+# Suede Sync Packaging Skills
 
 ## Compatibility
 
@@ -161,7 +161,7 @@ If any of these appear in your reasoning, stop and re-read the hard gates:
 ## Public copy gate
 
 Before outputting one-sheet copy, pitch email, captions, DMs, press angles,
-site copy, bios, CTAs, or review language, run the Suede AI anti-slop line
+site copy, bios, CTAs, or review language, run the Suede anti-slop line
 edit; `suede-deslop` owns that pattern list in full. Name the actor and keep the
 concrete track artifact.
 

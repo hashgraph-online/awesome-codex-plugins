@@ -13,9 +13,9 @@ Sections marked *weak alone* describe choices a careful writer makes on purpose.
 Act on one of those only when other tells share the passage. Every other section
 justifies an edit on a single sighting.
 
-## Suede AI house bans
+## Suede house bans
 
-For Suede AI public copy, these are hard bans, not contextual signals. They
+For Suede public copy, these are hard bans, not contextual signals. They
 apply to newly written prose; protected source spans, quotations, and a
 supplied house style that says otherwise stay as they are.
 
@@ -265,7 +265,7 @@ Fix: find the actor, put them at the front of the sentence.
 - Three-item lists: use two items or one, unless the count is really three.
 - Questions answered in the same breath: let the question breathe or cut it.
 - Every paragraph ending punchy: vary endings.
-- Em dashes: follow the supplied house style. Suede AI public copy uses commas, parentheses, colons, or periods instead.
+- Em dashes: follow the supplied house style. Suede public copy uses commas, parentheses, colons, or periods instead.
 - Staccato fragments stacked for effect: merge them.
 - "Not always. Not perfectly.": hedging dressed as reassurance. Cut it.
 
@@ -441,4 +441,4 @@ share the passage, or when the supplied house style settles it.
 - **Repeated sentence openings.** Three sentences in a row starting with the same subject. Merge them, change the subject, or lead with the action. Do not ban the word; writers also repeat an opening on purpose.
 - **Stacked qualifiers** (to be fair, it's also possible, could potentially, might arguably, in some cases it may). Keep a qualifier the source supports and the meaning needs. Keep scope statements, legal and safety notices, and real corrections. Ordinary hedges such as *perhaps* or *tends to* are human habits.
 - **Curly quotation marks** where the writer or target format uses straight quotes. Most editors auto-curl.
-- **A single em dash** in text outside Suede AI house style. Many editors and journalists use them. A text full of them is a different matter; follow the supplied house style. Suede AI public copy bans them outright (see Suede AI house bans).
+- **A single em dash** in text outside Suede house style. Many editors and journalists use them. A text full of them is a different matter; follow the supplied house style. Suede public copy bans them outright (see Suede house bans).

@@ -1,11 +1,11 @@
 ---
 name: suede-code
-description: "Use when explicitly asked \"review this PR\" or to grade a diff, branch, or commit range. Suede AI returns evidence-backed P0-P3 findings, fix paths and an A-F ship grade; supports findings-only, grade-only and fix modes, seven review lanes, security checks, deploy safety and commit dirt. NOT FOR: automatic CI enforcement (use suede-ci-gate), agent evaluations (use suede-ai-eval), implementation-plan search (use suede-graph-flo-xr), or parallel fix coordination (use suede-agent-teams)."
+description: "Use when explicitly asked \"review this PR\" or to grade a diff, branch, or commit range. Suede returns evidence-backed P0-P3 findings, fix paths and an A-F ship grade; supports findings-only, grade-only and fix modes, seven review lanes, security checks, deploy safety and commit dirt. NOT FOR: automatic CI enforcement (use suede-ci-gate), agent evaluations (use suede-ai-eval), implementation-plan search (use suede-graph-flo-xr), or parallel fix coordination (use suede-agent-teams)."
 metadata:
-  display-name: "Suede AI Code Skills"
+  display-name: "Suede Code Skills"
 ---
 
-# Suede AI Code Skills
+# Suede Code Skills
 
 One skill for judging code: what is wrong, and whether it ships. Every finding
 has a file, evidence, and a fix path. Every grade has the evidence that earned

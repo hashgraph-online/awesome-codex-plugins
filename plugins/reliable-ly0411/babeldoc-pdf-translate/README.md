@@ -6,6 +6,8 @@ Layout-preserving PDF translation skill for **Codex and DeepSeek Harness**, powe
 
 ## 当前版本与适用范围
 
+> **旧引擎安全提醒：** 当前依赖仍固定 BabelDOC `0.6.4`，上游已在 `0.7.0` 修复两项相关问题。请勿用旧运行时处理来源不明的 PDF，也不要将旧配置用于新部署。`0.7.x` 尚未通过本插件的兼容验收，详见[安全说明](SECURITY.md)。
+
 当前源码版本 **1.5.0-rc.29** 增加 DSH 插件安装入口，只把原有技能注册到宿主的技能目录，不改变翻译、排版或质量检查核心。DSH 安装与权限说明见 [DSH.md](DSH.md)。该源码候选没有发布 npm 包，也不是新的稳定翻译版本。
 
 **1.5.0-rc.28 是 Windows / R1 限定预发布，非正式稳定版。** 源码已合并并发布预发布包；下载与发布状态见 [GitHub Releases](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/tag/v1.5.0-rc.28)。

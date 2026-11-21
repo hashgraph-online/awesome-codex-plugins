@@ -1,4 +1,4 @@
-# Suede AI Public Relations Skills: Worked Handoff
+# Suede Public Relations Skills: Worked Handoff
 
 ## Inputs
 

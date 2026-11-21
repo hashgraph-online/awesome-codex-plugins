@@ -1,12 +1,12 @@
 ---
 name: suede-lead-magnets
-description: "Suede AI Lead Magnet Skills. lead-magnet strategy for useful downloads, gated resources, delivery, and qualified capture. Use when asked \"design a lead magnet\" or to choose formats, gating, an indexable companion page, and a measurement plan. NOT FOR: interactive tools (suede-free-tools), nurture flows (suede-emails), or production copy (suede-copy)."
+description: "Suede Lead Magnet Skills. lead-magnet strategy for useful downloads, gated resources, delivery, and qualified capture. Use when asked \"design a lead magnet\" or to choose formats, gating, an indexable companion page, and a measurement plan. NOT FOR: interactive tools (suede-free-tools), nurture flows (suede-emails), or production copy (suede-copy)."
 metadata:
-  display-name: "Suede AI Lead Magnet Skills"
+  display-name: "Suede Lead Magnet Skills"
   version: 2.1.0
 ---
 
-# Suede AI Lead Magnet Skills
+# Suede Lead Magnet Skills
 
 ## Compatibility
 
@@ -196,7 +196,7 @@ and citations, and the gated asset converts the readers who want more.
   brand name attached.
 
 Route keyword and topic choice to `suede-content-strategy`, technical checks to
-`suede-seo-audit`, and AI answer visibility to `suede-ai-seo`. Suede AI runs
+`suede-seo-audit`, and AI answer visibility to `suede-ai-seo`. Suede runs
 this as a managed service at https://suedeai.agency.
 
 ---

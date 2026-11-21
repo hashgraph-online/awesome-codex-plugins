@@ -50,16 +50,44 @@ git diff "$BASE" --name-only --diff-filter=D     # 삭제된 파일 — 읽을 �
 
 ## 0.2단계: 정적 분석 (Python 파일 포함 시)
 
-**0단계 대상에 `.py` 파일이 있으면 그 목록으로 ruff check를 실행합니다.**
+**0단계 대상에 `.py` 파일이 있고 프로젝트가 ruff 를 설정했을 때만 그 목록으로 ruff check를 실행합니다.**
+프로젝트 설정(파일에서 레포 루트까지의 `ruff.toml`·`.ruff.toml`·`[tool.ruff]` 있는 `pyproject.toml`)이
+없으면 ruff 는 개인 전역 설정이나 기본 룰로 돌아 그 프로젝트가 따르지 않는 규칙을 결함으로 보고한다 —
+훅(auto-format·stop-validator)과 같은 조건이다.
 
 ```bash
-# 0단계 목록의 .py 만. ruff 종료코드를 그대로 읽는다 — xargs 로 이으면 1 이 123 으로 바뀐다.
-# 목록은 `sh -c` 로 넘긴다: 호스트의 쉘이 zsh 면 따옴표 없는 $PYS 가 단어 분리되지 않아
+# 0단계 목록의 .py 중 ruff 설정 아래 있는 것만. **한 번의 Bash 호출**로 실행한다 — 변수는 호출 사이에 남지 않는다.
+# ruff 종료코드를 그대로 읽는다 — xargs 로 이으면 1 이 123 으로 바뀐다.
+# `$( )` 안에 case 를 쓰지 않는다 — macOS bash 3.2 가 패턴의 `)` 를 치환의 끝으로 읽는다(실측).
+# 목록은 `sh -c` 로 넘긴다: 호스트의 쉘이 zsh 면 따옴표 없는 변수가 단어 분리되지 않아
 # 줄바꿈 낀 한 인자가 되고, ruff 가 "No such file" 을 낸다(실측). 공백 낀 경로는 파일을 하나씩 넘긴다.
-PYS=$(git diff "$BASE" --name-only --diff-filter=d -- '*.py')   # 인자를 지정했으면 그 대상 중 .py
+# --force-exclude: 경로를 명시하면 ruff 는 프로젝트의 exclude 를 무시한다.
+# core.quotePath=false: 비-ASCII 파일명이 따옴표·8진수로 오지 않게 한다.
+TOP=$(git rev-parse --show-toplevel) || exit 1
+BASE=HEAD; [ -z "$(git -C "$TOP" diff HEAD --name-only)" ] && BASE=HEAD~1   # 0단계와 같은 기준
+PYS=$(git -C "$TOP" -c core.quotePath=false diff "$BASE" --name-only --diff-filter=d -- '*.py')
+# 인자 모드면 위 두 줄 대신(인자는 지금 위치 기준, 출력은 레포 루트 기준):
+# PYS=$(git -c core.quotePath=false ls-files --full-name --cached --others --exclude-standard -- <인자> | grep '\.py$')
+cd "$TOP" || exit 1
+CFG=$(printf '%s\n' "$PYS" | while IFS= read -r f; do
+  [ -n "$f" ] || continue; d=$(dirname "$f")
+  while :; do
+    if [ -f "$d/ruff.toml" ] || [ -f "$d/.ruff.toml" ] || { [ -f "$d/pyproject.toml" ] &&
+       grep -Eq '^[[:space:]]*\[tool\.ruff(\.[^]]*)?\][[:space:]]*(#.*)?$' "$d/pyproject.toml"; }; then
+      printf '%s\n' "$f"; break
+    fi
+    if [ "$d" = . ] || [ "$d" = / ]; then break; fi   # 절대경로 인자는 / 에서 끝난다
+    d=$(dirname "$d")
+  done
+done)
 if [ -z "$PYS" ]; then echo "Python 파일 없음"
+elif [ -z "$CFG" ]; then echo "스킵됨 (프로젝트 ruff 설정 없음)"
 elif ! command -v ruff >/dev/null; then echo "스킵됨 (ruff 미설치)"
-else PYS="$PYS" sh -c 'ruff check $PYS'; echo "ruff rc=$?"; fi
+else
+  OUT=$(CFG="$CFG" sh -c 'ruff check --force-exclude $CFG' 2>&1); RC=$?; printf '%s\n' "$OUT"
+  # 대상이 전부 exclude 면 ruff 는 아무것도 보지 않고 rc 0 "All checks passed!" 를 낸다(실측) — 통과가 아니다.
+  case "$OUT" in *"No Python files found"*) echo "스킵됨 (대상이 모두 프로젝트 exclude)" ;; *) echo "ruff rc=$RC" ;; esac
+fi
 ```
 
 **결과 처리** (ruff 종료코드 그대로 판독한다: 0 통과 · 1 발견 · 2 ruff 자체 오류):
@@ -67,6 +95,8 @@ else PYS="$PYS" sh -c 'ruff check $PYS'; echo "ruff rc=$?"; fi
 - 1: 출력을 리뷰 컨텍스트에 포함하여 review-code 에이전트에 전달
 - 0: "정적 분석: 통과" 메시지만 출력
 - 2: "ruff 오류 — 정적 분석 미수행"과 stderr 를 그대로 보고한다(통과로 쓰지 않는다)
+- 프로젝트 ruff 설정이 없는 경우: "스킵됨 (프로젝트 ruff 설정 없음)" — 통과로 쓰지 않는다
+- 대상이 모두 프로젝트 exclude 인 경우: "스킵됨 (대상이 모두 프로젝트 exclude)" — 통과로 쓰지 않는다
 - ruff가 설치되지 않은 경우: "스킵됨 (ruff 미설치)" 메시지 출력
 
 **형식:**
@@ -74,7 +104,7 @@ else PYS="$PYS" sh -c 'ruff check $PYS'; echo "ruff rc=$?"; fi
 ```
 ## 0.2단계: 정적 분석 (ruff)
 - 대상: [파일 목록 또는 "없음 (Python 파일 없음)"]
-- 결과: [통과 | N건 발견 | 오류(미수행) | 스킵(ruff 미설치)]
+- 결과: [통과 | N건 발견 | 오류(미수행) | 스킵(프로젝트 ruff 설정 없음 · 모두 exclude · ruff 미설치)]
 - 발견된 이슈: [있을 때만 출력]
 ```
 
@@ -86,8 +116,9 @@ else PYS="$PYS" sh -c 'ruff check $PYS'; echo "ruff rc=$?"; fi
 리뷰 초점 신호**입니다.
 
 ```bash
-# mccabe 복잡도 flag (ruff 내장, 기본 임계 10)
-ruff check --select C901 [0.2단계와 동일한 대상 파일]
+# mccabe 복잡도 flag (ruff 내장, 기본 임계 10). 0.2단계와 **같은 호출 끝에** 붙인다 — 레포 루트 기준 $PYS 를 쓴다.
+# 규칙을 명시한 advisory 라 프로젝트 ruff 설정이 없어도 $PYS 전부를 보되, 프로젝트가 제외한 파일은 뺀다.
+if [ -n "$PYS" ] && command -v ruff >/dev/null; then PYS="$PYS" sh -c 'ruff check --force-exclude --select C901 $PYS'; fi
 ```
 
 **결과 처리:**
@@ -100,7 +131,7 @@ ruff check --select C901 [0.2단계와 동일한 대상 파일]
   > 기각하고 그 근거를 명시하라.
 - flag 없으면: "복잡도: 통과" 한 줄만.
 - **절대 blocking 아님**: 이 단계는 어떤 경우에도 리뷰를 실패시키지 않는다
-  (전역 lint(E,F)·stop-validator와 무관 — advisory 전용).
+  (프로젝트 lint·stop-validator와 무관 — advisory 전용).
 - ruff 미설치: "스킵됨 (ruff 미설치)" — fail-open.
 
 **형식:**

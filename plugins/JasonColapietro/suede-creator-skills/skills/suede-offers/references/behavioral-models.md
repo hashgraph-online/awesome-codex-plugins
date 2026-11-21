@@ -168,7 +168,7 @@ These models explain how customers think, decide, and behave.
 ### Pratfall Effect
 **Evidence: Contested.** The original result depended on the actor's perceived competence, and replications are mixed.
 
-**Marketing application**: Lead with benefits and proof; Suede AI copy does not volunteer weaknesses. When a buyer needs a material fact to decide (price, a plan limit, a platform requirement), state it plainly in the pricing section or FAQ.
+**Marketing application**: Lead with benefits and proof; Suede copy does not volunteer weaknesses. When a buyer needs a material fact to decide (price, a plan limit, a platform requirement), state it plainly in the pricing section or FAQ.
 
 ### Curse of Knowledge
 **Evidence: Robust.** Once you know something, you systematically overestimate how obvious it is to others.

@@ -1,12 +1,12 @@
 ---
 name: suede-competitors
-description: "Use when asked \"write a comparison page\" or to plan an alternative or versus page from verified competitor evidence. Suede AI returns evaluator-focused copy, fair comparisons, pricing context, migration guidance and search-ready structure. NOT FOR: gathering competitor evidence (use suede-competitor-profiling), internal battle cards (use suede-sales-enablement), or scaled page systems (use suede-programmatic-seo)."
+description: "Use when asked \"write a comparison page\" or to plan an alternative or versus page from verified competitor evidence. Suede returns evaluator-focused copy, fair comparisons, pricing context, migration guidance and search-ready structure. NOT FOR: gathering competitor evidence (use suede-competitor-profiling), internal battle cards (use suede-sales-enablement), or scaled page systems (use suede-programmatic-seo)."
 metadata:
-  display-name: "Suede AI Competitor Comparison Skills"
+  display-name: "Suede Competitor Comparison Skills"
   version: 2.0.1
 ---
 
-# Suede AI Competitor Comparison Skills
+# Suede Competitor Comparison Skills
 
 Use this Suede comparison-page playbook to serve competitive search intent while keeping every product claim current, sourced, and fair.
 

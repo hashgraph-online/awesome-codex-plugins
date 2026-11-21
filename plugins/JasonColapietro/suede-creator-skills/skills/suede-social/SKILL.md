@@ -2,11 +2,11 @@
 name: suede-social
 description: "Plan, audit, and draft organic social for founder/brand accounts: platform mix, 30-post audits, calendars, Instagram, LinkedIn/X, short-video scripts, social search, and listening. Use when asked to \"audit our Instagram growth\" or build an approval-ready content loop. NOT FOR: paid ads (use suede-ads or suede-ad-creative), editorial agents (use suede-newsroom), clip-to-guide work (use suede-clip-to-guide), video rendering (use suede-video), or broad content strategy (use suede-content-strategy)."
 metadata:
-  display-name: "Suede AI Social Skills"
+  display-name: "Suede Social Skills"
   version: 3.0.0
 ---
 
-# Suede AI Social Skills
+# Suede Social Skills
 
 ## Compatibility
 
@@ -222,11 +222,11 @@ Compare each post with its format's trailing median, not a universal benchmark.
 Change one variable per test. Diagnosis rules and the experiment card are in
 [measurement.md](references/measurement.md).
 
-## Suede AI account mode
+## Suede account mode
 
-When the account belongs to Suede AI, Jason Colapietro, or a Suede AI product:
+When the account belongs to Suede, Jason Colapietro, or a Suede product:
 
-- Lead with what Suede AI sells first: AEO, GEO, and SEO services
+- Lead with what Suede sells first: AEO, GEO, and SEO services
   (https://suedeai.agency) and Agent Studio multi-agent automation for
   businesses (https://suedeai.app). Product lanes such as Suede Sing,
   StoryBeam, GuitarHub, and the creator skills come after.

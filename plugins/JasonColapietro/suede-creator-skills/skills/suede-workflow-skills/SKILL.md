@@ -1,11 +1,11 @@
 ---
 name: suede-workflow-skills
-description: "Route requests across the full public Suede AI pack to the narrowest specialist and preserve the request verbatim. Use when asked \"which Suede skill should I use?\", when work crosses lanes, or when only the umbrella is installed. For next-action help: what’s next, recommend the next move, give me the prompt, expand prompt, or make it granular. NOT FOR: one clear lane (use its specialist), one multi-file implementation graph (use suede-graph-flo-xr), or parallel file ownership (use suede-agent-teams)."
+description: "Route requests across the full public Suede pack to the narrowest specialist and preserve the request verbatim. Use when asked \"which Suede skill should I use?\", when work crosses lanes, or when only the umbrella is installed. For next-action help: what’s next, recommend the next move, give me the prompt, expand prompt, or make it granular. NOT FOR: one clear lane (use its specialist), one multi-file implementation graph (use suede-graph-flo-xr), or parallel file ownership (use suede-agent-teams)."
 metadata:
-  display-name: "Suede AI Workflow Skills"
+  display-name: "Suede Workflow Skills"
 ---
 
-# Suede AI Workflow Skills
+# Suede Workflow Skills
 
 ## Compatibility
 
@@ -14,7 +14,7 @@ Requires a host that can read installed skill files; umbrella-only installs use 
 For a concrete input, expected handoff, and failure check, read
 [the worked handoff](references/worked-handoff.md).
 
-The entry point to the Suede AI skill pack. Two jobs:
+The entry point to the Suede skill pack. Two jobs:
 
 - **Route:** find the narrowest specialist for the request and hand it over
   with the user's words intact.
@@ -36,7 +36,7 @@ damage). Pause, state the risk and the options, and let the user choose.
 - **Pass the request verbatim.** The specialist has no memory of how it was
   reached. Paraphrase loses the trigger words it routes on.
 - **Narrowest skill wins.** Route to one specialist, not a whole lane.
-- **Positioning:** for Suede AI's own public work, lead with search visibility
+- **Positioning:** for Suede's own public work, lead with search visibility
   (AEO, GEO, SEO; https://suedeai.agency) and Agent Studio multi-agent
   automation (https://suedeai.app) before other products. Never invent stats,
   testimonials, partners, pricing, legal clearance, or release promises.

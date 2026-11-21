@@ -1,6 +1,6 @@
 ---
 name: plan-task
-description: Structured task planning into a plan file. Use for any new feature, bug fix, or project that needs a task breakdown before implementation.
+description: Structured task planning into a plan file. Use for any new feature, bug fix, or project that needs a task breakdown before implementation. Asks before creating a plan directory the project does not have, and before starting implementation.
 ---
 
 # Plan-Task 스킬
@@ -65,9 +65,22 @@ description: Structured task planning into a plan file. Use for any new feature,
 1. **규모 판단** — 기준(Small/Medium/Large 임계값)과 규모별 완료 조건은
    `skills/plan-task/references/elicitation.md` §6 이 소유한다. 여기에 옮겨 적지 않는다.
 
-   **Medium/Large 면 지금 계획 파일을 만든다**: `docs/plans/<오늘 YYYY-MM-DD>-<slug>/plan.md`
-   (이름이 있으면 `-2`, `-3`). frontmatter 는 `status: planning` 과 판정한 `size`,
-   본문은 `skills/plan-task/references/plan-format.md` 의 절 머리만 둔다(`## 검증 결과` 제외). **Small 은 파일 없이** 진행한다.
+   **Medium/Large 면 계획 파일을 둘 자리를 먼저 정한다** — 킷은 남의 프로젝트에 디렉토리를 스스로
+   만들지 않는다(`docs/plans/` 는 기본 제안이지 기본 동작이 아니다):
+   - 사용자가 경로를 말했거나 프로젝트 지침(CLAUDE.md·AGENTS.md)이 계획 위치를 정했으면 그곳.
+   - 아니고 `docs/plans/` 가 이미 있으면 그 아래 `<오늘 YYYY-MM-DD>-<slug>/plan.md`(이름이 있으면
+     `-2`, `-3`) — 만든 경로를 한 줄로 알린다.
+   - 둘 다 아니면 **묻는다**: ① `docs/plans/<날짜>-<slug>/plan.md` 를 새로 만든다 ② 다른 경로
+     ③ 파일 없이 대화로만. 답을 받기 전에는 아무 디렉토리도 만들지 않는다. `docs/plans/` 밖에 두면
+     세션 시작의 활성 계획 자동 발견은 그 파일을 보지 못한다고 함께 알린다.
+     ③이면 계획을 대화창에 두고 **`auto-dev` 로 넘기지 않는다** — Medium 이상의 auto-dev 는 계획
+     디렉토리(checklist·Validation)를 전제한다. 구현은 사용자가 원하면 그 대화의 계획대로 직접 하고
+     완료 조건 명령으로 검증한다.
+   - **사용자가 없는 실행**(위임 브리프를 받은 워커 — `child-session`): 묻지 않는다. 브리프가 정한
+     자리에 두고, 정하지 않았으면 파일을 만들지 않고 계획을 완료 보고에 담아 부모에게 넘긴다.
+
+   파일을 만들면 frontmatter 는 `status: planning` 과 판정한 `size`, 본문은
+   `skills/plan-task/references/plan-format.md` 의 절 머리만 둔다(`## 검증 결과` 제외). **Small 은 파일 없이** 진행한다.
 
 2. **자격 인벤토리** (Large 필수 · Medium 권장 — `elicitation.md` §0):
    확보된 권한을 세고 그 경계를 **이번 범위선**으로 삼는다. 미확보 항목은 기다리지 말고
@@ -141,12 +154,14 @@ description: Structured task planning into a plan file. Use for any new feature,
    한 번 더 출력하는 것이 이 단계다.
 1. 계획 파일이 있으면 네 절이 채워졌는지 확인하고 frontmatter `status: in-progress` 로 바꾼다.
    Small 이면 요구사항·계획·완료 조건을 대화창에 출력한다.
-2. 다음 단계:
+2. 다음 단계 — **구현은 계획 승인 뒤에만 시작한다**(HARD-GATE, `rules/loop-engineering.md` 의 게이트):
 
-Planning이 완료되었습니다. 바로 개발을 시작하겠습니다.
-
-`auto-dev` 스킬을 즉시 invoke합니다 — 계획 디렉토리를 인자로 넘긴다. 사용자가 "나중에" 또는
-"직접 실행"을 원하면 아래 명령을 안내하고 invoke를 건너뜁니다.
+   계획 요약(요구사항·결정·완료 조건)을 보여 주고 *"이대로 구현할까요?"* 로 확인받은 뒤 `auto-dev` 를
+   invoke 한다 — 계획 디렉토리(Small 이면 대화창의 계획)를 인자로 넘긴다. 다음은 이미 승인된 것으로
+   보고 확인을 생략한다: 사용자가 *"계획 세우고 바로 구현해"* 처럼 검토 없이 진행하라고 했을 때,
+   `/auto-dev <요청>` 으로 들어와 plan-task 로 넘어온 경우, 위임 브리프에 구현 지시가 있는 워커.
+   **계획만 요청했으면**(예: *"계획 세워 줘"*, `/plan-task` 만 부르고 구현 지시 없음) 여기서 멈추고 아래
+   명령을 안내한다 — 계획 요청은 구현 권한이 아니다. 사용자가 "나중에"·"직접 실행"을 원해도 같다.
 
 **Small 은 계획 파일이 없다.** Small 경로의 정본은 `elicitation.md` §6 이고(바로 구현 + 완료 조건
 명령으로 검증), plan-task 가 Small 로 판정하면 대화창의 계획을 인자 없이 `auto-dev` 에 넘겨 그

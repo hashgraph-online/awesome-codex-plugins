@@ -1,4 +1,4 @@
-# Suede AI Site Alchemy Skills: Pricing and Urgency
+# Suede Site Alchemy Skills: Pricing and Urgency
 
 ## Pricing Psychology
 

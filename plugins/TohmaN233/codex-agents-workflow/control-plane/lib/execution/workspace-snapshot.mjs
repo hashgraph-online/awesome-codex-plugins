@@ -8,6 +8,12 @@ const within = (path, boundary) => {
   path=key(path); boundary=key(boundary.replaceAll('\\','/').replace(/\/$/,''));
   return boundary==='.' || path===boundary || path.startsWith(boundary+'/');
 };
+const generatedCaches = new Set(['.pytest_cache','__pycache__','.mypy_cache','.ruff_cache']);
+
+export function isUnneededGeneratedCache(entry, path, declaredPaths = []) {
+  return entry.isDirectory() && generatedCaches.has(key(entry.name))
+    && !declaredPaths.some(declared => within(declared.replaceAll('\\','/'),path));
+}
 
 // A write-scope audit needs the boundary of an authorized private subtree,
 // not permission to read all of its contents. Required artifacts still need
@@ -19,6 +25,7 @@ export async function snapshotWorkspace(root, {access='read_only', allowedPaths=
   const result=new Map(); result.unreadablePaths=new Map();
   result.hashPaths=hashPaths===null?null:[...hashPaths];
   const needsContent=path=>hashPaths===null||hashPaths.some(boundary=>within(path,boundary));
+  const declaredPaths=[...requiredPaths,...(hashPaths??[])];
   const metadata=info=>'metadata:'+digest(canonicalJSON(['dev','ino','mode','nlink','size','mtimeNs','ctimeNs','birthtimeNs'].map(field=>String(info[field]))));
   let files=0, bytes=0;
   async function observeUnreadable(error, path, stat) {
@@ -41,6 +48,7 @@ export async function snapshotWorkspace(root, {access='read_only', allowedPaths=
     for(const entry of entries) {
       if(entry.name==='.git')continue;
       const absolute=join(directory,entry.name), path=relative(root,absolute).replaceAll('\\','/');
+      if(isUnneededGeneratedCache(entry,path,declaredPaths))continue;
       const stat=await fileSystem.lstat(absolute,{bigint:true});
       if(stat.isSymbolicLink()&&!needsContent(path)){result.set(path,metadata(stat));continue;}
       requireValue(!stat.isSymbolicLink(),codePrefix+'_WORKSPACE_SYMLINK',`Workspace contains a symbolic link: ${path}`);

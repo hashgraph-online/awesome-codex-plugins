@@ -1,12 +1,12 @@
 ---
 name: suede-marketing-council
-description: "Suede AI Marketing Council Skills: simulated advisors pressure-test one contested marketing decision. Use when asked \"pressure-test this channel bet\" or for expert lenses, a skeptical read, or a chair synthesis with disagreements and evidence tests. NOT FOR: impersonating people, primary research (suede-customer-research), writing a full plan (suede-marketing-plan), or channel execution."
+description: "Suede Marketing Council Skills: simulated advisors pressure-test one contested marketing decision. Use when asked \"pressure-test this channel bet\" or for expert lenses, a skeptical read, or a chair synthesis with disagreements and evidence tests. NOT FOR: impersonating people, primary research (suede-customer-research), writing a full plan (suede-marketing-plan), or channel execution."
 metadata:
-  display-name: "Suede AI Marketing Council Skills"
+  display-name: "Suede Marketing Council Skills"
   version: 2.0.0
 ---
 
-# Suede AI Marketing Council Skills
+# Suede Marketing Council Skills
 
 ## Compatibility
 

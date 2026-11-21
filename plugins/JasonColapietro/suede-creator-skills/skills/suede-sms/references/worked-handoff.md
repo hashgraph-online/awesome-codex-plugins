@@ -1,4 +1,4 @@
-# Suede AI SMS Skills: Worked Handoff
+# Suede SMS Skills: Worked Handoff
 
 ## Inputs
 

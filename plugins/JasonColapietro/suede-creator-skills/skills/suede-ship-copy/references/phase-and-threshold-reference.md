@@ -1,4 +1,4 @@
-# Suede AI Ship Copy Skills: Phases and Thresholds
+# Suede Ship Copy Skills: Phases and Thresholds
 
 ## The graph
 

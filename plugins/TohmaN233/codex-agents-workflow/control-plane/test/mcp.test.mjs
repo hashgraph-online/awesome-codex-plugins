@@ -208,15 +208,30 @@ test('stdio MCP lists control tools and returns sanitized status', async (t) => 
     child.kill('SIGTERM');
   });
   const client = makeClient(child);
-  const discovered = await client.request({ jsonrpc: '2.0', id: 1, method: 'server/discover', params: {} });
-  assert.deepEqual(discovered.result.supportedVersions, ['2026-07-28']);
+  const protocol = '2026-07-28';
+  const modernParams = { _meta: { 'io.modelcontextprotocol/protocolVersion': protocol } };
+  const discovered = await client.request({ jsonrpc: '2.0', id: 1, method: 'server/discover', params: modernParams });
+  assert.deepEqual(discovered.result.supportedVersions, [protocol]);
   assert.equal(discovered.result.resultType, 'complete');
   assert.equal(discovered.result._meta['io.modelcontextprotocol/serverInfo'].name, 'codex-agents-workflow');
+  const modernTools = await client.request({ jsonrpc: '2.0', id: 21, method: 'tools/list', params: modernParams });
+  assert(modernTools.result.tools.some(tool => tool.name === 'workflow_start'));
+  const resources = await client.request({ jsonrpc: '2.0', id: 22, method: 'resources/list', params: modernParams });
+  const templates = await client.request({ jsonrpc: '2.0', id: 23, method: 'resources/templates/list', params: modernParams });
+  const resource = await client.request({ jsonrpc: '2.0', id: 24, method: 'resources/read',
+    params: { ...modernParams, uri: resources.result.resources[0].uri } });
+  assert(resource.result.contents.length > 0);
+  for (const { result } of [discovered, modernTools, resources, templates, resource]) {
+    assert.equal(result.ttlMs, 0);
+    assert.equal(result.cacheScope, 'private');
+  }
 
   const initialized = await client.request({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '2025-11-25' } });
   assert.equal(initialized.result.protocolVersion, '2025-11-25');
+  assert.equal(initialized.result.ttlMs, undefined);
 
   const listed = await client.request({ jsonrpc: '2.0', id: 3, method: 'tools/list', params: {} });
+  assert.equal(listed.result.cacheScope, undefined);
   const names = listed.result.tools.map((tool) => tool.name);
   assert.deepEqual(names.filter(name => name.startsWith('codex_agents_workflow_')), ['codex_agents_workflow_app', 'codex_agents_workflow_settings', 'codex_agents_workflow_app_request', 'codex_agents_workflow_status', 'codex_agents_workflow_console', 'codex_agents_workflow_resolve', 'codex_agents_workflow_connector_probe', 'codex_agents_workflow_connector_start', 'codex_agents_workflow_connector_status', 'codex_agents_workflow_connector_control', 'codex_agents_workflow_invoke']);
   assert.equal(names.some(name => name.startsWith('sol_')), false);

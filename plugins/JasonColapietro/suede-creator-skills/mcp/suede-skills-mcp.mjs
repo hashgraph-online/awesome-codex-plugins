@@ -741,7 +741,7 @@ const tools = [
       properties: {
         copy: { type: "string", maxLength: MAX_COPY_CHARS, description: `Copy to check, up to ${MAX_COPY_CHARS} characters.` },
         primaryAction: { type: "string", description: "Optional action the copy must ask for." },
-        houseStyle: { type: "boolean", description: "Apply the Suede AI house bans. Defaults to true; pass false for another brand's copy." }
+        houseStyle: { type: "boolean", description: "Apply the Suede house bans. Defaults to true; pass false for another brand's copy." }
       },
       required: ["copy"]
     }
@@ -1401,7 +1401,7 @@ function getPrompt(name, args = {}) {
       messages: [
         {
           role: "user",
-          content: text(`Use the Suede AI Skills MCP to explain ${boundedString(args.surface, "all")} install options. Lead with the public Codex skill install, include local plugin install only as an operator note, include MCP server availability, and explain when to use each bundled skill.`)
+          content: text(`Use the Suede Skills MCP to explain ${boundedString(args.surface, "all")} install options. Lead with the public Codex skill install, include local plugin install only as an operator note, include MCP server availability, and explain when to use each bundled skill.`)
         }
       ]
     };
@@ -1490,7 +1490,7 @@ function initialize(params) {
       prompts: { listChanged: false },
       completions: {}
     },
-    serverInfo: { name: "suede-skills-mcp", title: "Suede AI Skills MCP", version: catalog.version },
+    serverInfo: { name: "suede-skills-mcp", title: "Suede Skills MCP", version: catalog.version },
     instructions: "Use this read-only MCP to route a task to the right Suede skill (search_suede_skills, plan_suede_workflow), read its instructions (get_suede_skill or suede://skill/{name}), grade a live page for Google and AI search (suede_live_page_audit), check copy against the house rules (suede_copy_check), or pull install, grading and QA checklists."
   };
 }

@@ -1,12 +1,12 @@
 ---
 name: suede-reverse-engineer-anyone
-description: "Use when asked \"how did X grow\", \"reverse engineer their marketing\", \"what made this artist blow up\", or \"map their funnel\". Suede AI reverse-engineers any company, creator, artist, founder brand, app, or launch from dated public evidence: a one-source growth curve, a log of every move, funnel and content patterns, hidden signals, the user's gap, and ranked plays routed to the Suede skill that runs each one. NOT FOR: a current-state competitor snapshot (use suede-competitor-profiling), publishing comparison pages (use suede-competitors), or why one post traveled (use suede-social)."
+description: "Use when asked \"how did X grow\", \"reverse engineer their marketing\", \"what made this artist blow up\", or \"map their funnel\". Suede reverse-engineers any company, creator, artist, founder brand, app, or launch from dated public evidence: a one-source growth curve, a log of every move, funnel and content patterns, hidden signals, the user's gap, and ranked plays routed to the Suede skill that runs each one. NOT FOR: a current-state competitor snapshot (use suede-competitor-profiling), publishing comparison pages (use suede-competitors), or why one post traveled (use suede-social)."
 metadata:
-  display-name: "Suede AI Reverse Engineer Anyone Skills"
+  display-name: "Suede Reverse Engineer Anyone Skills"
   version: 1.0.0
 ---
 
-# Suede AI Reverse Engineer Anyone Skills
+# Suede Reverse Engineer Anyone Skills
 
 Use this growth-teardown playbook to work out how a company, creator, artist, founder brand, app, or launch grew, in date order, from evidence the user can check. Hand back four things: when the target grew, what it did around those months, how the user's own numbers compare, and which plays to run next, each routed to the Suede skill that does the work.
 

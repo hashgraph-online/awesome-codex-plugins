@@ -56,9 +56,11 @@ The blocking and Stop hooks below are Claude Code behavior; on Codex only sessio
 
 
 - **SessionStart** — Injects governance rules, recurring review lessons, and open plan files
-- **PreToolUse** — Blocks reads and edits of sensitive files such as `.env`, SSH/cloud credential directories and key files (`protect-sensitive.py`). It only matches the *path* the agent is about to open and refuses it — it never opens, reads or transmits those files, and it makes no network calls. Credential paths appear in its source because they are the blocklist.
-- **PostToolUse** — Auto-formats the edited file (`auto-format.py`: ruff for Python; prettier/eslint only when the project has them installed)
-- **Stop** — Lints edited Python files and runs the tests you edited; on failure, the turn continues so the agent fixes it
+- **PreToolUse** — Blocks reads and edits of sensitive files such as `.env`, SSH/cloud credential directories, key files and credential/secret data files and modules like `credentials.json` or `secrets.py` (`protect-sensitive.py`); source, SQL and docs that only use such a word in a compound name (`credential_collector.py`) are allowed and are outside this guard. It only matches the *path* the agent is about to open and refuses it — it never opens, reads or transmits those files, and it makes no network calls. Credential paths appear in its source because they are the blocklist. <!-- doc-ref-ok: 외부 사용자 레포의 예시 파일명 -->
+- **PostToolUse** — Auto-formats the edited file (`auto-format.py`): ruff only when the project configures it (`ruff.toml`, `.ruff.toml` or `[tool.ruff]` in `pyproject.toml`), prettier/eslint only when the project has their config and has them installed, gofmt only inside a Go module (`go.mod`), rustfmt only with `rustfmt.toml`. A project without them is left as is
+- **Stop** — Lints edited Python files (same ruff condition) and runs the tests you edited; on failure, the turn continues so the agent fixes it
+
+To turn hooks off, set `HIWAY_KIT_DISABLE_HOOKS` to a comma-separated list (`session-start`, `session-check`, `protect-sensitive`, `auto-format`, `stop-validator`) or `all` in the `env` of your project's `.claude/settings.json` or `.claude/settings.local.json`. Do not edit the cached `hooks.json` — an update restores it. Codex does not read these settings files; there the variable has to be in the environment Codex starts with (not verified).
 
 The hooks do not upload data to the publisher. Programs invoked by hooks and helpers can
 write files or access the network; read-only code queries do not sandbox language servers

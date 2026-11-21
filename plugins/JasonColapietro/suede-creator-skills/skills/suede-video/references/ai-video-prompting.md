@@ -1,4 +1,4 @@
-# Suede AI Video Prompting Guide
+# Suede Video Prompting Guide
 
 How Suede writes testable prompts for any currently callable and authorized AI
 video model.

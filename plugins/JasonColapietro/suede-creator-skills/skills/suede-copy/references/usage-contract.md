@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Copy Skills
+# Worked contract: Suede Copy Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

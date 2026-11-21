@@ -1,4 +1,4 @@
-# Suede AI Rights Passport Skills: Worked Handoff
+# Suede Rights Passport Skills: Worked Handoff
 
 ## Inputs
 

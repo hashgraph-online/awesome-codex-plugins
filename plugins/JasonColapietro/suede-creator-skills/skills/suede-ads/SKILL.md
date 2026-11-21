@@ -1,12 +1,12 @@
 ---
 name: suede-ads
-description: "Suede AI Ads Skills. Use when planning paid acquisition and asked to \"audit our paid campaigns\" or choose channels, structure campaigns, set budget pacing, retargeting and kill-or-scale rules from verified unit economics and performance. NOT FOR: ad asset production (suede-ad-creative), tracking implementation (suede-analytics), attribution reconciliation (suede-attribution), or landing-page work (suede-site-alchemy)."
+description: "Suede Ads Skills. Use when planning paid acquisition and asked to \"audit our paid campaigns\" or choose channels, structure campaigns, set budget pacing, retargeting and kill-or-scale rules from verified unit economics and performance. NOT FOR: ad asset production (suede-ad-creative), tracking implementation (suede-analytics), attribution reconciliation (suede-attribution), or landing-page work (suede-site-alchemy)."
 metadata:
-  display-name: "Suede AI Ads Skills"
+  display-name: "Suede Ads Skills"
   version: 2.3.1
 ---
 
-# Suede AI Ads Skills
+# Suede Ads Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

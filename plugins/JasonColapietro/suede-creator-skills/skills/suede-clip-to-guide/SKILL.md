@@ -1,12 +1,12 @@
 ---
 name: suede-clip-to-guide
-description: "Suede AI Clip to Guide Skills. Use when creating short-to-long content and asked to \"turn this clip into a guide funnel\": select a rights-supported moment, score fit, draft the bridge, approval bundle and measurement plan. NOT FOR: rendering (suede-video), social calendars (suede-social), full guide writing (suede-copy), paid ads (suede-ad-creative), or publication without exact-content and identity approval."
+description: "Suede Clip to Guide Skills. Use when creating short-to-long content and asked to \"turn this clip into a guide funnel\": select a rights-supported moment, score fit, draft the bridge, approval bundle and measurement plan. NOT FOR: rendering (suede-video), social calendars (suede-social), full guide writing (suede-copy), paid ads (suede-ad-creative), or publication without exact-content and identity approval."
 metadata:
-  display-name: "Suede AI Clip to Guide Skills"
+  display-name: "Suede Clip to Guide Skills"
   version: 1.1.0
 ---
 
-# Suede AI Clip to Guide Skills
+# Suede Clip to Guide Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

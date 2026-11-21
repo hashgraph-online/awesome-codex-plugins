@@ -82,6 +82,25 @@ async function unit(t){
  return {workspace,store,definition,plan,attempt,record,runtime,binding,publish,close:()=>settleNativeSpan(runtime,record,definition,attempt,binding,plan)};
 }
 
+test('native scope discards unreadable generated caches before observing effects',async t=>{
+ const f=await unit(t),cache=join(f.workspace,'.pytest_cache');
+ await mkdir(cache);
+ const original=nativeFs.readdir;
+ t.mock.method(nativeFs,'readdir',async(path,...args)=>{
+  if(path===cache)throw Object.assign(new Error('pytest cache access denied'),{code:'EPERM'});
+  return original(path,...args);
+ });
+ syncBuiltinESMExports();
+ try{
+  const before=await captureNativeWorkspace(f.workspace,{hashPaths:['pages']});
+  await writeFile(join(cache,'state'),'new pytest state');
+  await writeFile(join(f.workspace,'pages/output'),'output');
+  const after=await captureNativeWorkspace(f.workspace,{hashPaths:['pages']});
+  assert.deepEqual(nativeWorkspaceChanges(before,after).map(change=>change.path),['pages/output']);
+  await assert.rejects(captureNativeWorkspace(f.workspace,{hashPaths:['.pytest_cache/state']}),{code:'EPERM'});
+ }finally{t.mock.restoreAll();syncBuiltinESMExports();}
+});
+
 test('native span empty dispatch establishes a reusable baseline without material publication',async t=>{
  const f=await unit(t);f.plan.assignments=[];
  const first=await prepareNativeSpan(f.runtime,f.record,f.definition,f.binding,{envelope:{workspace:f.workspace}},f.plan);

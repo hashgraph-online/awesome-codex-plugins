@@ -20,7 +20,7 @@
   "skills": "./skills/",
   "mcpServers": {
     "suede_skills_mcp": {
-      "title": "Suede AI Skills MCP",
+      "title": "Suede Skills MCP",
       "description": "Local read-only MCP access to every Suede skill: discovery, install options, visibility and code grading, SEO copy audits, and QA checklists.",
       "cwd": ".",
       "command": "node",
@@ -32,10 +32,10 @@
     }
   },
   "interface": {
-    "displayName": "Suede AI Skills",
+    "displayName": "Suede Skills",
     "shortDescription": "AI skills for SEO and business growth",
-    "longDescription": "Suede AI Skills gives founders, marketers, and small teams reusable workflows for SEO audits, AI search visibility, conversion copy, and business operations. Run them in Claude Code or OpenAI Codex, with instructions you can inspect and adapt to your business. Start with a page or business brief to get prioritized audit findings, positioning and campaign plans, or a map of operational bottlenecks. The pack also includes code review, app delivery, and creator-rights tools. Original work is MIT licensed; adapted components retain their upstream notices.",
-    "developerName": "Suede AI",
+    "longDescription": "Suede Skills gives founders, marketers, and small teams reusable workflows for SEO audits, AI search visibility, conversion copy, and business operations. Run them in Claude Code or OpenAI Codex, with instructions you can inspect and adapt to your business. Start with a page or business brief to get prioritized audit findings, positioning and campaign plans, or a map of operational bottlenecks. The pack also includes code review, app delivery, and creator-rights tools. Original work is MIT licensed; adapted components retain their upstream notices.",
+    "developerName": "Suede",
     "category": "Developer Tools",
     "capabilities": [
       "Agent Skills",

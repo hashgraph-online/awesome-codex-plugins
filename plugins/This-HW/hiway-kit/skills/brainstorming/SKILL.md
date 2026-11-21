@@ -69,7 +69,9 @@ description: Design and spec a Large new feature or system change before plannin
 
 ### 5단계: 스펙 문서 작성
 
-**저장 경로:** `docs/specs/YYYY-MM-DD-{topic}.md`
+**저장 경로:** 사용자가 정했거나 프로젝트 지침이 정한 자리, 아니면 `docs/specs/` 가 이미 있을 때
+`docs/specs/YYYY-MM-DD-{topic}.md`. 둘 다 아니면 만들기 전에 위치를 묻는다(새 경로·다른 경로·대화에만) —
+킷은 남의 프로젝트에 디렉토리를 스스로 만들지 않는다.
 (계획 파일은 plan-task 가 만든다 — 그 `## 요구사항` 에서 이 스펙 경로를 가리킨다)
 
 스펙 문서 구조:

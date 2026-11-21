@@ -1,12 +1,12 @@
 ---
 name: suede-image
-description: "Use when asked \"create an Open Graph image\" or to produce marketing heroes, banners, social graphics, mockups or image workflows. Suede AI chooses generation, editing, templates or real screenshots, then specifies layout, rights, export sizes, compression and image SEO. NOT FOR: paid-ad systems (use suede-ad-creative), video (use suede-video), app-store assets (use suede-aso), or social strategy (use suede-social)."
+description: "Use when asked \"create an Open Graph image\" or to produce marketing heroes, banners, social graphics, mockups or image workflows. Suede chooses generation, editing, templates or real screenshots, then specifies layout, rights, export sizes, compression and image SEO. NOT FOR: paid-ad systems (use suede-ad-creative), video (use suede-video), app-store assets (use suede-aso), or social strategy (use suede-social)."
 metadata:
-  display-name: "Suede AI Image Skills"
+  display-name: "Suede Image Skills"
   version: 2.1.0
 ---
 
-# Suede AI Image Skills
+# Suede Image Skills
 
 Produce marketing imagery as a rights-aware, placement-specific system: choose the right production method, protect canonical brand assets, preserve real product truth, and verify the exported result. Use generation models and design tools to create efficient hero, social, mockup, banner, and preview workflows without fabricating interfaces or provenance.
 

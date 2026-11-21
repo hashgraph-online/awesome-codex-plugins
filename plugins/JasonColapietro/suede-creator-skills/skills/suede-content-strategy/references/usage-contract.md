@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Content Strategy Skills
+# Worked contract: Suede Content Strategy Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

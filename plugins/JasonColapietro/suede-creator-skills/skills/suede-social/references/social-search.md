@@ -70,5 +70,5 @@ Measure: search-sourced views where the platform reports traffic source
 ## Routing
 
 For site-level search work, schema, and AI answer audits, use `suede-seo-audit`
-and `suede-ai-seo`. Suede AI runs this work as a managed service at
+and `suede-ai-seo`. Suede runs this work as a managed service at
 https://suedeai.agency when a team wants it done for them.

@@ -165,12 +165,13 @@ test keeps failing, and the last run in which a claim was checked and passed.
 The three tests above are the **built-ins**. They always render. A **generated
 test** is one Dex writes for a declared fact the built-ins cannot check: a
 composite grain, a population filter, a parent's population, a fraction's
-range. Each kind arrives with its own issue (#1452 onward); this release
-renders four,
+range, an INNER join's coverage. Each kind arrives with its own issue (#1452
+onward); this release renders five,
 [`dex_unique_combination`](#dex_unique_combination-a-composite-grain),
 [`dex_population_filter`](#dex_population_filter-a-population-filter),
-[`dex_parent_population`](#dex_parent_population-a-parents-population) and
-[`dex_unit_range`](#dex_unit_range-a-fraction). The switch
+[`dex_parent_population`](#dex_parent_population-a-parents-population),
+[`dex_unit_range`](#dex_unit_range-a-fraction) and
+[`dex_join_coverage`](#dex_join_coverage-a-join-a-references-requires). The switch
 and the tag below are what every kind follows. Generated tests run in the
 project's production runs. Dex does not run those and the project pays for them,
 so two rules hold:
@@ -453,6 +454,80 @@ A column the model's SQL provably does not output renders no test
 `macros/dex_unit_range.sql` (the [shipped macro](macros.md#dex_unit_range)) as
 a `macro_sql` diff where neither the project nor the plan defines the test; a
 plan declaring only percent columns writes none.
+
+#### `dex_join_coverage`: a join a `references` requires
+
+A column that carries a model's join key and declares a `references` naming the
+joined model makes that join required: every eligible row of the join's driving
+input must find a parent row. `maintain verify` holds the join to that claim at
+threshold zero (`join_orphans`, `join_zero_overlap`, `join_no_match`,
+`threshold_source: contract`). Where the join is an INNER join, or a LEFT
+join to a parent the model filters first, the model
+renders `dex_join_coverage` on its entry, tagged `dex_scheduled`, since it
+anti-joins two inputs whole:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - dex_join_coverage:
+          arguments:
+            child: ref('stg_orders')
+            child_columns: [customer_id]
+            parent: ref('dim_customers')
+            parent_columns: [customer_id]
+            child_where: status <> 'cancelled'
+          config:
+            tags: [dex_scheduled]
+            meta:
+              disable_test_samples: true
+              dex: {claim: <id>}
+```
+
+**It reads the join's inputs, not the model's output.** An INNER join drops the
+rows it cannot match, so the model never holds an orphan and the
+`relationships` test on its output always passes. The plan reads the join from
+the model's SQL as it leaves it, with the same readers `maintain verify` uses on
+the compiled SQL (each `ref()` and `source()` stands for its relation), and
+writes the two inputs into the test: `child` and `child_columns`, the relation
+the key is read from and its key columns in order, `parent` and
+`parent_columns`, the joined relation and its key, and `child_where` and
+`parent_where`, the row filters the model applies to each side before joining
+it (a staging CTE's `WHERE`), written in the connector's dialect. A filter is
+part of the input: a row the model never joins is counted by neither side.
+
+It fails with the eligible driving rows that find no parent row, the
+`unmatched_rows` `maintain verify` states, and agrees with that finding on every
+connector:
+
+- **A NULL key is a missing reference.** A row with a NULL key component is
+  left out, as `relationships` and `maintain verify` leave it. Where the key
+  column is also declared `null_rule: never`, `maintain verify` counts those rows
+  as unmatched, and so does the test (`null_keys: unmatched`).
+- **A duplicated parent key multiplies nothing.** The parent's keys are read
+  `DISTINCT`, so each driving row counts once.
+- **Counts only.** The test returns the count, never a key.
+
+**What renders nothing**, listed under `data.generated_tests` as
+`not_rendered` with the reason, while `maintain verify` still judges the join:
+
+| Reason | When |
+|---|---|
+| `covered_by_builtin` | The required join is a LEFT join to the whole parent. It keeps every unmatched row, so the `relationships` test the `references` renders counts the same rows on the output, and a second, scheduled scan would only cost. A LEFT join to a parent the model filters first (a CTE's `WHERE`) renders the test: `relationships` reads the whole parent, so a child whose only parent row the filter drops passes it. |
+| `join_shape_unsupported` | A key compared through a conversion (`cast`, `try_cast`), a side read through a `GROUP BY`, a RIGHT or FULL join, a side that reads neither a `ref()` nor a `source()`, or a filter that does not carry into the dialect. |
+| `join_unread` | The plan could not read the model's joins: its SQL holds Jinja other than `ref()`, `source()` and `config()` (a macro, a loop, a conditional, a versioned `ref(..., v=2)`), or does not parse. Listed once per declared `references`. |
+
+**The test describes the join as the SQL wrote it.** Its claim is the join's
+two inputs, keys and filters, so a plan that changes the join renders a new
+test with a new claim. The old one is never removed (nothing generated is), and
+the plan lists it under `data.generated_tests` as `stale` with
+`reason: join_not_in_model` and a warning: remove it from the YAML in the same
+review.
+
+Its macro reaches the project as the others' do: `macros/dex_join_coverage.sql`
+(the [shipped macro](macros.md#dex_join_coverage)) as a `macro_sql` diff where
+neither the project nor the plan defines the test; a plan whose required joins
+are all LEFT joins to whole parents writes none.
 
 ### A versioned model
 

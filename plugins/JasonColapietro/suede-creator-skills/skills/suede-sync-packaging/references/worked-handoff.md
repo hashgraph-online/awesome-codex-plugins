@@ -1,4 +1,4 @@
-# Suede AI Sync Packaging Skills: Worked Handoff
+# Suede Sync Packaging Skills: Worked Handoff
 
 ## Inputs
 

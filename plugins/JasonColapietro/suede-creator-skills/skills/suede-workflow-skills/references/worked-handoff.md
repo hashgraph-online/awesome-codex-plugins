@@ -1,4 +1,4 @@
-# Suede AI Workflow Skills: Worked Handoff
+# Suede Workflow Skills: Worked Handoff
 
 ## Inputs
 

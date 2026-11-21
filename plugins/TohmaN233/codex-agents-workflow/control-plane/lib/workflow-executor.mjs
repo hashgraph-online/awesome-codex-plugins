@@ -229,7 +229,8 @@ export class WorkflowExecutor {
         if (receipt.status === 'succeeded') {
           requireValue(output !== null && digest(canonicalJSON(output)) === receipt.output_sha256, 'HOST_TOOL_OUTPUT_CORRUPT', 'Qualified broker output differs from its attested digest');
           storedHostOutput = { kind: 'host_tool_output', output,
-            ...(completionCheck ? { completion_snapshot: await saveMainHostCheckSnapshot(this.runtime,runId,args.attempt_id,envelope.workspace) } : {}) };
+            ...(completionCheck ? { completion_snapshot: await saveMainHostCheckSnapshot(this.runtime,runId,args.attempt_id,envelope.workspace,
+              [...contract.permissions.read_paths,...contract.permissions.write_paths]) } : {}) };
         }
         const commitReceipt=async()=>{
           if(storedHostOutput){

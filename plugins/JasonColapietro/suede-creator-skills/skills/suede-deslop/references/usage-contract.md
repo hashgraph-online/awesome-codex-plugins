@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Slop Stop Skills
+# Worked contract: Suede Slop Stop Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

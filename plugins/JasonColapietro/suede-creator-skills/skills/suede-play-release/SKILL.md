@@ -1,11 +1,11 @@
 ---
 name: suede-play-release
-description: "Suede AI Google Play Release Skills. Google Play release delivery with AAB preflight, test-track upload, exact versionCode promotion, staged rollout, locale notes, and API readback. Use when asked \"promote this Android build\" or to diagnose Play publishing access and prove the served release. NOT FOR: app building or policy review (android-app-factory), listing assets (suede-aso), or CI gates (suede-ci-gate)."
+description: "Suede Google Play Release Skills. Google Play release delivery with AAB preflight, test-track upload, exact versionCode promotion, staged rollout, locale notes, and API readback. Use when asked \"promote this Android build\" or to diagnose Play publishing access and prove the served release. NOT FOR: app building or policy review (android-app-factory), listing assets (suede-aso), or CI gates (suede-ci-gate)."
 metadata:
-  display-name: "Suede AI Google Play Release Skills"
+  display-name: "Suede Google Play Release Skills"
 ---
 
-# Suede AI Google Play Release Skills
+# Suede Google Play Release Skills
 
 ## Compatibility
 
@@ -228,7 +228,7 @@ Every line proven by a command in this run:
 - Need CI wiring, required checks, or merge gates around the release -> use
   `suede-ci-gate`.
 - Need branch, worktree, or stale-mirror handling for the release branch, or
-  the iOS half of the same release -> private Suede AI companions, not in this
+  the iOS half of the same release -> private Suede companions, not in this
   pack.
 - Need constants to match across the Android, iOS and web surfaces -> use
   `suede-parity-contract`.

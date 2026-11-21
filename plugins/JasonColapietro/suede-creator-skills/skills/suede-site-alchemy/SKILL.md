@@ -2,10 +2,10 @@
 name: suede-site-alchemy
 description: "Turn landing, launch, campaign, and product pages into measured conversion paths: funnel stage, friction, hero, proof, CTAs, pricing, mobile QA, and pre-registered experiments. Use when asked to \"fix this page that gets no signups\" or improve demos and sales from existing traffic. Implements and verifies changes within scope. NOT FOR: SEO scores (use suede-seo-audit), AI citations (use suede-ai-seo), promotion grades (use suede-visibility-grader), or copy alone (use suede-copy)."
 metadata:
-  display-name: "Suede AI Site Alchemy Skills"
+  display-name: "Suede Site Alchemy Skills"
 ---
 
-# Suede AI Site Alchemy Skills
+# Suede Site Alchemy Skills
 
 ## Compatibility
 
@@ -96,7 +96,7 @@ Route search work out: crawl, index, schema, and scored SEO findings go to
 `suede-seo-audit`; AI answer-engine visibility goes to `suede-ai-seo`. Keep
 their fixes intact when you edit the page.
 
-Route out of this skill to the Suede app-builder workflow (a private Suede AI
+Route out of this skill to the Suede app-builder workflow (a private Suede
 companion, not in this pack). Do not attempt these here:
 
 - Open-ended custom apps.

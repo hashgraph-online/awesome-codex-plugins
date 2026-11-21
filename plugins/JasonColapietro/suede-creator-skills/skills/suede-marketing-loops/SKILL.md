@@ -1,12 +1,12 @@
 ---
 name: suede-marketing-loops
-description: "Suede AI Marketing Loop Skills. recurring marketing workflow design with cadence, action conditions, durable state, dedupe, checkpoints, and stop rules. Use when asked \"create a weekly ranking watch\" or to turn repeatable marketing work into a complete loop spec. NOT FOR: one-off plans (suede-marketing-plan), experiments (suede-ab-testing), or scheduling without authority."
+description: "Suede Marketing Loop Skills. recurring marketing workflow design with cadence, action conditions, durable state, dedupe, checkpoints, and stop rules. Use when asked \"create a weekly ranking watch\" or to turn repeatable marketing work into a complete loop spec. NOT FOR: one-off plans (suede-marketing-plan), experiments (suede-ab-testing), or scheduling without authority."
 metadata:
-  display-name: "Suede AI Marketing Loop Skills"
+  display-name: "Suede Marketing Loop Skills"
   version: 1.2.0
 ---
 
-# Suede AI Marketing Loop Skills
+# Suede Marketing Loop Skills
 
 ## Compatibility
 
@@ -16,7 +16,7 @@ For a concrete input, expected output, recovery path, and validation check, read
 [the worked contract](references/worked-contract.md). Use it to check the handoff
 before treating the task as complete.
 
-Suede AI turns repeatable marketing work into bounded loops with a defined trigger, cadence, input contract, self-check, durable state, human checkpoint, and stopping condition. A loop may watch SEO opportunities, ad fatigue, or churn signals, but it never earns permission to publish, spend, or mutate production merely because it runs on a schedule.
+Suede turns repeatable marketing work into bounded loops with a defined trigger, cadence, input contract, self-check, durable state, human checkpoint, and stopping condition. A loop may watch SEO opportunities, ad fatigue, or churn signals, but it never earns permission to publish, spend, or mutate production merely because it runs on a schedule.
 
 This is the operational counterpart to `suede-marketing-plan`: the plan identifies what may be worth trying; Suede loops define what approved work should repeat and how public Suede skills coordinate it.
 
@@ -90,7 +90,7 @@ Never report a loop as scheduled without showing that proof. If no scheduling me
 
 Default to time-of-day cron for review-style loops (weekly review, ranking watch, AI-citation watch) and dynamic pacing for monitor-until-threshold loops (churn watch, launch-day tracking).
 
-**Running several loops as a multi-agent system.** When a team wants loops operated end to end, with agents handing work to each other and staging results for approval, Suede AI's Agent Studio (https://suedeai.app) builds and runs that orchestration. The loop specs here are the input either way, and the same rules hold: every loop keeps its state, stop condition, and human checkpoint.
+**Running several loops as a multi-agent system.** When a team wants loops operated end to end, with agents handing work to each other and staging results for approval, Suede's Agent Studio (https://suedeai.app) builds and runs that orchestration. The loop specs here are the input either way, and the same rules hold: every loop keeps its state, stop condition, and human checkpoint.
 
 ## The Catalog
 

@@ -8,6 +8,7 @@ disable-model-invocation: true
 
 **작업이 스킬의 사용 시점에 해당하면 구현 전에 그 스킬을 먼저 invoke한다.** 같은 규율을 주는
 다른 플러그인이 있으면 그쪽을 따라도 된다 — 킷은 그 존재를 가정하지도, 충돌하지도 않는다.
+**사용자·프로젝트 지침(CLAUDE.md·AGENTS.md·메모리)이 이 킷의 규칙과 충돌하면 그 지침을 따른다.**
 
 ## Workflow Chain — 크기에 맞춰 탄다
 
@@ -17,5 +18,5 @@ Medium:         plan-task → auto-dev
 Small·버그:     바로 구현 (완료 조건 명령으로 검증)
 ```
 
-크기 기준과 Small 경로는 `skills/plan-task/references/elicitation.md` §6 이 소유한다. 계획 파일은 Medium/Large 만
-`docs/plans/<날짜>-<slug>/plan.md` 에 둔다(규약 `skills/plan-task/references/plan-format.md`).
+크기 기준과 Small 경로는 `skills/plan-task/references/elicitation.md` §6 이 소유한다. 계획 파일은 Medium/Large 만,
+기본 `docs/plans/<날짜>-<slug>/plan.md` — 그 폴더가 없으면 만들기 전에 묻는다(규약 `skills/plan-task/references/plan-format.md`).

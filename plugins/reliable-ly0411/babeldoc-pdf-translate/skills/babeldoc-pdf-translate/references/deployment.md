@@ -16,6 +16,8 @@
 
 ## 安装示例
 
+> **旧版复现用，不用于新部署。** 下列命令会安装 BabelDOC `0.6.4`。该版本受上游 [GHSA-h972-phhq-7368](https://github.com/funstory-ai/BabelDOC/security/advisories/GHSA-h972-phhq-7368) 和 [GHSA-wrv8-h9rp-6fqq](https://github.com/funstory-ai/BabelDOC/security/advisories/GHSA-wrv8-h9rp-6fqq) 影响；排版补丁不修复这些问题。请勿用此运行时打开、检查或翻译不可信 PDF。上游 `0.7.0` 起含修复，但当前插件尚未认证 `0.7.x`，不要在既有环境原地替换，也不要把旧补丁套到新引擎。
+
 在解压目录打开终端。需要真实的 Python 3.10+（建议 3.12），不要调用 Windows Store 占位 python。可用 uv 创建独立环境：
 
 ```sh

@@ -1,4 +1,4 @@
-# Worked contract: Suede AI Image Skills
+# Worked contract: Suede Image Skills
 
 This is an illustrative application, not a claim of measured customer results.
 

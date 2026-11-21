@@ -1,4 +1,4 @@
-# Worked contracts: Suede AI Design Skills
+# Worked contracts: Suede Design Skills
 
 Illustrative applications, not claims of measured customer results.
 

@@ -1,4 +1,4 @@
-# Suede AI Referral Skills: Worked Handoff
+# Suede Referral Skills: Worked Handoff
 
 ## Inputs
 

@@ -561,6 +561,36 @@ test('successful Host completion receipt reconciles an uncertain semantic commit
   assert.equal((await f.runtime.runs.read(f.run_id)).state.nodes.final.attempts[0].completion_turns,1);
 });
 
+test('a scoped Host completion check seals its declared paths without reading caches or unrelated files',async t=>{
+  const h=hostCheckFixture();h.tool.permissions.read_paths=['product.txt'];
+  const f=await fixture(t,{write:true,hostToolRegistry:h.registry,mutateWorkflow:h.install});
+  const cache=join(f.workspace,'.pytest_cache'),unrelated=join(f.workspace,'unrelated.txt');
+  await mkdir(cache);
+  await writeFile(unrelated,'unrelated');
+  await writeFile(join(f.workspace,'product.txt'),'checked product');
+  const originalRead=nativeFs.readFile,originalReaddir=nativeFs.readdir;
+  t.mock.method(nativeFs,'readdir',async(path,...args)=>{
+    if(path===cache)throw Object.assign(new Error('pytest cache access denied'),{code:'EPERM'});
+    return originalReaddir(path,...args);
+  });
+  t.mock.method(nativeFs,'readFile',async(path,...args)=>{
+    assert.notEqual(path,unrelated);
+    return originalRead(path,...args);
+  });
+  syncBuiltinESMExports();
+  try{
+    const options={model:true,modelThreadId:thread};
+    await f.service.call('native_next',{},options);
+    const result=await f.service.call('orchestration_complete',{output:{conclusion:'Accepted'}},options);
+    assert.equal(result.status,'succeeded');
+    const {state}=await f.runtime.runs.read(f.run_id);
+    const [attempt]=state.nodes.final.attempts;
+    const stored=await f.runtime.runs.readExecutorResult(f.run_id,attempt.id,attempt.host_tool.receipt.output_ref.sha256);
+    const snapshot=JSON.parse(await f.runtime.runs.readArtifact(f.run_id,stored.completion_snapshot));
+    assert.deepEqual(snapshot.entries.map(entry=>entry.path),['product.txt','result.txt']);
+  }finally{t.mock.restoreAll();syncBuiltinESMExports();}
+});
+
 test('a completion check uncertain intent is never automatically replayed even when its tool declares safe idempotency', async t => {
   const h = hostCheckFixture({execute:async()=>{throw new Error('lost broker response');}});
   const f = await fixture(t,{write:true,hostToolRegistry:h.registry,mutateWorkflow:h.install,expectedDrainFailure:'uncertain'});

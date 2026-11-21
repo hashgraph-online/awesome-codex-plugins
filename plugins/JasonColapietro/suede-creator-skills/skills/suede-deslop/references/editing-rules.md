@@ -116,10 +116,10 @@ Good: "You didn't sit down and decide to build this. It accumulated."
 ### 6. Vary rhythm
 
 Mix sentence lengths. Two items often beat three. End paragraphs differently.
-Follow the supplied house style for em dashes. For Suede AI public copy,
+Follow the supplied house style for em dashes. For Suede public copy,
 replace them with commas, parentheses, colons, or periods. Do not treat
 punctuation as evidence of authorship.
-Suede AI public copy also avoids promotional exclamation points; preserve
+Suede public copy also avoids promotional exclamation points; preserve
 them in protected source spans or when the supplied house style calls for them.
 
 Three consecutive sentences at the same length: break one. Every paragraph ending with a punchy one-liner: vary it. Staccato fragments stacked for effect: merge them. A question answered in the same breath: let it breathe or cut it. Hedging dressed as reassurance ("Not always. Not perfectly."): cut it.

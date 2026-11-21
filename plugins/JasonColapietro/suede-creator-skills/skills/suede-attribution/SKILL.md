@@ -1,12 +1,12 @@
 ---
 name: suede-attribution
-description: "Suede AI Attribution Skills. Use when asked to \"explain why dashboards disagree\", compare revenue models, design incrementality reads, or join first-party browsing to hosted bookings/checkouts. NOT FOR: GA4/GTM event plans and UTMs (suede-analytics), ad campaign decisions (suede-ads), or CRM pipeline operations (suede-revops)."
+description: "Suede Attribution Skills. Use when asked to \"explain why dashboards disagree\", compare revenue models, design incrementality reads, or join first-party browsing to hosted bookings/checkouts. NOT FOR: GA4/GTM event plans and UTMs (suede-analytics), ad campaign decisions (suede-ads), or CRM pipeline operations (suede-revops)."
 metadata:
-  display-name: "Suede AI Attribution Skills"
+  display-name: "Suede Attribution Skills"
   version: 1.2.0
 ---
 
-# Suede AI Attribution Skills
+# Suede Attribution Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

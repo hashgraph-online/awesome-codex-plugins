@@ -1,12 +1,12 @@
 ---
 name: suede-analytics
-description: "Suede AI Analytics Skills. Use when asked to \"fix our analytics events\" or set up GA4/GTM, key events, consent, UTMs and search/AI channels with readback proof. NOT FOR: experiment decisions (suede-ab-testing), campaign optimization (suede-ads), attribution reconciliation (suede-attribution), or revenue operations (suede-revops)."
+description: "Suede Analytics Skills. Use when asked to \"fix our analytics events\" or set up GA4/GTM, key events, consent, UTMs and search/AI channels with readback proof. NOT FOR: experiment decisions (suede-ab-testing), campaign optimization (suede-ads), attribution reconciliation (suede-attribution), or revenue operations (suede-revops)."
 metadata:
-  display-name: "Suede AI Analytics Skills"
+  display-name: "Suede Analytics Skills"
   version: 2.1.1
 ---
 
-# Suede AI Analytics Skills
+# Suede Analytics Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

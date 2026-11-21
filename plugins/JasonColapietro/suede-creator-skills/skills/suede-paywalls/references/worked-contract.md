@@ -1,4 +1,4 @@
-# Suede AI Paywall Skills: Worked Contract
+# Suede Paywall Skills: Worked Contract
 
 This is a synthetic application scenario, not a client result or a required output filename. Adapt the values to the supplied evidence. The skill's existing output format and authority boundaries apply.
 
@@ -20,4 +20,4 @@ Walk eligible, already-paid, limit-reset, declined-payment, and dismissed states
 
 ## Detailed scope and routing
 
-Suede AI in-product monetization: paywall screens, feature gates, trial-expiry states, usage-limit prompts, and free-to-paid upgrade moments, with trigger timing, frequency caps, screen copy, plan presentation, a dark-pattern self-check, and subscription-law checks current to October 2026 (ROSCA and state auto-renewal laws after the vacated FTC click-to-cancel rule, California's click-to-cancel and renewal notices, UK DMCC subscription rules, the EU withdrawal button, App Store and Google Play disclosure). Returns screen drafts, trigger rules, and an experiment plan. Use when users have experienced value and the next step is an upgrade prompt or paywall. NOT FOR: public pricing pages (use suede-pricing for the teardown or suede-site-alchemy for conversion), tier architecture (use suede-pricing), or cancellation and save flows (use suede-churn-prevention).
+Suede in-product monetization: paywall screens, feature gates, trial-expiry states, usage-limit prompts, and free-to-paid upgrade moments, with trigger timing, frequency caps, screen copy, plan presentation, a dark-pattern self-check, and subscription-law checks current to October 2026 (ROSCA and state auto-renewal laws after the vacated FTC click-to-cancel rule, California's click-to-cancel and renewal notices, UK DMCC subscription rules, the EU withdrawal button, App Store and Google Play disclosure). Returns screen drafts, trigger rules, and an experiment plan. Use when users have experienced value and the next step is an upgrade prompt or paywall. NOT FOR: public pricing pages (use suede-pricing for the teardown or suede-site-alchemy for conversion), tier architecture (use suede-pricing), or cancellation and save flows (use suede-churn-prevention).

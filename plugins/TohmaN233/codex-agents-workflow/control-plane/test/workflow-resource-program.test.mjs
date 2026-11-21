@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -199,6 +201,48 @@ test('a Host tool executes one pinned Workflow resource and observes its writes 
   assert.deepEqual(executed.output,{ok:true});
   assert.deepEqual(JSON.parse(await readFile(join(workspace,'work/result.json'),'utf8')),{ok:true});
   assert(executed.receipt.effects.changed_paths.includes('work/result.json'));
+});
+
+test('an unreadable pytest cache cannot block a pinned resource program', async t => {
+  const workspace=await mkdtemp(join(tmpdir(),'workflow-resource-pytest-cache-'));
+  t.after(()=>rm(workspace,{recursive:true,maxRetries:3,retryDelay:100}));
+  await mkdir(join(workspace,'work'));
+  const cache=join(workspace,'.pytest_cache');
+  await mkdir(cache);
+  const unrelated=join(workspace,'unrelated.txt');
+  await writeFile(unrelated,'unrelated workspace content');
+  const readdir=fs.readdir;
+  const originalStat=fs.lstat,originalRead=fs.readFile;
+  t.mock.method(fs,'lstat',async(path,...args)=>{
+    assert.notEqual(path,cache,'the cache should be skipped before stat');
+    return originalStat(path,...args);
+  });
+  t.mock.method(fs,'readFile',async(path,...args)=>{
+    assert.notEqual(path,unrelated,'scope observation needs metadata only');
+    return originalRead(path,...args);
+  });
+  t.mock.method(fs,'readdir',async(path,...args)=>{
+    if(path===cache)throw Object.assign(new Error('pytest cache scandir denied'),{code:'EPERM'});
+    return readdir(path,...args);
+  });
+  syncBuiltinESMExports();
+  try{
+    const path='source/check.mjs';
+    const bytes=Buffer.from('import {mkdirSync,writeFileSync} from "node:fs"; mkdirSync("__pycache__"); writeFileSync("__pycache__/generated.pyc","cache"); writeFileSync("work/result.json","{}"); console.log("{}");');
+    const contract={id:'cache-check',identity:workflowResourceProgramIdentity(),argv:['node',path,'work/.workflow-runtime'],
+      input_schema:{type:'object'},output_schema:{type:'object'},env_allow:[],
+      permissions:{network:false,read_paths:[],write_paths:['work']},output_cap_bytes:4096,deadline_ms:30000,idempotency:{mode:'safe'}};
+    const executed=await new HostToolRunner({registry:workflowResourceProgramRegistry()}).execute(contract,{},
+      {run_id:'run',node_id:'check',attempt_id:'attempt',workspace,
+        permissions:{access:'bounded_write',allowed_paths:['work']},resources:[{path,sha256:digest(bytes),bytes}],
+        runtime_environment:{status:'ready',tools:[{name:'node',path:process.execPath,status:'found'}]}});
+    assert.equal(executed.receipt.status,'succeeded',executed.receipt.diagnostics.message);
+    assert.deepEqual(executed.receipt.effects.changed_paths,['work/result.json']);
+    assert.deepEqual(executed.receipt.effects.outside_paths,[]);
+  }finally{
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
 });
 
 test('Host configured environment and registry helper PATH reach the actual resource child', async t => {

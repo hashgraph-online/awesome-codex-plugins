@@ -1,12 +1,12 @@
 ---
 name: suede-co-marketing
-description: "Suede AI Co-Marketing Skills. Use when asked to \"find co-marketing partners\" or plan a joint campaign: evidence-backed fit, reciprocal value, format, roles, consent, shared KPIs and content. NOT FOR: affiliate/referral programs (suede-referrals), software release packaging (suede-launch-packaging), or partner-facing sales collateral (suede-sales-enablement)."
+description: "Suede Co-Marketing Skills. Use when asked to \"find co-marketing partners\" or plan a joint campaign: evidence-backed fit, reciprocal value, format, roles, consent, shared KPIs and content. NOT FOR: affiliate/referral programs (suede-referrals), software release packaging (suede-launch-packaging), or partner-facing sales collateral (suede-sales-enablement)."
 metadata:
-  display-name: "Suede AI Co-Marketing Skills"
+  display-name: "Suede Co-Marketing Skills"
   version: 2.1.0
 ---
 
-# Suede AI Co-Marketing Skills
+# Suede Co-Marketing Skills
 
 Read [the worked delivery contract](references/worked-contract.md) for a concrete
 input, expected artifact, failure response and validation example.

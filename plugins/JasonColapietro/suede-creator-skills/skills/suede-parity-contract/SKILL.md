@@ -1,11 +1,11 @@
 ---
 name: suede-parity-contract
-description: "Suede AI Parity Contract Skills. cross-surface parity contracts generated from live reference constants and asserted through follower behavior. Use when asked \"these app and web thresholds disagree\" or when rules are copied across web, mobile, docs, or services. NOT FOR: choosing the correct shipped value, diff review (suede-code), merge-gate setup (suede-ci-gate), or search audits (suede-seo-audit)."
+description: "Suede Parity Contract Skills. cross-surface parity contracts generated from live reference constants and asserted through follower behavior. Use when asked \"these app and web thresholds disagree\" or when rules are copied across web, mobile, docs, or services. NOT FOR: choosing the correct shipped value, diff review (suede-code), merge-gate setup (suede-ci-gate), or search audits (suede-seo-audit)."
 metadata:
-  display-name: "Suede AI Parity Contract Skills"
+  display-name: "Suede Parity Contract Skills"
 ---
 
-# Suede AI Parity Contract Skills
+# Suede Parity Contract Skills
 
 ## Compatibility
 
