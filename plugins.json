@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-21",
-  "total": 461,
+  "total": 462,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -4545,6 +4545,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Webly-AI/webly-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Wiro AI",
+      "url": "https://github.com/wiroai/Wiro-Plugin",
+      "owner": "wiroai",
+      "repo": "Wiro-Plugin",
+      "description": "Run 1,000+ image, video, audio and LLM models on Wiro AI, chain them into workflows and deploy your own AI agents through the hosted Wiro MCP server, five agent skills and eleven ready commands, with browser sign-in and the price shown before each paid run.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/wiroai/Wiro-Plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Worktable",

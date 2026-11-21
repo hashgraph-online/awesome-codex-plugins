@@ -1,7 +1,7 @@
 {
   "name": "fair-value-calculator",
-  "version": "1.0.2",
-  "description": "Look up fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, compare and screen them, and manage a watchlist.",
+  "version": "1.0.3",
+  "description": "Look up fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, compare and screen them, check your whole portfolio, and manage a watchlist.",
   "author": {
     "name": "Fair Value Calculator",
     "email": "office@fairvalue-calculator.com",
@@ -16,6 +16,7 @@
     "valuation",
     "fair-value",
     "screener",
+    "portfolio",
     "watchlist",
     "mcp"
   ],
@@ -24,7 +25,7 @@
   "interface": {
     "displayName": "Fair Value Calculator",
     "shortDescription": "Fair value, quality score and uptrend for 40,000+ stocks, plus your watchlist",
-    "longDescription": "Connects Codex to the hosted Fair Value Calculator MCP server over OAuth: fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, stock comparisons and screens, and the watchlist and alerts of your own account. Sign in with a free account.",
+    "longDescription": "Connects Codex to the hosted Fair Value Calculator MCP server over OAuth: fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, stock comparisons and screens, a check of your whole portfolio, and the watchlist and alerts of your own account. Sign in with a free account.",
     "developerName": "Fair Value Calculator",
     "category": "Research",
     "capabilities": [

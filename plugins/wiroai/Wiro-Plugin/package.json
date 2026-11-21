@@ -1,0 +1,14 @@
+{
+  "name": "wiro-plugin",
+  "private": true,
+  "description": "Build and check scripts for the Wiro AI plugin",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build-commands.mjs",
+    "check": "node scripts/build-commands.mjs --check && node scripts/validate.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

@@ -128,6 +128,18 @@ updates:
     cooldown:
       default-days: 5
 
+  # The demo Containerfile under assets/ records the audit chain; keep its
+  # base image pinned by watching for version updates here too.
+  - package-ecosystem: "docker"
+    directory: "/assets/demo"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    cooldown:
+      default-days: 5
+
   # The markdown tools docs-and-hygiene installs with `npm ci`. Each override in
   # its package.json went in by hand after an advisory; version updates keep the
   # rest of the tree from aging the same way.
