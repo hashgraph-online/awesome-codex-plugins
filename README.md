@@ -740,6 +740,12 @@ The score is best used as a quick trust signal and triage summary (not the only 
 <!-- hol-sponsors:start -->
 ### Sponsors
 
+#### Gold sponsors
+
+<p align="center">
+<a href="https://seltz.ai/?utm_source=hol-newsletter&amp;utm_medium=newsletter&amp;utm_campaign=the-stack-2026-11-09&amp;utm_content=banner"><img src="assets/seltz-sponsor-gold.svg" alt="Seltz" width="240" height="72" /></a>
+</p>
+
 #### Bronze sponsors
 
 <p align="center">
