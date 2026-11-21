@@ -1,0 +1,47 @@
+{
+  "name": "toolkit",
+  "version": "0.4.5",
+  "description": "Reusable, configurable development actions for Codex.",
+  "author": {
+    "name": "Philipp Allgeuer",
+    "url": "https://github.com/pallgeuer"
+  },
+  "homepage": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/docs/codex_perform.md",
+  "repository": "https://github.com/pallgeuer/la-dev-codex-plugins",
+  "license": "MIT",
+  "keywords": [
+    "codex actions",
+    "development workflows",
+    "repository automation",
+    "perform",
+    "language-agnostic"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Perform Action Toolkit",
+    "shortDescription": "Run reusable Codex actions",
+    "longDescription": "Discover useful built-in actions and run the exact variant you select through Codex. Perform binds required variables from your request and layers system, user, and repository action definitions with defined precedence. It previews the selected selector, notes, and exact prompt before execution and fails safely on unknown strict selectors, missing variables, or incompatible instructions.\n\nPerform runs locally under the user's Codex session and permissions. It has no hosted service, developer authentication flow, telemetry collector, or external data store. A separately installed codex-perform Python companion can launch the same actions from a shell, but it is not included in this plugin package and is secondary to the in-chat workflow.",
+    "developerName": "Philipp Allgeuer",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Discover reusable actions from the effective catalogue",
+      "Select and run exact action variants",
+      "Bind required action variables from the request",
+      "Layer system, user, and repository action definitions"
+    ],
+    "websiteURL": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/docs/codex_perform.md",
+    "privacyPolicyURL": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/TERMS.md",
+    "supportURL": "https://github.com/pallgeuer/la-dev-codex-plugins/issues",
+    "brandColor": "#0D6973",
+    "brandColorDark": "#62D9C4",
+    "composerIcon": "./assets/composer-icon.svg",
+    "logo": "./assets/logo.svg",
+    "logoDark": "./assets/logo-dark.svg",
+    "defaultPrompt": [
+      "$toolkit:perform",
+      "$toolkit:perform find-todos",
+      "$toolkit:perform audit-test-performance"
+    ]
+  }
+}

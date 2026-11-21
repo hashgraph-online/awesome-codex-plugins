@@ -1,0 +1,10 @@
+# Development and generated files that never belong in an installed plugin.
+tests/
+docs/submissions/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.pytest_cache/
+.ruff_cache/
+*.zip
+*.sha256

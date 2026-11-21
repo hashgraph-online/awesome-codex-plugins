@@ -1,0 +1,6 @@
+interface:
+  display_name: "Perform"
+  short_description: "Run configured canned Codex actions."
+  default_prompt: "$toolkit:perform"
+policy:
+  allow_implicit_invocation: false

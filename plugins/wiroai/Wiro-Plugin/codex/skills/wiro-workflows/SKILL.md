@@ -135,7 +135,7 @@ curl -s -X POST "https://api.wiro.ai/v1/Workflow/RunDetail" \
 
 - `Workflow/List`, `Workflow/Detail`, `Workflow/Add`, `Workflow/Update`, `Workflow/Clone` and `Workflow/Delete` manage workflows; `Workflow/RunResume` continues a run (`breakpointNodeId` sets a new breakpoint); `Workflow/RunHistory` lists past runs.
 - `RunDetail` returns `workflowrun` (`status`, `canresume`, `totalcost`, and `chargedcost` once the run ends) and `workflowrunnodes` (each step's `status`, `error` and `outputs`). Read the End node's `fields` in `contents` and take the `outputs` of the steps they reference.
-- Check `result` and `errors` first: code `97` is an insufficient balance, `96` the concurrency limit.
+- Check `result` and `errors` first: code `97` is an insufficient balance, `96` the concurrency limit, `93` a spend limit with no room for the run and `92` a Model Access rule that blocks one of its models. A run refused with `93` or `92` did not start and costs nothing; the `wiro-ai` skill's error table says what to do.
 
 ## Links
 

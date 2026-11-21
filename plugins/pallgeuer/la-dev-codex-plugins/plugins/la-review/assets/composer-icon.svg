@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Loupe">
+  <g fill="none" stroke="#59D2C0" stroke-width="3.75" stroke-linecap="round">
+    <path d="M7 14 L20.2 22"/>
+    <path d="M7 29 L18 29"/>
+    <path d="M7 44 L20.2 36"/>
+  </g>
+  <g fill="#155B83">
+    <circle cx="7" cy="14" r="3.25"/>
+    <circle cx="7" cy="29" r="3.25"/>
+    <circle cx="7" cy="44" r="3.25"/>
+  </g>
+  <path d="M46.5 40.5 L58.7 52.7" fill="none" stroke="#59D2C0" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="35" cy="29" r="14.5" fill="none" stroke="#155B83" stroke-width="5"/>
+  <path d="M28.2 29.2 L33 34 L41.4 24.4" fill="none" stroke="#59D2C0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

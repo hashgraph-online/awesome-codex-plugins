@@ -1861,6 +1861,21 @@
       "icon": "./plugins/ClickHouse/loom/assets/icon.png"
     },
     {
+      "name": "la-review",
+      "displayName": "Loupe Code Review",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pallgeuer/la-dev-codex-plugins/plugins/la-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Runs independent Codex code reviews, optionally adds configured Claude reviewers, then verifies and consolidates evidence for working trees, commits, and pull requests.",
+      "icon": "./plugins/pallgeuer/la-dev-codex-plugins/plugins/la-review/assets/composer-icon.svg"
+    },
+    {
       "name": "macbox",
       "displayName": "macbox",
       "source": {
@@ -2152,6 +2167,21 @@
       "category": "Development & Workflow",
       "description": "Local-first MIT dynamic multi-agent workflows for Codex, OpenCode, Antigravity, Cursor, and VS Code with a daemon, MCP bridge, Codex skills, OpenCode plugin, and bring-your-own-model support.",
       "icon": "./plugins/Suraj1235/open-dynamic-workflows/assets/icon.svg"
+    },
+    {
+      "name": "toolkit",
+      "displayName": "Perform Action Toolkit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pallgeuer/la-dev-codex-plugins/plugins/toolkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Lets Codex preview and run named development actions using configurable local definitions and required variable binding.",
+      "icon": "./plugins/pallgeuer/la-dev-codex-plugins/plugins/toolkit/assets/composer-icon.svg"
     },
     {
       "name": "personal-data-protection",

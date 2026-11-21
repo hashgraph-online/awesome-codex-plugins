@@ -1,0 +1,47 @@
+{
+  "name": "la-review",
+  "version": "0.2.5",
+  "description": "Independent multi-reviewer code review with verification and consolidation for Codex.",
+  "author": {
+    "name": "Philipp Allgeuer",
+    "url": "https://github.com/pallgeuer"
+  },
+  "homepage": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/docs/loupe.md",
+  "repository": "https://github.com/pallgeuer/la-dev-codex-plugins",
+  "license": "MIT",
+  "keywords": [
+    "codex code review",
+    "multi-agent code review",
+    "verification",
+    "false positives",
+    "language-agnostic"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Loupe Code Review",
+    "shortDescription": "Verified multi-reviewer review",
+    "longDescription": "Run independent specialist reviewers on a working tree, branch, commit, range, or pull request, then verify and consolidate their evidence into one structured review. Loupe uses bounded parallel Codex reviewers and can optionally add Claude reviewers when the user's authenticated Claude CLI is available, providing cross-provider diversity without requiring a separate Loupe account. Configure provider-specific reasoning effort while preserving reviewer attribution, duplicate relationships, rejected claims, and partial failures.\n\nLoupe runs locally under the user's Codex session and permissions. It has no hosted service, developer authentication flow, telemetry collector, or external data store. Reviewers may inspect repository content and send it to the user's configured Codex or Claude provider, so users must be authorized to disclose the review material.",
+    "developerName": "Philipp Allgeuer",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Run independent specialist reviewers",
+      "Verify and consolidate review evidence",
+      "Review working trees, branches, commits, and pull requests",
+      "Use bounded parallel review and configurable reasoning effort"
+    ],
+    "websiteURL": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/docs/loupe.md",
+    "privacyPolicyURL": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/pallgeuer/la-dev-codex-plugins/blob/main/TERMS.md",
+    "supportURL": "https://github.com/pallgeuer/la-dev-codex-plugins/issues",
+    "brandColor": "#155B83",
+    "brandColorDark": "#59D2C0",
+    "composerIcon": "./assets/composer-icon.svg",
+    "logo": "./assets/logo.svg",
+    "logoDark": "./assets/logo-dark.svg",
+    "defaultPrompt": [
+      "$la-review:loupe",
+      "$la-review:loupe last commit",
+      "$la-review:loupe feature/example branch"
+    ]
+  }
+}

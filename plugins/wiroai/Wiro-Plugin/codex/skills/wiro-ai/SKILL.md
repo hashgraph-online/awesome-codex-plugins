@@ -10,14 +10,14 @@ Each run creates a task. A task is billed to the project's prepaid wallet only i
 
 ## Choose a route
 
-- **You are making something for the user now and Wiro MCP tools are available** (`search_models`, `get_model_schema`, `run_model` and others): use them, they call the API below for you. Call `get_account` first to check the connection and the balance, and read `get_playbook` (topics such as `models`, `workflows`, `agents`, `billing`) before a multi-step job.
+- **You are making something for the user now and Wiro MCP tools are available** (`search_models`, `get_model_schema`, `run_model` and others): use them, they call the API below for you. Call `get_account` first to check the connection and the balance, and read `get_playbook` (topics such as `models`, `workflows`, `agents`, `billing`, `controls`) before a multi-step job.
 - **You are writing application code, or there are no MCP tools:** use the REST API at `https://api.wiro.ai/v1`. The HTTP endpoints in steps 1 to 4 are all POST.
 - **Chat or LLM calls from code that uses an OpenAI or Anthropic SDK:** use the LLM gateway (see LLMs).
 
 Connecting the MCP server, if the user wants it:
 
 - Hosted: `https://mcp.wiro.ai/v1` (Streamable HTTP). The user signs in with the browser, or the client sends `Authorization: Bearer YOUR_API_KEY` (API Key Only project) or `Bearer YOUR_API_KEY:YOUR_API_SECRET` (Signature project). Claude Code: show the user `claude mcp add --transport http wiro https://mcp.wiro.ai/v1` and run it only after their yes, then `/mcp` to sign in. If the Wiro plugin (wiroai/Wiro-Plugin) is installed, the server is already there: open `/mcp`, pick it and choose Authenticate.
-- Local: `npx -y @wiro-ai/wiro-mcp@1.6.2` (stdio, Node.js 20+) with `WIRO_API_KEY`, plus `WIRO_API_SECRET` for a Signature project, in the server's environment.
+- Local: `npx -y @wiro-ai/wiro-mcp@latest` (stdio, Node.js 20+) with `WIRO_API_KEY`, plus `WIRO_API_SECRET` for a Signature project, in the server's environment. Its calls use that API key, so spend limits and Model Access rules count them as the API.
 - MCP names models `owner/model` in lowercase. `run_model` takes `model` and `params` (the fields from `get_model_schema`).
 
 ## Credentials
@@ -167,16 +167,17 @@ Check `result` first, then `errors[].code`. Do not rely on the HTTP status alone
 | --- | --- | --- |
 | `0` | Validation, missing parameter or server error | Fix the request; retry a server error with backoff |
 | `1` | Model or task not found or not accessible | Check the slug, task id or token |
-| `92` | A Model Access rule blocks the model | Nothing ran and nothing was charged. Do not retry or switch models on your own: the message names the rule. The account owner or a team admin can change it at https://wiro.ai/panel/controls/model-access, or the user can pick another model. The LLM gateway answers HTTP 403 with code `model_not_allowed` |
-| `93` | A spend limit is used up | Nothing ran and nothing was charged. Do not retry: the message names the limit and when it resets, and someone who manages it can raise it at https://wiro.ai/panel/wallet/limits. The LLM gateway answers HTTP 402 with code `spend_limit_reached` |
+| `92` | A Model Access rule blocks the model | Nothing ran and nothing was charged. Do not retry or switch models on your own: the message names the rule, and MCP `check_model_access` shows every rule that blocks the model. The account owner, a team admin or the organization owner can change the rule at https://wiro.ai/panel/controls/model-access, or the user can pick another model. The LLM gateway answers HTTP 403 with code `model_not_allowed` |
+| `93` | A spend limit has no room for the work | Nothing ran and nothing was charged. Do not retry: the message names the limit and when it resets. When it says the work costs more than the limit has left, cheaper work may fit, with the user's yes; when it says runs in progress hold part of it, that part frees up as they end. The account owner, a team admin or the organization owner can raise it at https://wiro.ai/panel/controls/spend-limits. The LLM gateway answers HTTP 402 with code `spend_limit_reached` |
 | `96` | Concurrency limit reached | No task was created and nothing was charged; retry after 2, 4, 8 s (up to 60 s, at most 8 tries) or queue |
 | `97` | Insufficient balance | The user adds funds; a run needs at least 0.50 USD (10 USD for training models) |
 | `98` | The model needs a signed-in account | Use authenticated credentials |
 | `99` | Bearer token missing, invalid or expired | Check the credentials |
 
 - How many tasks can run at once depends on the wallet balance: see https://wiro.ai/docs/concurrency-limits. A task counts from `task_queue` until `task_postprocess_end` or `task_cancel`, and tasks started on the website, by agents or by workflows count too.
-- Spend limits cap the whole wallet, a team member, an API key, a way in (the dashboard, the API, MCP, the LLM gateway, the browser extensions, agents) or one agent, per month or per day. A used-up one refuses new work with code `93` even when the wallet has money; `get_account` lists them. See https://wiro.ai/docs/organizations-billing.
-- Model Access rules allow or block single models and whole categories, such as Video Generation, for the same scopes. A blocked model is refused with code `92` before anything runs, even when the wallet has money, and the message names the rule.
+- Spend limits cap the whole wallet, a team member, an API key, a way in (the dashboard, the API, MCP, the LLM gateway, the browser extensions, agents) or one agent, per month or per day. A reached one refuses new work with code `93` even when the wallet has money. MCP: `get_account` lists the spend limits and says whether this connection can change them, and `get_controls` shows every limit with what it used, what running work holds, what is left and when it resets, and every Model Access rule. See https://wiro.ai/docs/spend-limits.
+- Model Access rules allow or block single models and whole categories, such as Video Generation, for the same scopes. A blocked model is refused with code `92` before anything runs, even when the wallet has money, and the message names the rule. MCP `check_model_access` checks one model rule by rule. See https://wiro.ai/docs/model-access.
+- Only the account owner, a team admin or the organization owner can change a limit or a rule: in the dashboard, or with MCP `manage_spend_limit` and `manage_model_access`, which return a change summary first and save only after the user's clear yes. Change one only when the user asks for that change, never to get past a refusal on your own. A deployed agent can never change them.
 - On HTTP 429, back off and retry. The LLM gateway sends `retry-after`.
 
 ## Links
@@ -188,6 +189,8 @@ Check `result` first, then `errors[].code`. Do not rely on the HTTP status alone
 - Model parameters: https://wiro.ai/docs/model-parameters
 - Pricing docs: https://wiro.ai/docs/pricing
 - Errors: https://wiro.ai/docs/error-reference
+- Spend limits: https://wiro.ai/docs/spend-limits
+- Model Access: https://wiro.ai/docs/model-access
 - LLM gateway: https://wiro.ai/docs/completions-api
 - MCP server: https://wiro.ai/docs/wiro-mcp-server
 - Models catalog: https://wiro.ai/models

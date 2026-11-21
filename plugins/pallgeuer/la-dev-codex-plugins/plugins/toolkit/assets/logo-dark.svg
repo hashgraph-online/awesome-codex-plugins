@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Perform Action Toolkit">
+  <defs>
+    <linearGradient id="bgDark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E2031"/>
+      <stop offset="1" stop-color="#07111D"/>
+    </linearGradient>
+    <linearGradient id="cardBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#18B8F2"/>
+      <stop offset="1" stop-color="#2457F5"/>
+    </linearGradient>
+    <linearGradient id="cardViolet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A5BFF"/>
+      <stop offset="1" stop-color="#5B32E8"/>
+    </linearGradient>
+    <linearGradient id="cardTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#15D7BC"/>
+      <stop offset="1" stop-color="#079E94"/>
+    </linearGradient>
+    <linearGradient id="flowTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2457F5"/>
+      <stop offset="1" stop-color="#18B8F2"/>
+    </linearGradient>
+    <linearGradient id="flowMid" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6236EC"/>
+      <stop offset="1" stop-color="#8A5BFF"/>
+    </linearGradient>
+    <linearGradient id="flowBottom" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#079E94"/>
+      <stop offset="1" stop-color="#15D7BC"/>
+    </linearGradient>
+    <linearGradient id="playFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DFF1FF"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="48" fill="url(#bgDark)"/>
+
+  <path d="M124 67 H137 C153 67 159 77 159 91 V100 C159 112 165 118 179 118" fill="none" stroke="url(#flowTop)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M124 128 H179" fill="none" stroke="url(#flowMid)" stroke-width="13" stroke-linecap="round"/>
+  <path d="M124 189 H137 C153 189 159 179 159 165 V156 C159 144 165 138 179 138" fill="none" stroke="url(#flowBottom)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="28" y="43" width="108" height="48" rx="15" fill="url(#cardBlue)"/>
+  <rect x="28" y="104" width="108" height="48" rx="15" fill="url(#cardViolet)"/>
+  <rect x="28" y="165" width="108" height="48" rx="15" fill="url(#cardTeal)"/>
+
+  <path d="M48 59 H112 M48 75 H89" fill="none" stroke="#FFFFFF" stroke-opacity=".78" stroke-width="8" stroke-linecap="round"/>
+  <path d="M48 120 H112 M48 136 H84" fill="none" stroke="#FFFFFF" stroke-opacity=".78" stroke-width="8" stroke-linecap="round"/>
+  <path d="M48 181 H112 M48 197 H80" fill="none" stroke="#FFFFFF" stroke-opacity=".78" stroke-width="8" stroke-linecap="round"/>
+
+  <circle cx="188" cy="128" r="43" fill="url(#playFace)" stroke="#BFDDF3" stroke-width="3"/>
+  <path d="M177 106 L209 128 L177 150 Z" fill="#091725"/>
+
+  <path d="M207 63 L212 48 M226 72 L237 61" fill="none" stroke="#7B56FF" stroke-width="9" stroke-linecap="round"/>
+</svg>

@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-21",
-  "total": 462,
+  "total": 464,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1263,6 +1263,16 @@
       "install_url": "https://raw.githubusercontent.com/ClickHouse/loom/HEAD/integrations/codex-plugin/.codex-plugin/plugin.json"
     },
     {
+      "name": "Loupe Code Review",
+      "url": "https://github.com/pallgeuer/la-dev-codex-plugins",
+      "owner": "pallgeuer",
+      "repo": "la-dev-codex-plugins",
+      "description": "Runs independent Codex code reviews, optionally adds configured Claude reviewers, then verifies and consolidates evidence for working trees, commits, and pull requests.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/pallgeuer/la-dev-codex-plugins/HEAD/plugins/la-review/.codex-plugin/plugin.json"
+    },
+    {
       "name": "macbox",
       "url": "https://github.com/opslane/macbox-agent",
       "owner": "opslane",
@@ -1461,6 +1471,17 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Suraj1235/open-dynamic-workflows/HEAD/packages/codex-adapter/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Perform Action Toolkit",
+      "url": "https://github.com/pallgeuer/la-dev-codex-plugins/tree/main",
+      "owner": "pallgeuer",
+      "repo": "la-dev-codex-plugins",
+      "description": "Lets Codex preview and run named development actions using configurable local definitions and required variable binding.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/pallgeuer/la-dev-codex-plugins/main/plugins/toolkit/.codex-plugin/plugin.json",
+      "source_ref": "main"
     },
     {
       "name": "Personal Data Protection",

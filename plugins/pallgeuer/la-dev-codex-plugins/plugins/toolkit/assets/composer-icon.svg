@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Perform">
+  <defs>
+    <linearGradient id="cardBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#18B8F2"/>
+      <stop offset="1" stop-color="#2457F5"/>
+    </linearGradient>
+    <linearGradient id="cardViolet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A5BFF"/>
+      <stop offset="1" stop-color="#5B32E8"/>
+    </linearGradient>
+    <linearGradient id="cardTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#15D7BC"/>
+      <stop offset="1" stop-color="#079E94"/>
+    </linearGradient>
+    <linearGradient id="flowTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2457F5"/>
+      <stop offset="1" stop-color="#18B8F2"/>
+    </linearGradient>
+    <linearGradient id="flowMid" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6C3CF1"/>
+      <stop offset="1" stop-color="#8A5BFF"/>
+    </linearGradient>
+    <linearGradient id="flowBottom" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#079E94"/>
+      <stop offset="1" stop-color="#15D7BC"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M31 15.5 H34 C38 15.5 39.5 18 39.5 21.5 V24 C39.5 27 41 28.5 44.5 28.5" fill="none" stroke="url(#flowTop)" stroke-width="3.25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M31 31.5 H44.5" fill="none" stroke="url(#flowMid)" stroke-width="3.25" stroke-linecap="round"/>
+  <path d="M31 47.5 H34 C38 47.5 39.5 45 39.5 41.5 V39 C39.5 36 41 34.5 44.5 34.5" fill="none" stroke="url(#flowBottom)" stroke-width="3.25" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="6" y="9" width="27" height="13" rx="4" fill="url(#cardBlue)"/>
+  <rect x="6" y="25" width="27" height="13" rx="4" fill="url(#cardViolet)"/>
+  <rect x="6" y="41" width="27" height="13" rx="4" fill="url(#cardTeal)"/>
+
+  <path d="M11 13.5 H27 M11 17.5 H21.5" fill="none" stroke="#FFFFFF" stroke-opacity=".78" stroke-width="2" stroke-linecap="round"/>
+  <path d="M11 29.5 H27 M11 33.5 H20" fill="none" stroke="#FFFFFF" stroke-opacity=".78" stroke-width="2" stroke-linecap="round"/>
+  <path d="M11 45.5 H27 M11 49.5 H19" fill="none" stroke="#FFFFFF" stroke-opacity=".78" stroke-width="2" stroke-linecap="round"/>
+
+  <circle cx="47" cy="31.5" r="10.75" fill="#F8FBFF" stroke="#DCE8F4" stroke-width="1"/>
+  <path d="M44.25 26.2 L52.25 31.5 L44.25 36.8 Z" fill="#0B1827"/>
+
+  <path d="M51.75 15.25 L53 11.5 M56.5 17.5 L59 14.75" fill="none" stroke="#7150F6" stroke-width="2.25" stroke-linecap="round"/>
+</svg>

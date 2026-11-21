@@ -1,0 +1,6 @@
+interface:
+  display_name: "Loupe"
+  short_description: "Run multiple parallel external code reviews."
+  default_prompt: "$la-review:loupe"
+policy:
+  allow_implicit_invocation: false

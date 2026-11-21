@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Loupe Code Review">
+  <rect width="256" height="256" rx="48" fill="#155B83"/>
+  <g fill="none" stroke="#86E4D6" stroke-width="10" stroke-linecap="round">
+    <path d="M43 66 L84 91"/>
+    <path d="M43 117 L78 117"/>
+    <path d="M43 168 L84 143"/>
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="43" cy="66" r="8"/>
+    <circle cx="43" cy="117" r="8"/>
+    <circle cx="43" cy="168" r="8"/>
+  </g>
+  <path d="M180 159 L216 195" fill="none" stroke="#86E4D6" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="138" cy="117" r="53" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+  <path d="M111 118 L129 136 L162 99" fill="none" stroke="#86E4D6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
