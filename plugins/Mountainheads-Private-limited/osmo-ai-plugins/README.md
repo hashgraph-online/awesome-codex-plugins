@@ -21,7 +21,7 @@
   <a href="https://clawhub.ai/getosmo/osmo-ai-receptionist"><img alt="ClawHub: getosmo/osmo-ai-receptionist" src="https://img.shields.io/badge/ClawHub-osmo--ai--receptionist-orange"></a>
   <a href="https://mcp.so/servers/osmo-phone-calls"><img alt="OsmO on mcp.so" src="https://img.shields.io/badge/mcp.so-verified-2563eb"></a>
   <a href="https://cursor.directory/plugins/osmo-ai-phone-calls-ai-receptionist"><img alt="OsmO on cursor.directory" src="https://img.shields.io/badge/cursor.directory-plugin-000000"></a>
-  <a href="LICENSE"><img alt="License: MIT (client files)" src="https://img.shields.io/github/license/Mountainheads-Private-limited/osmo-ai-plugins"></a>
+  <a href="LICENSE"><img alt="License: MIT (client files)" src="https://img.shields.io/github/license/getosmo/osmo-ai-plugins"></a>
 </p>
 
 <p align="center">
@@ -119,7 +119,7 @@ The "Guide" column links to OsmO's own step-by-step page for that app.
 | **Cursor** | Click **Install in Cursor** above, or add [`mcp.json`](mcp.json) to `.cursor/mcp.json` or `~/.cursor/mcp.json` | [guide](https://getosmo.app/ai-calls/cursor-phone-calls-setup) |
 | **VS Code** (GitHub Copilot) | Click **Install in VS Code** above, or run **MCP: Add Server** and choose HTTP, or add the JSON [below](#vs-code) | [guide](https://getosmo.app/ai-calls/copilot-phone-calls-setup) |
 | **Codex** (CLI, IDE) | `codex mcp add osmo --url https://api.getosmo.app/mcp`, then `codex mcp login osmo`. Or the plugin, [below](#codex-plugin) | [guide](https://getosmo.app/ai-calls/codex-phone-calls-setup) |
-| **Gemini CLI** | `gemini extensions install https://github.com/Mountainheads-Private-limited/osmo-ai-plugins`, then `/mcp auth osmo` | [guide](https://getosmo.app/ai-calls/gemini-phone-calls-setup) |
+| **Gemini CLI** | `gemini extensions install https://github.com/getosmo/osmo-ai-plugins`, then `/mcp auth osmo` | [guide](https://getosmo.app/ai-calls/gemini-phone-calls-setup) |
 | **Antigravity** | Install the plugin from this repo (`.antigravity-plugin/`, [`mcp_config.json`](mcp_config.json)), then **Customizations › Installed › Authenticate** under MCP Servers | — |
 | **Grok** (grok.com) | grok.com/connectors → New Connector → Custom → URL `https://api.getosmo.app/mcp` | [guide](https://getosmo.app/ai-calls/grok-phone-calls-setup) |
 | **Grok Build** | `grok mcp add --transport http osmo https://api.getosmo.app/mcp` | [guide](https://getosmo.app/ai-calls/grok-build-phone-calls-setup) |
@@ -130,7 +130,7 @@ The "Guide" column links to OsmO's own step-by-step page for that app.
 
 We have not tested the rows with no guide (OpenClaw, Hermes, Cline, Windsurf, OpenCode) end to end
 ourselves. Those rows follow each client's own documented syntax. If a command is out of date for
-your version, please [open an issue](https://github.com/Mountainheads-Private-limited/osmo-ai-plugins/issues).
+your version, please [open an issue](https://github.com/getosmo/osmo-ai-plugins/issues).
 
 ### Claude Code plugin
 
@@ -138,12 +138,12 @@ The plugin adds the MCP server **and** the `osmo-phone-calls` skill, which tells
 before every call. Inside Claude Code:
 
 ```
-/plugin marketplace add Mountainheads-Private-limited/osmo-ai-plugins
+/plugin marketplace add getosmo/osmo-ai-plugins
 /plugin install osmo@osmo
 ```
 
 On recent Claude Code versions this works in one step:
-`/plugin install osmo --marketplace Mountainheads-Private-limited/osmo-ai-plugins`.
+`/plugin install osmo --marketplace getosmo/osmo-ai-plugins`.
 Then type `/mcp`, pick `osmo` and sign in. Install either the plugin or the `claude mcp add` server,
 not both, so Claude doesn't see two copies of the tools.
 
@@ -152,7 +152,7 @@ not both, so Claude doesn't see two copies of the tools.
 The plugin carries the MCP server and the skill. In your shell:
 
 ```sh
-codex plugin marketplace add Mountainheads-Private-limited/osmo-ai-plugins
+codex plugin marketplace add getosmo/osmo-ai-plugins
 codex plugin add osmo@osmo
 codex mcp login osmo
 ```

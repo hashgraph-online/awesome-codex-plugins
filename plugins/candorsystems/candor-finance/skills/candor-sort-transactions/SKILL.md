@@ -3,7 +3,7 @@ name: candor-sort-transactions
 description: "Makes the person's records read right: fixes categories, splits mixed purchases, writes rules so a merchant always means the same thing, tags money a goal tracks, and curates which charges repeat. Use when the person says a category is wrong, asks to clean up or organize transactions, explains what a merchant is, wants a side business or trip tracked, or asks to tidy subscriptions and bills on the recurring list. For price increases or stopping a charge, use candor-find-money."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.6"
+  candor-package-version: "1.3.7"
   author: Candor
   version: "0.3.0"
   candor-domain-id: sort-transactions

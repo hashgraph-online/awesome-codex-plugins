@@ -7,7 +7,7 @@ metadata:
   tags: learning, intelligence, meta
   model: sonnet
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-sonnet-4-6
   args-schema: '[{"flag":"--apply","description":"Apply dialectic-derived diff to USER.md + AGENT.md"},{"flag":"--dry-run","description":"Show diff without writing (default)"},{"flag":"--model <name>","description":"Override single-pass LLM (haiku|sonnet|opus)"},{"flag":"--budget-tokens <N>","description":"Input token ceiling for derivation prompt (default 32000; aborts above it, never truncates)"}]'
 ---

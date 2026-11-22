@@ -1,0 +1,132 @@
+<!doctype html>
+<!--
+  brief2mp4 starter: rigged 2D characters standing in a 3D set. Each character is drawn by the character kit onto
+  its own canvas, which is a texture on a camera-facing plane; the ground, sky, props and a moving camera are Three.js.
+  The whole frame is a pure function of t, like templates/threejs/index.html: same t, same pixels.
+
+  Build a project from it:
+    python3 scripts/character_project.py --stage3d --cast child,crow --out project/
+    npx hyperframes render project -o render.mp4
+  (the script copies the kit into characters/, inlines the cast as characters/cast.js, vendors GSAP and three.js).
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="vendor/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #f6d7a7; }
+      #stage { position: absolute; inset: 0; }
+      #gl { width: 1920px; height: 1080px; display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="stage" data-composition-id="main" data-start="0" data-duration="__DURATION__" data-width="1920" data-height="1080">
+      <canvas id="gl" class="clip" width="1920" height="1080" data-start="0" data-duration="__DURATION__"></canvas>
+    </div>
+    <script src="characters/poses.js"></script>
+    <script src="characters/rig.js"></script>
+    <script src="characters/shapes.js"></script>
+    <script src="characters/render.js"></script>
+    <script src="characters/skins.js"></script>
+    <script src="characters/skins-extra.js"></script>
+    <script src="characters/cast.js"></script>
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three.module.js" } }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+
+      const DURATION = __DURATION__;
+      const SKIN = B2M.SKINS["paper-cutout"];                       // any skin id from characters/skins*.js
+      const TEX = 768;                                              // each character's canvas is TEX x TEX pixels
+
+      // The actors: which character, where it stands on the ground (x, z in world units), how tall it is in the
+      // set, and its track (see characters/README-CHARACTERS.md). Replace these; keep the pattern.
+      const ACTORS = [
+        { character: Object.keys(B2M_CAST)[0], x: -1.6, z: 0, height: 2.0,
+          track: { keys: [{ t: 0, pose: "idle" }, { t: 1, pose: "wave", ease: "out" }, { t: 4, pose: "idle", ease: "inOut" }], layers: [{ cycle: "wave", from: 1, to: 4, steps: 5 }] } },
+        { character: Object.keys(B2M_CAST)[1] || Object.keys(B2M_CAST)[0], x: 1.5, z: -0.8, height: 1.6,
+          track: { keys: [{ t: 0, pose: "idle" }, { t: 2, pose: "think", ease: "inOut" }], move: [{ t: 0, facing: "left" }] } },       // facing "left" turns it; with no x the actor stays where it stands
+      ];
+
+      const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("gl"), antialias: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(1);
+      renderer.setSize(1920, 1080, false);
+      renderer.setClearColor(0xf6d7a7, 1);
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0xf6d7a7, 9, 26);
+      const camera = new THREE.PerspectiveCamera(38, 1920 / 1080, 0.1, 80);
+      scene.add(new THREE.HemisphereLight(0xfff4e8, 0x8a9a52, 1.2));
+      const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+      sun.position.set(4, 8, 6);
+      scene.add(sun);
+
+      // The set: a ground, a few props. Plain materials, no random: positions are written down.
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x8a9a52, roughness: 1 }));
+      ground.rotation.x = -Math.PI / 2;
+      scene.add(ground);
+      const solid = (color) => new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.9 });
+      const prop = (mesh, x, y, z) => { mesh.position.set(x, y, z); scene.add(mesh); return mesh; };
+      [[-4.2, -3], [4.4, -4], [-6.5, -7], [7, -8]].forEach(([x, z], i) => {            // four low-poly trees
+        prop(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.9, 6), solid(0x7a4f2a)), x, 0.45, z);
+        prop(new THREE.Mesh(new THREE.ConeGeometry(0.9 + (i % 2) * 0.25, 2.2, 6), solid(0x3f7a45)), x, 1.9, z);
+      });
+      prop(new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), solid(0x9a8f86)), -0.2, 0.3, -1.2);   // a rock
+      const hut = prop(new THREE.Mesh(new THREE.BoxGeometry(2, 1.4, 1.6), solid(0xe3c58f)), 0.5, 0.7, -9);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.7, 1, 4), solid(0xb2563a));
+      roof.position.set(0, 1.2, 0);
+      roof.rotation.y = Math.PI / 4;
+      hut.add(roof);
+      const sky = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), new THREE.MeshBasicMaterial({ color: 0xffd166, fog: false }));
+      sky.position.set(6, 7, -22);
+      scene.add(sky);
+
+      // Each actor: a canvas, a texture and a plane that always faces the camera.
+      const actors = ACTORS.map((a) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = TEX;
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const ch = B2M_CAST[a.character];
+        const planeH = a.height / 0.8;                                // the figure fills 80% of the plane
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeH, planeH), new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.02, fog: false }));
+        mesh.position.set(a.x, 0.42 * planeH, a.z);                   // feet (92% down the plane) on the ground
+        scene.add(mesh);
+        return { a, ch, canvas, ctx: canvas.getContext("2d"), texture, mesh, scale: (0.8 * TEX) / ch.proportions.height };
+      });
+
+      const ease = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+
+      // The only place that decides what the frame looks like.
+      function draw(t) {
+        const k = ease(t / DURATION);
+        camera.position.set(-1.2 + 2.6 * k, 1.5 + 0.25 * k, 8 - 2.4 * k);
+        camera.lookAt(0, 1.1, -0.6);
+        const opts = { steps: SKIN.steps, smooth: !SKIN.steps };
+        actors.forEach((o) => {
+          const posed = B2M.pose(o.ch, o.a.track, t, opts);
+          o.ctx.setTransform(1, 0, 0, 1, 0, 0);
+          o.ctx.clearRect(0, 0, TEX, TEX);
+          B2M.drawCanvas(o.ctx, B2M.layout(o.ch, SKIN, posed, { x: TEX / 2, y: 0.92 * TEX, scale: o.scale }));
+          o.texture.needsUpdate = true;
+          o.mesh.quaternion.copy(camera.quaternion);                  // face the camera
+        });
+        renderer.render(scene, camera);
+      }
+
+      const clock = { t: 0 };
+      const tl = gsap.timeline({ paused: true });
+      tl.to(clock, { t: DURATION, duration: DURATION, ease: "none", onUpdate: () => draw(clock.t) }, 0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["b2m-characters"] = B2M.preloadImages(B2M_CAST).then(() => { draw(0); tl.seek(0); });
+      draw(0);
+      tl.seek(0);
+    </script>
+  </body>
+</html>

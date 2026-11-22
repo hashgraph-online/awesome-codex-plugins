@@ -45,6 +45,7 @@ exist.
 | `additivity` | `additive`; `semi_additive` (does not add across time: a balance, a running or season-to-date total); `non_additive` (a ratio, a share, a distinct count) |
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
+| `freshness` | on the column with role `time` only: `{"max_lag": "<n><unit>", "basis": "business" \| "capture"}`, how far the column's newest value may trail the warehouse's clock ([below](#freshness-how-old-the-newest-row-may-be)). `max_lag` is a whole number and one of `s`, `m`, `h`, `d`, `w` (`30m`, `6h`, `2d`), written back in its largest unit (`360m` is `6h`); `basis` is `business` where the column is the event's own time and `capture` where it is when the row was loaded |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has, or one an installed package has (a package's staging model, say) where the project defines none of that name |
 | `population.parent` | `{"model": <model, seed or snapshot, the project's or an installed package's>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
 | `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
@@ -75,7 +76,7 @@ the models that read it.
 | `references`, whatever the `role` | a `relationships` test (`arguments: {to, field}`): every non-null value exists in the parent, and `maintain verify` holds a join the model makes into that parent to the same claim, on a LEFT join too (#1459) |
 | a fact a generated test checks, where `declarations.render_tests` turns it on | that generated test, tagged with its cadence ([below](#generated-tests-an-opt-in-switch-and-a-cadence-tag)) |
 | `grain`, `population`, `assumptions` | model `config.meta.dex` |
-| `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references` | column `config.meta.dex` |
+| `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references`, `freshness` | column `config.meta.dex` |
 
 A PII stamp is not a declaration field and never needs one: on a model the plan
 creates, every column that carries a flagged input through gets
@@ -165,13 +166,17 @@ test keeps failing, and the last run in which a claim was checked and passed.
 The three tests above are the **built-ins**. They always render. A **generated
 test** is one Dex writes for a declared fact the built-ins cannot check: a
 composite grain, a population filter, a parent's population, a fraction's
-range, an INNER join's coverage. Each kind arrives with its own issue (#1452
-onward); this release renders five,
+range, an INNER join's coverage, a referenced key's uniqueness, a history's
+measures, a time column's freshness. Each kind arrives with its own issue (#1452
+onward); this release renders eight,
 [`dex_unique_combination`](#dex_unique_combination-a-composite-grain),
 [`dex_population_filter`](#dex_population_filter-a-population-filter),
 [`dex_parent_population`](#dex_parent_population-a-parents-population),
-[`dex_unit_range`](#dex_unit_range-a-fraction) and
-[`dex_join_coverage`](#dex_join_coverage-a-join-a-references-requires). The switch
+[`dex_unit_range`](#dex_unit_range-a-fraction),
+[`dex_join_coverage`](#dex_join_coverage-a-join-a-references-requires),
+[`dex_referenced_key`](#dex_referenced_key-a-key-a-references-names),
+[`dex_temporal_contract`](#dex_temporal_contract-a-historys-measures) and
+[`dex_freshness`](#dex_freshness-a-time-columns-freshness). The switch
 and the tag below are what every kind follows. Generated tests run in the
 project's production runs. Dex does not run those and the project pays for them,
 so two rules hold:
@@ -528,6 +533,204 @@ Its macro reaches the project as the others' do: `macros/dex_join_coverage.sql`
 (the [shipped macro](macros.md#dex_join_coverage)) as a `macro_sql` diff where
 neither the project nor the plan defines the test; a plan whose required joins
 are all LEFT joins to whole parents writes none.
+
+#### `dex_referenced_key`: a key a `references` names
+
+A column declared `references: dim_customers.customer_id` assumes
+`customer_id` is unique in `dim_customers`: a join to a key that repeats
+multiplies the rows of the model that joins it. The claim is about the
+**parent**, so the test renders into the parent's YAML entry, under the column,
+tagged `dex_every_run`:
+
+```yaml
+models:
+  - name: dim_customers
+    columns:
+      - name: customer_id
+        data_tests:
+          - dex_referenced_key:
+              config:
+                tags: [dex_every_run]
+                meta:
+                  disable_test_samples: true
+                  dex: {claim: <id>}
+```
+
+- **Which references.** Every `references` in the project as the plan leaves it
+  whose child or parent the plan declares. Declaring the child renders it, and
+  `transform declare dim_customers` renders it for references declared before
+  the switch was on. One test per parent column, however many children name it;
+  its row under `data.generated_tests` names the parent as `model` and the
+  children under `referenced_by`.
+- **What it counts.** The rows repeating a non-NULL key, beyond the first of
+  each. A NULL is no key (it never matches a join), so NULLs never count, as
+  dbt's `unique` ignores them. Counts only: the test returns the count, never a
+  key.
+- **How it relates to `maintain verify`.** Verify does not check the parent's
+  key; it reports the consequence on the child, `row_fanout`. A repeated key
+  fans out a child that joins it, but a fan-out has other causes, so the two
+  agree in that direction only, and no count is compared.
+- **A failure stops the children in `dbt build`.** dbt skips every model
+  downstream of a failed test, as it does for a grain's `unique`; that is the
+  point of checking the key before the join runs.
+
+**What renders nothing**, listed under `data.generated_tests` as
+`not_rendered` with the reason:
+
+| Reason | When |
+|---|---|
+| `covered_by_builtin` | The parent declares that one column as its `grain` (which renders `unique`), or the column already lists an enabled `unique` with no `where`. A composite grain holding the column, or a `unique` filtered by `where` (dbt applies it first), does not cover it. |
+| `parent_undeclared` | The parent has no YAML entry under `models:` (a model nobody documented, a seed, a snapshot). Dex does not create an entry to hold a test: declare the parent, or write its entry, and plan again. |
+| `parent_in_package` | The parent is an installed package's model, or a project override of one its package documents. Dex never edits a package's YAML. |
+| `column_not_output` | The parent's SQL provably no longer outputs the column (a `references` a later edit left behind). |
+
+A version label (`dim_teams.v2.team_id`) renders into that version's item; a
+bare versioned name (`dim_teams.team_id`) is the version an unversioned `ref()`
+reads, its `latest_version`, and renders into that item alone, never on the
+shared entry every version would inherit. A test
+whose `references` later goes away is never removed (nothing generated is).
+
+Its macro reaches the project as the others' do: `macros/dex_referenced_key.sql`
+(the [shipped macro](macros.md#dex_referenced_key)) as a `macro_sql` diff where
+neither the project nor the plan defines the test.
+
+#### `dex_temporal_contract`: a history's measures
+
+A declared [`history`](#temporal-contracts-history) says how the model reads its
+snapshot. Each measure it names renders its own model-level test, told apart by
+`measure`, tagged `dex_scheduled`:
+
+```yaml
+models:
+  - name: host_history
+    data_tests:
+      - dex_temporal_contract:
+          name: dex_temporal_contract_<claim>
+          arguments:
+            snapshot: ref('hosts_snapshot')
+            entity: {host_id: host_id}
+            status_column: is_superhost
+            target: true
+            measure: transition_count
+            measure_column: status_change_count
+            initial_observation: baseline
+            null_status: ignore
+            time_column: dbt_valid_from
+            provenance: capture
+          config:
+            tags: [dex_scheduled]
+            meta: {disable_test_samples: true, dex: {claim: <id>}}
+```
+
+- **What it counts.** The entities whose column disagrees with the value the
+  snapshot's versions and the declared policy give, derived as `maintain verify`
+  derives it, never from the model's SQL. Each measure's count is the
+  `mismatched_entities` of one finding: `transition_count` is
+  `temporal_transition_count_mismatch`, `latest_target_transition_at`
+  `temporal_latest_transition_mismatch`, `first_target_at`
+  `temporal_first_attainment_mismatch`. One test per measure, so each failure
+  count is one finding's and each measure keeps its own history.
+- **The same exclusions.** Entities verify excludes are excluded here by the same
+  rules: versions sharing one validity time (`ambiguous_version_order`), and under
+  a `business` time a status change whose timestamp runs backwards
+  (`business_order_conflict`); the time measures also skip an entity whose
+  business timestamp is NULL or stands still at a change. A model key that
+  repeats is compared once per row, as verify compares it.
+- **Counts only.** The test returns the count, never a key or a value.
+- **Why `dex_scheduled`.** It scans the whole snapshot twice (a window over each
+  entity's versions, and its distinct entities) and the whole model, once per
+  measure: three measures are three such scans per scheduled run.
+- **The `population` and `time_provenance` assertions** render no test. The
+  population is the parent-population question in another shape, and provenance
+  is a fact about the snapshot's config; both stay with `maintain verify`.
+- A snapshot that renames its validity column (`snapshot_meta_column_names`)
+  passes the new name as `order_column`.
+- **Named by its claim.** Each test carries `name: dex_temporal_contract_<claim>`
+  rather than the name dbt builds from its arguments, which would put the status
+  target in the node name and give two claims whose arguments read alike (a
+  target of `1` and of `"1"`) one name, which dbt refuses.
+- **Names resolved as verify resolves them.** Each column the test reads is
+  matched against the relation's columns, case folded, and its physical spelling
+  quoted, so a declaration spelled `Status` reads a column created as `"Status"`.
+
+**What renders nothing**, listed under `data.generated_tests` as `not_rendered`
+with the reason, which is `maintain verify`'s reason for leaving the same measure
+unchecked (checked in this order):
+
+| Reason | When |
+|---|---|
+| `snapshot_not_ancestor` | The model's `ref()` lineage, as the plan leaves the project, does not reach the declared snapshot. |
+| `lineage_unavailable` | Something on the way could hide it: a `ref()` dex cannot resolve, a macro call that may read a relation, a node the `ref()` graph cannot read. |
+| `hard_delete_records` | The snapshot's `hard_deletes` is `new_record`, read from its `config()`, its YAML entry or `dbt_project.yml`. |
+| `snapshot_config_unread` | The plan's own reason: the snapshot's `hard_deletes` or `snapshot_meta_column_names` is an expression (a `var()`, Jinja) no static read settles. |
+| `policy_missing` | The declaration leaves out a policy the measure depends on: `initial_observation` and `null_status` for `transition_count`, those and `time.provenance` for `latest_target_transition_at`, `time.provenance` for `first_target_at`. |
+| `column_not_output` | The model's SQL provably does not output the entity key or the measure column. |
+
+What only a run can tell never reads as a pass: a snapshot that failed to build
+makes `dbt build` **skip** the test (look at the snapshot, not the test), and a
+column the history names that a relation lacks makes the test run and **error**. A test the plan rendered is never
+removed (nothing generated is). Where the history changes (a policy, the snapshot,
+a measure or its column, or the history removed), each listed test the new
+history no longer gives is reported `stale` (`reason: history_changed`, its
+measure as `variant`) with a warning, beside the test the new claim renders:
+remove it from the YAML. Where only verify's reading changes (the model stops
+reading the snapshot), a listed test is `listed_while_off`, and `maintain verify`
+reports the contract unchecked while the test keeps running, so remove it by
+hand.
+
+Its macro reaches the project as the others' do: `macros/dex_temporal_contract.sql`
+(the [shipped macro](macros.md#dex_temporal_contract)) as a `macro_sql` diff where
+neither the project nor the plan defines the test.
+
+#### `dex_freshness`: a time column's freshness
+
+A column declaring [`freshness`](#freshness-how-old-the-newest-row-may-be)
+renders `dex_freshness` under it, tagged `dex_every_run`, with the lag in
+seconds as its one argument:
+
+```yaml
+columns:
+  - name: loaded_at
+    config:
+      meta:
+        dex:
+          role: time
+          freshness: {max_lag: 6h, basis: capture}
+    data_tests:
+      - dex_freshness:
+          arguments: {max_lag_seconds: 21600}
+          config:
+            tags: [dex_every_run]
+            meta: {disable_test_samples: true, dex: {claim: <id>}}
+```
+
+It fails with one row when the column's newest value trails the warehouse's
+clock by more than `max_lag`, and when the column holds no value at all, and it
+agrees with `maintain verify`'s `freshness_exceeded` on every connector:
+
+- **The warehouse's clock**, read in the same statement as the newest value,
+  never the clock of the machine running dbt.
+- **The limit is inclusive.** Each side is whole epoch seconds, floored, so a
+  value exactly `max_lag` behind the clock passes.
+- **No rows is not fresh.** An empty model, or a column NULL on every row, fails.
+- **A column that is no date or timestamp errors** rather than passing: no lag
+  can be read from text.
+- **Counts only.** The test counts the rows within the limit and never computes
+  the newest value or the lag, which would disclose it, so a stored failing row
+  (`store_failures`) keeps nothing from the column. The failing row holds `1`
+  and the limit; dbt's `failures` is `1`.
+- **`basis` is in the claim, not the arguments.** The test fails alike on both;
+  `maintain verify` reads the basis to say how loud a stale column is.
+
+A test the plan rendered is never removed (nothing generated is). Where a
+column's `max_lag` changes, the listed test for the old lag is reported `stale`
+(`reason: freshness_changed`) with a warning, beside the test the new claim
+renders: remove it from the YAML, since it keeps failing on the old lag. A
+change of `basis` alone keeps the listed test, which behaves the same, and
+reports nothing stale. A column the model's SQL provably does not output renders no test
+(`column_not_output`). Its macro reaches the project as the others' do:
+`macros/dex_freshness.sql` (the [shipped macro](macros.md#dex_freshness)) as a
+`macro_sql` diff where neither the project nor the plan defines the test.
 
 ### A versioned model
 
@@ -928,6 +1131,7 @@ warehouse):
 | `history`, a measure disagreeing with the declared policy | `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`, `temporal_first_attainment_mismatch`; entity counts, never values | high |
 | `history`, entities differing from its `population` | `temporal_population_missing`, `temporal_population_unexpected` | high |
 | `history.time.provenance` its column and the snapshot's strategy cannot satisfy | `temporal_provenance_contradicted` | medium |
+| `freshness` on a time column whose newest value trails the warehouse's clock by more than `max_lag`, or that holds no value | `freshness_exceeded`, with `lag_seconds` (`null` and a `reason` of `no_rows` or `all_null` where there is no newest value), `max_lag_seconds` and `basis` | high on a `capture` basis, medium on `business` |
 
 A `population.filters` entry stating both `includes` and `excludes` is judged as
 two rules, one per list, each with its own `population_contradicted`.
@@ -951,6 +1155,56 @@ maintain skill's `axes.md`, "Join contract".
 
 A model derived from a dbt snapshot's status history declares its temporal
 contract in `history`; see "Temporal contracts: `history`" below.
+
+### Freshness: how old the newest row may be
+
+A model's time column may say how fresh its data should be (#1460):
+
+```json
+"columns": {"loaded_at": {"role": "time",
+                          "freshness": {"max_lag": "6h", "basis": "capture"}}}
+```
+
+- **On the time column only.** A `freshness` on a column whose role, in the
+  declaration or already in the model's YAML, is anything but `time` is refused,
+  naming the fix. Several time columns may each declare one.
+- **`basis`** says what the column is. `capture` is when the row was loaded: a
+  stale capture time means loading stopped, and nothing excuses it (`high`).
+  `business` is the event's own time: a quiet period, late-arriving events or a
+  backfill can leave it legitimately old (`medium`, and the finding says to
+  check the load before the source). The verdict is the same on both.
+- **The clock is the warehouse's**, read in the same statement as the newest
+  value, by `maintain verify` and by the generated test alike, so the two agree
+  and neither depends on the machine running them. A timestamp with no time zone
+  is read as UTC, as dbt's source freshness reads one; a date is read as its UTC
+  midnight, so give a date column a lag of a day or more. A newest value ahead of
+  the clock passes, and its record says `ahead_of_clock`. On Redshift the clock
+  is `getdate()`, which reads the session's time zone: UTC unless a user or
+  session sets another, so keep the dbt and Dex sessions on UTC there.
+- **No rows is not fresh.** An empty model, or a column NULL on every row, is
+  `freshness_exceeded` with `reason: no_rows` or `all_null`.
+- **Why a declaration field and not dbt's `freshness`.** dbt's `freshness`
+  block covers sources only: `dbt source freshness` reads a source's
+  `loaded_at_field`, and nothing in dbt checks a model's own data. A model is
+  where a stale load shows up for the people reading it, and a declaration is
+  what `maintain verify` already holds to the built relation.
+
+Each declared freshness gets a record under `data.freshness` (`maintain verify`,
+and `data.verification.freshness` on `transform build --verify`): the column,
+`max_lag`, `max_lag_seconds`, `basis`, the `rows` and `lag_seconds` measured, and
+a `status` of `satisfied`, `contradicted` (with `finding: freshness_exceeded`) or
+`unchecked` with a `reason_code` (`not_temporal` for a column that is no date or
+timestamp, `column_missing`, `lag_unreadable` where the column holds values but
+the warehouse returns no lag for them, `probe_refused`, `scan_offered`). The lag
+is the clock minus the newest value, so on a column that looks like personal
+data the verdict stands and the lag is withheld (`lag_withheld: true`), and the
+newest value is never computed: the check counts the rows within `max_lag`, as a
+unit's range is, unless a person cleared the column in `pii_overrides`. The check is one
+statement per model, a `MAX` and a `COUNT` per declared column, priced with the
+other declared facts on a metered connector. With `declarations.render_tests` on
+it also renders [`dex_freshness`](#dex_freshness-a-time-columns-freshness).
+`maintain semantic` reports a changed `freshness` as high-severity declaration
+drift, since a looser lag silences an alert with the SQL untouched.
 
 ### Measured against a drafted parent
 
@@ -1038,6 +1292,10 @@ Under the `timestamp` strategy dbt copies the source's `updated_at` into its
 validity column, so that column is source time. Under `check` it is the time the
 snapshot ran. `temporal_provenance_contradicted` reports a declaration that says
 otherwise, and a column dbt does not write declared as `capture`.
+
+With `declarations.render_tests` on, each measure also renders a
+[`dex_temporal_contract`](#dex_temporal_contract-a-historys-measures) test that
+agrees with these findings count for count.
 
 `transform plan` also warns when a model refs a snapshot and walks its versions
 (`lag`, `lead`, `row_number`, `dbt_valid_from`, `dbt_updated_at`) with no `history`

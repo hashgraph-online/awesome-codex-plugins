@@ -1,0 +1,188 @@
+{
+  "$schema": "../schema/character.schema.json",
+  "id": "crow",
+  "name": "Crow",
+  "kind": "bird",
+  "version": 1,
+  "poseOverrides": {"idle": {"armN_up": 0, "armN_lo": 0, "armF_up": 0.0, "armF_lo": 0}, "wave": {"armN_up": 105, "armN_lo": -8, "armF_up": 70, "armF_lo": 0}, "point": {"armN_up": 16, "armN_lo": 0, "armF_up": 0, "armF_lo": 0}, "sit": {"armN_up": 4, "armN_lo": 0, "armF_up": 3.2, "armF_lo": 0}, "run-ready": {"armN_up": 26, "armN_lo": 0, "armF_up": 20.8, "armF_lo": 0}, "jump": {"armN_up": 88, "armN_lo": 0, "armF_up": 72, "armF_lo": 0}, "surprised": {"armN_up": 38, "armN_lo": 0, "armF_up": 28, "armF_lo": 0}, "sad": {"armN_up": 0, "armN_lo": 0, "armF_up": 0.0, "armF_lo": 0}, "laugh": {"armN_up": 18, "armN_lo": 0, "armF_up": 14.4, "armF_lo": 0}, "think": {"armN_up": 8, "armN_lo": 0, "armF_up": 6.4, "armF_lo": 0}, "fight-ready": {"armN_up": 34, "armN_lo": 0, "armF_up": 27.200000000000003, "armF_lo": 0}, "bow": {"armN_up": 6, "armN_lo": 0, "armF_up": 4.800000000000001, "armF_lo": 0}, "strike": {"armN_up": 58, "armN_lo": -6, "armF_up": 0, "armF_lo": 0}, "hurt": {"armN_up": 50, "armN_lo": 0, "armF_up": 36, "armF_lo": 0}, "cheer": {"armN_up": 104, "armN_lo": 0, "armF_up": 92, "armF_lo": 0}},
+  "palette": {"body": "#1e2330", "bodyShine": "#34405c", "wing": "#262e42", "wingShine": "#46557a", "wing2": "#181c28", "beak": "#4a4a54", "beak2": "#34343c", "beakHi": "#8a8a98", "leg": "#5c5c66", "eyewhite": "#efe9d2", "iris": "#e8b930", "ink": "#12141c", "white": "#fffaf0", "mouth": "#5b1f26"},
+  "proportions": {"height": 170, "legLength": 62, "width": 200, "face": 52},
+  "parts": [
+    {"id": "hip", "parent": null, "pivot": [0, -62], "z": 10,
+     "shapes": [
+       {"type": "ellipse", "c": [-2, -68], "r": [18, 14], "fill": "body", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "legF_up", "parent": "hip", "pivot": [7, -66], "z": 6,
+     "shapes": [
+       {"type": "ellipse", "c": [8, -60], "r": [11, 15], "fill": "wing2", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "legF_lo", "parent": "legF_up", "pivot": [9, -50], "z": 5,
+     "shapes": [
+       {"type": "capsule", "a": [9, -50], "b": [10, -14], "ra": 3.6, "rb": 2.9, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "circle", "c": [9, -50], "r": 4.6, "fill": "leg", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "footF", "parent": "legF_lo", "pivot": [10, -12], "z": 4,
+     "shapes": [
+       {"type": "capsule", "a": [10, -12], "b": [33, -3], "ra": 2.8, "rb": 2.2, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "capsule", "a": [10, -12], "b": [29, -9], "ra": 2.5, "rb": 2, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "capsule", "a": [10, -12], "b": [19, -2], "ra": 2.5, "rb": 2, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "capsule", "a": [10, -12], "b": [-5, -4], "ra": 2.5, "rb": 2, "fill": "leg", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "legN_up", "parent": "hip", "pivot": [0, -66], "z": 10,
+     "shapes": [
+       {"type": "ellipse", "c": [1, -60], "r": [11, 15], "fill": "body", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "legN_lo", "parent": "legN_up", "pivot": [2, -50], "z": 9,
+     "shapes": [
+       {"type": "capsule", "a": [2, -50], "b": [3, -14], "ra": 3.6, "rb": 2.9, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "circle", "c": [2, -50], "r": 4.6, "fill": "leg", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "footN", "parent": "legN_lo", "pivot": [3, -12], "z": 8,
+     "shapes": [
+       {"type": "capsule", "a": [3, -12], "b": [26, -3], "ra": 2.8, "rb": 2.2, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "capsule", "a": [3, -12], "b": [22, -9], "ra": 2.5, "rb": 2, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "capsule", "a": [3, -12], "b": [12, -2], "ra": 2.5, "rb": 2, "fill": "leg", "stroke": null, "shade": false},
+       {"type": "capsule", "a": [3, -12], "b": [-12, -4], "ra": 2.5, "rb": 2, "fill": "leg", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "torso", "parent": "hip", "pivot": [0, -70], "z": 11,
+     "variants": {
+       "front": {"shapes": [{"type": "ellipse", "c": [2, -92], "r": [34, 34], "fill": "body", "stroke": null, "shade": false}, {"type": "poly", "pts": [[18, -70], [30, -88], [36, -104], [30, -76]], "smooth": true, "fill": "body", "stroke": null, "role": "cel"}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [-2, -98], "r": [44, 32], "fill": "body", "stroke": null, "rot": -18, "shade": false},
+       {"type": "ellipse", "c": [8, -90], "r": [26, 15], "fill": "bodyShine", "stroke": null, "rot": -18, "role": "detail", "shade": false},
+       {"type": "path", "d": "M-20 -104 Q-6 -96 4 -98", "fill": null, "stroke": "bodyShine", "sw": 1.8, "role": "detail", "shade": false},
+       {"type": "poly", "pts": [[8, -76], [30, -92], [40, -108], [36, -86], [22, -72]], "smooth": true, "fill": "body", "stroke": null, "role": "cel"}
+     ]
+    },
+    {"id": "tail", "parent": "torso", "pivot": [-36, -96], "z": 3,
+     "variants": {
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[-36, -104], [-62, -102], [-94, -88], [-100, -75], [-90, -70], [-62, -78], [-38, -86]], "smooth": true, "fill": "wing", "stroke": null, "shade": false},
+       {"type": "path", "d": "M-44 -96 L-92 -78", "fill": null, "stroke": "wingShine", "sw": 1.8, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "armF_up", "parent": "torso", "pivot": [12, -105], "z": 6, "sign": 1,
+     "variants": {
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[12.0, -107.0], [26.4, -101.6], [22.8, -89.0], [-0.6, -83.6], [-29.4, -80.0], [-52.8, -77.3], [-34.8, -89.0], [-11.4, -99.8], [3.0, -108.8]], "smooth": true, "fill": "wing2", "stroke": null},
+       {"type": "path", "d": "M16 -99 Q-14 -87 -46 -77", "fill": null, "stroke": "wing", "sw": 2, "role": "detail", "shade": false},
+       {"type": "path", "d": "M14 -93 Q-12 -83 -34 -79", "fill": null, "stroke": "wing", "sw": 1.6, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "armF_lo", "parent": "armF_up", "pivot": [-24, -83], "z": 5, "sign": 1,
+     "variants": {
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[-24, -89], [-42, -86], [-68, -76], [-74, -71], [-58, -72], [-38, -76], [-22, -79]], "smooth": true, "fill": "wing2", "stroke": null},
+       {"type": "path", "d": "M-34 -83 L-66 -74", "fill": null, "stroke": "wing", "sw": 1.6, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "head", "parent": "torso", "pivot": [22, -112], "z": 13,
+     "variants": {
+       "anime": {"shapes": [{"type": "capsule", "a": [14, -104], "b": [32, -124], "ra": 14, "rb": 12, "fill": "body", "stroke": null, "shade": false}, {"type": "poly", "pts": [[18, -140], [14, -158], [26, -148], [30, -166], [38, -148], [48, -160], [50, -142], [60, -130], [56, -112], [38, -108], [22, -112], [14, -126]], "smooth": false, "fill": "body", "stroke": null, "shade": false}, {"type": "poly", "pts": [[24, -148], [30, -160], [38, -150], [30, -146]], "smooth": false, "fill": "bodyShine", "stroke": null, "role": "detail", "shade": false}, {"type": "poly", "pts": [[52, -136], [84, -127], [53, -120]], "smooth": false, "fill": "beak", "stroke": null, "shade": false}, {"type": "poly", "pts": [[34, -112], [50, -122], [56, -132], [50, -113], [40, -108]], "smooth": true, "fill": "body", "stroke": null, "role": "cel"}]},
+       "front": {"pivot": [2, -112], "shapes": [{"type": "ellipse", "c": [2, -130], "r": [26, 24], "fill": "body", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-6, -140], "r": [11, 6], "fill": "bodyShine", "stroke": null, "rot": -20, "role": "detail", "shade": false}, {"type": "poly", "pts": [[-6, -128], [10, -128], [2, -108]], "smooth": false, "fill": "beak", "stroke": null, "shade": false}, {"type": "path", "d": "M-2 -126 L2 -114", "fill": null, "stroke": "beakHi", "sw": 1.6, "role": "detail", "shade": false}, {"type": "poly", "pts": [[10, -108], [22, -120], [26, -132], [22, -112]], "smooth": true, "fill": "body", "stroke": null, "role": "cel"}]}
+     },
+     "shapes": [
+       {"type": "capsule", "a": [14, -104], "b": [32, -124], "ra": 14, "rb": 12, "fill": "body", "stroke": null, "shade": false},
+       {"type": "ellipse", "c": [38, -128], "r": [21, 19], "fill": "body", "stroke": null, "shade": false},
+       {"type": "ellipse", "c": [32, -134], "r": [11, 6], "fill": "bodyShine", "stroke": null, "rot": -20, "role": "detail", "shade": false},
+       {"type": "poly", "pts": [[50, -137], [83, -127], [52, -121]], "smooth": false, "fill": "beak", "stroke": null, "shade": false},
+       {"type": "path", "d": "M54 -133 L76 -128", "fill": null, "stroke": "beakHi", "sw": 1.8, "role": "detail", "shade": false},
+       {"type": "poly", "pts": [[34, -112], [50, -122], [56, -132], [50, -113], [40, -108]], "smooth": true, "fill": "body", "stroke": null, "role": "cel"}
+     ]
+    },
+    {"id": "eyeN", "parent": "head", "pivot": [42, -131], "z": 15,
+     "variants": {
+       "anime": {"shapes": [{"type": "ellipse", "c": [42, -131], "r": [8, 10], "fill": "eyewhite", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M32.5 -138 Q42 -146 51.5 -138", "fill": null, "stroke": "ink", "sw": 4, "role": "line", "shade": false}]},
+       "front": {"pivot": [-12, -133], "shapes": [{"type": "circle", "c": [-12, -133], "r": 6, "fill": "eyewhite", "stroke": "ink", "sw": 1.3, "shade": false}]},
+       "front+anime": {"pivot": [-12, -133], "shapes": [{"type": "ellipse", "c": [-12, -133], "r": [7.5, 9.5], "fill": "eyewhite", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M-21.0 -139.5 Q-12 -147.5 -3.0 -139.5", "fill": null, "stroke": "ink", "sw": 4, "role": "line", "shade": false}]}
+     },
+     "shapes": [
+       {"type": "circle", "c": [42, -131], "r": 5.8, "fill": "eyewhite", "stroke": "ink", "sw": 1.3, "shade": false}
+     ]
+    },
+    {"id": "eyeF", "parent": "head", "pivot": [30, -131], "z": 15,
+     "variants": {
+       "front": {"pivot": [16, -133], "shapes": [{"type": "circle", "c": [16, -133], "r": 6, "fill": "eyewhite", "stroke": "ink", "sw": 1.3, "shade": false}]},
+       "front+anime": {"pivot": [16, -133], "shapes": [{"type": "ellipse", "c": [16, -133], "r": [7.5, 9.5], "fill": "eyewhite", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M7.0 -139.5 Q16 -147.5 25.0 -139.5", "fill": null, "stroke": "ink", "sw": 4, "role": "line", "shade": false}]}
+     },
+     "shapes": []
+    },
+    {"id": "pupilN", "parent": "eyeN", "pivot": [43, -130], "z": 16,
+     "variants": {
+       "anime": {"pivot": [43, -130], "shapes": [{"type": "ellipse", "c": [43, -130], "r": [5.6, 7.6], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [43, -129.5], "r": [3.08, 4.712], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [40.76, -133.192], "r": 2.352, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [45.352, -126.58], "r": 1.1199999999999999, "fill": "white", "stroke": null, "shade": false}]},
+       "front": {"pivot": [-12, -132], "shapes": [{"type": "circle", "c": [-12, -132], "r": 3.4, "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [-10.64, -133.36], "r": 1.1560000000000001, "fill": "white", "stroke": null, "shade": false}]},
+       "front+anime": {"pivot": [-12, -132], "shapes": [{"type": "ellipse", "c": [-12, -132], "r": [5, 7], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-12, -131.5], "r": [2.75, 4.34], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [-14.0, -134.94], "r": 2.1, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [-9.9, -128.85], "r": 1.0, "fill": "white", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "circle", "c": [43, -130], "r": 3.4, "fill": "ink", "stroke": null, "shade": false},
+       {"type": "circle", "c": [44.36, -131.36], "r": 1.1560000000000001, "fill": "white", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "pupilF", "parent": "eyeF", "pivot": [31, -130], "z": 16,
+     "variants": {
+       "front": {"pivot": [16, -132], "shapes": [{"type": "circle", "c": [16, -132], "r": 3.4, "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [17.36, -133.36], "r": 1.1560000000000001, "fill": "white", "stroke": null, "shade": false}]},
+       "front+anime": {"pivot": [16, -132], "shapes": [{"type": "ellipse", "c": [16, -132], "r": [5, 7], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [16, -131.5], "r": [2.75, 4.34], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [14.0, -134.94], "r": 2.1, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [18.1, -128.85], "r": 1.0, "fill": "white", "stroke": null, "shade": false}]}
+     },
+     "shapes": []
+    },
+    {"id": "browN", "parent": "head", "pivot": [41, -141], "z": 16,
+     "variants": {
+       "anime": {"shapes": [{"type": "path", "d": "M32 -146 L52 -138", "fill": null, "stroke": "ink", "sw": 3, "role": "line"}]},
+       "front": {"pivot": [-12, -143], "shapes": [{"type": "path", "d": "M-22 -140 L-4 -146", "fill": null, "stroke": "ink", "sw": 3.8, "role": "line"}]},
+       "front+anime": {"pivot": [-12, -146], "shapes": [{"type": "path", "d": "M-23 -143 L-3 -149", "fill": null, "stroke": "ink", "sw": 3, "role": "line"}]}
+     },
+     "shapes": [
+       {"type": "path", "d": "M33 -140 L51 -134", "fill": null, "stroke": "ink", "sw": 3.8, "role": "line"}
+     ]
+    },
+    {"id": "browF", "parent": "head", "pivot": [30, -141], "z": 16,
+     "variants": {
+       "front": {"pivot": [16, -143], "shapes": [{"type": "path", "d": "M6 -146 L26 -140", "fill": null, "stroke": "ink", "sw": 3.8, "role": "line"}]},
+       "front+anime": {"pivot": [16, -146], "shapes": [{"type": "path", "d": "M5 -149 L27 -143", "fill": null, "stroke": "ink", "sw": 3, "role": "line"}]}
+     },
+     "shapes": []
+    },
+    {"id": "mouth", "parent": "head", "pivot": [52, -121], "z": 14, "mouth": {"kind": "jaw", "maxOpen": 34},
+     "variants": {
+       "front": {"pivot": [2, -112], "shapes": [], "mouth": {"kind": "lips", "size": 1.35}}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[50, -121], [80, -124], [53, -115]], "smooth": false, "fill": "beak2", "stroke": null, "shade": false},
+       {"type": "path", "d": "M54 -119 L74 -122", "fill": null, "stroke": "beakHi", "sw": 1.4, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "armN_up", "parent": "torso", "pivot": [6, -110], "z": 12, "sign": 1,
+     "variants": {
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[6.0, -112.0], [22.0, -106.0], [18.0, -92.0], [-8.0, -86.0], [-40.0, -82.0], [-66.0, -79.0], [-46.0, -92.0], [-20.0, -104.0], [-4.0, -114.0]], "smooth": true, "fill": "wing", "stroke": null},
+       {"type": "path", "d": "M10 -104 Q-20 -92 -52 -82", "fill": null, "stroke": "wingShine", "sw": 2, "role": "detail", "shade": false},
+       {"type": "path", "d": "M8 -98 Q-18 -88 -40 -84", "fill": null, "stroke": "wingShine", "sw": 1.6, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "armN_lo", "parent": "armN_up", "pivot": [-30, -88], "z": 12.5, "sign": 1,
+     "variants": {
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[-30, -94], [-48, -91], [-74, -81], [-80, -76], [-64, -77], [-44, -81], [-28, -84]], "smooth": true, "fill": "wing", "stroke": null},
+       {"type": "path", "d": "M-40 -88 L-72 -79", "fill": null, "stroke": "wingShine", "sw": 1.6, "role": "detail", "shade": false}
+     ]
+    }
+  ]
+}

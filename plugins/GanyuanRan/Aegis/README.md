@@ -91,7 +91,7 @@ contract pass rate was **61.67% → 93.33% (+31.67 pp)** and unsafe outcomes wer
 
 [Sanitized JSON](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260811-v2-7-6.json) · [English table](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260811-v2-7-6.en.md) · [中文表格](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260811-v2-7-6.zh-CN.md) · [Methodology](docs/current/AEGIS_AGENTIC_BENCHMARK_BASELINE.md)
 
-A newer [matrix-v7 standard snapshot for Aegis 2.10.8](benchmarks/results/gpt-5-6-sol-xhigh-standard-20260925-v2-10-8.en.md)
+The latest [matrix-v7 standard snapshot for Aegis 2.13.0](benchmarks/results/gpt-5-6-sol-xhigh-standard-20261011-v2-13-0.en.md)
 covers 22 cases with one observation per arm and case. It uses a different run
 profile from the extended snapshot above and does not measure the changes in
 this release.

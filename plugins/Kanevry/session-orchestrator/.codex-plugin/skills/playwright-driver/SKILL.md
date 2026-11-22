@@ -6,7 +6,7 @@ metadata:
   tags: test, driver, web, playwright
   model: haiku
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-sonnet-4-6
 ---
 

@@ -95,6 +95,56 @@ one warehouse with its own `<adapter>__dex_join_coverage(model, child,
 child_columns, parent, parent_columns, child_where, parent_where, null_keys)`
 macro.
 
+## `dex_referenced_key`
+
+The generic test a column another model's `references` names renders on that
+parent column, in the parent's YAML entry
+([declarations](declarations.md#dex_referenced_key-a-key-a-references-names)),
+where `declarations.render_tests` turns it on. A declaration plan adds it for
+you; this command scaffolds or diffs it on its own. It fails with the count of
+rows repeating a non-NULL value of the column, beyond the first of each, so a
+join to that key cannot multiply rows unnoticed. NULLs never count. It never
+selects a key. The SQL goes through dbt's dispatch,
+`default__dex_referenced_key` holds on every connector, and a project overrides
+one warehouse with its own `<adapter>__dex_referenced_key(model, column_name)`
+macro.
+
+## `dex_temporal_contract`
+
+The generic test each measure of a declared `history` renders on the model
+([declarations](declarations.md#dex_temporal_contract-a-historys-measures)),
+where `declarations.render_tests` turns it on. A declaration plan adds it for
+you; this command scaffolds or diffs it on its own. It fails with the count of
+entities whose measure column disagrees with what the snapshot's versions and
+the declared policy give, the `mismatched_entities` of `maintain verify`'s
+`temporal_*_mismatch` finding for that measure. It never selects a key or a
+value, and refuses to compile when a policy the measure depends on is not given.
+The SQL goes through dbt's dispatch, `default__dex_temporal_contract` holds on
+every connector, and a project overrides one warehouse with its own
+`<adapter>__dex_temporal_contract(model, snapshot, entity, status_column, target,
+measure, measure_column, order_column, time_column, initial_observation,
+null_status, provenance)` macro; the text cast, text literal, timestamp type and
+previous-version read are dispatched on their own
+(`dex_temporal_contract_text`, `_literal`, `_timestamp`, `_lag`).
+
+## `dex_freshness`
+
+The generic test a time column's declared `freshness` renders
+([declarations](declarations.md#dex_freshness-a-time-columns-freshness)), where
+`declarations.render_tests` turns it on. A declaration plan adds it for you;
+this command scaffolds or diffs it on its own. It takes `max_lag_seconds` and
+fails with one row (holding `1` and the limit) when no row's value sits within
+that many seconds of the warehouse's clock, or when the column holds no value.
+It counts the rows within the limit, so it never computes the newest value or
+the lag, which would disclose it. Each row's lag is whole epoch seconds read in
+one statement, a timestamp with no time zone read as UTC, so a value exactly
+at the limit passes; a column that is no date or timestamp is a compile error.
+The SQL goes through dbt's dispatch, `default__dex_freshness` holds on DuckDB,
+and each other warehouse has its own `<adapter>__dex_freshness_epoch(expression,
+kind)` and `<adapter>__dex_freshness_now()`, the expressions `maintain verify`
+sends; a project overrides one warehouse with its own
+`<adapter>__dex_freshness(model, column_name, max_lag_seconds)` or either piece.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

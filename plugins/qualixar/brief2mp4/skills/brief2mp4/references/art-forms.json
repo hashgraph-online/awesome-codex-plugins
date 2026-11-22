@@ -5,7 +5,10 @@
   "craft": "Craft and handmade",
   "drawn": "Drawn and painted",
   "geometry": "Geometry, pixels and 3D",
-  "type": "Type, data and retro"
+  "type": "Type, data and retro",
+  "folk": "Folk and print traditions",
+  "screen": "Screens and cinema",
+  "abstract": "Abstract and generative"
  },
  "forms": [
   {
@@ -546,24 +549,22 @@
    "id": "whiteboard",
    "name": "Whiteboard and doodle",
    "aliases": [
-    "video scribing",
-    "chalkboard"
+    "video scribing"
    ],
    "family": "drawn",
-   "what": "Marker lines that draw themselves on a white board, in the order someone would draw them. The chalkboard is the same recipe, inverted.",
+   "what": "Marker lines that draw themselves on a white board, in the order someone would draw them: simple diagrams and a few handwritten words, one accent colour.",
    "origin": "Also called video scribing. A 2016 study found little evidence that it teaches better than other formats, so use it for its tone, not as a learning trick.",
    "rules": [
     "Black marker lines with a slight wobble",
     "Strokes appear in drawing order",
     "One or two accent colours",
-    "Chalk variant: a dark board, dusty broken strokes, a little smudge"
+    "A few handwritten words in one marker face, never paragraphs"
    ],
    "timing": "Each element draws on over 0.3 to 1.5 seconds, paced to the narration. The line boils at about 10 changes a second.",
    "fps": 10,
    "build": [
     "Draw-on: a polyline drawn up to a fraction of its length (SVG: `stroke-dashoffset`)",
     "Boil: nudge every point by a seeded amount keyed to `frameOf(t, 10)`",
-    "Chalk: three thin passes of the same stroke with different dash patterns at half opacity, over a speckled board",
     "rough.js (MIT) generates sketchy shapes and hatching to animate afterwards"
    ],
    "assets": "All in code. A marker or chalk typeface if the system has one.",
@@ -581,18 +582,14 @@
     "scribe",
     "sketch",
     "hand-drawn",
-    "marker",
-    "chalkboard",
-    "chalk",
-    "blackboard"
+    "marker"
    ],
    "sources": [
     "https://en.wikipedia.org/wiki/Whiteboard_animation",
     "https://github.com/rough-stuff/rough"
    ],
    "looks": [
-    "whiteboard",
-    "chalkboard"
+    "whiteboard"
    ],
    "thin": ""
   },
@@ -737,10 +734,8 @@
    "keywords": [
     "line art",
     "line drawing",
-    "one line",
     "minimal line",
     "outline",
-    "continuous line",
     "pen drawing"
    ],
    "sources": [
@@ -1522,6 +1517,2708 @@
     "neon-sign"
    ],
    "thin": ""
+  },
+  {
+   "id": "pencil-sketch",
+   "name": "Pencil sketch",
+   "aliases": [
+    "graphite drawing",
+    "pencil drawing"
+   ],
+   "family": "drawn",
+   "what": "Graphite lines on toothed paper: thin hatching that builds tone, a doubled and searching outline, and a thumb-smudged shadow. It looks drawn by hand because no two lines are quite the same.",
+   "origin": "Pencil marks are made by abrasion, a trail of graphite left on the paper. A large, very pure graphite deposit was found at Borrowdale in Cumbria, England, in 1565 (some sources say as early as 1500). Hatching, tone from closely spaced parallel lines, originated in the Middle Ages and developed into cross-hatching, notably in fifteenth-century prints.",
+   "rules": [
+    "Thin grey lines with a slight wobble, and an outline drawn twice, a little differently each time",
+    "Tone comes only from line density: one set of hatching for light, a second set across it for shadow",
+    "A faint construction shape under the outline, as a sketcher would lay in first",
+    "A smudge where a thumb rubbed the shadow",
+    "Paper grain that breaks every line into specks"
+   ],
+   "timing": "Lines appear in drawing order over about 3 seconds: construction line, outline, then each hatching layer, then the smudge. The picture steps about 8 times a second and each step re-seeds the wobble, like a stop-motion sketch.",
+   "fps": 8,
+   "build": [
+    "Outline twice: two polylines with different seeded nudges of 1 to 2 px, keyed to `frameOf(t, 8)`, at different opacity",
+    "Hatching: parallel lines clipped to the shape with `ctx.clip(path)`; later layers use an even-odd clip so that they land only on the shadow side",
+    "Reveal each line from a fraction `k` of its length so the hatching sweeps on in order",
+    "Smudge: a radial gradient squashed to an ellipse and drawn with `multiply`",
+    "Tooth: specks in the paper colour drawn over the lines (`tooth()` in `looks-painted.js`)"
+   ],
+   "assets": "All in code. A scanned sheet of cartridge paper makes a better ground if the user has one.",
+   "sound": "A pencil scratch under each hatching pass, quiet room tone. Practice note.",
+   "pitfalls": [
+    "Hard black vector lines with no wobble",
+    "Perfectly even hatching that never re-seeds, which looks ruled by a machine",
+    "Shadow as a smooth gradient instead of lines"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "pencil",
+    "graphite",
+    "pencil drawing",
+    "sketchbook",
+    "cross-hatch"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Pencil",
+    "https://en.wikipedia.org/wiki/Hatching"
+   ],
+   "looks": [
+    "pencil-sketch"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "charcoal",
+   "name": "Charcoal",
+   "aliases": [
+    "charcoal drawing",
+    "vine charcoal"
+   ],
+   "family": "drawn",
+   "what": "Soft black dust smeared and rubbed on rough paper: dark masses with crumbling edges, greys made by rubbing, and highlights lifted out with an eraser.",
+   "origin": "Charcoal was often a component of cave painting, with examples at least 28,000 years old. Artists use vine charcoal (wood burned in a kiln without air) or compressed charcoal held by a gum or wax binder; its marks are much less permanent than graphite, so lines are easily erased and blended.",
+   "rules": [
+    "Soft, uneven dark masses; never a clean line or a hard outline",
+    "Edges crumble into specks and the paper grain shows through the black",
+    "Greys come from rubbing, not from a colour",
+    "Highlights are pale marks lifted out of the dark with an eraser: a sun, a glint on a trunk",
+    "One warm paper grey and black, nothing else"
+   ],
+   "timing": "Marks are laid in order over about 3 seconds: broad rubbed sky first, then the dark mass, then the line work, then the lifted highlights. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Dabs: many overlapping low-opacity circles along a line, each with a seeded size and offset (`dabs()` in `looks-painted.js`); large dabs use a radial gradient so they stay soft",
+    "Rubbed sky: long, uneven strokes of varying width at low opacity",
+    "Eraser: paint pale strokes and a soft disc in the paper colour over the dark",
+    "Finish with coarse specks in the paper colour (`tooth()` with scale 2) and a dark vignette"
+   ],
+   "assets": "All in code. A scan of grey sketching paper helps if the user has one.",
+   "sound": "Dry scratching and a soft smudging rub, room tone. Practice note.",
+   "pitfalls": [
+    "Smooth airbrushed gradients with no grain",
+    "Crisp vector outlines on the tree or the figure",
+    "Pure black on pure white: charcoal lives on a warm grey ground"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "charcoal",
+    "charcoal drawing",
+    "vine charcoal",
+    "smudge",
+    "smudged"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Charcoal_(art)"
+   ],
+   "looks": [
+    "charcoal"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "oil-painting",
+   "name": "Oil painting and impasto",
+   "aliases": [
+    "oil paint",
+    "impasto"
+   ],
+   "family": "drawn",
+   "what": "Thick oil paint laid in visible, directional brush strokes: colour mixed on the canvas, strokes that follow the shape of the thing, and raised light ridges where the paint is heaped up.",
+   "origin": "Oil painting binds pigment in a drying oil. The oldest known oil paintings are 7th-century Buddhist works in Afghanistan, and by the height of the Renaissance oil had almost replaced egg tempera for panel painting in most of Europe. Impasto is paint laid on thickly enough that brush or painting-knife strokes show.",
+   "rules": [
+    "Visible brush strokes that follow the form: curved round a sun, straight along water",
+    "Each stroke has a light ridge on one side and a darker edge on the other, so the paint looks thick",
+    "Rich, mixed colour with small variations from stroke to stroke",
+    "Thick light daubs (impasto) on the brightest spots",
+    "A first blocked-in wash under the strokes"
+   ],
+   "timing": "A first wash blocks the colour in, then strokes cover the canvas over about 3 seconds, the brightest daubs last. The picture steps about 12 times a second, like a timelapse of a painter.",
+   "fps": 12,
+   "build": [
+    "Draw each stroke as a short thick line with round caps, three times: a dark copy offset down and right, the colour, and a thin lighter copy offset up and left (`brush()` in `looks-painted.js`)",
+    "Choose each stroke's angle from a flow field: tangent to circles round a focus, level over water",
+    "Choose colour from position with a seeded jitter per stroke so no two match",
+    "Reveal each stroke from a seeded start time so the canvas fills at random places"
+   ],
+   "assets": "All in code. Three.js can use a normal map from the stroke ridges for a real impasto light, but the 2D version reads well.",
+   "sound": "Brush on canvas, a slow room tone, a calm piano or strings bed. Practice note.",
+   "pitfalls": [
+    "Strokes all the same angle, which reads as a filter",
+    "Smooth gradients inside the strokes",
+    "No ridge highlights, which makes the paint look flat and digital"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "oil paint",
+    "oil painting",
+    "impasto",
+    "brushstroke",
+    "painterly"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Oil_painting",
+    "https://en.wikipedia.org/wiki/Impasto"
+   ],
+   "looks": [
+    "oil-painting"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "gouache",
+   "name": "Gouache storybook",
+   "aliases": [
+    "gouache",
+    "picture book illustration",
+    "matte opaque paint"
+   ],
+   "family": "drawn",
+   "what": "Flat, matte, opaque layers of paint with hand-cut edges and faint brush streaks: the look of a printed picture book. Each colour is laid over the last, with no gradients and no transparency.",
+   "origin": "Gouache is an opaque water-medium paint of pigment, water and a binder such as gum arabic, with a high ratio of pigment to binder. It has been used for at least twelve centuries, dries to a matte finish, and is used by commercial artists for posters, illustrations and comics.",
+   "rules": [
+    "Flat, fully opaque shapes in a small palette",
+    "Matte finish: no gloss and no shading gradients",
+    "Hand-cut edges, slightly uneven, never a perfect curve",
+    "Faint horizontal brush streaks inside each shape",
+    "Back to front: sky, far hills, near hills, then the subject, then small bright details"
+   ],
+   "timing": "Layers go on one after another, each over about half a second: back to front over about 3 seconds, with small things such as stars and smoke last. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "One filled path per colour, built with `cut()` (corners nudged by a seed) or `blob()`",
+    "Clip to the path and draw 20 to 30 faint light and dark streaks across it (`flatShape()` in `looks-painted.js`)",
+    "Reveal each layer with a clip that grows: up from the bottom for ground, across for objects",
+    "Add paper tooth last at low strength",
+    "Glow from a window is two or three flat circles of falling opacity, not a gradient"
+   ],
+   "assets": "All in code. Real gouache scans make a stronger texture if the user owns them.",
+   "sound": "Soft acoustic guitar or a music box, a wooden or paper foley on each layer. A storybook narration suits it. Practice note.",
+   "pitfalls": [
+    "Gradients or soft shadows, which turn it into a digital illustration",
+    "Black outlines round every shape: gouache is edge to edge colour",
+    "Too many colours: a storybook palette is five or six"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "gouache",
+    "storybook",
+    "picture book",
+    "matte paint",
+    "opaque paint"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Gouache"
+   ],
+   "looks": [
+    "gouache"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "crayon",
+   "name": "Crayon and oil pastel",
+   "aliases": [
+    "wax crayon",
+    "oil pastel",
+    "crayon drawing"
+   ],
+   "family": "drawn",
+   "what": "Waxy, broken strokes of bright colour on toothed paper, scribbled in one slanted direction with fat outlines pushed past the edges. It looks like a child's drawing with real pressure in it.",
+   "origin": "A crayon is a stick of pigmented wax, in the modern English-speaking world mostly paraffin. In 1924 two Japanese teachers set out to make a high-viscosity crayon, the oil pastel, which binds pigment in wax and non-drying oil, so that children could draw freely in colour.",
+   "rules": [
+    "Scribbled fills in one slanted direction, each pass with its own pressure",
+    "Paper tooth shows through the wax as speckles of paper colour",
+    "Fat outlines in a darker shade of the fill, pushed a little past the edge",
+    "Bright, simple, saturated colour: red roof, blue door, green grass",
+    "Simple subjects drawn the way a child would: sun with rays, house, tree"
+   ],
+   "timing": "Each area is scribbled in over 0.3 to 0.9 seconds, sky and grass first, the subject after, small details last, about 4 seconds in all. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Scribble: near-parallel passes inside a rotated box, each stroke its own opacity and width (`scribble()` in `looks-painted.js`), clipped to the shape",
+    "A second, lighter, dashed pass at another angle across the first",
+    "Outlines: a fat, darker stroke with a seeded wobble that is re-seeded on each step",
+    "Tooth: coarse specks in the paper colour drawn over everything (`tooth()` with scale 2)"
+   ],
+   "assets": "All in code. A scan of cream sugar paper helps if the user has one.",
+   "sound": "A waxy scratching sound under each scribble, a ukulele or xylophone bed. Practice note.",
+   "pitfalls": [
+    "Clean flat fills with no stroke direction",
+    "Thin precise outlines",
+    "Tooth specks so fine that they read as film noise"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "crayon",
+    "wax crayon",
+    "oil pastel",
+    "childlike drawing",
+    "scribbled"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Crayon",
+    "https://en.wikipedia.org/wiki/Oil_pastel"
+   ],
+   "looks": [
+    "crayon"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "chalkboard",
+   "name": "Chalkboard",
+   "aliases": [
+    "blackboard",
+    "chalk drawing",
+    "chalk art"
+   ],
+   "family": "drawn",
+   "what": "White and coloured chalk on a dark green-black board: dusty, broken lines that draw themselves, ghosts of old eraser swipes, and a stub of chalk at the tip of each line.",
+   "origin": "A blackboard or chalkboard is a reusable surface written on with chalk (calcium sulphate or calcium carbonate). Early boards were slate; later ones are often dark matte paint, black or dark green. The first attested use of chalk on a blackboard in the United States dates to 21 September 1801.",
+   "rules": [
+    "Dark green-black board with a soft lit patch and faint eraser swipes",
+    "Dusty, broken chalk lines: three thin passes and a soft halo, never a solid line",
+    "One or two chalk colours besides white",
+    "A wooden ledge with fallen dust under the board",
+    "Hand-lettered words, few and large"
+   ],
+   "timing": "Each line draws on over 0.3 to 0.8 seconds, in the order a teacher would draw it, about 4 seconds in all. The line boils at about 10 changes a second.",
+   "fps": 10,
+   "build": [
+    "Chalk: three passes of the same stroke with different dash patterns at half opacity plus a wide faint halo, each nudged by a seeded amount keyed to `frameOf(t, 10)` (`chalk()` in `looks-painted.js`)",
+    "A rounded stub drawn at the tip while the line is still drawing",
+    "Board: base colour, a radial light, grain, and a few big translucent ellipses for old swipes",
+    "Specks in the board colour drawn over the chalk eat holes in it"
+   ],
+   "assets": "All in code. A chalk typeface if the system has one; the demo falls back to a handwriting face.",
+   "sound": "Chalk squeak and tap under each line, voice-led. Practice note.",
+   "pitfalls": [
+    "A pure black board and perfect white vector lines",
+    "A hand that covers the drawing",
+    "Paragraphs of text"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "chalk",
+    "chalkboard",
+    "blackboard",
+    "chalk dust",
+    "chalk lettering"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Blackboard"
+   ],
+   "looks": [
+    "chalkboard"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "one-line",
+   "name": "One continuous line",
+   "aliases": [
+    "single line drawing",
+    "one line drawing",
+    "continuous line drawing"
+   ],
+   "family": "drawn",
+   "what": "A whole subject drawn by one unbroken line on a flat colour: the pen never lifts, crosses itself where it must, and the finished drawing is a single curve.",
+   "origin": "In a continuous-line drawing the artist looks at both the subject and the paper, moving the medium over the paper to create a silhouette of the object. It belongs to the contour-drawing family, and line art in general is made of distinct lines placed against a plain background.",
+   "rules": [
+    "One line, constant width, round ends, that never breaks",
+    "A flat single-colour ground and a single ink colour",
+    "The line crosses itself and doubles back rather than lifting",
+    "A pen dot at the tip while it draws",
+    "Plenty of empty space round the subject"
+   ],
+   "timing": "The line draws on at an even speed over about 3.5 seconds, eased at the start and the end, then the drawing holds. Full frame rate: a clean ink line should not step.",
+   "fps": null,
+   "build": [
+    "Build the path as a smooth spline through hand-placed points (`spline()` in `looks-painted.js`)",
+    "Resample it to points evenly spaced by length, so the pen moves at a steady speed",
+    "Draw it to a fraction `k` of its length with `strokePart()`; round caps and joins",
+    "Put a filled dot at the point where the line currently ends",
+    "SVG route: `stroke-dashoffset` on a single path"
+   ],
+   "assets": "All in code. Place the control points on a sketch of the subject first.",
+   "sound": "A pen on paper under the draw-on, then silence. A single sustained note or a gentle piano. Practice note.",
+   "pitfalls": [
+    "Lifting the pen: a second path makes it a normal line drawing",
+    "Jitter or boil, which fights the idea of one smooth line",
+    "Too much detail: the form must read from the outline alone"
+   ],
+   "route": "HyperFrames (SVG or canvas)",
+   "blender": "",
+   "keywords": [
+    "one line",
+    "single line",
+    "continuous line",
+    "unbroken line",
+    "without lifting the pen"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Contour_drawing",
+    "https://en.wikipedia.org/wiki/Line_art"
+   ],
+   "looks": [
+    "one-line"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "paint-on-glass",
+   "name": "Paint-on-glass",
+   "aliases": [
+    "paint on glass animation",
+    "oil on glass",
+    "glass painting animation"
+   ],
+   "family": "drawn",
+   "what": "Oil paint smeared on a lit sheet of glass: translucent colour that glows against the light, deeper where it is thick, finger streaks dragged behind, and shapes that melt from one thing into the next.",
+   "origin": "A technique for animated films made by manipulating slow-drying oil paints on sheets of glass; gouache mixed with glycerine is sometimes used instead. The best-known practitioner is the Russian animator Aleksandr Petrov, who has used it in seven films, all of which have won awards.",
+   "rules": [
+    "Translucent colour over a bright backlight: paint multiplies, so overlaps go darker",
+    "A thicker, darker rim round each daub",
+    "Finger streaks trailing behind moving shapes",
+    "Lines scratched through the paint that let the light through",
+    "One shape morphs into another instead of cutting"
+   ],
+   "timing": "One frame at a time, about 12 changes a second. The picture is smeared and re-pushed on each step, so streaks and edges move a little every frame.",
+   "fps": 12,
+   "build": [
+    "Draw the lamp as a radial gradient, then paint everything with `globalCompositeOperation = 'multiply'`",
+    "Each daub: a filled shape, a darker rim stroke, and a dozen gradient-faded streaks (`daub()` in `looks-painted.js`), with streak lengths re-seeded on each step",
+    "Morph by interpolating the shape parameters (size, angle, colour) with `easeInOut`",
+    "Scratches: switch to `source-over` and draw thin cream lines clipped to the shape"
+   ],
+   "assets": "All in code. Real glass-paint scans work as a texture layer over the lamp.",
+   "sound": "A wet, squelching foley on every move, a slow and dreamy bed. Practice note.",
+   "pitfalls": [
+    "Opaque colour, which loses the glow",
+    "Sharp vector outlines round the shapes",
+    "Cuts between forms: the look depends on continuous morphing"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "paint on glass",
+    "oil on glass",
+    "glass painting",
+    "backlit paint",
+    "smeared paint"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Paint-on-glass_animation"
+   ],
+   "looks": [
+    "paint-on-glass"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "sand-art",
+   "name": "Sand animation",
+   "aliases": [
+    "sand art",
+    "sand drawing",
+    "sand painting animation"
+   ],
+   "family": "drawn",
+   "what": "A light table seen from above: a warm glowing backlight, sand as dark sepia masses, and light showing through wherever the sand is thin, with soft graded edges. The picture is made of filled shapes, and one shape is pushed into the next.",
+   "origin": "A form of stop motion in which sand is shaped under a camera, often lit from behind by a lightbox so that the thickness of the sand gives shading and lines. Sand art is older than film: Navajo, Aboriginal Australian and Tibetan cultures made it, and the Japanese bonseki has been practised since at least the 7th century. Swiss animators Gisèle and Nag Ansorge and the American Caroline Leaf took it up for films in the 1960s.",
+   "rules": [
+    "A bright, warm backlight, strongest at the centre and falling off at the edges",
+    "Sand is dark sepia to near-black where it is thick; bright where there is no sand; amber and soft where it is thin",
+    "Filled masses with soft, graded edges, never outlines",
+    "One form flows into the next as a hand sweeps the sand: sun to flower to bird",
+    "Loose grains: dark specks on the light, bright pinholes in the dark masses"
+   ],
+   "timing": "A figure grows in over about a second, then each change of form takes about 1.3 seconds. The picture steps about 12 times a second.",
+   "fps": 12,
+   "build": [
+    "Paint the table as a radial gradient from pale cream to amber to brown",
+    "Describe each figure as the same number of soft ellipses (position, size, angle); blend two figures number by number with `easeInOut` to morph (`SAND_SUN`, `SAND_FLOWER`, `SAND_BIRD` in `looks-painted.js`)",
+    "Draw each mass three times with `filter: blur()`: a wide amber halo, a mid brown body, a dark core (`sandMass()`)",
+    "Heap a few dark grains at the edge while a shape is moving",
+    "Finish with dark and light speckle and a multiplied vignette"
+   ],
+   "assets": "All in code. Real sand photographed on a light table makes a good grain layer.",
+   "sound": "A soft, dry, whispering rub as the sand moves, a slow music bed that suits a story. Practice note.",
+   "pitfalls": [
+    "Bright outlines drawn on a dark ground: that reads as lines scratched in beach sand, not as sand on a light table",
+    "A flat brown background with no backlight glow",
+    "Hard-edged vector shapes: the edges of sand are soft and graded"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "sand art",
+    "sand drawing",
+    "sand story",
+    "light table",
+    "lightbox"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Sand_animation"
+   ],
+   "looks": [
+    "sand-art"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "madhubani",
+   "name": "Madhubani (Mithila)",
+   "aliases": [
+    "mithila art",
+    "mithila painting",
+    "madhubani art"
+   ],
+   "family": "folk",
+   "what": "Double black outlines round bright flat fills, with every gap packed with hatching, dots or small motifs: fish, peacocks and lotuses inside a decorated border, with no empty space. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself, and a film should credit the tradition and, where it can, commission or license work from the artists.",
+   "origin": "Madhubani art, also called Mithila art, is a style of painting practised in the Mithila region of Nepal and Bihar. It was traditionally created by women of various communities on freshly plastered mud walls and floors of huts, and is now also done on cloth, handmade paper and canvas, with natural dyes and pigments.",
+   "rules": [
+    "Double black outlines: a bold line with a thin one inside it",
+    "Bright, flat colour: red, yellow, green and indigo, with black line work",
+    "Every gap is filled with hatching, dots, flowers, leaves or geometric marks: no empty space",
+    "Motifs from nature: fish, peacocks, lotus, the sun and moon, plants",
+    "A decorated border of triangles and flowers, drawn as part of the painting"
+   ],
+   "timing": "Elements are drawn on in order over about 4 seconds: border, ground motifs, then the large figures. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Build each figure as a smooth closed spline (`closed()` in `looks-folk.js`) and draw it with `folkShape()`: the outline draws round, the fill comes in, a pattern fills it, then an inner line follows",
+    "Patterns clipped to the shape: parallel lines, dot grids and scale arcs (`lines()`, `dots()`, `scales()`)",
+    "Fill the ground first with a grid of small motifs, each chosen by a hash of its cell, so the gaps are never blank",
+    "Draw the border as a loop of triangles with a flower in each corner"
+   ],
+   "assets": "All in code. Real work is done on handmade paper or cloth: a scanned paper texture helps if the user has one.",
+   "sound": "Soft folk percussion or a flute drone, a gentle brush sound as each figure draws on. Practice note.",
+   "pitfalls": [
+    "Empty space: the form is defined by filling it",
+    "Single thin outlines and gradients",
+    "Presenting a machine-made picture as authentic Madhubani art"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "madhubani",
+    "mithila",
+    "fish and peacock",
+    "no empty space",
+    "folk painting"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Madhubani_art"
+   ],
+   "looks": [
+    "madhubani"
+   ],
+   "thin": "Wikipedia marks its line that no space is left empty, with the gaps filled by flowers, animals, birds and geometric designs, as needing a citation; confirm it against a museum or scholarly source before quoting it.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "warli",
+   "name": "Warli",
+   "aliases": [
+    "warli art",
+    "warli painting"
+   ],
+   "family": "folk",
+   "what": "White figures drawn in simple shapes on a terracotta wall: a circle for a head, two triangles joined at their tips for a body, stick arms and legs, a ring of people dancing hand in hand round a tarpa player, trees, huts and a sun. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself, and a film should credit the tradition and, where it can, commission or license work from the artists.",
+   "origin": "Warli painting is tribal art made mostly by the Warli people of the North Sahyadri Range in Maharashtra, India, usually on the mud walls of village huts, in a white pigment of rice flour and water with a gum binder. Its basic shapes are the circle, triangle and square; people and animals are drawn as two inverse triangles joined at their tips, and the tarpa dance, in which men and women entwine hands and circle the tarpa player, is a central subject.",
+   "rules": [
+    "White (rice-paste) lines and fills only, on a red-brown mud ground",
+    "Figures of a circle head and two triangles that meet at their tips, with stick limbs",
+    "A ring or spiral dance, hands joined, round a central player",
+    "Trees as a trunk with paired branches; a sun as a circle with strokes",
+    "Borders of repeating diamonds; huts as a square with a triangle roof"
+   ],
+   "timing": "Figures appear one at a time over about 3 seconds and the spiral turns slowly while they step between two poses. The picture steps about 8 times a second, and the poses at 4.",
+   "fps": 8,
+   "build": [
+    "Ground: base colour plus a dozen big soft radial gradients for daubed mud, then a fine speckle",
+    "A figure is two filled triangles, a disc and stroked limbs (`warliFigure()` in `looks-folk.js`), turned so the head points outward",
+    "Place figures along a spiral and add a slow rotation of the whole spiral from stepped time",
+    "Trees: a trunk and branches as paired strokes that shorten toward the top, a dot at each tip"
+   ],
+   "assets": "All in code. A scan of a mud-plastered wall makes a stronger ground if the user has one.",
+   "sound": "Drum and tarpa-like reed drone, claps on the pose changes. Practice note.",
+   "pitfalls": [
+    "Colour: the tradition is white on brown or red-brown",
+    "Rounded, realistic bodies",
+    "Presenting a machine-made picture as authentic Warli art"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "warli",
+    "tarpa",
+    "tribal art",
+    "rice paste",
+    "mud wall"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Warli_painting"
+   ],
+   "looks": [
+    "warli"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "pattachitra",
+   "name": "Pattachitra",
+   "aliases": [
+    "patachitra",
+    "pattachitra painting",
+    "odisha scroll painting"
+   ],
+   "family": "folk",
+   "what": "Bold black outlines and flat colour on a prepared ground: a thick ornamental border, an almond eye in profile, scale and fin patterns, and flowers and tendrils packed round the subject. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself, and a film should credit the tradition and, where it can, commission or license work from the artists.",
+   "origin": "Patachitra or Pattachitra is a traditional cloth-based scroll painting of the eastern Indian states of Odisha and West Bengal; the name comes from the Sanskrit patta, cloth, and chitra, picture. The Odisha tradition originated at Puri, is painted in natural colours on cloth coated with chalk and gum, and has bold, clean lines with no landscape or perspective.",
+   "rules": [
+    "A thick, ornamental border in red, yellow and black, with dots and zigzags",
+    "Bold, clean outlines and flat colour",
+    "Eyes in profile, drawn as an almond with a dark pupil",
+    "Dense floral fill: rosettes, leaves and spiral tendrils",
+    "Patterns inside the shapes: scales, fan lines, bands"
+   ],
+   "timing": "The ground motifs fill in over about 3 seconds, the main figure draws on over about 1.5 seconds. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Draw the border as flat bands with dots and zigzags (`strokeRect`, dot loops)",
+    "Fill the ground with rosettes (`rosette()`) and spiral tendrils (`curl()`) on an offset grid",
+    "The figure is a closed spline drawn with `folkShape()`, a heavy 8 px outline and a scale pattern",
+    "An almond eye: a closed four-point spline with a dark disc inside"
+   ],
+   "assets": "All in code. A scan of cloth or tea-stained paper helps if the user has one.",
+   "sound": "Drone and temple-bell texture, a rhythmic percussion under the border. Practice note.",
+   "pitfalls": [
+    "Thin outlines, gradients and perspective: the tradition is flat",
+    "Drawing deity faces from memory: the demo uses a fish for that reason",
+    "Presenting a machine-made picture as authentic Pattachitra"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "pattachitra",
+    "patachitra",
+    "odisha",
+    "puri",
+    "scroll painting"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Pattachitra"
+   ],
+   "looks": [
+    "pattachitra"
+   ],
+   "thin": "The fish in the demo is a decorative study of the border, outline, eye and fill rules; the tradition itself mostly depicts Hindu deities and stories, which Wikipedia describes.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "gond",
+   "name": "Gond",
+   "aliases": [
+    "gond painting",
+    "gond art",
+    "gondi art",
+    "jangarh kalam"
+   ],
+   "family": "folk",
+   "what": "Animals and trees in thin black outline, filled with bold flat colour in bands, each band carrying fine repeated marks of one colour: dots, dashes, parallel lines or fish-scale arcs. A plain light ground, a bold crest and a decorated eye. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself, and a film should credit the tradition and, where it can, commission or license work from the artists.",
+   "origin": "The Gond, or Gondi, people are an ethnolinguistic group spread across central and eastern India, including Madhya Pradesh, Maharashtra and Chhattisgarh. The artist Jangarh Singh Shyam, born into a Pardhan Gond family in Patangarh, Mandla district, Madhya Pradesh, is credited with starting the school called Jangarh Kalam; he used lines of coloured dots, inspired by Gond tattoos, with bands of dots, dense cross-hatching and comb-lines, and painted animals such as tigers and deer.",
+   "rules": [
+    "Thin black outlines round animals, birds and trees",
+    "Saturated flat colour: deep red, saffron, cobalt, leaf green and black",
+    "Each body is filled in bands; each band is a solid base colour with marks of ONE contrasting colour, never a rainbow inside a stripe",
+    "Mark types alternate band by band: rows of dots, short dashes, fine parallel lines, fish-scale arcs",
+    "Bold, decorated details: a crest, an eye with rings and dots, branches that curl in toward the animal"
+   ],
+   "timing": "Parts draw on one after another over about 3 seconds, outline first, then the bands fill. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Draw each part with `folkShape()` and a black fill under the bands",
+    "Bands: rotate to the shape's long axis, fill a 14 px strip with the base colour, then draw one mark type in the paired colour (`gondBands()` and the `GOND` colour pairs in `looks-folk.js`)",
+    "Trunks and branches: a tapering band along a spline (`ribbon()`), ending in a curl",
+    "Eye: a pale ring, a red ring, a dark pupil and a ring of small dots",
+    "Keep the ground plain; add only a dotted border"
+   ],
+   "assets": "All in code.",
+   "sound": "Drums and a stringed drone, a rhythmic tapping as each band fills. Practice note.",
+   "pitfalls": [
+    "Pastel stripes or a rainbow inside each band: the colours are saturated and each band has one mark colour",
+    "Gradients and shading",
+    "Presenting a machine-made picture as authentic Gond art"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "gond",
+    "gondi",
+    "pardhan",
+    "dots and dashes",
+    "jangarh"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Gond_people",
+    "https://en.wikipedia.org/wiki/Jangarh_Singh_Shyam"
+   ],
+   "looks": [
+    "gond"
+   ],
+   "thin": "Wikipedia has no standalone Gond painting article, so the sources are the Gond people article and the article on Jangarh Singh Shyam, the artist most closely tied to the modern style. Confirm the wider tradition against a museum source before making claims in a film.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "indian-miniature",
+   "name": "Indian miniature (Mughal and Rajput)",
+   "aliases": [
+    "mughal painting",
+    "rajput painting",
+    "mughal miniature",
+    "pahari painting"
+   ],
+   "family": "folk",
+   "what": "A small, richly detailed court painting in jewel tones: a flat, stacked space with no deep perspective, a gold border with a floral margin, fine ornament on every surface, and figures in profile. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself, and a film should credit the tradition and, where it can, commission or license work from the artists.",
+   "origin": "Mughal painting is a style of miniature painting, used for book illustrations and album pages, that developed at the Mughal court between the 16th and 19th centuries; its portraits are normally in profile. Rajput painting is the painting of the regional Hindu courts during the Mughal era, from about the end of the 16th to the middle of the 19th century, and its conservative idioms keep bright colour, flatness and abstract form.",
+   "rules": [
+    "Flat, stacked space: sky, palace, terrace and garden as bands, no deep perspective",
+    "Jewel tones: ruby, emerald, lapis, saffron and gold",
+    "A gold border with a floral margin, drawn as part of the painting",
+    "Figures in profile, small and seated, with turbans and robes",
+    "Fine ornament: domes, arches, flower beds, water channels"
+   ],
+   "timing": "The border, the sky and the palace draw in over about 2 seconds, then the garden, water and figures. Birds drift and the fountain rises. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Paint bands from back to front, each a flat fill with a thin dark line",
+    "Border: a ruby frame between gold lines with a row of small flowers (`rosette()`)",
+    "Domes: half-ellipses with ribs, a finial and a small disc",
+    "Figures: a robe polygon, a profile head with a nose notch, a turban ellipse and one arm to a cup",
+    "Animate only small things: birds, the fountain, the cloud ribbons"
+   ],
+   "assets": "All in code. For real pages use public-domain scans from museum collections and say so in REPORT.md.",
+   "sound": "Sitar or santoor, a quiet fountain, birdsong. Practice note.",
+   "pitfalls": [
+    "Deep one-point perspective and cast shadows",
+    "Photorealistic faces",
+    "Presenting a machine-made picture as authentic Mughal or Rajput work"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "miniature painting",
+    "mughal",
+    "rajput",
+    "pahari",
+    "court painting"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Mughal_painting",
+    "https://en.wikipedia.org/wiki/Rajput_painting"
+   ],
+   "looks": [
+    "indian-miniature"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "engraving",
+   "name": "Engraving and banknote hatching",
+   "aliases": [
+    "banknote engraving",
+    "copperplate engraving",
+    "line engraving"
+   ],
+   "family": "folk",
+   "what": "Fine lines cut like a burin: hatching that follows the form and swells in the shadow, cross-hatching where it is darkest, a vignette of waves, and a woven guilloche frame, in one or two inks on cream paper.",
+   "origin": "Engraving is the practice of incising a design on a hard surface with a burin; the grooves can make an intaglio plate for printing. In traditional engraving, which is a purely linear medium, half-tones are made by many thin parallel lines, hatching, and two crossing sets of them are cross-hatching. Guilloché is a precise, repetitive pattern engraved by engine turning, and modern banknotes are almost always engraved.",
+   "rules": [
+    "Tone from line only: thin lines in the light, thick lines in the shadow",
+    "Lines follow the form: curved round a sphere, not straight across it",
+    "Cross-hatching only in the deepest shade",
+    "A guilloche frame of interwoven waves and rosettes",
+    "One or two inks: a dark brown-black and a burgundy on cream paper"
+   ],
+   "timing": "Lines are cut one after another from top to bottom over about 3 seconds, then the cross-hatching and frame. Full frame rate: an engraved line should not step.",
+   "fps": null,
+   "build": [
+    "Sphere: sample points with latitude, longitude and a tilt, and a brightness from a light direction (`spherePoint()` in `looks-folk.js`)",
+    "Stroke each short segment with a width of about `0.35 + 3.3 * (1 - brightness) ** 1.7`",
+    "Cross-hatch: a second family of lines drawn only where brightness is under 0.4",
+    "Guilloche: six sine waves in different phases across each side, and a rose curve at each corner",
+    "Background vignette: horizontal wavy lines whose width grows toward the edge, clipped to an ellipse"
+   ],
+   "assets": "All in code.",
+   "sound": "A fine scratch under the line work, a quiet low tone. Practice note.",
+   "pitfalls": [
+    "Lines of one width: the swelling is the engraving",
+    "Smooth gradients",
+    "Straight hatching that ignores the form"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "engraving",
+    "engraved",
+    "banknote",
+    "guilloche",
+    "copperplate"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Engraving",
+    "https://en.wikipedia.org/wiki/Guilloch%C3%A9"
+   ],
+   "looks": [
+    "engraving"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "silkscreen",
+   "name": "Silkscreen poster",
+   "aliases": [
+    "silkscreen",
+    "screen print",
+    "screen printing",
+    "serigraph"
+   ],
+   "family": "folk",
+   "what": "A poster printed in a few flat inks that overprint, each a little out of register, with coarse halftone dots for tone: flat shapes, big blocks, and colours that mix where they overlap.",
+   "origin": "Screen printing, also silkscreening or serigraphy, transfers ink through a mesh onto a surface except where a stencil blocks it; traditionally the mesh was silk. It is widely used for posters and other graphics.",
+   "rules": [
+    "Two to four flat inks, never more",
+    "Inks overprint with multiply, so overlaps make new colours",
+    "Each ink is a little off register, differently on each drawing",
+    "Halftone dots at an angle for gradients and glows",
+    "Bold flat shapes and block bars where type would go",
+    "Paper grain showing through"
+   ],
+   "timing": "Each ink prints in turn, sliding into register over about 0.7 seconds, one every second. The picture steps about 8 times a second and each step re-seeds the misregistration.",
+   "fps": 8,
+   "build": [
+    "One draw function per ink, drawn with `globalCompositeOperation = 'multiply'` (`inkLayer()` in `looks-folk.js`)",
+    "Offset each layer by a few pixels plus a seeded jitter keyed to `frameOf(t, 8)`",
+    "Halftone: a rotated grid of dots whose radius is `pitch * 0.72 * sqrt(value)` (`halftone()`)",
+    "Slide each layer in from off-register and settle it at its offset"
+   ],
+   "assets": "All in code.",
+   "sound": "A press clunk and a squeegee sweep as each ink lands, an upbeat drum loop. Practice note.",
+   "pitfalls": [
+    "Perfect register and soft gradients: that reads as digital",
+    "Too many colours",
+    "Transparency that does not multiply"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "silkscreen",
+    "screen print",
+    "serigraph",
+    "halftone",
+    "misregistration"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Screen_printing"
+   ],
+   "looks": [
+    "silkscreen"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "art-deco",
+   "name": "Art deco",
+   "aliases": [
+    "art déco",
+    "jazz age deco"
+   ],
+   "family": "folk",
+   "what": "Gold lines, sunbursts and stepped, symmetric geometry on a deep ground: fans and arcs, a tower in steps, zigzag borders and small stars, in gold on navy and burgundy.",
+   "origin": "Art Deco first appeared in Paris in the 1910s, just before the First World War, and flourished internationally in the 1920s and early 1930s; the name came into use after the 1925 Paris exhibition of decorative and industrial arts. It has its origin in the bold geometric forms of the Vienna Secession and Cubism, and in New York the Empire State and Chrysler Buildings are monuments to the style.",
+   "rules": [
+    "Strict symmetry about a vertical axis",
+    "Gold or light-gold lines on a deep ground: black, navy, burgundy or emerald",
+    "Sunburst rays, fans and concentric arcs",
+    "Stepped shapes: towers and frames in steps",
+    "Zigzag borders, chevrons and small star sparkles"
+   ],
+   "timing": "Rays and arcs grow out from the centre over about 3 seconds, then the tower rises in steps. Smooth, full frame rate, with a slow twinkle.",
+   "fps": null,
+   "build": [
+    "Sunburst: wedges that alternate fill and ground, each edge a gold line drawn to a growing radius",
+    "Arcs: `ctx.arc` from pi to a growing angle at several radii",
+    "Tower: nested rectangles of falling width, each rising in turn",
+    "Mirror the side decoration with `ctx.scale(-1, 1)` so it is exactly symmetric",
+    "Sparkles: eight-point stars whose size follows a sine of time"
+   ],
+   "assets": "All in code.",
+   "sound": "Brass and muted trumpet, a swing bed. Practice note.",
+   "pitfalls": [
+    "Asymmetry",
+    "Soft gradients and rounded shapes",
+    "Using teal or mint: this skill leaves them out"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "art deco",
+    "gatsby",
+    "sunburst",
+    "roaring twenties",
+    "gold geometric"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Art_Deco"
+   ],
+   "looks": [
+    "art-deco"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "stained-glass",
+   "name": "Stained glass",
+   "aliases": [
+    "stained glass window",
+    "leaded glass",
+    "church window"
+   ],
+   "family": "folk",
+   "what": "Coloured panes held by thick dark lead lines in an arched window: a rose at the top, a diamond lattice below, and light glowing through each pane.",
+   "origin": "Stained glass is glass coloured by adding metallic salts during its manufacture, arranged into windows of small pieces held together, traditionally, by strips of lead called cames. In Western Europe, together with illuminated manuscripts, such windows are a major form of medieval visual art that has survived.",
+   "rules": [
+    "Thick, dark, even lead lines round every pane",
+    "Saturated, jewel-coloured panes: ruby, cobalt, emerald, amber, violet",
+    "Each pane glows brighter at its centre, as light passes through",
+    "A pointed or round arch, with a rose and a lattice",
+    "A dark stone wall round it, so the glass is the light source"
+   ],
+   "timing": "The panes light up from the centre outward over about 2 seconds, then a soft beam of sun crosses the glass slowly. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Build each pane as a polygon; fill dark, then fill with its colour as it is lit, plus a radial glow with `lighter`",
+    "Rose: annular sectors in three rings (`ring()` in the demo); lattice: a grid of diamonds clipped to the arch",
+    "Stroke every pane with a 6 px dark line, `lineJoin = 'round'`",
+    "The beam: a linear gradient band drawn with `lighter`, its position a function of time",
+    "Wall: dark base colour and a block pattern"
+   ],
+   "assets": "All in code.",
+   "sound": "A choir pad, a long reverb, footsteps in a stone room. Practice note.",
+   "pitfalls": [
+    "Thin lead lines: they are part of the picture",
+    "Flat panes with no glow",
+    "Washed-out pastel colours: keep them saturated"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "stained glass",
+    "lead lines",
+    "rose window",
+    "cathedral window",
+    "leaded"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Stained_glass"
+   ],
+   "looks": [
+    "stained-glass"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "retro-anime",
+   "name": "Retro anime (80s and 90s)",
+   "aliases": [
+    "80s anime",
+    "90s anime",
+    "retro cel anime"
+   ],
+   "family": "drawn",
+   "what": "A hand-painted television look: hard two-tone shading, banded sunset skies, a striped sun, a lit skyline, a figure from behind with hair and scarf in the wind, a little film grain and a soft glow.",
+   "origin": "Anime is animation originating from Japan; a characteristic art style emerged in the 1960s and spread in the following decades. Traditional animation paints the characters on transparent cels laid over a static painted background, a process generally credited to Earl Hurd, who patented it in 1914.",
+   "rules": [
+    "Hard-edged two-tone shading: one base colour and one shadow colour, no soft gradients on the characters",
+    "Banded, graded skies in stepped colour: violet to magenta to orange to cream",
+    "A big sun with horizontal slits, a lit skyline, a rim of warm light on the edges",
+    "Characters seen from behind or in profile, hair and scarf moving in the wind",
+    "Film grain, and a soft bloom around bright areas"
+   ],
+   "timing": "Drawn on threes: about 8 changes a second inside a 24 frames-a-second film. The sun rises slowly, windows twinkle and hair streams.",
+   "fps": 8,
+   "build": [
+    "Quantise time with `held(t, 8)` and key every flicker to `frameOf(t, 8)`",
+    "Sky: eight flat bands from `fillRect`; the sun is a clipped disc with a hard shadow tone and slits cut across it",
+    "Shade a character with a base polygon and a second polygon of the shadow colour on one side",
+    "Bloom: a radial gradient drawn with `lighter` over the picture; grain: a speckle with a seed from `frameOf(t, 8) % 6`"
+   ],
+   "assets": "All in code. For real character art, paint on layers and keep the shadow tone as its own layer.",
+   "sound": "A synth pad and a drum machine, city ambience, wind on the rooftop. Practice note.",
+   "pitfalls": [
+    "Smooth gradients on the figures: the shading is hard-edged",
+    "Smooth 24 frames-a-second motion on every layer, which loses the television feel",
+    "Copying a recognisable character"
+   ],
+   "route": "HyperFrames (canvas), or Blender with a toon material for 3D",
+   "blender": "",
+   "keywords": [
+    "retro anime",
+    "retro anim",
+    "80s anime",
+    "90s anime",
+    "vintage anime"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Anime",
+    "https://en.wikipedia.org/wiki/Cel"
+   ],
+   "looks": [
+    "retro-anime"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "manga",
+   "name": "Manga (black and white with screentone)",
+   "aliases": [
+    "manga style",
+    "black and white manga",
+    "manga panels"
+   ],
+   "family": "drawn",
+   "what": "Black and white only: inked panels with thick borders, screentone dots for grey, speed lines and bursts, and one dramatic moment drawn large.",
+   "origin": "Manga are comics or graphic novels originating from Japan; most conform to a style developed in Japan in the late 19th century, with a long history in earlier Japanese art.",
+   "rules": [
+    "Pure black and pure white: no greys and no colour",
+    "Panels with thick black borders and uneven sizes: one big panel for the moment, smaller ones around it",
+    "Tone: halftone dots of one size per area, at a slant, for shadow and mood",
+    "Speed lines that converge on the point of impact; a burst shape for the hit",
+    "Bold line weights and spiky hair; faces in extreme close-up for emotion"
+   ],
+   "timing": "Panels slam in one after another, 0.1 to 2.2 seconds, and the speed lines re-roll about 8 times a second. Stepped, not smooth.",
+   "fps": 8,
+   "build": [
+    "Each panel: a clipped rectangle that scales from 1.12 to 1 with `easeOut` as it appears",
+    "Speed lines: thin black wedges between two radii with a seeded length per line, re-seeded on each step (`speedLines()` in `looks-toon.js`)",
+    "Screentone: a rotated dot grid whose radius follows a value function (`halftone()` in `looks-folk.js`)",
+    "Draw figures from local coordinates and mirror them for the second fighter",
+    "Use only `#000` and `#fff`: no antialiased greys except at edges"
+   ],
+   "assets": "All in code.",
+   "sound": "Sharp impact hits, a sword-ring or a drum, silence between panels. Practice note.",
+   "pitfalls": [
+    "Any grey or colour",
+    "Panels that are all the same size",
+    "Speed lines that do not converge on the action"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "manga",
+    "screentone",
+    "speed lines",
+    "manga panel",
+    "black and white comic"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Manga"
+   ],
+   "looks": [
+    "manga"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "chibi",
+   "name": "Chibi",
+   "aliases": [
+    "super deformed",
+    "sd character",
+    "chibi style"
+   ],
+   "family": "drawn",
+   "what": "A character two or three heads tall: a huge head, a tiny body, big shiny eyes, rosy cheeks and a bounce with a real squash and stretch.",
+   "origin": "Chibi, also known as super deformation (SD), is an art style originating in Japan and common in anime and manga, where characters are drawn small and chubby with stubby limbs, oversized eyes and heads, tiny noses and bodies, and minimal detail. The word comes from chibi kyara, \"tiny character\".",
+   "rules": [
+    "The head is as wide as the body is tall: two to three heads high",
+    "Big eyes with a gradient iris and two highlights; tiny nose and mouth",
+    "Stubby limbs and minimal detail on the body",
+    "Soft rounded outlines in a darker shade of the fill, not black",
+    "Bounce with squash on landing and stretch in the air"
+   ],
+   "timing": "A bounce about once a second on twos (12 changes a second), with a blink every 2 to 3 seconds.",
+   "fps": 12,
+   "build": [
+    "Pose the whole character in local coordinates and apply `ctx.scale(1 + s, 1 - s)` about the feet, where `s` follows the landing and the air time",
+    "Eyes: a white ellipse, a radial-gradient iris, a dark pupil, two white highlight discs and a heavy upper lash arc",
+    "Twin tails swing by an angle that follows the bounce",
+    "Floating star sparkles drift by stepped time"
+   ],
+   "assets": "All in code. Original characters only: do not trace an existing one.",
+   "sound": "A bright, bouncy pop track, a spring boing on each landing. Practice note.",
+   "pitfalls": [
+    "A body longer than the head",
+    "Squash with no matching stretch",
+    "Copying a recognisable character"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "chibi",
+    "super deformed",
+    "kawaii",
+    "big head cute",
+    "sd character"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Chibi_(slang)"
+   ],
+   "looks": [
+    "chibi"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "ukiyo-e",
+   "name": "Ukiyo-e woodblock",
+   "aliases": [
+    "ukiyo-e",
+    "ukiyoe",
+    "japanese woodblock print",
+    "floating world print"
+   ],
+   "family": "folk",
+   "what": "A Japanese woodblock print: flat areas of colour, fine ink outlines, a great curling wave of deep blue with claw-like fingers of foam, a pale banded sky, a small distant mountain and a red seal.",
+   "origin": "Ukiyo-e is a genre of Japanese art that flourished from the 17th through 19th centuries, with woodblock prints and paintings; the term means \"pictures of the floating world\". By the 1740s artists were using several blocks to print areas of colour, and Hokusai's The Great Wave off Kanagawa is one of the best-known works of Japanese art.",
+   "rules": [
+    "Flat colour areas, no gradients except a soft band at the top of the sky",
+    "Fine ink outlines round every shape",
+    "A deep Prussian-style blue for water, with darker contour lines that follow the wave",
+    "Foam as claw-like white fingers curling from the crest, with a few spray dots",
+    "A small mountain far away, a red seal, a thin border, paper grain"
+   ],
+   "timing": "The wave rises and the foam fingers grow over about 2 seconds; the sea and boats bob gently. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "Wave: a closed spline through hand-placed points (`closed()`), filled and outlined",
+    "Contour lines: scale the same outline about its centre several times and clip them to the wave",
+    "Foam fingers: tapering bands along short curves (`ribbon()`), one per crest point, growing in turn",
+    "Sea: a polyline whose height follows a sine of stepped time",
+    "Add paper grain with `speckle()`"
+   ],
+   "assets": "All in code. Public-domain scans of historic prints are a better source for real prints; check the museum's terms.",
+   "sound": "A shamisen and a taiko, the sound of surf. Practice note.",
+   "pitfalls": [
+    "Smooth shading and gradients on the water",
+    "Thick or uneven outlines: the lines are fine",
+    "Copying an existing print: the demo is an original study"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "ukiyo",
+    "woodblock",
+    "hokusai",
+    "hiroshige",
+    "japanese print"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Ukiyo-e"
+   ],
+   "looks": [
+    "ukiyo-e"
+   ],
+   "thin": "Wikipedia's ukiyo-e article does not describe Prussian blue, wave contour lines or claw-like foam; those rules are a practice summary from looking at the genre, not sourced facts.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "tv-cartoon",
+   "name": "Modern TV cartoon",
+   "aliases": [
+    "tv cartoon",
+    "flat tv cartoon",
+    "saturday morning cartoon"
+   ],
+   "family": "drawn",
+   "what": "Thick, even outlines and flat, bright colour on simple geometric characters: squares, circles and triangles with big eyes, bouncing on twos against a plain, flat background.",
+   "origin": "In the animation sense a cartoon is a motion picture that relies on a sequence of illustrations. Limited animation reuses frames of character animation to save time and money, and in the late 1990s web animators using cutout and limited animation produced clean, vector-graphic pictures at small file sizes.",
+   "rules": [
+    "One thick outline weight round everything, in a near-black",
+    "Flat, saturated colour with no shading or only one flat shadow",
+    "Characters built from simple shapes: squares, circles, triangles",
+    "Big round eyes with a small pupil; a simple wide mouth",
+    "Plain, flat backgrounds: a hill, a cloud, a sun, a tree"
+   ],
+   "timing": "Drawn on twos, 12 changes a second, with holds, bounces and a blink every couple of seconds.",
+   "fps": 12,
+   "build": [
+    "Draw each shape with a fill and an 8 px outline of the same dark colour (`ell()` and `polyFill()` in `looks-toon.js`)",
+    "Bounce: a parabola from the cycle phase, with a squash of a few percent at landing",
+    "Blink: replace the eye with a line for 0.15 seconds",
+    "Limbs are single thick strokes with a circle at the end",
+    "Keep the palette to six or seven colours"
+   ],
+   "assets": "All in code. Original characters only.",
+   "sound": "A quick jazz or brass bed with a boing on each bounce. Practice note.",
+   "pitfalls": [
+    "Gradients, textures and thin outlines",
+    "Realistic proportions",
+    "Copying a recognisable show's characters"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "modern cartoon",
+    "flat cartoon",
+    "thick outlines",
+    "tv animation",
+    "saturday morning"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Cartoon",
+    "https://en.wikipedia.org/wiki/Limited_animation",
+    "https://en.wikipedia.org/wiki/Flash_animation"
+   ],
+   "looks": [
+    "tv-cartoon"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "gothic-cartoon",
+   "name": "Gothic cartoon",
+   "aliases": [
+    "spooky cartoon",
+    "macabre cartoon",
+    "gothic animation"
+   ],
+   "family": "drawn",
+   "what": "Spindly, hollow-eyed figures and crooked houses with lit windows under a pale moon, curly trees and bats, in purple and black: a cartoon that is spooky and funny at once.",
+   "origin": "Gothic fiction is a literary aesthetic of fear and haunting; the name comes from the Renaissance use of \"gothic\" for the medieval and barbaric, and the first work labelled Gothic was Horace Walpole's 1764 novel The Castle of Otranto.",
+   "rules": [
+    "Tall, thin figures with long limbs, big heads, hollow eyes and spiky hair",
+    "Crooked houses and trees: nothing stands straight; roofs are tall and pointed",
+    "A palette of purple and near-black with a pale moon and a few lit windows",
+    "Curly, spiral branches and moon marks",
+    "Bats, stars and a low fog, with everything swaying a little"
+   ],
+   "timing": "Everything sways on twos, about 8 changes a second: houses lean back and forth, trees swing, figures step and bats flap.",
+   "fps": 8,
+   "build": [
+    "Lean every house with `ctx.transform(1, 0, lean, 1, 0, 0)` where `lean` is a small sine of stepped time plus a fixed tilt",
+    "Trees: a curved trunk with spiral ends from `curlPts()`",
+    "Figures: thin rectangles and strokes in local coordinates, scaled for depth",
+    "A fog gradient across the ground and a few flickering windows"
+   ],
+   "assets": "All in code. Original characters only.",
+   "sound": "A creaking harpsichord or a music box, a distant wolf, wind. Practice note.",
+   "pitfalls": [
+    "Straight lines and symmetric buildings",
+    "Bright, cheerful colour",
+    "Copying a recognisable character or a studio's house style"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "gothic",
+    "spooky",
+    "macabre",
+    "halloween",
+    "haunted"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Gothic_fiction"
+   ],
+   "looks": [
+    "gothic-cartoon"
+   ],
+   "thin": "No source on the page describes a gothic cartoon look; the rules are a practice summary. The origin line is only the root of the word.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "pop-up-book",
+   "name": "Pop-up book",
+   "aliases": [
+    "pop up book",
+    "popup book",
+    "paper engineering",
+    "movable book"
+   ],
+   "family": "craft",
+   "what": "An open book seen at an angle: the pages swing open and layered card pieces stand up off them, each with a fold shadow, a visible card edge and a shadow on the page.",
+   "origin": "A pop-up book is any book with three-dimensional pages, often with elements that pop up as a page is turned; designing them is sometimes called paper engineering. The first known movable in a book was made by the Benedictine monk Matthew Paris, whose Chronica Majora, covering a period beginning in 1240, had volvelles attached to some pages.",
+   "rules": [
+    "A book at an angle with a spine shadow and a cover edge",
+    "Card pieces that stand up from the pages in layers, near and far",
+    "A thin offset edge and a fold shadow where each piece meets the page",
+    "A shadow on the page under each piece",
+    "Bright, flat, paper-craft colours"
+   ],
+   "timing": "The right page swings open over about 1.2 seconds, then each piece pops up in turn with a slight overshoot. Smooth motion.",
+   "fps": null,
+   "build": [
+    "Map page space to the screen with a perspective-like function: width narrows toward the back, and `cos(pi (1 - open))` swings the right page",
+    "Each piece: a draw function in its own local coordinates, scaled vertically by an overshooting `k`",
+    "Draw the piece twice: a dark copy offset sideways as the card edge, then the front",
+    "A small ellipse shadow and a gradient fold shadow at the base",
+    "Sort pieces back to front"
+   ],
+   "assets": "All in code. For a real pop-up, build it in Blender with folded geometry.",
+   "sound": "A page turn, a paper pop and a music-box bed. Practice note.",
+   "pitfalls": [
+    "Pieces that float: each needs a base on the page and a shadow",
+    "No overshoot on the pop",
+    "A flat book with no angle"
+   ],
+   "route": "HyperFrames (canvas), Blender for real folded paper",
+   "blender": "",
+   "keywords": [
+    "pop-up",
+    "pop up",
+    "popup",
+    "paper engineering",
+    "movable book"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Pop-up_book"
+   ],
+   "looks": [
+    "pop-up-book"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "papercut",
+   "name": "Papercut and sanjhi (lace-cut paper)",
+   "aliases": [
+    "papercutting",
+    "sanjhi",
+    "kirigami",
+    "lace-cut paper"
+   ],
+   "family": "craft",
+   "what": "One colour of cut paper on a plain ground: a scalloped medallion and corner pieces full of symmetrical cut-outs, with a soft shadow that shows the paper is a layer above the page. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself.",
+   "origin": "Papercutting is the art of making designs cut from a single sheet of paper, which has developed in many cultures; the oldest surviving paper cutout, a symmetrical circle from the 6th century, was found in Xinjiang, China. Japanese paper cutting is called kirigami.",
+   "rules": [
+    "One paper colour only: red on cream, or white on a dark ground",
+    "Symmetry: radial for a medallion, mirrored for corners",
+    "Cut-outs in rings: leaves, drops, round holes, fine dots",
+    "A scalloped or pointed edge and thin bridges between the holes",
+    "A slight drop shadow and a trace of sway"
+   ],
+   "timing": "The rings open one after another over about 3 seconds, and the paper trembles a fraction of a degree. The picture steps about 8 times a second.",
+   "fps": 8,
+   "build": [
+    "One `Path2D`: the outline plus every hole as a subpath, filled with the even-odd rule (`holesPath()` in `looks-toon.js`)",
+    "Rings of holes by `laceRing()`: leaf, drop and dot shapes at equal angles, scaled up from nothing to open them",
+    "Shadow: `shadowBlur`, `shadowOffsetX` and `shadowOffsetY` on the fill",
+    "Mirror a corner piece four ways with `ctx.scale(+-1, +-1)`"
+   ],
+   "assets": "All in code. A scanned sheet of cream paper helps if the user has one.",
+   "sound": "A scissors snip as each ring opens, a soft drone. Practice note.",
+   "pitfalls": [
+    "Two or more colours: that is collage, not a single sheet",
+    "Holes with no bridges, which would fall apart",
+    "Presenting a machine-made picture as authentic sanjhi work"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "papercut",
+    "paper lace",
+    "cut paper",
+    "sanjhi",
+    "lace paper"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Papercutting"
+   ],
+   "looks": [
+    "papercut"
+   ],
+   "thin": "The sources do not cover sanjhi, the Indian stencil papercutting tradition: it is named here only as an alias. Add a primary or museum source for it before a film makes claims about it.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "brick-toy",
+   "name": "Brick toy",
+   "aliases": [
+    "toy brick",
+    "plastic brick",
+    "building brick",
+    "brick built"
+   ],
+   "family": "craft",
+   "what": "Everything built from studded plastic bricks on a green baseplate: visible studs, a glossy edge, flat bright colours, and bricks that drop in one at a time on twos.",
+   "origin": "Brick toys are a kind of construction set: a standardised assortment of pieces for building models, most often marketed as toys.",
+   "rules": [
+    "Every object is made of rectangular bricks on a stud grid",
+    "A baseplate with a stud on every cell",
+    "Flat, bright primary colours with a lighter top and darker sides",
+    "A bright edge and a glossy highlight on the studs",
+    "Models built layer by layer, brick by brick"
+   ],
+   "timing": "Bricks drop in one at a time over about 4 seconds, each falling about six layers and settling. Drawn on twos, 12 changes a second.",
+   "fps": 12,
+   "build": [
+    "An isometric projection: `sx = cx + (x - y) * cw`, `sy = cy + (x + y) * ch - z * bh` (`iso()` in `looks-toon.js`)",
+    "Each brick: a top and two sides in three shades of one colour, then a stud on each cell (`brick()`, `stud()`)",
+    "Sort bricks by `x + y` then by height so that nearer bricks cover farther ones",
+    "Drop each brick with `easeOut` from above and fade it in"
+   ],
+   "assets": "All in code. No logos, no brand names, no printed lettering on the studs.",
+   "sound": "Click and clack of plastic, a cheerful ukulele bed. Practice note.",
+   "pitfalls": [
+    "Smooth sloped surfaces: only bricks and plates",
+    "No studs",
+    "Any brand name or logo"
+   ],
+   "route": "HyperFrames (canvas), Blender for glossy plastic",
+   "blender": "",
+   "keywords": [
+    "lego",
+    "minifigure",
+    "brick built",
+    "studs",
+    "baseplate"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Brick_toys"
+   ],
+   "looks": [
+    "brick-toy"
+   ],
+   "thin": "The source describes construction sets in general. Brand names appear only in the router keywords, so that the router understands a request; they are never used in a name, a rule or a picture.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "string-puppet",
+   "name": "String puppet and kathputli",
+   "aliases": [
+    "kathputli",
+    "marionette",
+    "string puppets",
+    "puppet on strings"
+   ],
+   "family": "craft",
+   "what": "Marionettes in bright Rajasthani dress: big painted wooden heads, turbans and ghagras, strings to a control bar at the top, jerky dangling motion, in a small theatre with red curtains and a gold valance. It is a living tradition with working artists; the demo here is a code study of its visual rules, not the craft itself.",
+   "origin": "Kathputli is a string puppet theatre native to Rajasthan, India, and the most popular form of Indian puppetry; the name means a wooden doll, and the puppets are made of wood, cotton cloth and metal wire. A marionette, or string puppet, is controlled from above using wires or strings and a controller; puppetry is recorded in Ancient Greece in the 5th century BC.",
+   "rules": [
+    "A large, painted head with big eyes, strong brows and a moustache for the king, a veil and nose ring for the dancer",
+    "Bright costume: red turban and yellow tunic, a pink and orange gathered skirt with gold trim",
+    "Strings run straight from a bar at the top to the head, hands and feet",
+    "Jerky, swinging limbs, as if on strings, with the whole puppet swaying",
+    "A small stage with red curtains, a gold valance and a plank floor"
+   ],
+   "timing": "The limbs swing on twos, about 8 changes a second, each with its own phase, and the bar tilts slowly.",
+   "fps": 8,
+   "build": [
+    "Compute each hand and foot from a swinging angle (`puppet()` in `looks-toon.js`), then draw the strings from the bar anchors to those points first",
+    "Body parts as polygons and strokes in local coordinates, with an outline",
+    "Stage: stripes, an arch, two curtain drapes with gold fringe and a scalloped valance",
+    "Use stepped time `held(t, 8)` so the motion is jerky"
+   ],
+   "assets": "All in code.",
+   "sound": "Dholak and harmonium, folk song, the wooden clack of puppets. Practice note.",
+   "pitfalls": [
+    "Smooth, floaty limbs: marionettes swing and stop",
+    "Strings that do not reach the limbs",
+    "Presenting a machine-made picture as an authentic kathputli show"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "kathputli",
+    "marionette",
+    "puppet strings",
+    "rajasthani puppet",
+    "control bar"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Kathputli_(puppetry)",
+    "https://en.wikipedia.org/wiki/Marionette"
+   ],
+   "looks": [
+    "string-puppet"
+   ],
+   "thin": "Wikipedia describes the Kathputli as worked by a single string over the puppeteer; the demo uses a Western-style control bar, with strings to the head, hands and feet, so that the strings are easy to read. Check a real rig before a film shows one.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "stylised-3d",
+   "name": "Stylised 3D cartoon",
+   "aliases": [
+    "soft 3d cartoon",
+    "3d cartoon character",
+    "rounded 3d character"
+   ],
+   "family": "geometry",
+   "what": "A soft, rounded 3D cartoon character or prop with a big readable face: smooth forms, a soft key light, a cool rim light and warm light that seems to pass through the skin. The demo is drawn in 2D, so it renders with no WebGL; the Three.js recipe below is how to build the real thing.",
+   "origin": "Three-point lighting is a standard method in film, photography and 3D graphics: the key light is the principal illuminator, usually 30 to 45 degrees to one side of the camera and elevated about as much. Subsurface scattering is light travelling into a translucent surface and out again at another point; without it a material can look like plastic or metal.",
+   "rules": [
+    "Smooth, rounded forms with no hard edges: spheres, capsules and soft boxes",
+    "A big, readable face: large eyes with a gradient and two highlights, clear brows, a wide mouth",
+    "A soft key light from the upper left, a cool rim light on the far edge, and a soft specular highlight",
+    "A warm glow at the shadow edge, as light bleeds through the skin",
+    "A shallow-depth background of blurred lights and a soft contact shadow"
+   ],
+   "timing": "Smooth, full frame rate: a slow breath, a bounce, a blink every three seconds and a wave. The squash and stretch are small and soft.",
+   "fps": null,
+   "build": [
+    "Three.js: `MeshPhysicalMaterial` with `sheen`, a low `clearcoat`, and `transmission` or a warm emissive rim for the subsurface look",
+    "Lights: a `DirectionalLight` key at about 40 degrees, a cool back `DirectionalLight` for the rim, a `HemisphereLight` fill, and `ACESFilmicToneMapping`",
+    "Add `OutputPass` and a gentle `UnrealBloomPass`; soft `PCFSoftShadowMap` shadows",
+    "Add a shallow depth of field with `BokehPass`",
+    "In the 2D demo: `ball()` builds each form from an offset radial gradient, a warm inner gradient, a rim arc and a soft highlight"
+   ],
+   "assets": "All in code here. For a real character, model it in Blender and export a glTF.",
+   "sound": "Soft foley, a light orchestral bed and a spring on each bounce. Practice note.",
+   "pitfalls": [
+    "Hard black outlines: they turn it into toon 3D",
+    "Plastic highlights and no warm bleed at the shadow edge",
+    "A small face: the face must be readable at a glance",
+    "Copying a recognisable studio character"
+   ],
+   "route": "Three.js inside HyperFrames, or Blender",
+   "blender": "",
+   "keywords": [
+    "pixar",
+    "stylised 3d",
+    "3d cartoon",
+    "soft 3d",
+    "3d character"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Subsurface_scattering",
+    "https://en.wikipedia.org/wiki/Three-point_lighting"
+   ],
+   "looks": [
+    "stylised-3d"
+   ],
+   "thin": "The two sources cover the lighting and shading ideas; the face and softness rules are a practice summary.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "toon-3d",
+   "name": "Toon 3D (cel-shaded, comic-book)",
+   "aliases": [
+    "cel shaded 3d",
+    "comic book 3d",
+    "toon shaded 3d",
+    "painterly 3d"
+   ],
+   "family": "geometry",
+   "what": "3D forms cut into two or three flat shading bands, with a thick ink outline on every silhouette and a printed, painterly comic-book feel. The demo is drawn in 2D, so it renders with no WebGL; the Three.js recipe below is how to build the real thing.",
+   "origin": "Cel shading, or toon shading, is a type of non-photorealistic rendering that makes 3D graphics look flat and hand-drawn: conventional smooth lighting values are quantised to a few discrete shades, so that shadows and highlights appear as blocks of colour. Black ink outlines can be made by first rendering a slightly larger black copy of the object with its back faces drawn.",
+   "rules": [
+    "Two or three flat bands of colour: a light, a base and a shadow, with hard edges",
+    "A thick ink outline round the silhouette",
+    "The shadow band tinted toward purple or blue, not just darker",
+    "Print texture: halftone dots, hatching lines and paper grain",
+    "A hard highlight spot and a hard-edged ground shadow"
+   ],
+   "timing": "Smooth rotation and bounce at the full frame rate; or stepped on twos for a hand-drawn feel.",
+   "fps": null,
+   "build": [
+    "Three.js: `MeshToonMaterial` with a `gradientMap` of 3 texels (`DataTexture` with `NearestFilter`), so that lighting steps in three bands",
+    "Outlines: `OutlineEffect` from the examples, or draw a back-face copy scaled by 1.03 in black",
+    "Add a `HalftonePass`, or a halftone texture multiplied into the shadow band",
+    "Tint the shadow band in the gradient map toward purple",
+    "In the 2D demo: `turn()` rotates vertices, face normals pick one of three bands (`band3()`), and a thick ink stroke outlines each face"
+   ],
+   "assets": "All in code here.",
+   "sound": "Brush-stroke whooshes and a drum loop. Practice note.",
+   "pitfalls": [
+    "Smooth gradients inside the bands",
+    "Thin or uneven outlines",
+    "More than three bands: it starts to look like normal shading"
+   ],
+   "route": "Three.js inside HyperFrames, or Blender (Freestyle)",
+   "blender": "",
+   "keywords": [
+    "toon 3d",
+    "cel shaded 3d",
+    "cel shaded",
+    "3d like a comic",
+    "comic book 3d",
+    "painterly 3d"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Cel_shading"
+   ],
+   "looks": [
+    "toon-3d"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "point-cloud",
+   "name": "Point cloud and lidar scan",
+   "aliases": [
+    "lidar scan",
+    "point cloud scan",
+    "3d scan"
+   ],
+   "family": "geometry",
+   "what": "An object or scene made of thousands of glowing points on black, in blue and gold, turning slowly, with points that fade and shrink as they recede. The demo is drawn in 2D, so it renders with no WebGL; the Three.js recipe below is how to build the real thing.",
+   "origin": "A point cloud is a discrete set of data points in space; each has X, Y and Z coordinates and may carry colour and other data. Point clouds are produced by 3D scanners or photogrammetry software. Lidar measures distance by timing the return of laser light, and is used to make high-resolution maps.",
+   "rules": [
+    "Only points, no surfaces or lines",
+    "Glowing points on black, in two hues: blue for the ground, gold for the object",
+    "Depth: far points are smaller and dimmer",
+    "Scan structure: rings or lines of points, and a pulse of brighter points sweeping over them",
+    "A slow turn, a high camera, and a faint vignette"
+   ],
+   "timing": "A slow turn at the full frame rate; the cloud builds up over about 1.6 seconds and the scan pulse crosses the ground every 3 to 4 seconds.",
+   "fps": null,
+   "build": [
+    "Three.js: `Points` with a `BufferGeometry`, `PointsMaterial` (`sizeAttenuation: true`, `vertexColors`, `AdditiveBlending`, `depthWrite: false`)",
+    "Size by depth in a custom shader: `gl_PointSize = base / -mvPosition.z`",
+    "Real data: load a PLY or PCD scan with the examples loaders",
+    "Scan pulse: a uniform radius that brightens the points near it",
+    "In the 2D demo: project each point with a turn, a tilt and a perspective factor, and draw it as a tiny square with `lighter` compositing (`plot()`)"
+   ],
+   "assets": "All in code here. Real scans come from a lidar device or a photogrammetry run.",
+   "sound": "A low synth pulse and a soft ping as the scan passes. Practice note.",
+   "pitfalls": [
+    "Joining the points with lines or surfaces",
+    "Opaque, same-sized points: no depth",
+    "Too few points: it reads as sparkle, not as an object"
+   ],
+   "route": "Three.js inside HyperFrames",
+   "blender": "",
+   "keywords": [
+    "point cloud",
+    "lidar",
+    "scan",
+    "photogrammetry",
+    "glowing points"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Point_cloud",
+    "https://en.wikipedia.org/wiki/Lidar"
+   ],
+   "looks": [
+    "point-cloud"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "diorama",
+   "name": "Tilt-shift miniature diorama",
+   "aliases": [
+    "tilt-shift",
+    "miniature town",
+    "miniature diorama",
+    "toy town"
+   ],
+   "family": "geometry",
+   "what": "A tiny town seen from a high camera: saturated toy colours, little cars looping round the roads, and a blur that grows toward the top and bottom of the frame, so that it looks like a model. The demo is drawn in 2D, so it renders with no WebGL; the Three.js recipe below is how to build the real thing.",
+   "origin": "Tilt-shift photography uses camera movements that change the orientation or position of the lens relative to the sensor; the term is also used when a shallow depth of field is simulated in post-processing. A diorama is a replica of a scene, typically a three-dimensional model, miniature or full-size.",
+   "rules": [
+    "A high camera looking down at an angle",
+    "A sharp band across the middle, with blur growing toward the top and bottom edges",
+    "Saturated, toy-like colours and simple blocky buildings",
+    "Tiny moving things: cars, boats or people",
+    "Soft, slightly raised contrast and a light vignette"
+   ],
+   "timing": "Smooth: cars loop round the roads at different speeds, and the camera is still.",
+   "fps": null,
+   "build": [
+    "Three.js: an `OrthographicCamera` or a narrow-FOV `PerspectiveCamera` placed high, and `InstancedMesh` buildings",
+    "Tilt-shift: render to a target and blur it with a vertical mask, as in the `HorizontalTiltShiftShader` and `VerticalTiltShiftShader` examples, or use `BokehPass` with a focal band",
+    "Raise saturation and add a soft vignette with an `OutputPass` and a colour-grade pass",
+    "In the 2D demo: draw the town to an off-screen canvas, then draw it again through several clipped bands with increasing `blur()` (`diorama`)"
+   ],
+   "assets": "All in code here.",
+   "sound": "A light ukulele bed and distant traffic noise. Practice note.",
+   "pitfalls": [
+    "Blur across the whole frame, which reads as out of focus",
+    "Muted, realistic colours",
+    "A low camera: the miniature look needs a high angle"
+   ],
+   "route": "Three.js inside HyperFrames, or Blender",
+   "blender": "",
+   "keywords": [
+    "tilt shift",
+    "miniature",
+    "toy town",
+    "diorama",
+    "model city"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Tilt%E2%80%93shift_photography",
+    "https://en.wikipedia.org/wiki/Diorama"
+   ],
+   "looks": [
+    "diorama"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "parallax-2-5d",
+   "name": "Parallax 2.5D",
+   "aliases": [
+    "2.5d parallax",
+    "parallax scrolling",
+    "multiplane"
+   ],
+   "family": "geometry",
+   "what": "Four to six flat painted layers moving at different speeds as the camera pans: a sky, far mountains, hills, a row of trees, a field and grass in front, so that a flat scene feels deep. The demo is drawn in 2D, so it renders with no WebGL; the Three.js recipe below is how to build the real thing.",
+   "origin": "Parallax scrolling is a technique where background images move past the camera more slowly than foreground images, creating an illusion of depth in a 2D scene. It grew out of the multiplane camera used in traditional animation since the 1930s, which moved layers of artwork at different speeds and distances.",
+   "rules": [
+    "Layers, each one flat: sky, far mountains, hills, trees, field, foreground",
+    "Each layer moves at its own speed: the nearer, the faster",
+    "Distant layers are hazier and lighter; near layers darker and more saturated",
+    "Layers repeat seamlessly as the camera pans",
+    "A fixed or very slow sky and sun"
+   ],
+   "timing": "A steady pan to the right at about 90 px a second; speeds from 0.02 for the sun to 1.8 for the grass blades. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Three.js: flat `PlaneGeometry` layers with textured `MeshBasicMaterial` at different `z` depths and a `PerspectiveCamera` moving along x, or the same layers with an orthographic camera scaling each layer's x motion",
+    "In the 2D demo: each layer is drawn in screen columns offset by `camera * speed`, wrapping with `Math.floor(offset / width)`, and ridges come from value noise of world x (`ridge()`)",
+    "Add atmospheric haze by mixing far layers toward the sky colour",
+    "Add a slight vertical bob to the camera"
+   ],
+   "assets": "All in code here. For real layers, paint each on a transparent PNG.",
+   "sound": "Wind, birdsong, a gentle acoustic bed. Practice note.",
+   "pitfalls": [
+    "All layers moving at the same speed",
+    "Visible seams where a layer repeats",
+    "Detail in the far layers that competes with the foreground"
+   ],
+   "route": "HyperFrames (canvas or Three.js)",
+   "blender": "",
+   "keywords": [
+    "parallax",
+    "parallax scrolling",
+    "multiplane",
+    "2.5d",
+    "layered pan"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Parallax_scrolling",
+    "https://en.wikipedia.org/wiki/Multiplane_camera"
+   ],
+   "looks": [
+    "parallax-2-5d"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "synthwave",
+   "name": "Synthwave and outrun",
+   "aliases": [
+    "outrun",
+    "retrowave",
+    "synthwave"
+   ],
+   "family": "screen",
+   "what": "A neon night in magenta and cyan on deep purple: a striped sun sinking behind wireframe mountains, and a glowing grid floor that streams toward the horizon.",
+   "origin": "Synthwave, also called retrowave or futuresynth, is an electronic music microgenre based mainly on the music of action, science-fiction and horror film soundtracks of the 1970s and 1980s, and drawing on the decade's art and video games; it developed in the mid-to-late 2000s.",
+   "rules": [
+    "A deep purple sky graded to hot pink at the horizon",
+    "A big sun with horizontal slits, in yellow to orange to magenta",
+    "A neon grid floor: lines that converge to a vanishing point and rows that bunch toward the horizon",
+    "Wireframe mountains outlined in cyan",
+    "Glow on every line, a bright horizon line, and a field of stars"
+   ],
+   "timing": "The grid rows stream toward the camera continuously and the sun's slits creep down; smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Floor rows: `y = horizon + (H - horizon) * ((k + phase) / n) ** 2.3`, with `phase` from time so the rows flow; columns are straight lines from the vanishing point",
+    "Glow: stroke twice with `shadowBlur`, a wide coloured pass and a thin white core (`neon()` in `looks-screen.js`)",
+    "Sun: a clipped disc with a vertical gradient and bars of the sky colour whose thickness grows toward the bottom",
+    "Use magenta and cyan only for lines: no mint"
+   ],
+   "assets": "All in code.",
+   "sound": "A pulsing analogue synth bass, gated reverb drums and an arpeggio. Practice note.",
+   "pitfalls": [
+    "Mint or teal in place of cyan",
+    "A flat, unlit grid with no glow",
+    "Rows that do not bunch toward the horizon"
+   ],
+   "route": "HyperFrames (canvas or Three.js)",
+   "blender": "",
+   "keywords": [
+    "synthwave",
+    "outrun",
+    "retrowave",
+    "neon grid",
+    "sunset grid"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Synthwave"
+   ],
+   "looks": [
+    "synthwave"
+   ],
+   "thin": "The source describes the music genre; the neon grid and striped sun are the visual conventions that go with it, described here as practice.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "cyberpunk",
+   "name": "Cyberpunk night city",
+   "aliases": [
+    "cyberpunk",
+    "neon noir city"
+   ],
+   "family": "screen",
+   "what": "A rainy night street in purple and amber: towers hung with flickering neon signs, a wet road that mirrors them, rain and ripples, and a lone figure under an umbrella.",
+   "origin": "Cyberpunk is a subgenre of science fiction set in a dystopian future, characterised by a focus on \"lowlife and high tech\". William Gibson's 1984 novel Neuromancer helped solidify the genre, and the 1982 film Blade Runner is among its early films.",
+   "rules": [
+    "Night, rain and haze, in purple with amber windows and neon accents",
+    "Neon signs on towers: bars, arrows and rings in magenta, amber and violet, with glow",
+    "A wet road that reflects the lights, softened by a blur",
+    "Rain streaks and ripples on the ground",
+    "Signs that flicker now and then, keyed to the frame number"
+   ],
+   "timing": "Drawn on twos, 12 changes a second: rain falls, signs flicker and ripples spread.",
+   "fps": 12,
+   "build": [
+    "Draw the city to an off-screen canvas, then draw it again flipped below the horizon with `globalAlpha` 0.4 and `blur()` for the reflection",
+    "Signs: a stroked shape with `shadowBlur`, hidden on a few frames from a modulo of `frameOf(t, 12)`",
+    "Rain: slanted short lines with seeded positions and speeds; ripples: ellipses that grow and fade",
+    "Add a haze gradient near the horizon and a vignette"
+   ],
+   "assets": "All in code.",
+   "sound": "A low synth drone, rain, distant traffic and a hum from the signs. Practice note.",
+   "pitfalls": [
+    "Daylight or flat lighting",
+    "A dry road with no reflection",
+    "Teal and orange only: this skill leaves teal out; keep to purple, amber and magenta"
+   ],
+   "route": "HyperFrames (canvas or Three.js)",
+   "blender": "",
+   "keywords": [
+    "cyberpunk",
+    "rainy neon street",
+    "night city",
+    "blade runner",
+    "dystopian city"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Cyberpunk"
+   ],
+   "looks": [
+    "cyberpunk"
+   ],
+   "thin": "Wikipedia describes the genre in fiction; the look rules (rain, wet reflections, signs) are a practice summary of how it is usually pictured.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "ascii",
+   "name": "ASCII art",
+   "aliases": [
+    "ascii",
+    "text art"
+   ],
+   "family": "screen",
+   "what": "A scene drawn only from monospaced text characters chosen by brightness: a sunrise over a sea and a headland, with waves, glitter and birds that move.",
+   "origin": "ASCII art is a graphic design technique of pictures pieced together from the 95 printable characters of the ASCII standard of 1963. Among the oldest examples are works by Kenneth Knowlton from around 1966, and it was invented in large part because early printers lacked graphics ability.",
+   "rules": [
+    "Only characters from one monospaced font: no lines, no shapes",
+    "Brightness maps to a ramp of characters from sparse to dense: space, dot, colon, plus, hash, at-sign",
+    "A tight grid: about 120 columns and 45 rows",
+    "One or two colours on a near-black ground, brighter for denser characters",
+    "Motion comes from the character values changing, not from moving glyphs"
+   ],
+   "timing": "The picture is recomputed 12 times a second; waves and glitter change on each step.",
+   "fps": 12,
+   "build": [
+    "Choose a grid (`cols`, `rows`) and compute a brightness function `lum(u, v, t)` for each cell",
+    "Map brightness to a ramp: `RAMP[Math.floor(L * (RAMP.length - 0.01))]`",
+    "Draw a row as a few strings, one per brightness bucket, with spaces where another bucket has the character, so that monospace alignment holds and a row costs a few `fillText` calls",
+    "Scale horizontally so that the columns fill the frame",
+    "For a real image, sample a downscaled copy of it instead of the function"
+   ],
+   "assets": "All in code. For video, sample frames and map their luminance.",
+   "sound": "A dial-up modem, key clicks, a slow arpeggio. Practice note.",
+   "pitfalls": [
+    "A proportional font: the grid breaks",
+    "Too few columns: the picture does not read",
+    "Too much contrast between neighbouring characters"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "ascii",
+    "text art",
+    "monospace art",
+    "terminal art",
+    "character art"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/ASCII_art"
+   ],
+   "looks": [
+    "ascii"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "dither-1bit",
+   "name": "1-bit dither",
+   "aliases": [
+    "dithering",
+    "bayer dither",
+    "one bit"
+   ],
+   "family": "screen",
+   "what": "Two colours only, ink and paper: gradients and shaded forms turned into patterns of pure dots, in a window with a striped title bar, like an early desktop computer.",
+   "origin": "Ordered dithering applies a preset threshold map tiled across an image to display a continuous image with fewer colours; with the common Bayer map it leaves noticeable crosshatch patterns. A common use of dither is converting a grayscale image to black and white so that the density of black dots approximates the grey level.",
+   "rules": [
+    "Exactly two colours: near-black ink and warm paper white",
+    "Grey is made only from the density of dots, in a regular crosshatch pattern",
+    "Hard, unsmoothed pixels, scaled up by whole numbers",
+    "Title bars with ruled stripes and square widgets",
+    "No anti-aliasing and no half-tones"
+   ],
+   "timing": "Drawn on twos, 12 changes a second.",
+   "fps": 12,
+   "build": [
+    "Render a small buffer (480 by 270), compute a grey `L` for each pixel, and set it to ink or paper by `L > bayer(x, y)` (`bayer()` in `looks-screen.js`)",
+    "Draw the buffer scaled by 2 with `imageSmoothingEnabled = false`",
+    "Draw the window chrome after the dither, in pure ink and paper with square corners",
+    "Real route: a `ShaderPass` that thresholds against an 8 by 8 Bayer matrix"
+   ],
+   "assets": "All in code.",
+   "sound": "A beeper, a floppy-drive whirr, simple square-wave notes. Practice note.",
+   "pitfalls": [
+    "Grey or colour anywhere",
+    "Error-diffusion noise instead of an ordered pattern",
+    "Smooth scaling that blurs the dots"
+   ],
+   "route": "HyperFrames (canvas), or a Three.js post-process",
+   "blender": "",
+   "keywords": [
+    "dither",
+    "dithering",
+    "1-bit",
+    "bayer",
+    "old mac"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Ordered_dithering",
+    "https://en.wikipedia.org/wiki/Dither"
+   ],
+   "looks": [
+    "dither-1bit"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "crt-terminal",
+   "name": "CRT terminal",
+   "aliases": [
+    "amber terminal",
+    "phosphor terminal",
+    "retro terminal"
+   ],
+   "family": "screen",
+   "what": "An amber phosphor terminal: text typed one character at a time, a block cursor, scanlines, glow, a slow rolling bar, and a screen that bulges at the middle.",
+   "origin": "A computer terminal is a device for entering data into, and displaying data from, a computer. Teleprinters were used as early hard-copy terminals and predated computer screens by decades; with inexpensive video displays terminals improved. A cathode-ray tube is the vacuum tube with a fluorescent screen that such displays used.",
+   "rules": [
+    "One phosphor colour on near-black: amber or green",
+    "Text in a monospaced face with a soft glow",
+    "Scanlines: dark lines every few pixels",
+    "A screen that bulges, with darker corners and a reflection",
+    "A blinking block cursor and typed text; a faint flicker and a rolling bar"
+   ],
+   "timing": "Characters type at about 36 a second; the cursor blinks twice a second; the picture flickers each frame at 24 changes a second.",
+   "fps": 24,
+   "build": [
+    "Draw the screen to an off-screen canvas: black, glowing text with `shadowBlur`, scanlines, a rolling band",
+    "Curvature: copy the canvas to the main canvas in 3 px slices, each slightly narrower toward the top and bottom",
+    "Type text by slicing each line to the number of characters typed so far; place the cursor at the end of that slice",
+    "Add a vignette, a faint highlight arc and a rounded bezel mask"
+   ],
+   "assets": "All in code. Use a monospaced font that the system has.",
+   "sound": "Key clicks and a low mains hum. Practice note.",
+   "pitfalls": [
+    "Straight, flat screen edges",
+    "Clean text with no glow",
+    "Colour: one phosphor only"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "crt terminal",
+    "phosphor",
+    "scanlines",
+    "amber monitor",
+    "hacker terminal"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Computer_terminal",
+    "https://en.wikipedia.org/wiki/Cathode-ray_tube"
+   ],
+   "looks": [
+    "crt-terminal"
+   ],
+   "thin": "The sources describe terminals and cathode-ray tubes; scanlines, glow and curvature are practice rules for the look.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "hologram-hud",
+   "name": "Hologram HUD",
+   "aliases": [
+    "hologram",
+    "holographic interface",
+    "hud"
+   ],
+   "family": "screen",
+   "what": "A cyan and blue wireframe turning in the dark, with readouts, bars, a dial, corner brackets, a scan band and a flicker with an occasional slipped strip.",
+   "origin": "A head-up display (HUD) is any transparent display that presents data without requiring users to look away from their usual viewpoints; HUDs were first developed for military aviation and are now used in commercial aircraft, cars and other applications.",
+   "rules": [
+    "A wireframe: latitude and longitude lines, a ring and a satellite",
+    "Cyan and blue light on a near-black navy ground, with glow",
+    "HUD furniture: corner brackets, bars with numbers, a dial with ticks",
+    "A scan band sweeping down the frame and fine scanlines",
+    "Flicker, and now and then a strip that slips sideways"
+   ],
+   "timing": "The wireframe turns slowly; the numbers change about every quarter of a second; the band sweeps in about 4 seconds. Drawn at 24 changes a second.",
+   "fps": 24,
+   "build": [
+    "Project points on a sphere with a turn and a tilt, and draw only the visible half",
+    "Draw each wireframe twice: a blue copy shifted 3 px, then a cyan copy, each with a glow",
+    "Bars and numbers from a hash of `Math.floor(frame / 6)` so that they tick",
+    "Slip: copy a thin strip of the canvas back onto itself offset by 8 px on random frames"
+   ],
+   "assets": "All in code.",
+   "sound": "A soft electronic hum, data chirps and a low pulse. Practice note.",
+   "pitfalls": [
+    "Green or mint instead of cyan and blue",
+    "A solid, shaded model: it should be lines only",
+    "A steady, clean picture with no flicker"
+   ],
+   "route": "HyperFrames (canvas or Three.js)",
+   "blender": "",
+   "keywords": [
+    "hologram",
+    "holographic",
+    "hud",
+    "sci-fi interface",
+    "wireframe hologram"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Head-up_display"
+   ],
+   "looks": [
+    "hologram-hud"
+   ],
+   "thin": "The source describes the real head-up display. The holographic wireframe look is a science-fiction convention, described here as practice.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "thermal",
+   "name": "Thermal camera",
+   "aliases": [
+    "thermal imaging",
+    "infrared camera",
+    "heat camera"
+   ],
+   "family": "screen",
+   "what": "A false-colour heat map through black, purple, red, orange, yellow and white: a hot head and hands, a warm mug, a cold window, a crosshair, a temperature readout and a colour scale.",
+   "origin": "Infrared thermography, also called thermal imaging, is a technique in which a thermal camera detects infrared radiation from the surface of objects. Warm objects stand out against cooler backgrounds, so that variations in temperature can be seen with or without visible light.",
+   "rules": [
+    "One heat value per pixel, shown through a fixed palette: black, purple, red, orange, yellow, white",
+    "Warm objects are bright and soft-edged; cold ones are dark",
+    "A hot head and hands, a warm torso, cooler limbs",
+    "A crosshair with a temperature readout and a colour scale bar",
+    "Sensor noise and fine scanlines"
+   ],
+   "timing": "The figure sways slightly and pulses; the readout changes a few times a second. Drawn at 12 changes a second.",
+   "fps": 12,
+   "build": [
+    "Draw a heat field in greys on a small canvas (240 by 135) with `blur(2px)`; hot shapes have bright greys",
+    "Read it back with `getImageData` and map each grey through a 256-colour palette table",
+    "Scale the result up with smoothing, then draw the HUD in white",
+    "Add a little seeded noise to each pixel"
+   ],
+   "assets": "All in code.",
+   "sound": "A soft beep on each reading and a fan hum. Practice note.",
+   "pitfalls": [
+    "Natural colours: the picture is false colour",
+    "Hard-edged shapes: heat is blurred",
+    "A palette that is not monotonic in brightness"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "thermal",
+    "infrared",
+    "heat signature",
+    "thermography",
+    "flir"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Thermography"
+   ],
+   "looks": [
+    "thermal"
+   ],
+   "thin": "The source describes the technique; the specific palette is the common black-purple-red-yellow-white ramp, described here as practice.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "silent-film",
+   "name": "Silent film",
+   "aliases": [
+    "silent movie",
+    "silent era",
+    "intertitle"
+   ],
+   "family": "screen",
+   "what": "Black and white at about 18 frames a second: grain, scratches, a wandering gate, flicker, an iris that opens and closes on a street scene, and an intertitle card with a framed title.",
+   "origin": "A silent film is a film without synchronised recorded sound, whose plot or key lines are conveyed by intertitles when necessary. The silent era ran from the 1890s to the 1920s in most countries, and films were almost always accompanied by live music from a pianist, an organist or an orchestra.",
+   "rules": [
+    "Black and white only, with a soft vignette",
+    "A slow frame rate: about 18 changes a second",
+    "Gate weave: the frame wanders a few pixels, with now and then a jump",
+    "Flicker, grain, vertical scratches and dust specks",
+    "An iris in and out, and a framed intertitle card in a serif capital face"
+   ],
+   "timing": "The iris opens in 0.6 seconds, the scene plays, the iris closes at about 2.1 seconds, and the intertitle holds. Drawn at 18 changes a second.",
+   "fps": 18,
+   "build": [
+    "Quantise time with `frameOf(t, 18)`; translate the whole frame by a seeded jitter",
+    "Iris: clip to a circle whose radius grows or shrinks with `easeOut` and `easeInOut`",
+    "Film damage keyed to the frame: scratches that last two frames, dust, hairs and flicker (`filmDamage()` in `looks-screen.js`)",
+    "Intertitle: black card, a double white border and a serif title",
+    "Draw only in greys"
+   ],
+   "assets": "All in code. Real footage can be graded with a black-and-white filter and given the same damage.",
+   "sound": "A piano or a small orchestra improvising, a projector whirr. Practice note.",
+   "pitfalls": [
+    "Smooth 24 frames-a-second motion",
+    "A clean, steady picture",
+    "Sound effects: the era was accompanied by music"
+   ],
+   "route": "HyperFrames (canvas), or ffmpeg filters on real footage",
+   "blender": "",
+   "keywords": [
+    "silent film",
+    "silent movie",
+    "intertitle",
+    "1920s film",
+    "film flicker"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Silent_film"
+   ],
+   "looks": [
+    "silent-film"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "newsreel",
+   "name": "Newsreel",
+   "aliases": [
+    "news reel",
+    "1940s newsreel",
+    "vintage newsreel"
+   ],
+   "family": "screen",
+   "what": "Sepia footage of the 1940s: a train racing past telegraph poles, a slanted headline banner, and a damaged print with scratches, hairs, dust, a burn flash and a jolt of the frame.",
+   "origin": "A newsreel is a short documentary film of news stories and items of topical interest, prevalent from the 1910s to the late 1960s and typically shown in cinemas before a feature; by the end of the 1960s television news had supplanted the format.",
+   "rules": [
+    "Sepia: a warm brown to cream palette, with no true black or white",
+    "A slanted, bold headline banner in a heavy condensed face",
+    "A moving subject with strong motion: a train, a parade, a ship",
+    "Film damage: scratches, hairs, dust, burns and frame jumps",
+    "A vignette and heavy grain"
+   ],
+   "timing": "Drawn at 18 changes a second; the train, poles and smoke move at constant speeds, and the damage re-rolls every frame.",
+   "fps": 18,
+   "build": [
+    "Build the palette with one function that maps 0..1 to a mix of dark brown and cream (`sepia()` in `looks-screen.js`)",
+    "Parallax: poles and ties move at different speeds",
+    "Banner: rotate the context by about -0.07 radians and draw a dark bar with cream text",
+    "Burn flash: a radial gradient on a random frame; jolt: a few pixels of vertical shift on a few frames"
+   ],
+   "assets": "All in code.",
+   "sound": "A brass fanfare, a narrator's urgent cadence and a projector clatter. Practice note.",
+   "pitfalls": [
+    "Grey instead of sepia",
+    "A steady, clean picture",
+    "Presenting invented footage as a real archive: this is a style, not a document"
+   ],
+   "route": "HyperFrames (canvas), or ffmpeg filters on real footage",
+   "blender": "",
+   "keywords": [
+    "newsreel",
+    "1940s news",
+    "archive news",
+    "vintage news",
+    "sepia news"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Newsreel"
+   ],
+   "looks": [
+    "newsreel"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "film-noir",
+   "name": "Film noir",
+   "aliases": [
+    "noir",
+    "black and white noir"
+   ],
+   "family": "screen",
+   "what": "High-contrast black and white: a wall striped by light through venetian blinds, a man in a fedora and trench coat under a street lamp, rain slanting through the lamp's cone, and a wet pavement.",
+   "origin": "Film noir is a Hollywood crime drama that emphasises cynical attitudes and motivations; the classic period is the 1940s and 1950s, with a low-key black-and-white visual style whose roots lie in German expressionist cinematography. The French critic Nino Frank first applied the term to Hollywood films in 1946.",
+   "rules": [
+    "Black and white with deep blacks and bright highlights",
+    "Low-key light: most of the frame in shadow",
+    "Venetian-blind stripes of light across walls and people",
+    "A figure in a hat and long coat, lit from the side",
+    "Rain, mist and smoke, lit where a lamp shines"
+   ],
+   "timing": "The blind stripes drift slowly, the rain falls, smoke curls and ripples spread; smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Stripes: parallelograms drawn with `lighter` at low opacity, drifting with time",
+    "A lamp cone: a triangle with a vertical gradient; rain lines brighter inside it",
+    "Silhouette the figure first, then add rim lines on the lit edge",
+    "Add a vignette and fine grain"
+   ],
+   "assets": "All in code.",
+   "sound": "A muted trumpet, a slow saxophone, rain and distant footsteps. Practice note.",
+   "pitfalls": [
+    "Mid-grey lighting: noir needs black",
+    "Colour",
+    "Stripes with no direction or drift"
+   ],
+   "route": "HyperFrames (canvas), or Blender for a lit 3D scene",
+   "blender": "",
+   "keywords": [
+    "film noir",
+    "noir",
+    "venetian blinds",
+    "detective",
+    "trench coat"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Film_noir"
+   ],
+   "looks": [
+    "film-noir"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "archive-documentary",
+   "name": "Archive documentary: pan and zoom over stills",
+   "aliases": [
+    "ken burns",
+    "ken burns effect",
+    "archive documentary",
+    "photo documentary"
+   ],
+   "family": "screen",
+   "what": "A slow pan and zoom over still photographs laid on a desk, each with a white border and a shadow, with a lower-third caption and date that slide in for each picture, over film grain.",
+   "origin": "The Ken Burns effect is a panning and zooming technique used in film and video from still images, named for the American documentarian Ken Burns. It is principally used when film or video material is not available, giving action to stills by slowly zooming in on subjects of interest and panning from one to another.",
+   "rules": [
+    "A slow, eased camera: zoom in on one photograph, then pan to the next",
+    "Photographs with white borders, slight tilts and drop shadows",
+    "A lower-third caption and date that slide in for each picture",
+    "Film grain, a vignette and a dark desk",
+    "Aged photographs: sepia tones and a darkened edge"
+   ],
+   "timing": "The camera moves between keyframes with `easeInOut`; a picture is held for 3 to 4 seconds. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Keyframe the camera as (time, centre x, centre y, zoom) and interpolate with `easeInOut`",
+    "Draw the world with `translate(W / 2, H / 2)`, `scale(zoom)`, `translate(-cx, -cy)`",
+    "Each photograph: a rotated white frame with `shadowBlur`, a clipped picture, and a radial darkening",
+    "Captions slide in from the left with `easeOut` when the camera reaches a new photograph",
+    "Real route: animate the position and scale of image layers in HyperFrames"
+   ],
+   "assets": "Use only photographs the user owns or may reuse; the pictures here are drawn shapes.",
+   "sound": "A piano, a cello, an archive-style narrator and room tone. Practice note.",
+   "pitfalls": [
+    "A fast or jerky camera",
+    "No border, shadow or desk: the stills must look like objects",
+    "Presenting invented pictures as real archive"
+   ],
+   "route": "HyperFrames (canvas or CSS transforms)",
+   "blender": "",
+   "keywords": [
+    "ken burns",
+    "archive",
+    "documentary",
+    "still photographs",
+    "pan and zoom"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Ken_Burns_effect"
+   ],
+   "looks": [
+    "archive-documentary"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "math-diagram",
+   "name": "Maths diagram",
+   "aliases": [
+    "math diagram",
+    "maths explainer",
+    "equation animation"
+   ],
+   "family": "type",
+   "what": "A chalk-on-navy maths explainer: an equation builds term by term, each term in its own colour with its own curve on the plot, then the sum curve draws on and a tangent line slides along it with its slope read out.",
+   "origin": "A tangent line to a curve at a point is the straight line that just touches the curve there; for a curve y = f(x) it passes through (c, f(c)) with slope f'(c), where f' is the derivative. Chalk on a dark board is the classic surface for showing such working.",
+   "rules": [
+    "One colour per term, used in the equation and again for that term's curve",
+    "Axes and a faint grid, a bright sum curve, a gold tangent with a dot at the point of tangency",
+    "Terms appear one at a time, in the order the plot is built",
+    "Few words: the equation, a derivative line and a slope readout",
+    "A navy board with a light chalk dust"
+   ],
+   "timing": "Terms appear at 0.3, 1.2 and 2.1 seconds, the sum curve draws from 2.8 to 4 seconds, and the tangent then slides back and forth. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Map maths coordinates to the screen with two small functions (`X(x)`, `Y(y)`) and draw each curve as a polyline up to a fraction `k` of its length",
+    "Measure each piece of the equation with `measureText` so that the next piece starts where the last ended",
+    "Tangent: `y0 + m (x - x0)` drawn over `x0 +- 2.2`, with `m = f'(x0)` read out in text",
+    "Real route for real maths: Manim (a Python library for mathematical animation) renders the same scene with exact `Axes`, `Tex` and `ValueTracker` objects, then HyperFrames or ffmpeg joins the clip",
+    "Add a speckle of white dust over the board colour"
+   ],
+   "assets": "All in code here. For typeset equations in a real film, use Manim's LaTeX support.",
+   "sound": "Chalk taps as each term lands, a calm piano and a clear voice. Practice note.",
+   "pitfalls": [
+    "Every term in the same colour",
+    "A wall of text or a crowded plot",
+    "A curve that appears all at once, with no build"
+   ],
+   "route": "HyperFrames (canvas), or Manim for real maths",
+   "blender": "",
+   "keywords": [
+    "manim",
+    "equation",
+    "tangent line",
+    "graph plot",
+    "calculus"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Tangent",
+    "https://en.wikipedia.org/wiki/Chalkboard"
+   ],
+   "looks": [
+    "math-diagram"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "sticker-explainer",
+   "name": "Sticker explainer",
+   "aliases": [
+    "sticker style",
+    "die-cut stickers",
+    "sticker animation"
+   ],
+   "family": "type",
+   "what": "Die-cut stickers with a thick white border and a drop shadow pop onto a desk with a bounce: icons and bold word stickers, each tilted a little and swaying.",
+   "origin": "A sticker is a label of plastic, vinyl or another material with a pressure-sensitive adhesive on one side, used for decoration or for function, in many shapes, sizes and colours.",
+   "rules": [
+    "A thick white border follows each shape, with rounded corners: the die-cut line",
+    "A soft drop shadow lifts each sticker off the surface",
+    "Bold, saturated flat colour with a thin darker edge",
+    "Big, heavy word stickers: one word each",
+    "Each tilted a few degrees, and none perfectly aligned"
+   ],
+   "timing": "Each sticker pops in over about half a second with an overshoot, one every 0.3 seconds, then sways slightly. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Describe each silhouette as a `Path2D`; draw it first with a 22 px white stroke and a white fill, with `shadowBlur` for the shadow, then fill the colour on top",
+    "Pop-in: scale by `overshoot(prog(t, start, 0.55))`, with a small rise from below",
+    "Sway: rotate by a sine of time scaled by how long the sticker has been there",
+    "Word stickers: a rounded rectangle with `900` weight text centred in it"
+   ],
+   "assets": "All in code. Real icon sets should be ones the user owns or may reuse.",
+   "sound": "A peel-and-stick pop and a cheerful bouncy bed. Practice note.",
+   "pitfalls": [
+    "A white border of uneven width",
+    "No shadow: the stickers look printed on the page",
+    "Pop-ins with no overshoot",
+    "Too many stickers at once"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "sticker",
+    "die-cut",
+    "sticker pack",
+    "white border sticker",
+    "emoji stickers"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Sticker"
+   ],
+   "looks": [
+    "sticker-explainer"
+   ],
+   "thin": "The source describes stickers as objects; the die-cut explainer look is a practice summary.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "memphis",
+   "name": "Memphis design",
+   "aliases": [
+    "memphis style",
+    "80s memphis",
+    "memphis pattern"
+   ],
+   "family": "type",
+   "what": "Scattered, playful confetti in the manner of 1980s Memphis design: squiggles and zigzags, triangles, circles and half-circles in red, yellow, blue and pink, black-and-white checks, stripes and dots.",
+   "origin": "The Memphis Group, also called Memphis Milano, was an Italian design and architecture group founded by Ettore Sottsass and active from 1980 to 1987. Its postmodern work often used plastic laminate and terrazzo and was characterised by colourful, abstract decoration and asymmetrical shapes; the look became a ubiquitous aesthetic of the mid-1980s to mid-1990s.",
+   "rules": [
+    "Bold primary colours with pink and black: red, yellow, blue and pink",
+    "Confetti shapes: triangles, circles, half-circles, squiggles and zigzags",
+    "Black-and-white patterns: checks, stripes and dots inside shapes",
+    "Thick black outlines and asymmetrical, overlapping placement",
+    "A pale peach or pink ground, with tiny terrazzo flecks"
+   ],
+   "timing": "Shapes pop in over the first 1.6 seconds, then drift and turn slowly. Drawn at 12 changes a second.",
+   "fps": 12,
+   "build": [
+    "Place each shape from a hash of its index: type, size, position, colour and spin",
+    "Patterns: a 4 by 4 checkerboard, a circle clipped to black stripes, a grid of dots",
+    "Squiggle: a sine polyline with a thick round-capped stroke",
+    "Pop-in with `overshoot(prog(...))`; drift with a sine of stepped time"
+   ],
+   "assets": "All in code.",
+   "sound": "A bouncy synth-pop bed with clicks and pops. Practice note.",
+   "pitfalls": [
+    "Gradients and soft shadows",
+    "Neat alignment: Memphis is deliberately off-kilter",
+    "Muted colours",
+    "Copying a specific designer's piece"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "memphis",
+    "squiggle",
+    "terrazzo",
+    "confetti shapes",
+    "postmodern pattern"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Memphis_Group"
+   ],
+   "looks": [
+    "memphis"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "particles",
+   "name": "Particles",
+   "aliases": [
+    "particle system",
+    "particle animation",
+    "particle text"
+   ],
+   "family": "abstract",
+   "what": "Thousands of small glowing particles drift in from all over the frame and settle into a word, hold it, then burst apart and reform.",
+   "origin": "A particle system is a technique in game physics, motion graphics and computer graphics that uses many minute sprites, 3D models or other graphic objects to simulate \"fuzzy\" phenomena that are hard to reproduce with conventional rendering; it was introduced in the 1982 film Star Trek II: The Wrath of Khan for the Genesis effect.",
+   "rules": [
+    "Thousands of tiny points, each simple",
+    "The shape appears only from the points' positions",
+    "Glow: bright, additive points on a near-black ground",
+    "Colour from position: a gradient across the shape",
+    "Staggered motion: each particle starts and arrives at its own time"
+   ],
+   "timing": "Gathering takes 2.2 seconds, the word holds with a gentle shimmer, then bursts apart over 1.6 seconds; the cycle is 6.2 seconds. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Sample a target shape once: draw the word on a hidden canvas and keep the lit pixels every 4 px (`wordPoints()` in `looks-abstract.js`)",
+    "Give each particle a seeded start and a target; interpolate with a per-particle delay and `easeOut`",
+    "Burst: push each outward at a seeded angle with a slight curl",
+    "Draw as small squares with `lighter` compositing",
+    "Real route: Three.js `Points` with a position buffer you tween on the GPU, or a particle layer in HyperFrames"
+   ],
+   "assets": "All in code. Use your own icon or word: no existing logo.",
+   "sound": "A rising shimmer for the gather and a soft boom for the burst. Practice note.",
+   "pitfalls": [
+    "Too few particles: the shape does not read",
+    "All particles moving in lockstep",
+    "Using a real company's logo"
+   ],
+   "route": "HyperFrames (canvas) or Three.js",
+   "blender": "",
+   "keywords": [
+    "particles",
+    "particle",
+    "dust",
+    "sparkle",
+    "dispersing"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Particle_system"
+   ],
+   "looks": [
+    "particles"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "liquid-metaball",
+   "name": "Liquid metaball (blobs that merge)",
+   "aliases": [
+    "metaball",
+    "metaballs",
+    "liquid blobs",
+    "gooey blobs"
+   ],
+   "family": "abstract",
+   "what": "Glossy liquid blobs that drift, merge and split: a smooth colour gradient from warm to violet, a bright rim, and a soft highlight on each blob.",
+   "origin": "Metaballs, also known as blobby objects, are organic-looking n-dimensional isosurfaces characterised by their ability to meld together when in close proximity to create single, contiguous objects.",
+   "rules": [
+    "Round blobs that join with smooth necks and part again",
+    "A glossy surface: a bright highlight, a rim of light, and a darker side",
+    "A smooth colour gradient across the blobs, warm to violet",
+    "A dark, simple ground",
+    "Slow, floating motion on overlapping paths"
+   ],
+   "timing": "Seven blobs drift on sine paths; merges and splits happen as they pass. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Sum a field `F = sum(r^2 / d^2)` over a low-resolution grid (240 by 135) and treat `F > 1` as inside",
+    "Smooth the edge with `clamp((F - 0.92) / 0.16)` and light the surface from the gradient of a saturating copy of `F` (`tanh`)",
+    "Colour: a mix across x and y; add a diffuse term, a specular term (power 40) and an environment rim",
+    "Upscale with smoothing. Real route: a fragment shader doing the same sum per pixel, or `MarchingCubes` in Three.js"
+   ],
+   "assets": "All in code.",
+   "sound": "Soft bubbling and a smooth pad. Practice note.",
+   "pitfalls": [
+    "Hard-edged circles with no merging",
+    "Flat colour: the gloss is the look",
+    "Too many blobs: they turn into one mass"
+   ],
+   "route": "HyperFrames (canvas or WebGL shader)",
+   "blender": "",
+   "keywords": [
+    "metaball",
+    "liquid",
+    "goo",
+    "gooey",
+    "blob"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Metaballs"
+   ],
+   "looks": [
+    "liquid-metaball"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "flow-field",
+   "name": "Flow-field generative",
+   "aliases": [
+    "flow field",
+    "generative art",
+    "noise field"
+   ],
+   "family": "abstract",
+   "what": "Thousands of short strokes follow a drifting noise field and gather into an orb of swirling lines, in warm and violet inks on a dark ground.",
+   "origin": "Perlin noise is a type of gradient noise developed by Ken Perlin in 1983, used for procedurally generating terrain and textures. Generative art is art made in whole or in part with an autonomous system that independently determines features of the artwork.",
+   "rules": [
+    "Many thin, semi-transparent strokes, each following the field",
+    "The field is smooth noise, so neighbouring strokes run together in streams",
+    "A form built from where the strokes start: here a disc, thinning to sparse strokes outside it",
+    "A small palette of warm and violet inks on near-black",
+    "The field drifts slowly, so the form flows"
+   ],
+   "timing": "About 3,400 strokes appear over 3.4 seconds, and the field drifts continuously. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "A field `angle(x, y) = noise(x / 150, y / 150 + time) * 2 pi`, from value noise (`vnoise()` in `looks-painted.js`); real route: Perlin or simplex noise",
+    "Each stroke: a seeded start inside a disc, then 14 steps of 5 px along the angle",
+    "Colour each from a five-ink palette with an opacity that falls toward the edge",
+    "Draw with `lineCap = \"round\"` and a width of 1 to 2.4 px"
+   ],
+   "assets": "All in code.",
+   "sound": "An ambient drone and a slow, evolving pad. Practice note.",
+   "pitfalls": [
+    "Opaque, thick strokes: the form turns to mush",
+    "A noise field with too much high-frequency detail",
+    "Every stroke the same colour and length"
+   ],
+   "route": "HyperFrames (canvas)",
+   "blender": "",
+   "keywords": [
+    "flow field",
+    "perlin",
+    "noise field",
+    "generative",
+    "streamlines"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Perlin_noise",
+    "https://en.wikipedia.org/wiki/Generative_art"
+   ],
+   "looks": [
+    "flow-field"
+   ],
+   "thin": "The demo uses value noise for the field, which is cheaper than Perlin noise and looks similar; the build recipe notes the swap.",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "psychedelic",
+   "name": "Psychedelic",
+   "aliases": [
+    "psychedelia",
+    "60s poster",
+    "acid poster"
+   ],
+   "family": "abstract",
+   "what": "A 1960s concert-poster look: concentric rings warped by slow waves in a cycling run of warm, saturated colours, with black ink lines over rays that turn behind them.",
+   "origin": "Psychedelic art is art, graphics or visual displays related to or inspired by psychedelic experiences; in common use it refers to the art movement of the late 1960s and early 1970s counterculture, with highly distorted or surreal visuals, bright colours and full spectrums.",
+   "rules": [
+    "Concentric rings warped by sine waves: they breathe and ripple",
+    "Saturated, warm, hot colours: orange, yellow, hot pink, violet, red",
+    "Black outline between every band",
+    "Colours that cycle through the rings over time",
+    "Rays or stripes behind the pattern, turning slowly"
+   ],
+   "timing": "The colours cycle at about 2.2 bands a second; the warps drift continuously. Smooth, full frame rate.",
+   "fps": null,
+   "build": [
+    "Each ring is a closed polyline with `r + A sin(5 a + t + k) + B sin(3 a - t + k)` for radius; draw rings from the outside in",
+    "Colour each by a palette index offset by a time shift, cross-faded with the next entry",
+    "Outline each with a 3.4 px near-black stroke",
+    "Back layer: 36 wedges that alternate two colours and rotate slowly",
+    "Keep to warm colours: no teal and no mint"
+   ],
+   "assets": "All in code.",
+   "sound": "A wah-guitar, a Hammond organ and a spinning-tape echo. Practice note.",
+   "pitfalls": [
+    "Cool teal or mint colours",
+    "Thin, polite outlines or no outline",
+    "Static rings: the ripple and the colour cycle are the look"
+   ],
+   "route": "HyperFrames (canvas or WebGL shader)",
+   "blender": "",
+   "keywords": [
+    "psychedelic",
+    "trippy",
+    "60s",
+    "concert poster",
+    "tie-dye"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Psychedelic_art"
+   ],
+   "looks": [
+    "psychedelic"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
+  },
+  {
+   "id": "bauhaus",
+   "name": "Bauhaus geometric",
+   "aliases": [
+    "bauhaus",
+    "bauhaus style",
+    "geometric poster"
+   ],
+   "family": "abstract",
+   "what": "A poster of primary-colour circles, squares and triangles with black bars on a grid of cream and black lines, where every piece jumps from cell to cell in clean steps.",
+   "origin": "The Staatliches Bauhaus was a German art school, operating from 1919 to 1933, that combined crafts and the fine arts; it was founded by the architect Walter Gropius in Weimar, and became famous for an approach to design that emphasised function and tried to unify individual artistic vision with mass production.",
+   "rules": [
+    "Primary colours only: red, yellow and blue, with black and off-white",
+    "Basic shapes: circle, square, triangle and their halves",
+    "Black bars and a visible grid",
+    "Flat fills, no gradients, no texture beyond paper",
+    "Asymmetric, balanced composition; motion in whole grid steps"
+   ],
+   "timing": "Every piece moves to its next cell about every 0.6 seconds, the move settling in 0.3 seconds. Drawn at 12 changes a second.",
+   "fps": 12,
+   "build": [
+    "Lay out shapes on an 80 px grid; each piece has a short route of cells that it cycles through",
+    "Step with `Math.floor(time * rate)` and ease the move with `easeOut(fraction / 0.3)`",
+    "Draw with `arc`, `fillRect` and `lineTo` fills and thick black outlines",
+    "Add faint grid lines and a light paper speckle"
+   ],
+   "assets": "All in code.",
+   "sound": "A clicking rhythm and a dry, minimal marimba. Practice note.",
+   "pitfalls": [
+    "Gradients and soft shadows",
+    "Curved, ornamental decoration",
+    "Smooth sliding between positions, which loses the stepped feel"
+   ],
+   "route": "HyperFrames (canvas or SVG)",
+   "blender": "",
+   "keywords": [
+    "bauhaus",
+    "geometric",
+    "primary colours",
+    "grid poster",
+    "constructivist"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bauhaus"
+   ],
+   "looks": [
+    "bauhaus"
+   ],
+   "thin": "",
+   "checked": "2026-11-21"
   }
  ]
 }

@@ -1,10 +1,10 @@
 ---
 name: using-kuudo
-description: Use at the start of Amazon commerce work involving Amazon Ads, Seller Central, or Vendor Central when Kuudo skills are installed.
+description: Use at the start of Amazon commerce work involving Amazon Ads, Seller Central, or Vendor Central when Kuudo skills are installed, including connecting Kuudo's MCP servers.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
   display-name: "Using Kuudo"
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # Using Kuudo
@@ -46,6 +46,24 @@ Resolve scope from the top down:
 If there is one identity, use it and say which. If there are several, ask which applies unless the user already named one. A call that works doesn't show which identity it ran as.
 
 `list_identities` identifies; it is not an inventory. Use each server's listing tools for accounts, profiles, and marketplaces. A count or "not found" covers only the identity searched, so name it and say when others exist.
+
+## Connecting Kuudo
+
+Kuudo's Amazon tools come from hosted MCP servers that the user connects in their own client. If the session already exposes them (for example `list_identities`), the connection is done; continue with the selected skill.
+
+If they are missing, or the user asks how to connect, give the user these steps. Don't edit client configuration, install packages, or construct other URLs.
+
+| Server | URL |
+| --- | --- |
+| Amazon Ads, including Amazon Marketing Cloud | `https://ads.kuudo.com/mcp` |
+| Seller Central and Vendor Central | `https://sp.kuudo.com/mcp` |
+
+1. Add the URL as a remote MCP server. In the Claude Desktop app or claude.ai: **Customize > Connectors > + > Add custom connector**. In Claude Code: the user runs `claude mcp add --transport http kuudo-ads https://ads.kuudo.com/mcp` (or `kuudo-sp` with the Selling Partner URL), then signs in from `/mcp`. In other clients: their remote MCP server or custom connector setting.
+2. Sign in with a Kuudo account and choose the organization. Sign-in is OAuth in the browser; there is no API key.
+3. Authorize the Amazon account in Kuudo under **Authorizations > Connect Amazon**. Signing in to the connector doesn't grant Amazon access, and a Seller Central authorization doesn't cover Vendor Central.
+4. Start a new session and check with a read-only request, such as `List the Amazon Ads profiles I can access.`
+
+Kuudo's setup guide: https://www.kuudo.com/docs/managed-mcp/. A missing connection limits execution; it doesn't change which skill applies, and skills that accept reports or figures the user provides still work without it.
 
 ## Platform adaptation
 

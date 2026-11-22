@@ -2,7 +2,7 @@
 # install_edit.sh: install the command-line tools of the optional brief2mp4 edit pack. No sudo, ever.
 #
 #   bash install_edit.sh                              # film + sound
-#   bash install_edit.sh --components film,sound,effect,photo,vector
+#   bash install_edit.sh --components film,sound,effect,photo,vector,light
 #   bash install_edit.sh --components all --dry-run   # show what would be downloaded, change nothing
 #   bash install_edit.sh --uninstall                  # remove everything this installer created
 #   bash install_edit.sh --uninstall --components photo
@@ -13,6 +13,7 @@
 #   effect   EffectCraft  layered, keyframed compositing (After Effects class)
 #   photo    PhotoCraft   image editing (thumbnails, title cards)
 #   vector   VectorCraft  vector drawing (logos, lower thirds as SVG)
+#   light    LightCraft   photo library and raw developer (colour grading of stills)
 #
 # Each download is checked against the release's SHA256SUMS.txt and against the hash pinned in
 # versions.json. When gpg is installed, SHA256SUMS.txt's signature is checked too.
@@ -24,7 +25,7 @@ set -euo pipefail
 PACK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="${B2M_EDIT_HOME:-$HOME/.brief2mp4/edit}"
 MANIFEST="$HOME_DIR/.b2m-edit-manifest"
-ALL="film sound effect photo vector"
+ALL="film sound effect photo vector light"
 COMPONENTS="film,sound"; EXPLICIT=0; DRY=0; UNINSTALL=0
 STAGE=""
 
@@ -43,9 +44,9 @@ while [[ $# -gt 0 ]]; do
 done
 COMPONENTS="${COMPONENTS// /,}"
 [[ "$COMPONENTS" == "all" ]] && COMPONENTS="${ALL// /,}"
-[[ -n "$COMPONENTS" ]] || die "--components needs a value (film, sound, effect, photo, vector, all)" 2
+[[ -n "$COMPONENTS" ]] || die "--components needs a value (film, sound, effect, photo, vector, light, all)" 2
 for c in ${COMPONENTS//,/ }; do
-  [[ " $ALL " == *" $c "* ]] || die "unknown component '$c' (film, sound, effect, photo, vector, all)" 2
+  [[ " $ALL " == *" $c "* ]] || die "unknown component '$c' (film, sound, effect, photo, vector, light, all)" 2
 done
 
 platform_key() {

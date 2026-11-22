@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "checked": "2026-11-15",
+  "checked": "2026-11-21",
   "source": "https://github.com/storytold",
   "license": "MIT OR Apache-2.0",
   "signing": {
@@ -170,6 +170,39 @@
           "file": "vectorcraft-0.24.1-linux-aarch64.tar.gz",
           "sha256": "4b9735489789d336c1ca4344689eb4a1d4a3f0b6e8db7f8c0659c24d10653455",
           "bytes": 150492030
+        }
+      }
+    },
+    "light": {
+      "name": "lightcraft",
+      "version": "0.21.1",
+      "cli": "lightcraft-cli",
+      "tag": "v0.21.1",
+      "assets": {
+        "macos-universal": {
+          "file": "lightcraft-cli-0.21.1-macos-universal.zip",
+          "sha256": "58086b9d224d02b5ec9ed08e76da04ba1dc5d51d3c285cdea417358fa7ea06e2",
+          "bytes": 121480540
+        },
+        "windows-x64": {
+          "file": "lightcraft-0.21.1-windows-x64-portable.zip",
+          "sha256": "c2f195a4611bd7a314675c090b71e46e14001a232ba825edd5b6ea0ea7f616da",
+          "bytes": 122883614
+        },
+        "windows-arm64": {
+          "file": "lightcraft-0.21.1-windows-arm64-portable.zip",
+          "sha256": "ba7af25ccb555f72747c5b52c57518e57c45e846de19267a3633acabc8d5976f",
+          "bytes": 117844886
+        },
+        "linux-x86_64": {
+          "file": "lightcraft-0.21.1-linux-x86_64.tar.gz",
+          "sha256": "b123de16915809a79e64ba4ee3aee9e1cded6ef23b737c06f81cdc7e2f286d62",
+          "bytes": 122565778
+        },
+        "linux-aarch64": {
+          "file": "lightcraft-0.21.1-linux-aarch64.tar.gz",
+          "sha256": "ae8c557ef7028cbfaefe105c27c30cef9490d25c199803c3f1cbe072bc39d7b6",
+          "bytes": 116958383
         }
       }
     }

@@ -43,8 +43,10 @@ size: medium            # small | medium | large
 
 `## 요구사항` · `## 결정` · `## 구현 계획` · `## 완료 조건` · `## 검증 결과`
 
-- `## 결정` — P0 결정과 그 근거. 사용자가 답한 것은 답 그대로 인용한다.
-- `## 완료 조건` — **실행 가능한 명령**(종료코드로 판정). 절차 SSOT: `elicitation.md` §5.
+- `## 결정` — P0 결정과 그 근거. 사용자가 답한 것은 답 그대로 인용한다. 승인된 테스트 삭제·스펙 변경도 여기 적는다.
+- `## 구현 계획` — 첫 항목은 작업 유형의 첫 수(`elicitation.md` §6 작업 유형). 항목마다 **바꿀 파일**을 적는다 —
+  `auto-dev` T-spec 이 실제 diff 와 양방향으로 대조하는 근거다. 파일이 없으면 범위 초과를 판정할 수 없다.
+- `## 완료 조건` — **실행 가능한 명령**(종료코드로 판정)과 그 짝인 **게이트 약화 0** 확인. 절차 SSOT: `elicitation.md` §5.
 - `## 검증 결과` — `auto-dev` 가 끝에 추가한다. 계획 단계에서는 만들지 않는다.
 
 루프는 요약이 아니라 **이 파일 원문**을 다시 읽는다(`rules/loop-engineering.md` 재앵커).
@@ -71,12 +73,16 @@ size: medium
 
 ## 구현 계획
 
-1. `auth/lockout.py` — 카운터·잠금 만료 (정책값은 `config/auth.toml`)
-2. `auth/login.py` — 잠금 확인을 비밀번호 검증 앞에 둔다
-3. `tests/test_lockout.py`
+유형: 신규 기능 — 완료 조건 명령부터, 잠금 테스트를 먼저 실패시킨다
+
+1. `tests/test_lockout.py` — 잠금·초기화 케이스 (구현 전 실행해 실패 확인)
+2. `auth/lockout.py` — 카운터·잠금 만료 (정책값은 `config/auth.toml`)
+3. `auth/login.py` — 잠금 확인을 비밀번호 검증 앞에 둔다
 
 ## 완료 조건
 
 - `pytest tests/test_lockout.py -q` (exit 0)
 - `ruff check auth/` (exit 0)
+- 게이트 약화 0 (`BASE=<in-progress 전환 시 커밋>`): `git diff --name-only --diff-filter=D "$BASE" -- tests/` 빈 출력,
+  `tests/` 에 skip 추가 없음, `## 완료 조건` 변경 없음
 ```

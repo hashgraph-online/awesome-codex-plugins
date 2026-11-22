@@ -7,7 +7,7 @@ metadata:
   tags: learning, rules, intelligence, meta
   model: sonnet
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-sonnet-4-6
   args-schema: '[{"flag":"--dry-run","description":"Print proposals without writing anything or rendering the approval AUQ"}]'
 ---

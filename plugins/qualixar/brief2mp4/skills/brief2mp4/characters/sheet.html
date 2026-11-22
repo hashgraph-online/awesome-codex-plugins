@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- A character sheet page for HyperFrames. scripts/character_sheet.py fills in the cast and the list of sheets;
+     second i of the timeline shows sheet i, so one snapshot call yields every sheet. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="vendor/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #ffffff; }
+      #stage { position: absolute; inset: 0; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="stage" data-composition-id="main" data-start="0" data-duration="__DURATION__" data-width="1920" data-height="1080">
+      <canvas id="sheet" class="clip" width="1920" height="1080" data-start="0" data-duration="__DURATION__"></canvas>
+    </div>
+    <script src="characters/poses.js"></script>
+    <script src="characters/rig.js"></script>
+    <script src="characters/shapes.js"></script>
+    <script src="characters/render.js"></script>
+    <script src="characters/skins.js"></script>
+    <script src="characters/skins-extra.js"></script>
+    <script src="characters/sheet.js"></script>
+    <script src="characters/cast.js"></script>
+    <script>
+      const SHEETS = __SHEETS__;
+      const g2 = document.getElementById("sheet").getContext("2d");
+      function draw(t) {
+        const s = SHEETS[Math.min(SHEETS.length - 1, Math.floor(t))];
+        B2M.drawSheet(g2, B2M_CAST[s.character], B2M.SKINS[s.skin]);
+      }
+      const clock = { t: 0 };
+      const tl = gsap.timeline({ paused: true });
+      tl.to(clock, { t: __DURATION__, duration: __DURATION__, ease: "none", onUpdate: () => draw(clock.t) }, 0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      // Hold the first frame until every picture a character uses is decoded, then draw it.
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["b2m-characters"] = B2M.preloadImages(B2M_CAST).then(() => { draw(0); tl.seek(0); });
+      draw(0);
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -6,7 +6,7 @@ metadata:
   tags: test, orchestrator, e2e, ux
   model: sonnet
   model-preference: sonnet
-  model-preference-codex: gpt-5.4
+  model-preference-codex: gpt-6.2-astra
   model-preference-cursor: claude-sonnet-4-6
 ---
 

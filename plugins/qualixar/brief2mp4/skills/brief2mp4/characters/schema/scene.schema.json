@@ -1,0 +1,597 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scene.schema.json",
+  "title": "brief2mp4 character scene",
+  "description": "A scene for scripts/character_project.py: a backdrop, a cast of characters with tracks, and captions. See characters/README-CHARACTERS.md for an annotated example.",
+  "type": "object",
+  "required": [
+    "width",
+    "height",
+    "duration",
+    "skin",
+    "ground",
+    "palette",
+    "cast"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 64,
+      "maximum": 7680,
+      "x-hint": "frame width in pixels, usually 1920"
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 64,
+      "maximum": 4320,
+      "x-hint": "frame height in pixels, usually 1080"
+    },
+    "fps": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 120,
+      "x-hint": "frames per second; used for lip-sync timing (default 30)"
+    },
+    "duration": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-hint": "seconds"
+    },
+    "skin": {
+      "enum": [
+        "paper-cutout",
+        "cel-shaded",
+        "line-art",
+        "shadow-puppet",
+        "motion-comic",
+        "flat-explainer"
+      ]
+    },
+    "ground": {
+      "type": "number",
+      "x-hint": "the y in pixels where feet stand; characters default to it"
+    },
+    "palette": {
+      "type": "object",
+      "required": [
+        "sky",
+        "ground"
+      ],
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$",
+        "x-hint": "a colour like #f6d7a7"
+      },
+      "description": "Backdrop colours by name. sky and ground are required; hill1, hill2 and sun are the usual extras; set shapes may use any name."
+    },
+    "hills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pts",
+          "fill"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "pts": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number"
+              },
+              "x-hint": "[x, y] in scene pixels"
+            }
+          },
+          "fill": {
+            "type": "string",
+            "x-hint": "a palette key"
+          }
+        }
+      }
+    },
+    "set": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "additionalProperties": false,
+        "description": "A shape drawn in the backdrop. Same records as a character part's shapes; coordinates are scene pixels.",
+        "properties": {
+          "type": {
+            "enum": [
+              "circle",
+              "ellipse",
+              "rect",
+              "poly",
+              "path",
+              "capsule"
+            ]
+          },
+          "c": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            },
+            "x-hint": "[x, y] in scene pixels"
+          },
+          "r": {
+            "type": [
+              "number",
+              "array"
+            ],
+            "x-hint": "circle: a radius; ellipse: [rx, ry]; rect: the corner radius"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "w": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "h": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "pts": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number"
+              },
+              "x-hint": "[x, y] in scene pixels"
+            }
+          },
+          "smooth": {
+            "type": "boolean"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "d": {
+            "type": "string"
+          },
+          "a": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            },
+            "x-hint": "[x, y] in scene pixels"
+          },
+          "b": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            },
+            "x-hint": "[x, y] in scene pixels"
+          },
+          "ra": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "rb": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "rot": {
+            "type": "number"
+          },
+          "fill": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-hint": "a palette key such as sun, or null for a line"
+          },
+          "stroke": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-hint": "a palette key"
+          },
+          "sw": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "role": {
+            "enum": [
+              "base",
+              "detail",
+              "hole",
+              "line",
+              "light"
+            ],
+            "x-hint": "light: a sun, moon, lamp or fire that stays light in the shadow-puppet skin"
+          },
+          "layer": {
+            "enum": [
+              "back",
+              "front"
+            ]
+          },
+          "shade": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "cast": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "character",
+          "x"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "character": {
+            "type": "string",
+            "x-hint": "a file name in characters/cast/ without .json"
+          },
+          "x": {
+            "type": "number",
+            "x-hint": "where it stands: pixels from the left edge, at its feet"
+          },
+          "y": {
+            "type": "number",
+            "x-hint": "the y of its feet; default is the scene ground"
+          },
+          "scale": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "x-hint": "1 is the character's drawn size; 1.9 makes the child about 440 px tall"
+          },
+          "facing": {
+            "enum": [
+              "left",
+              "right"
+            ]
+          },
+          "flip": {
+            "enum": [
+              -1,
+              1
+            ]
+          },
+          "allowOffscreen": {
+            "type": "boolean",
+            "x-hint": "true when the character may be out of the frame for more than half a second"
+          },
+          "track": {
+            "type": [
+              "object",
+              "array"
+            ]
+          }
+        }
+      }
+    },
+    "captions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "number",
+            "minimum": 0
+          },
+          "to": {
+            "type": "number",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What a character does. Also valid as a bare list of keys.",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "t",
+              "pose"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "t": {
+                "type": "number",
+                "minimum": 0
+              },
+              "pose": {
+                "enum": [
+                  "idle",
+                  "wave",
+                  "point",
+                  "sit",
+                  "run-ready",
+                  "jump",
+                  "surprised",
+                  "sad",
+                  "laugh",
+                  "think",
+                  "fight-ready",
+                  "bow",
+                  "strike",
+                  "hurt",
+                  "cheer"
+                ]
+              },
+              "ease": {
+                "enum": [
+                  "linear",
+                  "in",
+                  "out",
+                  "inOut",
+                  "sine",
+                  "backOut",
+                  "hold"
+                ]
+              },
+              "mouth": {
+                "enum": [
+                  "rest",
+                  "AI",
+                  "E",
+                  "O",
+                  "U",
+                  "MBP",
+                  "FV",
+                  "L",
+                  "etc"
+                ]
+              }
+            }
+          }
+        },
+        "move": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "t"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "t": {
+                "type": "number",
+                "minimum": 0
+              },
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "facing": {
+                "enum": [
+                  "left",
+                  "right"
+                ]
+              },
+              "flip": {
+                "enum": [
+                  -1,
+                  1
+                ]
+              },
+              "ease": {
+                "enum": [
+                  "linear",
+                  "in",
+                  "out",
+                  "inOut",
+                  "sine",
+                  "backOut",
+                  "hold"
+                ]
+              },
+              "walk": {
+                "type": "boolean",
+                "x-hint": "true: walk to this key's x from the key before, with the walk cycle at the speed that keeps the feet on the ground"
+              }
+            }
+          }
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "cycle"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "cycle": {
+                "enum": [
+                  "walk",
+                  "run",
+                  "wave",
+                  "laugh",
+                  "breath",
+                  "talk"
+                ]
+              },
+              "from": {
+                "type": "number",
+                "minimum": 0
+              },
+              "to": {
+                "type": "number",
+                "minimum": 0
+              },
+              "steps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "rate": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "amp": {
+                "type": "number"
+              },
+              "fade": {
+                "type": "number",
+                "minimum": 0
+              },
+              "smooth": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "visemes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "t",
+              "v"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "t": {
+                "type": "number",
+                "minimum": 0
+              },
+              "v": {
+                "enum": [
+                  "rest",
+                  "AI",
+                  "E",
+                  "O",
+                  "U",
+                  "MBP",
+                  "FV",
+                  "L",
+                  "etc"
+                ]
+              }
+            }
+          }
+        },
+        "visemesFrom": {
+          "type": "object",
+          "required": [
+            "words",
+            "from",
+            "to"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "words": {
+              "type": "string",
+              "x-hint": "a words JSON file, relative to the scene file"
+            },
+            "from": {
+              "type": "number",
+              "minimum": 0
+            },
+            "to": {
+              "type": "number",
+              "minimum": 0
+            },
+            "lang": {
+              "enum": [
+                "en",
+                "hi"
+              ]
+            }
+          }
+        },
+        "blink": {
+          "type": "boolean"
+        },
+        "breath": {
+          "type": "boolean"
+        },
+        "poseMouths": {
+          "type": "boolean"
+        },
+        "view": {
+          "enum": [
+            "side",
+            "front"
+          ]
+        },
+        "steps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "props": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "object"
+            ]
+          }
+        },
+        "fx": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "speedLines": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

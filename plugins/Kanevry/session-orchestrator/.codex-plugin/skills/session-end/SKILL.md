@@ -6,7 +6,7 @@ metadata:
   tags: orchestration, verification, commits, issues
   model: inherit
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-sonnet-4-6
 ---
 

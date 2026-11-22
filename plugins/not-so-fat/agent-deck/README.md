@@ -27,7 +27,7 @@ The execution half is [agent-dealer](docs/DIRECTION.md): queue tasks against a d
 
 ## Quick Start
 
-> **macOS required.** API key secrets, OAuth client secrets, and OAuth tokens are stored in **macOS Keychain**. Linux and Windows are not supported for production use yet.
+> The local desktop quick start uses macOS Keychain. For single-owner Linux hosting, see [Deployment](docs/DEPLOYMENT.md).
 
 **Requirements:** Node.js 22+ · npm · Dashboard via `agent-deck start` / `agent-deck open` (listens on `127.0.0.1:1111`) · Agent Deck MCP `http://127.0.0.1:1110/mcp`
 
@@ -53,7 +53,7 @@ Per-client details, restart and verify steps, and what `setup` installs: [Agent 
 
 **5. Add external MCP servers and API keys** (Linear, Notion, Slack, …) in the dashboard — OAuth in the browser, API keys pasted once into Keychain — then drag the cards onto your deck.
 
-**6. Pick a deck each session.** Tell the agent which deck — *“use the dev deck”*, or mid-session *“switch to my personal deck”* — and approve the switch as This session only or This workspace by default. The connection needs no per-folder setup: sessions without a folder pin bind to your default deck (`agent-deck default <deck>` sets it); existing `agent-deck use` pins stay valid and keep precedence. Model: [one default deck](docs/design/optional-folder-binding.md).
+**6. Check the session’s deck.** Tell the agent which deck — *“use the dev deck”*, or mid-session *“switch to my personal deck”* — and approve the switch as This session only or This workspace by default. The connection needs no per-folder setup: sessions without a folder pin bind to your default deck (`agent-deck default <deck>` sets it); existing `agent-deck use` pins stay valid and keep precedence. See [session binding](docs/MONOREPO_SCOPE.md).
 
 Same decks on another machine: keep `~/.agent-deck/` in a private Git repository you own, push and pull it yourself, then run `agent-deck reindex` — see [Store format](docs/STORE_FORMAT.md).
 
@@ -61,7 +61,7 @@ Same decks on another machine: keep `~/.agent-deck/` in a private Git repository
 
 When you correct a playbook-driven result, Agent Deck turns the lesson into a reviewable patch proposal so future sessions start from what you taught it. Corrections become **proposals** you review in the dashboard (Playbook patches); accepted changes update the deck. Every run makes the next one better.
 
-If you use per-repo `use` stubs and playbook triggers changed, refresh with `agent-deck use --refresh`.
+Agents discover the bound deck’s triggers at runtime and fetch matching playbooks. Accepted edits require no stub refresh.
 
 ## Delegate to another agent
 
@@ -92,7 +92,7 @@ Skills are never copied by hand: the muse copies come from root `skills/` via `s
 
 1. Install agent-deck and start it (Quick Start above): `npx @agent-deck/cli@latest install`, `agent-deck start --daemon`, then `agent-deck doctor`.
 2. Install the **agent-deck** plugin from the Cursor Marketplace (or, for local testing, copy this repo to `~/.cursor/plugins/local/agent-deck` and run **Developer: Reload Window**). The plugin adds the four skills and declares no MCP server — Cursor connects over plain HTTP MCP (global fallback from `agent-deck setup --client cursor`, per-folder entry from `agent-deck use <deck>`), with no `agent-deck` CLI on `PATH`; the plugin stores no secrets.
-3. Create a deck in the dashboard (`agent-deck open`), then reload Cursor. Per-folder pins are not needed for the connection: sessions without a pin bind to your default deck (`agent-deck default <deck>` sets it); if you already have a pin, it stays valid and keeps precedence. If you already have a project `agent-deck` entry, it needs enabling in Cursor Settings (Tools & MCP). See [one default deck](docs/design/optional-folder-binding.md).
+3. Create a deck in the dashboard (`agent-deck open`), then reload Cursor. Per-folder pins are not needed for the connection: sessions without a pin bind to your default deck (`agent-deck default <deck>` sets it); if you already have a pin, it stays valid and keeps precedence. If you already have a project `agent-deck` entry, it needs enabling in Cursor Settings (Tools & MCP). See [folder pins](docs/MONOREPO_SCOPE.md#folder-pins).
 4. **Test task:** open that folder and ask the agent: *"Use the agent-deck-setup skill to check my Agent Deck setup and tell me what is missing."* Expected: it runs read-only checks (`agent-deck --version`, `agent-deck status`, `agent-deck deck list`) and reports the result. Then try delegation: *"Use agent-deck-run to have a read-only claude session on deck <deck> list the files in this folder, and report its answer."* Expected: it calls `start_run` with `client: "claude"` and `tools: "readonly"`, polls `get_run` until the run is terminal, and reports the session's answer with the `runId`, `sessionId`, tool profile, and terminal state.
 
 ## Everyday commands
@@ -119,16 +119,12 @@ Port conflicts: `agent-deck status` · `agent-deck start --force`. Full environm
 | [Friend path](docs/FRIEND_PATH.md) | Cold machine → first deck switch → first Dealer issue |
 | [Direction](docs/DIRECTION.md) | Cross-product direction — agent_deck + agent-dealer |
 | [Setup](docs/SETUP.md) | Ports, env vars, secrets, troubleshooting |
-| [MVP](docs/MVP.md) | Source of truth — decks, vault, playbooks, MCP tools |
 | [Agent harness](docs/AGENT_HARNESS.md) | What `setup` installs |
 | [Delegation](docs/DELEGATION.md) | `agent-deck run` per-client reference |
 | [Agent run API](docs/AGENT_RUN_API.md) | Same-host HTTP start, observe, cancel, and resume |
 | [Playbooks vs Cursor skills](docs/PLAYBOOKS_AND_SKILLS.md) | Deck playbooks vs Cursor skills |
-| [Export / import](docs/PRD_EXPORT_IMPORT.md) | Portable layout bundles |
 | [Store format](docs/STORE_FORMAT.md) | File-backed store layout, sync, reindex |
-| [Deck display](docs/PRD_DECK_DISPLAY.md) | Terminal status line |
-| [Codex / Claude plugin](docs/CODEX_PLUGIN.md) | Marketplace packaging (HOL / Codex / Claude Code) |
-| [Architecture](docs/ARCHITECTURE.md) | SQLite, Keychain, components |
+| [Architecture](docs/ARCHITECTURE.md) | Current design, storage, session binding, and delegation |
 | [Development](docs/DEVELOPMENT.md) | Contributors |
 | [Publishing](docs/PUBLISHING.md) | npm release |
 

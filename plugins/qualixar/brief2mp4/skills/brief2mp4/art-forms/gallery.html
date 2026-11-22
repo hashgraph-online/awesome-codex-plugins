@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  brief2mp4 art forms: a viewer for looks.js.
+  brief2mp4 art forms: a viewer for the looks files listed in looks-files.json.
     gallery.html              every look, playing on a 3-second loop
     gallery.html?look=riso    one look, large
     gallery.html?look=riso&t=1.5   one look, held at 1.5 s (this is what the test uses: window.__draw(t))
@@ -27,7 +27,10 @@
   <header><b>brief2mp4 art forms</b> · <span id="count"></span> looks, each a pure function of time · <a href="gallery.html">all</a></header>
   <div id="root"></div>
   <script type="module">
-    import { LOOKS, IDS } from './looks.js';
+    // every file in looks-files.json adds its looks; a later batch only adds a file and a line there
+    const files = await (await fetch('./looks-files.json')).json(), LOOKS = {};
+    for (const f of files) Object.assign(LOOKS, (await import('./' + f)).LOOKS);
+    const IDS = Object.keys(LOOKS);
     const W = 960, H = 540, DURATION = 3;
     const q = new URLSearchParams(location.search), only = q.get('look'), hold = q.has('t') ? Number(q.get('t')) : null;
     const ids = only ? [only] : IDS;

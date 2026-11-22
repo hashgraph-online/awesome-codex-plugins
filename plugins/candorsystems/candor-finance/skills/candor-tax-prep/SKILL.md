@@ -3,7 +3,7 @@ name: candor-tax-prep
 description: "Gathers a tax year's records into a packet for the person's preparer or tax software: candidate records grouped and tagged, gaps and missing receipts listed, and the questions a preparer will ask. Use when the person says \"get my taxes ready\", \"what can I deduct\", \"pull my business expenses\", \"charitable donations\", \"medical expenses\", \"1099 income\", or asks what their accountant needs. It organizes records and never decides what is deductible."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.6"
+  candor-package-version: "1.3.7"
   author: Candor
   version: "0.3.0"
   candor-domain-id: tax-prep

@@ -10,7 +10,7 @@ original eight-bar score made with synthesized instruments.
 
 Dawn is a private preview. You need an authorized installation before using
 this skill. Follow the [install guide](https://dawnav.com/install), then check
-`dawn --version`. This package supports Dawn 0.59.0 and Bun
+`dawn --version`. This package supports Dawn 0.66.2 and Bun
 1.3.14 or newer. Local composition and rendering work offline.
 
 Install the skill through your agent's skill or plugin installer. The

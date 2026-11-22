@@ -1,22 +1,21 @@
-# 可灵 AI 国内版插件 · Kling AI CN for Claude
+# 可灵 AI 国内版 Claude 插件（Kling AI CN）
 
-在 Claude 里用自然语言生成图片和视频、复用主体、预览动作库，或查询灵感值和任务进度。
-本插件使用 `klingai.com` 的国内账号。使用 `kling.ai` 账号的用户请安装
-[海外版插件](https://github.com/klingai-tech/claude-plugin)。国内外账号、灵感值和任务各自独立。
+在 Claude 里用自然语言生成或编辑图片、生成视频、复用主体，并查询任务进度和灵感值。本插件使用 `klingai.com` 的国内版账号。若你的账号在 `kling.ai`，请选择 [国际版插件](https://github.com/klingai-tech/claude-plugin)。两区的账号、灵感值和任务各自独立。
 
-[国内版可灵 MCP 与 CLI 官方指南](https://klingai.com/app/mcp/guide)
+[可灵 MCP & CLI 官方使用指南（国内版）](https://klingai.com/app/mcp/guide)
 
 ## 快速开始
 
-### Claude 网页版和桌面端
+### Claude 网页端和桌面端
 
-1. 打开 **Customize → Plugins → Add → Add marketplace**，添加 `https://github.com/klingai-tech/claude-plugin-cn`，安装并启用 **Kling AI CN**。
-2. 在插件的 **Connectors** 中点击 **Connect**，在浏览器中登录国内可灵账号并授权。
-3. 在启用了插件的对话中发送下面的[试用提示词](#第一次使用)。
+1. 在 Claude 侧栏打开 **Plugins**（也可能显示为 **Customize → Plugins**），选择 **Add → Add marketplace**。
+2. 填入 `https://github.com/klingai-tech/claude-plugin-cn`，安装并启用 **Kling AI CN**。
+3. 在插件的 **Connectors** 中点击 **Connect**，在浏览器中登录可灵国内版账号并授权。
+4. 新开一个会话，发送下面的连接测试提示词。如果该会话里的可灵连接器处于关闭状态，从 **+** 菜单开启。
 
 ### Claude Code
 
-在终端运行以下命令安装插件并启动 Claude Code。
+先安装 Claude Code，再在终端运行以下命令。
 
 ```bash
 claude plugin marketplace add klingai-tech/claude-plugin-cn
@@ -24,47 +23,43 @@ claude plugin install kling-ai-cn@klingai-cn
 claude
 ```
 
-进入 Claude Code 后输入 `/mcp`，选择插件提供的 `kling-ai`，在浏览器中登录国内可灵账号并授权。
-回到 Claude Code 确认连接成功后，即可开始使用。授权由 Claude Code 管理，使用可灵账号即可完成。
+在 Claude Code 中输入 `/mcp`，选择插件里的 `kling-ai` 服务并点击 **Authenticate**。在浏览器中登录可灵国内版账号并授权，回到 Claude Code 确认连接状态。
+
+Claude Code 2.1.292 及以上版本也可以用 `claude plugin install kling-ai-cn --marketplace klingai-tech/claude-plugin-cn` 一次完成添加市场和安装。
 
 ### 第一次使用
 
-可以先发一条查询来确认连接，再试生成。
-
-- **查询** · 帮我查看可灵账号当前的灵感值余额。
-- **文生图** · 用可灵生成一张竖版图片，画面是一只柴犬坐在窗边，午后的阳光照在它身上。
-- **图生视频** · 附上一张图片后发送「用这张图作首帧，生成一段 5 秒视频，让镜头缓慢推近。」
+- **检查连接** · “帮我查看当前可灵账号、可用模型和灵感值余额。”
+- **生成图片** · “用可灵生成一张午后咖啡馆的照片，窗边坐着一只柴犬，光线柔和。”
+- **图片转视频** · 附上一张图，发送“用可灵把这张图作为首帧，做成一段 5 秒短片，镜头缓慢推近。”
 - **HDR 视频** · 用可灵 4.0 生成一段 5 秒、1080p 的 HDR 视频。雨后的街道映着霓虹灯，镜头沿路面缓慢向前移动。
 
-生成会消耗灵感值。使用插件的创作 Skill 时，先确认 Claude 列出的模型、参数和参考素材，再提交生成。
-提交后可在同一对话里问「刚才的可灵任务完成了吗？请给我作品链接。」
+查询账号和余额不会消耗灵感值。使用插件创作时，先核对 Claude 给出的模型、参数和参考素材，确认后才会提交生成任务。记下任务 ID，可以在同一会话追问“刚才的可灵任务完成了吗？给我结果链接。”结果链接有效期为 24 小时，拿到后请及时下载。
 
-### 连接排查
+### 常见问题
 
-- **Claude Code 里找不到 `kling-ai`。** 安装后重新启动 Claude Code，再打开 `/mcp`。
-- **授权过期或连接到另一个账号。** 在客户端的 MCP 或连接器面板断开当前授权，再登录需要使用的国内账号。切换区域前，先查完原区域待跟进的任务，再关闭原连接并启用对应区域插件。
+- **Claude Code 里找不到 `kling-ai`** · 运行 `/reload-plugins` 或重启 Claude Code，再打开 `/mcp`。
+- **授权过期或账号选错** · 在连接器或 `/mcp` 面板断开旧连接，再登录正确账号。切换地区前，先在原地区查完待处理任务，再断开原连接并启用目标地区的插件。
+- **可用灵感值不足** · 可灵 MCP 使用个人空间的付费灵感值。给同一个可灵账号充值后，在原会话里让 Claude 继续。
 
-### 手动连接 MCP 或使用 CLI
+### 手动接入 MCP 或使用 CLI
 
-在支持远程 MCP 和 OAuth 的客户端里，可以添加 `https://klingai.com/mcp` 作为自定义连接器，
-再用国内可灵账号授权。安装本插件时会自动配置 `https://klingai.com/mcp/plugin`。
-同一个助手保留一种可灵接入方式。其他客户端的具体设置和终端 CLI 安装见[国内版官方指南](https://klingai.com/app/mcp/guide)。
+同一个 AI 助手选择一种可灵接入方式即可。安装插件会自动配置 `https://klingai.com/mcp/plugin`。
+
+- **手动接入 MCP** · 在 Claude 网页端或桌面端打开 **Plugins**（或 **Customize → Connectors**），添加自定义连接器 `https://klingai.com/mcp`，再点击 **Connect**，登录国内版账号并授权。
+- **终端 CLI** · 运行 `npm i -g @klingai/cli-cn --registry=https://registry.npmjs.org`，再运行 `kling login` 登录和 `kling --help` 查看命令。
+
+[其他客户端的 MCP 配置和 CLI 命令](https://klingai.com/app/mcp/guide)
 
 ## 插件内容
 
-This plugin contains:
+插件通过 OAuth 连接国内版可灵 MCP `https://klingai.com/mcp/plugin`，生成任务由可灵服务执行。插件内置三个 Skill。
 
-- a remote OAuth MCP connection to the China endpoint `https://klingai.com/mcp/plugin`;
-- three Skills with shared connection and billing rules:
-
-| Skill | Purpose |
+| Skill | 用途 |
 | --- | --- |
-| `kling-ai` | Request routing, Elements, motion-library browsing, uploads, credits, task status, and account switching |
-| `kling-ai-generate-image` | Text-to-image, image-to-image, reference handling, prompt construction, and image scene guidance |
-| `kling-ai-generate-video` | Text-to-video, image-to-video, omni reference, keyframes, supported audio inputs, motion control, and single-shot or multi-shot planning |
-
-It does not bundle a local MCP server, MCP App, command, hook, agent, or API
-key. Generation runs on the remote Kling service.
+| `kling-ai` | 请求分流、主体库、动作库浏览、素材上传、灵感值查询、任务进度和账号切换 |
+| `kling-ai-generate-image` | 文生图、图生图、参考图处理、提示词和场景指导 |
+| `kling-ai-generate-video` | 文生视频、图生视频、全能参考、关键帧、受支持的音频输入、动作控制和分镜规划 |
 
 ## Install for local review
 
@@ -152,8 +147,8 @@ media out of the plugin directory submitted for review.
 
 Claude supports plugins in chat, Claude Desktop, and Cowork, with component
 support varying by surface; see [Use plugins in Claude](https://support.claude.com/en/articles/13837440-use-plugins-in-claude).
-Authentication, uploads, and result presentation have not been validated on
-these Claude surfaces. Use each host's native plugin and connector controls.
+Use the native plugin and connector controls on those surfaces. This
+repository's validation covers the Claude Code package.
 
 ## China service policies and data flow
 

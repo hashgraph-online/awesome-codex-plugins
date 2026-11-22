@@ -58,7 +58,9 @@ Checks: callouts land on the right UI element at the right time (pull stills at 
 
 ## Storytelling, skits and character pieces
 
-Length 15-90 s. Route: HyperFrames with SVG characters or cut-out illustrations; simple 3D props from the Three.js template or the 3D pack. A skit made from recorded takes is an editing job: cut the takes in FilmCraft and mix dialogue, music and sound effects in SoundCraft (edit pack). Lip sync and full character animation are outside this skill: use pre-made Lottie or Rive characters ([references/ecosystem.md](ecosystem.md)) seeked by time, or keep characters still and let the camera, captions and props carry the motion.
+Length 15-90 s. Route: **the character kit** (`characters/README-CHARACTERS.md`) for characters that hold poses, walk, blink and move their mouths to a voice, drawn in the art form the brief names (paper cut-out, anime, line art, shadow puppet, motion comic, flat vector). The kit gives you rigged characters (a child, an adult man, a crow, a tomato chef, or your own from SVG shapes or PNG parts), `scripts/lipsync.py` for the mouth track, `scripts/character_sheet.py` to check a character before the scene, and `scripts/character_project.py` to turn a scene file into a HyperFrames project. For characters standing in a 3D set, use the starter `templates/threejs/characters-stage.html`. Simple 3D props still come from the Three.js template or the 3D pack.
+
+Other routes stay open. A skit made from recorded takes is an editing job: cut the takes in FilmCraft and mix dialogue, music and sound effects in SoundCraft (edit pack). For full professional character animation (a rigged mascot with dozens of expressions, hand-keyed acting) use pre-made Lottie or Rive characters ([references/ecosystem.md](ecosystem.md)) seeked by time. A film with no characters on screen can keep them out and let the camera, captions and props carry the motion.
 
 | Beat | What is on screen |
 |---|---|
@@ -68,9 +70,9 @@ Length 15-90 s. Route: HyperFrames with SVG characters or cut-out illustrations;
 | Turn | The twist or punchline; give it a beat of stillness first |
 | Out | The result, and a caption or title |
 
-Techniques: one camera move per shot (push, pan or parallax across layered SVG), hold a reaction for half a second before the next line, put dialogue in captions or speech bubbles timed to the voice. For a skit, timing is the joke: leave a pause of 0.3-0.6 s before the punchline.
+Techniques: one camera move per shot (push, pan or parallax across layered SVG), hold a reaction for half a second before the next line, put dialogue in captions or speech bubbles timed to the voice. For a skit, timing is the joke: leave a pause of 0.3-0.6 s before the punchline. Record or generate the voice first, run `npx hyperframes transcribe voice.wav`, and build the mouth track from those word times with `scripts/lipsync.py`; the picture adapts to the voice, never the other way round. Handmade looks hold their drawings: a walk is 8 drawings a second, the skin quantises the rest to 12 (`references/art-forms.md`).
 
-Checks: captions match the voiceover word for word and in time (time them from `npx hyperframes transcribe voice.wav` word timestamps); characters never cut off at the frame edge; every shot change motivated by the story.
+Checks: captions match the voiceover word for word and in time; the mouth shows at least three different shapes across four frames of a spoken line and is closed in a pause; feet do not slide while a character walks (`B2M.strideSpeed` gives the speed that plants them); characters never cut off at the frame edge; every shot change motivated by the story; a character sheet (`scripts/character_sheet.py`) still reads as the same character in every look you use.
 
 ## Vertical Shorts and Reels (9:16)
 
@@ -133,7 +135,7 @@ Checks: every caption matches the audio word for word; none on screen when nobod
 | "explain X", "how X works" | 2D explainer |
 | an equation, proof, algorithm, graph | Maths and algorithms |
 | "intro for my tutorial", "lower third", "callout" | Tutorial |
-| characters, a joke, "a short story" | Storytelling |
+| characters, dialogue, a joke, "a short story" | Storytelling, with the character kit |
 | "Short", "Reel", "TikTok", "vertical" | Vertical, plus the content format |
 | numbers, "growth", "chart" | Data story |
 | "launch", "announce", "new feature" | Product launch |

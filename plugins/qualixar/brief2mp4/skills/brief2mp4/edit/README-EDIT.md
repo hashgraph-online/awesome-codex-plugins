@@ -1,6 +1,6 @@
 # The edit pack (optional)
 
-brief2mp4 works without this folder. The pack adds real editing tools for briefs that are more than "generate a graphic and finish it with ffmpeg": footage cut on a timeline, a multitrack audio mix, layered compositing, image editing, vector art. It installs the command-line tools of five free desktop apps, pinned to exact versions, and ships one tested recipe per app.
+brief2mp4 works without this folder. The pack adds real editing tools for briefs that are more than "generate a graphic and finish it with ffmpeg": footage cut on a timeline, a multitrack audio mix, layered compositing, image editing, vector art. It installs the command-line tools of six free desktop apps, pinned to exact versions, and ships one tested recipe per app.
 
 The apps are the ArtCraft family by **storytold**, released under **MIT or Apache-2.0** (each app is licensed MIT or Apache-2.0 at your option, per its `NOTICE`; each download carries `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE` and font licences; read them). brief2mp4 does not redistribute them: the installer downloads each release from `github.com/storytold`. **They are alpha software.** Command ids and parameters change between versions, which is why this pack pins versions, tests its recipes against the pinned ones, and tells agents to discover commands at run time.
 
@@ -11,6 +11,7 @@ The apps are the ArtCraft family by **storytold**, released under **MIT or Apach
 | `effect` | EffectCraft | 0.24.1 | layered, keyframed compositing, After Effects class |
 | `photo` | PhotoCraft | 0.23.1 | image editor: thumbnails, title cards |
 | `vector` | VectorCraft | 0.24.1 | vector drawing: logos, lower thirds as SVG |
+| `light` | LightCraft | 0.21.1 | non-destructive photo library and raw developer: grade stills with presets |
 
 ## Check and install
 
@@ -19,7 +20,7 @@ Check first. The command always exits 0 and prints one line you can branch on. A
 ```bash
 bash scripts/detect_edit.sh                  # macOS, Linux, Git Bash
 powershell -File scripts\detect_edit.ps1     # Windows
-# edit: ready (film,sound,effect,photo,vector)   or   edit: not installed
+# edit: ready (film,sound,effect,photo,vector,light)   or   edit: not installed
 ```
 
 If the brief needs editing and it says `not installed`, install only the components the brief needs. Nothing uses sudo or admin rights, and nothing touches your system PATH.
@@ -27,12 +28,12 @@ If the brief needs editing and it says `not installed`, install only the compone
 ```bash
 # macOS and Linux (run from this skill's folder, or give the full path)
 bash edit/install_edit.sh                                  # film + sound
-bash edit/install_edit.sh --components film,sound,effect,photo,vector
+bash edit/install_edit.sh --components film,sound,effect,photo,vector,light
 bash edit/install_edit.sh --components all --dry-run       # print what would be downloaded, change nothing
 
 # Windows (PowerShell)
 powershell -ExecutionPolicy Bypass -File edit\install_edit.ps1
-powershell -ExecutionPolicy Bypass -File edit\install_edit.ps1 -Components film,sound,effect,photo,vector
+powershell -ExecutionPolicy Bypass -File edit\install_edit.ps1 -Components film,sound,effect,photo,vector,light
 powershell -ExecutionPolicy Bypass -File edit\install_edit.ps1 -Components all -DryRun
 ```
 
@@ -49,9 +50,10 @@ Everything goes into `~/.brief2mp4/edit` (Windows `%USERPROFILE%\.brief2mp4\edit
 | download: effect | 73.7 MB | 78.0 MB | 81.1 MB |
 | download: photo | 114.9 MB | 133.0 MB | 136.5 MB |
 | download: vector | 127.8 MB | 150.4 MB | 155.4 MB |
-| download: all five | 420.4 MB | 489.3 MB | 500.2 MB |
+| download: light | 115.9 MB | 116.9 MB | 117.2 MB |
+| download: all six | 536.3 MB | 606.2 MB | 617.4 MB |
 
-Measured on macOS after install: filmcraft 179 MB, soundcraft 22 MB, effectcraft 187 MB, photocraft 236 MB, vectorcraft 254 MB, about 880 MB for all five. Linux and Windows disk sizes were not measured. The Linux and Windows archives hold the whole desktop app next to the CLI (inspected for SoundCraft), and the installer keeps that folder as it came.
+Measured on macOS after install: filmcraft 179 MB, soundcraft 22 MB, effectcraft 187 MB, photocraft 236 MB, vectorcraft 254 MB, lightcraft 273 MB, about 1.15 GB for all six. Linux and Windows disk sizes were not measured. The Linux and Windows archives hold the whole desktop app next to the CLI (inspected for SoundCraft), and the installer keeps that folder as it came.
 
 To put the launchers on your PATH the installer prints one line to run yourself. The recipes do not need that: they find the pinned CLIs through `B2M_EDIT_HOME` and never use an older copy that happens to be on the PATH.
 
@@ -78,6 +80,7 @@ HyperFrames, Three.js and Blender stay the way to make graphics, type, charts an
 | Layered, keyframed compositing: animated titles, bars, effects on layers, text animation presets | EffectCraft (`effect_title.sh`) | layers, keyframes and effects with a renderer, when an HTML page would be a re-implementation |
 | Thumbnails, title cards, image retouching | PhotoCraft (`photo_thumbnail.sh`) | real type and layers on a raster canvas |
 | SVG logos, lower thirds, icons that stay sharp at any size | VectorCraft (`vector_lower_third.sh`) | clean vector output with live text, which you can then place in a HyperFrames page |
+| Colour grading of stills: a warm preset, exposure and white balance, raw files | LightCraft (`light_grade.sh`) | a develop pipeline with presets and colour controls that ffmpeg filters only imitate |
 
 If HyperFrames already does the job in one page, use HyperFrames. The pack is for the cases above.
 
@@ -94,7 +97,7 @@ codex mcp add filmcraft -- ~/.brief2mp4/edit/bin/filmcraft-cli mcp
 codex mcp add vectorcraft -- ~/.brief2mp4/edit/bin/vectorcraft-cli mcp --headless
 ```
 
-Use the same pattern for `soundcraft-cli mcp`, `effectcraft-cli mcp` and `photocraft-cli mcp`. `vectorcraft-cli mcp` without `--headless` first tries a running VectorCraft app on 127.0.0.1:7979 and falls back to a headless session. Verified here: each of the five pinned CLIs answers the MCP `initialize` and `tools/list` calls over stdio with its pinned version (17, 17, 27, 26 and 33 tools for film, sound, effect, photo and vector). Not tested: registering them in a real Claude Code or Codex session and calling tools from there.
+Use the same pattern for `soundcraft-cli mcp`, `effectcraft-cli mcp`, `photocraft-cli mcp` and `lightcraft-cli mcp` (LightCraft lists about 400 tools; `lightcraft-cli mcp --compact` lists only its helper tools, and every command stays reachable through `run_command`). `vectorcraft-cli mcp` without `--headless` first tries a running VectorCraft app on 127.0.0.1:7979 and falls back to a headless session. Verified here: each of the six pinned CLIs answers the MCP `initialize` and `tools/list` calls over stdio with its pinned version (17, 17, 27, 26, 33 and 409 tools for film, sound, effect, photo, vector and light). Not tested: registering them in a real Claude Code or Codex session and calling tools from there.
 
 **File confinement.** For the servers that have the flags, confine what an agent can read and write:
 
@@ -102,7 +105,7 @@ Use the same pattern for `soundcraft-cli mcp`, `effectcraft-cli mcp` and `photoc
 soundcraft-cli mcp --automation-read-root ./project --automation-write-root ./project/out
 ```
 
-`--automation-read-root DIR` and `--automation-write-root DIR` exist on `soundcraft-cli mcp`, `effectcraft-cli mcp`, `photocraft-cli mcp` and `vectorcraft-cli mcp` in the pinned versions (checked in each `mcp --help`); repeat them for several folders. A root you leave out grants none of that access on photo and vector, and on vector they imply `--headless`. **FilmCraft 0.20.1 has no such flags**: `filmcraft-cli mcp --automation-read-root X` fails with `unknown mcp option`. So for FilmCraft prefer the CLI, which only touches the paths your script names, and keep it inside the project folder.
+`--automation-read-root DIR` and `--automation-write-root DIR` exist on `soundcraft-cli mcp`, `effectcraft-cli mcp`, `photocraft-cli mcp` and `vectorcraft-cli mcp` in the pinned versions (checked in each `mcp --help`); repeat them for several folders. A root you leave out grants none of that access on photo and vector, and on vector they imply `--headless`. **FilmCraft 0.20.1 and LightCraft 0.21.1 have no such flags**: `filmcraft-cli mcp --automation-read-root X` fails with `unknown mcp option`, and `lightcraft-cli mcp --automation-read-root X` with `unknown option`. So for those two prefer the CLI, which only touches the paths your script names, and keep it inside the project folder.
 
 ## Discover commands; do not trust a list
 
@@ -115,6 +118,7 @@ Command ids and parameters change between alpha versions. Before using any comma
 | EffectCraft | `effectcraft-cli commands --filter TEXT` | the listing shows each command's parameters |
 | PhotoCraft | `photocraft-cli commands --filter TEXT [--json]` | the listing shows each command's parameters |
 | VectorCraft | `vectorcraft-cli commands` (JSON, about 1,400 entries: filter it) | the `params` field of each entry |
+| LightCraft | `lightcraft-cli commands [--json]` (about 390 commands; `lightcraft-cli controls` lists the develop sliders with their ranges) | the listing shows each command's parameters |
 
 Add `--help` for the subcommands and options. The ids the recipes use are named at the top of each recipe and are checked against the pinned CLIs by `tests/test_edit_slow.py`. If you move to other versions, re-run the recipes and the tests before trusting them.
 
@@ -129,6 +133,7 @@ Each recipe is a bash script (on Windows, Git Bash) that does one real job headl
 | `effect_title.sh` | a 3 s animated title: a text layer with the Tracking In preset, fade and rise keyframes, a growing accent bar, rendered to H.264 | `comp.new`, `layer.newText`, `layer.applyTextPreset`, `layer.newSolid`, `prop.addKey`, `prop.set`, and `render` |
 | `photo_thumbnail.sh` | a 1280x720 PNG thumbnail: gradient, title, subtitle | `layer.newFillLayer.gradient`, `type.create`, started with `run --new` |
 | `vector_lower_third.sh` | a lower-third SVG with a panel, accent bar, name and role | `file.new`, `shape.rectangle`, `paint.setFill`, `paint.setStroke`, `text.create`, exported with `run --export` |
+| `light_grade.sh` | one still graded to a warm preset (Warm Glow by default) and exported; your original is untouched | `preset.apply`, `app.export`, started with `run --import FILE` |
 
 How each app is driven, so you can adapt a recipe:
 
@@ -137,6 +142,7 @@ How each app is driven, so you can adapt a recipe:
 - **EffectCraft**: `--empty run --commands file.jsonl --save-as p.ecproj`, then `--project p.ecproj render --out x.mp4 --format h264 --audio off`. Property paths come from `effectcraft-cli props <comp> <layer> --flat`.
 - **PhotoCraft**: `run --new '{"width":1280,"height":720}' --cmd ID --params '{...}' ... --out file.png`. Saving a layered document as PNG flattens it (the CLI says so).
 - **VectorCraft**: `run --commands file.jsonl --export file.svg`. New shapes get a black stroke unless you switch it off with `paint.setStroke {"none":true}`.
+- **LightCraft**: `run --import photo.jpg preset.apply '{"id":"lc.warm-glow","amount":100}' app.export '{"path":"out.jpg","longEdge":0}'` imports the file into a throwaway headless session, applies a built-in preset (`run --demo presets.list` lists them) and exports; `longEdge` 0 is the full size. A failed command exits non-zero. There is also `lightcraft-cli render IN -o OUT --preset ID --set light.exposure=0.5` for one file. The develop sliders (`wb.temp`, `light.exposure`, `color.vibrance` and so on) are listed by `lightcraft-cli controls`.
 
 ## Commands beyond the recipes (seen working with the pinned versions)
 
@@ -160,4 +166,4 @@ Run on the output of `film_timeline.sh`, this gives `RESULT: PASS` (1280x720, 30
 
 ## What was tested, and what was not
 
-CI on macOS, Ubuntu and Windows installs FilmCraft and SoundCraft with the native installer for each platform (Windows: PowerShell, including Windows PowerShell 5.1), checks every download's SHA-256 and the release signature, runs the cut and mix recipes, and passes the result through `finish.sh` and `check_delivery.sh`. EffectCraft, PhotoCraft and VectorCraft recipes are tested on macOS. Desktop apps, bridge mode and calling the apps' MCP servers from a live Claude Code or Codex session are untested.
+CI on macOS, Ubuntu and Windows installs FilmCraft and SoundCraft with the native installer for each platform (Windows: PowerShell, including Windows PowerShell 5.1), checks every download's SHA-256 and the release signature, runs the cut and mix recipes, and passes the result through `finish.sh` and `check_delivery.sh`. EffectCraft, PhotoCraft, VectorCraft and LightCraft recipes are tested on macOS. Desktop apps, bridge mode and calling the apps' MCP servers from a live Claude Code or Codex session are untested.

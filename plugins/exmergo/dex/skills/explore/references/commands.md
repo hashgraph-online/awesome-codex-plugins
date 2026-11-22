@@ -144,11 +144,22 @@ column named `window`, which DuckDB reserves and dbt must quote).
   cache (`cache_hit_count`) instead of re-scanned. `--refresh` forces a re-scan
   when the source changed in a way the free metadata check cannot see.
 
-## `explore relationships [--verify] [--use-project]`
+## `explore relationships [--verify] [--use-project] [--include-elementary]`
 
 Returns inferred and declared joins with confidences, plus notes on what the
 inference examined, so an empty list is meaningful. `--verify` measures each join
 with an aggregate overlap probe (orphan fraction, confidence adjusted).
+
+The Elementary dbt package's own tables are left out of inference (#1494), by the
+signature `explore map` recognises them with (see below): none is profiled, a
+metered connector's estimate prices none, and no join among them is inferred,
+while the project's own tables in the same schema are still profiled. A profile
+of one the cache already holds is left as it is, and the joins among them an
+earlier `--include-elementary` run cached are dropped from the cache, as on `map`
+(carried from outside a narrower `--scope`, they stay in the cache and out of
+`data.relationships`, and `carried_relationship_count` counts only the carried
+joins the list reports). `data.excluded` names them as on `map`, and a note says
+so. Pass `--include-elementary` to profile them and infer joins among them.
 
 With a dev or replica schema in scope beside its sources, each foreign key keeps
 its join to the parent in its own schema: a built mart joins `stg_customers` and
@@ -219,7 +230,7 @@ says so. When the question is about the package's data itself, read them as any
 other table (`explore profile`, `explore query`), or pass `--include-elementary`
 to rank them with the rest.
 
-## `explore diagram [--full]`
+## `explore diagram [--full] [--include-elementary]`
 
 Renders the cached map as a Mermaid ER diagram in `data.mermaid`, with an
 `entities` legend mapping each entity name to its fully qualified identifier. It
@@ -229,6 +240,19 @@ labelled with a semantic entity is a join the semantic layer declares; look the
 entity up with `explore semantic list`. The default draws profiled, joined
 objects with their grain, key, join, and PII columns; `--full` widens to
 everything eligible. `notes` states any object or column left out.
+
+The Elementary dbt package's own tables are left out (#1494), recognised by their
+signature over the cache's identifiers, so the command stays free: a cache that
+holds their profiles (from `map --include-elementary`, or a hand-run
+`explore profile` beside the inventory entries `map` keeps for them) still draws
+none of them, `--full` included. They are never counted as elided entities; an
+edge onto one is counted in `elided_edge_count` and connects nothing, so a project
+table whose only join is onto one is drawn only with `--full`. The signature has
+to be in the cache: one only `explore relationships` has written holds no entry
+for the tables it left out (a `map` keeps their inventory entries, and no later
+write drops them), so a lone package table profiled by hand into it is drawn by
+`--full` until `explore map` writes the rest. `data.excluded` names them as on
+`map`, and a note says so. Pass `--include-elementary` to draw them.
 
 ## `explore query`
 

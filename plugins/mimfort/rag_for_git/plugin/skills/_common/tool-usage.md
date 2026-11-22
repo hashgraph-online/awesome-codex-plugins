@@ -16,7 +16,7 @@ Tool discipline (shared):
 - `get_definition` — a symbol's definition;
 - `read_file` — exact source context;
 - `get_changed_file_diff` — other changed files of this PR;
-- `get_impact` — callers of a changed signature that live outside the diff;
+- `get_impact` — grounded caller candidates for changed signatures, including files changed by the PR; marks PR scope and reports unresolved graph IDs as coverage gaps;
 - `submit_findings` — submit findings (schema-enforced; server assigns ids);
 - `get_candidate_findings` — read accumulated candidate findings (verify only);
 - `submit_verdicts` — submit verify verdicts by candidate id (verify only).
@@ -24,6 +24,8 @@ Tool discipline (shared):
 ## Session-less tools (`ask` / `solve-task`, no PR session)
 
 - `search_codebase(repo, query, branch?)` — hybrid semantic+lexical search;
+- `verify_task_brief(evidence_id, references=...)` — verify shown lines and render Markdown;
+  `citations=...` remains the legacy, verification-only input.
 - `related_symbols(repo, node_id, branch?)` — graph neighbours;
 - `callers(repo, node_id, branch?)` — direct callers (impact);
 - `definition(repo, symbol, branch?)` — where a symbol is defined.

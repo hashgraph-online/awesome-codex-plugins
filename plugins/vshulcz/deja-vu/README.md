@@ -291,7 +291,7 @@ aider &middot; Amp &middot; Ante &middot; Antigravity &middot; Cherry Studio &mi
 | JetBrains IDEs | [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/35998-deja-vu-cross-agent-ai-session-memory) | `idea installPlugins com.github.vshulcz.deja-vu` |
 | Neovim | `lazy.nvim` &amp; CodeCompanion ([`extensions/nvim/`](extensions/nvim/)) | `{ "vshulcz/deja-vu", opts = {} }` |
 | tmux | TPM popup &amp; status (`deja.tmux`) | `set -g @plugin 'vshulcz/deja-vu'` |
-| Raycast | Raycast extension `deja-vu` | `cd extensions/raycast && npm install && npx ray develop` |
+| Raycast | [Raycast Store](https://www.raycast.com/vshulcz/deja-vu) | `open raycast://extensions/vshulcz/deja-vu` |
 | Spec Kit | Spec Kit extension | `specify extension add deja-vu --from https://github.com/vshulcz/deja-vu/releases/latest/download/deja-spec-kit.zip` |
 | CC Switch | 1-click import (`ccswitch://`) | [Add MCP to CC Switch](ccswitch://v1/import?resource=mcp&apps=claude,codex,gemini,opencode&config=eyJtY3BTZXJ2ZXJzIjp7ImRlamEiOnsiY29tbWFuZCI6Im5weCIsImFyZ3MiOlsiLXkiLCJAdnNodWxjei9kZWphLXZ1Iiwic2VydmUiXX19fQ==) |
 

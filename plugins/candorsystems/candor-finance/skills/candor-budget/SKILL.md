@@ -3,7 +3,7 @@ name: candor-budget
 description: "Shows where the person's money goes from their real records and saves a budget they can hold to, built from what they actually spend and fit to what they say, then keeps it current. Use when the person asks where their money goes, what they spend each month, how much they can save, why they are over this month, or wants a budget, a spending plan, or to change a budget line. For saving toward a specific goal, use candor-plan-a-goal."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.6"
+  candor-package-version: "1.3.7"
   author: Candor
   version: "0.3.0"
   candor-domain-id: budget

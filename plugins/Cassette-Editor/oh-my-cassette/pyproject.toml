@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oh-my-cassette"
-version = "0.7.4"
+version = "0.7.5"
 description = "MCP server that drives the Cassette video editor from Codex, Claude Code, OpenCode and Hermes."
 readme = "README.md"
 license = "MIT"
@@ -71,5 +71,8 @@ target-version = "py311"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
-ignore = ["E501"]
+select = ["E", "F", "I", "UP", "B", "RUF", "S"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]

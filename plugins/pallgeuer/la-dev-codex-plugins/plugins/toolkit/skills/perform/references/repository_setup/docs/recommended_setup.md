@@ -4,6 +4,10 @@ These optional user-level instructions and configuration defaults complement the
 
 For a new empty or essentially empty repository, follow the [New repository setup recipe](new_repo_recipe.md). With Toolkit installed and enabled, start it in a Plan-mode chat with `$toolkit:perform setup-new-repo`.
 
+## Computer administration workspace
+
+For software installation, configuration, networking, and other machine maintenance, follow the [Computer administration workspace recipe](computer_setup_recipe.md) and its [workspace templates](templates/computer_workspace.md). It establishes `~/Agents` as the normal entry point, with a concise `AGENTS.md`, current machine/software records, confirmed preferences, pending tasks, ignored local resources, and an automation inventory for maintained scripts, desktop launchers, and service/timer definitions. User helpers can use stable links; privileged automation uses reviewed deployed copies, with activation and source changes explicitly approved. Each computer has its own private Git repository. This optional documentation workflow requires no plugin action or development-project scaffolding.
+
 ## User-level instructions
 
 This repository includes a recommended [user-level AGENTS.md file](../AGENTS_user.md) with global Codex instructions that complement the plugins. Review and adapt it as desired, or directly copy it into your Codex home directory:

@@ -1,7 +1,7 @@
 ---
 name: osmo-ai-receptionist
-description: "AI receptionist, AI phone receptionist and AI answering service for your phone number. Use when the user wants an AI phone receptionist or answering service that picks up their calls, screens spam, takes messages and booking requests, and tells them who called and why. Manage it from the AI app: see missed calls, summaries, transcripts and recordings, pause the AI, choose who is put through, edit VIP and block lists, add rules for specific callers (put through, take a message, block), switch the assistant or its language, check bookings and Facts, and call callers back at a time in their own time zone. Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan."
-version: 1.2.1
+description: "AI receptionist, AI phone receptionist and AI answering service for your phone number. Use when the user wants an AI phone receptionist or answering service that picks up their calls, screens spam, takes messages and booking requests, and tells them who called and why. Manage it from the AI app: see missed calls, summaries, transcripts and recordings, pause the AI, choose who is put through, edit VIP and block lists, add rules for specific callers (put through, take a message, block), switch the assistant or its language, check bookings and Facts, and call back people who called them in the last 30 days (shown first, placed only after a yes). Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan."
+version: 1.3.0
 metadata: {"homepage":"https://getosmo.app","emoji":"☎️"}
 ---
 
@@ -11,7 +11,8 @@ OsmO answers calls to the user's own phone number. Its AI receptionist talks to 
 spam, takes the message or booking request, follows the user's rules, and sends a summary. This skill
 lets the user run that receptionist from their AI app through the hosted OsmO MCP server.
 
-- MCP server: `https://api.getosmo.app/mcp` (Streamable HTTP, OAuth 2.1; no API key)
+- MCP server: `https://api.getosmo.app/mcp/receptionist` (Streamable HTTP, OAuth 2.1; no API key).
+  This is OsmO's dedicated receptionist server; the same OsmO account works on both servers.
 - Setup: install the OsmO app (https://getosmo.app/app), choose a plan, and turn on call forwarding
   on the user's number. The receptionist only answers calls once forwarding is on.
 - To place outgoing calls instead, use the `osmo-phone-calls` skill.
@@ -19,13 +20,13 @@ lets the user run that receptionist from their AI app through the hosted OsmO MC
 
 ## Connect (once)
 
-If the `osmo` MCP tools are not available yet, tell the user to add the server and sign in.
+If the `osmo-receptionist` MCP tools are not available yet, tell the user to add the server and sign in.
 Every client below uses the same URL and the same browser sign-in.
 
 **Claude Code**
 
 ```sh
-claude mcp add --transport http osmo https://api.getosmo.app/mcp
+claude mcp add --transport http osmo-receptionist https://api.getosmo.app/mcp/receptionist
 ```
 
 then type `/mcp` inside Claude Code and sign in.
@@ -33,23 +34,23 @@ then type `/mcp` inside Claude Code and sign in.
 **Codex**
 
 ```sh
-codex mcp add osmo --url https://api.getosmo.app/mcp
-codex mcp login osmo
+codex mcp add osmo-receptionist --url https://api.getosmo.app/mcp/receptionist
+codex mcp login osmo-receptionist
 ```
 
 **OpenClaw**
 
 ```sh
-openclaw mcp set osmo '{"url":"https://api.getosmo.app/mcp","transport":"streamable-http","auth":"oauth"}'
-openclaw mcp login osmo
+openclaw mcp set osmo-receptionist '{"url":"https://api.getosmo.app/mcp/receptionist","transport":"streamable-http","auth":"oauth"}'
+openclaw mcp login osmo-receptionist
 ```
 
-**Hermes** (`~/.hermes/config.yaml`), then `hermes mcp login osmo`:
+**Hermes** (`~/.hermes/config.yaml`), then `hermes mcp login osmo-receptionist`:
 
 ```yaml
 mcp_servers:
-  osmo:
-    url: "https://api.getosmo.app/mcp"
+  osmo-receptionist:
+    url: "https://api.getosmo.app/mcp/receptionist"
     auth: oauth
 ```
 
@@ -61,11 +62,14 @@ repeat it.
 
 1. Read the tool list the server returns and use only those tools. Call `osmo_help` when unsure what
    this account can do.
-2. **"Who called?" / "What did I miss?"**: `list_calls` with `callType: "inbound"` (newest first,
-   10 per page), then open the ones that matter with `get_call` for the summary, transcript and a
-   ▶ Play recording link. Lead with what each caller wanted and anything urgent. To call someone
-   back, now or at a time in the user's own time zone, use the `osmo-phone-calls` skill (in apps
-   that show MCP Apps cards, such as Claude, the call then shows on a live OsmO call card).
+2. **"Who called?" / "What did I miss?"**: `missed_calls` for the calls the user did not pick up,
+   or `list_calls` (newest first), then open the ones that matter with `get_call` for the summary,
+   transcript and a ▶ Play recording link. Lead with what each caller wanted and anything urgent.
+   **Call back** someone who called in the last 30 days with `call_back`: it shows a preview first;
+   place the call only after the user says yes, then follow it with `get_call_status`. To call
+   anyone else, or to schedule a call, use the `osmo-phone-calls` skill.
+   **Screen a caller** straight from one of their calls with `screen_caller` (block, or always put
+   through); preview first, apply on a yes.
 3. **Receptionist settings** (`get_settings` / `update_settings`): who may be put through live
    (`transferMode`: never, contacts or anyone), pausing the AI (`isAiAnsweringPaused`), live-call
    alerts, letting saved contacts skip the AI, Android device screening, and the VIP and block

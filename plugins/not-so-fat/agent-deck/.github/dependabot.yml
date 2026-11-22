@@ -28,3 +28,18 @@ updates:
         update-types: [minor, patch]
         exclude-patterns:
           - "hashgraph-online/ai-plugin-scanner-action"
+    ignore:
+      # Hold the HOL plugin scanner at 1.2.543. From 1.2.817 (plugin-scanner
+      # 3.59.0) it scores this repo 79 against min_score 80: the only deduction
+      # is 12 "GitHub Action not pinned to a commit SHA" findings for
+      # actions/checkout@v7.0.1 and actions/setup-node@v7.1.0. Those tags are
+      # already locked to commits by .github/workflows/actions.lock, which the
+      # scanner does not read, and pinning to SHAs breaks `gh actions-lock`.
+      # We keep tags + actions.lock (see #259, #209).
+      # Revisit (drop this ignore) once the scanner understands actions.lock,
+      # or reports lockfile-pinned actions as pinned.
+      - dependency-name: "hashgraph-online/ai-plugin-scanner-action"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"

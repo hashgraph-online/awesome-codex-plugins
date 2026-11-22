@@ -1,13 +1,13 @@
 # install_edit.ps1: install the command-line tools of the optional brief2mp4 edit pack on Windows. No admin rights needed.
 #
 #   powershell -ExecutionPolicy Bypass -File install_edit.ps1                              # film + sound
-#   powershell -ExecutionPolicy Bypass -File install_edit.ps1 -Components film,sound,effect,photo,vector
+#   powershell -ExecutionPolicy Bypass -File install_edit.ps1 -Components film,sound,effect,photo,vector,light
 #   powershell -ExecutionPolicy Bypass -File install_edit.ps1 -Components all -DryRun      # show the plan, change nothing
 #   powershell -ExecutionPolicy Bypass -File install_edit.ps1 -Uninstall                   # remove what this installer created
 #   powershell -ExecutionPolicy Bypass -File install_edit.ps1 -Uninstall -Components photo
 #
 # Components (free ArtCraft apps by storytold, MIT or Apache-2.0, pinned in versions.json)
-#   film FilmCraft, sound SoundCraft, effect EffectCraft, photo PhotoCraft, vector VectorCraft
+#   film FilmCraft, sound SoundCraft, effect EffectCraft, photo PhotoCraft, vector VectorCraft, light LightCraft
 #
 # Each download is checked against the release's SHA256SUMS.txt and the hash pinned in versions.json.
 # When gpg is installed, the signature on SHA256SUMS.txt is checked too (skipped, and said so, otherwise).
@@ -26,15 +26,15 @@ try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::
 $Pack = Split-Path -Parent $MyInvocation.MyCommand.Path
 $HomeDir = if ($env:B2M_EDIT_HOME) { $env:B2M_EDIT_HOME } else { Join-Path $env:USERPROFILE ".brief2mp4\edit" }
 $Manifest = Join-Path $HomeDir ".b2m-edit-manifest"
-$All = @("film", "sound", "effect", "photo", "vector")
+$All = @("film", "sound", "effect", "photo", "vector", "light")
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
 
 # Both `-Components film,sound` (an array) and `-File ... -Components film,sound` (one string) arrive here.
 $explicit = $PSBoundParameters.ContainsKey("Components")
 $wanted = @($Components | ForEach-Object { $_ -split "[,\s]+" } | Where-Object { $_ } | ForEach-Object { $_.ToLowerInvariant() })
 if ($wanted -contains "all") { $wanted = $All }
-if ($wanted.Count -eq 0) { throw "-Components needs a value (film, sound, effect, photo, vector, all)" }
-foreach ($c in $wanted) { if ($All -notcontains $c) { throw "unknown component '$c' (film, sound, effect, photo, vector, all)" } }
+if ($wanted.Count -eq 0) { throw "-Components needs a value (film, sound, effect, photo, vector, light, all)" }
+foreach ($c in $wanted) { if ($All -notcontains $c) { throw "unknown component '$c' (film, sound, effect, photo, vector, light, all)" } }
 $wanted = @($wanted | Select-Object -Unique)
 
 $Versions = ConvertFrom-Json ([System.IO.File]::ReadAllText((Join-Path $Pack "versions.json"), $Utf8))

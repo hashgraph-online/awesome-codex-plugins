@@ -3,7 +3,7 @@ name: candor-plan-a-goal
 description: "Turns what the person wants from their money into a plan Candor tracks: goals with a measure, a pace, and a next step, plus the budget that pays for them, with a straight answer on what works and what does not yet. Use when the person wants to pay off debt, save for something, build an emergency fund, buy a home or car, work less, take time off, help family, or asks whether they can afford something, even when the goal is vague or has no numbers yet."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.6"
+  candor-package-version: "1.3.7"
   author: Candor
   version: "0.3.0"
   candor-domain-id: plan-a-goal

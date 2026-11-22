@@ -8,7 +8,7 @@
         "--python",
         "3.12",
         "--from",
-        "memtomem[onnx]==0.7.12",
+        "memtomem[onnx]==0.7.13",
         "--with",
         "huggingface-hub>=1.20",
         "memtomem-server"

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0] - 2026-11-21
+
+### Added
+
+- Connecting Kuudo: when Kuudo's tools are missing or the user asks how to
+  connect, give the managed MCP endpoints (`ads.kuudo.com/mcp`,
+  `sp.kuudo.com/mcp`), the per-client connector steps, Kuudo sign-in, and the
+  separate Amazon authorization in Kuudo. Replaces the removed
+  `connect-to-kuudo` skill for this case. The description now covers
+  connection questions.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added

@@ -1550,6 +1550,21 @@
       "icon": "./plugins/ezra-y/codex-goal-progress/assets/icon.png"
     },
     {
+      "name": "graphify",
+      "displayName": "Graphify",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Graphify-Labs/graphify-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Shared codebase context from a code knowledge graph: find symbols, trace callers and dependencies, check the impact of a change, and share team memory and pull request review results.",
+      "icon": "./plugins/Graphify-Labs/graphify-codex-plugin/assets/composer-icon.png"
+    },
+    {
       "name": "graymatter",
       "displayName": "GrayMatter",
       "source": {
@@ -5780,6 +5795,21 @@
       "category": "Tools & Integrations",
       "description": "Create and review survey drafts, publish studies on request, and analyze responses through the QuestionPunk MCP server.",
       "icon": "./plugins/questionpunk/codex-plugin/assets/questionpunk.svg"
+    },
+    {
+      "name": "qurl",
+      "displayName": "qURL",
+      "source": {
+        "source": "local",
+        "path": "./plugins/layervai/codex-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Share a running local app with approved people or agents from Codex through OpenNHP identity-first access, without deployment, a publisher account or a public inbound app port.",
+      "icon": "./plugins/layervai/codex-plugins/assets/logo.png"
     },
     {
       "name": "omnimodal",

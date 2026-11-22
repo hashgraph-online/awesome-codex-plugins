@@ -7,6 +7,7 @@
 //   2. handmade looks quantise time (onTwos, held) so the picture changes 8 to 12 times a second
 //      while the video itself stays at 24 or 30 frames a second;
 //   3. wobble, boil, flicker and misregistration are seeded by the frame number, so they repeat exactly.
+// Later batches live in their own files (looks-painted.js, ...), listed in looks-files.json; they import the helpers below.
 // 2D looks draw on a canvas context. 3D looks get THREE and build a scene once, then pose it from t.
 // Wire a look into HyperFrames the way references/threejs.md shows: a paused GSAP timeline tweens a plain
 // object's t from 0 to the duration with ease "none", and its onUpdate calls draw.
@@ -57,11 +58,11 @@ export function strokePart(g, pts, k, frame = 0, wobble = 0) {
   if (i < n) g.lineTo(lerp(pts[i][0], pts[i + 1][0], f) + jit(frame, i, wobble), lerp(pts[i][1], pts[i + 1][1], f) + jit(frame, i + 500, wobble));
   g.stroke();
 }
-const circlePts = (x, y, r, n = 40, from = 0, to = TAU) => Array.from({ length: n + 1 }, (_, i) => [x + Math.cos(lerp(from, to, i / n)) * r, y + Math.sin(lerp(from, to, i / n)) * r]);
-const fill = (g, c) => { g.fillStyle = c; g.fill(); };
-const bg = (g, W, H, c) => { g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.filter = 'none'; g.shadowColor = 'transparent'; g.fillStyle = c; g.fillRect(0, 0, W, H); };
-const paper = (g, W, H, seed = 3, strength = 26) => { g.save(); g.globalCompositeOperation = 'multiply'; g.drawImage(grain(W, H, seed, strength, [60, 40, 20]), 0, 0); g.restore(); };
-const FONT = '"Helvetica Neue", Arial, sans-serif';
+export const circlePts = (x, y, r, n = 40, from = 0, to = TAU) => Array.from({ length: n + 1 }, (_, i) => [x + Math.cos(lerp(from, to, i / n)) * r, y + Math.sin(lerp(from, to, i / n)) * r]);
+export const fill = (g, c) => { g.fillStyle = c; g.fill(); };
+export const bg = (g, W, H, c) => { g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.filter = 'none'; g.shadowColor = 'transparent'; g.fillStyle = c; g.fillRect(0, 0, W, H); };
+export const paper = (g, W, H, seed = 3, strength = 26) => { g.save(); g.globalCompositeOperation = 'multiply'; g.drawImage(grain(W, H, seed, strength, [60, 40, 20]), 0, 0); g.restore(); };
+export const FONT = '"Helvetica Neue", Arial, sans-serif';
 
 export const LOOKS = {
   /* ------------------------------------------------ craft and handmade ------------------------------------------------ */
@@ -211,17 +212,6 @@ export const LOOKS = {
     g.strokeStyle = '#17202b'; strokePart(g, [[W * 0.45, H * 0.44], [W * 0.6, H * 0.44], [W * 0.57, H * 0.4], [W * 0.6, H * 0.44], [W * 0.57, H * 0.48]], prog(t, 1.6, 0.4), f, 1.6);
     strokePart(g, [[W * 0.65, H * 0.3], [W * 0.88, H * 0.3], [W * 0.88, H * 0.58], [W * 0.65, H * 0.58], [W * 0.65, H * 0.3]], prog(t, 2.0, 0.5), f, 1.6);
     const k = prog(t, 2.5, 0.3); if (k > 0) { g.globalAlpha = k; g.fillStyle = '#17202b'; g.font = `italic 600 34px "Marker Felt", "Comic Sans MS", ${FONT}`; g.fillText('idea → plan', W * 0.665, H * 0.46); g.globalAlpha = 1; }
-  } },
-  chalkboard: { kind: '2d', fps: 10, draw(g, t, W, H) {
-    // the whiteboard recipe on a dark board: dusty, broken strokes (three thin passes) and a smudge of chalk dust
-    const f = frameOf(t, 10);
-    bg(g, W, H, '#24382f'); g.drawImage(grain(W, H, 12, 34, [230, 240, 235]), 0, 0);
-    g.lineCap = 'round'; g.lineJoin = 'round';
-    const chalk = (pts, k, col = '#f2f0e6') => { for (let p = 0; p < 3; p++) { g.strokeStyle = col; g.globalAlpha = 0.5; g.lineWidth = 3; g.setLineDash([14 + p * 5, 3 + p]); g.lineDashOffset = p * 7; strokePart(g, pts.map(([x, y]) => [x + p - 1, y + (p - 1) * 1.4]), k, f + p * 31, 1.3); } g.setLineDash([]); g.globalAlpha = 1; };
-    chalk([[W * 0.16, H * 0.72], [W * 0.84, H * 0.72]], prog(t, 0.1, 0.5));
-    chalk([[W * 0.16, H * 0.72], [W * 0.16, H * 0.2]], prog(t, 0.4, 0.5));
-    chalk(Array.from({ length: 40 }, (_, i) => [W * (0.16 + 0.66 * i / 39), H * (0.72 - 0.46 * (i / 39) ** 2)]), prog(t, 0.9, 1.0), '#ffd966');
-    const k = prog(t, 2.0, 0.4); if (k > 0) { g.globalAlpha = k * 0.9; g.fillStyle = '#f2f0e6'; g.font = `600 36px "Chalkduster", "Marker Felt", ${FONT}`; g.fillText('y = x²', W * 0.56, H * 0.34); g.globalAlpha = 1; }
   } },
   watercolour: { kind: '2d', fps: 12, draw(g, t, W, H) {
     // transparent washes that spread, with pigment pooling at the edge and paper showing through

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """build_art_forms.py: make the art-form reference pages from one data file.
 
-    references/art-forms.json + art-forms/looks.js
+    references/art-forms.json + the demo files listed in art-forms/looks-files.json (looks.js, looks-painted.js, ...)
         -> references/art-forms.md            the index the agent reads first
         -> references/art-forms/<id>.md       one page per art form, with the tested demo code
 
     python3 scripts/build_art_forms.py           write the files
     python3 scripts/build_art_forms.py --check   exit 1 if any generated file is out of date
 
-Standard library only. Edit the JSON (facts) or looks.js (code), run this, then run tests/art_forms/check_looks.mjs.
+Standard library only. Edit the JSON (facts) or a looks file (code), run this, then run tests/art_forms/check_looks.mjs.
 """
 import json
 import re
@@ -18,17 +18,19 @@ from pathlib import Path
 SKILL = Path(__file__).resolve().parent.parent
 REF = SKILL / 'references'
 DATA = json.loads((REF / 'art-forms.json').read_text(encoding='utf-8'))
-LOOKS_JS = (SKILL / 'art-forms' / 'looks.js').read_text(encoding='utf-8').replace('\r\n', '\n')
+LOOK_FILES = json.loads((SKILL / 'art-forms' / 'looks-files.json').read_text(encoding='utf-8'))   # one demo file per batch of forms
+LOOKS_BY_FILE = {name: (SKILL / 'art-forms' / name).read_text(encoding='utf-8').replace('\r\n', '\n') for name in LOOK_FILES}
 
 
 def look_source(look_id):
-    """The source of one look, cut out of looks.js: from its key to the line that closes it."""
-    m = re.search(r"^  (?:'%s'|%s): \{ kind:" % (re.escape(look_id), re.escape(look_id)), LOOKS_JS, re.M)
-    if not m:
-        raise SystemExit('build_art_forms: no look called %r in art-forms/looks.js' % look_id)
-    rest = LOOKS_JS[m.start():]
-    end = re.search(r"^  \} \},\n", rest, re.M)
-    return rest[:end.end()].rstrip().rstrip(',') if end else rest
+    """(file, source) of one look, cut out of its looks file: from its key to the line that closes it."""
+    for name, code in LOOKS_BY_FILE.items():
+        m = re.search(r"^  (?:'%s'|%s): \{ kind:" % (re.escape(look_id), re.escape(look_id)), code, re.M)
+        if m:
+            rest = code[m.start():]
+            end = re.search(r"^  \} \},\n", rest, re.M)
+            return name, (rest[:end.end()].rstrip().rstrip(',') if end else rest)
+    raise SystemExit('build_art_forms: no look called %r in the files of art-forms/looks-files.json' % look_id)
 
 
 def cadence(f):
@@ -51,13 +53,13 @@ def page(f):
         out += [f['blender'], '']
     out += ['## Assets', '', f['assets'] + ' Use only pictures, footage and music the user owns or may reuse; if the user has an image model available, generate textures and cut-out parts with it and say so in REPORT.md.', '',
             '## Sound and pacing', '', f['sound'], '', '## What makes it look wrong', '', bullets(f['pitfalls']), '', '## Tested demo', '',
-            'This is the look from `art-forms/looks.js`, which `tests/art_forms/check_looks.mjs` draws in a real browser: it must paint, change over time, and give the same pixels when the same time is drawn twice. '
-            'View it: open `art-forms/gallery.html?look=%s` through a local server. The helpers it calls (`held`, `frameOf`, `jit`, `hash`, `grain`, `prog`, the easings) are at the top of that file. '
-            'Take the technique, not the picture.' % f['looks'][0], '']
+            'This is the look from `art-forms/%s`, which `tests/art_forms/check_looks.mjs` draws in a real browser: it must paint, change over time, and give the same pixels when the same time is drawn twice. '
+            'View it: open `art-forms/gallery.html?look=%s` through a local server. The helpers it calls (`held`, `frameOf`, `jit`, `hash`, `grain`, `prog`, the easings) are at the top of `art-forms/looks.js`. '
+            'Take the technique, not the picture.' % (look_source(f['looks'][0])[0], f['looks'][0]), '']
     for look in f['looks']:
-        out += ['```js', look_source(look), '```', '']
+        out += ['```js', look_source(look)[1], '```', '']
     out += ['To use a look in a HyperFrames composition, drive it from the timeline the way `references/threejs.md` shows: a paused GSAP timeline tweens a plain object\'s `t` from 0 to the duration with `ease: "none"`, and `onUpdate` calls `draw` with that `t`. Vendor GSAP and three.js into the project first.', '',
-            '## Sources', '', bullets('<%s>' % u for u in f['sources']), '', 'Facts checked on %s. Lines marked "practice note" are working advice, not sourced facts.' % DATA['checked'], '']
+            '## Sources', '', bullets('<%s>' % u for u in f['sources']), '', 'Facts checked on %s. Lines marked "practice note" are working advice, not sourced facts.' % f.get('checked', DATA['checked']), '']
     return '\n'.join(out)
 
 
@@ -115,8 +117,8 @@ def index():
             '| [remotion-dev/remotion](https://github.com/remotion-dev/remotion) | Remotion licence (a company licence above a size) | read only, for how its examples stage looks |',
             '| [nidorx/matcaps](https://github.com/nidorx/matcaps) | no licence file | read only: a matcap gives a quick clay look, but these images cannot be reused, so the clay demo uses a rough material and a generated bump map |', '',
             '## The demos', '',
-            '`art-forms/looks.js` holds one small demo per look (%d in all), and `art-forms/gallery.html` plays them. `tests/art_forms/check_looks.mjs` checks every one in a real browser.' % sum(len(f['looks']) for f in DATA['forms']),
-            'These pages are generated from `references/art-forms.json` and `art-forms/looks.js` by `scripts/build_art_forms.py`.', '']
+            'The files listed in `art-forms/looks-files.json` (`looks.js` and one file per later batch) hold one small demo per look (%d in all), and `art-forms/gallery.html` plays them. `tests/art_forms/check_looks.mjs` checks every one in a real browser.' % sum(len(f['looks']) for f in DATA['forms']),
+            'These pages are generated from `references/art-forms.json` and those demo files by `scripts/build_art_forms.py`.', '']
     return '\n'.join(out)
 
 

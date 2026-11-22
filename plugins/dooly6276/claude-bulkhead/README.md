@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/node-%E2%89%A518-0d9488?style=flat-square&labelColor=24292f&logo=nodedotjs&logoColor=white" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-0-0d9488?style=flat-square&labelColor=24292f" alt="zero dependencies">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0d9488?style=flat-square&labelColor=24292f" alt="MIT license"></a>
+  <a href="https://hub.xerj.org/contributors/dooly6276"><img src="https://img.shields.io/badge/XERJ_Corpus_Hub-contributor-0d9488?style=flat-square&labelColor=24292f" alt="XERJ Corpus Hub contributor"></a>
 </p>
 
 <p align="center">

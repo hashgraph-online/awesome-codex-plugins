@@ -6,7 +6,7 @@ metadata:
   tags: orchestration, initialization, analysis, alignment
   model: inherit
   model-preference: opus
-  model-preference-codex: gpt-5.4
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-opus-4-6
 ---
 

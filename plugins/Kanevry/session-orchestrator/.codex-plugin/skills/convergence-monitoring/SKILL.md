@@ -6,7 +6,7 @@ metadata:
   tags: autoresearch, convergence, loop-control, wave-executor
   model: haiku
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-sonnet-4-6
   attribution: |
     Inspired by cavekit's documented convergence-monitoring concept (MIT, Julius Brussee). Implemented from spec since upstream skill not yet published as of 2026-04-30.

@@ -316,7 +316,20 @@ a New Chat or new CLI session. In an IDE, also use Reload Window.
 
 ### Required services and credentials
 
-Run `reviewer init` to write the selected env file and `reviewer check` to validate it. Resolution
+Run `reviewer` without arguments to open the command menu. Search accepts command names and flags,
+such as `reviewer init --advanced`. Set launch options in the command form. Left and Right cycle
+through supported choices, and F3 opens the preview.
+
+Use Up and Down or Page Up and Page Down to scroll long commands in the preview.
+
+`reviewer init` asks for missing keys and previews the proposed configuration before saving.
+When creating a repository profile, use the edit-branches action in the preview to adjust the
+plan while keeping the keys you entered.
+Use `reviewer init --advanced` to choose providers or configure stores and task boards.
+Choose a task board provider by number. The Postgres connection string is entered with hidden
+input. Press Enter to keep the saved value or use the default.
+`reviewer init --dry-run` prints the plan without writing. Use `reviewer check --env-file PATH`
+to validate a separate setup profile. Default env file resolution
 order is `REVIEWER_ENV_FILE` → `$XDG_CONFIG_HOME/rag-reviewer/.env` → `./.env`.
 
 Important groups:
@@ -330,7 +343,7 @@ Important groups:
 
 Published host ports of the Compose storage services are variables, not literals:
 `PARADEDB_PUBLISH_PORT` (default `5433`), `NEO4J_BOLT_PUBLISH_PORT` (default `7687`) and
-`NEO4J_HTTP_PUBLISH_PORT` (default `7474`). Container ports stay fixed. `reviewer init` asks for
+`NEO4J_HTTP_PUBLISH_PORT` (default `7474`). Container ports stay fixed. `reviewer init --advanced` asks for
 them in the storage group and derives the first two from `PG_DSN` and `NEO4J_URI`, so the client
 string and the published port cannot drift apart silently; a mismatch on a local host prints a
 warning without blocking.
@@ -410,7 +423,7 @@ in committed `.review.yml`. Pass `--repo owner/name` when no usable git remote i
 | GitLab | `GITLAB_URL`, `GITLAB_TOKEN` | PAT/project token with `api` scope | MR metadata, changes, notes, repository files, compare | discussions/notes and MR description backlink | authenticates `/api/v4/user` identity |
 
 The health check proves URL/token authentication, not every granular repository permission. The
-selected repository permissions are exercised by an actual review. `reviewer init` shows the same
+selected repository permissions are exercised by an actual review. `reviewer init --advanced` shows the same
 contract before prompting only for the selected provider's credentials.
 
 ### Repositories and branches
@@ -469,6 +482,15 @@ context_limits:
     max_chunks_per_file: 1
     chars_per_file: 975
     max_augmented_files: 3
+
+metrics:
+  brief_quality:
+    core_paths:
+      - 'reviewer/**/*.py'
+      - 'plugin/**'
+      - '!plugin/**/*.md'
+      - '!eval/**'
+      - '*.py'
 ```
 
 `summary_paths.ignore` only filters which files feed subsystem-summary clustering — unlike
@@ -500,6 +522,13 @@ co-change (git file-pairs-changed-together) second source was built and measured
 34 mixed-in paths, a bulk-recall drop — and removed rather than kept disabled; only similar-diffs
 covers (median core-recall 0.5 → 0.75, precision 0.167 → 0.333, 28 hits on 35 paths). See
 `eval/replay_report.md`, "Приёмка PRI-257".
+
+`metrics.brief_quality.core_paths` (PRI-271) makes the online brief-quality metric's core-path
+ruleset repository-specific instead of hardcoded: a glob list (`**` crosses `/`, plain `*`/`?`
+don't) that any repository can tailor to its own production-path layout. No key means the
+metric falls back to this repository's own default ruleset (`DEFAULT_CORE_PATHS` in
+`reviewer/metrics/brief_quality/config.py`) and reports `configured: false`, which the metric
+tells apart from an explicit but empty list — see the "Quality" page section below.
 
 ### Layered repository policy
 
@@ -622,7 +651,7 @@ The server-side flow is **store-first**:
 2. Skills call `get_task(key, project=...)`; linked tasks/PRs/code come from task context tools.
 3. Client models never enumerate the provider directly and never send credentials.
 
-The MCP server currently exposes **42 tools**, including the native-subtask batch operation.
+The MCP server currently exposes **44 tools**, including the native-subtask batch operation. See the [client compatibility guide](docs/client-compatibility.md) for verification, usage, and diagnostics.
 
 Legacy aliases remain **legacy metadata for older clients** for one compatibility window:
 `TASK_BOARD_API_KEY → YOUGILE_API_KEY` and
@@ -869,7 +898,7 @@ namespaced skills with `$rag-reviewer:...`.
 
 - **When:** synchronize a configured board before task search or solve-task.
 - **Invoke:** `/rag-reviewer:sync-tasks`.
-- **Needs:** use `reviewer init`, configure the selected provider as documented in
+- **Needs:** use `reviewer init --advanced`, configure the selected provider as documented in
   `docs/board-providers.md`, then validate it with `reviewer check`.
 - **Reads/writes:** calls idempotent server-side `sync_board` in repo mode with canonical repo and
   tracked branch. The server resolves effective policy; the client does not reconstruct it. It reads
@@ -934,7 +963,9 @@ docker compose ps
 
 `reviewer check` validates configured credentials and service connectivity without spending
 Voyage quota. `status` compares the indexed SHA with the selected local ref and reports chunks,
-graph nodes, subsystem summaries, and commit drift for each tracked branch.
+graph nodes, subsystem summaries, and commit drift for each tracked branch. `reviewer measure-briefs`
+recomputes the solve-task brief quality metric across the whole brief corpus from git PR-merge
+history, also without touching Voyage.
 
 ### Index freshness and recovery
 
@@ -976,11 +1007,15 @@ The **Quality** page shows the trend of the solve-task brief quality metric acro
 core-recall (precision is plotted per task on the trend chart; it has no median of its own), a bulk
 subsample (tasks with `expected_core >= 10`, the `BULK_CORE_THRESHOLD`) with a horizontal line for
 the offline baseline for before/after comparison, and a breakdown of misses by taxonomy.
-The data source is the `brief_quality` table, populated on every real `publish_review` call
-(written by `MCPReviewService`, not a separate process). If a task's brief is missing, or has no
-`## Relevant code` section at all, the measurement is skipped — no point shows up on the chart
-instead of a zero or an error. A section that exists but is empty is not a skip: it is a valid
-measurement with `predicted = 0`.
+The data source is the `brief_quality` table, populated at three points (PRI-270): every real
+`publish_review` call (writes `run_id`), `finish_task`, and the `reviewer measure-briefs` CLI
+command (the latter two write `run_id = NULL`). All three share one function,
+`reviewer.services.brief_quality.measure_and_record`; a row's identity is
+`(repo, pr_number, task_key)`, not "came from a review run" — an earlier measurement without a
+review and a later `publish_review` update the same row instead of creating two. If a task's
+brief is missing, or has no `## Relevant code` section at all, the measurement is skipped — no
+point shows up on the chart instead of a zero or an error. A section that exists but is empty is
+not a skip: it is a valid measurement with `predicted = 0`.
 
 The container keeps its internal listen port separate from the published loopback port. Build it
 once and choose both at runtime (replace `database` with a Postgres host reachable from the

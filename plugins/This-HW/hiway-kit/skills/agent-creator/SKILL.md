@@ -28,17 +28,31 @@ description: Create a Claude Code sub-agent definition for this project or user.
 "~해줘"·"확인"·"오류" 같은 일상 표현 단독 트리거는 대화형 요청까지 끌어가 느린 경로로
 빼돌린다 — 다른 에이전트와 트리거가 겹치지 않는지도 본다.
 
+- **끝에 부정 조건 한 문장** — `Do not use for …`. 겹치기 쉬운 이웃 요청을 막는다. description 은 매 세션
+  노출되는 바이트이므로 **한 문장까지만** 쓴다.
+
+## 본문에 넣을 것
+
+- **쓰지 말 때 → 대신 표.** 부정 조건 문장은 *안 쓴다*는 것만 말한다. 어디로 가야 하는지는 본문 표가 말한다.
+
+  | 이럴 때 | 대신 |
+  | --- | --- |
+  | [겹치기 쉬운 요청] | [그 일을 맡는 다른 에이전트·스킬, 또는 직접 처리] |
+
+- **출력 필드마다 Bad/Good 예시 한 쌍** — 근거·사유·판정처럼 읽는 사람이 그대로 행동하는 자유 서술 필드에.
+  Bad 는 그럴듯하지만 막연한 버전, Good 은 확인 가능한 버전이다.
+
 ## 출력 형식
 
 ```markdown
 ---
 name: [소문자-하이픈]
-description: [역할]. Use when [구체 조건 — 무엇이 주어졌을 때].
+description: [역할]. Use when [구체 조건 — 무엇이 주어졌을 때]. Do not use for [겹치기 쉬운 이웃 요청].
 tools:
   - [도구 목록]
 ---
 
-[시스템 프롬프트 — 역할, 절차, 출력 형식, 끝났음을 알리는 마지막 줄]
+[시스템 프롬프트 — 역할, 쓰지 말 때 → 대신 표, 절차, 출력 형식(필드별 Bad/Good), 끝났음을 알리는 마지막 줄]
 ```
 
 ## 예제
@@ -46,7 +60,7 @@ tools:
 ```markdown
 ---
 name: migration-checker
-description: Database migration reviewer. Use when a new migration file under db/migrations/ is added or changed and needs a safety review before merge.
+description: Database migration reviewer. Use when a new migration file under db/migrations/ is added or changed and needs a safety review before merge. Do not use for writing or running migrations.
 tools:
   - Read
   - Grep
@@ -55,7 +69,15 @@ tools:
 
 You review database migrations for safety.
 
+| When | Instead |
+| --- | --- |
+| A migration needs to be written | Write it in the main session |
+| A migration needs to be applied | Run the project's migration command yourself |
+
 1. Read the changed migration files
 2. Flag locking operations, missing down-migrations, and destructive column changes
-3. Report findings as a list, then end with `## 완료: <N> findings`
+3. Report findings as a list — each with file:line and why it is unsafe — then end with `## 완료: <N> findings`
+
+   Bad:  `0042_users.py — risky change`
+   Good: `0042_users.py:18 — ALTER COLUMN email SET NOT NULL rewrites the table under an exclusive lock`
 ```

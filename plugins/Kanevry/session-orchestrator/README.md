@@ -9,7 +9,7 @@
 
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/session-orchestrator)](https://www.npmjs.com/package/session-orchestrator)
-[![Version](https://img.shields.io/badge/version-5.20.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.21.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 
@@ -43,11 +43,15 @@ In Claude Code:
 /plugin install session-orchestrator@kanevry
 ```
 
-Codex CLI, Cursor IDE, Pi, upgrade and uninstall: [docs/install.md](docs/install.md).
+Codex CLI, Cursor IDE, Pi, upgrade and uninstall: [docs/install.md](docs/install.md). The guide also covers [installing the Lead add-on](docs/install.md#add-on-lead-session-orchestrator).
+
+The npm release check installs the tagged version in a clean Node.js 24 environment and exercises the shipped Bash guard. [Public check runs](https://github.com/Kanevry/session-orchestrator/actions/workflows/publish.yml)
+
+For releases published by the trusted workflow, the version's npm page links to the source commit and build workflow under Provenance. [npm package](https://www.npmjs.com/package/session-orchestrator)
 
 **[Website](https://session-orchestrator.com)** ([Deutsch](https://session-orchestrator.com/de)) · **[Commands](https://session-orchestrator.com/commands)** · **[User guide](docs/USER-GUIDE.md)** · [Changelog](CHANGELOG.md)
 
-> **Beta:** 15 free seats in the agenticbuilders Pass for Session Orchestrator users. You learn to get real work done with Claude Code and agents. In return you tell me for 14 days what helped. Want a seat? [agenticbuilders.at/so](https://agenticbuilders.at/so#beta)
+> **Beta:** 15 free seats in the agenticbuilders Pass for Session Orchestrator users. You learn to get real work done with Claude Code and agents. In return you tell me for 14 days what helped. Want a seat? [agenticbuilders.at/so](https://agenticbuilders.at/so?utm_source=session-orchestrator&utm_medium=readme#beta)
 
 ## How it works
 
@@ -83,18 +87,21 @@ On Codex and in headless Claude Code (`claude -p`) some command names differ: [C
 | Look back on a phase | `/plan retro` | What worked, what to change |
 | The same mistakes keep coming back | `/evolve`, then `/reconcile` | Lessons you approve become rules |
 
-All 32 commands, by situation: [session-orchestrator.com/commands](https://session-orchestrator.com/commands)
+[All 33 commands by situation](https://session-orchestrator.com/commands)
+
+The destructive-command guard has 18 rules. When its hook is active, 14 rules block a command and 4 issue a warning.
 
 ## It learns, with your yes
 
 `/evolve` suggests lessons from your own session records; `/reconcile` turns the ones you approve into rule files that later sessions load. It never trains a model and never changes itself without your approval ([how it works](docs/USER-GUIDE.md#17-cross-session-learning)).
 
-## Add-on: lead-session-orchestrator
+## Next step
 
-Running three or four sessions side by side? [lead-session-orchestrator](https://session-orchestrator.com/lead) adds one lead session above them that measures and sets the order and puts their questions into one queue for you. It is a separate npm package; details and caveats: [docs/install.md](docs/install.md#add-on-lead-session-orchestrator).
+- Plan your first session with the [free starter course for Session Orchestrator users](https://agenticbuilders.at/so?utm_source=session-orchestrator&utm_medium=readme).
+- Run several sessions with [lead-session-orchestrator](https://session-orchestrator.com/lead?utm_source=session-orchestrator&utm_medium=readme). This separate npm package puts the sessions in order and collects their questions in one queue for you.
 
 ---
 
 [User guide](docs/USER-GUIDE.md) · [Install](docs/install.md) · [Components](docs/components.md) · [Telemetry](docs/telemetry.md) (off unless you turn it on) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Issues](https://github.com/Kanevry/session-orchestrator/issues) · [MIT](LICENSE) · [Privacy](https://session-orchestrator.com/datenschutz) · [npm](https://www.npmjs.com/package/session-orchestrator) · [All docs](docs/README.md)
 
-Provided as-is: a community project with best-effort maintenance and no SLA. Independent, and not affiliated with or endorsed by Anthropic, OpenAI or Cursor. The method is taught at [agenticbuilders.at](https://agenticbuilders.at); the plugin is free and does not need the courses.
+Provided as-is: a community project with best-effort maintenance and no SLA. Independent, and not affiliated with or endorsed by Anthropic, OpenAI or Cursor. The method is taught at [agenticbuilders.at](https://agenticbuilders.at/?utm_source=session-orchestrator&utm_medium=readme); the plugin is free and does not need the courses.

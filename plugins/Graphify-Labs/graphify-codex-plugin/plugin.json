@@ -1,0 +1,55 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "graphify",
+  "version": "1.0.2",
+  "description": "Shared codebase context for Codex and ChatGPT: the code graph, Memory and PR review status for repositories indexed in Graphify.",
+  "author": {
+    "name": "Graphify Labs",
+    "email": "founders@graphify.com",
+    "url": "https://graphify.com"
+  },
+  "homepage": "https://docs.graphify.com/integrations/codex",
+  "repository": "https://github.com/Graphify-Labs/graphify-codex-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "graphify",
+    "codebase context",
+    "code graph",
+    "code review",
+    "pull request review",
+    "mcp",
+    "codex",
+    "impact analysis",
+    "call graph",
+    "team memory"
+  ],
+  "extensions": {
+    "com.openai": {
+      "apps": "./.app.json",
+      "onboardingSkill": "./skills/get-started/SKILL.md",
+      "interface": {
+        "displayName": "Graphify",
+        "shortDescription": "Code graph, Memory, PR reviews",
+        "longDescription": "Graphify gives ChatGPT and Codex shared context about your codebase: a code graph of the repositories you index in Graphify, your team's Memory, and the results of Graphify's pull request reviews. Your coding agent and your teammates work from the same context.\n\nUse it to:\n- Find symbols, files and the main areas of a repository\n- Trace callers, callees and dependencies across files\n- Check what a change could affect before you make it, and find linked tests\n- Recall decisions, incidents and lessons your team saved in Graphify Memory\n- Read the status, gate result and top findings of Graphify's review of a pull request\n\nWho it's for: developers and teams who index their repositories at app.graphify.com and want Codex or ChatGPT to answer from that context.\n\nHow it works: sign in with your Graphify account (OAuth). Graphify reads only the repositories your workspace has enabled for agents. The repository tools are read-only: they don't edit files, open pull requests or start reviews. Switching workspace changes which repositories the session can read. Wiki lives in the Graphify app at app.graphify.com; it is not served over MCP.\n\nLimits: answers cover repositories already indexed in Graphify, so a new repository has to finish indexing first.",
+        "developerName": "Graphify Labs",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://graphify.com",
+        "supportURL": "https://docs.graphify.com",
+        "privacyPolicyURL": "https://graphify.com/privacy",
+        "termsOfServiceURL": "https://graphify.com/terms",
+        "defaultPrompt": [
+          "Map my selected repository: its main areas, how requests flow through it, and the files I should read first. Cite files.",
+          "What could break if I change the session token validator's signature? List its callers, affected files and linked tests.",
+          "Use review_status to list Graphify's recent PR reviews, with status, gate result and top findings."
+        ],
+        "brandColor": "#118d4f",
+        "composerIcon": "./assets/composer-icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}

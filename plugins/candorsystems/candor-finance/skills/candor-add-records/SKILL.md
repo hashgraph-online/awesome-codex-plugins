@@ -3,7 +3,7 @@ name: candor-add-records
 description: "Adds financial records to Candor by hand: statements, CSV exports, screenshots of balances or holdings, manual accounts such as cash or an account elsewhere, single transactions, card or loan terms, and property values; brings a large export or a history from another finance app in as an upload Candor reads whole; and keeps accounts with no bank connection current from each new statement. Checks each import against the source before and after it lands, and can undo it. Use when the person shares a statement, file, or screenshot, has dropped a file in Candor, says an account is missing or behind, is moving from Monarch, Copilot, YNAB, Mint, or Quicken, wants to add cash or a manual account, or wants to track a home or rental property."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.6"
+  candor-package-version: "1.3.7"
   author: Candor
   version: "0.3.0"
   candor-domain-id: add-records

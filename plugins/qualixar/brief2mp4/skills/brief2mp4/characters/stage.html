@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- A scene page for HyperFrames. scripts/character_project.py fills in the duration and the size; the scene itself is
+     characters/scene.js and the cast is characters/cast.js. The whole picture is a pure function of the timeline's t. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=__WIDTH__, height=__HEIGHT__" />
+    <script src="vendor/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; }
+      html, body { width: __WIDTH__px; height: __HEIGHT__px; overflow: hidden; background: #000; }
+      #stage { position: absolute; inset: 0; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="stage" data-composition-id="main" data-start="0" data-duration="__DURATION__" data-width="__WIDTH__" data-height="__HEIGHT__">
+      <canvas id="scene" class="clip" width="__WIDTH__" height="__HEIGHT__" data-start="0" data-duration="__DURATION__"></canvas>
+    </div>
+    <script src="characters/poses.js"></script>
+    <script src="characters/rig.js"></script>
+    <script src="characters/shapes.js"></script>
+    <script src="characters/render.js"></script>
+    <script src="characters/skins.js"></script>
+    <script src="characters/skins-extra.js"></script>
+    <script src="characters/stage.js"></script>
+    <script src="characters/cast.js"></script>
+    <script src="characters/scene.js"></script>
+    <script>
+      const stage = B2M.createStage(B2M_SCENE, B2M_CAST);
+      const g2 = document.getElementById("scene").getContext("2d");
+      const clock = { t: 0 };
+      const tl = gsap.timeline({ paused: true });
+      tl.to(clock, { t: __DURATION__, duration: __DURATION__, ease: "none", onUpdate: () => stage.draw(g2, clock.t) }, 0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      // Hold the first frame until every picture a character uses is decoded.
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["b2m-characters"] = B2M.preloadImages(B2M_CAST).then(() => { stage.draw(g2, 0); tl.seek(0); });
+      stage.draw(g2, 0);
+      tl.seek(0);
+    </script>
+  </body>
+</html>

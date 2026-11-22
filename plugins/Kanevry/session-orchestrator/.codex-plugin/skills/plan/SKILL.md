@@ -8,7 +8,7 @@ metadata:
   tags: planning, prd, requirements, research
   model: inherit
   model-preference: opus
-  model-preference-codex: gpt-5.4
+  model-preference-codex: gpt-6.2-astra
   model-preference-cursor: claude-opus-4-6
 ---
 

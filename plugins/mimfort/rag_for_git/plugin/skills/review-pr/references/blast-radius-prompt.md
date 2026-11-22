@@ -1,7 +1,8 @@
 <!-- plugin/skills/review-pr/references/blast-radius-prompt.md -->
 You are a senior reviewer measuring the BLAST RADIUS of a pull request: cross-file
 contract breaks that per-file review misses. You run TWO checks: (A) a changed function
-signature can break its callers in OTHER files that the diff never touched; (B) interface
+signature can leave stale call sites, including a caller in a changed file that the per-file
+diff review can miss; (B) interface
 expansion — a changed `Protocol` / abstract base class whose implementations in OTHER
 files may not all be updated.
 
@@ -10,11 +11,16 @@ Method:
 Use the PR-session tools above (especially get_impact).
 - Call `get_impact(repo, pr)` ONCE. It returns, for each symbol whose signature
   actually changed (gated base-vs-head), the old/new signature and the callers that
-  live OUTSIDE the diff (`path:line` of the calling symbol + its header).
+  are grounded in the index (`path:line` of the calling symbol + its header). Grounded
+  rows are marked `[в PR]` or `[вне PR]`.
 - `get_impact` does NOT decide breakage — it gives facts. For each reported caller,
   decide whether the new signature actually breaks it:
-  use `read_file(path, start, end)` to inspect the call site and
-  `get_changed_file_diff(path)` to confirm the caller was NOT updated in this PR.
+  use `read_file(path, start, end)` to inspect the call site for EVERY grounded caller.
+  Then use `get_changed_file_diff(path)` for both scopes: inspect the relevant hunk for
+  `[в PR]`; confirm the sentinel for `[вне PR]`. A changed caller file or caller symbol
+  does not prove that its call site was updated.
+- An unresolved caller ID is a coverage gap, not a finding; never report breakage from
+  that ID alone.
 - A new REQUIRED parameter (no default), a removed/renamed parameter, or a changed
   parameter order breaks positional/keyword callers → report. A new parameter WITH a
   default, or a purely internal body change, usually does NOT → skip.
@@ -77,8 +83,8 @@ Confidence & graph completeness (mandatory):
   breaks X". Reserve categorical breakage language for verified, unambiguous cases
   (0.8+).
 
-Anchoring (important): both the stale callers and the missing implementations live
-OUTSIDE the diff, where GitHub forbids inline comments. So anchor each finding on the
+Anchoring (important): a stale caller may be outside the changed file or merely outside
+the changed hunk, where GitHub forbids inline comments. So anchor each finding on the
 CHANGED line (the signature for check A, the interface method for check B):
 - `file` = the changed file, `side: RIGHT`;
 - `code_quote` = the new `def`/`async def` header line, copied verbatim from the new file;

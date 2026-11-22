@@ -7,7 +7,7 @@ metadata:
   tags: eval, measurement, quality, meta, standard
   model: sonnet
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-astra
   model-preference-cursor: claude-sonnet-4-6
   args-schema: '[{"flag":"--session","description":"session_id to evaluate (default: last completed session via the resolution cascade)"},{"flag":"--no-write","description":"Evaluate + report without appending to the eval journal (.orchestrator/metrics/eval.jsonl)"},{"flag":"--verify","description":"Re-evaluate a stored run-id and diff per-dimension for scoring drift (exit 1 on drift)"}]'
 ---

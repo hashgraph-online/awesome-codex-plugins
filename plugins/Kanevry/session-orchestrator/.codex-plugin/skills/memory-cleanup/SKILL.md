@@ -7,7 +7,7 @@ metadata:
   tags: memory, maintenance, meta, dream
   model: sonnet
   model-preference: sonnet
-  model-preference-codex: gpt-5.4-mini
+  model-preference-codex: gpt-6.2-sol
   model-preference-cursor: claude-sonnet-4-6
   args-schema: '[{"flag":"--dry-run","description":"Produce complete-body proposal in .orchestrator/pending-dream.md, no mutations."},{"flag":"--apply-pending","description":"Consume .orchestrator/pending-dream.md (atomic apply)."}]'
 ---

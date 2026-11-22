@@ -40,6 +40,31 @@ SUBJECTS = [
 ]
 
 
+# A brief with characters or dialogue also needs the character kit, whichever look it picks. It takes a character noun
+# or a scripted scene, never a bare "says" or "characters": "a chart that says revenue doubled, 40 characters per line" has none.
+_PEOPLE = r'(?:child|kid|boy|girl|man|woman|crow|bird|fox|dog|cat|robot|chef|tomato|mascot|hero|villain|knight|king|queen|monkey|owl)'
+CHARACTERS = re.compile(
+    r"\b(?:dialogue|dialog|conversation|skit|mascot|lip[- ]?sync(?:ed)?|short story|animated story|cartoon)\b"     # words that mean a scripted scene
+    r"|\b(?:a|an|the|our|my|your|his|her|their|two|three|four|five|six|several|main|animated|cartoon|story)\s+(?:[a-z-]+\s+)?characters?\b"
+    r"(?!\s+(?:per|long|limit|max|maximum|wide|count|in\s+(?:a|the|each|every)\b))"                              # not "characters per line"
+    r"|\b" + _PEOPLE + r"s?\s+(?:says|said|asks|replies|shouts|whispers|answers|talks|speaks)\b"                  # a someone who talks
+    r"|\btalking\s+" + _PEOPLE + r"|\btalking\s+(?:character|animal)s?\b", re.I)
+KIT = 'characters/README-CHARACTERS.md'
+KIT_SKINS = ('line-art', 'paper-cutout', 'shadow-puppet', 'cel-shaded', 'motion-comic', 'flat-explainer')
+
+
+def kit_reason(form):
+    base = 'the brief has characters or dialogue: use the character kit (%s) for poses, walk cycles, blinks and lip sync' % KIT
+    if form in KIT_SKINS:
+        return base + '; it has a skin for this look'
+    return base + '; its skins are ' + ', '.join(KIT_SKINS) + ', so use the nearest and say so in SPEC.md'
+
+
+def norm(text):
+    """Lower case, with hyphens, underscores and runs of spaces as single spaces: "Shadow-Puppet" and "shadow  puppet" match."""
+    return re.sub(r'[\s_\-]+', ' ', str(text or '').lower()).strip()
+
+
 def load():
     return json.loads((REF / 'art-forms.json').read_text(encoding='utf-8'))
 
@@ -58,37 +83,41 @@ def route(brief, data=None):
             strong.add(fid)
 
     named = False
+    flat = norm(text)
     for f in data['forms']:
-        for nm in [f['name']] + f['aliases'] + [f['id'].replace('-', ' ')]:
-            short = re.sub(r'\s*\(.*\)', '', nm).split(' and ')[0].strip()
-            if len(short) > 3 and re.search(r'\b%s\b' % re.escape(short), text, re.I):
-                bump(f['id'], 20, 'the brief names "%s"' % short.lower(), True)
+        for nm in [f['name']] + f['aliases'] + [f['id']]:
+            short = norm(re.sub(r'\s*\(.*\)', '', nm).split(' and ')[0])
+            # hyphens, spaces and plurals do not matter: "shadow-puppet", "shadow puppets" and "shadow puppetry" all name Shadow puppetry
+            if len(short) > 3 and re.search(r'\b%s(?:s|es|ry|ing|ed)?\b' % re.escape(short), flat):
+                bump(f['id'], 20, 'the brief names "%s"' % short, True)
                 named = True
                 break
         for kw in f['keywords']:
-            if re.search(r'\b%s\w*\b' % re.escape(kw), text, re.I):
+            if re.search(r'\b%s\w*\b' % re.escape(norm(kw)), flat):
                 bump(f['id'], 3, 'it says "%s"' % kw)
     for pattern, forms, reason in SUBJECTS:
         m = re.search(pattern, text, re.I)
         if m:
             for i, fid in enumerate(forms):
                 bump(fid, 4.5 - i, '%s ("%s")' % (reason, m.group(0).lower()), True)
+    kit = bool(CHARACTERS.search(text))
     ranked = sorted(((s, fid) for fid, s in score.items() if fid in strong or s >= 6), key=lambda x: (-x[0], [f['id'] for f in data['forms']].index(x[1])))
     by_id = {f['id']: f for f in data['forms']}
     if not ranked:
-        return {'form': None, 'confidence': 'none', 'why': ['the brief names no look, subject or mood the table knows'], 'alternatives': [], 'read': ['references/formats.md', 'references/art-forms.md']}
+        return {'form': None, 'confidence': 'none', 'why': ['the brief names no look, subject or mood the table knows'] + ([kit_reason(None)] if kit else []), 'alternatives': [], 'read': ['references/formats.md', 'references/art-forms.md'] + ([KIT] if kit else []), 'kit': KIT if kit else None}
     top = by_id[ranked[0][1]]
     return {
-        'form': top['id'], 'name': top['name'], 'confidence': 'named' if named and ranked[0][0] >= 20 else 'inferred', 'why': why[top['id']][:3],
+        'form': top['id'], 'name': top['name'], 'confidence': 'named' if named and ranked[0][0] >= 20 else 'inferred', 'why': why[top['id']][:3] + ([kit_reason(top['id'])] if kit else []), 'kit': KIT if kit else None,
         'cadence': 'steps %d times a second' % top['fps'] if top['fps'] else 'smooth, full frame rate', 'route': top['route'], 'blender': top['blender'],
         'pitfalls': top['pitfalls'], 'alternatives': [{'form': by_id[fid]['id'], 'name': by_id[fid]['name']} for _, fid in ranked[1:3]],
-        'read': ['references/art-forms/%s.md' % top['id'], 'references/art-forms.md'], 'demo': 'art-forms/gallery.html?look=%s' % top['looks'][0],
+        'read': ['references/art-forms/%s.md' % top['id'], 'references/art-forms.md'] + ([KIT] if kit else []), 'demo': 'art-forms/gallery.html?look=%s' % top['looks'][0],
     }
 
 
 def report(r):
     if not r['form']:
-        return 'Art form: none suggested. %s. Use a format from references/formats.md, or choose a look from references/art-forms.md and say why in SPEC.md.' % r['why'][0].capitalize()
+        note = ('\nCharacters: ' + r['why'][1] + '.') if len(r['why']) > 1 else ''
+        return 'Art form: none suggested. %s. Use a format from references/formats.md, or choose a look from references/art-forms.md and say why in SPEC.md.%s' % (r['why'][0].capitalize(), note)
     lines = ['Art form: %s (%s)' % (r['name'], 'named in the brief' if r['confidence'] == 'named' else 'inferred')]
     lines += ['  why: ' + w for w in r['why']]
     lines += ['  cadence: ' + r['cadence'], '  usual tool: ' + r['route']]

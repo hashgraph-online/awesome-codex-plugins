@@ -4,8 +4,11 @@
    - **Path A — per-subagent model override available:** **dispatch a subagent on the chosen model** to
      execute Steps 2–4, giving it the reviewer session-less tools (`get_task`, `search_codebase`,
      `get_subsystem_summaries`, `get_task_context`, `search_tasks`, the graph tools, `get_pr_diff`) plus
-     the harness `Read`/`Bash`/`Glob`/`Write` (to persist the brief). The subagent returns the brief file
-     path and a short summary (kept / dropped).
+     the harness `Read`/`Bash`/`Glob`/`Write`. When Step 0 supplies a `brief_evidence_id` and the
+     verifier is available, return the other brief sections and one ordered list of `references`
+     for both citation sections. The orchestrator verifies the list and saves the brief.
+     Without a verifier or an evidence ID, the subagent can save the legacy brief and return
+     its path and a short summary (kept / dropped).
      **Pass the Step 0 `prepare_task_context` payload into the dispatch prompt verbatim** (or as an
      attached/inlined JSON blob) — the payload lives in the orchestrator's context, not the
      subagent's, and Steps 2–4 are written to consume `payload.task` / `payload.related` /
@@ -36,7 +39,7 @@
    across queries, so never gate on an absolute value (`search_codebase` exposes no score at all,
    only result order). So DO NOT re-truncate to a fixed number and DO NOT pad artificially: include
    EVERY returned item that *directly informs* the implementation. The keep/drop judgment stays
-   binary (directly-informs), and end each section with `(dropped N: reason)`.
+   binary (directly-informs), with a dropped-count note for each group.
    - **Order** candidates by result rank (tasks: rank/score; code: rank).
    - **No fixed ceilings.** Take exactly the directly-informing items the tools returned. Related
      tasks are bounded by the search rails; the brief lists those that directly inform. Expand the
@@ -47,8 +50,8 @@
        follow; a constraint that narrows the approach.
      - ❌ EXCLUDE: a task in the same area but a different mechanism; a file the search surfaced that
        you won't touch or copy; background you won't act on.
-   - **Report what you dropped:** end the Related work, Relevant code and Test exemplars sections with
-     `(dropped N: reason)`.
+   - **Report what you dropped.** End Related work with `(dropped N: reason)`. Put the dropped counts
+     and reasons for Relevant code and Test exemplars under Constraints / open questions.
    - **Dedup related sources by key (linked ∪ similar).** «Related work» draws from
      `get_task_context` (linked) and `search_tasks` (similar). Deduplicate by canonical task key
      before inclusion, matching `PRI-N`↔`ID-N` via `aliases` (one task, two codes). On collision
@@ -64,12 +67,53 @@
    ## Subsystems — ≤8 relevant subsystems, one line: «cluster_key — gist of summary». For `stale: true`,
    either omit the item or use exactly: `- [stale] <cluster_key> — summary content omitted; verify against code.`
    (omit if prior empty)
-   ## Relevant code — every directly-informing file/symbol, one line: «path:line — why» (+ blast radius from the graph). (dropped N: …)
-   ## Test exemplars — every directly-informing test file/symbol, one line: «path:line — what's mocked / which pattern». (omit if none; dropped N: …)
+   ## Relevant code — citation section filled by the server or the legacy fallback below.
+   ## Test exemplars — citation section filled the same way (omit when absent).
    ## Constraints / open questions — terse bullets: limits, unknowns, context gaps (e.g. "board unavailable", "task corpus empty").
    ```
 
-   Cite `path:line` straight from the line-numbered Step 3 snippets — no re-Read (Step 3 contract).
+   **Prepare one ordered list of references.** Keep the retrieval order within each section.
+   Each record has `section` (`code` for Relevant code, `test_exemplars` for Test exemplars),
+   the exact relative `path`, a positive integer `line` from the visible numbered snippet, and a
+   single-line `reason` explaining why it directly informs the task. Include the blast radius for
+   code or the useful test pattern where relevant. An optional `role` (`edit` or `read`) adds
+   context to the reason. Apply the same relevance test and grounding to every reference,
+   regardless of role.
+
+   **Verify references before saving.** If Step 0 returned `brief_evidence_id` and
+   `verify_task_brief` accepts `references`, the orchestrator calls
+   `verify_task_brief(evidence_id=<brief_evidence_id>, references=<ordered list>)` on the same
+   reviewer MCP connection used for Step 0. For an inline brief, call the verifier directly on
+   that connection. Send `references` alone as the citation input. For this path, only fully
+   visible rows of the corresponding Step 0 section can enter the rendered block. When the
+   verification `status` is `ok`, branch on `render_status` below.
+
+   - `render_status` of `ok` or `empty`: copy the `markdown` field as one block without changes
+     into the brief between Subsystems (or Related work) and Constraints / open questions. Replace
+     both citation-section placeholders with this block. `empty` supplies a valid Relevant code
+     section with no citations. The server's block includes its verification marker. For a rejected
+     reference, correct the anchor from the visible Step 0 rows and retry if appropriate, or use the
+     per-reference verdicts to account for omissions in Constraints / open questions.
+   - `invalid_format`: inspect the submitted records, correct the formatting (for example, make a
+     multi-line reason a single line), and retry on the same connection. If rendering still fails,
+     record the issue in Constraints / open questions and continue without a rendered citation
+     block. Keep this failure distinct from a successful `empty` response.
+
+   **Legacy fallback.** When the verifier only accepts `citations` and Step 0 supplies an evidence
+   ID, project the ordered references onto `section`, `path` and `line` and use
+   `verify_task_brief(evidence_id=<brief_evidence_id>, citations=<projected list>)` on the original
+   reviewer MCP connection. With `status` of `ok`, keep only entries with a `verified` verdict and
+   write their one-line reasons from the original list.
+
+   If there is no verifier or evidence ID, or either verification call returns
+   `evidence_unavailable`, manually match each citation's exact path and positive line to fully
+   visible numbered rows of the original snippets for that section of the brief. A snippet
+   header, advertised line range, or cut-off row is insufficient. When a snippet section has a
+   line consisting exactly of `[...truncated]`, exclude the row immediately before
+   `[...truncated]` even if it appears numbered. Also exclude the marker and all subsequent rows
+   in that section. Omit unmatched anchors.
+   In both cases, use the usual Relevant code and Test exemplars headings and the one-line
+   `path:line — reason` form. Do not add `<!-- reviewer:verified-citations -->`.
 
    **Persist the brief (survivability).** After distilling, save the brief to a file so it
    survives context compaction / a new session and seeds the trace задача→бриф→спека→план→PR.
@@ -97,5 +141,9 @@
      the match if any (slug drift between runs must not spawn duplicates); board-less → exact name.
    - **Content:** the distilled brief verbatim (the `# Brief — <KEY> <title>` skeleton); add the
      task `url` on the line below the heading when available, for grep-by-key.
+   - **Read back verified blocks.** For a brief with a server-rendered block, read the saved file back
+     and check that the citation block matches the verifier's `markdown` exactly and appears once.
+     If the write changed or omitted the block, replace it with the original response and check
+     again before handing off. Treat a remaining mismatch as a failed write.
    - **Fail-open:** a failed write (read-only FS, no permission) is non-fatal — note it and still
      hand off with the in-context brief.

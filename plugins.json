@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-21",
-  "total": 464,
+  "last_updated": "2026-11-22",
+  "total": 466,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1050,6 +1050,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ezra-y/codex-goal-progress/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Graphify",
+      "url": "https://github.com/Graphify-Labs/graphify-codex-plugin",
+      "owner": "Graphify-Labs",
+      "repo": "graphify-codex-plugin",
+      "description": "Shared codebase context from a code knowledge graph: find symbols, trace callers and dependencies, check the impact of a change, and share team memory and pull request review results.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Graphify-Labs/graphify-codex-plugin/HEAD/plugins/graphify/plugin.json"
     },
     {
       "name": "GrayMatter",
@@ -3916,6 +3926,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/questionpunk/codex-plugin/HEAD/plugins/questionpunk/plugin.json"
+    },
+    {
+      "name": "qURL",
+      "url": "https://github.com/layervai/codex-plugins",
+      "owner": "layervai",
+      "repo": "codex-plugins",
+      "description": "Share a running local app with approved people or agents from Codex through OpenNHP identity-first access, without deployment, a publisher account or a public inbound app port.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/layervai/codex-plugins/HEAD/plugins/qurl/plugin.json"
     },
     {
       "name": "Read Image",

@@ -190,6 +190,10 @@ if [ -n "$PYS" ] && command -v ruff >/dev/null; then PYS="$PYS" sh -c 'ruff chec
 - `*.md`, `*.txt`, `docs/**`
 - `*.json`, `*.yml`, `*.yaml` (예외: `settings.json`, `project.yaml`)
 
+린터·테스트·경계 검사 설정(`ruff.toml`·`pyproject.toml`·`setup.cfg`·`pytest.ini`·`tox.ini`·`.eslintrc*`·
+`eslint.config.*`·`tsconfig*.json`·`jest.config.*`·`.pre-commit-config.yaml`·`.importlinter` 등)은 trivial 로
+세지 않는다 — 검증 약화가 숨는 자리다.
+
 → **scope = 'quick', security_scan_needed = false**
 
 #### 기본 (일반 코드)
@@ -296,6 +300,9 @@ prompt: |
   **정적 분석 결과 (0.2단계):**
   [0.2단계 ruff check 결과 - 있으면 포함, 없으면 "정적 분석 통과" 또는 "Python 파일 없음"]
 
+  **요청·계획 맥락:** [사용자 요청 원문 또는 계획 파일 경로 — 없으면 "없음"]
+  (diff 가 린터·테스트·경계 설정을 약화했을 때 그 근거가 있는지 판정하는 데 쓴다)
+
   **Auto-Scope 설정:**
   - scope: [1.5단계에서 결정된 scope]
   - security_scan_needed: [1.5단계 결과]
@@ -361,7 +368,10 @@ prompt: |
 | MEDIUM    | [N개] (quick 에서는 0)                   |
 | LOW       | [N개] (quick 에서는 0)                   |
 | 완료 선언 | [`## 완료: 전체` / `부분` / 없음(잘림)]  |
+| 테스트 공백 | [N건 / 절 없음]                        |
 | 보안 이슈 | [N개 / 스캔 안 함]                       |
+
+발견 0건의 `[ACCEPT]` 는 정당한 결과다 — 요약에 결함을 덧붙여 만들지 않는다.
 
 ### 수정 필요 사항
 

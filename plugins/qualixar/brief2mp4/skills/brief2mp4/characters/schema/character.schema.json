@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "character.schema.json",
+  "title": "brief2mp4 character",
+  "description": "A rigged 2D character: parts with pivots and parent links, a palette, proportions and an id. Every part is drawn in one rest-pose coordinate system with the feet at y = 0 and the character facing +x; a part's pivot is where it hinges, in that same system.",
+  "type": "object",
+  "required": [
+    "id",
+    "palette",
+    "proportions",
+    "parts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "biped",
+        "bird",
+        "object"
+      ]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "blink": {
+      "type": "boolean"
+    },
+    "palette": {
+      "type": "object",
+      "minProperties": 2,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+      }
+    },
+    "proportions": {
+      "type": "object",
+      "required": [
+        "height",
+        "legLength"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "legLength": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Approximate width in units, used to fit the character in a sheet cell."
+        },
+        "face": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Approximate width of the head or face in units, used for close-ups (default 0.3 x height)."
+        }
+      }
+    },
+    "poseOverrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "parts": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/part"
+      }
+    },
+    "spikes": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "How spiky the anime skin's hair is, for shapes that carry a calm outline: 0 is the calm outline, 1 the spiky one. Default 0.6."
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number"
+      }
+    },
+    "part": {
+      "type": "object",
+      "required": [
+        "id",
+        "parent",
+        "pivot",
+        "z"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pivot": {
+          "$ref": "#/$defs/point"
+        },
+        "z": {
+          "type": "number"
+        },
+        "sign": {
+          "enum": [
+            -1,
+            1
+          ]
+        },
+        "prop": {
+          "type": "boolean"
+        },
+        "mouth": {
+          "$ref": "#/$defs/mouth"
+        },
+        "shapes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shape"
+          }
+        },
+        "image": {
+          "$ref": "#/$defs/image"
+        },
+        "variants": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/variant"
+          }
+        }
+      }
+    },
+    "mouth": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "lips",
+            "jaw",
+            "images"
+          ]
+        },
+        "size": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maxOpen": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 80
+        },
+        "images": {
+          "type": "object",
+          "description": "For kind images: one picture per mouth shape (rest, AI, E, O, U, MBP, FV, L, etc); rest is required.",
+          "additionalProperties": {
+            "$ref": "#/$defs/image"
+          }
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "path",
+            "ellipse",
+            "circle",
+            "capsule",
+            "rect",
+            "poly"
+          ]
+        },
+        "d": {
+          "type": "string",
+          "pattern": "^[MLCQZ0-9eE+\\-., ]+$"
+        },
+        "c": {
+          "$ref": "#/$defs/point"
+        },
+        "r": {
+          "type": [
+            "number",
+            "array"
+          ]
+        },
+        "rot": {
+          "type": "number"
+        },
+        "a": {
+          "$ref": "#/$defs/point"
+        },
+        "b": {
+          "$ref": "#/$defs/point"
+        },
+        "ra": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rb": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "h": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pts": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
+        },
+        "smooth": {
+          "type": "boolean"
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "fill": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stroke": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sw": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "role": {
+          "enum": [
+            "base",
+            "detail",
+            "hole",
+            "line",
+            "mouth",
+            "cel"
+          ]
+        },
+        "shade": {
+          "type": "boolean"
+        },
+        "calm": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/point"
+          },
+          "description": "For a poly: a second, calmer set of points, same count as pts. The character's spikes field blends between them."
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "required": [
+        "src",
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "additionalProperties": false,
+      "description": "A PNG or WebP picture with a transparent background, drawn in the rectangle x, y, w, h of the rest-pose coordinate system. src is a path relative to the character file, or a data: URI.",
+      "properties": {
+        "src": {
+          "type": "string",
+          "pattern": "^(data:image/(png|webp);base64,|[^:]+\\.(png|webp)$)"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "h": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A different drawing of a part, chosen by the pose (an open hand), the view (front) or the skin (anime). Any field given replaces the part's own.",
+      "properties": {
+        "pivot": {
+          "$ref": "#/$defs/point"
+        },
+        "shapes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shape"
+          }
+        },
+        "image": {
+          "$ref": "#/$defs/image"
+        },
+        "mouth": {
+          "$ref": "#/$defs/mouth"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

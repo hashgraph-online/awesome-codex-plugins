@@ -1,6 +1,6 @@
 # detect_edit.ps1: say whether the optional edit pack is installed. Always exits 0, so a caller can branch on the text.
 #
-#   edit: ready (film,sound,effect,photo,vector)
+#   edit: ready (film,sound,effect,photo,vector,light)
 #   edit: not installed
 #
 # A component is listed only when its pinned CLI is there AND runs (<cli> --version exits 0).
@@ -26,7 +26,7 @@ function Test-Cli([string]$path) {
     } catch { return $false }
 }
 
-foreach ($pair in @("film:filmcraft", "sound:soundcraft", "effect:effectcraft", "photo:photocraft", "vector:vectorcraft")) {
+foreach ($pair in @("film:filmcraft", "sound:soundcraft", "effect:effectcraft", "photo:photocraft", "vector:vectorcraft", "light:lightcraft")) {
     $short, $name = $pair -split ":"
     $candidates = @(
         (Join-Path $HomeDir "$name\$name-cli.exe"),

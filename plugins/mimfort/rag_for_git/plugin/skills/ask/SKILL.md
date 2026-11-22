@@ -54,7 +54,9 @@ Plus the harness file tools (`Read`, `Grep`, `Glob`) to read source from the loc
 
 2. **Search.** Call `search_codebase(repo, "<question>", branch=…)`. Parse the
    `path#fqn (path:start-end)` headers to get candidate symbols (`node_id`) and line ranges.
-   If the result is `(ничего не найдено)`, go to Fallback.
+   If the result is `(ничего не найдено)` or starts with `(поиск недоступен`, go to
+   Fallback. For `(поиск недоступен...)`, do not re-call `search_codebase`: the
+   failure is infrastructural, not a relevance signal.
 
    **Lazy expansion (no user prompt).** If the output ends with a cliff/rails note reporting a
    high-scoring tail beyond the cut AND the question looks broad, you MAY re-call `search_codebase`
@@ -91,8 +93,10 @@ extra `Read` of the same lines is redundant.
 
 ## Fallback (fail-open)
 
-If the reviewer MCP server is unreachable or returns `(ничего не найдено)` / `(граф недоступен)`
-(Postgres/Neo4j/index down), degrade gracefully:
+If the reviewer MCP server is unreachable or returns `(ничего не найдено)` /
+`(поиск недоступен...)` / `(граф недоступен)` (Postgres/embeddings/Neo4j/index
+down), degrade gracefully:
+- Do not re-call `search_codebase` after an unavailable response.
 - Use the harness `Grep`/`Glob`/`Read` over the local clone to locate and confirm code.
 - Tell the user (in Russian) that semantic/graph search was unavailable and the answer comes from
   a lexical search, so it may be less complete.

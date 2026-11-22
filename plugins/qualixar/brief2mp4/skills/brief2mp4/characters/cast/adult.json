@@ -1,0 +1,264 @@
+{
+  "$schema": "../schema/character.schema.json",
+  "id": "adult",
+  "name": "Adult man",
+  "kind": "biped",
+  "version": 1,
+  "spikes": 0.35,
+  "palette": {"skin": "#c98a5f", "skin2": "#b0744c", "skin3": "#8f5b39", "ear": "#bb7b52", "hair": "#241a16", "hairShine": "#6b5148", "kurta": "#e6c07a", "kurta2": "#c79a4a", "dhoti": "#f6efe0", "dhoti2": "#d9cdb4", "sandal": "#6b4a2f", "ink": "#231b2a", "blush": "#c8765a", "white": "#fffaf0", "iris": "#4a2f1f", "steel": "#c9ced6", "steel2": "#8f97a3", "grip": "#7a2f2f", "gold": "#d9a93a"},
+  "proportions": {"height": 316, "legLength": 112, "width": 130, "face": 68},
+  "parts": [
+    {"id": "hip", "parent": null, "pivot": [0, -112], "z": 10,
+     "variants": {
+       "shadow": {"shapes": [{"type": "ellipse", "c": [0, -116], "r": [25, 15], "fill": "dhoti", "stroke": null, "shade": false}, {"type": "poly", "pts": [[2, -108], [26, -96], [30, -52], [20, -44], [8, -62]], "smooth": false, "fill": "dhoti", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [0, -116], "r": [25, 15], "fill": "dhoti", "stroke": null, "shade": false},
+       {"type": "path", "d": "M-18 -112 Q0 -100 18 -112", "fill": null, "stroke": "dhoti2", "sw": 2, "role": "detail", "shade": false},
+       {"type": "ellipse", "c": [6, -112], "r": [5, 4], "fill": "dhoti2", "stroke": null, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "legF_up", "parent": "hip", "pivot": [6, -110], "z": 6,
+     "shapes": [
+       {"type": "capsule", "a": [8, -110], "b": [10, -60], "ra": 18, "rb": 14.5, "fill": "dhoti2", "stroke": null},
+       {"type": "path", "d": "M2 -100 Q6 -80 6 -64", "fill": null, "stroke": "dhoti2", "sw": 2.2, "role": "detail", "shade": false},
+       {"type": "path", "d": "M12 -104 Q15 -84 14 -66", "fill": null, "stroke": "dhoti2", "sw": 2, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "legF_lo", "parent": "legF_up", "pivot": [10, -58], "z": 5,
+     "shapes": [
+       {"type": "capsule", "a": [11, -42], "b": [11, -14], "ra": 7.8, "rb": 7, "fill": "skin2", "stroke": null},
+       {"type": "capsule", "a": [10, -58], "b": [11, -32], "ra": 14.5, "rb": 11.5, "fill": "dhoti2", "stroke": null},
+       {"type": "ellipse", "c": [11, -31], "r": [11.8, 3.2], "fill": "dhoti2", "stroke": null, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "footF", "parent": "legF_lo", "pivot": [11, -13], "z": 4,
+     "shapes": [
+       {"type": "poly", "pts": [[2, -20], [15, -20], [21, -14], [36, -11], [43, -6], [43, -3], [1, -3]], "smooth": true, "fill": "skin2", "stroke": null, "shade": false},
+       {"type": "rect", "x": -1, "y": -5.5, "w": 47, "h": 5.5, "r": 2.6, "fill": "sandal", "stroke": null, "shade": false},
+       {"type": "path", "d": "M14 -14 L28 -6", "fill": null, "stroke": "sandal", "sw": 2.4, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "legN_up", "parent": "hip", "pivot": [0, -110], "z": 10,
+     "shapes": [
+       {"type": "capsule", "a": [2, -110], "b": [4, -60], "ra": 18, "rb": 14.5, "fill": "dhoti", "stroke": null},
+       {"type": "path", "d": "M-4 -100 Q0 -80 0 -64", "fill": null, "stroke": "dhoti2", "sw": 2.2, "role": "detail", "shade": false},
+       {"type": "path", "d": "M6 -104 Q9 -84 8 -66", "fill": null, "stroke": "dhoti2", "sw": 2, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "legN_lo", "parent": "legN_up", "pivot": [4, -58], "z": 9,
+     "shapes": [
+       {"type": "capsule", "a": [5, -42], "b": [5, -14], "ra": 7.8, "rb": 7, "fill": "skin", "stroke": null},
+       {"type": "capsule", "a": [4, -58], "b": [5, -32], "ra": 14.5, "rb": 11.5, "fill": "dhoti", "stroke": null},
+       {"type": "ellipse", "c": [5, -31], "r": [11.8, 3.2], "fill": "dhoti2", "stroke": null, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "footN", "parent": "legN_lo", "pivot": [5, -13], "z": 8,
+     "shapes": [
+       {"type": "poly", "pts": [[-4, -20], [9, -20], [15, -14], [30, -11], [37, -6], [37, -3], [-5, -3]], "smooth": true, "fill": "skin", "stroke": null, "shade": false},
+       {"type": "rect", "x": -7, "y": -5.5, "w": 47, "h": 5.5, "r": 2.6, "fill": "sandal", "stroke": null, "shade": false},
+       {"type": "path", "d": "M8 -14 L22 -6", "fill": null, "stroke": "sandal", "sw": 2.4, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "torso", "parent": "hip", "pivot": [0, -120], "z": 11,
+     "variants": {
+       "shadow": {"shapes": [{"type": "capsule", "a": [2, -236], "b": [4, -258], "ra": 9.5, "rb": 8.5, "fill": "skin2", "stroke": null, "shade": false}, {"type": "poly", "pts": [[-30, -238], [26, -241], [34, -192], [39, -130], [49, -68], [22, -64], [-22, -64], [-49, -68], [-39, -130], [-34, -192]], "smooth": false, "fill": "kurta", "stroke": null, "shade": false}, {"type": "rect", "x": -12, "y": -246, "w": 24, "h": 10, "r": 4, "fill": "kurta", "stroke": null, "shade": false}]},
+       "front": {"shapes": [{"type": "capsule", "a": [4, -236], "b": [4, -256], "ra": 9.5, "rb": 8.5, "fill": "skin2", "stroke": null, "shade": false}, {"type": "poly", "pts": [[-36, -238], [40, -238], [46, -190], [48, -130], [40, -68], [-34, -68], [-44, -130], [-42, -190]], "smooth": true, "fill": "kurta", "stroke": null, "shade": false}, {"type": "rect", "x": 2, "y": -240, "w": 5, "h": 172, "r": 2, "fill": "kurta2", "stroke": null, "role": "detail", "shade": false}, {"type": "circle", "c": [4.5, -214], "r": 2.4, "fill": "gold", "stroke": null, "role": "detail", "shade": false}, {"type": "circle", "c": [4.5, -190], "r": 2.4, "fill": "gold", "stroke": null, "role": "detail", "shade": false}, {"type": "circle", "c": [4.5, -166], "r": 2.4, "fill": "gold", "stroke": null, "role": "detail", "shade": false}, {"type": "poly", "pts": [[26, -238], [40, -238], [46, -190], [48, -130], [40, -68], [28, -68], [34, -130], [30, -190]], "smooth": true, "fill": "kurta", "stroke": null, "role": "cel"}]}
+     },
+     "shapes": [
+       {"type": "capsule", "a": [2, -236], "b": [4, -256], "ra": 9.5, "rb": 8.5, "fill": "skin2", "stroke": null, "shade": false},
+       {"type": "poly", "pts": [[-30, -238], [26, -241], [34, -192], [38, -130], [32, -68], [-32, -68], [-37, -130], [-34, -192]], "smooth": true, "fill": "kurta", "stroke": null, "shade": false},
+       {"type": "rect", "x": 18, "y": -240, "w": 6, "h": 170, "r": 2, "fill": "kurta2", "stroke": null, "role": "detail", "shade": false},
+       {"type": "circle", "c": [21, -214], "r": 2.2, "fill": "gold", "stroke": null, "role": "detail", "shade": false},
+       {"type": "circle", "c": [22, -192], "r": 2.2, "fill": "gold", "stroke": null, "role": "detail", "shade": false},
+       {"type": "circle", "c": [22, -170], "r": 2.2, "fill": "gold", "stroke": null, "role": "detail", "shade": false},
+       {"type": "rect", "x": -12, "y": -190, "w": 18, "h": 20, "r": 2, "fill": "kurta2", "stroke": null, "role": "detail", "shade": false},
+       {"type": "path", "d": "M-30 -86 L30 -86", "fill": null, "stroke": "kurta2", "sw": 2, "role": "detail", "shade": false},
+       {"type": "poly", "pts": [[14, -240], [26, -241], [34, -192], [38, -130], [32, -68], [18, -68], [24, -130], [22, -192]], "smooth": true, "fill": "kurta", "stroke": null, "role": "cel"}
+     ]
+    },
+    {"id": "armF_up", "parent": "torso", "pivot": [4, -234], "z": 6,
+     "variants": {
+       "over": {"z": 14},
+       "front": {"shapes": []},
+       "shadow": {"shapes": [{"type": "capsule", "a": [4, -234], "b": [10, -178], "ra": 12.5, "rb": 11, "fill": "kurta", "stroke": null}, {"type": "ellipse", "c": [9, -180], "r": [15, 6.5], "fill": "kurta", "stroke": null, "rot": -80, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "capsule", "a": [4, -234], "b": [10, -178], "ra": 12.5, "rb": 11, "fill": "kurta", "stroke": null}
+     ]
+    },
+    {"id": "armF_lo", "parent": "armF_up", "pivot": [10, -178], "z": 5,
+     "variants": {
+       "over": {"z": 14.1},
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "capsule", "a": [10, -178], "b": [17, -118], "ra": 8.8, "rb": 7.6, "fill": "skin2", "stroke": null},
+       {"type": "ellipse", "c": [10, -178], "r": [11.5, 3], "fill": "kurta2", "stroke": null, "rot": -80, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "handF", "parent": "armF_lo", "pivot": [17, -118], "z": 7,
+     "variants": {
+       "open": {"shapes": [{"type": "ellipse", "c": [17, -106.3], "r": [11.18, 11.700000000000001], "fill": "skin2", "stroke": null}, {"type": "capsule", "a": [8.030000000000001, -99.8], "b": [3.3499999999999996, -80.3], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [14.01, -99.8], "b": [12.45, -82.9], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [19.99, -99.8], "b": [21.55, -82.9], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [25.97, -99.8], "b": [30.65, -80.3], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [24.8, -108.9], "b": [35.85, -98.5], "ra": 4.8100000000000005, "rb": 4.03, "fill": "skin2", "stroke": null, "shade": false}]},
+       "point": {"shapes": [{"type": "ellipse", "c": [17, -107.6], "r": [10.66, 11.18], "fill": "skin2", "stroke": null}, {"type": "capsule", "a": [19.6, -102.4], "b": [20.9, -77.69999999999999], "ra": 4.42, "rb": 3.77, "fill": "skin2", "stroke": null, "shade": false}, {"type": "ellipse", "c": [26.1, -105.65], "r": [4.42, 5.460000000000001], "fill": "skin2", "stroke": null, "shade": false}]},
+       "front": {"shapes": []},
+       "shadow": {"shapes": [{"type": "ellipse", "c": [17.675, -105.85], "r": [11.340000000000002, 12.15], "fill": "skin2", "stroke": null}, {"type": "capsule", "a": [8.495, -101.8], "b": [8.360000000000001, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [14.165, -101.8], "b": [14.57, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [19.835, -101.8], "b": [20.78, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [25.505000000000003, -101.8], "b": [26.99, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin2", "stroke": null, "shade": false}, {"type": "capsule", "a": [23.75, -111.25], "b": [33.2, -100.45], "ra": 4.455, "rb": 3.78, "fill": "skin2", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [17.5, -103.05], "r": [11.440000000000001, 14.950000000000001], "fill": "skin2", "stroke": null},
+       {"type": "capsule", "a": [23.5, -110.2], "b": [31.3, -98.5], "ra": 5.07, "rb": 4.29, "fill": "skin2", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "head", "parent": "torso", "pivot": [4, -244], "z": 13,
+     "variants": {
+       "anime": {"shapes": [{"type": "poly", "pts": [[-30, -258], [-40, -276], [-32, -290], [-42, -306], [-26, -304], [-22, -322], [-8, -312], [-4, -332], [8, -314], [20, -330], [26, -310], [42, -318], [38, -296], [-2, -262]], "smooth": false, "fill": "hair", "stroke": null, "calm": [[-31.1, -262.9], [-42.5, -275.9], [-32.0, -290.0], [-36.4, -302.9], [-26.0, -304.0], [-20.9, -312.8], [-8.0, -312.0], [-9.5, -315.7], [8.0, -314.0], [7.4, -319.6], [26.0, -310.0], [26.9, -312.6], [38.0, -296.0], [-2.0, -262.0]], "shade": false}, {"type": "poly", "pts": [[4, -313], [30, -302], [37, -280], [35, -260], [24, -245], [6, -241], [-12, -249], [-26, -268], [-28, -292], [-14, -309]], "smooth": true, "fill": "skin", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-12, -274], "r": [6.5, 9.5], "fill": "ear", "stroke": null, "shade": false}, {"type": "path", "d": "M-9 -280 Q-18 -274 -9 -267", "fill": null, "stroke": "skin3", "sw": 2.6, "role": "line"}, {"type": "poly", "pts": [[-28, -280], [-27, -304], [-12, -314], [-5, -300], [4, -322], [12, -299], [22, -316], [26, -294], [36, -300], [37, -283], [26, -288], [14, -284], [6, -292], [-4, -286], [-14, -292], [-22, -282]], "smooth": false, "fill": "hair", "stroke": null, "calm": [[-29.0, -280.0], [-27.0, -304.0], [-15.2, -310.0], [-5.0, -300.0], [-0.7, -304.9], [12.0, -299.0], [10.0, -306.1], [26.0, -294.0], [27.9, -297.6], [25.6, -283.6], [26.0, -288.0], [14.0, -284.0], [6.0, -292.0], [-4.0, -286.0], [-14.0, -292.0], [-22.0, -282.0]], "shade": false}, {"type": "poly", "pts": [[-22, -308], [-6, -315], [10, -312], [-2, -309], [-16, -305]], "smooth": false, "fill": "hairShine", "stroke": null, "role": "detail", "shade": false}, {"type": "poly", "pts": [[17, -264], [25, -266.5], [32, -263], [27, -259.5], [20, -259.5]], "smooth": true, "fill": "hair", "stroke": null, "shade": false}, {"type": "poly", "pts": [[0, -296], [14, -291], [30, -293], [36, -286], [36, -280], [22, -283], [8, -283]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}, {"type": "poly", "pts": [[16, -243], [30, -256], [35, -272], [36, -282], [33, -262], [24, -247]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}]},
+       "front": {"shapes": [{"type": "ellipse", "c": [4, -280], "r": [33, 37], "fill": "hair", "stroke": null, "shade": false}, {"type": "poly", "pts": [[4, -314], [30, -304], [37, -282], [33, -258], [20, -243], [4, -239], [-12, -243], [-26, -258], [-30, -282], [-24, -304]], "smooth": true, "fill": "skin", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-30, -276], "r": [6, 9.5], "fill": "ear", "stroke": null, "shade": false}, {"type": "path", "d": "M-27 -282 Q-36 -276 -27 -269", "fill": null, "stroke": "skin3", "sw": 2.6, "role": "line"}, {"type": "ellipse", "c": [38, -276], "r": [6, 9.5], "fill": "ear", "stroke": null, "shade": false}, {"type": "path", "d": "M35 -282 Q44 -276 35 -269", "fill": null, "stroke": "skin3", "sw": 2.6, "role": "line"}, {"type": "poly", "pts": [[-30, -282], [-26, -304], [-6, -316], [16, -316], [34, -304], [38, -282], [28, -296], [10, -300], [-8, -299], [-22, -292]], "smooth": true, "fill": "hair", "stroke": null, "shade": false}, {"type": "poly", "pts": [[-12, -261], [4, -265], [20, -261], [14, -256], [4, -258.5], [-6, -256]], "smooth": true, "fill": "hair", "stroke": null, "shade": false}, {"type": "poly", "pts": [[-24, -296], [-8, -300], [10, -300], [26, -297], [34, -290], [20, -288], [4, -286], [-14, -287]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}, {"type": "poly", "pts": [[20, -246], [31, -258], [36, -274], [30, -250]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}]},
+       "front+anime": {"shapes": [{"type": "poly", "pts": [[-38, -262], [-44, -284], [-36, -300], [-44, -316], [-26, -312], [-20, -332], [-6, -318], [2, -340], [12, -318], [26, -334], [30, -312], [46, -318], [44, -296], [50, -280], [42, -262], [4, -250]], "smooth": false, "fill": "hair", "stroke": null, "calm": [[-39.1, -263.8], [-44.0, -284.0], [-36.0, -300.0], [-36.8, -310.4], [-26.0, -312.0], [-17.8, -320.5], [-6.0, -318.0], [-2.7, -320.3], [12.0, -318.0], [12.6, -320.6], [30.0, -312.0], [31.9, -312.7], [44.0, -296.0], [42.3, -279.2], [34.5, -262.6], [4.0, -250.0]], "shade": false}, {"type": "poly", "pts": [[4, -314], [30, -304], [37, -282], [33, -258], [20, -243], [4, -239], [-12, -243], [-26, -258], [-30, -282], [-24, -304]], "smooth": true, "fill": "skin", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-30, -276], "r": [6, 9.5], "fill": "ear", "stroke": null, "shade": false}, {"type": "path", "d": "M-27 -282 Q-36 -276 -27 -269", "fill": null, "stroke": "skin3", "sw": 2.6, "role": "line"}, {"type": "ellipse", "c": [38, -276], "r": [6, 9.5], "fill": "ear", "stroke": null, "shade": false}, {"type": "path", "d": "M35 -282 Q44 -276 35 -269", "fill": null, "stroke": "skin3", "sw": 2.6, "role": "line"}, {"type": "poly", "pts": [[-30, -282], [-28, -306], [-12, -316], [-4, -302], [4, -324], [12, -300], [22, -318], [28, -296], [38, -304], [38, -282], [28, -290], [14, -286], [4, -294], [-6, -288], [-18, -294], [-24, -284]], "smooth": false, "fill": "hair", "stroke": null, "calm": [[-30.6, -282.0], [-28.0, -306.0], [-15.1, -311.9], [-4.0, -302.0], [-0.9, -306.3], [12.0, -300.0], [10.5, -308.7], [28.0, -296.0], [29.7, -301.4], [26.8, -282.9], [28.0, -290.0], [14.0, -286.0], [4.0, -294.0], [-6.0, -288.0], [-18.0, -294.0], [-24.0, -284.0]], "shade": false}, {"type": "poly", "pts": [[-22, -310], [-4, -318], [14, -314], [0, -310], [-14, -306]], "smooth": false, "fill": "hairShine", "stroke": null, "role": "detail", "shade": false}, {"type": "poly", "pts": [[-12, -261], [4, -265], [20, -261], [14, -256], [4, -258.5], [-6, -256]], "smooth": true, "fill": "hair", "stroke": null, "shade": false}, {"type": "poly", "pts": [[-24, -296], [-8, -300], [10, -300], [26, -297], [34, -290], [20, -288], [4, -286], [-14, -287]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}, {"type": "poly", "pts": [[20, -246], [31, -258], [36, -274], [30, -250]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}]},
+       "shadow": {"shapes": [{"type": "ellipse", "c": [-6, -280], "r": [30, 36], "fill": "hair", "stroke": null, "shade": false}, {"type": "poly", "pts": [[4, -313], [30, -302], [36, -290], [37, -282], [36, -277], [45, -269], [40, -265], [46, -262.5], [40, -259], [41, -255.5], [37.5, -252.5], [36, -249], [31, -243.5], [24, -240], [8, -240], [-12, -249], [-26, -268], [-28, -292], [-14, -309]], "smooth": false, "fill": "skin", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-12, -274], "r": [6.5, 9.5], "fill": "ear", "stroke": null, "shade": false}, {"type": "poly", "pts": [[-28, -276], [-26, -302], [-6, -315], [18, -313], [34, -298], [37, -285], [24, -294], [8, -296], [-6, -300], [-18, -290]], "smooth": true, "fill": "hair", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [-6, -280], "r": [30, 36], "fill": "hair", "stroke": null, "shade": false},
+       {"type": "poly", "pts": [[4, -313], [30, -302], [37, -280], [35, -260], [24, -245], [6, -241], [-12, -249], [-26, -268], [-28, -292], [-14, -309]], "smooth": true, "fill": "skin", "stroke": null, "shade": false},
+       {"type": "ellipse", "c": [-12, -274], "r": [6.5, 9.5], "fill": "ear", "stroke": null, "shade": false},
+       {"type": "path", "d": "M-9 -280 Q-18 -274 -9 -267", "fill": null, "stroke": "skin3", "sw": 2.6, "role": "line"},
+       {"type": "poly", "pts": [[-28, -276], [-26, -302], [-6, -315], [18, -313], [34, -298], [37, -285], [24, -294], [8, -296], [-6, -300], [-18, -290]], "smooth": true, "fill": "hair", "stroke": null, "shade": false},
+       {"type": "poly", "pts": [[17, -264], [25, -266.5], [32, -263], [27, -259.5], [20, -259.5]], "smooth": true, "fill": "hair", "stroke": null, "shade": false},
+       {"type": "poly", "pts": [[0, -296], [14, -291], [30, -293], [36, -286], [36, -280], [22, -283], [8, -283]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"},
+       {"type": "poly", "pts": [[16, -243], [30, -256], [35, -272], [36, -282], [33, -262], [24, -247]], "smooth": true, "fill": "skin", "stroke": null, "role": "cel"}
+     ]
+    },
+    {"id": "jawGap", "parent": "head", "pivot": [26, -257], "z": 13.3,
+     "variants": {
+       "shadow": {"shapes": [{"type": "poly", "pts": [[26.4, -256.2], [38.1, -253.5], [37.2, -249.0], [31.9, -244.0], [26.4, -241.8], [22.9, -248.1]], "smooth": false, "fill": "white", "stroke": null, "role": "hole", "shade": false}]}
+     },
+     "shapes": []
+    },
+    {"id": "jaw", "parent": "head", "pivot": [26, -257], "z": 13.4, "mouth": {"kind": "jaw", "maxOpen": 38},
+     "variants": {
+       "shadow": {"shapes": [{"type": "poly", "pts": [[26, -257], [39, -254], [38, -249], [32, -243.5], [26, -241], [22, -248]], "smooth": false, "fill": "ink", "stroke": null, "shade": false}]}
+     },
+     "shapes": []
+    },
+    {"id": "eyeN", "parent": "head", "pivot": [9, -280], "z": 15,
+     "variants": {
+       "anime": {"shapes": [{"type": "ellipse", "c": [9, -280], "r": [8.6, 11], "fill": "white", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M-1.0999999999999996 -287.5 Q9 -296 19.1 -287.5", "fill": null, "stroke": "ink", "sw": 4.2, "role": "line", "shade": false}, {"type": "path", "d": "M2.4000000000000004 -270 Q9 -267.5 15.600000000000001 -270", "fill": null, "stroke": "ink", "sw": 1.1, "role": "line", "shade": false}]},
+       "front": {"pivot": [-10, -280], "shapes": [{"type": "ellipse", "c": [-10, -280], "r": [7, 8], "fill": "white", "stroke": "ink", "sw": 1.3, "shade": false}, {"type": "path", "d": "M-17 -284.8 Q-10 -291 -3 -284.8", "fill": null, "stroke": "ink", "sw": 2.6, "role": "line", "shade": false}]},
+       "front+anime": {"pivot": [-10, -280], "shapes": [{"type": "ellipse", "c": [-10, -280], "r": [8, 10], "fill": "white", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M-19.5 -286.5 Q-10 -295 -0.5 -286.5", "fill": null, "stroke": "ink", "sw": 4.2, "role": "line", "shade": false}, {"type": "path", "d": "M-16 -271 Q-10 -268.5 -4 -271", "fill": null, "stroke": "ink", "sw": 1.1, "role": "line", "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [9, -280], "r": [7, 8], "fill": "white", "stroke": "ink", "sw": 1.3, "shade": false},
+       {"type": "path", "d": "M2 -284.8 Q9 -291 16 -284.8", "fill": null, "stroke": "ink", "sw": 2.6, "role": "line", "shade": false}
+     ]
+    },
+    {"id": "eyeF", "parent": "head", "pivot": [27, -280], "z": 15,
+     "variants": {
+       "anime": {"shapes": [{"type": "ellipse", "c": [27, -280], "r": [5.2, 9.4], "fill": "white", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M20.3 -285.9 Q27 -294.4 33.7 -285.9", "fill": null, "stroke": "ink", "sw": 4.2, "role": "line", "shade": false}, {"type": "path", "d": "M23.8 -271.6 Q27 -269.1 30.200000000000003 -271.6", "fill": null, "stroke": "ink", "sw": 1.1, "role": "line", "shade": false}]},
+       "front": {"pivot": [20, -280], "shapes": [{"type": "ellipse", "c": [20, -280], "r": [7, 8], "fill": "white", "stroke": "ink", "sw": 1.3, "shade": false}, {"type": "path", "d": "M13 -284.8 Q20 -291 27 -284.8", "fill": null, "stroke": "ink", "sw": 2.6, "role": "line", "shade": false}]},
+       "front+anime": {"pivot": [20, -280], "shapes": [{"type": "ellipse", "c": [20, -280], "r": [8, 10], "fill": "white", "stroke": "ink", "sw": 1.2, "shade": false}, {"type": "path", "d": "M10.5 -286.5 Q20 -295 29.5 -286.5", "fill": null, "stroke": "ink", "sw": 4.2, "role": "line", "shade": false}, {"type": "path", "d": "M14 -271 Q20 -268.5 26 -271", "fill": null, "stroke": "ink", "sw": 1.1, "role": "line", "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [27, -280], "r": [4.6, 7], "fill": "white", "stroke": "ink", "sw": 1.3, "shade": false},
+       {"type": "path", "d": "M22.4 -283.8 Q27 -290 31.6 -283.8", "fill": null, "stroke": "ink", "sw": 2.6, "role": "line", "shade": false}
+     ]
+    },
+    {"id": "pupilN", "parent": "eyeN", "pivot": [10, -279], "z": 16,
+     "variants": {
+       "anime": {"pivot": [10, -279], "shapes": [{"type": "ellipse", "c": [10, -278], "r": [6, 8.4], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [10, -277.5], "r": [3.4799999999999995, 5.208], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [7.72, -282.528], "r": 2.52, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [12.52, -275.22], "r": 1.2000000000000002, "fill": "white", "stroke": null, "shade": false}]},
+       "front": {"pivot": [-10, -279], "shapes": [{"type": "ellipse", "c": [-10, -278], "r": [4.4, 5.6], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [-8.24, -281.24], "r": 1.584, "fill": "white", "stroke": null, "shade": false}]},
+       "front+anime": {"pivot": [-10, -279], "shapes": [{"type": "ellipse", "c": [-10, -278], "r": [5.6, 7.6], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [-10, -277.5], "r": [3.2479999999999998, 4.712], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [-12.128, -282.192], "r": 2.352, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [-7.648, -275.58], "r": 1.1199999999999999, "fill": "white", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [10, -278], "r": [4.4, 5.6], "fill": "ink", "stroke": null, "shade": false},
+       {"type": "circle", "c": [11.76, -281.24], "r": 1.584, "fill": "white", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "pupilF", "parent": "eyeF", "pivot": [28, -279], "z": 16,
+     "variants": {
+       "anime": {"pivot": [28, -279], "shapes": [{"type": "ellipse", "c": [28, -278], "r": [4, 7], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [28, -277.5], "r": [2.32, 4.34], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [26.48, -281.94], "r": 1.68, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [29.68, -275.85], "r": 0.8, "fill": "white", "stroke": null, "shade": false}]},
+       "front": {"pivot": [20, -279], "shapes": [{"type": "ellipse", "c": [20, -278], "r": [4.4, 5.6], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [21.76, -281.24], "r": 1.584, "fill": "white", "stroke": null, "shade": false}]},
+       "front+anime": {"pivot": [20, -279], "shapes": [{"type": "ellipse", "c": [20, -278], "r": [5.6, 7.6], "fill": "iris", "stroke": null, "shade": false}, {"type": "ellipse", "c": [20, -277.5], "r": [3.2479999999999998, 4.712], "fill": "ink", "stroke": null, "shade": false}, {"type": "circle", "c": [17.872, -282.192], "r": 2.352, "fill": "white", "stroke": null, "shade": false}, {"type": "circle", "c": [22.352, -275.58], "r": 1.1199999999999999, "fill": "white", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [28, -278], "r": [3, 4.6], "fill": "ink", "stroke": null, "shade": false},
+       {"type": "circle", "c": [29.2, -280.84], "r": 1.2, "fill": "white", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "browN", "parent": "head", "pivot": [9, -293], "z": 16,
+     "variants": {
+       "anime": {"shapes": [{"type": "path", "d": "M-2 -296 Q9 -303 20 -297", "fill": null, "stroke": "hair", "sw": 3.6, "role": "line"}]},
+       "front": {"pivot": [-10, -293], "shapes": [{"type": "path", "d": "M-20 -292 Q-10 -298 0 -293", "fill": null, "stroke": "hair", "sw": 5, "role": "line"}]},
+       "front+anime": {"pivot": [-10, -297], "shapes": [{"type": "path", "d": "M-21 -296 Q-10 -303 1 -297", "fill": null, "stroke": "hair", "sw": 3.6, "role": "line"}]}
+     },
+     "shapes": [
+       {"type": "path", "d": "M-1 -292 Q9 -298 19 -293", "fill": null, "stroke": "hair", "sw": 5, "role": "line"}
+     ]
+    },
+    {"id": "browF", "parent": "head", "pivot": [27, -293], "z": 16,
+     "variants": {
+       "anime": {"shapes": [{"type": "path", "d": "M22 -297 Q29 -301 36 -296", "fill": null, "stroke": "hair", "sw": 3.4, "role": "line"}]},
+       "front": {"pivot": [20, -293], "shapes": [{"type": "path", "d": "M10 -293 Q20 -298 30 -292", "fill": null, "stroke": "hair", "sw": 5, "role": "line"}]},
+       "front+anime": {"pivot": [20, -297], "shapes": [{"type": "path", "d": "M9 -297 Q20 -303 31 -296", "fill": null, "stroke": "hair", "sw": 3.6, "role": "line"}]}
+     },
+     "shapes": [
+       {"type": "path", "d": "M22 -293 Q28 -297 34 -292", "fill": null, "stroke": "hair", "sw": 4.4, "role": "line"}
+     ]
+    },
+    {"id": "nose", "parent": "head", "pivot": [32, -274], "z": 17,
+     "variants": {
+       "anime": {"shapes": [{"type": "path", "d": "M36 -270 L41 -265 L36 -264", "fill": null, "stroke": "ink", "sw": 1.5, "role": "line"}]},
+       "front": {"pivot": [4, -266], "shapes": [{"type": "ellipse", "c": [4, -271], "r": [5, 3.8], "fill": "ear", "stroke": null, "role": "detail", "shade": false}, {"type": "ellipse", "c": [2.5, -269.5], "r": [1.1, 0.8], "fill": "skin3", "stroke": null, "role": "detail", "shade": false}, {"type": "ellipse", "c": [5.5, -269.5], "r": [1.1, 0.8], "fill": "skin3", "stroke": null, "role": "detail", "shade": false}]},
+       "front+anime": {"pivot": [4, -266], "shapes": [{"type": "path", "d": "M2 -266 L5 -263", "fill": null, "stroke": "ink", "sw": 1.4, "role": "line"}]}
+     },
+     "shapes": [
+       {"type": "poly", "pts": [[31, -283], [36, -281], [43, -270], [41, -264], [34, -264], [31, -272]], "smooth": true, "fill": "skin", "stroke": null, "shade": false},
+       {"type": "ellipse", "c": [38, -266], "r": [1.5, 1], "fill": "skin3", "stroke": null, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "mouth", "parent": "head", "pivot": [8, -252], "z": 15, "mouth": {"kind": "lips", "size": 1.9},
+     "variants": {
+       "front": {"pivot": [4, -251], "mouth": {"kind": "lips", "size": 1.9}}
+     },
+     "shapes": []
+    },
+    {"id": "armN_up", "parent": "torso", "pivot": [-2, -234], "z": 12,
+     "variants": {
+       "over": {"z": 14},
+       "front": {"shapes": []},
+       "shadow": {"shapes": [{"type": "capsule", "a": [-2, -234], "b": [4, -178], "ra": 12.5, "rb": 11, "fill": "kurta", "stroke": null}, {"type": "ellipse", "c": [3, -180], "r": [15, 6.5], "fill": "kurta", "stroke": null, "rot": -80, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "capsule", "a": [-2, -234], "b": [4, -178], "ra": 12.5, "rb": 11, "fill": "kurta", "stroke": null}
+     ]
+    },
+    {"id": "armN_lo", "parent": "armN_up", "pivot": [4, -178], "z": 11,
+     "variants": {
+       "over": {"z": 14.1},
+       "front": {"shapes": []}
+     },
+     "shapes": [
+       {"type": "capsule", "a": [4, -178], "b": [11, -118], "ra": 8.8, "rb": 7.6, "fill": "skin", "stroke": null},
+       {"type": "ellipse", "c": [4, -178], "r": [11.5, 3], "fill": "kurta2", "stroke": null, "rot": -80, "role": "detail", "shade": false}
+     ]
+    },
+    {"id": "handN", "parent": "armN_lo", "pivot": [11, -118], "z": 15,
+     "variants": {
+       "open": {"shapes": [{"type": "ellipse", "c": [11, -106.3], "r": [11.18, 11.700000000000001], "fill": "skin", "stroke": null}, {"type": "capsule", "a": [2.030000000000001, -99.8], "b": [-2.6500000000000004, -80.3], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [8.01, -99.8], "b": [6.45, -82.9], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [13.99, -99.8], "b": [15.55, -82.9], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [19.97, -99.8], "b": [24.65, -80.3], "ra": 4.03, "rb": 3.5100000000000002, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [18.8, -108.9], "b": [29.85, -98.5], "ra": 4.8100000000000005, "rb": 4.03, "fill": "skin", "stroke": null, "shade": false}]},
+       "point": {"shapes": [{"type": "ellipse", "c": [11, -107.6], "r": [10.66, 11.18], "fill": "skin", "stroke": null}, {"type": "capsule", "a": [13.6, -102.4], "b": [14.9, -77.69999999999999], "ra": 4.42, "rb": 3.77, "fill": "skin", "stroke": null, "shade": false}, {"type": "ellipse", "c": [20.1, -105.65], "r": [4.42, 5.460000000000001], "fill": "skin", "stroke": null, "shade": false}]},
+       "front": {"shapes": []},
+       "shadow": {"shapes": [{"type": "ellipse", "c": [11.675, -105.85], "r": [11.340000000000002, 12.15], "fill": "skin", "stroke": null}, {"type": "capsule", "a": [2.494999999999999, -101.8], "b": [2.3600000000000003, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [8.165, -101.8], "b": [8.57, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [13.835, -101.8], "b": [14.780000000000001, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [19.505000000000003, -101.8], "b": [20.99, -85.6], "ra": 3.105, "rb": 2.565, "fill": "skin", "stroke": null, "shade": false}, {"type": "capsule", "a": [17.75, -111.25], "b": [27.200000000000003, -100.45], "ra": 4.455, "rb": 3.78, "fill": "skin", "stroke": null, "shade": false}]}
+     },
+     "shapes": [
+       {"type": "ellipse", "c": [11.5, -103.05], "r": [11.440000000000001, 14.950000000000001], "fill": "skin", "stroke": null},
+       {"type": "capsule", "a": [17.5, -110.2], "b": [25.3, -98.5], "ra": 5.07, "rb": 4.29, "fill": "skin", "stroke": null, "shade": false}
+     ]
+    },
+    {"id": "prop_sword", "parent": "handN", "pivot": [11, -116], "z": 20, "prop": true,
+     "shapes": [
+       {"type": "capsule", "a": [11, -112], "b": [11, -96], "ra": 3.4, "rb": 3.4, "fill": "grip", "stroke": null, "shade": false},
+       {"type": "rect", "x": 1, "y": -94, "w": 20, "h": 4.5, "r": 2, "fill": "gold", "stroke": null, "shade": false},
+       {"type": "poly", "pts": [[7, -90], [15, -90], [14, 20], [11, 28], [8, 20]], "smooth": false, "fill": "steel", "stroke": "ink", "sw": 1.4, "shade": false},
+       {"type": "path", "d": "M11 -86 L11 18", "fill": null, "stroke": "steel2", "sw": 1.6, "role": "detail", "shade": false}
+     ]
+    }
+  ]
+}

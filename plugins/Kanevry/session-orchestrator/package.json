@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "5.20.0",
+  "version": "5.21.0",
   "description": "Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session. For Claude Code, Codex CLI, Cursor and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -23,12 +23,15 @@
     "gitlab",
     "github"
   ],
+  "bin": {
+    "session-orchestrator": "bin/session-orchestrator.mjs"
+  },
   "engines": {
     "node": ">=24.0.0"
   },
   "files": [
     ".mcp.json",
-    "CHANGELOG.md",
+    "bin/",
     "pi/",
     "skills/",
     "agents/",
@@ -57,6 +60,13 @@
     "SECURITY.md",
     "!skills/vault-sync/package-lock.json",
     "!scripts/tests/**",
+    "!scripts/desk-notify.mjs",
+    "!scripts/fleet-checkin-audit.mjs",
+    "!scripts/guard-probe-git-effect.mjs",
+    "!scripts/validate-plugin-manifests.mjs",
+    "!docs/ci-setup.md",
+    "!docs/fleet-checkin-audit.md",
+    "!docs/vault-docs-architecture.md",
     "!skills/vault-sync/tests/**",
     "!**/node_modules/**",
     "!**/.DS_Store"
@@ -84,8 +94,6 @@
     "ajv": "^8.17.1",
     "js-yaml": "^5.5.0",
     "mdast-util-to-string": "^4.0.0",
-    "picomatch": "^4.0.4",
-    "remark": "^15.0.0",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.0",
     "yaml": "^2.9.0",
@@ -101,6 +109,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.0.0",
+    "remark": "^15.0.0",
     "vite": "^8.3.7",
     "vitest": "^5.1.0"
   },
