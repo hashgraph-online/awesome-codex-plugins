@@ -468,7 +468,11 @@ fetches the engine's dependencies from PyPI or your configured index.
    fill named and every declared field it could not carry in `not_carried`. Relay
    `data.generated_tests` where present: the tests beyond the built-ins that the
    declaration renders, each with its cadence tag, only where the project's
-   `declarations.render_tests` turns them on. Never set that switch unasked. When the user
+   `declarations.render_tests` turns them on. Never set that switch unasked. Relay
+   `data.monitors` where present: the Elementary monitors a declared time column
+   writes when the project sets `monitors.vendor`, or why none was written (the
+   package missing, or disabled or unknown on `dbt_prod_target`); never set that
+   setting unasked either (`${CLAUDE_SKILL_DIR}/references/declarations.md`). When the user
    wants models that already exist declared, run `transform declare <models>`
    (none selects every model, 25 per plan). It proposes only what each model's
    YAML does not state and lists every model it skipped; relay `data.skipped`

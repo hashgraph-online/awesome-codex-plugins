@@ -45,6 +45,19 @@ adds the marketplace and installs the plugin in one command.
 - **VS Code with Copilot** — [Install the Global plugin in VS Code](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3Dklingai-tech%252Fclaude-plugin%26plugin%3Dkling-ai). VS Code asks you to confirm before installing. The first connection uses OAuth with your Global Kling account.
 - If the link does not open, run **Chat: Install Plugin from Source** in VS Code and enter `https://github.com/klingai-tech/claude-plugin`.
 
+### Antigravity CLI
+
+Antigravity CLI can import plugins from an existing Claude Code installation. Install Kling AI for Claude Code, then import it into Antigravity:
+
+```bash
+claude plugin marketplace add klingai-tech/claude-plugin
+claude plugin install kling-ai@klingai
+agy plugin import claude
+agy plugin list
+```
+
+If Kling AI is already installed in Claude Code, run `agy plugin import claude` and `agy plugin list`. Antigravity imports the plugins in your Claude Code profile. Complete OAuth in Antigravity with your Global Kling account. Image and video generation uses Global Kling credits. For China accounts, install the [China plugin](https://github.com/klingai-tech/claude-plugin-cn) in Claude Code before importing.
+
 ### Try it
 
 - **Check the connection** — “Show my Kling account, available models, and credit balance.”

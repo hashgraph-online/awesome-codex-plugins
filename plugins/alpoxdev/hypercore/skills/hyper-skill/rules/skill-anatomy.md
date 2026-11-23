@@ -44,6 +44,7 @@ Rules:
 - `name` is lowercase kebab-case and **must match the parent directory name**.
 - `description` is trigger guidance, not marketing copy, and states both what the skill does and when to use it.
 - `compatibility` is optional and mentions real runtime, network, package, tool, or permission constraints.
+- Quote any frontmatter string value (`description`, `compatibility`, etc.) that contains `: ` (colon + space), ` #`, or leading YAML indicator characters (or use a block scalar such as `>-`) so strict YAML parsers do not reject or truncate it.
 - Implementation-specific fields such as tool allowlists are optional and must not replace the core instructions.
 
 ## 2a. Portable Core, Documented Extensions

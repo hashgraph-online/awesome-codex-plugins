@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.162.0 # x-release-please-version
+version: 0.164.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -19,6 +19,8 @@ Use the first case that applies:
 
 1. `AM_ME` is set (`amq coop exec` or `amq launch` started the session): run
    bare `amq` commands. Do not override `--me` or reconstruct the root.
+   A seat that `amq coop exec` started already has its identity; do not run
+   `amq env --me <handle>` in it.
 2. A Claude Code session with no `AM_ME`, such as a chat of the desktop app:
    run `amq coop join` once; add `--me "<handle>"` when the user named a
    handle or the output says the default is taken. Later bare `amq` commands

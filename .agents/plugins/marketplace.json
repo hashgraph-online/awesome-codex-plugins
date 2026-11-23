@@ -5043,6 +5043,21 @@
       "icon": "./plugins/supersethvos/leeway-codex/assets/leeway-icon.png"
     },
     {
+      "name": "lemlist",
+      "displayName": "lemlist",
+      "source": {
+        "source": "local",
+        "path": "./plugins/l3mpire/lemlist-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official lemlist plugin: connects Codex to the hosted lemlist MCP server (OAuth) to find leads in the lemlist B2B people database, launch email and LinkedIn campaigns, read campaign stats and check sending-domain deliverability, with four workflow skills.",
+      "icon": "./plugins/l3mpire/lemlist-plugin/assets/icon.png"
+    },
+    {
       "name": "liendeadline",
       "displayName": "LienDeadline",
       "source": {

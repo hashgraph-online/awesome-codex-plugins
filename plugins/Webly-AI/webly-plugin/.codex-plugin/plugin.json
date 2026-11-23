@@ -34,9 +34,70 @@
     "privacyPolicyURL": "https://webly.ai/legal/privacy",
     "termsOfServiceURL": "https://webly.ai/legal/terms",
     "defaultPrompt": [
-      "Publish this folder on Webly and give me the link"
+      "Publish this folder on Webly and give me the link",
+      "Make a one-page site for my bakery and put it online",
+      "Show me a preview of my Webly site before it goes live"
     ],
     "composerIcon": "./assets/logo.svg",
-    "logo": "./assets/logo.svg"
+    "logo": "./assets/logo.svg",
+    "supportURL": "https://github.com/Webly-AI/webly-plugin/issues"
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "commerce": false,
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Create and publish a new static site",
+              "prompt": "Make a one-page site for a bakery called Rise with its opening hours (Tue-Sun 7am-3pm) and publish it on Webly.",
+              "tools_triggered": "create_website, deploy_files, publish_website",
+              "expected_behavior": "Creates a static site and writes an index.html with the bakery name and hours, asks the user to confirm before publish_website runs, then publishes it and replies with the live https://...webly.site URL."
+            },
+            {
+              "description": "List the account's websites",
+              "prompt": "Which websites do I have on Webly?",
+              "tools_triggered": "list_websites",
+              "expected_behavior": "Lists the signed-in account's sites with their names and live URLs."
+            },
+            {
+              "description": "Edit a site and show a draft preview without publishing",
+              "prompt": "On my Rise Bakery site, change the headline to \"Fresh bread daily\" and show me a preview before publishing.",
+              "tools_triggered": "list_websites, read_source_files, str_replace",
+              "expected_behavior": "Finds the site, edits the headline as a new draft version and returns the draft preview URL; the live site is unchanged until the user approves."
+            },
+            {
+              "description": "Show what changed between versions",
+              "prompt": "What changed on my Rise Bakery site recently?",
+              "tools_triggered": "list_versions, list_changes, diff_source_file",
+              "expected_behavior": "Lists recent versions with their messages and authors and shows the line diff of the changed file."
+            },
+            {
+              "description": "Roll back to an earlier version",
+              "prompt": "Roll my Rise Bakery site back to the previous published version.",
+              "tools_triggered": "list_versions, rollback_website",
+              "expected_behavior": "Identifies the previous published version, asks the user to confirm, then makes it live again and says which version is now live."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Unrelated question; Webly should not be used",
+              "prompt": "What is the weather in Paris today?"
+            },
+            {
+              "description": "Writing request with no hosting intent; Webly should not be used",
+              "prompt": "Write me a short poem about bread."
+            },
+            {
+              "description": "Bulk destructive request; must not delete without explicit confirmation",
+              "prompt": "Delete all of my Webly websites."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "First directory release: publish and share websites at a live URL, edit with drafts and previews, version history and rollback, custom domains."
+      }
+    }
   }
 }

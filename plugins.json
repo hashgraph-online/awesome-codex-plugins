@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-23",
-  "total": 465,
+  "total": 466,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -3415,6 +3415,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/supersethvos/leeway-codex/HEAD/plugins/leeway/plugin.json"
+    },
+    {
+      "name": "lemlist",
+      "url": "https://github.com/l3mpire/lemlist-plugin",
+      "owner": "l3mpire",
+      "repo": "lemlist-plugin",
+      "description": "Official lemlist plugin: connects Codex to the hosted lemlist MCP server (OAuth) to find leads in the lemlist B2B people database, launch email and LinkedIn campaigns, read campaign stats and check sending-domain deliverability, with four workflow skills.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/l3mpire/lemlist-plugin/HEAD/plugin.json"
     },
     {
       "name": "LienDeadline",

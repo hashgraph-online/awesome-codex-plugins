@@ -880,6 +880,92 @@ macro reaches the project as the others' do: `macros/dex_continuity.sql` (the
 [shipped macro](macros.md#dex_continuity)) as a `macro_sql` diff where neither
 the project nor the plan defines the test.
 
+### Elementary monitors from a declaration
+
+A declaration also says what an observability vendor's monitors need. With
+`monitors.vendor` set in `.dex/config.yml`, a plan that renders a declaration
+writes the vendor's own tests into the same YAML entry, in the same plan and
+the same diff, and dbt parses them before the plan is stored. `elementary` is
+the one vendor. Unset (the default), a plan writes no monitor and the envelope
+carries no `data.monitors`. `dex config set monitors.vendor elementary` shows
+the diff and writes it on `--confirm`. Turning monitors on is the project's
+decision, not the agent's.
+
+| Declared | Written |
+|---|---|
+| one column with role `time` | `elementary.volume_anomalies` and `elementary.freshness_anomalies`, each with that column as `timestamp_column` |
+| several columns with role `time` | `elementary.freshness_anomalies` on each; no `volume_anomalies` (`ambiguous_time_column`), since it takes one timestamp column |
+| no column with role `time` | neither (`no_time_column`): `freshness_anomalies` cannot run without one, and `volume_anomalies` without one is a different monitor (one total per run, trained only on run history) |
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - elementary.volume_anomalies:
+          arguments:
+            timestamp_column: ordered_at
+          config:
+            tags: [dex_monitor]
+            meta:
+              disable_test_samples: true
+              dex:
+                monitor: {vendor: elementary, from: "columns.ordered_at.role: time"}
+```
+
+- **Dex chooses no statistic.** Only `timestamp_column` is written.
+  Sensitivity, `days_back`, seasonality and every other training setting stay
+  the package's defaults, unless you add them to the test yourself.
+- **Only where the package is installed.** Installed under the packages
+  install path, or declared by the same plan's `packages_yml` edit. A plan that
+  declares a package not yet installed is still refused before dbt parses it,
+  so plan the install on its own, apply it, run `transform deps`, then declare.
+  Otherwise every monitor is `not_rendered` with `package_not_installed`.
+- **Only where it will run.** A monitor runs where production runs, so the
+  repository's `dbt_project.yml` (as the plan leaves it) is read for
+  `models: elementary: +enabled` at the package root:
+
+  | `+enabled` | Production |
+  |---|---|
+  | absent | `enabled` (`not_set`, dbt's default) |
+  | `true` or `false` | as written (`literal`) |
+  | a test of `target.name` (`==`, `!=`, `in`, `not in` against literals, the form `dex init` writes) | evaluated with `dbt_prod_target` (`target_expression`); with no `dbt_prod_target` committed, `unknown` (`prod_target_unset`) |
+  | any other Jinja | `unknown` (`expression_unread`), never guessed |
+
+  Disabled or unknown, no monitor is written: each is `not_rendered` with
+  `production_disabled` or `production_unknown`, and one warning names the fix.
+  No production target is ever named to dbt, and no connection is opened.
+- **A hand-written monitor is never touched.** A listed test of the same name
+  (with or without the `elementary.` namespace) is `hand_written` and left
+  exactly as written: any `volume_anomalies` on the model, since a second one
+  would count its rows twice, and a `freshness_anomalies` on the same
+  `timestamp_column`. One on another column is another monitor, so Dex adds its
+  own beside it.
+- **A monitor is never removed.** One Dex wrote whose time column the
+  declaration no longer names is `stale` (`declaration_changed`), with a note,
+  for a reviewer to remove. Unsetting `monitors.vendor` removes nothing.
+- **Monitors are not generated tests.** `declarations.render_tests` does not
+  govern them, they carry no cadence tag, and `data.generated_tests` neither
+  lists nor prices them. The tag `dex_monitor` lets an orchestrator select or
+  exclude them. On a build, the package's anomaly tests judge the run against
+  history Dex does not measure, so `data.completion.assurance.unchecked_tests`
+  lists them (`history_unmeasured`, or `package_disabled` on a dev target that
+  disables the package) and they never make a model `asserted`.
+
+`data.monitors` is present whenever `monitors.vendor` is set and the plan
+renders a declaration:
+
+| Field | Meaning |
+|---|---|
+| `vendor` | `elementary` |
+| `package` | `status` (`installed`, `added_by_plan`, `not_installed`) and the installed `release` |
+| `production` | `status` (`enabled`, `disabled`, `unknown`), `reason` (see the table above), `prod_target`, and the `expression` read where it was Jinja |
+| `counts` | rows per status |
+| `monitors[]` | `model`, `test`, `column` (the timestamp column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`) and, where not written, `reason` |
+
+`transform declare` writes the monitors an earlier declaration owes: a model
+declared before `monitors.vendor` was set is proposed with a `monitors` field
+listing them.
+
 ### A versioned model
 
 A model with native dbt versions has one YAML entry with a `versions:` list.
@@ -1860,3 +1946,11 @@ The plan, apply and build envelopes carry `data.decisions`: every assumption
 declared on the models the command touched, as `{model, decision, chosen,
 evidence}`, plus `column` and `detail` where the assumption states them. It is read back from the project's YAML, so the three commands report
 the same list. An empty list means the touched models declare no assumption.
+
+Each Elementary monitor Dex wrote from a declaration is an entry too, read from
+the test's own `config.meta.dex.monitor`: `decision` (`Monitor
+elementary.freshness_anomalies`), `chosen` (`timestamp_column: ordered_at`),
+`evidence: contract`, a `detail`, the `monitor` and the declaration `field` it
+came from. It carries no `column`, because it records where a monitor came
+from, not an assumption, so it settles no population change in
+`data.change_scope`. A monitor written by hand is no entry.
