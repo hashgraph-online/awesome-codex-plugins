@@ -1,0 +1,25 @@
+{
+  "name": "oh",
+  "version": "0.1.2",
+  "description": "Supervise Claude Code and Codex sessions in a native Mac app, share one Vercel Board, and pair machines over Cloudflare Tunnel.",
+  "author": {
+    "name": "Hraness",
+    "url": "https://hraness.com"
+  },
+  "homepage": "https://oh.computer/docs/agents",
+  "repository": "https://github.com/hraness/product-skills",
+  "license": "MIT",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "OH",
+    "shortDescription": "Keeps your coding agents working.",
+    "longDescription": "Supervise Claude Code and Codex sessions in a native Mac app, share one Vercel Board, and pair machines over Cloudflare Tunnel.\n\nRequires the separately installed OH app and its local command on Apple silicon with macOS 15.0 or later.",
+    "developerName": "Hraness",
+    "category": "Productivity",
+    "capabilities": [],
+    "websiteURL": "https://oh.computer",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/"
+}

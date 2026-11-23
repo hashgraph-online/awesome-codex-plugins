@@ -4388,11 +4388,11 @@
       "icon": "./plugins/data-x-api/skills/assets/icon.svg"
     },
     {
-      "name": "dawn",
+      "name": "oh",
       "displayName": "Dawn",
       "source": {
         "source": "local",
-        "path": "./plugins/hraness/product-skills/plugins/dawn"
+        "path": "./plugins/hraness/product-skills/plugins/oh"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -4400,7 +4400,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Compose, arrange and render original songs offline with the Dawn TypeScript music SDK and headless CLI; needs an authorized Dawn private-preview install.",
-      "icon": "./plugins/hraness/product-skills/plugins/dawn/assets/icon.png"
+      "icon": "./plugins/hraness/product-skills/plugins/oh/assets/icon.png"
     },
     {
       "name": "dchub",

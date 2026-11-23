@@ -2984,7 +2984,7 @@
       "description": "Compose, arrange and render original songs offline with the Dawn TypeScript music SDK and headless CLI; needs an authorized Dawn private-preview install.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/dawn/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/oh/plugin.json"
     },
     {
       "name": "DC Hub",
