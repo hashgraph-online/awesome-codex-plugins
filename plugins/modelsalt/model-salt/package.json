@@ -1,6 +1,6 @@
 {
   "name": "@modelsalt/model-salt",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "mcpName": "com.modelsalt/model-salt",
   "description": "An MCP server that gives your model randomness from outside it, so one prompt gives different answers that still do what you asked. For Claude Code, Codex, Gemini CLI and Kimi Code.",
   "keywords": [
@@ -50,7 +50,7 @@
     "src/words.mjs",
     "services/*/service.mjs",
     "services/*/models.mjs",
-    "services/*/steps/0.45a.mjs",
+    "services/*/steps/1.0-server.mjs",
     "plugin/skills/model-salt/SKILL.md",
     "CHANGELOG.md"
   ],

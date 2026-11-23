@@ -15,13 +15,14 @@ compatibility: bundled 프로브를 실행할 셸(bash 3.2+, jq), 데이터셋 �
 
 > 눈앞의 데이터셋에 실제로 물어본 질문에 답하고, 그 숫자를 만든 질의로 증명하며, 다시 실행할 수 있는 보고서를 남깁니다.
 
+- **목적**: 데이터셋 질문 하나를 계산되고 다시 실행할 수 있는 답으로 바꾸고 `.hyper/data/[slug]/report.md`에 숫자를 먼저, 이어서 질의, 집계 단위, 필터, 행 수, 소요 시간, 입력 다이제스트를 담아 저장합니다.
+- **쓰지 않을 때**: 산출물이 스키마·마이그레이션·쿼리 튜닝·인덱스 작업, GA4 등 분석 제품의 속성 보고서, 대시보드나 정기 보고서 레이아웃, 모델 학습·예측, 질문 없는 차트, 직접 읽어야 하는 스프레드시트일 때.
+- **입력**: 데이터셋에 무엇이 들어 있는지 또는 값들이 어떻게 관계되는지에 대한 질문 하나, 데이터셋 경로나 접속 정보, 선택 사항인 차트 요청·언어·깊이 제약.
+- **산출물**: 채팅 답변과 네 가지 종료 상태 중 하나를 쓰는 `Result:` 줄 하나로 끝나는 한국어 `.hyper/data/[slug]/report.md`.
+
 <output_language>
 
-이 정본 파일이 영어로 쓰였더라도 저장 보고서, 채팅 답변, 차트 라벨, 검증 메모는 기본적으로 한국어로 씁니다.
-
-컬럼 이름, 테이블 이름, SQL과 코드, 파일 경로, CLI 명령, 라이브러리·제품 이름, 인용한 원문은 원래 언어를 유지합니다.
-
-사용자가 명시적으로 요청했거나 데이터셋 자체 라벨이 다른 언어일 때만 다른 언어를 쓰고, 그때는 라벨을 그대로 둡니다.
+저장 보고서, 채팅 답변, 차트 라벨, 검증 메모는 기본으로 한국어로 작성하며, 컬럼 이름, 테이블 이름, SQL과 코드, 파일 경로, CLI 명령, 라이브러리·제품 이름, 인용한 원문 발췌는 원래 언어를 유지합니다. 사용자가 명시적으로 요청했거나 데이터셋 자체 라벨이 다른 언어일 때만 다른 언어를 쓰고, 그때는 라벨을 그대로 둡니다(`instructions/harness-engineering/references/skill-common-rules.ko.md`).
 
 </output_language>
 
@@ -44,7 +45,7 @@ compatibility: bundled 프로브를 실행할 셸(bash 3.2+, jq), 데이터셋 �
 - 대시보드, BI 화면, 정기 보고서 레이아웃을 만드는 경우
 - 학습된 모델, 예측, 예측 파이프라인을 만드는 경우
 - 질문 없이 차트만 만드는 경우, 또는 숫자가 아니라 구조를 그리는 다이어그램인 경우
-- 스프레드시트를 직접 읽어야 하는 경우. 먼저 CSV나 Parquet으로 내보냅니다([rules/engine-selection.md](rules/engine-selection.md) §4).
+- 스프레드시트를 직접 읽어야 하는 경우. 먼저 CSV나 Parquet으로 내보냅니다([rules/engine-selection.ko.md](rules/engine-selection.ko.md) §4).
 
 데이터 질문과 위 항목이 섞인 요청은 데이터 질문 부분만 이 스킬이 맡고, 나머지는 다른 산출물이라고 보고서에 적습니다.
 
@@ -61,9 +62,9 @@ compatibility: bundled 프로브를 실행할 셸(bash 3.2+, jq), 데이터셋 �
 | Evidence | 답은 이름 붙인 입력에 실제로 실행한 질의에서 나옵니다. 행 수, 소요 시간, 입력 다이제스트를 함께 기록합니다. 질의가 없는 숫자는 답이 아닙니다. |
 | Tools | bundled 프로브와 엔진을 실행할 셸, 살펴보기 위한 파일 읽기, 보고서를 쓰는 파일 쓰기, 차트를 요청받았을 때 이미지 보기. 없는 엔진은 전제 조건이며 설치가 아닙니다. |
 | Loop | 질문 하나에 수정 반복 한 번. 질의가 오류를 내거나 교차 검증이 어긋나면 같은 질문 안에서 최대 두 번 다시 씁니다. 그 뒤에도 실패하면 실패한 질의와 오류를 담아 `blocked`로 보고합니다. |
-| Output | 채팅 답변과 [rules/query-evidence.md](rules/query-evidence.md) §2 형식을 따른 한국어 `.hyper/data/[slug]/report.md`, 마지막에 `Result:` 줄 하나. |
-| Verification | 답의 행 수, 소요 시간, 입력 다이제스트, 그리고 핵심 숫자에 대한 독립 교차 검증 하나([rules/query-evidence.md](rules/query-evidence.md) §3). 교차 검증을 할 수 없었으면 일치한다고 쓰지 않고 미검증으로 적습니다. |
-| Stop condition | 답과 질의와 근거가 보고서에 있으면 `answered`. 그 밖에는 [rules/query-evidence.md](rules/query-evidence.md) §4에 따라 `prerequisite_missing`, `awaiting_input`, `blocked`입니다. 이 스킬은 커밋하거나 푸시하지 않습니다. |
+| Output | 채팅 답변과 [rules/query-evidence.ko.md](rules/query-evidence.ko.md) §2 형식을 따른 한국어 `.hyper/data/[slug]/report.md`, 마지막에 `Result:` 줄 하나. |
+| Verification | 답의 행 수, 소요 시간, 입력 다이제스트, 그리고 핵심 숫자에 대한 독립 교차 검증 하나([rules/query-evidence.ko.md](rules/query-evidence.ko.md) §3). 교차 검증을 할 수 없었으면 일치한다고 쓰지 않고 미검증으로 적습니다. |
+| Stop condition | 답과 질의와 근거가 보고서에 있으면 `answered`. 그 밖에는 [rules/query-evidence.ko.md](rules/query-evidence.ko.md) §4에 따라 `prerequisite_missing`, `awaiting_input`, `blocked`입니다. 이 스킬은 커밋하거나 푸시하지 않습니다. |
 
 </instruction_contract>
 
@@ -99,20 +100,20 @@ Boundary requests:
 |---|---|
 | 파일에 필터, 그룹 집계, 조인, 윈도 함수가 필요한 질문 | SQL 형태: DuckDB로 파일을 원위치에서 질의 |
 | 파생 컬럼이 많거나 재구조화, 컬럼별 조건 처리가 필요한 질문 | DataFrame 형태: Polars lazy scan |
-| 작업 집합이 가용 메모리의 약 25% 이하이고 세션에서 질의를 반복 | 한 번 적재한 뒤 반복([rules/placement.md](rules/placement.md) §2) |
-| 작업 집합이 가용 메모리보다 크거나 질문이 한 번만 지나가는 경우 | 원위치 질의 또는 스트리밍([rules/placement.md](rules/placement.md) §3) |
+| 작업 집합이 가용 메모리의 약 25% 이하이고 세션에서 질의를 반복 | 한 번 적재한 뒤 반복([rules/placement.ko.md](rules/placement.ko.md) §2) |
+| 작업 집합이 가용 메모리보다 크거나 질문이 한 번만 지나가는 경우 | 원위치 질의 또는 스트리밍([rules/placement.ko.md](rules/placement.ko.md) §3) |
 | 데이터가 사용자가 질의할 수 있는 데이터베이스에 있음 | 그곳에서 집계하고 결과 행만 받습니다. 테이블 덤프는 받지 않습니다. |
 | 작은 파일이고 엔진이 없으며 정확한 답이 필요 | Python 표준 라이브러리 `csv`, `json`, `statistics` |
 | 쓸 수 있는 엔진이 전혀 없음 | 없는 엔진과 설치 명령을 담아 `prerequisite_missing` |
-| 차트를 요청받음 | [rules/charts.md](rules/charts.md) |
+| 차트를 요청받음 | [rules/charts.ko.md](rules/charts.ko.md) |
 
 </trigger_conditions>
 
 <skill_architecture>
 
 - Core (`SKILL.md`): 트리거, 계약, 워크플로, 종료 상태, 필수·금지 동작.
-- Rules: `rules/engine-selection.md`(프로브 우선, 엔진 선택, 없는 엔진, Excel), `rules/placement.md`(메모리 휴리스틱, 스트리밍, 질의를 데이터로 보내기), `rules/query-evidence.md`(보고서 형식, 답만 내는 출력, 검증, 종료 상태), `rules/charts.md`(요청받았을 때만: 시간대, 부분 버킷, 교차 검증, 렌더 파일 확인, CJK 폰트).
-- References: `references/polars-api.md`(Polars 1.x API 날짜 표기 노트, `last_verified_at` 포함).
+- Rules: `rules/engine-selection.ko.md`(프로브 우선, 엔진 선택, 없는 엔진, Excel), `rules/placement.ko.md`(메모리 휴리스틱, 스트리밍, 질의를 데이터로 보내기), `rules/query-evidence.ko.md`(보고서 형식, 답만 내는 출력, 검증, 종료 상태), `rules/charts.ko.md`(요청받았을 때만: 시간대, 부분 버킷, 교차 검증, 렌더 파일 확인, CJK 폰트).
+- References: `references/polars-api.ko.md`(Polars 1.x API 날짜 표기 노트, `last_verified_at` 포함).
 - Scripts: `scripts/probe-engines.sh`는 인터프리터, 패키지 버전, duckdb CLI, 가용 메모리를 담은 JSON 객체 하나를 출력합니다. 파일을 쓰지 않고 `--self-test`가 있습니다.
 - Assets: `assets/evals/hyper-data-cases.jsonl`.
 
@@ -120,7 +121,7 @@ Boundary requests:
 
 <loop_policy>
 
-질문 하나에 수정 반복 한 번. 피드백은 엔진이 낸 오류, 어긋난 교차 검증, 프로브와 모순되는 계산 위치입니다. 가드는 답의 근거가 성립하는 것입니다. 질의가 다시 돌고, 행 수가 맞고, 교차 검증이 일치하거나 미검증으로 선언되어야 합니다. 상한은 두 번 다시 쓰기이며, 세 번째 실패는 실패한 질의와 오류 문구를 담아 `blocked`로 끝냅니다. 질문 밖으로 넓히는 탐색은 반복이 아니라 범위 초과입니다([rules/query-evidence.md](rules/query-evidence.md) §1).
+질문 하나에 수정 반복 한 번. 피드백은 엔진이 낸 오류, 어긋난 교차 검증, 프로브와 모순되는 계산 위치입니다. 가드는 답의 근거가 성립하는 것입니다. 질의가 다시 돌고, 행 수가 맞고, 교차 검증이 일치하거나 미검증으로 선언되어야 합니다. 상한은 두 번 다시 쓰기이며, 세 번째 실패는 실패한 질의와 오류 문구를 담아 `blocked`로 끝냅니다. 질문 밖으로 넓히는 탐색은 반복이 아니라 범위 초과입니다([rules/query-evidence.ko.md](rules/query-evidence.ko.md) §1).
 
 </loop_policy>
 
@@ -132,34 +133,46 @@ Boundary requests:
 
 <reference_routing>
 
-- 첫 프로브 전과 엔진이 없을 때 [rules/engine-selection.md](rules/engine-selection.md)를 읽습니다.
-- 수십 MB를 넘는 파일이나 원격 데이터에 첫 질의를 하기 전 [rules/placement.md](rules/placement.md)를 읽습니다.
-- 보고서를 쓰기 전과 종료 상태를 고르기 전 [rules/query-evidence.md](rules/query-evidence.md)를 읽습니다.
-- 사용자가 차트를 요청했을 때만 [rules/charts.md](rules/charts.md)를 읽습니다.
-- Polars 파이프라인을 쓰기 전 [references/polars-api.md](references/polars-api.md)를 읽습니다. 1.x 이름이 예전 표기와 다릅니다.
+- 첫 프로브 전과 엔진이 없을 때 [rules/engine-selection.ko.md](rules/engine-selection.ko.md)를 읽습니다.
+- 수십 MB를 넘는 파일이나 원격 데이터에 첫 질의를 하기 전 [rules/placement.ko.md](rules/placement.ko.md)를 읽습니다.
+- 보고서를 쓰기 전과 종료 상태를 고르기 전 [rules/query-evidence.ko.md](rules/query-evidence.ko.md)를 읽습니다.
+- 사용자가 차트를 요청했을 때만 [rules/charts.ko.md](rules/charts.ko.md)를 읽습니다.
+- Polars 파이프라인을 쓰기 전 [references/polars-api.ko.md](references/polars-api.ko.md)를 읽습니다. 1.x 이름이 예전 표기와 다릅니다.
 
 </reference_routing>
 
 <support_file_read_order>
 
 1. 이 코어의 `routing_rule`부터 `validation`까지.
-2. `rules/engine-selection.md`, 이어서 `rules/placement.md`.
-3. 보고서를 쓰기 전 `rules/query-evidence.md`.
-4. 요청받은 차트에만 `rules/charts.md`, DataFrame 형태 파이프라인이면 이어서 `references/polars-api.md`.
+2. `rules/engine-selection.ko.md`, 이어서 `rules/placement.ko.md`.
+3. 보고서를 쓰기 전 `rules/query-evidence.ko.md`.
+4. 요청받은 차트에만 `rules/charts.ko.md`, DataFrame 형태 파이프라인이면 이어서 `references/polars-api.ko.md`.
 
 </support_file_read_order>
 
 <workflow>
 
-| Phase | Task | Output |
+재개 절차: 0단계 전에 `.hyper/data/` 아래에 같은 질문의 `[slug]/report.md`가 있는지 먼저 확인합니다. 파일이 있으면 그 보고서와 `Result:` 줄을 먼저 읽고, `answered` 보고서는 다시 계산하지 않고 그대로 반환하며, 미완성 보고서는 [rules/query-evidence.ko.md](rules/query-evidence.ko.md) §2 형식에서 비어 있는 첫 항목부터 재개하고 이미 통과한 프로브·질의·교차 검증은 다시 돌리지 않습니다.
+
+| 단계 | 수행 작업 | 끝 조건 | 건너뛰면 안 되는 이유 |
+|---|---|---|---|
+| 0 | 질문을 측정 가능한 양 하나로 다시 적습니다. 지표, 집계 단위, 모집단, 필터, 기간이 들어갑니다. | 질문 줄 기록 | 집계 단위나 필터를 밝히지 않으면 틀린 숫자가 맞는 답으로 보고됨 |
+| 1 | `bash <skill-dir>/scripts/probe-engines.sh`를 실행하고 답에 쓸 엔진을 기록합니다. | 엔진 줄 기록 | 설치되지 않은 엔진을 import하면 데이터 질문이 설치 시도로 바뀜 |
+| 2 | 입력을 살핍니다. 파일 크기, 행 추정치, 컬럼과 타입, 질문이 닿는 컬럼의 null·중복 형태를 봅니다. | 입력 프로필 기록 | 알 수 없는 null과 중복이 집계 단위를 조용히 바꿈 |
+| 3 | 프로브와 입력 프로필로 계산 위치를 정합니다([rules/placement.ko.md](rules/placement.ko.md)). | 계산 위치 결정 기록 | 가용 메모리보다 큰 작업 집합을 적재하면 스왑에 걸려 끝나지 않음 |
+| 4 | 질문에 답하는 가장 작은 질의를 실행하고 그 질의를 보고서에 그대로 남깁니다. | 질의와 결과 확보 | 질의가 없는 숫자는 다시 돌릴 수도 검증할 수도 없음 |
+| 5 | 핵심 숫자를 다른 경로로 교차 검증하고, 소요 시간과 행 수를 기록합니다. | 검증된 답 또는 없을 수밖에 없는 이유 기록 | 한 경로만으로는 산술만 맞고 집계 단위와 필터는 틀릴 수 있음 |
+| 6 | `.hyper/data/[slug]/report.md`를 쓰고, 답과 보고서 경로, `Result:` 줄을 출력합니다. | 보고서 저장 및 `Result:` 줄 출력 | 채팅만의 답은 사라지고 검증할 수 없음 |
+
+단계별 예/아니오 체크리스트:
+
+| # | 예/아니오 질문 | 위반 시 되돌아갈 단계 |
 |---|---|---|
-| 0 | 질문을 측정 가능한 양 하나로 다시 적습니다. 지표, 집계 단위, 모집단, 필터, 기간이 들어갑니다. | 질문 줄 |
-| 1 | `bash <skill-dir>/scripts/probe-engines.sh`를 실행하고 답에 쓸 엔진을 기록합니다. | 엔진 줄 |
-| 2 | 입력을 살핍니다. 파일 크기, 행 추정치, 컬럼과 타입, 질문이 닿는 컬럼의 null·중복 형태를 봅니다. | 입력 프로필 |
-| 3 | 프로브와 입력 프로필로 계산 위치를 정합니다([rules/placement.md](rules/placement.md)). | 계산 위치 결정 |
-| 4 | 질문에 답하는 가장 작은 질의를 실행하고 그 질의를 보고서에 그대로 남깁니다. | 질의와 결과 |
-| 5 | 핵심 숫자를 다른 경로로 교차 검증하고, 소요 시간과 행 수를 기록합니다. | 검증된 답 |
-| 6 | `.hyper/data/[slug]/report.md`를 쓰고, 답과 보고서 경로, `Result:` 줄을 출력합니다. | 보고서 |
+| 1 | 다시 계산하기 전에 `.hyper/data/`에서 이 질문의 기존 보고서를 확인했는가? (예/아니오) | 0단계 |
+| 2 | 질문 줄에 지표·집계 단위·모집단·필터가 하나씩 있고, 엔진 줄이 프로브 출력과 맞거나 엔진 부재 시 `prerequisite_missing`으로 끝났는가? (예/아니오) | 1단계 |
+| 3 | 계산 위치를 고르기 전에 입력의 크기, 컬럼, null·중복 형태를 살폈는가? (예/아니오) | 2단계 |
+| 4 | 보고서의 질의가 원문 그대로이고, 행 수·소요 시간·입력 다이제스트와 교차 검증(또는 없을 수밖에 없는 이유)이 함께 있는가? (예/아니오) | 5단계 |
+| 5 | 보고서가 답을 먼저 쓰고 네 가지 종료 상태 중 하나를 쓰는 `Result:` 줄 하나로 끝나며, 요청하지 않은 차트나 커밋이 없는가? (예/아니오) | 6단계 |
 
 Phase rules:
 
@@ -181,23 +194,24 @@ Phase rules:
 
 <forbidden>
 
-- 가용 메모리보다 큰 데이터셋을 메모리에 적재하거나, 이미 스왑을 일으킨 적재를 다시 시도하는 것.
-- 실행을 위해 패키지를 설치하거나 엔진을 내려받거나 인터프리터를 바꾸는 것.
-- `.xlsx`/`.xls` 파일을 CSV나 Parquet으로 내보내지 않고 직접 읽는 것.
-- 요청하지 않은 차트, 추가 분해, 탐색 반복을 붙이는 것.
-- 보고서에 없는 질의의 숫자, 또는 렌더링하고 확인하지 않은 차트 파일을 보고하는 것.
-- 이 스킬에서 무엇이든 커밋하거나 푸시하는 것.
+- 나쁜 예: 가용 메모리보다 큰 데이터셋을 메모리에 적재하거나 이미 스왑을 일으킨 적재를 다시 시도 -> 좋은 예: 가용 메모리의 약 25% 이내에서만 적재하거나 파일을 원위치에서 질의하거나 스트리밍.
+- 나쁜 예: 실행을 위해 패키지를 설치하거나 엔진을 내려받거나 인터프리터를 바꿈 -> 좋은 예: 없는 엔진과 설치 명령을 담아 `prerequisite_missing`으로 보고.
+- 나쁜 예: `.xlsx`/`.xls` 파일을 직접 읽음 -> 좋은 예: CSV나 Parquet으로 먼저 내보내고 그렇게 했다고 알림.
+- 나쁜 예: 요청하지 않은 차트, 추가 분해, 탐색 반복을 붙임 -> 좋은 예: 질문에 답하는 가장 작은 질의와 교차 검증 하나만 실행.
+- 나쁜 예: 보고서에 없는 질의의 숫자나 렌더링하고 확인하지 않은 차트 파일을 보고 -> 좋은 예: 모든 숫자 옆에 정확한 질의를 붙이고 저장한 차트는 모두 열어 확인.
+- 나쁜 예: 이 스킬에서 무엇이든 커밋하거나 푸시 -> 좋은 예: 보고서를 디스크에 남기고 경로와 `Result:` 줄만 보고.
 
 </forbidden>
 
 <validation>
 
+- [ ] 다시 계산하기 전에 `.hyper/data/`에서 기존 보고서를 확인했습니다.
 - [ ] 질문 줄에 지표 하나, 집계 단위 하나, 모집단 하나, 그리고 범위를 정하는 필터가 있습니다.
 - [ ] 엔진 줄이 프로브 출력과 맞고, 엔진이 없으면 `prerequisite_missing`으로 끝났습니다.
 - [ ] 보고서가 답을 먼저 쓰고, 이어서 질의, 집계 단위, 필터, null·중복 처리, 행 수, 소요 시간, 입력 다이제스트를 보여 줍니다.
 - [ ] 핵심 숫자에 교차 검증이 있거나, 없을 수밖에 없는 이유가 적혀 있습니다.
-- [ ] 요청받은 차트를 렌더링하고 열어서 잘린 라벨과 두부(tofu) 글자를 확인했습니다([rules/charts.md](rules/charts.md) §5).
-- [ ] 보고서가 네 가지 종료 상태 중 하나를 쓰는 `Result:` 줄 하나로 끝납니다.
+- [ ] 요청받은 차트를 렌더링하고 열어서 잘린 라벨과 두부(tofu) 글자를 확인했습니다([rules/charts.ko.md](rules/charts.ko.md) §5).
+- [ ] 보고서가 네 가지 종료 상태 중 하나를 쓰는 `Result:` 줄 하나로 끝나고, 커밋이나 푸시를 하지 않았습니다.
 
 </validation>
 

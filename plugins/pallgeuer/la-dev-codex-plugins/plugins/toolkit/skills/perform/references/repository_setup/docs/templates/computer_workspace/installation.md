@@ -18,12 +18,16 @@ Copy this block only when a new regular installation.md was selected. For an ext
 
 ## Installation procedure
 
+- Establish usable Codex administration, create its workspace, then restore/connect the selected canonical installation document before optional tooling/customization, respecting prerequisites.
+- If that document is unavailable, use a verified temporary workspace recipe; preserve any existing dangling installation link and choose a separate temporary filename. Reconcile preserved entries with the restored canonical source, verify the handoff, and retain temporary material until separately approved cleanup. Do not implicitly commit temporary content or change Git file types.
 - {{ACTIONABLE_STEPS_WITH_MACHINE_CHOICES_COMMANDS_SETTINGS_AND_CHECKS}}
 
 ## Remaining setup
 
 - **Planned:** {{UNFINISHED_STEPS_OR_LINK_TO_AUTHORITATIVE_QUEUE}}
-- After a step succeeds, remove its Planned marker and retain the reusable procedure; do not replace it with a dated completion entry. Never imply planned work ran.
+- Keep completed/executed setup before this planned/deferred queue and any OLD material, in a useful installation/dependency order.
+- After a step succeeds, remove its Planned marker and move its reusable procedure into the completed portion; do not replace it with a dated completion entry. Keep unfinished substeps explicitly planned, splitting substantial pending work when useful. Never imply planned work ran.
+- Preserve heading anchors or repair incoming links when moving sections. Preserve unrelated decisions, commands and historical OLD material; do not regenerate an existing recipe.
 
 ## Upkeep
 

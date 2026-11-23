@@ -15,13 +15,14 @@ Open the rules as directed below. Resolve bundled file paths from the directory 
 
 > Build a Word file from a spec, read one part at a time, prove the result opens and lays out — and state plainly which check could not run.
 
+- **Purpose**: Produce or change one `.docx` that a word processor opens without repair, and back every claim about it with a verify report or a rendered page.
+- **Do not use when**: The output is a slide deck, spreadsheet, PDF-only artifact, Hangul or Google Docs file, or prose that never becomes a file.
+- **Input**: The content and a target path for a new document, or an existing `.docx` plus the change wanted; optional page preset, font, margins, and whether a proof render is needed.
+- **Output**: The `.docx` at the requested path, its verify report, a rendered page or PDF when layout matters, and a Korean summary naming every check that did not run.
+
 <output_language>
 
-Default the document body, the chat answer, the review notes, and the verification report to Korean, even though this canonical skill file is written in English.
-
-Keep file paths, commands, JSON field names, style ids, OOXML element and attribute names, and quoted text from the source document in their original form.
-
-Switch language only when the user explicitly asks or the document itself is in another language; then keep its own labels as written.
+Default the document body, the chat answer, the review notes, and the verification report to Korean, even though this canonical skill file is written in English. Keep file paths, commands, JSON field names, style ids, OOXML element and attribute names, and quoted text from the source document in their original form. Switch language only when the user explicitly asks or the document itself is in another language, then keep its own labels as written. Shared output and honesty rules live in `instructions/harness-engineering/references/skill-common-rules.md`.
 
 </output_language>
 
@@ -125,7 +126,8 @@ Boundary requests:
 
 <loop_policy>
 
-One bounded repair loop per document. The feedback is `verify` output, a reader's error, or a rendered page that contradicts the spec. The guard is that the delivered artifact passes verify and opens in an independent reader. The cap is two fixes; a third failure ends the run as `blocked` with the failing check and its detail. Rebuilding a document that already passes, or exploring styles the request never asked about, is not a loop — it is scope creep.
+- One bounded repair loop per document. The feedback is `verify` output, a reader's error, or a rendered page that contradicts the spec; the guard is that the delivered artifact passes verify and opens in an independent reader; the cap is two fixes, and a third failure ends the run as `blocked` with the failing check and its detail.
+- Rebuilding a document that already passes, or exploring styles the request never asked about, is scope creep rather than a loop.
 
 </loop_policy>
 
@@ -157,14 +159,28 @@ Canonical skill files are English with structurally aligned `*.ko.md` translatio
 
 <workflow>
 
-1. **Fix the deliverable.** Path, format (`.docx`), language, page preset, and whether the file is new or an edit. If a `.docx` already exists at the target path and the request is a change, read it before writing anything.
-2. **Probe the machine.** `python3 assets/tools/hyper_docx.py doctor` — one JSON object with the interpreter, the headless browser, LibreOffice, and the capabilities derived from them. Never claim a capability `doctor` reports as missing.
-3. **Read before writing.** For an existing file: `inspect` (structure JSON), then `text` or `outline`. For a new file: collect the content, then write the spec.
-4. **Build or edit.** `build --spec spec.json --out out.docx` for a new file; for an existing file, change the named parts through `docxlib` and save ([rules/document-model.md](rules/document-model.md) §4). Keep the spec beside the output so the geometry check can rerun.
-5. **Verify.** `verify out.docx --spec spec.json`. Fix what fails; do not deliver on a red check.
-6. **Prove the layout when it matters.** `render --pdf` writes HTML at the page box and prints it; a page image is the proof. State which path was used and which was unavailable.
-7. **Cross-read.** Open the result with a second reader (`python3 -c` with `python-docx` when installed, `textutil -convert txt` on macOS) or diff the extracted text against the intent.
-8. **Report.** Korean summary: output path, the checks that passed, the proof surface, and any capability that was missing.
+Resume procedure: Before Step 1, look at the target path and the working directory for an earlier run's `out.docx`, `spec.json`, verify report, or rendered page. If anything exists, read the spec and the existing file first, then resume at the first step whose Done when is still unmet; never rebuild a document that already passes `verify`.
+
+| Step | Action | Done when | Why not skip |
+|---|---|---|---|
+| 1 | Fix the deliverable: path, `.docx` format, language, page preset, and new file or edit; if a `.docx` already sits at the target path and the request is a change, read it before writing anything | Path, format, language, preset, and new/edit recorded | Writing before reading overwrites the file the user meant to keep |
+| 2 | Probe the machine: `python3 assets/tools/hyper_docx.py doctor` | One JSON object names the interpreter, the headless browser, LibreOffice, and the capabilities derived from them | A capability claimed without the probe fails later at render time |
+| 3 | Read before writing: `inspect` then `text` or `outline` for an existing file; collect the content and write the spec for a new one | Structure JSON or a written spec exists | Guessing from surrounding prose misstates styles, direct formatting, and geometry |
+| 4 | Build or edit: `build --spec spec.json --out out.docx`, or change the named parts through `docxlib` and save ([rules/document-model.md](rules/document-model.md) §4), keeping the spec beside the output | `out.docx` exists and the spec sits next to it | Without the spec or its numbers the geometry check cannot rerun |
+| 5 | Verify: `verify out.docx --spec spec.json`, and fix what fails | `result: pass`, every check `pass` or honestly `skipped` | A red check is the file Word offers to repair |
+| 6 | Prove the layout when it matters: `render --pdf`, or LibreOffice when `doctor` reports it | A page image or PDF recorded, or the missing capability named | A structural pass says nothing about appearance |
+| 7 | Cross-read: a second reader (`python3 -c` with `python-docx` when installed, `textutil -convert txt` on macOS) or a diff of extracted text against the intent | Same visible text, no repair prompt or error | One reader agreeing with itself is not independent evidence |
+| 8 | Report in Korean: output path, checks that passed, proof surface, missing capabilities | Summary delivered with every unverified item named | A silent gap reads to the user as a pass |
+
+Step Yes/No checklist:
+
+| # | Yes/No question | On violation -> return to |
+|---|---|---|
+| 1 | Did I read any existing file and record path, format, language, preset, and new/edit before building? (Yes/No) | Step 1 |
+| 2 | Did `doctor` run, and does every capability the report relies on read `yes` or get named as a gap? (Yes/No) | Step 2 |
+| 3 | Does `verify` report `pass` with no `skipped` check hidden inside it, and is the spec or the same numbers available for the geometry check? (Yes/No) | Step 5 |
+| 4 | Is every layout claim backed by a rendered page or PDF, or labelled "structure only"? (Yes/No) | Step 6 |
+| 5 | Did a second reader open the file, and did the Korean summary name each unverified item? (Yes/No) | Step 7 |
 
 </workflow>
 
@@ -182,28 +198,26 @@ Canonical skill files are English with structurally aligned `*.ko.md` translatio
 
 <forbidden>
 
-- Claiming a file opens or lays out correctly without a verify run or a rendered page.
-- Editing a binary `.docx` as text, or rewriting one part without keeping the others byte-identical.
-- Delivering a file whose verify reports `fail`, or hiding a `skipped` check inside a pass claim.
-- Inventing a Korean convention — margins, font, spacing, item marks — that neither the user, the project, nor [rules/korean-document.md](rules/korean-document.md) settles; state the choice instead.
-- Installing LibreOffice, a browser, or a Python package to make a check possible.
-- Marking a change as a revision by deleting and re-inserting whole paragraphs when the request was a word-level edit.
-- Emitting a `.docm`, a macro, or an external relationship that the request did not ask for.
+- Bad: Claiming a file opens or lays out correctly without a `verify` run or a rendered page -> Good: Running `verify` on every delivered file and adding `render --pdf` with the page image when layout is in question.
+- Bad: Editing a binary `.docx` as text, or rewriting one part without keeping the other parts byte-identical -> Good: Mutating the part tree through `docxlib`, marking only the changed parts dirty, and leaving every other part byte-identical.
+- Bad: Delivering a file whose verify reports `fail`, or folding a `skipped` check into a pass claim -> Good: Fixing the failing check, or delivering `blocked` with that check and its detail verbatim.
+- Bad: Inventing a Korean margin, font, spacing, or item mark that neither the user, the project, nor [rules/korean-document.md](rules/korean-document.md) settles -> Good: Applying the documented preset or asking the user once, then stating the chosen value.
+- Bad: Installing LibreOffice, a browser, or a Python package to make a check possible -> Good: Reporting the missing capability and using the strongest proof surface the machine already has.
+- Bad: Marking a word-level edit by deleting and re-inserting whole paragraphs -> Good: Emitting the revision at the run level the request described.
+- Bad: Emitting a `.docm`, a macro, or an external relationship the request did not ask for -> Good: Keeping a `.docx` with internal relationships only.
 
 </forbidden>
 
 <validation>
 
-| Check | How | Pass condition |
-|---|---|---|
-| Capability probe | `doctor` | Every capability the report relies on reads `yes`, or the gap is named |
-| Structure | `verify <file> --spec <spec>` | `result: pass`, every check `pass` or honestly `skipped` |
-| Content | `text` or `outline` | The text the request asked for is present, in order, with no placeholder markers |
-| Geometry | `verify` geometry check against the spec | Page size and all four margins within 2 twips of the spec |
-| Revisions | `revisions` before and after | Counts and authors match what the request intended |
-| Comments | `verify` `comment-anchors` | Every comment id has a range, every range has a comment |
-| Layout | `render --pdf` then a page image | The page image shows the title, body, table, and footer where the spec put them |
-| Independent read | A second reader on the same file | The same visible text, no repair prompt or error |
+- [ ] `doctor` ran and every capability the report relies on reads `yes`, or the gap is named.
+- [ ] `verify <file> --spec <spec>` returns `result: pass`, every check `pass` or honestly `skipped`.
+- [ ] `text` or `outline` shows the requested text in order, with no placeholder markers.
+- [ ] The geometry check puts page size and all four margins within 2 twips of the spec.
+- [ ] `revisions` before and after match the counts and authors the request intended.
+- [ ] `verify` `comment-anchors` finds a range for every comment id and a comment for every range.
+- [ ] The page image from `render --pdf` shows the title, body, table, and footer where the spec put them.
+- [ ] A second reader opens the same file with the same visible text and no repair prompt.
 
 </validation>
 

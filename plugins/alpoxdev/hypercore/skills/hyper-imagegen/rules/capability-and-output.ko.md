@@ -6,7 +6,7 @@
 
 ## ChatGPT 네이티브 이미지 우선 규칙
 
-현재 런타임이 ChatGPT이고 네이티브 이미지 도구가 노출되어 있으면 이미지 요청은 완전한 프롬프트를 컴파일하고 같은 실행에서 해당 도구를 반드시 호출해야 합니다. 노출된 도구는 자신이 선언한 작업과 반환 채널의 관찰 증거입니다. ChatGPT의 네이티브 반환 이미지는 저장소 `file_write`, 디스크립터 상대 안전 쓰기 또는 별도 가져오기/저장 어댑터 없이도 전달을 충족합니다. 이 기능들은 추가 로컬 파일 사본에만 적용합니다. 런타임이 모델 선택자를 노출하면 `gpt-image-2.6-sunburst`를 지정하고, 노출하지 않으면(ChatGPT 웹 플러그인 포함) 런타임 기본 이미지 모델을 쓰며 2.6이라고 주장하지 않습니다(보고 문구는 "런타임 기본 모델"). 사용자가 세부보다 속도를 요청할 때만 `gpt-image-2.6-flare`를 고릅니다. Sunburst가 세부, 레이아웃, 정밀 편집을 더 잘 처리하므로 기본값입니다. 사용자에게 모델 선택을 묻지 않습니다. 모델명은 프롬프트 문자열이나 브리프에 넣지 않습니다. 성공한 네이티브 이미지 경로를 `prompt_saved`로 낮추지 않습니다.
+현재 런타임이 ChatGPT이고 네이티브 이미지 도구가 노출되어 있으면 이미지 요청은 완전한 프롬프트를 컴파일하고 같은 실행에서 해당 도구를 반드시 호출해야 합니다. 노출된 도구는 자신이 선언한 작업과 반환 채널의 관찰 증거입니다. ChatGPT의 네이티브 반환 이미지는 저장소 `file_write`, 디스크립터 상대 안전 쓰기 또는 별도 가져오기/저장 어댑터 없이도 전달을 충족합니다. 이 기능들은 추가 로컬 파일 사본에만 적용합니다. 런타임이 모델 선택자를 노출하면 [런타임 기능과 드리프트](../references/runtime-capability-and-drift.ko.md)의 ChatGPT 관찰 절을 따라 모델을 고르고, 노출하지 않으면(ChatGPT 웹 플러그인 포함) 런타임 기본 이미지 모델을 쓰며 "런타임 기본 모델"로 보고합니다. 사용자에게 모델 선택을 묻지 않습니다. 모델명은 프롬프트 문자열이나 브리프에 넣지 않습니다. 성공한 네이티브 이미지 경로를 `prompt_saved`로 낮추지 않습니다.
 
 필수 입력과 편집 권한을 확인한 뒤, 일반 파일 쓰기 및 대체 해결기보다 먼저 이 우선 규칙을 적용합니다. 객관적 호출 실패 뒤에만 한 번 재시도합니다. 네이티브 이미지 작업이 없거나 두 번 모두 객관적으로 실패했을 때만 프롬프트로 대체할 수 있습니다. 도구 거부 또는 안전 실패는 계속 `blocked`입니다.
 
@@ -87,5 +87,4 @@
 | 검사 목록(정확하고 읽을 수 있는 텍스트, 요청한 변경만, 실제 알파)과 픽셀 동일성 한계 보고 | OpenAI image prompting guide, <https://developers.openai.com/api/docs/guides/image-prompting> |
 | API 키 경로로 스스로 바꾸지 않음, 덮어쓰지 않는 버전 이름 경로 사본 | OpenAI `imagegen` skill, <https://github.com/openai/skills> (commit `e6afb0d`, file `.system/imagegen/SKILL.md`) |
 | 생성 전에 쓰는 검사 시험, 전송 성공과 요청 충족의 구분, 에셋 내용을 신뢰하지 않는 입력으로 취급 | AgriciDaniel/banana-claude `banana` skill, <https://github.com/AgriciDaniel/banana-claude> (commit `08e329b`, the `banana` skill's `SKILL.md`) |
-| GPT Image 2.6은 `gpt-image-2.6-sunburst`(세부, 레이아웃, 정밀 편집)와 `gpt-image-2.6-flare`(속도)로 나옴 | OpenAI image prompting guide, 2026-11-07 확인, <https://developers.openai.com/api/docs/guides/image-prompting> |
 | 형식화된 해결기, 종료 상태, 안전 쓰기 규칙 | 이 패키지 자체의 규칙 |

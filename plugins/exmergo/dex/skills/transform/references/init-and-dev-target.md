@@ -92,13 +92,13 @@ counts. Init refuses if any dbt project already exists.
 | Connector | Dev target and auth |
 |---|---|
 | DuckDB | needs a warehouse path (`--path`, or `duckdb.path` in config) |
-| BigQuery | needs a GCP project (usually `bigquery.project`; confirm it with the user); builds go to `bigquery.dev_dataset` (default `dbt_dev`); auth is Application Default Credentials (`gcloud auth application-default login`) |
-| Snowflake | builds go to `snowflake.dev_database` / `dev_schema` on the pinned warehouse |
-| Databricks | builds go to `databricks.dev_catalog` / `dev_schema` on the pinned SQL warehouse; missing credentials: `databricks auth login` |
-| Postgres | builds go to `postgres.dev_schema` (default `dbt_dev`); the password reaches dbt only through `PGPASSWORD` |
-| Redshift | builds go to `redshift.dev_schema` (default `dbt_dev`); with `redshift.workgroup` pinned the profile renders IAM auth (temporary credentials from the AWS chain), otherwise the password reaches dbt only through `REDSHIFT_PASSWORD` |
-| ClickHouse | builds go to `clickhouse.dev_database` (default `dbt_dev`), rendered as the profile's `schema:` because dbt-clickhouse has no `database:` key; the password reaches dbt only through `CLICKHOUSE_PASSWORD`; the profile's `custom_settings` block turns the confirmed budget into a per-statement server-side cap |
-| Trino | builds go to `trino.dev_catalog`.`dev_schema` (default `dbt_dev`); dbt creates the schema but never the catalog, so `dev_catalog` must exist and be writable (a `tpch`, `tpcds`, `jmx`, `system` or `faker` catalog is refused; `memory` and `blackhole` warn); the user, password or token reach dbt only through `TRINO_USER`, `TRINO_PASSWORD` or `TRINO_JWT_TOKEN`; the profile's `session_properties` block turns the confirmed budget into a per-statement server-side cap |
+| BigQuery | needs a GCP project (usually `bigquery.project`; confirm it with the user); builds go to `bigquery.dev` (default `dbt_dev`; accepted alias: `dev_dataset`); auth is Application Default Credentials (`gcloud auth application-default login`) |
+| Snowflake | builds go to `snowflake.dev` (`DATABASE.SCHEMA`) on the pinned warehouse (accepted aliases: `dev_database`, `dev_schema`) |
+| Databricks | builds go to `databricks.dev` (`catalog.schema`) on the pinned SQL warehouse (accepted aliases: `dev_catalog`, `dev_schema`); missing credentials: `databricks auth login` |
+| Postgres | builds go to `postgres.dev` (default `dbt_dev`; accepted alias: `dev_schema`); the password reaches dbt only through `PGPASSWORD` |
+| Redshift | builds go to `redshift.dev` (default `dbt_dev`; accepted alias: `dev_schema`); with `redshift.workgroup` pinned the profile renders IAM auth (temporary credentials from the AWS chain), otherwise the password reaches dbt only through `REDSHIFT_PASSWORD` |
+| ClickHouse | builds go to `clickhouse.dev` (default `dbt_dev`; accepted alias: `dev_database`), rendered as the profile's `schema:` because dbt-clickhouse has no `database:` key; the password reaches dbt only through `CLICKHOUSE_PASSWORD`; the profile's `custom_settings` block turns the confirmed budget into a per-statement server-side cap |
+| Trino | builds go to `trino.dev` (`catalog.schema`, default schema `dbt_dev`; accepted aliases: `dev_catalog`, `dev_schema`); dbt creates the schema but never the catalog, so the catalog must exist and be writable (a `tpch`, `tpcds`, `jmx`, `system` or `faker` catalog is refused; `memory` and `blackhole` warn); the user, password or token reach dbt only through `TRINO_USER`, `TRINO_PASSWORD` or `TRINO_JWT_TOKEN`; the profile's `session_properties` block turns the confirmed budget into a per-statement server-side cap |
 
 Every connector discovers its connection and refuses with the fix named when
 none resolves.
@@ -138,7 +138,7 @@ target is:
 dbt_target: dev              # the dbt target dex builds on
 dbt_prod_target: prod        # the dbt target production runs use
 bigquery:
-  dev_dataset: dbt_dev       # where dev builds write
+  dev: dbt_dev               # where dev builds write (accepted alias: dev_dataset)
   prod: analytics            # where the project's models build in production
 ```
 
@@ -172,9 +172,9 @@ names the fix for each, so both surface on the unconfirmed call.
 on. If a later config edit never reached it (a retargeted `dev_database`, a
 different warehouse), the build refuses and names both values and both files.
 The engine never rewrites `profiles.yml`, which may legitimately be hand-edited.
-Retarget the config side with `dex config set snowflake.dev_database <name>` (or
-the connector's own key), which shows the diff before writing; the profile
-still has to be changed to match.
+Retarget the config side with `dex config set snowflake.dev <name>` (or
+the connector's own dev key, with old keys accepted as aliases), which shows
+the diff before writing; the profile still has to be changed to match.
 
 **A dev target that does not exist.**
 

@@ -1,6 +1,6 @@
 ---
 name: amq-board
-version: 0.164.0 # x-release-please-version
+version: 0.168.3 # x-release-please-version
 description: "Read the AMQ fleet board when asked for current work, check the floor for stalled seats, measure request history in a retrospective, or classify recent requests on demand."
 metadata:
   short-description: Fleet board and on-demand request labels
@@ -34,6 +34,13 @@ agents' bookkeeping, with its coverage notes.
 ## Check the floor
 
 After `amq-board sync`, run `amq-board check` (`--json` for the same rows).
+For scheduled notices, create a dedicated `floor` observer, then run
+`amq-board check --notify lead,alt --as floor`. Both recipients regularly
+receive each new incident once, with the observer's original problem text.
+Failed pairs retry; a stale board tells of `board_stale` and retains the set.
+Never use a working seat as the sender because its unread notice affects
+later stall analysis. Every distinct handle resolves live before sending.
+This is an explicit optional broadcast; plain check output is unchanged.
 Each line is one problem for the lead to act on: dispatch what is ready,
 ask the seat once, then replace it. It is not proof that a process stopped.
 

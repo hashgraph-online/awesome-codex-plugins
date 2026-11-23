@@ -15,7 +15,7 @@ Run these checks before declaring a change to `hyper-git` complete or before rep
 
 ## Runtime Checks: Commit Mode
 
-- `bash -n skills/hyper-git/scripts/git-fast.sh` passes from the repository root.
+- `bash -n <skill-dir>/scripts/git-fast.sh` passes from the installed skill directory.
 - `scripts/git-fast.sh inspect . --jobs 2` emits `repos|begin`, `repo-status|begin`, and file inventory blocks; inside a linked worktree it shows `worktree|linked` and a `repo|...` path at the linked checkout root.
 - The push helper is not tested against a real remote unless the user asked to push; behavior checks use local fixtures.
 - Commits use targeted staging and one logical change each, and messages are English Conventional Commits: imperative subject, lowercase after the colon, no trailing period, at most 72 characters, a blank line before any body, and no sign-off or attribution trailer the user or repository did not request.

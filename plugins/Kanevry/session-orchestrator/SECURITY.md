@@ -49,6 +49,7 @@ What it **does** touch:
   baseline fetches (only with `GITLAB_TOKEN`), anonymous usage telemetry
   (strictly opt-in, one-time consent, whitelist-projected — see
   [docs/telemetry.md](docs/telemetry.md)).
+  **Summary: two connections are on by default (update check, security-pulse), each with its own switch; telemetry sends nothing before consent.**
   **On by default, two paths:** (1) the SessionStart update check, one GET to
   the public npm registry, independent of telemetry consent. A successful result
   is cached for 24 hours per repository; a failed request or cache write can
@@ -177,7 +178,7 @@ wave guards above, it is deliberately *not* fail-closed on internal error:
 |---|---|
 | Overlay malformed / missing `.rules` / empty `rules: []` | **Fail-to-floor**: floor alone + stderr warning (an empty overlay cannot disarm the floor) |
 | Floor unresolvable (no plugin root, or file missing) | Overlay alone + warning |
-| Both missing | Fail-open (guard skipped) + warning — unchanged pre-#972 behavior |
+| Both missing | Fail-open (guard skipped) + warning — unchanged pre-#972 behavior. One exception: a here-doc left open by its command substitution (`x=$(cat <<E )`) is denied before any policy is loaded, because bash and zsh read the lines after it differently (#2249) |
 | Internal error in the hook | `exit 0` fail-open — a documented decision; the merge module's functions are total (never throw) precisely so policy input can never reach this path |
 
 **Trust note:** whoever controls `CLAUDE_PLUGIN_ROOT` controls the floor. That
@@ -254,14 +255,45 @@ report. What the guards do on each harness is listed in
 - This repo is **npm-canonical**: `package-lock.json` is the committed lockfile and
   `scripts/check-package-manager.mjs` guards against a foreign lockfile appearing.
 
+## Opening a repository you did not write
+
+Cloning a repository and letting an agent edit files in it must not run that
+repository's commands. Since 5.21.2 the post-edit typecheck hook
+(`hooks/post-edit-validate.mjs`) and the post-edit import probe
+(`hooks/post-edit-import-probe.mjs`) start nothing unless the project is the
+plugin's own checkout. In any other project the typecheck hook reports `skip`
+and the import probe returns silently. Neither runs a command from the
+project's Session Config (`typecheck-command`), a compiler or ESLint from its
+`node_modules`, or a compiler from your `PATH`. A wave scope
+manifest does not change this. Before 5.21.2, the typecheck hook ran
+`typecheck-command` from the Session Config of whatever project the edited file
+belonged to; this was reported and fixed as
+[GHSA-f4r8-fcrq-2pj3](https://github.com/Kanevry/session-orchestrator/security/advisories/GHSA-f4r8-fcrq-2pj3).
+
+What still applies when you open a repository you did not write:
+
+- Session Config commands (`test-command`, `typecheck-command`, `lint-command`,
+  `custom-phases[].command`) run when you start a `/session` wave or a quality
+  gate in it, the same way its `package.json` scripts run when you call `npm`.
+  Read the Session Config block of `CLAUDE.md` / `AGENTS.md` before you start a
+  session in a repository you do not trust.
+- The harness's own folder trust (for example Claude Code's trust prompt) decides
+  whether hooks and project settings load at all; the plugin does not replace it.
+- The guards are accident guards, not a sandbox (see above).
+
 ## Session Config Command Trust
 
 The Session Config keys `test-command`, `typecheck-command`, `lint-command`, and
-`custom-phases[].command` are executed via a shell. A malicious commit to
-`CLAUDE.md` could therefore inject commands — which is **RCE-equivalent within the
-repo's existing trust model**, not a new attack surface: anyone able to commit can
-already achieve the same through `package.json` scripts, `.husky/` hooks, or a test
-file.
+`custom-phases[].command` are executed via a shell, but only by the session
+workflow you start: the quality gates and custom phases of a `/session` run.
+A malicious commit to `CLAUDE.md` could therefore inject commands that run when
+you start such a session in that repository. That is **RCE-equivalent within the
+repo's existing trust model** for those paths: anyone able to commit can already
+achieve the same through `package.json` scripts, `.husky/` hooks, or a test
+file, and those run when you invoke `npm` or commit. The equivalence does **not**
+extend to the editor hooks: until 5.21.2 the post-edit typecheck hook ran
+`typecheck-command` by itself after every JS/TS edit, without a session (see
+[Opening a repository you did not write](#opening-a-repository-you-did-not-write)).
 
 The mitigation is review, not sandboxing: treat Session Config like code. Any diff
 touching a command-bearing key must show before/after. `custom-phases` additionally

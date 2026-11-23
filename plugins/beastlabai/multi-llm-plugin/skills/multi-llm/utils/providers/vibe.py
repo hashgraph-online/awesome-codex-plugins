@@ -135,6 +135,7 @@ from .base import (
 )
 from .parse_kit import fail
 from .private_home import PrivateHomes
+from .version_gate import version_tuple
 
 #: Levels accepted by the ``[[models]]`` key ``thinking`` at 2.24.1, read off the
 #: installed pydantic validator rather than from documentation: a bogus value
@@ -291,7 +292,7 @@ def stopped_by_a_limit(stderr: str) -> Optional[str]:
 class VibeProvider(LLMProvider):
     """Provider for Mistral's Vibe CLI, driven against a generic OpenAI backend.
 
-    ``vibe --output json --max-price 0.25 --max-turns 4 --agent plan
+    ``vibe --output json --max-price 0.25 --max-turns 4 --agent <plan|ask>
     -p <prompt>`` — flags first, the ``-p`` pair trailing.
 
     Declares a stdin transport and the ``:effort`` suffix, both measured; stays
@@ -315,7 +316,7 @@ class VibeProvider(LLMProvider):
     #: intact as the user message, with ``-p`` still trailing.
     supported_prompt_transports = ("argv", "stdin")
 
-    #: ``--agent plan`` — the rung 1, emitted unconditionally and pinned again
+    #: ``--agent plan`` on 2.x, ``--agent ask`` on 3.x, pinned again
     #: through ``VIBE_DEFAULT_AGENT`` — is upstream's read-only profile, so this
     #: adapter cannot write the ``{output_json_path}`` file the Lane A prompts
     #: used to demand. The plan profile *advertises* ``write_file`` and ``edit``
@@ -456,6 +457,13 @@ class VibeProvider(LLMProvider):
     def is_available(self) -> bool:
         return shutil.which("vibe") is not None
 
+    def _safe_agent(self) -> str:
+        """Use the non-interactive approval mode Vibe supports at this version."""
+        # Vibe 3 removed plan; ask refuses unapproved headless tool calls.
+        # Keep the measured 2.x spelling on older or unread versions.
+        # docs/development/providers.md#vibe-agent-compatibility
+        return "ask" if version_tuple(self.gate_version()) >= (3, 0, 0) else "plan"
+
     def build_command(
         self,
         prompt: str,
@@ -498,13 +506,13 @@ class VibeProvider(LLMProvider):
             MAX_TURNS,
             #  RUNG 1, AND THE BARE FORM IS NOT IT. `default_agent` is
             # `accept-edits`, whose AgentSafety is DESTRUCTIVE and whose
-            # write_file/edit permission is `always`. `plan` is SAFE and
-            # read-only, it completes a realistic review prompt with a clean
-            # canary, and rule 1's ascending stop forbids promoting above it.
+            # write_file/edit permission is `always`. Use plan on 2.x and ask
+            # on 3.x, where headless tool calls requiring approval are denied.
+            # docs/development/providers.md#vibe-agent-compatibility
             # Never `--auto-approve`/`--yolo`, and `--trust` is not needed
             # either -- a rung-1 run showed no trust prompt and no stall.
             "--agent",
-            "plan",
+            self._safe_agent(),
             "-p",
             prompt,
         ]
@@ -808,10 +816,9 @@ class VibeProvider(LLMProvider):
             "VIBE_ENABLE_TELEMETRY": "false",
             "VIBE_ENABLE_UPDATE_CHECKS": "false",
             "VIBE_ENABLE_NOTIFICATIONS": "false",
-            # The argv already passes `--agent plan`; pinning the default too
-            # means a future argv change cannot silently fall back to
+            # Pin the same safe mode as argv so dropping --agent cannot use
             # `accept-edits`, which is DESTRUCTIVE.
-            "VIBE_DEFAULT_AGENT": "plan",
+            "VIBE_DEFAULT_AGENT": self._safe_agent(),
             # Effort is a CONFIG key, not a flag (see REASONING_EFFORTS), and it
             # is emitted UNCONDITIONALLY rather than only when a suffix is
             # present. The reason is the strip-after-merge ordering documented on

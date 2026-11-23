@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-23",
-  "total": 466,
+  "total": 469,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1371,6 +1371,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/lliu56/minicut-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Mission Kit",
+      "url": "https://github.com/agent-kit-startup/agent-kit",
+      "owner": "agent-kit-startup",
+      "repo": "agent-kit",
+      "description": "Plans, handoff and durable memory for long-term projects with your own coding agents.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/agent-kit-startup/agent-kit/HEAD/plugin.json"
     },
     {
       "name": "ML Pipeline",
@@ -3888,6 +3898,16 @@
       "install_url": "https://raw.githubusercontent.com/anzy-renlab-ai/pronounce/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "publicrecords",
+      "url": "https://github.com/GeminiGeorge22/publicrecords-skills",
+      "owner": "GeminiGeorge22",
+      "repo": "publicrecords-skills",
+      "description": "Nine skills plus Apify's hosted MCP server for official public data: SAM.gov, Grants.gov and USAspending contracts and grants, UK and EU tenders, city council meetings, ATS job postings, company social links, Etsy market data, competitor Google ads, sports odds, Spotify play counts, forecast track records and Skool community search, run on your own Apify account (pay per event).",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/GeminiGeorge22/publicrecords-skills/HEAD/plugin.json"
+    },
+    {
       "name": "Publora Skills",
       "url": "https://github.com/publora/skills",
       "owner": "publora",
@@ -4476,6 +4496,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/tweetapi/agent-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ultrafast",
+      "url": "https://github.com/ultrafastmov/ultrafast",
+      "owner": "ultrafastmov",
+      "repo": "ultrafast",
+      "description": "Make and edit videos as JSON documents rendered on your GPU, through the ultrafast skill and the local `uf mcp` server (20 tools).",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ultrafastmov/ultrafast/HEAD/plugin.json"
     },
     {
       "name": "Unified AI System",

@@ -56,6 +56,7 @@ bkt pr list
 | `BKT_KEYRING_COLLECTION` | Secret Service collection name override (Linux). Set to the provider's default collection to reuse an already-unlocked wallet. |
 | `BKT_OAUTH_CLIENT_ID` | Your own Bitbucket Cloud OAuth consumer key for `--web` login, instead of bkt's built-in consumer. Set together with `BKT_OAUTH_CLIENT_SECRET`. |
 | `BKT_OAUTH_CLIENT_SECRET` | Secret of the consumer in `BKT_OAUTH_CLIENT_ID`. |
+| `BKT_EXTRA_HEADERS` | Headers added to every request, one `Name: value` per line, for a proxy in front of the server that wants its own cookie or token. Sent only to the `BKT_HOST` server, so `BKT_HOST` is required. `Host` and `Authorization` are unsupported. |
 
 ## Saved-host behaviour
 

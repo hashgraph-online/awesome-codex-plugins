@@ -912,7 +912,54 @@ models:
                 monitor: {vendor: elementary, from: "columns.ordered_at.role: time"}
 ```
 
-- **Dex chooses no statistic.** Only `timestamp_column` is written.
+- **The population is the filter (#1483).** A declared `population.filters`
+  is written as the `where_expression` of every monitor the model gets, so the
+  monitors measure the rows the model promises, and a row outside them bends
+  no training history:
+
+  | Declared | `where_expression` |
+  |---|---|
+  | `includes: [placed, shipped]` | `status in ('placed', 'shipped')` (a NULL row is outside it, as it is outside the declaration) |
+  | `excludes: [cancelled]` | `(status not in ('cancelled') or status is null)`, since `not in` drops the NULL rows an `excludes` keeps |
+  | the same on a column declaring `null_rule: never` | `status not in ('cancelled')` |
+  | several filters | each as above, joined with `and` |
+  | none | no `where_expression` |
+
+  Each part holding an `or` is parenthesised: with a `timestamp_column`,
+  Elementary's table monitors read the expression as `where <timestamp> >=
+  <bucket start> and <where_expression>`, appended with no parentheses of its
+  own (`table_monitoring_query.sql`). Values are the declaration's authored
+  text, typed as declared and never cast: text as a string literal, escaped as
+  the `dex_population_filter_literal` macro escapes it (a quote doubled where a
+  backslash is ordinary, on DuckDB, Postgres and Trino; written `\'` with a
+  backslash doubled where it starts an escape, on BigQuery, Snowflake,
+  Databricks and Redshift; both doubled on ClickHouse), numbers and booleans
+  as written. `maintain verify` and the `dex_population_filter` test read the
+  column's type when they run and cast it to text where they must; a
+  `where_expression` is text fixed at plan time, so write the values in the
+  column's type (`includes: ['1', '2']` for a text column of codes). A list in
+  another type can fail in the warehouse or, where the warehouse converts
+  implicitly, change which rows the monitor counts: DuckDB matches a text
+  `'01'` against `1`. The column is written as declared, as dbt names it, and
+  quoted the way the adapter quotes it (backticks on BigQuery, Databricks and
+  ClickHouse, double quotes elsewhere) only where it must be: the entry marks
+  it `quote: true`, it is a reserved word, or it is not a plain identifier.
+  BigQuery reads its own reserved words (`range`, `partition`, `interval`,
+  `rows`, ...), from its lexical reference. Snowflake folds an unquoted name
+  to upper case, so there only its own reserved words count, and a column
+  spelled as one is written only with `quote: true`, since the case it was
+  created in is unknowable. A filter Dex cannot write withholds every monitor
+  of the model rather than writing it unfiltered: `filter_column_not_output`
+  (the model does not output the column) or `filter_unwritable` (a list mixes
+  text with numbers or booleans, a value or the column holds a Jinja
+  delimiter dbt would render, a value holds a line break, which BigQuery's
+  single-quoted strings cannot hold, a number is not finite, a Snowflake
+  reserved word lacks `quote: true`, or the column or a value needs a
+  connector's rule and none is configured). The monitor's marker gains `filter:
+  population.filters`, and its `data.decisions` entry names the
+  `where_expression` in `chosen`.
+- **Dex chooses no statistic.** Only `timestamp_column` and the population's
+  `where_expression` are written.
   Sensitivity, `days_back`, seasonality and every other training setting stay
   the package's defaults, unless you add them to the test yourself.
 - **Only where the package is installed.** Installed under the packages
@@ -922,7 +969,8 @@ models:
   Otherwise every monitor is `not_rendered` with `package_not_installed`.
 - **Only where it will run.** A monitor runs where production runs, so the
   repository's `dbt_project.yml` (as the plan leaves it) is read for
-  `models: elementary: +enabled` at the package root:
+  `models: elementary: +enabled` at the package root, else `+enabled` at the
+  root of `models:`, which dbt applies to a package's models too:
 
   | `+enabled` | Production |
   |---|---|
@@ -938,11 +986,14 @@ models:
   (with or without the `elementary.` namespace) is `hand_written` and left
   exactly as written: any `volume_anomalies` on the model, since a second one
   would count its rows twice, and a `freshness_anomalies` on the same
-  `timestamp_column`. One on another column is another monitor, so Dex adds its
-  own beside it.
+  `timestamp_column`, whatever `where_expression` it carries. One on another
+  column is another monitor, so Dex adds its own beside it.
 - **A monitor is never removed.** One Dex wrote whose time column the
-  declaration no longer names is `stale` (`declaration_changed`), with a note,
-  for a reviewer to remove. Unsetting `monitors.vendor` removes nothing.
+  declaration no longer names, or whose `where_expression` the population no
+  longer gives, is `stale` (`declaration_changed`), with a note, for a
+  reviewer to remove; Dex writes the current one beside it. Where the current
+  one is not written (a closed gate), the note says why and asks to keep the
+  stale one until it can be. Unsetting `monitors.vendor` removes nothing.
 - **Monitors are not generated tests.** `declarations.render_tests` does not
   govern them, they carry no cadence tag, and `data.generated_tests` neither
   lists nor prices them. The tag `dex_monitor` lets an orchestrator select or
@@ -960,7 +1011,7 @@ renders a declaration:
 | `package` | `status` (`installed`, `added_by_plan`, `not_installed`) and the installed `release` |
 | `production` | `status` (`enabled`, `disabled`, `unknown`), `reason` (see the table above), `prod_target`, and the `expression` read where it was Jinja |
 | `counts` | rows per status |
-| `monitors[]` | `model`, `test`, `column` (the timestamp column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`) and, where not written, `reason` |
+| `monitors[]` | `model`, `test`, `column` (the timestamp column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`) |
 
 `transform declare` writes the monitors an earlier declaration owes: a model
 declared before `monitors.vendor` was set is proposed with a `monitors` field

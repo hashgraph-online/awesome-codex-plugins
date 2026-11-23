@@ -6,6 +6,9 @@
 
 Call Bitbucket REST APIs directly for endpoints that do not yet have first-class commands.
 
+BKT_EXTRA_HEADERS adds headers to requests sent to the endpoint selected by BKT_HOST.
+BKT_EXTRA_HEADERS rejects Host and Authorization.
+
 Examples:
   bkt api /rest/api/1.0/projects
   bkt api /repositories/my-team --param pagelen=50

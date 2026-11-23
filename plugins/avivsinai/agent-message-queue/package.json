@@ -13,9 +13,18 @@
     ]
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-tui": {
+      "optional": true
+    }
   },
   "scripts": {
     "test": "node --test integrations/pi/amq-bridge.test.ts"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-tui": "1.5.2"
   }
 }

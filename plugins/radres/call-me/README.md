@@ -128,10 +128,14 @@ agent when to call and when to text. It is a standard
 [Agent Plugin](https://agent-plugins.org) with a Cursor manifest, so any client
 that loads Agent Plugins can use it too.
 
-**ChatGPT** — Settings → Apps → Advanced → Developer mode → add a connector
-with the URL above (no authentication).
+**ChatGPT** — install the [/call-me app](https://chatgpt.com/plugins/plugin_asdk_app_6a7afefe32d88191bb6c2d4f1477c628)
+from ChatGPT's app directory. Adding the raw server (Plugins → + → Add custom MCP
+server → the URL above, no authentication) gives full MCP only on Business and
+Enterprise/Edu workspaces; Pro gets read/fetch tools only, and placing a call is a
+write action ([OpenAI help](https://help.openai.com/en/articles/12584461)).
 
-**claude.ai** — Settings → Connectors → Add custom connector → the URL above.
+**claude.ai** — Customize → Connectors → + Add → Add custom connector → the URL
+above, no sign-in. Free plans can add one custom connector.
 
 Anything else that speaks MCP — add a streamable-HTTP server pointing at the
 URL above, then provide the recipient number through that client's pairing or

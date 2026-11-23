@@ -25,7 +25,7 @@ rg -n 'fetch\(|axios\.|import\.meta\.env\.(?!VITE_)|process\.env|DB_|DATABASE_UR
 
 # Shared nested folder checks
 find src/lib src/services lib services -maxdepth 2 -type f 2>/dev/null
-rg -n 'src/lib|src/services|direct leaf|explicit project exception' skills/hyper-architecture/stacks/vite/architecture-rules.md skills/hyper-architecture/rules/vite/services.md 2>/dev/null
+rg -n 'src/lib|src/services|direct leaf|explicit project exception' <skill-dir>/stacks/vite/architecture-rules.md <skill-dir>/rules/vite/services.md 2>/dev/null
 
 # Platform checks
 rg -n 'tanstackRouter|@tanstack/router-plugin/vite|@vitejs/plugin-react|react\(|routeTree\.gen|createRouter|RouterProvider|ImportMetaEnv|vite/client|loadEnv|resolve:\s*\{' vite.config.* tsr.config.json src/router.tsx src/main.tsx src/vite-env.d.ts 2>/dev/null

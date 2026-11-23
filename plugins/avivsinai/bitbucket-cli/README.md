@@ -155,6 +155,7 @@ pipelines:
 | `BKT_KEYRING_TIMEOUT` | Keychain operation timeout, for example `2m`. |
 | `BKT_KEYRING_COLLECTION` | Secret Service collection (Linux). |
 | `BKT_HTTP_DEBUG` | `1` logs each request URL and response status. |
+| `BKT_EXTRA_HEADERS` | Headers added to every request, one `Name: value` per line, for a proxy in front of the server, for example `Cookie: session=...`. Sent only to the `BKT_HOST` server, so `BKT_HOST` is required. `Host` and `Authorization` are unsupported. |
 
 ## Use it
 

@@ -2024,6 +2024,21 @@
       "icon": "./plugins/lliu56/minicut-skills/assets/icon.png"
     },
     {
+      "name": "agent-kit",
+      "displayName": "Mission Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-kit-startup/agent-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Plans, handoff and durable memory for long-term projects with your own coding agents.",
+      "icon": "./plugins/agent-kit-startup/agent-kit/assets/brand/mission-kit-icon-1024.png"
+    },
+    {
       "name": "ml-pipeline",
       "displayName": "ML Pipeline",
       "source": {
@@ -5738,6 +5753,21 @@
       "icon": "./plugins/anzy-renlab-ai/pronounce/assets/icon.svg"
     },
     {
+      "name": "publicrecords",
+      "displayName": "publicrecords",
+      "source": {
+        "source": "local",
+        "path": "./plugins/GeminiGeorge22/publicrecords-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Nine skills plus Apify's hosted MCP server for official public data: SAM.gov, Grants.gov and USAspending contracts and grants, UK and EU tenders, city council meetings, ATS job postings, company social links, Etsy market data, competitor Google ads, sports odds, Spotify play counts, forecast track records and Skool community search, run on your own Apify account (pay per event).",
+      "icon": "./plugins/GeminiGeorge22/publicrecords-skills/assets/icon.png"
+    },
+    {
       "name": "publora-skills",
       "displayName": "Publora Skills",
       "source": {
@@ -6613,6 +6643,20 @@
       "category": "Tools & Integrations",
       "description": "Read-only lookups of public Twitter/X profiles, tweets, search results, lists, communities and Spaces through TweetAPI's hosted MCP server, with guidance for server-side API reads.",
       "icon": "./plugins/tweetapi/agent-skill/assets/tweetapi-icon.png"
+    },
+    {
+      "name": "ultrafast",
+      "displayName": "ultrafast",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ultrafastmov/ultrafast"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Make and edit videos as JSON documents rendered on your GPU, through the ultrafast skill and the local `uf mcp` server (20 tools)."
     },
     {
       "name": "unified-ai-system",

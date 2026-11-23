@@ -15,7 +15,7 @@
 
 ## 런타임 검사: commit 모드
 
-- 저장소 루트에서 `bash -n skills/hyper-git/scripts/git-fast.sh`가 통과한다.
+- 설치된 스킬 폴더 기준 `bash -n <skill-dir>/scripts/git-fast.sh`가 통과한다.
 - `scripts/git-fast.sh inspect . --jobs 2`가 `repos|begin`, `repo-status|begin`, 파일 인벤토리 블록을 출력한다. 연결된 워크트리 안에서는 `worktree|linked`와 연결된 체크아웃 루트의 `repo|...` 경로를 보여 준다.
 - 사용자가 푸시를 요청하지 않는 한 푸시 helper는 실제 원격에 대해 시험하지 않는다. 동작 검사는 로컬 픽스처를 쓴다.
 - 커밋은 대상 지정 스테이징과 커밋당 하나의 논리적 변경을 쓰고, 메시지는 영어 Conventional Commit이다: 명령형 subject, 콜론 뒤 소문자, 끝 마침표 없음, 72자 이하, 본문 앞 빈 줄, 사용자나 저장소가 요청하지 않은 서명·출처 트레일러 없음.

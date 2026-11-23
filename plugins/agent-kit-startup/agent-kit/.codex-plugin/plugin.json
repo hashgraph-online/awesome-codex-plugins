@@ -1,0 +1,41 @@
+{
+  "name": "agent-kit",
+  "version": "6.22.0",
+  "description": "Mission Kit core skills: HITL gates, plan backlog and onboarding, QA, external plan review. The full kit (slash commands, plans, HANDOFF, staging-then-prod git flow) installs with npx @dadado/agent-kit-cli@latest install.",
+  "author": {
+    "name": "agent-kit-startup"
+  },
+  "homepage": "https://agent.missionkit.io/",
+  "repository": "https://github.com/agent-kit-startup/agent-kit",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agents",
+    "hitl",
+    "handoff",
+    "git-staging",
+    "context",
+    "multi-ide",
+    "anti-slop"
+  ],
+  "interface": {
+    "displayName": "Mission Kit",
+    "shortDescription": "Plans, handoff and durable memory for long-term projects with your own coding agents.",
+    "longDescription": "Mission Kit keeps a human in the loop for AI coding agents: plans with to-dos, a HANDOFF file that survives new chats, a staging-to-prod git routine with explicit operator gates, a memory loop for decisions and errors, and anti-slop rules. The agent-kit CLI installs the kit into a repository and stacks extra skills via agent-kit add.",
+    "developerName": "agent-kit-startup",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Skills"
+    ],
+    "websiteURL": "https://agent.missionkit.io/",
+    "privacyPolicyURL": "https://github.com/agent-kit-startup/agent-kit/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/agent-kit-startup/agent-kit/blob/main/TERMS.md",
+    "composerIcon": "./assets/brand/mission-kit-icon-1024.png",
+    "logo": "./assets/brand/mission-kit-icon-1024.png",
+    "screenshots": [
+      "./assets/brand/mission-kit-s1.png",
+      "./assets/brand/mission-kit-s2.png",
+      "./assets/brand/mission-kit-s3.png"
+    ]
+  },
+  "skills": "./skills/"
+}

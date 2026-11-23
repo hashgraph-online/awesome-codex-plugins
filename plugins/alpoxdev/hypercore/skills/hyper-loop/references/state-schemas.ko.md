@@ -174,7 +174,7 @@ bash <skill-dir>/scripts/verify-loop-state.sh --help
 |---|---|
 | 네 상태 파일과 기준 필드 이름 | `dbc-hbin/omp-ulw@74df40f ulw-loop/references/omp-ledger.md` (메커니즘 참조, 재작성) |
 | 게이트 필드 `surfaceEvidence`와 `criteriaCoverage` | `dbc-hbin/omp-ulw@74df40f ulw-loop/references/full-workflow.md` (메커니즘 참조, 재작성) |
-| 명령 구성, JSON 출력, 종료 코드 | `skills/hyper-loop/scripts/verify-loop-state.sh`. `--self-test`로 확인했다 |
+| 명령 구성, JSON 출력, 종료 코드 | `<skill-dir>/scripts/verify-loop-state.sh`. `--self-test`로 확인했다 |
 | 게이트 상태 어휘 `complete`, `blocked`, `paused` | 이 패키지의 실행 계약, 2026-11-09 |
 
 ### Evidence grade

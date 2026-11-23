@@ -287,6 +287,18 @@ it: `read_at`, and each window's `bucket`, `window`, `used_percent`, `window_min
 `reset_at` - or null until usage has been read. It is only the last reading, made when a recovery
 was due; say how old it is, never present it as current, and never read a count of credits into it.
 
+From v0.6.26 `get_status` also carries, under `watcher.self_check`, the watcher's judgement of its own
+looks - or null when it says nothing. `blocked` is null or one closed word: `recovery_blocked:held_elsewhere`,
+`recovery_blocked:locks_unread`, `recovery_blocked:stale_database` or `recovery_blocked:usage_protocol`
+(Codex changed, so recovery cannot work here), `detection_blocked:engine_missing` or
+`detection_blocked:history_unreadable` (new interruptions are not being detected). `unknown_error` is an
+error code Codex reported that this version does not know, with its `count` in the last day;
+`layout_untested` is the Codex version running in a layout this version was not tested on; `updated_from`
+is the version of this product it was updated from while no look since has paired the app's server. If the
+user asks why nothing recovers, say what it says: nothing is sent because of it, no setting cures it, and an
+update of this product that knows the new Codex does - Check for updates..., or Export diagnostics... and a
+report where none is offered. Never call it a Codex outage and never promise a fix.
+
 Do not restate the reset time the Codex usage-limit notice already shows.
 
 ## Looking further back

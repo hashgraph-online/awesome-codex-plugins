@@ -174,7 +174,7 @@ Source paths below are given from the source repository's skill root (its `skill
 |---|---|
 | The four state files and the criterion field names | `dbc-hbin/omp-ulw@74df40f ulw-loop/references/omp-ledger.md` (mechanism reference, re-authored) |
 | The gate fields `surfaceEvidence` and `criteriaCoverage` | `dbc-hbin/omp-ulw@74df40f ulw-loop/references/full-workflow.md` (mechanism reference, re-authored) |
-| The command surface, the JSON output, and the exit codes | `skills/hyper-loop/scripts/verify-loop-state.sh`, verified by its `--self-test` |
+| The command surface, the JSON output, and the exit codes | `<skill-dir>/scripts/verify-loop-state.sh`, verified by its `--self-test` |
 | The gate status vocabulary `complete`, `blocked`, `paused` | the run contract for this package, 2026-11-09 |
 
 ### Evidence grade

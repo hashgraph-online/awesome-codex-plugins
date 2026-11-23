@@ -99,8 +99,11 @@ describe('billing', () => {
    in the session. An `act` goal goes in before you walk its path, and the
    path's actions stay out of the test. A `screen` line is the `Test line:`
    its action printed, copied as is. When the outcome shows, run its
-   `expect` with `run_code` and add it once it passes; a passing statement
+   `expect` with `run_code` and add it once it passes; a passing line
    also joins `test_lines`; checks go in the test's assert block at the end.
+   `run_code` runs JavaScript on the test API, so use it for most of a
+   session's work, a loop or a read and a check in one call, over many
+   single actions.
    The walk ends with the test written. Without a
    server, learn the accessible names the app renders from the components or
    a `--headed` run.
@@ -269,8 +272,8 @@ you worked around it or gave up. Never report:
 
 - failures of the app under test, or its own behavior;
 - a problem you saw once and could not see again;
-- anything on an outdated e2e: the command refuses it, so upgrade
-  (`npx e2e@latest upgrade`) and check the problem still happens first.
+- anything on an outdated e2e: the command refuses it, so ask the user to
+  upgrade e2e and check the problem still happens first.
 
 Search [existing issues](https://github.com/e2e-inc/e2e/issues) first
 (`gh issue list -R e2e-inc/e2e --search "<words>"`); comment on a match

@@ -70,7 +70,7 @@
 
 ## 3. 워크플로 기록
 
-첫 단계 전에 `.hyper/workflows/<slug>.md`를 씁니다. `<slug>`는 작업을 나타내는 짧은 kebab-case 이름이고, 다른 작업의 파일이 이미 있으면 `-2`, `-3`을 붙입니다. 경로, 스킬 이름, 플래그를 빼고 한국어로 씁니다.
+첫 단계 전에 `.hyper/workflows/<slug>/state.json`과 `.hyper/workflows/<slug>.md`를 초기화합니다(스킬에 함께 들어 있는 `bash <skill-dir>/scripts/hyper-workflow-state.sh init --root . --slug <slug> ...`을 실행하거나, 같은 구조의 JSON과 Markdown 쌍을 직접 씁니다). `<slug>`는 작업을 나타내는 짧은 kebab-case 이름이고, 다른 작업의 파일이 이미 있으면 `-2`, `-3`을 붙입니다. `.md` 본문은 경로, 스킬 이름, 플래그를 빼고 한국어로 씁니다.
 
 ```markdown
 # <job title>
@@ -85,7 +85,7 @@
 
 | # | 단계 | 선택 근거 | 상태 | 산출물 |
 |---|---|---|---|---|
-| 1 | hyper-architecture | "폴더 구조 리팩토링" + package.json `next` | done | 단계 메모 1 |
+| 1 | hyper-architecture | "폴더 구조 리팩토링" + package.json `next` | done | stage-note |
 | 2 | hyper-plan | 여러 파일 변경 | running | .hyper/plans/<slug>.md |
 
 ## 단계 메모
@@ -94,7 +94,7 @@
 <routing line and findings with file paths>
 ```
 
-단계 상태 값은 `pending`, `running`, `done`, `skipped`, `stopped`입니다. 단계가 시작될 때와 끝날 때 상태 줄을 출력하기 전에 행을 갱신합니다.
+단계 상태 값은 `pending`, `running`, `done`, `skipped`, `stopped`입니다. 단계가 시작될 때(`enter`)와 끝날 때(`complete`·`skip`·`stop`) `state.json`과 `.md`를 함께 갱신하고 `[현재 단계: <#>/<total> <stage> — 진행 중 | 완료 | 중단]` 줄을 출력합니다. 마무리 보고 직전에 `bash <skill-dir>/scripts/hyper-workflow-state.sh verify`로 전체 완료 상태를 검증합니다.
 
 ## 4. 단계 결과
 

@@ -1,6 +1,6 @@
 ---
 name: amq-lead
-version: 0.164.0 # x-release-please-version
+version: 0.168.3 # x-release-please-version
 description: "Lead an AMQ fleet when assigning work, checking stalled seats, reviewing a worker result, deciding whether to merge, running a retrospective, or escalating a decision to the owner. Not for sending one message (use amq-cli) or for reading the board alone (use amq-board)."
 metadata:
   short-description: The lead's loop for a fleet of agents on AMQ
@@ -26,9 +26,14 @@ turn.
 1. **Owner first.** Read new owner messages. Record each instruction where it
    stays: a task for work, a ruling for a decision. Act on it before agent
    mail.
-2. **See the floor.** `amq-board sync`, then `amq-board check`. Exit 0: the
-   floor is clean. Each line is a seat or a card that does not move, or a
-   request that passed its reply time.
+2. **See the floor.** `amq-board sync`, then `amq-board check`. A scheduled
+   `check --notify lead,alt --as floor` tells both handles about each new
+   incident. The `floor` sender is a dedicated observer mailbox, never your
+   working seat; all listed recipients are distinct and validated live. Exit 0:
+   the floor is clean. Each line is a seat or a card that does not move, or a
+   request that passed its reply or first-news time. `news_overdue` means
+   no message towards the requester qualifies as news from that owner.
+   Incidents retain identity through prose and example-card changes.
    `amq thread open` lists what is still owed and to whom.
 3. **Free seat, ready work: dispatch.** Give the seat the highest-priority
    ready task with a brief (below). Do not start a new task to keep a seat
@@ -56,6 +61,12 @@ is out of scope; where to work and what not to touch; what to send back (the
 result, the real output of a real run, each place where the work differs from
 the brief); and the time you expect. Send it with `--follow-up` of that time.
 One brief, one scope: two workers never get the same files.
+
+When the work needs a review, the brief names the reviewer. The builder hands
+its candidate off with `amq handoff`: the reviewer gets a review request for
+the exact commit and you get a `handed-off` status, while your request stays
+open. The reviewer answers the builder, and the builder closes your request
+when the reviewed candidate is ready.
 
 When the work takes design, write the design yourself and brief the build.
 

@@ -35,4 +35,4 @@ Connect to https://agentdrives.com/api/mcp (no key). choose_provider_for_task {"
 
 ## Not listed yet
 
-POST https://agentdrives.com/api/suggest {"url": "example.com"} asks us to drive it. Anyone can send one.
+We drive the products people search for most. Its owner can have one driven: https://agentdrives.com/services/drive.

@@ -80,7 +80,7 @@ system.
 
 - **What stays with you.** Component HTML, CSS and examples (and adding or removing components),
   renaming tokens and groups, types, the fonts, the prefix, the format and the shared CSS. People
-  ask you for these with Ask an agent ("Requests from Ask an agent" in the skill).
+  ask you for these in a comment that mentions you ("Requests pinned to a place" in the skill).
 - **What you read back.** After people publish from the page, the JSON `get_artifact` returns is
   Plinth's formatting: 2-space, or compact for the largest systems. The values are the same, and
   your own publishes keep the bytes you send. A version that only reformats the JSON (white space,

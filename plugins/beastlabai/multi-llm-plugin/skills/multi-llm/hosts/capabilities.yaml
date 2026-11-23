@@ -531,7 +531,7 @@ hosts:
     package:
       registry: npm
       name: opencode-multi-llm
-      version: "0.1.10"
+      version: "0.1.11"
       public_version: "0.1.9"
       config_key: plugin
       provides: [command, tool]

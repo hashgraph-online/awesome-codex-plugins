@@ -55,7 +55,8 @@ gates, and limits.
 A coding agent the user already signs in to runs agent steps over the Agent Client Protocol:
 install `@e2e-dev/acp` and its adapter, and put
 `claudeCode({ model: 'sonnet' })` or `codex()` under
-`executor`; no model provider is needed. See the shipped `docs/subscriptions.mdx` or
+`executor`; no model provider is needed. Codex signs in with
+`codex login`, or with `OPENAI_API_KEY` set, which it then saves as its login. See the shipped `docs/subscriptions.mdx` or
 [the online guide](https://e2e.com/docs/subscriptions#use-your-coding-agent).
 
 - Pass a model instance, not a string (`INVALID_CONFIG`).
@@ -511,6 +512,12 @@ before writing the AI trace.
 - Any `StepExecutor` (`{ name, version?, cache?, runStep(ctx) }`) goes under
   `executor`; the runner still owns observations, actions, budgets, and the
   report, and `system` or `tools` beside `executor` is `INVALID_CONFIG`.
+- The run redacts the model provider keys in its environment from reports,
+  traces, and output. For a key it cannot see (one passed in code, one an
+  agent reads from its own login file), call
+  `registerProviderKey(name, value)` from `e2e/agent`; an executor that cuts
+  text itself calls `redactSecrets(text)` first, and one that sends its agent
+  text of its own calls `redactStepText(ctx, text)`.
 
 Reference: https://e2e.com/docs/agents
 

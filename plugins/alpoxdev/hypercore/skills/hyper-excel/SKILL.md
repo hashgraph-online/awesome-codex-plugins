@@ -15,32 +15,33 @@ Open the rules as directed below. Resolve bundled file paths from the directory 
 
 > Read what the file stores, change only what was named, and prove both.
 
+- **Purpose**: Read, analyze, create, or modify `.xlsx`/`.xlsm`/`.xltx` workbooks while leaving every unnamed package part byte-identical and sourcing every reported number from the file.
+- **Do not use when**: The deliverable is a dataframe answer, chart image, PDF, slide, VBA/macro source, cloud spreadsheet API integration, or a legacy `.xls`/`.xlsb` file.
+- **Input**: A workbook or CSV path, the requested change or question, and optionally the cells, ranges, sheets, or build spec that bound the work.
+- **Output**: The changed or created workbook at a reported absolute path, part-digest evidence for untouched parts, and a Korean report of what changed, what was verified, and what stayed untouched.
+
 <output_language>
 
-Default all user-facing deliverables, saved artifacts, reports, plans, generated docs, summaries, handoff notes, commit/message drafts, and validation notes to Korean, even when this canonical skill file is written in English.
-
-Preserve source code identifiers, CLI commands, file paths, schema keys, JSON/YAML field names, API names, package names, proper nouns, and quoted source excerpts in their required or original language.
-
-Use a different language only when the user explicitly requests it, an existing target artifact must stay in another language for consistency, or a machine-readable contract requires exact English tokens.
+Default all user-facing deliverables, saved artifacts, reports, plans, summaries, validation notes, and questions to Korean while preserving code identifiers, CLI commands, file paths, schema keys, package names, proper nouns, and quoted cell content in their original language, per `instructions/harness-engineering/references/skill-common-rules.md`.
 
 </output_language>
 
 <purpose>
 
-- Read, analyze, create, and modify real Excel workbooks: sheets, formulas, styles, number formats, conditional formats, data validation, charts, autofilter ranges, and pivots-as-rows.
-- Preserve the original on edit. A patch changes the cells named and leaves every other part of the package byte-identical, so charts, themes, images, comments, pivots, and macros survive.
-- Never report a number the file does not contain and never report a formula as correct when it was not recomputed.
-- Handle Korean workbooks properly: Hangul sheet names, `#,##0"원"` and `yyyy-mm-dd` formats, cp949 CSV intake, and locale-dependent date parsing.
+- Read, analyze, create, and modify real workbooks: sheets, formulas, styles, number formats, conditional formats, data validation, charts, autofilter ranges, and pivots-as-rows.
+- Preserve the original on edit: a patch changes the named cells and leaves every other package part byte-identical, so charts, themes, images, comments, pivots, and macros survive.
+- Never report a number the file does not contain, and never report a formula as correct when it was not recomputed.
+- Handle Korean workbooks: Hangul sheet names, `#,##0"원"` and `yyyy-mm-dd` formats, cp949 CSV intake, and locale-dependent date parsing.
 
 </purpose>
 
 <routing_rule>
 
-Use this skill when the deliverable is an Excel workbook or a fact read out of one: `.xlsx`/`.xlsm`/`.xltx` inspection, analysis, creation, or in-place modification, including CSV→spreadsheet conversion.
+Use this skill when the deliverable is a workbook or a fact read out of one: `.xlsx`/`.xlsm`/`.xltx` inspection, analysis, creation, or in-place modification, including CSV→spreadsheet conversion.
 
 Do not use it when:
 
-- the output is a plain dataframe answer, a chart image file, a PDF, a slide deck, or a rendered report in another format
+- the output is a plain dataframe answer, a chart image file, a PDF, a slide deck, or a report rendered in another format
 - the ask is VBA or macro source code, an Excel add-in, or a Microsoft Graph / Google Sheets API integration
 - the file is a legacy binary `.xls` or `.xlsb`: those are not OOXML packages and need a real converter before any operation here applies
 
@@ -107,7 +108,7 @@ Routing words are literal: 구조/현황/봐줘/알려줘 → `inspect`; 검사/
 
 One bounded repair loop per workbook operation. The feedback is a failed gate from `rules/verification.md`: `verify` reports a cache mismatch or a cycle, `patch` refuses because a part changed, or the read-back cannot open the file. The guard is the evidence: the same command rerun, the failing cell named, the digest compared. The cap is two repairs; a second failure of the same check ends the run as blocked with the failing command and its output.
 
-Reading more of a file to answer a question is not a loop. Rebuilding a workbook until it opens is not a loop either — if `build` produces an unreadable file twice, stop and report the spec that failed.
+Reading more of a file to answer a question is not a loop. Rebuilding a workbook until it opens is not a loop either: if `build` produces an unreadable file twice, stop and report the spec that failed.
 
 </loop_policy>
 
@@ -141,16 +142,27 @@ The scripts are the implementation, not a wrapper around one: reading, patching,
 
 <workflow>
 
-| Phase | Task | Output |
-|---|---|---|
-| 0 | `doctor`, then `inspect` the input. Name the sheets, dimensions, formula count, and any warning the file raised | Baseline facts |
-| 1 | Decide the mode from the request, and state which cells or sheets will change | Mode and scope |
-| 2 | Do the work with the matching tool; for a patch, list every operation explicitly | Changed file |
-| 3 | `verify` the result; for a patch also confirm untouched parts kept their digest | Evidence |
-| 4 | Read the result back: re-inspect it, or open it with an installed independent reader | Read-back |
-| 5 | Report path, what changed, what was verified, what was not possible | Korean report |
+Resume procedure: Before Step 0, read the on-disk state for this request: the target workbook, the `inspect` and `verify` output already captured for it, the part-digest list from an earlier patch, and any report file written by the previous run. If those artifacts exist for the same file and request, resume at the first unfinished step (a patch written but not verified resumes at Step 3, a verified file without a report resumes at Step 5) instead of repeating a finished step.
 
-Phase rules:
+| Step | Action | Done when | Why not skip |
+|---|---|---|---|
+| 0 | Run `doctor`, then `inspect` the input; name the sheets, dimensions, formula count, and every warning the file raised | Baseline facts written with sheet names, dimensions, and formula count | A guessed sheet name or total becomes a confidently wrong answer |
+| 1 | Decide the mode from the request and state the exact cells, ranges, or sheets that will change | Mode and change scope stated in one line | An unstated scope turns a cell edit into a silent rebuild |
+| 2 | Do the work with the matching tool; for a patch list every `--set-*` operation in one call and write to `--out` unless in-place was asked | Changed or created file at a known path | Partial or scattered edits cannot be verified or reverted |
+| 3 | `verify` the result; for a patch also confirm untouched parts kept their digest | `verify` output captured, mismatch count named, digests equal | Unrecomputed formulas and dropped parts ship as facts |
+| 4 | Read the result back: re-`inspect` it, or open it with an installed independent reader such as `openpyxl`, and say which reader ran | Read-back result stated, or its absence named | A file that only the writer can open is not delivered |
+| 5 | Report path, what changed, what was verified, what stayed untouched, and what was not possible | Korean report in the `rules/workflow.md` report shape | A report without the verification line overstates the result |
+
+Step Yes/No checklist:
+
+| # | Yes/No question | On violation -> return to |
+|---|---|---|
+| 1 | Did I read the on-disk state first and run `doctor` plus `inspect` before any claim about the file, quoting real sheet names? (Yes/No) | Step 0 |
+| 2 | Did I state the mode and the exact cells, ranges, or sheets that change before writing anything? (Yes/No) | Step 1 |
+| 3 | Did `verify` run with its mismatch count reported, and did the patch prove untouched parts kept their digest? (Yes/No) | Step 3 |
+| 4 | Was the result read back by a named reader, and does the report carry path, changes, verification, and remaining limits? (Yes/No) | Step 4 |
+
+Step rules:
 
 - Inspect before answering any question about a workbook. A sheet name is never guessed.
 - Never report a total from a file without stating whether it came from a cached value or a recomputation.
@@ -218,22 +230,25 @@ Write the report in Korean. Quote cell values, formulas, and sheet names verbati
 - Writing `"원"` into cell text instead of the number format
 - Claiming a native pivot table was created when the output is computed rows
 - Installing a package mid-task to satisfy a check
+- Bad: Answering "B열 합계는 12,400입니다" from a remembered or guessed layout -> Good: Running `inspect`, quoting the cell address and value, and saying whether it is a cached value or a recomputation.
+- Bad: Deleting a sheet and rebuilding it to "clean up" a formatting request -> Good: Patching the named cells and proving the other parts kept their digest.
+- Bad: Reporting a formula result after reading the cached `<v>` only -> Good: Running `verify` and reporting how many formulas matched, mismatched, or stayed unchecked.
+- Bad: Writing `12,400원` into a text cell to make Korean currency show -> Good: Keeping the number and the `#,##0"원"` format code.
 
 </forbidden>
 
 <validation>
 
-- [ ] `doctor` was run and its findings affected the plan.
+- [ ] Disk state was read first; `doctor` ran and its findings affected the plan.
 - [ ] `inspect` ran before any content claim.
 - [ ] The mode matched the request; a preservation request never became a rebuild.
 - [ ] `verify` ran and its result appears in the report, including unevaluated formulas.
 - [ ] A patch listed touched parts and proved the rest unchanged.
-- [ ] The result was read back, not just written.
+- [ ] The result was read back by a named reader, not just written.
 - [ ] Korean formats used format codes, and dates are serial values.
 - [ ] The report names the absolute path and states the remaining limits.
 
 </validation>
-
 ## Sources
 
 > Checked 2026-11-13.

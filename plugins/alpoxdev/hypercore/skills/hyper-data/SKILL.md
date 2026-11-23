@@ -15,13 +15,14 @@ Open the rules as directed below. Resolve bundled file paths from the directory 
 
 > Answer the question that was asked against the dataset in front of you, prove the number with the query that produced it, and leave a report a reader can rerun.
 
+- **Purpose**: Turn one dataset question into a computed, rerunnable answer and save it as `.hyper/data/[slug]/report.md` with the number first, then the query, grain, filters, row counts, timing, and input digest.
+- **Do not use when**: The output is schema, migration, query-tuning, or index work; GA4 or another analytics product's property report; a dashboard or recurring report layout; model training or forecasting; a chart with no question behind it; or a spreadsheet that must be read directly.
+- **Input**: One question about what a dataset contains or how its values relate, the dataset path or connection, and optionally a chart request, a language, or a depth constraint.
+- **Output**: The chat answer plus `.hyper/data/[slug]/report.md` in Korean, ending with exactly one `Result:` line from the four terminals.
+
 <output_language>
 
-Default the saved report, the chat answer, chart labels, and validation notes to Korean, even when this canonical skill file is written in English.
-
-Preserve column names, table names, SQL and code, file paths, CLI commands, library and product names, and quoted source excerpts in their original language.
-
-Use a different language only when the user explicitly requests it or the dataset's own labels are in another language; then keep the labels as they are.
+Default the saved report, the chat answer, chart labels, and validation notes to Korean while preserving column names, table names, SQL and code, file paths, CLI commands, library and product names, and quoted source excerpts in their original language. Use another language only when the user explicitly requests it or the dataset's own labels are in another language, and then keep the labels as written (`instructions/harness-engineering/references/skill-common-rules.md`).
 
 </output_language>
 
@@ -151,15 +152,27 @@ Canonical skill files are English with structurally aligned `*.ko.md` translatio
 
 <workflow>
 
-| Phase | Task | Output |
+Resume procedure: Before Step 0, list `.hyper/data/` for an existing `[slug]/report.md` for the same question. If one exists, read it and its `Result:` line first: an `answered` report is returned as written instead of being recomputed, and an unfinished report resumes at the first missing section of the [rules/query-evidence.md](rules/query-evidence.md) §2 shape, reusing the recorded probe, query, and cross-check instead of rerunning them.
+
+| Step | Action | Done when | Why not skip |
+|---|---|---|---|
+| 0 | Restate the question as one measurable quantity: metric, grain, population, filters, and time window | Question line written | An unstated grain or filter is how a wrong number gets reported as right |
+| 1 | Run `bash <skill-dir>/scripts/probe-engines.sh` and record which engine the answer will use | Engine line written | Importing an engine that is not installed turns a data question into an install attempt |
+| 2 | Inspect the input: file size, row estimate, columns, types, and the null and duplicate shape of the columns the question touches | Input profile written | Unknown nulls and duplicates silently change the grain |
+| 3 | Place the computation from the probe and the input profile ([rules/placement.md](rules/placement.md)) | Placement decision written | Loading a working set larger than free memory swaps and never finishes |
+| 4 | Run the smallest query that answers the question; keep it as text in the report | Query and result captured | A number without its query cannot be rerun or audited |
+| 5 | Cross-check the headline figure by a second route, and record timing and row counts | Verified answer or a stated reason it has none | One route proves arithmetic, not the grain or the filters |
+| 6 | Write `.hyper/data/[slug]/report.md` and print the answer with the report path and the `Result:` line | Report saved, `Result:` line printed | Chat-only answers are lost and unverifiable |
+
+Step Yes/No checklist:
+
+| # | Yes/No question | On violation -> return to |
 |---|---|---|
-| 0 | Restate the question as one measurable quantity: metric, grain, population, filters, and time window | Question line |
-| 1 | Run `bash <skill-dir>/scripts/probe-engines.sh` and record which engine the answer will use | Engine line |
-| 2 | Inspect the input: file size, row estimate, columns, types, and the null and duplicate shape of the columns the question touches | Input profile |
-| 3 | Place the computation from the probe and the input profile ([rules/placement.md](rules/placement.md)) | Placement decision |
-| 4 | Run the smallest query that answers the question; keep it as text in the report | Query and result |
-| 5 | Cross-check the headline figure by a second route, and record timing and row counts | Verified answer |
-| 6 | Write `.hyper/data/[slug]/report.md` and print the answer with the report path and the `Result:` line | Report |
+| 1 | Did I check `.hyper/data/` for an existing report for this question before recomputing? (Yes/No) | Step 0 |
+| 2 | Does the question line name one metric, one grain, one population, and its filters, and does the engine line match the probe output or end the run as `prerequisite_missing`? (Yes/No) | Step 1 |
+| 3 | Did I profile the input's size, columns, and null and duplicate shape before choosing a placement? (Yes/No) | Step 2 |
+| 4 | Is the query in the report verbatim, with row counts, timing, input digest, and either a cross-check or the reason it has none? (Yes/No) | Step 5 |
+| 5 | Does the report put the answer first and end with exactly one `Result:` line using one of the four terminals, with no unrequested chart or commit? (Yes/No) | Step 6 |
 
 Phase rules:
 
@@ -181,23 +194,24 @@ Phase rules:
 
 <forbidden>
 
-- Loading a dataset larger than free memory into memory, or retrying a load that already swapped.
-- Installing a package, downloading an engine, or changing the interpreter to make the run work.
-- Reading an `.xlsx`/`.xls` file directly instead of exporting it to CSV or Parquet.
-- Adding charts, extra breakdowns, or exploration passes nobody asked for.
-- Reporting a number whose query is not in the report, or a chart file that was not rendered and inspected.
-- Committing or pushing anything from this skill.
+- Bad: Loading a dataset larger than free memory into memory, or retrying a load that already swapped -> Good: Loading only within about 25% of free memory, or querying the file in place or streaming it.
+- Bad: Installing a package, downloading an engine, or changing the interpreter to make the run work -> Good: Reporting `prerequisite_missing` with the missing engine and its install command.
+- Bad: Reading an `.xlsx`/`.xls` file directly -> Good: Exporting it to CSV or Parquet first and saying so.
+- Bad: Adding charts, extra breakdowns, or exploration passes nobody asked for -> Good: Running the smallest query that answers the question plus the one cross-check.
+- Bad: Reporting a number whose query is not in the report, or a chart file that was not rendered and inspected -> Good: Showing the exact query beside every number and opening every saved chart.
+- Bad: Committing or pushing anything from this skill -> Good: Leaving the report on disk and reporting its path and `Result:` line.
 
 </forbidden>
 
 <validation>
 
+- [ ] `.hyper/data/` was checked for an existing report before any recomputation.
 - [ ] The question line names one metric, one grain, one population, and the filters that bound it.
 - [ ] The engine line matches the probe output, and a missing engine ended the run as `prerequisite_missing`.
 - [ ] The report answers first, then shows the query, the grain, the filters, the null and duplicate handling, the row counts, the timing, and the input digest.
 - [ ] The headline figure has a cross-check or a stated reason it has none.
 - [ ] A requested chart was rendered, opened, and checked for clipped labels and tofu ([rules/charts.md](rules/charts.md) §5).
-- [ ] The report ends with exactly one `Result:` line using one of the four terminals.
+- [ ] The report ends with exactly one `Result:` line using one of the four terminals, and nothing was committed or pushed.
 
 </validation>
 

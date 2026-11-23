@@ -164,7 +164,7 @@ or `E2E_USER_ADMIN_PASSWORD` first, or defer to fill time with
 | `cleanupTimeout` | `30000` | Each `afterEach` hook, fixture teardown, engine cleanup, ms. |
 | `retries` | `0`, `1` in CI | 0 to 10. |
 | `workers` | half the cores, `1` in CI | Parallel test files, capped by the `workers` the engine declares per target. |
-| `reporters` | `['list']` | `list`, `dot`, `json`, `junit`, `markdown` ids, the same as factories from `e2e/reporters` (`junit({ outputFile })`), or `{ name, printsTo?, onEvent?, onOutput?, onStepPrompt?, reportFiles?, onRunFinished?, onSummary? }` objects; one reporter at most prints to each of stdout and stderr (`dot` excludes `list`; beside `json`, the `list` and `dot` ids print to stderr), `--reporter` keeps the other objects. |
+| `reporters` | `['list']` | `list`, `dot`, `line`, `json`, `junit`, `markdown` ids, the same as factories from `e2e/reporters` (`junit({ outputFile })`), or `{ name, interactive?, onEvent?, reportFiles?, onRunFinished?, onSummary? }` objects; two of `list`, `dot`, and `line` together are `INVALID_CONFIG`, and beside `json` their ids print to stderr; without one of them or another `interactive` reporter, what the code prints goes to stderr; `--reporter` keeps the other objects. |
 | `cache` | `'read-write'` | `'read-write'`, `'read-only'`, `'off'`, or `{ mode, store, dir, strict }`; CI demotes only a defaulted mode to `'read-only'`. `strict` (`--strict-cache`) fails a step whose recording no longer replays (`REPLAY_STALE`) instead of handing it to the agent; retries replay too, and the run never writes the cache. |
 | `agents` | `{ default: built-in }` | Tests run with `default`, `e2e run --agent <name>` picks another, entries never inherit from `default`. Options: topic `agent`. |
 | `filters` | `[]` | Test filters `{ name, filter(tests, context) }`, unique names, applied in order with `--changed-since <ref>`. Use `filters: [decisionFilter({ model: gateway.decisionModel('typesafe-ai/jev') })]`, with `decisionFilter` from `@e2e-dev/decision` and `gateway` from `ai` (install `@e2e-dev/decision ai`), to run only the tests a pull request can affect. `filter` gets candidates `{ id, file, titlePath, tags, setupFile? }` and a context `{ projectRoot, changes: { base, root, files }, configFile, signal, log, redact }` with repository-relative `files`, and returns `{ exclude: { [id]: reason }, relevance?: { [id]: 0 to 1 }, note? }`; every test it does not name runs, and `relevance` (how likely each test is to fail) makes each target start the likeliest files first. Read files, the environment, or the network inside `filter`, never at config load: workers load the config too. When filters run: topic `running`. |
@@ -205,7 +205,12 @@ Next.js ([guide](https://e2e.com/docs/frameworks/nextjs)): set `app.command` to 
 dev` locally and `next start` when `CI` is set (e2e reads `''`, `0`, and
 `false` as unset; read it the same way in the config), with `next build`
 before `e2e run` in CI; `reuseExisting: true` reuses a dev server already on
-the port, and `dev` and `start` must listen on the `app.url` port.
+the port, and `dev` and `start` must listen on the `app.url` port. `e2e init`
+writes this target in a project with `next` in `dependencies` or
+`devDependencies` and a `dev` script: the `dev` script's `--port` or `-p`
+(else 3000) on `localhost`, `start` in CI only when `build` and `start`
+scripts exist on the same port, and a `build` step in the pipeline `--ci`
+writes.
 
 - A Next.js 16 dev server blocks cross-origin requests to its dev resources,
   so a target that opens `127.0.0.1` or `[::1]` (port `0` included) while
@@ -244,6 +249,7 @@ start a script that brings them up and serves the app.
 | `testIdAttribute` | What `getByTestId` reads; default `data-testid`. |
 | `chromiumSandbox` | Whether a locally launched Chromium runs with its OS sandbox on; default `true` on macOS and Windows, `false` on Linux, where root and most containers cannot start it. |
 | `screencast` | `{ size?, quality? }` for the engine's own video: frame size (default the viewport's), JPEG quality 0 to 100. |
+| `webmcp` | `true` launches Chromium or Firefox with [WebMCP](https://github.com/webmachinelearning/webmcp) on, so `browser.webmcp.tools()` and `callTool()` reach the tools a page registers; default `false`. WebKit has none (`INVALID_CONFIG`); a browser attached with `connect` must be started with it. |
 
 - `basicAuth` via `secrets.get()` masks text, not screenshots or model pixels
   showing the password. An undeclared name is `INVALID_CONFIG` at load, as is
@@ -386,7 +392,7 @@ export default {
   language.
 - One worker per device. No `device`: every booted simulator or emulator of
   the platform, and every reachable paired iPhone or iPad or connected Android phone, is the pool, up to `workers`,
-  minus devices another agent-device session holds (none booted: agent-device boots
+  minus devices another agent-device session holds (one another session takes while `prepare` boots it, starts the runner, or opens the app is swapped for the next free one, or its worker dropped when none is free, unless a short-lived agent-device command only had it busy; none booted: agent-device boots
   a shut-down one, on iOS an iPhone over an iPad over an Apple TV, on Android a phone or tablet over a TV, then the newest OS, then name order; all held: `prepare` fails); one `device`: one worker whatever `workers` says; a list (`device:
   ['iPhone 17', 'iPhone 17 Pro']`): an explicit pool. Devices boot in
   `prepare`, before the run's clock. Two sessions on one device fight over

@@ -77,7 +77,7 @@ Rust는 happy-path JavaScript만이 아니라 policy boundary에서 테스트한
 이 skill package를 변경하면 저장소 root에서 다음 검사를 순서대로 실행한다.
 
 ```bash
-node -e "const fs=require('node:fs'); const p='skills/hyper-architecture/assets/evals/tauri-cases.jsonl'; fs.readFileSync(p,'utf8').trim().split(/\\n/).forEach((line,index)=>{try{JSON.parse(line)}catch(error){throw new Error(`${p}:${index+1}: ${error.message}`)}});"
+node -e "const fs=require('node:fs'); const p='<skill-dir>/assets/evals/tauri-cases.jsonl'; fs.readFileSync(p,'utf8').trim().split(/\\n/).forEach((line,index)=>{try{JSON.parse(line)}catch(error){throw new Error(`${p}:${index+1}: ${error.message}`)}});"
 bash scripts/check-sources.sh --offline
 bash scripts/verify.sh
 ```

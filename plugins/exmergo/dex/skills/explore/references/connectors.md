@@ -17,7 +17,7 @@ matching block in `.dex/config.yml`:
 | Postgres | `postgres:` with a `schemas` allowlist |
 | Redshift | `redshift:` with the Serverless `workgroup` and a `schemas` allowlist |
 | ClickHouse | `clickhouse:` with a `databases` allowlist |
-| Trino | `trino:` with a `catalogs` allowlist (`catalog` or `catalog.schema` entries) and a writable `dev_catalog` |
+| Trino | `trino:` with a `catalogs` allowlist (`catalog` or `catalog.schema` entries) and a writable `dev` (accepted alias: `dev_catalog`) |
 
 The allowlist is a committed cost boundary: nothing outside it is read.
 

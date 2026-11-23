@@ -24,11 +24,12 @@
 
 - People who run Claude Code, Codex CLI, Cursor IDE or Pi on a git repository and want an agreed plan before the agents start.
 - People who want a check after each round of changes and a written handover to the next session.
-- People who want it free (MIT) and local: it writes plain text into your repository, with no account and no server of its own. By default it only asks npm for updates, and you can switch that off.
+- People who want it free (MIT) and local: it writes plain text into your repository, with no account and no server of its own. By default it makes two background connections, an update check against npm and a security check (Node release index, CISA KEV feed, and the names and versions of your lockfile packages sent to OSV; for GitHub remotes also `gh`); you can switch both off (see [SECURITY.md](SECURITY.md)). Usage telemetry stays off until you consent.
 
 ## What you need
 
 - Node.js 24 or later.
+- macOS or Linux (checked before every release). Windows is best effort: it runs and has a native smoke test in CI, but there is no native acceptance before each release; reported bugs get fixed (details in [docs/install.md](docs/install.md)).
 - A git repository.
 - One of Claude Code, Codex CLI (0.160 or later), Cursor IDE or Pi. Claude Code has no declared minimum version.
 - Optional: `glab` for GitLab or `gh` for GitHub, only if you want issues and merge requests filed there.

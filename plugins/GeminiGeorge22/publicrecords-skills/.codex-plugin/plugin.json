@@ -1,0 +1,51 @@
+{
+  "name": "publicrecords",
+  "version": "1.1.0",
+  "description": "Agent Skills + Apify MCP for public-records data: US federal contracts and grants (SAM.gov, Grants.gov, USAspending), UK and EU tenders, city council meetings, ATS job postings, company social links, Etsy market research, competitor Google ads, sports odds, Spotify play counts, forecast track records and Skool community search.",
+  "author": {
+    "name": "GeminiGeorge22 (publicrecords on Apify)",
+    "url": "https://github.com/GeminiGeorge22"
+  },
+  "homepage": "https://apify.com/publicrecords",
+  "repository": "https://github.com/GeminiGeorge22/publicrecords-skills",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "agent-skills",
+    "apify",
+    "government-contracts",
+    "sam-gov",
+    "grants-gov",
+    "usaspending",
+    "tenders",
+    "job-postings",
+    "company-social",
+    "etsy",
+    "google-ads",
+    "sports-odds",
+    "spotify",
+    "forecasting",
+    "skool"
+  ],
+  "interface": {
+    "displayName": "publicrecords",
+    "shortDescription": "Public-records data from Apify Actors: tenders, grants, jobs, company socials, Skool communities, more",
+    "longDescription": "Agent Skills + Apify MCP for public-records data: US federal contracts and grants (SAM.gov, Grants.gov, USAspending), UK and EU tenders, city council meetings, ATS job postings, company social links, Etsy market research, competitor Google ads, sports odds, Spotify play counts, forecast track records and Skool community search.",
+    "developerName": "publicrecords (Apify Store)",
+    "category": "Research",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://apify.com/publicrecords",
+    "defaultPrompt": [
+      "Which IT services contracts were posted on SAM.gov in the last 14 days?",
+      "What jobs did Ramp post on Ashby this week?",
+      "Find the official LinkedIn page for hubspot.com."
+    ],
+    "privacyPolicyURL": "https://github.com/GeminiGeorge22/publicrecords-skills/blob/main/PRIVACY.md",
+    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/icon.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

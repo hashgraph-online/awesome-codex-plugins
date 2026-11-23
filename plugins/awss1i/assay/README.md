@@ -1,27 +1,26 @@
-<h1 align="center">The Skill and the Plugin</h1>
+<h1 align="center">The Skill &amp; Plugin</h1>
+
+<p align="center"><a href="../../README.md">assay</a> › The Skill &amp; Plugin</p>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.ru.md">Русский</a></p>
 
----
-
-<p align="center">Two ways to have your agent check a page it just wrote.
-<strong><a href="../../docs/harnesses.md">Install steps for fifteen harnesses →</a></strong></p>
+<p align="center">Two ways to have your agent check a page it just wrote.</p>
 
 ---
 
 ## Contents
 
-- [The Skill](#the-skill)
-- [The Plugin](#the-plugin)
-- [Reporting, Not Fixing](#reporting-not-fixing)
+- [The skill](#the-skill)
+- [The plugin](#the-plugin)
+- [Reporting, not fixing](#reporting-not-fixing)
 
 ---
 
-## The Skill
+## The skill
 
-The skill works in all fifteen supported harnesses.
-[`skills/checking-a-page/SKILL.md`](skills/checking-a-page/SKILL.md) tells the
-agent to run this after finishing a page:
+The skill works in all fifteen supported harnesses. It's one file,
+`skills/checking-a-page/SKILL.md`, and it tells the agent to run this after
+finishing a page:
 
 ```bash
 assay <the page> --one-line
@@ -48,9 +47,11 @@ repeating its message. The agent copies assay's output rather than
 summarising it, so the numbers and wording stay exact. With the skill alone,
 the agent decides when to run the check.
 
+[The skill file](skills/checking-a-page/SKILL.md)
+
 ---
 
-## The Plugin
+## The plugin
 
 The plugin adds a `Stop` hook, which runs the check at the end of every turn
 that changed a page. In Claude Code, Codex, Grok Build CLI, Devin CLI, Factory
@@ -77,9 +78,11 @@ its Claude Code bridge.
   the ten-minute limit set in `hooks.json`. A page left without time is
   reported as not checked.
 
+[Harnesses](../../docs/harnesses.md)
+
 ---
 
-## Reporting, Not Fixing
+## Reporting, not fixing
 
 The agent shows you what assay found and doesn't change code because of it
 unless you ask. assay doesn't know what the page is for, so a finding is a

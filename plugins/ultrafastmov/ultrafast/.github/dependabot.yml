@@ -1,0 +1,30 @@
+# Dependabot keeps two things current, each in one grouped pull request a
+# month that CI tests:
+#   - the GitHub Actions in .github/workflows, pinned to commit SHAs with
+#     their version in a comment (Dependabot moves both)
+#   - Cargo.lock, within the versions Cargo.toml already allows (what
+#     `cargo update` would do)
+# Major versions of actions stay a person's call: most of them serve
+# release.yml, which runs only on a tag or by hand, so no pull request
+# exercises them.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    versioning-strategy: lockfile-only
+    groups:
+      cargo:
+        patterns: ["*"]

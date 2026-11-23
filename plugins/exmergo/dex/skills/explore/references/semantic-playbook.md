@@ -219,8 +219,7 @@ statically with no Cube server. `list` reads the same shape as anywhere else:
   does not cover.
 - **`--api` hands execution to Cube.** The Cube server runs the query over
   `/v1/load` with its own warehouse connection, so it answers on any warehouse
-  Cube supports (Databricks, ClickHouse and Trino included, which `--local`
-  refuses), with no estimate and no ceiling: `execution: vendor`, a `cost guard
+  Cube supports (Databricks included, which `--local` refuses), with no estimate and no ceiling: `execution: vendor`, a `cost guard
   unavailable` warning and `cost.paradigm: hosted` on every result. Prefer
   `--local` where the connector is supported and spend matters. The PII gate
   still runs first, and a Cube Core still has to serve the repository's model.

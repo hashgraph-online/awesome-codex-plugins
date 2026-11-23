@@ -4,11 +4,27 @@ description: "Use this skill when the user asks for a report as a finished docum
 compatibility: "Authoring needs file read and write. HTML assembly uses bash 3.2+, awk, and bundled assets. Rendered layout checks, PDF, and page images use a Chromium-family headless browser and jq. JPG conversion needs sips or ImageMagick, and DOCX conversion needs textutil on macOS. Report missing tools."
 ---
 
+Open the rules below as needed. Resolve bundled paths from this skill directory and project paths from the target workspace.
+
+- [rules/authoring.md](rules/authoring.md)
+- [rules/citations.md](rules/citations.md)
+- [rules/format-routes.md](rules/format-routes.md)
+- [rules/checks.md](rules/checks.md)
+
+# Hyper Report Skill
+
+> Fix the brief, author one source, render every requested format from it, and ship only after the layout checks pass.
+
+- **Purpose**: Produce one finished report document (briefing, proposal, analysis, status write-up, research or one-page summary) with a traceable evidence ledger, rendered into the formats the reader will open.
+- **Do not use when**: The deliverable is a slide deck, spreadsheet workbook, single generated image, standalone chart or diagram, chat-only answer, or code and deployment work.
+- **Input**: The report request or supplied material, audience, decision, page or length budget, and requested formats.
+- **Output**: `.hyper/report/<slug>/report.md` plus the requested `report.html`, `report.pdf`, `report-01.png`… or `report-01.jpg`…, `report.docx`, and `report.md`, all declared in one JSON render report, with a delivery note.
+
 <output_language>
 
-Default every user-facing deliverable, saved artifact, report, summary, and validation note to Korean, even though this canonical skill file is written in English.
+Default every user-facing deliverable, saved artifact, report body, summary, and validation note to Korean, even though this canonical skill file is written in English (`instructions/harness-engineering/references/skill-common-rules.md`).
 
-Preserve source identifiers, file paths, commands, field names, package names, proper nouns, and verbatim quoted source text in their original language. When a report is written in Korean and quotes an English source, keep the quote verbatim and add the Korean rendering beside it.
+Preserve source identifiers, file paths, commands, field names, package names, proper nouns, and verbatim quoted source text in their original language. When a Korean report quotes an English source, keep the quote verbatim and add the Korean rendering beside it.
 
 Use another language only when the user asks for it, an existing artifact must stay consistent, or a machine-readable contract requires exact tokens. The report body language is the reader's language, not this file's language.
 
@@ -105,14 +121,14 @@ The user's own page limit or length wins over this table. These are this package
 <skill_architecture>
 
 - Core (`SKILL.md`): trigger, contract, mode table, phase order, stop condition.
-- `rules/authoring.md`: the document contract — purpose and audience first, conclusion before evidence, section shapes, table and figure rules, the summary variant.
-- `rules/format-routes.md`: which format is canonical, how each is derived, and what each format can and cannot carry.
-- `rules/checks.md`: the pre-delivery check list, with the blocking and advisory split.
-- `rules/citations.md`: inline markers, the source list, number lineage, and what counts as a source.
-- `references/markdown-dialect.md`: the exact Markdown subset the pipeline accepts, with a worked example.
-- `references/layout-rules.md`: page geometry, typographic scale, table and figure fitting, and the overflow rules.
-- `references/themes.md`: the bundled themes, their tokens, and how to pick one.
-- `references/render-pipeline.md`: the exact commands that turn the source into each format, with the browser discovery order and failure handling.
+- [rules/authoring.md](rules/authoring.md): the document contract — purpose and audience first, conclusion before evidence, section shapes, table and figure rules, the summary variant.
+- [rules/format-routes.md](rules/format-routes.md): which format is canonical, how each is derived, and what each format can and cannot carry.
+- [rules/checks.md](rules/checks.md): the pre-delivery check list, with the blocking and advisory split.
+- [rules/citations.md](rules/citations.md): inline markers, the source list, number lineage, and what counts as a source.
+- [references/markdown-dialect.md](references/markdown-dialect.md): the exact Markdown subset the pipeline accepts, with a worked example.
+- [references/layout-rules.md](references/layout-rules.md): page geometry, typographic scale, table and figure fitting, and the overflow rules.
+- [references/themes.md](references/themes.md): the bundled themes, their tokens, and how to pick one.
+- [references/render-pipeline.md](references/render-pipeline.md): the exact commands that turn the source into each format, with the browser discovery order and failure handling.
 - `assets/runtime/`: `markdown.awk`, `assemble.awk`, `report.html`, `report.css`, `report.js`, `themes/*.css` — the pipeline itself.
 - `assets/templates/`: a starting source with every supported construct.
 - `assets/evals/hyper-report-cases.jsonl`: the trigger and behavior cases.
@@ -136,14 +152,14 @@ Write the report in the audience's language, which defaults to the user's langua
 
 <reference_routing>
 
-- Read `rules/authoring.md` before drafting any report body.
-- Read `rules/citations.md` before writing a number, a date, or a comparative claim.
-- Read `references/markdown-dialect.md` before authoring the source file; the pipeline accepts a fixed subset and silently ignores nothing.
-- Read `rules/format-routes.md` when the user names formats, or when a format would change what the report can carry.
-- Read `references/render-pipeline.md` before running the pipeline for the first time in a session.
-- Read `references/layout-rules.md` when a check fails, a table is too wide, or the page count is wrong.
-- Read `references/themes.md` when picking or changing the look.
-- Read `rules/checks.md` before declaring the report done.
+- Read [rules/authoring.md](rules/authoring.md) before drafting any report body.
+- Read [rules/citations.md](rules/citations.md) before writing a number, a date, or a comparative claim.
+- Read [references/markdown-dialect.md](references/markdown-dialect.md) before authoring the source file; the pipeline accepts a fixed subset and silently ignores nothing.
+- Read [rules/format-routes.md](rules/format-routes.md) when the user names formats, or when a format would change what the report can carry.
+- Read [references/render-pipeline.md](references/render-pipeline.md) before running the pipeline for the first time in a session.
+- Read [references/layout-rules.md](references/layout-rules.md) when a check fails, a table is too wide, or the page count is wrong.
+- Read [references/themes.md](references/themes.md) when picking or changing the look.
+- Read [rules/checks.md](rules/checks.md) before declaring the report done.
 
 </reference_routing>
 
@@ -161,14 +177,26 @@ Write the report in the audience's language, which defaults to the user's langua
 
 <workflow>
 
-| Phase | Task | Output |
+Resume procedure: Before Step 0, inspect `.hyper/report/` for an existing `<slug>/` directory, a `report.md` source, rendered `report.html`, `report.pdf`, page images, DOCX, or a JSON render report matching the request. If one exists, read the source and the render report on disk first, then resume at the first unfinished step without re-authoring finished sections or re-rendering a format that already passes.
+
+| Step | Action | Done when | Why not skip |
+|---|---|---|---|
+| 0 | Fix the brief: decision, audience, what the reader does after reading, page budget, formats | Brief block written in the report source | A report without audience and decision is a list of facts, and every later section drifts |
+| 1 | Build the evidence ledger: every number, date, and comparative claim tied to a source | Source list and inline markers written, each number labelled measured, sourced, or estimated | An unsourced number found later cannot be repaired without re-opening sources |
+| 2 | Author the Markdown source in the pipeline's dialect | `.hyper/report/<slug>/report.md` exists with conclusion before evidence at report and section level | A construct outside the accepted subset will not reach any rendered format |
+| 3 | Detect the renderer, then render the requested formats | Requested files on disk and one JSON render report written | Rendering on another machine or assuming the tool exists fails only at delivery |
+| 4 | Read the render report, fix blocking findings, re-render up to three passes | Blocking findings zero, or the failure list recorded with the files preserved | A successful exit code is not evidence that the page looks right |
+| 5 | Read the delivered artifact back against the brief and the check list, then write the delivery note | Delivery note lists absolute paths, produced formats, and residual limits | A hidden failed check or silently dropped format misleads the reader |
+
+Step Yes/No checklist:
+
+| # | Yes/No question | On violation -> return to |
 |---|---|---|
-| 0 | Fix the brief: decision, audience, what the reader does after reading, page budget, formats | Brief block in the report source |
-| 1 | Build the evidence ledger: every number, date, and comparative claim tied to a source | Source list and inline markers |
-| 2 | Author the Markdown source with the pipeline's dialect | `.hyper/report/<slug>/report.md` |
-| 3 | Detect the renderer, then render the requested formats | HTML, PDF, images, DOCX as requested |
-| 4 | Read the render report; fix blocking findings; re-render up to three passes | Passing render report |
-| 5 | Read the delivered artifact back against the brief and the check list | Delivery note with paths and residual limits |
+| 1 | Did I check `.hyper/report/` for existing state and write purpose, audience, decision, page budget, and formats before drafting a sentence? (Yes/No) | Step 0 |
+| 2 | Does every number carry measured, sourced, or estimated lineage, and does every inline marker resolve to a source that was actually opened and listed? (Yes/No) | Step 1 |
+| 3 | Is the whole body authored in the accepted dialect from one source file, with the conclusion ahead of the evidence at report and section level? (Yes/No) | Step 2 |
+| 4 | Did the render report show zero blocking findings within three passes (or the failure list recorded), with PDF page count equal to layout page count and no overflow or over-wide block? (Yes/No) | Step 4 |
+| 5 | Did I open the delivered artifact, confirm every requested format exists or is reported unavailable with its reason, and write the delivery note with absolute paths? (Yes/No) | Step 5 |
 
 Phase rules:
 
@@ -201,6 +229,10 @@ Phase rules:
 - A report that hides a failed check, or a format silently omitted from the delivery note.
 - Copying a third-party template's code or text wholesale; ideas are fine, unlicensed code is not.
 - Installing a renderer mid-run to make a format appear.
+- Bad: Opening with company background and saving the recommendation for the last page -> Good: Opening with the conclusion the reader came for, then the evidence that supports it.
+- Bad: Writing "매출이 크게 늘었다" with no figure, period, or source -> Good: Writing the number, its period, and its source marker, or labelling it an estimate.
+- Bad: Shrinking type or nudging an overflowing table inside the rendered PDF -> Good: Fixing the table or its content in `report.md` and re-rendering every format from the source.
+- Bad: Shipping with a failed page-count check and saying nothing -> Good: Naming the failing check and the affected format in the delivery note, with the files preserved.
 
 </forbidden>
 

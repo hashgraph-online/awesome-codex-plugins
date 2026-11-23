@@ -13,13 +13,18 @@ Open the rules as directed below. Resolve bundled file paths from the directory 
 
 > Pick the diagram type the structure calls for, write a typed spec, render it with automatic layout, and deliver checked HTML + JPG (and PDF on request).
 
+- **Purpose**: Turn a description, repository, document, Mermaid source, or element list into a checked diagram of the matching type as standalone HTML plus a 2x JPG, with a one-page vector PDF on request.
+- **Do not use when**: The output is a numeric data chart, a UI screen or wireframe, an illustration, a poster, or a slide deck; the user wants diagram source text in chat only; or the diagrams are one part of a multi-panel explainer page.
+- **Input**: The material (user words, repository, document, pasted Mermaid, or list), the optional type or format (`html,jpg` default, `pdf` on request), the optional theme, and an output directory (`diagrams/` default).
+- **Output**: `<out-dir>/<slug>.html`, `<slug>.jpg`, an optional `<slug>.pdf`, the kept `<slug>.diagram.json`, and a Korean closing report with paths, structure summary, inferences, and warnings.
+
 <output_language>
 
 Default all user-facing deliverables, diagram labels, titles, legends, long descriptions, reports, and validation notes to Korean, even when this canonical skill file is written in English.
 
 Preserve source code identifiers, CLI commands, file paths, product names, protocol names, table and column names, and quoted source excerpts in their original language.
 
-Use a different language only when the user explicitly requests it or the subject is written in another language; then set `lang` in the spec.
+Use a different language only when the user explicitly requests it or the subject is written in another language; then set `lang` in the spec. Shared output, evidence, and resume guardrails live in `instructions/harness-engineering/references/skill-common-rules.md`; do not restate them here.
 
 </output_language>
 
@@ -142,19 +147,31 @@ Canonical skill files are English with structurally aligned `*.ko.md` translatio
 
 <workflow>
 
-| Phase | Task | Output |
-|---|---|---|
-| 0 | Read the material; list elements, relations, groups, and the reader's question | Content inventory |
-| 1 | Choose type, direction, formats, theme, and slug | Diagram plan |
-| 2 | Write `<out-dir>/<slug>.diagram.json`: title, subtitle, description, then the type's fields | Spec |
-| 3 | `bash <skill>/scripts/render-diagram.sh --spec <spec> --out-dir <out-dir> --formats <list>` | Report and files |
-| 4 | Read the report, view the JPG, repair the spec, re-render (at most three passes) | Passing render |
-| 5 | Read the diagram back against the inventory; report paths, a short structure summary, inferences, and warnings | Closing report |
+Resume procedure: Before Step 0, list the output directory (`diagrams/` by default, or the path the user named) for an existing `<slug>.diagram.json`, `<slug>.html`, `<slug>.jpg`, or `<slug>.pdf` for the same subject. If a spec or render exists, read that spec and the last render report from disk first, then resume at the first unfinished step: repair and re-render an unfinished spec, or run only the visual check and closing report when a passing render already exists. Do not redo type selection, and never hand-edit the baked HTML.
 
-Phase rules:
+| Step | Action | Done when | Why not skip |
+|---|---|---|---|
+| 0 | Read the material; list elements, relations, groups, and the reader's question | Content inventory written | Drawing before the inventory loses elements and answers the wrong question |
+| 1 | Choose type, direction, formats, theme, and slug ([rules/diagram-selection.md](rules/diagram-selection.md)) | Diagram plan with type, direction, formats, theme, slug | A type chosen mid-authoring forces a full rewrite of the spec |
+| 2 | Write `<out-dir>/<slug>.diagram.json`: title, subtitle, description, then the type's fields | Spec saved on disk | The render script reads only the spec; chat-only content cannot be rendered |
+| 3 | `bash <skill>/scripts/render-diagram.sh --spec <spec> --out-dir <out-dir> --formats <list>` | Exit code and JSON report captured | Guessing pass/fail hides `errors` and `warnings` the machines already found |
+| 4 | Read the report, view the JPG, repair the spec, re-render (at most three passes) | `status: pass` plus a viewed JPG | Unviewed JPGs ship overlap, cut text, and misleading routes that checks cannot see |
+| 5 | Read the diagram back against the inventory; report paths, a short structure summary, inferences, and warnings | Closing report in Korean with paths, summary, inferences, warnings | Without the read-back, an inferred or missing element ships as fact |
+
+Step rules:
 
 - Ask one question only when the material contradicts itself in a way that changes the drawing; otherwise draw the best reading and mark inferences.
 - Never deliver a `fail` render as finished, and never edit the baked HTML by hand.
+
+Step Yes/No checklist:
+
+| # | Yes/No question | On violation -> return to |
+|---|---|---|
+| 1 | Did I check the output directory for an existing spec or render and read it before starting? (Yes/No) | Step 0 |
+| 2 | Was the content inventory written before any spec field, and does every node and relation trace to the material or carry an inferred mark? (Yes/No) | Step 0 |
+| 3 | Does the type, direction, and format set match the structure and the user's words (`html,jpg` default, `pdf` only when asked)? (Yes/No) | Step 1 |
+| 4 | Did `scripts/render-diagram.sh` exit 0 with `status: pass` and every requested output listed, within three repair passes? (Yes/No) | Step 4 |
+| 5 | Did I open the JPG and read the diagram back against the inventory before writing the closing report? (Yes/No) | Step 5 |
 
 </workflow>
 
@@ -173,6 +190,10 @@ Phase rules:
 - Editing `assets/runtime/` or the baked HTML to make a render pass.
 - Reporting a JPG or PDF the script did not write.
 - Logo images, emoji as icons, or decoration that carries no meaning.
+- Bad: adding a guessed service box to fill an empty slot in the layout -> Good: drawing only the elements the material names and recording the gap as an inferred element in `description`.
+- Bad: raising `spacing` or deleting a crowded node so `NODE_OVERLAP` disappears -> Good: shortening the label or moving detail into `sub` so the element survives with its meaning.
+- Bad: reading only the exit code and delivering the JPG unopened -> Good: viewing the JPG for overlap, cut text, and wrong-edge labels before the closing report.
+- Bad: editing the baked HTML to fix one label -> Good: changing the spec and re-rendering within the three-pass cap.
 
 </forbidden>
 

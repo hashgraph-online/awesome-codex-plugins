@@ -70,7 +70,7 @@ For `active`, follow the existing run. For `paused` or `blocked`, record the rea
 
 ## 3. Workflow Record
 
-Write `.hyper/workflows/<slug>.md` before the first stage. `<slug>` is a short kebab-case name of the job; add `-2`, `-3` when the file exists for a different job. Keep it in Korean except for paths, skill names, and flags.
+Initialize `.hyper/workflows/<slug>/state.json` and `.hyper/workflows/<slug>.md` before the first stage (via `bash <skill-dir>/scripts/hyper-workflow-state.sh init --root . --slug <slug> ...`, which ships with this skill, or by writing the equivalent JSON + Markdown pair directly). `<slug>` is a short kebab-case name of the job; add `-2`, `-3` when the file exists for a different job. Keep `.md` prose in Korean except for paths, skill names, and flags.
 
 ```markdown
 # <job title>
@@ -85,7 +85,7 @@ Write `.hyper/workflows/<slug>.md` before the first stage. `<slug>` is a short k
 
 | # | 단계 | 선택 근거 | 상태 | 산출물 |
 |---|---|---|---|---|
-| 1 | hyper-architecture | "폴더 구조 리팩토링" + package.json `next` | done | 단계 메모 1 |
+| 1 | hyper-architecture | "폴더 구조 리팩토링" + package.json `next` | done | stage-note |
 | 2 | hyper-plan | 여러 파일 변경 | running | .hyper/plans/<slug>.md |
 
 ## 단계 메모
@@ -94,7 +94,7 @@ Write `.hyper/workflows/<slug>.md` before the first stage. `<slug>` is a short k
 <routing line and findings with file paths>
 ```
 
-Stage status values: `pending`, `running`, `done`, `skipped`, `stopped`. Update the row when a stage starts and when it ends, before printing the status line.
+Stage status values: `pending`, `running`, `done`, `skipped`, `stopped`. Update `state.json` and `.md` when a stage starts (`enter`) and when it ends (`complete` / `skip` / `stop`), and print `[현재 단계: <#>/<total> <stage> — 진행 중 | 완료 | 중단]` at each transition. Run `bash <skill-dir>/scripts/hyper-workflow-state.sh verify` before the closing report.
 
 ## 4. Stage Results
 

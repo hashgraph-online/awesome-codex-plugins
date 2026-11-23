@@ -14,11 +14,14 @@ Open the rules as directed below. Resolve bundled file paths from the directory 
 
 > Turn an outline into a checked .pptx, edit a deck without destroying its template, or read a deck before changing it.
 
+- **Purpose**: Build, edit, or read a `.pptx` through a typed JSON spec, a bundled renderer, and a slide-by-slide image check.
+- **Do not use when**: The deliverable is slide images only, a PDF only, Google Slides or Keynote, or a theme design with no content to place.
+- **Input**: The material (notes, outline, document, CSV, existing `.pptx`), the audience and the decision, plus optional palette, format list, and output directory.
+- **Output**: `<out-dir>/<slug>.pptx` with `<slug>.deck.json` kept beside it, `<slug>.html` and one `<slug>.png` per slide (`<slug>.pdf` on request), and a closing report.
+
 <output_language>
 
-Default all user-facing deliverables, slide text, speaker notes, reports, and validation notes to Korean, even when this canonical skill file is written in English.
-
-Preserve source code identifiers, CLI commands, file paths, product names, and quoted excerpts in their original language.
+Default all user-facing deliverables, slide text, speaker notes, reports, and validation notes to Korean, even when this canonical skill file is written in English. Keep code identifiers, CLI commands, file paths, product names, and quoted excerpts in their original language (`instructions/harness-engineering/references/skill-common-rules.md`).
 
 Write the deck in another language only when the user asks for it or the source material is already in that language; then set `lang` in the spec.
 
@@ -160,29 +163,42 @@ Canonical skill files are English with structurally aligned `*.ko.md` translatio
 
 <workflow>
 
-| Phase | Task | Output |
-|---|---|---|
-| 0 | Read the material; list claims, numbers, and the decision the deck supports | Content inventory |
-| 1 | Choose slide order and kind per slide; pick palette, fonts, formats | Deck plan |
-| 2 | Write `<out-dir>/<slug>.deck.json` | Spec |
-| 3 | `bash <skill>/scripts/render-deck.sh --spec <spec> --out-dir <out-dir>` | Report and files |
-| 4 | Read the report and every PNG; fix the spec; re-render (at most three passes) | Passing render |
-| 5 | `bash <skill>/scripts/inspect-deck.sh --file <pptx> --check` on the delivered file | Verified package |
-| 6 | Report paths, slide count, palette, checks run, and anything inferred or limited | Closing report |
+Resume procedure: Before Step 0, inspect `<out-dir>` (default `decks/`) for an existing `<slug>.deck.json`, `<slug>.pptx`, the slide PNGs, and the render report of the same request. Read the spec and report on disk first, keep every artifact that already passed, and resume at the first unfinished step instead of re-rendering a passing deck.
 
-Editing an existing deck replaces phases 2-4:
+| Step | Action | Done when | Why not skip |
+|---|---|---|---|
+| 0 | Read the material; list claims, numbers, and the decision the deck supports | Content inventory written down | A deck built without the source loses the numbers the room will ask about |
+| 1 | Choose slide order and kind per slide; pick palette, fonts, format list | Deck plan states one claim per slide | Wrong slide kinds force a full re-render later |
+| 2 | Write `<out-dir>/<slug>.deck.json` after reading [references/spec-format.md](references/spec-format.md) | Spec file on disk | Guessed fields and units fail the renderer's schema |
+| 3 | Run `bash <skill>/scripts/render-deck.sh --spec <spec> --out-dir <out-dir>` | Exit 0 with report and files written | Exit 3 means a partial run, and that output is never deliverable |
+| 4 | Read the JSON report and every PNG; fix the spec; re-render (at most three passes) | `status: pass` and every slide image viewed | Overflow and collisions are visible only in the images |
+| 5 | Run `bash <skill>/scripts/inspect-deck.sh --file <pptx> --check` on the delivered file | Exit 0 | Proves the package opens without a repair prompt |
+| 6 | Report paths, slide count, palette, checks run, and anything inferred or limited | Closing report delivered | Unmarked inference reads as fact |
 
-| Phase | Task | Output |
+Editing an existing deck replaces Steps 2-4:
+
+| Step | Action | Output |
 |---|---|---|
 | E1 | `inspect-deck.sh --file <deck> --json` | Current content, fonts, and problems |
 | E2 | `edit-deck.sh --file <deck> --out <new> --replace ...` | Changed copy |
 | E3 | `inspect-deck.sh --file <new> --check` and, when the look matters, `render-deck.sh` on a fresh spec of the same content | Verified copy |
 
-Phase rules:
+Step rules:
 
 - Never overwrite the input deck; write a new file and say which one changed.
 - Never rebuild an existing deck from a spec to make a small text change: that loses the template.
 - Ask one question only when the missing answer changes the deck (audience, decision, or language). Otherwise build the best reading and mark the inference in the report.
+
+Step Yes/No checklist:
+
+| # | Yes/No question | On violation -> return to |
+|---|---|---|
+| 1 | Did I check `<out-dir>` for an existing spec, deck, or passing render and read the material before writing the spec? (Yes/No) | Step 0 |
+| 2 | Does every slide `title` carry one claim from the material, with every number keeping its unit and base? (Yes/No) | Step 1 |
+| 3 | Did I read the JSON report and view every PNG before calling the render passing? (Yes/No) | Step 4 |
+| 4 | Did `inspect-deck.sh --check` exit 0 on the delivered file, with the spec kept beside it? (Yes/No) | Step 5 |
+| 5 | For an edit, did I write a new file and leave the input deck untouched? (Yes/No) | Step 2 |
+| 6 | Does the closing report name the files, palette, fonts, checks, and every inference or limit? (Yes/No) | Step 6 |
 
 </workflow>
 
@@ -198,13 +214,12 @@ Phase rules:
 
 <forbidden>
 
-- Delivering a `fail` render, or a `.pptx` written by a run that hit exit 3.
-- Editing `assets/runtime/` or a baked HTML file to make a check pass.
-- Reporting a file the scripts did not write, or a slide count that was not measured.
-- Generating images, SmartArt, or a corporate theme; this skill places content, it does not invent pictures or design systems.
-- Inventing a transition or effect name, or promising that an animation plays as described when only its XML was checked.
-- Overwriting the input of `edit-deck.sh`, or re-rendering an existing deck from a new spec to make a small change.
-- Claiming the viewer's PNG proves how PowerPoint will render a font or a chart axis.
+- Bad: Delivering a `fail` render, an exit-3 run's `.pptx`, or a file the scripts did not write -> Good: Deliver only after `status: pass`, every PNG viewed, and `inspect-deck.sh --check` exits 0, and report the measured slide count.
+- Bad: Editing `assets/runtime/` or a baked HTML file so a check passes -> Good: Fix the spec or the source data and re-render.
+- Bad: Generating images, SmartArt, or a corporate theme, or claiming a template was applied -> Good: Place pictures that already exist by path, use the shipped palettes, and say the template was not applied.
+- Bad: Inventing a transition or effect name, or promising a described playback after checking only the XML -> Good: Use the closed list of 23 transitions and 9 effects and say playback was not verified.
+- Bad: Overwriting the input of `edit-deck.sh`, or re-rendering an existing deck from a new spec to make a small text change -> Good: Write a new file with `edit-deck.sh` and keep the template intact.
+- Bad: Claiming the viewer's PNG proves how PowerPoint renders a font or a chart axis -> Good: State that the image proves layout and overflow only.
 
 </forbidden>
 

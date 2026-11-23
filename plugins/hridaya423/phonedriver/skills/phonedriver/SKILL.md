@@ -13,7 +13,7 @@ Change a setting, send an intent or press a key without tapping through screens.
 
 - `setting` first (Android 17 and later): two calls change any number of settings. `find "dark theme|media volume"` lists settings as `key  [accepted values]  purpose`, one search per `|`; `values {"<key>": "<value>", ...}` writes them and returns the values the device now reports. `key` alone reads one; `open` shows a settings screen by its `screen` key. A refusal carries the device's reason (`Preference not enabled`).
 - `shell` for everything else, and where `setting` answers unsupported (older Android, the Simulator). One call returns the exit code, the output and what changed on screen.
-- Android: `cmd uimode night yes`, `settings put system screen_brightness 20`, `am start -a android.intent.action.VIEW -d <url>`, `input keyevent 3`, `dumpsys window | grep mCurrentFocus`. Jank: `dumpsys gfxinfo <package> reset`, act, then `dumpsys gfxinfo <package>` with grep `Janky|percentile`.
+- Android: `cmd uimode night yes`, `settings put system screen_brightness 20`, `am start -a android.intent.action.VIEW -d <url>`, `input keyevent KEYCODE_MEDIA_PLAY_PAUSE`, `dumpsys window | grep mCurrentFocus`. Jank: `dumpsys gfxinfo <package> reset`, act, then `dumpsys gfxinfo <package>` with grep `Janky|percentile`.
 - Android emulator: `emu geo fix <lon> <lat>` (a location), `emu sms send <number> <text>`, `emu power capacity 15` go to its console.
 - iOS Simulator: `simctl ui appearance dark`, `simctl openurl <url>`, `simctl privacy grant photos <bundle id>`, `simctl location set <lat>,<lon>`. To push a notification to an app, use `apps notify <app> '<json with an aps object>'` (the app has to have asked for notification permission first).
 - A physical iPhone has no shell. A physical Android refuses wipes and removing apps phonedriver did not install; pass `force` only when the user asked for exactly that.
@@ -78,7 +78,7 @@ Each error has a hint that names the next step; follow it.
 
 ## Safety
 
-- The user's own passwords, codes and payment details go in only when the user gave them for this task, with `secret`. Plain `type` into a password field or a one-time code field is refused (`is a password field`): pass the text with `secret`, on a `type` call or on a `type` step of a `batch`. A test value you make up for a sign-up form needs no asking.
+- The user's own passwords, codes and payment details go in only when the user gave them for this task, with `secret`. Plain `type` into a password, one-time code, PIN or card security code field is refused (`is a password field`): pass the text with `secret`, on a `type` call or on a `type` step of a `batch`. A test value you make up for a sign-up form needs no asking.
 - Confirming a purchase, payment or delete, and sending a message, post, email or call, need the user's word for this task, in the words the user approved.
 - A tap that spends money or cannot be undone is approved by the human, not by you. `Needs the human's approval` means nothing was tapped (the human may have asked to be asked about sends, deletes and installs too, so it can appear on a `Send` or `Delete` tap): ask the user, and call again with `autonomous: true` (CLI `--autonomous`) only if they say yes or their instructions grant full autonomy. `The human declined`: stop.
 - Change only the settings the task names.

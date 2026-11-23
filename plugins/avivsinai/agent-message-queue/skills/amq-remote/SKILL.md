@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.164.0 # x-release-please-version
+version: 0.168.3 # x-release-please-version
 description: "Connect the current session to its owner channel, inspect or disconnect its binding, or change session mirroring. Use for /amq-remote or $amq-remote and their native, off, status and mirror operations."
 metadata:
   short-description: Reach this agent from Buzz
@@ -33,7 +33,11 @@ follow the host's available approval workflow.
   consumer, monitor, or the next drain).
 - **`--native`.** For a session that is not on AMQ: each message is typed
   into this exact conversation, and the harness's own final answer goes back.
-  On Claude Code it needs the AMQ Stop hook.
+  On Claude Code it needs the AMQ Stop hook. A link session grant on Claude
+  Code also needs the AMQ prompt hook, which only the owner installs
+  (`amq-remote claude install-prompt-hook`; `uninstall-prompt-hook` removes
+  it); without it each link task needs a signature. Never install it
+  without the owner's yes.
 
 Select the section matching the requested operation. For a connection request, run
 the connect steps in order and report the command's refusal when one occurs.

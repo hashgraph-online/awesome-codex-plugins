@@ -41,7 +41,7 @@ If the user has no key, set one up in the conversation instead of sending them t
 
 | Endpoint | Query params | Returns |
 |---|---|---|
-| `/transcript` | `v` (video URL or 11-char ID, required), `language` (e.g. `en`), `timestamps` (`true` to add `segments`) | `video_id`, `title`, `author_name`, `transcript` (one text block), `word_count`, `language_code` + `requested_language`, `caption_type` (`manual`/`auto`/`null`), `cached`, `fetched_at`, plus `segments` when `timestamps=true` |
+| `/transcript` | `v` (video URL or 11-char ID, required), `language` (e.g. `en`), `timestamps` (`true` to add `segments`), `translate` (machine-translate into a language code such as `es`; adds `translated_to`) | `video_id`, `title`, `author_name`, `transcript` (one text block), `word_count`, `language_code` + `requested_language`, `caption_type` (`manual`/`auto`/`null`), `cached`, `fetched_at`, plus `segments` when `timestamps=true` |
 | `/transcript/languages` | `v` | `default_language_code` + `languages` (`language_code`, `name`, `caption_type`); 1 credit; empty list when captions are off |
 | `POST /batch` | body `{"videos": [up to 100], "language", "timestamps", "webhook_url"}`, optional `Idempotency-Key` header | `batch_id` right away (202); 1 credit per video that returns a transcript, failures free |
 | `/batch` | `id`, `offset`, `limit` (max 50) | `status` (`queued`/`processing`/`completed`), counts, `credits_charged`, `items` (transcript fields or `error_code`), `next_offset` |
@@ -53,6 +53,8 @@ If the user has no key, set one up in the conversation instead of sending them t
 | `/channel/banner` | `channel` | `banner` (`original`, `largest`, `sizes`), `avatar`, `has_banner` |
 | `/video/related` | `v` | `related`: the videos YouTube suggests next to the video |
 | `/video/dislikes` | `v` | estimated `likes`, `dislikes`, `rating`, `view_count` (`estimated` is always true) |
+| `/video` | `v` | `title`, `description`, `channel`, `views` (exact), `likes` (rounded label), `upload_date`, `duration`, `thumbnails`, `keywords` |
+| `/video/comments` | `v`, plus `continuation` (with the same `v`) for later pages | `comments` (`text`, `channel.handle`, `likes`, `replies`, `published_date`), `has_more`, `continuation_token`; 1 credit per page; 404 `COMMENTS_DISABLED` when comments are off |
 | `/channel/search` | `channel` + `q`, or `continuation` | videos inside one channel matching `q` |
 | `/playlist` | `list` (playlist ID or URL) or `continuation` | `videos`, `has_more`, `continuation_token` |
 | `/resolve` | `handle` | channel ID for an @handle or URL |

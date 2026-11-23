@@ -23,16 +23,17 @@ omp, Horon, jcode는 `npx skills`의 agent 대상 표에 없어 `-a omp`처럼 �
 
 | 런타임 | 설치 예시 | 비고 |
 |---|---|---|
-| Claude Code | `npx skills add alpoxdev/hypercore -a claude-code -g` | `-g` 생략 시 프로젝트 설치. 스킬 이름은 `/hyper-git` |
+| Antigravity (`agy`) | `npx skills add alpoxdev/hypercore -a antigravity-cli -g` | 전역은 `~/.gemini/config/skills`, `-g` 생략 시 프로젝트 `.agents/skills`에 설치(`-a antigravity`도 같은 경로 사용, `skills@1.9.0` 실측 확인) |
+| Claude Code | `npx skills add alpoxdev/hypercore -a claude-code -g` | 전역은 `~/.claude/skills`, `-g` 생략 시 프로젝트 `.claude/skills`에 설치. 스킬 이름은 `/hyper-git` |
 | Claude Code (플러그인) | `claude plugin marketplace add alpoxdev/hypercore` → `claude plugin install hypercore@alpoxdev` | 위와 택일. 스킬 이름은 `/hypercore:hyper-git` |
 | Codex CLI | `npx skills add alpoxdev/hypercore -a codex -g` | project/global 모두 `.agents/skills` canonical 경로 사용 |
 | Cursor | `npx skills add alpoxdev/hypercore -a cursor -g` | `npx skills` 표준 대상 |
 | Cursor (플러그인) | 팀 marketplace: Dashboard → Plugins & MCPs → Add Marketplace → Import from Repo에 `https://github.com/alpoxdev/hypercore` 입력. 로컬 시험: 저장소를 `~/.cursor/plugins/local/hypercore`에 복사한 뒤 Developer: Reload Window | 위와 택일. 팀 marketplace는 Teams·Enterprise 요금제 전용. 로컬 폴더는 심링크가 아니라 복사본이어야 함(바깥을 가리키는 심링크는 건너뜀). Cursor Marketplace 공개 등록은 별도 심사 |
-| omp | `npx skills add alpoxdev/hypercore -a codex` | `npx skills` 대상 표에 없어 `-a omp`는 `Invalid agents: omp`로 실패합니다. 프로젝트 `.agents/skills`에 설치하면 omp가 읽습니다(2026-11-10 omp 1대에서 프로젝트 사본 로딩 확인) |
+| omp | `npx skills add alpoxdev/hypercore -a codex` | `npx skills` 대상 표에 없어 `-a omp`는 `Invalid agents: omp`로 실패합니다. 프로젝트 `.agents/skills`에 설치하면 omp가 읽고(2026-11-10 프로젝트 사본 로딩 확인), 사용자 전역 경로는 `~/.omp/agent/skills`입니다 |
 | Horon | `npx skills add alpoxdev/hypercore -a codex` | omp와 같은 이유로 `-a codex`를 씁니다. 프로젝트 `.agents/skills` 사본을 Horon이 읽는 것을 확인했습니다(2026-11-10) |
 | pi | `npx skills add alpoxdev/hypercore -a pi` | `npx skills` 표준 대상. 프로젝트 `.agents/skills`에 설치 |
 | jcode | `npx skills add alpoxdev/hypercore -a codex` | omp·Horon과 같은 프로젝트 `.agents/skills` 경로. jcode의 로딩은 이 기기에 없어 미확인(`not_run`) |
-| 기타 | 설치 도구가 지원하면 `npx skills add alpoxdev/hypercore`, 그 밖에는 스킬 폴더의 `SKILL.md`를 직접 엽니다. | 파일로 실행할 때는 `rules/`, `references/`, `assets/` 등 스킬 폴더 전체가 필요합니다. |
+| 기타 | 설치 도구가 지원하면 `npx skills add alpoxdev/hypercore`, 그 밖에는 스킬 폴더의 `SKILL.md`를 직접 엽니다. | 파일로 실행할 때는 `rules/`, `references/`, `assets/` 등 스킬 폴더 전체가 필요합니다. 환경별 도구 대응표는 [`skills/hyper/references/runtime-tool-map.ko.md`](skills/hyper/references/runtime-tool-map.ko.md)를 참고합니다. |
 
 스킬별 실행 호환은 아래 [스킬 카탈로그](#스킬-카탈로그)의 **호환** 컬럼 또는 각 `SKILL.md`의 `compatibility` 필드에서 확인합니다.
 

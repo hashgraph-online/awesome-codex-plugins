@@ -7,7 +7,7 @@
 <h1 align="center">YouTube MCP Server: Transcripts, Search, Channels & Playlists</h1>
 
 <p align="center">
-  A remote MCP server for YouTube: transcripts, video and channel search, channel browsing, in-channel search, and playlist extraction.<br/>
+  A remote MCP server for YouTube: transcripts and translation, video and channel search, video details and comments, channel browsing, in-channel search, and playlist extraction.<br/>
   API key <b>or</b> OAuth 2.1 sign-in. Free tier, no card required.
 </p>
 
@@ -23,7 +23,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-4CAF50?style=for-the-badge" alt="MIT License"/></a>
 </p>
 
-Thirteen tools, one hosted endpoint, no local install, for Claude, ChatGPT, Cursor, VS Code, Windsurf, and 15+ other MCP-compatible clients.
+Fifteen tools, one hosted endpoint, no local install, for Claude, ChatGPT, Cursor, VS Code, Windsurf, and 15+ other MCP-compatible clients.
 
 ```
 https://getyoutubetranscript.com/api/mcp
@@ -45,12 +45,27 @@ The agent chains `search_channel_videos` and `get_youtube_transcript` on its own
 |  | This MCP | Typical single-purpose YouTube MCP |
 |---|---|---|
 | Hosting | ✅ Remote (no local install, no build step) | ❌ Local stdio process to manage |
-| Tools | ✅ 7 (transcript, search, channel latest/search/videos, playlist, credits) | ❌ Usually 1 (transcript only) |
+| Tools | ✅ 15 (transcripts, translation, search, channels, playlists, video details, comments, related videos, dislikes, credits) | ❌ Usually 1 (transcript only) |
 | YouTube search (video *and* channel) | ✅ Yes | ❌ No |
 | Full channel upload history, paginated | ✅ Yes | ❌ No |
 | In-channel search | ✅ Yes | ❌ No |
 | Auth | ✅ API key **and** OAuth 2.1 (DCR + CIMD) | ❌ Usually neither |
 | Agent-friendly errors | ✅ Stable error codes, human-readable messages | ❌ Bare HTTP codes |
+
+### What the official YouTube Data API can't do
+
+Video details, comments, playlists and channel uploads are available from the official API too. This is what is missing there:
+
+| You want | Official YouTube Data API | This MCP |
+|---|---|---|
+| Transcript of someone else's video | Caption download works only for the video's owner | `get_youtube_transcript`, any public video with captions |
+| Transcript in another language | Only the tracks the creator uploaded | `translate`, with timestamps kept aligned |
+| Related videos | Endpoint removed in 2023 | `get_related_videos` |
+| Dislike count | Hidden since 2021 | `get_video_dislikes` (community estimates) |
+| Community posts | No endpoint | `list_channel_posts` |
+| Many searches | 10,000 quota units a day, 100 per search: about 100 searches | 1 credit per search page |
+
+The bundled [`youtube` skill](skills/youtube/SKILL.md) also teaches the agent how to cite moment links, read the transcript header, handle each error code and keep large transcripts out of its answer.
 
 ---
 
@@ -61,7 +76,7 @@ This repo root is also an [Agent Plugins 1.0.0](https://agent-plugins.org/specif
 ```text
 plugin.json                # plugin manifest
 mcp.json                   # hosted MCP server (streamable-http, OAuth, no key in the file)
-skills/youtube/SKILL.md    # when and how to use the 13 tools
+skills/youtube/SKILL.md    # when and how to use the 15 tools
 ```
 
 In VS Code, run **Chat: Install Plugin From Source** and paste `https://github.com/tubeagentkit/youtube-mcp`. Other clients that support Agent Plugins can point at this repo or a local clone. For Cursor there is a separate [plugin repo](https://github.com/tubeagentkit/youtube-transcript-cursor-plugin).
@@ -293,7 +308,7 @@ The agent calls `get_youtube_transcript` and summarizes the result. If you conne
 
 ## Run locally (stdio)
 
-Prefer a local process? [`server/`](./server) is an open-source stdio MCP server with the same 13 tools, built on the official MCP TypeScript SDK. It calls the public [REST API](https://getyoutubetranscript.com/docs?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp) with your API key.
+Prefer a local process? [`server/`](./server) is an open-source stdio MCP server with the same 15 tools, built on the official MCP TypeScript SDK. It calls the public [REST API](https://getyoutubetranscript.com/docs?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp) with your API key.
 
 ```sh
 git clone https://github.com/tubeagentkit/youtube-mcp
@@ -342,7 +357,7 @@ Both methods issue a token scoped and audience-bound to this specific MCP server
 
 ## Available Tools
 
-All thirteen tools are exposed automatically once you connect. **1 credit = 1 successful request.** Failed or rate-limited calls never consume credits.
+All fifteen tools are exposed automatically once you connect. **1 credit = 1 successful request.** Failed or rate-limited calls never consume credits.
 
 ### 1. `get_youtube_transcript`
 
@@ -354,8 +369,9 @@ Fetch the full transcript for a YouTube video, plus its title/author/thumbnail m
 | `language` | string | optional | Language code, e.g. `en`, `es`. Defaults to `en` |
 | `send_metadata` | boolean | optional | Include title/author/thumbnail. Defaults to `true` |
 | `timestamps` | boolean | optional | One line per caption, each starting with its `[m:ss]` start time (`[h:mm:ss]` past an hour). Defaults to `false` (one block of text) |
+| `translate` | string | optional | Language code to machine-translate the transcript into, e.g. `es`, `zh-CN`. Timestamps stay aligned, and the header gains `## Translated to: es (machine translation)` |
 
-**Cost:** 1 credit, with or without `timestamps`.
+**Cost:** 1 credit, with or without `timestamps` or `translate`.
 
 ### 2. `get_transcript_languages`
 
@@ -468,7 +484,28 @@ A video's likes, dislikes, star rating and view count. YouTube no longer publish
 
 **Cost:** 1 credit.
 
-### 12. `list_playlist_videos`
+### 12. `get_video_details`
+
+A video's title, description, channel and subscriber count, views, likes, upload date, length, thumbnails and tags. `views` is exact; `likes` and `subscribers` are the rounded labels YouTube shows ("19M").
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `video_url` | string | **required** | YouTube URL (full or short) or an 11-character video ID |
+
+**Cost:** 1 credit.
+
+### 13. `get_video_comments`
+
+A page of a video's top comments: text, commenter, likes, reply count and age. For the next page, call again with the same `video_url` plus `continuation`.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `video_url` | string | **required** | YouTube URL (full or short) or an 11-character video ID |
+| `continuation` | string | optional | Opaque token from the previous page; send it with the same `video_url` |
+
+**Cost:** 1 credit/page.
+
+### 14. `list_playlist_videos`
 
 Get every video in a YouTube playlist.
 
@@ -479,7 +516,7 @@ Get every video in a YouTube playlist.
 
 **Cost:** 1 credit/page.
 
-### 13. `get_credits` <sub>· **FREE**</sub>
+### 15. `get_credits` <sub>· **FREE**</sub>
 
 Check the remaining credit balance for your key/account. No parameters.
 
@@ -498,6 +535,8 @@ Check the remaining credit balance for your key/account. No parameters.
 | 🏛️ **Build a content database** | "Pull every video from @veritasium and store title + transcript." |
 | 🎯 **Channel research** | "Search inside @MKBHD for any video about [topic] and summarize the takeaways." |
 | ✍️ **Repurpose content** | "Turn this video into a 1,500-word blog post: [URL]" |
+| 🌍 **Translate a video** | "Give me this talk in Spanish with timestamps: [URL]" |
+| 💬 **Audience reaction** | "What do viewers think of this video? Quote the top comments: [URL]" |
 
 ---
 
@@ -566,19 +605,19 @@ hosted endpoint. The hosted endpoint and the REST API behind both are run by
 getyoutubetranscript.com and are not open source. To check either one yourself:
 
 - **Run the local server's live test** — `GYT_API_KEY=sk_live_... npm test --prefix server`
-  starts `server/index.js` over stdio, lists all 13 tools, and calls the free ones.
+  starts `server/index.js` over stdio, lists all 15 tools, and calls the free ones.
 - **Run [`verify.js`](./verify.js) against the hosted endpoint** — zero dependencies, zero auth required:
   ```sh
   node verify.js
   ```
   It performs the real MCP handshake (`initialize` then `tools/list`) against the live
-  endpoint and prints the server's actual response, including all 13 real tool schemas.
+  endpoint and prints the server's actual response, including all 15 real tool schemas.
   Tool *discovery* is public; only tool *calls* require an API key or OAuth token (see
   [Authentication](#authentication)).
 - **Independently verified by four third-party MCP directories**, each of which connected
   to the live endpoint and confirmed the tools themselves (not just took our word for it):
   - [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=getyoutubetranscript) — `com.getyoutubetranscript/youtube-transcript-and-youtube-search`, published via domain-ownership-verified HTTP `mcp-publisher`
-  - [Smithery](https://smithery.ai/server/@tubeagentkit/youtube-transcript) — its own scanner connected and discovered all 6 tools
+  - [Smithery](https://smithery.ai/server/@tubeagentkit/youtube-transcript) — its own scanner connected and discovered the tools
   - [Glama](https://glama.ai/mcp/servers/tubeagentkit/youtube-mcp)
   - [LobeHub](https://market.lobehub.com/s/plugins/tubeagentkit-youtube-transcript)
 - **Live since 2026-09-12** — the OAuth 2.1 (DCR + CIMD) flow has also been exercised

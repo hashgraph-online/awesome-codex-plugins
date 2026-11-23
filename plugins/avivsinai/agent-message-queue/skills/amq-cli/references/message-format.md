@@ -41,6 +41,7 @@ Field notes:
 - `labels`: optional list of tags for filtering.
 - `context`: optional JSON object for structured metadata.
 - `reply_by`: optional RFC 3339 UTC time, to the second, by which the sender expects a reply; advisory; set by a send or reply with `--follow-up`.
+- `news_by`: optional RFC 3339 UTC time, to the second, by which the sender expects the recipient's first reply about this request; advisory; set by a send or reply with `--news-within`.
 
 Routing fields (set automatically by CLI — do not hand-craft):
 - `reply_to`: optional sender identity for routing replies (e.g., `claude@collab`). Set on cross-session and cross-project sends.
