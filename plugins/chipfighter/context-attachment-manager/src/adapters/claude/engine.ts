@@ -6,7 +6,7 @@
 // Input: request headers and bodies, the session's transcript and selection. Output: attempts to send and a report.
 
 import type { IncomingHttpHeaders } from "node:http";
-import { decodeBody, encodeBody, hasUnsafeInteger } from "../../core/engine/transport.ts";
+import { decodeBody, encodeBody, hasUnsafeInteger, type ParsedBody } from "../../core/engine/transport.ts";
 import { claudeSelectionDirOf } from "../../core/paths.ts";
 import type { Lang } from "../../core/lang.ts";
 import { currentLang } from "../../core/language.ts";
@@ -16,8 +16,10 @@ import { autoChoice, earlierCopies } from "../../core/session.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
 import { keepCacheRead, marksOutside, sentPrefixOf, type SentPrefix } from "../protocols/anthropic-messages/cache.ts";
 import { addCompacted, summaryAt, type RequestImage, type Resend } from "../protocols/anthropic-messages/rewrite.ts";
+import { fetchCalls, pdfBlocks, rewritePdfs, type PdfReport } from "../protocols/anthropic-messages/documents.ts";
 import { chainOf, fitThinking, type ThinkingRecord } from "../protocols/anthropic-messages/thinking.ts";
 import { claudeHome, claudeImageData, claudeStartedAt, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
+import { claudePdfSource } from "./claude-pdfs.ts";
 import { findRequestImages, rewriteMessages } from "./claude-rewrite.ts";
 
 type Json = Record<string, any>;
@@ -40,7 +42,8 @@ export const claudeConversationRequest = (details: Json): boolean => details.kin
 // v0.4: a Claude Code session's requests are rewritten once something is unchecked there, or automatic selection was
 // used (copies the model fetched may be in its history from then on). v0.5: or once it was compacted with images
 // before the compaction, which the user may keep sending. v0.8: or once it has any image, for the feature line note
-// and the ids (Claude Code sends the whole history every time, so this costs no upload; docs/v0.8/plan.md).
+// and the ids (Claude Code sends the whole history every time, so this costs no upload; docs/v0.8/plan.md). v0.13: or
+// once it read a PDF (pages it fetches go in).
 export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelectionDirOf(), home = claudeHome()): boolean {
   if (!sessionId) return false;
   let index: ClaudeIndex | null = null;
@@ -49,7 +52,20 @@ export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelecti
     const selection = claudeSelection(sessionId, dir, index ? claudeStartedAt(index) : null, index?.previous ?? []);
     if (Object.keys(selection.unchecked).length > 0 || selection.autoSince) return true;
   } catch { /* the transcript still decides */ }
-  return !!index?.images.length;
+  return !!index?.images.length || !!index?.pdfs?.length;
+}
+
+// v0.13: the request ends with a prompt (a user message without a tool result; Claude Code may put system messages
+// after it) that the records do not have yet: they end with the model's reply.
+export function promptPending(messages: Json[], index: Pick<ClaudeIndex, "chain">): boolean {
+  const last = [...messages].reverse().find((message) => message?.role === "user" || message?.role === "assistant");
+  const prompt = last?.role === "user" && !(Array.isArray(last.content) && last.content.some((block: Json) => block?.type === "tool_result"));
+  return prompt && index.chain.at(-1)?.type === "assistant";
+}
+
+// v0.13: the PDF part of a request's report, without what is empty.
+function pdfSummary(report: PdfReport): Json {
+  return Object.fromEntries(Object.entries(report).filter(([, value]) => (Array.isArray(value) ? value.length > 0 : value !== 0)));
 }
 
 // The images a Claude Code request carried, by index key, with the base64 characters each took (the panel's
@@ -83,23 +99,29 @@ export const LATE_STEP_MS = 100;
 // CAM_EXPERIMENT_BLOCK_BINDING (experiments only, docs/v0.4/tasks.md T04-01): asks Anthropic to check thinking with
 // that prefix_mismatch_behavior, as for an account created from 2026-08-31; the report names the beta header to add.
 // v0.11: lang, the language of the text for the model; the engine passes the one the core and Codex's setting choose.
-export function rewriteClaudeBody(original: Buffer, encoding: string | undefined, sessionId: string, dir = claudeSelectionDirOf(), home = claudeHome(), env = process.env, thinking: ThinkingRecord | null = null, previous: SentPrefix[] = [], lang: Lang = currentLang()): { body: Buffer; report: Json; attempts: ClaudeAttempt[]; prefix?: SentPrefix } {
+// v0.12: missed, the contents of images the engine sent before the transcript had them (report.lateContent): in the
+// next turn they go out once more for their feature lines (core/session.ts missedLine).
+// v0.12: `pre`, the body the engine already decoded and parsed (transport.ts, parseBody); it is not parsed again.
+export function rewriteClaudeBody(original: Buffer, encoding: string | undefined, sessionId: string, dir = claudeSelectionDirOf(), home = claudeHome(), env = process.env, thinking: ThinkingRecord | null = null, previous: SentPrefix[] = [], lang: Lang = currentLang(), missed: ReadonlySet<string> = new Set(), pre?: ParsedBody): { body: Buffer; report: Json; attempts: ClaudeAttempt[]; prefix?: SentPrefix } {
   const asIs = (report: Json) => ({ body: original, report, attempts: [] });
-  const decoded = decodeBody(original, encoding);
+  const decoded = pre?.decoded ?? decodeBody(original, encoding);
   if (!decoded) return asIs({ skipped: "undecodable body" });
-  const text = decoded.toString("utf8");
+  const text = pre?.text ?? decoded.toString("utf8");
   let json: Json;
-  try { json = JSON.parse(text); } catch { return asIs({ skipped: "unparsable body" }); }
+  try { json = pre?.json ?? JSON.parse(text); } catch { return asIs({ skipped: "unparsable body" }); }
   if (!Array.isArray(json.messages)) return asIs({ skipped: "no messages array" });
   if (hasUnsafeInteger(text)) return asIs({ skipped: "integer beyond 2^53 would change when re-serialized" });
   let index: ClaudeIndex;
   try { index = loadClaudeIndex(sessionId, home, stableIdTimes(dir)); } catch (error) { return asIs({ skipped: `thread index: ${String(error)}` }); }
   const selection = claudeSelection(sessionId, dir, claudeStartedAt(index), index.previous);
-  const current = index.turns;
+  // v0.13: Claude Code may send a turn's first request a moment before its prompt reaches the transcript (16–21 ms in a
+  // headless run, 2026-11-23), whose records then end with the model's reply: the request's own prompt is the next
+  // turn, and the turn before's images are left out from this request on (they went out once more before).
+  const current = index.turns + (promptPending(json.messages, index) ? 1 : 0);
   const copies = earlierCopies(index, current);
   // v0.3: automatic selection (core/session.ts); v0.10: images of an interrupted turn without a feature line yet are
   // sent once more.
-  const chosen = selection.auto ? autoChoice(index, current, selection.pinned ?? {}, true) : null;
+  const chosen = selection.auto ? autoChoice(index, current, selection.pinned ?? {}, true, missed) : null;
   const leaveOut = chosen?.leaveOut ?? new Set(Object.keys(selection.unchecked));
   const awaiting = chosen?.awaiting ?? new Set<string>();
   const pixels = (ref: RequestImage) => (ref.key ? index.byKey.get(ref.key)?.pixelSha256 : undefined) ?? pixelHashOfData(ref, ref.block.source.data);
@@ -134,6 +156,10 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
       compacted = { at: added.at, listed: compactedImages.length, resent: resend.map(({ image }) => image.id) };
     }
   }
+  // v0.13 (docs/design.md §14): PDFs. With automatic selection, one read in an earlier turn goes out as a placeholder;
+  // the pages the model fetched go into that call's result in its own turn (anthropic-messages/documents.ts).
+  const pdfs = rewritePdfs(messages, claudePdfSource(index, messages, current, !!selection.auto), lang);
+  messages = pdfs.messages;
   const summary: Json = {
     images: report.images,
     replaced: report.replaced.map(({ key: _key, ...rest }) => rest),
@@ -147,8 +173,10 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
     ...(report.featureAt !== undefined ? { featureAt: report.featureAt, labeled: report.labeled ?? 0 } : {}),
     ...(report.unknown ? { unknown: report.unknown } : {}),
     ...(report.late ? { late: report.late } : {}),
+    ...(report.lateContent ? { lateContent: report.lateContent } : {}),
+    ...(pdfs.changed ? { pdfs: pdfSummary(pdfs.report) } : {}),
   };
-  const changed = report.replaced.length > 0 || report.copies.length > 0 || compacted !== null || report.featureAt !== undefined;
+  const changed = report.replaced.length > 0 || report.copies.length > 0 || compacted !== null || report.featureAt !== undefined || pdfs.changed;
   // Once the engine has sent the session a changed history, thinking made after it may be in every later request, even
   // with nothing left out now (an image checked again).
   // Side requests (no tools: the desktop's status summary, auto mode's check) are not the conversation.
@@ -162,9 +190,16 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
   // one after the images still sent as originals are left out (anthropic-messages/cache.ts): with automatic selection, the first
   // such image that is not pinned.
   const pinnedNow = selection.pinned ?? {};
+  // v0.13: or the first PDF still sent whole, read in this turn (pages the model fetched stay), whichever comes first.
   const volatileIn = (list: Json[]) => {
-    const ref = selection.auto ? findRequestImages(list, index).find((found) => !(found.key && pinnedNow[found.key])) : undefined;
-    return ref ? { message: ref.msg, block: ref.part } : null;
+    if (!selection.auto) return null;
+    const ref = findRequestImages(list, index).find((found) => !(found.key && pinnedNow[found.key]));
+    const fetches = fetchCalls(list);
+    const pdf = pdfBlocks(list).find((found) => !(found.key && fetches.has(found.key.slice("tool:".length, found.key.lastIndexOf("#")))));
+    const first = [ref ? { message: ref.msg, block: ref.part } : null, pdf ? { message: pdf.msg, block: pdf.part } : null]
+      .filter((mark): mark is { message: number; block: number } => mark !== null)
+      .sort((a, b) => a.message - b.message || a.block - b.block)[0];
+    return first ?? null;
   };
   const encode = (list: Json[], extra: Json) => {
     const placed = conversation ? keepCacheRead(list, previous, marksOutside(json), volatileIn(list)) : { messages: list, marks: null };

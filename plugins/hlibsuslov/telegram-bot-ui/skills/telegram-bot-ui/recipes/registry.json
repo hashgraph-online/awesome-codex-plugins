@@ -1,13 +1,198 @@
 {
- "verified": "2026-11-12",
+ "verified": "2026-11-22",
  "source": "https://core.telegram.org/bots/api-changelog",
- "newest_release": "10.4 (2026-11-09)",
+ "newest_release": "10.5 (2026-11-22)",
  "statuses": {
   "ready": "explained + example + automated check",
   "ready-test-server": "same, but the feature exists only on Telegram's test server today",
   "ready-dry-run": "destructive/rights-changing: the example prints the plan; the call runs only on explicit request"
  },
  "rows": [
+  {
+   "id": "10.5-S01",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "setMySettings: inline mode, privacy, groups, business, managed bots, guest/join-request queries, topics, bot-to-bot, callback mode",
+   "symbols": [
+    "setMySettings",
+    "inline_feedback_share_denominator",
+    "can_communicate_with_bots"
+   ],
+   "use": "bot settings live in the repository and are applied with one diffed call",
+   "availability": "production",
+   "skill": "references/bot-settings.md#settings-from-code-setmysettings",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/payloads/r10-bot-settings.json",
+   "check": "examples/python/recipes/r10_bot_settings.py::sync_settings",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S02",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "CallbackQuery.inline_message_id for bot-sent messages, per callback_query_mode",
+   "symbols": [
+    "callback_query_mode",
+    "inline_message_id"
+   ],
+   "use": "buttons keep working when the bot can't access the message",
+   "availability": "production",
+   "skill": "references/bot-settings.md#callback-query-mode",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/fixtures/callback_bot_message_inline_mode.json",
+   "check": "examples/python/recipes/r10_bot_settings.py::on_callback",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S03",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "has_topic_sidebar parameter of setMySettings",
+   "symbols": [
+    "has_topic_sidebar",
+    "has_topics_enabled"
+   ],
+   "use": "show a user's topics (orders, projects) in a sidebar",
+   "availability": "production: private chats with the bot",
+   "skill": "references/bot-settings.md#topics-in-the-private-chat-and-the-sidebar",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/payloads/r10-bot-settings.json",
+   "check": "examples/python/recipes/r10_bot_settings.py::sync_settings",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S04",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "BotFullInfo split from User; getMe returns BotFullInfo; getMe-only fields removed from User",
+   "symbols": [
+    "BotFullInfo",
+    "getMe"
+   ],
+   "use": "read the bot's own settings; stop reading them from User",
+   "availability": "production",
+   "skill": "references/bot-settings.md#reading-settings-back-getme-returns-botfullinfo",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/fixtures/get_me_bot_full_info.json",
+   "check": "tests/test_bot_settings.py::test_readable_settings_exist_in_bot_full_info",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S05",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "BotFullInfo.active_usernames",
+   "symbols": [
+    "active_usernames"
+   ],
+   "use": "accept /cmd@name for every active username in groups",
+   "availability": "production",
+   "skill": "references/bot-settings.md#active-usernames",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/fixtures/get_me_bot_full_info.json",
+   "check": "tests/test_bot_settings.py::test_commands_for_any_active_username",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S06",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "BotFullInfo.inline_query_placeholder",
+   "symbols": [
+    "inline_query_placeholder"
+   ],
+   "use": "read and set the hint in the inline input field",
+   "availability": "production",
+   "skill": "references/bot-settings.md#inline-mode-settings",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/payloads/r10-bot-settings.json",
+   "check": "tests/test_bot_settings.py::test_plan_sends_only_differences",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S07",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "BotFullInfo.needs_inline_query_location",
+   "symbols": [
+    "needs_inline_query_location"
+   ],
+   "use": "know whether inline queries carry the user's location",
+   "availability": "production",
+   "skill": "references/bot-settings.md#inline-mode-settings",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/fixtures/get_me_bot_full_info.json",
+   "check": "tests/test_bot_settings.py::test_validate",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-S08",
+   "version": "10.5",
+   "section": "Bot Settings",
+   "change": "BotFullInfo.has_topic_sidebar",
+   "symbols": [
+    "has_topic_sidebar",
+    "BotFullInfo"
+   ],
+   "use": "skip the call when the sidebar is already on",
+   "availability": "production",
+   "skill": "references/bot-settings.md#topics-in-the-private-chat-and-the-sidebar",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/fixtures/get_me_bot_full_info.json",
+   "check": "tests/test_bot_settings.py::test_plan_sends_only_differences",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-G01",
+   "version": "10.5",
+   "section": "General",
+   "change": "owners invite up to 10 users at once: https://t.me/botinvite/<bot_username>",
+   "symbols": [
+    "botinvite"
+   ],
+   "use": "invite testers or a team to the bot without a public link",
+   "availability": "production; the link works for the bot's owner only",
+   "skill": "references/bot-settings.md#owner-invites-botinvite-links",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/payloads/r10-bot-settings.json",
+   "check": "examples/python/recipes/r10_bot_settings.py::owner_invite",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-G02",
+   "version": "10.5",
+   "section": "General",
+   "change": "WriteAccessAllowed.inviter",
+   "symbols": [
+    "WriteAccessAllowed",
+    "inviter"
+   ],
+   "use": "greet an invited user by the owner's name",
+   "availability": "production",
+   "skill": "references/bot-settings.md#owner-invites-botinvite-links",
+   "recipe": "recipes/10-bot-settings.md",
+   "example": "examples/fixtures/message_write_access_invited.json",
+   "check": "examples/python/recipes/r10_bot_settings.py::greet_invited",
+   "status": "ready"
+  },
+  {
+   "id": "10.5-G03",
+   "version": "10.5",
+   "section": "General",
+   "change": "RichBlockExpandableBlockQuotation / Input...: blocks replace text",
+   "symbols": [
+    "RichBlockExpandableBlockQuotation",
+    "InputRichBlockExpandableBlockQuotation",
+    "expandable_blockquote"
+   ],
+   "use": "collapsed quotes with lists, tables or code inside; migrate text to blocks",
+   "availability": "production",
+   "skill": "references/telegram-capabilities.md#rich-additions-bot-api-103-105",
+   "recipe": "recipes/02-interactive-document.md",
+   "example": "examples/payloads/r02-interactive-document.json",
+   "check": "examples/python/recipes/r02_interactive_document.py::build_document",
+   "status": "ready"
+  },
   {
    "id": "10.4-W01",
    "version": "10.4",
@@ -576,7 +761,7 @@
    ],
    "use": "an inline action next to the sentence it belongs to",
    "availability": "production",
-   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "skill": "references/telegram-capabilities.md#rich-additions-bot-api-103-105",
    "recipe": "recipes/02-interactive-document.md",
    "example": "examples/payloads/r02-interactive-document.json",
    "check": "tests/test_keyboard_validator.py::RegressionFixtures",
@@ -594,7 +779,7 @@
    ],
    "use": "a row of actions between sections",
    "availability": "production",
-   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "skill": "references/telegram-capabilities.md#rich-additions-bot-api-103-105",
    "recipe": "recipes/02-interactive-document.md",
    "example": "examples/payloads/r02-interactive-document.json",
    "check": "tests/test_keyboard_validator.py::RegressionFixtures",
@@ -630,7 +815,7 @@
    ],
    "use": "long notes collapsed by default",
    "availability": "production",
-   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "skill": "references/telegram-capabilities.md#rich-additions-bot-api-103-105",
    "recipe": "recipes/02-interactive-document.md",
    "example": "examples/payloads/r02-interactive-document.json",
    "check": "examples/python/recipes/r02_interactive_document.py::main",
@@ -648,7 +833,7 @@
    ],
    "use": "attach a file inside the document",
    "availability": "production; not new uploads/URLs in drafts",
-   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "skill": "references/telegram-capabilities.md#rich-additions-bot-api-103-105",
    "recipe": "recipes/02-interactive-document.md",
    "example": "examples/payloads/r02-interactive-document.json",
    "check": "tests/test_text_and_rich.py::RichPayloads",
@@ -664,7 +849,7 @@
    ],
    "use": "reference a file from markdown/html",
    "availability": "production",
-   "skill": "references/telegram-capabilities.md#bot-api-103--104-rich-additions",
+   "skill": "references/telegram-capabilities.md#rich-additions-bot-api-103-105",
    "recipe": "recipes/02-interactive-document.md",
    "example": "examples/payloads/r02-interactive-document.json",
    "check": "tests/test_text_and_rich.py::RichPayloads",

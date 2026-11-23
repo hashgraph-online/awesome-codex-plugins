@@ -12,7 +12,7 @@
 .cd { margin-top: 8px }
 .cd b { flex: 1; min-width: 0; font-size: 1.1em; letter-spacing: .08em }
 .ac { display: grid; gap: 6px; margin-top: 8px }
-.ac button { min-height: 36px }
+.ac button { min-height: var(--tg-button-height, 36px) }
 </style>
 <div class="k">
   <div class="tt el" id="ti"></div>
@@ -43,7 +43,7 @@ function draw() {
   $("ti").textContent = s.o;
   $("hh").textContent = dn ? K.t(s.k > 1 ? "al" : "th") : s.h;
   [1, 2, 3, 4, 5].forEach(function (i) {
-    b = K.h("button", i <= v ? "on" : "", "★");
+    b = K.h("button", i <= v ? "s on" : "s", "★");
     b.setAttribute("aria-label", i + "/5");
     b.disabled = !!dn;
     b.onclick = function () { st = i; mk = 0; draw(); };

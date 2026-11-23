@@ -1,7 +1,7 @@
 # DataXAPI Agent Skills
 
 Agent Skills that give Claude Code, Codex, Cursor and other agents live market data from Douyin, Xiaohongshu
-(RedNote), TikTok, WeChat, X, YouTube and more through [DataXAPI](https://dataxapi.com): one response shape, paid per
+(RedNote), TikTok, WeChat, X, YouTube and more through [DataXAPI](https://dataxapi.com/?ref=gh-skills): one response shape, paid per
 call from $0.0003, failed calls free. New accounts can try it free: up to 333 calls, no card. Social media is the
 largest category; creator rate cards, keyword indexes, ad libraries and shop products are the others.
 
@@ -18,7 +18,7 @@ npx dataxapi setup                             # the base skill and the MCP entr
 
 Or copy a folder from `skills/` into your agent's skills directory (Claude Code: `~/.claude/skills/`). The skills need
 the command line: `npm install -g dataxapi` (Node 20 or later), or `npx dataxapi`. Make a key in the
-[console](https://dataxapi.com/console/keys/).
+[console](https://dataxapi.com/console/keys/?ref=gh-skills).
 
 ## The skills
 
@@ -77,8 +77,8 @@ This repository is generated from our catalog and overwritten at every release; 
 
 ## Links
 
-[Skills on dataxapi.com](https://dataxapi.com/skills/) · [Pricing](https://dataxapi.com/pricing/) ·
-[Docs](https://dataxapi.com/docs/) · [MCP](https://dataxapi.com/mcp/) · [SDKs and docs](https://github.com/data-x-api/dataxapi)
+[Skills on dataxapi.com](https://dataxapi.com/skills/?ref=gh-skills) · [Pricing](https://dataxapi.com/pricing/?ref=gh-skills) ·
+[Docs](https://dataxapi.com/docs/?ref=gh-skills) · [MCP](https://dataxapi.com/mcp/?ref=gh-skills) · [SDKs and docs](https://github.com/data-x-api/dataxapi)
 
 ## 中文
 

@@ -9,13 +9,15 @@
 // v0.7 — a Codex task's subagents and side chats (children.ts), each with its last request. v0.8: always managed by
 // automatic selection; the task's switch for them is gone.
 // v0.8 — what the panel searches and groups by, and never shows (docs/v0.8/plan.md): each image's scene (its feature
-// line's first part) and the feature line and ratings the model noted; and per turn, what was said in it.
+// line's first part) and the feature line and ratings the model noted; and per turn, what was said in it. v0.12: the
+// category, card and characters of each image's feature line instead of the scene (docs/v0.12/plan.md §3); the panel
+// shows the card names.
 // v0.11: platform-free (docs/v0.11/plan.md): what the panel shows is computed here from the core's index, selection
 // and statistics; reading a platform's records is its adapter's (adapters/<platform>/panel.ts).
 // Input: a session's index, selection and statistics. Output: PanelState as plain JSON, selection changes.
 
 import type { ImageSource } from "../core/images.ts";
-import { sceneOf, withoutRecords } from "../core/notes.ts";
+import { lineParts, withoutRecords, type Category, type Notes } from "../core/notes.ts";
 import type { RequestStats } from "../core/request-stats.ts";
 import type { Mark, Selection } from "../core/selection.ts";
 import type { IndexedImage, SessionIndex } from "../core/session.ts";
@@ -34,10 +36,13 @@ export type PanelImage = {
   inLastRequest: boolean | null; inNextRequest: boolean;
   // v0.5: from before a Claude Code compaction: Claude Code no longer sends it, the engine sends it again if checked.
   compacted: boolean;
-  // v0.8: the scene the model named in its feature line (null: none noted), and the line and ratings themselves, for
-  // the search only.
-  scene: string | null; search: string;
+  // v0.8: the feature line and ratings the model noted, for the search only.
+  // v0.12: what the panel browses by (docs/v0.12/plan.md §3), from the feature line (core/notes.ts lineParts): the
+  // category and the card it goes under; part, a screen's page; page, a document's page; characters, those in the
+  // picture; run, the run of screenshots one line stood for. null: no feature line yet.
+  group: PanelGroup | null; search: string;
 };
+export type PanelGroup = { category: Category; card: string | null; part: string | null; page: number | null; characters: string[]; run: string | null };
 export type SendInfo = {
   // The last full HTTP request as Codex built it, before any rewrite: the baseline of the estimate.
   baseline: { at: string; bytes: number } | null;
@@ -127,6 +132,14 @@ export function askedIn(text: string): string[] {
   return [...ids];
 }
 
+// v0.12: where an image goes in the panel, by its feature line; the features themselves are left to the search.
+export function groupOf(notes: Notes | undefined): PanelGroup | null {
+  const parts = lineParts(notes?.line ?? null);
+  if (!parts) return null;
+  const { category, card, part, page, characters } = parts;
+  return { category, card, part, page, characters, run: notes?.run ?? null };
+}
+
 export function sameContent(index: SessionIndex, image: IndexedImage): string[] {
   return index.images
     .filter((other) => other !== image && (other.contentId === image.contentId || (image.pixelSha256 !== null && other.pixelSha256 === image.pixelSha256)))
@@ -172,7 +185,7 @@ export function panelStateOf(threadId: string, index: SessionIndex, unchecked: S
       inLastRequest: inLast,
       inNextRequest: compacted || inLast !== false || position > lastCarried || (lastTurn !== null && image.turn !== null && image.turn > lastTurn),
       compacted,
-      scene: sceneOf(notes?.line ?? null),
+      group: groupOf(notes),
       search: [notes?.line, ...(notes?.ratings ?? []).map((rating) => rating.text)].filter(Boolean).join(" "),
     };
   });

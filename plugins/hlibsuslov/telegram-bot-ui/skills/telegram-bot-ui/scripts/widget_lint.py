@@ -90,7 +90,10 @@ def _neutral(color: str) -> bool:
     return bool(m and m.group(1) == m.group(2) == m.group(3) and float(m.group(4)) < 1)
 
 
-def lint(html: str, *, caption: str | None = None, compressed: int | None = None) -> LintReport:
+def lint(html: str, *, caption: str | None = None, compressed: int | None = None,
+         allowed_colors: set[str] | frozenset[str] = frozenset()) -> LintReport:
+    """`allowed_colors`: hex literals of a design profile (chosen by a person, contrast-checked
+    in both themes by widget_design.py); the raw-color rule accepts exactly those."""
     rep = LintReport()
     css, js = styles(html), scripts(html)
 
@@ -117,7 +120,7 @@ def lint(html: str, *, caption: str | None = None, compressed: int | None = None
     if compressed is not None and compressed > BUDGET:
         rep.add("warn", "budget", f"{compressed} compressed bytes > {BUDGET} working budget (hard limit 4096)")
     for c in _COLOR.findall(_strip_allowed_colors(css)):
-        if not _neutral(c):
+        if not _neutral(c) and c.lower() not in allowed_colors:
             rep.add("warn", "raw-color", f"hard-coded colour {c} without a theme variable")
     if re.search(r"safe-area-inset-bottom", css) and not re.search(r"body\s*\{[^}]*padding\s*:\s*0", css):
         rep.add("warn", "double-band", "pads for the time band but body keeps its default padding")

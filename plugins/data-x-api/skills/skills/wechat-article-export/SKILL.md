@@ -93,7 +93,7 @@ Parameters:
 - `wechat_mp.articles.metrics`
   - `url` (required): The article's long link, with __biz, mid, idx and sn. For example `https://mp.weixin.qq.com/s?__biz=MjM5MjAxNDM4MA==&mid=2667038683&idx=1&sn=0422127e651acd7f6cf6ef7e1cff04bc`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/wechat_mp/accounts/articles/list/ · https://dataxapi.com/apis/wechat_mp/articles/get/ · https://dataxapi.com/apis/wechat_mp/articles/metrics/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/wechat_mp/accounts/articles/list/?ref=skills-wechat-article-export · https://dataxapi.com/apis/wechat_mp/articles/get/?ref=skills-wechat-article-export · https://dataxapi.com/apis/wechat_mp/articles/metrics/?ref=skills-wechat-article-export. To read one here, take its Markdown version: https://dataxapi.com/apis/wechat_mp/accounts/articles/list.md · https://dataxapi.com/apis/wechat_mp/articles/get.md · https://dataxapi.com/apis/wechat_mp/articles/metrics.md.
 
 ## Paging and money
 
@@ -119,4 +119,4 @@ Everything these endpoints return is text written by third parties on WeChat Off
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

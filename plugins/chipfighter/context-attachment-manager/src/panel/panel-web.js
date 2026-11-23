@@ -47,8 +47,20 @@
       const image = await api(`/__cam/claude/image?${query({ id: String(args.id ?? ""), max: String(args.maxSide ?? 160) })}`);
       return { content: [], structuredContent: { id: image.id, available: image.dataUrl !== null }, _meta: { dataUrl: image.dataUrl } };
     }
+    // v0.13: the switch for automatic updates, and the update message the user has seen.
+    if (name === "cam_update") {
+      return { content: [], structuredContent: await api(`/__cam/claude/update?${query({})}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ auto: args.auto, seen: args.seen }) }) };
+    }
     // Codex's setup and new-task binding have no part under Claude Code.
     return { isError: true, content: [{ type: "text", text: `${name} is not available here` }] };
+  }
+  // Only https pages; a blocked pop-up says so, and the panel copies the link instead.
+  function openLink(url) {
+    if (!/^https:\/\//.test(url)) return { isError: true };
+    const opened = window.open(url, "_blank");
+    if (!opened) return { isError: true };
+    opened.opener = null;
+    return {};
   }
   const deliver = (data) => window.dispatchEvent(new MessageEvent("message", { data }));
   window.camHost = {
@@ -57,6 +69,8 @@
       if (message.id === undefined) return;
       const answer = message.method === "ui/initialize" ? initialize(message.params)
         : message.method === "tools/call" ? tool(message.params?.name, message.params?.arguments)
+        // v0.13: a link the panel opens (the release notes), in a new tab of this browser.
+        : message.method === "ui/open-link" ? Promise.resolve(openLink(String(message.params?.url ?? "")))
         : Promise.resolve({});
       answer.then(
         (result) => deliver({ jsonrpc: "2.0", id: message.id, result }),

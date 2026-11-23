@@ -244,7 +244,7 @@ def widget_name(path: str) -> str:
     return os.path.splitext(os.path.basename(path))[0]
 
 
-def builds(path: str, langs: list[str] | None) -> tuple[dict[str, str], str]:
+def builds(path: str, langs: list[str] | None, design: dict | None = None) -> tuple[dict[str, str], str]:
     """{lang: html}. A source under src/ is built per language; a built file is used as is."""
     name = widget_name(path)
     src = os.path.join(build_widget.SRC_DIR, name + ".html")
@@ -253,7 +253,7 @@ def builds(path: str, langs: list[str] | None) -> tuple[dict[str, str], str]:
             text = fh.read()
         out, sizes = {}, []
         for lang in langs or build_widget.source_languages(text):
-            res = build_widget.build_text(text, caption="preview", langs=(lang,))
+            res = build_widget.build_text(text, caption="preview", langs=(lang,), design=design)
             if not res.ok:
                 raise SystemExit(f"{name} [{lang}] does not build:\n  " + "\n  ".join(res.errors))
             out[lang] = res.html
@@ -303,14 +303,14 @@ def _result(t) -> dict:
     return {"pushes": pushes, "result": result}
 
 
-def gallery_entry(path: str, langs: list[str] | None) -> dict:
+def gallery_entry(path: str, langs: list[str] | None, design: dict | None = None) -> dict:
     name = widget_name(path)
     demo_path = os.path.join(build_widget.DEMO_DIR, name + ".json")
     demo = build_widget.load_demo(demo_path) if os.path.exists(demo_path) else {
         "caption": name, "states": {"default": {}}}
     if "now" not in demo:
         demo["now"] = 1794736800
-    html, sizes = builds(path, langs)
+    html, sizes = builds(path, langs, design)
     return {"name": name, "demo": demo, "html": html, "sizes": sizes, "answers": precomputed_answers(name, demo)}
 
 
@@ -409,6 +409,7 @@ def main(argv=None) -> int:
     ap.add_argument("--gallery", action="store_true", help="every widget with a demo file")
     ap.add_argument("--lang", help="comma-separated languages to build (sources only)")
     ap.add_argument("-o", "--out", help="write the preview page here")
+    ap.add_argument("--design", help="design profile JSON or a preset name (scripts/widget_design.py presets)")
     ap.add_argument("--serve", type=int, metavar="PORT", help="serve the page and answer with the gallery handlers")
     a = ap.parse_args(argv)
     paths = list(a.widget)
@@ -417,7 +418,12 @@ def main(argv=None) -> int:
     if not paths:
         ap.error("give a widget file or --gallery")
     langs = a.lang.split(",") if a.lang else None
-    entries = [gallery_entry(p, langs) for p in paths]
+    design = None
+    if a.design:
+        import widget_design
+        design = (widget_design.apply_preset(a.design) if a.design in widget_design.PRESETS
+                  else build_widget.load_demo(a.design))
+    entries = [gallery_entry(p, langs, design) for p in paths]
     if a.serve:
         serve(entries, a.serve)
         return 0

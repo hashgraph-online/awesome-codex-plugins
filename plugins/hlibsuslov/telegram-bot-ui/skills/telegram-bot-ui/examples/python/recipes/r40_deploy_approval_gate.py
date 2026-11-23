@@ -58,9 +58,9 @@ def main() -> None:
     c.check(d1 and not d2 and not d3, "deploy runs only after Approve; reject and timeout run nothing")
     c.check((r2["decision"], r3["decision"]) == ("rejected", "expired"), "distinct endings: rejected vs expired")
     gate = t.params_of("sendMessage")[1]
-    row = gate["reply_markup"]["inline_keyboard"][0]
-    c.check(row[0]["style"] == "danger" and "style" not in row[1],
-            "irreversible deploy: Approve is red, Reject is plain (color by meaning)")
+    rows = gate["reply_markup"]["inline_keyboard"]
+    c.check(rows[-1] == [rows[-1][0]] and rows[-1][0]["style"] == "danger" and "style" not in rows[0][0],
+            "irreversible deploy: Approve is red and alone in the last row, Reject is plain (color by meaning)")
     answers = [a["text"] for a in t.params_of("answerCallbackQuery")]
     c.check(answers == [DETAILS, "Approved", "Already recorded"],
             "Details informs, Approve decides once, the double tap is a no-op")

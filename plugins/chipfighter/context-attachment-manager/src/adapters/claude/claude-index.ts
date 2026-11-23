@@ -24,7 +24,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { baseName, FETCHED_STATE, imageDigest, type ImageKind } from "../../core/images.ts";
 import type { ImageRef } from "../protocols/openai-responses/images.ts";
-import { addNotes, copyNotes, type Notes } from "../../core/notes.ts";
+import { addNotes, copyNotes, withoutRecords, type Notes } from "../../core/notes.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
 import type { IdTimes } from "../../core/selection.ts";
 import type { FetchedCopy } from "../../core/session.ts";
@@ -41,7 +41,18 @@ export type UploadRecord = { uuid: string; contentIds: string[]; compacted: bool
 // v0.10: the session's transcripts (this one, the ones it was resumed or forked from), each with the record it starts
 // at and when it was started, oldest first.
 export type FamilyFile = { sessionId: string; start: string; created: string; forkedFrom: string | null };
+// v0.13 (docs/design.md §14): a PDF the session read, one per content, numbered PDF-001… in the order first read: its
+// name and path, the turn, and the block it was first read in (its data, claudePdfData). A read of it in a tool result
+// (PdfRead) is keyed like a tool's image: "tool:<tool_use_id>#<n>", n counting the PDFs in that result.
+export type ClaudePdf = { id: string; contentId: string; base64Chars: number; name: string | null; path: string | null; turn: number | null; block: Json };
+// said: the reply that ended the turn it was read in (without record lines), which its placeholder quotes the start of:
+// a tool result cannot hold what was said after it, so the model can tell it was put there later (2026-11-23: models
+// took a bare placeholder for all Read had returned, and took back what they had said reading the file).
+export type PdfRead = { pdf: ClaudePdf; turn: number | null; said?: string };
 export type ClaudeIndex = SessionIndex<ClaudeImage> & {
+  pdfs: ClaudePdf[];
+  pdfByContent: Map<string, ClaudePdf>;
+  pdfReads: Map<string, PdfRead>;
   images: ClaudeImage[];
   byKey: Map<string, ClaudeImage>;
   uploads: UploadRecord[];
@@ -303,6 +314,27 @@ export function imageBlocks(content: unknown): BlockImage[] {
   return found;
 }
 
+// v0.13: every PDF of a user record (a base64 document block), in order: pasted ones, then those inside each tool
+// result. `before`: the text block before it ("PDF file read: <path> (<size>)" from Claude Code's Read).
+export type BlockDocument = BlockImage;
+const isPdf = (block: Json) => block?.type === "document" && block.source?.type === "base64" && block.source?.media_type === "application/pdf" && typeof block.source?.data === "string";
+export function documentBlocks(content: unknown): BlockDocument[] {
+  if (!Array.isArray(content)) return [];
+  const found: BlockDocument[] = [];
+  content.forEach((block: Json, part: number) => {
+    if (isPdf(block)) found.push({ part, sub: null, block, toolUseId: null, before: textOf(content[part - 1]) });
+    if (block?.type === "tool_result" && Array.isArray(block.content)) {
+      block.content.forEach((inner: Json, sub: number) => {
+        if (isPdf(inner)) found.push({ part, sub, block: inner, toolUseId: String(block.tool_use_id ?? ""), before: textOf(block.content[sub - 1]) });
+      });
+    }
+  });
+  return found;
+}
+// Claude Code's line before a PDF it read: the path, then the size.
+const PDF_READ = /^PDF file read: (.+) \([^()\n]*\)/;
+const pathOfRead = (before: string | null): string | null => (before ? PDF_READ.exec(before.split("\n")[0])?.[1]?.trim() || null : null);
+
 // The key each image of a user record gets, in order (what buildClaudeIndex and the old numberings share).
 function keysOf(record: ClaudeRecord): Array<BlockImage & { key: string }> {
   let n = 0;
@@ -411,7 +443,21 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
   const byKey = new Map<string, ClaudeImage>();
   const copies = new Map<string, FetchedCopy>();
   const uploads: UploadRecord[] = [];
+  const pdfs: ClaudePdf[] = [];
+  const pdfByContent = new Map<string, ClaudePdf>();
+  const pdfReads = new Map<string, PdfRead>();
+  const lastSaid = new Map<number, string>();
   let turn = 0;
+  // v0.13: the PDF with this block's content, numbered when first seen.
+  const pdfOf = (block: Json, name: string | null, path: string | null): ClaudePdf => {
+    const digest = imageDigest(block, block.source.data, "application/pdf");
+    const known = pdfByContent.get(digest.contentId);
+    if (known) return known;
+    const pdf: ClaudePdf = { id: `PDF-${String(pdfs.length + 1).padStart(3, "0")}`, contentId: digest.contentId, base64Chars: digest.base64Chars, name, path, turn: turn || null, block };
+    pdfs.push(pdf);
+    pdfByContent.set(digest.contentId, pdf);
+    return pdf;
+  };
   // The assistant's text in the current turn and in the one before (Codex: requestedIds in panel-state.ts).
   let current: string[] = [];
   let previous: string[] = [];
@@ -446,6 +492,17 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
         if (!text) continue;
         current.push(text);
         addNotes(notes, text, turn || null, idOf);
+        // v0.13: the turn's latest reply, what a PDF read in it quotes (PdfRead.said).
+        const said = withoutRecords(text).replace(/\s+/g, " ").trim();
+        if (said && turn) lastSaid.set(turn, said);
+      }
+      return;
+    }
+    // v0.13: a PDF the user named in a prompt (@file) comes as an attachment Claude Code reads the way Read does.
+    if (record.type === "attachment" && record.attachment?.type === "message_pdf_reads" && Array.isArray(record.attachment.reads)) {
+      for (const read of record.attachment.reads as Json[]) {
+        const path = typeof read?.path === "string" ? read.path : null;
+        for (const block of Array.isArray(read?.result) ? read.result : []) if (isPdf(block)) pdfOf(block, path ? baseName(path) : null, path);
       }
       return;
     }
@@ -499,8 +556,23 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
       if (behindResult?.has(record)) countedSince.push(entry.id);
       else { givenThen++; countedSince = []; }
     }
+    // v0.13: PDFs; those in a tool result are keyed by its call, with the turn they were read in.
+    const perCall = new Map<string, number>();
+    for (const found of documentBlocks(content)) {
+      const tool = found.toolUseId ? tools.get(found.toolUseId) : undefined;
+      const path = tool?.name === "Read" && typeof tool.input.file_path === "string" ? tool.input.file_path : pathOfRead(found.before);
+      const pdf = pdfOf(found.block, path ? baseName(path) : null, path);
+      if (found.toolUseId === null) continue;
+      const n = perCall.get(found.toolUseId) ?? 0;
+      perCall.set(found.toolUseId, n + 1);
+      pdfReads.set(`tool:${found.toolUseId}#${n}`, { pdf, turn: turn || null });
+    }
     if (pasted.length) uploads.push({ uuid: record.uuid!, contentIds: pasted, compacted });
   });
+  for (const read of pdfReads.values()) {
+    const said = read.turn ? lastSaid.get(read.turn) : undefined;
+    if (said) read.said = said;
+  }
   // A turn with no reply yet falls back to the one before.
   const replies = current.length ? current : previous;
   const summaryRecord = lastBoundary < 0 ? undefined : chain.slice(lastBoundary + 1).find((record) => record.type === "user" && record.isCompactSummary);
@@ -511,7 +583,7 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
     const twin = images.find((other) => other.name && (other.contentId === entry.contentId || (entry.pixelSha256 !== null && other.pixelSha256 === entry.pixelSha256)));
     if (twin) entry.name = twin.name;
   }
-  return { threadId: sessionId, images, byKey, turns: turn, turnNumbers, copies, notes, uploads, chain, title: titleOf(records, chain), replies, transcript, summary, previous: previousOf(sessionId, options.eras?.family ?? []), interrupted, skipped, compactedNotes };
+  return { threadId: sessionId, images, byKey, turns: turn, turnNumbers, copies, notes, uploads, chain, title: titleOf(records, chain), replies, transcript, summary, previous: previousOf(sessionId, options.eras?.family ?? []), interrupted, skipped, compactedNotes, pdfs, pdfByContent, pdfReads };
 }
 
 // v0.10: the sessions this one continues, most recent first, each with the time this one took over: the one it was
@@ -568,6 +640,14 @@ export function claudeImageData(index: ClaudeIndex, image: ClaudeImage): string 
   return where ? readImageAt(where) : null;
 }
 
+// v0.13: the base64 of a PDF the session read, from the block it was first read in.
+export function claudePdfData(pdf: ClaudePdf): string | null {
+  const data = pdf.block?.source?.data;
+  if (typeof data === "string" && data) return data;
+  const where = pdf.block ? onDisk.get(pdf.block) : undefined;
+  return where ? readImageAt(where) : null;
+}
+
 // An empty index for a session without a transcript yet.
 export function emptyClaudeIndex(sessionId: string): ClaudeIndex {
   return buildClaudeIndex(sessionId, []);
@@ -593,6 +673,14 @@ export function readHistoryTranscript(file: string): ClaudeRecord[] {
           const data = found.block.source.data as string;
           if (!data) continue;
           pixelHashOfData(imageDigest(found.block, data, mimeOf(found.block)), data);
+          found.block.source = { ...found.block.source, data: "" };
+          onDisk.set(found.block, { file, start, end, part: found.part, sub: found.sub });
+        }
+        // v0.13: PDFs too (claudePdfData reads them back).
+        for (const found of documentBlocks(record.message?.content)) {
+          const data = found.block.source.data as string;
+          if (!data) continue;
+          imageDigest(found.block, data, "application/pdf");
           found.block.source = { ...found.block.source, data: "" };
           onDisk.set(found.block, { file, start, end, part: found.part, sub: found.sub });
         }

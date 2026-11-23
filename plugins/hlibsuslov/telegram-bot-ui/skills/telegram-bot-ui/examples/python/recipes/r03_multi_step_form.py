@@ -37,7 +37,7 @@ def run(transport: FakeTransport | None = None):
         created.append(s.form_id)          # the order service is idempotent by form_id too
         return "ORD-1042"
 
-    runner = FormRunner(t, submit)
+    runner = FormRunner(t, submit, submit_label="Place order")
     s = FormSession(form_id="F7", user_id=USER, chat_id=CHAT, steps=steps())
     runner.start(s)
     first = s.prompt_message_id
@@ -66,7 +66,8 @@ def main() -> None:
     c.check(all(e["reply_markup"].get("force_reply") is True
                 for e in t.params_of("editMessageReplyMarkup") + t.params_of("editMessageText")),
             "edits repeat force_reply: the field can't be changed by an edit")
-    submit_before = sends[-2]["reply_markup"]["inline_keyboard"][-1][0]
+    submit_before = next(b for row in sends[-2]["reply_markup"]["inline_keyboard"] for b in row
+                         if b["text"] == "Place order")
     c.check("disabled" in submit_before and "callback_data" not in submit_before,
             "Submit shown disabled until all answers are valid")
     c.check(created == ["F7"], "one order despite two Submit taps")

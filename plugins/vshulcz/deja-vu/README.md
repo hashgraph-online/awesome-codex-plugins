@@ -11,6 +11,10 @@ Local inverted index in a single Go binary — zero LLM calls, 0.7–0.8 ms in-p
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
 
 <p align="center">
+  <a href="https://trendshift.io/repositories/83640" target="_blank"><img src="https://trendshift.io/api/badge/trendshift/repositories/83640/daily?language=Go" alt="vshulcz/deja-vu — #1 Go Repository Of The Day on Trendshift" width="250" height="55"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml"><img src="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="CI"></a>
   <a href="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-88%25-brightgreen" alt="Coverage"></a>
   <a href="https://github.com/vshulcz/deja-vu/releases"><img src="https://img.shields.io/github/v/release/vshulcz/deja-vu" alt="Release"></a>

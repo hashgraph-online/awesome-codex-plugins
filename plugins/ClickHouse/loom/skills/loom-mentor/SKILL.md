@@ -1,7 +1,9 @@
 ---
 name: loom-mentor
 description: >
-  Use when a loom hint (a tool result's `hint`, an `X-Loom-Hint` header or
+  Use when selecting a Loom capability for documents, issue history, queued work,
+  typed records, decisions or procedures and the matching operation is unclear.
+  Also use when a loom hint (a tool result's `hint`, an `X-Loom-Hint` header or
   a "Loom mentor" line) names a plane or op you do not know how to use, or
   when the user asks "what can loom do", "how should I be using loom", "am I
   using loom well", "loom mentor". A hint that already names the op to call
@@ -12,7 +14,6 @@ description: >
   hint code. NOT for deciding the shape of one write (loom-memory), NOT for
   grep-vs-code.* in an indexed repo (loom-code), NOT for reworking a
   namespace that already holds the wrong shape (loom-optimize).
-disable-model-invocation: true
 ---
 
 # loom-mentor — the store's advice, and where each plane lives
@@ -26,6 +27,10 @@ is not shown again this session.
 This skill routes. The destination skill owns the detail: the shape of a
 write is `loom-memory`, code questions are `loom-code`, reworking stored
 rows is `loom-optimize`.
+
+Use the relevant available capability without waiting for a hint. Prefer a
+fitting listed tool directly; reuse sufficient context and skip unnecessary
+lookups. Writes require the user's intent and permission.
 
 ## Calling an op your tool list does not show
 
@@ -48,6 +53,7 @@ or a second entry mounts `/mcp?toolset=tracker`.
 | is it safe to change X | `loom_code_impact` |
 | a document, runbook or report over ~2 KB | `knowledge.upsert` + one pointer row (`loom-memory`) |
 | a table of facts with identity (PRs, alerts, services) | `memory_schema.register` once, then `memory.record.write` |
+| inspect queued agent work | `task.list`, then `task.get` for a known task; change work only when requested |
 | your plan, a lease, "where was I" | `loom_working_memory_set` |
 | a 3,000-line log or diff to park | `context.offload`, then `context.fetch` |
 

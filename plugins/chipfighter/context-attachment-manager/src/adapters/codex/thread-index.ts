@@ -16,8 +16,9 @@
 // Input: the sessions directory and a thread id. Output: ThreadIndex (in memory; files are parsed incrementally).
 
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative, toNamespacedPath } from "node:path";
 import { zstdDecompressSync } from "node:zlib";
+import { sqliteHome } from "./codexconfig.ts";
 import { findImages, type ImageRef } from "../protocols/openai-responses/images.ts";
 import { addNotes, copyNotes, type Notes } from "../../core/notes.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
@@ -385,6 +386,28 @@ export function threadsStartedSince(sessionsDir: string, since: number): Array<{
   return found.sort((a, b) => a.startedAt - b.startedAt);
 }
 
+// Reverting a thread can leave several complete branches; Codex records its current rollout in the state database
+function registeredHead(sessionsDir: string, threadId: string, heads: string[], segments: Map<string, string>): string | undefined {
+  try {
+    const home = dirname(sessionsDir);
+    const config = join(home, "config.toml");
+    const dir = sqliteHome(home, existsSync(config) ? readFileSync(config, "utf8") : "");
+    const sqlite = process.getBuiltinModule("node:sqlite");
+    if (!sqlite) return undefined;
+    const db = new sqlite.DatabaseSync(join(dir, "state_5.sqlite"), { readOnly: true });
+    try {
+      const path = db.prepare("SELECT rollout_path FROM threads WHERE id = ?").get(threadId)?.rollout_path;
+      if (typeof path !== "string") return undefined;
+      const active = toNamespacedPath(path.replace(/\.zst$/, ""));
+      return heads.find((id) => relative(active, toNamespacedPath(segments.get(id)!)) === "");
+    } finally {
+      db.close();
+    }
+  } catch {
+    return undefined;
+  }
+}
+
 // The thread's model-visible history records, following paginated segments back through history_base.
 // A page the history starts in may be gone for good (its task deleted rather than archived): after walking the tree
 // again, what is left is returned and the missing page ids are added to `missing`. The thread's own latest page must
@@ -395,8 +418,9 @@ export function readThreadHistory(sessionsDir: string, threadId: string, missing
     if (!own.length) throw new Error(`no rollout found for thread ${threadId}`);
     const bases = new Set(own.map((id) => baseOf(segments.get(id)!)?.thread_id).filter(Boolean));
     const heads = own.filter((id) => !bases.has(id));
-    if (heads.length !== 1) throw new Error(`expected one latest rollout segment for ${threadId}, found ${heads.length}`);
-    return effective(segments, heads[0], Number.POSITIVE_INFINITY, gaps);
+    const head = heads.length > 1 ? registeredHead(sessionsDir, threadId, heads, segments) : heads[0];
+    if (!head) throw new Error(`expected one latest rollout segment for ${threadId}, found ${heads.length}`);
+    return effective(segments, head, Number.POSITIVE_INFINITY, gaps);
   };
   try { return read(allSegments(sessionsDir), null); } catch (error) {
     if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") throw error;

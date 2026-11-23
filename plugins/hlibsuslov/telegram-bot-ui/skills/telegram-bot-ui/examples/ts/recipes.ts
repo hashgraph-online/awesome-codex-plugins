@@ -48,7 +48,7 @@ export async function interactiveDocument() {
     { type: "table", is_bordered: true, is_compact: true, cells: [
       [{ text: "Key", is_header: true, align: "left", valign: "middle" }, { text: "Days left", is_header: true, align: "right", valign: "middle" }],
       [{ text: "signing", align: "left", valign: "middle" }, { text: "12", align: "right", valign: "middle" }]] },
-    { type: "expandable_blockquote", text: "Auditor note: rotation must be logged…", credit: "Audit 2026-10" },
+    { type: "expandable_blockquote", blocks: [{ type: "paragraph", text: "Auditor note: rotation must be logged…" }], credit: "Audit 2026-10" },
     { type: "document", document: { type: "document", media: "BQACAgIAAxkBAAIBdemoFileId" }, caption: { text: "Full procedure (PDF)" } },
     { type: "buttons", align: "left", buttons: [{ text: "Approve", callback_data: "doc:approve:v3", style: "success" }, { text: "Copy id", copy_text: { text: "ROT-2026-v3" } }] },
   ] };
@@ -67,7 +67,7 @@ export async function multiStepForm() {
   const t = new FakeTransport(); const submitted = new Set<string>(); let orders = 0;
   const kb = (complete: boolean) => ({ force_reply: true, inline_keyboard: [
     [{ text: "S", callback_data: "f:F7:0:o:0" }, { text: "M", callback_data: "f:F7:0:o:1" }],
-    [complete ? { text: "Submit", callback_data: "f:F7:submit", style: "success" } : { text: "Submit", disabled: {} }]] });
+    [complete ? { text: "Place order", callback_data: "f:F7:submit", style: "success" } : { text: "Place order", disabled: {} }]] });
   await t.call("sendMessage", { chat_id: CHAT, text: "Step 1 of 1. Choose a size or type it.", reply_markup: kb(false) });
   await t.call("sendMessage", { chat_id: CHAT, text: "Size: M. Ready to send.", reply_markup: kb(true) });
   const submit = async (qid: string) => {

@@ -1,6 +1,6 @@
 # Supercov plugin
 
-Coverage, security and code quality for coding agents. The plugin gives your agent two skills: one measures coverage and code quality and turns the gaps into focused tests or fixes, the other scans for security vulnerabilities. It runs `npx supercov`, so it needs Node.js 22 or newer.
+Coverage, security and code quality for coding agents. The plugin gives your agent two skills: one measures coverage, mutation testing and code quality and turns the gaps into focused tests or fixes, the other scans for security vulnerabilities. It runs `npx supercov`, so it needs Node.js 22 or newer.
 
 Coverage runs locally. Security and quality send source files to TypeSafe using the `TYPESAFE_API_KEY` environment variable.
 
@@ -30,11 +30,12 @@ Other agents that read skills: `npx skills add supercorp-ai/supercov`.
 
 ## Commands
 
-Claude Code and Gemini CLI also get four commands:
+Claude Code and Gemini CLI also get five commands:
 
 | Command | What it does |
 | --- | --- |
 | `/supercov:coverage [test command]` | Writes one test for code no test reaches, and reports coverage before and after |
+| `/supercov:mutants [--diff base]` | Runs the tests against mutants and writes a test for one that survives |
 | `/supercov:security [patch]` | Scans the repository, or a change, for security vulnerabilities |
 | `/supercov:quality [patch]` | Ranks files by code smells, or checks what a change introduced |
 | `/supercov:review [--base ref]` | Checks a branch or uncommitted change for security and quality problems |

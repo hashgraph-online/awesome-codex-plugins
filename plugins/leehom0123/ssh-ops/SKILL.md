@@ -24,7 +24,7 @@ Reuse an interpreter already confirmed for this installation; otherwise check th
 /absolute/path/to/python /absolute/path/ssh-ops/cli.py my-server run "uptime"
 ```
 
-Use `list-servers` to confirm server names. Do not guess names or substitute listing indexes for names. Before reusing an operation, use `list-aliases` to inspect its command, sudo setting, and timeout. Do not repeat discovery already completed for the same task. Read the [installation guide](docs/install.md) only when dependencies or configuration are missing.
+Use `list-servers` to confirm server names. Do not guess names or substitute listing indexes for names. When the server the user names is not in the list, ask before acting: offer the closest names as candidates, or collect host, user, and authentication so a new entry can be created. Before reusing an operation, use `list-aliases` to inspect its command, sudo setting, and timeout. Do not repeat discovery already completed for the same task. Read the [installation guide](docs/install.md) only when dependencies or configuration are missing.
 
 ## Choose the operation
 
@@ -50,7 +50,7 @@ Server operations in the table are prefixed with `python cli.py <server>`. Full 
 | Long-running work | `job-start '<command>'` → `job-status <id>`; use `job-kill <id>` when termination is needed |
 | List jobs | `job-list` |
 
-For creating, updating, copying, or deleting local server configurations, choose the specific command from the [CLI reference](docs/cli.md). Do not modify local configuration files through remote operations.
+Create, update, copy, and delete server configurations with `create-server`, `update-server`, `copy-server`, and `delete-server` (syntax in the [CLI reference](docs/cli.md)). Read configuration through `list-servers` and `list-aliases` instead of opening the YAML files, and do not edit the files under the servers directory by hand. `create-server` takes the YAML you wrote as an input file and installs it; remote operations never touch local configuration.
 
 ## Important rules
 

@@ -1,10 +1,97 @@
 {
  "meta": {
   "source": "https://core.telegram.org/bots/api-changelog",
-  "fetched_at": "2026-11-15",
-  "newest_version": "10.4"
+  "fetched_at": "2026-11-22",
+  "newest_version": "10.5"
  },
  "releases": [
+  {
+   "date": "2026-11-22",
+   "version": "10.5",
+   "anchor": "november-22-2026",
+   "url": "https://core.telegram.org/bots/api-changelog#november-22-2026",
+   "notes": [],
+   "groups": [
+    {
+     "title": "Bot Settings",
+     "items": [
+      {
+       "text": "Added the method setMySettings, allowing bots to change their settings, including inline mode settings, privacy mode, the ability to be added to groups, forum topic mode in private chats, and the mode of receiving callback queries.",
+       "symbols": [
+        "setMySettings"
+       ]
+      },
+      {
+       "text": "Added the ability to receive callback queries from buttons in messages sent by the bot with the field inline_message_id instead of the field message in the class CallbackQuery, depending on the parameter callback_query_mode of the method setMySettings.",
+       "symbols": [
+        "CallbackQuery",
+        "setMySettings"
+       ]
+      },
+      {
+       "text": "Added the ability for bots to show the list of topics in a sidebar in private chats with the bot using the parameter has_topic_sidebar of the method setMySettings.",
+       "symbols": [
+        "setMySettings"
+       ]
+      },
+      {
+       "text": "Split out the class BotFullInfo from the class User and changed the return type of the method getMe to BotFullInfo. The fields that were returned only in getMe were removed from the class User.",
+       "symbols": [
+        "BotFullInfo",
+        "User",
+        "getMe"
+       ]
+      },
+      {
+       "text": "Added the field active_usernames to the class BotFullInfo, allowing the bot to get the list of all its active usernames.",
+       "symbols": [
+        "BotFullInfo"
+       ]
+      },
+      {
+       "text": "Added the field inline_query_placeholder to the class BotFullInfo, allowing the bot to get its placeholder for inline queries.",
+       "symbols": [
+        "BotFullInfo"
+       ]
+      },
+      {
+       "text": "Added the field needs_inline_query_location to the class BotFullInfo, allowing the bot to check whether it requests the location of the user with every inline query.",
+       "symbols": [
+        "BotFullInfo"
+       ]
+      },
+      {
+       "text": "Added the field has_topic_sidebar to the class BotFullInfo, allowing the bot to check whether topics in private chats with the bot are shown in a sidebar.",
+       "symbols": [
+        "BotFullInfo"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "General",
+     "items": [
+      {
+       "text": "Added the ability for bot owners to invite up to 10 users at once to private chats with the bot by pressing the link https://t.me/botinvite/<bot_username>. The bot can send messages to the invited users.",
+       "symbols": []
+      },
+      {
+       "text": "Added the field inviter to the class WriteAccessAllowed for service messages about users invited to the private chat with the bot by the owner of the bot.",
+       "symbols": [
+        "WriteAccessAllowed"
+       ]
+      },
+      {
+       "text": "Replaced the field text with the field blocks in the classes RichBlockExpandableBlockQuotation and InputRichBlockExpandableBlockQuotation, allowing expandable block quotations to contain arbitrary blocks.",
+       "symbols": [
+        "RichBlockExpandableBlockQuotation",
+        "InputRichBlockExpandableBlockQuotation"
+       ]
+      }
+     ]
+    }
+   ]
+  },
   {
    "date": "2026-11-09",
    "version": "10.4",

@@ -132,7 +132,8 @@ dry-run by default, log who/why, and confirm with a human admin for bans.
   applicant privately for **5 minutes**, until the request is processed and unless
   another admin contacted the user.
 - **[API]** **Join-request queries (10.1)**: a bot with
-  `User.supports_join_request_queries` can be assigned (as the chat's "guard bot",
+  `supports_join_request_queries` (in `getMe`: `User` before 10.5, `BotFullInfo` since; set with
+  `setMySettings`) can be assigned (as the chat's "guard bot",
   `ChatFullInfo.guard_bot`) to process join requests. The request then carries
   `query_id`, and the bot **must react within 10 seconds**: answer with `answerChatJoinRequestQuery(result = "approve" | "decline" |
   "queue")` — `queue` leaves the decision to human admins — or first show a Mini App

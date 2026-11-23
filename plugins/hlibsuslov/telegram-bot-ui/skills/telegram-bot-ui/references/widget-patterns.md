@@ -345,3 +345,68 @@ quality), the widget does not block on the user (Heuristic, field-tested):
 Phone-friendly controls for such editors: tap to place (vertical drags scroll the chat), a
 horizontal drag with `touch-action: pan-y`, zoom as three buttons, a time range as a horizontal
 track with the window dragged sideways, and `pointercancel` restoring the previous value (Guide).
+
+## 16. Games and live apps on one shared widget (field report)
+
+From a production game bot (a dozen games in private chats, Bot API 10.4, 2026-11). Each rule
+below fixed a real failure; status **Field** = observed on production clients, not in the Guide.
+
+**Architecture**
+
+| Rule | Why |
+|---|---|
+| **One shared widget per app, per-user state in answers.** `sendWidget(is_shared, allow_queries)` once, then `sendSharedWidget` to every player. The widget asks `s` (state) in the background on appear, then ≤ 1 per 5 s; every answer carries this player's full view, keyed by `from.id`. No `editMessageWidgetData` per player. | Edits count as sent messages (Guide); answers don't. A balance changed in another game's widget shows up within 5 s. |
+| **Version the shared widget by a hash of the built HTML.** Store `widget_id` + `html_hash`; while the hash is unchanged re-send with `sendSharedWidget`, otherwise `sendWidget` a new one. Keep **every id ever sent** and route `widget_query` by `widget_id` → app. | Old messages keep the old HTML for ever (API). Without the id set their taps go nowhere or to the wrong game. |
+| **An old build that can't be served answers, never acts:** "The game was updated: open /cases again" and charges nothing. Change the request grammar only together with a new build. | A changed grammar parsed old taps as other actions. |
+| **Hidden information never leaves the server.** Mine positions, the crash point, the next card: decided at the bet with a CSPRNG, kept in the bot's record, revealed in the answer only after the round. The widget draws. | Widget code, `chat_data` and answers are readable by the user (Guide: treat them as public). |
+| **Abandoned rounds finish on the server** after a timeout (e.g. 3 min); nothing free (top-up, daily bonus) while a stake is in flight. | "Bet all → take the free deposit → cash out" was a real exploit. |
+
+**Wire format**
+
+| Rule | Why |
+|---|---|
+| **Send every number shown with a fraction as a ready string** (`"2.30"`, `"$1 204.50"`); use `+x` only for maths. | Field: clients showed `$NaN` and `2` instead of `2.3` for JSON numbers. |
+| **Trim the answer to 1024 bytes in a fixed order**: defer optional overlays to the next answer, shorten long messages, drop list rows; never send over the limit. | An oversized answer never reaches the widget: it waits, then `INVALID_ANSWER`/`TIMEOUT`. |
+| **Name the move in every game tap**: `h12` (guess on card 12), `S3` (stand, move 3). The bot refuses a number that is not the current one and answers the fresh state. | A tap on an old screen became a move; a tap repeated after a lost answer played twice. Same idea as `@rev` (§2). |
+| **Pack amounts to fit 64 bytes**: units of 10^e in base36 (`d:-2:1k.0.0.a…`), positional fields. | Nine stakes in plain decimals overflowed `request()` (it throws, §3). |
+
+**Delivery**
+
+| Rule | Why |
+|---|---|
+| **Retry `answer*` calls on a dropped connection** (they are safe to repeat; a second one is "query is too old"). Keep HTTPS connections alive per thread. `tgkit.widgets.handle_widget_query` retries twice within ~1 s. | Field: dozens of `ConnectionResetError`/`WinError 10054` a day; each lost answer left the widget waiting until "Widget stopped", though the move was done. |
+| **After a failed request, re-ask the state** once, ~1.5 s later, in the background. Reset a `busy` flag that hangs > 20 s. | The screen otherwise showed the pre-move state until the next tap. |
+| **Reject non-`data` query types in the generic handler** (`type.type` is `sign_data`/`sent_transaction` for wallet results, with the original `data`). `handle_widget_query` answers `bad_request`. | Played as actions, a wallet result repeats the purchase. |
+
+**Rendering**
+
+| Rule | Why |
+|---|---|
+| **DOM elements over canvas** for boards, cards and charts. | Field: canvas drew wrongly on desktop clients. |
+| **Dim cells and cards with color, not `opacity`**; no per-element blur or `filter`. | > 16 heavy elements stop the widget (Guide); a 5×5 board of dimmed cells is 25. |
+| **Animate only while something moves**: one `setInterval` for the flight (≈ 100 ms), none at rest; never one timer per element. | Field: a widget redrawing all the time got stopped; > 64 live timers stop it (Guide). Keep each task < ~500 ms (field threshold). |
+| **One delegated click handler**: `button *{pointer-events:none}`, `document.addEventListener('click', …)` reading `e.target.dataset`. | A tap on a `<b>` inside a button had no dataset. |
+| **Write `innerHTML` only when the built string changed** (`if (h != old) el.innerHTML = h`), from your own templates with escaped values. | Re-writing every poll restarted CSS animations and churned nodes. |
+
+**Real time (crash-style games)**
+
+* The **bot's clock decides**: the payout is the multiplier at the moment the tap reaches the bot.
+* The widget aligns its local start to the answer: `t0 = Date.now() - S.r.t - min(latency, 2500)`,
+  where `latency` is the measured round-trip of that request.
+* Background state can lag ~5 s behind the server (poll limit): offer a **server-side automatic
+  action** (auto cash-out at x) and warn when it is off ("the screen may lag up to 5 s").
+* Slow the curve so that 5 s of lag costs little (the game moved from x2 in 10 s to x2 in 14 s).
+
+**Around the widget**
+
+* The caption carries the meaning and a command the widget has no room for: `❓ Rules: /rules_mines`.
+* Out of funds inside a widget: one button → `openTelegramLink('https://t.me/<bot>?start=bonus')`
+  to the wallet widget, not a cramped copy of it.
+* **Kill switch** (§14): a flag that makes every game command answer with a text stub, mutes
+  widget-driven reminders and notifications, and leaves `/start` and `/help` working; admin-only
+  toggle, covered by a test.
+* **Pre-deploy gate**: build size of each widget (zlib-9), `node --check` of the extracted script,
+  and a short fuzz of every handler with random data from its grammar asserting no exception and
+  every answer ≤ 1024 bytes. A failing gate keeps the old code running. A local page that runs
+  the **real** handlers with 2–4 players side by side catches shared-state bugs the mock preview
+  can't.

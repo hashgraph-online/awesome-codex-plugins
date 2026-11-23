@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "zevari": {
+      "type": "http",
+      "url": "https://mcp.zevari.ai/mcp"
+    }
+  }
+}

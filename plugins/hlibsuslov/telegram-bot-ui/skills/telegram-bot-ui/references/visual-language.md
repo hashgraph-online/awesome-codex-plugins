@@ -1,7 +1,7 @@
 # Visual language: icons, emoji and text structure
 
 > Status: **Heuristic** (this skill's design system) unless marked **API**. Verified against
-> Bot API 10.4 on 2026-11-12. Tools: `scripts/audit_icons.py`, `scripts/audit_copy.py`,
+> Bot API 10.4 on 2026-11-12; §7 added 2026-11-22 (Bot API 10.5). Tools: `scripts/audit_icons.py`, `scripts/audit_copy.py`,
 > `examples/python/icons/build_icon_map.py`, `examples/python/tgkit/icons.py`.
 > Worked example: `case-study-btc-tracker.md`.
 
@@ -128,3 +128,31 @@ slot's icon — don't swap icons to encode state.
 - [ ] `validate_keyboard.py`: one action per button, ≤ 1 primary, no emoji-only labels.
 - [ ] Screens follow the anatomy; status symbols used only for status.
 - [ ] Looks right with custom emoji **off** (Unicode fallback) and on light/dark themes.
+- [ ] A "make it premium" request ran the whole premium pass (§7), not only the icon layer.
+
+## 7. Premium pass: what a person sees and can do
+
+"Make the menu premium / nicer / more polished", "сделай меню премиальнее": this pass, on the
+screens in scope. It is not an icon swap; icons are the last and optional layer. Worked set on
+one bot (menu, wizard, error, empty, stale tap, notification):
+`examples-before-after.md` 17-20, fixture `examples/premium-pass/before-after.json`.
+
+| Layer | Done when the person… | Check |
+|---|---|---|
+| Message and title | knows the screen's purpose from the first line; finds the key fact, the status and the next step without reading the rest | first line = bold title or event, ≤ ~80 visible chars (notification and chat-list previews cut there); anatomy §4; reports with headings or tables → Rich Message (`format-selection.md`) |
+| Buttons | can predict every tap from its label; sees one main action; finds secondary actions grouped by topic; finds Back/Menu in the same place on every screen | `validate_keyboard.py` with **no warnings**: ≤ 1 `primary`, navigation last and unstyled, no ✅/❌ on navigation, no "OK"/"Yes"/"Submit", `danger` alone in its row (Back may sit beside it), ≤ 3 per row for words, ≤ 8 rows |
+| Color and icons | understands the screen with both removed | strip test: read each screen with `style` and every icon removed; then one family (`audit_icons.py`), ids resolved, never invented; icon matches the slot's meaning |
+| Themes, locales, accounts | sees a correct screen on light and dark themes, in the longest locale, and with custom emoji off | `audit_copy.py` on the catalog; render once with `IconSystem(enabled=False)` |
+| States | gets a message and a fitting action for loading, empty, error, confirmation, a stale button and a notification | shapes in `microcopy-and-labels.md` (stale, notification), `dynamic-feedback-and-streaming.md` |
+| Compatibility | still reaches every old screen from old messages | same `callback_data`, commands, deep links, placeholders, locales and audience; a removed button stays routed; no new `callback_data` in a cosmetic pass |
+
+Custom emoji and readers (**Official**, `custom-emoji.md`): inside the chat every reader sees
+the bot's custom emoji, Premium or not. The alternative Unicode emoji is what notifications,
+chat-list previews, screen readers and forwards by non-Premium users show, and an
+**ineligible bot** (no Fragment username, owner without Premium, any channel without Fragment)
+loses all of them at once. So the screen with custom emoji off is the baseline the pass designs
+first; icons decorate a screen that already works.
+
+Report the pass as: layer → what changed → check and result → what stays for the owner
+(pack choice, eligibility, copy decisions). Evidence level: static checks and offline payloads
+unless a test bot sent it; neither proves how Android, iOS, Desktop and Web draw it.

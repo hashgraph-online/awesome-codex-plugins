@@ -14,7 +14,7 @@
 import { imageDigest, type ImageDigest, type ImageKind } from "../../../core/images.ts";
 import type { Lang } from "../../../core/lang.ts";
 import { planRewrite, type PlanOptions, type RewriteReport } from "../../../core/plan.ts";
-import { claudeNote, compactedNote, compactList, featureNote, hereNote, includedLabel, type Described } from "../../../core/words.ts";
+import { awaitingNote, claudeNote, compactedNote, compactList, featureNote, hereNote, includedLabel, type Described } from "../../../core/words.ts";
 
 type Json = Record<string, any>;
 // msg: the message; part: the block in its content; sub: for an image in a tool result, its position in that result.
@@ -99,11 +99,18 @@ export function rewriteBlocks(
   // what a tool result says about itself, and a note far from the placeholder was not enough (desktop tests,
   // 2026-10-09). Later messages first, so the earlier positions stay as they are. v0.5: after a compaction summary
   // holding placeholders, the full note is there already (`noted`).
+  // v0.12: this turn's screenshots left out within it (core/session.ts inTurnOut) share one note, after the last
+  // message holding one of them: a batch is ten tool results in a row, and a note after each was noise.
   const plainBy = new Map<number, Described[]>();
-  for (const { slot, image } of plan.plain) plainBy.set(refs[slot].msg, [...(plainBy.get(refs[slot].msg) ?? []), image]);
+  const nowAt = Math.max(-1, ...plan.plain.filter(({ image }) => image.now).map(({ slot }) => refs[slot].msg));
+  const several = new Set(plan.plain.filter(({ image }) => image.now).map(({ slot }) => refs[slot].msg)).size > 1;
+  for (const { slot, image } of plan.plain) {
+    const at = image.now ? nowAt : refs[slot].msg;
+    plainBy.set(at, [...(plainBy.get(at) ?? []), image]);
+  }
   const holding = [...plainBy.keys()].sort((a, b) => a - b);
   for (const msg of [...holding].reverse()) {
-    noteAfter(next, msg, `${msg === holding[0] && !noted ? `${claudeNote(lang, auto !== undefined)}\n` : ""}${hereNote(plainBy.get(msg)!, lang, auto !== undefined)}`);
+    noteAfter(next, msg, `${msg === holding[0] && !noted ? `${claudeNote(lang, auto !== undefined)}\n` : ""}${hereNote(plainBy.get(msg)!, lang, auto !== undefined, msg === nowAt && several)}`);
   }
   if (holding.length && !noted) report.noteAt = holding[0] + 1;
   // v0.8: after the user's own message of the turn holding the first image, at or before the others; joined with a
@@ -114,6 +121,10 @@ export function rewriteBlocks(
     report.featureAt = at + 1;
     if (added && report.noteAt !== undefined && report.noteAt > at) report.noteAt += 1;
   }
+  // v0.12: the images sent once more for their feature lines, named after the turn's own message (the latest prompt),
+  // so the request changes only at its end. Last, after the notes before it.
+  const waiting = [...new Set(refs.map(describe).filter((image) => image?.awaiting).map((image) => image!.id))];
+  if (waiting.length) noteAfter(next, promptOf(next, next.length - 1), awaitingNote(waiting, lang));
   return { messages: next, report };
 }
 
@@ -133,7 +144,8 @@ function promptOf(messages: Json[], msg: number): number {
 
 // A note goes right after a user message, the only place Anthropic allows a system message; when Claude Code put a
 // system message there already, the note joins it, since two may not follow each other. True when a message was added.
-function noteAfter(messages: Json[], msg: number, text: string): boolean {
+// v0.13: also for the PDFs' notes (documents.ts).
+export function noteAfter(messages: Json[], msg: number, text: string): boolean {
   const after = messages[msg + 1];
   if (after?.role === "system") {
     const content = typeof after.content === "string" ? [{ type: "text", text: after.content }] : after.content;

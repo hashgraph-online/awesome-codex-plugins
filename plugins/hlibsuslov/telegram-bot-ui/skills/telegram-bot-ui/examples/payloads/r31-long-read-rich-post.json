@@ -3,7 +3,7 @@
   "status": "production",
   "context": "private preview + channel",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-15)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendRichMessage",
@@ -180,7 +180,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median."
+                }
+              ],
               "credit": "Maintenance department, 2 Oct 2026"
             },
             {
@@ -402,7 +407,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Old Town streets are narrow and the repair crew needs a traffic permit for each job. From November permits will be issued for a whole week at once, which should cut two to three days from the median."
+                }
+              ],
               "credit": "Maintenance department, 2 Oct 2026"
             },
             {

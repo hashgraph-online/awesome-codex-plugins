@@ -1,0 +1,49 @@
+{
+  "name": "ai-sdr-kit",
+  "version": "1.1.0",
+  "description": "The SDR harness for your AI: Zevari's AI Sales Director, outbound playbooks, automations and the LinkedIn and email sending engine, for Claude Code, Codex, OpenClaw, Hermes or a Grok bot.",
+  "author": {
+    "name": "Zevari",
+    "url": "https://zevari.ai/?utm_source=github-kit"
+  },
+  "interface": {
+    "displayName": "AI SDR Kit",
+    "shortDescription": "The SDR harness for your AI",
+    "longDescription": "The SDR harness for your AI: Zevari's AI Sales Director, outbound playbooks, automations and the LinkedIn and email sending engine, for Claude Code, Codex, OpenClaw, Hermes or a Grok bot. Your AI is the brain: it follows the Agentify Outbound SOP and the Outbound Sequence Playbook, asks the AI Sales Director which plays to run, sets approved plays up as automations and writes with its own model. Nothing sends without your OK.",
+    "developerName": "Zevari",
+    "category": "Productivity",
+    "defaultPrompt": "Use $agentify-outbound to set up my outbound. Ask Zevari's AI Sales Director what to set up first, start with Phase 1 and change nothing until I approve it.",
+    "capabilities": [
+      "AI Sales Director plays",
+      "Automations",
+      "Outbound setup",
+      "ICP scoring",
+      "Lead routing",
+      "LinkedIn sequences",
+      "Email sequences",
+      "Campaign building",
+      "Daily brief"
+    ]
+  },
+  "license": "MIT",
+  "repository": "https://github.com/zevarihq/ai-sdr-kit",
+  "homepage": "https://github.com/zevarihq/ai-sdr-kit",
+  "keywords": [
+    "ai-sdr",
+    "agent-harness",
+    "ai-agents",
+    "agent-skills",
+    "outbound",
+    "linkedin",
+    "linkedin-automation",
+    "mcp",
+    "claude-code",
+    "codex",
+    "openclaw",
+    "hermes-agent",
+    "sales-automation",
+    "cold-email"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

@@ -57,38 +57,66 @@ export function macProxy(scutil: string): string | null {
   return null;
 }
 
-export function connectUpstream(via: { host: string; port: number } | null, upstream: string, signal?: AbortSignal, port = 443, secure = true): Promise<net.Socket> {
-  const startTls = (socket?: net.Socket) => new Promise<net.Socket>((ok, fail) => {
-    if (!secure) {
-      if (socket) { ok(socket); return; }
-      const plain = net.connect({ host: upstream, port, signal }, () => ok(plain));
-      plain.once("error", fail);
-      return;
-    }
-    const cleanup = () => signal?.removeEventListener("abort", abort);
-    const connection = tls.connect({ socket, host: socket ? undefined : upstream, port, servername: net.isIP(upstream) ? undefined : upstream, ALPNProtocols: ["http/1.1"] }, () => { cleanup(); ok(connection); });
-    const abort = () => { cleanup(); connection.destroy(); socket?.destroy(); fail(new Error("upstream connection cancelled")); };
-    connection.once("error", (error) => { cleanup(); fail(error); });
-    signal?.addEventListener("abort", abort, { once: true });
-    if (signal?.aborted) abort();
-  });
-  if (!via) return startTls();
+// v0.12: a connection that is neither up nor refused after this long (an outbound proxy that accepts the connection
+// and then never answers) counts as failed, so the request can be tried again instead of hanging.
+export const CONNECT_TIMEOUT_MS = 20_000;
+const ignore = () => {};
+
+// A TCP connection to the upstream (through the outbound proxy's CONNECT when there is one), then TLS. `alpn`: the
+// protocols offered in the TLS handshake (v0.12: ["h2", "http/1.1"] when the request may go over HTTP/2; the caller
+// reads the server's choice from the socket's alpnProtocol). The signal cancels the setup only: once the connection is
+// up it no longer touches it, since an HTTP/2 connection outlives the request that opened it (upstream.ts).
+export function connectUpstream(via: { host: string; port: number } | null, upstream: string, signal?: AbortSignal, port = 443, secure = true, alpn: string[] = ["http/1.1"], timeoutMs = CONNECT_TIMEOUT_MS): Promise<net.Socket> {
   return new Promise((ok, fail) => {
+    const sockets: net.Socket[] = [];
+    let done = false;
+    const onError = (error: Error) => finish(error);
+    const onAbort = () => finish(new Error("upstream connection cancelled"));
+    const timer = setTimeout(() => finish(new Error("upstream connection timed out")), timeoutMs);
+    const finish = (error: Error | null, socket?: net.Socket) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      // Errors after this are the caller's to handle; one listener stays so none can go unhandled in between.
+      for (const each of sockets) { each.off("error", onError); each.on("error", ignore); }
+      if (error) { for (const each of sockets) each.destroy(); fail(error); } else ok(socket!);
+    };
+    const track = <T extends net.Socket>(socket: T): T => { sockets.push(socket); socket.on("error", onError); return socket; };
+    if (signal?.aborted) { onAbort(); return; }
+    signal?.addEventListener("abort", onAbort, { once: true });
+    const startTls = (socket?: net.Socket) => {
+      if (!secure) {
+        if (socket) { finish(null, socket); return; }
+        const plain = track(net.connect({ host: upstream, port }, () => finish(null, plain)));
+        return;
+      }
+      const connection = track(tls.connect({ socket, host: socket ? undefined : upstream, port, servername: net.isIP(upstream) ? undefined : upstream, ALPNProtocols: alpn }, () => finish(null, connection)));
+    };
+    if (!via) { startTls(); return; }
     const authority = `${upstream.includes(":") ? `[${upstream}]` : upstream}:${port}`;
-    const socket = net.connect({ port: via.port, host: via.host, signal }, () => socket.write(`CONNECT ${authority} HTTP/1.1\r\nHost: ${authority}\r\n\r\n`));
+    const proxy = track(net.connect({ port: via.port, host: via.host }, () => proxy.write(`CONNECT ${authority} HTTP/1.1\r\nHost: ${authority}\r\n\r\n`)));
     let buffered = Buffer.alloc(0);
     const onData = (chunk: Buffer) => {
       buffered = Buffer.concat([buffered, chunk]);
       const end = buffered.indexOf("\r\n\r\n");
       if (end < 0) return;
-      socket.off("data", onData);
+      proxy.off("data", onData);
       const status = buffered.toString("latin1", 0, end).split(" ")[1];
-      if (status !== "200") { socket.destroy(); fail(new Error(`outbound proxy refused CONNECT (${status})`)); return; }
-      startTls(socket).then(ok, fail);
+      if (status !== "200") { finish(new Error(`outbound proxy refused CONNECT (${status})`)); return; }
+      startTls(proxy);
     };
-    socket.on("data", onData);
-    socket.once("error", fail);
+    proxy.on("data", onData);
   });
+}
+
+// v0.12: a request body decoded and parsed once by the engine, handed to the rewrite so it does not do it again.
+export type ParsedBody = { decoded: Buffer; text: string; json: Json };
+export function parseBody(body: Buffer, encoding: string | undefined): { decoded: Buffer | null; parsed: ParsedBody | null } {
+  const decoded = decodeBody(body, encoding);
+  if (!decoded) return { decoded: null, parsed: null };
+  const text = decoded.toString("utf8");
+  try { return { decoded, parsed: { decoded, text, json: JSON.parse(text) } }; } catch { return { decoded, parsed: null }; }
 }
 
 export function decodeBody(body: Buffer, encoding: string | undefined): Buffer | null {
@@ -101,10 +129,14 @@ export function decodeBody(body: Buffer, encoding: string | undefined): Buffer |
   return null;
 }
 
+// v0.12: never throws. A log line that cannot be written (a full disk, a file another program holds) is lost; it used
+// to stop the engine, and every request going through it.
 export function log(entry: Json): void {
-  const dir = proxyLogDirOf();
-  mkdirSync(dir, { recursive: true });
-  appendFileSync(join(dir, `${new Date().toISOString().slice(0, 10)}.jsonl`), `${JSON.stringify(entry)}\n`);
+  try {
+    const dir = proxyLogDirOf();
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(join(dir, `${new Date().toISOString().slice(0, 10)}.jsonl`), `${JSON.stringify(entry)}\n`);
+  } catch { /* the line is lost */ }
 }
 
 // P2-1 debugging aid for synthetic test threads only: the request with every inline image reduced to its hash and size.

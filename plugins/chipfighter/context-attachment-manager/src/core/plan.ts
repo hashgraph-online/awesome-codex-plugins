@@ -15,8 +15,9 @@ export type Replacement = { id: string; key: string; kind: ImageKind; mode: "pla
 // noteAt: where the note explaining omitted images was inserted, if one was. copies: the ids whose copies fetched in an
 // earlier turn were left out. v0.8: featureAt, where the feature line note went; labeled, how many images sent got
 // their id; unknown, how many images of the request the index did not know (e.g. not recorded yet). v0.10, Claude:
-// late, how many of those came after the model's latest reply.
-export type RewriteReport = { images: number; replaced: Replacement[]; locked: string[]; sentContentIds: string[]; copies: string[]; noteAt?: number; featureAt?: number; labeled?: number; unknown?: number; late?: number };
+// late, how many of those came after the model's latest reply. v0.12: lateContent, their contents (the engine has the
+// next turn send them once more for their feature lines: core/session.ts autoChoice).
+export type RewriteReport = { images: number; replaced: Replacement[]; locked: string[]; sentContentIds: string[]; copies: string[]; noteAt?: number; featureAt?: number; labeled?: number; unknown?: number; late?: number; lateContent?: string[] };
 
 // An image of the request. key: the index key it matches (null: none, e.g. pasted in this turn and not recorded yet).
 // replaceable: false for one that cannot become text (Codex's hosted generation result). name and label: the request's
@@ -61,8 +62,8 @@ export function planRewrite<S extends Slot>(
   report.sentContentIds = sent.map((slot) => slot.contentId);
   const unknown = slots.flatMap((slot, at) => (!copied.includes(slot) && !fetched(slot) && !describe(slot) ? [at] : []));
   if (unknown.length) report.unknown = unknown.length;
-  const lateCount = unknown.filter((at) => late(slots[at])).length;
-  if (lateCount) report.late = lateCount;
+  const lateSlots = unknown.filter((at) => late(slots[at]));
+  if (lateSlots.length) { report.late = lateSlots.length; report.lateContent = lateSlots.map((at) => slots[at].contentId); }
   const firstSlot = features ? slots.find((slot) => describe(slot)) : undefined;
   const first = firstSlot ? slots.indexOf(firstSlot) : null;
   const plan: Plan = { report, changed: false, actions: [], plain: [], first, unknown };
@@ -77,7 +78,9 @@ export function planRewrite<S extends Slot>(
     return pixels !== null && pixels === pixelHash(b);
   };
   for (const slot of drop) {
-    const image = describe(slot)!;
+    // v0.12: an image of this very turn says so (core/session.ts inTurnOut).
+    const own = describe(slot)!;
+    const image = auto && own.turn === auto.currentTurn ? { ...own, now: true } : own;
     const copy = lasting.find((other) => same(other, slot));
     const copyImage: Described | null = copy ? describe(copy) ?? { id: newImageWord(lang), name: copy.name, label: copy.label, kind: copy.kind, turn: null, width: copy.width, height: copy.height } : null;
     const text = copyImage ? duplicatePlaceholder(image, copyImage, lang) : auto ? autoPlaceholder(image, lang) : plainPlaceholder(image, lang);

@@ -8,7 +8,7 @@ Registry rows: none (channel publishing combines existing methods; see `referenc
 4. **Payload.** `examples/payloads/r31-long-read-rich-post.json` (preview to the editor, then the channel). Key part:
    ```json
    {"type": "table", "is_compact": true, "is_bordered": true, "caption": "Median, 1 Jul – 30 Sep 2026", "cells": [[{"text": "District", "is_header": true}]]},
-   {"type": "expandable_blockquote", "text": "Old Town streets are narrow…", "credit": "Maintenance department, 2 Oct 2026"},
+   {"type": "expandable_blockquote", "blocks": [{"type": "paragraph", "text": "Old Town streets are narrow…"}], "credit": "Maintenance department, 2 Oct 2026"},
    {"type": "document", "document": {"type": "document", "media": "BQACAgIAAxkBAAIBdemoReportPdf"}, "caption": {"text": "Full data set (PDF, 14 pages)"}},
    {"type": "buttons", "buttons": [{"text": "Report a pothole", "url": "https://example.com/report", "style": "primary"}, {"text": "Copy data link", "copy_text": {"text": "https://example.com/data/q3-2026"}}]}
    ```

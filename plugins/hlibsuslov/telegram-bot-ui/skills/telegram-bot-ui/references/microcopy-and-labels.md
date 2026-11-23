@@ -116,6 +116,28 @@ consequence, state reversibility.
 **Success** = what happened + what's next, in one line. Don't celebrate longer
 than the action deserved.
 
+**Stale screen** (an old button after a restart, a release or a state change) = it is out of
+date + what is still saved + one fresh entry. Answer the callback with the first two as a
+toast, then show the current screen; never a spinner, never a silent no-op.
+
+> toast: "This menu is out of date. Your order and bonus card are saved."
+> then the current menu with its one `primary` action
+
+**Notification** (the bot speaks first) = the event and whether the reader must act, in the
+first line (≤ ~80 visible chars: previews cut there), then one fact per line. Bold the values
+people check, `<code>` the values they copy, no greeting or sign-off. Silent
+(`disable_notification`) unless someone must act now. When it is handled, **edit the same
+message** into its outcome line and remove the buttons, so old alerts don't keep live actions.
+A failure inside a status card replaces its own line (⚠️ + next step) and keeps the card's shape.
+
+> **☕ Order #1042 is ready**, pick it up by 13:10
+> Khreshchatyk St 22, counter 2
+> Pickup code: `7731`
+> `[ I've picked it up ]` → edited later to "Picked up at 12:58."
+
+**Blocker** (something the reader asked for can't continue) = cause + impact + the next action,
+sent at once, not at the end of a long run.
+
 ## Before/after
 
 | Before | After | Why |
@@ -134,5 +156,6 @@ than the action deserved.
 - [ ] Labels are verb+object, unique, ≤ ~20 chars in the longest locale.
 - [ ] The same action uses the same label everywhere.
 - [ ] Emoji budget respected; no meaning carried by emoji alone.
-- [ ] Errors, empty states, and confirmations follow the shapes above.
+- [ ] Errors, empty states, confirmations, stale screens and notifications follow the shapes above.
+- [ ] No bare "OK", "Yes", "Submit": each label names its outcome (`validate_keyboard.py` warns).
 - [ ] Escaping re-verified for the parse mode after the edit.

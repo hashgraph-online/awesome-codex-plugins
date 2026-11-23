@@ -3,11 +3,11 @@
 Only the entries that change what a bot's **interface** can do. Every line below
 was read from the official changelog
 (https://core.telegram.org/bots/api-changelog) and the object pages on
-2026-08-05 (≤ 10.2) and 2026-11-12 (10.3, 10.4). Verification dates and quotes: `official-sources.md`.
+2026-08-05 (≤ 10.2), 2026-11-12 (10.3, 10.4) and 2026-11-22 (10.5). Verification dates and quotes: `official-sources.md`.
 
-Re-checked 2026-11-15: 10.4 is still the newest release. The non-UI history of
+Re-checked 2026-11-22: 10.5 is the newest release. The non-UI history of
 every release from 9.0 (business accounts, payments, polls, gifts, chat management)
-is in `api-catalog.md#what-each-release-added-90--104`; any symbol's history:
+is in `api-catalog.md#what-each-release-added-90--105`; any symbol's history:
 `py -3 scripts/tg_api_lookup.py since <name>`.
 
 **Before using anything here, confirm two things:** (1) Telegram hasn't shipped a
@@ -19,7 +19,8 @@ same as a feature you can call.
 
 | Version | Date | UI-relevant additions |
 |---|---|---|
-| **10.4** | 2026-11-09 | **HTML widgets** (`sendWidget`, `sendSharedWidget`, `widget_query`, `shared_widget_query`, `answerWidgetQuery`, `editMessageWidgetData`, `editSharedWidgetData`; production: private chats only) with TON wallet requests. Ephemeral callback replies without `receiver_user_id` in any chat except channel DMs; `chat_id` optional. Quotes from rich messages (`TextQuote.rich_texts`, `ReplyParameters.quote_rich_texts`). TON wallet cards/transfers, `ton_address` / `bank_card_number` entities, `RichTextTonAddress`. Chat share themes. Private-chat topic links `t.me/<bot>/<thread>`. `AreaPosition` rename. Full list: `bot-api-10.3-10.4.md`. |
+| **10.5** | 2026-11-22 | **Bot settings from code**: `setMySettings` (inline mode + `inline_query_placeholder`, location, feedback share, groups, privacy, topics in private chats + **`has_topic_sidebar`**, `callback_query_mode`, …); `getMe` → `BotFullInfo` (`active_usernames`, `inline_query_placeholder`, `needs_inline_query_location`, `has_topic_sidebar`; getMe-only flags removed from `User`). Callbacks from the bot's own messages may carry `inline_message_id` instead of `message`. **Expandable quotes in Rich Messages hold `blocks`** (lists, tables, code) instead of `text` — breaking for 10.3/10.4 payloads. Owner invites `t.me/botinvite/<bot>` (up to 10 users) and `WriteAccessAllowed.inviter`. Details: `bot-settings.md`. |
+| **10.4** | 2026-11-09 | **HTML widgets** (`sendWidget`, `sendSharedWidget`, `widget_query`, `shared_widget_query`, `answerWidgetQuery`, `editMessageWidgetData`, `editSharedWidgetData`; production: private chats only) with TON wallet requests. Ephemeral callback replies without `receiver_user_id` in any chat except channel DMs; `chat_id` optional. Quotes from rich messages (`TextQuote.rich_texts`, `ReplyParameters.quote_rich_texts`). TON wallet cards/transfers, `ton_address` / `bank_card_number` entities, `RichTextTonAddress`. Chat share themes. Private-chat topic links `t.me/<bot>/<thread>`. `AreaPosition` rename. Full list: `bot-api-coverage.md`. |
 | **10.3** | 2026-08-24 | **Disabled inline buttons** (`disabled: {}`), **`force_reply` on inline and reply keyboards**, **Stop for drafts** (`can_stop`, `keep_on_stop`, `stopped_message_generation`). Rich buttons (`RichMessageButton`, `RichTextButton`, `<tg-button-row>`), compact tables, expandable quotations, document blocks, `tg://document`. `EphemeralMessageParameters` (replaces 10.2 top-level params), `replace_callback_query_message`, ephemeral media upload / rich edit, `can_send_welcome_messages`. Community join and gift-text service fields. |
 | **10.2** | 2026-07-14 | **Ephemeral messages** (group messages visible only to one user + the bot): `sendMessage`/media `receiver_user_id` & `callback_query_id`, `editEphemeralMessageText/Media/Caption/ReplyMarkup`, `deleteEphemeralMessage`, `ReplyParameters.ephemeral_message_id`, `BotCommand.is_ephemeral`, `Message.receiver_user`. **Rich message input blocks** (`InputRichBlock*`, incl. `InputRichBlockTable`), `InputRichMessage.blocks`, `InputRichMessageMedia`, `InputMediaVoiceNote`. Communities. |
 | **10.1** | 2026-06-11 | **Rich Messages**: `sendRichMessage`, `sendRichMessageDraft`, `InputRichMessage`, `RichBlock*`/`RichText*`, `editMessageText` `rich_message`, `InputRichMessageContent` usable as inline-result content. Join-request queries (`answerChatJoinRequestQuery`, `sendChatJoinRequestWebApp`). Poll media links. |
@@ -27,7 +28,7 @@ same as a feature you can call.
 | **9.6** | 2026-04-03 | `PreparedKeyboardButton` + `savePreparedKeyboardButton` (Mini App can trigger `request_users` / `request_chat` / `request_managed_bot`), `KeyboardButton.request_managed_bot`, `WebApp.requestChat`. Poll UX: multi-answer quizzes, `shuffle_options`, `allows_revoting`, `allow_adding_options`, `hide_results_until_closes`, poll `description`. |
 | **9.5** | 2026-03-01 | **`date_time` `MessageEntity`** (client-side localized dates/times), `sendMessageDraft` opened to all bots, member tags, `BottomButton.iconCustomEmojiId` (Mini App side). |
 | **9.4** | **2026-02-09** | **`style` on `KeyboardButton` and `InlineKeyboardButton`** (colored buttons). **`icon_custom_emoji_id` on both button classes.** **Custom emoji allowed in messages sent directly by the bot to private/group/supergroup chats when the bot owner has Telegram Premium.** Topics in private chats (`createForumTopic`, `User.allows_users_to_create_topics`). `setMyProfilePhoto` / `removeMyProfilePhoto`. |
-| **9.3** | 2025-12-31 | `sendMessageDraft` (streamed partial messages), topics in private chats (`message_thread_id` in private chats, `User.has_topics_enabled`). |
+| **9.3** | 2025-12-31 | `sendMessageDraft` (streamed partial messages), topics in private chats (`message_thread_id` in private chats, `User.has_topics_enabled` — `BotFullInfo` since 10.5). |
 | **6.2** | 2022-08-12 | Custom emoji foundation: `MessageEntity` type `custom_emoji`, `MessageEntity.custom_emoji_id`, `getCustomEmojiStickers`, `Sticker.type` + `Sticker.custom_emoji_id`. |
 
 Older, still-load-bearing UI primitives (unchanged): `InlineKeyboardMarkup`,

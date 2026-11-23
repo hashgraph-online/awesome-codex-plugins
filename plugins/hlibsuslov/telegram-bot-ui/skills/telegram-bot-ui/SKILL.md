@@ -1,10 +1,10 @@
 ---
 name: telegram-bot-ui
-description: "Telegram bot UI/UX skill, updated for every Bot API release. Design, build, publish with and operate bots: texts, inline/reply keyboards, colored and disabled buttons, premium custom emoji, force_reply forms, navigation, streaming AI replies with Stop, private replies in groups, Rich Messages, HTML widgets with server handlers, TON wallet, topics, formatting, localization; whole products (shop with Stars, support, booking, onboarding, subscriptions, inline mode, business); channel posts (approve, publish once, edit, cross-post, mailings); an agent working via its own bot (notify, ask, approve, progress, hooks, MCP); offline lookup of every Bot API method and field, plus their server side. Use for 'improve this bot's menu', 'add a Stop button', 'post this to our channel', 'message me when the build is done', 'make a widget', 'use premium emoji', 'can't parse entities', 'does the Bot API have X'. Do NOT use for webhook hosting, databases or auth unrelated to Telegram, or Microsoft .rtf files."
+description: "UI/UX for a Telegram bot's whole interface, updated for every Bot API release. Design, build, publish with and operate bots: texts, inline/reply keyboards, colored and disabled buttons, premium custom emoji, force_reply forms, navigation, streaming AI replies with Stop, private replies in groups, Rich Messages, HTML widgets with server handlers, TON wallet, topics, formatting, localization; whole products (shop with Stars, support, booking, onboarding, subscriptions, inline mode, business); channel posts (approve, publish once, edit, cross-post, mailings); an agent working via its own bot (notify, ask, approve, progress, hooks, MCP); offline lookup of every Bot API method and field, plus their server side. Use for 'improve this bot's menu', 'add a Stop button', 'post this to our channel', 'message me when the build is done', 'make a widget', 'use premium emoji', 'can't parse entities', 'does the Bot API have X'. Do NOT use for webhook hosting, databases or auth unrelated to Telegram, or Microsoft .rtf files."
 license: MIT
 metadata:
   author: hlibsuslov
-  version: "2.2.1"
+  version: "3.0.0"
 ---
 
 # Telegram Bot UI
@@ -12,7 +12,7 @@ metadata:
 Portable, SDK-agnostic skill for everything a Telegram bot shows and sends: bot
 screens, whole products, channel posts, HTML widgets, premium emoji, and an
 agent's own bot. It also owns the server side those features need. Verified
-against **Bot API 10.4 (2026-11-09) on 2026-11-15**; no newer version existed then.
+against **Bot API 10.5 (2026-11-22) on 2026-11-22**; no newer version existed then.
 
 A regular message has no CSS and no layout engine: its interface is **text,
 formatting, keyboards, chat chrome (commands, menu button, deep links) and the
@@ -45,7 +45,9 @@ pipelines, Mini App front-end internals. Microsoft `.rtf` files.
 
 | The user wants | Start here | Recipes |
 |---|---|---|
-| Better screens, keyboards, wording, feedback in an existing bot | core workflow below, `references/navigation-and-flows.md` | 01-09 |
+| Better screens, keyboards, wording, feedback in an existing bot | core workflow below, `references/navigation-and-flows.md` | 01-10 |
+| The whole interface as files by screen ID (`bot-ui/`), the local Studio, "shorten `checkout.payment.confirm`" | `references/bot-ui-projects.md` | — |
+| "Make it premium / nicer / polished" | premium pass: `references/visual-language.md` §7 (copy and hierarchy first, icons last), `references/examples-before-after.md` 17-20 | 70 for icons |
 | Fit the bot to the project's style, rethink every menu, tune it | `references/redesign-orchestration.md` | — |
 | "Build me a bot for X" (shop, support, booking, learning, community…) | `references/example-library.md`, `recipes/use-cases.json`, `references/use-case-playbooks.md` | 20-29, 60-64, 80-87 |
 | Posts in a channel, digests, mailings, editorial approval | `references/publishing-pipeline.md`, `references/channel-post-design.md` | 30-39 |
@@ -55,8 +57,8 @@ pipelines, Mini App front-end internals. Microsoft `.rtf` files.
 | "Does the API have…", payments, inline, business, media, admin | `references/api-catalog.md` (offline catalog + tools) | — |
 
 Index of all recipes by task, symbol, version and context: `recipes/README.md`
-(human) and `recipes/manifest.json` (machine). Every 10.3/10.4 changelog row:
-`recipes/registry.json`, `references/bot-api-10.3-10.4.md`.
+(human) and `recipes/manifest.json` (machine). Every 10.3-10.5 changelog row:
+`recipes/registry.json`, `references/bot-api-coverage.md`.
 
 ## Initiative rule
 
@@ -83,6 +85,10 @@ and say which features you chose and why.
   payload, test. No full audit, no unrelated redesign.
 * **Feature, screen, post type or widget**: steps 1-6 below for the affected
   screens, then build from the closest recipe and adapt it.
+* **Polish: "make it premium / nicer / cleaner"**: the premium pass in
+  `references/visual-language.md` §7, read before editing. Every screen in scope gets copy and a
+  first line, then hierarchy and labels, then color, icons last. Every list gets its empty state,
+  every load its error state, and old buttons get the stale answer. Contracts stay frozen.
 * **New bot, migration, "latest Bot API"**: full workflow plus the initiative rule.
 
 ## Core workflow (audit before you redesign)
@@ -200,7 +206,10 @@ Details: `references/dynamic-feedback-and-streaming.md`.
   confirmed destructive action; omit it elsewhere.
 - `force_reply` on keyboards (10.3) = buttons plus a reply field; on inline keyboards
   it can't change in an edit.
-- Labels must make sense without color and without icons.
+- A callback may carry `inline_message_id` and no `message` (inline mode, or a bot whose
+  `callback_query_mode` is `auto`/`inline`, 10.5): edit by that id, route by `callback_data`.
+- Labels must make sense without color and without icons; Back/Cancel/Close stay
+  unstyled and last; `validate_keyboard.py` warnings are design defects to fix.
   Full rules: `references/buttons-and-styles.md`.
 
 ## Which reference to read (task-routed — don't read them all)
@@ -216,10 +225,11 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 - Reply keyboards, `ForceReply`, placeholders → `references/reply-keyboards.md`
 - Screens, back/home, commands, menu button, deep links → `references/navigation-and-flows.md`
 - First run, `/start` payloads, language choice, returning users → `references/onboarding-and-first-run.md`
-- One visual language, screen anatomy → `references/visual-language.md`
+- One visual language, screen anatomy, the premium pass → `references/visual-language.md`
 - Feedback mechanism → `references/dynamic-feedback-and-streaming.md`; draft state machine, Stop, races → `references/streaming-and-editing.md`
 - Personal / ephemeral answers in groups → `references/ephemeral-and-personal.md`
 - Topics, channel DMs, business, inline: which fields → `references/topics-and-contexts.md`
+- Bot settings from code (`setMySettings`, `getMe` → `BotFullInfo`, callback mode, topic sidebar, owner invite links) → `references/bot-settings.md`
 - Personalization, links, previews → `references/personalization-and-links.md`
 - Consistency and the pre-finish checklist → `references/consistency-and-review.md`
 - Worked before/after scenarios → `references/examples-before-after.md`; real bot upgrade → `references/case-study-btc-tracker.md`
@@ -244,7 +254,7 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 **Widgets and Mini Apps**
 - Runtime, limits, send / query / state life cycle → `references/widgets.md`
 - Tokens, type, states, RTL, accessibility → `references/widget-design-system.md`
-- State architecture, backends and REST data, Mini App hand-off, channel-safe variants → `references/widget-patterns.md`
+- State architecture, backends and REST data, Mini App hand-off, channel-safe variants, games and live apps on one shared widget → `references/widget-patterns.md`
 - Launching Mini Apps and receiving their data → `references/mini-apps-bridge.md`
 - Wallet pay / sign, TON cards and transfers → `references/wallet-and-ton.md`
 
@@ -262,13 +272,14 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 
 **Engineering**
 - Unknown project → `references/project-adaptation.md`
+- `bot-ui/` project: screen IDs, CLI, Studio, revision conflicts, no-Studio path → `references/bot-ui-projects.md`
 - Update intake, `allowed_updates`, webhooks vs polling → `references/updates-and-delivery.md`
 - Escaping, injection, user or model output → `references/security-and-escaping.md`
 - Localization, RTL → `references/localization-and-rtl.md`
 - Errors, fallbacks, old clients → `references/errors-and-fallbacks.md`
 - SDK gaps, raw payloads → `references/sdk-compatibility.md`
 - Testing → `references/testing-playbook.md`
-- Whole-API lookup and per-version table → `references/api-catalog.md`; every 10.3/10.4 item → `references/bot-api-10.3-10.4.md`; version gates → `references/ui-changelog.md`; sources and dates → `references/official-sources.md`
+- Whole-API lookup and per-version table → `references/api-catalog.md`; every 10.3-10.5 item → `references/bot-api-coverage.md`; version gates → `references/ui-changelog.md`; sources and dates → `references/official-sources.md`
 
 ## Tools (offline, stdlib, no token)
 

@@ -1,6 +1,6 @@
 {
   "name": "nia-teams-agent-bridge",
-  "version": "0.3.3",
+  "version": "0.3.5",
   "description": "Setup guidance for connecting the local Codex CLI to Nia Teams group chats and tool approval cards using the separately installed nia-codex bridge.",
   "repository": "https://github.com/nia-teams/agent-bridge",
   "license": "MIT",

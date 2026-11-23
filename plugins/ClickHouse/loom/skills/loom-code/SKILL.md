@@ -19,9 +19,9 @@ stands down. Use Loom only when asked about upstream, naming the indexed commit.
 
 Loom indexes this codebase (symbols, call graph,
 tests, PR history), served as MCP tools. Choose the operation that answers the question; do not call tools just to
-show use. Static callers and impact can be lower bounds. The `loom-code-shunt` hook
-enforces the substitutions mechanically (a symbol grep or a bulk read in an
-indexed repo is denied with the answer or the tool to call).
+show use. Static callers and impact can be lower bounds. Follow this routing even
+without hooks. A hook may supply evidence or redirect a local lookup; reuse that
+evidence when it answers the question.
 
 If a hook or the current prompt already supplied sufficient evidence, use it
 without repeating the lookup. Skip code retrieval for memory-only questions,

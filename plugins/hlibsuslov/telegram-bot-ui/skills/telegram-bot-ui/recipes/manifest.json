@@ -1,6 +1,6 @@
 {
-  "verified": "2026-11-12",
-  "bot_api": "10.4",
+  "verified": "2026-11-22",
+  "bot_api": "10.5",
   "recipes": [
     {
       "id": "R01",
@@ -44,7 +44,8 @@
         "10.3-R04",
         "10.3-R05",
         "10.3-R06",
-        "10.3-R07"
+        "10.3-R07",
+        "10.5-G03"
       ],
       "symbols": [
         "InputRichBlockButtons",
@@ -71,7 +72,8 @@
       ],
       "versions": [
         "10.3",
-        "10.4"
+        "10.4",
+        "10.5"
       ],
       "contexts": "Bot API ≥ 10.3 (quotes ≥ 10.4). Production, any chat where the bot may send rich messages (media rights for the document). Ephemeral/inline limits: see validator contexts.",
       "payload": "examples/payloads/r02-interactive-document.json",
@@ -309,6 +311,55 @@
         "live price ticker",
         "consistent premium icons",
         "upgrade an existing tracker bot to the latest Bot API"
+      ]
+    },
+    {
+      "id": "R10",
+      "title": "Bot settings from code: setMySettings, BotFullInfo, callback mode, topic sidebar, owner invites",
+      "doc": "recipes/10-bot-settings.md",
+      "registry": [
+        "10.5-S01",
+        "10.5-S02",
+        "10.5-S03",
+        "10.5-S04",
+        "10.5-S05",
+        "10.5-S06",
+        "10.5-S07",
+        "10.5-S08",
+        "10.5-G01",
+        "10.5-G02"
+      ],
+      "symbols": [
+        "BotFullInfo",
+        "WriteAccessAllowed",
+        "active_usernames",
+        "allows_users_to_create_topics",
+        "botinvite",
+        "callback_query_mode",
+        "can_communicate_with_bots",
+        "getMe",
+        "has_topic_sidebar",
+        "has_topics_enabled",
+        "inline_feedback_share_denominator",
+        "inline_message_id",
+        "inline_query_placeholder",
+        "inviter",
+        "needs_inline_query_location",
+        "setMySettings"
+      ],
+      "versions": [
+        "10.5"
+      ],
+      "contexts": "Private chat with the bot; settings applied at start-up; owner-only invite link.",
+      "payload": "examples/payloads/r10-bot-settings.json",
+      "fixture": "examples/fixtures/get_me_bot_full_info.json",
+      "python": "examples/python/recipes/r10_bot_settings.py",
+      "typescript": null,
+      "tasks": [
+        "настроить бота из кода, без BotFather",
+        "configure bot settings from code",
+        "invite testers to the bot",
+        "topics sidebar in private chat"
       ]
     },
     {

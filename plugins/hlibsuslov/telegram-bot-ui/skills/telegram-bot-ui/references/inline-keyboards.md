@@ -102,6 +102,10 @@ row 4: [ ← Back ]                     [ Delete ]
   state only, so old messages still work.
 - At the edges, either disable movement (drop the button) or keep it and answer
   with a toast — pick one convention and apply it bot-wide.
+- **Page size follows the row** (heuristic): about 5 items when each is a two-line card in the
+  text, about 9 one-line rows, about 15 short tokens (codes, dates) laid out 3-5 per row.
+- **No dead pager:** with one page, or an empty list, drop the pager row entirely and show the
+  empty state instead (`microcopy-and-labels.md`).
 - Consider `switch_inline_query_current_chat` for search instead of paging
   through hundreds of items.
 
@@ -131,6 +135,24 @@ being deleted.
 
 The label shows the **current** state; the payload carries the **next** one.
 Document which convention the project uses — mixing them causes real bugs.
+
+**Multi-select (collect silently, submit explicitly)**
+
+```json
+{"inline_keyboard": [
+  [{"text": "✓ Wi-Fi", "callback_data": "flt:t:wifi"}, {"text": "Parking", "callback_data": "flt:t:park"}],
+  [{"text": "✓ Terrace", "callback_data": "flt:t:terr"}, {"text": "Pets allowed", "callback_data": "flt:t:pets"}],
+  [{"text": "Clear all", "callback_data": "flt:none"}],
+  [{"text": "Show 12 places", "callback_data": "flt:apply", "style": "primary"}],
+  [{"text": "← Back", "callback_data": "menu"}]
+]}
+```
+
+A tap toggles the mark and edits only the keyboard (plus at most a toast): no new message per
+tap. The marked state is in the label; "Select all" becomes "Clear all" once anything is
+marked. The apply button says the outcome ("Show 12 places") and is `disabled` with the reason
+in the text while the selection is invalid. Offer "Other…" with `force_reply` when the list
+can't be complete.
 
 **Wizard step**
 

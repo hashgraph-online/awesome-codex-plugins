@@ -26,7 +26,7 @@ Results go to a new `converted/` folder next to the originals, with the original
 
 **With the Converter Studio MCP tools** (`list_formats`, `convert`, `create_upload`, `get_conversion`, `confirm_conversion`, `get_account`):
 
-1. Call `get_account` once. Each file costs credits (most files 1, video about 1 per 3 minutes at 1080p). Tell the user the rough total and what they have before a large batch.
+1. Call `get_account` once. Each file costs credits: most files 1; audio and video are priced by their length (and video by its frame size and the format made, WebM costing several times more than MP4) once Converter Studio has looked at them. Tell the user the rough total and what they have before a large batch.
 2. Convert one file at a time:
    - up to 8 MB: `convert` with `contentBase64` and `fileName`;
    - bigger: `create_upload`, run its `curl` command, then `convert` with `uploadId`.

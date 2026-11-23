@@ -9,11 +9,12 @@ Registry rows: none (channel publishing combines existing methods; see `referenc
    ```json
    {"text": "Draft d42 · v1 → City News. The preview is above.", "reply_markup": {"inline_keyboard": [
      [{"text": "Approve and publish", "callback_data": "pub:approve:d42:1", "style": "success"}],
-     [{"text": "Edit text", "callback_data": "pub:edit:d42:1"}, {"text": "Reject", "callback_data": "pub:reject:d42:1", "style": "danger"}]]}}
+     [{"text": "Edit text", "callback_data": "pub:edit:d42:1"}],
+     [{"text": "Reject", "callback_data": "pub:reject:d42:1", "style": "danger"}]]}}
    ```
 5. **Code.** `examples/python/recipes/r35_editorial_approval.py` (`ApprovalDesk`), `examples/python/tgkit/publish.py` (`plan`, `Publisher.publish`).
 6. **Sequence and state.** submit → preview (plan to editor) + control message → callback → editor allow-list → version check (stale → alert) → approve: `publish(key=draft:<id>:v<n>)` → answer → control message edited with the post link; edit: `force_reply` prompt → reply → version+1 → new preview; reject: state `rejected`.
-7. **Result.** Mock-up: [post preview] / “Draft d42 · v2 → City News” [Approve and publish] / [Edit text] [Reject] → “Draft d42 · v2 published by Alice. [Open the post]”.
+7. **Result.** Mock-up: [post preview] / “Draft d42 · v2 → City News” [Approve and publish] / [Edit text] / [Reject] → “Draft d42 · v2 published by Alice. [Open the post]”.
 8. **Typical mistake, limits, alternative.** No version in `callback_data` (an old preview publishes old text); checking editors only in the UI; not answering callbacks; publishing on each tap. Alternative: a group of editors with the same desk (callback `from` is still the authority).
 9. **Run and verify.** `py -3 examples/python/recipes/r35_editorial_approval.py`. Evidence: offline contract.
 10. **Adapt.** Store drafts in your DB; add a scheduled time field and let your scheduler call `publish`; log who approved what. Related: `references/publishing-pipeline.md`, R03.

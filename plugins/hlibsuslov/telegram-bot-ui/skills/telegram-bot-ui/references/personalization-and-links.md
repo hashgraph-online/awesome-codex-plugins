@@ -152,6 +152,10 @@ resuming a flow, onboarding, connecting an account, entering a campaign.
   retire or repurpose one during a redesign (`navigation-and-flows.md`).
 - `/start` with an unknown or expired payload must degrade to the normal landing
   screen, not to an error.
+- 10.5: the bot's owner can invite up to 10 users at once with
+  `https://t.me/botinvite/<bot_username>`. Invited users never pressed Start (no payload);
+  their chat opens with `write_access_allowed.inviter`. Send the link to the owner only
+  (`bot-settings.md#owner-invites-botinvite-links`).
 
 ## In-message navigation (Rich Messages)
 

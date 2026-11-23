@@ -41,8 +41,8 @@ class ApprovalDesk:
             "chat_id": d["chat"], "text": f"Draft {draft_id} · v{v} → City News. The preview is above.",
             "reply_markup": {"inline_keyboard": [
                 [{"text": "Approve and publish", "callback_data": f"pub:approve:{draft_id}:{v}", "style": "success"}],
-                [{"text": "Edit text", "callback_data": f"pub:edit:{draft_id}:{v}"},
-                 {"text": "Reject", "callback_data": f"pub:reject:{draft_id}:{v}", "style": "danger"}]]}})
+                [{"text": "Edit text", "callback_data": f"pub:edit:{draft_id}:{v}"}],
+                [{"text": "Reject", "callback_data": f"pub:reject:{draft_id}:{v}", "style": "danger"}]]}})
 
     def on_callback(self, cq: dict[str, Any]) -> str:
         answer = {"callback_query_id": cq["id"]}

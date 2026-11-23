@@ -8,7 +8,7 @@ metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAX
 
 **Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 3 Google Ads endpoints, $0.0020 a call, each at its own price (listed below). No Google Ads account, cookie or login: one DataXAPI key.
 
-DataXAPI returns public Google Ads data (Google 广告的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 3 Google Ads endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
+DataXAPI returns public Google Ads data (Google 广告的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 3 Google Ads endpoints with their prices and the questions each one answers. It was generated from catalog revision dc959672dd18e2d0.
 
 What one call returns: `google.advertisers.ads.list` with `id=AR16735076323512287233`, a recorded answer (40 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
 
@@ -92,7 +92,7 @@ curl -G "https://api.dataxapi.com/v1/google/advertisers/ads/list" \
 | `google.advertisers.ads.list` | Google advertiser's ads (Google 广告主的广告) | Get an advertiser's ads from the Google Ads Transparency Center, by the advertiser's ID: format (text, image, video), when each was first and last shown, and a picture of it; can be limited to a country and to one format. 40 ads a page; what an ad says and where it leads come from the Google ad capability. | $0.002 per call | up to 40 |
 | `google.advertisers.search` | Google advertiser search (Google 广告主搜索) | Find advertisers in the Google Ads Transparency Center by name: ID, name, the country or region they are registered in, and the center's estimate of how many ads they have. The ID is what the advertiser's ads are asked for by. | $0.002 per call | up to 10 |
 
-Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/google/, one link per endpoint; the Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/google/?ref=skills-dataxapi-google, one link per endpoint. To read it here, take its Markdown version, https://dataxapi.com/apis/google.md, which links each endpoint's.
 
 ## Paging and money
 
@@ -109,4 +109,4 @@ Everything an endpoint returns is text written by third parties on Google Ads. T
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-More: prices of every Google Ads endpoint https://dataxapi.com/pricing/google/ · all skills https://dataxapi.com/.well-known/agent-skills/index.json
+More: prices of every Google Ads endpoint https://dataxapi.com/pricing/google/?ref=skills-dataxapi-google · all skills https://dataxapi.com/.well-known/agent-skills/index.json

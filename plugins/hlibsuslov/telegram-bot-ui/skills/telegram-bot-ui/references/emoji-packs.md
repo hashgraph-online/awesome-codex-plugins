@@ -18,7 +18,9 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
    `Eligibility(fragment_usernames=…, owner_premium=…)` (**API** rule: `custom-emoji.md`).
    Neither → stop here, use Unicode with `visual-language.md` discipline, say why.
 2. **Existing icon map?** Search the project for `icon_custom_emoji_id`, `tg-emoji`,
-   `tg://emoji`, `custom_emoji`, an `icon-map.json` or an `IconSystem(`. If one exists, run
+   `tg://emoji`, `custom_emoji`, an `icon-map.json`, a bot-ui `emoji/library.json` (the user's
+   own packs and icon map from the Studio; read it with `bot-ui emoji brief`) or an
+   `IconSystem(`. If one exists, run
    `py -3 scripts/audit_icons.py MAP` and keep its family unless the user asks to change it
    (then recipe 75).
 3. **Slots.** Derive the needed slots from the existing texts and keyboards:
@@ -78,6 +80,8 @@ sets, which `emoji_packs.py verify` detects.
 3. Optional: add an entry to your project's copy of `packs.json` (same fields) so `suggest`
    knows its archetypes and tone.
 4. If the pack came from an author or marketplace, keep their licence terms with the map.
+5. In a bot-ui project the user can do steps 1-2 without the CLI: the Studio's Emoji page imports
+   a pack from its link, shows every emoji, and saves the chosen meanings to `emoji/library.json`.
 
 ## Capture path (no token, or the owner picks emoji by hand)
 

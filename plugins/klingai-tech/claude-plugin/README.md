@@ -39,6 +39,12 @@ then return to Claude Code and check that the server is connected.
 On Claude Code 2.1.292 or later, `claude plugin install kling-ai --marketplace klingai-tech/claude-plugin`
 adds the marketplace and installs the plugin in one command.
 
+### GitHub Copilot CLI and VS Code
+
+- **GitHub Copilot CLI** — Add this official marketplace with `copilot plugin marketplace add klingai-tech/claude-plugin`, then install with `copilot plugin install kling-ai@klingai`.
+- **VS Code with Copilot** — [Install the Global plugin in VS Code](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3Dklingai-tech%252Fclaude-plugin%26plugin%3Dkling-ai). VS Code asks you to confirm before installing. The first connection uses OAuth with your Global Kling account.
+- If the link does not open, run **Chat: Install Plugin from Source** in VS Code and enter `https://github.com/klingai-tech/claude-plugin`.
+
 ### Try it
 
 - **Check the connection** — “Show my Kling account, available models, and credit balance.”
@@ -57,6 +63,16 @@ link.” in the same chat. Result links expire after 24 hours.
 - **Authorization expired or you selected the wrong account.** Disconnect the current authorization in the MCP or connector panel and sign in again. Before switching regions, check any pending tasks in the original region, disconnect that connection, and enable the plugin for the new region.
 - **Your usable balance is too low.** Kling MCP uses paid credits in your Personal workspace. Top up the same Kling account and ask Claude to continue in the same chat.
 
+### Gemini CLI
+
+This repository also provides a Gemini CLI extension for Global. Install it from the official repository:
+
+```bash
+gemini extensions install https://github.com/klingai-tech/claude-plugin
+```
+
+Start Gemini CLI, then run `/mcp auth kling-ai-global-plugin` to authorize your Global account. Run `/mcp` to check the connection. Generation uses credits from the Global account. For China accounts, install the [China extension](https://github.com/klingai-tech/claude-plugin-cn).
+
 ### Connect MCP manually or use the CLI
 
 Use one Kling integration per assistant. The plugin already registers
@@ -66,6 +82,12 @@ Use one Kling integration per assistant. The plugin already registers
 - **Standalone CLI** — To use Kling from the terminal, run `npm i -g @klingai/cli-global --registry=https://registry.npmjs.org`, then `kling login` and `kling --help`.
 
 [Official instructions for other MCP clients and CLI commands](https://kling.ai/app/mcp/guide)
+
+### Connect in VS Code and GitHub Copilot
+
+[Add the official Global MCP to VS Code](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522kling-ai-global%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fkling.ai%252Fmcp%252Fplugin%2522%257D)
+
+The link opens a configuration preview. Review the endpoint, install it, and complete OAuth with your Global Kling account. Image and video generation uses Global Kling credits.
 
 ## What the plugin includes
 
@@ -217,3 +239,22 @@ Claude supports plugins in chat, Claude Desktop, and Cowork, with component
 support varying by surface; see [Use plugins in Claude](https://support.claude.com/en/articles/13837440-use-plugins-in-claude).
 Use the native plugin and connector controls on those surfaces. This
 repository's validation covers the Claude Code package.
+
+## Install in Kiro
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=Kling+AI+Global&config=%7B%22url%22%3A%22https%3A%2F%2Fkling.ai%2Fmcp%2Fplugin%22%2C%22disabled%22%3Afalse%2C%22autoApprove%22%3A%5B%5D%7D)
+
+This one-click link adds the Global remote MCP server. Kiro handles OAuth
+for this endpoint. Image and video generation consumes credits in the signed-in
+Global Kling account.
+
+To install the full Agent Plugin with its bundled Skills, open **Powers** →
+**Add Custom Power** → **Import power from GitHub** and enter
+`https://github.com/klingai-tech/claude-plugin`. Kiro reads the root
+`plugin.json` and `mcp.json`; see the [Kiro install guide](https://kiro.dev/docs/powers/installation/).
+
+## Privacy and support
+
+- [Privacy policy](https://kling.ai/docs/privacy-policy)
+- [User service agreement and support contacts](https://kling.ai/docs/user-policy)
+- [Support email](mailto:support@kling.ai)

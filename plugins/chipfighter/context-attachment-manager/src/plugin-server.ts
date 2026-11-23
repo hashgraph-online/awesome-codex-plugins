@@ -20,8 +20,11 @@
 // one the call names (the mod passes it), else the one Claude Code started this service for (CLAUDE_CODE_SESSION_ID).
 // v0.7 — in a side chat (kept in memory only, so without a rollout) cam_view_image fetches from the task the chat was
 // forked from, which its calls name; the panel switches automatic selection for a task's subagents and side chats.
+// v0.13 — keeps the plugin up to date (core/update.ts): in Codex and under Claude Code, about once a day, the latest
+// release is installed with the platform's own command line, for its next start; cam_update is the panel's switch.
 // Input: MCP JSON-RPC over stdio. Env: CAM_ENGINE_PORT (default 17891), CAM_NO_ENGINE=1 (tests), CAM_DATA_DIR,
-// CAM_HOST. Output: tool results; <data dir>/plugin-server.jsonl (events and counts only, no conversation content).
+// CAM_HOST, CAM_AUTO_UPDATE=0 (no updates). Output: tool results; <data dir>/plugin-server.jsonl (events and counts
+// only, no conversation content).
 
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -29,7 +32,10 @@ import { createInterface } from "node:readline";
 import { codexHome } from "./adapters/codex/codexconfig.ts";
 import { bindThread, isUserThread, newThreads, resolveThread } from "./adapters/codex/binding.ts";
 import { claudeStartedAt, loadClaudeIndex } from "./adapters/claude/claude-index.ts";
-import { DEFAULT_PORT, ensureEngine } from "./engine.ts";
+import { DEFAULT_PORT, ensureEngine, versionOf } from "./engine.ts";
+import { changeUpdate, startUpdater, updateView } from "./core/update.ts";
+import { codexPlatform } from "./adapters/codex/update.ts";
+import { claudePlatform } from "./adapters/claude/update.ts";
 import { isEntryPoint } from "./core/entry.ts";
 import { currentLang, rememberLang } from "./adapters/codex/language.ts";
 import { langOf } from "./core/language.ts";
@@ -41,7 +47,7 @@ import { applySelection, imageFor, loadPanelState } from "./adapters/codex/panel
 import { claudeImageFor, type ClaudePanelOptions } from "./adapters/claude/panel.ts";
 import type { PanelState } from "./panel/panel-state.ts";
 import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./core/paths.ts";
-import { fetchedLabel, fetchWords } from "./core/words.ts";
+import { claudeFetchWords, fetchedLabel, fetchWords, pdfMarker } from "./core/words.ts";
 import { claudeSelection } from "./adapters/claude/selection.ts";
 import { effectiveSelection } from "./adapters/codex/selection.ts";
 import { ensureAutoDefault, ensureStableIds, stableIdTimes } from "./core/selection.ts";
@@ -100,6 +106,14 @@ export function toolsFor(lang: Lang) {
       inputSchema: { type: "object", properties: { ...shared, target: { type: "string" } }, required: ["target"] },
       _meta: APP_ONLY,
     },
+    // v0.13: the panel's switch for updating the plugin by itself, and the "updated" note it has shown.
+    {
+      name: "cam_update",
+      title: say(lang, "tool.update.title"),
+      description: say(lang, "tool.update.description"),
+      inputSchema: { type: "object", properties: { ...shared, auto: { type: "boolean" }, seen: { type: "string" } } },
+      _meta: APP_ONLY,
+    },
     // For the model (no app-only visibility); its words are text for the model, so they live in core/words.ts.
     {
       name: "cam_view_image",
@@ -118,7 +132,13 @@ export const TOOLS = toolsFor("zh");
 // v0.11: or a platform using the core alone (platforms.ts), named by its MCP configuration (CAM_HOST=workbuddy, …):
 // only the model's fetch tool too.
 export const HOST: string = corePlatformOf(process.env.CAM_HOST) ? process.env.CAM_HOST! : process.env.CAM_HOST === "claude" ? "claude" : "codex";
-export const claudeToolsFor = (lang: Lang) => toolsFor(lang).filter((tool) => tool.name === "cam_view_image");
+export const platformToolsFor = (lang: Lang) => toolsFor(lang).filter((tool) => tool.name === "cam_view_image");
+// v0.13 (docs/design.md §14): under Claude Code it also gets pages of an omitted PDF back.
+export const claudeToolsFor = (lang: Lang) => platformToolsFor(lang).map((tool) => ({
+  ...tool,
+  description: claudeFetchWords(lang).description,
+  inputSchema: { type: "object", properties: { ids: { type: "array", items: { type: "string" }, description: claudeFetchWords(lang).ids }, pages: { type: "string", description: claudeFetchWords(lang).pages } }, required: ["ids"] },
+}));
 
 // A stack of pictures, drawn for light and dark themes (Codex takes https or data URLs only).
 const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h10.5A3.5 3.5 0 0 1 21 6.5V16"/><circle cx="8" cy="11" r="1.5"/><path d="m3.5 18 4.5-4.5 3 3 2-2 3.5 3.5"/></svg>';
@@ -184,13 +204,19 @@ function newTasks(sessionsDir: string, shown: unknown): Json[] {
 export function callTool(name: string, args: Json, meta: Json | undefined, sessionsDir = join(codexHome(), "sessions")): Json {
   // The panel sends the language it shows; calls without one (Codex's first call, the model's) get the remembered one.
   const lang = langOf(args.lang) ?? currentLang();
+  // v0.13: about the plugin, not a task.
+  if (name === "cam_update") {
+    if (fromModel(meta)) throw new Error(say(lang, "call.modelSetup"));
+    changeUpdate("codex", { auto: typeof args.auto === "boolean" ? args.auto : undefined, seen: typeof args.seen === "string" ? args.seen : undefined });
+    return { content: [{ type: "text", text: say(lang, "call.update") }], structuredContent: { update: updateView("codex", versionOf()) } };
+  }
   if (name === "cam_panel" && langOf(args.lang) && !fromModel(meta)) rememberLang(lang, args.langSource === "codex" ? "codex" : "system");
   const own = threadOf(args, meta);
   if (!own) throw new Error(say(lang, "call.noThread"));
   // A panel switched to a new thread (v0.1-10) keeps sending its own thread id; its calls are about the new one.
   const threadId = resolveThread(own, sessionsDir);
   const options = { sessionsDir };
-  const panel = (state: PanelState, extra: Json = {}) => ({ ...state, engineRunning, setup: setupState(), ...(threadId === own ? {} : { switchedFrom: own }), ...extra });
+  const panel = (state: PanelState, extra: Json = {}) => ({ ...state, engineRunning, setup: setupState(), update: updateView("codex", versionOf()), ...(threadId === own ? {} : { switchedFrom: own }), ...extra });
   if (name === "cam_panel") {
     const state = loadPanelState(threadId, options);
     // Only the panel page says when it was on screen; Codex's own first call does not, and gets no list.
@@ -269,13 +295,26 @@ export function callClaudeTool(name: string, args: Json, options: ClaudePanelOpt
     const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
     const selectionDir = claudeSelectionDirOf(options.dataRoot ?? dataDir());
     const index = loadClaudeIndex(sessionId, options.home, stableIdTimes(selectionDir));
-    if (!claudeSelection(sessionId, selectionDir, claudeStartedAt(index), index.previous).auto) {
+    // v0.13: a PDF's pages come back whatever the mode: the engine puts them in place of this call's marker, in its
+    // own turn (anthropic-messages/documents.ts); images only where automatic selection is on.
+    const pdfId = (asked: string) => { const match = /^PDF-?(\d+)$/i.exec(asked.trim()); return match ? `PDF-${match[1].padStart(3, "0")}` : null; };
+    const pages = typeof args.pages === "number" ? String(args.pages) : Array.isArray(args.pages) ? args.pages.join(",") : typeof args.pages === "string" && args.pages.trim() ? args.pages.trim() : null;
+    const auto = claudeSelection(sessionId, selectionDir, claudeStartedAt(index), index.previous).auto;
+    if (!auto && ids.length && ids.every((asked) => !pdfId(asked))) {
       log({ event: "fetch", host: "claude", sessionId, ids, refused: "automatic selection is off" });
       return { content: [{ type: "text", text: words.off }], isError: true };
     }
     const content: Json[] = [];
     const found: string[] = [];
     for (const asked of ids) {
+      const pdf = pdfId(asked) ? index.pdfs.find((candidate) => candidate.id === pdfId(asked)) : undefined;
+      if (pdfId(asked)) {
+        if (!pdf) { content.push({ type: "text", text: words.missing(asked) }); continue; }
+        content.push({ type: "text", text: pdfMarker({ id: pdf.id, name: pdf.name, turn: pdf.turn, pages: null, textPages: null }, pages, lang) });
+        found.push(pdf.id);
+        continue;
+      }
+      if (!auto) { content.push({ type: "text", text: words.off }); continue; }
       const id = asked.trim().toUpperCase();
       const image = index.images.find((candidate) => candidate.id === id);
       if (!image) { content.push({ type: "text", text: words.missing(asked) }); continue; }
@@ -285,7 +324,7 @@ export function callClaudeTool(name: string, args: Json, options: ClaudePanelOpt
       content.push({ type: "text", text: fetchedLabel(image, lang) }, { type: "image", data: parts[2], mimeType: parts[1] });
       found.push(id);
     }
-    log({ event: "fetch", host: "claude", sessionId, ids, found });
+    log({ event: "fetch", host: "claude", sessionId, ids, found, ...(pages ? { pages } : {}) });
     return { content, isError: ids.length > 0 && !found.length };
   }
   throw new Error(`unknown tool ${name}`);
@@ -326,11 +365,21 @@ function main(): void {
   ensureStableIds(claudeSelectionDirOf());
   const send = (message: Json) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   let engineState = "";
+  // v0.12: one check at a time: starting an engine can take longer than the 3 s between checks (a WMI start takes a
+  // second, engine.ts), and a second check meanwhile would start another.
+  let supervising = false;
   const supervise = async () => {
-    if (process.env.CAM_NO_ENGINE === "1") return;
+    if (process.env.CAM_NO_ENGINE === "1" || supervising) return;
+    supervising = true;
+    try { await superviseOnce(); } finally { supervising = false; }
+  };
+  const superviseOnce = async () => {
     const result = await ensureEngine({ port: enginePort, client: HOST });
     const replaced = result.replaced ? { replacedPid: result.replaced.pid, replacedBuild: result.replaced.build ?? null } : {};
-    if (result.state !== "running" || engineState !== "running") log({ event: "engine", host: HOST, state: result.state, enginePid: result.health?.pid ?? null, build: result.health?.build ?? null, ...replaced });
+    // v0.12: a busy engine (engine.ts, probeEngine) is noted once, not every round while it lasts.
+    const unchanged = (result.state === "running" || result.state === "busy") && result.state === engineState;
+    // v0.12: with how it was started, when this service started it (engine.ts, StartNote).
+    if (!unchanged) log({ event: "engine", host: HOST, state: result.state, enginePid: result.health?.pid ?? null, build: result.health?.build ?? null, ...replaced, ...(result.start ? { start: result.start } : {}) });
     engineState = result.state;
     engineRunning = result.state !== "failed";
   };
@@ -341,6 +390,14 @@ function main(): void {
   setTimeout(supervise, Math.floor(Math.random() * 400));
   // Short enough that a crashed engine is back within Codex's own retry window.
   setInterval(supervise, 3000);
+  // v0.13: the plugin keeps itself up to date where it was installed from GitHub (core/update.ts); each check that ran
+  // leaves a line.
+  if (HOST === "codex" || HOST === "claude") {
+    startUpdater(HOST, () => (HOST === "codex" ? codexPlatform() : claudePlatform()), {
+      running: versionOf(),
+      onResult: (outcome) => { if (outcome.ran) log({ event: "update", host: HOST, ...outcome.status }); },
+    });
+  }
   process.stdin.on("close", () => { log({ event: "stdin-closed" }); process.exit(0); });
   createInterface({ input: process.stdin, crlfDelay: Infinity }).on("line", (line) => {
     if (!line.trim()) return;
@@ -350,7 +407,7 @@ function main(): void {
     if (method === "initialize") {
       send({ id, result: { protocolVersion: params.protocolVersion ?? "2025-06-18", capabilities: { tools: {}, resources: {} }, serverInfo: serverInfo(currentLang()) } });
     } else if (method === "tools/list") {
-      send({ id, result: { tools: HOST === "codex" ? toolsFor(currentLang()) : claudeToolsFor(currentLang()) } });
+      send({ id, result: { tools: HOST === "codex" ? toolsFor(currentLang()) : HOST === "claude" ? claudeToolsFor(currentLang()) : platformToolsFor(currentLang()) } });
     } else if (method === "resources/list") {
       send({ id, result: { resources: [{ uri: PANEL_URI, name: say(currentLang(), "resource.name"), mimeType: PANEL_MIME }] } });
     } else if (method === "resources/templates/list") {

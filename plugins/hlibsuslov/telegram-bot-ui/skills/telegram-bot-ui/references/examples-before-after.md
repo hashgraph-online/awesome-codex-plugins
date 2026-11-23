@@ -1,8 +1,9 @@
 # Worked scenarios (before → after)
 
-Sixteen situations that cover most real UI requests: 1-7 are single-screen fixes, 8-16 come
+Twenty situations that cover most real UI requests: 1-7 are single-screen fixes, 8-16 come
 from the product playbooks (recipes 20-29 and 60-69, `use-case-playbooks.md`, verified 2026-11-15
-against Bot API 10.4). Code is illustrative — adapt
+against Bot API 10.4), 17-20 are one premium pass on a single bot (2026-11-22, Bot API 10.5).
+Code is illustrative — adapt
 to the project's actual SDK and style; never paste a framework the project
 doesn't use.
 
@@ -456,3 +457,100 @@ counter is a disabled button. The query itself is stored on the server and only 
 
 **Report line:** *"Empty results explain the cause and offer one-tap filter removal; pagination
 shows position; callback data carries ids, not queries."*
+
+---
+
+## 17-20. Premium pass on one bot (same data before and after)
+
+**Request:** "Make our bot's menu look more premium." One coffee-shop bot, regular HTML, en/uk.
+Full payloads, the locale catalog and the stale-tap case: `examples/premium-pass/before-after.json`
+(checked by `tests/test_premium_pass.py`: every *before* trips `validate_keyboard.py`, every
+*after* has no errors and no warnings, no `callback_data` lost or invented, `audit_copy.py`
+clean in both locales). Process: `visual-language.md` §7. Evidence: static checks and offline
+payloads; not sent to Telegram, not seen on real clients.
+
+### 17. Main menu
+
+```
+Before                                   After
+👋 Welcome to BrewBot!!! 🎉☕            ☕ BrewBot                       (bold)
+Choose an option below 👇                Coffee to go from 3 shops in Kyiv.
+                                         Order #1042: being prepared, ready at about 12:40
+                                         Bonus card: 7 of 10 cups
+[☕ Order]🔵 [📦 Orders]🔵               [☕ New order]🔵
+[⭐][⚙️ Settings]🟢[❓][📞 Support][🔄 Reset]🔴   [📦 My orders] [⭐ Bonus card]
+[❌ Close]🔴                              [⚙️ Settings] [💬 Support]
+                                         [❓ Help] [Close]
+```
+
+**Gap closed:** routing (the request used to reach only the icon recipes) and hierarchy: one
+`primary`, words on every button, Reset moved behind Settings' confirmation (`menu:reset` stays
+routed for old messages), Close neutral without ❌. The first lines now answer "what is this and
+what's my status". **Narrow screen (360 pt):** at most two buttons per row; the longest label is
+"📦 Мої замовлення" (16 chars) in a half row, the limit of a phone; if a longer locale appears,
+that row splits. **Without custom emoji:** exactly this screen. With an eligible bot the leading
+symbols move to `icon_custom_emoji_id` from one resolved pack and leave the labels; inside the
+chat every reader sees them, while previews, screen readers and non-Premium forwards show the
+Unicode alternatives, which are the same symbols as here.
+
+### 18. Multi-step dialog
+
+```
+Before                                   After
+Enter quantity                           New order · Step 2 of 3          (bold)
+                                         Flat white, 350 ml
+                                         How many cups?
+[1][2][3][4][5][6]                       [1] [✓ 2] [3]
+[⬅️]                                     [4] [5] [6]
+[❌ Cancel]🔴                             [Next: pickup time]🔵
+[Submit]🟢                               [← Back] [Cancel]
+```
+
+**Gap closed:** the step and the earlier answer are visible; the main action names the next step
+and sits above navigation; Cancel (abandon the dialog) is neutral; quantities in rows of three.
+Same seven `callback_data` values. **Narrow screen:** six single digits in one row fit, but three
+per row keep tap targets wide. **Without custom emoji:** no icons used; nothing changes.
+
+### 19. Error, empty state and a stale button
+
+```
+Before                                   After (error)
+Error 500: orders_service timeout        My orders                        (bold)
+[OK]                                     ⚠️ Couldn't load your orders: the order service didn't answer.
+                                         Nothing is lost, order #1042 is still being prepared.
+                                         Try again in a minute.
+                                         [Try again]🔵   (= menu:orders, the route that opened the list)
+                                         [← Menu]
+
+No orders.                               My orders / No orders yet. Orders and receipts appear here
+[OK]                                     after your first one.  [☕ New order]🔵 [← Menu]
+
+(old button after a restart: spinner,    toast "This menu is out of date. Your order and bonus card
+ nothing happens)                        are saved." + the current menu
+```
+
+**Gap closed:** error = what failed + what is safe + what to do; empty = what will appear + the
+action that fills it; stale = out of date + what is saved + one fresh entry. No internals, no
+bare "OK". **Narrow screen:** one button per row. **Without custom emoji:** ⚠️ is Unicode and
+reserved for "needs attention".
+
+### 20. Structured notification
+
+```
+Before                                                   After
+🔔🔔 UPDATE!!! Your order status changed to              ☕ Order #1042 is ready, pick it up by 13:10   (bold)
+READY_FOR_PICKUP. Order id: 1042. Shop: Khreshchatyk     Khreshchatyk St 22, counter 2
+22. Code: 7731. Thanks for using BrewBot!!! ☕☕☕          Pickup code: 7731                (tap to copy)
+[✅ OK]                                                  [I've picked it up]
+                                                         → later edited: "Order #1042 / Picked up at 12:58."
+```
+
+**Gap closed:** the preview line (≤ 80 chars) says the event and the needed action; one fact
+per line; the code is `<code>`; it sounds because someone must act; once handled, the same
+message is edited into its outcome and loses its button. Same `n:picked:1042`.
+**Narrow screen:** the first line wraps once; the preview shows it whole. **Without custom
+emoji:** ☕ stays Unicode; the notification banner always shows Unicode anyway.
+
+**Report line:** *"Premium pass on 6 screens: copy and hierarchy first, one primary, navigation
+last and neutral, states defined; callback_data, locales and audience unchanged; custom emoji
+optional and off-safe. Static checks only."*

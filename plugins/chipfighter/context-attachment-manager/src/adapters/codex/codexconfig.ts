@@ -9,7 +9,7 @@
 
 import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 // v0.1-14: a conflict with the user's settings carries a message key (messages.ts), so the panel and the command line
 // can say it in the user's language; the message itself stays English for logs.
@@ -345,6 +345,14 @@ export function persistedEnv(name: string): string | null {
     } catch { /* not set at this level */ }
   }
   return null;
+}
+
+export function sqliteHome(home: string, config: string): string {
+  const raw = topLevelValue(parts(config).body.split(/\r?\n/), "sqlite_home");
+  if (raw === null) return process.env.CODEX_SQLITE_HOME?.trim() || home;
+  const configured = stringValue(raw);
+  if (!configured) throw new Error("invalid sqlite_home in Codex config");
+  return resolve(home, configured);
 }
 
 export function codexHome(): string {

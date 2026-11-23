@@ -2,24 +2,6 @@
 
 # looot plugin
 
-> **This repository is archived. The looot plugin now lives in [loootai/looot-skills](https://github.com/loootai/looot-skills).**
->
-> Claude Code:
->
-> ```text
-> /plugin marketplace add loootai/looot-skills
-> /plugin install looot@looot-skills
-> ```
->
-> Codex:
->
-> ```bash
-> codex plugin marketplace add loootai/looot-skills
-> codex plugin add looot@looot-skills
-> ```
->
-> The new plugin has the looot MCP server, the core skill and three commands (`/looot:setup`, `/looot:find`, `/looot:balance`). If you installed `looot@looot` from this repository, uninstall it and install `looot@looot-skills`. The Cursor files below stay here for reference.
-
 [![License](https://img.shields.io/github/license/loootai/looot-plugin)](LICENSE) [![Docs](https://img.shields.io/badge/docs-docs.looot.ai-12A06A)](https://docs.looot.ai)
 
 The looot plugin for Claude Code, Codex and Cursor: the looot MCP server (https://api.looot.ai/mcp,

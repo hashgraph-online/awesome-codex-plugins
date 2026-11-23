@@ -55,6 +55,15 @@ def _blender(a):
     return blender.render(P(a.src), P(a.out_dir), mp4=P(a.mp4) if a.mp4 else None, **cfg)
 
 
+def _recipe(a):
+    from . import recipes
+    if a.action == "list":
+        return {"recipes": recipes.available()}
+    if not a.name:
+        raise ValueError("recipe run needs a name: b2m3d recipe run loop -- --loop-frames 73")
+    return recipes.run_recipe(a.name, a.args)
+
+
 def _doctor(_a):
     from . import doctor
     return doctor.run_all()
@@ -107,13 +116,19 @@ def _add_render(sub) -> None:
     s.add_argument("--save-blend"); s.add_argument("--config", help="extra JSON config")
     s.set_defaults(fn=_blender)
 
+    s = sub.add_parser("recipe", help="Blender motion recipes (loop, retime, cloth, rigid, fold, walk): list, or run one headless")
+    s.add_argument("action", choices=["list", "run"])
+    s.add_argument("name", nargs="?")
+    s.add_argument("args", nargs=argparse.REMAINDER, help="options for the recipe, after --")
+    s.set_defaults(fn=_recipe)
+
     s = sub.add_parser("doctor", help="report each component as ok or missing, with install commands")
     s.set_defaults(fn=_doctor)
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="b2m3d", description="Optional 3D pack for brief2mp4: model, "
-                                 "material, optimize, physics, HyperFrames shot, Blender render, doctor.")
+                                 "material, optimize, physics, HyperFrames shot, Blender render, Blender motion recipes, doctor.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     _add_model(sub)
     _add_assets(sub)

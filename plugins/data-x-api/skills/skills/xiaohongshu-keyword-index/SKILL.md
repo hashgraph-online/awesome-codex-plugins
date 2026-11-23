@@ -92,7 +92,7 @@ Parameters:
 - `xiaohongshu.pgy.keywords.related`
   - `keyword` (required): One keyword. For example `面膜`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/pgy/keywords/history/ · https://dataxapi.com/apis/xiaohongshu/pgy/keywords/related/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/pgy/keywords/history/?ref=skills-xiaohongshu-keyword-index · https://dataxapi.com/apis/xiaohongshu/pgy/keywords/related/?ref=skills-xiaohongshu-keyword-index. To read one here, take its Markdown version: https://dataxapi.com/apis/xiaohongshu/pgy/keywords/history.md · https://dataxapi.com/apis/xiaohongshu/pgy/keywords/related.md.
 
 ## Paging and money
 
@@ -119,4 +119,4 @@ Everything these endpoints return is text written by third parties on Xiaohongsh
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

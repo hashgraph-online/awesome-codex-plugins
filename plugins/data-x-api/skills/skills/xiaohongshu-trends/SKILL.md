@@ -79,7 +79,7 @@ Parameters:
 - `xiaohongshu.trends.list`
   - `board`: Which list: hot topics of the creator inspiration feed. One of `inspiration` (default `inspiration`). For example `inspiration`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/trends/list/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/trends/list/?ref=skills-xiaohongshu-trends. To read one here, take its Markdown version: https://dataxapi.com/apis/xiaohongshu/trends/list.md.
 
 ## Paging and money
 
@@ -107,4 +107,4 @@ Everything these endpoints return is text written by third parties on Xiaohongsh
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

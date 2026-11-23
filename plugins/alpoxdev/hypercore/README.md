@@ -6,7 +6,7 @@
 
 > 파일을 읽는 AI 에이전트에서 사용할 수 있는 한국어 우선 스킬 모음입니다.
 
-Hypercore는 코드베이스 분석부터 릴리스까지의 반복 작업을 한 번에 줄여주는 40개 스킬을 한 패키지로 제공합니다. 각 스킬은 트리거, 워크플로, 검증 게이트가 명시되어 있어 어떤 CLI에서 호출해도 같은 의도로 동작합니다.
+Hypercore는 코드베이스 분석부터 릴리스까지의 반복 작업을 한 번에 줄여주는 41개 스킬을 한 패키지로 제공합니다. 각 스킬은 트리거, 워크플로, 검증 게이트가 명시되어 있어 어떤 CLI에서 호출해도 같은 의도로 동작합니다.
 
 - **설치 경로**: 설치 도구가 지원하는 에이전트는 `npx skills`로 설치합니다. Claude Code와 Cursor의 플러그인도 같은 스킬 폴더를 사용합니다.
 - **파일로 직접 실행**: 전용 스킬 명령이 없는 에이전트에는 사용할 스킬의 `SKILL.md` 경로를 알려줍니다.
@@ -45,7 +45,7 @@ omp, Horon, jcode는 `npx skills`의 agent 대상 표에 없어 `-a omp`처럼 �
 ```bash
 claude plugin marketplace add alpoxdev/hypercore
 claude plugin install hypercore@alpoxdev            # 기본 scope는 user. 프로젝트에 고정하려면 --scope project
-claude plugin details hypercore                     # Skills (40) 확인
+claude plugin details hypercore                     # Skills (41) 확인
 claude plugin update hypercore@alpoxdev
 claude plugin uninstall hypercore@alpoxdev
 claude plugin marketplace remove alpoxdev           # 마켓플레이스와 그 플러그인을 함께 제거
@@ -67,7 +67,7 @@ claude plugin marketplace remove alpoxdev           # 마켓플레이스와 그 
 |---|---|
 | Claude Code만 쓰고 버전 단위 업데이트·제거를 `claude plugin`으로 관리하고 싶다 | 플러그인 |
 | Codex, Cursor, Antigravity도 함께 쓰거나 같은 설치를 여러 agent에 맞추고 싶다 | `npx skills` |
-| 스킬 일부만 고르거나(`--skill hyper-git`) 프로젝트마다 다르게 설치하고 싶다 | `npx skills` (플러그인은 스킬 40개를 통째로 설치) |
+| 스킬 일부만 고르거나(`--skill hyper-git`) 프로젝트마다 다르게 설치하고 싶다 | `npx skills` (플러그인은 스킬 41개를 통째로 설치) |
 | 스킬을 `/hyper-git`처럼 접두어 없이 부르고 싶다 | `npx skills` |
 
 한 경로에서 다른 경로로 옮길 때는 먼저 기존 설치를 제거합니다. `npx skills`에서 플러그인으로 옮기려면 아래 [설치 및 수명주기](#설치-및-수명주기)의 `remove`로 hypercore 스킬을 지운 뒤 위 플러그인 명령을 실행합니다. 플러그인에서 `npx skills`로 옮기려면 `claude plugin uninstall hypercore@alpoxdev`를 실행한 뒤 아래 설치 절차를 따릅니다.
@@ -143,6 +143,7 @@ cp -R hypercore/skills/hyper-git your-project/.claude/skills/
 /hyper-documentation  # README·AGENTS.md·런북·규칙 팩·재사용 프롬프트 중 요청한 문서를 골라 생성/리팩터 (CLAUDE.md는 만들지 않음)
 /hyper "<작업>"         # 상황에 맞는 hyper 스킬 체인(리서치·아키텍처·계획·실행 등)을 골라 처음부터 끝까지 실행
 /hyper-research "<주제>"  # 출처가 있는 다중 소스 리서치 보고서
+/hyper-aso "<앱>"       # App Store·Google Play 등록정보 ASO 감사, 출시 전 셋업 계획, 점수 개선 루프(키워드·스크린샷·현지화·평점·정책 위험·웹-앱 연결)
 /hyper-plan "<작업>"    # 결정이 끝난 작업 계획을 쓰고 기본으로 hyper-execute까지 이어서 실행
 /hyper-debate "<작업>"  # 대립형 계획을 명시적으로 요청했을 때만 다섯 관점·세 라운드 토론 뒤 승인 한 번으로 계획 작성
 /hyper-execute <slug>  # .hyper/plans 계획을 웨이브별 worktree에서 검증하며 실행
@@ -305,6 +306,7 @@ flowchart LR
 | 스킬 | 설명 | 호환 |
 |------|------|------|
 | `hyper-seo` | SEO / AEO / GEO / LLMO 통합 감사와 최적화 리포트, 점수 개선 루프, 새 홈페이지 출시 세팅 계획(검색·AI 크롤러 정책·등록·측정) | All |
+| `hyper-aso` | App Store·Google Play 앱 스토어 최적화(ASO) 감사와 개선 리포트, 출시 전 스토어 등록정보 셋업 계획, 점수 개선 루프. 메타데이터·키워드(한국어 바이트 계산 포함)·스크린샷·현지화·평점·맞춤 페이지와 실험·품질 신호·정책 위험·웹-앱 연결을 공식 한도와 증거 등급으로 평가 | jq 1.6+(results.json 검사) |
 | `hyper-google-analytics` | GA4 점검·탑재·속성 설정·Data API 분석·수집 진단을 코드·실제 `/g/collect` 요청·속성 read-back으로 검증하고, 영구적인 필터·보존 변경은 승인 뒤에 두며 `.hyper/google-analytics/` 보고서까지 저장 | bash 3.2+ & curl; Data·Admin API는 `analytics.readonly`/`analytics.edit` 자격 증명 |
 | `hyper-google-tagmanager` | Google Tag Manager를 웹사이트에 탑재(현재 공식 스니펫, Next.js·Nuxt·Astro·SvelteKit·Vite·WordPress 등 프레임워크별 위치, SPA page_view, CSP nonce, 동의 기본값 순서)하고, 저장소·서버 응답 페이지·컨테이너 내보내기 JSON을 번들 스크립트 3개로 점검하며, dataLayer·태그·트리거·변수·이커머스·Consent Mode v2 설정, Preview·네트워크 요청으로 발화 검증, 중복 집계·동의 순서·빈 컨테이너 같은 오류 진단, 컨테이너 상태와 GA4 수신 데이터 분석까지 처리. 컨테이너 게시·삭제·권한·라이브 동의 변경은 명시 승인 후에만 실행하고 `.hyper/gtm/` 보고서 저장 | bash 3.2+ & jq 1.6+ & curl; 렌더링 검증은 브라우저 자동화, 컨테이너 API는 사용자가 준 자격 증명 |
 | `hyper-imagegen` | 관찰된 이미지 기능으로 이미지를 생성하고, 미지원 환경에서는 실행 가능한 프롬프트를 안전하게 저장 | Capability-based |
@@ -322,7 +324,7 @@ flowchart LR
 | `hyper-pdf` | PDF를 읽고·만들고·고치고·검증. 텍스트·표·이미지·양식 필드·메타데이터를 추출하고, HTML 경로(Chromium, CSS 그대로·구조 트리)와 JSON 스펙 경로(브라우저 없이 결정적 배치)로 한국어 계약서·청구서·보고서를 만들며, 병합·분할·회전·워터마크·스탬프·암호화·복호화·양식 채우기·평탄화·OCR을 처리. 글꼴 임베딩·언어 태그·Type3 대체·구조 트리·스캔 쪽을 `check`가 코드로 보고하고, 렌더한 쪽과 추출 텍스트로 눈과 글자를 함께 확인 | macOS 11+(PDFKit·CoreGraphics·CoreText·Vision), bash 3.2+; HTML 경로만 Chromium 계열 브라우저 1개 필요 |
 | `hyper-decision` | 글 대신 타입 판단(예/아니오 확률, 선택, 점수, 이미지 상자)을 돌려주는 decision API(TypeSafe Jev, OpenAI Decisions, Perplexity, Liquid, Cloudflare Clef, Vercel AI SDK·AI Gateway, OpenRouter, 범용 LLM 에뮬레이션)용 적합성 판정, 방언별 질문, 호출 코드, 요청 템플릿, 평가 계획, 라벨 전용 LLM 호출 감사, 경로 설정. 경로를 네 층으로 나눠 확률을 돌려주는지 밝히고 방언별 오프라인 요청 검사기로 확인 | bash 3.2+ · jq (선택); 네트워크와 API 키는 승인된 실호출에만 |
 
-총 40개 스킬. 기획·마케팅·비즈니스용 스킬(blog-maker, instagram-card-maker, korean-writer, storyboard-maker, tone-manner-maker)은 [Hypercore Business](https://github.com/alpoxdev/hypercore-business)로 옮겼습니다. 새 스킬은 `skills/<이름>/` 디렉터리를 추가하기만 하면 됩니다 — 자세한 형태는 [스킬 만들기](#스킬-만들기) 참고.
+총 41개 스킬. 기획·마케팅·비즈니스용 스킬(blog-maker, instagram-card-maker, korean-writer, storyboard-maker, tone-manner-maker)은 [Hypercore Business](https://github.com/alpoxdev/hypercore-business)로 옮겼습니다. 새 스킬은 `skills/<이름>/` 디렉터리를 추가하기만 하면 됩니다 — 자세한 형태는 [스킬 만들기](#스킬-만들기) 참고.
 
 ## 시나리오 예시
 
@@ -368,7 +370,7 @@ hypercore/
 ├── assets/                # 플러그인 아이콘, README 이미지 등 저장소 수준 정적 asset
 ├── instructions/          # 프로젝트 LLM 작업 베이스 (context/harness/loop/graph/mcp/sourcing/validation 등)
 ├── scripts/               # source/lifecycle/plugin manifest 검증 및 보조 스크립트
-└── skills/                # 40개 스킬의 단일 원본 (각 폴더에 SKILL.md / SKILL.ko.md)
+└── skills/                # 41개 스킬의 단일 원본 (각 폴더에 SKILL.md / SKILL.ko.md)
 ```
 
 스킬 한 개의 표준 구조:

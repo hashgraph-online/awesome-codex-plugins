@@ -145,6 +145,25 @@ kind)` and `<adapter>__dex_freshness_now()`, the expressions `maintain verify`
 sends; a project overrides one warehouse with its own
 `<adapter>__dex_freshness(model, column_name, max_lag_seconds)` or either piece.
 
+## `dex_continuity`
+
+The generic test a time column's declared `continuity` renders
+([declarations](declarations.md#dex_continuity-gaps-in-a-time-column)), where
+`declarations.render_tests` turns it on. A declaration plan adds it for you;
+this command scaffolds or diffs it on its own. It takes `grain` (`second`,
+`minute`, `hour`, `day`, `week`, `month`, `quarter`, `year`; ISO weeks) and
+`by` (key columns, default none) and fails with the number of gaps: runs of
+empty buckets between two buckets holding rows, per key. An edge is never a gap,
+and it returns the count and never a date or a key. Each value is bucketed in
+UTC from its whole epoch seconds, read by the same expressions `dex_freshness`
+uses, with no date spine. The SQL goes through dbt's dispatch,
+`default__dex_continuity` holds on every connector, and three pieces are
+dispatched on their own: `<adapter>__dex_continuity_epoch(expression, kind)`,
+`<adapter>__dex_continuity_floordiv(numerator, denominator)` and
+`<adapter>__dex_continuity_lag(expression, partition_by, order_by)` (ClickHouse
+reads `lagInFrame`). A project overrides one warehouse with its own
+`<adapter>__dex_continuity(model, column_name, grain, by)` or any piece.
+
 ## `unpivot_json_object`
 
 Turns a JSON object column with dynamic keys (the NoSQL-sourced shape: a

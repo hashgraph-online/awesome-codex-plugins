@@ -157,7 +157,8 @@ drags/holds, keep the leading 20 px free (back gesture). Palette via `--tg-theme
 `prefers-color-scheme` follows the **chat** theme; test light/dark and outgoing bubbles. RTL:
 `dir`, mirrored safe-area corner. The time badge sits over the bottom corner without a caption
 below: pad with `env(safe-area-inset-bottom)` / `--tg-content-safe-area-corner-*`. 2000 nodes,
-8 MB, 300 ms CPU/s, 16 "heavy" elements (blur/filter/opacity<1). A widget past a limit, or one
+8 MB, 300 ms CPU/s, 16 "heavy" elements (blur/filter/opacity<1); field: one JS task over
+~500 ms, a widget that redraws non-stop, and canvas on desktop clients also misbehave. A widget past a limit, or one
 that crashes, is stopped with a "Widget stopped" badge and rebuilt when shown again; **after two
 crashes in a row it stays stopped until the app restarts** (Guide). Storage: `localStorage` 4 KB per
 message per device, never synced. Links only on a tap (`openLink` https ≤256 chars,
@@ -167,7 +168,10 @@ message per device, never synced. Links only on a tap (`openLink` https ≤256 c
 
 Draw the first state synchronously from state; show "Sending…" and every error code; mute with
 color, not opacity; `em` sizes, system fonts; render forwards as snapshots ("as of 19:40");
-treat code and `public_data` as public; respect `prefers-reduced-motion`. Heuristic: keep under
+treat code and `public_data` as public; respect `prefers-reduced-motion`. Send numbers with
+fractions as ready strings (field: clients showed `$NaN` or dropped the fraction). Games and
+live apps on one shared widget (versioning by HTML hash, lost answers, move numbers, clock lag):
+[widget-patterns.md §16](widget-patterns.md#16-games-and-live-apps-on-one-shared-widget-field-report). Heuristic: keep under
 ~560 px tall at 320 px width.
 
 ## Testing

@@ -204,3 +204,46 @@ ordinary media caption, so it may carry custom emoji entities (API: `caption_ent
 200/320/430/600 px, large text, no caption, forward, preview; a **mock**) → a real Telegram
 client in both schemes, largest text, a narrow phone, desktop with a mouse, RTL, an old phone
 (Guide "Testing in Telegram"). Report which of these were actually done.
+
+## 14. Design profiles (`design.json`)
+
+A person who wants their own look (brand colours, a framed card, pill buttons) gets it from a
+**design profile**: a small JSON compiled to CSS at build time by `scripts/widget_design.py`
+(`build_widget.py SRC --design design.json`, `preview_widget.py --gallery --design <preset>`).
+Markup, script and texts stay untouched, so one profile restyles any kit widget. The Studio's
+widget workbench edits it in its Design tab (`widgets/<id>/design.json`).
+
+| Group | Options | Compiles to |
+|---|---|---|
+| `colors` | `mode`: `theme` (own per light/dark) or `shared` (one for both); slots `bg`, `bg2` (gradient), `text`, `hint`, `button`, `buttonText`, `surface`, `border`, `separator`, `accent`, `success`, `warning`, `danger` | kit tokens `--k-*` on `.k`; `light-dark(L, D)` in theme mode; an unset side is Telegram's variable |
+| `block` | `radius` 0–32, `border` 0–4, `padding` 4–32, `inset` 0–16 (gap to the bubble), `align` | `.k` (the time-band padding is kept) |
+| `button` | `style` native/filled/outline/soft/text, `radius`, `height` low/normal/high, `width` auto/half/full, `align` | the client's `--tg-button-*` variables on `.k`; ring/width rules on primary buttons only |
+| `chips` | `radius`, `selected` filled/outline | `.ch`, `.ch.on` |
+| `title`, `body`, `meta` | `size`, `align` | `.tt`, `.k` font size, `.mt` |
+| `surface`, `counter`, `bar`, `image` | radii, counter filled/outline, bar height, image backdrop | `--k-r`, `.qt .ch`, `.br`, `.im` |
+| `motion` | none, calm (entrance), lively (+ a glint on the primary button) | transform / background-position keyframes |
+
+Rules the compiler keeps (Guide unless marked):
+
+* Colours redefine tokens on `.k`, never on `html`/`body`. A block background with no `inset`
+  paints the whole bubble; the checker warns (Guide: the bubble's own colour shows through).
+* Buttons are restyled through `--tg-button-bg/-text/-radius/-height`, so the client's pressed
+  and disabled states stay. **Primary buttons** are a plain `<button>` (`K.h` gives `class=""`),
+  `.wd` or `.gr`; a button the widget draws itself (stars, rows, days) carries its own class and
+  the profile leaves it alone (Heuristic: the selector convention of this kit). Sizes in widget
+  CSS use `var(--tg-button-height, 36px)`, not a fixed `36px`.
+* Profile CSS sits right after the kit tokens with `:where()` selectors: a widget's own rule
+  wins at equal specificity (Heuristic).
+* Rules for parts a widget does not have, and tokens it never reads, are not emitted: unused
+  options cost no bytes. Measured: presets add 100–330 compressed bytes; every preset fits every
+  gallery widget in every language (`tests/test_widget_design.py`). With a profile the 3800
+  working budget is a warning; 4096 still fails the build.
+* Motion animates `transform` and `background-position` only: no `opacity` or filters (the
+  16 heavy elements), and the kit's `prefers-reduced-motion` rule stops it.
+* `widget_design.py check` reports WCAG contrast per theme for the pairs people read (text 4.5:1,
+  secondary text and labels 3:1), with Telegram's default palettes standing in for unset slots;
+  pairs made only of Telegram's colours are not reported. The lint accepts exactly the profile's
+  colours as raw literals.
+
+Presets: `telegram` (empty: native), `card`, `soft`, `contrast`, `lines`, `showcase`
+(`py -3 scripts/widget_design.py presets`).

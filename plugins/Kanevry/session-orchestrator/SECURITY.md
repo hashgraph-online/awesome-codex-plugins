@@ -89,6 +89,10 @@ Security concerns are most likely to involve:
 
 We follow [responsible disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure). Fixes are committed with a security advisory once a patch is available.
 
+### Fixed in 5.21.2
+
+Versions before 5.21.2 are affected by an issue in the post-edit hooks (#2226). Update to 5.21.2 or later. The GitHub security advisory for this fix carries the details.
+
 ## Enforcement Architecture
 
 Enforcement is a set of `PreToolUse` / `PreToolUse`-adjacent hooks registered via

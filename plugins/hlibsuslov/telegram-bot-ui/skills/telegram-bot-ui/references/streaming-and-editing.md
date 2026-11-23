@@ -56,6 +56,11 @@ Flush a draft when (new text ≥ ~40 chars **or** a sentence ended **or** a real
 bypasses the interval — coalesce. A 429 on a draft drops that draft (the next one carries newer
 text) and pushes the next flush past `retry_after`. Numbers are heuristics, not API limits.
 
+Never stream half-open markup. Model output arrives as Markdown with unclosed `**`, a table
+missing rows or an open list; a draft built from it renders broken or raw. Drafts carry plain
+paragraphs (`tgkit.generation.text_blocks`) or only the blocks that are already complete; the
+model's formatting (headings, tables, emphasis) is converted once, for the final message.
+
 Thinking/progress: `<tg-thinking>` / `{"type":"thinking"}` only in rich drafts, filled from an
 **allowlist of real stage labels** (searching, reading, writing) — never the model's reasoning,
 prompts, tool arguments or internal ids.

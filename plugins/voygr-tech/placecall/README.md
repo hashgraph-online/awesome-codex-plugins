@@ -9,7 +9,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: gh-repo" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
-  -H "X-Client-Version: placecall-skill/6.6.3" \
+  -H "X-Client-Version: placecall-skill/6.7.0" \
   -d '{"target_phone":"+1XXXXXXXXXX","brief":"Call this restaurant and ask what time the kitchen closes tonight.","language":"en"}'
 ```
 
@@ -98,10 +98,11 @@ sign in with `/mcp`.
 ### Claude Code, without the plugin
 ```sh
 git clone https://github.com/voygr-tech/placecall && cd placecall
-./install.sh     # copies skills/placecall/SKILL.md -> ~/.claude/skills/placecall/
+./install.sh     # copies skills/placecall/ -> ~/.claude/skills/placecall/
 ```
-`install.sh` only copies `skills/placecall/SKILL.md` into your skills dir (no
-network, no other side effects); copying by hand works too. Skills load at
+`install.sh` only copies `skills/placecall/` (`SKILL.md` and its `references/`
+folder) into your skills dir (no network, no other side effects); copying the
+folder by hand works too. Skills load at
 startup, so start a new Claude Code session. A copy never updates itself: to
 update it, run `install.sh` again from a fresh `git pull`.
 
@@ -320,8 +321,9 @@ Cursor's agent runs in. To send a key to the MCP server instead of signing in,
 see [Any MCP client](#any-mcp-client-cursor-windsurf-mcp-inspector-).
 
 ### Any agent / plain shell
-Nothing to install: the API is plain HTTP. `skills/placecall/SKILL.md` is the
-full reference, and a model with a shell tool can place calls straight from it.
+Nothing to install: the API is plain HTTP. `skills/placecall/SKILL.md` and the
+files in `skills/placecall/references/` are the full reference, and a model
+with a shell tool can place calls straight from them.
 
 No shell on your side? Assistants with their own computer (e.g. Meta Muse)
 integrate from this repo: paste the repo URL into the chat and ask it to use
@@ -394,7 +396,7 @@ Never commit `~/.codex/placecall.env` or paste the key into chat.
 The MCP tools and their browser sign-in come first. Use the email code only
 when the agent has no browser, or the user needs one of the key-only
 options. The steps live in [the skill's sign-up
-section](./skills/placecall/SKILL.md#sign-up-by-email-code). In short: the
+page](./skills/placecall/references/sign-up.md). In short: the
 agent sends the sign-up request, the user reads a 6-digit code from their
 email, and the agent exchanges it for a key and saves it. `AGENTS.md` carries
 the same steps for Codex.

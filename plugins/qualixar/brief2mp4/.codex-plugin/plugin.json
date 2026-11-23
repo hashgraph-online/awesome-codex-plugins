@@ -1,6 +1,6 @@
 {
   "name": "brief2mp4",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Turn a written brief into a finished, checked MP4 motion graphic: HyperFrames, Three.js, an optional 3D pack (CAD, materials, physics), Blender and ffmpeg. macOS, Windows, Linux.",
   "author": {
     "name": "Varun Pratap Bhardwaj",

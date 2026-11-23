@@ -22,16 +22,17 @@ remove-ai-watermarks visible image.png --keep-metadata -o clean.png
 
 Image mark keys: `gemini`, `doubao`, `jimeng`, `qwen`, `wan`, `kling`, `yuanbao`,
 `dola`, `workbuddy`, `samsung`, `runninghub`, `baidu`, `liblib`, `liblib_pill`, `microsoft`,
-`generic_ai_label`, `openart`, `jimeng_pill`. `dola` and `workbuddy` are new (since CLI 0.45.0). Default
+`generic_ai_label`, `openart`, `genspark`, `jimeng_pill`. `dola` and `workbuddy` are new (since CLI 0.45.0); `genspark` is new (since CLI 0.68.0). Default
 `--mark auto` removes every selected match. `microsoft` is the top-right AI
 badge, separate from the invisible InvisMark watermark on the same vendor's
 images. `jimeng_pill` is a weak detector and needs corroboration. The compact
 `liblib_pill` likewise requires LiblibAI metadata or the bottom-center wordmark
 (since CLI 0.39.0). `generic_ai_label` is a brand-less bare "AI生成" fallback for
 OS/gallery-level AI-edit stamps with no vendor wordmark; synthetic-only
-calibration, weaker evidence than the vendor-tuned marks above. `openart` sits
-in the FRAME CENTER, not a corner, and is UNCALIBRATED (one confirmed real
-case, no captured corpus) -- see `openart_engine.py`'s module docstring.
+calibration, weaker evidence than the vendor-tuned marks above. `openart` and
+`genspark` sit in the FRAME CENTER, not a corner; `openart` is UNCALIBRATED and
+`genspark` carries provisional calibration (see `openart_engine.py` and
+`genspark_engine.py`).
 
 ```bash
 remove-ai-watermarks erase image.png --region 1640,1930,400,100 -o clean.png
@@ -63,7 +64,9 @@ remove-ai-watermarks metadata image.png --check
 remove-ai-watermarks metadata image.png --remove -o clean.png
 ```
 
-Without `-o`, image metadata removal overwrites the source. Supported audio
+Without `-o`, image metadata removal overwrites the source. Animated and static
+`.gif` files are inspected and stripped losslessly across all frames (since CLI
+0.68.0). Supported audio
 containers use these metadata commands too. Exact native Suno/Studio creation
 comments require ffprobe and appear as unsigned `audio_generator` declarations.
 The ffmpeg route drops ordinary container tags and chapters too. Removing
@@ -192,7 +195,8 @@ experimental 3D video diffusion profiles preserve native resolution and frame
 rate on SDR 8-bit MP4, MOV, and M4V clips within the conservative decoded-frame budget
 (`<= 1920x1080` frame area and `<= 552,960,000` decoded pixel-frames, streaming
 clips over 193 frames via overlapping 3D causal windows, since CLI 0.63.0), and
-`--profile auto` automatically routes eligible ByteDance/Seedance MP4, MOV, and M4V clips
+`--profile auto` (the default on `video all`, `video batch`, `video invisible`,
+and `clean`) automatically routes eligible ByteDance/Seedance MP4, MOV, and M4V clips
 (`<= 1920x1080` frame area and `>= 8 GiB` total GPU VRAM, stepping down from 193-frame to 81-frame chunks on 1080p or `< 16 GiB` CUDA) to
 `wan21-seedance-experimental` on BF16 CUDA (`seedance-experimental` fallback on
 CPU/MPS MP4, or `synthid` on MOV/M4V/MKV/WebM or over budget) and other eligible SDR 8-bit MP4, MOV, and M4V clips to `wan21-synthid-experimental`
@@ -413,8 +417,9 @@ with `-o OUTPUT`, `--method auto|codec|vae`, `--long-side 512`, and
 
 Install `video-detect`, plus `diffusion` for VAE. Auto tries codec, zero-noise VAE,
 then noise 0.15 and 0.25. Output is at most 12 fps and defaults to
-`SOURCE_message_processed.mp4`. Processing requires one zero-based CFR video
-stream and optional audio, with MP4/MOV/M4V output. Audio is copied and checked,
+`SOURCE_message_processed.mp4`. Processing requires one video
+stream (CFR, VFR, or non-zero start PTS) and optional audio, with
+MP4/MOV/M4V/MKV/WebM output. Audio is copied and checked,
 not cleaned. Metadata is dropped. Quality can change visibly; JSON output reports
 delivered metrics and `quality_passed`.
 

@@ -84,6 +84,10 @@ Render the hero in Blender to PNG frames or ProRes 4444 with alpha, then use it 
 
 Split the beat sheet into scenes of 5-20 s, one HyperFrames sub-composition each, rendered separately. Join with ffmpeg (`references/ffmpeg.md`, concat with matching codecs), then put one continuous sound bed over the joined file in `finish.sh --audio`. One bed across the film sounds finished; a fade at every scene join sounds like a slideshow.
 
+### 6. Film mode (a whole explainer or documentary from one brief)
+
+`BRIEF.md` -> `STORY.md` -> `SCRIPT.md` -> `STORYBOARD.json` -> assets with licences -> voice (a take, F5-TTS or the stand-in) -> `retime` -> one HyperFrames project per act -> `mix` -> acts rendered side by side, joined, `finish.sh` -> checks -> `REPORT.md`. `scripts/film.py run` does the lot; every stage can be skipped and run again. The picture is re-timed to the voice, the acts dip to dark where they meet, and the report lists every credit and every UNVERIFIED line. Details: `references/formats.md`, "Explainer and documentary (film mode)".
+
 ## Methods that make the result better
 
 - **Spec first, then pixels.** The done-when list is what the self-check measures. Vague brief lines become measurable lines in SPEC.md before any code.

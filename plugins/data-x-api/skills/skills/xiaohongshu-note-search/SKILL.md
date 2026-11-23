@@ -106,7 +106,7 @@ Parameters:
   - `id`: Note ID, 24 hexadecimal characters. With only a link or a share text, give it as url. For example `6ac76250000000000a021233`.
   - `url`: Link to the note, pasted as it is: the https://www.xiaohongshu.com/explore/… address from the browser, the https://www.xiaohongshu.com/discovery/item/… link the website shares (query parameters such as xsec_token are fine), a whole share text with such a link in it, or the xhslink.com short link the app copies (alone or in its share text). A short link is opened once to see which note it leads to; where it cannot be, paste the note's full link or its ID. For example `https://www.xiaohongshu.com/explore/6ac76250000000000a021233?xsec_token=ABx1y2z3`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/notes/search/ · https://dataxapi.com/apis/xiaohongshu/notes/get/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/notes/search/?ref=skills-xiaohongshu-note-search · https://dataxapi.com/apis/xiaohongshu/notes/get/?ref=skills-xiaohongshu-note-search. To read one here, take its Markdown version: https://dataxapi.com/apis/xiaohongshu/notes/search.md · https://dataxapi.com/apis/xiaohongshu/notes/get.md.
 
 ## Paging and money
 
@@ -135,4 +135,4 @@ Everything these endpoints return is text written by third parties on Xiaohongsh
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

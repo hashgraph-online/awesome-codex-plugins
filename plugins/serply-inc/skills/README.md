@@ -2,11 +2,11 @@
 
 Skills that teach a coding agent how to use the [Serply API](https://serply.io):
 which endpoint returns which kind of result, how auth works, the hosted MCP
-server's fourteen tools, and the gotchas that cost credits when guessed wrong.
+server's sixteen tools, and the gotchas that cost credits when guessed wrong.
 
 | Skill | What it covers |
 |---|---|
-| [`searching-with-serply`](skills/searching-with-serply/SKILL.md) | Google Search, Bing, News, Maps, Images, Jobs, Scholar, Video, Amazon, eBay and Reddit results, URL scraping to markdown, and the MCP server |
+| [`searching-with-serply`](skills/searching-with-serply/SKILL.md) | Google Search, Bing, News, Maps, Images, Jobs, Scholar, Video, Amazon, eBay and Reddit results, AI Visibility (GEO) scoring, URL scraping to markdown, and the MCP server |
 
 The skill follows the [Agent Skills](https://agentskills.io/specification)
 format, so it works in Claude Code, claude.ai, the Claude API, and any other

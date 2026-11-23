@@ -1,6 +1,6 @@
 # Dawn for coding agents
 
-A TypeScript music SDK and headless CLI for composing, arranging and rendering songs offline.
+Compose songs in TypeScript, arrange them on a piano roll in DAWN Desktop for Mac and Linux, and render audio or MIDI locally with the DAWN CLI.
 
 This package teaches a coding agent to compose and edit a local Dawn song,
 then check it and render audio or MIDI. The included Morning study is an
@@ -10,7 +10,7 @@ original eight-bar score made with synthesized instruments.
 
 Dawn is a private preview. You need an authorized installation before using
 this skill. Follow the [install guide](https://dawnav.com/install), then check
-`dawn --version`. This package supports Dawn 0.66.2 and Bun
+`dawn --version`. This package supports Dawn 0.67.2 and Bun
 1.3.14 or newer. Local composition and rendering work offline.
 
 Install the skill through your agent's skill or plugin installer. The

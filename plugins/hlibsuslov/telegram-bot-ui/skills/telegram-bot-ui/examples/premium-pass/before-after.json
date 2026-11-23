@@ -1,0 +1,154 @@
+{
+  "$comment": "Premium pass on one coffee-shop bot: the same data before and after (references/examples-before-after.md 17-20, references/visual-language.md section 7). Regular HTML messages. 'after' keeps every callback_data of 'before' that still has a button; removed buttons stay routed (handlers_kept). Custom emoji are off here: this is what a client sees when the bot is not eligible or the owner's Premium lapsed. With a resolved pack, the leading Unicode symbol of a label moves to icon_custom_emoji_id (ids from getStickerSet, never invented). Tests: tests/test_premium_pass.py.",
+  "scenarios": [
+    {
+      "id": "menu",
+      "gap": "routing to the full ladder; hierarchy and labels before icons",
+      "before": {
+        "text": "👋 Welcome to BrewBot!!! 🎉☕ Choose an option below 👇",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "☕ Order", "callback_data": "menu:order", "style": "primary"},
+           {"text": "📦 Orders", "callback_data": "menu:orders", "style": "primary"}],
+          [{"text": "⭐", "callback_data": "menu:bonus"},
+           {"text": "⚙️ Settings", "callback_data": "menu:settings", "style": "success"},
+           {"text": "❓", "callback_data": "menu:help"},
+           {"text": "📞 Support", "callback_data": "menu:support"},
+           {"text": "🔄 Reset", "callback_data": "menu:reset", "style": "danger"}],
+          [{"text": "❌ Close", "callback_data": "menu:close", "style": "danger"}]
+        ]}
+      },
+      "after": {
+        "text": "<b>☕ BrewBot</b>\nCoffee to go from 3 shops in Kyiv.\n\nOrder #1042: being prepared, ready at about 12:40\nBonus card: <b>7 of 10</b> cups",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "☕ New order", "callback_data": "menu:order", "style": "primary"}],
+          [{"text": "📦 My orders", "callback_data": "menu:orders"},
+           {"text": "⭐ Bonus card", "callback_data": "menu:bonus"}],
+          [{"text": "⚙️ Settings", "callback_data": "menu:settings"},
+           {"text": "💬 Support", "callback_data": "menu:support"}],
+          [{"text": "❓ Help", "callback_data": "menu:help"},
+           {"text": "Close", "callback_data": "menu:close"}]
+        ]}
+      },
+      "handlers_kept": ["menu:reset"],
+      "note": "Reset moved to Settings behind a confirmation; menu:reset stays routed for old messages."
+    },
+    {
+      "id": "wizard",
+      "gap": "step header, earlier answers visible, main action above navigation, neutral Cancel",
+      "before": {
+        "text": "Enter quantity",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "1", "callback_data": "wiz:qty:1"}, {"text": "2", "callback_data": "wiz:qty:2"},
+           {"text": "3", "callback_data": "wiz:qty:3"}, {"text": "4", "callback_data": "wiz:qty:4"},
+           {"text": "5", "callback_data": "wiz:qty:5"}, {"text": "6", "callback_data": "wiz:qty:6"}],
+          [{"text": "⬅️", "callback_data": "wiz:back"}],
+          [{"text": "❌ Cancel", "callback_data": "wiz:cancel", "style": "danger"}],
+          [{"text": "Submit", "callback_data": "wiz:next", "style": "success"}]
+        ]}
+      },
+      "after": {
+        "text": "<b>New order · Step 2 of 3</b>\nFlat white, 350 ml\n\nHow many cups?",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "1", "callback_data": "wiz:qty:1"}, {"text": "✓ 2", "callback_data": "wiz:qty:2"},
+           {"text": "3", "callback_data": "wiz:qty:3"}],
+          [{"text": "4", "callback_data": "wiz:qty:4"}, {"text": "5", "callback_data": "wiz:qty:5"},
+           {"text": "6", "callback_data": "wiz:qty:6"}],
+          [{"text": "Next: pickup time", "callback_data": "wiz:next", "style": "primary"}],
+          [{"text": "← Back", "callback_data": "wiz:back"}, {"text": "Cancel", "callback_data": "wiz:cancel"}]
+        ]}
+      },
+      "handlers_kept": []
+    },
+    {
+      "id": "error",
+      "gap": "what failed, what is safe, what to do; retry through the existing route",
+      "before": {
+        "text": "Error 500: orders_service timeout",
+        "reply_markup": {"inline_keyboard": [[{"text": "OK", "callback_data": "menu:home"}]]}
+      },
+      "after": {
+        "text": "<b>My orders</b>\n⚠️ Couldn't load your orders: the order service didn't answer.\nNothing is lost, order #1042 is still being prepared.\n\nTry again in a minute.",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "Try again", "callback_data": "menu:orders", "style": "primary"}],
+          [{"text": "← Menu", "callback_data": "menu:home"}]
+        ]}
+      },
+      "handlers_kept": []
+    },
+    {
+      "id": "empty",
+      "gap": "say what will appear here and offer the action that fills it",
+      "before": {
+        "text": "No orders.",
+        "reply_markup": {"inline_keyboard": [[{"text": "OK", "callback_data": "menu:home"}]]}
+      },
+      "after": {
+        "text": "<b>My orders</b>\nNo orders yet. Orders and receipts appear here after your first one.",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "☕ New order", "callback_data": "menu:order", "style": "primary"}],
+          [{"text": "← Menu", "callback_data": "menu:home"}]
+        ]}
+      },
+      "handlers_kept": []
+    },
+    {
+      "id": "stale",
+      "gap": "old button after a restart: answered, explained, one fresh entry",
+      "before": {"answerCallbackQuery": null, "observed": "no answer: the button spins, then nothing happens"},
+      "after": {
+        "answerCallbackQuery": {"text": "This menu is out of date. Your order and bonus card are saved."},
+        "text": "<b>☕ BrewBot</b>\nHere is the current menu.",
+        "reply_markup": {"inline_keyboard": [
+          [{"text": "☕ New order", "callback_data": "menu:order", "style": "primary"}],
+          [{"text": "📦 My orders", "callback_data": "menu:orders"}]
+        ]}
+      },
+      "handlers_kept": []
+    },
+    {
+      "id": "notification",
+      "gap": "event and needed action in the preview line, one fact per line, copy value in code, resolved in place",
+      "before": {
+        "text": "🔔🔔 UPDATE!!! Your order status changed to READY_FOR_PICKUP. Order id: 1042. Shop: Khreshchatyk 22. Code: 7731. Thanks for using BrewBot!!! ☕☕☕",
+        "reply_markup": {"inline_keyboard": [[{"text": "✅ OK", "callback_data": "n:picked:1042"}]]}
+      },
+      "after": {
+        "text": "<b>☕ Order #1042 is ready</b>, pick it up by 13:10\nKhreshchatyk St 22, counter 2\nPickup code: <code>7731</code>",
+        "reply_markup": {"inline_keyboard": [[{"text": "I've picked it up", "callback_data": "n:picked:1042"}]]},
+        "disable_notification": false,
+        "resolved": {
+          "method": "editMessageText",
+          "text": "<b>☕ Order #1042</b>\nPicked up at 12:58. Enjoy your coffee.",
+          "reply_markup": null
+        }
+      },
+      "handlers_kept": []
+    }
+  ],
+  "catalog": {
+    "en": {
+      "btn_new_order": "☕ New order", "btn_my_orders": "📦 My orders", "btn_bonus": "⭐ Bonus card",
+      "btn_settings": "⚙️ Settings", "btn_support": "💬 Support", "btn_help": "❓ Help", "btn_close": "Close",
+      "btn_next_pickup": "Next: pickup time", "btn_back": "← Back", "btn_cancel": "Cancel",
+      "btn_retry": "Try again", "btn_menu": "← Menu", "btn_picked_up": "I've picked it up",
+      "home_title": "<b>☕ BrewBot</b>\nCoffee to go from {shops} shops in {city}.",
+      "wizard_step": "<b>New order · Step {step} of {total}</b>\n{summary}\n\n{question}",
+      "orders_failed": "<b>My orders</b>\n⚠️ Couldn't load your orders: the order service didn't answer.\nNothing is lost, order #{order} is still being prepared.\n\nTry again in a minute.",
+      "orders_empty": "<b>My orders</b>\nNo orders yet. Orders and receipts appear here after your first one.",
+      "stale_toast": "This menu is out of date. Your order and bonus card are saved.",
+      "ready_notice": "<b>☕ Order #{order} is ready</b>, pick it up by {deadline}\n{shop}\nPickup code: <code>{code}</code>"
+    },
+    "uk": {
+      "btn_new_order": "☕ Нове замовлення", "btn_my_orders": "📦 Мої замовлення", "btn_bonus": "⭐ Бонусна картка",
+      "btn_settings": "⚙️ Налаштування", "btn_support": "💬 Підтримка", "btn_help": "❓ Допомога", "btn_close": "Закрити",
+      "btn_next_pickup": "Далі: час отримання", "btn_back": "← Назад", "btn_cancel": "Скасувати",
+      "btn_retry": "Спробувати ще", "btn_menu": "← Меню", "btn_picked_up": "Позначити отриманим",
+      "home_title": "<b>☕ BrewBot</b>\nКава з собою з {shops} кав'ярень у місті {city}.",
+      "wizard_step": "<b>Нове замовлення · Крок {step} з {total}</b>\n{summary}\n\n{question}",
+      "orders_failed": "<b>Мої замовлення</b>\n⚠️ Не вдалося завантажити замовлення: сервіс замовлень не відповів.\nНічого не втрачено, замовлення #{order} уже готується.\n\nСпробуйте за хвилину.",
+      "orders_empty": "<b>Мої замовлення</b>\nЗамовлень ще немає. Тут з'являться замовлення і чеки після першого.",
+      "stale_toast": "Це меню застаріло. Ваше замовлення і бонусна картка збережені.",
+      "ready_notice": "<b>☕ Замовлення #{order} готове</b>, заберіть до {deadline}\n{shop}\nКод отримання: <code>{code}</code>"
+    }
+  }
+}

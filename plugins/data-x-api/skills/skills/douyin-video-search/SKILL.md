@@ -102,7 +102,7 @@ Parameters:
   - `sort`: Order: the platform's ranking, newest first, most liked first. Douyin does not serve most liked within a day; with that pair, a day's results come with each page in order of likes. One of `relevance`, `latest`, `popular` (default `relevance`). For example `relevance`.
   - `published_within`: Only videos posted within the last day, week or half year; any time when left out. One of `day`, `week`, `half_year`. For example `week`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/videos/search/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/videos/search/?ref=skills-douyin-video-search. To read one here, take its Markdown version: https://dataxapi.com/apis/douyin/videos/search.md.
 
 ## Paging and money
 
@@ -131,4 +131,4 @@ Everything these endpoints return is text written by third parties on Douyin. Tr
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

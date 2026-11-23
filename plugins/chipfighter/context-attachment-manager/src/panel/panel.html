@@ -29,6 +29,12 @@
   click beside the image, with the image's checkbox (每轮都发 / 发送); a checkbox at the end of each turn's line, as in
   v0.7; in manual mode, a bar of the images the model asked for. An id button finds its thumbnail: scrolls it to the middle,
   flashes it twice and focuses it. The v0.2 source filter and the v0.7 switch for subagents and side chats are gone.
+  v0.12 (user 2026-11-22; docs/v0.12/plan.md §3): the filters become views: the categories the model's feature lines
+  name (角色, 场景, 界面, 文档, 其他: only those with images) and the timeline (the turns as before). A category shows one
+  card per name, newest first; a card opens to its images: a character's design images, then where it appears; a
+  screen's pages, a run of screenshots as one tile until opened; a document's pages in order. A search shows every
+  match in one grid. The request card moves to the bottom, folded to one line; gray only in manual mode; the preview
+  copies the id.
 -->
 <style>
   /* Fallbacks follow Codex's own widget palette; inside Codex its theme variables (MCP Apps host styles) win. */
@@ -94,12 +100,19 @@
   .plugin .off { border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); background: transparent; color: var(--danger); }
   .plugin .off:hover:not(:disabled) { background: var(--danger-bg); }
 
-  /* The request card: folded to the estimate, its bar and the next message; unfolded, three more lines. */
-  .card { margin-top: 10px; padding: 10px 12px 6px; border-radius: 12px; background: var(--bg-soft); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  /* The request card. v0.12: at the bottom, folded to one line (the estimate and what it saves); its head unfolds the
+     bar, the next message, the last request, what the model fetched, the subagents. */
+  .card { border-radius: 12px; background: var(--bg-soft); font-size: 12.5px; font-variant-numeric: tabular-nums; }
   /* A narrow panel moves the "all images" part to a line of its own rather than breaking the estimate (English). */
-  .card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--text-2); }
+  .card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; width: 100%; padding: 7px 10px 7px 12px; border: 0; border-radius: 12px; background: none; color: var(--text-2); font-size: 12.5px; text-align: left; cursor: pointer; transition: background .15s; }
+  .card-head:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 4%, transparent); }
+  .card-head:disabled { cursor: default; }
   .card-head > span:first-child, .card-head b { white-space: nowrap; }
-  .card-head b { color: var(--text); font-size: 15px; font-weight: 600; }
+  .card-head b { color: var(--text); font-size: 14px; font-weight: 600; }
+  .card-head .chev { flex: none; align-self: center; width: 14px; height: 14px; color: var(--text-3); transition: transform .15s; }
+  .card-head[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .card-head:disabled .chev { display: none; }
+  .card-body { padding: 0 12px 8px; }
   .card-full { margin-left: auto; color: var(--text-3); white-space: nowrap; }
   .card-full.saved { color: var(--ok); }
   .bar { margin-top: 7px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--text) 9%, transparent); overflow: hidden; }
@@ -109,10 +122,6 @@
   .line .v { flex: 1; min-width: 0; text-align: right; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .line .v b { color: var(--text); font-weight: 600; }
   .line .ids { flex: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
-  .more { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; margin-top: 2px; padding: 3px 0; border: 0; border-radius: 8px; background: none; color: var(--text-3); font-size: 12px; cursor: pointer; transition: background .15s, color .15s; }
-  .more:hover { background: var(--bg-hover); color: var(--text-2); }
-  .more svg { width: 13px; height: 13px; transition: transform .15s; }
-  .more[aria-expanded="true"] svg { transform: rotate(180deg); }
   /* An image id that finds its thumbnail. */
   .idbtn { height: 22px; padding: 0 9px; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 999px; background: var(--bg); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color .15s, transform .1s; }
   .idbtn:hover { border-color: currentColor; }
@@ -127,20 +136,38 @@
   .search svg { flex: none; width: 15px; height: 15px; color: var(--text-3); }
   .search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; font-size: 13px; }
   .search input::placeholder { color: var(--text-3); }
-  /* One filter at a time, with the search. */
-  .chips { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  /* v0.12: one view at a time: the categories this task has, and the timeline. Hidden while searching. */
+  .chips { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
   .chips:empty { display: none; }
-  .chip { height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+  .chip { height: 26px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
   .chip:hover { background: var(--bg-hover); }
-  .chip .n { margin-left: 5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .chip .n { margin-left: 4px; color: var(--text-3); font-variant-numeric: tabular-nums; }
   .chip[aria-pressed="true"] { border-color: transparent; background: var(--accent); color: var(--accent-text); }
   .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--accent-text) 70%, transparent); }
   .chips .sep { width: 1px; height: 16px; background: var(--border-strong); }
-  /* At most two rows (user 2026-10-21): the rest fold into 更多 N, quieter than a filter. */
-  .chip.fold { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px 0 8px; border-color: transparent; color: var(--text-3); }
-  .chip.fold:hover { color: var(--text-2); }
-  .chip.fold svg { width: 13px; height: 13px; transition: transform .15s; }
-  .chip.fold[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+  /* v0.12: a category's cards, one per character, place, screen or document; a card opens to its images. */
+  .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px 10px; padding: 12px 4px 0; }
+  .group { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+  .group .cover { position: relative; aspect-ratio: 4 / 3; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-soft); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+  .group:hover .cover { border-color: var(--border-strong); box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 10%, transparent); }
+  .group .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .group .cover .none { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 11px; }
+  .group .cover.loading::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, var(--bg-hover) 50%, transparent 80%) var(--bg-soft); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  .group .gname { display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 0 2px; }
+  .group .gname b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+  .group .gname span { flex: none; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .group.quiet .gname b { color: var(--text-2); font-weight: 500; }
+  /* The open card: back, its name and count, then its images in sections. */
+  .opened { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; margin: 0 -12px; padding: 10px 16px 8px; background: var(--bg); }
+  .opened button { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 10px 0 6px; border: 0; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 12.5px; cursor: pointer; transition: background .15s, color .15s; }
+  .opened button:hover { background: color-mix(in srgb, var(--text) 9%, var(--bg)); color: var(--text); }
+  .opened button svg { width: 16px; height: 16px; }
+  .opened b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+  .opened span { flex: none; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .section { display: flex; align-items: center; gap: 10px; margin: 12px 4px 6px; color: var(--text-3); font-size: 12px; font-weight: 500; }
+  .section::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .section:first-of-type { margin-top: 4px; }
 
   main { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 16px; border-top: 1px solid var(--border); scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
   .turn { position: relative; display: flex; align-items: center; gap: 10px; margin: 14px 4px 6px; color: var(--text-3); font-size: 12px; font-weight: 500; }
@@ -184,6 +211,10 @@
   .mark.state { top: 4px; right: 4px; }
   .mark.when { top: 4px; left: 4px; }
   .mark.corner { bottom: 4px; right: 4px; border-radius: 5px; }
+  .mark.count { bottom: 4px; left: 4px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  /* v0.12: a run of screenshots one feature line stood for, as one tile until opened. */
+  .tile.stack { overflow: visible; box-shadow: 3px -3px 0 -1px var(--bg), 3px -3px 0 0 var(--border-strong); }
+  .tile.stack img { border-radius: 9px; }
   .mark.pin { background: var(--info); color: var(--bg); box-shadow: none; }
   .mark.fetched { background: var(--info-bg); color: var(--info); }
   .mark.warn { background: var(--warn-bg); color: var(--warn); }
@@ -208,6 +239,9 @@
   .viewer-meta { flex: 1; min-width: 0; color: rgb(255 255 255 / 55%); font-size: 12.5px; font-variant-numeric: tabular-nums; }
   .icon-btn { flex: none; width: 32px; height: 32px; border: 0; border-radius: 999px; background: transparent; color: rgb(255 255 255 / 80%); cursor: pointer; display: grid; place-items: center; transition: background .15s; }
   .icon-btn:hover { background: rgb(255 255 255 / 12%); }
+  /* v0.12: copies the image's id, for "use IMG-015" in the chat. */
+  .viewer-copy { flex: none; height: 28px; padding: 0 11px; border: 1px solid rgb(255 255 255 / 28%); border-radius: 999px; background: transparent; color: rgb(255 255 255 / 85%); font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
+  .viewer-copy:hover { background: rgb(255 255 255 / 10%); border-color: rgb(255 255 255 / 50%); }
   .viewer .check { flex: none; color: rgb(245 245 245); font-size: 13px; font-weight: 500; }
   .viewer .box { border-color: rgb(255 255 255 / 45%); }
   .viewer .check:hover .box { border-color: rgb(255 255 255 / 75%); }
@@ -244,36 +278,40 @@
   .empty span { font-size: 12.5px; max-width: 260px; }
   .nothing { padding: 28px 0; text-align: center; color: var(--text-3); font-size: 12.5px; }
 
-  footer { flex: none; display: flex; align-items: center; gap: 10px; padding: 11px 14px 11px 16px; border-top: 1px solid var(--border); background: var(--bg); }
+  footer { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 11px; border-top: 1px solid var(--border); background: var(--bg); }
+  .foot { display: flex; align-items: center; gap: 10px; padding-left: 2px; }
   .status { flex: 1; min-width: 0; color: var(--text-3); font-size: 12.5px; }
 </style>
 </head>
 <body>
 <header>
   <div class="title"><h1 id="title">上下文素材</h1><div class="actions"><button class="icon-quiet" id="refresh" type="button" title="刷新" aria-label="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="plugin" id="plugin"></span></div></div>
-  <section class="card" id="card">
-    <div class="card-head"><span id="meterLabel">正在读取…</span><b id="meterValue"></b><span class="card-full" id="meterFull"></span></div>
-    <div class="bar" id="meterBarBox"><i id="meterBar"></i></div>
-    <div class="line" id="nextLine"><span class="k" id="nextLabel"></span><span class="v" id="nextValue"></span></div>
-    <div id="details" hidden>
-      <div class="line" id="lastLine"><span class="k" id="lastLabel"></span><span class="v" id="lastValue"></span></div>
-      <div class="line" id="fetchedLine"><span class="k" id="fetchedLabel"></span><span class="ids" id="fetchedIds"></span></div>
-      <div class="line" id="childrenLine"><span class="k" id="childrenLabel"></span><span class="v" id="childrenValue"></span></div>
-    </div>
-    <button class="more" id="more" type="button" aria-expanded="false" aria-controls="details"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-  </section>
   <div class="needs" id="needs" hidden></div>
   <label class="search" id="searchBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" type="search" autocomplete="off" spellcheck="false"></label>
-  <div class="chips" id="chips" role="group"></div>
+  <div class="chips" id="views" role="group"></div>
 </header>
 <main id="main"></main>
 <footer>
-  <div class="status" id="status"></div>
-  <label class="switch" id="auto" hidden><span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span></label>
+  <section class="card" id="card">
+    <button class="card-head" id="cardHead" type="button" aria-expanded="false" aria-controls="cardBody"><span id="meterLabel">正在读取…</span><b id="meterValue"></b><span class="card-full" id="meterFull"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+    <div class="card-body" id="cardBody" hidden>
+      <div class="bar" id="meterBarBox"><i id="meterBar"></i></div>
+      <div class="line" id="nextLine"><span class="k" id="nextLabel"></span><span class="v" id="nextValue"></span></div>
+      <div class="line" id="lastLine"><span class="k" id="lastLabel"></span><span class="v" id="lastValue"></span></div>
+      <div class="line" id="fetchedLine"><span class="k" id="fetchedLabel"></span><span class="ids" id="fetchedIds"></span></div>
+      <div class="line" id="childrenLine"><span class="k" id="childrenLabel"></span><span class="v" id="childrenValue"></span></div>
+      <div class="line" id="updateLine" hidden><span class="k" id="updateLabel"></span><span class="v" id="updateValue"></span><button class="idbtn" id="updateToggle" type="button"></button></div>
+    </div>
+  </section>
+  <div class="foot">
+    <div class="status" id="status"></div>
+    <label class="switch" id="auto" hidden><span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span></label>
+  </div>
 </footer>
 <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="图片预览">
   <div class="viewer-top">
     <div class="viewer-title"><span class="vid" id="viewerId"></span><span class="vname" id="viewerName"></span></div>
+    <button class="viewer-copy" id="viewerCopy" type="button"></button>
     <button class="icon-btn" id="viewerClose" type="button" aria-label="关闭预览" title="关闭（Esc）">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg>
     </button>
@@ -327,17 +365,43 @@
       "children.label": "子代理和旁聊 {count} 个",
       "children.saved": "上次共少发 {saved}",
       "children.none": "上次没有替换",
+      "update.label": "插件版本",
+      "update.off": " · 已关闭自动更新",
+      "update.latest": " · 已是最新",
+      "update.failed": " · 上次没查成，稍后再试",
+      "update.local": " · 本地装的，不自动更新",
+      "update.pendingCodex": " · {version} 待重启生效",
+      "update.pendingClaude": " · {version} 新会话生效",
+      "update.turnOff": "关闭自动更新",
+      "update.turnOn": "开启自动更新",
+      "update.offTitle": "关闭后不再每天检查新版本。",
+      "update.onTitle": "每天检查一次 GitHub 上的新版本，自动装好，下次启动时生效。",
+      "notice.updatePendingCodex": "插件新版本 {version} 已装好，重启 Codex 后生效。",
+      "notice.updatePendingClaude": "插件新版本 {version} 已装好，新开一个会话后生效。",
+      "notice.updated": "插件已更新到 {version}。",
+      "update.notes": "更新说明",
+      "update.copied": "链接已复制",
+      "update.ok": "知道了",
       "needs.title": "模型需要 {count} 张没发送的图",
       "id.jump": "在列表里找到 {id}",
       "search.placeholder": "画面，或你当时说过的话",
       "search.label": "搜索图片",
-      "chips.label": "筛选图片",
-      "chip.all": "全部",
+      "views.label": "按类别浏览",
+      "view.character": "角色",
+      "view.place": "场景",
+      "view.screen": "界面",
+      "view.document": "文档",
+      "view.other": "其他",
+      "view.timeline": "时间线",
+      "group.unnamed": "未命名",
+      "group.unsorted": "未归类",
+      "group.count": "{count} 张",
+      "group.open": "查看{name}的 {count} 张图",
+      "group.back": "返回",
+      "section.design": "设定图",
+      "stack.open": "展开这 {count} 张连续截图",
       "chip.upload": "上传",
       "chip.generated": "生成",
-      "chip.other": "其他",
-      "chips.more": "更多 {count}",
-      "chips.less": "收起",
       "kind.upload": "用户上传",
       "kind.view": "查看的图片",
       "kind.generated": "生成的图片",
@@ -368,6 +432,8 @@
       "preview.label": "图片预览",
       "preview.close": "关闭预览",
       "preview.closeTitle": "关闭（Esc）",
+      "preview.copy": "复制编号",
+      "preview.copied": "已复制",
       "preview.pin": "每轮都发",
       "preview.send": "发送",
       "preview.loading": "正在加载…",
@@ -451,18 +517,46 @@
       "children.label": "Subagents & side chats: {count}",
       "children.saved": "{saved} less last time",
       "children.none": "Nothing replaced last time",
+      "update.label": "Plugin version",
+      "update.off": " · auto-update off",
+      "update.latest": " · up to date",
+      "update.failed": " · last check failed",
+      "update.local": " · local install",
+      "update.pendingCodex": " · {version} after restart",
+      "update.pendingClaude": " · {version} in new sessions",
+      "update.turnOff": "Turn off updates",
+      "update.turnOn": "Turn on updates",
+      "update.offTitle": "The plugin stops checking for new versions.",
+      "update.onTitle": "Once a day the plugin checks GitHub for a new version and installs it for the next start.",
+      "notice.updatePendingCodex": "Version {version} of the plugin is installed. Restart Codex to use it.",
+      "notice.updatePendingClaude": "Version {version} of the plugin is installed. New sessions use it.",
+      "notice.updated": "The plugin was updated to {version}.",
+      "update.notes": "What's new",
+      "update.copied": "Link copied",
+      "update.ok": "OK",
       "needs.title": "The model needs {count} unsent images",
       "needs.title_one": "The model needs {count} unsent image",
       "id.jump": "Find {id} in the list",
       "search.placeholder": "What it shows, or what you said then",
       "search.label": "Search images",
-      "chips.label": "Filter images",
-      "chip.all": "All",
+      "views.label": "Browse by category",
+      "view.character": "Characters",
+      "view.place": "Places",
+      "view.screen": "Screens",
+      "view.document": "Documents",
+      "view.other": "Other",
+      "view.timeline": "Timeline",
+      "group.unnamed": "Unnamed",
+      "group.unsorted": "Not sorted",
+      "group.count": "{count} images",
+      "group.count_one": "{count} image",
+      "group.open": "Show {name}: {count} images",
+      "group.open_one": "Show {name}: {count} image",
+      "group.back": "Back",
+      "section.design": "Design",
+      "stack.open": "Show these {count} screenshots",
       "chip.upload": "Uploaded",
       "chip.generated": "Generated",
-      "chip.other": "Other",
-      "chips.more": "{count} more",
-      "chips.less": "Show less",
       "kind.upload": "Uploaded",
       "kind.view": "Viewed",
       "kind.generated": "Generated",
@@ -493,6 +587,8 @@
       "preview.label": "Image preview",
       "preview.close": "Close preview",
       "preview.closeTitle": "Close (Esc)",
+      "preview.copy": "Copy ID",
+      "preview.copied": "Copied",
       "preview.pin": "Send every turn",
       "preview.send": "Send",
       "preview.loading": "Loading…",
@@ -575,17 +671,43 @@
       "children.label": "サブエージェント・サイドチャット {count} 件",
       "children.saved": "前回合計 {saved} 削減",
       "children.none": "前回は置換なし",
+      "update.label": "プラグインのバージョン",
+      "update.off": " · 自動更新オフ",
+      "update.latest": " · 最新です",
+      "update.failed": " · 前回の確認に失敗",
+      "update.local": " · ローカル版",
+      "update.pendingCodex": " · {version} は再起動後",
+      "update.pendingClaude": " · {version} は新しいセッションで",
+      "update.turnOff": "自動更新をオフ",
+      "update.turnOn": "自動更新をオン",
+      "update.offTitle": "新しいバージョンの確認を止めます。",
+      "update.onTitle": "1 日に 1 回 GitHub で新しいバージョンを確認し、次回の起動に向けてインストールします。",
+      "notice.updatePendingCodex": "プラグインの新しいバージョン {version} をインストールしました。Codex を再起動すると使われます。",
+      "notice.updatePendingClaude": "プラグインの新しいバージョン {version} をインストールしました。新しいセッションで使われます。",
+      "notice.updated": "プラグインを {version} に更新しました。",
+      "update.notes": "更新内容",
+      "update.copied": "リンクをコピーしました",
+      "update.ok": "OK",
       "needs.title": "モデルが未送信の画像 {count} 枚を必要としています",
       "id.jump": "一覧で {id} を探す",
       "search.placeholder": "画像の内容や、そのときの言葉",
       "search.label": "画像を検索",
-      "chips.label": "画像を絞り込む",
-      "chip.all": "すべて",
+      "views.label": "カテゴリで表示",
+      "view.character": "キャラクター",
+      "view.place": "場所",
+      "view.screen": "画面",
+      "view.document": "文書",
+      "view.other": "その他",
+      "view.timeline": "時系列",
+      "group.unnamed": "名前なし",
+      "group.unsorted": "未分類",
+      "group.count": "{count} 枚",
+      "group.open": "{name} の {count} 枚を表示",
+      "group.back": "戻る",
+      "section.design": "設定画",
+      "stack.open": "この {count} 枚のスクリーンショットを展開",
       "chip.upload": "アップロード",
       "chip.generated": "生成",
-      "chip.other": "その他",
-      "chips.more": "ほか {count} 件",
-      "chips.less": "閉じる",
       "kind.upload": "アップロード画像",
       "kind.view": "表示した画像",
       "kind.generated": "生成した画像",
@@ -616,6 +738,8 @@
       "preview.label": "画像プレビュー",
       "preview.close": "プレビューを閉じる",
       "preview.closeTitle": "閉じる（Esc）",
+      "preview.copy": "番号をコピー",
+      "preview.copied": "コピーしました",
       "preview.pin": "毎ターン送信",
       "preview.send": "送信",
       "preview.loading": "読み込み中…",
@@ -702,14 +826,15 @@
     $("refresh").setAttribute("aria-label", t("refresh"));
     $("search").placeholder = t("search.placeholder");
     $("search").setAttribute("aria-label", t("search.label"));
-    $("chips").setAttribute("aria-label", t("chips.label"));
+    $("views").setAttribute("aria-label", t("views.label"));
     $("viewer").setAttribute("aria-label", t("preview.label"));
     $("viewerClose").setAttribute("aria-label", t("preview.close"));
     $("viewerClose").title = t("preview.closeTitle");
     emptyState.querySelector("strong").textContent = t("empty.title");
     emptyState.querySelector("span").textContent = t("empty.text");
     nothingFound.textContent = t("empty.search");
-    turnParts.clear(); chipsKey = ""; needsKey = ""; fetchedKey = ""; pluginKey = "";
+    turnParts.clear(); viewsKey = ""; needsKey = ""; fetchedKey = ""; pluginKey = "";
+    groupEls.clear(); sectionEls.clear(); stackEls.clear();
     render();
   }
 
@@ -798,8 +923,11 @@
     switching: false,              // a 启用插件 / 停用插件 call is under way
     switchingTask: false,          // a cam_bind call is under way
     manual: false,                 // the running refresh was asked for with the 刷新 button
-    query: "", chip: "all",        // v0.8: the search and the one filter picked
-    chipsOpen: false,              // the filters beyond two rows shown (user 2026-10-21)
+    query: "",                     // v0.8: the search
+    view: null,                    // v0.12: the category or "timeline" the user picked (null: the default)
+    card: null,                    // v0.12: the key of the card open in that category
+    expanded: new Set(),           // v0.12: the runs of screenshots opened into single tiles
+    copied: null,                  // v0.12: the id the preview just copied
     cardOpen: false,               // v0.8: the request card unfolded
     autoPending: null,             // v0.3: the switch's new state while it is being saved
   };
@@ -825,7 +953,7 @@
     S.signature = signature;
     if (S.threadId && state.threadId !== S.threadId) {
       S.unsaved.clear(); S.thumbs.clear(); thumbQueue.length = 0; thumbsInFlight.clear();
-      S.preview = null; S.query = ""; S.chip = "all"; S.chipsOpen = false; $("search").value = "";
+      S.preview = null; S.query = ""; S.view = null; S.card = null; S.expanded.clear(); $("search").value = "";
     }
     S.threadId = state.threadId;
     S.data = state;
@@ -964,6 +1092,59 @@
     }
   }
 
+  // ---- v0.13: the plugin's version and its automatic updates (core/update.ts) ----
+  // Under Claude Code the page runs on its own, with panel-web.js as its host.
+  const underClaude = () => !!window.camHost;
+  function renderUpdateLine() {
+    const update = S.data?.update;
+    $("updateLine").hidden = !update?.version;
+    if (!update?.version) return;
+    $("updateLabel").textContent = t("update.label");
+    const status = update.status;
+    const note = !update.auto ? t("update.off")
+      : update.pending ? t(underClaude() ? "update.pendingClaude" : "update.pendingCodex", { version: update.pending })
+      : status?.result === "skipped" && /local folder/.test(status.reason ?? "") ? t("update.local")
+      : status?.result === "failed" ? t("update.failed")
+      : status?.result === "up-to-date" || status?.result === "updated" ? t("update.latest") : "";
+    $("updateValue").textContent = update.version + note;
+    $("updateValue").title = $("updateValue").textContent;
+    const toggle = $("updateToggle");
+    toggle.textContent = t(update.auto ? "update.turnOff" : "update.turnOn");
+    toggle.title = t(update.auto ? "update.offTitle" : "update.onTitle");
+    toggle.disabled = !!S.updating;
+  }
+  async function changeUpdate(change) {
+    if (S.updating) return;
+    S.updating = true; renderCard();
+    try {
+      const result = await callTool("cam_update", change);
+      if (S.data && result?.structuredContent?.update) S.data = { ...S.data, update: result.structuredContent.update };
+    } catch (error) {
+      S.error = { key: "error.call", message: error.message };
+    } finally {
+      S.updating = false; render();
+    }
+  }
+  // The release notes (their address comes with the state) in the host's browser; where the host does not open links,
+  // the link is copied.
+  async function openNotes(version) {
+    const url = S.data?.update?.notes;
+    if (!url) return;
+    let opened = false;
+    try { opened = !(await request("ui/open-link", { url }, 5000))?.isError; } catch {}
+    if (!opened && await copyText(url)) { S.notesCopied = version; render(); }
+  }
+  function updateNotices() {
+    const update = S.data?.update;
+    if (update?.pending) return [notice("info", t(underClaude() ? "notice.updatePendingClaude" : "notice.updatePendingCodex", { version: update.pending }))];
+    if (update?.updated) {
+      return [notice("info", t("notice.updated", { version: update.updated }),
+        { label: t(S.notesCopied === update.updated ? "update.copied" : "update.notes"), run: () => openNotes(update.updated) },
+        { label: t("update.ok"), run: () => changeUpdate({ seen: update.updated }) })];
+    }
+    return [];
+  }
+
   // ---- images: every thumbnail is queued in list order, a few at a time; tiles scrolled into view go first ----
   // (Visibility alone is not enough: a page that is hidden or not painted yet gets no intersection updates.)
   const thumbQueue = [];
@@ -987,7 +1168,7 @@
       loadImage(id, THUMB_SIDE)
         .then((url) => { if (thread === S.threadId) S.thumbs.set(id, url); })
         .catch(() => { if (thread === S.threadId) S.thumbs.set(id, null); })
-        .finally(() => { thumbsInFlight.delete(id); const tile = tiles.get(id); if (tile) paintThumb(tile, id); if (S.preview?.id === id && !S.preview.url) renderViewer(); pumpThumbs(); });
+        .finally(() => { thumbsInFlight.delete(id); for (const holder of thumbHolders(id)) paintThumb(holder, id); if (S.preview?.id === id && !S.preview.url) renderViewer(); pumpThumbs(); });
     }
   }
   const observer = new IntersectionObserver((entries) => {
@@ -1003,36 +1184,90 @@
   // 上传 covers PDF pages and web pages (Codex attaches both with the user's message); 生成 the generated images.
   const uploaded = (image) => ["upload", "pdf", "browser"].includes(sourceOf(image));
   const generated = (image) => sourceOf(image) === "generated";
-  const sceneOf = (image) => image.scene ?? null;
   // An image switched off becomes a duplicate placeholder when a copy of the same content still goes out.
   const sentCopyOf = (image) => image.sameAs.find((id) => { const other = byId(id); return other && other.inNextRequest && isOn(other); });
   const changeable = (image) => image.replaceable && image.inNextRequest;
 
-  // ---- v0.8: the search and the one filter; what they find, never what is sent ----
+  // ---- v0.8: the search; what it finds, never what is sent ----
   // Everything an image is known by, in the panel's language and in what the model noted (never shown): its id, name,
-  // source, scene, feature line and ratings, and what was said in its turn.
+  // source, feature line and ratings, and what was said in its turn. v0.12: its category, card and characters.
   const haystacks = new Map();
   function haystackOf(image) {
-    const key = `${lang}|${image.search}|${image.scene}|${S.data?.turnTexts?.[image.turn] ?? ""}`;
+    const key = `${lang}|${image.search}|${JSON.stringify(image.group ?? null)}|${S.data?.turnTexts?.[image.turn] ?? ""}`;
     const known = haystacks.get(image.id);
     if (known?.key === key) return known.text;
+    const group = image.group;
     const text = [
       image.id, nameOf(image), image.name, sourceLabel(image), uploaded(image) ? t("chip.upload") : "", generated(image) ? t("chip.generated") : "",
-      sceneOf(image) ?? t("chip.other"), image.search, S.data?.turnTexts?.[image.turn] ?? "",
+      group ? t(`view.${group.category}`) : t("group.unsorted"), group?.card, group?.part, ...(group?.characters ?? []),
+      image.search, S.data?.turnTexts?.[image.turn] ?? "",
     ].filter(Boolean).join(" ").toLowerCase();
     haystacks.set(image.id, { key, text });
     return text;
   }
   const words = () => S.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  function inChip(image, chip = S.chip) {
-    if (chip === "all") return true;
-    if (chip === "upload") return uploaded(image);
-    if (chip === "generated") return generated(image);
-    if (chip === "other") return sceneOf(image) === null;
-    return chip === `scene:${sceneOf(image)}`;
+  const matches = (image) => words().every((word) => haystackOf(image).includes(word));
+  const searching = () => words().length > 0;
+
+  // ---- v0.12: the categories and their cards (docs/v0.12/plan.md §3), from what the model noted ----
+  // A card per name: a character, a place, an app or site, a document, or what an "other" image is. Images without a
+  // feature line yet sit under 其他 in a card of their own. Newest first everywhere: by the order images appeared in.
+  const CATEGORIES = ["character", "place", "screen", "document", "other"];
+  const UNNAMED = "\u0000unnamed", UNSORTED = "\u0000unsorted";
+  const keyOf = (name) => (name ? String(name).trim().toLowerCase().replace(/\s+/g, " ") : UNNAMED);
+  let order = new Map();
+  const newest = (a, b) => (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0);
+  const latestOf = (list) => Math.max(-1, ...list.map((image) => order.get(image.id) ?? 0));
+  // Characters: each one's design images (its own feature lines), then the images that list it. A name only listed
+  // counts once two images list it, or a design image has it: a misread list does not make a card (docs/v0.12 §2).
+  function characterCards() {
+    const cards = new Map();
+    const card = (name) => {
+      const key = keyOf(name);
+      if (!cards.has(key)) cards.set(key, { key, name: name ?? null, design: [], appears: [] });
+      return cards.get(key);
+    };
+    for (const image of images()) if (image.group?.category === "character") card(image.group.card).design.push(image);
+    const listed = new Map();
+    for (const image of images()) for (const name of image.group?.characters ?? []) {
+      const key = keyOf(name);
+      if (!listed.has(key)) listed.set(key, { name, list: [] });
+      listed.get(key).list.push(image);
+    }
+    for (const [key, { name, list }] of listed) {
+      if (!cards.has(key) && list.length < 2) continue;
+      const entry = card(name);
+      for (const image of list) if (!entry.design.includes(image) && !entry.appears.includes(image)) entry.appears.push(image);
+    }
+    return [...cards.values()].map((entry) => ({ ...entry, images: [...entry.design, ...entry.appears] }));
   }
-  const matches = (image) => inChip(image) && words().every((word) => haystackOf(image).includes(word));
-  const searching = () => S.chip !== "all" || words().length > 0;
+  function plainCards(category) {
+    const cards = new Map();
+    for (const image of images()) {
+      const group = image.group;
+      if (category === "other" ? group && group.category !== "other" : group?.category !== category) continue;
+      const key = !group ? UNSORTED : keyOf(group.card);
+      if (!cards.has(key)) cards.set(key, { key, name: group?.card ?? null, images: [] });
+      cards.get(key).images.push(image);
+    }
+    return [...cards.values()];
+  }
+  function cardsOf(category) {
+    const cards = category === "character" ? characterCards() : plainCards(category);
+    return cards.map((card) => ({ ...card, latest: latestOf(card.images) })).sort((a, b) => b.latest - a.latest);
+  }
+  const cardName = (card) => (card.key === UNSORTED ? t("group.unsorted") : card.name ?? t("group.unnamed"));
+  function countOf(category) {
+    return new Set(cardsOf(category).flatMap((card) => card.images.map((image) => image.id))).size;
+  }
+  // The view shown: the one picked, while the task has it; else the category with the most images (images without a
+  // line do not count), else the timeline.
+  function currentView() {
+    const counts = CATEGORIES.map((category) => [category, category === "other" ? plainCards("other").filter((card) => card.key !== UNSORTED).reduce((sum, card) => sum + card.images.length, 0) : countOf(category)]);
+    if (S.view === "timeline" || (S.view && countOf(S.view) > 0)) return S.view;
+    const best = counts.reduce((top, entry) => (entry[1] > top[1] ? entry : top), ["timeline", 0]);
+    return best[0];
+  }
 
   // ---- the next message: what goes out, and the request size against sending everything (an estimate) ----
   const PLACEHOLDER_CHARS = 700;
@@ -1069,7 +1304,12 @@
     $("title").textContent = title;
     $("title").title = title;
     const loaded = !!S.data && list.length > 0;
-    for (const id of ["meterBarBox", "nextLine", "details", "more"]) $(id).hidden = !loaded;
+    // v0.12: one line until its head is clicked.
+    const head = $("cardHead");
+    head.disabled = !loaded;
+    head.setAttribute("aria-expanded", String(loaded && S.cardOpen));
+    head.title = loaded ? t(S.cardOpen ? "card.less" : "card.more") : "";
+    $("cardBody").hidden = !loaded || !S.cardOpen;
     if (!loaded) {
       $("meterLabel").textContent = !S.data ? (S.error ? t("meter.failed") : t("meter.loading")) : t("meter.empty");
       $("meterValue").textContent = ""; $("meterFull").textContent = "";
@@ -1092,10 +1332,6 @@
       f.dropped ? t("next.dropped", { dropped: f.dropped, count: f.dropped }) + (f.duplicates ? t("next.duplicates", { duplicates: f.duplicates, count: f.duplicates }) : "") : "",
       f.gone ? t("next.gone", { gone: f.gone, count: f.gone }) : "",
     );
-    const more = $("more");
-    more.setAttribute("aria-expanded", String(S.cardOpen));
-    more.querySelector("span").textContent = t(S.cardOpen ? "card.less" : "card.more");
-    $("details").hidden = !S.cardOpen;
     // The last request through the engine.
     const last = S.data.send?.last;
     $("lastLabel").textContent = last ? t("last.label", { time: timeOf(last.at) }) : t("last.labelNone");
@@ -1114,6 +1350,7 @@
       $("childrenLabel").textContent = t("children.label", { count: children.length });
       $("childrenValue").textContent = saved > 0 ? t("children.saved", { saved: formatBytes(saved) }) : t("children.none");
     }
+    renderUpdateLine();
   }
   // v0.3: with automatic selection on, the ids the model fetched in the latest turn, each finding its thumbnail.
   // Rebuilt only when that list changes, so hover and focus survive the polling.
@@ -1177,71 +1414,28 @@
     button.title = !lastFresh ? t("refresh") : t(stale ? "refresh.stale" : "refresh.at", { time: clockOf(lastFresh) });
   }
 
-  // ---- v0.8: the filters: 全部, 上传, 生成 (when the task has any), then the scenes the model named, and 其他 ----
-  // Rebuilt only when what they say changes, so hover and focus survive the polling and the clicks.
-  let chipsKey = "";
-  function chipList() {
-    const list = images();
-    const count = (chip) => list.filter((image) => inChip(image, chip)).length;
-    const kinds = [["all", t("chip.all")], ["upload", t("chip.upload")], ["generated", t("chip.generated")]].map(([chip, label]) => [chip, label, count(chip)]).filter(([chip, , n]) => chip === "all" || n > 0);
-    // The scenes with the most images first; a tie keeps the order they first appeared in.
-    const scenes = [...new Set(list.map(sceneOf).filter((scene) => scene !== null))].map((scene) => [`scene:${scene}`, scene, count(`scene:${scene}`)]).sort((a, b) => b[2] - a[2]);
-    // Without any scene (images from before v0.8), 其他 alone says nothing.
-    const others = scenes.length ? [["other", t("chip.other"), count("other")]].filter(([, , n]) => n > 0) : [];
-    return { kinds, scenes: [...scenes, ...others] };
-  }
-  function renderChips() {
-    const box = $("chips");
-    const { kinds, scenes } = chipList();
-    if (![...kinds, ...scenes].some(([chip]) => chip === S.chip)) S.chip = "all";
-    const key = `${lang}|${JSON.stringify([kinds, scenes])}`;
-    if (key !== chipsKey) {
-      chipsKey = key;
-      const make = ([chip, label, n]) => {
+  // ---- v0.12: the views: the categories this task has images in (fixed order, with their counts), then the timeline;
+  // one at a time. Rebuilt only when what they say changes, so hover and focus survive the polling and the clicks. ----
+  let viewsKey = "";
+  function renderViews() {
+    const box = $("views");
+    const list = [...CATEGORIES.map((category) => [category, t(`view.${category}`), countOf(category)]).filter(([, , n]) => n > 0), ["timeline", t("view.timeline"), null]];
+    const key = `${lang}|${JSON.stringify(list)}`;
+    if (key !== viewsKey) {
+      viewsKey = key;
+      const make = ([view, label, n]) => {
         const button = Object.assign(document.createElement("button"), { type: "button", className: "chip" });
-        button.dataset.chip = chip;
-        button.append(label, Object.assign(document.createElement("span"), { className: "n", textContent: String(n) }));
-        // Picking one folds the filters again: the one picked stays in view.
-        button.addEventListener("click", () => { S.chip = chip; S.chipsOpen = false; render(); });
+        button.dataset.chip = view;
+        button.append(label, ...(n === null ? [] : [Object.assign(document.createElement("span"), { className: "n", textContent: String(n) })]));
+        button.addEventListener("click", () => { S.view = view; S.card = null; render(); main.scrollTop = 0; });
         return button;
       };
-      // One filter alone (全部) says nothing either.
-      const all = [...kinds, ...scenes];
-      box.replaceChildren(...(all.length < 2 ? [] : [...kinds.map(make), ...(scenes.length ? [Object.assign(document.createElement("span"), { className: "sep" })] : []), ...scenes.map(make), foldButton]));
+      // The timeline alone says nothing.
+      box.replaceChildren(...(list.length < 2 ? [] : list.map(make)));
     }
-    for (const chip of box.querySelectorAll(".chip[data-chip]")) chip.setAttribute("aria-pressed", String(chip.dataset.chip === S.chip));
-    foldChips();
+    const view = currentView();
+    for (const chip of box.querySelectorAll(".chip[data-chip]")) chip.setAttribute("aria-pressed", String(chip.dataset.chip === view));
   }
-  // ---- at most two rows of filters (user 2026-10-21): the last ones fold into 更多 N, and the one picked stays in view
-  // in front of it. Measured again only when the filters, the pick, the fold or the panel's width change. ----
-  const foldButton = Object.assign(document.createElement("button"), { type: "button", className: "chip fold" });
-  foldButton.innerHTML = '<span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-  foldButton.addEventListener("click", () => { S.chipsOpen = !S.chipsOpen; foldChips(); });
-  let foldKey = "";
-  function foldChips() {
-    const box = $("chips");
-    const key = `${chipsKey}|${S.chip}|${S.chipsOpen}|${box.clientWidth}`;
-    if (key === foldKey) return;
-    foldKey = key;
-    const chips = [...box.querySelectorAll(".chip[data-chip]")];
-    const label = foldButton.querySelector("span");
-    for (const chip of chips) chip.hidden = false;
-    foldButton.hidden = true;
-    if (!chips.length || !box.clientWidth) return;
-    const twoRows = 2 * chips[0].offsetHeight + (parseFloat(getComputedStyle(box).rowGap) || 0) + 1;
-    if (box.offsetHeight <= twoRows) return;
-    foldButton.hidden = false;
-    foldButton.setAttribute("aria-expanded", String(S.chipsOpen));
-    label.textContent = S.chipsOpen ? t("chips.less") : t("chips.more", { count: 0 });
-    if (S.chipsOpen) return;
-    let folded = 0;
-    for (let i = chips.length - 1; i >= 0 && box.offsetHeight > twoRows; i--) {
-      if (chips[i].dataset.chip === S.chip) continue;
-      chips[i].hidden = true;
-      label.textContent = t("chips.more", { count: ++folded });
-    }
-  }
-  new ResizeObserver(() => foldChips()).observe($("chips"));
 
   // ---- the thumbnails, by turn, newest first ----
   const tiles = new Map();
@@ -1289,7 +1483,8 @@
     }
   }
   function paintTile(tile, image) {
-    tile.classList.toggle("off", image.inNextRequest && image.replaceable && !isOn(image));
+    // v0.12: gray only in manual mode, where it means not sent; with automatic selection a placeholder is the usual.
+    tile.classList.toggle("off", !autoOn() && image.inNextRequest && image.replaceable && !isOn(image));
     tile.classList.toggle("gone", !image.inNextRequest);
     tile.setAttribute("aria-label", [t("tile.open", { id: image.id }), nameOf(image)].filter(Boolean).join(" · "));
     tile.title = [image.id, nameOf(image)].filter(Boolean).join(" · ");
@@ -1402,36 +1597,192 @@
     const sendNotice = S.data?.send?.notice;
     if (sendNotice?.kind === "skipped") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t(MESSAGES[lang][`reason.${sendNotice.reason}`] ? `reason.${sendNotice.reason}` : "reason.other") })));
     if (sendNotice?.kind === "fallback") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t("reason.thinking") })));
+    nodes.push(...updateNotices());
     if (sendNotice?.kind === "thinking") nodes.push(notice("info", t("notice.thinking", { time: timeOf(sendNotice.at), count: sendNotice.count })));
     if (sendNotice?.kind === "websocket") nodes.push(notice("warn", t("notice.websocket")));
     return nodes;
   }
 
+  // A tile for each image, kept across renders.
+  function tileOf(image) {
+    let tile = tiles.get(image.id);
+    if (!tile) { tile = makeTile(image.id); tiles.set(image.id, tile); }
+    paintTile(tile, image);
+    return tile;
+  }
+  const fillGrid = (grid, cells) => {
+    const current = grid.children;
+    if (cells.length !== current.length || cells.some((cell, index) => cell !== current[index])) grid.replaceChildren(...cells);
+    return grid;
+  };
+  // ---- the timeline: by turn, newest first (v0.8), with each turn's checkbox ----
+  function timelineNodes(shownImages) {
+    const nodes = [];
+    const turns = [...new Set(shownImages.map((image) => image.turn))].sort((a, b) => (b ?? -1) - (a ?? -1));
+    for (const turn of turns) {
+      const group = shownImages.filter((image) => image.turn === turn);
+      const part = turnPart(turn);
+      paintTurn(part, turn, group.filter(changeable));
+      nodes.push(part.head, fillGrid(part.grid, group.map(tileOf)));
+    }
+    return nodes;
+  }
+  // ---- v0.12: a category's cards, and an open card's images ----
+  const groupEls = new Map();      // `${view}|${key}` -> { button, cover, name, count, coverId }
+  const sectionEls = new Map();    // a section's heading and grid, by where it is
+  const stackEls = new Map();      // a run of screenshots as one tile, by its run
+  const searchGrid = Object.assign(document.createElement("div"), { className: "grid" });
+  const groupsBox = Object.assign(document.createElement("div"), { className: "groups" });
+  // The open card's head: back, its name, its count.
+  const opened = Object.assign(document.createElement("div"), { className: "opened" });
+  const openedBack = Object.assign(document.createElement("button"), { type: "button" });
+  openedBack.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+  const openedBackLabel = document.createElement("span");
+  const openedName = document.createElement("b");
+  const openedCount = document.createElement("span");
+  openedBack.append(openedBackLabel);
+  opened.append(openedBack, openedName, openedCount);
+  openedBack.addEventListener("click", () => { S.card = null; render(); });
+  function thumbHolders(id) {
+    const holders = [];
+    const tile = tiles.get(id);
+    if (tile) holders.push(tile);
+    for (const el of groupEls.values()) if (el.coverId === id) holders.push(el.cover);
+    for (const el of stackEls.values()) if (el.coverId === id) holders.push(el.tile);
+    return holders;
+  }
+  function groupNodes(view) {
+    const cells = cardsOf(view).map((card) => {
+      const key = `${view}|${card.key}`;
+      let el = groupEls.get(key);
+      if (!el) {
+        const button = Object.assign(document.createElement("button"), { type: "button", className: "group" });
+        const cover = Object.assign(document.createElement("span"), { className: "cover" });
+        const label = Object.assign(document.createElement("span"), { className: "gname" });
+        const name = document.createElement("b");
+        const count = document.createElement("span");
+        label.append(name, count);
+        button.append(cover, label);
+        button.addEventListener("click", () => { S.card = card.key; render(); main.scrollTop = 0; });
+        el = { button, cover, name, count, coverId: null };
+        groupEls.set(key, el);
+      }
+      // The cover: a character's newest design image, else the card's newest image.
+      const design = (card.design ?? []).slice().sort(newest)[0];
+      const coverId = (design ?? card.images.slice().sort(newest)[0])?.id ?? null;
+      if (el.coverId !== coverId) { el.coverId = coverId; el.cover.dataset.id = coverId ?? ""; el.cover.replaceChildren(); if (coverId) observer.observe(el.cover); }
+      if (coverId) { paintThumb(el.cover, coverId); queueThumb(coverId); }
+      const title = cardName(card);
+      el.name.textContent = title;
+      el.button.classList.toggle("quiet", card.key === UNSORTED || card.name === null);
+      el.count.textContent = t("group.count", { count: card.images.length });
+      el.button.setAttribute("aria-label", t("group.open", { name: title, count: card.images.length }));
+      el.button.title = title;
+      return el.button;
+    });
+    return [fillGrid(groupsBox, cells)];
+  }
+  // A section of an open card: a heading (none for the first when it has no name) and a grid.
+  function section(where, label, cells) {
+    let el = sectionEls.get(where);
+    if (!el) {
+      el = { head: Object.assign(document.createElement("div"), { className: "section" }), grid: Object.assign(document.createElement("div"), { className: "grid" }) };
+      sectionEls.set(where, el);
+    }
+    el.head.textContent = label ?? "";
+    fillGrid(el.grid, cells);
+    return label ? [el.head, el.grid] : [el.grid];
+  }
+  // A screen's images in a row that one feature line stood for (or that the model noted alike in one turn) show as
+  // one tile until opened.
+  const runOf = (image) => image.group?.run ?? (image.group?.category === "screen" && image.search ? `${image.turn}|${image.search}` : null);
+  function stacked(list) {
+    const cells = [];
+    for (let at = 0; at < list.length;) {
+      const run = runOf(list[at]);
+      let end = at + 1;
+      while (run && end < list.length && runOf(list[end]) === run) end++;
+      if (end - at < 2 || S.expanded.has(run)) { for (const image of list.slice(at, end)) cells.push(tileOf(image)); }
+      else cells.push(stackOf(run, list.slice(at, end)));
+      at = end;
+    }
+    return cells;
+  }
+  function stackOf(run, list) {
+    let el = stackEls.get(run);
+    if (!el) {
+      const tile = Object.assign(document.createElement("button"), { type: "button", className: "tile stack" });
+      tile.addEventListener("click", () => { S.expanded.add(run); render(); });
+      el = { tile, coverId: null };
+      stackEls.set(run, el);
+    }
+    const cover = list[0];
+    if (el.coverId !== cover.id) { el.coverId = cover.id; el.tile.dataset.id = cover.id; el.tile.replaceChildren(); observer.observe(el.tile); }
+    paintThumb(el.tile, cover.id);
+    queueThumb(cover.id);
+    for (const old of el.tile.querySelectorAll(".mark")) old.remove();
+    el.tile.append(Object.assign(document.createElement("span"), { className: "mark count", textContent: `×${list.length}` }));
+    el.tile.setAttribute("aria-label", t("stack.open", { count: list.length }));
+    el.tile.title = t("stack.open", { count: list.length });
+    return el.tile;
+  }
+  function cardNodes(view, key) {
+    const card = cardsOf(view).find((entry) => entry.key === key);
+    if (!card) { S.card = null; return groupNodes(view); }
+    const title = cardName(card);
+    openedBackLabel.textContent = t("group.back");
+    openedName.textContent = title;
+    openedName.title = title;
+    openedCount.textContent = t("group.count", { count: card.images.length });
+    const nodes = [opened];
+    const where = (name) => `${view}|${key}|${name}`;
+    if (view === "character") {
+      const design = card.design.slice().sort(newest);
+      if (design.length) nodes.push(...section(where("design"), t("section.design"), design.map(tileOf)));
+      // The images it appears in, by where they are, the place with the newest first.
+      const places = new Map();
+      for (const image of card.appears) {
+        const group = image.group;
+        const place = group.category === "character" ? group.card : group.card ?? t("group.unnamed");
+        const label = group.category === "place" || group.category === "character" ? place : `${t(`view.${group.category}`)} · ${place}`;
+        if (!places.has(label)) places.set(label, []);
+        places.get(label).push(image);
+      }
+      for (const [label, list] of [...places].sort((a, b) => latestOf(b[1]) - latestOf(a[1]))) nodes.push(...section(where(`at|${label}`), label, list.sort(newest).map(tileOf)));
+    } else if (view === "screen") {
+      // By page, the page with the newest image first.
+      const pages = new Map();
+      for (const image of card.images) {
+        const page = image.group?.part ?? title;
+        if (!pages.has(page)) pages.set(page, []);
+        pages.get(page).push(image);
+      }
+      const sorted = [...pages].sort((a, b) => latestOf(b[1]) - latestOf(a[1]));
+      for (const [page, list] of sorted) nodes.push(...section(where(`page|${page}`), sorted.length > 1 || page !== title ? page : null, stacked(list.sort(newest))));
+    } else if (view === "document") {
+      const pages = card.images.slice().sort((a, b) => (a.group?.page ?? Infinity) - (b.group?.page ?? Infinity) || newest(b, a));
+      nodes.push(...section(where("pages"), null, pages.map(tileOf)));
+    } else nodes.push(...section(where("all"), null, card.images.slice().sort(newest).map(tileOf)));
+    return nodes;
+  }
+
   function renderList() {
+    order = new Map(images().map((image, at) => [image.id, at]));
     const nodes = noticeNodes();
     const list = images();
     if (S.data && !list.length) nodes.push(emptyState);
-    else {
-      const shownImages = list.filter(matches);
-      if (S.data && !shownImages.length) nodes.push(nothingFound);
-      const turns = [...new Set(shownImages.map((image) => image.turn))].sort((a, b) => (b ?? -1) - (a ?? -1));
-      for (const turn of turns) {
-        const group = shownImages.filter((image) => image.turn === turn);
-        const part = turnPart(turn);
-        const targets = group.filter(changeable);
-        paintTurn(part, turn, targets);
-        const cells = group.map((image) => {
-          let tile = tiles.get(image.id);
-          if (!tile) { tile = makeTile(image.id); tiles.set(image.id, tile); }
-          paintTile(tile, image);
-          return tile;
-        });
-        const current = part.grid.children;
-        if (cells.length !== current.length || cells.some((cell, index) => cell !== current[index])) part.grid.replaceChildren(...cells);
-        nodes.push(part.head, part.grid);
-      }
-      for (const image of shownImages) queueThumb(image.id);
+    else if (searching()) {
+      // v0.12: while searching, every category's matches in one grid, newest first.
+      const found = list.filter(matches).sort(newest);
+      if (S.data && !found.length) nodes.push(nothingFound);
+      else nodes.push(fillGrid(searchGrid, found.map(tileOf)));
+    } else {
+      const view = currentView();
+      if (view === "timeline") nodes.push(...timelineNodes(list));
+      else if (S.card !== null) nodes.push(...cardNodes(view, S.card));
+      else nodes.push(...groupNodes(view));
     }
+    for (const image of list) queueThumb(image.id);
     for (const [id, tile] of tiles) if (!byId(id)) { observer.unobserve(tile); tiles.delete(id); }
     for (const [key, box] of notices) if (!nodes.includes(box)) notices.delete(key);
     // Only touch the list when its items changed, so scrolling and keyboard focus are kept.
@@ -1447,6 +1798,8 @@
     viewer.hidden = false;
     $("viewerId").textContent = image.id;
     $("viewerName").textContent = nameOf(image) ?? "";
+    // v0.12: copies the id, for "use IMG-015" in the chat; says so for a moment.
+    $("viewerCopy").textContent = t(S.copied === image.id ? "preview.copied" : "preview.copy");
     const where = sourceOf(image) === "pdf" && image.pdfPage ? t("corner.pdf", { page: image.pdfPage }) : sourceLabel(image);
     const note = !image.inNextRequest ? t("preview.gone") : !image.replaceable ? t("preview.locked") : image.compacted ? t("preview.compacted") : image.sameAs.length ? t("preview.sameAs", { id: image.sameAs[0] }) : null;
     $("viewerMeta").textContent = [image.turn === null ? null : t("turn.n", { n: image.turn }), where, image.width && image.height ? `${image.width}×${image.height}` : null, formatBytes(image.bytes), note].filter(Boolean).join(" · ");
@@ -1503,9 +1856,31 @@
   // A click anywhere but on the image, a button or the checkbox closes the preview.
   $("viewer").addEventListener("click", (event) => { if (!event.target.closest("img, button, .check")) closePreview(); });
   $("viewerClose").addEventListener("click", closePreview);
+  // The clipboard API may be closed to a frame (Codex's panel); the old way still works on a click.
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    try {
+      const area = Object.assign(document.createElement("textarea"), { value: text });
+      area.style.position = "fixed"; area.style.opacity = "0";
+      document.body.append(area);
+      area.select();
+      const done = document.execCommand("copy");
+      area.remove();
+      return done;
+    } catch { return false; }
+  }
+  let copiedTimer = 0;
+  $("viewerCopy").addEventListener("click", async () => {
+    const id = S.preview?.id;
+    if (!id || !(await copyText(id))) return;
+    S.copied = id;
+    renderViewer();
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => { S.copied = null; renderViewer(); }, 1500);
+  });
   $("viewerCheck").querySelector("input").addEventListener("change", (event) => { if (S.preview) change([S.preview.id], event.target.checked); });
 
-  // ---- an id button: the preview closes, a search or filter that hides the image is cleared, then its thumbnail
+  // ---- an id button: the preview closes, the search is cleared and the timeline shown (v0.12), then its thumbnail
   // scrolls to the middle of the list, flashes twice and takes the keyboard focus ----
   let flashAfterScroll = null;
   main.addEventListener("scrollend", () => flashAfterScroll?.());
@@ -1513,7 +1888,7 @@
     const image = byId(id);
     if (!image) return;
     if (S.preview) S.preview = null;
-    if (!matches(image)) { S.query = ""; $("search").value = ""; S.chip = "all"; }
+    S.query = ""; $("search").value = ""; S.view = "timeline"; S.card = null;
     render();
     const tile = tiles.get(id);
     if (!tile) return;
@@ -1541,7 +1916,7 @@
   function renderSearch() {
     const hide = !images().length;
     $("searchBox").hidden = hide;
-    $("chips").hidden = hide;
+    $("views").hidden = hide || searching();
   }
 
   // Always the same line: a change needs no word that it was saved (user 2026-09-28). v0.3: the automatic selection
@@ -1559,11 +1934,12 @@
     input.setAttribute("aria-label", t("auto.label"));
   }
 
-  // The search box and the filters show before the filters are folded, which measures them.
-  function render() { renderCard(); renderNeeds(); renderPlugin(); renderRefresh(); renderSearch(); renderChips(); renderList(); renderFooter(); renderViewer(); }
+  // The search box and the views show before the list, which depends on them.
+  function render() { renderCard(); renderNeeds(); renderPlugin(); renderRefresh(); renderSearch(); renderViews(); renderList(); renderFooter(); renderViewer(); }
 
-  $("more").addEventListener("click", () => { S.cardOpen = !S.cardOpen; renderCard(); });
-  $("search").addEventListener("input", (event) => { S.query = event.target.value; renderList(); });
+  $("cardHead").addEventListener("click", () => { S.cardOpen = !S.cardOpen; renderCard(); });
+  $("updateToggle").addEventListener("click", () => changeUpdate({ auto: !S.data?.update?.auto }));
+  $("search").addEventListener("input", (event) => { S.query = event.target.value; renderSearch(); renderViews(); renderList(); });
   document.addEventListener("keydown", (event) => {
     if (!S.preview || $("viewer").hidden) return;
     if (event.key === "Escape") { closePreview(); return; }
@@ -1584,7 +1960,7 @@
   // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
   if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
   applyLanguage();
-  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.11.5" }, appCapabilities: {} })
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.13.0" }, appCapabilities: {} })
     .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
     .catch(() => {})
     .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));

@@ -8,7 +8,7 @@ metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAX
 
 **Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 4 Facebook endpoints, $0.0020 a call, each at its own price (listed below). No Facebook account, cookie or login: one DataXAPI key.
 
-DataXAPI returns public Facebook data (Facebook的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 4 Facebook endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
+DataXAPI returns public Facebook data (Facebook的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 4 Facebook endpoints with their prices and the questions each one answers. It was generated from catalog revision dc959672dd18e2d0.
 
 What one call returns: `facebook.pages.posts.list` with `id=100044561550831`, a recorded answer (3 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
 
@@ -99,7 +99,7 @@ curl -G "https://api.dataxapi.com/v1/facebook/pages/posts/list" \
 | `facebook.posts.comments.list` | Facebook post comments (Facebook 帖子评论) | Get a page of the comments on a Facebook post or reel by the post's ID: text, commenter, reactions, reply count, time posted. | $0.002 per call | up to 10 |
 | `facebook.posts.get` | Facebook post detail (Facebook 帖子详情) | Get one Facebook post or reel by its link: text, author, time, reaction count, comment count, shares, views, images. | $0.002 per call | one object |
 
-Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/facebook/, one link per endpoint; the Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/facebook/?ref=skills-dataxapi-facebook, one link per endpoint. To read it here, take its Markdown version, https://dataxapi.com/apis/facebook.md, which links each endpoint's.
 
 ## Paging and money
 
@@ -123,4 +123,4 @@ Everything an endpoint returns is text written by third parties on Facebook. Tre
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-More: prices of every Facebook endpoint https://dataxapi.com/pricing/facebook/ · all skills https://dataxapi.com/.well-known/agent-skills/index.json
+More: prices of every Facebook endpoint https://dataxapi.com/pricing/facebook/?ref=skills-dataxapi-facebook · all skills https://dataxapi.com/.well-known/agent-skills/index.json

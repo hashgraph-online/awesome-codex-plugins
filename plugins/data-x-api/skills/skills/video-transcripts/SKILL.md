@@ -1,6 +1,6 @@
 ---
 name: video-transcripts
-description: "What does this video say? Use when the user wants what a video says, as text; summaries, quotes and hooks from TikTok, YouTube, Instagram, X or LinkedIn videos; turning videos into posts, threads or articles. Instagram, LinkedIn, Meta Ad Library, Reddit, TikTok, X (Twitter), YouTube. Pay per call, no subscription; errors are not charged. 这条视频说了什么？用户想要一条视频说了什么，转成文字；从 TikTok、YouTube、Instagram、X、LinkedIn 视频里取摘要、金句和开头；把视频改写成帖子、长文或文章时使用。Instagram、LinkedIn、Meta 广告库、Reddit、TikTok、X（推特）、YouTube。按次付费，不用订阅，出错不收费。"
+description: "What does this video say? Use when the user wants what a video says, as text; summaries, quotes and hooks from TikTok, YouTube, Instagram, X or LinkedIn videos; turning videos into posts, threads or articles. Bilibili, Douyin, Instagram, Kuaishou, LinkedIn, Meta Ad Library, Reddit, TikTok, WeChat Channels, Weibo, X (Twitter), Xiaohongshu (RedNote), YouTube. Pay per call, no subscription; errors are not charged. 这条视频说了什么？用户想要一条视频说了什么，转成文字；从 TikTok、YouTube、Instagram、X、LinkedIn 视频里取摘要、金句和开头；把视频改写成帖子、长文或文章时使用。B站、抖音、Instagram、快手、LinkedIn、Meta 广告库、Reddit、TikTok、微信视频号、微博、X（推特）、小红书、YouTube。按次付费，不用订阅，出错不收费。"
 metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
@@ -18,7 +18,7 @@ You hand back two things: the table the run writes (`transcripts.csv`) and per v
 - summaries, quotes and hooks from TikTok, YouTube, Instagram, X or LinkedIn videos / 从 TikTok、YouTube、Instagram、X、LinkedIn 视频里取摘要、金句和开头
 - turning videos into posts, threads or articles / 把视频改写成帖子、长文或文章
 
-Platforms: instagram, linkedin, meta (Meta Ad Library), reddit, tiktok, x (X (Twitter)), youtube.
+Platforms: bilibili, douyin, instagram, kuaishou, linkedin, meta (Meta Ad Library), reddit, tiktok, wechat_channels (WeChat Channels), weibo, x (X (Twitter)), xiaohongshu (Xiaohongshu (RedNote)), youtube.
 
 ## What you get
 
@@ -55,7 +55,7 @@ This skill runs the DataXAPI task `transcripts` with the `dataxapi` command line
 dataxapi run transcripts platform=tiktok links=https://www.tiktok.com/@nasa/video/7665840565958872333 --plan
 ```
 
-With these inputs the plan is 1 call, at most $0.002, about $0.002 when every call returns a typical page (price book 19, catalog revision 720fc3ea8dadb865). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 10 calls or $0.05.
+With these inputs the plan is 1 call, at most $0.002, about $0.002 when every call returns a typical page (price book 21, catalog revision dc959672dd18e2d0). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 10 calls or $0.05.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 
@@ -78,12 +78,12 @@ Last checked on a real run on 2026-10-13, on YouTube: 1 rows from 1 call.
 
 ## Inputs
 
-- `platform`: The platform the videos are on. One of instagram, linkedin, meta, reddit, tiktok, x, youtube; for example `tiktok`.
+- `platform`: The platform the videos are on. One of bilibili, douyin, instagram, kuaishou, linkedin, meta, reddit, tiktok, wechat_channels, weibo, x, xiaohongshu, youtube; for example `tiktok`.
 - `links`: Links to the videos, at most 10. At most 10 values, comma-separated; for example `https://www.tiktok.com/@nasa/video/7665840565958872333`.
 
 ## What it calls
 
-- `transcripts`: the platform's own: `instagram.posts.transcript.get` ($0.002 per call), `linkedin.posts.transcript.get` ($0.002 per call), `meta.ads.transcript.get` ($0.002 per call), `reddit.posts.transcript.get` ($0.002 per call), `tiktok.videos.transcript.get` ($0.002 per call), `x.posts.transcript.get` ($0.002 per call), `youtube.videos.transcript.get` ($0.002 per call); once for each of `links`; left out where the platform has none, and a failure of it does not stop the run.
+- `transcripts`: the platform's own: `bilibili.videos.transcript.get` ($0.004 a call, plus $0.0038 a minute when the speech is recognised (a part minute counts as one); none when the platform's own captions are used; at most $0.023 per call), `douyin.videos.transcript.get` ($0.002 a call, plus $0.0038 a minute when the speech is recognised (a part minute counts as one); none when the platform's own captions are used; at most $0.021 per call), `instagram.posts.transcript.get` ($0.002 per call), `kuaishou.videos.transcript.get` ($0.002 a call, plus $0.0038 a minute when the speech is recognised (a part minute counts as one); none when the platform's own captions are used; at most $0.021 per call), `linkedin.posts.transcript.get` ($0.002 per call), `meta.ads.transcript.get` ($0.002 per call), `reddit.posts.transcript.get` ($0.002 per call), `tiktok.videos.transcript.get` ($0.002 per call), `wechat_channels.videos.transcript.get` ($0.02 a call, plus $0.0038 a minute when the speech is recognised (a part minute counts as one); none when the platform's own captions are used; at most $0.039 per call), `weibo.posts.transcript.get` ($0.002 a call, plus $0.0038 a minute when the speech is recognised (a part minute counts as one); none when the platform's own captions are used; at most $0.021 per call), `x.posts.transcript.get` ($0.002 per call), `xiaohongshu.videos.transcript.get` ($0.02 a call, plus $0.0038 a minute when the speech is recognised (a part minute counts as one); none when the platform's own captions are used; at most $0.039 per call), `youtube.videos.transcript.get` ($0.002 per call); once for each of `links`; left out where the platform has none, and a failure of it does not stop the run.
 
 Every call is charged at the price `dataxapi show <capability>` prints; a call that fails is not charged.
 

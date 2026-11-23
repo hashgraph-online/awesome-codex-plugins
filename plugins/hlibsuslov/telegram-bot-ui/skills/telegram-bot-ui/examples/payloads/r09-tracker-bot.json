@@ -3,7 +3,7 @@
   "status": "production (widgets in private chats)",
   "context": "private",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-12)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendMessage",
@@ -278,7 +278,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "The bot only has a public key and cannot spend BTC. If the addresses differ, do not generate new ones."
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "The bot only has a public key and cannot spend BTC. If the addresses differ, do not generate new ones."
+                }
+              ]
             }
           ]
         }

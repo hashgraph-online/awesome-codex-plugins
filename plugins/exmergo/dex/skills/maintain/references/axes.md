@@ -585,8 +585,8 @@ one coverage number.
 - **Declarations.** `data.declarations.facts` holds one record per declared fact
   on the selected models: `fact` (`grain`, `key`, `foreign_key`, `references`,
   `null_rule`, `population_filter`, `population_parent`, `population_rule`,
-  `unit`, `additivity`, `history`), `column`, and `checked_by`: `dbt_test` (the
-  generic `tests` that assert it run on every `dbt build`), `dex_verify` (the
+  `unit`, `additivity`, `history`, `freshness`, `continuity`), `column`, and
+  `checked_by`: `dbt_test` (the generic `tests` that assert it run on every `dbt build`), `dex_verify` (the
   `verify` finding codes that can judge it on `maintain verify` or
   `transform build --verify`; that verify *can* judge it, not that it ran), `both`, `none`,
   or `prose` for a population stated only as a rule, which nothing can run.

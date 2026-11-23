@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.160.0 # x-release-please-version
+version: 0.161.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -70,6 +70,11 @@ notification, open
 [wake operations](https://github.com/avivsinai/agent-message-queue/blob/main/docs/wake-operations.md)
 and select the section for the receiving harness. Inspect the current settings
 before changing them.
+
+On an attended seat (`attended: true` in `amq wake check` on a live wake, or
+`attended true` in `amq wake config` when no wake is live) no doorbell
+is typed, on any transport: mail is announced at the person's next prompt.
+Drain then, with `amq drain --include-body`; do not start a watcher.
 
 Without an injecting wake or a wait hook, use the receive methods in the
 operations guide.

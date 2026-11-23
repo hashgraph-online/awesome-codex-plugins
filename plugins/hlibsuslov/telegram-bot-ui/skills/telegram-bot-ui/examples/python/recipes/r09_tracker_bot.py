@@ -117,7 +117,7 @@ def verify_addresses_table(t: FakeTransport) -> None:
          "cells": [[cell("No.", True, "right"), cell("Address", True), cell("Path", True)]] +
                   [[cell(n, a="right"), {"text": {"type": "code", "text": addr}, "align": "left", "valign": "middle"},
                     cell(path)] for n, addr, path in rows]},
-        {"type": "expandable_blockquote", "text": "The bot only has a public key and cannot spend BTC. If the addresses differ, do not generate new ones."}]}})
+        {"type": "expandable_blockquote", "blocks": [{"type": "paragraph", "text": "The bot only has a public key and cannot spend BTC. If the addresses differ, do not generate new ones."}]}]}})
 
 
 def analysis_short_list(t: FakeTransport) -> None:

@@ -37,6 +37,19 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/codex-plugin/hooks/deja.sh hook-tool-after",
+            "timeout": 10,
+            "statusMessage": "Checking command outcome…"
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": "manual|auto",
@@ -56,7 +69,7 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/codex-plugin/hooks/deja.sh hook-session-end",
-            "timeout": 10,
+            "timeout": 3,
             "statusMessage": "Marking this session as ended…"
           }
         ]

@@ -50,6 +50,8 @@ b2m3d optimize in.glb out.glb [--simplify 0.5] [--join] [--no-compress]
 b2m3d physics scene.json track.json        # Jolt WASM bake, deterministic
 b2m3d hf shot.json project/                # self-contained HyperFrames project
 b2m3d blender in.glb frames/ --mp4 out.mp4 --look studio|dramatic|soft [--transparent] [--frames 120] [--samples 128]
+b2m3d recipe list                           # Blender motion recipes (below)
+b2m3d recipe run cloth -- --object sphere --out frames
 b2m3d doctor
 ```
 
@@ -64,6 +66,12 @@ b2m3d doctor
 **hf.** Turns a shot JSON into a HyperFrames project folder with three.js, GSAP, fonts and every GLB copied in. A render never touches the network. The page holds the first frame until models are loaded and shaders compiled (`window.__hf.buildReady`). Unknown keys in the shot are reported in `warnings`.
 
 **blender.** Uses the system Blender (never bundled; it is GPL software run as an external program). It is found on the PATH, in `/Applications/Blender.app/Contents/MacOS/Blender`, in `C:\Program Files\Blender Foundation\Blender *\blender.exe`, or at `B2M3D_BLENDER`. GPU: Metal on macOS, OptiX then CUDA then HIP then oneAPI on Windows and Linux, else CPU (the result JSON says which). Encode: `hevc_videotoolbox` on macOS when ffmpeg has it, else `libx264`; with `--transparent` the output is ProRes 4444 (`prores_ks`, `.mov`) and the floor defaults to a shadow catcher. Run one Blender render at a time: it takes the whole GPU.
+
+## Blender motion recipes, live Blender, generators
+
+Six tested Blender scripts live in `templates/recipes/`: `loop` (frame 1 equals the last frame, cyclic curves), `retime` (move beats between timeline markers), `cloth` (a sheet drops on an object), `rigid` (a hinged or ball-jointed chain), `fold` (shape-key folding) and `walk` (a figure walks forward, feet planted). Each prints the measurements that show it worked. `b2m3d recipe run NAME -- <options>` runs one headless; `references/blender-recipes.md` has the options, what each reports and the traps. Headless stays the route for every render that ships. The installer copies the pack into `~/.brief2mp4/3d/pack`, so after updating brief2mp4 run `install_3d.sh` again; an older copy answers `invalid choice: 'recipe'`. The recipes' plain arithmetic is in `b2m_math.py`, which imports no Blender, so its tests run everywhere.
+
+The same scripts work inside a running Blender through blender-mcp (`references/blender-live.md`: when to use live and when headless, install, safety, the snippet to send). Optional image or text to mesh (Hunyuan3D-2, TRELLIS) and liquids (the FLIP Fluids add-on) are tools you install, wrapped by `scripts/gen3d.py` and `templates/recipes/b2m_flip_bake.py`, with their licence limits stated in `references/generators-3d.md`. Nothing from those projects is copied into this repository.
 
 ## Shot JSON for `hf`
 
@@ -155,4 +163,8 @@ The pack itself is MIT, like the rest of this repository. It builds on, and cred
 | GSAP | the GSAP "no charge" standard licence (gsap.com/standard-license), not MIT | the paused timeline; vendored into each render project |
 | Inter, Space Grotesk (`@fontsource-variable`) | SIL Open Font Licence 1.1 | title fonts |
 | Blender | GPL | external program for path-traced shots; not bundled, not linked |
+| blender-mcp (MCP for Blender), Siddharth Ahuja | MIT | optional live Blender route; installed by you |
+| Hunyuan3D-2, Tencent | Tencent community licence, not valid in the EU, UK or South Korea; its Acceptable Use Policy asks for published output to be labelled machine-generated | optional image-to-3D; installed by you, never bundled |
+| TRELLIS, Microsoft | MIT for its code and models, but its GLB export runs non-commercial components (nvdiffrast, a Gaussian rasterizer): research or evaluation use only | optional image or text to 3D; installed by you, never bundled; `gen3d.py` runs it only with `--non-commercial` |
+| FLIP Fluids, Ryan L. Guy and Dennis Fassbaender | add-on GPL, engine MIT, some content royalty free | optional liquids; installed by you, never bundled |
 | HyperFrames | see its own licence | the renderer |

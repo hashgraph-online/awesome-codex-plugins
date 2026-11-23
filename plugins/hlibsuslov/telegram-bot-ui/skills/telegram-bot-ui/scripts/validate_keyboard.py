@@ -36,7 +36,10 @@ What is checked (errors -> exit 1)
 
 Warnings (never fail): >1 primary, everything styled, duplicate labels,
 emoji-only labels, wide rows, long labels, destructive labels without style,
-a keyboard where every button is disabled.
+a keyboard where every button is disabled; layout and meaning (design heuristics of
+buttons-and-styles.md): a styled or status-marked navigation button (red Back, "❌ Close"),
+navigation above other actions, `danger` in the main action's row, labels that don't say
+what happens ("OK", "Yes"), more than 8 rows.
 
 NOT checked: the full schema of nested objects (WebAppInfo, LoginUrl,
 SwitchInlineQueryChosenChat, KeyboardButtonRequest*), whether URLs resolve,
@@ -108,7 +111,31 @@ MAX_COPY_TEXT = 256
 LONG_LABEL_WARN = 30
 WIDE_ROW_WARN = 4
 DANGER_WORDS = ("delete", "remove", "reset", "wipe", "unsubscribe", "leave", "log out", "logout",
-                "удалить", "сбросить", "отписаться", "выйти", "slett", "slette")
+                "удалить", "сбросить", "отписаться", "выйти", "видалити", "скинути", "відписатися",
+                "вийти", "slett", "slette")
+# Design heuristics (buttons-and-styles.md, visual-language.md), not API rules: only warnings.
+# The whole label is the navigation phrase, optionally "... to <screen>": "Close account" and
+# "Home delivery" are actions, not navigation.
+NAV_RE = re.compile(r"^(back|назад|home|main menu|menu|меню|главное меню|в меню|головне меню|close|"
+                    r"закрыть|закрити|skip|пропустить|пропустити|not now|не сейчас|не зараз)"
+                    r"( to .+| в .+| к .+| до .+| this step| шаг| крок)?$", re.IGNORECASE)
+ESCAPE_EXACT = {"cancel", "отмена", "отменить", "скасувати", "reset filters", "clear filters",
+                "сбросить фильтры"}
+NAV_POSITION_SKIP = re.compile(r"^(skip|пропустить|not now|не сейчас)\b", re.IGNORECASE)
+STATUS_GLYPHS = ("✅", "✔", "☑", "❌", "✖", "⚠", "⛔", "🚫", "❗")
+VAGUE_LABELS = {"ok", "okay", "yes", "no", "submit", "send", "click here", "да", "нет", "ок", "окей",
+                "отправить", "нажмите", "так", "ні", "надіслати"}
+MAX_ROWS_WARN = 8
+
+
+def _words(text: str) -> str:
+    """The label as a reader without icons hears it: leading symbols and arrows dropped."""
+    return re.sub(r"^[\W_]+", "", text).strip().lower()
+
+
+def is_navigation(text: str) -> bool:
+    w = _words(text)
+    return bool(NAV_RE.match(w)) or w in ESCAPE_EXACT
 
 
 class Report:
@@ -236,6 +263,16 @@ def check_button(btn, model: str, where: str, rep: Report, context: str | None,
     if style is None and present != ["disabled"] and any(w in text.lower() for w in DANGER_WORDS):
         rep.warnings.append(f"{where}: {text!r} looks destructive but has no style - consider "
                             f"'danger' plus a confirmation step")
+    if text and is_navigation(text):
+        if style in ("danger", "success"):
+            rep.warnings.append(f"{where}: navigation/escape button {text!r} is styled {style!r} - "
+                                f"Back, Cancel, Close, Menu and Skip stay unstyled")
+        if text.lstrip().startswith(STATUS_GLYPHS):
+            rep.warnings.append(f"{where}: {text!r} starts with a status symbol - ✅/❌/⚠️ mean "
+                                f"done/failed/attention; use an arrow or no icon on navigation")
+    if text and _words(text) in VAGUE_LABELS:
+        rep.warnings.append(f"{where}: label {text!r} doesn't say what happens - name the outcome "
+                            f"(\"Yes, delete it\", \"Send application\")")
     return text
 
 
@@ -258,7 +295,37 @@ def check_rows(rows, model: str, rep: Report, context: str | None, prefix: str =
             if isinstance(btn, dict):
                 styles.append(btn.get("style"))
                 disabled += isinstance(btn.get("disabled"), dict)
+    _layout_warnings(rows, rep, prefix)
     _summary_warnings(labels, styles, disabled, rep, prefix)
+
+
+def _label(btn) -> str:
+    return btn if isinstance(btn, str) else str(btn.get("text") or "") if isinstance(btn, dict) else ""
+
+
+def _layout_warnings(rows, rep: Report, prefix: str) -> None:
+    rows = [r for r in rows if isinstance(r, list)]
+    if len(rows) > MAX_ROWS_WARN:
+        rep.warnings.append(f"{prefix}{len(rows)} rows - this is a list, not a menu; paginate "
+                            f"(inline-keyboards.md)")
+    nav_row, reported = None, False
+    for r, row in enumerate(rows):
+        labels = [_label(b) for b in row]
+        positional = [is_navigation(t) and not NAV_POSITION_SKIP.match(_words(t)) for t in labels]
+        if any(positional) and nav_row is None:
+            nav_row = r
+        # A confirmation may put its red button last (buttons-and-styles.md): not a misplaced Back.
+        only_danger = all(isinstance(b, dict) and b.get("style") == "danger" for b in row)
+        if nav_row is not None and r > nav_row and not reported and not only_danger \
+                and not all(is_navigation(t) for t in labels):
+            rep.warnings.append(f"{prefix}row {nav_row + 1}: navigation sits above other actions - "
+                                f"keep Back/Menu/Cancel in the last row(s), same place on every screen")
+            reported = True
+        # Back may sit beside a red button (the bottom row); any other action may not.
+        if any(isinstance(b, dict) and b.get("style") == "danger" for b in row) and any(
+                isinstance(b, dict) and b.get("style") != "danger" and not is_navigation(_label(b)) for b in row):
+            rep.warnings.append(f"{prefix}row {r + 1}: a 'danger' button shares a row with another action - "
+                                f"a mis-tap must not destroy anything; give it its own row, last")
 
 
 def _summary_warnings(labels, styles, disabled, rep: Report, prefix: str) -> None:

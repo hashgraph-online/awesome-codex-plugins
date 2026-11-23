@@ -277,9 +277,13 @@ class AgentBridge:
         approve_btn = {"text": self._t("approve"), "callback_data": self.book.callback_data(rec, "a"),
                        "style": "danger" if destructive else "success"}
         row2 = [{"text": self._t("details"), "callback_data": self.book.callback_data(rec, "d")}] if details else []
-        markup = {"inline_keyboard": [[approve_btn, {"text": self._t("reject"),
-                                                     "callback_data": self.book.callback_data(rec, "r")}]]
-                  + ([row2] if row2 else [])}
+        reject_btn = {"text": self._t("reject"), "callback_data": self.book.callback_data(rec, "r")}
+        if destructive:
+            # A red Approve gets its own last row: a mis-tap on Reject must not run it.
+            rows = [[reject_btn]] + ([row2] if row2 else []) + [[approve_btn]]
+        else:
+            rows = [[approve_btn, reject_btn]] + ([row2] if row2 else [])
+        markup = {"inline_keyboard": rows}
         msg = self.call("sendMessage", {**self._addr(chat, thread_id), "text": text, "parse_mode": "HTML",
                                         "reply_markup": markup})
         rec = self.store.get_pending(rec["rid"])

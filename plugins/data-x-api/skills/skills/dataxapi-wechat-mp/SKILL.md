@@ -8,7 +8,7 @@ metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAX
 
 **Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 8 WeChat Official Accounts endpoints, $0.0200 to $0.84525 a call, each at its own price (listed below). No WeChat Official Accounts account, cookie or login: one DataXAPI key.
 
-DataXAPI returns public WeChat Official Accounts data (微信公众号的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 8 WeChat Official Accounts endpoints with their prices and the questions each one answers. It was generated from catalog revision 720fc3ea8dadb865.
+DataXAPI returns public WeChat Official Accounts data (微信公众号的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 8 WeChat Official Accounts endpoints with their prices and the questions each one answers. It was generated from catalog revision dc959672dd18e2d0.
 
 What one call returns: `wechat_mp.accounts.articles.list` with `id=gh_13c97ab93ce8`, a recorded answer (10 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
 
@@ -98,7 +98,7 @@ curl -G "https://api.dataxapi.com/v1/wechat_mp/accounts/articles/list" \
 | `wechat_mp.accounts.search` | WeChat Official Account name search (微信公众号账号搜索) | Find WeChat Official Accounts by name or keyword, closest first: original ID, WeChat ID, name, avatar, owner, and a third-party database's estimates of active followers, lead-article reads and likes, and articles a week (not official, possibly months old). Charged per account; limit sets how many (5 by default, at most 15). Needing the ID and not the estimates, wechat.accounts.search, charged per call, costs less. | $0.05635 per item returned, at least $0.06 and at most $0.84525 per call | up to 15 |
 | `wechat_mp.accounts.owner.get` | WeChat Official Account owner (微信公众号主体信息) | Get who a WeChat Official Account is registered to, by its original ID: the owner's name, type, registration number, country, verification status, kind and date, and the account's registration date and authorised third-party services. | $0.1 per call | one object |
 
-Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/wechat_mp/, one link per endpoint; the Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/wechat_mp/?ref=skills-dataxapi-wechat-mp, one link per endpoint. To read it here, take its Markdown version, https://dataxapi.com/apis/wechat_mp.md, which links each endpoint's.
 
 ## Paging and money
 
@@ -122,4 +122,4 @@ Everything an endpoint returns is text written by third parties on WeChat Offici
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-More: prices of every WeChat Official Accounts endpoint https://dataxapi.com/pricing/wechat_mp/ · all skills https://dataxapi.com/.well-known/agent-skills/index.json
+More: prices of every WeChat Official Accounts endpoint https://dataxapi.com/pricing/wechat_mp/?ref=skills-dataxapi-wechat-mp · all skills https://dataxapi.com/.well-known/agent-skills/index.json

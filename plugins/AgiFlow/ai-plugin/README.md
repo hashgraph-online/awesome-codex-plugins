@@ -7,8 +7,8 @@ Works with **ChatGPT**, **Claude Code**, **Codex**, **Cursor**, **Antigravity**,
 
 ## Installation
 
-This repo is a self-contained, multi-client plugin bundle. Until it is published to each client's
-marketplace, load it as a local plugin directory.
+Installation differs by client. Follow the instructions below to use the AgiFlow marketplace,
+connect to the hosted MCP server, or load a local checkout.
 
 ### Claude Code
 

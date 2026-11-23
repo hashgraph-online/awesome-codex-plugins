@@ -1,6 +1,6 @@
 {
   "name": "supercov",
-  "version": "4.28.0",
+  "version": "4.29.0",
   "description": "Coverage, security and code quality for coding agents.",
   "author": {
     "name": "Supercorp",
@@ -12,13 +12,14 @@
   "keywords": [
     "coverage",
     "testing",
+    "mutation-testing",
     "code-quality",
     "security"
   ],
   "interface": {
     "displayName": "Supercov",
     "shortDescription": "Coverage, security and code quality for coding agents",
-    "longDescription": "Runs your project's existing tests, measures line, branch and MC/DC coverage, and hands the agent the untested code to test next. Finds risky lines and code smells file by file, on the whole repository or only on the change. JavaScript, TypeScript, Python, Ruby, Rust, Go, Java and Kotlin.",
+    "longDescription": "Runs your project's existing tests, measures line, branch and MC/DC coverage, runs the tests against mutants to check they would catch bugs, and hands the agent the untested code to test next. Finds risky lines and code smells file by file, on the whole repository or only on the change. JavaScript, TypeScript, Python, Ruby, Rust, Go, Java and Kotlin.",
     "developerName": "Supercorp",
     "category": "Developer Tools",
     "capabilities": [
@@ -31,6 +32,7 @@
     "termsOfServiceURL": "https://supercov.com/terms",
     "defaultPrompt": [
       "Find the untested code in this repository and add tests for it.",
+      "Check whether the tests on this branch would catch bugs.",
       "Check this branch for security issues.",
       "What should I refactor first?"
     ],

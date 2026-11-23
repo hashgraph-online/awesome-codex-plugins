@@ -17,7 +17,7 @@ If the `converter-studio` tools (`list_formats`, `convert`, `create_upload`, `ge
 3. `convert` waits up to 100 seconds. If the status is not `done`, call `get_conversion` with the id and `waitSeconds`.
 4. When done, download `downloadUrl` (valid for 6 hours) to where the user wants the file, or give them the link.
 
-Conversions cost credits from the user's converter.studio account: most files 1 credit, video about 1 credit per 3 minutes at 1080p. A conversion above `maxCredits` (default 20) stops at `quoted`: tell the user the price and call `confirm_conversion` only after they agree. On `notEnoughCredits`, tell the user; more credits are at https://converter.studio/pricing.
+Conversions cost credits from the user's converter.studio account: most files 1 credit; audio and video are priced by their length (and video by its frame size and the format made, WebM costing several times more than MP4) once Converter Studio has looked at them. A conversion above `maxCredits` (default 20) stops at `quoted`: tell the user the price and call `confirm_conversion` only after they agree. On `notEnoughCredits`, tell the user; more credits are at https://converter.studio/pricing.
 
 ## 2. Without the MCP tools
 

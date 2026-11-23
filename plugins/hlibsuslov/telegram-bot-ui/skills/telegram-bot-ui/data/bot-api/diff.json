@@ -1,8 +1,115 @@
 {
- "from_version": null,
- "to_version": "10.4",
- "initial": true,
- "added": {},
- "removed": {},
- "changed": {}
+ "from_version": "10.4",
+ "to_version": "10.5",
+ "from_fetched_at": "2026-11-15",
+ "to_fetched_at": "2026-11-22",
+ "initial": false,
+ "added": {
+  "methods": [
+   "setMySettings"
+  ],
+  "types": [
+   "BotFullInfo"
+  ]
+ },
+ "removed": {
+  "methods": [],
+  "types": []
+ },
+ "changed": {
+  "methods": {
+   "answerCallbackQuery": {
+    "description_changed": true
+   },
+   "getMe": {
+    "returns": [
+     "User",
+     "BotFullInfo"
+    ],
+    "description_changed": true
+   }
+  },
+  "types": {
+   "CallbackQuery": {
+    "modified_fields": {
+     "inline_message_id": {
+      "description_changed": true
+     }
+    },
+    "description_changed": true
+   },
+   "ChosenInlineResult": {
+    "modified_fields": {
+     "location": {
+      "description_changed": true
+     }
+    },
+    "description_changed": true
+   },
+   "InlineQuery": {
+    "modified_fields": {
+     "location": {
+      "description_changed": true
+     }
+    }
+   },
+   "InputRichBlockExpandableBlockQuotation": {
+    "added_fields": [
+     "blocks"
+    ],
+    "removed_fields": [
+     "text"
+    ]
+   },
+   "KeyboardButton": {
+    "modified_fields": {
+     "request_managed_bot": {
+      "description_changed": true
+     }
+    }
+   },
+   "Message": {
+    "modified_fields": {
+     "write_access_allowed": {
+      "description_changed": true
+     }
+    }
+   },
+   "RichBlockExpandableBlockQuotation": {
+    "added_fields": [
+     "blocks"
+    ],
+    "removed_fields": [
+     "text"
+    ]
+   },
+   "Update": {
+    "modified_fields": {
+     "chosen_inline_result": {
+      "description_changed": true
+     }
+    }
+   },
+   "User": {
+    "removed_fields": [
+     "allows_users_to_create_topics",
+     "can_connect_to_business",
+     "can_join_groups",
+     "can_manage_bots",
+     "can_read_all_group_messages",
+     "has_main_web_app",
+     "has_topics_enabled",
+     "supports_guest_queries",
+     "supports_inline_queries",
+     "supports_join_request_queries"
+    ]
+   },
+   "WriteAccessAllowed": {
+    "added_fields": [
+     "inviter"
+    ],
+    "description_changed": true
+   }
+  }
+ }
 }

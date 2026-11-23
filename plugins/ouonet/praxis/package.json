@@ -20,6 +20,30 @@
   "bin": {
     "praxis": "bin/praxis.js"
   },
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "skills/",
+    "rules/",
+    "hooks/",
+    "extensions/",
+    "assets/",
+    ".opencode/plugins/",
+    ".opencode/INSTALL.md",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".copilot-plugin/",
+    ".qoder-plugin/",
+    ".grok-plugin/",
+    "plugin.json",
+    "gemini-extension.json",
+    "model-tiers.example.yaml",
+    "!**/node_modules",
+    "!**/node_modules/**"
+  ],
   "keywords": [
     "triage",
     "discipline",
@@ -37,7 +61,7 @@
     ]
   },
   "scripts": {
-    "test": "node --test test/**/*.test.js",
+    "test": "node --test test/adapters.test.js test/cli.test.js test/invariants.test.js test/session-start.test.js",
     "check": "node --test test/invariants.test.js"
   }
 }

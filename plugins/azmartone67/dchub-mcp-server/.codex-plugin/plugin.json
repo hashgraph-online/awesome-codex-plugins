@@ -1,7 +1,7 @@
 {
   "name": "dchub",
-  "version": "2.12.60",
-  "description": "DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. Call execute_plan first. It also publishes the Data Center Power Index (DCPI). 98 tools at https://dchub.cloud/mcp.",
+  "version": "2.12.62",
+  "description": "DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. Call execute_plan first. It also publishes the Data Center Power Index (DCPI). Remote MCP at https://dchub.cloud/mcp.",
   "author": {
     "name": "DC Hub",
     "url": "https://dchub.cloud",
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "DC Hub",
     "shortDescription": "DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. Call execute_plan first. It also publishes the Data Center Power Index (DCPI).",
-    "longDescription": "DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. Call execute_plan first for any question about power, grid, interconnection queues, capacity, fiber, sites or markets; it chains the right tools and returns one dated, cited answer. It also publishes the Data Center Power Index (DCPI). 98 tools at https://dchub.cloud/mcp. DCHUB_API_KEY is optional.",
+    "longDescription": "DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. Call execute_plan first for any question about power, grid, interconnection queues, capacity, fiber, sites or markets; it chains the right tools and returns one dated, cited answer. It also publishes the Data Center Power Index (DCPI). Remote MCP at https://dchub.cloud/mcp. DCHUB_API_KEY is optional.",
     "developerName": "DC Hub",
     "category": "Data",
     "capabilities": [

@@ -2,9 +2,9 @@
 
 The whole Bot API (every method and type, with fields, required flags, return
 types and union members) is committed as JSON in `data/bot-api/`, together with the
-full changelog. Three stdlib tools work on it offline. Snapshot: **Bot API 10.4
-(released 2026-11-09), fetched 2026-11-15** — 193 methods, 425 types, 29 unions,
-81 changelog releases. No version newer than 10.4 existed on 2026-11-15
+full changelog. Three stdlib tools work on it offline. Snapshot: **Bot API 10.5
+(released 2026-11-22), fetched 2026-11-22** — 194 methods, 426 types, 29 unions,
+82 changelog releases. No version newer than 10.5 existed on 2026-11-22
 (checked https://core.telegram.org/bots/api-changelog).
 
 ## The data
@@ -100,20 +100,22 @@ py -3 scripts/tg_api_lookup.py version <new>
 | Gifts and stories | `sendGift`, `getUniqueGift`, `postStory` | `gifts-and-stories.md`, `specialized-updates.md` |
 | Mini Apps (bot side) | `WebAppInfo`, `answerWebAppQuery`, `savePrepared*` | `mini-apps-bridge.md` |
 | Topics | `createForumTopic`, `message_thread_id` | `topics-and-contexts.md` |
+| Bot settings and identity | `setMySettings`, `getMe` (`BotFullInfo`), `setMyCommands` | `bot-settings.md`, `navigation-and-flows.md` |
 | Channels and broadcasting | `allow_paid_broadcast`, suggested posts, direct messages | `channels-and-broadcasting.md` |
 | Stickers, custom emoji | `getCustomEmojiStickers`, sticker sets | `custom-emoji.md` (sticker-set management: catalog only) |
 | Games, Telegram Passport | `sendGame`, `setPassportDataErrors` | catalog only (`tg_api_lookup.py show …`) |
 | SDK support of all of the above | — | `sdk-compatibility.md` |
 
-## What each release added (9.0 → 10.4)
+## What each release added (9.0 → 10.5)
 
 Summaries of the official changelog; full text: `py -3 scripts/tg_api_lookup.py
-version <v>`. Deep 10.3/10.4 coverage: `bot-api-10.3-10.4.md`.
+version <v>`. Deep 10.3-10.5 coverage: `bot-api-coverage.md`.
 
 | Version | Date | Added (main items) | Taught in |
 |---|---|---|---|
-| **10.4** | 2026-11-09 | HTML widgets (`sendWidget`, `widget_query`, shared widgets, TON wallet queries); ephemeral callback replies without `receiver_user_id`; quotes from rich messages; TON wallet cards/transfers, `ton_address`/`bank_card_number` entities; chat share themes; `getUniqueGift`, `deleteBusinessAccountGift`; `PaidMessagesWaived`; private-topic links; `AreaPosition` rename | `bot-api-10.3-10.4.md`, `widgets.md`, `wallet-and-ton.md`, `gifts-and-stories.md` |
-| **10.3** | 2026-08-24 | Rich buttons, compact tables, expandable quotes, document blocks; `EphemeralMessageParameters`; disabled buttons; `force_reply` on keyboards; Stop for drafts (`can_stop`, `stopped_message_generation`); `can_send_welcome_messages`; community joins; gift text | `bot-api-10.3-10.4.md`, `buttons-and-styles.md`, `streaming-and-editing.md` |
+| **10.5** | 2026-11-22 | Bot settings from code (`setMySettings`: inline mode, placeholder, location, feedback share, groups, privacy, business, managed bots, guest/join-request queries, topics + `has_topic_sidebar`, bot-to-bot, `callback_query_mode`); `getMe` returns `BotFullInfo` (getMe-only fields left `User`; `active_usernames`, `inline_query_placeholder`, `needs_inline_query_location`, `has_topic_sidebar`); owner invites `t.me/botinvite/<bot>` + `WriteAccessAllowed.inviter`; expandable quotes hold `blocks` instead of `text` | `bot-settings.md`, `bot-api-coverage.md`, `telegram-capabilities.md` |
+| **10.4** | 2026-11-09 | HTML widgets (`sendWidget`, `widget_query`, shared widgets, TON wallet queries); ephemeral callback replies without `receiver_user_id`; quotes from rich messages; TON wallet cards/transfers, `ton_address`/`bank_card_number` entities; chat share themes; `getUniqueGift`, `deleteBusinessAccountGift`; `PaidMessagesWaived`; private-topic links; `AreaPosition` rename | `bot-api-coverage.md`, `widgets.md`, `wallet-and-ton.md`, `gifts-and-stories.md` |
+| **10.3** | 2026-08-24 | Rich buttons, compact tables, expandable quotes, document blocks; `EphemeralMessageParameters`; disabled buttons; `force_reply` on keyboards; Stop for drafts (`can_stop`, `stopped_message_generation`); `can_send_welcome_messages`; community joins; gift text | `bot-api-coverage.md`, `buttons-and-styles.md`, `streaming-and-editing.md` |
 | **10.2** | 2026-07-14 | Ephemeral messages; rich input blocks (`InputRichBlock*`), `InputMediaVoiceNote`; Communities; `Update.subscription` (`BotSubscriptionUpdated`); Mini App origin hardening | `ephemeral-and-personal.md`, `payments-and-stars.md#subscriptions-bot-features`, `mini-apps-bridge.md` |
 | **10.1** | 2026-06-11 | Rich Messages (`sendRichMessage`, `sendRichMessageDraft`, `RichBlock*`); join-request queries (`answerChatJoinRequestQuery`, `sendChatJoinRequestWebApp`); poll link media | `telegram-capabilities.md`, `chat-administration.md#invite-links-and-join-requests` |
 | **10.0** | 2026-05-08 | Guest mode (`guest_message`, `answerGuestQuery`); `deleteMessageReaction`, `deleteAllMessageReactions`, `can_react_to_messages`, `getChatAdministrators.return_bots`; poll media, `members_only`, `country_codes`, 1-option polls; live photos (`sendLivePhoto`); business bots without Premium; bot-to-bot messages; managed-bot access settings | `updates-and-delivery.md`, `polls-checklists-and-reactions.md`, `media-and-files.md#live-photos-100`, `business-accounts.md` |

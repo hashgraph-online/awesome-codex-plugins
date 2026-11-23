@@ -57,7 +57,7 @@ function reservedPaths(args) {
 
 const ENTRY_RE = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
 
-/** `unzip` stdout cap: Node's 1 MB default kills `-Z1` on a valid site with >1 MB of names (ENOBUFS). */
+/** Bound central-directory metadata and integrity-check output before processing. */
 const LIST_MAX_BUFFER = 1024 * 1024;
 const CHECK_TIMEOUT_MS = 10000;
 
@@ -172,59 +172,86 @@ except (OSError, ValueError, zipfile.BadZipFile):
     sys.exit(1)
 `;
 
-// Central-directory budgets run before any decompression; ZIP64 and split archives fail closed.
-function archiveBudget(zipPath, reserved) {
-  if (statSync(zipPath).size > 25 * 1024 * 1024) return 'archive exceeds local inspection limits';
+// Local and central entries must identify the same bounded, unambiguous UTF-8 members.
+function archiveMembers(zipPath, reserved) {
+  const rejected = why => ({ why });
+  if (statSync(zipPath).size > 25 * 1024 * 1024) return rejected('archive exceeds local inspection limits');
   const data = readFileSync(zipPath);
   let end = data.length - 22;
   const floor = Math.max(0, end - 65535);
   while (end >= floor && !(data.readUInt32LE(end) === 0x06054b50 && end + 22 + data.readUInt16LE(end + 20) === data.length)) end--;
-  if (end < floor) return 'archive has no valid central directory';
+  if (end < floor) return rejected('archive has no valid central directory');
   const count = data.readUInt16LE(end + 10);
   const size = data.readUInt32LE(end + 12);
   let position = data.readUInt32LE(end + 16);
-  if (data.readUInt16LE(end + 4) || data.readUInt16LE(end + 6) || data.readUInt16LE(end + 8) !== count || count === 65535 || position + size !== end) return 'unsupported ZIP64 or split archive';
-  if (count > 400 || size > LIST_MAX_BUFFER) return 'archive exceeds local inspection limits';
+  if (data.readUInt16LE(end + 4) || data.readUInt16LE(end + 6) || data.readUInt16LE(end + 8) !== count || count === 65535 || position + size !== end) return rejected('unsupported ZIP64 or split archive');
+  if (count > 400 || size > LIST_MAX_BUFFER) return rejected('archive exceeds local inspection limits');
   const centralStart = position;
   const spans = [];
-  let expanded = 0; let files = 0;
+  const paths = new Set();
+  const names = [];
+  let expanded = 0;
   for (let i = 0; i < count; i++) {
-    if (position + 46 > end || data.readUInt32LE(position) !== 0x02014b50) return 'archive central directory is malformed';
+    if (position + 46 > end || data.readUInt32LE(position) !== 0x02014b50) return rejected('archive central directory is malformed');
     const bytes = data.readUInt32LE(position + 24);
     const length = data.readUInt16LE(position + 28);
-    const next = position + 46 + length + data.readUInt16LE(position + 30) + data.readUInt16LE(position + 32);
-    if (next > end || data.readUInt32LE(position + 20) === 0xffffffff || data.readUInt32LE(position + 42) >= end || data.readUInt16LE(position + 34)) return 'archive central directory is malformed';
+    const extra = position + 46 + length;
+    const extraEnd = extra + data.readUInt16LE(position + 30);
+    const next = extraEnd + data.readUInt16LE(position + 32);
+    if (next > end || data.readUInt32LE(position + 20) === 0xffffffff || data.readUInt32LE(position + 42) >= end || data.readUInt16LE(position + 34)) return rejected('archive central directory is malformed');
     const nameBytes = data.subarray(position + 46, position + 46 + length);
     const name = nameBytes.toString('utf8');
     const local = data.readUInt32LE(position + 42);
     if (local + 30 + length > end || data.readUInt32LE(local) !== 0x04034b50 || data.readUInt16LE(local + 26) !== length ||
-        !nameBytes.equals(data.subarray(local + 30, local + 30 + length))) return 'archive member paths disagree';
-    if (reserved.member(name)) return reservedMessage;
+        !nameBytes.equals(data.subarray(local + 30, local + 30 + length))) return rejected('archive member paths disagree');
+    if (reserved.member(name)) return rejected(reservedMessage);
+    const directory = name.endsWith('/');
+    const path = directory ? name.slice(0, -1) : name;
+    if (!nameBytes.equals(Buffer.from(name)) || /[\\\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(path) ||
+        path.split('/').some(part => part === '' || part !== part.trim() || part === '.' || part.toLowerCase().replace(/%2e/g, '.') === '..') ||
+        paths.has(path)) return rejected('archive member paths are ambiguous');
+    paths.add(path);
     const flags = data.readUInt16LE(position + 8);
     const compressed = data.readUInt32LE(position + 20);
-    const payloadEnd = local + 30 + length + data.readUInt16LE(local + 28) + compressed;
-    if (data.readUInt16LE(local + 6) !== flags || data.readUInt16LE(local + 8) !== data.readUInt16LE(position + 10) || payloadEnd > centralStart) return 'archive member headers disagree';
+    const localExtra = local + 30 + length;
+    const localExtraEnd = localExtra + data.readUInt16LE(local + 28);
+    const payloadEnd = localExtraEnd + compressed;
+    if (data.readUInt16LE(local + 6) !== flags || data.readUInt16LE(local + 8) !== data.readUInt16LE(position + 10) || payloadEnd > centralStart) return rejected('archive member headers disagree');
+    if (!sameArchiveName(data, extra, extraEnd, nameBytes) || !sameArchiveName(data, localExtra, localExtraEnd, nameBytes)) return rejected('archive member paths disagree');
     let memberEnd = payloadEnd;
     if (flags & 8) {
-      if (payloadEnd + 12 > centralStart) return 'archive data descriptor is malformed';
+      if (payloadEnd + 12 > centralStart) return rejected('archive data descriptor is malformed');
       const descriptor = data.readUInt32LE(payloadEnd) === 0x08074b50 ? payloadEnd + 4 : payloadEnd;
       memberEnd = descriptor + 12;
-      if (memberEnd > centralStart || !data.subarray(descriptor, memberEnd).equals(data.subarray(position + 16, position + 28))) return 'archive data descriptor is malformed';
-    } else if (!data.subarray(local + 14, local + 26).equals(data.subarray(position + 16, position + 28))) return 'archive member lengths or checksums disagree';
+      if (memberEnd > centralStart || !data.subarray(descriptor, memberEnd).equals(data.subarray(position + 16, position + 28))) return rejected('archive data descriptor is malformed');
+    } else if (!data.subarray(local + 14, local + 26).equals(data.subarray(position + 16, position + 28))) return rejected('archive member lengths or checksums disagree');
     spans.push([local, memberEnd]);
     expanded += bytes;
-    if (!name.endsWith('/')) files++;
-    if (bytes > 5 * 1024 * 1024 || expanded > 40 * 1024 * 1024 || files > 200 || length > 900) return 'archive exceeds local inspection limits';
+    if (!directory) names.push(name);
+    if (bytes > 5 * 1024 * 1024 || expanded > 40 * 1024 * 1024 || names.length > 200 || length > 900) return rejected('archive exceeds local inspection limits');
     position = next;
   }
-  if (position !== end) return 'archive central directory is malformed';
+  if (position !== end) return rejected('archive central directory is malformed');
   spans.sort((a, b) => a[0] - b[0]);
   let offset = 0;
   for (const [start, finish] of spans) {
-    if (start !== offset) return 'archive has unlisted or overlapping member data';
+    if (start !== offset) return rejected('archive has unlisted or overlapping member data');
     offset = finish;
   }
-  return offset === centralStart ? '' : 'archive has unlisted member data';
+  return offset === centralStart ? { names: names.sort() } : rejected('archive has unlisted member data');
+}
+
+function sameArchiveName(data, start, end, name) {
+  for (let offset = start; offset < end;) {
+    if (offset + 4 > end) return false;
+    const tag = data.readUInt16LE(offset);
+    const length = data.readUInt16LE(offset + 2);
+    const next = offset + 4 + length;
+    if (next > end) return false;
+    if (tag === 0x7075 && (length < 5 || data[offset + 4] !== 1 || !data.subarray(offset + 9, next).equals(name))) return false;
+    offset = next;
+  }
+  return true;
 }
 
 function die(msg) {
@@ -317,24 +344,18 @@ function failure(bin, r) {
   return r.signal ? `${bin} killed by ${r.signal}` : '';
 }
 
-/** One `unzip` run: { out }, or { why } telling a bad archive (non-zero exit) from a check that never finished. */
-function unzip(flag, zipPath) {
-  const r = spawnSync('unzip', [flag, zipPath], { env: archiveEnv, encoding: 'utf8', maxBuffer: LIST_MAX_BUFFER, timeout: CHECK_TIMEOUT_MS, killSignal: 'SIGKILL' });
-  if (r.status !== 0 && r.status !== null) return { why: 'archive failed its integrity check' };
+function checkIntegrity(zipPath) {
+  const r = spawnSync('unzip', ['-tq', zipPath], { env: archiveEnv, encoding: 'utf8', maxBuffer: LIST_MAX_BUFFER, timeout: CHECK_TIMEOUT_MS, killSignal: 'SIGKILL' });
+  if (r.status !== 0 && r.status !== null) return 'archive failed its integrity check';
   const why = failure('unzip', r);
-  return why ? { why: `archive could not be checked: ${why}` } : { out: r.stdout || '' };
+  return why ? `archive could not be checked: ${why}` : '';
 }
 
-/** `unzip -tq` then `unzip -Z1`: { names } sorted, directory entries dropped, or { why }. */
 function listArchive(zipPath, reserved) {
-  const budget = archiveBudget(zipPath, reserved);
-  if (budget) return { why: budget };
-  const t = unzip('-tq', zipPath);
-  if (t.why) return t;
-  const z = unzip('-Z1', zipPath);
-  if (z.why) return z;
-  const names = z.out.split('\n').map((s) => s.trim()).filter((s) => s !== '' && !s.endsWith('/')).sort();
-  return names.some(reserved.member) ? { why: reservedMessage } : { names };
+  const inspected = archiveMembers(zipPath, reserved);
+  if (inspected.why) return inspected;
+  const why = checkIntegrity(zipPath);
+  return why ? { why } : inspected;
 }
 
 /** The one manifest format, and the only place the exit code is decided; always the caller's last call.
@@ -497,7 +518,7 @@ function file(args) {
   try { readSync(fd, signature); } finally { closeSync(fd); }
   if (args['zip-snapshot'] === 'yes') return;
   if (signature.equals(Buffer.from('504b0304', 'hex'))) {
-    const problem = archiveBudget(args.out, reserved);
+    const { why: problem } = archiveMembers(args.out, reserved);
     if (problem) {
       rmSync(args.out, { force: true });
       die(problem);
