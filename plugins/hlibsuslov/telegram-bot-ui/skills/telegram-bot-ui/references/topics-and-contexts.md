@@ -28,6 +28,10 @@ private chat has it** — use it as a "go to the other conversation" button insi
 it is useless to anyone else, so never post it publicly. Each topic runs its own operations; a
 second generation in a busy topic is refused or queued, never interleaved.
 
+10.5: `setMySettings` turns topics on from code (`has_topics_enabled`,
+`allows_users_to_create_topics`) and can list them in a sidebar (`has_topic_sidebar`);
+`getMe` reads all three back (`bot-settings.md#topics-in-the-private-chat-and-the-sidebar`).
+
 ## Channel direct messages
 
 Use `direct_messages_topic_id` (never `message_thread_id`), no ephemeral callback replies, and

@@ -147,12 +147,6 @@ npx skills add github/awesome-copilot -s flowstudio-power-automate-governance
 npx clawhub@latest install power-automate-mcp
 ```
 
-### Install via Smithery
-
-```bash
-npx smithery skill add flowstudio/power-automate-mcp
-```
-
 ### Manual install
 
 Copy the skill folder(s) into your project's `.github/skills/` directory
@@ -245,7 +239,6 @@ Works with Copilot, Claude, ChatGPT, and any MCP-compatible agent.
 
 - [awesome-copilot](https://github.com/github/awesome-copilot) (merged)
 - [skills.sh](https://skills.sh/?q=flowstudio) (3K+ installs)
-- [Smithery](https://smithery.ai/skills/flowstudio/power-automate-mcp) (published)
 - [ClawHub](https://clawhub.ai) (v1.1.0)
 
 ## Contributing

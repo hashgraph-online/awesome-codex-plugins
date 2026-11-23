@@ -162,9 +162,10 @@ project's Bot API version.
   available — verify the version first (`project-adaptation.md`,
   `sdk-compatibility.md`).
 
-## Bot API 10.3 / 10.4 rich additions
+## Rich additions (Bot API 10.3-10.5)
 
-Verified 2026-11-12. Output (`RichBlock*`) and input (`InputRichBlock*`) types mirror each other.
+Verified 2026-11-12, expandable quotes re-checked against 10.5 on 2026-11-22. Output (`RichBlock*`)
+and input (`InputRichBlock*`) types mirror each other.
 
 | Feature | Rich HTML | Block JSON | Notes |
 |---|---|---|---|
@@ -172,7 +173,7 @@ Verified 2026-11-12. Output (`RichBlock*`) and input (`InputRichBlock*`) types m
 | Button in text (10.3) | `<tg-button …>` inside a paragraph | `{"type":"button","button":{…}}` (`RichTextButton`) | text: plain, custom emoji, date-time |
 | Disabled button | `<tg-button type="disabled">` | `"disabled": {}` | |
 | Compact table (10.3) | `<table compact>` | `"is_compact": true` | `tables.md#compact-tables` |
-| Expandable quote (10.3) | `<blockquote expandable>…<cite>…</cite></blockquote>` | `{"type":"expandable_blockquote","text","credit?"}` | |
+| Expandable quote (10.3; blocks since 10.5) | `<blockquote expandable>…<cite>…</cite></blockquote>` | `{"type":"expandable_blockquote","blocks":[InputRichBlock…],"credit?"}` | 10.5 replaced `text` with `blocks`: wrap old text in `{"type":"paragraph","text":…}`; lists, tables and code can now sit inside |
 | Document (10.3) | `<tg-document src="…">` / Markdown `![](file "caption")` | `{"type":"document","document":InputMediaDocument,"caption?":{text,credit?}}` | |
 | `tg://document?id=X` (10.3) | in markdown/html, bound by `media: [{id:"X", media: InputMediaDocument}]` | — | ids 1–64 of `A-Za-z0-9_-` |
 | TON address (10.4) | — (received) | `{"type":"ton_address","text","address"}` (`RichTextTonAddress`) | read `address` |

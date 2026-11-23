@@ -56,7 +56,14 @@ Borderline calls:
 - **Positive but not final.** "Take the test", "Try again" → `primary`, not
   `success`; nothing was committed yet.
 - **A list of equal options** (products, languages, dates) gets **no** style.
-  Coloring 8 equal options destroys the hierarchy it was meant to create.
+  Coloring 8 equal options destroys the hierarchy it was meant to create. The same for
+  **peer choices** (pickup vs delivery, two plans side by side): style neither.
+- **Consent is not success.** "I agree to the terms" / "Allow notifications" is a choice the
+  user makes, not a completed action: `primary` at most, never `success`; its refusal
+  ("Not now", "Decline") is never `danger`.
+- **Escapes stay neutral:** Back, Close, Cancel-this-dialog, Skip, "Reset filters" and "Clear
+  search" lose nothing. No `danger`, no `success`, and no ✅/❌ on them: those symbols mean
+  done/failed (`visual-language.md` §3). `validate_keyboard.py` warns on both.
 
 ### Emphasis budget per screen
 
@@ -132,7 +139,9 @@ Details and trade-offs: `inline-keyboards.md`, `reply-keyboards.md`,
 |---|---|---|
 | Every button styled | No hierarchy; the screen reads as noise | ≤2 styled, ≤1 `primary` |
 | `style` used for branding | The three values are semantic, not a palette | Explain the constraint |
-| `danger` on "Back"/"Cancel dialog" | Trains users to fear a safe action | Leave unstyled |
+| `danger` on "Back"/"Cancel dialog", "❌ Close" | Trains users to fear a safe action; ❌ reads as "failed" | Leave unstyled, arrow or no icon |
+| Main action under Back/Cancel | The eye finds navigation first; Back moves between screens | Actions first, navigation last row |
+| "OK", "Yes", "Submit" | The label doesn't say what happens | Name the outcome: "Yes, delete it", "Place order" |
 | Emoji-only labels (`🔙`, `✅`) | Ambiguous, unsearchable, bad for screen readers | Emoji **+** word |
 | 12 options in one column | Endless scroll, no structure | Group + paginate |
 | Same action named differently per screen | Users can't build a model of the bot | One label per action, everywhere |

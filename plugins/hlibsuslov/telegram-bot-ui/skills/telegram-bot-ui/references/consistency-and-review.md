@@ -82,7 +82,10 @@ The Telegram-side chrome must agree with the in-message UI:
 - [ ] `style` only `primary` / `success` / `danger`, assigned by meaning.
 - [ ] ≤1 `primary` per screen; `danger` only for real destruction, with a
       confirmation step.
-- [ ] Every label readable and unambiguous with no color and no emoji.
+- [ ] Every label readable and unambiguous with no color and no emoji (strip test:
+      read the screen with `style` and icons removed).
+- [ ] Main action first, navigation last and unstyled, no ✅/❌ on navigation, no bare
+      "OK"/"Yes"/"Submit" (`validate_keyboard.py` shows no warnings).
 - [ ] No duplicate labels within one keyboard.
 
 **Custom emoji**
@@ -95,7 +98,7 @@ The Telegram-side chrome must agree with the in-message UI:
 
 **Text**
 - [ ] Facts, placeholders, and links preserved; i18n catalogs updated.
-- [ ] Errors/empty/confirm/success screens follow the shapes in
+- [ ] Errors/empty/confirm/success/stale/notification screens follow the shapes in
       `microcopy-and-labels.md`.
 - [ ] Escaping correct for the parse mode; nothing over the length limits.
 

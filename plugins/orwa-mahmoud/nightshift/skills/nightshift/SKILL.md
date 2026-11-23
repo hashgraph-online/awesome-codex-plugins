@@ -180,8 +180,14 @@ From the table you already read, the `receipts.*` rows decide the receipts. `rec
 means write no receipt files; every other record stays exactly as honest.
 
 The shape of every item file is What was delivered · Why · Tried and rejected · Verification ·
-Outputs · Parked decisions and snags. Read that shape once when the first item starts. When
-`receipts.templatePath` is set, follow that template instead.
+Not verified · Check it yourself · Outputs · Parked decisions and snags. Read that shape once when
+the first item starts. When `receipts.templatePath` is set, follow that template instead.
+
+Write for the owner reading it in the morning, not for another agent: plain sentences, the
+behaviour that changed rather than file names, and nothing the reader gains nothing from. Length
+follows the work. An item of a few minutes gets a line or two in each section. An item that ran
+for hours has more to report and may run longer, a line or two for each stretch of work. Never
+paste a log, a diff, or a list of changed files: the commit holds those.
 
 An item with an `Evidence:` line also gets an `## Evidence` section after Verification. Short
 evidence goes inline; screenshots, recordings and data go in a folder named after the receipt,
@@ -193,7 +199,7 @@ Archive files the folder with its receipt, and a renamed receipt takes its folde
 the permanent id on the item's line (`<!-- id: k7q2 -->`). The pulse names the file, the runtime
 finds it by its id, and between shifts it is renamed to follow a renumbered or retitled item. It
 carries what was delivered, why, what was tried and rejected, the verification that actually ran,
-where the outputs or commits are, and any snag or parked decision it touched. The runtime adds what the item cost when `receipts.usage`
+what no check covered, the shortest way to check the result, where the outputs or commits are, and any snag or parked decision it touched. The runtime adds what the item cost when `receipts.usage`
 is `when-available`, and how long it took when `receipts.duration` is `on`.
 
 The runtime measures what each item cost, from the records the host already keeps, and keeps one

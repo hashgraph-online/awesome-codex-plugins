@@ -54,7 +54,7 @@ def build(name: str) -> dict:
         "status": status,
         "context": context,
         "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-        "bot_api": "10.4 (verified 2026-11-15)",
+        "bot_api": "10.5 (verified 2026-11-22)",
         "steps": [{"method": m, "params": p} for m, p in transport.calls],
     }
 

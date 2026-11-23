@@ -3,22 +3,26 @@
 Users type `@yourbot query` in **any** chat and pick a result; the message is sent
 by the user "via @yourbot". Also covers the switch buttons that open inline mode,
 `chosen_inline_result`, editing inline messages by `inline_message_id`, and prepared
-inline messages for Mini Apps. Checked against Bot API 10.4 on **2026-11-15**:
+inline messages for Mini Apps. Checked against Bot API 10.5 on **2026-11-22**:
 https://core.telegram.org/bots/api#inline-mode, https://core.telegram.org/bots/inline.
 Every JSON block passes `scripts/validate_payload.py`.
 
 Labels: **[API]** spec; **[Official]** Telegram's guides; **[Heuristic]** this skill's advice.
 
-## Bot settings (BotFather)
+## Bot settings
 
-| Command | Effect |
-|---|---|
-| `/setinline` | turns inline mode on and sets the input placeholder **[Official]** |
-| `/setinlinegeo` | the client asks the user for location; `InlineQuery.location` filled **[Official]** |
-| `/setinlinefeedback` | enables `chosen_inline_result`; a sampling probability (1/10, 1/100, 1/1000) limits load **[Official]** |
+| BotFather | `setMySettings` (10.5) | Effect |
+|---|---|---|
+| `/setinline` | `supports_inline_queries`, `inline_query_placeholder` (`""` = default) | turns inline mode on and sets the input placeholder **[API]** |
+| `/setinlinegeo` | `needs_inline_query_location` | the client asks the user for location; `InlineQuery.location` filled **[API]** |
+| `/setinlinefeedback` | `inline_feedback_share_denominator`: 1, 10, 100, 1000; 0 = off | enables `chosen_inline_result` for 1 of N chosen results **[API]** |
 
-Without `/setinline` nobody can invoke the bot inline; without feedback there are no
-`chosen_inline_result` updates at all.
+`getMe` (`BotFullInfo`, 10.5) reads back `supports_inline_queries`,
+`inline_query_placeholder` and `needs_inline_query_location`; the feedback share is
+write-only. Settings from code: `bot-settings.md#inline-mode-settings`.
+
+Without inline mode on (`/setinline` or `supports_inline_queries`) nobody can invoke the bot
+inline; without feedback there are no `chosen_inline_result` updates at all.
 
 ## Flow and state
 

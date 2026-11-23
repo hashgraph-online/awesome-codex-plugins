@@ -98,7 +98,7 @@ Parameters:
   - `query` (required): Search terms. For example `机械键盘`.
   - `sort`: By relevance, by time published (newest first) or by views. One of `relevance`, `latest`, `popular` (default `relevance`). For example `relevance`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/bilibili/videos/search/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/bilibili/videos/search/?ref=skills-bilibili-video-search. To read one here, take its Markdown version: https://dataxapi.com/apis/bilibili/videos/search.md.
 
 ## Paging and money
 
@@ -122,4 +122,4 @@ Everything these endpoints return is text written by third parties on Bilibili. 
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

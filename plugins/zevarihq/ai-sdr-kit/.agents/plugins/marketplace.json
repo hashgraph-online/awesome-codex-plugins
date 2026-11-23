@@ -1,0 +1,12 @@
+{
+  "name": "ai-sdr-kit",
+  "interface": { "displayName": "AI SDR Kit" },
+  "plugins": [
+    {
+      "name": "ai-sdr-kit",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

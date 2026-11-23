@@ -21,6 +21,8 @@ const zh = {
   "tool.setup.description": "素材面板内部使用：让 Codex 经过本机代理（启用），或者恢复直连（停用），重启 Codex 后生效。只有用户能操作，模型调用会被拒绝。",
   "tool.bind.title": "上下文素材：切到新任务",
   "tool.bind.description": "素材面板内部使用：在新任务发出第一条消息之前打开的面板，切到用户刚开始的那个任务。只有用户能操作，模型调用会被拒绝。",
+  "tool.update.title": "上下文素材：自动更新",
+  "tool.update.description": "素材面板内部使用：打开或关闭插件的自动更新，记下用户看过的更新提示。只有用户能操作，模型调用会被拒绝。",
   "server.title": "上下文素材管理器",
   "resource.name": "上下文素材面板",
   // Results and refusals of calls (a refusal of the model's call is read by the model).
@@ -33,6 +35,7 @@ const zh = {
   "call.notUserThread": "只能切到用户自己开始的任务。",
   "call.enabled": "已启用，重启 Codex 后生效。",
   "call.disabled": "已停用，重启 Codex 后恢复直连。",
+  "call.update": "已保存。",
   "call.imageOk": "ok",
   "call.imageNone": "无法显示",
   // A setting of the user's that the tool does not overwrite (codexconfig.ts).
@@ -101,6 +104,8 @@ const en: Record<keyof typeof zh, string> = {
   "tool.setup.description": "Used by the panel: route Codex through the local proxy (enable) or connect directly again (disable); takes effect after Codex restarts. Only the user can do this; calls from the model are refused.",
   "tool.bind.title": "Context Assets: switch to the new task",
   "tool.bind.description": "Used by the panel: a panel opened on a new chat before its first message switches to the task the user just started. Only the user can do this; calls from the model are refused.",
+  "tool.update.title": "Context Assets: automatic updates",
+  "tool.update.description": "Used by the panel: turn the plugin's automatic updates on or off, and note the update message the user has seen. Only the user can do this; calls from the model are refused.",
   "server.title": "Context Attachment Manager",
   "resource.name": "Context Assets panel",
   "call.noThread": "Which task? The threadId is missing.",
@@ -112,6 +117,7 @@ const en: Record<keyof typeof zh, string> = {
   "call.notUserThread": "The panel can only switch to a task the user started.",
   "call.enabled": "Enabled. Restart Codex for it to take effect.",
   "call.disabled": "Disabled. Restart Codex to connect directly again.",
+  "call.update": "Saved.",
   "call.imageOk": "ok",
   "call.imageNone": "cannot be shown",
   "conflict.baseUrl": "config.toml already sets openai_base_url; it was left as it is.",

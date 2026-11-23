@@ -3,7 +3,7 @@
   "status": "production",
   "context": "channel",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-15)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendMediaGroup",

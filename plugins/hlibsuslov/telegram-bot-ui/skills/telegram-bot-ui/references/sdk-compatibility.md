@@ -137,6 +137,25 @@ Adapters: `examples/python/sdk_aiogram/adapter.py`, `examples/ts/sdk-grammy/adap
 each with a REMOVE WHEN condition. SDK status changes quickly: re-run the checks before relying on
 this table.
 
+## Bot API 10.5 status (2026-11-22)
+
+Checked on the release day on the package registries and GitHub: **no SDK declares 10.5 yet**.
+aiogram 3.33.0 (2026-11-19) declares 10.4; grammY 1.46.0 (2026-08-26) is on 10.3;
+node-telegram-bot-api 2.4.1 (2026-11-21) predates the release. tdlib/telegram-bot-api
+committed "Update version to 10.5." on 2026-11-21: a self-hosted server built after that serves
+10.5. What breaks or is missing until an SDK catches up:
+
+- `setMySettings`: call it raw (`bot.session`/`api.raw`, or the adapters below).
+- `getMe` now returns `BotFullInfo`. A typed SDK that parses it as `User` may drop
+  `active_usernames`, `inline_query_placeholder`, `needs_inline_query_location` and
+  `has_topic_sidebar`; read the raw result when you need them.
+- `callback_query_mode` `auto` / `inline`: SDK filters and helpers that assume
+  `callback_query.message` (e.g. `query.message.chat.id`, `message.edit_text`) fail on callbacks
+  that carry only `inline_message_id`. Keep `default` until every handler uses
+  `bot-settings.md#callback-query-mode`.
+- Expandable quotes: SDK models of `InputRichBlockExpandableBlockQuotation` with `text` produce
+  payloads 10.5 rejects; send `blocks` as a raw dict.
+
 ## Release-note check (2026-11-15)
 
 Read from each project's GitHub releases / README and the package registries on

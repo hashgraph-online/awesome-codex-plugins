@@ -62,7 +62,7 @@ Markup for a background video:
 </video>
 ```
 
-Without ffmpeg, the Converter Studio MCP tools convert to MP4 or WebM (`convert` with `to: "mp4"`); video costs about 1 credit per 3 minutes at 1080p, so say so before a long video.
+Without ffmpeg, the Converter Studio MCP tools convert to MP4 or WebM (`convert` with `to: "mp4"`); video is priced by its length, its frame size and the format made (WebM costs several times more than MP4), so say so before a long video and give the price the conversion shows.
 
 ## Report
 

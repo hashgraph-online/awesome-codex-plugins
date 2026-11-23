@@ -53,7 +53,7 @@ npx hyperframes lint .                          # structure errors, fast
 npx hyperframes check .                         # lint + runtime + layout + contrast in one gate
 npx hyperframes snapshot . --at 0.5,3,7.5       # PNG stills at exact seconds: look at them
                                                 # they are written under .hyperframes/artifacts/snapshots/<id>/ (the command prints the path)
-npx hyperframes render . -o draft.mp4 --quality draft --workers 4
+npx hyperframes render . -o draft.mp4 --quality draft --workers 4   # see SKILL.md, Render settings, for how to pick the worker count
 npx hyperframes render . -o render.mp4 --quality delivery --fps 30
 npx hyperframes render . -o fix.mp4 --start 4 --end 7   # re-render a span only
 ```
@@ -85,6 +85,7 @@ Quality presets: `draft` for iterating, `looks` (default) for review, `delivery`
 - `hyperframes check` and `check_delivery.sh` warn about **holds**: a closing line held still, or a freeze over 1.5 s. When the brief asks for that hold, the warning is expected: say so in REPORT.md next to the brief line that asked for it. When it did not, it is dead air: fix it.
 - `hyperframes check` may also suggest a longer closing hold than the brief allows. The brief wins; note the difference in REPORT.md.
 - **Eases, by name.** GSAP's `power1` is quadratic, `power2` cubic, `power3` quartic and `power4` quintic; `.out` decelerates into place (arrivals), `.in` accelerates away (exits), `.inOut` does both. `none` is linear: use it only for constant spins and turntables. When a brief names a feel ("snappy", "soft"), write the ease you chose into SPEC.md.
-- **Freeze warnings and small motion.** `check_delivery.sh` looks for whole-frame freezes. A small element that keeps moving (a counter, a dot) can still trip it, because the change is below its threshold. Pull two stills a second apart inside the flagged stretch and compare them before you call it dead air.
+- **Freeze warnings and small motion.** `check_delivery.sh` runs `scripts/check_seams.py`, which calls a stretch frozen only when every frame matches the one before AND the last frame still matches the first, so a slow pan or push-in over a detailed picture does not trip it. Over a low-texture plate (flat grey, faint noise, a thin grid) a slow push-in changes too little for the 96x54 copy the check reads, and can be reported frozen. A small element that keeps moving (a counter, a dot) can still be missed, because its change is tiny against the whole frame. Pull two stills a second apart inside a flagged stretch and compare them before you call it dead air.
+- **Flashes, pops and overlaps.** The same run reports one-frame flicker as a WARN (a FAIL with `--strict-flicker`; planned flashes listed with `--flash-ok` are INFO). Pass `--joins <seconds,...>` to `check_delivery.sh` for films rendered in acts and joined, to check each join. `scripts/check_clutter.py --dom index.html --at <seconds>` reads the layout from the page. Known render traps are in `references/render-traps.md`.
 - **Starting states belong in CSS.** A `tl.set(el, {...}, 0)` at time 0 may not be applied when the renderer captures frame 0, so an element meant to start hidden flashes in the first frame. Put the starting state (`opacity: 0`, an offset transform) in CSS and animate from it; `hyperframes check` warns about this.
 - **`first_frame_empty` from `hyperframes check`** can be a false alarm when elements are created by script: the static check does not run your script. Confirm with `npx hyperframes snapshot . --at 0` and look at the frame.

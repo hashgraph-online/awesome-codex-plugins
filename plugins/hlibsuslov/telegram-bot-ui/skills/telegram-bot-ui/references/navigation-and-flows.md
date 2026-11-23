@@ -51,7 +51,10 @@ Then look for the classic defects:
   Cancel here is a neutral action (no `danger`).
 - Accept the answer via inline buttons where the option set is finite; use
   `ForceReply` with a placeholder for free text (`reply-keyboards.md`).
-- **Echo what was captured** after each step so users can trust the state.
+- **Echo what was captured** after each step so users can trust the state: either one message
+  edited in place with the answers so far above the question, or one message per question that
+  collapses into its answer ("Size: L ✓", keyboard removed) when the next one is sent.
+- Put the step's main action above the navigation row (Back · Cancel stay last).
 - On completion, remove or disable the flow's keyboard and show a result screen
   with the next sensible action.
 - Handle the user going off-script (a random text message mid-wizard) with a
@@ -102,8 +105,9 @@ version list: `ui-changelog.md`.
   correctness depend on an edit landing.
 - **Topics in private chats (9.3/9.4)** — `message_thread_id` in private chats
   and `createForumTopic` let a bot split a conversation into threads (support,
-  orders, alerts) instead of one flat log. `User.has_topics_enabled` and
-  `User.allows_users_to_create_topics` tell you what is available.
+  orders, alerts) instead of one flat log. `getMe` (`BotFullInfo` since 10.5:
+  `has_topics_enabled`, `allows_users_to_create_topics`, `has_topic_sidebar`) tells
+  you what is on; `setMySettings` turns it on from code (`bot-settings.md`).
 - **Streaming drafts (`sendMessageDraft`, 9.3; all bots since 9.5)** — a
   temporary ~30-second preview of a message being generated; the final message
   must still be sent with `sendMessage`. Perceived-latency UX, not a screen.
@@ -121,6 +125,7 @@ version list: `ui-changelog.md`.
 - Don't send a new message when editing the current screen would do.
 - Group related updates into one message rather than a burst.
 - Give every notification a way to act (a button) or to stop (settings link).
+- Anatomy and resolving it in place: `microcopy-and-labels.md` (Notification).
 
 ## Checklist
 
@@ -131,5 +136,6 @@ version list: `ui-changelog.md`.
 - [ ] Command list short, scoped, localized, verb-first.
 - [ ] Menu button deliberate; deep links preserved and validated.
 - [ ] `/start` works cold, with one clear primary action.
-- [ ] Stale-message taps handled (state re-validated server-side).
+- [ ] Stale-message taps handled (state re-validated server-side); the user gets the stale
+      shape: out of date + what is saved + a fresh screen (`microcopy-and-labels.md`).
 - [ ] Empty and error variants exist for every list/result screen.

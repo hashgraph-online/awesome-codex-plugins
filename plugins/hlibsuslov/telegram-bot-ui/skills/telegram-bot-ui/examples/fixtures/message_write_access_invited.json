@@ -1,0 +1,26 @@
+{
+  "update_id": 900105,
+  "message": {
+    "message_id": 1,
+    "date": 1763800000,
+    "chat": {
+      "id": 444444444,
+      "type": "private",
+      "first_name": "Dana"
+    },
+    "from": {
+      "id": 444444444,
+      "is_bot": false,
+      "first_name": "Dana",
+      "language_code": "en"
+    },
+    "write_access_allowed": {
+      "inviter": {
+        "id": 111111111,
+        "is_bot": false,
+        "first_name": "Alex",
+        "username": "alex_owner"
+      }
+    }
+  }
+}

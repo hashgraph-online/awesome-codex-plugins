@@ -2155,6 +2155,21 @@
       "icon": "./plugins/alexeyco/oh-my-openspec/assets/icon.svg"
     },
     {
+      "name": "omniforge-launch-audit",
+      "displayName": "OmniForge Launch Audit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zColdWater/omniforge-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Read-only pre-launch web security (Supabase RLS and JS secrets), SPF/DKIM/DMARC email DNS, 78-TLD domain RDAP, and /llms.txt audit skills with a zero-auth hosted MCP server.",
+      "icon": "./plugins/zColdWater/omniforge-codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "ontoly",
       "displayName": "Ontoly",
       "source": {
@@ -3527,6 +3542,20 @@
       "category": "Tools & Integrations",
       "description": "Remote MCP server for data tasks: company and people enrichment, SEO and SERP data, social media data and official EU business registers, each call priced before it runs and paid from a prepaid balance. Website: https://ahel.ai",
       "icon": "./plugins/ahel-technologies/ahel/assets/ahel-icon.png"
+    },
+    {
+      "name": "ai-sdr-kit",
+      "displayName": "AI SDR Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zevarihq/ai-sdr-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "The SDR harness for your AI, open source. Gives Codex Zevari's AI Sales Director, an outbound SOP, every LinkedIn and email sequence, automations and an approval-gated LinkedIn and email sending engine."
     },
     {
       "name": "aident-loadout",
@@ -4909,51 +4938,6 @@
       "icon": "./plugins/kinlab-ai/kin-plugin/assets/icon.png"
     },
     {
-      "name": "crawlberg",
-      "displayName": "Kreuzberg",
-      "source": {
-        "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
-    },
-    {
-      "name": "crawlberg",
-      "displayName": "Kreuzberg Cloud",
-      "source": {
-        "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
-    },
-    {
-      "name": "crawlberg",
-      "displayName": "Kreuzcrawl",
-      "source": {
-        "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
-    },
-    {
       "name": "krexa",
       "displayName": "Krexa",
       "source": {
@@ -5057,6 +5041,21 @@
       "category": "Tools & Integrations",
       "description": "Connects Codex to a Leeway drive your team and its agents share, with skills to save without overwriting, find, undo from history, publish from a workspace and leave a hand-off note.",
       "icon": "./plugins/supersethvos/leeway-codex/assets/leeway-icon.png"
+    },
+    {
+      "name": "lemlist",
+      "displayName": "lemlist",
+      "source": {
+        "source": "local",
+        "path": "./plugins/l3mpire/lemlist-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official lemlist plugin: connects Codex to the hosted lemlist MCP server (OAuth) to find leads in the lemlist B2B people database, launch email and LinkedIn campaigns, read campaign stats and check sending-domain deliverability, with four workflow skills.",
+      "icon": "./plugins/l3mpire/lemlist-plugin/assets/icon.png"
     },
     {
       "name": "liendeadline",

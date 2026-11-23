@@ -21,9 +21,12 @@ def build_document(spec_file_id: str, approved: bool = False) -> dict:
         rich.table(["Key", "Owner", "Days left"],
                    [["signing", "Platform", "12"], ["webhook", "Bots team", "48"], ["backup", "SRE", "85"]],
                    compact=True, numeric_cols=frozenset({2}), caption="Status on 12 Nov 2026"),
-        rich.expandable_quote(
-            "Auditor note: rotation must be logged with the operator's id, the old key fingerprint, "
-            "the new key fingerprint and the time. Logs are kept for one year.", credit="Audit 2026-10"),
+        # 10.5: an expandable quote holds blocks, so the auditor's checklist stays a real list.
+        rich.expandable_quote(blocks=[
+            {"type": "paragraph", "text": "Auditor note: every rotation is logged with"},
+            {"type": "list", "items": [{"blocks": [{"type": "paragraph", "text": item}]} for item in (
+                "the operator's id", "the old and the new key fingerprint", "the time")]},
+            {"type": "paragraph", "text": "Logs are kept for one year."}], credit="Audit 2026-10"),
         rich.document_block(spec_file_id, caption="Full procedure (PDF)"),
         {"type": "paragraph", "text": rich.inline_button_text(
             "Questions? ", rich.rich_button("Ask the owner", url="https://t.me/orders_demo_bot?start=ask_rotation", style="primary"))},
@@ -68,7 +71,9 @@ def main() -> None:
     tbl = next(b for b in doc if b["type"] == "table")
     c.check(tbl.get("is_compact") is True and all(x.get("is_header") for x in tbl["cells"][0]),
             "compact table with real header cells")
-    c.check(any(b["type"] == "expandable_blockquote" for b in doc), "long note collapsed by default")
+    quote = next(b for b in doc if b["type"] == "expandable_blockquote")
+    c.check("text" not in quote and [b["type"] for b in quote["blocks"]] == ["paragraph", "list", "paragraph"],
+            "long note collapsed by default; 10.5 quote holds blocks (a real list), not text")
     c.check(any(b["type"] == "document" and b["document"]["type"] == "document" for b in doc),
             "document block wraps an InputMediaDocument")
     c.check(asked == "Rotate the signing key every 90 days.", "quote read from rich_texts when text is empty")

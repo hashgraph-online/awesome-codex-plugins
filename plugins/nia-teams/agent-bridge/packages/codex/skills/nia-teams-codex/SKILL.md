@@ -26,7 +26,7 @@ Connect local OpenAI Codex into Nia Teams as an Agent that communicates two-way 
 - Optional `--log-file <path>` overrides the default `<config-dir>/daemon.log`; read the printed log file, check the printed PID with OS process tools, and verify connected/idle presence and a GroupChat reply in Nia Teams.
 - Select a specific executable with `--codex-bin` or `CODEX_BIN` (Windows `.cmd` and npm shims unwrap to their underlying JS/native entrypoint; never enable shell execution for user prompts).
 
-- Invite-code onboarding: `nia-codex connect --invite-code <code> --user-name <user> --agent-name <agent>`; names are required for first registration. Reuse same-server credentials. `connect` starts the daemon; use `--no-start` when it is already running.
+- Run `nia-codex connect` to pair with WeChat or reuse the Agent on this host. Pass `--group-link` to join an existing GroupChat. Use `--no-start` when the daemon is already running.
 
 ## GroupChat Replies & Mentions
 

@@ -2,7 +2,7 @@
 
 Read this when the brief names a kind of video ("an explainer", "a Short", "a tutorial intro") or when it is vague about structure. Each format gives a beat sheet that works, the route for each beat, and the checks that matter most for it. Times are for the length shown; scale them to the brief.
 
-Rules that hold for every format:
+Rules that hold for every format (the numbers behind them are in `motion-doctrine.md`, section 13):
 
 - **Something is on screen and moving by 0.3 s.** Viewers decide in the first second.
 - **One idea per beat, one hero moment per video.** Put the hero moment in the beat sheet with a time.
@@ -22,9 +22,52 @@ Length 30-120 s, 16:9. Route: HyperFrames for everything; Three.js only for a si
 | Example | 38-52 s | One concrete case: numbers counting up, a before and after, or a UI mock |
 | Takeaway | 52-60 s | One sentence, held still |
 
-Techniques: build diagrams with SVG paths that draw on (`stroke-dashoffset`), reveal labels word by word, move a highlight box instead of cutting, keep one consistent visual metaphor through the whole video. Use a narrow palette: background, ink, one accent for "the thing that matters".
+Techniques: build diagrams with SVG paths that draw on (`stroke-dashoffset` with the measured path length in pixels, see `references/render-traps.md`), reveal labels word by word, move a highlight box instead of cutting, keep one consistent visual metaphor through the whole video. Use a narrow palette: background, ink, one accent for "the thing that matters".
 
 Checks: every label spelled exactly; nothing overlapping when the diagram is complete (pull a still at the end of each build); the accent colour used only for the key element.
+
+## Explainer and documentary (film mode)
+
+Length 1-10 min, 16:9, with a narrator. One brief goes in and a finished `final.mp4` plus `REPORT.md` comes out, with every stage's file left in the project folder so the prompts and decisions can be read. Route: `scripts/film.py`, which runs the stages below in order. Each stage reads the file the one before wrote, can be skipped, and can be run again alone (`film.py run --from retime`, `film.py voice --voice take --take take.wav`). The look is the **archive desk**: a dark editorial page, one still or map as a plate with a slow push-in, a serif caption under it, a narrow column for the date stamp, a ledger counter and the credit.
+
+The beat sheet (times scale with the length; the table is for 3 minutes):
+
+| Beat | Time | What is on screen |
+|---|---|---|
+| Hook | 0-5 s | The single most surprising fact or question, on screen and spoken, motion from the first frame |
+| Setup | 5-27 s | Where we are and why it matters: the one thing the viewer needs to follow |
+| Beat 1 | 27-67 s | The first piece of the answer: one picture or map, at most one number |
+| Beat 2 | 67-107 s | The second piece, a change of place or scale so the eye gets something new |
+| Beat 3 | 107-147 s | The third piece, the one that makes the takeaway obvious |
+| Turn | 147-165 s | The twist, the cost or the surprise: re-hook the viewer |
+| Payoff | 165-180 s | The takeaway in one sentence, held still for the last 1.5-2.5 s |
+
+Pacing is from `motion-doctrine.md`, section 13: a new visual idea every 8-15 s, a re-hook about every 30 s, the strongest move in the weakest window. The picture is re-timed to the voice, never the voice to the picture.
+
+| Stage | File it writes | What it does |
+|---|---|---|
+| `story` | `STORY.md` | Logline, audience, the one takeaway, act structure, pace. A scaffold from `BRIEF.md`: edit it, it is never overwritten |
+| `script` | (checks `SCRIPT.md`) | Narration lines `## L01 ...` with `say:`, on-screen `screen:` words kept apart, a `source:` URL for every factual line, optional `asset:`, `query:`, `region:`, `point:`, `route:`, `count:`, `date:`, `beat:`. You or your agent write it; `film_script.py` documents the format. A line with no source (or a URL with no host) is UNVERIFIED; `source: none (no factual claim)` exempts a line that states nothing checkable, and REPORT.md lists it |
+| `storyboard` | `STORYBOARD.json` | One entry per beat: its lines, kind (archive, map, title), route, art form (`art_route.py`), camera move, transition with its meaning, sound cues, acts |
+| `assets` | `ASSETS.json`, `assets/` | Pictures (`fetch_archive.py`: public domain, CC0 and CC BY only), maps (`make_map.py`, Natural Earth), effects (`sfx_synth.py`), music (your track, `fetch_music.py`, or MusicGen if installed). Every file has its source, author, licence and attribution text |
+| `voice` | `TIMINGS.json`, `audio/lines/` | One of: your recording cut into lines (`split_takes.py`), F5-TTS if installed, or the stand-in buzz for drafts. Measured duration and word times for every line |
+| `retime` | `STORYBOARD.json` | `retime.py` rewrites beat durations from the measured lines plus breaths (0.30 s between lines, 0.45 s between beats, 0.80 s between acts, a 1.8 s final hold) and snaps cuts later onto the music beat when a grid is given |
+| `build` | `project/`, `project_acts/` | The archive desk as HyperFrames projects (`templates/film/`), one per act. Acts dip to dark between them so they join cleanly |
+| `captions` | `final.srt` | Word-timed captions from the same timings, 2-7 words each (`--burn-captions` draws them in the picture instead of the credit line) |
+| `mix` | `audio/mix.wav` | `mix.py`: voice, music ducked 15 dB under it, effects pinned by their peak, -14 LUFS and under -1 dBTP |
+| `render` | `final.mp4` | Acts render side by side, are joined with stream copy, then `finish.sh`. Refuses UNVERIFIED lines unless `--allow-unverified` |
+| `check` | `checks.json`, `checks/` | `check_delivery.sh` (with `check_seams.py` and the act joins), `check_clutter.py` on each page, `ocr_sweep.sh`, a still per beat to look at |
+| `report` | `REPORT.md` | The checks, every asset's attribution (CC BY credits first: they go in the video description), every UNVERIFIED line, open items |
+
+Rules this format adds to the ones above:
+
+- **Sources.** Every factual line carries a URL or is marked UNVERIFIED; an UNVERIFIED line is cut or confirmed before render. Pictures that are not yours come only from `fetch_archive.py`, which rejects ShareAlike, NonCommercial, NoDerivatives and unknown licences. A beat with no licensed picture becomes a typeset title beat; film mode never invents archive footage.
+- **Voice.** Never time-stretch it. A take is cut at its pauses (leave 0.4 s or more between lines) or at word timings when the pauses are short. F5-TTS code is MIT but its pre-trained models are CC BY-NC, so output is non-commercial, and a voice may be cloned only with the right to do so. The stand-in voice is a buzz that follows the words: it proves timing, captions and loudness, not a finished film.
+- **Camera.** The push-in has one speed in every beat, so a hard cut joins two moves of the same velocity; each beat looks at a different part of its picture. A different speed needs a dip.
+- **Clarity.** At most four text blocks on screen (stamp, caption, ledger, credit), none closer than 24 px, none past the frame edge: `check_clutter.py` enforces it. The ledger's number and its label are one block. The on-screen credit is set at 22 px, the one allowed exception to the 40 px body-text rule: it is a licence notice to be read on pause, not narration, and the full credit also goes in the video description.
+- **A different look.** Film mode builds the archive desk. For another look read `references/art-forms.md`, build those beats by hand and still use `retime`, `mix`, `render` and `check` from `film.py`.
+
+Checks: `RESULT: PASS` from `check_delivery.sh` at the exact duration; the act joins pass; the counter's last value equals the number in the narration; every credit in `REPORT.md` matches the file it names; look at the contact sheet before saying done. A frozen-stretch WARN on a held title or final message is expected: say so in `REPORT.md`.
 
 ## Maths and algorithms
 
@@ -133,6 +176,7 @@ Checks: every caption matches the audio word for word; none on screen when nobod
 | The brief says | Treat it as |
 |---|---|
 | "explain X", "how X works" | 2D explainer |
+| a complete explainer or documentary with a narrator, pictures and maps, from one brief | Explainer and documentary (film mode) |
 | an equation, proof, algorithm, graph | Maths and algorithms |
 | "intro for my tutorial", "lower third", "callout" | Tutorial |
 | characters, dialogue, a joke, "a short story" | Storytelling, with the character kit |

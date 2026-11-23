@@ -16,11 +16,12 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import zlib
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from .errors import TelegramError
+from .errors import RetryPolicy, TelegramError, call_with_policy
 
 HTML_MAX_BYTES = 32768
 HTML_MAX_COMPRESSED = 4096
@@ -28,6 +29,9 @@ DATA_MAX_BYTES = 1024
 QUERY_DATA_MAX_BYTES = 64
 ANSWER_MAX_BYTES = 1024
 CAPTION_MAX_CHARS = 1024
+# three tries, under ~1 s of waiting in all: the widget gives up at 15 s
+_ANSWER_RETRY = RetryPolicy(max_attempts=3, base_backoff=0.3, max_wait=2.0)
+_sleep = time.sleep
 
 PRODUCTION_CONTEXTS = {"private"}
 TEST_ONLY_CONTEXTS = {"group", "supergroup", "inline", "forward"}
@@ -199,6 +203,10 @@ def handle_widget_query(query: dict[str, Any], store: WidgetStore, transport: An
     qid = query["id"]
     if qid in store.answered:                       # redelivered update
         return "duplicate"
+    if (query.get("type") or {}).get("type", "data") != "data":
+        # sign_data / sent_transaction repeat the original request's data: run as an action,
+        # a wallet result would play that action twice. Route them to tgkit.wallet first.
+        return _answer(transport, store, qid, {"ok": False, "err": "bad_request"}, "not_data")
     raw = query.get("data", "")
     if not 1 <= len(raw.encode("utf-8")) <= QUERY_DATA_MAX_BYTES:
         return _answer(transport, store, qid, {"ok": False, "err": "bad_request"}, "invalid")
@@ -239,7 +247,11 @@ def _answer(transport: Any, store: WidgetStore, qid: str, data: dict[str, Any], 
     if len(text.encode("utf-8")) > ANSWER_MAX_BYTES:
         text = '{"ok":false,"err":"too_large"}'
     try:
-        transport.call("answerWidgetQuery", {"widget_query_id": qid, "data": text})
+        # A lost answer leaves the widget waiting until TIMEOUT although the action was done, and
+        # an answer is harmless to repeat (a second one is "query is too old"): retry a dropped
+        # connection quickly, well inside the 15 s window.
+        call_with_policy(transport, "answerWidgetQuery", {"widget_query_id": qid, "data": text},
+                         policy=_ANSWER_RETRY, sleep=_sleep)
     except TelegramError as err:
         if err.category != "query_too_old":
             raise

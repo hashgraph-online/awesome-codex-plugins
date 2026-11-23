@@ -1,0 +1,59 @@
+/* Archive desk: dark editorial layout. Graphite ground, bone paper text, one brass accent used only for the thing that matters.
+   Plate (the picture or map) top left, a caption set in serif under it, a narrow column on the right for the date stamp,
+   the ledger counter and the credit. At most four text blocks on screen; plates carry no text of their own. */
+:root {
+  --ink: #121316;
+  --plate: #1b1d21;
+  --paper: #ece7dc;
+  --dim: #a09b8f;
+  --rule: #3a3d44;
+  --brass: #d3ab4c;
+  --serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --map-sea: rgba(18, 19, 22, 0);
+  --map-land: #34373d;
+  --map-ctx: #26282d;
+  --map-edge: #4b4f57;
+  --map-hl: #4d4636;
+  --map-hl-edge: #d3ab4c;
+  --map-route: #e3bb55;
+  --map-dot: #ece7dc;
+  --map-halo: #121316;
+  --map-text: #ece7dc;
+  --map-font: "Playfair Display", Georgia, serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); }
+#root { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); color: var(--paper); }
+.hairline { position: absolute; left: 1416px; top: 54px; width: 1px; height: 972px; background: var(--rule); }
+
+.beat { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
+.beat.first { visibility: visible; opacity: 1; }
+
+.plate { position: absolute; left: 96px; top: 54px; width: 1296px; height: 740px; overflow: hidden; background: var(--plate); }
+.plate::after { content: ""; position: absolute; inset: 0; border: 1px solid var(--rule); pointer-events: none; }
+.plate .shot, .plate .mapbox { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.plate .shot { object-fit: cover; filter: none; }
+.plate .mapbox svg { display: block; width: 100%; height: 100%; overflow: visible; }   /* the land drawn past the view fills the plate when the push-in starts below scale 1; the plate clips it */
+.plate .inset { position: absolute; left: 24px; bottom: 24px; width: 420px; height: 236px; --map-sea: rgba(18, 19, 22, 0.84); --map-ctx: #2a2d32; }
+.plate .inset svg { display: block; width: 100%; height: 100%; }
+.plate.title { display: flex; align-items: center; padding: 0 96px; }
+.plate .big { font: 400 120px/1.08 var(--serif); color: var(--paper); letter-spacing: -0.01em; max-width: 1100px; }
+
+.stamp { position: absolute; left: 1440px; top: 54px; width: 384px; font: 400 28px/1.4 var(--mono); letter-spacing: 0.08em; color: var(--dim); text-transform: uppercase; }
+.stamp::first-line { color: var(--paper); font-weight: 700; }
+.stamp .ch { opacity: 0; }
+
+.caption { position: absolute; left: 96px; top: 830px; width: 1296px; max-height: 136px; font: 400 58px/1.18 var(--serif); color: var(--paper); }
+.caption .wi { opacity: 0; }                       /* inline words: fade in one by one, the block itself slides up */
+
+/* The ledger is ONE text block: number and label are inline lines of one paragraph (a <br /> between them), so the layout check
+   reads one block, not two that overlap (a number's glyph box is taller than its font size). The number's 1.3 line height leaves
+   about 16 px of air above the label, as a margin would. */
+.ledger { position: absolute; left: 1440px; top: 316px; width: 384px; opacity: 0; font: 400 28px/1.3 var(--mono); }
+.ledger .n { font: 700 104px/1.3 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; color: var(--brass); white-space: nowrap; }
+.ledger .l { font: 400 28px/1.3 var(--mono); letter-spacing: 0.06em; color: var(--dim); text-transform: uppercase; }
+
+.credit { position: absolute; left: 1440px; top: 880px; width: 384px; max-height: 146px; overflow: hidden; font: 400 22px/1.4 var(--mono); color: var(--dim); opacity: 0; }
+
+.sub { position: absolute; left: 144px; top: 690px; width: 1200px; font: 400 44px/1.25 var(--serif); color: var(--paper); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95); visibility: hidden; }

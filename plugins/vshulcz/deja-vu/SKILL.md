@@ -7,22 +7,23 @@ Search `deja` before re-deriving past work: when the user refers to an earlier s
 
 ## When to search
 
-- Before your first edit, plan, design, review, audit, or tool recommendation: query with 1-3 exact terms (file path, error string, flag, or identifier).
-- Mid-task when a concrete project or machine entity surfaces: batch a recall lookup with your reads before concluding.
-- When the user says something already exists (`"I already have X"`, `"we use Y"`), or before you claim a command, file, or decision does not exist on this machine.
-- Before calling work done or ready to merge.
+- Before your first edit (`blame` on files to edit, `how` for build/test commands), or before any plan, design, review, audit, or tool recommendation (`recall` with 1-3 exact terms: file path, error string, flag, or identifier).
+- Inline recalled constraints, real commands, and `deja blame` checks into any written plan or subagent prompt so execution steps retain them.
+- Mid-task when a concrete project or machine entity surfaces: batch a `recall` lookup with your reads before concluding; follow up with `context` when full session detail matters.
+- When the user says something already exists (`"I already have X"`, `"we use Y"`), after an unfamiliar failure (`fix`), or before you claim a command, file, or decision does not exist on this machine.
+- Before calling work done or ready to merge (`recall`), and once via `remember` when the user corrects a choice or settles a non-obvious constraint or gotcha.
 
 ## MCP tool (`deja`)
 
-When the MCP server is wired, expose one tool, `deja`, with a `mode`:
+When the MCP server is wired, expose one tool, `deja`, with a `mode` matched to the action:
 
+- `blame` — before editing, refactoring, or deleting a file (`path` or `path:line`), prior sessions behind it.
+- `how` — before running an unfamiliar build, test, deploy, or lint command, exact flags observed in this project (or machine-wide with `--all-projects`).
+- `fix` — after an unfamiliar command, test, or CI failure, commands executed after that same error (pass output verbatim).
+- `orient` — at task start in an unfamiliar project, recent commands run and files touched.
 - `recall` — search with 1-3 specific terms, scoped to the current project first (`--project` / `--harness` equivalents in parameters).
 - `context` — full digest of the best-matching session with code changes once a hit looks relevant.
-- `blame` — prior sessions behind a file or `path:line` before editing or deleting it.
-- `fix` — commands executed after the same failing error output in prior sessions.
-- `how` — exact build, test, or script commands and flags observed in this project (or machine-wide with `--all-projects`).
-- `orient` — recent commands run and files touched in this project.
-- `remember` — save a single settled, self-contained decision for future sessions.
+- `remember` — save one settled, self-contained decision when corrected by the user or after uncovering a non-obvious gotcha.
 - `handoff` — save or pick up an active task snapshot when switching agents (`id` or harness name).
 
 ## CLI fallback

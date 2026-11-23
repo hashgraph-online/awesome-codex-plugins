@@ -1,7 +1,7 @@
 {
   "name": "dawn",
-  "version": "0.1.3",
-  "description": "A TypeScript music SDK and headless CLI for composing, arranging and rendering songs offline.",
+  "version": "0.1.4",
+  "description": "Compose songs in TypeScript, arrange them on a piano roll in DAWN Desktop for Mac and Linux, and render audio or MIDI locally with the DAWN CLI.",
   "author": {
     "name": "Hraness",
     "url": "https://hraness.com"
@@ -13,7 +13,7 @@
   "interface": {
     "displayName": "Dawn",
     "shortDescription": "Music in code.",
-    "longDescription": "A TypeScript music SDK and headless CLI for composing, arranging and rendering songs offline.\n\nRequires access to Dawn's private preview, its separately installed CLI and Bun 1.3.14 or later.",
+    "longDescription": "Compose songs in TypeScript, arrange them on a piano roll in DAWN Desktop for Mac and Linux, and render audio or MIDI locally with the DAWN CLI.\n\nRequires access to Dawn's private preview, its separately installed CLI and Bun 1.3.14 or later.",
     "developerName": "Hraness",
     "category": "Productivity",
     "capabilities": [],

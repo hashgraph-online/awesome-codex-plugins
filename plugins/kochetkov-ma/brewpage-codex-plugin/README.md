@@ -23,8 +23,8 @@ scripts) is MIT-licensed.
 
 The skill is a copy of the MIT-licensed BrewPage publishing skill from
 [kochetkov-ma/claude-brewcode](https://github.com/kochetkov-ma/claude-brewcode)
-(`openclaw/brewpage-publish`, commit `aa178e7b63a10fd9059efeaa9820b1fdf968860a`),
-with its User-Agent set to `brewpage-codex/0.2.1`. See [the member inventory](PROVENANCE.json).
+(`openclaw/brewpage-publish`, commit `cc19e2fc02ae4752b32d4e1ada4e275cd810f58b`),
+with its User-Agent set to `brewpage-codex/0.2.2`. See [the member inventory](PROVENANCE.json).
 
 For a skill refresh, use `python3 tools/vendor-skill.py vendor --upstream
 ../claude-brewcode --commit <reviewed-full-commit>` after setting the new version
@@ -35,10 +35,9 @@ Codex User-Agent in `PROVENANCE.json`. Recheck the refreshed package with
 
 ## Verification
 
-Codex CLI 0.169.0 verified all eleven skill members in an isolated 0.2.0
-candidate install. The [HOL Plugin Scanner run](https://github.com/kochetkov-ma/brewpage-codex-plugin/actions/runs/44401036536)
-succeeded on the tree of commit `a24a0014`, with two Action pinning warnings and
-no errors.
+Codex CLI 0.171.0 verified all twelve skill members in an isolated 0.2.2
+candidate install. The [HOL Plugin Scanner run](https://github.com/kochetkov-ma/brewpage-codex-plugin/actions/runs/45058780494)
+succeeded on the tree of commit `74b97c9`, with no findings.
 
 ## Use it
 

@@ -1,0 +1,45 @@
+{
+  "name": "lemlist",
+  "description": "Run multichannel outreach in lemlist from your AI assistant: list campaigns and their stats, create campaigns with email and LinkedIn sequences, add and search leads, search the lemlist B2B people database, and check the deliverability of sending domains. Connects to the official lemlist MCP server (OAuth 2.1).",
+  "version": "1.1.0",
+  "author": {
+    "name": "lemlist",
+    "url": "https://www.lemlist.com"
+  },
+  "homepage": "https://help.lemlist.com/en/articles/13728466-set-up-the-lemlist-mcp-server-in-your-llm-client-oauth-or-api-key",
+  "repository": "https://github.com/l3mpire/lemlist-plugin",
+  "license": "MIT",
+  "keywords": [
+    "lemlist",
+    "sales",
+    "outreach",
+    "cold-email",
+    "prospecting",
+    "linkedin",
+    "lead-generation",
+    "mcp"
+  ],
+  "interface": {
+    "displayName": "lemlist",
+    "shortDescription": "Multichannel sales outreach from Codex",
+    "longDescription": "Connects Codex to the official hosted lemlist MCP server. Find leads in the lemlist B2B people database, launch email and LinkedIn campaigns, read campaign stats and check the deliverability of your sending domains. Sign in with OAuth 2.1 in the browser, so no key is stored in the plugin.",
+    "developerName": "lemlist",
+    "category": "Business",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.lemlist.com",
+    "supportURL": "https://help.lemlist.com/",
+    "privacyPolicyURL": "https://www.lemlist.com/legal/privacy-policy",
+    "termsOfServiceURL": "https://www.lemlist.com/legal/terms",
+    "defaultPrompt": [
+      "Find 20 heads of sales at SaaS companies in France with lemlist.",
+      "Give me the stats of my active lemlist campaigns."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

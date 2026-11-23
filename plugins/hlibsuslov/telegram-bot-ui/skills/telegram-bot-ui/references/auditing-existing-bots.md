@@ -1,7 +1,7 @@
 # Auditing an existing bot (analyze → diagnose → propose)
 
 Heuristics of this skill (first written 2026-08-05, reviewed against Bot API 10.4 on
-2026-11-15). Version gates: `ui-changelog.md`; every 10.3/10.4 item: `bot-api-10.3-10.4.md`.
+2026-11-15). Version gates: `ui-changelog.md`; every 10.3-10.5 item: `bot-api-coverage.md`.
 
 > **Most work on this skill is not greenfield.** There is already a bot, already
 > a repo, already hundreds of strings someone wrote under time pressure. The

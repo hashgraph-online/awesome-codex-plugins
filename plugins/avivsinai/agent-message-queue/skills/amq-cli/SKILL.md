@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.160.0 # x-release-please-version
+version: 0.164.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -19,6 +19,8 @@ Use the first case that applies:
 
 1. `AM_ME` is set (`amq coop exec` or `amq launch` started the session): run
    bare `amq` commands. Do not override `--me` or reconstruct the root.
+   A seat that `amq coop exec` started already has its identity; do not run
+   `amq env --me <handle>` in it.
 2. A Claude Code session with no `AM_ME`, such as a chat of the desktop app:
    run `amq coop join` once; add `--me "<handle>"` when the user named a
    handle or the output says the default is taken. Later bare `amq` commands
@@ -70,6 +72,11 @@ notification, open
 [wake operations](https://github.com/avivsinai/agent-message-queue/blob/main/docs/wake-operations.md)
 and select the section for the receiving harness. Inspect the current settings
 before changing them.
+
+On an attended seat (`attended: true` in `amq wake check` on a live wake, or
+`attended true` in `amq wake config` when no wake is live) no doorbell
+is typed, on any transport: mail is announced at the person's next prompt.
+Drain then, with `amq drain --include-body`; do not start a watcher.
 
 Without an injecting wake or a wait hook, use the receive methods in the
 operations guide.

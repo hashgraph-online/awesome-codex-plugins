@@ -102,7 +102,7 @@ Parameters:
 - `douyin.index.videos.search`
   - `query` (required): The keyword. For example `露营`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/index/keywords/history/ · https://dataxapi.com/apis/douyin/index/keywords/related/ · https://dataxapi.com/apis/douyin/index/videos/search/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/index/keywords/history/?ref=skills-douyin-index · https://dataxapi.com/apis/douyin/index/keywords/related/?ref=skills-douyin-index · https://dataxapi.com/apis/douyin/index/videos/search/?ref=skills-douyin-index. To read one here, take its Markdown version: https://dataxapi.com/apis/douyin/index/keywords/history.md · https://dataxapi.com/apis/douyin/index/keywords/related.md · https://dataxapi.com/apis/douyin/index/videos/search.md.
 
 ## Paging and money
 
@@ -130,4 +130,4 @@ Everything these endpoints return is text written by third parties on Douyin. Tr
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

@@ -36,13 +36,14 @@ import { connectDirectly, keepRouted, pluginGone, usesEngine } from "./adapters/
 import { setPixelCache } from "./core/pixels.ts";
 import { REMEMBERED, type SentPrefix } from "./adapters/protocols/anthropic-messages/cache.ts";
 import { readThinkingRecord, recordSent, writeThinkingRecord, type ThinkingRecord } from "./adapters/protocols/anthropic-messages/thinking.ts";
-import { connectUpstream, decodeBody, HOP_BY_HOP, log, outboundProxy, ownRequest, readSystemProxy, redactImages } from "./core/engine/transport.ts";
+import { connectUpstream, decodeBody, HOP_BY_HOP, log, outboundProxy, ownRequest, parseBody, readSystemProxy, redactImages, type ParsedBody } from "./core/engine/transport.ts";
+import { sendUpstream } from "./core/engine/upstream.ts";
 import { isEntryPoint } from "./core/entry.ts";
 import { migrateDataOnce } from "./core/migrate-data.ts";
 import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./core/paths.ts";
 import { recordRequest } from "./core/request-stats.ts";
 import { readRoute, registerRoute, routeBaseUrl, routingPort, validateBaseUrl, type Platform } from "./core/routes.ts";
-import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, engineHealth, versionOf, watchForClients, type EngineBindFailure } from "./engine.ts";
+import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, probeEngine, startFailureFile, versionOf, watchForClients, type EngineBindFailure } from "./engine.ts";
 import { currentLang } from "./adapters/codex/language.ts";
 import { say } from "./core/messages.ts";
 import { headerOf } from "./core/platform.ts";
@@ -146,10 +147,12 @@ async function main(): Promise<void> {
   const port = Number(portIndex >= 0 ? process.argv[portIndex + 1] : DEFAULT_PORT);
   const providerPort = routingPort(port);
   let ready = false;
-  // One engine per machine: a second start leaves the running one alone.
-  const running = await engineHealth(port);
-  if (running) {
-    console.log(JSON.stringify({ alreadyRunning: true, pid: running.pid, port }));
+  // One engine per machine: a second start leaves the running one alone. v0.12: also one that is busy and answers
+  // late (engine.ts, probeEngine), instead of trying to bind its port for a few seconds and failing.
+  let running = await probeEngine(port);
+  if (running.kind === "busy") running = await probeEngine(port, 5000);
+  if (running.kind === "engine" || running.kind === "busy") {
+    console.log(JSON.stringify({ alreadyRunning: true, pid: running.kind === "engine" ? running.health.pid : null, port }));
     return;
   }
   // --force-http answers every Responses WebSocket upgrade with 426, Codex's own signal to use HTTP for the session.
@@ -157,14 +160,36 @@ async function main(): Promise<void> {
   const dumpDir = process.argv.includes("--dump-requests") ? join(dataDir(), "p2", "requests") : null;
   const sessionsDir = join(codexHome(), "sessions");
   setPixelCache(pixelCacheDirOf());
-  const via = outboundProxy(process.env, readSystemProxy, UPSTREAM_HOST);
-  // v0.4: NO_PROXY may name one upstream host and not the other.
-  const vias = new Map([CLAUDE_HOST, OPENAI_API_HOST].map((host) => [host, outboundProxy(process.env, readSystemProxy, host)]));
+  // v0.4: NO_PROXY may name one upstream host and not the other. v0.12: read again after a minute, so turning the
+  // system proxy on or off (a VPN app does) reaches a running engine; it used to keep the setting it started with.
+  const vias = new Map<string, { via: ReturnType<typeof outboundProxy>; at: number }>();
   const viaOf = (upstream: string) => {
-    if (!vias.has(upstream)) vias.set(upstream, outboundProxy(process.env, readSystemProxy, upstream));
-    return vias.get(upstream)!;
+    const known = vias.get(upstream);
+    if (known && Date.now() - known.at < 60_000) return known.via;
+    const via = outboundProxy(process.env, readSystemProxy, upstream);
+    vias.set(upstream, { via, at: Date.now() });
+    return via;
   };
+  const via = viaOf(UPSTREAM_HOST);
   const startedAt = new Date().toISOString();
+  // v0.12: an error nothing else caught is logged and the engine carries on: each request is on its own, and exiting
+  // ended every request in flight, of every task and session, without a trace (2026-11-22: 238 engines in a month
+  // ended with no log line). Many in a minute means something is badly wrong: then it exits, and a plugin service
+  // starts a fresh engine.
+  const unexpected: number[] = [];
+  const onUnexpected = (kind: string) => (error: unknown) => {
+    const now = Date.now();
+    unexpected.push(now);
+    while (unexpected.length && now - unexpected[0] > 60_000) unexpected.shift();
+    const stack = error instanceof Error && error.stack ? error.stack.split("\n").slice(0, 8).join("\n") : null;
+    log({ at: new Date(now).toISOString(), event: "engine-error", pid: process.pid, kind, error: String(error), stack });
+    if (unexpected.length > 20) {
+      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "more than 20 unexpected errors in a minute" });
+      process.exit(70);
+    }
+  };
+  process.on("uncaughtException", onUnexpected("uncaught"));
+  process.on("unhandledRejection", onUnexpected("unhandled-rejection"));
   // v0.11: when a plugin service last checked in (engine.ts, watchForClients); a platform other than Codex and Claude
   // Code keeps the engine this way.
   let lastClient = 0;
@@ -192,6 +217,16 @@ async function main(): Promise<void> {
   // v0.10: per session, where the conversation requests sent last had their cache marks, newest first
   // (anthropic-messages/cache.ts); memory only.
   const sentPrefixes = new Map<string, SentPrefix[]>();
+  // v0.12: per session, the contents of images that went out before the transcript had them, so without ids (the
+  // report's lateContent): the next turn sends them once more for their feature lines (core/session.ts missedLine).
+  // Memory only; an engine restarted in between just leaves them out.
+  const missedImages = new Map<string, Set<string>>();
+  const rememberMissed = (sessionId: string, contents: string[]) => {
+    const kept = [...(missedImages.get(sessionId) ?? []), ...contents].slice(-50);
+    missedImages.delete(sessionId);
+    missedImages.set(sessionId, new Set(kept));
+    for (const key of missedImages.keys()) if (missedImages.size > 50) missedImages.delete(key);
+  };
   const rememberPrefix = (sessionId: string, prefix: SentPrefix) => {
     const kept = [prefix, ...(sentPrefixes.get(sessionId) ?? [])].slice(0, REMEMBERED);
     sentPrefixes.delete(sessionId);
@@ -252,7 +287,8 @@ async function main(): Promise<void> {
       if (!ready) { res.writeHead(503).end(); return; }
       if (req.headers["x-cam-client"]) lastClient = Date.now();
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, routingVersion: 1, routingPort: providerPort, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST, OPENAI_API_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
+      const now = viaOf(UPSTREAM_HOST);
+      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, routingVersion: 1, routingPort: providerPort, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST, OPENAI_API_HOST], via: now ? `${now.host}:${now.port}` : "direct" }));
       return;
     }
     if (req.url === "/__cam/routes") {
@@ -301,7 +337,7 @@ async function main(): Promise<void> {
       let size = 0;
       req.on("data", (chunk: Buffer) => { size += chunk.length; if (size <= 64 * 1024) chunks.push(chunk); });
       req.on("end", () => {
-        const answer = claudePanelApi(req.method ?? "GET", req.url ?? "/", req.headers, size <= 64 * 1024 ? Buffer.concat(chunks).toString("utf8") : null);
+        const answer = claudePanelApi(req.method ?? "GET", req.url ?? "/", req.headers, size <= 64 * 1024 ? Buffer.concat(chunks).toString("utf8") : null, { version });
         res.writeHead(answer.status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
         res.end(JSON.stringify(answer.body));
       });
@@ -349,36 +385,49 @@ async function main(): Promise<void> {
     let sentBody: Buffer | null = null;
     const dumpName = (suffix: string) => join(dumpDir!, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}${suffix}`);
     const collect = () => req.on("data", (chunk: Buffer) => { chunks.push(chunk); requestBytes += chunk.length; });
+    // v0.12: a rewritten request's body, decoded and parsed once before the rewrite (which works on that parse): the
+    // log reads the body as the client sent it from here instead of decoding and parsing it a second time. `json` is a
+    // shallow copy taken before the rewrite; the rewrites build new arrays and objects and leave the original ones as
+    // they were, so it still holds what the client sent.
+    let parsedOnce: { decoded: Buffer | null; json: Json | null } | null = null;
     const finish = (error?: string) => {
       if (finished) return;
       finished = true;
-      const body = Buffer.concat(chunks);
-      const decoded = req.method === "POST" ? decodeBody(body, req.headers["content-encoding"] as string | undefined) : null;
-      let details: Json = {};
-      let imageSizes: Record<string, number> | null = null;
-      if (decoded) {
-        try {
-          const json = JSON.parse(decoded.toString("utf8"));
-          details = describeBody(path, json);
-          // Measured on the body as Codex sent it, before any rewrite: the panel's "everything sent" baseline.
-          if (/\/responses$/.test(path) && Array.isArray(json.input)) imageSizes = imageSizesOf(json.input);
-          if (claudeSession && Array.isArray(json.messages)) imageSizes = claudeImageSizes(json.messages, loadClaudeIndex(claudeSession, claudeHome(), stableIdTimes(claudeSelectionDirOf())));
-          if (dumpDir && (/\/responses$/.test(path) || path === "/v1/messages")) {
-            mkdirSync(dumpDir, { recursive: true });
-            const headers = Object.fromEntries(Object.entries(req.headers).filter(([name]) => /^(x-codex|session_id|conversation_id|openai-beta|content-|anthropic-(beta|version)|x-claude-code-|user-agent)/.test(name)));
-            writeFileSync(join(dumpDir, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}.json`), JSON.stringify({ path, headers, body: redactImages(json) }, null, 2));
-            if (sentBody) { const sent = decodeBody(sentBody, req.headers["content-encoding"] as string | undefined); if (sent) writeFileSync(join(dumpDir, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}.sent.json`), JSON.stringify({ path, body: redactImages(JSON.parse(sent.toString("utf8"))) }, null, 2)); }
-          }
-        } catch { details = { kind: "unparsed" }; }
-      }
-      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, ...(upstream === OPENAI_API_HOST ? { upstream } : {}), status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...coreFields, ...details, ...extra, error: error ?? null };
-      log(entry);
-      // Image keys go to the per-thread statistics only, not to the log.
-      if (/\/responses$/.test(path)) {
-        recordRequest(identity.threadId, imageSizes ? { ...entry, imageSizes } : entry);
-        noteChild(identity, entry.at);
-      }
-      if (claudeSession && claudeConversationRequest(details)) recordRequest(claudeSession, imageSizes ? { ...entry, imageSizes } : entry, claudeRequestStatsDirOf());
+      // v0.12: whatever goes wrong here loses this request's log line and statistics, never the engine.
+      try {
+        let decoded: Buffer | null;
+        let json: Json | null = null;
+        if (parsedOnce) ({ decoded, json } = parsedOnce);
+        else {
+          decoded = req.method === "POST" ? decodeBody(Buffer.concat(chunks), req.headers["content-encoding"] as string | undefined) : null;
+          if (decoded) { try { json = JSON.parse(decoded.toString("utf8")); } catch { /* unparsed */ } }
+        }
+        let details: Json = {};
+        let imageSizes: Record<string, number> | null = null;
+        if (decoded) {
+          try {
+            if (!json) throw new Error("unparsed");
+            details = describeBody(path, json);
+            // Measured on the body as Codex sent it, before any rewrite: the panel's "everything sent" baseline.
+            if (/\/responses$/.test(path) && Array.isArray(json.input)) imageSizes = imageSizesOf(json.input);
+            if (claudeSession && Array.isArray(json.messages)) imageSizes = claudeImageSizes(json.messages, loadClaudeIndex(claudeSession, claudeHome(), stableIdTimes(claudeSelectionDirOf())));
+            if (dumpDir && (/\/responses$/.test(path) || path === "/v1/messages")) {
+              mkdirSync(dumpDir, { recursive: true });
+              const headers = Object.fromEntries(Object.entries(req.headers).filter(([name]) => /^(x-codex|session_id|conversation_id|openai-beta|content-|anthropic-(beta|version)|x-claude-code-|user-agent)/.test(name)));
+              writeFileSync(join(dumpDir, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}.json`), JSON.stringify({ path, headers, body: redactImages(json) }, null, 2));
+              if (sentBody) { const sent = decodeBody(sentBody, req.headers["content-encoding"] as string | undefined); if (sent) writeFileSync(join(dumpDir, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}.sent.json`), JSON.stringify({ path, body: redactImages(JSON.parse(sent.toString("utf8"))) }, null, 2)); }
+            }
+          } catch { details = { kind: "unparsed" }; }
+        }
+        const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, ...(upstream === OPENAI_API_HOST ? { upstream } : {}), status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...coreFields, ...details, ...extra, error: error ?? null };
+        log(entry);
+        // Image keys go to the per-thread statistics only, not to the log.
+        if (/\/responses$/.test(path)) {
+          recordRequest(identity.threadId, imageSizes ? { ...entry, imageSizes } : entry);
+          noteChild(identity, entry.at);
+        }
+        if (claudeSession && claudeConversationRequest(details)) recordRequest(claudeSession, imageSizes ? { ...entry, imageSizes } : entry, claudeRequestStatsDirOf());
+      } catch { /* lost: this request's log line and statistics */ }
     };
     // What to send, in order: body null streams the request through unchanged. v0.4: Anthropic refusing an attempt's
     // thinking after the changed history (thinkingRejected) moves on to the next one (see ClaudeAttempt), the last being
@@ -388,32 +437,37 @@ async function main(): Promise<void> {
     res.once("close", () => {
       if (!res.writableFinished) { connecting.abort(); finish("client closed before the response ended"); }
     });
+    // v0.12: the request's body as the client sent it, whole: the client is on this machine, so waiting for all of it
+    // costs nothing, and a request that never reached the service can be sent again (upstream.ts).
+    const hasBody = req.headers["content-length"] !== undefined || req.headers["transfer-encoding"] !== undefined;
     const send = (attempts: Attempt[], at = 0): void => {
       if (res.destroyed) return;
-      connectUpstream(viaOf(upstream), upstream, connecting.signal, route.port, route.protocol !== "http:").then((socket) => {
-      // The client can cancel while CONNECT/TLS is still in progress.
-      if (res.destroyed) { socket.destroy(); return; }
       const attempt = attempts[at];
       const outgoing = forwardHeaders(req.headers, upstream, route.platform);
       const hostname = upstream.includes(":") ? `[${upstream}]` : upstream;
       outgoing.host = route.port && route.port !== (route.protocol === "http:" ? 80 : 443) ? `${hostname}:${route.port}` : hostname;
-      if (attempt.body) outgoing["content-length"] = String(attempt.body.length);
+      const body = attempt.body ?? (hasBody ? Buffer.concat(chunks) : null);
+      if (body) outgoing["content-length"] = String(body.length);
       const beta = attempt.report?.experiment?.beta;
       if (beta) outgoing["anthropic-beta"] = [String(outgoing["anthropic-beta"] ?? ""), beta].filter(Boolean).join(",");
       if (attempt.report) extra = { ...extra, rewrite: attempt.report };
       if (dumpDir) sentBody = attempt.edited ? attempt.body : null;
-      // No `agent` option: with agent:false Node ignores createConnection and dials the host directly.
-      const outbound = http.request({ host: upstream, method: req.method, path: route.url, headers: outgoing, createConnection: () => socket }, (answer) => {
-        status = answer.statusCode ?? 0;
-        const headers: Record<string, string | string[]> = {};
-        for (const [name, value] of Object.entries(answer.headers)) if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
+      const target = { host: upstream, port: route.port ?? (route.protocol === "http:" ? 80 : 443), secure: route.protocol !== "http:", via: viaOf(upstream) };
+      sendUpstream(target, { method: req.method ?? "GET", path: route.url, headers: outgoing, body }, connecting.signal).then((answer) => {
+        // The client can cancel while the request is on its way.
+        if (res.destroyed) { answer.cancel(); return; }
+        status = answer.status;
+        // v0.12: how the request went out, for diagnosing (connectMs is 0 on a connection already open).
+        extra = { ...extra, proto: answer.proto, reused: answer.reused, connectMs: answer.connectMs, ttfbMs: Date.now() - started, ...(answer.retries ? { retries: answer.retries } : {}) };
+        const headers = answer.headers;
+        const stream = answer.body;
         if (at < attempts.length - 1 && status === 400) {
           const parts: Buffer[] = [];
-          answer.on("data", (chunk: Buffer) => parts.push(chunk));
-          answer.on("error", (error) => { finish(String(error)); res.destroy(error); });
-          answer.on("end", () => {
+          stream.on("data", (chunk: Buffer) => parts.push(chunk));
+          stream.on("error", (error) => { finish(String(error)); res.destroy(error); });
+          stream.on("end", () => {
             const raw = Buffer.concat(parts);
-            const text = decodeBody(raw, answer.headers["content-encoding"] as string | undefined)?.toString("utf8") ?? "";
+            const text = decodeBody(raw, headers["content-encoding"] as string | undefined)?.toString("utf8") ?? "";
             if (thinkingRejected(status, text)) {
               extra = { ...extra, rejected: [...(extra.rejected ?? []), status] };
               if (dumpDir) { try { writeFileSync(dumpName(`.rejected-${at}.json`), text); } catch { /* experiments only */ } }
@@ -425,11 +479,11 @@ async function main(): Promise<void> {
                 if (attempt.sure) thinking.sent.clear();
                 try { writeThinkingRecord(claudeSession, thinking); } catch { /* kept in memory */ }
               }
-              socket.destroy();
+              answer.cancel();
               send(attempts, at + 1);
               return;
             }
-            res.writeHead(status, headers);
+            if (!writeHead(status, headers)) return;
             responseBytes += raw.length;
             res.end(raw);
             finish();
@@ -441,43 +495,56 @@ async function main(): Promise<void> {
         if (status >= 200 && status < 300 && thinking && claudeSession && attempt.history && attempt.sent && recordSent(thinking, attempt.history, attempt.sent, attempt.made ?? [])) {
           try { writeThinkingRecord(claudeSession, thinking); } catch { /* kept in memory */ }
         }
-        res.writeHead(status, headers);
+        if (!writeHead(status, headers)) { answer.cancel(); return; }
         // Experiments only (--dump-requests): the response too, for its usage and what Anthropic changed.
         const captured: Buffer[] = [];
-        answer.on("data", (chunk: Buffer) => { responseBytes += chunk.length; if (dumpDir && claudeSession && responseBytes <= 8 * 1024 * 1024) captured.push(chunk); });
-        answer.pipe(res);
-        answer.on("end", () => {
+        stream.on("data", (chunk: Buffer) => { responseBytes += chunk.length; if (dumpDir && claudeSession && responseBytes <= 8 * 1024 * 1024) captured.push(chunk); });
+        stream.pipe(res);
+        stream.on("end", () => {
           if (captured.length) {
             const raw = Buffer.concat(captured);
-            try { writeFileSync(dumpName(".response.txt"), decodeBody(raw, answer.headers["content-encoding"] as string | undefined) ?? raw); } catch { /* experiments only */ }
+            try { writeFileSync(dumpName(".response.txt"), decodeBody(raw, headers["content-encoding"] as string | undefined) ?? raw); } catch { /* experiments only */ }
           }
           finish();
         });
         // A partial response cannot be ended as if it were complete: propagate the broken stream to Codex.
-        answer.on("error", (error) => { finish(String(error)); res.destroy(error); });
+        stream.on("error", (error) => { finish(String(error)); res.destroy(error); });
+        // Log once, and release the upstream stream when the client no longer consumes it.
+        res.on("close", () => {
+          if (!res.writableFinished) answer.cancel();
+          finish(res.writableFinished ? undefined : "client closed before the response ended");
+        });
+      }, (error) => {
+        if (!res.destroyed) {
+          if (!res.headersSent) res.writeHead(502, { "content-type": "text/plain" });
+          res.end(`codex-attachment-manager proxy: cannot reach ${upstream}`);
+        }
+        finish(String(error));
       });
-      outbound.on("error", (error) => { if (!res.destroyed) { if (!res.headersSent) res.writeHead(502); res.end(); } finish(String(error)); });
-      // Log once, and release the upstream stream when the client no longer consumes it.
-      res.on("close", () => {
-        if (!res.writableFinished) outbound.destroy();
-        finish(res.writableFinished ? undefined : "client closed before the response ended");
-      });
-      if (attempt.body) outbound.end(attempt.body);
-      else { collect(); req.pipe(outbound); }
-    }, (error) => {
-      if (!res.destroyed) {
-        res.writeHead(502, { "content-type": "text/plain" });
-        res.end(`codex-attachment-manager proxy: cannot reach ${upstream}`);
+    };
+    // v0.12: a header value Node will not send (an upstream's odd character) ends this request, not the engine.
+    const writeHead = (code: number, headers: Record<string, string | string[]>): boolean => {
+      try { res.writeHead(code, headers); return true; } catch (error) {
+        if (!res.headersSent) { try { res.writeHead(502, { "content-type": "text/plain" }); } catch { /* already gone */ } }
+        res.end();
+        finish(`unusable response headers: ${String(error)}`);
+        return false;
       }
-      finish(String(error));
-    }); };
-    if (!rewrite && !claudeRewrite && !coreRewrite) { send([{ body: null, report: null, edited: false }]); return; }
+    };
     collect();
+    req.on("error", () => {});
+    if (!rewrite && !claudeRewrite && !coreRewrite) { req.on("end", () => send([{ body: null, report: null, edited: false }])); return; }
     req.on("end", async () => {
       const original = Buffer.concat(chunks);
       const encoding = req.headers["content-encoding"] as string | undefined;
+      const { decoded, parsed } = parseBody(original, encoding);
+      parsedOnce = { decoded, json: parsed ? { ...parsed.json } : null };
+      // Only the first try gets the parse: a try again (late images, below) works on a fresh one.
+      let pre: ParsedBody | undefined = parsed ?? undefined;
       const rewriteNow = (): { body: Buffer; report: Json; attempts?: ClaudeAttempt[]; prefix?: SentPrefix } => {
-        try { return coreRewrite ? rewritePlatformRequest(core!.name, path, original, encoding, coreSession, dataDir(), currentLang()) : claudeRewrite ?rewriteClaudeBody(original, encoding, claudeSession!, undefined, undefined, undefined, thinking, sentPrefixes.get(claudeSession!) ?? [], currentLang()) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId, identity.forkedFrom); }
+        const given = pre;
+        pre = undefined;
+        try { return coreRewrite ? rewritePlatformRequest(core!.name, path, original, encoding, coreSession, dataDir(), currentLang()) : claudeRewrite ? rewriteClaudeBody(original, encoding, claudeSession!, undefined, undefined, undefined, thinking, sentPrefixes.get(claudeSession!) ?? [], currentLang(), missedImages.get(claudeSession!), given) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId, identity.forkedFrom, given); }
         catch (error) { return { body: original, report: { skipped: `rewrite failed: ${String(error)}` } }; }
       };
       let out = rewriteNow();
@@ -485,6 +552,8 @@ async function main(): Promise<void> {
       // they go out with their ids now and the model can note them in this reply.
       let waited = 0;
       for (; claudeRewrite && out.report?.late && waited < LATE_WAIT_MS; waited += LATE_STEP_MS) { await sleep(LATE_STEP_MS); out = rewriteNow(); }
+      // v0.12: still not there: they go out without ids, and the next turn sends them once more for their lines.
+      if (claudeRewrite && Array.isArray(out.report?.lateContent) && out.report.lateContent.length) rememberMissed(claudeSession!, out.report.lateContent);
       const withWait = (report: Json) => (waited ? { ...report, waitedMs: waited } : report);
       const attempts: Attempt[] = out.attempts?.length ? out.attempts.map((attempt) => ({ ...attempt, report: withWait(attempt.report), edited: attempt.body !== original })) : [{ body: out.body, report: withWait(out.report), edited: out.body !== original, prefix: out.prefix }];
       send(attempts);
@@ -603,6 +672,11 @@ async function main(): Promise<void> {
     const failure = await listen(host, listenPort);
     if (!failure) continue;
     log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: `port ${listenPort} unavailable on ${host}`, code: failure.code });
+    // v0.12: an engine started through WMI (engine.ts) has no channel back: the reason goes into a file too.
+    try {
+      mkdirSync(join(dataDir(), "state"), { recursive: true });
+      writeFileSync(startFailureFile(), JSON.stringify({ pid: process.pid, ...failure, at: new Date().toISOString() }));
+    } catch { /* the plugin service says only that the engine did not start */ }
     if (process.send && process.connected) process.send(failure, () => process.exit(1));
     else process.exit(1);
     return;

@@ -31,9 +31,9 @@ CHECKS = [
         re.compile(r"from\s+pixeltable\.iterators\s+import|\bpixeltable\.iterators\b"),
         "error",
         (
-            "`pixeltable.iterators` is a deprecated shim in full (FrameIterator, VideoSplitter, "
-            "DocumentSplitter, StringSplitter, AudioSplitter, TileIterator). Import the function "
-            "from `pixeltable.functions.*` instead -- e.g. "
+            "`pixeltable.iterators` was removed in Pixeltable 0.7.25 (the import fails: "
+            "FrameIterator, VideoSplitter, DocumentSplitter, StringSplitter, AudioSplitter, "
+            "TileIterator). Import the function from `pixeltable.functions.*` instead -- e.g. "
             "`from pixeltable.functions.video import frame_iterator`."
         ),
         PIXELTABLE_FILE,
@@ -85,8 +85,17 @@ CHECKS = [
         re.compile(r"\bpxt\.Required\b|from\s+pixeltable\s+import\s+[^\n]*\bRequired\b"),
         "error",
         (
-            "`pxt.Required` is deprecated and redundant: bare types are already non-nullable. "
+            "`pxt.Required` was removed in Pixeltable 0.7.25. Bare types are already non-nullable. "
             "Use `T` for required and `T | None` for optional."
+        ),
+        PIXELTABLE_FILE,
+    ),
+    (
+        re.compile(r"\.(?:ins_rows|del_rows|upd_rows)\b"),
+        "error",
+        (
+            "`ins_rows` / `del_rows` / `upd_rows` were renamed in Pixeltable 0.7.25 to "
+            "`inserted_rows` / `deleted_rows` / `updated_rows` on `row_count_stats`."
         ),
         PIXELTABLE_FILE,
     ),

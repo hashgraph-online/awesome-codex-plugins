@@ -69,25 +69,27 @@ class FormRunner:
     """One message per step, force_reply on the inline keyboard so the user can
     type an answer or tap an option. Back / Cancel keep what was typed."""
 
-    def __init__(self, transport: Any, submit: Callable[[FormSession], str]):
+    def __init__(self, transport: Any, submit: Callable[[FormSession], str],
+                 submit_label: str = "Send answers"):
         self.transport = transport
+        self.submit_label = submit_label   # says the outcome; a bare "Submit" doesn't
         self.submit_fn = submit
         self.sessions: dict[tuple[int, int], FormSession] = {}
         self.submissions: dict[str, str] = {}   # idempotency: form_id -> result id
 
     def keyboard(self, s: FormSession) -> dict[str, Any]:
         rows = [[button(o, f"f:{s.form_id}:{s.index}:o:{i}")] for i, o in enumerate(s.step.options)]
+        last = s.index == len(s.steps) - 1
+        complete = all(st.key in s.answers for st in s.steps)
+        if last:
+            # Visible but inert until every answer is valid; above navigation, which stays last.
+            rows.append([button(self.submit_label, f"f:{s.form_id}:submit", disabled=not complete,
+                                style="success" if complete else None)])
         nav = []
         if s.index > 0:
             nav.append(button("← Back", f"f:{s.form_id}:{s.index}:back"))
         nav.append(button("Cancel", f"f:{s.form_id}:{s.index}:cancel"))
         rows.append(nav)
-        last = s.index == len(s.steps) - 1
-        complete = all(st.key in s.answers for st in s.steps)
-        if last:
-            # Visible but inert until every answer is valid.
-            rows.append([button("Submit", f"f:{s.form_id}:submit", disabled=not complete,
-                                style="success" if complete else None)])
         return {"inline_keyboard": rows, "force_reply": True}
 
     def _text(self, s: FormSession, error: str | None = None) -> str:

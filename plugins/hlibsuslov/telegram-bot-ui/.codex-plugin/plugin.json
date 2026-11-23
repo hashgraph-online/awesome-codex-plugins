@@ -1,7 +1,7 @@
 {
   "name": "telegram-bot-ui",
-  "version": "2.2.1",
-  "description": "Design, build, review and operate Telegram bots with the newest Bot API: bot screens and keyboards, streaming AI replies, HTML widgets, premium emoji, product flows, channel publishing, agent-operated bots and Bot API lookups. Bundles the telegram-bot-ui skill and five subagents.",
+  "version": "3.0.0",
+  "description": "The whole interface of a Telegram bot on the newest Bot API: screens, texts and keyboards, navigation and states, streaming AI replies, HTML widgets, premium emoji, product flows, channel publishing, agent-operated bots and Bot API lookups, plus the local bot-ui Studio to map and edit it. Bundles the telegram-bot-ui skill and five subagents.",
   "author": {
     "name": "hlibsuslov"
   },
@@ -20,8 +20,8 @@
   ],
   "interface": {
     "displayName": "Telegram Bot UI",
-    "shortDescription": "UI/UX for Telegram bots, updated for every Bot API release",
-    "longDescription": "Design, build and operate Telegram bots with the newest Bot API: screens, keyboards, streaming AI replies with Stop, private panels in groups, Rich Messages, HTML widgets and TON wallet flows, premium emoji packs, whole product flows, channel publishing with approval, agent-operated bots and offline Bot API lookups. Preserves callback_data, deep links, handlers and translations.",
+    "shortDescription": "The whole UI of a Telegram bot, updated for every Bot API release",
+    "longDescription": "The whole interface of a Telegram bot on the newest Bot API: screens, texts, keyboards, navigation and states, streaming AI replies with Stop, private panels in groups, Rich Messages, HTML widgets and TON wallet flows, premium emoji packs, whole product flows, channel publishing with approval, agent-operated bots and offline Bot API lookups. Preserves callback_data, deep links, handlers and translations.",
     "developerName": "hlibsuslov",
     "category": "Developer Tools",
     "capabilities": [

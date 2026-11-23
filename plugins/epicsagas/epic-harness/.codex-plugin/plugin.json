@@ -1,6 +1,6 @@
 {
   "name": "epic",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Auto-trigger skills + self-evolving agent harness. Includes orbit, evolve, team, tdd, audit, ship and more.",
   "author": {
     "name": "epicsagas",

@@ -5,19 +5,42 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export function preservingPluginCache<T>(root: string, targetVersion: string, install: () => T): T {
-  const versions = existsSync(root) ? readdirSync(root, { withFileTypes: true }).filter(entry => entry.isDirectory() && /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(entry.name)).map(entry => entry.name) : [];
-  const backup = versions.length ? mkdtempSync(join(tmpdir(), "cam-runtime-backup-")) : null;
-  for (const version of versions) cpSync(join(root, version), join(backup!, version), { recursive: true });
+  const kept = keep(root);
   let succeeded = false;
   try {
     const result = install();
     succeeded = true;
     return result;
   } finally {
-    for (const version of versions) {
-      if (succeeded && version === targetVersion) continue;
-      mkdirSync(join(root, version), { recursive: true });
-      cpSync(join(backup!, version), join(root, version), { recursive: true, force: true });
-    }
+    kept.restore(succeeded, targetVersion);
   }
+}
+
+// v0.13: the same around an install that runs asynchronously (core/update.ts: the plugin service keeps answering Codex
+// while Codex's command line installs the new version).
+export async function preservingPluginCacheAsync<T>(root: string, targetVersion: string, install: () => Promise<T>): Promise<T> {
+  const kept = keep(root);
+  let succeeded = false;
+  try {
+    const result = await install();
+    succeeded = true;
+    return result;
+  } finally {
+    kept.restore(succeeded, targetVersion);
+  }
+}
+
+function keep(root: string) {
+  const versions = existsSync(root) ? readdirSync(root, { withFileTypes: true }).filter(entry => entry.isDirectory() && /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(entry.name)).map(entry => entry.name) : [];
+  const backup = versions.length ? mkdtempSync(join(tmpdir(), "cam-runtime-backup-")) : null;
+  for (const version of versions) cpSync(join(root, version), join(backup!, version), { recursive: true });
+  return {
+    restore(succeeded: boolean, targetVersion: string) {
+      for (const version of versions) {
+        if (succeeded && version === targetVersion) continue;
+        mkdirSync(join(root, version), { recursive: true });
+        cpSync(join(backup!, version), join(root, version), { recursive: true, force: true });
+      }
+    },
+  };
 }

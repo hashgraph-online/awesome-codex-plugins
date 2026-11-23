@@ -25,12 +25,30 @@ export function readRequestStats(threadId: string, dir = requestStatsDirOf()): R
   }
 }
 
+// v0.12: best effort, never throws. On Windows the rename fails now and then while another program (an antivirus
+// scan, a panel reading the file) has the file open; it is tried a few more times, and if it still fails this update
+// is lost. A throw here used to stop the engine, with every request going through it (2026-11-22: 238 engines in a
+// month ended without a trace).
 export function recordRequest(threadId: string | null, stats: Json, dir = requestStatsDirOf()): void {
   if (!threadId || !SESSION_KEY.test(threadId)) return;
-  mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${threadId}.json`);
-  const next: RequestStats = { latest: stats, lastHttp: stats.transport === "http" ? stats : readRequestStats(threadId, dir)?.lastHttp ?? null };
-  // Written to a temporary file first, so the panel never reads a half-written file.
-  writeFileSync(`${file}.tmp`, JSON.stringify(next, null, 2));
-  renameSync(`${file}.tmp`, file);
+  try {
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, `${threadId}.json`);
+    const next: RequestStats = { latest: stats, lastHttp: stats.transport === "http" ? stats : readRequestStats(threadId, dir)?.lastHttp ?? null };
+    // Written to a temporary file first, so the panel never reads a half-written file.
+    writeFileSync(`${file}.tmp`, JSON.stringify(next, null, 2));
+    renameWithRetry(`${file}.tmp`, file);
+  } catch { /* the panel shows the previous request until the next one */ }
+}
+
+const pause = new Int32Array(new SharedArrayBuffer(4));
+// Windows refuses to replace a file another program has open (EPERM, EACCES, EBUSY); such locks last milliseconds.
+export function renameWithRetry(from: string, to: string, attempts = 4): void {
+  for (let attempt = 1; ; attempt++) {
+    try { renameSync(from, to); return; } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (attempt >= attempts || !["EPERM", "EACCES", "EBUSY"].includes(code ?? "")) throw error;
+      Atomics.wait(pause, 0, 0, 15 * attempt);
+    }
+  }
 }

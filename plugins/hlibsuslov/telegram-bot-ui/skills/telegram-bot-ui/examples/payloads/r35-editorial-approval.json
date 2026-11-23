@@ -3,7 +3,7 @@
   "status": "production",
   "context": "editor private chat + channel",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-15)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendMessage",
@@ -47,7 +47,9 @@
               {
                 "text": "Edit text",
                 "callback_data": "pub:edit:d42:1"
-              },
+              }
+            ],
+            [
               {
                 "text": "Reject",
                 "callback_data": "pub:reject:d42:1",
@@ -83,7 +85,9 @@
               {
                 "text": "Edit text",
                 "callback_data": "pub:edit:d43:1"
-              },
+              }
+            ],
+            [
               {
                 "text": "Reject",
                 "callback_data": "pub:reject:d43:1",
@@ -161,7 +165,9 @@
               {
                 "text": "Edit text",
                 "callback_data": "pub:edit:d42:2"
-              },
+              }
+            ],
+            [
               {
                 "text": "Reject",
                 "callback_data": "pub:reject:d42:2",

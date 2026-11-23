@@ -16,7 +16,7 @@ official recommendation, **[heuristic]** = design heuristic of this skill.
 2. **Why these features.**
    - Rich Message lesson: `heading`, `paragraph`, `expandable_blockquote` for the long example
      (collapsed by default, so the lesson stays short), and a `buttons` row with *Start quiz*
-     inside the message **[API: InputRichBlockExpandableBlockQuotation, InputRichBlockButtons, 10.3]**.
+     inside the message **[API: InputRichBlockExpandableBlockQuotation (blocks since 10.5), InputRichBlockButtons, 10.3]**.
    - Course map as a `list` whose items carry `has_checkbox` and `is_checked` (done lessons are
      checked) **[API: InputRichBlockListItem]**; the lesson buttons stay in `reply_markup` so each
      lesson is one tap **[heuristic]**.
@@ -55,7 +55,7 @@ official recommendation, **[heuristic]** = design heuristic of this skill.
 
    Key parts:
    ```json
-   {"type": "expandable_blockquote", "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message.", "credit": "Example"}
+   {"type": "expandable_blockquote", "blocks": [{"type": "paragraph", "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message."}], "credit": "Example"}
    {"inline_keyboard": [[{"text": "✗ git clone", "disabled": {}}], [{"text": "git commit", "disabled": {}}], [{"text": "git fetch", "disabled": {}}], [{"text": "Next question", "callback_data": "lr:6:next", "style": "primary"}]]}
    {"type": "paragraph", "text": "██░  2/3"}
    ```

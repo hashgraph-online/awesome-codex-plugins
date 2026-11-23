@@ -52,3 +52,10 @@ Measure before you commit to a full render: time the `--preview` run, divide by 
 
 - Look at the three preview stills before the full render: subject in frame, nothing cut off, the floor horizon invisible, the title readable.
 - After the full render, run `scripts/check_delivery.sh` and `scripts/contact_sheet.sh` on the finished MP4 like any other path.
+
+## More Blender routes
+
+- **Motion that is hard by hand** (seamless loops, retiming between markers, cloth, hinged chains, folding, walking forward with planted feet): tested parameterised scripts in `references/blender-recipes.md`, run with `b2m3d recipe run <name>`.
+- **A Blender window you can talk to** (blender-mcp): `references/blender-live.md`. Decide live, render headless; headless stays the default for every shot that ships.
+- **A prop from an image or a text prompt, or a liquid**: optional tools you install, in `references/generators-3d.md`.
+

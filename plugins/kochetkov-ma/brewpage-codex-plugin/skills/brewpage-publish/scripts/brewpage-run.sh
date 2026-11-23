@@ -37,7 +37,7 @@ brewpage-run.sh preflight <file|site-dir|site-zip> --path P [--entry F] [--passw
   [--confirmed --review-sha256 SHA256]
 brewpage-run.sh publish <html|html-file|json|file|site-dir|site-zip> --ns <ns> [--ttl N] [--entry F]
   [--delivery-mode path|subdomain] --password-file <ABS|''> [--state JSON] [--confirmed --review-sha256 SHA256] (--text T | --run ID | --path P)
-  [--anonymous | --owner-target URL | --owner-token-file ABS] [--domain HOST] [--no-save --private-output]
+  [--anonymous | --owner-target URL | --owner-token-file ABS] [--domain HOST] [--no-save --receipt-dir ABS]
 brewpage-run.sh update <html|html-file|json|file|site-dir|site-zip> --target URL --password-file ''
   [--owner-token-file ABS] [--entry F] [--state JSON] [--confirmed --review-sha256 SHA256] (--text T | --run ID | --path P)
 brewpage-run.sh owner-store --target OWNER_API_URL --reader READER_URL --owner-token-file ABS [--private-output]
@@ -49,7 +49,8 @@ brewpage-run.sh cleanup --run <run_id>
 Repeat --exclude-file ABS for additional protected files on preflight, publish or update.
 --state: Page data config, a JSON object ({} = defaults); HTML pages and sites only.
 Empty --ttl uses 15; empty --entry/--delivery-mode/--state are omitted. Prints OK/CONFIRM:/FAILED:; CONFIRM exits 2.
---private-output requires a verified owner-only channel; it may print private receipts and storage paths.
+--private-output requires an owner-only channel for private metadata; the runner never prints owner proof.
+--receipt-dir is an existing owner-only directory outside the workspace for a new protected receipt file.
 USAGE
 }
 
@@ -265,7 +266,7 @@ cmd_preflight() {
 cmd_publish() {
   local action="$1"; shift
   local type="${1:-}" ns="" days=15 entry="" mode="" pwfile="" state="" text="" run="" path="" have_text=0 sources=0 have_password=0
-  local target="" ownerfile="" owner_target="" domain="" anonymous=0 ttl_set=0 CHECKED_PATH=""
+  local target="" ownerfile="" owner_target="" domain="" anonymous=0 ttl_set=0 CHECKED_PATH="" receipt_dir=""
   local -a exclusions=()
   if [ "$#" -gt 0 ]; then shift; fi
   BP_NO_SAVE=0
@@ -292,6 +293,7 @@ cmd_publish() {
       --exclude-file) need "$#" "$1"; exclusions+=(--exclude-file "$2"); shift 2 ;;
       --anonymous) anonymous=1; shift ;;
       --no-save) BP_NO_SAVE=1; shift ;;
+      --receipt-dir) need "$#" "$1"; receipt_dir="$2"; shift 2 ;;
       --private-output) BP_PRIVATE_OUTPUT=1; shift ;;
       *) die "unknown publish argument: $1" ;;
     esac
@@ -299,7 +301,11 @@ cmd_publish() {
   [ "$have_password" -eq 1 ] || die "explicit --password-file choice required (empty means no password)"
   command -v python3 >/dev/null || die "python3 required for secure history"
   [ "$sources" -eq 1 ] || die "publish needs exactly one of --text, --run, --path"
-  [ "$BP_NO_SAVE" = 0 ] || [ "$BP_PRIVATE_OUTPUT" = 1 ] || die "--no-save requires --private-output through a verified owner-only channel"
+  case "$BP_NO_SAVE:$receipt_dir" in
+    0: | 1:/*) : ;;
+    1:*) die "--no-save requires an absolute --receipt-dir for protected file delivery" ;;
+    *) die "--receipt-dir applies to --no-save only" ;;
+  esac
   check_review
   if [ "$action" = update ]; then
     [ -n "$target" ] || die "update needs --target with the exact publication URL"
@@ -403,10 +409,11 @@ cmd_publish() {
   if [ -n "$domain" ]; then
     local domain_limits
     domain_limits=$(bp_request GET https://brewpage.app/api/limits) || die "cannot verify selected profile domain support; no publication sent"
+    [ "$(bp_response_status)" = 200 ] || die "cannot verify selected profile domain support; no publication sent"
     printf '%s' "$domain_limits" | jq -e '.reach == "profile" and .customDomains.enabled == true and (.customDomains.limit | type == "number" and . > 0)' >/dev/null 2>&1 ||
       die "selected proof does not establish an active profile with custom domains; no publication sent"
   fi
-  if [ "$BP_NO_SAVE" = 0 ]; then bp_prepare_recovery || die "cannot prepare a protected owner recovery destination"; fi
+  bp_prepare_recovery "$receipt_dir" || die "cannot prepare a protected owner recovery destination"
   BP_VERIFY_RECEIPT=1
   BP_EXPLICIT_PROOF=0
   if [ -n "$ownerfile" ]; then BP_EXPLICIT_PROOF=1; fi
@@ -436,18 +443,18 @@ cmd_publish() {
       fi
       bp_operation_request "$method" "$endpoint" "$kind" "$BP_RUN_DIR/payload.json" || die "cannot preserve request fingerprint before dispatch"
       response=$(bp_request "$method" "$endpoint" -H "Content-Type: application/json" -d @"$BP_RUN_DIR/payload.json") || die "$unknown"
-      bp_finish "$response" "$DAYS" html
+      bp_finish "$response" "$DAYS" html "$method" "$endpoint"
       ;;
     json)
       jq empty "$content" 2>/dev/null || die "payload is not valid JSON"
       bp_operation_request "$method" "$endpoint" "$kind" "$content" || die "cannot preserve request fingerprint before dispatch"
       response=$(bp_request "$method" "$endpoint" -H "Content-Type: application/json" -d @"$content") || die "$unknown"
-      bp_finish "$response" "$DAYS" json
+      bp_finish "$response" "$DAYS" json "$method" "$endpoint"
       ;;
     file)
       bp_operation_request "$method" "$endpoint" "$kind" "$content" || die "cannot preserve request fingerprint before dispatch"
       response=$(bp_request "$method" "$endpoint" -F "$(form_file file "$content")") || die "$unknown"
-      bp_finish "$response" "$DAYS" file
+      bp_finish "$response" "$DAYS" file "$method" "$endpoint"
       ;;
     site-dir | site-zip)
       local separator='&'
@@ -456,6 +463,7 @@ cmd_publish() {
         if [ -z "$entry" ]; then
           local metadata
           metadata=$(bp_request GET "$endpoint") || die "cannot verify existing site entry; no replacement sent"
+          [ "$(bp_response_status)" = 200 ] || die "cannot verify existing site entry; no replacement sent"
           ENTRY=$(printf '%s' "$metadata" | jq -er '.entryFile | strings | select(length > 0)' 2>/dev/null) || die "existing site entry is unresolved; no replacement sent"
           python3 -I -S -c 'import sys,zipfile; p=sys.argv[2]; safe=not p.startswith("/") and not any(s in ("",".","..") for s in p.split("/")) and not any(ord(c)<32 or ord(c)==127 for c in p); sys.exit(0 if safe and p in zipfile.ZipFile(sys.argv[1]).namelist() else 1)' "$CHECKED_PATH" "$ENTRY" || die "existing entry is absent or invalid in replacement; resolve the entry choice before publishing"
         fi
@@ -463,7 +471,7 @@ cmd_publish() {
       endpoint="$endpoint${separator}entry=$(jq -nr --arg e "$ENTRY" '$e | @uri')"
       bp_operation_request "$method" "$endpoint" "$kind" "$CHECKED_PATH" "$state" || die "cannot preserve request fingerprint before dispatch"
       response=$(bp_request "$method" "$endpoint" -F "$(form_file archive "$CHECKED_PATH")" ${state:+--form-string "state=$state"}) || die "$unknown"
-      bp_finish "$response" "$DAYS" site
+      bp_finish "$response" "$DAYS" site "$method" "$endpoint"
       ;;
   esac
 }

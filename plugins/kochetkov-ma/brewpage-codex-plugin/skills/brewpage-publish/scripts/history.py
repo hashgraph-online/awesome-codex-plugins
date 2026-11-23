@@ -45,7 +45,7 @@ def same_file(left, right):
     return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
 
 
-def replace(directory, name, data, mode):
+def replace(directory, name, data, mode, exclusive=False):
     temporary = '.brewpage-' + secrets.token_hex(12)
     fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode, dir_fd=directory)
     try:
@@ -54,7 +54,10 @@ def replace(directory, name, data, mode):
             output.write(data)
             output.flush()
             os.fsync(output.fileno())
-        os.replace(temporary, name, src_dir_fd=directory, dst_dir_fd=directory)
+        if exclusive:
+            os.link(temporary, name, src_dir_fd=directory, dst_dir_fd=directory, follow_symlinks=False)
+        else:
+            os.replace(temporary, name, src_dir_fd=directory, dst_dir_fd=directory)
     finally:
         try:
             os.unlink(temporary, dir_fd=directory)
@@ -72,8 +75,13 @@ def read(directory, name, private=False):
         return source.read(LIMIT + 1)
 
 
+GIT_ENV = ('PATH', 'HOME', 'XDG_CONFIG_HOME', 'GIT_DIR', 'GIT_WORK_TREE', 'GIT_CEILING_DIRECTORIES')
+
+
 def git(root, arguments, allowed=(0, 1)):
-    result = subprocess.run(['git', '-C', root] + arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={**os.environ, 'LC_ALL': 'C'})
+    # Named variables only: repo discovery, PATH and ignore files; nothing else reaches git.
+    env = {name: os.environ[name] for name in GIT_ENV if name in os.environ}
+    result = subprocess.run(['git', '-C', root] + arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={**env, 'LC_ALL': 'C'})
     if result.returncode not in allowed:
         raise ValueError('Git safety check failed; repair repository configuration before publishing')
     return result
@@ -367,26 +375,36 @@ def main():
         if mode.startswith('receipt'):
             if relative != 'brewpage-recovery.json' or not same_file(os.stat(requested_root, follow_symlinks=False), info):
                 raise ValueError('recovery directory must be private')
+            external = bool(args and args[0] == '1')
+            if external:
+                workspace, run = map(os.path.realpath, args[1:])
+                if (stat.S_IMODE(info.st_mode) != 0o700 or not same_file(os.fstat(8), info) or
+                    any(os.path.commonpath((root, parent)) == parent for parent in (workspace, run)) or repository(root)):
+                    raise ValueError('receipt directory requires mode 0700 outside the workspace and Git')
+                fcntl.flock(8, fcntl.LOCK_EX | fcntl.LOCK_NB)
             existing = read(directory, relative, private=True)
             if mode == 'receipt-ready':
-                if existing:
+                if existing or (external and existing is not None):
                     raise ValueError('an owner recovery receipt is pending; retrieve it privately and import it before another saved write')
-                if existing is None:
+                if existing is None and not external:
                     replace(directory, relative, b'', 0o600)
                 return
-            receipt = existing if mode == 'receipt-read' else sys.stdin.buffer.read(1024 * 1024 + 1)
-            if not receipt:
+            data = existing if mode == 'receipt-read' else sys.stdin.buffer.read(1024 * 1024 + 1)
+            if not data:
                 raise ValueError('no owner recovery receipt is pending')
-            value = json.loads(receipt)
-            if len(receipt) > 1024 * 1024 or not isinstance(value, dict) or value.get('origin') != OWNER_ORIGIN or not owner_api(value.get('ownerApi')) or not isinstance(value.get('ownerToken'), str) or not OWNER_TOKEN.fullmatch(value['ownerToken']):
+            value = json.loads(data)
+            if len(data) > 1024 * 1024 or not isinstance(value, dict) or value.get('origin') != OWNER_ORIGIN or not owner_api(value.get('ownerApi')) or not isinstance(value.get('ownerToken'), str) or not OWNER_TOKEN.fullmatch(value['ownerToken']):
                 raise ValueError('invalid owner recovery receipt')
+            reader = value.get('readerUrl')
+            if not isinstance(reader, str) or not re.fullmatch(r'https://[^\s\x00-\x20\x7f#|`]+', reader) or value['ownerToken'] in reader or reader == value.get('manageUrl'):
+                raise ValueError('invalid recovery reader URL')
             if mode == 'receipt-read':
-                print(receipt.decode('utf-8').rstrip('\n'))
+                print(json.dumps({'ownerApi': value['ownerApi'], 'readerUrl': reader}, separators=(',', ':')))
                 return
-            if existing:
+            if existing or (external and existing is not None):
                 raise ValueError('an unresolved owner recovery receipt must not be overwritten')
-            replace(directory, relative, receipt, 0o600)
-            if not same_file(os.stat(requested_root, follow_symlinks=False), os.fstat(directory)) or read(directory, relative, private=True) != receipt:
+            replace(directory, relative, data, 0o600, exclusive=external)
+            if not same_file(os.stat(requested_root, follow_symlinks=False), os.fstat(directory)) or read(directory, relative, private=True) != data:
                 raise ValueError('recovery receipt readback failed')
             return
         lock(directory)

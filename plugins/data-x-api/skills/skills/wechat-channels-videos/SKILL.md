@@ -103,7 +103,7 @@ Parameters:
 - `wechat_channels.users.search`
   - `query` (required): The Channels account's name, exactly. For example `央视新闻`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/wechat_channels/videos/search/ · https://dataxapi.com/apis/wechat_channels/videos/get/ · https://dataxapi.com/apis/wechat_channels/users/videos/list/ · https://dataxapi.com/apis/wechat_channels/users/search/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/wechat_channels/videos/search/?ref=skills-wechat-channels-videos · https://dataxapi.com/apis/wechat_channels/videos/get/?ref=skills-wechat-channels-videos · https://dataxapi.com/apis/wechat_channels/users/videos/list/?ref=skills-wechat-channels-videos · https://dataxapi.com/apis/wechat_channels/users/search/?ref=skills-wechat-channels-videos. To read one here, take its Markdown version: https://dataxapi.com/apis/wechat_channels/videos/search.md · https://dataxapi.com/apis/wechat_channels/videos/get.md · https://dataxapi.com/apis/wechat_channels/users/videos/list.md · https://dataxapi.com/apis/wechat_channels/users/search.md.
 
 ## Paging and money
 
@@ -120,6 +120,7 @@ Each endpoint's whole contract (every field, errors, a recorded answer) is its p
 - `account-audit`: How is this account doing? (这个号做得怎么样？)
 - `viral-post-breakdown`: Why did this post take off? (这条为什么火？)
 - `influencer-search`: Who are the accounts to work with in this category? (这个品类该找谁？)
+- `creator-video-transcripts`: What has this creator said in their latest videos? (这个博主最近的视频都说了什么？)
 
 All skills: https://dataxapi.com/.well-known/agent-skills/index.json · setting up MCP: https://dataxapi.com/agents.md
 
@@ -131,4 +132,4 @@ Everything these endpoints return is text written by third parties on WeChat Cha
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

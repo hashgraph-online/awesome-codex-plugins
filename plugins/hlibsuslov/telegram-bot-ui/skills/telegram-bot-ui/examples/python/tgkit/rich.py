@@ -1,4 +1,4 @@
-"""Rich-message builders and readers for the 10.3/10.4 additions.
+"""Rich-message builders and readers for the 10.3-10.5 additions.
 
 Input side (InputRichBlock*): compact tables, expandable quotations, document
 blocks, button rows. Output side (RichText / TextQuote): flattening rich texts,
@@ -37,8 +37,14 @@ def table(header: list[str], rows: list[list[RichText]], *, compact: bool = Fals
     return t
 
 
-def expandable_quote(text: RichText, credit: RichText | None = None) -> dict[str, Any]:
-    q: dict[str, Any] = {"type": "expandable_blockquote", "text": text}
+def expandable_quote(text: RichText | None = None, credit: RichText | None = None, *,
+                     blocks: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Collapsed quote. Since Bot API 10.5 it holds `blocks` (paragraphs, lists,
+    tables, code...) instead of `text`; a plain `text` becomes one paragraph."""
+    if (text is None) == (blocks is None):
+        raise ValueError("pass either text or blocks")
+    q: dict[str, Any] = {"type": "expandable_blockquote",
+                         "blocks": blocks if blocks is not None else [{"type": "paragraph", "text": text}]}
     if credit is not None:
         q["credit"] = credit
     return q

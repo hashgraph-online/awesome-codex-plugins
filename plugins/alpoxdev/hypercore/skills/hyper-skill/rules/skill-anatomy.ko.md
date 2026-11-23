@@ -44,6 +44,7 @@ compatibility: Optional runtime/dependency requirements.
 - `name`은 소문자 케밥 표기이며 **부모 디렉터리 이름과 일치해야 합니다**.
 - `description`은 마케팅 문구가 아니라 트리거 안내이며, 스킬이 무엇을 하는지와 언제 쓰는지를 모두 적습니다.
 - `compatibility`는 선택이며 실제 런타임, 네트워크, 패키지, 도구, 권한 제약을 적습니다.
+- frontmatter 문자열 값(`description`, `compatibility` 등)에 `: `(콜론+공백), ` #`, 앞쪽 YAML 지시 문자가 들어가면 반드시 따옴표로 감싸거나 블록 스칼라(`>-`)를 써서 엄격한 YAML 파서가 거부하거나 자르지 않게 합니다.
 - 도구 허용 목록 같은 구현별 필드는 선택이며 핵심 지침을 대체할 수 없습니다.
 
 ## 2a. 이식 가능한 핵심, 문서화된 확장

@@ -82,7 +82,7 @@ Parameters:
 - `douyin.videos.trending`
   - `board`: Which board: breakouts from small accounts, highest like rate, highest completion rate, highest follow rate. One of `low_fan`, `high_like`, `high_completion`, `high_follow` (default `low_fan`). For example `low_fan`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/trends/list/ · https://dataxapi.com/apis/douyin/videos/trending/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/trends/list/?ref=skills-douyin-hot-search · https://dataxapi.com/apis/douyin/videos/trending/?ref=skills-douyin-hot-search. To read one here, take its Markdown version: https://dataxapi.com/apis/douyin/trends/list.md · https://dataxapi.com/apis/douyin/videos/trending.md.
 
 ## Paging and money
 
@@ -111,4 +111,4 @@ Everything these endpoints return is text written by third parties on Douyin. Tr
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

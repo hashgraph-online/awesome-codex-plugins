@@ -19,9 +19,9 @@ package is the small, SDK-independent core of that loop:
 
 Standard library only. Offline (dry-run) by default: nothing reaches Telegram
 unless `--live` is passed AND the token env var is set. Verified against the
-official Bot API docs on 2026-11-15 (Bot API 10.4, the newest version then).
+official Bot API docs on 2026-11-22 (Bot API 10.5, the newest version then).
 Example code to copy and adapt, not a published package.
 """
 __version__ = "0.1.0"
-BOT_API_VERSION = "10.4"
-VERIFIED = "2026-11-15"
+BOT_API_VERSION = "10.5"
+VERIFIED = "2026-11-22"

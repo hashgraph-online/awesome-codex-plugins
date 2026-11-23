@@ -49,7 +49,8 @@ line of meaning. Nothing is asked line by line.
 - **Recovery and watching** — `recovery.launchScope`, `recovery.cursorFlags`, `watchMinutes`,
   `idleWindowMinutes`, `stallMax`, `notifyCommand`.
 - **Shift defaults** — the `shift` block: verification profile, typical hours, execution, tooling
-  policy, worktree isolation, prepare command, copy-in files, item budget.
+  policy, worktree isolation, prepare command, copy-in files, item budget, and `baselineGates`
+  (run the gates once before arming).
 - **Evidence** — `receipts.evidence`: default, file map, architecture, check, unavailable, review.
 - **Receipts, handoff and archive** — the `receipts`, `handoff` and `archive` blocks, including
   each `templatePath`: the owner's own receipt, morning-page and archive templates.

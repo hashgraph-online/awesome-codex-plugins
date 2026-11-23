@@ -688,13 +688,13 @@ def rich_size(blocks: list[dict[str, Any]]) -> tuple[int, int, int]:
         for b in bs:
             blocks_n += 1
             t = b.get("type")
-            if t in ("heading", "paragraph", "footer", "expandable_blockquote"):
+            if t in ("heading", "paragraph", "footer"):
                 chars += text_len(b.get("text"))
             if t == "list":
                 for it in b["items"]:
                     blocks_n += 1
                     walk(it["blocks"])
-            if t == "blockquote":
+            if t in ("blockquote", "expandable_blockquote"):   # 10.5: expandable quotes hold blocks too
                 walk(b["blocks"])
             if t == "table":
                 blocks_n += len(b["cells"])

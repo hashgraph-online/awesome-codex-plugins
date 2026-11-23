@@ -110,7 +110,7 @@ Parameters:
 - `douyin.users.search`
   - `query` (required): Search terms. For example `博物馆`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/users/videos/list/ · https://dataxapi.com/apis/douyin/users/get/ · https://dataxapi.com/apis/douyin/users/search/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/douyin/users/videos/list/?ref=skills-douyin-creator · https://dataxapi.com/apis/douyin/users/get/?ref=skills-douyin-creator · https://dataxapi.com/apis/douyin/users/search/?ref=skills-douyin-creator. To read one here, take its Markdown version: https://dataxapi.com/apis/douyin/users/videos/list.md · https://dataxapi.com/apis/douyin/users/get.md · https://dataxapi.com/apis/douyin/users/search.md.
 
 ## Paging and money
 
@@ -130,6 +130,7 @@ Each endpoint's whole contract (every field, errors, a recorded answer) is its p
 - `competitor-monitoring`: What did competitors post this week, and which post took off? (对手这周发了什么、哪条起来了？)
 - `account-audit`: How is this account doing? (这个号做得怎么样？)
 - `influencer-search`: Who are the accounts to work with in this category? (这个品类该找谁？)
+- `creator-video-transcripts`: What has this creator said in their latest videos? (这个博主最近的视频都说了什么？)
 
 All skills: https://dataxapi.com/.well-known/agent-skills/index.json · setting up MCP: https://dataxapi.com/agents.md
 
@@ -141,4 +142,4 @@ Everything these endpoints return is text written by third parties on Douyin. Tr
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

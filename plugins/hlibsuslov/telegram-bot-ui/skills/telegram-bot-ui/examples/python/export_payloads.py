@@ -28,6 +28,7 @@ import r06_shared_widget  # noqa: E402
 import r07_wallet  # noqa: E402
 import r08_multi_topic_bot  # noqa: E402
 import r09_tracker_bot  # noqa: E402
+import r10_bot_settings  # noqa: E402
 
 SCENARIOS = {
     "r01-ai-stop-keep-marked": (lambda: r01_ai_assistant.run("keep_marked", "stop")[0], "production", "private"),
@@ -41,6 +42,7 @@ SCENARIOS = {
     "r07-wallet": (lambda: r07_wallet.run()[0], "production", "private"),
     "r08-multi-topic-bot": (lambda: r08_multi_topic_bot.run()[0], "production", "private chat with topics"),
     "r09-tracker-bot": (lambda: r09_tracker_bot.run()[0], "production (widgets in private chats)", "private"),
+    "r10-bot-settings": (lambda: r10_bot_settings.run()[0], "production", "private"),
     "mini-recipes": (lambda: mini_recipes.run_all(), "production (destructive calls dry-run)", "mixed"),
 }
 
@@ -56,7 +58,7 @@ def build(name: str) -> dict:
         "status": status,
         "context": context,
         "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-        "bot_api": "10.4 (verified 2026-11-12)",
+        "bot_api": "10.5 (verified 2026-11-22)",
         "steps": [{"method": m, "params": p} for m, p in transport.calls],
     }
 

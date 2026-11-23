@@ -11,8 +11,9 @@ Labels: **[API]** spec; **[Official]** Telegram docs/blog; **[Heuristic]** this 
 
 ## Preconditions and availability
 
-- **[API]** The bot must have Business Mode enabled in @BotFather;
-  `getMe` then returns `can_connect_to_business: true`.
+- **[API]** The bot must have Business Mode enabled in @BotFather or with
+  `setMySettings(can_connect_to_business=true)` (10.5); `getMe` (`BotFullInfo`) then
+  returns `can_connect_to_business: true`.
 - **[API]** Since **10.0** business bots can manage user accounts **without** the user
   having Telegram Premium (earlier: Premium required). Older SDK docs may still say
   "Premium only".

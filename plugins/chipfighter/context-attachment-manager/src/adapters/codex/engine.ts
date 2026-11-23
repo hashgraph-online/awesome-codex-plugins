@@ -8,7 +8,7 @@
 
 import type { IncomingHttpHeaders } from "node:http";
 import { join } from "node:path";
-import { decodeBody, encodeBody, hasUnsafeInteger } from "../../core/engine/transport.ts";
+import { decodeBody, encodeBody, hasUnsafeInteger, type ParsedBody } from "../../core/engine/transport.ts";
 import type { Described } from "../../core/words.ts";
 import { currentLang } from "./language.ts";
 import { effectiveSelection, sideChatSelection } from "./selection.ts";
@@ -81,14 +81,15 @@ export function shownNotes(index: ThreadIndex, image: IndexedImage): Notes | und
 // the model fetched in an earlier turn.
 // v0.7: a side chat's request carries the history of the task it came from: that task's index, with every one of its
 // turns counting as earlier (sideChatSelection).
-export function rewriteBody(original: Buffer, encoding: string | undefined, threadId: string, sessionsDir: string, dir = selectionDir, turnId: string | null = null, forkedFrom: string | null = null): { body: Buffer; report: Json } {
+// v0.12: `pre`, the body the engine already decoded and parsed (transport.ts, parseBody); it is not parsed again.
+export function rewriteBody(original: Buffer, encoding: string | undefined, threadId: string, sessionsDir: string, dir = selectionDir, turnId: string | null = null, forkedFrom: string | null = null, pre?: ParsedBody): { body: Buffer; report: Json } {
   const origin = sideChatOrigin(threadId, forkedFrom, sessionsDir);
   const side = origin ? sideChatSelection(origin, sessionsDir, dir) : null;
-  const decoded = decodeBody(original, encoding);
+  const decoded = pre?.decoded ?? decodeBody(original, encoding);
   if (!decoded) return { body: original, report: { skipped: "undecodable body" } };
-  const text = decoded.toString("utf8");
+  const text = pre?.text ?? decoded.toString("utf8");
   let json: Json;
-  try { json = JSON.parse(text); } catch { return { body: original, report: { skipped: "unparsable body" } }; }
+  try { json = pre?.json ?? JSON.parse(text); } catch { return { body: original, report: { skipped: "unparsable body" } }; }
   if (!Array.isArray(json.input)) return { body: original, report: { skipped: "no input array" } };
   if (hasUnsafeInteger(text)) return { body: original, report: { skipped: "integer beyond 2^53 would change when re-serialized" } };
   let index: ThreadIndex;

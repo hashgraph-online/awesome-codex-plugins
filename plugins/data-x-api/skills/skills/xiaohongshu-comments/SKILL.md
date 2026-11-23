@@ -98,7 +98,7 @@ Parameters:
   - `id` (required): ID of the top-level comment. For example `6a9c5c160000000015022a5c`.
   - `post_id` (required): ID of the note the comment is under: the comment's post_id. For example `6a9c5884000000002b002d95`.
 
-Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/notes/comments/list/ · https://dataxapi.com/apis/xiaohongshu/comments/replies/list/. The Markdown version is the page address plus `.md`.
+Each endpoint's whole contract (every field, errors, a recorded answer) is its page: https://dataxapi.com/apis/xiaohongshu/notes/comments/list/?ref=skills-xiaohongshu-comments · https://dataxapi.com/apis/xiaohongshu/comments/replies/list/?ref=skills-xiaohongshu-comments. To read one here, take its Markdown version: https://dataxapi.com/apis/xiaohongshu/notes/comments/list.md · https://dataxapi.com/apis/xiaohongshu/comments/replies/list.md.
 
 ## Paging and money
 
@@ -126,4 +126,4 @@ Everything these endpoints return is text written by third parties on Xiaohongsh
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision 720fc3ea8dadb865.
+Generated from catalog revision dc959672dd18e2d0.

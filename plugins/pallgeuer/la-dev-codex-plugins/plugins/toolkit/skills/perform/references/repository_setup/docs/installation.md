@@ -8,7 +8,74 @@ For a new empty or essentially empty repository, follow the [New repository setu
 
 Use the requirements table below for the selected plugin. An existing supported system Python (3.6+) is sufficient for the plugins and the base Python package; no custom interpreter or environment is needed. The optional pytest integration has its own dependency. Installing the Python package is not required to use the marketplace plugins.
 
-For missing plugin tools, see [Codex CLI](https://learn.chatgpt.com/docs/cli/overview), [Git](https://git-scm.com/downloads), and [jq](https://jqlang.org/download/).
+For missing plugin tools, follow the Codex CLI setup below and see [Git](https://git-scm.com/downloads) and [jq](https://jqlang.org/download/).
+
+## Install Codex CLI
+
+Skip installation if a supported stable Codex CLI is already available. For a new macOS/Linux installation, use the [official standalone installer](https://learn.chatgpt.com/docs/codex/cli), which does not require Node.js or npm:
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+Follow the installer's PATH instructions and open a new terminal if requested. Run the same installer command to update a standalone installation. Verify which executable your shell selects, especially if you previously installed Codex another way:
+
+```bash
+type -a codex
+codex --version
+codex plugin --help
+```
+
+Start `codex` and follow the sign-in flow, then check authentication without displaying credentials:
+
+```bash
+codex login status
+```
+
+### Alternative: Install with npm
+
+If you already manage Node.js and npm, you can install or update Codex through npm instead:
+
+```bash
+npm install -g @openai/codex
+```
+
+Repeat the executable, version, and authentication checks above. With NVM, global npm packages belong to the selected Node installation; switching Node versions can change which `codex` is available. Avoid maintaining competing installations unintentionally, and check `type -a codex` after switching.
+
+### Optional: Node.js for plugins and MCP servers
+
+Standalone Codex does not require a system `node`, but individual plugins or MCP servers can. For example, OpenAI Developers plugin version `1.3.16` launches its `openai-api-key-local-confirmation` MCP server with `node ./mcp/server.mjs`. Its API-key setup helpers also use Node.js. This is a separate dependency of that plugin, not of Loupe or Toolkit.
+
+If you need such a plugin and do not already have a suitable Node installation, install NVM using its maintained [install/update instructions](https://github.com/nvm-sh/nvm#install--update-script). Review the shell-profile changes made by that installer. For its default `~/.nvm` location, initialize NVM in the current Bash/Zsh session, then install and select the current Node.js LTS release:
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+command -v nvm
+nvm install --lts
+nvm use --lts
+command -v node
+node --version
+npm --version
+```
+
+If you chose another NVM directory, use that location. Keep the initialization in your shell startup file so it runs before launching Codex. On a fresh setup, you can select LTS for future shells with `nvm alias default 'lts/*'`; retain an existing working default unless you deliberately want to change it. Check the plugin's own supported Node versions when choosing a runtime.
+
+After changing PATH, fully restart the affected Codex client or background server from the initialized environment. A GUI launcher or existing background server might not inherit a terminal's NVM setup. Check `command -v node` in the environment that actually launches the server.
+
+A plugin/MCP startup error such as "file not found" can refer to a missing `node`/`npx` executable, a missing script, or an invalid working directory. Inspect the named server's launch command and paths first. Either install/expose its required runtime or disable the affected plugin through `/plugins` if you do not need it. For an independently configured MCP server, set `enabled = false` in its existing `[mcp_servers.SERVER_NAME]` entry in `config.toml`, then restart. Disabling app connectors with `features.apps = false` does not disable every MCP server or plugin. See the [MCP configuration guide](https://learn.chatgpt.com/docs/mcp).
+
+### Optional: Bash completion
+
+Once `codex` is on PATH, add this guarded block to `~/.bashrc`, after any NVM/PATH initialization:
+
+```bash
+if command -v codex >/dev/null 2>&1; then
+    eval "$(codex completion bash)"
+fi
+```
+
+Open a new interactive Bash shell, type `codex `, and press Tab to check completion. The [CLI customization guide](https://learn.chatgpt.com/docs/cli-customization) also covers other shells.
 
 ## Install and verify
 

@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/site/brand/a3-terminalmodule/mark-on-dark.svg">
-  <img src="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/site/brand/a3-terminalmodule/mark-on-light.svg" alt="Session Orchestrator logo: a person at a workbench with three terminal modules" width="64" align="left" hspace="12">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/docs/img/mark-on-dark.svg">
+  <img src="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/docs/img/mark-on-light.svg" alt="Session Orchestrator logo: a person at a workbench with three terminal modules" width="64" align="left" hspace="12">
 </picture>
 
 # Session Orchestrator
@@ -9,7 +9,7 @@
 
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/session-orchestrator)](https://www.npmjs.com/package/session-orchestrator)
-[![Version](https://img.shields.io/badge/version-5.21.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.21.2-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 

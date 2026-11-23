@@ -27,7 +27,7 @@ export function backupConfig(): void {
   copyFileSync(configFile, join(backups, `config.toml.${new Date().toISOString().replaceAll(":", "-")}`));
 }
 
-function replaceFile(file: string, text: string): void {
+export function replaceFile(file: string, text: string): void {
   writeFileSync(`${file}.cam-tmp`, text, "utf8");
   try {
     renameSync(`${file}.cam-tmp`, file);

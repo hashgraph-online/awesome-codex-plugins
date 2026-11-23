@@ -1,8 +1,8 @@
 # Official sources and verification log
 
-> **Last verification: 2026-11-15.** Verified against **Bot API 10.4 (released
-> 2026-11-09)**, the newest version in the official changelog on that date (10.3 was
-> released 2026-08-24); no newer version existed on 2026-11-15. The full API is
+> **Last verification: 2026-11-22.** Verified against **Bot API 10.5 (released
+> 2026-11-22)**, the newest version in the official changelog on that date (10.4 was
+> released 2026-11-09); no newer version existed on 2026-11-22. The full API is
 > snapshotted in `data/bot-api/` (see `api-catalog.md`). Before version-dependent work, re-check the changelog for a newer
 > version and update this file. Updating these references is part of maintaining the skill —
 > no separate permission step is needed when the task is to update the skill.
@@ -16,11 +16,11 @@ the task is version-sensitive:
 3. Update the references, `recipes/registry.json` and this log — **do not delete historic
    facts** needed for older-SDK compatibility; mark them as version-specific.
 
-## Machine-readable snapshot (2026-11-15)
+## Machine-readable snapshot (2026-11-22)
 
 `py -3 scripts/sync_bot_api.py` parsed https://core.telegram.org/bots/api and
-https://core.telegram.org/bots/api-changelog on 2026-11-15: Bot API **10.4**, 193 methods,
-425 types, 29 union types, 81 changelog releases (`data/bot-api/catalog.json`,
+https://core.telegram.org/bots/api-changelog on 2026-11-22: Bot API **10.5**, 194 methods,
+426 types, 29 union types, 82 changelog releases (`data/bot-api/catalog.json`,
 `changelog.json`). `robots.txt` on core.telegram.org returned 404. Re-run the sync
 whenever this file's date is older than the newest changelog entry, then diff with
 `py -3 scripts/tg_api_lookup.py diff`.
@@ -172,6 +172,24 @@ Confirmed against official changelog / blog:
 - `link_preview_options` fields: `is_disabled`, `url`, `prefer_small_media`,
   `show_above_text`.
 
+## Facts verified on 2026-11-22 (Bot API 10.5)
+
+| Source | URL | Used for |
+|---|---|---|
+| Bot API changelog, 10.5 | https://core.telegram.org/bots/api-changelog#november-22-2026 | registry rows 10.5-* |
+| setMySettings | https://core.telegram.org/bots/api#setmysettings | `bot-settings.md`, `tgkit/settings.py` |
+| BotFullInfo, getMe | https://core.telegram.org/bots/api#botfullinfo | `bot-settings.md` |
+| CallbackQuery (`callback_query_mode`) | https://core.telegram.org/bots/api#callbackquery | `bot-settings.md#callback-query-mode` |
+| WriteAccessAllowed (`inviter`, botinvite links) | https://core.telegram.org/bots/api#writeaccessallowed | `bot-settings.md#owner-invites-botinvite-links` |
+| (Input)RichBlockExpandableBlockQuotation | https://core.telegram.org/bots/api#inputrichblockexpandableblockquotation | `telegram-capabilities.md`, `tgkit/rich.py` |
+| tdlib/telegram-bot-api | commit "Update version to 10.5." (2026-11-21) | `sdk-compatibility.md#bot-api-105-status-2026-11-22` |
+
+Facts: `setMySettings` changes only the given settings; `getMe` returns `BotFullInfo` and the
+getMe-only fields left `User`; `inline_feedback_share_denominator`, `can_communicate_with_bots`
+and `callback_query_mode` can't be read back; expandable quotes take `blocks` (required) and no
+longer `text`. Not stated by the docs (treated as **Unverified**): whether BotFather and
+`setMySettings` share one store (assumed: last write wins), and how clients render a topic sidebar.
+
 ## Facts verified on 2026-11-12 (Bot API 10.3 and 10.4)
 
 Sources read on 2026-11-12 (machine-readable `.md` versions of the pages):
@@ -219,7 +237,7 @@ Official Telegram open source / tooling for the newest API (checked 2026-11-12):
   "Telegram iOS Icons" (tgiosicons), "TG iOS & macOS Icons" (tgmacicons), "Telegram Android
   Icons" (TgAndroidIcons) and "Unigram" (UnigramIcons) are community packs imitating client
   icon styles — treat each as its own family (`visual-language.md`).
-- No official open-source example bot for 10.3/10.4 was found; SDK support is tracked in
+- No official open-source example bot for 10.3-10.5 was found; SDK support is tracked in
   `sdk-compatibility.md`.
 
 SDK status verified 2026-11-12 (re-checked 2026-11-15: aiogram 3.32.0 and
@@ -246,7 +264,30 @@ Telegram does not specify them. Never present them to a user as API limits:
 - streaming throttle thresholds (800–1500 ms, 30–80 characters);
 - edit-based streaming side effects (flicker, scroll jumps, duplicate messages
   on error paths, stale timestamps) — widely reported engineering experience,
-  not documented behaviour.
+  not documented behaviour;
+- the premium-pass checks of 2026-11-22 (navigation last and unstyled, no ✅/❌ on
+  navigation, no bare "OK"/"Yes"/"Submit", page size by row density, the ≤ ~80-char preview
+  line, stale and notification shapes).
+
+## Community skills reviewed (2026-11-22)
+
+Read for ideas, not as sources of truth: every rule taken from them was restated in this
+skill's own words and checked against the official docs; no text, code or assets were copied.
+Revision read and license at that revision:
+
+| Repository | Revision | License | Ideas adopted |
+|---|---|---|---|
+| orihomie/aiobot-skill | `9104147e` | none found | page size by row density, no dead pager, stale menu → fresh entry |
+| pewpewgogo/telegram-bot-skill (telegram-bot-ui, -sessions) | `04c4fbd1` | MIT | bare "Yes/No" confirmations as an anti-example |
+| Zulut30/awesome-telegram-skills (telegram-dialogs, telegram-buttons) | `9d855488` | MIT | stale taps always answered; labels meaningful without color |
+| luisnomad/telegram-inline-keyboards | `41f1d4ba` | MIT (README) | collect silently, submit explicitly; answered-question collapse; resolve in place |
+| gulivan/telegram-bot-widgets-skill | `1dd3204a` | MIT | confirmed existing widget rules (color not opacity, text fallback) |
+| aislam23/telegram-widgets-skill | `c6fdfb42` | MIT | confirmed existing SDK note (aiogram drops `widget_query`) |
+| serejaris/telegram-skills (tg-reply-rewrite, tg-operator-cards, tg-rich-*) | `c1784f16` | MIT | notification first line, one fact per line, bold to check / code to copy, outcome footer; no half-open markup in drafts |
+| Aztech-1729/telegram-skills (telegram-bot-ux, telegram-bot-accessibility) | `9059d7ca` | none (no reuse granted) | consent never green, refusal never red; strip test; stale copy shape |
+| abbosahmad/telegram-premium-emojis | `604f0163` | MIT | fixed icon roles; its red Back is an anti-example |
+| aipedagog/tg-rich-post | `0ba7c871` | MIT | confirmed existing long-read rules |
+| ganiyevuz/telegram-richtext, kirniy/telegram-bot-api-docs-skill, nzhulikov/telegram-bot-skills, bubbuild/bub, davila7/claude-code-templates, TerminalSkills/skills, teamily-ai/telegram-bot-skill | `07df47a5`, `aa94c97f`, `2dee91da`, `ccf46785`, `44fd6fda`, `42289059`, `11b35a38` | MIT / MIT / Apache-2.0 / Apache-2.0 / MIT / Apache-2.0 / MIT | blocker report shape (bub); "❌ Close" as an anti-example (davila7); the rest already covered or outside the interface |
 
 ## Sections to re-review on each Telegram release
 

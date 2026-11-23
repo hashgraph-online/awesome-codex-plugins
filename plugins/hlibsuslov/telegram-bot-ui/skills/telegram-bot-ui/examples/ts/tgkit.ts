@@ -254,6 +254,8 @@ async function processWidgetQuery(q: Params, key: string, store: Map<string, Rec
     await t.call("answerWidgetQuery", { widget_query_id: q.id, data: JSON.stringify(data) });
     return outcome;
   };
+  // sign_data / sent_transaction repeat the request's data: never play them as an action
+  if ((q.type?.type ?? "data") !== "data") return answer({ ok: false, err: "bad_request" }, "not_data");
   const bytes = Buffer.byteLength(q.data ?? "", "utf8");
   if (bytes < 1 || bytes > 64) return answer({ ok: false, err: "bad_request" }, "invalid");
   let rec = store.get(key) ?? { state: {}, revision: 0 };

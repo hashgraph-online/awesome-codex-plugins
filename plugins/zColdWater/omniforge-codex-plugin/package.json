@@ -1,0 +1,10 @@
+{
+  "name": "omniforge-codex-plugin",
+  "version": "1.0.0",
+  "description": "Codex & AI Assistant plugin bundling read-only pre-launch security, email DNS, domain RDAP, and /llms.txt skills with a zero-auth hosted MCP server.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zColdWater/omniforge-codex-plugin.git"
+  }
+}

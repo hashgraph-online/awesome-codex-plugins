@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-22",
+  "last_updated": "2026-11-23",
   "total": 466,
   "categories": [
     "Development & Workflow",
@@ -1463,6 +1463,16 @@
       "install_url": "https://raw.githubusercontent.com/alexeyco/oh-my-openspec/HEAD/plugins/oh-my-openspec/.codex-plugin/plugin.json"
     },
     {
+      "name": "OmniForge Launch Audit",
+      "url": "https://github.com/zColdWater/omniforge-codex-plugin",
+      "owner": "zColdWater",
+      "repo": "omniforge-codex-plugin",
+      "description": "Read-only pre-launch web security (Supabase RLS and JS secrets), SPF/DKIM/DMARC email DNS, 78-TLD domain RDAP, and /llms.txt audit skills with a zero-auth hosted MCP server.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/zColdWater/omniforge-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Ontoly",
       "url": "https://github.com/0xsarwagya/ontoly-codex-plugin",
       "owner": "0xsarwagya",
@@ -2393,6 +2403,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ahel-technologies/ahel/HEAD/plugins/ahel/plugin.json"
+    },
+    {
+      "name": "AI SDR Kit",
+      "url": "https://github.com/zevarihq/ai-sdr-kit",
+      "owner": "zevarihq",
+      "repo": "ai-sdr-kit",
+      "description": "The SDR harness for your AI, open source. Gives Codex Zevari's AI Sales Director, an outbound SOP, every LinkedIn and email sequence, automations and an approval-gated LinkedIn and email sending engine.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/zevarihq/ai-sdr-kit/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Aident Loadout",
@@ -3327,36 +3347,6 @@
       "install_url": "https://raw.githubusercontent.com/kinlab-ai/kin-plugin/HEAD/plugin.json"
     },
     {
-      "name": "Kreuzberg",
-      "url": "https://github.com/kreuzberg-dev/plugins",
-      "owner": "kreuzberg-dev",
-      "repo": "plugins",
-      "description": "Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "Kreuzberg Cloud",
-      "url": "https://github.com/kreuzberg-dev/plugins",
-      "owner": "kreuzberg-dev",
-      "repo": "plugins",
-      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "Kreuzcrawl",
-      "url": "https://github.com/kreuzberg-dev/plugins",
-      "owner": "kreuzberg-dev",
-      "repo": "plugins",
-      "description": "Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Krexa",
       "url": "https://github.com/Krexa-xyz/skills",
       "owner": "Krexa-xyz",
@@ -3425,6 +3415,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/supersethvos/leeway-codex/HEAD/plugins/leeway/plugin.json"
+    },
+    {
+      "name": "lemlist",
+      "url": "https://github.com/l3mpire/lemlist-plugin",
+      "owner": "l3mpire",
+      "repo": "lemlist-plugin",
+      "description": "Official lemlist plugin: connects Codex to the hosted lemlist MCP server (OAuth) to find leads in the lemlist B2B people database, launch email and LinkedIn campaigns, read campaign stats and check sending-domain deliverability, with four workflow skills.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/l3mpire/lemlist-plugin/HEAD/plugin.json"
     },
     {
       "name": "LienDeadline",

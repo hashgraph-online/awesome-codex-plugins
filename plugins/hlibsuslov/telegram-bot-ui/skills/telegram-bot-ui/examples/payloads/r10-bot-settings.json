@@ -1,0 +1,152 @@
+{
+  "scenario": "r10-bot-settings",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "getMe",
+      "params": {}
+    },
+    {
+      "method": "setMySettings",
+      "params": {
+        "inline_query_placeholder": "Search orders…",
+        "has_topics_enabled": true,
+        "allows_users_to_create_topics": true,
+        "has_topic_sidebar": true,
+        "inline_feedback_share_denominator": 10,
+        "callback_query_mode": "auto"
+      }
+    },
+    {
+      "method": "getMe",
+      "params": {}
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 444444444,
+        "text": "Only the bot's owner can invite people."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Invite up to 10 people at once. They get a chat with the bot; you see who joined here.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Invite people",
+                "url": "https://t.me/botinvite/orders_demo_bot"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 444444444,
+        "text": "Alex invited you to try Orders. Pick where to start:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track an order",
+                "callback_data": "set:1:track"
+              },
+              {
+                "text": "How it works",
+                "callback_data": "set:1:help"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Dana accepted your invite."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000105",
+        "text": "Topics on"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "BAAAAKx2nwABOWNSENT",
+        "text": "Topics are on. Each order gets its own topic in the sidebar.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Turn off",
+                "callback_data": "set:1:topics:off"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-off",
+        "text": "Topics off"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "inline_message_id": "BAAAAKx2nwABOWNSENT",
+        "text": "Topics are off. Orders stay in one chat.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Turn on",
+                "callback_data": "set:1:topics:on"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-gone",
+        "text": "Topics on"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 444444444,
+        "text": "Topics are on. Each order gets its own topic in the sidebar.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Turn off",
+                "callback_data": "set:1:topics:off"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

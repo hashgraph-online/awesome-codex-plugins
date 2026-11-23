@@ -18,7 +18,8 @@ What it does, in order:
 4. Fails on anything the runtime lacks (network, external URLs, form controls, vh, ...) via
    tgkit.widgets.check_widget, plus scripts/widget_lint.py errors; --strict also fails on lint
    warnings (the gallery is built with --strict).
-5. Writes the final HTML and, on request, a ready sendWidget / sendSharedWidget payload.
+5. With --design, adds a design profile's CSS after the kit tokens (scripts/widget_design.py).
+6. Writes the final HTML and, on request, a ready sendWidget / sendSharedWidget payload.
 
 Offline: no token, no network. A passing build proves the static contract only.
 """
@@ -36,6 +37,7 @@ sys.path.insert(0, os.path.join(ROOT, "examples", "python"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tgkit.widgets import (DATA_MAX_BYTES, HTML_MAX_BYTES, HTML_MAX_COMPRESSED, check_widget,  # noqa: E402
                            compressed_size)
+import widget_design  # noqa: E402
 import widget_lint  # noqa: E402
 
 KIT_DIR = os.path.join(ROOT, "examples", "widgets", "_kit")
@@ -295,6 +297,7 @@ class BuildResult:
     includes: list[str]
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    design_css: str = ""
 
     @property
     def ok(self) -> bool:
@@ -307,12 +310,32 @@ class BuildResult:
                 f"kit: {', '.join(self.includes) or 'none'}")
 
 
+def apply_design(html: str, design: dict) -> tuple[str, str]:
+    """Insert the profile's CSS right after the kit tokens (before the widget's own rules, so
+    they win at equal specificity). Returns (html, css); css is "" for an empty profile."""
+    css = widget_design.compile_css(design, prune_kit_css(html))
+    if not css:
+        return html, ""
+    end = html.find(_KIT_CSS[1])
+    if end < 0:
+        return f"<style>{css}</style>" + html, css
+    end += len(_KIT_CSS[1])
+    return html[:end] + css + html[end:], css
+
+
 def build_text(src: str, *, caption: str | None = "x", strict: bool = False, minify: bool = True,
                kit_dir: str = KIT_DIR, chat_data: str | None = None, public_data: str | None = None,
-               langs: tuple[str, ...] = ("en",)) -> BuildResult:
+               langs: tuple[str, ...] = ("en",), design: dict | None = None) -> BuildResult:
+    css = ""
     try:
+        if design:
+            bad = widget_design.validate(design)
+            if bad:
+                raise BuildError("design: " + "; ".join(bad))
         html, used = inline_kit(src, kit_dir)
         html = select_languages(html, langs)
+        if design:
+            html, css = apply_design(html, design)
         if minify:
             html = minify_html(prune_kit_css(html))
         else:
@@ -320,13 +343,19 @@ def build_text(src: str, *, caption: str | None = "x", strict: bool = False, min
     except BuildError as err:
         return BuildResult(src, 0, 0, [], errors=[str(err)])
     rep = check_widget(html, caption=caption, chat_data=chat_data, public_data=public_data)
-    res = BuildResult(html, rep.raw_bytes, rep.compressed_bytes, used)
+    res = BuildResult(html, rep.raw_bytes, rep.compressed_bytes, used, design_css=css)
     res.errors += rep.errors
     # Everything the runtime lacks is a build failure, not a hint.
     res.errors += [f"[runtime] {w}" for w in rep.warnings if "caption" not in w and "10%" not in w]
-    lint = widget_lint.lint(html, caption=caption, compressed=rep.compressed_bytes)
+    allowed = widget_design.colors_used(design) if design else set()
+    lint = widget_lint.lint(html, caption=caption, compressed=rep.compressed_bytes, allowed_colors=allowed)
     res.errors += lint.errors
-    (res.errors if strict else res.warnings).extend(lint.warnings)
+    for w in lint.warnings:
+        # With a profile the person trades bytes for looks knowingly: the 3800 working budget is
+        # advice, the 4096 hard limit (check_widget) still fails the build.
+        (res.errors if strict and not (css and w.startswith("[budget]")) else res.warnings).append(w)
+    if design:
+        res.warnings += [f"[design] {w}" for w in widget_design.warnings(design)]
     return res
 
 
@@ -443,6 +472,7 @@ def main(argv=None) -> int:
     ap.add_argument("--no-minify", action="store_true")
     ap.add_argument("--lang", default="en", help="string blocks to keep, comma-separated (default en)")
     ap.add_argument("--caption")
+    ap.add_argument("--design", help="design profile JSON (scripts/widget_design.py presets)")
     ap.add_argument("--demo", help="demo JSON: caption, states, send flags, fallback keyboard")
     ap.add_argument("--state", default="default")
     ap.add_argument("--payload", help="write a sendWidget/sendSharedWidget request here")
@@ -459,8 +489,9 @@ def main(argv=None) -> int:
         ap.error("give a source file or --all")
     demo = load_demo(a.demo) if a.demo else None
     caption = a.caption or (demo or {}).get("caption")
+    design = load_demo(a.design) if a.design else None
     res = build_file(a.src, caption=caption, strict=a.strict, minify=not a.no_minify,
-                     langs=tuple(a.lang.split(",")))
+                     langs=tuple(a.lang.split(",")), design=design)
     for w in res.warnings:
         print(f"WARN: {w}")
     for e in res.errors:

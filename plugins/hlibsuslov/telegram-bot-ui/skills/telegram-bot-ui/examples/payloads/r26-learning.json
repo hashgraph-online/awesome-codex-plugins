@@ -3,7 +3,7 @@
   "status": "production",
   "context": "private",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-15)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendRichMessage",
@@ -89,7 +89,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message."
+                }
+              ],
               "credit": "Example"
             },
             {
@@ -527,7 +532,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "git switch -c fix-typo\ngit commit -am \"Fix typo\"\ngit switch main\ngit merge fix-typo",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "git switch -c fix-typo\ngit commit -am \"Fix typo\"\ngit switch main\ngit merge fix-typo"
+                }
+              ],
               "credit": "Example"
             },
             {
@@ -1116,7 +1126,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nЖурнал показує по рядку на коміт: короткий id і повідомлення.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nЖурнал показує по рядку на коміт: короткий id і повідомлення."
+                }
+              ],
               "credit": "Приклад"
             },
             {
@@ -1540,7 +1555,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "git switch -c fix-typo\ngit commit -am \"Fix typo\"\ngit switch main\ngit merge fix-typo",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "git switch -c fix-typo\ngit commit -am \"Fix typo\"\ngit switch main\ngit merge fix-typo"
+                }
+              ],
               "credit": "Приклад"
             },
             {
@@ -2028,7 +2048,12 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "git add notes.txt\ngit commit -m \"Add shopping list\"\ngit log --oneline\nThe log prints one line per commit: a short id and its message."
+                }
+              ],
               "credit": "Example"
             },
             {

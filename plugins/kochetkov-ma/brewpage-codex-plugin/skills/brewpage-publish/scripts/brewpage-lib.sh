@@ -8,7 +8,7 @@ HISTORY_FILE="$BP_ROOT/brewpage-history.md"
 BP_TMPDIR="${TMPDIR:-/tmp}"
 BP_TMPDIR="${BP_TMPDIR%/}"
 # User-Agent on every brewpage.app request: <client>/<shipped version> (+https://brewpage.app).
-BP_UA="brewpage-codex/0.2.1 (+https://brewpage.app)"
+BP_UA="brewpage-codex/0.2.2 (+https://brewpage.app)"
 
 bp_history() {
   local operation="$1"
@@ -23,9 +23,8 @@ bp_history_init() {
   bp_history init <<'HEADER'
 # brewpage.app — Published Pages
 
-> Owner tokens allow delete and in-place PUT (html/json/kv/files/sites). A 409 OLD_PUBLICATION_READ_ONLY needs an explicit replacement decision before a new create. This file and its manage URLs are private; disclose proof only through verified owner-only delivery.
-> Delete: `curl -s -A "brewpage-codex/0.2.1 (+https://brewpage.app)" -X DELETE "<Owner API>" -H "X-Owner-Token: TOKEN"`; rows without one: `https://brewpage.app/api/<type>/<ns>/<id>`, type = html|json|files|kv|sites.
-> Update a site (same URL; old publications answer 409, see above): `PUT /api/sites/<ns>/<id>` with the same `-A`, `X-Owner-Token: TOKEN` + the new bundle.
+> Owner tokens authorize in-place updates and deletion. Keep this file and its management links private.
+> Use `brewpage-run.sh update` with the saved target or a protected proof file. A 409 OLD_PUBLICATION_READ_ONLY needs an explicit replacement decision before a new create.
 
 | Date | URL | Owner Token | TTL | Type | Owner API | Identity |
 |------|-----|-------------|-----|------|-----------|----------|
@@ -150,8 +149,9 @@ bp_begin() {
     [ -f "$source_file" ] && [ ! -L "$source_file" ] || { echo "FAILED: password source path file missing or unsafe"; return 1; }
     IFS= read -r password_source < "$source_file" || true
     bp_password_check "$password_source" || return 1
-    local password_file="$BP_RUN_DIR/brewpage-password.txt"
-    [ ! -e "$password_file" ] && [ ! -L "$password_file" ] || { echo "FAILED: password transport file already exists"; return 1; }
+    # Page access password the owner chose for this publication (X-Password); no system or account credential.
+    local password_file="$BP_RUN_DIR/page-password-copy.txt"
+    [ ! -e "$password_file" ] && [ ! -L "$password_file" ] || { echo "FAILED: page password copy already exists"; return 1; }
     (umask 077; cat -- "$password_source" > "$password_file") || return 1
     BP_HEADER_FILE="$BP_RUN_DIR/password-header.txt"
     # Re-checks the copied bytes: the source may change after bp_password_check.
@@ -182,16 +182,19 @@ bp_request() {
     if [ "$method" != GET ]; then printf '%s' "$BP_OPERATION_REQUEST" | bp_history pending || return 1; fi
   fi
   local output status
+  : > "$BP_RUN_DIR/http-status.txt" || return 1
   output=$(curl -q -s -A "$BP_UA" -X "$method" "$url" "$@" -w $'\nBP_HTTP_STATUS:%{http_code}') || return 1
   status="${output##*$'\n'BP_HTTP_STATUS:}"
   case "$status" in
     [0123456789][0123456789][0123456789])
-      printf '%s' "$status" > "$BP_RUN_DIR/http-status.txt"
+      printf '%s' "$status" > "$BP_RUN_DIR/http-status.txt" || return 1
       printf '%s' "${output%$'\n'BP_HTTP_STATUS:*}"
       ;;
-    *) printf '%s' "$output" ;;
+    *) return 1 ;;
   esac
 }
+
+bp_response_status() { cat "$BP_RUN_DIR/http-status.txt"; }
 
 bp_post() { bp_request POST "$@"; }
 
@@ -210,8 +213,13 @@ bp_owner_begin() {
 }
 
 bp_prepare_recovery() {
-  BP_RECOVERY_DIR="${HISTORY_FILE%/*}"
-  python3 "$(dirname "${BASH_SOURCE[0]}")/history.py" receipt-ready "$BP_RECOVERY_DIR" brewpage-recovery.json
+  BP_RECOVERY_DIR="${1:-${HISTORY_FILE%/*}}"
+  if [ "${BP_NO_SAVE:-0}" = 1 ]; then exec 8< "$BP_RECOVERY_DIR" || return 1; fi
+  bp_recovery receipt-ready
+}
+
+bp_recovery() {
+  python3 "$(dirname "${BASH_SOURCE[0]}")/history.py" "$1" "$BP_RECOVERY_DIR" brewpage-recovery.json "${BP_NO_SAVE:-0}" "$BP_ROOT" "$BP_RUN_DIR"
 }
 
 bp_operation_request() {
@@ -235,43 +243,62 @@ print(json.dumps({"operationId":operation,"request":request,"recordedAt":datetim
 ' "$BREWPAGE_OPERATION_ID" "$1" "$2" "$3" "$4" "${BP_DELIVERY_MODE:-}" "$BP_PASSWORD_MODE")
 }
 
-# Error JSON ({status, message}, never a token) -> "HTTP <status>: <message>", one line; else empty.
+# Accept a server explanation only when it agrees with the transport status.
 bp_error_reason() {
-  printf '%s' "$1" | jq -r 'select(type == "object" and (.status | type) == "number")
-    | "HTTP \(.status): \((.message // .error // "") | tostring | explode | map(if . < 32 then 32 else . end) | implode | .[0:400])"' 2>/dev/null || true
+  printf '%s' "$1" | jq -sr --arg status "$2" --rawfile proof "${BP_OWNER_HEADER_FILE:-/dev/null}" '
+    select(length == 1) | .[0] | select(type == "object" and (.status | tostring) == $status)
+    | [(.ownerToken // ""), (.manageUrl // ""), ($proof | sub("^X-Owner-Token: ";"") | rtrimstr("\n"))] as $private
+    | (.message // .error // "") | strings | reduce ($private[] | strings | select(length > 0)) as $secret (. ; split($secret) | join("[redacted]"))
+    | "HTTP \($status): \(explode | map(if . < 32 or . == 127 then 32 else . end) | implode | .[0:400])"' 2>/dev/null || true
 }
 
 # Private recovery is separate from the ordinary reader-facing result.
 bp_unsaved() {
   local receipt="$1"
-  if [ "${BP_NO_SAVE:-0}" = 1 ]; then
-    echo 'NOTICE: owner receipt was not saved'
-  else
+  if [ "${BP_NO_SAVE:-0}" = 0 ]; then
     echo 'NOTICE: publication confirmed; owner history could not be saved securely'
   fi
   if [ -n "${BP_RECOVERY_DIR:-}" ]; then
-    if printf '%s\n' "$receipt" | python3 "$(dirname "${BASH_SOURCE[0]}")/history.py" receipt "$BP_RECOVERY_DIR" brewpage-recovery.json; then
+    if printf '%s\n' "$receipt" | bp_recovery receipt; then
       echo 'OWNER RECOVERY SAVED'
-      if [ "${BP_PRIVATE_OUTPUT:-0}" = 1 ]; then printf 'OWNER RECOVERY FILE: %s\n' "$BP_RECOVERY_DIR/brewpage-recovery.json"; fi
-    else
-      echo 'NOTICE: protected recovery could not be verified; reconcile this receipt before another write'
+      return 0
     fi
   fi
-  if [ "${BP_PRIVATE_OUTPUT:-0}" = 1 ]; then printf 'PRIVATE OWNER RECEIPT: %s\n' "$receipt"; fi
+  echo 'NOTICE: protected recovery could not be verified; reconcile this receipt before another write'
+  return 1
+}
+
+bp_receipt_link() {
+  local response="$1" status="$2" method="$3" endpoint="$4"
+  printf '%s' "$response" | jq -ser --arg status "$status" --arg method "$method" --arg endpoint "${endpoint%%\?*}" --arg ns "$NS" --rawfile proof "${BP_OWNER_HEADER_FILE:-/dev/null}" '
+    select(length == 1) | .[0] | select(type == "object") | . as $body
+    | .result.action as $action
+    | select(if $method == "PUT" then $status == "200" and ($action == null or $action == "updated")
+             elif $status == "200" then $action == "merged"
+             else $status == "201" and ($action == null or $action == "created" or $action == "created_missing_assets" or $action == "merged") end)
+    | .ownerLink | strings | capture("^https://brewpage\\.app/api/(?<kind>html|json|files|sites)/(?<ns>[a-z0-9-]{1,32})/(?<id>[A-Za-z0-9_-]{1,128})$") as $owner
+    | select($body.id == $owner.id and $body.namespace == $owner.ns)
+    | ("https://brewpage.app/api/" + $owner.kind) as $api
+    | (if $method == "PUT" then "/" + $owner.ns + "/" + $owner.id else "" end) as $target
+    | select(($api + $target) == $endpoint or ($owner.kind == "html" and $endpoint == ("https://brewpage.app/api/files" + $target)))
+    | select($method == "PUT" or $owner.ns == $ns)
+    | $body.link | strings | select(test("^https://[A-Za-z0-9.-]+(?:/[^[:space:][:cntrl:]#|`]*|[?][^[:space:][:cntrl:]#|`]*)?$") and . != $body.manageUrl and . != $body.managementLink)
+    | . as $link | select([($body.ownerToken // ""), ($proof | sub("^X-Owner-Token: ";"") | rtrimstr("\n"))]
+        | map(strings | select(length > 0) | . as $secret | $link | contains($secret)) | any | not)
+  ' 2>/dev/null
 }
 
 # Every confirmed result retains effective reader facts, independently of credential storage.
 bp_finish() {
-  local response="$1" days="$2" type="$3" url token manage fcount owner_api identity reason receipt status="" nonowned_merge=0 saved=0 failed=0 reused=""
+  local response="$1" days="$2" type="$3" method="$4" endpoint="$5" url token fcount owner_api identity reason receipt status nonowned_merge=0 saved=0 failed=0 reused=""
   if [ -n "${BP_OWNER_HEADER_FILE:-}" ]; then
     IFS= read -r reused < "$BP_OWNER_HEADER_FILE" || return 1
     reused="${reused#X-Owner-Token: }"
   fi
-  url=$(printf '%s' "$response" | jq -r '.link | strings | select(test("^https://[^[:space:][:cntrl:]]+$"))' 2>/dev/null) || url=""
+  status=$(bp_response_status) || return 1
+  url=$(bp_receipt_link "$response" "$status" "$method" "$endpoint") || url=""
   if [ -z "$url" ]; then
-    reason=$(bp_error_reason "$response")
-    if [ -n "$reused" ]; then reason="${reason//"$reused"/[redacted]}"; fi
-    if [ -f "$BP_RUN_DIR/http-status.txt" ]; then status=$(cat "$BP_RUN_DIR/http-status.txt"); else status=$(printf '%s' "$response" | jq -r '.status // empty' 2>/dev/null) || status=""; fi
+    reason=$(bp_error_reason "$response" "$status")
     if [ "${BP_FIRST_CREATE:-0}" = 1 ] && [ -n "$status" ] && [ "$status" -ge 400 ] && [ "$status" -lt 500 ] && [ "$status" -ne 408 ]; then
       bp_history clear || return 1
     fi
@@ -284,24 +311,22 @@ bp_finish() {
     return 1
   fi
   if printf '%s' "$response" | jq -e '.result.action == "merged" and .result.extras.isOwner == false' >/dev/null 2>&1; then
-    token=""; manage=""; reused=""; nonowned_merge=1
+    token=""; reused=""; nonowned_merge=1
   else
-    token=$(printf '%s' "$response" | jq -r '.ownerToken | strings | select(test("^[A-Za-z0-9_-]+$"))')
-    manage=$(printf '%s' "$response" | jq -r '.manageUrl | strings | explode | map(select(. > 32 and . != 127)) | implode' 2>/dev/null) || manage=""
+    token=$(printf '%s' "$response" | jq -r '.ownerToken | strings | select(test("^[A-Za-z0-9]{32}$"))')
   fi
-  owner_api=$(printf '%s' "$response" | jq -r '.ownerLink | strings | select(test("^https://brewpage\\.app/api/(html|json|kv|files|sites)/[a-z0-9-]{1,32}/[A-Za-z0-9_-]{1,128}$"))')
-  owner_api="${owner_api:-${BP_OWNER_API:-}}"
+  owner_api=$(printf '%s' "$response" | jq -r '.ownerLink')
   identity=$(printf '%s' "$response" | jq -c '{id, namespace, type, routingCohort, deliveryMode, modeLocked, hostingVersion, managementLink, manageUrl, entryFile, createdAt, expiresAt}')
   receipt=$(printf '%s' "$response" | jq -c --rawfile proof "${BP_OWNER_HEADER_FILE:-/dev/null}" --arg api "$owner_api" --arg op "${BREWPAGE_OPERATION_ID:-}" \
-    '{origin:"https://brewpage.app",ownerApi:$api,readerUrl:.link,ownerToken:(.ownerToken // ($proof | sub("^X-Owner-Token: ";"") | rtrimstr("\n"))),operationId:$op,
+    '{origin:"https://brewpage.app",ownerApi:$api,readerUrl:.link,ownerToken:((.ownerToken | strings | select(test("^[A-Za-z0-9]{32}$"))) // ($proof | sub("^X-Owner-Token: ";"") | rtrimstr("\n"))),operationId:$op,
       identity:{id,namespace,type,routingCohort,deliveryMode,modeLocked,hostingVersion,managementLink,manageUrl,entryFile,createdAt,expiresAt},manageUrl}')
   local label="$type"
   if [ "$type" = site ]; then
-    fcount=$(printf '%s' "$response" | jq -r '.fileCount // "?"')
+    fcount=$(printf '%s' "$response" | jq -r '(.fileCount | numbers) // "?"')
     label="site ($fcount files)"
   fi
   if [ -n "$reused" ] && [ -n "$token" ] && [ "$token" != "$reused" ]; then
-    bp_unsaved "$receipt"
+    bp_unsaved "$receipt" || true
     failed=1
   elif [ "$nonowned_merge" = 1 ]; then
     if [ "${BP_FIRST_CREATE:-0}" = 1 ]; then bp_history clear || return 1; fi
@@ -310,11 +335,11 @@ bp_finish() {
       if bp_history_append "$url" "${token:-$reused}" "$days" "$label" "$owner_api" "$identity"; then
         saved=1
       else
-        bp_unsaved "$receipt"
+        bp_unsaved "$receipt" || true
         failed=1
       fi
     elif [ -n "$token" ] && [ -z "$reused" ]; then
-      bp_unsaved "$receipt"
+      bp_unsaved "$receipt" || failed=1
     fi
   elif [ "${BP_FIRST_CREATE:-0}" = 1 ]; then
     echo 'NOTICE: owner proof missing from the first receipt; recover it before another create'
@@ -324,7 +349,6 @@ bp_finish() {
   else
     echo "OK $url"
   fi
-  if [ "${BP_PRIVATE_OUTPUT:-0}" = 1 ] && [ -n "$manage" ]; then echo "MANAGE: $manage"; fi
   if [ -n "${BP_VERIFY_RECEIPT:-}" ]; then
     if [ -n "$reused" ] && { [ "${BP_EXPLICIT_PROOF:-0}" = 0 ] || [ "$saved" = 0 ]; }; then
       echo 'OWNER TOKEN REUSED'
@@ -334,11 +358,12 @@ bp_finish() {
     fi
   fi
   if [ "$nonowned_merge" -eq 1 ]; then echo 'NOTICE: existing publication returned without ownership; no owner capability saved'; fi
-  printf '%s' "$response" | jq -r --rawfile proof "${BP_OWNER_HEADER_FILE:-/dev/null}" '(.ownerToken // ($proof | sub("^X-Owner-Token: ";"") | rtrimstr("\n"))) as $owner | (.manageUrl // "") as $manage |
-    def line: strings | explode | map(if . < 32 or . == 127 then 32 else . end) | implode |
-    (if $owner != "" then split($owner) | join("[redacted]") else . end) | (if $manage != "" then split($manage) | join("[private management URL]") else . end);
+  printf '%s' "$response" | jq -r --rawfile proof "${BP_OWNER_HEADER_FILE:-/dev/null}" '
+    [(.ownerToken // ""), (.manageUrl // ""), (.managementLink // ""), ($proof | sub("^X-Owner-Token: ";"") | rtrimstr("\n"))] as $private |
+    def line: strings | reduce ($private[] | strings | select(length > 0)) as $secret (. ; split($secret) | join("[redacted]"))
+      | explode | map(if . < 32 or . == 127 then 32 else . end) | implode;
     (.visibilityNotice | line | "VISIBILITY: " + .), (.notices[]? | select(.code != "owner-token-new") | .message | line | "NOTICE: " + .),
-    (.customDomain? | select(type == "object") | {hostname,status,suspended,problem,nextStep,records,serving,url,nextCheckAt} | "DOMAIN: " + tojson)' 2>/dev/null || true
+    (.customDomain? | select(type == "object") | {hostname,status,suspended,problem,nextStep,records,serving,url,nextCheckAt} | walk(if type == "string" then line else . end) | "DOMAIN: " + tojson)' 2>/dev/null || true
   [ "$failed" = 0 ]
 }
 

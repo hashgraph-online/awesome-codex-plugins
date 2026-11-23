@@ -46,6 +46,7 @@ exist.
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
 | `freshness` | on the column with role `time` only: `{"max_lag": "<n><unit>", "basis": "business" \| "capture"}`, how far the column's newest value may trail the warehouse's clock ([below](#freshness-how-old-the-newest-row-may-be)). `max_lag` is a whole number and one of `s`, `m`, `h`, `d`, `w` (`30m`, `6h`, `2d`), written back in its largest unit (`360m` is `6h`); `basis` is `business` where the column is the event's own time and `capture` where it is when the row was loaded |
+| `continuity` | on the column with role `time` only: `{"grain": "<grain>", "by": ["<column>", ...]}`, that the column has no gap ([below](#continuity-no-gap-in-the-time-column)). `grain` is `second`, `minute`, `hour`, `day` (the default), `week` (ISO, starting Monday), `month`, `quarter` or `year`; `by` names the key columns gaps are searched per value of, and is empty by default (the whole model) |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has, or one an installed package has (a package's staging model, say) where the project defines none of that name |
 | `population.parent` | `{"model": <model, seed or snapshot, the project's or an installed package's>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
 | `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
@@ -76,7 +77,7 @@ the models that read it.
 | `references`, whatever the `role` | a `relationships` test (`arguments: {to, field}`): every non-null value exists in the parent, and `maintain verify` holds a join the model makes into that parent to the same claim, on a LEFT join too (#1459) |
 | a fact a generated test checks, where `declarations.render_tests` turns it on | that generated test, tagged with its cadence ([below](#generated-tests-an-opt-in-switch-and-a-cadence-tag)) |
 | `grain`, `population`, `assumptions` | model `config.meta.dex` |
-| `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references`, `freshness` | column `config.meta.dex` |
+| `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references`, `freshness`, `continuity` | column `config.meta.dex` |
 
 A PII stamp is not a declaration field and never needs one: on a model the plan
 creates, every column that carries a flagged input through gets
@@ -98,10 +99,38 @@ so where the Elementary package's test materialization runs (0.20.0 and later)
 it keeps no sample of the test's failing rows, which are key values. Without
 Elementary the flag does nothing; remove it in review to keep samples on a
 test. A test the column already lists is kept as written, under the key it
-already uses, so it gains no flag. Declaring again merges: a key the new declaration states replaces the old
+already uses, so it gains no flag.
+
+The rendered `unique`, `not_null` and `relationships` are dbt's own tests, kept
+under their own names because dbt, its packages and tools such as
+dbt_project_evaluator recognise a primary key by them. On failure they return
+the failing values. So on a column marked as personal data (`contains_pii`,
+`pii`, `is_pii` or `pii_category` under its `config.meta`, including the mark a
+plan stamps on a model it creates), each one the plan adds also carries
+`config: {store_failures: false, store_failures_as: ephemeral}`. dbt applies
+`store_failures_as` last, over `store_failures` at every level, so the test's own
+`ephemeral` is what beats a project's `+store_failures_as: table`, its
+`store_failures` setting and dbt's `--store-failures` flag: no failing value is
+copied into an audit table. A `not_null` or `unique` that the scaffold or
+`maintain reconcile` adds to such a column gets the same setting. Two copies
+stay out of reach: Elementary's samples on a release before 0.20.0, which
+ignores the flag above (the plan warns), and the temporary table Elementary's
+test materialization builds while the test runs. The generated tests below
+return counts only, so neither copy holds a value. Declaring again merges: a key the new declaration states replaces the old
 one, and a key it leaves out is kept. `population` merges one level further, so
 adding a `parent` keeps the `rule` and `filters` declared earlier. Every byte outside the keys above, comments
 included, stays where it was.
+
+A project that declared its models before the flag was added has bare
+`not_null`, `unique` and `relationships` tests. Dex cannot tell those from tests
+a person wrote, so declaring again leaves them bare, and they get neither the
+flag nor a claim. To bring one up to date, delete the test and declare again:
+Dex renders it with the flag and its claim. Or add the flag by hand under the
+test's `config.meta`, as above, and the next declaration adds the claim,
+provided the test is otherwise exactly what Dex renders. Do not
+write it as a top-level `meta`: Dex reads that as your own configuration, and
+`maintain reconcile` then no longer removes that `not_null` when the column
+starts accepting NULLs.
 
 ### The claim each test checks
 
@@ -167,16 +196,17 @@ The three tests above are the **built-ins**. They always render. A **generated
 test** is one Dex writes for a declared fact the built-ins cannot check: a
 composite grain, a population filter, a parent's population, a fraction's
 range, an INNER join's coverage, a referenced key's uniqueness, a history's
-measures, a time column's freshness. Each kind arrives with its own issue (#1452
-onward); this release renders eight,
+measures, a time column's freshness and its continuity. Each kind arrives with
+its own issue (#1452 onward); this release renders nine,
 [`dex_unique_combination`](#dex_unique_combination-a-composite-grain),
 [`dex_population_filter`](#dex_population_filter-a-population-filter),
 [`dex_parent_population`](#dex_parent_population-a-parents-population),
 [`dex_unit_range`](#dex_unit_range-a-fraction),
 [`dex_join_coverage`](#dex_join_coverage-a-join-a-references-requires),
 [`dex_referenced_key`](#dex_referenced_key-a-key-a-references-names),
-[`dex_temporal_contract`](#dex_temporal_contract-a-historys-measures) and
-[`dex_freshness`](#dex_freshness-a-time-columns-freshness). The switch
+[`dex_temporal_contract`](#dex_temporal_contract-a-historys-measures),
+[`dex_freshness`](#dex_freshness-a-time-columns-freshness) and
+[`dex_continuity`](#dex_continuity-gaps-in-a-time-column). The switch
 and the tag below are what every kind follows. Generated tests run in the
 project's production runs. Dex does not run those and the project pays for them,
 so two rules hold:
@@ -264,6 +294,83 @@ Each generated test states the connectors it supports: every connector
 nothing, rather than a test whose answer nothing has held to `maintain verify`'s,
 and the plan says `dialect_unsupported`; `maintain verify` still checks the fact
 there.
+
+#### What a generated test costs per production run
+
+A generated test runs where Dex never connects, so the plan says what each one
+costs per production run before anyone applies it. Every test the YAML holds
+once the plan lands (`added`, `already_listed` and `listed_while_off`) gets a
+`cost`, and so does a `stale` one, which stays in the YAML and runs as written
+(unknown, `stale_test`, so its cadence total stays partial). A listed test is
+priced from the arguments it keeps in the YAML, not the declaration's:
+
+```json
+{"status": "estimated", "estimate": 52428800.0,
+ "relations": ["my-project.analytics.fct_orders"]}
+```
+
+or, where a size cannot be read, `{"status": "unknown", "reason": ..., "relation": ...}`.
+The estimate is built from the relations the test reads (the model it sits on,
+plus a parent, a snapshot or a join's two inputs for the kinds that read them)
+and their sizes in production's catalog. The connector prices one statement
+over those sizes the way it prices any statement: bytes on BigQuery, seconds
+on the compute-time and database-load connectors, nothing on DuckDB.
+
+Production is the connector's `prod` namespace, `<connector>.prod` in
+`.dex/config.yml` (see [Naming production](init-and-dev-target.md#naming-production)).
+Each model is read as its alias there. Its custom schema is named as dbt names
+it in production: `<prod>_<custom>` under dbt's default, and `<custom>_<target>`
+under the override `transform init --layered-schemas` scaffolds, which needs
+`dbt_prod_target`. A source is read where it is declared, and only where the
+source allowlist reaches. A view, and an ephemeral model, keeps no size: a test
+over one scans what it reads, so it is followed through the compiled
+manifest's lineage down to tables, and the views it passed through are listed
+under the row's `through`. That lineage is what `ref()` and `source()` name, so
+a view is followed only where its compiled SQL reads nothing else. A model the
+compiled manifest does not hold is never named by guess, and
+`ref('package', 'model')` resolves in that package only. A relation outside
+prod's namespaces (a snapshot's literal `target_schema`, a model's own
+`database`) is read only where the source allowlist reaches it. Dex reads
+catalog metadata only (row counts and bytes), never a row.
+
+`data.generated_tests.cost` gives the basis and the totals:
+
+| Field | Meaning |
+|---|---|
+| `prod` | the production namespace the plan read |
+| `paradigm`, `unit` | the connector's cost paradigm and the estimate's unit (`bytes`, `seconds`, or `null` on DuckDB) |
+| `note` | what the number bounds: an upper bound on BigQuery, which bills only the columns read; a heuristic at the pinned warehouse's scan rate elsewhere |
+| `read_at` | when the sizes were read |
+| `lineage_parsed_for` | whether the manifest a view's lineage came from was parsed for `production` or `another target` (a view whose SQL branches on `target.name` can read other relations in production) |
+| `relations[]` | each relation read: `relation`, `kind`, `object_type`, `rows`, `bytes`, or its `reason` |
+| `per_run` | per cadence, `dex_every_run` and `dex_scheduled` apart: `tests`, `estimated`, `unknown`, `estimate` (the sum of the estimated ones) and `complete` |
+
+A total with `complete: false` leaves out the tests it could not price, so it is
+a floor. An unknown estimate says why, and Dex never guesses one:
+
+| `reason` | Meaning |
+|---|---|
+| `prod_unset` | `<connector>.prod` is not set, so Dex does not know where production is |
+| `relation_not_found` | production's catalog has no such relation (a model this plan creates, not yet deployed) |
+| `no_size_in_metadata` | the catalog keeps no byte size: a view whose lineage the manifest does not hold, or Databricks, whose sizes only a billed `DESCRIBE DETAIL` reads |
+| `custom_schema_naming` | the project's own `generate_schema_name` decides production's schema, and Dex does not run it |
+| `prod_target_unset` | the layered naming needs the production target's name: set `dbt_prod_target` |
+| `outside_allowlist` | a source outside the source allowlist; `prod` authorizes only where the project's models build |
+| `not_in_manifest` | the compiled manifest does not hold the model (one this plan creates, or a project dbt has not parsed since), so its production name is not known |
+| `untracked_input`, `lineage_unverified` | a view whose compiled SQL reads a relation its lineage does not name, or one dbt has not compiled, so its inputs are not all known (a dev build compiles it) |
+| `placement_changed` | this plan changes where the model builds (its alias, schema or database, or `dbt_project.yml`), so the compiled manifest's placement is not what production will read |
+| `stale_test` | a listed test the declaration no longer gives, which still runs as written |
+| `relation_unnamed`, `relation_unresolved` | an input the plan could not name, or a source the compiled manifest does not hold |
+| `metadata_read_billed` | the catalog read itself bills (Redshift Serverless wakes its workgroup), so a plan does not read it unasked |
+| `metadata_unreadable`, `connection_unavailable`, `no_size_estimator`, `estimate_failed`, `lineage_too_deep` | the read or the price failed (its exception type in `detail`), no connection opened, the connector prices nothing from sizes, or the views ran more than 12 deep |
+
+Reading the catalog is free on DuckDB, BigQuery (the table API), Snowflake
+(`SHOW`), Postgres, Redshift provisioned, ClickHouse and Trino. Databricks'
+free listing carries no size, and Redshift Serverless bills a wake, so both
+report the estimate unknown rather than spend. A Serverless endpoint is told apart
+before any connection, from `redshift.workgroup` or the endpoint host, and a
+Redshift connection a host supplies, whose compute Dex cannot tell, is not
+opened either.
 
 #### `dex_unique_combination`: a composite grain
 
@@ -731,6 +838,133 @@ reports nothing stale. A column the model's SQL provably does not output renders
 (`column_not_output`). Its macro reaches the project as the others' do:
 `macros/dex_freshness.sql` (the [shipped macro](macros.md#dex_freshness)) as a
 `macro_sql` diff where neither the project nor the plan defines the test.
+
+#### `dex_continuity`: gaps in a time column
+
+A column declaring [`continuity`](#continuity-no-gap-in-the-time-column) renders
+`dex_continuity` under it, tagged `dex_scheduled`, with the grain and the keys as
+its arguments:
+
+```yaml
+columns:
+  - name: ordered_at
+    config:
+      meta:
+        dex:
+          role: time
+          continuity: {grain: day, by: [region]}
+    data_tests:
+      - dex_continuity:
+          arguments: {grain: day, by: [region]}
+          config:
+            tags: [dex_scheduled]
+            meta: {disable_test_samples: true, dex: {claim: <id>}}
+```
+
+It fails with the number of gaps, and returns that count and never a date or a
+key. It has no `maintain verify` twin: the parity harness holds it to its own
+fixture pairs on every connector instead, each stating the exact failure count.
+
+- **Scheduled**, because the search reads every row: one scan of the model and a
+  sort over its distinct (key, bucket) pairs. No date spine is built.
+- **A key the model's SQL provably does not output** renders no test
+  (`column_not_output`), as does the time column itself.
+- **A column that is no date or timestamp errors** rather than passing, and so
+  does a grain finer than a day on a date column.
+
+A test the plan rendered is never removed. Where a column's `grain` or `by`
+changes, the listed test for the old ones is reported `stale`
+(`reason: continuity_changed`) with a warning, beside the test the new claim
+renders: remove it from the YAML, since it keeps searching the old buckets. Its
+macro reaches the project as the others' do: `macros/dex_continuity.sql` (the
+[shipped macro](macros.md#dex_continuity)) as a `macro_sql` diff where neither
+the project nor the plan defines the test.
+
+### Elementary monitors from a declaration
+
+A declaration also says what an observability vendor's monitors need. With
+`monitors.vendor` set in `.dex/config.yml`, a plan that renders a declaration
+writes the vendor's own tests into the same YAML entry, in the same plan and
+the same diff, and dbt parses them before the plan is stored. `elementary` is
+the one vendor. Unset (the default), a plan writes no monitor and the envelope
+carries no `data.monitors`. `dex config set monitors.vendor elementary` shows
+the diff and writes it on `--confirm`. Turning monitors on is the project's
+decision, not the agent's.
+
+| Declared | Written |
+|---|---|
+| one column with role `time` | `elementary.volume_anomalies` and `elementary.freshness_anomalies`, each with that column as `timestamp_column` |
+| several columns with role `time` | `elementary.freshness_anomalies` on each; no `volume_anomalies` (`ambiguous_time_column`), since it takes one timestamp column |
+| no column with role `time` | neither (`no_time_column`): `freshness_anomalies` cannot run without one, and `volume_anomalies` without one is a different monitor (one total per run, trained only on run history) |
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - elementary.volume_anomalies:
+          arguments:
+            timestamp_column: ordered_at
+          config:
+            tags: [dex_monitor]
+            meta:
+              disable_test_samples: true
+              dex:
+                monitor: {vendor: elementary, from: "columns.ordered_at.role: time"}
+```
+
+- **Dex chooses no statistic.** Only `timestamp_column` is written.
+  Sensitivity, `days_back`, seasonality and every other training setting stay
+  the package's defaults, unless you add them to the test yourself.
+- **Only where the package is installed.** Installed under the packages
+  install path, or declared by the same plan's `packages_yml` edit. A plan that
+  declares a package not yet installed is still refused before dbt parses it,
+  so plan the install on its own, apply it, run `transform deps`, then declare.
+  Otherwise every monitor is `not_rendered` with `package_not_installed`.
+- **Only where it will run.** A monitor runs where production runs, so the
+  repository's `dbt_project.yml` (as the plan leaves it) is read for
+  `models: elementary: +enabled` at the package root:
+
+  | `+enabled` | Production |
+  |---|---|
+  | absent | `enabled` (`not_set`, dbt's default) |
+  | `true` or `false` | as written (`literal`) |
+  | a test of `target.name` (`==`, `!=`, `in`, `not in` against literals, the form `dex init` writes) | evaluated with `dbt_prod_target` (`target_expression`); with no `dbt_prod_target` committed, `unknown` (`prod_target_unset`) |
+  | any other Jinja | `unknown` (`expression_unread`), never guessed |
+
+  Disabled or unknown, no monitor is written: each is `not_rendered` with
+  `production_disabled` or `production_unknown`, and one warning names the fix.
+  No production target is ever named to dbt, and no connection is opened.
+- **A hand-written monitor is never touched.** A listed test of the same name
+  (with or without the `elementary.` namespace) is `hand_written` and left
+  exactly as written: any `volume_anomalies` on the model, since a second one
+  would count its rows twice, and a `freshness_anomalies` on the same
+  `timestamp_column`. One on another column is another monitor, so Dex adds its
+  own beside it.
+- **A monitor is never removed.** One Dex wrote whose time column the
+  declaration no longer names is `stale` (`declaration_changed`), with a note,
+  for a reviewer to remove. Unsetting `monitors.vendor` removes nothing.
+- **Monitors are not generated tests.** `declarations.render_tests` does not
+  govern them, they carry no cadence tag, and `data.generated_tests` neither
+  lists nor prices them. The tag `dex_monitor` lets an orchestrator select or
+  exclude them. On a build, the package's anomaly tests judge the run against
+  history Dex does not measure, so `data.completion.assurance.unchecked_tests`
+  lists them (`history_unmeasured`, or `package_disabled` on a dev target that
+  disables the package) and they never make a model `asserted`.
+
+`data.monitors` is present whenever `monitors.vendor` is set and the plan
+renders a declaration:
+
+| Field | Meaning |
+|---|---|
+| `vendor` | `elementary` |
+| `package` | `status` (`installed`, `added_by_plan`, `not_installed`) and the installed `release` |
+| `production` | `status` (`enabled`, `disabled`, `unknown`), `reason` (see the table above), `prod_target`, and the `expression` read where it was Jinja |
+| `counts` | rows per status |
+| `monitors[]` | `model`, `test`, `column` (the timestamp column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`) and, where not written, `reason` |
+
+`transform declare` writes the monitors an earlier declaration owes: a model
+declared before `monitors.vendor` was set is proposed with a `monitors` field
+listing them.
 
 ### A versioned model
 
@@ -1206,6 +1440,45 @@ it also renders [`dex_freshness`](#dex_freshness-a-time-columns-freshness).
 `maintain semantic` reports a changed `freshness` as high-severity declaration
 drift, since a looser lag silences an alert with the SQL untouched.
 
+### Continuity: no gap in the time column
+
+A table can be fresh and still miss whole days, or miss one key on some days. A
+model's time column may say it has no gap (#1461):
+
+```json
+"columns": {"ordered_at": {"role": "time",
+                           "continuity": {"grain": "day", "by": ["region"]}}}
+```
+
+- **A gap is a run of empty buckets between two buckets holding rows.** With
+  `by`, the search runs per value of those columns, so a region missing the 2nd
+  that the other regions have is a gap for that region. Five empty days in a row
+  are one gap; the count is of runs, not of empty buckets.
+- **An edge is never a gap.** Data that starts late or stops early has no gap
+  there, so the answer never depends on today's date. Whether data stopped too
+  long ago is [freshness](#freshness-how-old-the-newest-row-may-be)'s question:
+  declare both on the column for both answers.
+- **Declared, never assumed.** A time column with no `continuity` renders no
+  test: plenty of correct models have empty days (no orders on a Sunday), so
+  the field is the author's claim that this one does not.
+- **Buckets are read in UTC.** A timestamp with no time zone is read as UTC and a
+  date as its UTC midnight, as freshness reads them. Each bucket is a whole
+  number computed from the value's epoch seconds (calendar grains through its UTC
+  day's civil date), so no warehouse's session time zone or week-start setting
+  changes the answer; `week` is the ISO week, starting Monday. A grain finer
+  than a day on a date column is an error.
+- **NULL times are left out**; a NULL `by` value is a key of its own.
+- **On the time column only**, as freshness: a `continuity` on a column whose
+  role is anything but `time` is refused naming the fix, and so is a `by` naming
+  the time column.
+
+Nothing in `maintain verify` checks it: the generated test,
+[`dex_continuity`](#dex_continuity-gaps-in-a-time-column), is the only check, so
+it is listed in `maintain coverage` as `dbt_test` where the column carries one at
+the declared grain and keys, else `none`. `maintain semantic` reports a changed
+`continuity` as high-severity declaration drift, since a coarser grain or fewer
+keys stops a gap failing with the SQL untouched.
+
 ### Measured against a drafted parent
 
 `transform build --verify` also measures each built model that declares no
@@ -1673,3 +1946,11 @@ The plan, apply and build envelopes carry `data.decisions`: every assumption
 declared on the models the command touched, as `{model, decision, chosen,
 evidence}`, plus `column` and `detail` where the assumption states them. It is read back from the project's YAML, so the three commands report
 the same list. An empty list means the touched models declare no assumption.
+
+Each Elementary monitor Dex wrote from a declaration is an entry too, read from
+the test's own `config.meta.dex.monitor`: `decision` (`Monitor
+elementary.freshness_anomalies`), `chosen` (`timestamp_column: ordered_at`),
+`evidence: contract`, a `detail`, the `monitor` and the declaration `field` it
+came from. It carries no `column`, because it records where a monitor came
+from, not an assumption, so it settles no population change in
+`data.change_scope`. A monitor written by hand is no entry.

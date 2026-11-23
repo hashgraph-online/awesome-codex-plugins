@@ -22,6 +22,12 @@ shows the short description.
 | Menu button | `setChatMenuButton` | — | Commands list or a Mini App. |
 
 Set these once per deploy and per language, never inside the `/start` handler **[heuristic]**.
+The same goes for the bot's switches (topics, inline placeholder, privacy): `setMySettings`
+(10.5, `bot-settings.md`).
+
+Users the owner invited with `t.me/botinvite/<bot>` (10.5) skip this screen and `/start`: their
+chat opens with a `write_access_allowed` message carrying `inviter`. Treat that message as their
+first run: name the inviter, offer one first action **[heuristic]**.
 
 ## Reading `/start`
 

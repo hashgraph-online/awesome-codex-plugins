@@ -121,8 +121,8 @@ dex init analytics
 
 ### Demo
 
-Try Dex in a demo experience with no existing database, no credentials, 
-no cloud account, and no network once the package is installed:
+Try Dex in a demo experience with no existing database, no credentials and
+no cloud warehouse: every query runs against a local DuckDB file.
 
 ```bash
 uv tool install "exmergo-dex-core[duckdb]"
@@ -132,7 +132,10 @@ dex explore map
 
 `dex init analytics --mode demo` creates the e-commerce DuckDB warehouse
 (`dex_demo.duckdb`, 7 tables, 29,512 rows), a dbt project under `analytics/`,
-repository-level Dex configuration, and onboarding documentation. Reruns preserve
+repository-level Dex configuration, and onboarding documentation. The dbt project
+declares the [Elementary](https://github.com/elementary-data/elementary) package,
+disabled on the dev target, so `dex transform deps` (or the first build) fetches it
+from the dbt package hub; `--no-elementary` leaves it out. Reruns preserve
 authored files. The lower-level `dex demo` command remains available for creating
 just the warehouse and config. The data comes from a pinned seed.
 

@@ -21,6 +21,65 @@ the connection, reports `data.readiness`, and names missing inputs and recovery
 steps. It never explores data, builds models, or answers spending questions.
 Installing skills does not necessarily install a `dex` executable.
 
+### The Elementary package
+
+`init` reads whether the selected project declares and installs the Elementary
+package (`elementary-data/elementary`), from the repository alone, and reports it
+under `data.elementary` with what it did about it (`install`):
+
+- **A project `init` creates** (`--mode new` or `demo`) declares the package in
+  `packages.yml` and configures it in `dbt_project.yml`, shown in init's own diff
+  (`written`).
+- **A project `init` adopts** without the package gets the same two edits as a
+  stored `transform` plan (`planned`, with `plan_id` and `plan_diffs`). Init writes
+  neither file: review the diff and run `transform apply <plan_id>`. A rerun reports
+  the same unapplied plan rather than storing another. The plan is stored without
+  dbt's parse, because dbt refuses to parse a project declaring a package that is
+  not installed yet.
+- **A project that already declares it** gets its release reported and nothing
+  offered (`present`); `transform deps` where it is declared and not installed.
+- `--no-elementary`, or "no" to the terminal question on an existing project,
+  leaves the package out (`declined`). A file written in a form an in-place edit
+  would reformat (a flow-style `packages:` list, say) offers nothing and says why
+  (`not_offered`).
+
+The two edits:
+
+```yaml
+# packages.yml (or the dependencies.yml that declares the project's packages)
+packages:
+  - package: elementary-data/elementary
+    version: 0.26.1
+
+# dbt_project.yml
+models:
+  elementary:
+    +schema: "elementary"
+    +enabled: "{{ target.name != 'dev' }}"
+vars:
+  test_sample_row_count: 0
+```
+
+The pin is the newest release the Elementary fixture runs, and above 0.20.0, the
+first release that honours the per-test sample flag rendered tests carry.
+`test_sample_row_count: 0` turns sampling off for every test in the project.
+`+enabled` names the dev target the project builds on (`dbt_target`), so a dev
+build runs none of the package's models or hooks and every other target runs it.
+A second development target, such as a CI target, runs the package too until you
+widen the condition by hand (`target.name not in ['dev', 'ci']`).
+
+Dex builds only on dev, so production is yours: after `transform deps` installs
+the package locally, run these once where production runs, to create the
+package's tables:
+
+```bash
+dbt deps
+dbt run --select elementary --target <production target>
+```
+
+From then on its hooks run on every production run and upload results, which is
+work those runs did not do before. `init`'s `next_steps` list these commands.
+
 ## Legacy `transform init "<name>" --connector <c>`
 
 The engine renders the whole skeleton (`dbt_project.yml`, `models/staging/` and
@@ -67,6 +126,41 @@ Init checks, free and metadata-only, whether each namespace the project would
 build into already holds content, and warns naming the namespace and a few
 object names. A "could not check" note means no connection was reachable at init
 time.
+
+## Naming production
+
+Dex never builds in production, and never runs dbt there. A plan still has to
+say what production will do (what a generated test costs per run there, for
+example), so production is named once, in committed config, the way the dev
+target is:
+
+```yaml
+dbt_target: dev              # the dbt target dex builds on
+dbt_prod_target: prod        # the dbt target production runs use
+bigquery:
+  dev_dataset: dbt_dev       # where dev builds write
+  prod: analytics            # where the project's models build in production
+```
+
+- **`<connector>.prod`** is spelled in the connector's own namespace vocabulary,
+  as its dev namespace is: `dataset` or `project.dataset` on BigQuery,
+  `DATABASE.SCHEMA` on Snowflake, `catalog.schema` on Databricks and Trino, a
+  schema on Postgres, Redshift and DuckDB, a database on ClickHouse. It can
+  never equal the dev namespace.
+- **It is not a source allowlist.** Setting it never narrows or widens what
+  explore reads, it may overlap the allowlist (it usually does), and `--scope`
+  neither reaches nor drops it. Dex reads only its catalog metadata (names, row
+  counts, bytes), never a row, which is what committing it authorizes.
+- **`dbt_prod_target`** is never passed to dbt. Every guarded dbt call
+  (`transform build`, `compare`, `test --mutate`, `explore --target`,
+  `maintain verify --target`) refuses it by name, so a production target called
+  something that looks like nothing production (`analytics`) is refused as
+  `prod` is. It can never equal `dbt_target` or `dev`. Dex reads it where
+  production's naming uses the target name (the layered schemas
+  `<layer>_<target name>`).
+
+`dex config set bigquery.prod analytics` shows the diff and writes it on
+`--confirm`.
 
 ## Preparing the dev target
 

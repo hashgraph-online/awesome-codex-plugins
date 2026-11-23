@@ -3,7 +3,7 @@
   "status": "production",
   "context": "private",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-12)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendRichMessage",
@@ -108,7 +108,45 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "Auditor note: rotation must be logged with the operator's id, the old key fingerprint, the new key fingerprint and the time. Logs are kept for one year.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Auditor note: every rotation is logged with"
+                },
+                {
+                  "type": "list",
+                  "items": [
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the operator's id"
+                        }
+                      ]
+                    },
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the old and the new key fingerprint"
+                        }
+                      ]
+                    },
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the time"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "text": "Logs are kept for one year."
+                }
+              ],
               "credit": "Audit 2026-10"
             },
             {
@@ -301,7 +339,45 @@
             },
             {
               "type": "expandable_blockquote",
-              "text": "Auditor note: rotation must be logged with the operator's id, the old key fingerprint, the new key fingerprint and the time. Logs are kept for one year.",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Auditor note: every rotation is logged with"
+                },
+                {
+                  "type": "list",
+                  "items": [
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the operator's id"
+                        }
+                      ]
+                    },
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the old and the new key fingerprint"
+                        }
+                      ]
+                    },
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the time"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "text": "Logs are kept for one year."
+                }
+              ],
               "credit": "Audit 2026-10"
             },
             {

@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm run build -w @nia-teams/agent-bridge-core && npm run build -w @nia-teams/dsh-plugin -w @nia-teams/claude-code-plugin -w @nia-teams/codex-bridge -w @nia-teams/workbuddy-plugin -w @nia-teams/doubao-bridge -w @nia-teams/agy-bridge -w @nia-teams/droid-bridge",
+    "build": "npm run build -w @nia-teams/agent-bridge-core && npm run build -w @nia-teams/dsh-plugin -w @nia-teams/claude-code-plugin -w @nia-teams/codex-bridge -w @nia-teams/workbuddy-plugin -w @nia-teams/doubao-bridge -w @nia-teams/agy-bridge -w @nia-teams/droid-bridge -w @nia-teams/pi-bridge",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run build && npm run test --workspaces && npm run verify:docs",
     "verify:docs": "node --test scripts/verify-docs.mjs"
@@ -28,5 +28,5 @@
     "url": "https://github.com/nia-teams/agent-bridge.git"
   },
   "description": "Connect local AI agent runtimes to Nia Teams with shared pairing, messaging, and approvals",
-  "version": "0.3.3"
+  "version": "0.3.5"
 }

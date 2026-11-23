@@ -3,7 +3,7 @@
   "status": "production",
   "context": "private (operator chat); group variant in code",
   "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
-  "bot_api": "10.4 (verified 2026-11-15)",
+  "bot_api": "10.5 (verified 2026-11-22)",
   "steps": [
     {
       "method": "sendMessage",
@@ -23,11 +23,6 @@
           "inline_keyboard": [
             [
               {
-                "text": "Approve",
-                "callback_data": "ap:081da789:n6d6976b:a",
-                "style": "danger"
-              },
-              {
                 "text": "Reject",
                 "callback_data": "ap:081da789:n6d6976b:r"
               }
@@ -36,6 +31,13 @@
               {
                 "text": "Details",
                 "callback_data": "ap:081da789:n6d6976b:d"
+              }
+            ],
+            [
+              {
+                "text": "Approve",
+                "callback_data": "ap:081da789:n6d6976b:a",
+                "style": "danger"
               }
             ]
           ]

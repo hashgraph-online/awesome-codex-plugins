@@ -58,11 +58,11 @@ Receipts:
 
 ## Items
 
-- [<NN. full title>] (./<NN>-<slug>-<id>.md) — <ticked|open>
+- [<NN. full title>] (./<NN>-<slug>-<id>.md) — <ticked|open> · <n> parked decisions · <n> snags · <n> sessions · paused <duration> (<reason>)
 
 ## Review first
 
-- <item or commit> — <n> files, <n> lines (+<added>/-<removed>), <n> commits
+- <item link> — <n> evidence problems, <n> parked decisions, <n> snags, <n> sessions, <n> files, <n> lines (+<added>/-<removed>), <n> commits
 - Whole range: `git log --stat <first>^..<last>`     # artifact mode: does not apply
 
 ## Interruptions

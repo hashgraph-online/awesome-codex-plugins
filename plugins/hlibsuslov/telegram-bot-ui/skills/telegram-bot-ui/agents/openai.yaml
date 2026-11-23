@@ -4,7 +4,7 @@
 # Hosts that do not read agents/openai.yaml ignore it; SKILL.md stays canonical.
 interface:
   display_name: "Telegram Bot UI"
-  short_description: "Design, build and operate Telegram bots with the newest Bot API: screens, keyboards, streaming AI replies with Stop, private panels in groups, Rich Messages, HTML widgets and TON wallet flows, premium emoji packs, whole product flows, channel publishing with approval, agent-operated bots and offline Bot API lookups. Preserves callback_data, deep links, handlers and translations."
+  short_description: "The whole interface of a Telegram bot on the newest Bot API: screens, texts, keyboards, navigation and states, streaming AI replies with Stop, private panels in groups, Rich Messages, HTML widgets and TON wallet flows, premium emoji packs, whole product flows, channel publishing with approval, agent-operated bots and offline Bot API lookups. Preserves callback_data, deep links, handlers and translations."
   default_prompt: "Use $telegram-bot-ui to audit this Telegram bot's screens and propose fixes."
 policy:
   allow_implicit_invocation: true

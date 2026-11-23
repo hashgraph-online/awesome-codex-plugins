@@ -1,6 +1,6 @@
 {
   "name": "brewpage",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Prepare drafts, publish HTML, Markdown, JSON, files and static sites, and update BrewPage publications from Codex. Uses the connected BrewPage MCP server or the bundled HTTPS runner.",
   "author": {
     "name": "Maksim Kochetkov",

@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Additional permission for computer-administration workspace templates: The copyright holder permits copying and adapting the template content in `docs/templates/computer_workspace.md` and `docs/templates/computer_workspace/`, including the corresponding bundled copies under `plugins/toolkit/skills/perform/references/repository_setup/`, to create or maintain computer-administration workspaces without retaining copyright or permission notices or adding a license file to those workspaces. This additional permission applies only to that template content; all other material remains under the MIT License above.

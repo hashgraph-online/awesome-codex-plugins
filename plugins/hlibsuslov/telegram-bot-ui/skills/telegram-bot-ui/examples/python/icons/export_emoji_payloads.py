@@ -45,7 +45,7 @@ def build(name: str) -> dict:
         "context": context,
         "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; "
                     "ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
-        "bot_api": "10.4 (verified 2026-11-15)",
+        "bot_api": "10.5 (verified 2026-11-22)",
         "steps": [{"method": m, "params": p} for m, p in transport.calls],
     }
 

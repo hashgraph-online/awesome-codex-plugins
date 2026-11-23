@@ -28,7 +28,7 @@ The skill preserves your access choices and asks only for information needed to 
 
 ## How publishing connects
 
-The skill prefers a compatible BrewPage MCP tool available to the current OpenClaw session. It can use its bundled REST runner when the host permits it and the supplied content and selected owner proof fit that route. The skill chooses the route before the write. An uncertain write is reconciled through the selected owner's inventory or receipt. [Publishing workflow and runner commands](references/publishing.md)
+The skill prefers a compatible BrewPage MCP tool available to the current OpenClaw session. It can use its bundled REST runner when the host permits it and the supplied content and selected owner proof fit that route. The skill chooses the route before the write. An uncertain write is reconciled through the selected owner's inventory or receipt. [Publishing workflow](references/publishing.md) · [Runner commands](references/rest-runner.md)
 
 An anonymous MCP publish can return the owner key and private management link in tool text. Before any MCP write that can return either, verify an owner-only result channel or an authorized private handoff. Saving the key to a protected file leaves a shared tool transcript exposed. An already verified owner-only session needs no further privacy question. When private delivery is unavailable, choose authorized REST with protected receipt handling before writing, or leave an MCP-only request pending.
 
@@ -43,16 +43,16 @@ Use `/brewpage-publish ./dist --entry index.html` for a new built site. If you o
 Use `--ttl N` to request a lifetime in days. The REST runner requests 15 days by default. Use `--delivery-mode path|subdomain` to request an address type for a new publication. Sites and HTML pages outside the `public` namespace use a dedicated subdomain. Check current upload limits with the runner's `limits` command or this read-only request.
 
 ```bash
-curl -q -fsS -A "brewpage-codex/0.2.1 (+https://brewpage.app)" https://brewpage.app/api/limits
+curl -q -fsS -A "brewpage-codex/0.2.2 (+https://brewpage.app)" https://brewpage.app/api/limits
 ```
 
 ## Ownership and updates
 
 The skill reuses your selected owner for the workspace and publication. Before creating an anonymous owner, agree on a private storage or delivery destination. OpenClaw's local store is `./brewpage-history.md` in the runner's working directory, kept in an owner-only file with mode `0600` and ignored by Git. An account-owned publication appears in the connected account's publications.
 
-The REST runner's ordinary publish and update output gives reader-facing details and storage status. Use `--private-output` only in a verified owner-only channel. It can include the private management link, owner receipt, or receipt path. `--no-save` requires `--private-output`. A new key is reported as saved only after private readback. If publication succeeds but storage fails, keep the reader link and recover the receipt through a protected channel when available. Keep tokens and passwords out of command arguments and shared output. [Ownership, private storage, and recovery](references/ownership.md)
+The REST runner keeps owner tokens and management links in protected files. If you decline workspace history, select a protected receipt directory with `--no-save --receipt-dir`. If the history save fails after publication, keep the reader link and recover the protected receipt. [Ownership, private storage, and recovery](references/ownership.md)
 
-An in-place update uses the exact publication identity and matching owner proof. Changing only the content in its current format keeps the address, expiry, and existing Page data entries. If the target is missing, read-only, or rejects the update, the skill reports that result and waits for a separate request before any new publication. [Update and owner proof options](references/publishing.md#choose-proof-or-update-a-target)
+An in-place update uses the exact publication identity and matching owner proof. Changing only the content in its current format keeps the address, expiry, and existing Page data entries. If the target is missing, read-only, or rejects the update, the skill reports that result and waits for a separate request before any new publication. [Update and owner proof options](references/rest-runner.md#choose-proof-or-update-a-target)
 
 ## Page data and domains
 
