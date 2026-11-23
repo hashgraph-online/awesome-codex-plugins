@@ -1,0 +1,13 @@
+{
+  "name": "omniforge-launch-audit",
+  "version": "1.0.0",
+  "description": "Read-only pre-launch web security (Supabase RLS & JS bundle secrets), SPF/DKIM/DMARC email DNS, 78-TLD domain RDAP, and /llms.txt readiness skills + hosted MCP server.",
+  "repository": "https://github.com/zColdWater/omniforge-codex-plugin",
+  "license": "MIT",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "OmniForge Launch Audit",
+    "shortDescription": "Audit Supabase RLS, JS secrets, SPF/DMARC DNS, 78-TLD domains & /llms.txt",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

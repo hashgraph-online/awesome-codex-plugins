@@ -2155,6 +2155,21 @@
       "icon": "./plugins/alexeyco/oh-my-openspec/assets/icon.svg"
     },
     {
+      "name": "omniforge-launch-audit",
+      "displayName": "OmniForge Launch Audit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zColdWater/omniforge-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Read-only pre-launch web security (Supabase RLS and JS secrets), SPF/DKIM/DMARC email DNS, 78-TLD domain RDAP, and /llms.txt audit skills with a zero-auth hosted MCP server.",
+      "icon": "./plugins/zColdWater/omniforge-codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "ontoly",
       "displayName": "Ontoly",
       "source": {

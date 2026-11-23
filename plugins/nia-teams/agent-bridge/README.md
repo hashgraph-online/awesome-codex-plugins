@@ -39,6 +39,8 @@ dsh plugin --profile web add @nia-teams/dsh-plugin
 
 `<nia-cli>` means `nia-claude`, `nia-codex`, `nia-agy`, `nia-workbuddy`, `nia-doubao`, `nia-droid`, or `nia-pi`. With `start`, omitting `--daemon` runs in the foreground; `--daemon` launches a detached Node process without `nohup` or `/tmp`. Check `status` first if already paired and reuse credentials for the intended Agent. DSH runs inside Harness, not through `nia-dsh start`.
 
+For WorkBuddy, add `--model <model-id>` or set `CODEBUDDY_MODEL` when starting the daemon. Use `nia-workbuddy connect --no-start` to pair without it.
+
 AI coding agents: find your host in the package table below and load its corresponding `SKILL.md` for host-specific sign-in checks, pairing, and startup guidance.
 
 For WeChat QR setup and optional GroupChat invites, see [WeChat connect](./docs/WECHAT-CONNECT.md).
@@ -217,7 +219,7 @@ nia-claude start --cwd "/path/to/workspace" --daemon
 Discovers WorkBuddy.app’s `codebuddy-lite-wb.mjs` and decrypts existing desktop authentication with `ELECTRON_RUN_AS_NODE=1`, without starting UI or stealing focus. Standalone CodeBuddy is also supported. SDK sessions resume per chat; approvals and questions route to TaskBar or GroupChat.
 
 ```sh
-nia-workbuddy start --cwd "/path/to/workspace" --daemon
+nia-workbuddy start --cwd "/path/to/workspace" --daemon --model "<model-id>"
 ```
 
 ### 4. Doubao Work / Doubao CLI (`@nia-teams/doubao-bridge`)

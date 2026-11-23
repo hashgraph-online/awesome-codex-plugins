@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-23",
-  "total": 464,
+  "total": 465,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1461,6 +1461,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/alexeyco/oh-my-openspec/HEAD/plugins/oh-my-openspec/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "OmniForge Launch Audit",
+      "url": "https://github.com/zColdWater/omniforge-codex-plugin",
+      "owner": "zColdWater",
+      "repo": "omniforge-codex-plugin",
+      "description": "Read-only pre-launch web security (Supabase RLS and JS secrets), SPF/DKIM/DMARC email DNS, 78-TLD domain RDAP, and /llms.txt audit skills with a zero-auth hosted MCP server.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/zColdWater/omniforge-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Ontoly",

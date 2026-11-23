@@ -1,6 +1,6 @@
 ---
 name: amq-board
-version: 0.161.0 # x-release-please-version
+version: 0.162.0 # x-release-please-version
 description: "Read the AMQ fleet board when asked for current work, check the floor for stalled seats, measure request history in a retrospective, or classify recent requests on demand."
 metadata:
   short-description: Fleet board and on-demand request labels
