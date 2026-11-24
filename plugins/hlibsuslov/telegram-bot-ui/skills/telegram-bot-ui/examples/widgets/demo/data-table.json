@@ -1,0 +1,267 @@
+{
+ "widget": "data-table",
+ "title": "Data table",
+ "summary": "One page of a business report: sortable columns, statuses with words, money and counts aligned right, totals row, pages, the whole report sent to the chat on request.",
+ "caption": "Orders today · 29 orders · page 1 of 4",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "‹ Page",
+     "callback_data": "rep:pg:prev"
+    },
+    {
+     "text": "Page ›",
+     "callback_data": "rep:pg:next"
+    }
+   ],
+   [
+    {
+     "text": "Full report in chat",
+     "callback_data": "rep:all"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "ti": "Orders today",
+    "c": [
+     [
+      "Order",
+      "t"
+     ],
+     [
+      "Status",
+      "s"
+     ],
+     [
+      "Items",
+      "n",
+      1
+     ],
+     [
+      "Sum",
+      "m:EUR"
+     ]
+    ],
+    "rw": [
+     [
+      "#1040",
+      [
+       0,
+       "Paid"
+      ],
+      1,
+      1250
+     ],
+     [
+      "#1041",
+      [
+       0,
+       "Paid"
+      ],
+      3,
+      1981
+     ],
+     [
+      "#1042",
+      [
+       1,
+       "Pending"
+      ],
+      5,
+      2712
+     ],
+     [
+      "#1043",
+      [
+       0,
+       "Paid"
+      ],
+      2,
+      3443
+     ],
+     [
+      "#1044",
+      [
+       2,
+       "Refunded"
+      ],
+      4,
+      4174
+     ],
+     [
+      "#1045",
+      [
+       3,
+       "Cancelled"
+      ],
+      1,
+      4905
+     ],
+     [
+      "#1046",
+      [
+       0,
+       "Paid"
+      ],
+      3,
+      5636
+     ],
+     [
+      "#1047",
+      [
+       0,
+       "Paid"
+      ],
+      5,
+      6367
+     ]
+    ],
+    "tot": [
+     "Total",
+     null,
+     86,
+     124306
+    ],
+    "n": 29,
+    "pg": 0,
+    "pp": 4,
+    "at": 1794736680,
+    "r": 0
+   }
+  },
+  "last-page": {
+   "chatData": {
+    "ti": "Orders today",
+    "c": [
+     [
+      "Order",
+      "t"
+     ],
+     [
+      "Status",
+      "s"
+     ],
+     [
+      "Items",
+      "n",
+      1
+     ],
+     [
+      "Sum",
+      "m:EUR"
+     ]
+    ],
+    "rw": [
+     [
+      "#1064",
+      [
+       0,
+       "Paid"
+      ],
+      4,
+      9794
+     ],
+     [
+      "#1065",
+      [
+       0,
+       "Paid"
+      ],
+      1,
+      1525
+     ],
+     [
+      "#1066",
+      [
+       1,
+       "Pending"
+      ],
+      3,
+      2256
+     ],
+     [
+      "#1067",
+      [
+       0,
+       "Paid"
+      ],
+      5,
+      2987
+     ],
+     [
+      "#1068",
+      [
+       2,
+       "Refunded"
+      ],
+      2,
+      3718
+     ]
+    ],
+    "tot": [
+     "Total",
+     null,
+     86,
+     124306
+    ],
+    "n": 29,
+    "pg": 3,
+    "pp": 4,
+    "at": 1794736680,
+    "r": 0
+   }
+  },
+  "empty": {
+   "chatData": {
+    "ti": "Orders today",
+    "c": [
+     [
+      "Order",
+      "t"
+     ],
+     [
+      "Status",
+      "s"
+     ],
+     [
+      "Items",
+      "n",
+      1
+     ],
+     [
+      "Sum",
+      "m:EUR"
+     ]
+    ],
+    "rw": [],
+    "tot": null,
+    "n": 0,
+    "pg": 0,
+    "pp": 1,
+    "at": 1794736680,
+    "r": 0
+   }
+  },
+  "none": {
+   "chatData": null
+  }
+ },
+ "queries": [
+  "sync",
+  "pg:1",
+  "pg:3",
+  "rep",
+  "pg:9",
+  "pg:x"
+ ],
+ "fresh": [
+  "at"
+ ]
+}

@@ -3,13 +3,13 @@
 One entry per shape: what it is for, the fastest way to make one, the file,
 and how it behaves on the board. Read it when you need a shape you have not
 used; `stickypane help <shape>` prints the full example of one, with the
-create options a shape takes: `stickypane write sprint --type board --opt
+create options a shape takes: `stickypane note write sprint --type board --opt
 columns=Backlog --opt columns=Done` has the shape write the new note itself.
 
 ## Note
 
 For anything to read: an explanation, a decision, a summary.
-`echo "check env before deploy" | stickypane write deploy-notes --open`
+`echo "check env before deploy" | stickypane note write deploy-notes --open`
 
 ```markdown
 ---
@@ -23,7 +23,7 @@ its source.
 
 ## Board
 
-For work in columns. `stickypane card work add "login API" --to Doing`
+For work in columns. `stickypane card add work "login API" --to Doing`
 
 ```markdown
 ---
@@ -38,11 +38,11 @@ type: board
 
 Each `## Heading` is a column and each top-level `- item` a card; indented
 lines are the card's details. The user moves cards with keys and the file
-changes. `stickypane card work move login --to Done` moves one.
+changes. `stickypane card move work login --to Done` moves one.
 
 ## Checklist
 
-For a list of steps. `stickypane todo plan add "write tests"`
+For a list of steps. `stickypane todo add plan "write tests"`
 
 ```markdown
 ---
@@ -53,21 +53,21 @@ type: checklist
 ```
 
 Shown with a progress bar, open items first and done ones below, newest
-first. The user ticks items with `space`; `stickypane todo plan check tests`
+first. The user ticks items with `space`; `stickypane todo check plan tests`
 ticks one from your side. The board writes `✅ 2026-10-03 14:02` after a
 ticked item, even one ticked by editing the file.
 
 ## Log
 
-For what happened, in order. `stickypane log worklog --time "tests passed"`
+For what happened, in order. `stickypane log add worklog --time "tests passed"`
 
 A note with `type: log`, one line per entry, or any `.log`, `.txt` or
 `.out` file. The view follows the end as the file grows until the user
-scrolls up. `stickypane show logs/app.log` follows a log of the project.
+scrolls up. `stickypane note show logs/app.log` follows a log of the project.
 
 ## Chat
 
-For talking with the user on the board. `stickypane say chat "41/41 pass"`
+For talking with the user on the board. `stickypane chat add chat "41/41 pass"`
 
 A note with `type: chat`: `@name HH:MM text` lines under a `## YYYY-MM-DD`
 heading. The user presses n to answer, as themselves. To wait for the
@@ -75,7 +75,7 @@ answer: `stickypane watch --once --note chat --type message.added`.
 
 ## Chart
 
-For numbers. `stickypane chart tokens add input 1200`
+For numbers. `stickypane chart add tokens input 1200`
 
 ```markdown
 ---
@@ -111,8 +111,8 @@ title: Deploy now?
 the last line the buttons. A press writes `submitted:` into the front
 matter and `wait` prints the answers, which the form then shows under its
 buttons. To show what you did with them, log it next to the form:
-`stickypane log deploy.log --time "deployed to production"` appears in the
-form's pane as its output. See the `asking-the-user` skill.
+`stickypane log add deploy.log --time "deployed to production"` appears in the
+form's pane as its output. See the `choosing-between-options` skill.
 
 ## Script
 
@@ -182,9 +182,9 @@ Authorization: Bearer {{token}}
 ## Tab
 
 For a separate screen: a folder of `.sticky/`, such as `deploy/`. Its
-files are the tab's notes. `stickypane mv plan deploy/` moves a note there;
-`stickypane show deploy/plan` switches to the tab and shows it. Linking a
-folder of the project (`stickypane show docs/`) makes it a tab.
+files are the tab's notes. `stickypane note mv plan deploy/` moves a note there;
+`stickypane note show deploy/plan` switches to the tab and shows it. Linking a
+folder of the project (`stickypane note show docs/`) makes it a tab.
 
 ## Book
 

@@ -55,7 +55,7 @@ bkt extension exec <name> [args...] [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -95,7 +95,7 @@ bkt extension install <repository> [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -134,7 +134,7 @@ bkt extension list [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -172,7 +172,7 @@ bkt extension remove <name> [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |

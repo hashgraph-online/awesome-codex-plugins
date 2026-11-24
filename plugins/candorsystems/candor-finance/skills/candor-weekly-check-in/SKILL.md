@@ -3,7 +3,7 @@ name: candor-weekly-check-in
 description: "Runs a returning check-in on the person's money: what changed since last time, how each goal moved, notes and watches that came due, and each area Candor's latest review raised, looked into and recorded. Also sets up recurring check-ins on hosts that can schedule them. Use when the person comes back, asks what changed, how they are doing, how things are going, or what the latest review raised, or asks for a weekly or regular money check-in."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.7"
+  candor-package-version: "1.3.9"
   author: Candor
   version: "0.3.0"
   candor-domain-id: weekly-check-in

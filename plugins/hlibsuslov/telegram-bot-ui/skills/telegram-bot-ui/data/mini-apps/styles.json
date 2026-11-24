@@ -1,0 +1,61 @@
+{
+ "$comment": "Mini App design styles: named directions an agent applies on request ('make it look like a fintech app', 'calmer', 'denser'). A style changes shape, density, type emphasis, glass and which components a screen reaches for; colours always come from the user's Telegram theme (G1), and brand colour is allowed only on one moment per screen. Compiled by scripts/miniapp_style.py into overrides of the kit tokens in examples/mini-apps/_kit/tma.css. Rules: references/mini-apps/design-system.md section 9.",
+ "version": 1,
+ "checked": "2026-11-23",
+ "tokens": {
+  "--tma-r-group": {"what": "radius of inset groups and cards", "range": [8, 32], "unit": "px"},
+  "--tma-r-inner": {"what": "radius of inputs, snackbars, nested surfaces (outer minus padding)", "range": [4, 20], "unit": "px"},
+  "--tma-row": {"what": "one-line row height", "range": [44, 60], "unit": "px"},
+  "--tma-row-2": {"what": "row with subtitle", "range": [56, 76], "unit": "px"},
+  "--tma-avatar": {"what": "avatar and icon tile size in rows", "range": [28, 56], "unit": "px"},
+  "--tma-gap-section": {"what": "space between sections", "range": [12, 36], "unit": "px"},
+  "--tma-figure-size": {"what": "hero figure (balance, price) size", "range": null, "unit": "css"},
+  "--tma-fs-body": {"what": "body size in rem of a 17 px root", "range": null, "unit": "css"}
+ },
+ "presets": {
+  "native": {
+   "title": "Telegram native",
+   "intent": "Looks like a part of Telegram: settings-style inset groups, system type, hairlines, native buttons.",
+   "use_for": ["settings", "forms", "booking", "support", "any app with no brand brief"],
+   "tokens": {},
+   "components": {"lists": "inset groups", "primary_action": "MainButton", "navigation": "tab bar 2-5 or none", "glass": "floating tab bar only"},
+   "do": ["section headers in sentence case", "one accent: the theme button colour", "chevrons on navigation rows"],
+   "dont": ["brand colour on surfaces", "cards instead of grouped lists", "custom fonts"]
+  },
+  "fintech": {
+   "title": "Dark fintech",
+   "intent": "Numbers lead: one large figure per screen with its change, quick-action tiles, quiet asset lists, one chart, glass tab bar. Designed dark-first, checked light.",
+   "use_for": ["wallet", "portfolio", "points and bonuses", "exchange", "analytics with one main number"],
+   "tokens": {"--tma-r-group": "22px", "--tma-row-2": "64px", "--tma-avatar": "44px", "--tma-figure-size": "clamp(3rem, 15vw, 4rem)"},
+   "components": {"hero": "figure + delta pill with sign and period", "actions": "2-4 equal quick-action tiles, verb labels", "lists": "asset rows: avatar, title, 'ticker · price', value right", "chart": "one line, colour by direction, muted grid, segmented period", "glass": "tab bar and the side circle"},
+   "do": ["fraction and currency in hint colour at about 60 % size", "'—' on error, never 0.00", "green/red only with a sign or arrow", "one promo moment, dismissible and remembered"],
+   "dont": ["neon glows", "gradient numbers", "corner ribbons", "a chart on every card", "emoji as asset icons"]
+  },
+  "soft": {
+   "title": "Soft commerce",
+   "intent": "Friendly and roomy: larger radii, generous rows, image-led cards, tonal buttons in content. For browsing and buying.",
+   "use_for": ["shop", "food ordering", "events", "learning", "consumer onboarding"],
+   "tokens": {"--tma-r-group": "30px", "--tma-r-inner": "18px", "--tma-row": "56px", "--tma-row-2": "72px", "--tma-avatar": "48px", "--tma-gap-section": "28px"},
+   "components": {"lists": "inset groups with 48 px images", "cards": "product cards with one image, title, price", "secondary_actions": "tonal buttons", "glass": "tab bar only"},
+   "do": ["real product photos with alt text", "prices in tabular figures", "empty states that lead back to the catalogue"],
+   "dont": ["stock 3D blobs", "several promo banners", "pill shapes on everything including cards"]
+  },
+  "dense": {
+   "title": "Dense tool",
+   "intent": "Compact and information-rich: 44 px rows, small radii, full-width lists on Android, solid surfaces. For people who use it every day.",
+   "use_for": ["dashboards", "editors", "admin and moderation", "trackers", "long lists"],
+   "tokens": {"--tma-r-group": "12px", "--tma-r-inner": "8px", "--tma-row": "44px", "--tma-row-2": "56px", "--tma-avatar": "32px", "--tma-gap-section": "16px", "--tma-fs-body": ".941rem"},
+   "components": {"lists": "full-width or tight inset groups", "tables": "only when columns are compared", "glass": "none: solid surfaces"},
+   "do": ["44 px touch targets stay", "numbers in tabular figures", "sticky segmented filters"],
+   "dont": ["text below 11 px", "hover-only actions", "decorative illustrations"]
+  }
+ },
+ "profile_schema": {
+  "base": "one of the presets (default native)",
+  "radius": "sharp | default | round: scales the preset's radii by 0.5 / 1 / 1.25",
+  "density": "compact | default | roomy: rows and section gaps -8 / 0 / +8 px",
+  "glass": "true | false: false turns the floating glass into solid surfaces",
+  "brand": "optional {\"light\": \"#RRGGBB\", \"dark\": \"#RRGGBB\", \"on\": \"#RRGGBB\"}: the colour of one moment per screen (hero header, promo); text on it uses 'on' and is contrast-checked in both schemes",
+  "figure": "optional CSS size of the hero figure"
+ }
+}

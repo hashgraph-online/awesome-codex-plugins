@@ -1,0 +1,11 @@
+{
+  "name": "tma-kit-examples",
+  "private": true,
+  "type": "module",
+  "description": "Telegram Mini App kit and examples. Node >= 22.18 (type stripping), no dependencies.",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test _kit/*.test.ts server/ts/*.test.ts"
+  }
+}

@@ -421,7 +421,8 @@ matches. Misses and hand-offs use the model; `agent.assert`,
   re-finds each control by role, name, test id, placeholder, input purpose,
   and its named row (an unnamed control with twins and no named container
   hands off, and so does one known only by a generated test id once that id
-  is gone), and passes alone only when the recorded end route is back,
+  is gone, or one of same-named twins left after the recorded one went
+  away), and passes alone only when the recorded end route is back,
   every control that appeared (with its checked or selected state) is
   there, every one that went away is gone, at least one of those changed
   during the replay, and no new alert showed; otherwise the agent takes
@@ -500,8 +501,8 @@ before writing the AI trace.
 - A `mutates: false` tool can call `getToolContext(options).read({ id },
   { style: ['color', 'font-weight'] })` for a node in its newest observation.
   Web reads return redacted `{ style }` under the step deadline, use no action
-  slot, and never relocate stale IDs. Use `requires: ['computed-style']` to
-  skip engines without support. Allowed properties and errors:
+  slot, and never relocate stale IDs. Use `platforms` to skip targets
+  without support. Allowed properties and errors:
   https://e2e.com/docs/tools#read-a-nodes-computed-style.
 - `createToolLoopExecutor` keeps the loop and replaces prompt and tool
   vocabulary; spread `createGrammarTools(ctx, { guard })` into its tools and

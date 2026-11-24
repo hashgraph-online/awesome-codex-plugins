@@ -50,7 +50,7 @@
     "benchmark:selection:anthropic": "node scripts/run-selection-anthropic.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/sdk": "^1.32.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",

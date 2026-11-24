@@ -1,0 +1,39 @@
+{
+ "$comment": "Named brand palettes for a NEW Mini App (an existing project keeps its own colours: references/mini-apps/design-system.md section 9.4). Values are Apple's iOS and iPadOS system colours as published in the Human Interface Guidelines colour table (default light, default dark, increased-contrast light, increased-contrast dark), read on 2026-11-24 from the page's swatch data; the page's change log dates the values to 2025-06-09, and red, orange, green, blue and gray match the iOS 27 Figma kit read earlier. A palette colours ONE brand moment per screen; surfaces, text, buttons and links stay the user's Telegram theme. No source kit ships gradients: the only gradient a palette makes is the tonal brand-to-page fade of .tma-hero.",
+ "source": "https://developer.apple.com/design/human-interface-guidelines/color",
+ "read": "2026-11-24",
+ "values_dated": "2025-06-09",
+ "system": {
+  "red": {"light": "#ff383c", "dark": "#ff4245", "ic_light": "#e9152d", "ic_dark": "#ff6165"},
+  "orange": {"light": "#ff8d28", "dark": "#ff9230", "ic_light": "#c55300", "ic_dark": "#ffa056"},
+  "yellow": {"light": "#ffcc00", "dark": "#ffd600", "ic_light": "#a16a00", "ic_dark": "#fedf43"},
+  "green": {"light": "#34c759", "dark": "#30d158", "ic_light": "#008932", "ic_dark": "#4ad968"},
+  "mint": {"light": "#00c8b3", "dark": "#00dac3", "ic_light": "#008575", "ic_dark": "#54dfcb"},
+  "teal": {"light": "#00c3d0", "dark": "#00d2e0", "ic_light": "#008198", "ic_dark": "#3bddec"},
+  "cyan": {"light": "#00c0e8", "dark": "#3cd3fe", "ic_light": "#007eae", "ic_dark": "#6dd9ff"},
+  "blue": {"light": "#0088ff", "dark": "#0091ff", "ic_light": "#1e6ef4", "ic_dark": "#5cb8ff"},
+  "indigo": {"light": "#6155f5", "dark": "#6d7cff", "ic_light": "#564ade", "ic_dark": "#a7aaff"},
+  "purple": {"light": "#cb30e0", "dark": "#db34f2", "ic_light": "#b02fc2", "ic_dark": "#ea8dff"},
+  "pink": {"light": "#ff2d55", "dark": "#ff375f", "ic_light": "#e7124d", "ic_dark": "#ff8ac4"},
+  "brown": {"light": "#ac7f5e", "dark": "#b78a66", "ic_light": "#956d51", "ic_dark": "#dba679"}
+ },
+ "grays": {
+  "gray": {"light": "#8e8e93", "dark": "#8e8e93"},
+  "gray2": {"light": "#aeaeb2", "dark": "#636366"},
+  "gray3": {"light": "#c7c7cc", "dark": "#48484a"},
+  "gray4": {"light": "#d1d1d6", "dark": "#3a3a3c"},
+  "gray5": {"light": "#e5e5ea", "dark": "#2c2c2e"},
+  "gray6": {"light": "#f2f2f7", "dark": "#1c1c1e"}
+ },
+ "by_product": {
+  "$comment": "[Heuristic] a starting point, not a rule: pick one, say why in one line, and avoid the colour the product's status colours already use (red, green).",
+  "finance, wallet, points": ["blue", "indigo", "teal"],
+  "fitness, health, sport": ["orange", "mint", "green"],
+  "food, coffee, delivery": ["orange", "brown", "red"],
+  "shop, fashion, beauty": ["pink", "purple", "indigo"],
+  "books, education, news": ["indigo", "blue", "brown"],
+  "travel, events, tickets": ["cyan", "teal", "orange"],
+  "games, kids, social": ["purple", "yellow", "pink"],
+  "SaaS, tools, admin": ["blue", "indigo", "teal"]
+ }
+}

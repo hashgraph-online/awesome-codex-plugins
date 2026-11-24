@@ -1,0 +1,24 @@
+{
+  "name": "tma-react-example",
+  "private": true,
+  "type": "module",
+  "description": "The coffee pickup Mini App in React 19 with @tma.js/sdk-react and the kit's CSS (no TelegramUI).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tma.js/sdk-react": "3.0.23",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8"
+  }
+}

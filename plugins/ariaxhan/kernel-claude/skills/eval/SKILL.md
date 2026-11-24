@@ -82,6 +82,7 @@ Before trusting a score:
 - Near-zero pass rate = suspect the task or grader first, not the agent.
 - Read transcripts and grades from many trials; separates real agent errors from graders rejecting valid solutions.
 - Grade the outcome produced, not the path taken; give partial credit on multi-part tasks.
+- Balance the set: include cases where the behavior should occur AND where it should not. One-sided sets optimize one-sided (e.g. an agent that searches/refuses/edits everything).
 - 100% pass tracks regressions only; add harder tasks once saturated.
 Source: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 </eval_validity>

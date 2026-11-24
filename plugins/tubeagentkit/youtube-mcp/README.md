@@ -23,7 +23,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-4CAF50?style=for-the-badge" alt="MIT License"/></a>
 </p>
 
-Fifteen tools, one hosted endpoint, no local install, for Claude, ChatGPT, Cursor, VS Code, Windsurf, and 15+ other MCP-compatible clients.
+Sixteen tools, one hosted endpoint, no local install, for Claude, ChatGPT, Cursor, VS Code, Windsurf, and 15+ other MCP-compatible clients.
 
 ```
 https://getyoutubetranscript.com/api/mcp
@@ -76,7 +76,7 @@ This repo root is also an [Agent Plugins 1.0.0](https://agent-plugins.org/specif
 ```text
 plugin.json                # plugin manifest
 mcp.json                   # hosted MCP server (streamable-http, OAuth, no key in the file)
-skills/youtube/SKILL.md    # when and how to use the 15 tools
+skills/youtube/SKILL.md    # when and how to use the 16 tools
 ```
 
 In VS Code, run **Chat: Install Plugin From Source** and paste `https://github.com/tubeagentkit/youtube-mcp`. Other clients that support Agent Plugins can point at this repo or a local clone. For Cursor there is a separate [plugin repo](https://github.com/tubeagentkit/youtube-transcript-cursor-plugin).
@@ -308,7 +308,7 @@ The agent calls `get_youtube_transcript` and summarizes the result. If you conne
 
 ## Run locally (stdio)
 
-Prefer a local process? [`server/`](./server) is an open-source stdio MCP server with the same 15 tools, built on the official MCP TypeScript SDK. It calls the public [REST API](https://getyoutubetranscript.com/docs?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp) with your API key.
+Prefer a local process? [`server/`](./server) is an open-source stdio MCP server with the same 16 tools, built on the official MCP TypeScript SDK. It calls the public [REST API](https://getyoutubetranscript.com/docs?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp) with your API key.
 
 ```sh
 git clone https://github.com/tubeagentkit/youtube-mcp
@@ -357,7 +357,7 @@ Both methods issue a token scoped and audience-bound to this specific MCP server
 
 ## Available Tools
 
-All fifteen tools are exposed automatically once you connect. **1 credit = 1 successful request.** Failed or rate-limited calls never consume credits.
+All sixteen tools are exposed automatically once you connect. **1 credit = 1 successful request**, except AI transcripts (3 credits per minute of video). Failed or rate-limited calls never consume credits.
 
 ### 1. `get_youtube_transcript`
 
@@ -370,10 +370,25 @@ Fetch the full transcript for a YouTube video, plus its title/author/thumbnail m
 | `send_metadata` | boolean | optional | Include title/author/thumbnail. Defaults to `true` |
 | `timestamps` | boolean | optional | One line per caption, each starting with its `[m:ss]` start time (`[h:mm:ss]` past an hour). Defaults to `false` (one block of text) |
 | `translate` | string | optional | Language code to machine-translate the transcript into, e.g. `es`, `zh-CN`. Timestamps stay aligned, and the header gains `## Translated to: es (machine translation)` |
+| `mode` | string | optional | `native` (default): captions only. `auto`: captions if the video has any, otherwise an AI speech-to-text transcript of the audio. `generate`: always an AI transcript. With `auto` or `generate`, `language` is the language spoken (omit it to use the video's own audio language) and `translate` is not allowed |
 
-**Cost:** 1 credit, with or without `timestamps` or `translate`.
+**Cost:** 1 credit for captions, with or without `timestamps` or `translate`. An AI transcript costs 3 credits per minute of video (rounded up, minimum 3), for videos up to 4 hours. Reading your own AI transcript again within 24 hours costs 0, and credits are refunded automatically if generation fails. Live and upcoming streams are refused.
 
-### 2. `get_transcript_languages`
+AI transcripts are labeled `## Source: AI speech-to-text transcript` in the header, with the credits the call took. A long video may answer with a `job_id` instead of text while the transcript is being made: poll it with `get_transcript_job`.
+
+### 2. `get_transcript_job` <sub>· **FREE**</sub>
+
+Status or result of an AI transcript job that `get_youtube_transcript` (mode `auto` or `generate`) answered with a `job_id`. Returns the transcript when done, says it is still running otherwise (call again in about 5 seconds), or the error if it failed (credits are refunded then). Only jobs started by your account can be read; jobs are kept 7 days.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `job_id` | string | **required** | The `job_id` returned by `get_youtube_transcript` |
+| `send_metadata` | boolean | optional | Include title/author. Defaults to `true` |
+| `timestamps` | boolean | optional | One line per segment, each starting with its `[m:ss]` start time. Defaults to `false` |
+
+**Cost:** Free. The credits were taken when the job started.
+
+### 3. `get_transcript_languages`
 
 List the caption languages a video offers, creator-uploaded or auto-generated, and which one a default request returns.
 
@@ -385,7 +400,7 @@ An empty list means the video has captions turned off. Not needed for an ordinar
 
 **Cost:** 1 credit.
 
-### 3. `search_youtube`
+### 4. `search_youtube`
 
 Search YouTube for videos or channels, paginated.
 
@@ -397,7 +412,7 @@ Search YouTube for videos or channels, paginated.
 
 **Cost:** 1 credit/page.
 
-### 4. `get_channel_latest_videos`
+### 5. `get_channel_latest_videos`
 
 Get a channel's metadata plus its most recent uploads.
 
@@ -407,7 +422,7 @@ Get a channel's metadata plus its most recent uploads.
 
 **Cost:** 1 credit.
 
-### 5. `search_channel_videos`
+### 6. `search_channel_videos`
 
 Search within one specific channel's videos.
 
@@ -419,7 +434,7 @@ Search within one specific channel's videos.
 
 **Cost:** 1 credit/page.
 
-### 6. `list_channel_videos`
+### 7. `list_channel_videos`
 
 List a channel's uploads beyond its latest videos: older episodes, its most popular videos, its Shorts, or its past live streams.
 
@@ -432,7 +447,7 @@ List a channel's uploads beyond its latest videos: older episodes, its most popu
 
 **Cost:** 1 credit/page.
 
-### 7. `list_channel_playlists`
+### 8. `list_channel_playlists`
 
 List the playlists a channel has published. Pass a playlist's `id` to `list_playlist_videos` to see its videos.
 
@@ -443,7 +458,7 @@ List the playlists a channel has published. Pass a playlist's `id` to `list_play
 
 **Cost:** 1 credit/page.
 
-### 8. `list_channel_posts`
+### 9. `list_channel_posts`
 
 List a channel's community posts: text, links, likes, comments and any attached image.
 
@@ -454,7 +469,7 @@ List a channel's community posts: text, links, likes, comments and any attached 
 
 **Cost:** 1 credit/page.
 
-### 9. `get_related_videos`
+### 10. `get_related_videos`
 
 The videos YouTube suggests next to a video, each with title, video ID, link, channel, views, age and length.
 
@@ -464,7 +479,7 @@ The videos YouTube suggests next to a video, each with title, video ID, link, ch
 
 **Cost:** 1 credit.
 
-### 10. `get_channel_banner`
+### 11. `get_channel_banner`
 
 A channel's uncropped banner, every crop size YouTube serves, and its avatar. `has_banner` is `false` when the channel has none.
 
@@ -474,7 +489,7 @@ A channel's uncropped banner, every crop size YouTube serves, and its avatar. `h
 
 **Cost:** 1 credit.
 
-### 11. `get_video_dislikes`
+### 12. `get_video_dislikes`
 
 A video's likes, dislikes, star rating and view count. YouTube no longer publishes dislikes, so these are estimates.
 
@@ -484,7 +499,7 @@ A video's likes, dislikes, star rating and view count. YouTube no longer publish
 
 **Cost:** 1 credit.
 
-### 12. `get_video_details`
+### 13. `get_video_details`
 
 A video's title, description, channel and subscriber count, views, likes, upload date, length, thumbnails and tags. `views` is exact; `likes` and `subscribers` are the rounded labels YouTube shows ("19M").
 
@@ -494,7 +509,7 @@ A video's title, description, channel and subscriber count, views, likes, upload
 
 **Cost:** 1 credit.
 
-### 13. `get_video_comments`
+### 14. `get_video_comments`
 
 A page of a video's top comments: text, commenter, likes, reply count and age. For the next page, call again with the same `video_url` plus `continuation`.
 
@@ -505,7 +520,7 @@ A page of a video's top comments: text, commenter, likes, reply count and age. F
 
 **Cost:** 1 credit/page.
 
-### 14. `list_playlist_videos`
+### 15. `list_playlist_videos`
 
 Get every video in a YouTube playlist.
 
@@ -516,7 +531,7 @@ Get every video in a YouTube playlist.
 
 **Cost:** 1 credit/page.
 
-### 15. `get_credits` <sub>· **FREE**</sub>
+### 16. `get_credits` <sub>· **FREE**</sub>
 
 Check the remaining credit balance for your key/account. No parameters.
 
@@ -535,6 +550,7 @@ Check the remaining credit balance for your key/account. No parameters.
 | 🏛️ **Build a content database** | "Pull every video from @veritasium and store title + transcript." |
 | 🎯 **Channel research** | "Search inside @MKBHD for any video about [topic] and summarize the takeaways." |
 | ✍️ **Repurpose content** | "Turn this video into a 1,500-word blog post: [URL]" |
+| 🎙️ **Video without captions** | "This video has no captions. Make an AI transcript of it: [URL]" |
 | 🌍 **Translate a video** | "Give me this talk in Spanish with timestamps: [URL]" |
 | 💬 **Audience reaction** | "What do viewers think of this video? Quote the top comments: [URL]" |
 
@@ -552,7 +568,8 @@ Check the remaining credit balance for your key/account. No parameters.
 | **Scale** | $99/month | 60,000 credits/month | 600 req/min |
 
 - **1 credit** = 1 successful request. Failed/rate-limited requests don't consume credits.
-- `get_credits` is the only free tool.
+- **AI transcripts** (mode `auto` on a video with no captions, or mode `generate`) cost 3 credits per minute of video, rounded up, minimum 3.
+- `get_credits` and `get_transcript_job` are free.
 - [Manage billing →](https://getyoutubetranscript.com/dashboard?utm_source=github&utm_medium=readme&utm_campaign=youtube-mcp)
 
 ---
@@ -576,7 +593,7 @@ Check your balance and top up or upgrade at the [dashboard](https://getyoutubetr
 <details>
 <summary><b>Video not available (404)</b></summary>
 
-- The video may not have captions enabled
+- The video may not have captions enabled: call again with mode `auto` for an AI transcript
 - It may be private, age-restricted, or region-locked
 - Confirm it plays in a real browser first
 </details>
@@ -605,13 +622,13 @@ hosted endpoint. The hosted endpoint and the REST API behind both are run by
 getyoutubetranscript.com and are not open source. To check either one yourself:
 
 - **Run the local server's live test** — `GYT_API_KEY=sk_live_... npm test --prefix server`
-  starts `server/index.js` over stdio, lists all 15 tools, and calls the free ones.
+  starts `server/index.js` over stdio, lists all 16 tools, and calls the free ones.
 - **Run [`verify.js`](./verify.js) against the hosted endpoint** — zero dependencies, zero auth required:
   ```sh
   node verify.js
   ```
   It performs the real MCP handshake (`initialize` then `tools/list`) against the live
-  endpoint and prints the server's actual response, including all 15 real tool schemas.
+  endpoint and prints the server's actual response, including all 16 real tool schemas.
   Tool *discovery* is public; only tool *calls* require an API key or OAuth token (see
   [Authentication](#authentication)).
 - **Independently verified by four third-party MCP directories**, each of which connected

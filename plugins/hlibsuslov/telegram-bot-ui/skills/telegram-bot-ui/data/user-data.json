@@ -1,0 +1,342 @@
+{
+ "$comment": "What a bot or Mini App can know about a Telegram user, by how it arrives. Names are checked against data/bot-api/catalog.json and data/mini-apps/webapp-catalog.json by tests/test_user_data.py. Rules: references/user-data.md. Read 2026-11-24 (Bot API 10.5).",
+ "sensitivity": {
+  "low": "public profile data the user already shows to every bot",
+  "medium": "personal but not identifying on its own outside Telegram, or tied to a chat",
+  "high": "identifies the person outside Telegram or locates them: phone, exact location, documents, email, address"
+ },
+ "tiers": {
+  "automatic": {
+   "what": "arrives with every update or Mini App launch, no prompt",
+   "items": [
+    {
+     "name": "User.id",
+     "sensitivity": "low",
+     "use": "the account key; store it, never show it"
+    },
+    {
+     "name": "User.first_name",
+     "sensitivity": "low",
+     "use": "address the user; refresh on each update, it changes"
+    },
+    {
+     "name": "User.last_name",
+     "sensitivity": "low",
+     "use": "rarely needed; do not store unless a feature shows it"
+    },
+    {
+     "name": "User.username",
+     "sensitivity": "low",
+     "use": "links and mentions; optional and changeable, never a key"
+    },
+    {
+     "name": "User.language_code",
+     "sensitivity": "low",
+     "use": "the interface language"
+    },
+    {
+     "name": "User.is_premium",
+     "sensitivity": "low",
+     "use": "Premium-only features such as custom emoji; never a price signal"
+    },
+    {
+     "name": "User.added_to_attachment_menu",
+     "sensitivity": "low",
+     "use": "attachment menu flows"
+    },
+    {
+     "name": "WebAppUser.photo_url",
+     "sensitivity": "low",
+     "use": "the avatar in the app; load it, do not copy it to your storage"
+    },
+    {
+     "name": "WebAppUser.allows_write_to_pm",
+     "sensitivity": "low",
+     "use": "whether the bot may message the user; else requestWriteAccess"
+    },
+    {
+     "name": "WebAppInitData.chat_type",
+     "sensitivity": "low",
+     "use": "where the app was opened"
+    },
+    {
+     "name": "WebAppInitData.chat",
+     "sensitivity": "medium",
+     "use": "the group or channel the app was opened from (attachment menu)"
+    },
+    {
+     "name": "WebAppInitData.receiver",
+     "sensitivity": "medium",
+     "use": "the chat partner in a private-chat launch; data about someone who did not open the app"
+    },
+    {
+     "name": "WebAppInitData.start_param",
+     "sensitivity": "low",
+     "use": "the deep-link payload: a route, never personal data"
+    },
+    {
+     "name": "WebAppInitData.auth_date",
+     "sensitivity": "low",
+     "use": "freshness of the signature"
+    },
+    {
+     "name": "ChatJoinRequest.bio",
+     "sensitivity": "medium",
+     "use": "moderating a join request in a chat the bot administers"
+    },
+    {
+     "name": "ChatJoinRequest.user_chat_id",
+     "sensitivity": "low",
+     "use": "message the requester for up to 5 minutes while the request is pending"
+    }
+   ]
+  },
+  "api": {
+   "what": "readable by the bot about a user it already knows, limited by that user's privacy settings; a missing field means hidden or not set",
+   "items": [
+    {
+     "name": "getChat",
+     "sensitivity": "medium",
+     "use": "ChatFullInfo of the private chat: the fields below"
+    },
+    {
+     "name": "ChatFullInfo.bio",
+     "sensitivity": "medium",
+     "use": "rarely needed by a service"
+    },
+    {
+     "name": "ChatFullInfo.birthdate",
+     "sensitivity": "medium",
+     "use": "a birthday greeting or an age gate the user expects; the year is often absent"
+    },
+    {
+     "name": "ChatFullInfo.personal_chat",
+     "sensitivity": "low",
+     "use": "the channel the user shows on the profile"
+    },
+    {
+     "name": "ChatFullInfo.photo",
+     "sensitivity": "low",
+     "use": "the current avatar"
+    },
+    {
+     "name": "ChatFullInfo.emoji_status_custom_emoji_id",
+     "sensitivity": "low",
+     "use": "showing the status the user chose"
+    },
+    {
+     "name": "ChatFullInfo.rating",
+     "sensitivity": "medium",
+     "use": "the user's Stars rating level, a trust signal for digital purchases"
+    },
+    {
+     "name": "ChatFullInfo.ton_wallet_card",
+     "sensitivity": "medium",
+     "use": "shown to everyone on the profile; never treat it as proof of ownership"
+    },
+    {
+     "name": "ChatFullInfo.accepted_gift_types",
+     "sensitivity": "low",
+     "use": "whether a gift can be sent"
+    },
+    {
+     "name": "ChatFullInfo.business_location",
+     "sensitivity": "low",
+     "use": "a business account's public address"
+    },
+    {
+     "name": "getUserProfilePhotos",
+     "sensitivity": "low",
+     "use": "profile pictures, up to 100"
+    },
+    {
+     "name": "getUserProfileAudios",
+     "sensitivity": "low",
+     "use": "audios on the profile"
+    },
+    {
+     "name": "getUserGifts",
+     "sensitivity": "low",
+     "use": "gifts shown on the profile"
+    },
+    {
+     "name": "getUserPersonalChatMessages",
+     "sensitivity": "low",
+     "use": "the last posts of the user's personal channel (1-20)"
+    },
+    {
+     "name": "getChatMember",
+     "sensitivity": "medium",
+     "use": "the user's status in a chat; guaranteed only where the bot is an administrator"
+    },
+    {
+     "name": "getUserChatBoosts",
+     "sensitivity": "low",
+     "use": "boosts the user gave a chat the bot administers"
+    },
+    {
+     "name": "ChatFullInfo.active_usernames",
+     "sensitivity": "low",
+     "use": "every active username, collectible ones included"
+    },
+    {
+     "name": "ChatFullInfo.has_private_forwards",
+     "sensitivity": "low",
+     "use": "tg://user?id links work only in chats with the user: mention by username"
+    },
+    {
+     "name": "ChatFullInfo.has_restricted_voice_and_video_messages",
+     "sensitivity": "low",
+     "use": "do not send voice or video notes"
+    },
+    {
+     "name": "ChatFullInfo.share_theme",
+     "sensitivity": "low",
+     "use": "the personal accent on the user's own surfaces (user-profile.md section 3)"
+    },
+    {
+     "name": "ChatFullInfo.unique_gift_colors",
+     "sensitivity": "low",
+     "use": "gift-based name colours for light and dark"
+    },
+    {
+     "name": "ChatFullInfo.community",
+     "sensitivity": "low",
+     "use": "the community a managed chat belongs to"
+    },
+    {
+     "name": "ChatMemberMember.tag",
+     "sensitivity": "low",
+     "use": "a member's tag in a chat the bot manages"
+    }
+   ]
+  },
+  "on_request": {
+   "what": "only after the user taps a native prompt or sends it; each needs a visible reason and works when refused",
+   "items": [
+    {
+     "name": "KeyboardButton.request_contact",
+     "sensitivity": "high",
+     "use": "the user's phone number as a Contact message, private chats only"
+    },
+    {
+     "name": "WebApp.requestContact",
+     "sensitivity": "high",
+     "use": "the same from a Mini App (6.9): the bot receives the Contact, the app only learns sent or cancelled"
+    },
+    {
+     "name": "Contact.phone_number",
+     "sensitivity": "high",
+     "use": "check Contact.user_id equals the sender, else it is someone else's card"
+    },
+    {
+     "name": "Contact.user_id",
+     "sensitivity": "low",
+     "use": "proof the shared number is the sender's own"
+    },
+    {
+     "name": "KeyboardButton.request_location",
+     "sensitivity": "high",
+     "use": "one location message, private chats only"
+    },
+    {
+     "name": "WebApp.LocationManager",
+     "sensitivity": "high",
+     "use": "location inside a Mini App (8.0) after the user allows it"
+    },
+    {
+     "name": "Location.horizontal_accuracy",
+     "sensitivity": "high",
+     "use": "how exact the point is; round before storing"
+    },
+    {
+     "name": "KeyboardButtonRequestUsers.request_name",
+     "sensitivity": "medium",
+     "use": "names of users the user chooses to share; they did not consent"
+    },
+    {
+     "name": "SharedUser.username",
+     "sensitivity": "medium",
+     "use": "only what the bot asked for and the user shared"
+    },
+    {
+     "name": "KeyboardButtonRequestChat.request_title",
+     "sensitivity": "low",
+     "use": "a chat the user picks, e.g. to connect the bot"
+    },
+    {
+     "name": "WebApp.requestWriteAccess",
+     "sensitivity": "low",
+     "use": "permission to message the user (6.9)"
+    },
+    {
+     "name": "WebApp.requestEmojiStatusAccess",
+     "sensitivity": "low",
+     "use": "permission to set the user's emoji status (8.0)"
+    },
+    {
+     "name": "sendInvoice.need_phone_number",
+     "sensitivity": "high",
+     "use": "phone for a physical order paid with a provider; ignored for Stars"
+    },
+    {
+     "name": "sendInvoice.need_shipping_address",
+     "sensitivity": "high",
+     "use": "address for delivery; ignored for Stars"
+    },
+    {
+     "name": "OrderInfo.email",
+     "sensitivity": "high",
+     "use": "a receipt for a provider payment"
+    },
+    {
+     "name": "PassportData",
+     "sensitivity": "high",
+     "use": "Telegram Passport documents, encrypted to the bot's key, for regulated identity checks only"
+    },
+    {
+     "name": "WebApp.sendData",
+     "sensitivity": "medium",
+     "use": "what the user submits in a keyboard-launched Mini App, up to 4096 bytes"
+    },
+    {
+     "name": "Location.live_period",
+     "sensitivity": "high",
+     "use": "a live location the user shares while a courier comes; stop using it when the order ends"
+    },
+    {
+     "name": "InlineQuery.location",
+     "sensitivity": "high",
+     "use": "nearby inline results, only after location requests are enabled (BotFather or setMySettings needs_inline_query_location)"
+    },
+    {
+     "name": "EncryptedPassportElement.phone_number",
+     "sensitivity": "high",
+     "use": "a phone number Telegram verified, through Telegram Passport"
+    },
+    {
+     "name": "EncryptedPassportElement.email",
+     "sensitivity": "high",
+     "use": "an email Telegram verified, through Telegram Passport"
+    },
+    {
+     "name": "WebApp.BiometricManager",
+     "sensitivity": "low",
+     "use": "device-local step-up; biometrics never leave the phone, the server sees only your token"
+    }
+   ]
+  },
+  "never": {
+   "what": "not available to bots, and the skill does not build a way around it",
+   "items": [
+    "another user's phone number, unless that user shares it themselves",
+    "the user's contact list, other chats, message history outside chats with the bot",
+    "online status and last seen",
+    "location without a prompt the user accepted",
+    "passwords, login codes, two-step verification",
+    "the IP address of bot users (a Mini App's server sees the IP of its own requests: treat it as personal data)",
+    "data from outside Telegram joined to the Telegram profile (search engines, leaks, data brokers, other platforms)"
+   ]
+  }
+ }
+}

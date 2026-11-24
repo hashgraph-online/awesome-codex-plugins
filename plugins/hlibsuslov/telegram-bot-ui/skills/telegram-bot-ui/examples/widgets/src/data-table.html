@@ -1,0 +1,109 @@
+<!-- Data table (private chat): one page of a report the bot keeps, sortable by any column.
+  chat_data: {"ti":title,"c":[[label,kind,optional?]...<=5],"rw":[[cell...]...<=12],"tot":[cell...] or null,
+              "n":rows in the whole report,"pg":page (0-based),"pp":pages,"at":unix of the data,"r":N}
+  kind: "t" text (left), "n" number, "m" money in minor units ("m:EUR"), "d" delta % (▲ green / ▼ red),
+        "s" status 0 ok / 1 warn / 2 bad / 3 off (dot + word from the cell's label "Paid"...).
+  A status cell is [code,label]; every other cell is a string or a number. A column with optional=1
+  hides below 280 px: keep the key, the status and the money; drop counts and dates first.
+  Requests: "sync" (Refresh), "pg:<n>" (the bot edits chat_data with that page), "rep" (the bot sends the
+  whole report as a Rich Message table, split by whole rows, and answers {"ok":1,"parts":N}).
+  Sorting is local to the viewer: it never asks the bot. -->
+<style>
+/*@kit tokens.css*/
+.tw { margin: 8px 0 2px; overflow: hidden }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .93em }
+th, td { padding: 6px 4px; text-align: start; white-space: nowrap }
+th { color: var(--k-hint); font-weight: 500; font-size: .87em; border-bottom: 1px solid var(--k-sep) }
+th button { all: unset; cursor: pointer; display: inline-flex; gap: 2px; min-height: 28px; align-items: center }
+th.on { color: var(--k-tx) }
+.nr { text-align: end }
+tbody tr + tr td { border-top: 1px solid var(--k-sep) }
+tfoot td { font-weight: 600; border-top: 1px solid var(--k-hint) }
+.dt { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--k-hint) }
+[dir=rtl] .dt { margin: 0 0 0 5px }
+.s0 .dt { background: var(--k-ok) } .s1 .dt { background: var(--k-warn) } .s2 .dt { background: var(--k-bad) }
+.s3 { color: var(--k-hint) }
+@media (max-width: 280px) { .op { display: none } th, td { padding: 6px 2px } }
+@media (max-width: 240px) { table { font-size: .8em } .dt { margin-right: 3px } }
+.pgr { justify-content: space-between; margin-top: 6px }
+.pgr button { display: flex; align-items: center; justify-content: center; width: 44px; height: 36px; padding: 0 }
+.pgr svg { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round }
+[dir=rtl] .pgr svg { transform: scaleX(-1) }
+</style>
+<div class="k">
+  <div class="hd"><span class="tt el" id="ti"></span><span class="mt" id="ct"></span></div>
+  <div class="tw"><table><thead><tr id="hd"></tr></thead><tbody id="bd"></tbody><tfoot id="ft"></tfoot></table></div>
+  <div class="mt" id="em"></div>
+  <div class="rw pgr" id="pr"><button id="pv"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button><span class="mt" id="pn"></span><button id="nx"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button></div>
+  <button class="wd" id="rp"></button>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { rows: "rows", pg: "Page", of: "of", rep: "Full report in chat", pv: "Previous", nx: "Next", sent: "Report sent", none: "No data yet. The bot will fill this in.", empty: "Nothing to show for this period.", tot: "Total" } });/*@end*/
+/*@lang ru*/K.add({ ru: { rows: "строк", pg: "Стр.", of: "из", rep: "Весь отчёт в чат", pv: "Назад", nx: "Далее", sent: "Отчёт отправлен", none: "Данных пока нет. Бот их пришлёт.", empty: "За этот период данных нет.", tot: "Итого" } });/*@end*/
+/*@lang uk*/K.add({ uk: { rows: "рядків", pg: "Стор.", of: "з", rep: "Увесь звіт у чат", pv: "Назад", nx: "Далі", sent: "Звіт надіслано", none: "Даних поки немає. Бот їх надішле.", empty: "За цей період даних немає.", tot: "Разом" } });/*@end*/
+var sc = -1, sd = 1;
+function key(v) { return Array.isArray(v) ? v[0] : v; }
+function cell(v, kind, op) {
+  var td = K.h("td", (kind == "t" || kind == "s" ? "" : "nr") + (op ? " op" : ""));
+  if (v == null || v === "") { td.textContent = "—"; return td; }
+  if (kind == "s") {
+    td.className = "s" + v[0] + (op ? " op" : "");
+    td.appendChild(K.h("i", "dt"));
+    td.appendChild(document.createTextNode(v[1]));
+  } else if (kind == "d") {
+    td.className = "nr " + (v > 0 ? "up" : v < 0 ? "dn" : "") + (op ? " op" : "");
+    td.textContent = (v > 0 ? "▲ " : v < 0 ? "▼ " : "") + K.nf(Math.abs(v), { maximumFractionDigits: 1 }) + "%";
+  } else if (kind.charAt(0) == "m") {
+    td.textContent = K.money(v, kind.slice(2) || "EUR");
+  } else td.textContent = kind == "n" ? K.nf(v) : v;
+  return td;
+}
+function draw() {
+  var s = K.S.chatData, $ = K.$, off = K.busy || !K.can();
+  ["hd", "bd", "ft"].forEach(function (i) { $(i).innerHTML = ""; });
+  if (!s) { $("ti").textContent = K.t("none"); $("pr").style.display = $("rp").style.display = "none"; return; }
+  $("ti").textContent = s.ti;
+  $("ct").textContent = K.nf(s.n) + " " + K.t("rows") + (s.at ? " · " + K.time(s.at) : "");
+  var cols = s.c || [], rows = (s.rw || []).slice();
+  if (sc >= 0) rows.sort(function (a, b) {
+    var x = key(a[sc]), y = key(b[sc]);
+    return (typeof x == "number" && typeof y == "number" ? x - y : String(x).localeCompare(String(y))) * sd;
+  });
+  cols.forEach(function (c, i) {
+    var th = K.h("th", (c[1] == "t" || c[1] == "s" ? "" : "nr") + (sc == i ? " on" : "") + (c[2] ? " op" : "")), b = K.h("button", "", c[0] + (sc == i ? (sd > 0 ? " ↑" : " ↓") : ""));
+    th.setAttribute("aria-sort", sc == i ? (sd > 0 ? "ascending" : "descending") : "none");
+    b.onclick = function () { sd = sc == i ? -sd : 1; sc = i; draw(); };
+    th.appendChild(b);
+    $("hd").appendChild(th);
+  });
+  rows.forEach(function (r) {
+    var tr = K.h("tr");
+    cols.forEach(function (c, i) { tr.appendChild(cell(r[i], c[1], c[2])); });
+    $("bd").appendChild(tr);
+  });
+  if (s.tot && rows.length) {
+    var tr = K.h("tr");
+    cols.forEach(function (c, i) { tr.appendChild(!i ? K.h("td", "", s.tot[0] || K.t("tot")) : s.tot[i] == null ? K.h("td", c[2] ? "op" : "") : cell(s.tot[i], c[1], c[2])); });
+    $("ft").appendChild(tr);
+  }
+  $("em").textContent = rows.length ? "" : K.t("empty");
+  var pp = s.pp || 1;
+  $("pr").style.display = pp > 1 ? "" : "none";
+  $("pn").textContent = K.t("pg") + " " + (s.pg + 1) + " " + K.t("of") + " " + pp;
+  $("pv").setAttribute("aria-label", K.t("pv"));
+  $("nx").setAttribute("aria-label", K.t("nx"));
+  $("pv").disabled = off || s.pg <= 0;
+  $("nx").disabled = off || s.pg >= pp - 1;
+  $("pv").onclick = function () { sc = -1; K.ask("pg:" + (s.pg - 1)); };
+  $("nx").onclick = function () { sc = -1; K.ask("pg:" + (s.pg + 1)); };
+  var rp = $("rp");
+  rp.style.display = s.n ? "" : "none";
+  rp.textContent = K.t("rep");
+  rp.disabled = off;
+  rp.onclick = function () { K.ask("rep", { done: K.t("sent") }); };
+}
+K.start(draw, { sync: "sync" });
+</script>

@@ -1,0 +1,23 @@
+{
+  "scenario": "r92-init-data-session",
+  "status": "production",
+  "context": "server verifies initData, then answers the query",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "answerWebAppQuery",
+      "params": {
+        "web_app_query_id": "AAHdF6IQAAAAAN0XohDhrOrc",
+        "result": {
+          "type": "article",
+          "id": "ord-8812",
+          "title": "Order 8812",
+          "input_message_content": {
+            "message_text": "Order 8812 placed: 1 flat white"
+          }
+        }
+      }
+    }
+  ]
+}

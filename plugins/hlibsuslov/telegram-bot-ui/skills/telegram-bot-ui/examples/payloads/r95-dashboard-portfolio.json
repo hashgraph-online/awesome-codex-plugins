@@ -1,0 +1,26 @@
+{
+  "scenario": "r95-dashboard-portfolio",
+  "status": "production",
+  "context": "alert with a startapp link",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "Gold level reached: 1,240 points.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "See points",
+                "url": "https://t.me/coffee_pickup_bot/points?startapp=asset-points"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

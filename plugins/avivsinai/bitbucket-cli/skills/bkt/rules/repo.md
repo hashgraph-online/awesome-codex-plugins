@@ -52,7 +52,7 @@ bkt repo browse [<repository>] [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -102,7 +102,7 @@ bkt repo clone <repository> [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -163,7 +163,7 @@ bkt repo create <repository> [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -235,7 +235,7 @@ bkt repo default-reviewers list [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -296,7 +296,7 @@ bkt repo downloads list [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -342,7 +342,7 @@ bkt repo downloads upload <files>... [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -387,7 +387,7 @@ bkt repo list [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |
@@ -439,7 +439,7 @@ bkt repo view [repository] [flags]
 |---|---|---|
 | `--context` | `-c` | Active Bitbucket context name |
 | `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
-| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--jq` |  | Apply a jq expression (implies JSON when no output format flag is set) |
 | `--json` |  | Output in JSON format when supported |
 | `--template` |  | Render output using Go templates |
 | `--yaml` |  | Output in YAML format when supported |

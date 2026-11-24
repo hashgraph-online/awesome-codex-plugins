@@ -2,12 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import {
   admittedCall,
-  claimApproval,
   credentialID,
-  decisionStatus,
   loadConfig as loadConnection,
   loadReviewer,
   localStatus,
@@ -16,7 +13,7 @@ import {
 } from '../../core/bridge.mjs'
 import { ExecutionOutcome } from '../../core/generated/outcomes.mjs'
 import { captureInput } from '../../core/input-capture.mjs'
-import { runtimeSettings } from './settings.mjs'
+import { runtimeSettings } from '../../core/settings.mjs'
 
 // Codex hook adapter: maps Codex's hook events onto Actera decisions, call
 // identities and execution reports, and Decisions back onto Codex's
@@ -222,27 +219,6 @@ export async function enqueueToolOutcome(hook, config, home = bridgeHome()) {
     context: request.context,
     details,
   })
-}
-
-// Wait for a reviewer while Codex waits for this hook. An approval releases
-// exactly this call; anything else ends the hold with the current status.
-// Aborting stops the wait without claiming an approval.
-export async function holdForApproval(config, decision, home = bridgeHome(), { holdMs, pollMs, signal } = {}) {
-  const deadline = Date.now() + holdMs
-  let current = decision
-  while (Date.now() < deadline && !signal?.aborted) {
-    try {
-      await delay(Math.min(pollMs, Math.max(0, deadline - Date.now())), undefined, { signal })
-      current = await decisionStatus(config, decision.id)
-    } catch {
-      continue // A transient lookup failure keeps the call held, never released.
-    }
-    if (signal?.aborted) break
-    if (current.status === 'APPROVED')
-      return (await claimApproval(home, decision.id)) ? current : { ...current, status: 'ALREADY_RELEASED' }
-    if (current.status !== 'PENDING_APPROVAL') return current
-  }
-  return current
 }
 
 // Codex shows these reasons to the model, which relays them to the person.

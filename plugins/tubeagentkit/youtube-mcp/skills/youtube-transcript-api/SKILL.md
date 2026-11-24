@@ -41,7 +41,8 @@ If the user has no key, set one up in the conversation instead of sending them t
 
 | Endpoint | Query params | Returns |
 |---|---|---|
-| `/transcript` | `v` (video URL or 11-char ID, required), `language` (e.g. `en`), `timestamps` (`true` to add `segments`), `translate` (machine-translate into a language code such as `es`; adds `translated_to`) | `video_id`, `title`, `author_name`, `transcript` (one text block), `word_count`, `language_code` + `requested_language`, `caption_type` (`manual`/`auto`/`null`), `cached`, `fetched_at`, plus `segments` when `timestamps=true` |
+| `/transcript` | `v` (video URL or 11-char ID, required), `language` (e.g. `en`), `timestamps` (`true` to add `segments`), `translate` (machine-translate into a language code such as `es`; adds `translated_to`), `mode` (`native` default, `auto`, `generate`: see AI transcripts below) | `video_id`, `title`, `author_name`, `transcript` (one text block), `word_count`, `language_code` + `requested_language`, `caption_type` (`manual`/`auto`/`ai`/`null`), `cached`, `fetched_at`, plus `segments` when `timestamps=true`; AI transcripts add `source: "ai"` and `duration_seconds` |
+| `/transcript/jobs` | `id` (the `job_id`), `timestamps` | an AI transcript job: `202` while it runs, `200` with `data` + `job` when done, or the job's error; free |
 | `/transcript/languages` | `v` | `default_language_code` + `languages` (`language_code`, `name`, `caption_type`); 1 credit; empty list when captions are off |
 | `POST /batch` | body `{"videos": [up to 100], "language", "timestamps", "webhook_url"}`, optional `Idempotency-Key` header | `batch_id` right away (202); 1 credit per video that returns a transcript, failures free |
 | `/batch` | `id`, `offset`, `limit` (max 50) | `status` (`queued`/`processing`/`completed`), counts, `credits_charged`, `items` (transcript fields or `error_code`), `next_offset` |
@@ -64,6 +65,12 @@ If the user has no key, set one up in the conversation instead of sending them t
 
 By default the transcript is one block of plain text. Add `timestamps=true` to also get `data.segments`, an array of `{start, duration, text}` with `start` and `duration` in seconds. Same credit cost.
 
+## AI transcripts (videos with no captions)
+
+`mode=auto` returns captions when the video has any (1 credit), otherwise an AI speech-to-text transcript of the audio; `mode=generate` always makes one. An AI transcript costs 3 credits per minute of video, rounded up, minimum 3, for videos up to 4 hours; live and upcoming streams are refused. The `X-Credits-Charged` response header says what each call cost. Re-reading your own AI transcript within 24 hours costs 0, and credits are refunded automatically if generation fails. With these modes `language` is the language spoken (leave it out to use the video's own audio language) and `translate` is rejected.
+
+If generation takes longer than about 20 seconds the answer is `202` with `"data": null` and a `job` (`job_id`, `status`, `poll_interval_seconds`). Poll `GET /transcript/jobs?id=<job_id>` every 5 seconds (free) until it answers `200` with the transcript, or an error if it failed. Handle the 202 explicitly: `success` is `true` but `data` is `null`. Jobs are kept 7 days and only the account that started one can read it.
+
 ## Responses and errors
 
 Success: `{"success": true, "data": {...}}`. Failure: `{"success": false, "code": "...", "message": "..."}`. Branch on `code`, not on `message`.
@@ -73,7 +80,11 @@ Success: `{"success": true, "data": {...}}`. Failure: `{"success": false, "code"
 | 400 | `BAD_REQUEST`, `INVALID_URL` | Bug in the request. Do not retry. |
 | 400 | `CURSOR_EXPIRED` | The page cursor is older than 24 hours. Restart from the first page. |
 | 401 | `MISSING_API_KEY`, `INVALID_API_KEY` | Missing, wrong, or revoked key. Stop and surface it. |
-| 402 | `PAYMENT_REQUIRED` | The account has no credits left. Stop the batch and tell the user. Do not retry. |
+| 402 | `PAYMENT_REQUIRED` | The account has no credits left (for an AI transcript, `credits_required` says how many it needs). Stop the batch and tell the user. Do not retry. |
+| 404 | `JOB_NOT_FOUND` | No AI transcript job with this id for this account. Start a new request. |
+| 422 | `LIVE_STREAM`, `TOO_LONG`, `AUDIO_UNAVAILABLE` | AI transcript refused: live or upcoming stream, over 4 hours, or the audio can't be read. Not charged. Do not retry. |
+| 429 | `TOO_MANY_JOBS` | 5 AI transcripts already in progress, or too many failed today. Wait for one to finish. |
+| 502 | `AI_FAILED` | The AI transcript could not be made; credits were refunded. Retry once later. |
 | 404 | `TRANSCRIPT_NOT_FOUND`, `TRANSCRIPT_DISABLED`, `VIDEO_UNAVAILABLE`, `LANGUAGE_NOT_AVAILABLE` | That video has no usable transcript. Record it and move on to the next video. |
 | 429 | `RATE_LIMITED` | Too many requests this minute. Back off (wait, then retry with exponential delay). |
 | 429 | `TOO_MANY_BATCHES` | 5 batches still running. Wait for one to complete before submitting another. |

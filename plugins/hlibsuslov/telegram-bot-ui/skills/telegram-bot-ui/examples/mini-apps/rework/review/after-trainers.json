@@ -1,0 +1,15 @@
+{
+ "screen": "catalog",
+ "entity": "trainer",
+ "width": 390,
+ "layout": {"variant": "row", "columns": 1},
+ "card": {
+  "image": {"ratio": "1:1", "fit": "cover", "position": "start"},
+  "slots": ["image", "name", "specialty"],
+  "title_lines": 1,
+  "tags": 0,
+  "actions": []
+ },
+ "primary_action": "none",
+ "carousels": 0
+}

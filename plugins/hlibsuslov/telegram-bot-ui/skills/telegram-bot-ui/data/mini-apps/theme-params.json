@@ -1,0 +1,40 @@
+{
+ "$comment": "Telegram.WebApp.themeParams key -> CSS variable Telegram sets -> design role -> fallbacks. Versions match webapp-catalog.json (checked by webapp_lookup.py check). Fallback hex values are iOS 27 system colours from design-sources.json, used only when a client does not send the key (older clients, plain browser, preview). Live themeParams always win. See references/mini-apps/design-system.md.",
+ "source": "https://core.telegram.org/bots/webapps#themeparams",
+ "checked": "2026-11-23",
+ "params": [
+  {"key": "bg_color", "css_var": "--tg-theme-bg-color", "since": "6.0", "role": "plain page, sheet surface", "kit_var": "--tma-bg", "fallback_key": null, "fallback": {"light": "#ffffff", "dark": "#000000"}},
+  {"key": "text_color", "css_var": "--tg-theme-text-color", "since": "6.0", "role": "primary text", "kit_var": "--tma-text", "fallback_key": null, "fallback": {"light": "#000000", "dark": "#ffffff"}},
+  {"key": "hint_color", "css_var": "--tg-theme-hint-color", "since": "6.0", "role": "secondary text, placeholders, meta", "kit_var": "--tma-hint", "fallback_key": null, "fallback": {"light": "#8e8e93", "dark": "#8e8e93"}},
+  {"key": "link_color", "css_var": "--tg-theme-link-color", "since": "6.0", "role": "links in text", "kit_var": "--tma-link", "fallback_key": null, "fallback": {"light": "#0088ff", "dark": "#0091ff"}},
+  {"key": "button_color", "css_var": "--tg-theme-button-color", "since": "6.0", "role": "the one accent: primary fill, selection, tonal tints", "kit_var": "--tma-accent", "fallback_key": null, "fallback": {"light": "#0088ff", "dark": "#0091ff"}},
+  {"key": "button_text_color", "css_var": "--tg-theme-button-text-color", "since": "6.0", "role": "text and icons on the accent fill", "kit_var": "--tma-on-accent", "fallback_key": null, "fallback": {"light": "#ffffff", "dark": "#ffffff"}},
+  {"key": "secondary_bg_color", "css_var": "--tg-theme-secondary-bg-color", "since": "6.1", "role": "grouped page behind sections", "kit_var": "--tma-page", "fallback_key": "bg_color", "fallback": {"light": "#f2f2f7", "dark": "#000000"}},
+  {"key": "header_bg_color", "css_var": "--tg-theme-header-bg-color", "since": "7.0", "role": "Telegram header colour (read-only hint; set the header with setHeaderColor)", "kit_var": "--tma-header", "fallback_key": "bg_color", "fallback": {"light": "#f2f2f7", "dark": "#000000"}},
+  {"key": "accent_text_color", "css_var": "--tg-theme-accent-text-color", "since": "7.0", "role": "accent text: tonal button labels, selected tab, numbers to notice", "kit_var": "--tma-accent-text", "fallback_key": "link_color", "fallback": {"light": "#0088ff", "dark": "#0091ff"}},
+  {"key": "section_bg_color", "css_var": "--tg-theme-section-bg-color", "since": "7.0", "role": "cells, cards, inset groups (on secondary_bg)", "kit_var": "--tma-surface", "fallback_key": "bg_color", "fallback": {"light": "#ffffff", "dark": "#1c1c1e"}},
+  {"key": "section_header_text_color", "css_var": "--tg-theme-section-header-text-color", "since": "7.0", "role": "section headers above groups", "kit_var": "--tma-section-header", "fallback_key": "hint_color", "fallback": {"light": "#8e8e93", "dark": "#8e8e93"}},
+  {"key": "subtitle_text_color", "css_var": "--tg-theme-subtitle-text-color", "since": "7.0", "role": "cell subtitles", "kit_var": "--tma-subtitle", "fallback_key": "hint_color", "fallback": {"light": "#8e8e93", "dark": "#8e8e93"}},
+  {"key": "destructive_text_color", "css_var": "--tg-theme-destructive-text-color", "since": "7.0", "role": "destructive actions, errors, losses (with a sign)", "kit_var": "--tma-danger", "fallback_key": null, "fallback": {"light": "#ff383c", "dark": "#ff4245"}},
+  {"key": "section_separator_color", "css_var": "--tg-theme-section-separator-color", "since": "7.6", "role": "hairlines between cells, starting at the text column", "kit_var": "--tma-separator", "fallback_key": "text_color", "fallback": {"light": "rgb(0 0 0 / .12)", "dark": "rgb(255 255 255 / .17)"}},
+  {"key": "bottom_bar_bg_color", "css_var": "--tg-theme-bottom-bar-bg-color", "since": "7.10", "role": "bottom bar behind MainButton/SecondaryButton", "kit_var": "--tma-bottom-bar", "fallback_key": "secondary_bg_color", "fallback": {"light": "#f2f2f7", "dark": "#000000"}}
+ ],
+ "derived": [
+  {"kit_var": "--tma-fill", "rule": "color-mix(in srgb, var(--tma-text) 8%, transparent)", "role": "gray fill: segmented track, gray button, input background"},
+  {"kit_var": "--tma-tonal", "rule": "color-mix(in srgb, var(--tma-accent) 14%, transparent)", "role": "tonal fill: bezeled button, icon tint circle, selected chip"},
+  {"kit_var": "--tma-raised", "rule": "color-mix(in srgb, var(--tma-surface) 94%, var(--tma-text))", "role": "raised element inside a card"},
+  {"kit_var": "--tma-success", "rule": "light-dark(#34c759, #30d158)", "role": "gains, success (always with a sign)"}
+ ],
+ "other_css_vars": [
+  {"css_var": "--tg-color-scheme", "since": "6.0", "value": "light | dark"},
+  {"css_var": "--tg-viewport-height", "since": "6.0", "value": "live height; never pin bottom UI to it"},
+  {"css_var": "--tg-viewport-stable-height", "since": "6.0", "value": "height after the last drag; use for full-height layouts and bottom-pinned UI"},
+  {"css_var": "--tg-safe-area-inset-{top,bottom,left,right}", "since": "8.0", "value": "device insets: notch, status bar, home indicator, navigation bar"},
+  {"css_var": "--tg-content-safe-area-inset-{top,bottom,left,right}", "since": "8.0", "value": "insets of Telegram's own UI drawn over the app (fullscreen header controls)"}
+ ],
+ "chrome_keywords": {
+  "setHeaderColor": ["bg_color", "secondary_bg_color"],
+  "setBackgroundColor": ["bg_color", "secondary_bg_color"],
+  "setBottomBarColor": ["bg_color", "secondary_bg_color", "bottom_bar_bg_color"]
+ }
+}

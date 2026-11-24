@@ -1,0 +1,56 @@
+/* Bridge for apps built on shadcn/ui or Tailwind: their tokens follow Telegram's theme through the kit roles.
+   Load after tma.css and after the app's own token file. references/mini-apps/rework.md section 6.
+   Delete the app's own light and dark palettes (`:root { --background: ... }`, `.dark { ... }`): the user's
+   Telegram theme decides light or dark, tma.ts mirrors it on <html data-tma-scheme>.
+
+   shadcn/ui with Tailwind v4 (tokens are whole colours): the block below is enough.
+   shadcn/ui with Tailwind v3 (tokens are HSL triplets used as hsl(var(--x))): change tailwind.config colours
+   to `background: 'var(--background)'` etc. first; a role cannot be split into H S L. */
+:root,
+:root.dark,
+:root[data-tma-scheme] {
+  --background: var(--tma-page);
+  --foreground: var(--tma-text);
+  --card: var(--tma-surface);
+  --card-foreground: var(--tma-text);
+  --popover: var(--tma-surface);
+  --popover-foreground: var(--tma-text);
+  --primary: var(--tma-accent);
+  --primary-foreground: var(--tma-on-accent);
+  --secondary: var(--tma-fill);
+  --secondary-foreground: var(--tma-text);
+  --muted: var(--tma-fill);
+  --muted-foreground: var(--tma-hint);
+  --accent: var(--tma-tonal);
+  --accent-foreground: var(--tma-accent-text);
+  --destructive: var(--tma-danger);
+  --border: var(--tma-separator);
+  --input: var(--tma-separator);
+  --ring: var(--tma-accent);
+  --radius: var(--tma-r-inner);
+}
+
+/* Tailwind v4: theme names that resolve to the roles, so `bg-tg-surface text-tg-hint` follow the theme.
+   (Tailwind v3: theme.extend.colors.tg = { page: 'var(--tma-page)', surface: 'var(--tma-surface)', ... }.) */
+@theme inline {
+  --color-tg-bg: var(--tma-bg);
+  --color-tg-page: var(--tma-page);
+  --color-tg-surface: var(--tma-surface);
+  --color-tg-text: var(--tma-text);
+  --color-tg-hint: var(--tma-hint);
+  --color-tg-subtitle: var(--tma-subtitle);
+  --color-tg-link: var(--tma-link);
+  --color-tg-accent: var(--tma-accent);
+  --color-tg-on-accent: var(--tma-on-accent);
+  --color-tg-accent-text: var(--tma-accent-text);
+  --color-tg-danger: var(--tma-danger);
+  --color-tg-success: var(--tma-success);
+  --color-tg-separator: var(--tma-separator);
+  --color-tg-fill: var(--tma-fill);
+  --color-tg-tonal: var(--tma-tonal);
+  --color-tg-brand: var(--tma-brand);
+  --color-tg-star: var(--tma-star);
+  --font-sans: var(--tma-font);
+  --radius-tg-group: var(--tma-r-group);
+  --radius-tg-inner: var(--tma-r-inner);
+}

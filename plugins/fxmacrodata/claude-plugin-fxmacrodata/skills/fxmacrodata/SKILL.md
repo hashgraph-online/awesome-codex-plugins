@@ -5,9 +5,9 @@ description: Use FXMacroData tools for currency pairs, FX spot rates, central-ba
 
 # FXMacroData
 
-FXMacroData serves official-source macroeconomic, central-bank and FX data for 22 currencies:
-AUD, BRL, CAD, CHF, CNH, CNY, DKK, EUR, GBP, HUF, ILS, JPY, KRW, MYR, NGN, NOK, NZD, PEN, SEK,
-THB, TWD and USD.
+FXMacroData serves official-source macroeconomic, central-bank and FX data for more than 60 currencies,
+from the majors (USD, EUR, JPY, GBP, AUD, CAD, CHF, NZD) to emerging markets. The connected
+server lists the current set; `data_catalogue` shows what each currency covers.
 
 ## Choosing a tool
 

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Coffee</title>
+  <!-- Telegram's script first, before any other script (Mini Apps docs). -->
+  <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
+  <link rel="stylesheet" href="../_kit/tma.css">
+  <script type="module" src="./dist/app.js"></script>
+</head>
+<body>
+  <!-- Tab 1: menu -->
+  <main class="tma-page" id="menu" data-tab="menu">
+    <header class="tma-header">
+      <h1 class="tma-large-title">Menu</h1>
+    </header>
+    <div class="tma-stack">
+      <div class="tma-scroll-x" role="tablist" aria-label="Category" id="categories"></div>
+      <section class="tma-section" aria-labelledby="menu-h">
+        <h2 class="tma-section__header" id="menu-h"><span id="menu-count">Drinks</span></h2>
+        <ul class="tma-list" id="menu-list" aria-busy="true"></ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- Level 2: one drink -->
+  <main class="tma-page tma-screen" id="drink" hidden>
+    <div class="tma-stack">
+      <header class="tma-header" style="display:flex;gap:var(--tma-s4);align-items:center">
+        <span class="tma-icon-tile" style="width:56px;height:56px" aria-hidden="true"><svg class="tma-icon"><use href="#i-cup"/></svg></span>
+        <div>
+          <h1 class="tma-title2" id="drink-name"></h1>
+          <p class="tma-subhead tma-hint" id="drink-desc" style="margin:2px 0 0"></p>
+        </div>
+      </header>
+      <section class="tma-section" aria-labelledby="size-h">
+        <h2 class="tma-section__header" id="size-h">Size</h2>
+        <div class="tma-segmented" role="tablist" aria-labelledby="size-h" id="sizes"></div>
+      </section>
+      <section class="tma-section" aria-labelledby="milk-h">
+        <h2 class="tma-section__header" id="milk-h">Milk</h2>
+        <ul class="tma-list" id="milks" role="radiogroup" aria-labelledby="milk-h"></ul>
+      </section>
+      <section class="tma-section">
+        <ul class="tma-list">
+          <li><div class="tma-cell"><span class="tma-cell__body"><span class="tma-cell__title" id="qty-label">Quantity</span></span>
+            <span class="tma-stepper" role="group" aria-labelledby="qty-label">
+              <button type="button" id="qty-dec" aria-label="Fewer">−</button><output id="qty" aria-live="polite">1</output><button type="button" id="qty-inc" aria-label="More">+</button>
+            </span></div></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- Tab 2: the order -->
+  <main class="tma-page" id="order" data-tab="order" hidden>
+    <header class="tma-header">
+      <h1 class="tma-large-title">Order</h1>
+    </header>
+    <div id="order-body" class="tma-stack"></div>
+  </main>
+
+  <!-- Level 2: pickup details (form with the MainButton) -->
+  <main class="tma-page tma-screen" id="checkout" hidden>
+    <header class="tma-header"><h1 class="tma-title2">Pickup</h1></header>
+    <form class="tma-stack" id="checkout-form" novalidate>
+      <div class="tma-field">
+        <label class="tma-field__label" for="f-name">Name on the cup</label>
+        <input class="tma-input" id="f-name" name="name" autocomplete="given-name" maxlength="24" required>
+        <p class="tma-field__error" id="f-name-err" hidden>Enter a name so the barista can call you</p>
+      </div>
+      <section class="tma-section" aria-labelledby="slot-h">
+        <h2 class="tma-section__header" id="slot-h">Pickup time</h2>
+        <ul class="tma-list" id="slots" role="radiogroup" aria-labelledby="slot-h"></ul>
+      </section>
+      <div class="tma-field">
+        <label class="tma-field__label" for="f-note">Note for the barista</label>
+        <textarea class="tma-input" id="f-note" name="note" maxlength="140" placeholder="Optional"></textarea>
+      </div>
+      <p class="tma-footnote" style="padding:0 var(--tma-s4);margin:0">You pay at the counter. The bot sends a message when your order is ready.</p>
+    </form>
+  </main>
+
+  <nav class="tma-tabbar tma-glass" role="tablist" aria-label="Sections" id="tabbar">
+    <button type="button" role="tab" aria-selected="true" data-go="menu"><svg class="tma-icon" aria-hidden="true"><use href="#i-cup"/></svg>Menu</button>
+    <button type="button" role="tab" aria-selected="false" data-go="order"><svg class="tma-icon" aria-hidden="true"><use href="#i-bag"/></svg><span>Order <span class="tma-sr" id="tab-count-sr"></span></span></button>
+  </nav>
+
+  <div class="tma-snackbar" role="status" id="snackbar" hidden></div>
+  <!-- Outside Telegram only (plain browser): tma.ts mirrors the MainButton here. -->
+  <button type="button" class="tma-btn is-filled is-lg" data-tma-fallback="main-button" hidden></button>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 8h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c0 1 1 1 1 2s-1 1-1 2M12 3.5c0 1 1 1 1 2s-1 1-1 2"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 8 13"><path d="m1.5 1.5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  </svg>
+</body>
+</html>

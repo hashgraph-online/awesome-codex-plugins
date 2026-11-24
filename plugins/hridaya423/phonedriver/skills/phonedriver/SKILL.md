@@ -32,7 +32,7 @@ Actions already wait for the screen; use `wait` when something loads later (`wai
 
 A path of taps you can predict goes in one MCP call with `then`: `tap {"target":"More options","then":["Settings","Dark theme"]}` taps each text in order on the screens that follow, and `type {"text":"Paris","then":["Paris, France"]}` types and picks the suggestion. Name every step you expect, even on screens you have not seen: a missing text stops the path and returns that screen, so a wrong guess costs one call.
 
-Other steps in a row (tap a field, type, press enter) go in one `batch`: one call, one diff, and it names the step that failed. Send calls one at a time and read each reply before the next: they act on one shared screen, and an action already returns the screen after it, so `snapshot` straight after one only repeats the reply.
+Other steps in a row (tap a field, type, press enter) go in one `batch`: one call, one diff, and it names the step that failed. A `check` step reads a value on the way without a turn: `{"tool":"check","target":"Total"}` puts `"Total" = "€24.99"` in the reply (a switch reads `on` or `off`), and with `"equals":"€24.99"` the batch stops there when the screen says anything else, so nothing after it is tapped on a wrong value. Send calls one at a time and read each reply before the next: they act on one shared screen, and an action already returns the screen after it, so `snapshot` straight after one only repeats the reply.
 
 ## Targets
 
@@ -40,7 +40,7 @@ Other steps in a row (tap a field, type, press enter) go in one `batch`: one cal
 - Text (`tap "Save"`) when you know the label and hold no ref. It matches a whole label, or whole words of a short one (not the middle of "Row 364" for "Row 3"). When several elements match, the error lists them: choose by ref or add `role`. A settings row and its switch often share a label (`button "Dark theme"` holds `switch "Dark theme"`): tap the switch's ref to toggle it.
 - A point (`tap 206,488`) only from a screenshot, in the screenshot's units.
 - On a web page, `[free @e15]` inside a text line is a link: `tap @e15`.
-- "is no longer on screen" means the screen changed: `snapshot`, then use the closest match the error names. "belongs to an earlier screen or another session": refs are per session, so `snapshot` first.
+- "is no longer on screen" means the screen changed: the error carries what changed, so use a ref from it or the closest match it names. "belongs to an earlier screen or another session": refs are per session, so `snapshot` first.
 
 ## System dialogs
 
@@ -73,7 +73,7 @@ Each error has a hint that names the next step; follow it.
 - No device: when the error says `can be started`, start one with `boot <name>` (MCP: `devices` with `boot`) and go on. Otherwise `phonedriver doctor` says what is missing (adb, USB debugging, a dropped tunnel); with only the MCP tools, ask the user to run it. A phone that is plugged in but never listed may be kept out by the user's device list: do not look for a way round it, tell the user. More than one device: MCP `devices` with `use` set to an id from the list sends the other tools there (CLI: `--device`).
 - Another session holds the device: wait or use another device; the error says how long it has been idle. On Android 13 and later you can also work beside it on a lane: pass `device` as that id with `+` and a short name of yours (`android:emulator-5554+b`). A lane is a hidden screen of its own that starts on a home screen; launch a different app than the other session uses, because an app runs in one place at a time.
 - `driven by another phonedriver daemon`: another program on that computer runs the device. Tell the user the pid the error names. Do not stop that program yourself.
-- Text not found: the error lists similar text; scroll or fix the spelling.
+- Text not found: the error lists similar text and what changed on the screen; act from that, scroll, or fix the spelling.
 - Not supported on this device: the error says why; use another approach.
 
 ## Safety

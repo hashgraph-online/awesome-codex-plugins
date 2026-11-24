@@ -1,0 +1,32 @@
+{
+  "scenario": "r93-mini-app-shop",
+  "status": "production",
+  "context": "Mini App opens the invoice; the bot gets successful_payment",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "createInvoiceLink",
+      "params": {
+        "title": "Order 1042",
+        "description": "2 × Flat white, pickup 10:30",
+        "payload": "ord:1042.794c76ea3de43e735d71",
+        "currency": "EUR",
+        "provider_token": "PROVIDER_TOKEN_FROM_ENV",
+        "prices": [
+          {
+            "label": "2 × Flat white",
+            "amount": 840
+          }
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "Paid €8.40. Order 1042: 2 × Flat white, pickup 10:30 at Central. Problems with the payment: /paysupport"
+      }
+    }
+  ]
+}

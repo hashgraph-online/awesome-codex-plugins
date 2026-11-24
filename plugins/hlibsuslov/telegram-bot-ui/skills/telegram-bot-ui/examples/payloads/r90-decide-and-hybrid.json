@@ -1,0 +1,38 @@
+{
+  "scenario": "r90-decide-and-hybrid",
+  "status": "production",
+  "context": "private chat; the alert link works in any chat",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "Order 1042 is ready at the counter.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open order",
+                "url": "https://t.me/coffee_pickup_bot?startapp=order-1042"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "setChatMenuButton",
+      "params": {
+        "menu_button": {
+          "type": "web_app",
+          "text": "Order coffee",
+          "web_app": {
+            "url": "https://coffee.example.com/app"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -48,6 +48,8 @@ An AI that is already connected to Zevari doesn't need the files at all. It load
 
 ## How do I start?
 
+**No install, no account:** add `https://kit.zevari.ai/mcp` to your AI as an MCP server or connector (in Claude.ai, choose "No sign-in"). It serves the outbound SOP and the sequence playbook as tools. The other tools need a Zevari account at `https://mcp.zevari.ai/mcp`.
+
 Install the kit, then paste this into your AI:
 
 ```

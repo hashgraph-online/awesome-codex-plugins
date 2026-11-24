@@ -83,9 +83,6 @@ dependencies = [
     "opentelemetry-sdk",  # TracerProvider/MeterProvider; env config is explicit in telemetry.py
     "opentelemetry-exporter-otlp-proto-http",  # OTLP/HTTP spans + metrics, no grpc dep
     "opentelemetry-instrumentation-fastapi",  # Request spans (health endpoints excluded)
-    "opentelemetry-instrumentation-sqlalchemy",  # DB spans (statement capture audited, see telemetry.py)
-    "opentelemetry-instrumentation-asyncpg",  # AsyncPG driver spans
-    "opentelemetry-instrumentation-redis",  # Redis spans
     "opentelemetry-instrumentation-httpx",  # Outbound HTTP spans
     "opentelemetry-instrumentation-system-metrics",  # Runtime CPU/memory meters (pulls psutil)
 

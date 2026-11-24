@@ -1,0 +1,5 @@
+{
+ "$comment": "Stand-only mock of FitHub's server for preview_miniapp.py --api: the checkout returns an order and an invoice link; the order follows the stand's Invoice control. The real server verifies initData, prices the order and creates the link (references/mini-apps/payments.md).",
+ "POST /api/checkout": {"body": {"order_id": "1042", "link": "https://t.me/$demo-invoice-1042"}, "delay_ms": 300},
+ "GET /api/orders/*": {"body": {"id": "1042", "status": "$order_status"}, "delay_ms": 200}
+}

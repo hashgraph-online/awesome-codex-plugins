@@ -1,6 +1,6 @@
 ---
 name: visual-design
-description: Use when choosing or reviewing how a screen, flow, or page looks — colour palette, typography, spacing, cards and surfaces, buttons, icons, illustration and imagery, onboarding and paywall visuals, dark mode — or when a UI looks generic, flat, cluttered, dated, or inconsistent across screens, or someone asks to make it look premium or modern. Picks a visual direction and expresses it as tokens for web/SaaS, Apple platforms (iOS, iPadOS, macOS, visionOS, watchOS, tvOS), Android, and React Native/Expo. Reviews screenshots and mockups as well as code. Not for UX behaviour (use ux-psychology), accessibility audits, or animation timing.
+description: Use when auditing, reviewing, critiquing, or choosing how a UI, screen, flow, or page looks — a UI audit, design review, or polish pass covering colour palette, typography, spacing, cards and surfaces, buttons, icons, illustration and imagery, onboarding and paywall visuals, dark mode — or when a UI looks generic, flat, cluttered, dated, or inconsistent across screens, or someone asks to make it look premium or modern. Picks a visual direction and expresses it as tokens for web/SaaS, Apple platforms (iOS, iPadOS, macOS, visionOS, watchOS, tvOS), Android, and React Native/Expo. Reviews screenshots and mockups as well as code. Pair with ux-psychology for a general UI audit; leave contrast checks to accessibility and animation timing to an animation skill.
 license: MIT
 allowed-tools: Read Glob Grep
 compatibility: Any UI project; detects the platform and any existing design system (tokens, theme files, Tailwind config, component library, asset catalog, MaterialTheme) and builds on it. Can review screenshots and mockups before code exists
@@ -15,7 +15,7 @@ You decide how a screen looks: colour, type, spacing, surfaces, actions, icons, 
 Infer the mode from the request without asking.
 
 - **Build**: the task creates or restyles UI. Apply the rules while writing the code. Do not narrate them: name a rule only when it changed a choice, in one line (e.g. "accent kept to the primary button and the selected day — colour"). Produce no report.
-- **Audit**: the user asks for a visual review or critique, asks why a UI looks off, cheap, generic, or inconsistent, or shares screenshots or mockups for feedback. Produce the report in Step 6.
+- **Audit**: the user asks to audit, review, or critique the UI or its visuals, asks why a UI looks off, cheap, generic, or inconsistent, or shares screenshots or mockups for feedback. Produce the report in Step 6. A general request to audit or review the UI covers both this skill and `ux-psychology` (and `accessibility` when installed): run them together.
 
 Requests to make an app "look premium", "look modern", or "pop" are usually hierarchy, consistency, or type problems, not palette problems. Check `rules/hierarchy.md`, `rules/surfaces.md`, and `rules/typography.md` before proposing new colours.
 
@@ -89,7 +89,7 @@ Each rule file has a **When building** constraint and a **When auditing** check.
 
 ## 6. Audit
 
-1. **Scope**: the files, screens, or images named; otherwise every user-facing screen. Screenshots and mockups are valid input: open them with Read.
+1. **Scope**: the files, screens, or images named; otherwise every user-facing screen. Screenshots and mockups are valid input: open them with Read. In Claude Code, hand a whole-app or multi-screen audit to the `visual-audit` agent when it is available, so the files it reads stay out of the main context.
 2. **Identify the direction**: name the one the product is aiming for, or the ones it is mixing. Judge every screen against that direction, not against personal taste. Content that depicts other directions on purpose (style guides, theme pickers, mockups or screenshots of other products) is illustration, not mixing: judge the page's own chrome against its direction, and leave the depicted content alone.
 3. **Check**: compare each screen with the rules whose "Applies to" matches it, plus the platform guide.
 4. **Report** grouped by impact, HIGH first. Cite a file and line, or the image and the area of the screen:
@@ -104,7 +104,7 @@ End with the counts per impact. Change nothing in audit mode unless asked; when 
 
 ## Boundaries
 
-- **UX behaviour** (what a screen needs, flow order, persuasion, permission timing) belongs to `ux-psychology`. This skill decides how a primary action looks; that one decides whether it should exist.
+- **UX behaviour** (what a screen needs, flow order, persuasion, permission timing) belongs to `ux-psychology`. This skill decides how a primary action looks; that one decides whether it should exist. Apply it alongside this one in a general UI audit.
 - **Contrast ratios, text scaling, and colour-only signals** belong to the `accessibility` skill when it is installed; apply it alongside this one. This skill never trades legibility for style.
 - **Motion** (easing, springs, durations) belongs to an animation skill when one is installed.
 - **Copy and proofreading** are out of scope, apart from casing and length where they affect layout.

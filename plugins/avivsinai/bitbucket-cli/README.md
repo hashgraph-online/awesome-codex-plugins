@@ -187,6 +187,7 @@ bkt pr checks 42 --wait --timeout 5m             # wait for builds, with backoff
 bkt pr mergeability 42 --json                    # Cloud: read-only merge checks
 bkt pr comments 42 --details                     # threads with file/line anchors
 bkt pr comments resolve 42 1001
+bkt pr task create 42 --text "Add a nil check here" --file src/main.go --to-line 55
 bkt pr merge 42 --message "merge: feature/cache"
 ```
 
@@ -218,6 +219,8 @@ bkt api /repositories --param workspace=myteam --field pagelen=50  # Cloud
 ```
 
 **Output for scripts.** Commands accept `--json`, `--yaml`, `--jq <expr>`, and `--template <go-template>`.
+`--jq` implies JSON when no output format flag is set. If you pass an output
+format flag, select JSON with `--json` or `--format json`.
 
 **Extensions.** `bkt extension install <git-url>` adds a `bkt-<name>` command; `bkt extension exec <name>` runs it.
 

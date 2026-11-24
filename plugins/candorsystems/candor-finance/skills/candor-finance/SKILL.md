@@ -3,7 +3,7 @@ name: candor-finance
 description: "Opens the person's Candor workspace, says where their money stands, and routes to the right Candor workflow. Use when the person asks about their money, spending, balances, bills, debts, goals, or plans and no more specific Candor skill fits, including a quick question about a balance, a bill, or a charge, or a life decision that costs or earns money even when money is not named."
 compatibility: Requires an authenticated Candor workspace and either the Candor tools included with the installed package or Candor CLI 0.3.165 or newer.
 metadata:
-  candor-package-version: "1.3.7"
+  candor-package-version: "1.3.9"
   author: Candor
   version: "0.3.0"
   candor-skill-version: "2026-11-18"

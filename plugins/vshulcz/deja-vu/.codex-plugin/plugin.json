@@ -1,6 +1,6 @@
 {
   "name": "deja-vu",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "description": "deja-vu: memory for coding agents from the sessions already on your disk — Claude Code, Codex, Cursor, opencode and forty-eight more — including work from before it was installed.",
   "author": {
     "name": "vshulcz",

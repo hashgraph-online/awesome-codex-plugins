@@ -4,8 +4,8 @@
 
 Official economic data, release calendars and actual release times, with source-linked charts, release replays and FX backtests.
 
-Research macroeconomic releases in Claude using data from central banks,
-statistical agencies and other official publishers. Keep the observation period,
+Research macroeconomic releases in Claude for more than 60 currencies, using
+data from central banks, statistical agencies and other official publishers. Keep the observation period,
 unit, source and revision context beside each result.
 
 ## What you can do
@@ -67,6 +67,8 @@ The plugin connects to the hosted MCP server at
 `https://mcp.fxmacrodata.com/mcp`. Data tools are read-only. Research tools save only your own research studies and simulated paper accounts. No tool places live orders, moves money or changes account settings.
 Account credentials belong in the host's connection flow, never in a prompt.
 
+Privacy policy: https://fxmacrodata.com/privacy
+
 Returned observations retain their units, periods and source references.
 Current histories can contain later revisions. Scheduled release times are
 distinct from observed publication times. Missing data is reported as unavailable.
@@ -81,7 +83,7 @@ FX reference rates are reference data rather than executable trading quotes.
 - [Privacy policy](https://fxmacrodata.com/privacy?utm_source=github&utm_medium=referral&utm_campaign=claude_plugin&utm_content=readme_privacy)
 - [Terms of service](https://fxmacrodata.com/terms?utm_source=github&utm_medium=referral&utm_campaign=claude_plugin&utm_content=readme_terms)
 
-This repository also includes the existing Codex-compatible plugin manifest.
+This repository also includes a Codex-compatible plugin manifest.
 
 ## License
 

@@ -37,6 +37,11 @@
       "title": "Affiliate Programs",
       "url": "https://telegram.org/blog/affiliate-programs-ai-sticker-search",
       "supports": "Native referral commissions for Stars purchases; distinct from a custom loyalty ledger."
+    },
+    "webapps": {
+      "title": "Telegram Mini Apps",
+      "url": "https://core.telegram.org/bots/webapps",
+      "supports": "Launch points, the Telegram.WebApp API, initData validation and the Mini App design guidelines."
     }
   },
   "use_cases": [
@@ -984,6 +989,127 @@
       "sources": [
         "stars",
         "business"
+      ]
+    },
+    {
+      "id": "mini-app-storefront",
+      "title": "Mini App storefront: catalogue, product cards, cart and checkout (books, goods, food)",
+      "intent": [
+        "mini app shop catalog cart bookstore магазин книг каталог корзина мини-апп"
+      ],
+      "recipes": [
+        "R93",
+        "R90",
+        "R92"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "Mini App + bot receipts",
+      "coverage": "composition",
+      "priority": "P0",
+      "priority_reason": "Catalogues with photos and filters are the most common reason to build a Mini App.",
+      "gap": "Real catalogue API, stock reservation and provider payments.",
+      "sources": [
+        "webapps",
+        "intro"
+      ]
+    },
+    {
+      "id": "mini-app-booking",
+      "title": "Mini App booking: trainers, classes, appointments, tables",
+      "intent": [
+        "book trainer gym class appointment slot запись к тренеру спортзал расписание слот мини-апп"
+      ],
+      "recipes": [
+        "R94",
+        "R92",
+        "R90"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "Mini App + bot confirmations and reminders",
+      "coverage": "composition",
+      "priority": "P0",
+      "priority_reason": "Slot grids and specialist choice do not fit buttons; reminders stay in the bot.",
+      "gap": "Availability API, holds and calendar sync.",
+      "sources": [
+        "webapps",
+        "features"
+      ]
+    },
+    {
+      "id": "mini-app-saas",
+      "title": "SaaS in a Mini App: dashboard, portfolio, loyalty, settings and plans",
+      "intent": [
+        "saas dashboard metrics portfolio loyalty settings subscription plans дашборд личный кабинет тарифы мини-апп"
+      ],
+      "recipes": [
+        "R95",
+        "R96",
+        "R92"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "Mini App + bot alerts with startapp links",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Dense data and settings belong in an app; alerts open the exact screen.",
+      "gap": "Your data API and billing provider.",
+      "sources": [
+        "webapps"
+      ]
+    },
+    {
+      "id": "mini-app-games",
+      "title": "Mini App games and leaderboards shared to chats",
+      "intent": [
+        "game leaderboard fullscreen share score игра лидерборд поделиться результатом"
+      ],
+      "recipes": [
+        "R97",
+        "R98"
+      ],
+      "contexts": [
+        "private",
+        "group",
+        "mini-app"
+      ],
+      "surface": "fullscreen Mini App + prepared inline messages",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "Fullscreen, gestures and sharing are Mini App-only capabilities.",
+      "gap": "The game itself and anti-cheat on the server.",
+      "sources": [
+        "webapps"
+      ]
+    },
+    {
+      "id": "mini-app-editor",
+      "title": "Mini App editor and admin tools with publish confirmation",
+      "intent": [
+        "editor admin moderation drafts publish редактор модерация черновик публикация"
+      ],
+      "recipes": [
+        "R99",
+        "R92"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "Mini App + bot confirmation",
+      "coverage": "new-offline-model",
+      "priority": "P2",
+      "priority_reason": "Long text with autosave and conflicts needs an app; publishing needs a bound approval.",
+      "gap": "Rich text editing and media upload.",
+      "sources": [
+        "webapps"
       ]
     }
   ]

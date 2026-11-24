@@ -1,0 +1,8 @@
+{
+ "screen": "plans",
+ "entity": "plan",
+ "width": 390,
+ "primary_action": "main-button",
+ "card": {"tags": 1, "ribbon": false, "price": {"style": "plain"}},
+ "plans": {"layout": "stacked", "count": 2, "features_max": 1, "recommended": 1}
+}

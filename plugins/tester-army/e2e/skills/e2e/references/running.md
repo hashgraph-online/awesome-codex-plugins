@@ -42,8 +42,8 @@ npx e2e telemetry [disable|enable] # anonymous usage telemetry: status or switch
 | `--exclude-tag <tags>` | Drop tests carrying any of these tags, however selected. |
 | `--grep <pattern>`, `--grep-invert <pattern>` | Keep, or drop, tests whose title (describe titles and test title joined by spaces, `checkout pays`; not file or tags) matches a regular expression. Bare pattern or `'/pattern/i'`; repeat for alternatives. |
 | `--changed-since <ref>` | Run the configured `filters` on the change since the ref: every file that differs from the merge base of the ref and HEAD, uncommitted and untracked included (`--changed-since origin/main`). Each target starts the files of the tests the filters score likeliest first (`relevance`, see topic `setup`). Without it no filter runs. A ref git can't measure from is `INVALID_CHANGED_SINCE`, exit 2. |
-| `--last-failed` | The tests the previous run (`<output>/report.json`) did not pass or never ran (`--max-failures` and `--max-duration` included), plus every test in a failed `beforeAll` or `afterAll` scope. A test another filter leaves out stays owed (`run.carried` in the report) until a rerun runs it. No report is `NO_LAST_RUN`, exit 2. |
-| `--shard <index/total>` | One contiguous slice of the selected tests (`--shard 2/3`), cut after every other flag; serial groups stay whole, each shard brings its own setup tests. |
+| `--last-failed` | The tests the previous run (`<output>/report.json`) did not pass or never ran (`--max-failures` and `--max-duration` included), plus every test in a failed `beforeAll` or `afterAll` scope. A test another filter leaves out stays owed (`run.carried` in the report) until a rerun runs it. The rerun also writes `report-with-reruns.json`, every run as one report. No report is `NO_LAST_RUN`, exit 2. |
+| `--shard <index/total>` | One contiguous slice of the selected tests (`--shard 2/3`), cut after every other flag; serial groups stay whole, each shard brings its own setup tests. The report records `run.shard`, and `skip.otherShard` on tests this invocation's cut gave to another shard. Shards rerunning their own failures can cut different sets. |
 | `--headed` | Visible browser or simulator when the engine supports it; a desktop target launches its app in the foreground (physical input still needs `desktop({ headed: true })`). |
 | `--device <name>` | The simulator, emulator, or phone the selected mobile target runs on, over its `device` option: a device name, a simulator UDID, or an emulator serial (`emulator-5554`). It applies to the one selected target that can take a device; the others (`web()`, a provider's devices) still run as configured. With several that can, pick one with `--target` (else `TARGET_REQUIRED`); with none, it is `UNSUPPORTED_CAPABILITY`. |
 | `--agent <names>` | Run unpinned tests as these `agents.<name>` entries (default `agents.default`), comma-separated or repeated; several names run each such test once per agent. |
@@ -52,7 +52,7 @@ npx e2e telemetry [disable|enable] # anonymous usage telemetry: status or switch
 | `--max-failures <n>` | Stop after n failures: the rest skip (cause `failure-limit`), running tests end `interrupted`; exit 1. |
 | `--max-duration <ms>` | Stop after ms of running tests, over config `maxDuration`: the rest skip (cause `time-limit`), running tests end `interrupted`, `RUN_TIMEOUT`; exit 1. |
 | `--repeat-each <n>` | Run every selected test n times, each run its own result (`repeat` 0 through n-1); add `--no-cache` or later runs replay the first's recording. The `Repeats` summary row names each unstable test's failed runs. |
-| `--reporter <ids>` | `list`, `dot`, `line`, `json`, `junit`, `markdown`, comma-separated; two of `list`, `dot`, and `line` together are `INVALID_CONFIG`, and beside `json` each prints to stderr. An empty value is a usage error, exit 2. |
+| `--reporter <ids>` | `list`, `dot`, `line`, `json`, `junit`, `markdown`, `ctrf`, comma-separated; two of `list`, `dot`, and `line` together are `INVALID_CONFIG`, and beside `json` each prints to stderr. An empty value is a usage error, exit 2. |
 | `--output <dir>` | Results directory, over the config's `output` (default `.e2e`). Must be inside the project root, not the root itself (`INVALID_CONFIG`); to keep reports elsewhere, copy them after the run. |
 | `--no-cache` | Replay cache off for this run. |
 | `--strict-cache` | Fail a step whose committed recording no longer replays (`REPLAY_STALE`, exit 2) instead of handing it to the agent; retries replay too, and the run never writes the cache. |
@@ -136,12 +136,12 @@ its own tools.
 ## Output
 
 `<output>` (`.e2e` by default) holds `report.json`, `junit.xml`,
-`summary.md`, `ai-trace.json`, `timings.json` (how long each file took; with more than one worker the next run starts the longest known files first, after any with no time), `sessions/`, and `results/`, one directory
+`summary.md`, `ctrf.json`, `ai-trace.json`, `timings.json` (how long each file took; with more than one worker the next run starts the longest known files first, after any with no time), `sessions/`, and `results/`, one directory
 per test with its `trace.md` and an `attempt-<n>/` per attempt
 (screenshots, videos, `--debug` transcripts, downloads).
 `results/` is cleared once a run's tests start; a run stopping before
 leaves the last run's files, and a `--last-failed` rerun keeps the files
-the report it reruns names and writes its own under each test's `rerun-<n>/`. The report records every artifact path, a
+the runs before it name and writes its own under each test's `rerun-<n>/`. The report records every artifact path, a
 hosted service's video by URL.
 
 - `list` (default): setup steps, one line per file and target (when stdout
@@ -184,6 +184,9 @@ hosted service's video by URL.
   spend, a block per failed test linked to its page, the flaky tests folded
   alike, and every test as one folded table (or an exploration's findings
   and assessment). Paste it into a pull request or handoff.
+- `ctrf` (`--reporter list,ctrf`): `ctrf.json` in the Common Test Report
+  Format, for CTRF tools (test report actions, notifiers, dashboards). Run
+  errors are in `results.errors`, not tests: gate CI on the exit code.
 - `json`: the report on stdout.
 - Custom reporters get step progress with `identity` (`attemptId`,
   `attemptIndex`, `stepId`, `stepIndex`: report IDs, zero-based indexes;
@@ -218,7 +221,7 @@ deterministic, never retry it; only exit 3 is worth a job-level retry.
 
 The first SIGINT or SIGTERM interrupts and writes the report if any test
 had started; the second forces engine teardown and still writes the
-report, plus `junit.xml` and `summary.md` when those reporters are on; the
+report, plus `junit.xml`, `summary.md`, and `ctrf.json` when those reporters are on; the
 third kills the app process groups and exits 130 at once.
 
 ## Continuous integration

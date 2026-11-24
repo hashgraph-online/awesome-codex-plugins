@@ -1,0 +1,551 @@
+{
+ "$comment": "Kit icon ids (examples/mini-apps/_kit/icons.svg, an own line set) mapped to the SF Symbol, Material Symbols and Lucide names with the same meaning. The names help translate a design that cites those libraries; their artwork is not shipped (Apple and Google licences). Unicode emoji are never UI icons (anti-slop.md).",
+ "grid": 24,
+ "stroke": 1.8,
+ "checked": "2026-11-23",
+ "open_libraries": {
+  "$comment": "When an icon is missing from the kit, take it from ONE open SVG library per app, never emoji, never SF Symbols artwork (Apple licence). Lucide first: the same 24 px line grid as the kit. Every kit id has its Lucide name below (checked against lucide-static 1.79.0 on 2026-11-24).",
+  "order": [
+   "lucide",
+   "tabler",
+   "phosphor",
+   "material-symbols"
+  ],
+  "lucide": {
+   "licence": "ISC",
+   "package": "lucide-static (SVG), lucide-react, lucide (vanilla)",
+   "site": "https://lucide.dev",
+   "style": "24 px grid, stroke 2, round caps: set stroke-width 1.8 to match the kit"
+  },
+  "tabler": {
+   "licence": "MIT",
+   "package": "@tabler/icons",
+   "site": "https://tabler.io/icons",
+   "style": "24 px grid, stroke 2 (outline set)"
+  },
+  "phosphor": {
+   "licence": "MIT",
+   "package": "@phosphor-icons/web, @phosphor-icons/react",
+   "site": "https://phosphoricons.com",
+   "style": "regular weight on 24 px; use one weight"
+  },
+  "material-symbols": {
+   "licence": "Apache-2.0",
+   "package": "material-symbols / @material-symbols/svg-400",
+   "site": "https://fonts.google.com/icons",
+   "style": "Outlined, weight 300-400, for Android-first apps"
+  },
+  "never": [
+   "Unicode emoji as icons or status",
+   "SF Symbols artwork (Apple licence: names only, for mapping)",
+   "mixing two libraries on one screen",
+   "icon fonts loaded from a CDN for a handful of glyphs: inline the SVGs"
+  ]
+ },
+ "icons": {
+  "home": {
+   "sf_symbol": "house",
+   "material": "home",
+   "use": "tab: home section",
+   "lucide": "house"
+  },
+  "search": {
+   "sf_symbol": "magnifyingglass",
+   "material": "search",
+   "use": "search field, search tab",
+   "lucide": "search"
+  },
+  "settings": {
+   "sf_symbol": "gearshape",
+   "material": "settings",
+   "use": "settings screen entry (in content; the app menu uses SettingsButton)",
+   "lucide": "settings"
+  },
+  "person": {
+   "sf_symbol": "person",
+   "material": "person",
+   "use": "profile, account",
+   "lucide": "user"
+  },
+  "people": {
+   "sf_symbol": "person.2",
+   "material": "group",
+   "use": "contacts, members, referrals",
+   "lucide": "users"
+  },
+  "bell": {
+   "sf_symbol": "bell",
+   "material": "notifications",
+   "use": "notification settings, alerts",
+   "lucide": "bell"
+  },
+  "cart": {
+   "sf_symbol": "cart",
+   "material": "shopping_cart",
+   "use": "cart",
+   "lucide": "shopping-cart"
+  },
+  "bag": {
+   "sf_symbol": "bag",
+   "material": "shopping_bag",
+   "use": "order, purchases",
+   "lucide": "shopping-bag"
+  },
+  "wallet": {
+   "sf_symbol": "wallet.bifold",
+   "material": "account_balance_wallet",
+   "use": "wallet, balance",
+   "lucide": "wallet"
+  },
+  "card": {
+   "sf_symbol": "creditcard",
+   "material": "credit_card",
+   "use": "payment method",
+   "lucide": "credit-card"
+  },
+  "coins": {
+   "sf_symbol": "circle.stack",
+   "material": "toll",
+   "use": "points, balance, rewards",
+   "lucide": "coins"
+  },
+  "gift": {
+   "sf_symbol": "gift",
+   "material": "redeem",
+   "use": "gifts, bonuses",
+   "lucide": "gift"
+  },
+  "star": {
+   "sf_symbol": "star",
+   "material": "star",
+   "use": "favourite, rating, Stars (with the word)",
+   "lucide": "star"
+  },
+  "stars": {
+   "sf_symbol": "star.fill",
+   "material": "star (filled)",
+   "use": "Telegram Stars currency sign before an amount (.tma-amount.is-stars); filled, gold via .tma-star",
+   "lucide": "star"
+  },
+  "stars-gold": {
+   "sf_symbol": "star.fill",
+   "material": "star (filled)",
+   "lucide": "star",
+   "use": "the Telegram Stars sign in prices and balances: gold gradient with a darker edge (own drawing); the original artwork: scripts/fetch_telegram_star.py"
+  },
+  "bolt": {
+   "sf_symbol": "bolt",
+   "material": "bolt",
+   "use": "boosts: \"Boost the channel\" rows and boost counts",
+   "lucide": "zap"
+  },
+  "heart": {
+   "sf_symbol": "heart",
+   "material": "favorite",
+   "use": "like, wishlist",
+   "lucide": "heart"
+  },
+  "bookmark": {
+   "sf_symbol": "bookmark",
+   "material": "bookmark",
+   "use": "saved items",
+   "lucide": "bookmark"
+  },
+  "share": {
+   "sf_symbol": "square.and.arrow.up",
+   "material": "ios_share",
+   "use": "share (prefer shareMessage)",
+   "lucide": "share-2"
+  },
+  "link": {
+   "sf_symbol": "link",
+   "material": "link",
+   "use": "links, referral link",
+   "lucide": "link"
+  },
+  "copy": {
+   "sf_symbol": "doc.on.doc",
+   "material": "content_copy",
+   "use": "copy a value",
+   "lucide": "copy"
+  },
+  "plus": {
+   "sf_symbol": "plus",
+   "material": "add",
+   "use": "add, create, top up",
+   "lucide": "plus"
+  },
+  "minus": {
+   "sf_symbol": "minus",
+   "material": "remove",
+   "use": "stepper minus",
+   "lucide": "minus"
+  },
+  "close": {
+   "sf_symbol": "xmark",
+   "material": "close",
+   "use": "close a sheet or banner",
+   "lucide": "x"
+  },
+  "check": {
+   "sf_symbol": "checkmark",
+   "material": "check",
+   "use": "selected row, done",
+   "lucide": "check"
+  },
+  "chevron-right": {
+   "sf_symbol": "chevron.right",
+   "material": "chevron_right",
+   "use": "navigation row (mirrored in RTL)",
+   "lucide": "chevron-right"
+  },
+  "chevron-left": {
+   "sf_symbol": "chevron.left",
+   "material": "chevron_left",
+   "use": "carousel previous (never as an own back button)",
+   "lucide": "chevron-left"
+  },
+  "chevron-down": {
+   "sf_symbol": "chevron.down",
+   "material": "expand_more",
+   "use": "expand, pop-up menu",
+   "lucide": "chevron-down"
+  },
+  "chevron-up": {
+   "sf_symbol": "chevron.up",
+   "material": "expand_less",
+   "use": "collapse",
+   "lucide": "chevron-up"
+  },
+  "arrow-up": {
+   "sf_symbol": "arrow.up",
+   "material": "arrow_upward",
+   "use": "send money, sort ascending, gain (with sign)",
+   "lucide": "arrow-up"
+  },
+  "arrow-down": {
+   "sf_symbol": "arrow.down",
+   "material": "arrow_downward",
+   "use": "receive, sort descending, loss (with sign)",
+   "lucide": "arrow-down"
+  },
+  "arrow-left": {
+   "sf_symbol": "arrow.left",
+   "material": "arrow_back",
+   "use": "previous step inside content",
+   "lucide": "arrow-left"
+  },
+  "arrow-right": {
+   "sf_symbol": "arrow.right",
+   "material": "arrow_forward",
+   "use": "next step inside content",
+   "lucide": "arrow-right"
+  },
+  "arrow-up-right": {
+   "sf_symbol": "arrow.up.right",
+   "material": "north_east",
+   "use": "external link, trend up",
+   "lucide": "arrow-up-right"
+  },
+  "swap": {
+   "sf_symbol": "arrow.left.arrow.right",
+   "material": "swap_horiz",
+   "use": "exchange, swap",
+   "lucide": "arrow-left-right"
+  },
+  "refresh": {
+   "sf_symbol": "arrow.clockwise",
+   "material": "refresh",
+   "use": "retry, reload",
+   "lucide": "refresh-cw"
+  },
+  "history": {
+   "sf_symbol": "clock.arrow.circlepath",
+   "material": "history",
+   "use": "history, past orders",
+   "lucide": "history"
+  },
+  "filter": {
+   "sf_symbol": "line.3.horizontal.decrease",
+   "material": "filter_list",
+   "use": "filters",
+   "lucide": "funnel"
+  },
+  "sort": {
+   "sf_symbol": "arrow.up.arrow.down",
+   "material": "sort",
+   "use": "sort order",
+   "lucide": "arrow-up-down"
+  },
+  "more": {
+   "sf_symbol": "ellipsis",
+   "material": "more_horiz",
+   "use": "more actions on an item (opens a sheet or showPopup)",
+   "lucide": "ellipsis"
+  },
+  "edit": {
+   "sf_symbol": "pencil",
+   "material": "edit",
+   "use": "edit",
+   "lucide": "pencil"
+  },
+  "trash": {
+   "sf_symbol": "trash",
+   "material": "delete",
+   "use": "delete (destructive, confirm first)",
+   "lucide": "trash-2"
+  },
+  "info": {
+   "sf_symbol": "info.circle",
+   "material": "info",
+   "use": "explanation, source note",
+   "lucide": "info"
+  },
+  "warning": {
+   "sf_symbol": "exclamationmark.triangle",
+   "material": "warning",
+   "use": "warning state",
+   "lucide": "triangle-alert"
+  },
+  "error": {
+   "sf_symbol": "xmark.circle",
+   "material": "cancel",
+   "use": "error state",
+   "lucide": "circle-x"
+  },
+  "success": {
+   "sf_symbol": "checkmark.circle",
+   "material": "check_circle",
+   "use": "success state",
+   "lucide": "circle-check"
+  },
+  "help": {
+   "sf_symbol": "questionmark.circle",
+   "material": "help",
+   "use": "help, how it works",
+   "lucide": "circle-question-mark"
+  },
+  "lock": {
+   "sf_symbol": "lock",
+   "material": "lock",
+   "use": "secure, locked, biometrics",
+   "lucide": "lock"
+  },
+  "unlock": {
+   "sf_symbol": "lock.open",
+   "material": "lock_open",
+   "use": "unlocked",
+   "lucide": "lock-open"
+  },
+  "eye": {
+   "sf_symbol": "eye",
+   "material": "visibility",
+   "use": "show value",
+   "lucide": "eye"
+  },
+  "eye-off": {
+   "sf_symbol": "eye.slash",
+   "material": "visibility_off",
+   "use": "hide value (balance privacy)",
+   "lucide": "eye-off"
+  },
+  "calendar": {
+   "sf_symbol": "calendar",
+   "material": "calendar_today",
+   "use": "date, booking",
+   "lucide": "calendar"
+  },
+  "clock": {
+   "sf_symbol": "clock",
+   "material": "schedule",
+   "use": "time, slot, countdown",
+   "lucide": "clock"
+  },
+  "location": {
+   "sf_symbol": "mappin",
+   "material": "location_on",
+   "use": "address, pickup point",
+   "lucide": "map-pin"
+  },
+  "map": {
+   "sf_symbol": "map",
+   "material": "map",
+   "use": "map view",
+   "lucide": "map"
+  },
+  "phone": {
+   "sf_symbol": "phone",
+   "material": "call",
+   "use": "phone number",
+   "lucide": "phone"
+  },
+  "mail": {
+   "sf_symbol": "envelope",
+   "material": "mail",
+   "use": "email",
+   "lucide": "mail"
+  },
+  "chat": {
+   "sf_symbol": "bubble.left",
+   "material": "chat_bubble",
+   "use": "chat, support",
+   "lucide": "message-circle"
+  },
+  "send": {
+   "sf_symbol": "paperplane",
+   "material": "send",
+   "use": "send a message or transfer",
+   "lucide": "send"
+  },
+  "camera": {
+   "sf_symbol": "camera",
+   "material": "photo_camera",
+   "use": "take a photo",
+   "lucide": "camera"
+  },
+  "image": {
+   "sf_symbol": "photo",
+   "material": "image",
+   "use": "image, gallery",
+   "lucide": "image"
+  },
+  "video": {
+   "sf_symbol": "video",
+   "material": "videocam",
+   "use": "video",
+   "lucide": "video"
+  },
+  "play": {
+   "sf_symbol": "play",
+   "material": "play_arrow",
+   "use": "play media",
+   "lucide": "play"
+  },
+  "pause": {
+   "sf_symbol": "pause",
+   "material": "pause",
+   "use": "pause media",
+   "lucide": "pause"
+  },
+  "mic": {
+   "sf_symbol": "mic",
+   "material": "mic",
+   "use": "voice input",
+   "lucide": "mic"
+  },
+  "document": {
+   "sf_symbol": "doc",
+   "material": "description",
+   "use": "file, document",
+   "lucide": "file-text"
+  },
+  "download": {
+   "sf_symbol": "square.and.arrow.down",
+   "material": "download",
+   "use": "download (downloadFile)",
+   "lucide": "download"
+  },
+  "upload": {
+   "sf_symbol": "square.and.arrow.up.on.square",
+   "material": "upload",
+   "use": "upload a file",
+   "lucide": "upload"
+  },
+  "qr": {
+   "sf_symbol": "qrcode",
+   "material": "qr_code",
+   "use": "show a QR code",
+   "lucide": "qr-code"
+  },
+  "scan": {
+   "sf_symbol": "qrcode.viewfinder",
+   "material": "qr_code_scanner",
+   "use": "scan (showScanQrPopup)",
+   "lucide": "scan"
+  },
+  "chart-line": {
+   "sf_symbol": "chart.line.uptrend.xyaxis",
+   "material": "show_chart",
+   "use": "analytics, price chart",
+   "lucide": "chart-line"
+  },
+  "chart-bar": {
+   "sf_symbol": "chart.bar",
+   "material": "bar_chart",
+   "use": "statistics",
+   "lucide": "chart-column"
+  },
+  "globe": {
+   "sf_symbol": "globe",
+   "material": "public",
+   "use": "public, web",
+   "lucide": "globe"
+  },
+  "moon": {
+   "sf_symbol": "moon",
+   "material": "dark_mode",
+   "use": "night (never a theme toggle: Telegram owns the theme)",
+   "lucide": "moon"
+  },
+  "sun": {
+   "sf_symbol": "sun.max",
+   "material": "light_mode",
+   "use": "day",
+   "lucide": "sun"
+  },
+  "cup": {
+   "sf_symbol": "cup.and.saucer",
+   "material": "local_cafe",
+   "use": "café, drinks",
+   "lucide": "coffee"
+  },
+  "ticket": {
+   "sf_symbol": "ticket",
+   "material": "confirmation_number",
+   "use": "tickets, events",
+   "lucide": "ticket"
+  },
+  "trophy": {
+   "sf_symbol": "trophy",
+   "material": "emoji_events",
+   "use": "leaderboard, achievements",
+   "lucide": "trophy"
+  },
+  "flag": {
+   "sf_symbol": "flag",
+   "material": "flag",
+   "use": "report, milestone",
+   "lucide": "flag"
+  },
+  "list": {
+   "sf_symbol": "list.bullet",
+   "material": "list",
+   "use": "list view",
+   "lucide": "list"
+  },
+  "grid": {
+   "sf_symbol": "square.grid.2x2",
+   "material": "grid_view",
+   "use": "grid view, categories",
+   "lucide": "layout-grid"
+  },
+  "logout": {
+   "sf_symbol": "rectangle.portrait.and.arrow.right",
+   "material": "logout",
+   "use": "sign out of a linked account (a Mini App has no own login)",
+   "lucide": "log-out"
+  },
+  "language": {
+   "sf_symbol": "character.bubble",
+   "material": "translate",
+   "use": "language",
+   "lucide": "languages"
+  },
+  "sticker": {
+   "sf_symbol": "face.smiling",
+   "material": "sticky_note_2",
+   "use": "stickers, emoji status",
+   "lucide": "sticker"
+  }
+ }
+}

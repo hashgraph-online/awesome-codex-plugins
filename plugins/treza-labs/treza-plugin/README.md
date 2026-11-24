@@ -27,6 +27,10 @@ The first connection signs you in to Treza with Google and creates your account.
 }
 ```
 
+**Replit Agent.** [![Add to Replit](https://replit.com/badge?caption=Add%20to%20Replit)](https://replit.com/integrations?mcp=eyJkaXNwbGF5TmFtZSI6IlRyZXphIiwiYmFzZVVybCI6Imh0dHBzOi8vd3d3LnRyZXphbGFicy5jb20vYXBpL21jcCJ9)
+
+The badge opens Replit's Connect dialog with Treza filled in. Click Test & save, then Authorize Treza, and name Treza in your Agent message. Steps: https://www.trezalabs.com/integrations/replit
+
 **Codex CLI.**
 
 ```bash

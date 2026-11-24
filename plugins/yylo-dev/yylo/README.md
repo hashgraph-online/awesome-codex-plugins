@@ -59,13 +59,13 @@ npm install --global '@yylo/cli@latest'
 # Explicit prerelease
 npm install --global '@yylo/cli@next'
 # Exact version matching this checkout (once published)
-npm install -g @yylo/cli@0.2.12
+npm install -g @yylo/cli@0.2.16
 
 npm view '@yylo/cli' version dist-tags --json
 yy --version
 ```
 
-This unreleased source targets CLI **0.2.12**, requiring **Ledger 0.4.0 exactly** for universal
+This unreleased source targets CLI **0.2.16**, requiring **Ledger 0.4.0 exactly** for universal
 Record retrieval and storage-kind-prefixed IDs. Older Ledger 0.3.3, prereleases,
 and later versions are rejected before delegation. Install the matching Ledger
 explicitly once published; ordinary delegation does not auto-install a substitute.
@@ -80,14 +80,14 @@ Next: [run an agent](#beginner-agent-workflow), [manage a typed task](#typed-tas
 
 YYLO skill content is versioned independently in the public
 [`yylo-dev/yylo-skills`](https://github.com/yylo-dev/yylo-skills) repository and
-is not bundled in `@yylo/cli`. This CLI source requires stable skills `^2.1.1`, declared
+is not bundled in `@yylo/cli`. This CLI source requires stable skills `^2.1.2`, declared
 in `package.json` as `yyloSkills.version`. Install the latest compatible stable
 release, or pin an exact compatible version once it is published. Source version
-2.1.1 is not evidence that this skills release is available:
+2.1.2 is not evidence that this skills release is available:
 
 ```bash
 yy skills install
-yy skills install --version 2.1.1
+yy skills install --version 2.1.2
 yy skills update
 yy skills status
 ```
@@ -231,10 +231,10 @@ Record relations.
 | Shortcut | Resolved model |
 | --- | --- |
 | `:luna` | `openai-codex/gpt-6-luna` |
-| `:sol` | `openai-codex/gpt-6.1-sol` |
-| `:gpt` | `openai-codex/gpt-6-astra` (Pi default) |
-| `:astra` | `openai-codex/gpt-6-astra` |
-| `:mini` | `openai-codex/gpt-5.6-terra` |
+| `:sol` | `openai-codex/gpt-6.2-sol` |
+| `:gpt` | `openai-codex/gpt-6.2-astra` (Pi default) |
+| `:astra` | `openai-codex/gpt-6.2-astra` |
+| `:terra`, `:mini` | `openai-codex/gpt-6.1-terra` |
 | `:sonnet` | `anthropic/claude-sonnet-4-6` |
 | `:opus` | `anthropic/claude-opus-4-6` |
 
@@ -487,7 +487,7 @@ Install canonical packages independently:
 
 ```bash
 python3 -m pip install 'yylo-ledger==0.4.0'
-# Exact Benchmark dependency for CLI 0.2.12, once separately published:
+# Exact Benchmark dependency for CLI 0.2.16, once separately published:
 npm install --global '@yylo/benchmark@0.2.1'
 
 yylo-ledger --help
@@ -496,7 +496,7 @@ yylo-benchmark --help
 yy benchmark --help
 ```
 
-CLI 0.2.12 source requires Benchmark **0.2.1 exactly**, whose thin lifecycle is
+CLI 0.2.16 source requires Benchmark **0.2.1 exactly**, whose thin lifecycle is
 case draft/create → run → evaluate → report, plus append-only disqualify. Older
 Benchmark versions are rejected before dispatch. These source changes do not
 publish Benchmark, update installed skills, or activate a new global runtime.
@@ -568,3 +568,15 @@ The monorepo may embed YYLO CLI alongside Benchmark and a Ledger submodule, but 
 ## License
 
 MIT.
+
+### Optional post-merge worktree cleanup
+
+Post-merge worktree cleanup is opt-in. Controller task-workspace policy
+`cleanup.after_merge` defaults to `false`; `YYLO_WORKTREE_CLEANUP_AFTER_MERGE=true`
+or `false` overrides it. Explicit owner opt-in authorizes only eligible delivered
+worktrees. `cleanup.disposable_paths` lists exact relative dependency/build paths;
+ignored files outside those paths preserve the worktree. Preview retained worktrees
+with `yy merge cleanup TASK_ID --dry-run`; use `--apply` only with cleanup authority.
+Cleanup preserves branches and evidence, skips dirty/active/unknown worktrees and
+initialized submodules, and never changes a successful merge into a failed merge.
+Inspect the separate cleanup result; do not force removal to resolve a skip.

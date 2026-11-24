@@ -1,0 +1,47 @@
+{
+  "scenario": "r94-form-booking",
+  "status": "production",
+  "context": "reply-keyboard launch (sendData -> web_app_data)",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "Book a table: pick a time in the form.",
+        "reply_markup": {
+          "keyboard": [
+            [
+              {
+                "text": "Choose a time",
+                "web_app": {
+                  "url": "https://coffee.example.com/app/booking"
+                }
+              }
+            ]
+          ],
+          "resize_keyboard": true,
+          "one_time_keyboard": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "Table for 2 on 28 Nov at 19:30 is booked. I will remind you an hour before.",
+        "reply_markup": {
+          "remove_keyboard": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "That did not come through. Open the form again."
+      }
+    }
+  ]
+}

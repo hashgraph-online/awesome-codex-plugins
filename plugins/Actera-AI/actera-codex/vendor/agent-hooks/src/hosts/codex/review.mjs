@@ -1,5 +1,4 @@
-import { reviewDecision, reviewerLinkStatus, startReviewerLink } from '../../core/bridge.mjs'
-import { holdForApproval } from './bridge.mjs'
+import { holdForApproval, reviewDecision, reviewerLinkStatus, startReviewerLink } from '../../core/bridge.mjs'
 
 // Review in Codex: while a call is held, the person who linked Codex to their
 // Actera account can approve or deny it in a Codex prompt (an MCP elicitation)

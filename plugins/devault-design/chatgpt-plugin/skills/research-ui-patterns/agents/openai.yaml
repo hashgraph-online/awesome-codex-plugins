@@ -1,0 +1,11 @@
+interface:
+  display_name: "Research UI patterns"
+  short_description: "See how real products design a screen or flow"
+  default_prompt: "How do fintech apps handle onboarding?"
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "devault"
+      description: "Devault design library"
+      transport: "streamable_http"
+      url: "https://devault.design/api/mcp"

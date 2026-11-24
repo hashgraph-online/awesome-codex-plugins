@@ -163,6 +163,9 @@ table is genuinely too long:
   self-describing.
 - Keep the header physically with its body (don't strand a header at the end of
   part 1). See `limits-and-splitting.md` for the splitter and part-numbering.
+- `tgkit.dataview.rich_table_parts` (or `scripts/data_view.py`) does this split, with the
+  summary on part 1 and totals on the last; the ladder before splitting and the catalog of
+  business data views: `data-views.md`.
 
 ### Escaping cell content
 One escaper per format (`security-and-escaping.md`):

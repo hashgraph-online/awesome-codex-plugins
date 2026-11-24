@@ -172,14 +172,16 @@ inside the plugin repo itself), that one file *is* the policy.
   kept + warning.
 
 **Failure semantics** — the authoritative contract for this hook. Unlike the
-wave guards above, it is deliberately *not* fail-closed on internal error:
+wave guards above, it is deliberately *not* fail-closed when its modules fail
+to load or no policy exists; a runtime error on a command is denied (see below):
 
 | Condition | Effective policy |
 |---|---|
 | Overlay malformed / missing `.rules` / empty `rules: []` | **Fail-to-floor**: floor alone + stderr warning (an empty overlay cannot disarm the floor) |
 | Floor unresolvable (no plugin root, or file missing) | Overlay alone + warning |
-| Both missing | Fail-open (guard skipped) + warning — unchanged pre-#972 behavior. One exception: a here-doc left open by its command substitution (`x=$(cat <<E )`) is denied before any policy is loaded, because bash and zsh read the lines after it differently (#2249) |
-| Internal error in the hook | `exit 0` fail-open — a documented decision; the merge module's functions are total (never throw) precisely so policy input can never reach this path |
+| Both missing | Fail-open (guard skipped) + warning — unchanged pre-#972 behavior. Three exceptions are denied before any policy is loaded: a call from the PowerShell tool, because the rules read only POSIX shell syntax (#1900); a command line past the reader's size bound, because a reader that runs out of time or memory ends without a verdict (#2032); and a here-doc left open by its command substitution (`x=$(cat <<E )`), because bash and zsh read the lines after it differently (#2249) |
+| Hook modules fail to load | Fail-open (`exit 0`) with a "GUARD INACTIVE" warning on every call, so a broken install cannot block the session and still says so (#992) |
+| Internal error while judging a command | That command is denied (fail-closed) with the error named (#1671); the merge module's functions are total (never throw), so policy input cannot reach this path |
 
 **Trust note:** whoever controls `CLAUDE_PLUGIN_ROOT` controls the floor. That
 is harness trust — the same party already controls the hook code itself — not a
@@ -254,6 +256,8 @@ report. What the guards do on each harness is listed in
   bypasses both.
 - This repo is **npm-canonical**: `package-lock.json` is the committed lockfile and
   `scripts/check-package-manager.mjs` guards against a foreign lockfile appearing.
+- The plugin ships `/security` for a read-only status of these mechanisms, dependency-advisory triage,
+  install-settings posture and an agent-setup inventory. It is an aid, not a containment boundary.
 
 ## Opening a repository you did not write
 

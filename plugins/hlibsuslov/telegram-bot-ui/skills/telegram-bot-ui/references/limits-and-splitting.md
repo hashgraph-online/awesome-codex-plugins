@@ -62,6 +62,10 @@ genuinely over budget or when logical sections are better as separate messages.
   business connection to each part as the project requires.
 - **Meaning:** don't reorder or drop content; keep numbering continuous across
   list splits; repeat table headers if a table must span parts.
+- **One ping (H):** a notification split into parts notifies once: send parts 2..n with
+  `disable_notification: true`, and put the outcome in the first line of part 1. Reports and
+  notifications that would need more than ~3 parts go to a file or a widget page instead
+  (`data-views.md` §4).
 
 ## Splitting algorithm (format-aware)
 

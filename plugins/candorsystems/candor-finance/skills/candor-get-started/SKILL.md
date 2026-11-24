@@ -3,7 +3,7 @@ name: candor-get-started
 description: "Runs the first conversation after the person connects Candor: a first look at their money from the real records, what is worth a closer look, and what they want, saved in their words, so the next conversation starts from a plan. Use when Candor was just connected or installed, when the person says set up, get started, take a look, or what can you do with my money, when the workspace has records but no goals or notes yet, or when it is a free start with no accounts yet."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.7"
+  candor-package-version: "1.3.9"
   author: Candor
   version: "0.3.0"
   candor-domain-id: get-started

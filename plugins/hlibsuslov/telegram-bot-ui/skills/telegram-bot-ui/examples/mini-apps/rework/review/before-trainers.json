@@ -1,0 +1,16 @@
+{
+ "screen": "catalog",
+ "entity": "trainer",
+ "width": 390,
+ "layout": {"variant": "scroller-card", "columns": 1},
+ "card": {
+  "image": {"ratio": "1:1", "fit": "cover", "position": "top"},
+  "slots": ["image", "name", "specialty"],
+  "title_lines": 1,
+  "tags": 1,
+  "actions": [],
+  "alt": "missing"
+ },
+ "main_list": "carousel",
+ "primary_action": "fixed-button"
+}

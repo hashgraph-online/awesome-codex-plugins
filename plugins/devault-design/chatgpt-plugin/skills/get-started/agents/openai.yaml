@@ -1,0 +1,11 @@
+interface:
+  display_name: "Get started with Devault"
+  short_description: "See what Devault can do and try it"
+  default_prompt: "What can Devault do here?"
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "devault"
+      description: "Devault design library"
+      transport: "streamable_http"
+      url: "https://devault.design/api/mcp"

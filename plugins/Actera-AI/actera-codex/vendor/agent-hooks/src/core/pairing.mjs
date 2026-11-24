@@ -7,7 +7,7 @@ import { DEFAULT_API_ORIGIN } from './defaults.mjs'
 // Connecting a plugin without anyone handling a machine key: browser pairing,
 // where an administrator approves the request, or a one-time setup code an
 // administrator made for an agent. client names the plugin's host
-// (claude_code or codex) so Actera labels the connection correctly.
+// (claude_code, codex or copilot) so Actera labels the connection correctly.
 
 export function apiOrigin(raw = process.env.ACTERA_API_ORIGIN || DEFAULT_API_ORIGIN) {
   const url = new URL(raw)

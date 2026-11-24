@@ -18,6 +18,8 @@ Candor is a personal finance app that helps you reach your money goals with Chat
 - Your data is not sold or used to train models.
 - Every agent action is recorded with its reason.
 
+Candor is not a licensed financial advisor, and what your agent tells you with it is not professional financial, investment, tax, or legal advice.
+
 ## Add Candor to your agent
 
 | Agent | Where to get it |
@@ -50,8 +52,8 @@ Setup guides for each agent are at
   skills and one MCP server, nothing else.
 - **Skills are instructions.** Each skill is Markdown, with no scripts.
 - **One MCP server, Candor's own.** It is the hosted server at
-  `https://api.candor.money/mcp`, which your agent authorizes with OAuth. Through it the
-  agent reads and saves your Candor workspace. It cannot move money or change
+  `https://api.candor.money/mcp`, which your agent authorizes with OAuth. Through it
+  your agent reads and saves your Candor workspace. It cannot move money or change
   anything at a financial institution.
 - **Two non-secret headers.** Requests to that server carry
   `Candor-Agent-Package-Version` and, where the host supports it,
@@ -82,15 +84,20 @@ own harness's setup workflow and asks you only for steps it cannot complete.
   front door and the rest are workflows. START also links a single-skill ZIP
   that carries all of them for hosts that upload one skill.
 - **Supported packages:** Agent Plugins 1.0.0 (`plugin.json`, `skills/`,
-  `mcp.json`), Claude and Codex marketplaces (`.claude-plugin/` and
-  `.codex-plugin/`), and a Gemini CLI extension (`gemini-extension.json`).
-  Use whichever format your harness supports, or install skill and MCP separately.
+  `mcp.json`), a Claude plugin (`claude/`, listed by
+  `.claude-plugin/marketplace.json`), a Codex plugin (`.codex-plugin/`), and
+  a Gemini CLI extension (`gemini-extension.json`). Use whichever format your
+  harness supports, or install skill and MCP separately.
 
 Your harness owns installation, authorization, skill locations, and reloads.
 Keep working installations. Once the skill and tools are available, call
 `candor_open` for MCP or run `candor open` for the CLI, then continue into
 the user's financial task. Use a private runtime or per-user account isolation
 before authorizing personal financial access on a shared host.
+
+Claude installs the `claude/` plugin: the same skills with the
+remote MCP server and nothing for other hosts.
+`.claude-plugin/marketplace.json` points Claude's marketplace at it.
 
 Grok Bot installs the `cursor/` plugin from the Cursor Marketplace. It pairs
 the same MCP-based skill with the remote MCP server and is listed for Grok Bot

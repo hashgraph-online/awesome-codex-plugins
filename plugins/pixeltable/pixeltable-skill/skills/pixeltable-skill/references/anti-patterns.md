@@ -16,11 +16,16 @@ class Chunks(
     iterator=pxtf.document.document_splitter(Docs.document, separators='token_limit', limit=512),
 ):
     __indexes__ = [
-        pxt.EmbeddingIndex(text, embedding=embeddings.using(model='text-embedding-3-small'), name='chunks_embed')
-    ]  # type: ignore[name-defined]
+        pxt.EmbeddingIndex(
+            text,  # type: ignore[name-defined]
+            embedding=embeddings.using(model='text-embedding-3-small'),
+            name='chunks_embed',
+        )
+    ]
 ```
 
-Full pattern: [workflows.md](workflows.md).
+`text` is an output column of the iterator. The full pattern, and how to lint a model that uses such a
+column: `pxt guide views` and `pxt guide indexes`.
 
 Chunking is `document_splitter`. Search is `.similarity()`. Tools are `pxt.tools()` + `invoke_tools()`.
 
@@ -58,7 +63,7 @@ Chunking is `document_splitter`. Search is `.similarity()`. Tools are `pxt.tools
 transcript = pxtf.whisper.transcribe(audio, model='tiny.en').text
 ```
 
-Embeddings the same way: `clip.using(model_id=...)`, `sentence_transformer.using(model_id=...)`. [providers.md](providers.md) lists the wrappers.
+Embeddings the same way: `clip.using(model_id=...)`, `sentence_transformer.using(model_id=...)`. `pxt guide providers` lists the wrappers.
 
 If nothing ships for your model, load it once at module scope and cache the handle:
 
@@ -85,6 +90,8 @@ def score(text: str) -> float:
 | `python app.py` for models + router | `pxt schema update` then `pxt service update` |
 | Drop + recreate tables as "init" | Edit `app.py`, then `pxt schema update` |
 | Hard-coded `api_key=` | Env or config.toml |
+| A retry loop, `tenacity` or a second client around a model call | Provider calls retry on their own (`pxt guide providers`); rerun failed cells with `pxt recompute ... --errors-only` |
 | `psycopg2` against `~/.pixeltable/pgdata` | SDK / CLI only |
 | Chat history in Redis | A table |
+| Data the app reads back between runs kept in JSON, pickle or NumPy files (embeddings, caches, progress markers) | A table, an embedding index, or a stored computed column. Files are for exports. |
 | `def f(x: str)` to "handle" a nullable column | A non-nullable parameter that receives `None` skips the call and leaves the cell `None`. Annotate `x: str \| None` |

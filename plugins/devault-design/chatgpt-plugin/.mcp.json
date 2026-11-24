@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "devault": {
+      "type": "http",
+      "url": "https://devault.design/api/mcp"
+    }
+  }
+}

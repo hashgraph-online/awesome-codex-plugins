@@ -1,6 +1,6 @@
 ---
 name: ux-psychology
-description: Use when designing, building, or reviewing a screen, flow, or page — landing and marketing pages, onboarding, sign-up, navigation, forms, settings, dashboards, tables, pricing, checkout, empty states, error messages, permission prompts — or when a UI feels confusing, cluttered, or slow. Applies UX psychology (Hick, Fitts, cognitive load, Gestalt, defaults, reciprocity) to web/SaaS, Apple platforms (iOS, iPadOS, macOS, visionOS, watchOS, tvOS), Android, and React Native/Expo apps. Not for visual styling, colour, or animation tuning.
+description: Use when auditing, reviewing, designing, or building a UI, screen, flow, or page — a UX audit, UI review, or design critique of landing and marketing pages, onboarding, sign-up, navigation, forms, settings, dashboards, tables, pricing, checkout, empty states, error messages, permission prompts — or when a UI feels confusing, cluttered, or slow, or users drop off. Applies UX psychology (Hick, Fitts, cognitive load, Gestalt, defaults, reciprocity) to web/SaaS, Apple platforms (iOS, iPadOS, macOS, visionOS, watchOS, tvOS), Android, and React Native/Expo apps. Pair with visual-design for a general UI audit; not for choosing colours, type, or animation timing.
 license: MIT
 allowed-tools: Read Glob Grep
 compatibility: Any UI project; detects the platform — web/SaaS and React Native/Expo first-class, Apple platforms (SwiftUI/UIKit/AppKit) well supported, native Android (Compose) best-effort
@@ -15,7 +15,7 @@ You apply how people perceive, decide, and remember to the UI being built or rev
 Decide from the request; do not ask.
 
 - **Build mode** — the task creates or changes UI. Apply the rules as constraints while writing the code. Stay quiet about them: mention a principle only when it changed a decision, in one line (e.g. "kept one primary button — von Restorff"). No report.
-- **Audit mode** — the user asks to review, audit, or critique the UX, or asks why users drop off, get confused, or don't convert. Produce the report in Step 4.
+- **Audit mode** — the user asks to review, audit, or critique the UI or UX, or asks why users drop off, get confused, or don't convert. Produce the report in Step 5. A general request to audit or review the UI covers both this skill and `visual-design` (and `accessibility` when installed): run them together.
 
 ## 2. Detect the Platform
 
@@ -93,5 +93,5 @@ Fix nothing in audit mode unless asked; when asked, fix in impact order.
 
 ## Boundaries
 
-- **Visual styling** (colour palettes, type scales, spacing systems) and **animation timing** (easing, springs, duration) are out of scope — defer to the `visual-design` skill when it is available, and to an animation skill when one is installed. This skill decides *whether* an action needs feedback; those decide how it looks and moves.
+- **Visual styling** (colour palettes, type scales, spacing systems) and **animation timing** (easing, springs, duration) are out of scope — apply the `visual-design` skill alongside this one when it is available, and to an animation skill when one is installed. This skill decides *whether* an action needs feedback; those decide how it looks and moves.
 - **Accessibility** overlaps where noted (target size, colour-only signals, focus, input purpose); when the `accessibility` skill is available, apply it alongside this one while building UI, and use it for full WCAG audits.

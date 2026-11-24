@@ -1,0 +1,9 @@
+{
+ "screen": "plans",
+ "entity": "plan",
+ "width": 390,
+ "primary_action": "fixed-button",
+ "card": {"tags": 1, "ribbon": true, "price": {"style": "accent"}},
+ "plans": {"layout": "side-by-side", "count": 3, "features_max": 1, "recommended": 1},
+ "form": {"columns": 1, "labels": "placeholder"}
+}

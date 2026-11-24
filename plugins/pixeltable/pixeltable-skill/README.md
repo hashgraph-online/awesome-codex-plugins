@@ -79,15 +79,19 @@ are team-distribution sources; they do not publish to a public directory.
 skills/pixeltable-skill/        # The skill (name: pixeltable)
 ├── SKILL.md                    # Contract: app.py, schema update, service update
 └── references/
-    ├── core-api.md             # Tables, querying, views, UDFs, config
-    ├── cli.md                  # pxt CLI
-    ├── providers.md            # Import and output shape
-    ├── workflows.md            # FastAPIRouter
-    └── anti-patterns.md        # Wrong/right stack
+    ├── anti-patterns.md        # Wrong/right stack
+    ├── conventional-design.md  # Workers, queues, status columns -> Pixeltable
+    ├── schema-design.md        # Keys, types, nullability, references, history
+    ├── expressions.md          # Expressions vs UDFs, silent constants
+    └── safe-changes.md         # Drops, recomputes, schema changes with data
 commands/                       # /pixeltable:scaffold, /pixeltable:add-provider
 agents/                         # pipeline-architect, debugger
 hooks/                          # Optional pure-Python hooks (Claude Code)
 ```
+
+The skill teaches judgment that holds across Pixeltable releases. How a release behaves is in the agent
+guides that ship with it: `pxt guide AREA` prints one, and `pxt guide --path` prints the directory of the guide
+files.
 
 Client manifests and marketplace metadata live alongside the shared skill so
 each supported installer can discover the format it understands. Gemini CLI

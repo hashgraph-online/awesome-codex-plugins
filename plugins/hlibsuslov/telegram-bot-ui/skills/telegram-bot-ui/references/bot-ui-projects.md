@@ -166,6 +166,15 @@ by hand.
   map's. `validate` reports `CUSTOM_EMOJI_UNKNOWN`, `CUSTOM_EMOJI_FALLBACK_MISMATCH` and
   `CUSTOM_EMOJI_DOUBLE_ICON` (an icon plus an emoji at the start of the label). The library's
   `icons` has the icon-map shape: `scripts/audit_icons.py <project>/emoji/library.json`.
+- Existing bot with premium emoji already in use: `bot-ui import` records every custom emoji id
+  it finds in the code (`<tg-emoji>` in strings and catalogs, `icon_custom_emoji_id=`,
+  `custom_emoji_id=`, ids in constants, dicts or classes named like an emoji/icon map) in
+  `import-map.json`. `bot-ui emoji import-used` (or the Studio's "Packs your bot already uses",
+  or `import --emoji-packs`) finds each id's pack with `getCustomEmojiStickers`, imports every
+  pack in one go and adopts the button icons into the icon map by their emoji's meaning (a free
+  slot only; `--no-icon-map` skips it). Ids Telegram no longer knows (a deleted pack) are
+  listed with where they are used: replace them, do not keep them. Do this before any new screen,
+  so the redesign reuses the bot's own packs instead of mixing in new ones.
 
 ## Widgets in a project
 

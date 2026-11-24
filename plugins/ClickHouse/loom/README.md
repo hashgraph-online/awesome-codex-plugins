@@ -40,7 +40,7 @@ remain longer, especially when no new session starts. Queued writes and the
 shunt log have different retention rules. The `loom-status` skill can install Node.js after
 you agree, and `improve-loom-for-my-repo` searches public issues and asks before
 filing a report. The full
-[data-handling disclosure](https://clickhouse.github.io/loom/features/integrations/claude-code/#data-handling)
+[data-handling disclosure](https://loom.clickhouse.com/docs/features/integrations/claude-code/#data-handling)
 lists what each hook sends, local commands, retention, outside services and off
 switches. Codex's capture differences are listed below; it does not run the
 duplicate-entry check of `~/.claude.json`.
@@ -65,7 +65,7 @@ and nothing else; otherwise `~/.loom/config.json`, then `~/.loom/token`. Org
 and namespace come from the token's own claims. Codex plugins have no install-time options, so the
 server URL is fixed in `.mcp.json` and `plugin-defaults.json`
 (`http://localhost:7777`); for another server, see
-[Codex setup](https://clickhouse.github.io/loom/features/integrations/codex/) (a `[mcp_servers.loom]` override in
+[Codex setup](https://loom.clickhouse.com/docs/features/integrations/codex/) (a `[mcp_servers.loom]` override in
 `~/.codex/config.toml`, or `loom install --client codex`).
 
 ## What differs from the Claude Code build

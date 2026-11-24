@@ -1,0 +1,860 @@
+/* Mini App kit: roles, scales and primitives ("TMA profile 1"). No dependencies.
+   Every colour resolves from a Telegram theme variable (--tg-theme-*); the --tma-fb-* palette is the
+   fallback for keys an older client does not send and for a plain browser (iOS 27 system colours).
+   tma.ts sets data-tma-scheme / -platform / -perf on <html>. Reference:
+   references/mini-apps/design-system.md; values: data/mini-apps/theme-params.json, design-sources.json. */
+
+/* ---------------------------------------------------------------- fallback palette (light) */
+:root {
+  --tma-fb-bg: #ffffff;
+  --tma-fb-page: #f2f2f7;
+  --tma-fb-surface: #ffffff;
+  --tma-fb-text: #000000;
+  --tma-fb-hint: #8e8e93;
+  --tma-fb-accent: #0088ff;
+  --tma-fb-on-accent: #ffffff;
+  --tma-fb-danger: #ff383c;
+  --tma-fb-success: #34c759;
+  --tma-fb-separator: rgb(0 0 0 / .12);
+  --tma-fb-overlay: rgb(0 0 0 / .2);
+  --tma-fb-seg-on: #ffffff;
+  --tma-fb-knob: #ffffff;
+  --tma-fb-star: #f2a100;          /* Telegram Stars gold, approximated (telegram-elements.md) */
+  --tma-fb-star-text: #975700;     /* the amount in a Stars pill: 4.5:1 on the light pill */
+  color-scheme: light;
+}
+/* dark fallback: Telegram's scheme when known, the OS scheme in a plain browser */
+:root[data-tma-scheme="dark"] {
+  --tma-fb-bg: #000000;
+  --tma-fb-page: #000000;
+  --tma-fb-surface: #1c1c1e;
+  --tma-fb-text: #ffffff;
+  --tma-fb-hint: #8e8e93;
+  --tma-fb-accent: #0091ff;
+  --tma-fb-danger: #ff4245;
+  --tma-fb-success: #30d158;
+  --tma-fb-separator: rgb(255 255 255 / .17);
+  --tma-fb-overlay: rgb(0 0 0 / .48);
+  --tma-fb-seg-on: rgb(255 255 255 / .27);
+  --tma-fb-star: #ffbf1f;
+  --tma-fb-star-text: #ffc23d;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tma-scheme]) {
+    --tma-fb-bg: #000000;
+    --tma-fb-page: #000000;
+    --tma-fb-surface: #1c1c1e;
+    --tma-fb-text: #ffffff;
+    --tma-fb-accent: #0091ff;
+    --tma-fb-danger: #ff4245;
+    --tma-fb-success: #30d158;
+    --tma-fb-separator: rgb(255 255 255 / .17);
+    --tma-fb-overlay: rgb(0 0 0 / .48);
+    --tma-fb-seg-on: rgb(255 255 255 / .27);
+    --tma-fb-star: #ffbf1f;
+    --tma-fb-star-text: #ffc23d;
+    color-scheme: dark;
+  }
+}
+
+/* ---------------------------------------------------------------- roles */
+:root {
+  --tma-bg: var(--tg-theme-bg-color, var(--tma-fb-bg));
+  --tma-page: var(--tg-theme-secondary-bg-color, var(--tg-theme-bg-color, var(--tma-fb-page)));
+  --tma-surface: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, var(--tma-fb-surface)));
+  --tma-text: var(--tg-theme-text-color, var(--tma-fb-text));
+  --tma-hint: var(--tg-theme-hint-color, var(--tma-fb-hint));
+  --tma-subtitle: var(--tg-theme-subtitle-text-color, var(--tma-hint));
+  --tma-section-header: var(--tg-theme-section-header-text-color, var(--tma-hint));
+  --tma-link: var(--tg-theme-link-color, var(--tma-fb-accent));
+  --tma-accent: var(--tg-theme-button-color, var(--tma-fb-accent));
+  --tma-on-accent: var(--tg-theme-button-text-color, var(--tma-fb-on-accent));
+  --tma-accent-text: var(--tg-theme-accent-text-color, var(--tma-link));
+  --tma-danger: var(--tg-theme-destructive-text-color, var(--tma-fb-danger));
+  --tma-success: var(--tma-fb-success);
+  --tma-separator: var(--tg-theme-section-separator-color, var(--tma-fb-separator));
+  --tma-bottom-bar: var(--tg-theme-bottom-bar-bg-color, var(--tma-page));
+  /* derived: tints of a role, never new hues */
+  --tma-fill: color-mix(in srgb, var(--tma-text) 8%, transparent);
+  --tma-fill-strong: color-mix(in srgb, var(--tma-text) 14%, transparent);
+  --tma-tonal: color-mix(in srgb, var(--tma-accent) 14%, transparent);
+  --tma-raised: color-mix(in srgb, var(--tma-surface) 94%, var(--tma-text));
+  --tma-success-tint: color-mix(in srgb, var(--tma-success) 16%, transparent);
+  --tma-danger-tint: color-mix(in srgb, var(--tma-danger) 14%, transparent);
+  --tma-overlay: var(--tma-fb-overlay);
+  --tma-seg-on: var(--tma-fb-seg-on);
+  /* Telegram's own value colour: the Stars glyph, its price pill and sparkles; never buttons or a theme */
+  --tma-star: var(--tma-fb-star);
+  --tma-star-text: var(--tma-fb-star-text);
+  /* brand: one moment per screen (hero header, promo); a style profile sets it, else the accent */
+  --tma-brand: var(--tma-accent);
+  --tma-on-brand: var(--tma-on-accent);
+
+  /* type: iOS 27 scale in rem of a 17 px body; Roboto metrics on Android come from the system font */
+  --tma-font: system-ui, -apple-system, "SF Pro Text", Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
+  --tma-fs-large-title: 2rem;        /* 34/41 */
+  --tma-fs-title1: 1.647rem;         /* 28/34 */
+  --tma-fs-title2: 1.294rem;         /* 22/28 */
+  --tma-fs-title3: 1.176rem;         /* 20/25 */
+  --tma-fs-body: 1rem;               /* 17/22 */
+  --tma-fs-callout: .941rem;         /* 16/21 */
+  --tma-fs-subhead: .882rem;         /* 15/20 */
+  --tma-fs-footnote: .765rem;        /* 13/18 */
+  --tma-fs-caption1: max(12px, .706rem);
+  --tma-fs-caption2: max(11px, .647rem); /* nothing below 11 px */
+
+  /* space on a 4 px step, shape, touch */
+  --tma-s1: 4px; --tma-s2: 8px; --tma-s3: 12px; --tma-s4: 16px; --tma-s5: 20px; --tma-s6: 24px; --tma-s8: 32px;
+  --tma-margin: 16px;
+  --tma-r-group: 26px;               /* inset groups and cards on iPhone; check on device */
+  --tma-r-inner: 14px;               /* nested: outer radius minus padding */
+  --tma-r-sheet: 38px;
+  --tma-row: 52px;
+  --tma-row-2: 68px;
+  --tma-target: 44px;
+  --tma-avatar: 40px;                /* avatar and icon tile in rows */
+  --tma-gap-section: 24px;
+  --tma-figure-size: clamp(2.8rem, 13vw, 3.75rem);
+
+  /* motion: one ease-out curve */
+  --tma-ease: cubic-bezier(.2, .8, .2, 1);
+  --tma-dur: 220ms;
+  --tma-dur-short: 150ms;
+
+  /* safe areas: device + Telegram's own controls (fullscreen); 0 in the normal mode */
+  --tma-safe-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  --tma-safe-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+  --tma-safe-left: max(var(--tma-margin), var(--tg-safe-area-inset-left, 0px));
+  --tma-safe-right: max(var(--tma-margin), var(--tg-safe-area-inset-right, 0px));
+  --tma-tabbar-space: 0px;           /* set when a floating tab bar is shown */
+}
+:root[data-tma-platform="android"] {
+  --tma-r-group: 16px;
+  --tma-r-inner: 10px;
+  --tma-target: 48px;
+}
+:root[data-tma-perf="low"] { --tma-dur: 120ms; --tma-dur-short: 90ms; }
+
+/* ---------------------------------------------------------------- base and browser surfaces */
+html {
+  font-size: 106.25%;                /* 17 px body */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+@supports (font: -apple-system-body) {
+  :root[data-tma-platform="ios"] { font: -apple-system-body; } /* follows Dynamic Type; check on device */
+}
+:root[data-tma-platform="android"] { font-size: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: var(--tg-viewport-stable-height, 100svh);
+  background: var(--tma-page);
+  color: var(--tma-text);
+  font-family: var(--tma-font);
+  font-size: var(--tma-fs-body);
+  line-height: 1.294;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  overflow-x: clip;                  /* screen pushes slide in from the side */
+}
+body.tma-flat { background: var(--tma-bg); --tma-edge: var(--tma-bg); }
+::selection { background: color-mix(in srgb, var(--tma-accent) 28%, transparent); }
+input, textarea { caret-color: var(--tma-accent); }
+a { color: var(--tma-link); text-underline-offset: .18em; }
+:focus-visible { outline: 2px solid var(--tma-accent); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+/* Read by screen readers, not drawn: the words behind an icon or a glyph ("250 Stars" next to the star). */
+.tma-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* RTL (html dir="rtl", set by tma.locale): mirror what points along the reading direction - chevrons,
+   back / forward arrows, send, sign out. Never media controls, clocks, check marks, charts' time axis or logos. */
+:root[dir="rtl"] .tma-cell__chevron,
+:root[dir="rtl"] .tma-flip-rtl,
+:root[dir="rtl"] svg:has(> use[href$="#i-chevron-right"], > use[href$="#i-chevron-left"], > use[href$="#i-arrow-left"],
+  > use[href$="#i-arrow-right"], > use[href$="#i-arrow-up-right"], > use[href$="#i-send"], > use[href$="#i-logout"]) { transform: scaleX(-1); }
+* { scrollbar-width: thin; scrollbar-color: var(--tma-fill-strong) transparent; }
+img { max-width: 100%; display: block; }
+.tma-num { font-variant-numeric: tabular-nums; }
+.tma-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------------------------------------------------------------- type roles */
+.tma-large-title { font-size: var(--tma-fs-large-title); line-height: 1.206; font-weight: 700; letter-spacing: .01em; margin: 0; }
+.tma-title1 { font-size: var(--tma-fs-title1); line-height: 1.214; font-weight: 600; margin: 0; }
+.tma-title2 { font-size: var(--tma-fs-title2); line-height: 1.273; font-weight: 600; margin: 0; }
+.tma-title3 { font-size: var(--tma-fs-title3); line-height: 1.25; font-weight: 600; margin: 0; }
+.tma-headline { font-size: var(--tma-fs-body); font-weight: 600; }
+.tma-callout { font-size: var(--tma-fs-callout); line-height: 1.3125; }
+.tma-subhead { font-size: var(--tma-fs-subhead); line-height: 1.333; }
+.tma-footnote { font-size: var(--tma-fs-footnote); line-height: 1.385; color: var(--tma-hint); }
+.tma-caption { font-size: var(--tma-fs-caption1); line-height: 1.333; color: var(--tma-hint); }
+.tma-hint { color: var(--tma-hint); }
+
+/* ---------------------------------------------------------------- page and screens */
+.tma-page {
+  padding: calc(var(--tma-safe-top) + var(--tma-s2)) var(--tma-safe-right)
+           calc(var(--tma-safe-bottom) + var(--tma-tabbar-space) + var(--tma-s6)) var(--tma-safe-left);
+  min-height: var(--tg-viewport-stable-height, 100svh);
+}
+.tma-page[hidden], .tma-screen[hidden] { display: none; }
+.tma-screen { animation: tma-push var(--tma-dur) var(--tma-ease); }
+.tma-screen.is-back { animation-name: tma-pop; }
+@keyframes tma-push { from { transform: translateX(24px); opacity: 0; } }
+@keyframes tma-pop { from { transform: translateX(-24px); opacity: 0; } }
+.tma-header { padding: var(--tma-s2) 0 var(--tma-s4); }
+/* The stack's gap must win over every component's own `margin: 0` (section, list, kv, quote, steps...) and an
+   app's resets, whatever their order in the cascade: hence the doubled class (0,2,0). */
+.tma-stack.tma-stack > * + * { margin-top: var(--tma-gap-section); }
+
+/* ---------------------------------------------------------------- section, list, cell */
+.tma-section { margin: 0; }
+.tma-section + .tma-section { margin-top: var(--tma-gap-section); }
+/* List headers, iOS 27 (references/mini-apps/native-anatomy.md section 2). Default = nested: 17 semibold in the
+   section-header colour. <strong> or .is-prominent: 20 semibold; .is-extra: 22 bold; .is-small: the older 13 pt
+   caption for settings-like lists. A trailing <span> is a quiet note, a trailing <a>/<button> an action. */
+.tma-section__header {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--tma-s3);
+  padding: 0 var(--tma-s4) var(--tma-s2);
+  color: var(--tma-section-header); font-size: var(--tma-fs-body); font-weight: 600; line-height: 1.294;
+}
+.tma-section__header > span { color: var(--tma-hint); font-size: var(--tma-fs-footnote); font-weight: 400; }
+.tma-section__header strong, .tma-section__header.is-prominent { color: var(--tma-text); font-size: var(--tma-fs-title3); font-weight: 600; line-height: 1.25; }
+.tma-section__header.is-nested { color: var(--tma-section-header); font-size: var(--tma-fs-body); }
+.tma-section__header.is-extra { color: var(--tma-text); font-size: var(--tma-fs-title2); font-weight: 700; line-height: 1.273; }
+.tma-section__header.is-small { font-size: var(--tma-fs-footnote); font-weight: 400; line-height: 1.385; }
+.tma-section__header > a, .tma-section__header > button { color: var(--tma-link); font-size: var(--tma-fs-subhead); font-weight: 400; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
+.tma-section__footer { padding: var(--tma-s2) var(--tma-s4) 6px; color: var(--tma-hint); font-size: var(--tma-fs-footnote); line-height: 1.385; }
+.tma-list {
+  list-style: none; margin: 0; padding: 0;
+  background: var(--tma-surface); border-radius: var(--tma-r-group); overflow: hidden;
+}
+:root[data-tma-platform="android"] .tma-list.is-full { border-radius: 0; margin-inline: calc(-1 * var(--tma-safe-left)); }
+.tma-cell {
+  --tma-cell-text: var(--tma-s4);    /* where the separator starts: the text column */
+  position: relative; display: flex; align-items: center; gap: var(--tma-s3);
+  width: 100%; min-height: var(--tma-row); padding: var(--tma-s2) var(--tma-s4);
+  background: none; border: 0; color: inherit; font: inherit; text-align: start; text-decoration: none;
+}
+.tma-cell:has(.tma-avatar, .tma-icon-tile) { --tma-cell-text: calc(var(--tma-s4) + var(--tma-avatar) + var(--tma-s3)); }
+.tma-cell.is-2 { min-height: var(--tma-row-2); }
+.tma-list > li + li > .tma-cell::before, .tma-list > .tma-cell + .tma-cell::before {
+  content: ""; position: absolute; top: 0; inset-inline: var(--tma-cell-text) 0;
+  border-top: 1px solid var(--tma-separator); transform: scaleY(.5); transform-origin: top;
+}
+button.tma-cell, a.tma-cell, label.tma-cell { cursor: pointer; transition: background-color var(--tma-dur-short) var(--tma-ease); }
+button.tma-cell:active, a.tma-cell:active, label.tma-cell:active { background: var(--tma-fill); }
+.tma-cell__body { flex: 1; min-width: 0; }
+.tma-cell__title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tma-cell__subtitle { display: block; color: var(--tma-subtitle); font-size: var(--tma-fs-subhead); line-height: 1.333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tma-cell__after { flex: none; color: var(--tma-hint); text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tma-cell__after strong { display: block; color: var(--tma-text); font-weight: 500; }
+.tma-cell__chevron { flex: none; width: 18px; height: 18px; margin-inline-end: -4px; fill: none; stroke: var(--tma-hint); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
+.tma-cell.is-button { color: var(--tma-accent-text); }
+.tma-cell.is-danger { color: var(--tma-danger); }
+
+/* ---------------------------------------------------------------- avatar, icon tile, badge */
+.tma-avatar {
+  flex: none; width: var(--tma-avatar); height: var(--tma-avatar); border-radius: 50%; object-fit: cover;
+  display: grid; place-items: center; background: var(--tma-fill); color: var(--tma-hint);
+  font-size: var(--tma-fs-subhead); font-weight: 600;
+}
+.tma-avatar.is-48 { width: 48px; height: 48px; }
+.tma-avatar.is-56 { width: 56px; height: 56px; }
+.tma-icon-tile {
+  flex: none; width: var(--tma-avatar); height: var(--tma-avatar); border-radius: 50%; display: grid; place-items: center;
+  background: var(--tma-tonal); color: var(--tma-accent-text);
+}
+.tma-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tma-badge {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: var(--tma-accent); color: var(--tma-on-accent); font-size: var(--tma-fs-caption1); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tma-tag { color: var(--tma-hint); font-size: var(--tma-fs-caption1); }
+
+/* ---------------------------------------------------------------- buttons in content */
+.tma-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--tma-s2);
+  min-height: 34px; padding: 0 14px; border: 0; border-radius: 999px;   /* iOS 27: 28 / 34 / 50, paddings 10 / 14 / 20, regular labels */
+  background: var(--tma-fill); color: var(--tma-text); font: inherit; font-size: var(--tma-fs-subhead); font-weight: 400;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: transform var(--tma-dur-short) var(--tma-ease), background-color var(--tma-dur-short) var(--tma-ease);
+}
+.tma-btn:active { transform: scale(.97); }
+.tma-btn.is-sm { min-height: 28px; padding: 0 10px; font-size: var(--tma-fs-subhead); }
+.tma-btn.is-lg { min-height: 50px; padding: 0 var(--tma-s5); font-size: var(--tma-fs-body); }
+.tma-btn.is-wide { width: 100%; }
+.tma-btn.is-filled { background: var(--tma-accent); color: var(--tma-on-accent); }
+.tma-btn.is-tonal { background: var(--tma-tonal); color: var(--tma-accent-text); }
+.tma-btn.is-plain { background: none; color: var(--tma-accent-text); padding-inline: var(--tma-s2); }
+.tma-btn.is-danger { background: var(--tma-danger-tint); color: var(--tma-danger); }
+.tma-btn:disabled, .tma-btn[aria-disabled="true"] { opacity: .45; cursor: default; transform: none; }
+.tma-icon-btn {
+  display: grid; place-items: center; width: var(--tma-target); height: var(--tma-target);
+  border: 0; border-radius: 50%; background: var(--tma-fill); color: var(--tma-text); cursor: pointer;
+}
+/* own fixed bottom button: only as the MainButton fallback outside Telegram (tma.ts shows it) */
+[data-tma-fallback="main-button"] {
+  position: fixed; inset-inline: var(--tma-safe-left) var(--tma-safe-right); bottom: calc(var(--tma-safe-bottom) + var(--tma-s3));
+  z-index: 20;
+}
+[data-tma-fallback="main-button"][hidden] { display: none; }
+
+/* ---------------------------------------------------------------- quick actions */
+.tma-actions { display: grid; grid-template-columns: repeat(var(--tma-cols, 4), minmax(0, 1fr)); gap: var(--tma-s2); }
+.tma-action {
+  display: grid; justify-items: center; gap: 6px; padding: var(--tma-s2) 0;
+  background: none; border: 0; color: var(--tma-accent-text); font: inherit; font-size: var(--tma-fs-caption1); font-weight: 500;
+  cursor: pointer; min-height: var(--tma-target);
+}
+.tma-action__icon {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  background: var(--tma-accent); color: var(--tma-on-accent);
+  transition: transform var(--tma-dur-short) var(--tma-ease);
+}
+.tma-action:active .tma-action__icon { transform: scale(.94); }
+
+/* ---------------------------------------------------------------- figures and deltas */
+.tma-figure {
+  display: flex; align-items: baseline; gap: 2px; margin: 0;
+  font-size: var(--tma-figure-size); line-height: 1.05; font-weight: 600; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+}
+.tma-figure__minor { font-size: .6em; color: var(--tma-hint); font-weight: 600; }
+.tma-figure.is-loading { color: transparent; }
+/* the change pill sits apart from the figure and the next block (design-system.md section 4) */
+.tma-figure + .tma-delta { margin-top: var(--tma-s3); }
+.tma-delta + .tma-chart, .tma-delta + .tma-actions { margin-top: var(--tma-s5); }
+.tma-delta {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px;
+  font-size: var(--tma-fs-subhead); font-weight: 500; font-variant-numeric: tabular-nums;
+  background: var(--tma-fill); color: var(--tma-hint);
+}
+.tma-delta.is-up { background: var(--tma-success-tint); color: var(--tma-success); }
+.tma-delta.is-down { background: var(--tma-danger-tint); color: var(--tma-danger); }
+
+/* ---------------------------------------------------------------- chips, pills, segmented, tabs */
+.tma-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 var(--tma-s3);
+  border: 0; border-radius: 999px; background: var(--tma-fill); color: var(--tma-text);
+  font: inherit; font-size: var(--tma-fs-subhead); cursor: pointer;
+}
+.tma-chip[aria-pressed="true"] { background: var(--tma-tonal); color: var(--tma-accent-text); }
+.tma-chip.is-success { background: var(--tma-success-tint); color: var(--tma-success); }
+.tma-segmented {
+  display: flex; padding: 2px; border-radius: 999px; background: var(--tma-fill); min-height: 32px;
+}
+.tma-segmented > button {
+  flex: 1; min-height: 28px; border: 0; border-radius: 999px; background: none; color: var(--tma-text);
+  font: inherit; font-size: var(--tma-fs-subhead); font-weight: 500; cursor: pointer;
+  transition: background-color var(--tma-dur-short) var(--tma-ease);
+}
+.tma-segmented > button[aria-selected="true"] { background: var(--tma-seg-on); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.tma-scroll-x { display: flex; gap: var(--tma-s2); overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--tma-safe-left)); padding-inline: var(--tma-safe-left); }
+.tma-scroll-x::-webkit-scrollbar { display: none; }
+
+/* floating tab bar: a sibling of Telegram's glass chrome; hidden while the MainButton is visible */
+.tma-tabbar {
+  position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tma-s3));
+  display: flex; gap: 2px; padding: 4px; min-height: 56px; width: min(100% - 2 * var(--tma-margin), 420px);
+  border-radius: 999px;
+}
+.tma-tabbar > button {
+  flex: 1; display: grid; justify-items: center; align-content: center; gap: 1px; min-height: 48px;
+  border: 0; border-radius: 999px; background: none; color: var(--tma-text);
+  font: inherit; font-size: var(--tma-fs-caption2); font-weight: 600; cursor: pointer;
+}
+.tma-tabbar > button[aria-selected="true"] { background: var(--tma-fill); color: var(--tma-accent-text); }
+:root[data-tma-main-button="visible"] .tma-tabbar { display: none; }
+:root:has(.tma-tabbar:not([hidden])):not([data-tma-main-button="visible"]) { --tma-tabbar-space: 80px; }
+
+/* ---------------------------------------------------------------- glass: floating controls only
+   A material, not a look: every value is a token, so the next platform redesign changes the tokens and
+   data/mini-apps/design-sources.json -> web_materials, not the components (references/mini-apps/
+   materials-and-trends.md section 2). Levels: .is-thin over media (iOS 27 frost "regular"), default for
+   floating bars (frost "medium-large"), .is-thick for sticky controls over text. Switches on <html>:
+   data-tma-glass="off" (solid), and the OS settings below. */
+:root {
+  --tma-glass-tint: 62%;                         /* share of the surface colour that stays opaque */
+  --tma-glass-blur: 16px;
+  --tma-glass-saturate: 1.8;
+  --tma-glass-rim: rgb(255 255 255 / .35);       /* top inner highlight */
+  --tma-glass-rim-low: rgb(0 0 0 / .08);         /* bottom inner edge */
+  --tma-glass-lift: 0 8px 24px rgb(0 0 0 / .14); /* separation from the content below */
+}
+.tma-glass {
+  background: color-mix(in srgb, var(--tma-surface) var(--tma-glass-tint), transparent);
+  -webkit-backdrop-filter: blur(var(--tma-glass-blur)) saturate(var(--tma-glass-saturate));
+  backdrop-filter: blur(var(--tma-glass-blur)) saturate(var(--tma-glass-saturate));
+  box-shadow: inset 0 1px 0 var(--tma-glass-rim), inset 0 -1px 0 var(--tma-glass-rim-low), var(--tma-glass-lift);
+}
+.tma-glass.is-thin { --tma-glass-tint: 45%; --tma-glass-blur: 6px; --tma-glass-lift: 0 4px 12px rgb(0 0 0 / .12); }
+.tma-glass.is-thick { --tma-glass-tint: 80%; --tma-glass-blur: 24px; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tma-glass { background: var(--tma-surface); }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .tma-glass { background: var(--tma-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+:root[data-tma-glass="off"] .tma-glass { background: var(--tma-surface); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 1px 0 var(--tma-separator); }
+:root[data-tma-perf="low"] .tma-glass { background: var(--tma-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* Scroll edge under a sticky glass control at the top: content fades out instead of colliding with it. */
+.tma-scroll-edge { position: sticky; top: 0; z-index: 9; }
+.tma-scroll-edge::after {
+  content: ""; position: absolute; inset-inline: 0; top: 100%; height: 12px; pointer-events: none;
+  background: linear-gradient(var(--tma-edge, var(--tma-page)), transparent);
+}
+
+/* ---------------------------------------------------------------- cards, banner, placeholder */
+.tma-card { background: var(--tma-surface); border-radius: var(--tma-r-group); padding: var(--tma-s4); }
+.tma-card > * + * { margin-top: var(--tma-s3); }
+.tma-banner {
+  position: relative; display: grid; grid-template-columns: 1fr auto; gap: var(--tma-s3); align-items: center;
+  padding: var(--tma-s4); border-radius: var(--tma-r-group); background: var(--tma-surface); overflow: hidden;
+}
+.tma-banner__close { position: absolute; top: var(--tma-s2); inset-inline-end: var(--tma-s2); width: 32px; height: 32px; }
+.tma-placeholder { display: grid; justify-items: center; gap: var(--tma-s2); padding: var(--tma-s8) var(--tma-s6); text-align: center; }
+.tma-placeholder__title { font-size: var(--tma-fs-title2); font-weight: 600; line-height: 1.273; margin: 0; }
+.tma-placeholder__icon {
+  display: grid; place-items: center; width: 50px; height: 50px; margin-bottom: var(--tma-s2); border-radius: 50%;
+  background: var(--tma-tonal); color: var(--tma-accent-text);
+}
+.tma-placeholder__icon > .tma-icon { width: 26px; height: 26px; stroke-width: 2; }
+.tma-placeholder__text { color: var(--tma-hint); margin: 0; max-width: 32ch; }
+
+/* ---------------------------------------------------------------- inputs */
+.tma-field { display: grid; gap: 6px; }
+/* Android: outlined fields with an 8 px radius (Telegram Mini Apps UI Kit, Android templates) */
+:root[data-tma-platform="android"] .tma-field > .tma-input { background: transparent; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--tma-fill-strong); }
+:root[data-tma-platform="android"] .tma-field > .tma-input:focus { box-shadow: inset 0 0 0 2px var(--tma-accent); }
+.tma-field__label { padding: 0 var(--tma-s4); color: var(--tma-section-header); font-size: var(--tma-fs-footnote); }
+.tma-field__error { padding: 0 var(--tma-s4); color: var(--tma-danger); font-size: var(--tma-fs-footnote); }
+.tma-input {
+  width: 100%; min-height: var(--tma-row); padding: 0 var(--tma-s4); border: 0; border-radius: var(--tma-r-inner);
+  background: var(--tma-surface); color: var(--tma-text); font: inherit; font-size: var(--tma-fs-body);
+}
+.tma-list .tma-input { border-radius: 0; background: none; }
+textarea.tma-input { min-height: 104px; padding: 14px var(--tma-s4); resize: vertical; line-height: 1.294; }
+.tma-input::placeholder { color: var(--tma-hint); opacity: 1; }
+.tma-input[aria-invalid="true"] { box-shadow: inset 0 0 0 1.5px var(--tma-danger); }
+select.tma-input {
+  appearance: none; padding-inline-end: 40px; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--tma-hint) 50%), linear-gradient(135deg, var(--tma-hint) 50%, transparent 50%);
+  background-position: calc(100% - 22px) 52%, calc(100% - 17px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+}
+:root[dir="rtl"] select.tma-input { background-position: 17px 52%, 22px 52%; }
+.tma-search {
+  display: flex; align-items: center; gap: var(--tma-s2); min-height: 36px; padding: 0 var(--tma-s3);
+  border-radius: 999px; background: var(--tma-fill); color: var(--tma-hint);
+}
+.tma-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--tma-text); font: inherit; font-size: var(--tma-fs-body); }
+.tma-switch {
+  appearance: none; flex: none; position: relative; width: 51px; height: 31px; margin: 0; border-radius: 999px;
+  background: var(--tma-fill-strong); cursor: pointer; transition: background-color var(--tma-dur) var(--tma-ease);
+}
+.tma-switch::after {
+  content: ""; position: absolute; top: 2px; inset-inline-start: 2px; width: 27px; height: 27px; border-radius: 50%;
+  background: var(--tma-fb-knob); box-shadow: 0 2px 6px rgb(0 0 0 / .2); transition: transform var(--tma-dur) var(--tma-ease);
+}
+.tma-switch:checked { background: var(--tma-success); }
+.tma-switch:checked::after { transform: translateX(20px); }
+:root[dir="rtl"] .tma-switch:checked::after { transform: translateX(-20px); }
+.tma-check { appearance: none; flex: none; width: 22px; height: 22px; margin: 0; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--tma-fill-strong); cursor: pointer; }
+.tma-check:checked { background: var(--tma-accent); box-shadow: inset 0 0 0 6px var(--tma-accent), inset 0 0 0 11px var(--tma-on-accent); }
+.tma-slider { width: 100%; accent-color: var(--tma-accent); }
+.tma-stepper { display: inline-flex; align-items: center; border-radius: 999px; background: var(--tma-fill); }
+.tma-stepper > button { width: 44px; height: 34px; border: 0; background: none; color: var(--tma-text); font: inherit; font-size: 1.2rem; cursor: pointer; }
+.tma-stepper > output { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* ---------------------------------------------------------------- feedback: skeleton, spinner, progress, snackbar */
+.tma-skeleton {
+  display: block; border-radius: 8px; color: transparent;
+  background: linear-gradient(90deg, var(--tma-fill) 0%, var(--tma-fill-strong) 50%, var(--tma-fill) 100%) 0 0 / 200% 100%;
+  animation: tma-shimmer 1.4s linear infinite;
+}
+@keyframes tma-shimmer { to { background-position: -200% 0; } }
+.tma-avatar.tma-skeleton, .tma-icon-tile.tma-skeleton { border-radius: 50%; }
+.tma-spinner {
+  width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--tma-fill-strong); border-top-color: var(--tma-accent);
+  animation: tma-spin .8s linear infinite;
+}
+@keyframes tma-spin { to { transform: rotate(1turn); } }
+.tma-progress { height: 4px; border-radius: 2px; background: var(--tma-fill); overflow: hidden; }
+.tma-progress > i { display: block; height: 100%; background: var(--tma-accent); border-radius: 2px; transform-origin: left; }
+.tma-snackbar {
+  position: fixed; z-index: 30; inset-inline: var(--tma-safe-left) var(--tma-safe-right);
+  bottom: calc(var(--tma-safe-bottom) + var(--tma-tabbar-space) + var(--tma-s3));
+  display: flex; align-items: center; gap: var(--tma-s3); padding: var(--tma-s3) var(--tma-s4);
+  border-radius: var(--tma-r-inner); background: var(--tma-text); color: var(--tma-bg); font-size: var(--tma-fs-subhead);
+  animation: tma-rise var(--tma-dur) var(--tma-ease);
+}
+.tma-snackbar[hidden] { display: none; }
+@keyframes tma-rise { from { transform: translateY(12px); opacity: 0; } }
+.tma-coachmark {
+  position: relative; padding: var(--tma-s3) var(--tma-s4); border-radius: var(--tma-r-inner);
+  background: var(--tma-accent); color: var(--tma-on-accent); font-size: var(--tma-fs-subhead);
+}
+
+/* ---------------------------------------------------------------- bottom sheet */
+.tma-scrim { position: fixed; inset: 0; z-index: 40; background: var(--tma-overlay); animation: tma-fade var(--tma-dur) var(--tma-ease); }
+.tma-scrim[hidden], .tma-sheet[hidden] { display: none; }
+@keyframes tma-fade { from { opacity: 0; } }
+.tma-sheet {
+  position: fixed; z-index: 41; inset-inline: 0; bottom: 0; max-height: calc(var(--tg-viewport-stable-height, 100svh) - var(--tma-safe-top) - 24px);
+  overflow: auto; padding: var(--tma-s2) var(--tma-safe-right) calc(var(--tma-safe-bottom) + var(--tma-s6)) var(--tma-safe-left);
+  border-radius: var(--tma-r-sheet) var(--tma-r-sheet) 0 0; background: var(--tma-surface);
+  animation: tma-sheet-in var(--tma-dur) var(--tma-ease);
+}
+.tma-sheet::before { content: ""; display: block; width: 36px; height: 5px; margin: 0 auto var(--tma-s3); border-radius: 3px; background: var(--tma-fill-strong); }
+/* iOS 27: the sheet floats 6 pt from the screen edges, all corners round, a wider and thinner grabber, a soft
+   shadow; the dimming layer is overlay black at 20 % (native-anatomy.md section 5). Android keeps the edge sheet. */
+:root[data-tma-platform="ios"] .tma-sheet {
+  inset-inline: 6px; bottom: 6px;
+  border-radius: var(--tma-r-sheet); box-shadow: 0 8px 48px rgb(0 0 0 / .25);
+  padding-bottom: calc(var(--tma-safe-bottom) + var(--tma-s4));
+}
+:root[data-tma-platform="ios"] .tma-sheet::before { width: 60px; height: 4px; margin-top: -2px; border-radius: 2px; }
+@keyframes tma-sheet-in { from { transform: translateY(100%); } }
+.tma-sheet__head { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: var(--tma-s4); }
+.tma-sheet__title { text-align: center; font-weight: 600; font-size: var(--tma-fs-body); }
+
+/* ---------------------------------------------------------------- chart */
+.tma-chart { display: block; width: 100%; height: 180px; color: var(--tma-success); }
+.tma-chart.is-down { color: var(--tma-danger); }
+.tma-chart__grid { stroke: var(--tma-separator); stroke-width: 1; }
+.tma-chart__line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.tma-chart__label { fill: var(--tma-hint); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- type: every iOS 27 role, regular and emphasized
+   (design-sources.json typography.scale). Semantic headings in long text map onto the roles via .tma-prose. */
+.tma-text-large-title { font-size: var(--tma-fs-large-title); line-height: 1.206; }
+.tma-text-title1 { font-size: var(--tma-fs-title1); line-height: 1.214; }
+.tma-text-title2 { font-size: var(--tma-fs-title2); line-height: 1.273; }
+.tma-text-title3 { font-size: var(--tma-fs-title3); line-height: 1.25; }
+.tma-text-headline { font-size: var(--tma-fs-body); line-height: 1.294; font-weight: 600; }
+.tma-text-body { font-size: var(--tma-fs-body); line-height: 1.294; }
+.tma-text-callout { font-size: var(--tma-fs-callout); line-height: 1.3125; }
+.tma-text-subhead { font-size: var(--tma-fs-subhead); line-height: 1.333; }
+.tma-text-footnote { font-size: var(--tma-fs-footnote); line-height: 1.385; }
+.tma-text-caption1 { font-size: var(--tma-fs-caption1); line-height: 1.333; }
+.tma-text-caption2 { font-size: var(--tma-fs-caption2); line-height: 1.18; letter-spacing: .005em; }
+[class*="tma-text-"].is-em { font-weight: 600; }
+.tma-text-headline.is-em { font-weight: 700; }
+.tma-prose { font-size: var(--tma-fs-body); line-height: 1.47; max-width: 65ch; }
+.tma-prose > * { margin: 0; }
+.tma-prose > * + * { margin-top: .75em; }
+.tma-prose h1 { font-size: var(--tma-fs-title1); line-height: 1.214; font-weight: 700; margin-top: 1.2em; }
+.tma-prose h2 { font-size: var(--tma-fs-title2); line-height: 1.273; font-weight: 600; margin-top: 1.1em; }
+.tma-prose h3 { font-size: var(--tma-fs-title3); line-height: 1.25; font-weight: 600; margin-top: 1em; }
+.tma-prose h4 { font-size: var(--tma-fs-body); font-weight: 600; margin-top: 1em; }
+.tma-prose h5 { font-size: var(--tma-fs-subhead); font-weight: 600; margin-top: .9em; }
+.tma-prose h6 { font-size: var(--tma-fs-footnote); font-weight: 600; color: var(--tma-hint); margin-top: .9em; }
+.tma-prose ul, .tma-prose ol { padding-inline-start: 1.3em; }
+.tma-prose li + li { margin-top: .3em; }
+.tma-prose code, .tma-code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; padding: .1em .35em; border-radius: 6px; background: var(--tma-fill); }
+.tma-prose pre { overflow-x: auto; padding: var(--tma-s3); border-radius: var(--tma-r-inner); background: var(--tma-fill); }
+.tma-prose pre code { padding: 0; background: none; }
+.tma-prose hr { border: 0; border-top: 1px solid var(--tma-separator); }
+.tma-quote { margin: 0; padding: var(--tma-s1) 0 var(--tma-s1) var(--tma-s3); border-inline-start: 2px solid var(--tma-accent); color: var(--tma-text); }
+.tma-quote cite { display: block; margin-top: var(--tma-s1); color: var(--tma-hint); font-size: var(--tma-fs-footnote); font-style: normal; }
+
+/* ---------------------------------------------------------------- tables: compared data only (2-5 facts read once stay a list) */
+.tma-table-wrap { overflow-x: auto; border-radius: var(--tma-r-group); background: var(--tma-surface); -webkit-overflow-scrolling: touch; }
+.tma-table { width: 100%; border-collapse: collapse; font-size: var(--tma-fs-subhead); font-variant-numeric: tabular-nums; }
+.tma-table caption { padding: var(--tma-s3) var(--tma-s4) var(--tma-s1); text-align: start; color: var(--tma-section-header); font-size: var(--tma-fs-footnote); caption-side: top; }
+.tma-table th, .tma-table td { padding: 10px var(--tma-s3); text-align: start; white-space: nowrap; }
+.tma-table th:first-child, .tma-table td:first-child { padding-inline-start: var(--tma-s4); }
+.tma-table th:last-child, .tma-table td:last-child { padding-inline-end: var(--tma-s4); }
+.tma-table thead th { position: sticky; top: 0; background: var(--tma-surface); color: var(--tma-hint); font-size: var(--tma-fs-footnote); font-weight: 500; }
+.tma-table tbody tr + tr td, .tma-table tbody tr + tr th { border-top: 1px solid var(--tma-separator); }
+.tma-table .is-num { text-align: end; }
+.tma-table th[aria-sort] { cursor: pointer; }
+.tma-table tr.is-me td, .tma-table tr.is-me th { background: var(--tma-tonal); }
+.tma-table.is-compact th, .tma-table.is-compact td { padding-block: 6px; }
+.tma-table tbody th[scope="row"] { font-weight: 500; position: sticky; inset-inline-start: 0; background: var(--tma-surface); }
+.tma-kv { margin: 0; background: var(--tma-surface); border-radius: var(--tma-r-group); overflow: hidden; }
+.tma-kv > div { display: flex; justify-content: space-between; gap: var(--tma-s4); min-height: 44px; align-items: center; padding: var(--tma-s2) var(--tma-s4); }
+.tma-kv > div + div { border-top: 1px solid var(--tma-separator); }
+.tma-kv.is-stacked > div { display: grid; justify-content: stretch; gap: 2px; padding-block: 10px; }
+.tma-kv.is-stacked dt { font-size: var(--tma-fs-footnote); }
+.tma-kv.is-stacked dd { text-align: start; }
+.tma-kv dt { color: var(--tma-hint); }
+.tma-kv dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tma-rank { width: 2ch; flex: none; color: var(--tma-hint); text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ---------------------------------------------------------------- settings rows: every iOS 27 trailing type
+   default detail (.tma-cell__after), disclosure (.tma-cell__chevron), button (.tma-cell.is-button), toggle (.tma-switch),
+   stepper (.tma-stepper), checkmark (.tma-cell__check), pop-up menu and date/time pill below. */
+.tma-cell__check { flex: none; width: 22px; height: 22px; color: var(--tma-accent-text); visibility: hidden; }
+[aria-checked="true"] > .tma-cell__check, [aria-selected="true"] > .tma-cell__check { visibility: visible; }
+.tma-pill-select {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 var(--tma-s3);
+  border-radius: 999px; background: var(--tma-fill); color: var(--tma-text); font-size: var(--tma-fs-body); font-variant-numeric: tabular-nums;
+}
+.tma-pill-select > select, .tma-pill-select > input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.tma-popup-trigger { display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; color: var(--tma-hint); font: inherit; cursor: pointer; padding: var(--tma-s2) 0; }
+.tma-popup-trigger .tma-icon { width: 16px; height: 16px; }
+.tma-cell.is-multiline .tma-cell__title, .tma-cell.is-multiline .tma-cell__subtitle { white-space: normal; }
+
+/* ---------------------------------------------------------------- menus and action sheets (own; native popups first) */
+.tma-menu {
+  position: absolute; z-index: 45; min-width: 220px; max-width: min(300px, 90vw); padding: 6px; border-radius: 20px;
+  background: var(--tma-surface); box-shadow: 0 10px 40px rgb(0 0 0 / .22); animation: tma-pop-in var(--tma-dur-short) var(--tma-ease);
+}
+.tma-menu[hidden] { display: none; }
+@keyframes tma-pop-in { from { transform: scale(.94); opacity: 0; } }
+.tma-menu > button { display: flex; align-items: center; justify-content: space-between; gap: var(--tma-s3); width: 100%; min-height: var(--tma-target); padding: 0 var(--tma-s3); border: 0; border-radius: 14px; background: none; color: var(--tma-text); font: inherit; text-align: start; cursor: pointer; }
+.tma-menu > button:active { background: var(--tma-fill); }
+.tma-menu > button.is-danger { color: var(--tma-danger); }
+.tma-menu > hr { margin: 4px var(--tma-s3); border: 0; border-top: 1px solid var(--tma-separator); }
+.tma-action-sheet { display: grid; gap: var(--tma-s2); }
+.tma-action-sheet .tma-cell { justify-content: center; color: var(--tma-accent-text); }
+.tma-action-sheet .tma-cell.is-danger { color: var(--tma-danger); }
+
+/* ---------------------------------------------------------------- media */
+.tma-media { position: relative; overflow: hidden; border-radius: var(--tma-r-inner); background: var(--tma-fill); aspect-ratio: var(--tma-ratio, 16 / 9); margin: 0; }
+.tma-media > img, .tma-media > video, .tma-media > canvas, .tma-media > svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tma-media.is-square { --tma-ratio: 1; }
+.tma-media.is-portrait { --tma-ratio: 4 / 5; }
+.tma-media.is-circle { --tma-ratio: 1; border-radius: 50%; }
+.tma-media.is-fill { border-radius: 0; }
+.tma-media.is-contain > img { object-fit: contain; }
+.tma-media__badge { position: absolute; inset-inline-end: var(--tma-s2); bottom: var(--tma-s2); padding: 2px 8px; border-radius: 999px; background: rgb(0 0 0 / .55); color: var(--tma-fb-knob); font-size: var(--tma-fs-caption1); font-variant-numeric: tabular-nums; }
+.tma-media__play { position: absolute; inset: 0; margin: auto; width: 56px; height: 56px; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgb(0 0 0 / .45); color: var(--tma-fb-knob); cursor: pointer; }
+.tma-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; border-radius: var(--tma-r-inner); overflow: hidden; }
+.tma-gallery > * { aspect-ratio: 1; border-radius: 0; width: 100%; height: 100%; object-fit: cover; }
+.tma-gallery > * > img { width: 100%; height: 100%; object-fit: cover; display: block; } /* tappable cells wrap the image */
+.tma-carousel { display: flex; gap: var(--tma-s3); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(-1 * var(--tma-safe-left)); padding-inline: var(--tma-safe-left); }
+.tma-carousel::-webkit-scrollbar { display: none; }
+.tma-carousel > * { flex: 0 0 86%; scroll-snap-align: center; }
+.tma-dots { display: flex; justify-content: center; gap: 6px; padding: var(--tma-s2) 0; }
+.tma-dots > i { width: 6px; height: 6px; border-radius: 50%; background: var(--tma-fill-strong); }
+.tma-dots > i[aria-current="true"] { background: var(--tma-text); }
+.tma-audio { display: flex; align-items: center; gap: var(--tma-s3); }
+.tma-audio__track { flex: 1; height: 4px; border-radius: 2px; background: var(--tma-fill); overflow: hidden; }
+.tma-audio__track > i { display: block; height: 100%; background: var(--tma-accent); }
+.tma-file__icon { flex: none; width: var(--tma-avatar); height: var(--tma-avatar); border-radius: 10px; display: grid; place-items: center; background: var(--tma-tonal); color: var(--tma-accent-text); }
+.tma-avatar-stack { display: flex; }
+.tma-avatar-stack > * { width: 28px; height: 28px; box-shadow: 0 0 0 2px var(--tma-surface); font-size: var(--tma-fs-caption2); }
+.tma-avatar-stack > * + * { margin-inline-start: -8px; }
+.tma-moment { display: grid; place-items: center; width: 120px; height: 120px; margin: 0 auto; color: var(--tma-accent-text); }
+.tma-moment > * { width: 100%; height: 100%; object-fit: contain; }
+.tma-map { position: relative; aspect-ratio: 16 / 10; border-radius: var(--tma-r-group); overflow: hidden; background: var(--tma-fill); }
+.tma-qr { display: grid; place-items: center; padding: var(--tma-s4); border-radius: var(--tma-r-group); background: var(--tma-fb-knob); width: min(240px, 70vw); aspect-ratio: 1; margin: 0 auto; }
+.tma-qr > * { width: 100%; height: 100%; }
+
+/* ---------------------------------------------------------------- Telegram's own values: Stars, grams, gifts
+   references/mini-apps/telegram-elements.md; formatting in _kit/tg-values.ts. Gift colours come from the API
+   (--gift-center / --gift-edge / --gift-text / --gift-symbol, set by giftVars()); the fallbacks are theme roles. */
+.tma-amount { display: inline-flex; align-items: baseline; gap: .22em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tma-amount__unit { color: var(--tma-hint); font-size: .72em; font-weight: 600; letter-spacing: .02em; }
+.tma-amount.is-stars { align-items: center; }
+.tma-star { flex: none; width: 1em; height: 1em; color: var(--tma-star); } /* the symbol paints itself in currentColor */
+.tma-figure .tma-star { width: .72em; height: .72em; }
+.tma-amount.is-negative { color: var(--tma-danger); }
+
+/* Stars price pill, as Telegram draws prices on gifts and paid items: a translucent gold pill, the gold star,
+   the amount in gold, sparkles drifting out of it. Sparkles stop (and stay at half opacity) when motion is
+   reduced or the device is weak. Markup: <span class="tma-stars-pill"><span class="tma-sparkles" aria-hidden="true">
+   <i></i> x10</span><svg class="tma-star"><use href="icons.svg#i-stars-gold"/></svg>25</span> */
+.tma-stars-pill {
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px 5px 8px;
+  border-radius: 999px; background: color-mix(in srgb, var(--tma-star) 13%, transparent); color: var(--tma-star-text);
+  font-size: var(--tma-fs-footnote); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.tma-stars-pill > .tma-star { width: 1.25em; height: 1.25em; }
+.tma-sparkles { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: visible; color: var(--tma-star); }
+.tma-sparkles > i {
+  position: absolute; width: 5px; height: 5px; background: currentColor; opacity: 0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: tma-sparkle 5s linear infinite; animation-delay: var(--d, 0s);
+}
+.tma-sparkles > i:nth-child(1) { left: 14%; top: 18%; --dx: -10px; --dy: -7px; --d: -0.4s; }
+.tma-sparkles > i:nth-child(2) { left: 26%; top: 70%; --dx: -8px; --dy: 8px; --d: -3.6s; scale: .8; }
+.tma-sparkles > i:nth-child(3) { left: 38%; top: 8%; --dx: -2px; --dy: -10px; --d: -1.6s; scale: 1.2; }
+.tma-sparkles > i:nth-child(4) { left: 48%; top: 78%; --dx: 1px; --dy: 10px; --d: -4.4s; }
+.tma-sparkles > i:nth-child(5) { left: 58%; top: 14%; --dx: 3px; --dy: -10px; --d: -2.4s; scale: .8; }
+.tma-sparkles > i:nth-child(6) { left: 68%; top: 64%; --dx: 7px; --dy: 9px; --d: -0.9s; scale: 1.2; }
+.tma-sparkles > i:nth-child(7) { left: 78%; top: 22%; --dx: 9px; --dy: -7px; --d: -3.1s; }
+.tma-sparkles > i:nth-child(8) { left: 86%; top: 58%; --dx: 11px; --dy: 5px; --d: -1.2s; scale: .8; }
+.tma-sparkles > i:nth-child(9) { left: 6%; top: 50%; --dx: -12px; --dy: 1px; --d: -2.8s; scale: 1.1; }
+.tma-sparkles > i:nth-child(10) { left: 94%; top: 36%; --dx: 12px; --dy: -2px; --d: -4.0s; }
+@keyframes tma-sparkle {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: .9; }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .tma-sparkles > i { animation: none; opacity: .5; } }
+:root[data-tma-perf="low"] .tma-sparkles > i { animation: none; opacity: .5; }
+.tma-amount.is-positive { color: var(--tma-success); }
+
+.tma-gift {
+  position: relative; display: grid; justify-items: center; align-content: start; gap: var(--tma-s1); padding: var(--tma-s3) var(--tma-s2);
+  border: 0; border-radius: var(--tma-r-inner); overflow: hidden; text-align: center; font: inherit; cursor: pointer;
+  color: var(--gift-text, var(--tma-text));
+  background: radial-gradient(circle at 50% 38%, var(--gift-center, var(--tma-fill)), var(--gift-edge, var(--tma-fill)) 78%);
+}
+.tma-gift:not([style*="--gift-center"]) { background: var(--tma-surface); box-shadow: inset 0 0 0 1px var(--tma-separator); }
+.tma-gift__art { position: relative; width: 72px; height: 72px; object-fit: contain; }
+.tma-gift__title { font-size: var(--tma-fs-footnote); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tma-gift__price {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--gift-text, var(--tma-text)) 16%, transparent); font-size: var(--tma-fs-footnote); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tma-gift__flag { position: absolute; inset-block-start: var(--tma-s2); inset-inline-end: var(--tma-s2); font-size: var(--tma-fs-caption2); font-weight: 600; opacity: .8; }
+.tma-gift__number { font-size: var(--tma-fs-caption1); opacity: .75; font-variant-numeric: tabular-nums; }
+/* unique gift: model on the backdrop, the symbol repeated as a faint pattern in its own colour */
+.tma-gift.is-unique { aspect-ratio: 1; align-content: end; padding-bottom: var(--tma-s3); }
+.tma-gift__pattern {
+  /* --gift-symbol-image: url() with an absolute URL (a relative one resolves against this stylesheet) */
+  position: absolute; inset: 0; background: var(--gift-symbol, var(--tma-fill-strong)); opacity: .18;
+  -webkit-mask: var(--gift-symbol-image) 0 0 / 30px 30px space; mask: var(--gift-symbol-image) 0 0 / 30px 30px space;
+}
+.tma-gift.is-unique .tma-gift__art { width: 58%; height: auto; aspect-ratio: 1; position: absolute; inset: 10% 0 auto; margin: auto; }
+.tma-gift.is-unique.is-lg .tma-gift__title { font-size: var(--tma-fs-title3); }
+.tma-gifts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--tma-s2); }
+.tma-limited { display: grid; gap: 6px; width: 100%; font-size: var(--tma-fs-caption1); color: var(--tma-hint); font-variant-numeric: tabular-nums; }
+.tma-gift .tma-limited { color: inherit; opacity: .8; }
+/* progress under a row title: the bar keeps its distance from the title above and the caption below */
+.tma-cell__body > .tma-limited { gap: var(--tma-s2); margin-top: var(--tma-s2); }
+.tma-gift .tma-progress { background: color-mix(in srgb, currentColor 18%, transparent); }
+.tma-gift .tma-progress > i { background: currentColor; }
+.tma-rarity {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: var(--tma-fill);
+  color: var(--tma-text); font-size: var(--tma-fs-caption1); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- more structure and input */
+.tma-accordion { background: var(--tma-surface); border-radius: var(--tma-r-group); overflow: hidden; }
+.tma-accordion > details + details { border-top: 1px solid var(--tma-separator); }
+.tma-accordion summary { display: flex; align-items: center; justify-content: space-between; min-height: var(--tma-row); padding: 0 var(--tma-s4); cursor: pointer; list-style: none; }
+.tma-accordion summary::-webkit-details-marker { display: none; }
+.tma-accordion summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--tma-hint); border-bottom: 2px solid var(--tma-hint); transform: rotate(45deg); transition: transform var(--tma-dur-short) var(--tma-ease); }
+.tma-accordion details[open] summary::after { transform: rotate(-135deg); }
+.tma-accordion details > :not(summary) { margin: 0; padding: 0 var(--tma-s4) var(--tma-s4); color: var(--tma-hint); }
+.tma-steps { list-style: none; margin: 0; padding: 0; }
+.tma-steps > li { position: relative; display: grid; grid-template-columns: 24px 1fr; gap: var(--tma-s3); padding-bottom: var(--tma-s4); }
+.tma-steps > li::before { content: ""; width: 12px; height: 12px; margin: 5px 6px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--tma-fill-strong); }
+.tma-steps > li:not(:last-child)::after { content: ""; position: absolute; inset-inline-start: 11px; top: 22px; bottom: 2px; width: 2px; background: var(--tma-fill-strong); }
+.tma-steps > li.is-done::before { background: var(--tma-accent); box-shadow: none; }
+.tma-steps > li.is-current::before { box-shadow: inset 0 0 0 4px var(--tma-accent); }
+/* rating input: a centred block - question, five stars (44 px targets), the chosen value in words.
+   Empty stars are outlines in the hint colour; chosen ones are the filled Stars glyph in --tma-star. */
+.tma-rate { display: grid; justify-items: center; gap: var(--tma-s2); text-align: center; }
+.tma-card.tma-rate > * + * { margin-top: 0; }
+.tma-rate__title { margin: 0; font-size: var(--tma-fs-body); font-weight: 600; }
+.tma-rate__value { margin: 0; min-height: 1.3em; color: var(--tma-hint); font-size: var(--tma-fs-footnote); }
+.tma-rating { display: flex; justify-content: center; gap: var(--tma-s1); color: var(--tma-hint); }
+.tma-rating > button {
+  display: grid; place-items: center; width: var(--tma-target); height: var(--tma-target); padding: 0; border: 0;
+  border-radius: 50%; background: none; color: inherit; cursor: pointer; transition: transform var(--tma-dur-short) var(--tma-ease);
+}
+.tma-rating > button:active { transform: scale(.88); }
+.tma-rating > button:focus-visible { outline-offset: -2px; }
+.tma-rating .tma-icon { width: 30px; height: 30px; stroke-width: 1.6; }
+.tma-rating > button.is-on { color: var(--tma-star); }
+.tma-rating > button.is-on .tma-icon { fill: currentColor; stroke: currentColor; }
+.tma-pin { display: flex; justify-content: center; gap: var(--tma-s2); }
+.tma-pin > input { width: 44px; height: 52px; border: 0; border-radius: var(--tma-r-inner); background: var(--tma-surface); color: var(--tma-text); text-align: center; font: inherit; font-size: var(--tma-fs-title2); font-variant-numeric: tabular-nums; }
+.tma-file-drop { position: relative; display: grid; justify-items: center; gap: var(--tma-s2); padding: var(--tma-s6); border-radius: var(--tma-r-group); border: 1.5px dashed var(--tma-fill-strong); color: var(--tma-hint); text-align: center; cursor: pointer; }
+.tma-file-drop > input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.tma-file-drop:focus-within { border-color: var(--tma-accent); }
+
+/* ---------------------------------------------------------------- catalogue layout (data/mini-apps/layouts.json, layout-rules.md)
+   grid tiles (L09), media cards, row thumbnails by content type (L02-L04), price (L06), meta, favourite (L19) */
+.tma-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--tma-s4) var(--tma-s3); }
+@media (min-width: 560px) { .tma-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tma-tile { position: relative; display: grid; align-content: start; gap: 4px; min-width: 0; color: inherit; text-decoration: none; }
+.tma-tile > .tma-media { margin-bottom: 4px; }
+.tma-tile.is-wide { padding-bottom: var(--tma-s1); }
+.tma-tile.is-card { padding: var(--tma-s3); border-radius: var(--tma-r-group); background: var(--tma-surface); }
+.tma-tile.is-card > .tma-media { margin: calc(-1 * var(--tma-s3)) calc(-1 * var(--tma-s3)) 4px; border-radius: var(--tma-r-group) var(--tma-r-group) 0 0; }
+.tma-tile[aria-disabled="true"] { opacity: .5; }
+.tma-tile__title { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--tma-fs-subhead); font-weight: 500; line-height: 1.333; }
+.tma-tile.is-wide .tma-tile__title { font-size: var(--tma-fs-body); font-weight: 600; }
+.tma-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tma-hint); font-size: var(--tma-fs-footnote); }
+.tma-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tma-price { display: inline-flex; align-items: baseline; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--tma-text); }
+.tma-price.is-lg { font-size: var(--tma-fs-title1); line-height: 1.2; }
+.tma-price__old { color: var(--tma-hint); font-weight: 400; font-size: .88em; text-decoration: line-through; }
+.tma-price__from, .tma-price__period { color: var(--tma-hint); font-weight: 400; font-size: .88em; }
+.tma-rating-inline { display: inline-flex; align-items: center; gap: 3px; color: var(--tma-hint); font-size: var(--tma-fs-footnote); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tma-rating-inline__star { width: 1em; height: 1em; flex: none; color: var(--tma-star); } /* an SVG, never the ★ character */
+.tma-avail { font-size: var(--tma-fs-footnote); color: var(--tma-hint); }
+.tma-avail.is-low { color: var(--tma-accent-text); }
+.tma-avail.is-out { color: var(--tma-danger); }
+.tma-media__tag { position: absolute; top: var(--tma-s2); inset-inline-start: var(--tma-s2); padding: 2px 8px; border-radius: 999px; background: var(--tma-surface); color: var(--tma-text); font-size: var(--tma-fs-caption1); font-weight: 500; }
+.tma-fav { position: absolute; top: 4px; inset-inline-end: 4px; z-index: 1; display: grid; place-items: center; width: var(--tma-target); height: var(--tma-target); border: 0; background: none; color: var(--tma-fb-knob); cursor: pointer; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .45)); }
+.tma-fav[aria-pressed="true"] .tma-icon { fill: currentColor; }
+.tma-row-thumb { flex: none; width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: var(--tma-fill); }
+.tma-row-thumb.is-cover { width: 48px; height: 72px; border-radius: 4px; object-fit: contain; }
+.tma-row-thumb.is-wide { width: 96px; height: 54px; border-radius: 8px; }
+.tma-row-thumb.is-round { border-radius: 50%; }
+.tma-cell:has(.tma-row-thumb) { --tma-cell-text: calc(var(--tma-s4) + 56px + var(--tma-s3)); }
+.tma-cell:has(.tma-row-thumb.is-cover) { --tma-cell-text: calc(var(--tma-s4) + 48px + var(--tma-s3)); }
+.tma-cell:has(.tma-row-thumb.is-wide) { --tma-cell-text: calc(var(--tma-s4) + 96px + var(--tma-s3)); }
+.tma-cell__time { flex: none; width: 3.2em; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* an unavailable row stays listed (L08): dimmed, still tappable for the reason, never colour alone */
+.tma-cell[aria-disabled="true"] > :not(.tma-cell__chevron) { opacity: .5; }
+
+/* booking (L16): day strip, slot grid, summary */
+.tma-days { display: flex; gap: var(--tma-s2); overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--tma-safe-left)); padding: 2px var(--tma-safe-left); }
+.tma-days::-webkit-scrollbar { display: none; }
+.tma-days > button { flex: none; display: grid; justify-items: center; gap: 2px; min-width: 52px; padding: var(--tma-s2) 0; border: 0; border-radius: var(--tma-r-inner); background: var(--tma-surface); color: var(--tma-text); font: inherit; cursor: pointer; }
+.tma-days > button span:first-child { color: var(--tma-hint); font-size: var(--tma-fs-caption1); }
+.tma-days > button span:last-child { font-size: var(--tma-fs-title3); font-weight: 600; font-variant-numeric: tabular-nums; }
+.tma-days > button[aria-pressed="true"] { background: var(--tma-accent); color: var(--tma-on-accent); }
+.tma-days > button[aria-pressed="true"] span:first-child { color: inherit; }
+.tma-days > button:disabled { opacity: .4; cursor: default; }
+.tma-slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--tma-s2); }
+@media (max-width: 340px) { .tma-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tma-slots > button { min-height: var(--tma-target); border: 0; border-radius: var(--tma-r-inner); background: var(--tma-surface); color: var(--tma-text); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; }
+.tma-slots > button[aria-pressed="true"] { background: var(--tma-accent); color: var(--tma-on-accent); }
+.tma-slots > button:disabled { background: none; color: var(--tma-hint); text-decoration: line-through; cursor: default; box-shadow: inset 0 0 0 1px var(--tma-separator); }
+.tma-summary { padding: var(--tma-s3) var(--tma-s4); border-radius: var(--tma-r-inner); background: var(--tma-tonal); color: var(--tma-accent-text); font-size: var(--tma-fs-subhead); }
+
+/* plans (L25) and feature lists */
+.tma-plan { display: grid; gap: var(--tma-s2); }
+.tma-plan[aria-checked="true"] { box-shadow: inset 0 0 0 2px var(--tma-accent); }
+.tma-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tma-checks > li { display: flex; gap: var(--tma-s2); align-items: baseline; }
+.tma-checks > li::before { content: ""; flex: none; width: 10px; height: 6px; margin-inline-end: 2px; border-left: 2px solid var(--tma-accent-text); border-bottom: 2px solid var(--tma-accent-text); transform: translateY(-3px) rotate(-45deg); }
+.tma-checks > li.is-no { color: var(--tma-hint); }
+.tma-checks > li.is-no::before { width: 8px; height: 0; border-left: 0; transform: none; border-bottom-color: var(--tma-hint); }
+
+/* photo viewer (L12): a pushed screen with the image contained and a counter */
+.tma-viewer { display: grid; gap: var(--tma-s3); }
+.tma-viewer__count { text-align: center; color: var(--tma-hint); font-size: var(--tma-fs-footnote); font-variant-numeric: tabular-nums; }
+.tma-content-cap { max-width: 600px; margin-inline: auto; }
+
+/* ---------------------------------------------------------------- style presets (data/mini-apps/styles.json)
+   <html data-tma-style="fintech|soft|dense">; "native" is the default above. Shape, density and type only:
+   colours stay the user's theme. A custom profile compiles with scripts/miniapp_style.py css. */
+:root[data-tma-style="fintech"] { --tma-r-group: 22px; --tma-row-2: 64px; --tma-avatar: 44px; --tma-figure-size: clamp(3rem, 15vw, 4rem); }
+:root[data-tma-style="soft"] { --tma-r-group: 30px; --tma-r-inner: 18px; --tma-row: 56px; --tma-row-2: 72px; --tma-avatar: 48px; --tma-gap-section: 28px; }
+:root[data-tma-style="dense"] { --tma-r-group: 12px; --tma-r-inner: 8px; --tma-row: 44px; --tma-row-2: 56px; --tma-avatar: 32px; --tma-gap-section: 16px; --tma-fs-body: .941rem; }
+:root[data-tma-style="dense"] .tma-glass { background: var(--tma-surface); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 1px 0 var(--tma-separator); }
+:root[data-tma-platform="android"][data-tma-style="dense"] .tma-list { border-radius: 0; margin-inline: calc(-1 * var(--tma-safe-left)); }
+
+/* brand moment: a hero block in the brand colour; the header follows it (tma.ts chrome) */
+.tma-hero {
+  margin: calc(-1 * var(--tma-safe-top) - var(--tma-s2)) calc(-1 * var(--tma-safe-right)) 0 calc(-1 * var(--tma-safe-left));
+  padding: calc(var(--tma-safe-top) + var(--tma-s4)) var(--tma-safe-right) var(--tma-s8) var(--tma-safe-left);
+  background: linear-gradient(var(--tma-brand) calc(100% - var(--tma-s8)), var(--tma-page)); /* fades into the page below the text */
+  color: var(--tma-on-brand);
+}
+.tma-hero .tma-hint, .tma-hero .tma-figure__minor { color: color-mix(in srgb, var(--tma-on-brand) 72%, transparent); }
+
+/* tilt: a card that follows the device orientation (tma.motion); flat when motion is reduced */
+.tma-tilt { transition: transform 120ms linear; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .tma-tilt { transform: none !important; } }
+
+/* ---------------------------------------------------------------- motion and accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  .tma-skeleton { animation: none; }
+}
+:root[data-tma-perf="low"] .tma-screen { animation: none; }

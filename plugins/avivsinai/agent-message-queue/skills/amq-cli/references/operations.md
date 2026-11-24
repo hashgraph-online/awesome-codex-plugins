@@ -264,7 +264,7 @@ age, DLQ state, presence freshness, and integration hints on top of the base
 
 For `doctor`, `--root` selects the exact target but does not waive the active
 pin. Read-only inspection continues and reports a mismatch warning.
-`--fix-mailboxes` and `--ops --fix-wake-locks` require a matching pin unless an explicit non-empty
+`--fix-mailboxes` and `--fix-wake-locks` require a matching pin unless an explicit non-empty
 `--root` is paired with `--ignore-session-pin`. `--base-root` requires
 `--root`, supplies retained config authority for the target or one direct
 child, and never waives the pin.
@@ -343,7 +343,7 @@ preserve the state and diagnose it. Never kill a live raw wake from a non-TTY
 process, and never accept an attention-only fallback as a replacement for
 full-strength input delivery. When the recorded image or restart stage lives
 under a directory that no longer exists, the check reports
-`reason_code=binary_dir_gone` and names `amq doctor --ops --fix-wake-locks`
+`reason_code=binary_dir_gone` and names `amq doctor --fix-wake-locks`
 instead of a raw ENOENT.
 
 Resume-eligible `coop exec` wakes automatically observe their stable

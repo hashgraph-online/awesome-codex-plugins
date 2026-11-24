@@ -5,8 +5,8 @@
   </picture>
 </p>
 
-<p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 52 coding agents.</b><br>
-Local inverted index in a single Go binary — zero LLM calls, 0.7–0.8 ms in-process lookups, ~4% index footprint.</p>
+<p align="center"><b>Instant local memory for 52 coding agents — reads the session logs already on your disk.</b><br>
+Survives /compact, hands off across agents, and recovers overwritten code. One Go binary, zero LLM calls, no API key, 0.7–0.8 ms lookups.</p>
 
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
 
@@ -26,6 +26,7 @@ Local inverted index in a single Go binary — zero LLM calls, 0.7–0.8 ms in-p
 <p align="center"><img src="https://raw.githubusercontent.com/vshulcz/deja-vu/main/assets/demo.gif" width="720" alt="deja-vu answering a question from prior session history"></p>
 
 ```sh
+npx @vshulcz/deja-vu audit --secrets               # scan local logs for expiry & leaked keys, no install
 npx @vshulcz/deja-vu install --auto                # install and wire detected agents
 curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh && deja install --auto
 claude plugin marketplace add vshulcz/deja-vu && claude plugin install deja-vu@deja-vu
@@ -39,7 +40,7 @@ $ deja "jwt refresh token"             # lexical + structural search across 52 c
 $ deja handoff --to codex              # transfer goal, decisions & open work across agents
 $ deja restore internal/auth/jwt.go    # recover an edit span replaced before git commit
 $ deja blame internal/auth/jwt.go:42   # trace which agent session wrote or replaced a line
-$ deja audit                           # inspect store paths, cleanup risk & index health
+$ deja audit --secrets                 # inspect store paths, cleanup risk & leaked keys
 ```
 
 ## Overview

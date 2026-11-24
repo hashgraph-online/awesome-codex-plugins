@@ -118,7 +118,7 @@ The catalog, per session:
 | `select_at` | Picks the option whose visible label is `value` in the select-like control at a point; the point must land on a listed select. Listed when the engine declares `select`. |
 | `start_recording` | Starts a video of the app (`name` optional, for the file name). Listed when the engine records video. |
 | `stop_recording` | Stops it and returns the absolute path of each video file, under `<output>/videos/<session>/` (`.e2e` by default), or the URL of a provider's own recording. |
-| Project tools | Every `defineTool` in the agent's `tools` that applies to the target's platform, under its own name; an engine pack such as `mobileTools` adds `open_app`, `swipe`, `alert`. |
+| Project tools | Every `defineTool` in the agent's `tools` that applies to the target's platform, under its own name; an engine pack such as `mobileTools` adds `open_app`, `swipe`, `alert`, and `foldTools` adds `fold` for a foldable device. |
 
 Project tools use their `toModelOutput` renderer for strings as well as
 structured results. Its `error-text` and `error-json` outputs set the MCP

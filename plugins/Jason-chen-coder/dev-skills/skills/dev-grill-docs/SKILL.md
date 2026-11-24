@@ -1,6 +1,6 @@
 ---
 name: dev-grill-docs
-description: 'Clarify feature requirements, pressure-test scope and domain terms, and produce a feature spec before implementation. Use for fuzzy requirements, PRD/spec requests, 需求对齐, 拷问需求, or 设计文档. Read existing evidence before asking focused questions. For concrete implementation planning use dev-plan; a generic "do not edit code" instruction alone does not trigger intake. Supports --quick, --deep, and --spec-only.'
+description: 'Clarify requirements and UI/API contracts before implementation. Trigger for 需求对齐, 拷问需求, 设计文档, PRD/spec, and natural requests such as 帮我对一下接口, 看看接口缺什么, 这个页面能对接了吗, 接口有了看看怎么对接, or 整理给后端确认. For UI/API gap analysis, default to concise standalone HTML with UI comparison, red-box screenshots, and gaps/questions. Reuse current project and API context; no skill name or output recipe required. Single-endpoint lookup belongs to swagger-doc-skill; explicit coding requests retain their implementation scope. Supports --quick, --deep, and --spec-only.'
 ---
 
 # Dev Grill Docs
@@ -12,13 +12,14 @@ Read [references/dev-baseline.md](references/dev-baseline.md). Project artifacts
 ## Routing and depth
 
 - Use this entry point for requirement alignment. `dev-spec` is the compatibility alias for `--spec-only`.
+- For UI/API integration clarification (接口对接澄清), read [references/ui-api-alignment.md](references/ui-api-alignment.md). Natural requests such as “帮我对一下接口” are sufficient when context indicates UI/API alignment; do not require the skill name, a special flag, or a repeated output specification. This is a scenario within this skill, not a separate skill or mandatory stage for every API task.
 - When scope is already clear and the user wants implementation steps, use `dev-plan` if available; a particular phrase such as "写个方案" does not override the conversation's actual intent.
 - Broken behavior belongs to `dev-fix`. Persistent visual direction belongs to `dev-design-context`.
 - `--quick` requests a compact contract and minimal questions; zero questions is correct when evidence is sufficient.
 - Default depth covers the material uncertainties. `--deep` adds scrutiny of lifecycle, invariants, compatibility, failures, and reversibility where relevant.
 - `--spec-only` disables glossary and ADR writes. It is independent of interview depth.
 
-Explicit analysis-only, chat-only, or no-file instructions govern output. A request to discuss an idea is not permission to write project documents. When the user requests a spec or feature alignment artifact, write `.claude/artifacts/designs/<feature>.md` unless they specify another path.
+Explicit analysis-only scope excludes implementation; chat-only or no-file instructions also govern output. A request to discuss an idea is not permission to write project documents. When the user requests a spec or feature alignment artifact, write `.claude/artifacts/designs/<feature>.md` unless they specify another path. For UI/API gap analysis, default to the concise standalone HTML described in the scenario reference, even when no format is named; do not also generate a spec unless requested or needed by the authorized workflow. A simple factual question still merits a direct answer, not a report.
 
 ## Gather evidence before questions
 

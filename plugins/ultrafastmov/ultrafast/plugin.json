@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ultrafast",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Shaders, 3D, motion type and camera optics, written by your agent and rendered on the GPU. The ultrafast skill (the document format and the check, look, review and export loop) and the local MCP server, uf mcp, with 20 tools. Needs the uf command: curl -fsSL https://ultrafast.mov/install.sh | sh",
   "author": { "name": "ultrafast", "url": "https://ultrafast.mov" },
   "homepage": "https://ultrafast.mov",

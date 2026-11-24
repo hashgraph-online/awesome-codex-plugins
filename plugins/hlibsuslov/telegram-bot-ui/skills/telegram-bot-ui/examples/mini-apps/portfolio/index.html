@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-tma-style="fintech">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Points</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
+  <link rel="stylesheet" href="../_kit/tma.css">
+  <script type="module" src="./dist/app.js"></script>
+</head>
+<body>
+<!-- Points portfolio (fictional product), dark-fintech style: recipe 95. One figure per screen, quick actions,
+     one promo moment, quiet asset rows, one chart; colours are the user's theme. -->
+<main class="tma-page" id="home">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding-top:var(--tma-s2)">
+    <span class="tma-avatar" id="me" aria-hidden="true"></span>
+    <button class="tma-chip" type="button" id="hide" aria-pressed="false"><svg class="tma-icon" aria-hidden="true" style="width:18px;height:18px"><use href="../_kit/icons.svg#i-eye"/></svg><span>Hide balance</span></button>
+  </div>
+  <section aria-labelledby="bal-l" style="padding:var(--tma-s5) 0 var(--tma-s6)">
+    <p class="tma-subhead tma-hint" id="bal-l" style="margin:0">Total points</p>
+    <p class="tma-figure is-loading" id="balance" aria-live="polite"><span class="tma-skeleton" style="width:200px;height:56px"></span></p>
+    <span class="tma-delta" id="balance-delta"></span>
+  </section>
+  <div class="tma-actions" style="--tma-cols:4">
+    <button class="tma-action" type="button" data-act="earn"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-plus"/></svg></span>Earn</button>
+    <button class="tma-action" type="button" data-act="send"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-send"/></svg></span>Send</button>
+    <button class="tma-action" type="button" data-act="swap"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-swap"/></svg></span>Exchange</button>
+    <button class="tma-action" type="button" data-act="code"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-qr"/></svg></span>Pay code</button>
+  </div>
+  <div class="tma-stack" style="margin-top:var(--tma-gap-section)">
+    <div class="tma-banner" id="promo" hidden>
+      <div><p class="tma-headline" style="margin:0">Double points on Mondays</p><p class="tma-footnote" style="margin:2px 0 0">Every drink at every store. <a href="#bonus" data-go="bonus">How it works</a></p></div>
+      <button class="tma-icon-btn tma-banner__close" type="button" aria-label="Hide this offer"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-close"/></svg></button>
+    </div>
+    <section class="tma-section" aria-labelledby="assets-h">
+      <h2 class="tma-section__header" id="assets-h"><strong>Balances</strong><span id="assets-total" class="tma-num"></span></h2>
+      <ul class="tma-list" id="assets" aria-busy="true"></ul>
+    </section>
+  </div>
+</main>
+
+<main class="tma-page" id="bonus" hidden>
+  <div class="tma-hero">
+    <p class="tma-subhead tma-hint" style="margin:0">Bonus level</p>
+    <p class="tma-title1">Gold</p>
+    <p class="tma-subhead tma-hint" style="margin:var(--tma-s1) 0 0"><span class="tma-num">260</span> points to Platinum</p>
+  </div>
+  <div class="tma-stack" style="margin-top:calc(-1 * var(--tma-s4))">
+    <section class="tma-card" aria-labelledby="ev-h">
+      <p class="tma-tag" id="ev-h">Tasting week</p>
+      <p class="tma-title3" style="margin:0">Starts in <span class="tma-num" id="countdown">—</span></p>
+      <p class="tma-hint" style="margin:0">Taste three single origins and get 50 points.</p>
+      <button class="tma-btn is-tonal is-wide" type="button" id="remind">Remind me</button>
+    </section>
+    <section class="tma-section" aria-labelledby="earn-h">
+      <h2 class="tma-section__header" id="earn-h">How to earn</h2>
+      <ul class="tma-list">
+        <li><button class="tma-cell is-2" type="button"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-cup"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Order ahead</span><span class="tma-cell__subtitle"><span style="color:var(--tma-accent-text)">+5</span> for every €5</span></span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li>
+        <li><button class="tma-cell is-2" type="button"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-people"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Invite a friend</span><span class="tma-cell__subtitle"><span style="color:var(--tma-accent-text)">+50</span> each after their first order</span></span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<main class="tma-page tma-screen" id="asset" hidden>
+  <header class="tma-header" style="display:flex;gap:var(--tma-s4);align-items:center">
+    <span class="tma-avatar is-56" id="a-icon" aria-hidden="true"></span>
+    <div style="flex:1;min-width:0"><h1 class="tma-title2" id="a-name"></h1><p class="tma-subhead tma-hint" id="a-sub" style="margin:2px 0 0"></p></div>
+    <button class="tma-chip" type="button" id="watch" aria-pressed="false"><svg class="tma-icon" aria-hidden="true" style="width:16px;height:16px"><use href="../_kit/icons.svg#i-star"/></svg>Watch</button>
+  </header>
+  <p class="tma-figure" id="a-value"></p>
+  <span class="tma-delta" id="a-delta"></span>
+  <svg class="tma-chart" id="chart" viewBox="0 0 320 180" role="img" style="margin-top:var(--tma-s4)"></svg>
+  <div class="tma-segmented" role="tablist" aria-label="Period" id="period"></div>
+  <div class="tma-stack" style="margin-top:var(--tma-gap-section)">
+    <ul class="tma-list"><li><button class="tma-cell is-2" type="button"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-history"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">History</span><span class="tma-cell__subtitle">Every earn and spend</span></span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li></ul>
+    <section class="tma-card" aria-labelledby="about-h"><h2 class="tma-headline" id="about-h" style="margin:0">About</h2><p class="tma-hint" id="a-about" style="margin:0"></p></section>
+  </div>
+</main>
+
+<nav class="tma-tabbar tma-glass" role="tablist" aria-label="Sections" id="tabbar">
+  <button type="button" role="tab" aria-selected="true" data-go="home"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-wallet"/></svg>Points</button>
+  <button type="button" role="tab" aria-selected="false" data-go="bonus"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-gift"/></svg>Bonus</button>
+</nav>
+
+<div class="tma-scrim" id="scrim" hidden></div>
+<section class="tma-sheet" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="ob-t" hidden>
+  <div class="tma-sheet__head"><button class="tma-icon-btn" type="button" aria-label="Close" id="ob-close"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-close"/></svg></button><span></span><span></span></div>
+  <div class="tma-moment" aria-hidden="true"><svg class="tma-icon" style="stroke-width:1.1"><use href="../_kit/icons.svg#i-coins"/></svg></div>
+  <h2 class="tma-title2" id="ob-t" style="text-align:center;margin:var(--tma-s4) 0">Points that pay for coffee</h2>
+  <ul class="tma-list">
+    <li><div class="tma-cell is-2"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-plus"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Earn on every order</span><span class="tma-cell__subtitle">1 point for every €1</span></span></div></li>
+    <li><div class="tma-cell is-2"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-qr"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Pay with a code</span><span class="tma-cell__subtitle">Show it at the counter</span></span></div></li>
+  </ul>
+  <p class="tma-footnote" style="text-align:center">By continuing you accept the <a href="https://telegram.org/tos" id="ob-terms">programme rules</a>.</p>
+</section>
+<div class="tma-snackbar" role="status" id="snackbar" hidden></div>
+<button type="button" class="tma-btn is-filled is-lg" data-tma-fallback="main-button" hidden></button>
+</body>
+</html>

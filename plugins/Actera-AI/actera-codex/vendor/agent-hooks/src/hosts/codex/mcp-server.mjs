@@ -6,7 +6,7 @@ import { openBrowser } from '../../core/pairing.mjs'
 import { bridgeHome, codexEvaluationFailure, loadConfig, recordHookRun } from './bridge.mjs'
 import { holdMs, pollMs, preToolUse } from './pre-tool-use.mjs'
 import { holdWithReview } from './review.mjs'
-import { SettingsError } from './settings.mjs'
+import { SettingsError } from '../../core/settings.mjs'
 
 // Codex starts this MCP server from the plugin, and the plugin's PreToolUse
 // hook is an mcp_tool hook that calls pre_tool_use here. Unlike a command

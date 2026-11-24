@@ -1,0 +1,33 @@
+{
+  "scenario": "r99-editor",
+  "status": "production",
+  "context": "revisioned drafts, publish confirmation",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 279058397,
+        "text": "Publish to the menu board?\n\nAutumn blend: spiced, low acidity. €3.80",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Publish",
+                "callback_data": "pub:menu-board:2",
+                "style": "success"
+              },
+              {
+                "text": "Keep editing",
+                "web_app": {
+                  "url": "https://coffee.example.com/app/editor/menu-board"
+                }
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

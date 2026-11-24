@@ -1,6 +1,6 @@
 {
   "name": "@masakaai/codex-multiple-env",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "type": "module",
   "description": "Switch isolated Codex account and workspace profiles without repeated logout/login",
   "homepage": "https://github.com/masakaai/codex-multiple-env#readme",

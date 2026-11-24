@@ -1,0 +1,570 @@
+{
+ "$comment": "Design values read through the Figma MCP on 2026-11-23 (read-only). Live Telegram themeParams always win; these values are fallbacks and proportions. See references/mini-apps/design-sources.md.",
+ "sources": {
+  "ios27": {
+   "title": "Apple iOS and iPadOS 27 (Figma Community 1651309003795292092)",
+   "status": "read",
+   "license_note": "Apple design resource: use for proportions and behaviour, do not ship its images or icons"
+  },
+  "telegram_mini_apps_kit": {
+   "title": "Telegram Mini Apps UI Kit (Community)",
+   "status": "read, pre-Liquid-Glass",
+   "use": "themeParams roles, component inventory, iOS/Android split, cell slots, list layouts"
+  },
+  "telegram_ui_community": {
+   "status": "not read: no draft copy"
+  },
+  "appetite_ui": {
+   "status": "not read: no access; paid kit, values must not be copied into this skill"
+  },
+  "telegram_design_guidelines": {
+   "status": "read",
+   "url": "https://core.telegram.org/bots/webapps#design-guidelines"
+  }
+ },
+ "ios27": {
+  "colors": {
+   "accent_blue": [
+    "#0088ff",
+    "#0091ff"
+   ],
+   "green": [
+    "#34c759",
+    "#30d158"
+   ],
+   "red": [
+    "#ff383c",
+    "#ff4245"
+   ],
+   "orange": [
+    "#ff8d28",
+    "#ff9230"
+   ],
+   "gray": [
+    "#8e8e93",
+    "#8e8e93"
+   ],
+   "background_primary": [
+    "#ffffff",
+    "#000000"
+   ],
+   "background_secondary": [
+    "#f2f2f7",
+    "#1c1c1e"
+   ],
+   "background_tertiary": [
+    "#ffffff",
+    "#2c2c2e"
+   ],
+   "grouped_primary": [
+    "#f2f2f7",
+    "#000000"
+   ],
+   "grouped_secondary": [
+    "#ffffff",
+    "#1c1c1e"
+   ],
+   "grouped_tertiary": [
+    "#f2f2f7",
+    "#2c2c2e"
+   ],
+   "elevated_primary": [
+    "#ffffff",
+    "#1c1c1e"
+   ],
+   "elevated_secondary": [
+    "#f2f2f7",
+    "#2c2c2e"
+   ],
+   "label_primary": [
+    "#000000",
+    "#ffffff"
+   ],
+   "label_secondary": [
+    "rgb(60 60 67 / .60)",
+    "rgb(235 235 245 / .70)"
+   ],
+   "label_tertiary": [
+    "rgb(60 60 67 / .30)",
+    "rgb(235 235 245 / .30)"
+   ],
+   "label_quaternary": [
+    "rgb(60 60 67 / .18)",
+    "rgb(235 235 245 / .16)"
+   ],
+   "fill_primary": [
+    "rgb(120 120 120 / .20)",
+    "rgb(120 120 128 / .36)"
+   ],
+   "fill_secondary": [
+    "rgb(120 120 128 / .16)",
+    "rgb(120 120 128 / .32)"
+   ],
+   "fill_tertiary": [
+    "rgb(118 118 128 / .12)",
+    "rgb(118 118 128 / .24)"
+   ],
+   "fill_quaternary": [
+    "rgb(116 116 128 / .08)",
+    "rgb(118 118 128 / .18)"
+   ],
+   "separator_non_opaque": [
+    "rgb(0 0 0 / .12)",
+    "rgb(255 255 255 / .17)"
+   ],
+   "separator_opaque": [
+    "#c6c6c8",
+    "#38383a"
+   ],
+   "overlay": [
+    "rgb(0 0 0 / .20)",
+    "rgb(0 0 0 / .48)"
+   ],
+   "destructive_button_bg": [
+    "rgb(255 56 60 / .14)",
+    "rgb(255 66 69 / .14)"
+   ],
+   "segmented_selected_fill": [
+    "#ffffff",
+    "rgb(255 255 255 / .27)"
+   ],
+   "modes": [
+    "Light",
+    "Dark",
+    "Increased Contrast (separate collection)"
+   ]
+  },
+  "typography": {
+   "family": "SF Pro (system-ui)",
+   "scale": {
+    "large_title": [
+     34,
+     41,
+     0.4,
+     "Regular"
+    ],
+    "title_1": [
+     28,
+     34,
+     0.38,
+     "Regular"
+    ],
+    "title_2": [
+     22,
+     28,
+     -0.26,
+     "Regular"
+    ],
+    "title_3": [
+     20,
+     25,
+     -0.45,
+     "Regular"
+    ],
+    "headline": [
+     17,
+     22,
+     -0.43,
+     "Semibold"
+    ],
+    "body": [
+     17,
+     22,
+     -0.43,
+     "Regular / Semibold emphasized"
+    ],
+    "callout": [
+     16,
+     21,
+     -0.31,
+     "Regular"
+    ],
+    "subheadline": [
+     15,
+     20,
+     -0.23,
+     "Regular"
+    ],
+    "footnote": [
+     13,
+     18,
+     -0.08,
+     "Regular"
+    ],
+    "caption_1": [
+     12,
+     16,
+     0,
+     "Regular"
+    ],
+    "caption_2": [
+     11,
+     13,
+     0.06,
+     "Regular"
+    ]
+   },
+   "columns": "size px, line height px, tracking px, weight",
+   "dynamic_type": "12 sizes xSmall..AX5; Large is default"
+  },
+  "liquid_glass": {
+   "figma_effect": {
+    "frost_regular": 6,
+    "frost_medium_large": 16,
+    "refraction": 0.7,
+    "depth": 30,
+    "dispersion": 0.2,
+    "splay": 0.2,
+    "light_angle": 0,
+    "light_intensity": 0.25
+   },
+   "layers": "glass effect + inner highlight (light, top) + inner dodge shadows top and bottom; no drop shadow on small controls",
+   "shape": "capsule (radius = half height)",
+   "scroll_edge_effect": {
+    "blur": 10,
+    "top": 27,
+    "bottom": 62
+   }
+  },
+  "dimensions": {
+   "margin": 16,
+   "status_bar": 62,
+   "home_indicator": [
+    144,
+    5
+   ],
+   "sheet_top_radius": 38,
+   "sheet_bottom_radius_floating": 58,
+   "popover_radius": 38,
+   "grabber": [
+    60,
+    4
+   ],
+   "readable_content_margin": 260,
+   "menu_item_padding": [
+    10,
+    16
+   ]
+  },
+  "components": {
+   "tab_bar_iphone": {
+    "variants": "Tabs 2-5; Type Default | Search Role | Prominent Tab; Minimized",
+    "pill_height": 48,
+    "tab_hit": 40,
+    "outer_padding": [
+     16,
+     32,
+     32,
+     32
+    ],
+    "gap_to_side_button": 16,
+    "side_button": "separate 48 glass circle (search or prominent action)",
+    "selected": "fill capsule behind tab + accent icon and label"
+   },
+   "button_content_area": {
+    "sizes": {
+     "small": 28,
+     "medium": 34,
+     "large": 50
+    },
+    "styles": [
+     "Bordered - Prominent",
+     "Bordered",
+     "Borderless"
+    ],
+    "radius": "capsule; borderless large 12",
+    "text": "15 Regular small/medium, 17 Regular large",
+    "label_styles": [
+     "Title and Icon",
+     "Icon only",
+     "Title only"
+    ]
+   },
+   "button_glass_text": {
+    "sizes": {
+     "small": 28,
+     "medium": 34,
+     "large": 50
+    },
+    "styles": [
+     "Glass",
+     "Glass Prominent"
+    ],
+    "text": "15 Medium small, 17 Medium medium/large",
+    "radius": "capsule"
+   },
+   "button_glass_symbol": {
+    "size": 50,
+    "symbol": "19 Semibold",
+    "styles": [
+     "Glass",
+     "Glass Prominent"
+    ]
+   },
+   "segmented_control": {
+    "height": 32,
+    "option_height": 28,
+    "radius": "capsule",
+    "sizes": [
+     "Large",
+     "Small"
+    ]
+   },
+   "list_row": {
+    "heights": {
+     "regular": 52,
+     "with_subtitle": 68
+    },
+    "padding_x": 16,
+    "trailing": [
+     "Default detail",
+     "Disclosure",
+     "Button",
+     "Date/Time picker pill",
+     "Pop-up",
+     "Stepper",
+     "Toggle"
+    ],
+    "images": [
+     "Fill",
+     "Circular",
+     "Rounded",
+     "Symbol"
+    ]
+   },
+   "list_header": {
+    "types": [
+     "Nested",
+     "Prominent",
+     "Extra Prominent"
+    ],
+    "height": 48,
+    "padding": [
+     10,
+     16
+    ]
+   },
+   "list_layouts": [
+    "Inset grouped (cards on grouped background)",
+    "Full width",
+    "Full width + section headers and index"
+   ],
+   "sheet_iphone": {
+    "detents": [
+     "Medium",
+     "Large",
+     "Large (Stacked)"
+    ],
+    "top_radius": 38,
+    "header": "glass close (x) left, title center, prominent confirm (check) right"
+   }
+  },
+  "anatomy": {
+   "$comment": "Measured through the Figma MCP on 2026-11-24 (pages Layout Guides, Lists, Buttons, Tab Bars, Sheets, Alerts, Empty States). Points. Rules: references/mini-apps/native-anatomy.md.",
+   "layout": {
+    "list_margin": 16,
+    "layout_margin_wide": 20,
+    "iphone_duo": {
+     "inner": [
+      669,
+      951
+     ],
+     "outer": [
+      466,
+      678
+     ],
+     "tab_bar_width_inner": 409
+    }
+   },
+   "list": {
+    "row": [
+     52,
+     68
+    ],
+    "row_padding": 16,
+    "image_gap": 8,
+    "image_regular": {
+     "fill": 52,
+     "circle": 42,
+     "rounded": 30,
+     "symbol": [
+      28,
+      20
+     ]
+    },
+    "image_tall": {
+     "fill": 68,
+     "circle": 60,
+     "rounded": 44
+    },
+    "trailing_gap": 16,
+    "chevron_width": 8,
+    "chevron_colour": "labels/tertiary (30 %)",
+    "header": {
+     "nested": "17/22 semibold, labels/secondary (the kit default)",
+     "prominent": "20/25 semibold, labels/primary",
+     "extra_prominent": "22/28 bold, labels/primary",
+     "padding": [
+      10,
+      16
+     ],
+     "action": "15/20 regular accent"
+    },
+    "footer": {
+     "type": "13/18 regular labels/secondary",
+     "padding": [
+      8,
+      16,
+      6,
+      16
+     ]
+    },
+    "swipe_action": {
+     "symbol": 60,
+     "symbol_and_label": 84
+    }
+   },
+   "buttons": {
+    "radius": "capsule",
+    "small": {
+     "height": 28,
+     "padding": [
+      4,
+      10
+     ],
+     "label": "15/20 regular"
+    },
+    "medium": {
+     "height": 34,
+     "padding": [
+      7,
+      14
+     ],
+     "label": "15/20 regular"
+    },
+    "large": {
+     "height": 50,
+     "padding": [
+      14,
+      20
+     ],
+     "label": "17/22 regular"
+    },
+    "bordered_fill": "fills/tertiary rgb(118 118 128 / .12), accent label",
+    "prominent": "accent fill, white label",
+    "glass": {
+     "label": "17/18 medium",
+     "backing": "white 94 % under the tint",
+     "shadow": "0 8 15 / 2 %",
+     "symbol_circle": 50
+    }
+   },
+   "tab_bar": {
+    "insets": {
+     "side": 25,
+     "top": 16,
+     "bottom": 25
+    },
+    "item_height": 54,
+    "label": "10/12 semibold",
+    "symbol": "18 semibold",
+    "selected": "tertiary vibrant fill pill, accent symbol and label",
+    "unselected_label": "labels/primary",
+    "search_button": 54,
+    "search_gap": 16
+   },
+   "sheet": {
+    "medium_detent_inset": 6,
+    "top_radius": 38,
+    "bottom_radius_reference": 58,
+    "shadow": "0 8 48 / 25 %",
+    "dim": "black 20 %",
+    "grabber": [
+     60,
+     4
+    ],
+    "grabber_top": 6,
+    "head": {
+     "close": "44 glass circle",
+     "title": "17/22 semibold centred",
+     "confirm": "44 glass prominent",
+     "padding": 16
+    }
+   },
+   "alert": {
+    "radius": 34,
+    "padding": 14,
+    "title": "17/22 semibold left",
+    "message": "17/22 regular left",
+    "button": {
+     "height": 48,
+     "gap": 8
+    },
+    "text_field": {
+     "fill": "fills/secondary rgb(120 120 128 / .16)",
+     "radius": 26,
+     "row": 52
+    }
+   },
+   "empty_state": {
+    "circle": 50,
+    "tint": "15 %",
+    "symbol": "22 semibold",
+    "message": "22 semibold",
+    "description": "22 medium labels/secondary",
+    "action": "full-width glass prominent capsule at the bottom"
+   }
+  }
+ },
+ "mapping_to_telegram": {
+  "page_grouped": "--tg-theme-secondary-bg-color (iOS grouped_primary)",
+  "cell_surface": "--tg-theme-section-bg-color (iOS grouped_secondary)",
+  "plain_page": "--tg-theme-bg-color",
+  "text": "--tg-theme-text-color",
+  "secondary_text": "--tg-theme-hint-color / --tg-theme-subtitle-text-color",
+  "accent": "--tg-theme-button-color (fills), --tg-theme-accent-text-color (text)",
+  "separator": "--tg-theme-section-separator-color, fallback iOS separator_non_opaque",
+  "gray_fill": "color-mix(in srgb, var(--tg-theme-text-color) 8%, transparent) (iOS fill_tertiary analogue)",
+  "tonal_fill": "color-mix(in srgb, var(--tg-theme-button-color) 12%, transparent)",
+  "success_danger": "iOS green/red as light-dark() fallbacks; destructive uses --tg-theme-destructive-text-color"
+ },
+ "web_materials": {
+  "read": "2026-11-24",
+  "source": "iOS 27 kit liquid_glass.figma_effect (frost regular 6, medium-large 16) translated to CSS; tint, rim and lift are this skill's approximation [Heuristic]",
+  "kit": "examples/mini-apps/_kit/tma.css :root --tma-glass-*",
+  "levels": {
+   "thin": {
+    "use": "icon buttons and chips over photos and video",
+    "tint_pct": 45,
+    "blur_px": 6
+   },
+   "regular": {
+    "use": "floating tab bar, floating circle, bottom capsules",
+    "tint_pct": 62,
+    "blur_px": 16,
+    "saturate": 1.8
+   },
+   "thick": {
+    "use": "sticky segmented control or search over scrolling text",
+    "tint_pct": 80,
+    "blur_px": 24
+   }
+  },
+  "never": [
+   "cells",
+   "cards",
+   "sheet content",
+   "text blocks",
+   "buttons inside content",
+   "the page background"
+  ],
+  "solid_when": [
+   "prefers-reduced-transparency",
+   "prefers-contrast: more",
+   "no backdrop-filter",
+   "Android performance class LOW",
+   "data-tma-glass=off",
+   "dense style"
+  ]
+ }
+}

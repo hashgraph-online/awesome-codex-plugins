@@ -6,7 +6,7 @@ compatibility: Needs the ultrafast MCP server (local `uf mcp`, or a remote one o
 metadata:
   homepage: https://ultrafast.mov
   docs: https://ultrafast.mov/docs/
-  version: "0.2.0"
+  version: "0.2.2"
 ---
 
 # ultrafast
@@ -159,7 +159,9 @@ from: [examples/](examples/).
 ## Footage, sound and captions
 
 - `video` plays footage (`src`, `fit: "cover"`, `start`, `speed`, `rect`);
-  `image` shows stills and sequences; `svg` and `lottie` stay vector.
+  `image` shows stills and sequences; `svg` and `lottie` stay vector (put
+  translucent SVG art on the film with an `over` in `srgb` space to match
+  a browser).
 - `clip_camera` turns a landscape talking-head clip into a framed vertical
   one: it tracks faces in the footage and follows the speaker with eased
   pans and cuts (`src`, `start`, `duration`).

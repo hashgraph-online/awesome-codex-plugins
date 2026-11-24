@@ -244,6 +244,11 @@ def main(argv=None) -> int:
     if args.cmd == "show":
         sym = api.get(args.query)
         if sym is None:
+            # Client-side Mini App API (Telegram.WebApp.*) lives in its own catalog.
+            import webapp_lookup
+            if os.path.isfile(os.path.join(webapp_lookup.DATA_DIR, webapp_lookup.CATALOG)) \
+                    and webapp_lookup.WebAppApi().resolve(args.query):
+                return webapp_lookup.main((["--json"] if args.json else []) + ["show", args.query])
             hits = api.search(args.query, limit=8)
             print(f"not found: {args.query}. Close matches: {', '.join(h['name'] for h in hits) or 'none'}")
             return 1

@@ -3,7 +3,7 @@ name: candor-find-money
 description: "Finds money the person is losing or is owed, gets it back with their okay, and has Candor watch the records until it lands. Use when they ask \"am I overpaying?\", spot a double charge, a fee, a refund or reimbursement that never came, a charge after cancelling, a bill that went up, a subscription they forgot, a free trial about to bill, or a paycheck that is late, short, or missing. For which charges repeat or how they are categorized, use candor-sort-transactions."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.7"
+  candor-package-version: "1.3.9"
   author: Candor
   version: "0.3.0"
   candor-domain-id: find-money

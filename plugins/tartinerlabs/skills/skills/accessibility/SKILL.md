@@ -1,6 +1,6 @@
 ---
 name: accessibility
-description: Use when building or reviewing UI for accessibility — screen readers (VoiceOver, TalkBack), keyboard and focus, colour contrast, Dynamic Type and text scaling, reduced motion, touch targets, accessible forms, captions — or when auditing against WCAG 2.2, the European Accessibility Act, or before an App Store or production release. Covers web, Apple platforms, Android, and React Native/Expo. Not for general UX or visual styling (use ux-psychology).
+description: Use when building or reviewing UI for accessibility — screen readers (VoiceOver, TalkBack), keyboard and focus, colour contrast, Dynamic Type and text scaling, reduced motion, touch targets, accessible forms, captions — or when auditing against WCAG 2.2, the European Accessibility Act, or before an App Store or production release. Covers web, Apple platforms, Android, and React Native/Expo. Not for general UX (use ux-psychology) or visual styling (use visual-design).
 license: MIT
 allowed-tools: Read Glob Grep
 compatibility: Any UI project; detects the platform — web and React Native/Expo first-class, Apple platforms (SwiftUI/UIKit) well supported, native Android (Compose) best-effort. Rules map to WCAG 2.2 level AA

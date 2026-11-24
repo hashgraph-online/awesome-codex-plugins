@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-tma-style="soft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Catalogue patterns</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
+  <link rel="stylesheet" href="../_kit/tma.css">
+  <script type="module" src="./dist/app.js"></script>
+</head>
+<body>
+<!-- Layout rules in practice (references/mini-apps/layout-rules.md, data/mini-apps/layouts.json):
+     books = grid of 2:3 covers (contained), trainers = rows with round photos + booking (day strip, slot grid),
+     workouts = 16:9 media cards with duration. Fictional data and abstract images; no text on images (L20). -->
+<div class="tma-content-cap">
+  <main class="tma-page" id="root"></main>
+  <main class="tma-page tma-screen" id="detail" hidden></main>
+  <main class="tma-page tma-screen" id="viewer" hidden></main>
+</div>
+<nav class="tma-tabbar tma-glass" role="tablist" aria-label="Sections" id="tabbar">
+  <button type="button" role="tab" aria-selected="true" data-tab="books"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-document"/></svg>Books</button>
+  <button type="button" role="tab" aria-selected="false" data-tab="trainers"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-people"/></svg>Trainers</button>
+  <button type="button" role="tab" aria-selected="false" data-tab="workouts"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-play"/></svg>Workouts</button>
+</nav>
+<div class="tma-snackbar" role="status" id="snackbar" hidden></div>
+<button type="button" class="tma-btn is-filled is-lg" data-tma-fallback="main-button" hidden></button>
+</body>
+</html>

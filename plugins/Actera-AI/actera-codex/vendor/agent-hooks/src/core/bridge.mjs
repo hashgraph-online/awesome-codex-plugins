@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { readFile, writeFile, mkdir, readdir, rename, rm, stat, link } from 'node:fs/promises'
 import os from 'node:os'
 import { stopScanner } from './scanner-client.mjs'
+import { setTimeout as delay } from 'node:timers/promises'
 import path from 'node:path'
 
 // Host-neutral bridge state: connection, durable report queue, admitted-call
@@ -210,6 +211,36 @@ export async function admittedCall(home, key) {
   return readJson(toolCallPath(home, key))
 }
 
+// A host that gives its tool calls no ID stores each one as <prefix>-<stamp>,
+// and a post hook takes the newest one still waiting. Renaming is the claim:
+// only one process can, and the record keeps a name of its own, so delivering
+// its report resolves it and it is pruned like any other.
+export async function takeAdmittedCall(home, prefix) {
+  let names
+  try {
+    names = await readdir(path.join(home, 'tool-calls'))
+  } catch (error) {
+    if (error?.code === 'ENOENT') return undefined
+    throw error
+  }
+  const waiting = names
+    .filter((name) => name.startsWith(`${prefix}-`) && name.endsWith('.json') && !name.endsWith('-taken.json'))
+    .sort()
+    .reverse()
+  for (const name of waiting) {
+    const key = `${name.slice(0, -'.json'.length)}-taken`
+    try {
+      await rename(path.join(home, 'tool-calls', name), toolCallPath(home, key))
+    } catch (error) {
+      if (error?.code === 'ENOENT') continue // Another post hook took it.
+      throw error
+    }
+    const record = await readJson(toolCallPath(home, key))
+    if (record) return { key, record }
+  }
+  return undefined
+}
+
 // Persist the first body for each outcome so retries retain occurred_at too.
 // Atomic link publication elects one body across concurrent hook processes.
 export async function queueOutcomeReport(home, key, outcome, report) {
@@ -228,12 +259,15 @@ export async function queueOutcomeReport(home, key, outcome, report) {
   return stableReport
 }
 
+// The (already redacted) request is kept so a retry that reuses the Decision
+// reports against the action Actera captured, not the retry's own wording.
 export async function rememberPendingApproval(home, fingerprint, decision, request) {
   if (!fingerprint || decision.status !== 'PENDING_APPROVAL') return
   await writeJsonAtomic(approvalPath(home, fingerprint), {
     decisionId: decision?.id,
     idempotencyKey: request.idempotency_key,
     actionType: request.action.type,
+    request,
     savedAt: Date.now(),
   })
 }
@@ -268,7 +302,7 @@ export async function previousApproval(home, fingerprint, config, request, timeo
   if (decision.status === 'APPROVED' && !(await claimApproval(home, saved.decisionId))) return undefined
   if (decision.status !== 'APPROVED' && decision.status !== 'PENDING_APPROVAL')
     await rm(approvalPath(home, fingerprint), { force: true })
-  return decision
+  return saved.request ? { ...decision, admittedRequest: saved.request } : decision
 }
 
 export async function startReviewerLink(config, home = bridgeHome(), timeoutMs = 8000) {
@@ -339,6 +373,16 @@ export async function reviewerLinkStatus(config, home = bridgeHome(), timeoutMs 
 
 // An approved Decision releases exactly one held tool call. Returns false
 // when another call already used it.
+async function approvalClaimed(home, decisionId) {
+  if (await legacyApprovalClaimed(home, decisionId)) return true
+  try {
+    await readFile(approvalClaimPath(home, decisionId))
+    return true
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false
+    throw error
+  }
+}
 export async function claimApproval(home, decisionId) {
   if (await legacyApprovalClaimed(home, decisionId)) return false
   try {
@@ -368,11 +412,39 @@ export async function decisionStatus(config, decisionId, timeoutMs = 5000) {
   return decision
 }
 
+// Wait for a reviewer while the agent host waits for its hook. An approval releases
+// exactly this call; anything else ends the hold with the current status.
+// Aborting stops the wait without claiming an approval.
+export async function holdForApproval(config, decision, home, { holdMs, pollMs, signal } = {}) {
+  const deadline = Date.now() + holdMs
+  let current = decision
+  // Look once even when no time is left, so a review made meanwhile and the
+  // review link are not missed.
+  let looked = false
+  while ((!looked || Date.now() < deadline) && !signal?.aborted) {
+    looked = true
+    try {
+      await delay(Math.min(pollMs, Math.max(0, deadline - Date.now())), undefined, { signal })
+      current = await decisionStatus(config, decision.id)
+    } catch {
+      continue // A transient lookup failure keeps the call held, never released.
+    }
+    if (signal?.aborted) break
+    if (current.status === 'APPROVED')
+      return (await claimApproval(home, decision.id)) ? current : { ...current, status: 'ALREADY_RELEASED' }
+    if (current.status !== 'PENDING_APPROVAL') return current
+  }
+  return current
+}
+
 const alreadyReleased = () => new Error('This approved Decision already released another tool call')
+// Without a claim, the caller leaves it to the held call's next hook run.
+const usableApproval = async (home, decisionId, claim) =>
+  claim ? claimApproval(home, decisionId) : !(await approvalClaimed(home, decisionId))
 
 // The linked person approves or rejects a held Decision from the agent host.
 // Actera checks that they may review it; an approval is claimed for this call.
-export async function reviewDecision(config, decisionId, choice, { home = bridgeHome(), idempotencyPrefix, rejectReason, timeoutMs = 8000 }) {
+export async function reviewDecision(config, decisionId, choice, { home = bridgeHome(), idempotencyPrefix, rejectReason, timeoutMs = 8000, claim = true }) {
   if (!/^[0-9a-f-]{36}$/i.test(decisionId) || !['approve', 'reject'].includes(choice))
     throw new Error('Invalid Decision or review choice')
   let decision = await decisionStatus(config, decisionId, timeoutMs)
@@ -401,16 +473,16 @@ export async function reviewDecision(config, decisionId, choice, { home = bridge
     decision.status !== (choice === 'approve' ? 'APPROVED' : 'REJECTED')
   )
     throw new Error('Actera returned an unexpected review result')
-  if (choice === 'approve' && !(await claimApproval(home, decisionId))) throw alreadyReleased()
+  if (choice === 'approve' && !(await usableApproval(home, decisionId, claim))) throw alreadyReleased()
   return { id: decision.id, status: decision.status }
 }
 
 // A reviewer can resolve a held call in Actera while the host's prompt is
 // open. An approval found here is claimed for this call.
-export async function reviewedElsewhere(config, decisionId, home = bridgeHome(), timeoutMs = 5000) {
+export async function reviewedElsewhere(config, decisionId, home = bridgeHome(), timeoutMs = 5000, { claim = true } = {}) {
   if (!/^[0-9a-f-]{36}$/i.test(decisionId)) throw new Error('Invalid Decision')
   const decision = await decisionStatus(config, decisionId, timeoutMs)
-  if (decision.status === 'APPROVED' && !(await claimApproval(home, decisionId))) throw alreadyReleased()
+  if (decision.status === 'APPROVED' && !(await usableApproval(home, decisionId, claim))) throw alreadyReleased()
   return { id: decision.id, status: decision.status, ...(decision.reason ? { reason: decision.reason } : {}) }
 }
 
@@ -586,7 +658,7 @@ export async function deliverBatch(config, { home = bridgeHome(), limit = Infini
         at: new Date().toISOString(),
         outcome: activity.outcome,
         agentId: activity.agent.id,
-        sessionId: activity.context?.claude?.session_id || activity.context?.codex?.session_id || null,
+        sessionId: activity.context?.claude?.session_id || activity.context?.codex?.session_id || activity.context?.copilot?.session_id || null,
         toolName: activity.details?.tool_name || null,
       })
       await rm(fullPath, { force: true })

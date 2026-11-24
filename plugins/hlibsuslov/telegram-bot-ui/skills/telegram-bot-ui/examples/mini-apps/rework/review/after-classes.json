@@ -1,0 +1,17 @@
+{
+ "screen": "catalog",
+ "entity": "class",
+ "width": 390,
+ "layout": {"variant": "row", "columns": 1},
+ "card": {
+  "slots": ["time", "title", "trainer", "spots left", "price"],
+  "title_lines": 1,
+  "tags": 0,
+  "actions": [],
+  "price": {"style": "plain", "figures": "tabular"},
+  "text_on_image": false
+ },
+ "primary_action": "none",
+ "carousels": 0,
+ "unavailable": "dimmed"
+}

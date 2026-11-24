@@ -1,10 +1,10 @@
 ---
 name: telegram-bot-ui
-description: "UI/UX for a Telegram bot's whole interface, updated for every Bot API release. Design, build, publish with and operate bots: texts, inline/reply keyboards, colored and disabled buttons, premium custom emoji, force_reply forms, navigation, streaming AI replies with Stop, private replies in groups, Rich Messages, HTML widgets with server handlers, TON wallet, topics, formatting, localization; whole products (shop with Stars, support, booking, onboarding, subscriptions, inline mode, business); channel posts (approve, publish once, edit, cross-post, mailings); an agent working via its own bot (notify, ask, approve, progress, hooks, MCP); offline lookup of every Bot API method and field, plus their server side. Use for 'improve this bot's menu', 'add a Stop button', 'post this to our channel', 'message me when the build is done', 'make a widget', 'use premium emoji', 'can't parse entities', 'does the Bot API have X'. Do NOT use for webhook hosting, databases or auth unrelated to Telegram, or Microsoft .rtf files."
+description: "UI/UX for a Telegram bot's whole interface, kept current with the Bot API. Design, build and operate bots: texts, inline/reply keyboards, colored, disabled buttons, premium custom emoji, force_reply forms, navigation, streaming AI replies, Stop, private replies in groups, Rich Messages, HTML widgets, Mini Apps (Telegram.WebApp), TON wallet, topics, formatting, localization; whole products (shop with Stars, support, booking, onboarding, subscriptions, inline mode, business); channel posts (approve, publish once, edit, cross-post, mailings); an agent working via its own bot (notify, ask, approve, progress, hooks, MCP); offline lookup of every Bot API method and field, plus the server side. Use for 'improve this bot's menu', 'add a Stop button', 'post this to our channel', 'message me when the build is done', 'make a widget', 'build a Mini App', 'use premium emoji', 'can't parse entities', 'does the Bot API have X'. Do NOT use for webhook hosting, databases or auth unrelated to Telegram, or Microsoft .rtf files."
 license: MIT
 metadata:
   author: hlibsuslov
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 
 # Telegram Bot UI
@@ -39,7 +39,7 @@ callback/widget state, retries and SDK gaps, and "does the Bot API support X".
 Work no Telegram user ever sees and that no Telegram feature depends on: hosting,
 CI, general databases and migrations, payment ledgers outside Telegram's own payment
 updates, auth unrelated to Telegram login or `initData`, scraping, analytics
-pipelines, Mini App front-end internals. Microsoft `.rtf` files.
+pipelines. Microsoft `.rtf` files.
 
 ## Pick the capability
 
@@ -53,6 +53,7 @@ pipelines, Mini App front-end internals. Microsoft `.rtf` files.
 | Posts in a channel, digests, mailings, editorial approval | `references/publishing-pipeline.md`, `references/channel-post-design.md` | 30-39 |
 | The agent itself reports, asks, waits for approval over Telegram | `references/agent-operated-bots.md`, `references/agent-bot-security.md` | 40-49 |
 | An interactive card / mini page inside a message | `references/widget-patterns.md`, `references/widget-design-system.md` | 05-07, 50-56 |
+| A Mini App: decide, build or restyle it, layout and styles, `Telegram.WebApp`, `initData` | `references/mini-apps/README.md` (`references/mini-apps/orchestration.md` for the order of work) | 90-99 |
 | Premium (custom) emoji in buttons, texts, posts | `references/emoji-packs.md`, `references/emoji-in-posts.md` | 70-75 |
 | "Does the API have…", payments, inline, business, media, admin | `references/api-catalog.md` (offline catalog + tools) | — |
 
@@ -179,7 +180,7 @@ a new API, or the user asks for "the latest".
 | Screen with a keyboard | short regular HTML prompt + buttons |
 | Report, long AI answer, long-read post | **Rich Message** (Markdown, HTML or blocks) |
 | Live card that changes in place (private chat) | **Widget** |
-| Real network, uploads, long forms, routing | **Mini App** (`references/mini-apps-bridge.md`) |
+| Real network, uploads, long forms, routing | **Mini App** (`references/mini-apps/README.md`; bot side `references/mini-apps-bridge.md`) |
 | Exact offset control | `MessageEntity` |
 
 Full decision table (message / rich document / keyboard / rich buttons / ephemeral /
@@ -225,6 +226,8 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 - Reply keyboards, `ForceReply`, placeholders → `references/reply-keyboards.md`
 - Screens, back/home, commands, menu button, deep links → `references/navigation-and-flows.md`
 - First run, `/start` payloads, language choice, returning users → `references/onboarding-and-first-run.md`
+- What the bot or Mini App knows about a user (profile, phone, location, shared users, Passport), asking for it, the data inventory, privacy policy and deletion → `references/user-data.md`; spam and risk tiers, account age, blocklists, appeals → `references/user-trust.md`
+- The baseline user record every bot keeps (acquisition, terms version, time zone, notifications, labels, profile snapshot, community role) and adapting messages and personal screens to it (share theme, gift colours, voice restrictions) → `references/user-profile.md`
 - One visual language, screen anatomy, the premium pass → `references/visual-language.md`
 - Feedback mechanism → `references/dynamic-feedback-and-streaming.md`; draft state machine, Stop, races → `references/streaming-and-editing.md`
 - Personal / ephemeral answers in groups → `references/ephemeral-and-personal.md`
@@ -256,6 +259,15 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 - Tokens, type, states, RTL, accessibility → `references/widget-design-system.md`
 - State architecture, backends and REST data, Mini App hand-off, channel-safe variants, games and live apps on one shared widget → `references/widget-patterns.md`
 - Launching Mini Apps and receiving their data → `references/mini-apps-bridge.md`
+- The Mini App itself: decide, launch, `Telegram.WebApp` by version, design system and styles, components, layout rules, screen patterns, anti-slop, `initData` security, testing → `references/mini-apps/README.md`
+- "Where do the photo, title and price go", reviewing a Mini App screen → `references/mini-apps/layout-rules.md`
+- Reworking an existing Mini App (any stack) into classic Telegram design → `references/mini-apps/rework.md` (`scripts/miniapp_rework.py plan`)
+- Exact iOS 27 and Telegram screen anatomy; building from a Figma file → `references/mini-apps/native-anatomy.md`, `references/mini-apps/figma-workflow.md`
+- Haptics (Taptic Engine), motion sensors, location, biometrics and other device features in a Mini App → `references/mini-apps/haptics-and-device.md`
+- Mini App accessibility (VoiceOver, TalkBack, text size, contrast) and language (`language_code`, plurals, `Intl`, RTL) → `references/mini-apps/accessibility-and-language.md`
+- Mini App forms, the on-screen keyboard, loading, errors, retries and idempotency → `references/mini-apps/forms-and-data.md`
+- Glass and materials, interface trends, new CSS features in Telegram's WebViews, platform redesigns → `references/mini-apps/materials-and-trends.md`
+- Stars, grams (formerly Toncoin), gift cards and rarity, Premium and verification marks in an app or message → `references/mini-apps/telegram-elements.md`
 - Wallet pay / sign, TON cards and transfers → `references/wallet-and-ton.md`
 
 **Premium emoji**
@@ -265,6 +277,7 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 
 **Content rendering**
 - Choosing a format → `references/format-selection.md`; tables → `references/tables.md`
+- Data views (KPIs, reports, leaderboards, progress, statements, trackers) and long reports or notifications split into parts → `references/data-views.md`
 - Rich Messages and capability matrix → `references/telegram-capabilities.md`
 - HTML / MarkdownV2 / entities / captions → `references/regular-formatting.md`
 - Media, files, albums → `references/media-and-files.md`, `references/rich-media.md`
@@ -291,6 +304,8 @@ Details: `references/dynamic-feedback-and-streaming.md`.
 | `scripts/validate_keyboard.py` | inline / reply / rich buttons, `disabled`, `force_reply`, `--context`, `--previous` |
 | `scripts/validate_rich.py` | Rich Message Limits, drafts, media refs |
 | `scripts/validate_widget.py` / `build_widget.py` / `preview_widget.py` | widget size (zlib-9), runtime gaps, `--strict`; build from the kit; mock preview (proves nothing about real clients) |
+| `scripts/webapp_lookup.py` | `show`, `search`, `since`, `gates`, `theme` over the `Telegram.WebApp` catalog |
+| `scripts/miniapp_lint.py` / `miniapp_rework.py` / `miniapp_layout.py` / `miniapp_style.py` / `preview_miniapp.py` | Mini App lint (44 rules); staged rework plan with colour and type maps; layout rules (`show`, `review`); styles and brand profiles; mock client preview (proves nothing about real clients) |
 | `scripts/tg_post.py` | validate, preview and publish a post (dry-run by default) |
 | `scripts/emoji_packs.py` | `resolve`, `suggest`, `verify`, `capture`, `apply`, `strip` premium emoji |
 | `scripts/audit_icons.py`, `scripts/audit_copy.py` | one icon family; i18n placeholders, label length, HTML |

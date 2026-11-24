@@ -2,13 +2,16 @@
 
 Snapshots the repository when a coding-agent session starts, and reviews
 everything the session changed before the agent finishes. If the agent
-skipped, focused, removed, or weakened a test, added a lint, type, coverage,
-or RepoPilot suppression, relaxed a CI gate, removed an auth check, or let
-request input reach SQL or a shell, the stop is blocked and the agent gets the
-list with file and line. It must restore each check or explain why the change
-is intended. Each signal is raised once per session. Other sensitive changes,
-such as a dependency bump or an edited workflow, stay in the review report and
-do not stop the agent.
+skipped, focused, removed, or weakened a test (including `exit(0)` short-circuits
+or weakened shared test helpers), broke a surviving local caller (removed JS/TS
+export or Rust public function/arity/field/enum variant), added a lint, type,
+coverage, or RepoPilot suppression, relaxed a CI gate, removed an auth check,
+or let request input reach SQL, a shell, or a filesystem path sink, the stop is
+blocked and the agent gets the list with file and line. It must restore each
+check, update broken callers, or explain why the change is intended. Each
+signal is raised once per session. Other sensitive changes, such as a
+dependency bump or an edited workflow, stay in the review report and do not
+stop the agent.
 
 The hooks list `.repopilot/snapshot.json` and `.repopilot/cache/` in the
 repository's `.git/info/exclude`, so session state never shows up in
@@ -24,7 +27,7 @@ The `repopilot` CLI, version 0.24 or newer, on `PATH`:
 repository the hooks do nothing. Inside Git, a missing/old CLI or a failed
 snapshot/review emits a diagnostic instead of silently implying a clean review.
 Check `command -v repopilot` and `repopilot --version` in the terminal launching
-your agent. The current stable release is 0.27.0; update an older installation
+your agent. The current stable release is 0.28.0; update an older installation
 before starting a new session.
 
 The scripts require a POSIX `sh`, Git, and standard shell utilities. They are

@@ -23,7 +23,7 @@ Tell your agent *what you need* and *what done looks like*—not *how to do it*.
 
 - **Workflow-Driven**: Inline triage routes tasks to precise skill chains (`design` → `plan` → `tdd` → `review` → `ship`).
 - **High Quality**: Parallel spec review gates and 3D quality standards (mechanical checks, convention adherence, design cohesion, doc-coverage) guarantee production readiness.
-- **High Efficiency & Token-Lean**: Inline triage loads only required skills (~150 to ~1,180 tokens per skill; ~3,600 tokens for a standard feature cycle). No ceremony for trivial edits.
+- **High Efficiency & Token-Lean**: Inline triage loads only required skills (~210 to ~1,320 tokens per skill; ~4,220 tokens for a standard feature cycle including bootstrap). No ceremony for trivial edits.
 - **Multi-Module & Multi-Repo**: Coordinate complex changes across multiple repositories seamlessly via designated coordinator specs and change-set manifests.
 
 **[Full documentation](https://ouonet.github.io/praxis/)**
@@ -66,22 +66,22 @@ Multi-module is a **topology**, declared alongside scope: when one change spans 
 
 | Skill | Description | Tokens |
 | ----- | ----------- | ------ |
-| [onboard](skills/onboard/SKILL.md) | existing project with no docs/tech-spec.md | ~450 |
-| [design](skills/design/SKILL.md) | scope ≥ standard, anything new; handles vague goals & trigger-based spec reviewers | ~1,180 |
-| [plan](skills/plan/SKILL.md) | after design approval; milestone tasks | ~740 |
-| [tdd](skills/tdd/SKILL.md) | implementing or fixing; 3D quality refactor gate | ~590 |
-| [debug](skills/debug/SKILL.md) | something broken; root cause isolation | ~160 |
-| [review](skills/review/SKILL.md) | before merge / after subagent task; checks standards & doc-coverage | ~420 |
-| [worktree](skills/worktree/SKILL.md) | non-trivial or parallel work in Git worktrees | ~320 |
-| [subagents](skills/subagents/SKILL.md) | independent tasks, fan-out; includes ROLE charters and MODEL tiers | ~1,030 |
-| [ship](skills/ship/SKILL.md) | merge / PR / cleanup | ~430 |
-| [archive](skills/archive/SKILL.md) | merge spec into living docs, delete staging files | ~730 |
-| [release](skills/release/SKILL.md) | version / tag / publish | ~230 |
+| [onboard](skills/onboard/SKILL.md) | existing project with no docs/tech-spec.md | ~490 |
+| [design](skills/design/SKILL.md) | scope ≥ standard, anything new; handles vague goals & trigger-based spec reviewers | ~1,320 |
+| [plan](skills/plan/SKILL.md) | after design approval; milestone tasks | ~800 |
+| [tdd](skills/tdd/SKILL.md) | implementing or fixing; 3D quality refactor gate | ~780 |
+| [debug](skills/debug/SKILL.md) | something broken; root cause isolation | ~210 |
+| [review](skills/review/SKILL.md) | before merge / after subagent task; checks standards & doc-coverage | ~450 |
+| [worktree](skills/worktree/SKILL.md) | non-trivial or parallel work in Git worktrees | ~340 |
+| [subagents](skills/subagents/SKILL.md) | independent tasks, fan-out; includes ROLE charters and MODEL tiers | ~1,160 |
+| [ship](skills/ship/SKILL.md) | merge / PR / cleanup | ~530 |
+| [archive](skills/archive/SKILL.md) | merge spec into living docs, delete staging files | ~1,000 |
+| [release](skills/release/SKILL.md) | version / tag / publish | ~250 |
 
 Shared protocols & reference standards:
-- [Quality Standard](skills/references/quality.md) (~430 tokens): mechanical checks, convention adherence, design assessment, and doc-coverage rules.
-- [Spec Reviewers](skills/references/reviewers.md) (~1,640 tokens): trigger table and charters for parallel spec review subagents.
-- [Multi-Module Protocol](skills/references/multi-module.md) (~870 tokens): topology specification for cross-repository/module changes.
+- [Quality Standard](skills/references/quality.md) (~640 tokens): mechanical checks, convention adherence, design assessment, and doc-coverage rules.
+- [Spec Reviewers](skills/references/reviewers.md) (~1,960 tokens): trigger table and charters for parallel spec review subagents.
+- [Multi-Module Protocol](skills/references/multi-module.md) (~1,140 tokens): topology specification for cross-repository/module changes.
 
 ## Token budget
 
@@ -89,11 +89,11 @@ Praxis minimizes prompt overhead by executing triage inline at session start and
 
 | Task Scope | Loaded Skills | Approximate Token Budget |
 | ---------- | ------------- | ------------------------ |
-| Bootstrap (session start) | `using-praxis` (inline triage) | ~680 |
-| Trivial task | None (bootstrap only) | ~680 |
-| Small task | `tdd` | ~1,270 |
-| Standard task | `design` + `plan` + `tdd` + `review` | ~3,600 |
-| Complex task | `design` + `plan` + `worktree` + `subagents` + `review` + `ship` | ~4,800 |
+| Bootstrap (session start) | `using-praxis` (inline triage) | ~880 |
+| Trivial task | None (bootstrap only) | ~880 |
+| Small task | `tdd` | ~1,660 |
+| Standard task | `design` + `plan` + `tdd` + `review` | ~4,220 |
+| Complex task | `design` + `plan` + `worktree` + `subagents` + `review` + `ship` | ~5,470 |
 
 ## Model tiers
 
@@ -105,7 +105,20 @@ When dispatching subagents (`subagents` skill) or design reviewers (`design` rev
 | `balanced` | Standard implementation, single-file work | add a function, write routine tests |
 | `strongest` | Complex reasoning, safety review | implement a protocol, review crash-recovery |
 
-Resolution: `.praxis/model-tiers.yaml` in project root or user home maps each tier to a concrete model ID. No config file → all subagents use the harness default. Template: [`model-tiers.example.yaml`](model-tiers.example.yaml).
+Resolution order: project `.praxis/model-tiers.yaml` → user `~/.praxis/model-tiers.yaml` → harness default model. Schema (`model-tiers.example.yaml`, `tiers.<tier>.{provider, model}`):
+
+```yaml
+tiers:
+  fast:
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+  balanced:
+    provider: anthropic
+    model: claude-sonnet-4-6
+  strongest:
+    provider: anthropic
+    model: claude-opus-4-6
+```
 
 ## Multi-module work
 
@@ -217,10 +230,13 @@ npx @ouonet/praxis install --host agents  # generic .agents directory
 # 3. Status Check: inspect installation state across all agent platforms
 npx @ouonet/praxis status
 
-# 4. Update: upgrade Praxis to latest version
+# 4. Diagnostics: read-only check for config syntax, broken symlinks, skills, and rule conflicts
+npx @ouonet/praxis doctor    # aliases: validate, check
+
+# 5. Update: upgrade Praxis to latest version
 npx @ouonet/praxis update --host all
 
-# 5. Uninstall
+# 6. Uninstall
 npx @ouonet/praxis uninstall --host codex --scope project
 ```
 
@@ -510,6 +526,7 @@ Release confirms the version, moves CHANGELOG `Unreleased`, then asks before com
 | change spans repos/modules | topology=multi-module (coordinator) |
 | failing behavior       | debug                              |
 | take over this project | onboard                            |
+| all tasks done         | ship (review → archive → finish)   |
 | release 1.2.0          | release                            |
 
 ## Philosophy
@@ -527,8 +544,14 @@ bin/
   praxis.js            # Praxis CLI binary entrypoint (npx @ouonet/praxis)
 src/cli/
   index.js             # CLI command runner & argument parser
-  hosts.js             # Multi-host registry & target resolution
-  installer.js         # Host installer, updater, and status checker
+  hosts.js             # Multi-host registry & command builders
+  shared.js            # Path, TOML/JSON, rule ownership & copy helpers
+  doctor.js            # Read-only diagnostics (praxis doctor / validate / check)
+  installer.js         # Host install/update/status facade
+  adapters/*.js        # Per-host filesystem & status adapters
+rules/
+  AGENTS.md            # Antigravity/Agents managed triage rule
+  praxis.md            # Grok/Agents managed triage rule (identical content)
 skills/<name>/SKILL.md # skills (using-praxis is the entrypoint; manual/fallback reads it directly)
 skills/references/     # shared protocols (multi-module, quality, reviewers)
 model-tiers.example.yaml # template for .praxis/model-tiers.yaml

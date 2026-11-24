@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "5.21.2+codex.20261122122041",
+  "version": "5.22.0+codex.20261124024330",
   "description": "A repeatable Plan, Go, Close workflow for AI coding sessions: /session reads your repo and agrees the scope, /go runs the work in waves with a quality gate between each, /close verifies and commits. Runs on Claude Code, Codex CLI, Cursor and Pi.",
   "keywords": [
     "session",

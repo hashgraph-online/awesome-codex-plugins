@@ -1,6 +1,6 @@
 {
   "name": "@actera-ai/agent-hooks",
-  "version": "0.4.1",
+  "version": "0.5.1",
   "description": "Evaluate coding-agent tool calls against Actera policies and report their outcomes",
   "private": true,
   "license": "Apache-2.0",
@@ -12,11 +12,13 @@
     "./codex": "./src/hosts/codex/bridge.mjs",
     "./codex/cli": "./src/hosts/codex/cli.mjs",
     "./codex/mcp-server": "./src/hosts/codex/mcp-server.mjs",
-    "./codex/settings": "./src/hosts/codex/settings.mjs",
+    "./copilot": "./src/hosts/copilot/bridge.mjs",
+    "./copilot/cli": "./src/hosts/copilot/cli.mjs",
     "./core": "./src/core/bridge.mjs",
     "./core/delivery": "./src/core/delivery.mjs",
     "./core/scanner": "./src/core/scanner-client.mjs",
-    "./core/defaults": "./src/core/defaults.mjs"
+    "./core/defaults": "./src/core/defaults.mjs",
+    "./core/settings": "./src/core/settings.mjs"
   },
   "files": [
     "bin/",

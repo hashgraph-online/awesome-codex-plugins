@@ -72,3 +72,14 @@ Release-version changes use this same ordinary task/merge lifecycle. Package
 preparation is maintainer-only and outside `yy`. Never create a tag, push,
 publish, deploy, mutate production, restart services, run post-deploy E2E, or
 clean worktrees without separate authority.
+
+
+Post-merge worktree cleanup is opt-in. Controller task-workspace policy
+`cleanup.after_merge` defaults to `false`; `YYLO_WORKTREE_CLEANUP_AFTER_MERGE=true`
+or `false` overrides it. Explicit owner opt-in authorizes only eligible delivered
+worktrees. `cleanup.disposable_paths` lists exact relative dependency/build paths;
+ignored files outside those paths preserve the worktree. Preview retained worktrees
+with `yy merge cleanup TASK_ID --dry-run`; use `--apply` only with cleanup authority.
+Cleanup preserves branches and evidence, skips dirty/active/unknown worktrees and
+initialized submodules, and never changes a successful merge into a failed merge.
+Inspect the separate cleanup result; do not force removal to resolve a skip.

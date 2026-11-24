@@ -1,0 +1,11 @@
+interface:
+  display_name: "Apply a design system"
+  short_description: "Get a ready-made design system in your format"
+  default_prompt: "Get a dark dashboard design system as Tailwind tokens"
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "devault"
+      description: "Devault design library"
+      transport: "streamable_http"
+      url: "https://devault.design/api/mcp"

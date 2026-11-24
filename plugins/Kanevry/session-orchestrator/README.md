@@ -9,7 +9,7 @@
 
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/session-orchestrator)](https://www.npmjs.com/package/session-orchestrator)
-[![Version](https://img.shields.io/badge/version-5.21.2-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.22.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 
@@ -43,6 +43,8 @@ In Claude Code:
 /plugin marketplace add Kanevry/session-orchestrator
 /plugin install session-orchestrator@kanevry
 ```
+
+Not installed yet? Let your agent read the docs first: add the read-only [docs server](https://session-orchestrator.com/mcp) (MCP) with one URL, nothing to install.
 
 Codex CLI, Cursor IDE, Pi, upgrade and uninstall: [docs/install.md](docs/install.md). The guide also covers [installing the Lead add-on](docs/install.md#add-on-lead-session-orchestrator).
 
@@ -88,7 +90,7 @@ On Codex and in headless Claude Code (`claude -p`) some command names differ: [C
 | Look back on a phase | `/plan retro` | What worked, what to change |
 | The same mistakes keep coming back | `/evolve`, then `/reconcile` | Lessons you approve become rules |
 
-[All 33 commands by situation](https://session-orchestrator.com/commands)
+[All 34 commands by situation](https://session-orchestrator.com/commands)
 
 The destructive-command guard has 18 rules. When its hook is active, 14 rules block a command and 4 issue a warning.
 

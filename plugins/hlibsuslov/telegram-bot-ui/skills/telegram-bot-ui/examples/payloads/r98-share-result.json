@@ -1,0 +1,54 @@
+{
+  "scenario": "r98-share-result",
+  "status": "production",
+  "context": "prepared message, query answer, prepared chat picker",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "savePreparedInlineMessage",
+      "params": {
+        "user_id": 279058397,
+        "result": {
+          "type": "article",
+          "id": "share-1042",
+          "title": "My usual",
+          "input_message_content": {
+            "message_text": "My usual: flat white, oat milk. Try it at Central."
+          }
+        },
+        "allow_user_chats": true,
+        "allow_group_chats": true,
+        "allow_channel_chats": true
+      }
+    },
+    {
+      "method": "answerWebAppQuery",
+      "params": {
+        "web_app_query_id": "AAH-share-query",
+        "result": {
+          "type": "article",
+          "id": "fav-1",
+          "title": "Favourite drink",
+          "input_message_content": {
+            "message_text": "Flat white, oat milk"
+          }
+        }
+      }
+    },
+    {
+      "method": "savePreparedKeyboardButton",
+      "params": {
+        "user_id": 279058397,
+        "button": {
+          "text": "Share to a group",
+          "request_chat": {
+            "request_id": 7,
+            "chat_is_channel": false,
+            "bot_is_member": true
+          }
+        }
+      }
+    }
+  ]
+}

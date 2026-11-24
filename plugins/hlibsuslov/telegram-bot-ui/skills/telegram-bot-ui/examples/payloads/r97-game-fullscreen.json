@@ -1,0 +1,35 @@
+{
+  "scenario": "r97-game-fullscreen",
+  "status": "production",
+  "context": "fullscreen link and a prepared share message",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-23)",
+  "steps": [
+    {
+      "method": "savePreparedInlineMessage",
+      "params": {
+        "user_id": 279058397,
+        "result": {
+          "type": "article",
+          "id": "score-520",
+          "title": "520 points in Latte Art",
+          "input_message_content": {
+            "message_text": "I scored 520 in Latte Art. Beat me?"
+          },
+          "reply_markup": {
+            "inline_keyboard": [
+              [
+                {
+                  "text": "Play",
+                  "url": "https://t.me/coffee_pickup_bot/latte_art?startapp=challenge-520&mode=fullscreen"
+                }
+              ]
+            ]
+          }
+        },
+        "allow_user_chats": true,
+        "allow_group_chats": true
+      }
+    }
+  ]
+}

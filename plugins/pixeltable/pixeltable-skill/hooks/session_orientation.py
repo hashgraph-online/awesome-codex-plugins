@@ -17,7 +17,9 @@ ORIENTATION = (
     "`while` loops (model the agent as a table). Import `frame_iterator` from "
     "`pixeltable.functions.video`; for images use `chat_completions` with `image_url` blocks. "
     "Apps: TableModel in app.py, then `pxt schema update` and `pxt service update`. Prefer "
-    "`FastAPIRouter` over hand-written endpoints. Use the `pixeltable` skill for full guidance."
+    "`FastAPIRouter` over hand-written endpoints. Use the `pixeltable` skill for full guidance, "
+    "and before writing code in an area, run `pxt guide AREA` (`pxt guide` lists the areas): it "
+    "states how the installed Pixeltable behaves."
 )
 
 DEP_FILES = [

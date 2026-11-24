@@ -3,7 +3,7 @@ name: candor-full-checkup
 description: "Runs an adviser-style review of the person's whole financial life from their Candor records, covering spending leaks, debt and credit, cash and reserves, goals and budget, investments and retirement, benefits, and insurance, and ends with the one to three things most worth doing. Use when the person asks to review their finances, for a financial checkup or annual review, what they should focus on or what to fix first, or after a life event. For a weekly what-changed check or a quick how-am-I-doing, use candor-weekly-check-in."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.7"
+  candor-package-version: "1.3.9"
   author: Candor
   version: "0.3.0"
   candor-domain-id: full-checkup

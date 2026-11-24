@@ -28,17 +28,19 @@ Claude Code:
 claude mcp add ultrafast -- uf mcp
 ```
 
-Codex (`~/.codex/config.toml`):
+Codex:
 
-```toml
-[mcp_servers.ultrafast]
-command = "uf"
-args = ["mcp"]
-tool_timeout_sec = 300
+```bash
+codex mcp add ultrafast -- uf mcp
 ```
 
-Cursor (`.cursor/mcp.json` or `~/.cursor/mcp.json`) and Gemini CLI
-(`~/.gemini/settings.json`):
+Gemini CLI (`--scope user` adds it for every project):
+
+```bash
+gemini mcp add --scope user ultrafast uf mcp
+```
+
+Cursor (`.cursor/mcp.json` or `~/.cursor/mcp.json`):
 
 ```json
 {
@@ -55,8 +57,9 @@ don't see your shell's `PATH`, so give the full path from `which uf`, e.g.
 `"command": "/opt/homebrew/bin/uf"`.
 
 Exports of long films can take longer than a client's default tool timeout.
-Raise it if exports time out (Codex `tool_timeout_sec`, Claude Code
-`MCP_TOOL_TIMEOUT`).
+Raise it if exports time out: in Codex, add `tool_timeout_sec = 300` to the
+`[mcp_servers.ultrafast]` table that `codex mcp add` wrote to its
+`config.toml`; in Claude Code, set `MCP_TOOL_TIMEOUT` (milliseconds).
 
 ## Connect to a server (Streamable HTTP)
 
@@ -73,10 +76,18 @@ claude mcp add --transport http ultrafast https://video.example.com/mcp \
 
 Codex:
 
-```toml
-[mcp_servers.ultrafast]
-url = "https://video.example.com/mcp"
-bearer_token_env_var = "ULTRAFAST_API_KEY"
+```bash
+codex mcp add ultrafast --url https://video.example.com/mcp \
+  --bearer-token-env-var ULTRAFAST_API_KEY
+```
+
+Gemini CLI (single quotes keep `$ULTRAFAST_API_KEY` as a reference that
+Gemini CLI reads from the environment when it connects):
+
+```bash
+gemini mcp add --scope user --transport http ultrafast \
+  https://video.example.com/mcp \
+  --header 'Authorization: Bearer $ULTRAFAST_API_KEY'
 ```
 
 Cursor:
@@ -84,13 +95,6 @@ Cursor:
 ```json
 { "mcpServers": { "ultrafast": { "url": "https://video.example.com/mcp",
   "headers": { "Authorization": "Bearer ${env:ULTRAFAST_API_KEY}" } } } }
-```
-
-Gemini CLI:
-
-```json
-{ "mcpServers": { "ultrafast": { "httpUrl": "https://video.example.com/mcp",
-  "headers": { "Authorization": "Bearer $ULTRAFAST_API_KEY" } } } }
 ```
 
 The remote tools take documents inline instead of file paths, and exports

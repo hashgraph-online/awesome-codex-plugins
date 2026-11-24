@@ -46,7 +46,20 @@ The coordinator marks `- [x]`, never the subagent.
 
 `MODEL: fast | balanced | strongest` — optional, omitted → harness default.
 
-Resolved via `.praxis/model-tiers.yaml` in project root or user home. Template at Praxis repo root: `model-tiers.example.yaml`.
+Resolution order: project `.praxis/model-tiers.yaml` → user `~/.praxis/model-tiers.yaml` → harness default model. Schema (`model-tiers.example.yaml`, keys under `tiers.<tier>.{provider, model}`):
+
+```yaml
+tiers:
+  fast:
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+  balanced:
+    provider: anthropic
+    model: claude-sonnet-4-6
+  strongest:
+    provider: anthropic
+    model: claude-opus-4-6
+```
 
 **The coordinator decides the tier at dispatch time** based on task complexity — it is not hardcoded per role. The role charters below list defaults; override when:
 

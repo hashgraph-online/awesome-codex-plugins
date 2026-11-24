@@ -3,6 +3,7 @@ import {
   agentReadiness,
   deliverBatch,
   disconnect,
+  holdForApproval,
   provisionBridge,
   recordEvaluationError,
   reviewerLinkStatus,
@@ -15,14 +16,13 @@ import {
   bridgeHome,
   codexEvaluationFailure,
   enqueueToolOutcome,
-  holdForApproval,
   loadConfig,
   readHookInput,
   recordHookRun,
   status,
 } from './bridge.mjs'
 import { deliverQueued, holdMs, pollMs, preToolUse } from './pre-tool-use.mjs'
-import { SettingsError, saveSetting } from './settings.mjs'
+import { SettingsError, saveSetting } from '../../core/settings.mjs'
 import path from 'node:path'
 
 function option(name) {

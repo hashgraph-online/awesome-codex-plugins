@@ -133,7 +133,7 @@ Intent / Context
 ### 需求和方案
 
 - [`dev-design-context`](./skills/dev-design-context/):做 UI 前,先沉淀项目设计上下文。
-- [`dev-grill-docs`](./skills/dev-grill-docs/):需求有关键缺口或需要需求文档时使用;对齐术语、边界和决策,生成 `.claude/artifacts/designs/<feature>.md`,并按需把稳定词汇写入 `CONTEXT.md` / ADR。
+- [`dev-grill-docs`](./skills/dev-grill-docs/):需求有关键缺口或需要需求文档时使用;对齐术语、边界和决策,生成 `.claude/artifacts/designs/<feature>.md`,并按需把稳定词汇写入 `CONTEXT.md` / ADR。已有 UI 的接口对接澄清沿用“UI 对照 → 红框截图 → 接口缺口与待确认事项”,默认交付可离线转发的单文件 HTML。
 - [`dev-spec`](./skills/dev-spec/):兼容入口;等价于 `dev-grill-docs --spec-only`,保留给旧提示和旧文档。
 - [`dev-plan`](./skills/dev-plan/):复杂或高风险功能先出实施方案。
 
@@ -285,6 +285,7 @@ npx skills add Jason-chen-coder/dev-skills --global --force
 ```text
 用 dev-auto 看看下一步该做什么
 用 dev-grill-docs 帮我梳理这个需求: ...
+帮我对一下接口
 用 dev-spec --spec-only 生成旧流程 spec: ...   # 兼容入口,优先用 dev-grill-docs
 用 dev-plan 基于这个 spec 出实施方案
 用 dev-image-to-code 根据这张 UI 图和 1518x950 生成 web 页面
@@ -295,6 +296,8 @@ npx skills add Jason-chen-coder/dev-skills --global --force
 用 dev-code-review 看下这次修改,准备 commit
 我自审过了,只要 dev-commit-writer 给 commit message
 ```
+
+“帮我对一下接口”“看看接口缺什么”“这个页面能对接了吗”会结合当前项目、页面和接口上下文进入 `dev-grill-docs` 的对接澄清场景,默认输出 **UI 对照 → 红框截图 → 接口缺口与待确认事项** 的简洁单文件 HTML。无需记 skill 名或重复指定格式;只缺来源时才补问。单个接口字段查询仍直接回答,明确要求接入代码时保留实施范围。
 
 `dev-tdd`、`dev-verify`、`dev-finish` 一般不用主动点名。它们是流程门禁,agent 会在写代码前、声称完成前、分支收尾时提醒。
 
@@ -392,7 +395,7 @@ flowchart TD
 | Skill | Artifact |
 |---|---|
 | `dev-design-context` | `.design-context.md` |
-| `dev-grill-docs` | `.claude/artifacts/designs/<feature>.md` + 可选 `CONTEXT.md` / `docs/adr/<nnnn>-<slug>.md` |
+| `dev-grill-docs` | 通用需求文档: `.claude/artifacts/designs/<feature>.md` + 可选 `CONTEXT.md` / ADR;UI/接口澄清报告: `<feature>-integration.html`（同目录或项目约定目录,截图内嵌） |
 | `dev-spec` | 兼容入口,同 `.claude/artifacts/designs/<feature>.md` |
 | `dev-plan` | `.claude/artifacts/plans/<feature>.md` |
 | `dev-image-to-code` | 实现代码和实际验证截图;复杂任务或明确要求时补充组件映射和视觉报告,产物路径沿用项目约定 |

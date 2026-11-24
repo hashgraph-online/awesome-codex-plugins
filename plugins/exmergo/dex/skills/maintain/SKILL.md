@@ -470,6 +470,17 @@ the first run read. A source `refused` for `outside_allowlist` names the
 the same rules as any config change. On a metered connector the read is priced
 first, under the same spending rules as any confirmation.
 
+For "why is this test failing" or "what broke it", run
+`maintain diagnose [<model>]`. Each entry of `data.diagnoses` is one open
+incident. Relay its `verdict`: with `cause`, name the cause, its owner, the
+`check` and `finding` that confirmed it and its `evidence`; with `no_cause`,
+say no cause was confirmed, list `ruled_out` and the `unseen` windows, and
+never offer the likeliest candidate as the cause. A candidate `not_checked` was
+not ruled out. `snapshots.series: none` means no baseline was committed, so a
+confirmed cause is present now and when it entered the break is unseen. The
+repair in `next_steps` is a `transform` plan for the transform workflow to
+author; diagnosis writes nothing.
+
 Per-axis fields and finding codes are in
 `${CLAUDE_SKILL_DIR}/references/axes.md`. Read it when a finding's code or field
 is not described here.

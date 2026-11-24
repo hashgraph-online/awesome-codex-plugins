@@ -21,6 +21,23 @@ ports are planned, not implemented. Run all: `python examples/python/recipes/r80
 | [86 Loyalty points](86-loyalty-points.md) | dedup credits, immutable amounts, no overdraft |
 | [87 Service queue](87-service-queue.md) | one position per user, staff call/complete |
 
+## Mini Apps (90-99)
+
+The app side lives in `examples/mini-apps` (kit, coffee app, catalogue, portfolio, gallery, React, server, bot); these recipes run the bot and server side offline (`examples/python/recipes/r90_99_mini_apps.py`). Branch entry: `references/mini-apps/README.md`.
+
+| Recipe | Bot API symbols | Versions |
+|---|---|---|
+| [90. Bot or Mini App: deciding the surface and building the hybrid](90-mini-app-or-bot.md) | `web_app`, `setChatMenuButton`, `MenuButtonWebApp` | 6.7, 7.8 |
+| [91. A minimal Mini App: menu button, startapp, theme, BackButton, MainButton](91-minimal-mini-app.md) | `setChatMenuButton`, `MenuButtonWebApp`, `WebAppInfo`, `web_app` | 6.1, 7.10, 8.0, 9.5 |
+| [92. Verify initData on the server and keep a session](92-init-data-session.md) | `answerWebAppQuery`, `web_app_query_id`, `InlineQueryResultArticle` | 6.0, 8.0 |
+| [93. Mini App shop: catalogue, product, cart, checkout](93-mini-app-shop.md) | `createInvoiceLink`, `successful_payment`, `LabeledPrice` | 6.1, 10.5 |
+| [94. Form and booking in a Mini App, result back to the chat](94-mini-app-form-booking.md) | `web_app_data`, `KeyboardButton`, `remove_keyboard` | 6.0, 6.2, 6.9 |
+| [95. Dashboard and portfolio Mini App (dark-fintech style)](95-mini-app-dashboard.md) | `sendMessage`, `InlineKeyboardButton` | 7.10, 8.0 |
+| [96. Profile and settings in a Mini App, with permission to message](96-mini-app-profile-settings.md) | `write_access_allowed`, `WriteAccessAllowed`, `setChatMenuButton` | 6.9, 7.0 |
+| [97. Fullscreen game or leaderboard, shared to chats](97-mini-app-game-fullscreen.md) | `savePreparedInlineMessage`, `PreparedInlineMessage` | 8.0 |
+| [98. Share a result from a Mini App to a chat](98-mini-app-share-result.md) | `savePreparedInlineMessage`, `answerWebAppQuery`, `savePreparedKeyboardButton` | 8.0, 9.6 |
+| [99. Editor in a Mini App: autosave, conflicts, publish through the bot](99-mini-app-editor.md) | `callback_data`, `style`, `web_app` | 6.2, 6.9, 9.4 |
+
 ## Existing feature and product recipes
 
 Find a recipe by task, API symbol, version or context. Machine-readable: `manifest.json`

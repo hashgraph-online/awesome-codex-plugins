@@ -61,7 +61,7 @@ That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --wh
 
 ## 🏆 The developer pronunciation scoreboard
 
-**1,979 entries — 1,322 carry a citable source** — **116 settled by the creator themselves**, **181 the community still argues about.** The famous ones:
+**1,979 entries — 1,320 carry a citable source** — **83 settled by the creator themselves**, **184 the community still argues about.** The famous ones:
 
 ### ✅ Settled — the creator said so
 
@@ -69,12 +69,12 @@ That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --wh
 |------|-------|------|-----------|
 | **[GIF](https://pronounce.renlab.ai/word/gif)** | "jif" | "ghif" (hard-G speech cue) | Steve Wilhite (creator), NYT 2013 |
 | **[nginx](https://pronounce.renlab.ai/word/nginx)** | "engine X" | "n-jinx" | NGINX official |
-| **[YAML](https://pronounce.renlab.ai/word/yaml)** | "yam-ul" | "yammel" | yaml.org |
+| **[YAML](https://pronounce.renlab.ai/word/yaml)** | "yam-ul" | "yammel" | YAML 1.2.2 spec |
 | **[GNU](https://pronounce.renlab.ai/word/gnu)** | "guh-NEW" (hard g) | "noo" | GNU Project |
 | **[LaTeX](https://pronounce.renlab.ai/word/latex)** | "lay-tek" | "lay-teks" | Lamport / LaTeX project |
-| **[TOML](https://pronounce.renlab.ai/word/toml)** | rhymes with "knoll" | "tom-el" | Tom Preston-Werner (creator) |
-| **[Tcl](https://pronounce.renlab.ai/word/tcl)** | "tickle" | "T-C-L" | John Ousterhout (creator) |
-| **[awk](https://pronounce.renlab.ai/word/awk)** | "auk" (like the bird) | "A-W-K" | Aho / Weinberger / Kernighan |
+| **[etcd](https://pronounce.renlab.ai/word/etcd)** | "et-cee-dee" | "E-T-C-D" (spelled out) | etcd FAQ |
+| **[scrypt](https://pronounce.renlab.ai/word/scrypt)** | "s-crypt" | "script" | Colin Percival (creator), HN 2009 |
+| **[Pkl](https://pronounce.renlab.ai/word/pkl)** | "pickle" | "P-K-L" | Apple Pkl team, launch post |
 
 ### ⚔️ Still contested — both readings are in active use
 
@@ -86,7 +86,7 @@ That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --wh
 | **[GUI](https://pronounce.renlab.ai/word/gui)** | "gooey" | "G-U-I" |
 | **[JWT](https://pronounce.renlab.ai/word/jwt)** | "jot" (per RFC 7519) | "J-W-T" |
 
-Every cell has IPA and audio; 1,322 also carry a citable source. **[Browse all 1,979 entries →](https://pronounce.renlab.ai/browse)**
+Every cell has IPA and audio; 1,320 also carry a citable source. **[Browse all 1,979 entries →](https://pronounce.renlab.ai/browse)**
 
 > Disagree with one? That's the whole point — [open a PR](CONTRIBUTING.md) with your reading and a source. The argument *is* the dataset.
 
@@ -94,7 +94,7 @@ Every cell has IPA and audio; 1,322 also carry a citable source. **[Browse all 1
 
 ## What you're actually getting
 
-- **1,979 entries — 1,322 carry a citable source.** Confidence-tagged (`creator-clarified` / `community-consensus` / `contested`), each with a citable URL where one exists (we'd rather leave it blank than fabricate one). Wilhite said GIF is "jif" at the 2013 Webby Awards. Crockford says JSON is "JAY-son" (RailsConf 2009). RFC 7519 says JWT is "jot". The dictionary cites them.
+- **1,979 entries — 1,320 carry a citable source.** Confidence-tagged (`creator-clarified` / `community-consensus` / `contested`), each with a citable URL where one exists (we'd rather leave it blank than fabricate one). Wilhite told the NYT in 2013 that GIF has "a soft 'G,' pronounced 'jif.'" Crockford said in 2011, "There's a lot of argument about how you pronounce that, but I strictly don't care." RFC 7519 says JWT is "jot". The dictionary cites them.
 - **Multi-reading audio.** For words where the debate is real — GIF, SQL, GUI, char, regex — the CLI chains the alternates after the primary with a spoken "or:" so you *hear* the debate without staring at the terminal. `--solo` skips the tail once you've internalized it.
 - **One Bash CLI, no npm runtime.** No sudo, no framework bootstrap, no surprises. It detects macOS `say`, Linux `espeak-ng`/`espeak`, or Windows PowerShell `System.Speech`. The repo also ships a [Claude Code skill](skills/pronounce-word/SKILL.md) and an [MCP server](mcp-server/) so your AI answers "how do you pronounce X?" with **audio**, not a phonetic guess.
 - **A docs-native GitHub Action.** Scan Markdown changed by a pull request and emit a sourced pronunciation glossary in the job summary — no API key, dependency install, or network request.
@@ -124,20 +124,19 @@ After a spoken `say-it <word>` lookup, the CLI prints a one-line `★` nudge at 
 
 ## Famous moments
 
-Some pronunciations aren't opinions — the creators settled them. The dictionary cites every one:
+Some pronunciations aren't opinions: the people behind the name went on record. The dictionary cites each one:
 
 | Word | Reading | Source |
 |------|---------|--------|
-| `GIF` | "jif" (creator says so) | [Steve Wilhite, Webby Awards 2013](https://www.nytimes.com/2013/05/22/business/media/creator-of-the-gif-says-its-pronounced-jif.html) |
-| `JSON` | "jay-son" | [Douglas Crockford, RailsConf 2009](https://www.youtube.com/watch?v=-C-JoyNuQJs) |
+| `GIF` | "jif" (creator says so) | [Steve Wilhite, NYT 2013](https://web.archive.org/web/20130522145554/http://bits.blogs.nytimes.com/2013/05/21/an-honor-for-the-creator-of-the-gif/) |
+| `JSON` | "jay-son" or "jee-son" — Crockford "strictly [does not] care" | [Douglas Crockford, 2011, via Wikipedia](https://en.wikipedia.org/wiki/JSON#Pronunciation) |
 | `GNU` | "g-noo" (hard G, one syllable) | [GNU Project official](https://www.gnu.org/gnu/pronunciation.html) |
 | `Linux` | "LIN-ux" (short i, schwa) | [Linus Torvalds himself](https://www.youtube.com/watch?v=5IfHm6R5le0) |
 | `LaTeX` | "lay-tek" (or "lah-tek") | [Leslie Lamport, official](https://www.latex-project.org/about/) |
-| `Django` | "JANG-go" (silent D) | [Django FAQ](https://www.djangoproject.com/foundation/faq/) |
-| `Vue` | "view" (one syllable) | [Evan You, Vue docs](https://vuejs.org/) |
-| `Vite` | "veet" (French for *quick*) | [Vite docs](https://vitejs.dev/) |
-| `Knative` | "KAY-native" (the K is voiced) | [Knative docs](https://knative.dev/) |
-| `etcd` | "et-cee-dee" (et-cetera-distributed) | [etcd FAQ](https://etcd.io/docs/v3.5/faq/) |
+| `Django` | "JANG-go" (silent D) | [Django FAQ](https://docs.djangoproject.com/en/stable/faq/general/) |
+| `Vue` | "view" (one syllable) | [Vue README, "pronounced /vjuː/, like view"](https://github.com/vuejs/vue#readme) |
+| `Vite` | "veet" (French for *quick*) | [Vite README, "pronounced /viːt/"](https://github.com/vitejs/vite#readme) |
+| `etcd` | "et-cee-dee" (/ˈɛtsiːdiː/) | [etcd FAQ](https://etcd.io/docs/v3.5/faq/) |
 
 Run `say-it --why <word>` to see the citation when an entry has a `source_url`; unsourced entries are left blank rather than given a fabricated URL.
 
@@ -231,7 +230,7 @@ Add a pronunciation glossary to every documentation pull request:
   with:
     fetch-depth: 0
 - id: pronounce
-  uses: anzy-renlab-ai/pronounce@v2.41.0
+  uses: anzy-renlab-ai/pronounce@v2.41.1
 ```
 
 `Pronounce Docs` scans changed Markdown/MDX and writes a table containing each
@@ -291,14 +290,14 @@ Local override: drop a `~/.config/say-it/pronunciations.local.tsv` and it takes 
 - ✅ macOS — built-in `say`.
 - ✅ Linux — `espeak-ng` (preferred) or `espeak`.
 - ✅ Windows — PowerShell `System.Speech` from the same Bash CLI under Git Bash/MSYS2/Cygwin.
-- ✅ 1,979 entries; 1,322 carry a citable source — the rest are confidence-tagged, no fabricated citations.
+- ✅ 1,979 entries; 1,320 carry a citable source — the rest are confidence-tagged, no fabricated citations.
 - ✅ **Audible multi-reading awareness** — contested words audibly chain alternates with "or:".
 - ✅ `--alt [N]`, `--all`, `--solo`, `--why`, `--json`, `--md`, `--no-dict`, `list`, `search`, `quiz`, `repl`, `stream`, `doctor`, `export`, `benchmark`, `badge`, `cheatsheet`, `propose` (draft a new dictionary row + prefilled contribution issue).
 - ✅ Claude Code skill + MCP server for AI-side pronunciation questions.
 - ✅ GitHub Action — sourced pronunciation glossaries for Markdown pull requests.
 - ✅ Browser PWA — installable, offline-capable, instant search, voice-mic search, interactive quiz.
 - ✅ Editor integrations — Raycast, Alfred, VS Code, Cursor, Codex, Kiro, Continue.
-- ✅ **🌐 Live site** — [pronounce.renlab.ai](https://pronounce.renlab.ai) (1,979 entries browsable with audio; 1,322 sourced entries) + [/zh](https://pronounce.renlab.ai/zh) (Chinese landing).
+- ✅ **🌐 Live site** — [pronounce.renlab.ai](https://pronounce.renlab.ai) (1,979 entries browsable with audio; 1,320 sourced entries) + [/zh](https://pronounce.renlab.ai/zh) (Chinese landing).
 
 ## What's coming
 

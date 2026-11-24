@@ -1017,6 +1017,55 @@ renders a declaration:
 declared before `monitors.vendor` was set is proposed with a `monitors` field
 listing them.
 
+### Elementary's PII tag on personal-data columns
+
+The Elementary package keeps a sample of a failing test's rows in
+`test_result_rows`. It does not read Dex's `contains_pii` mark; it reads tags.
+With `monitors.vendor: elementary` and the package installed (or added by the
+plan), every plan tags the models it writes (their SQL, their declaration, or
+their YAML entry) so the project's own tests keep no sample of personal data:
+
+- **The column.** Each column the model's YAML marks as PII (`contains_pii`,
+  `pii`, `is_pii` or `pii_category`, at any confidence) gets the tag in
+  `config.meta.tags`, appended to any tags already there. A `false` under a
+  flag wins over a `pii_category` beside it. A tag already in `tags`,
+  `config.tags`, `meta.tags` or `config.meta.tags`, in any case, is
+  `already_tagged`. A column whose metadata sits under a top-level `meta` is
+  `not_written` (`top_level_meta`), since a `config.meta` beside it is a dbt
+  parse error.
+- **The model.** A model with such a column gets the tag in `config.tags`.
+  Elementary then keeps no sample for any test on the model, a test on one of
+  its unmarked columns included. Without the model tag, the column tag alone
+  still keeps none for a test whose query names that column or selects `*`.
+- **The switch.** The plan adds `disable_samples_on_pii_tags: true` under
+  `vars:` in `dbt_project.yml`, as a `project_yml` edit. A value the project
+  sets is kept and warned. A plan that rewrites an existing model's SQL gets
+  the tags without the switch (`withheld`): a `dbt_project.yml` edit would stop
+  that rewrite's refactor comparison and downstream impact check. Apply it,
+  then `transform declare <model>` adds the switch in a plan of its own.
+- **The tag.** `pii`, Elementary's default, or the first entry of the
+  project's own `pii_tags`. Elementary reads both vars while it runs the
+  project's test, so a block keyed by the root project's name wins over the
+  global one and a block keyed `elementary` is not read. Write `pii_tags` as a
+  list: some releases, 0.23.0 among them, match a model's tags against a single
+  string's characters, and a plan warns where it is one.
+
+A warning states the trade on every plan that tags a model. The release
+matters: before 0.19.2 the package has no such rule, and 0.19.2 to 0.19.4 read
+a model's tags but no column's `config.meta.tags`.
+
+| Field of `data.pii_tags` | Meaning |
+|---|---|
+| `tag`, `tag_source` | the tag written; `default` or `pii_tags` |
+| `switch` | `var`, `path`, `status` (`added`, `already_on`, `set_off_by_project`, `unread`, `withheld`, `not_written`) |
+| `release`, `rule` | the installed release and what it does with the tags: `none`, `model_tags_only`, `model_and_column_tags`, `unknown` |
+| `sampling` | the sentence the warning states |
+| `counts` | columns per status |
+| `models[]` | `model`, `path`, `model_tag`, and `columns[]` (`column`, `version`, `status`: `added`, `already_tagged`, `not_written`, with a `reason`) |
+
+`transform declare` proposes a model whose marks predate the tag with a
+`pii_tags` field naming the columns.
+
 ### A versioned model
 
 A model with native dbt versions has one YAML entry with a `versions:` list.

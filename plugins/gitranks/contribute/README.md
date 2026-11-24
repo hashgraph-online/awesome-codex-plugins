@@ -13,7 +13,7 @@ This repository connects your own agent (Claude Code, Codex, Cursor, Gemini CLI 
 MCP server at `https://mcp.gitranks.com/mcp`, and adds a `contribute` skill that walks it through one issue. It holds
 only configuration and instructions: the server runs on GitRanks.
 
-GitRanks Contribute is in beta. It is free.
+GitRanks Contribute is free.
 
 ## How you connect
 
@@ -66,8 +66,8 @@ Use the [Add to Claude link](https://claude.ai/customize/connectors?modal=add-cu
 above, or by hand: **Customize → Connectors → Add → Add custom connector**, name `GitRanks Contribute`, URL
 `https://mcp.gitranks.com/mcp`. Then **Connect** it and sign in on gitranks.com.
 
-In Claude Desktop and claude.ai you can find, claim and track issues. The fix needs Claude Code or another agent that
-can run a shell, signed in to the same account: it picks up your claim.
+In Claude Desktop and claude.ai you can find, take and track issues. The fix needs Claude Code or another agent that
+can run a shell, signed in to the same account: it picks up the issue you took.
 
 ### ChatGPT
 
@@ -76,8 +76,8 @@ On [chatgpt.com/plugins](https://chatgpt.com/plugins), press **+** and choose **
 with **I understand and want to continue**, press **Create as a plugin**, then install it. ChatGPT asks you to sign in:
 your browser opens GitRanks, where you allow it. Then start a new chat and pick it with **@**.
 
-In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another
-agent that can run a shell, signed in to the same account: it picks up your claim.
+In ChatGPT, on the web, desktop or your phone, you can find, take and track issues. The fix needs Codex or another
+agent that can run a shell, signed in to the same account: it picks up the issue you took.
 
 ### Gemini CLI
 
@@ -129,7 +129,7 @@ request opens in your name. The agent runs on your Cursor plan.
 2. Cursor offers to sign in when it connects: gitranks.com opens, you sign in with GitHub and press **Allow**. There's
    no token to copy.
 3. In the agent panel, ask: "Find me an open-source issue to work on with GitRanks." Pick one from the list, and
-   Cursor's agent claims it, fixes it and hands the change back. Then review and approve on gitranks.com.
+   Cursor's agent takes it, fixes it and hands the change back. Then review and approve on gitranks.com.
 
 ### VS Code and Kiro
 
@@ -256,13 +256,13 @@ plain text in your client's config file: keep that file to yourself.
 
 ## Use it
 
-Ask your agent: "Find me an open-source issue to work on with GitRanks." It lists issues picked for you, claims the one
+Ask your agent: "Find me an open-source issue to work on with GitRanks." It lists issues picked for you, takes the one
 you choose, fixes it on your machine and hands the change back. Then review it and approve the pull request on
 gitranks.com. Merged pull requests stay on your GitHub profile.
 
 In Claude Code the plugin adds two commands:
 - `/gitranks-contribute:find [language, kind or owner/repo]`: issues picked for you, then work on the one you choose;
-- `/gitranks-contribute:status`: your claims and pull requests, and what each one needs from you.
+- `/gitranks-contribute:status`: the issues you took and your pull requests, and what each one needs from you.
 
 The server also offers one prompt, **Find an open-source issue for me**, with an optional one-word wish such as
 `typescript`, `docs` or `owner/repo`. Clients that list server prompts show it as a command or menu item; in Claude
@@ -290,15 +290,17 @@ When you sign in:
 
 With every tool call, the access token (or your personal token, when you use one), and:
 - the filters you ask `find_issues` for;
-- the issue you claim or give back, with the reason and your note;
+- the issue you take (a listed issue's masked id, its id or its GitHub link) or give back, with the reason and your
+  note;
 - the change you hand back: the patch (`git format-patch`), your agent's verdict, summary and brief, the tests it ran
   with their output, its risk notes, and the pull request title and text it suggests;
 - your agent's name and the model it runs on, as it reports them with a change or a proof;
-- for a follow-up, what you asked for in your own words, and your agent's reply drafts to the review;
+- for a follow-up, what you asked for in your own words, your agent's reply drafts to the review, its verdict on each
+  failing check (whose it is and why), and what it says only you can do next;
 - what your agent learned about how a repository builds and tests;
-- in GitRanks Learn, the lesson your agent writes on its fix: its steps (text, diagrams, the diff's lines,
-  code excerpts from the repository) and its questions with their answers; it becomes public, linked from the pull
-  request, when GitRanks opens it;
+- in GitRanks Learn, the lesson your agent writes on its fix: its steps (text, diagrams, the diff's lines, code excerpts
+  from the repository), its questions with their answers, and which course lesson the fix used; it becomes public,
+  linked from the pull request, when GitRanks opens it;
 - for a proof: its outcome, summary, the section or reply it drafts for the pull request, its notes, a list of what
   it removed (for example "2 IP addresses"), and its screenshots, which go to upload links the server gives.
 

@@ -1,0 +1,2338 @@
+{
+ "$comment": "Every element a Mini App screen may need: what the read Figma sources show (ios27 = Apple iOS and iPadOS 27 kit, tgkit = Telegram Mini Apps UI Kit (Community); both read 2026-11-23), what Telegram draws natively (telegram), the TelegramUI library inventory (tgui), the reference screenshots (ref), Telegram's own values (Stars, grams, gifts; group telegram) and this skill's additions (skill). Not read and not represented: the Telegram UI community kit 1348989725141777736 and Appetite UI. status: kit = drawn by examples/mini-apps/_kit/tma.css and shown in examples/mini-apps/gallery or examples/mini-apps/catalog; native = Telegram draws it; pattern = composed from kit parts; avoid = not for Mini Apps (see note). Reference: references/mini-apps/components.md.",
+ "version": 1,
+ "checked": "2026-11-23",
+ "groups": [
+  "structure",
+  "navigation",
+  "actions",
+  "settings",
+  "input",
+  "display",
+  "media",
+  "tables",
+  "overlays",
+  "telegram"
+ ],
+ "typography": {
+  "roles": {
+   "large-title": "34/41",
+   "title1": "28/34",
+   "title2": "22/28",
+   "title3": "20/25",
+   "headline": "17/22 semibold",
+   "body": "17/22",
+   "callout": "16/21",
+   "subhead": "15/20",
+   "footnote": "13/18",
+   "caption1": "12/16",
+   "caption2": "11/13"
+  },
+  "weights": [
+   "regular",
+   "emphasized (.is-em)"
+  ],
+  "kit": ".tma-text-<role>",
+  "prose_headings": {
+   "h1": "title1 bold",
+   "h2": "title2",
+   "h3": "title3",
+   "h4": "headline",
+   "h5": "subhead semibold",
+   "h6": "footnote semibold hint"
+  },
+  "figure": ".tma-figure"
+ },
+ "states_legend": {
+  "D": "default",
+  "P": "pressed",
+  "X": "disabled",
+  "L": "loading",
+  "E": "error",
+  "0": "empty",
+  "S": "skeleton"
+ },
+ "components": {
+  "page": {
+   "group": "structure",
+   "title": "Page",
+   "sources": [
+    "tgkit",
+    "ios27"
+   ],
+   "variants": [
+    "grouped (secondary_bg)",
+    "flat (bg)"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-page",
+   "native": null,
+   "status": "kit",
+   "note": "safe areas + tab bar space; min-height from the stable viewport"
+  },
+  "screen": {
+   "group": "structure",
+   "title": "Pushed screen",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "push",
+    "pop"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-screen",
+   "native": "BackButton",
+   "status": "kit",
+   "note": "level 2+: BackButton shown, tab bar hidden"
+  },
+  "section": {
+   "group": "structure",
+   "title": "Section",
+   "sources": [
+    "tgkit",
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "with header",
+    "with footer",
+    "header with trailing total or link"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-section",
+   "native": null,
+   "status": "kit",
+   "note": "TelegramUI Section"
+  },
+  "list-header": {
+   "group": "structure",
+   "title": "List header",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "nested",
+    "prominent",
+    "extra prominent"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-section__header .is-prominent .is-extra .is-small",
+   "native": null,
+   "status": "kit",
+   "note": "iOS 27: nested 17 semibold by default, prominent 20 semibold (<strong> or .is-prominent), extra prominent 22 bold, an action at the end; .is-small = the older 13 pt caption for settings-like lists"
+  },
+  "list": {
+   "group": "structure",
+   "title": "List",
+   "sources": [
+    "ios27",
+    "tgkit",
+    "tgui"
+   ],
+   "variants": [
+    "inset grouped",
+    "full width",
+    "full width + section headers"
+   ],
+   "states": [
+    "D",
+    "0",
+    "S"
+   ],
+   "kit": ".tma-list",
+   "native": null,
+   "status": "kit",
+   "note": "Android may use .is-full"
+  },
+  "cell": {
+   "group": "structure",
+   "title": "Cell / list row",
+   "sources": [
+    "ios27",
+    "tgkit",
+    "tgui"
+   ],
+   "variants": [
+    "one line 52",
+    "two lines 68",
+    "multiline",
+    "leading: none / avatar / icon tile / image"
+   ],
+   "states": [
+    "D",
+    "P",
+    "X",
+    "S"
+   ],
+   "kit": ".tma-cell",
+   "native": null,
+   "status": "kit",
+   "note": "slots: before, title, subtitle, after, chevron"
+  },
+  "divider": {
+   "group": "structure",
+   "title": "Separator",
+   "sources": [
+    "ios27",
+    "tgkit"
+   ],
+   "variants": [
+    "inset to text column",
+    "full"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-list",
+   "native": null,
+   "status": "kit",
+   "note": "section_separator_color (7.6)"
+  },
+  "card": {
+   "group": "structure",
+   "title": "Card",
+   "sources": [
+    "tgkit",
+    "tgui"
+   ],
+   "variants": [
+    "content card"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-card",
+   "native": null,
+   "status": "kit",
+   "note": "never nested"
+  },
+  "placeholder": {
+   "group": "structure",
+   "title": "Placeholder (empty / error)",
+   "sources": [
+    "tgkit",
+    "tgui"
+   ],
+   "variants": [
+    "empty",
+    "error",
+    "first run"
+   ],
+   "states": [
+    "0",
+    "E"
+   ],
+   "kit": ".tma-placeholder .tma-placeholder__icon",
+   "native": null,
+   "status": "kit",
+   "note": "iOS 27: symbol in a 50 pt tinted circle, a 22 pt message, the reason, one action (the MainButton when it is the screen's primary action)"
+  },
+  "accordion": {
+   "group": "structure",
+   "title": "Accordion",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "single",
+    "group"
+   ],
+   "states": [
+    "D",
+    "open"
+   ],
+   "kit": ".tma-accordion",
+   "native": null,
+   "status": "kit",
+   "note": "FAQ, details"
+  },
+  "steps": {
+   "group": "structure",
+   "title": "Steps / timeline",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "done",
+    "current",
+    "upcoming"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-steps",
+   "native": null,
+   "status": "kit",
+   "note": "order status, onboarding progress"
+  },
+  "key-value": {
+   "group": "structure",
+   "title": "Key-value list",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "two columns"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-kv .is-stacked",
+   "native": null,
+   "status": "kit",
+   "note": "receipts and details; .is-stacked puts the label above the value for long values (Telegram kit templates)"
+  },
+  "tab-bar": {
+   "group": "navigation",
+   "title": "Tab bar",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "2-5 tabs",
+    "with side glass circle (search or one prominent action)",
+    "minimized"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-tabbar",
+   "native": null,
+   "status": "kit",
+   "note": "sections only; hidden on level 2 and while MainButton shows"
+  },
+  "segmented": {
+   "group": "navigation",
+   "title": "Segmented control",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "large 32",
+    "small 28"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-segmented",
+   "native": null,
+   "status": "kit",
+   "note": "views of one dataset"
+  },
+  "chips-row": {
+   "group": "navigation",
+   "title": "Chip filters",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "scrolling row"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-scroll-x",
+   "native": null,
+   "status": "kit",
+   "note": "aria-pressed"
+  },
+  "back": {
+   "group": "navigation",
+   "title": "Back",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": "BackButton (6.1)",
+   "status": "native",
+   "note": "never an own arrow"
+  },
+  "settings-item": {
+   "group": "navigation",
+   "title": "Settings item",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": "SettingsButton (7.0)",
+   "status": "native",
+   "note": "in Telegram's ⋯ menu"
+  },
+  "header": {
+   "group": "navigation",
+   "title": "Navigation bar / header",
+   "sources": [
+    "telegram",
+    "ios27"
+   ],
+   "variants": [
+    "close",
+    "back",
+    "title",
+    "menu"
+   ],
+   "states": [],
+   "kit": null,
+   "native": "setHeaderColor (6.1)",
+   "status": "native",
+   "note": "Telegram draws it; the app draws only a large title in content"
+  },
+  "page-dots": {
+   "group": "navigation",
+   "title": "Page control dots",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "current"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-dots",
+   "native": null,
+   "status": "kit",
+   "note": "carousels, onboarding"
+  },
+  "search-field": {
+   "group": "navigation",
+   "title": "Search field",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "inline",
+    "in tab bar side circle"
+   ],
+   "states": [
+    "D",
+    "focus",
+    "0"
+   ],
+   "kit": ".tma-search",
+   "native": null,
+   "status": "kit",
+   "note": "placeholder 'Search'"
+  },
+  "breadcrumbs": {
+   "group": "navigation",
+   "title": "Breadcrumbs",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "desktop pattern; use BackButton and titles"
+  },
+  "pagination": {
+   "group": "navigation",
+   "title": "Numbered pagination",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "load more on scroll or a 'Show more' row"
+  },
+  "hamburger": {
+   "group": "navigation",
+   "title": "Hamburger menu / sidebar",
+   "sources": [
+    "web"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "tab bar 2-5 or sections"
+  },
+  "main-button": {
+   "group": "actions",
+   "title": "MainButton",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "text",
+    "custom emoji icon (9.5)",
+    "progress",
+    "shine (7.10)"
+   ],
+   "states": [
+    "D",
+    "X",
+    "L"
+   ],
+   "kit": null,
+   "native": "MainButton (6.0)",
+   "status": "native",
+   "note": "tma.mainButton()"
+  },
+  "secondary-button": {
+   "group": "actions",
+   "title": "SecondaryButton",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "position left/right/top/bottom"
+   ],
+   "states": [
+    "D",
+    "X",
+    "L"
+   ],
+   "kit": null,
+   "native": "SecondaryButton (7.10)",
+   "status": "native",
+   "note": "no style field"
+  },
+  "button": {
+   "group": "actions",
+   "title": "Button in content",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "small 28",
+    "medium 34",
+    "large 50",
+    "filled (bordered prominent)",
+    "tonal (bordered)",
+    "plain (borderless)",
+    "danger",
+    "title + icon",
+    "icon only",
+    "title only"
+   ],
+   "states": [
+    "D",
+    "P",
+    "X"
+   ],
+   "kit": ".tma-btn",
+   "native": null,
+   "status": "kit",
+   "note": "one filled per screen; never fixed to the bottom"
+  },
+  "glass-button": {
+   "group": "actions",
+   "title": "Glass button",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "glass",
+    "glass prominent",
+    "symbol 50"
+   ],
+   "states": [
+    "D",
+    "P"
+   ],
+   "kit": ".tma-glass",
+   "native": null,
+   "status": "kit",
+   "note": "floating over media or content only"
+  },
+  "icon-button": {
+   "group": "actions",
+   "title": "Icon button",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "44 circle"
+   ],
+   "states": [
+    "D",
+    "P",
+    "X"
+   ],
+   "kit": ".tma-icon-btn",
+   "native": null,
+   "status": "kit",
+   "note": "aria-label"
+  },
+  "quick-actions": {
+   "group": "actions",
+   "title": "Quick action tiles",
+   "sources": [
+    "ref"
+   ],
+   "variants": [
+    "2-4 equal"
+   ],
+   "states": [
+    "D",
+    "P",
+    "X"
+   ],
+   "kit": ".tma-actions",
+   "native": null,
+   "status": "kit",
+   "note": "verb labels"
+  },
+  "chip": {
+   "group": "actions",
+   "title": "Chip",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "toggle",
+    "filter",
+    "success cross-sell"
+   ],
+   "states": [
+    "D",
+    "P",
+    "selected"
+   ],
+   "kit": ".tma-chip",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "link": {
+   "group": "actions",
+   "title": "Link",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "inline",
+    "row"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": "a",
+   "native": "openLink / openTelegramLink",
+   "status": "kit",
+   "note": "external links via openLink in a tap"
+  },
+  "toolbar": {
+   "group": "actions",
+   "title": "Bottom toolbar",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "conflicts with Telegram's bottom bar: MainButton / SecondaryButton"
+  },
+  "fab": {
+   "group": "actions",
+   "title": "Floating action button",
+   "sources": [
+    "material"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "the tab bar's side circle or the MainButton"
+  },
+  "row-detail": {
+   "group": "settings",
+   "title": "Row with value",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "default detail"
+   ],
+   "states": [
+    "D",
+    "P"
+   ],
+   "kit": ".tma-cell__after",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "row-disclosure": {
+   "group": "settings",
+   "title": "Navigation row",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "chevron"
+   ],
+   "states": [
+    "D",
+    "P"
+   ],
+   "kit": ".tma-cell__chevron",
+   "native": null,
+   "status": "kit",
+   "note": "mirrored in RTL"
+  },
+  "row-button": {
+   "group": "settings",
+   "title": "Action row",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "accent",
+    "destructive"
+   ],
+   "states": [
+    "D",
+    "P",
+    "X"
+   ],
+   "kit": ".tma-cell.is-button",
+   "native": null,
+   "status": "kit",
+   "note": "destructive confirms with showConfirm"
+  },
+  "row-picker-pill": {
+   "group": "settings",
+   "title": "Date / time / value pill",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "date",
+    "time",
+    "select"
+   ],
+   "states": [
+    "D",
+    "focus"
+   ],
+   "kit": ".tma-pill-select",
+   "native": null,
+   "status": "kit",
+   "note": "native input/select under a pill"
+  },
+  "row-popup": {
+   "group": "settings",
+   "title": "Pop-up menu row",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "current value + chevrons"
+   ],
+   "states": [
+    "D",
+    "open"
+   ],
+   "kit": ".tma-popup-trigger",
+   "native": null,
+   "status": "kit",
+   "note": "opens .tma-menu or showPopup (≤ 3)"
+  },
+  "row-stepper": {
+   "group": "settings",
+   "title": "Stepper row",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [],
+   "states": [
+    "D",
+    "X"
+   ],
+   "kit": ".tma-stepper",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "row-toggle": {
+   "group": "settings",
+   "title": "Toggle row",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "on",
+    "off",
+    "X"
+   ],
+   "kit": ".tma-switch",
+   "native": null,
+   "status": "kit",
+   "note": "applies at once"
+  },
+  "row-check": {
+   "group": "settings",
+   "title": "Checkmark row",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "single choice"
+   ],
+   "states": [
+    "D",
+    "checked"
+   ],
+   "kit": ".tma-cell__check",
+   "native": null,
+   "status": "kit",
+   "note": "role=option / radio"
+  },
+  "text-field": {
+   "group": "input",
+   "title": "Text field",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "in a list",
+    "standalone with label"
+   ],
+   "states": [
+    "D",
+    "focus",
+    "X",
+    "E"
+   ],
+   "kit": ".tma-input",
+   "native": null,
+   "status": "kit",
+   "note": "visible label"
+  },
+  "textarea": {
+   "group": "input",
+   "title": "Text area",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "D",
+    "focus",
+    "E"
+   ],
+   "kit": "textarea.tma-input",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "select": {
+   "group": "input",
+   "title": "Select / picker",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "radio list",
+    "sheet",
+    "native select"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-pill-select",
+   "native": null,
+   "status": "kit",
+   "note": "wheel pickers: the native input"
+  },
+  "date-time": {
+   "group": "input",
+   "title": "Date and time",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "date",
+    "time",
+    "date+time"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-pill-select",
+   "native": null,
+   "status": "kit",
+   "note": "input type=date/time under a pill"
+  },
+  "switch": {
+   "group": "input",
+   "title": "Switch",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "on",
+    "off",
+    "X"
+   ],
+   "kit": ".tma-switch",
+   "native": null,
+   "status": "kit",
+   "note": "selectionChanged"
+  },
+  "checkbox-radio": {
+   "group": "input",
+   "title": "Checkbox / radio",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "radio",
+    "checkbox"
+   ],
+   "states": [
+    "D",
+    "checked",
+    "X"
+   ],
+   "kit": ".tma-check",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "slider": {
+   "group": "input",
+   "title": "Slider",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "D",
+    "X"
+   ],
+   "kit": ".tma-slider",
+   "native": null,
+   "status": "kit",
+   "note": "show the value"
+  },
+  "stepper": {
+   "group": "input",
+   "title": "Stepper",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [],
+   "states": [
+    "D",
+    "X at limit"
+   ],
+   "kit": ".tma-stepper",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "pin": {
+   "group": "input",
+   "title": "PIN / code input",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "4-6 cells"
+   ],
+   "states": [
+    "D",
+    "E"
+   ],
+   "kit": ".tma-pin",
+   "native": null,
+   "status": "kit",
+   "note": "inputmode=numeric, autocomplete=one-time-code"
+  },
+  "file-input": {
+   "group": "input",
+   "title": "File input / drop zone",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "D",
+    "focus",
+    "L",
+    "E"
+   ],
+   "kit": ".tma-file-drop",
+   "native": null,
+   "status": "kit",
+   "note": "accept=, capture= for camera"
+  },
+  "multiselect": {
+   "group": "input",
+   "title": "Multiselect",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "chips"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-chip",
+   "native": null,
+   "status": "pattern",
+   "note": "chips with aria-pressed"
+  },
+  "rating": {
+   "group": "input",
+   "title": "Rating",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "5 stars"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-rate .tma-rating .is-on",
+   "native": null,
+   "status": "kit",
+   "note": "question above, five 44 px stars centred (radio group, arrow keys), chosen stars filled in the Stars gold, the value in words below"
+  },
+  "color-input": {
+   "group": "input",
+   "title": "Colour input",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "only inside an editor; the native input type=color"
+  },
+  "avatar": {
+   "group": "display",
+   "title": "Avatar",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "40",
+    "48",
+    "56",
+    "image",
+    "initials"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-avatar",
+   "native": null,
+   "status": "kit",
+   "note": "never an emoji"
+  },
+  "avatar-stack": {
+   "group": "display",
+   "title": "Avatar stack",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-avatar-stack",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "icon-tile": {
+   "group": "display",
+   "title": "Icon tile",
+   "sources": [
+    "ios27",
+    "tgkit"
+   ],
+   "variants": [
+    "tonal circle"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-icon-tile",
+   "native": null,
+   "status": "kit",
+   "note": "symbol image of list rows"
+  },
+  "badge": {
+   "group": "display",
+   "title": "Badge (count)",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-badge",
+   "native": null,
+   "status": "kit",
+   "note": "no NEW badges"
+  },
+  "tag": {
+   "group": "display",
+   "title": "Tag",
+   "sources": [
+    "ref"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-tag",
+   "native": null,
+   "status": "kit",
+   "note": "replaces corner ribbons"
+  },
+  "figure": {
+   "group": "display",
+   "title": "Hero figure",
+   "sources": [
+    "ref"
+   ],
+   "variants": [
+    "integer + minor part"
+   ],
+   "states": [
+    "D",
+    "L",
+    "E"
+   ],
+   "kit": ".tma-figure",
+   "native": null,
+   "status": "kit",
+   "note": "tabular-nums"
+  },
+  "delta": {
+   "group": "display",
+   "title": "Change pill",
+   "sources": [
+    "ref"
+   ],
+   "variants": [
+    "up",
+    "down",
+    "flat"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-delta",
+   "native": null,
+   "status": "kit",
+   "note": "sign always"
+  },
+  "chart": {
+   "group": "display",
+   "title": "Chart",
+   "sources": [
+    "ref"
+   ],
+   "variants": [
+    "line",
+    "single-series bars"
+   ],
+   "states": [
+    "D",
+    "L",
+    "E"
+   ],
+   "kit": ".tma-chart",
+   "native": null,
+   "status": "kit",
+   "note": "one series, muted grid"
+  },
+  "countdown": {
+   "group": "display",
+   "title": "Countdown",
+   "sources": [
+    "ref"
+   ],
+   "variants": [],
+   "states": [
+    "live"
+   ],
+   "kit": ".tma-num",
+   "native": null,
+   "status": "pattern",
+   "note": "pauses on deactivated"
+  },
+  "progress": {
+   "group": "display",
+   "title": "Progress bar",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-progress",
+   "native": null,
+   "status": "kit",
+   "note": "measurable progress only"
+  },
+  "circular-progress": {
+   "group": "display",
+   "title": "Circular progress",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "decorative rings are slop; a bar or a spinner"
+  },
+  "spinner": {
+   "group": "display",
+   "title": "Activity indicator",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "L"
+   ],
+   "kit": ".tma-spinner",
+   "native": null,
+   "status": "kit",
+   "note": "inside a control"
+  },
+  "skeleton": {
+   "group": "display",
+   "title": "Skeleton",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "S"
+   ],
+   "kit": ".tma-skeleton",
+   "native": null,
+   "status": "kit",
+   "note": "real layout shapes"
+  },
+  "banner": {
+   "group": "display",
+   "title": "Banner / promo",
+   "sources": [
+    "tgui",
+    "ref"
+   ],
+   "variants": [
+    "dismissible",
+    "carousel"
+   ],
+   "states": [
+    "D",
+    "dismissed"
+   ],
+   "kit": ".tma-banner",
+   "native": null,
+   "status": "kit",
+   "note": "one moment per screen"
+  },
+  "hero": {
+   "group": "display",
+   "title": "Brand hero",
+   "sources": [
+    "ref"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-hero",
+   "native": "setHeaderColor",
+   "status": "kit",
+   "note": "header follows it"
+  },
+  "coachmark": {
+   "group": "display",
+   "title": "Coachmark / tooltip",
+   "sources": [
+    "ref",
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "shown once"
+   ],
+   "kit": ".tma-coachmark",
+   "native": null,
+   "status": "kit",
+   "note": "remembered in CloudStorage"
+  },
+  "snackbar": {
+   "group": "display",
+   "title": "Snackbar",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [],
+   "states": [
+    "shown"
+   ],
+   "kit": ".tma-snackbar",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "quote": {
+   "group": "display",
+   "title": "Quote",
+   "sources": [
+    "tgui"
+   ],
+   "variants": [
+    "with source"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-quote",
+   "native": null,
+   "status": "kit",
+   "note": "Blockquote"
+  },
+  "code": {
+   "group": "display",
+   "title": "Inline code / block",
+   "sources": [
+    "skill"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-code",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "prose": {
+   "group": "display",
+   "title": "Long text",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "h1-h6",
+    "lists",
+    "code",
+    "rule"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-prose",
+   "native": null,
+   "status": "kit",
+   "note": "65ch measure"
+  },
+  "image": {
+   "group": "media",
+   "title": "Image",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "fill",
+    "rounded",
+    "circular",
+    "square",
+    "portrait",
+    "contain"
+   ],
+   "states": [
+    "D",
+    "L",
+    "E"
+   ],
+   "kit": ".tma-media",
+   "native": null,
+   "status": "kit",
+   "note": "alt, width/height, loading=lazy"
+  },
+  "video": {
+   "group": "media",
+   "title": "Video",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "poster + play",
+    "duration badge"
+   ],
+   "states": [
+    "D",
+    "playing",
+    "L"
+   ],
+   "kit": ".tma-media__play",
+   "native": null,
+   "status": "kit",
+   "note": "playsinline, muted autoplay only for silent loops"
+  },
+  "gallery": {
+   "group": "media",
+   "title": "Photo grid",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "3 columns"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-gallery",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "carousel": {
+   "group": "media",
+   "title": "Carousel",
+   "sources": [
+    "ref"
+   ],
+   "variants": [
+    "snap",
+    "with dots"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-carousel",
+   "native": null,
+   "status": "kit",
+   "note": "no auto-advance on reduced motion or Android LOW"
+  },
+  "audio": {
+   "group": "media",
+   "title": "Audio row",
+   "sources": [
+    "skill"
+   ],
+   "variants": [],
+   "states": [
+    "D",
+    "playing"
+   ],
+   "kit": ".tma-audio",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "file": {
+   "group": "media",
+   "title": "File row",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "download"
+   ],
+   "states": [
+    "D",
+    "L"
+   ],
+   "kit": ".tma-file__icon",
+   "native": "downloadFile (8.0)",
+   "status": "kit",
+   "note": "Content-Disposition + CORS on the server"
+  },
+  "sticker-moment": {
+   "group": "media",
+   "title": "Animated sticker / emoji moment",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "TGS",
+    "WEBM",
+    "Lottie"
+   ],
+   "states": [
+    "D",
+    "paused"
+   ],
+   "kit": ".tma-moment",
+   "native": null,
+   "status": "kit",
+   "note": "one per screen; static on reduced motion and LOW"
+  },
+  "map": {
+   "group": "media",
+   "title": "Map",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "static",
+    "interactive"
+   ],
+   "states": [
+    "D",
+    "L"
+   ],
+   "kit": ".tma-map",
+   "native": "LocationManager (8.0)",
+   "status": "kit",
+   "note": "disableVerticalSwipes only while panning"
+  },
+  "qr": {
+   "group": "media",
+   "title": "QR code",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "show",
+    "scan"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-qr",
+   "native": "showScanQrPopup (6.4)",
+   "status": "kit",
+   "note": "white quiet zone in both themes"
+  },
+  "story-share": {
+   "group": "media",
+   "title": "Share to story",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": "shareToStory (7.8)",
+   "status": "native",
+   "note": ""
+  },
+  "data-table": {
+   "group": "tables",
+   "title": "Data table",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "numeric columns right-aligned",
+    "caption",
+    "horizontal scroll"
+   ],
+   "states": [
+    "D",
+    "S",
+    "0"
+   ],
+   "kit": ".tma-table",
+   "native": null,
+   "status": "kit",
+   "note": "only for compared columns"
+  },
+  "compact-table": {
+   "group": "tables",
+   "title": "Compact table",
+   "sources": [
+    "skill"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-table.is-compact",
+   "native": null,
+   "status": "kit",
+   "note": "dense style"
+  },
+  "sortable-table": {
+   "group": "tables",
+   "title": "Sortable header",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "ascending",
+    "descending"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": "th[aria-sort]",
+   "native": null,
+   "status": "kit",
+   "note": ""
+  },
+  "sticky-column-table": {
+   "group": "tables",
+   "title": "Sticky first column",
+   "sources": [
+    "skill"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": "th[scope=\"row\"]",
+   "native": null,
+   "status": "kit",
+   "note": "wide comparisons"
+  },
+  "leaderboard": {
+   "group": "tables",
+   "title": "Leaderboard",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "rank",
+    "current user row"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-rank",
+   "native": null,
+   "status": "kit",
+   "note": "tr.is-me / cell with rank"
+  },
+  "comparison": {
+   "group": "tables",
+   "title": "Comparison (plans)",
+   "sources": [
+    "skill"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-table",
+   "native": null,
+   "status": "pattern",
+   "note": "check icons with text, not colour only"
+  },
+  "popup": {
+   "group": "overlays",
+   "title": "Popup / alert / confirm",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "≤ 3 buttons: default, ok, close, cancel, destructive"
+   ],
+   "states": [],
+   "kit": null,
+   "native": "showPopup / showAlert / showConfirm (6.2)",
+   "status": "native",
+   "note": ""
+  },
+  "qr-scanner": {
+   "group": "overlays",
+   "title": "QR scanner",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": "showScanQrPopup (6.4)",
+   "status": "native",
+   "note": ""
+  },
+  "sheet": {
+   "group": "overlays",
+   "title": "Bottom sheet",
+   "sources": [
+    "ios27",
+    "tgui"
+   ],
+   "variants": [
+    "medium",
+    "large"
+   ],
+   "states": [
+    "open",
+    "closing"
+   ],
+   "kit": ".tma-sheet",
+   "native": null,
+   "status": "kit",
+   "note": "grabber, close left, title, confirm right; BackButton closes it; iOS 27: floats 6 pt from the edges with a 60x4 grabber"
+  },
+  "onboarding-sheet": {
+   "group": "overlays",
+   "title": "Onboarding sheet",
+   "sources": [
+    "ref"
+   ],
+   "variants": [],
+   "states": [
+    "shown once"
+   ],
+   "kit": ".tma-sheet",
+   "native": "MainButton",
+   "status": "pattern",
+   "note": "illustration moment + 2-3 benefits + MainButton"
+  },
+  "action-sheet": {
+   "group": "overlays",
+   "title": "Action sheet",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "with destructive"
+   ],
+   "states": [
+    "open"
+   ],
+   "kit": ".tma-action-sheet",
+   "native": "showPopup (≤ 3)",
+   "status": "kit",
+   "note": "more than 3 actions"
+  },
+  "menu": {
+   "group": "overlays",
+   "title": "Context / pop-up menu",
+   "sources": [
+    "ios27"
+   ],
+   "variants": [
+    "with destructive",
+    "with separators"
+   ],
+   "states": [
+    "open"
+   ],
+   "kit": ".tma-menu",
+   "native": null,
+   "status": "kit",
+   "note": "long-press or ⋯ on an item"
+  },
+  "fullscreen-modal": {
+   "group": "overlays",
+   "title": "Fullscreen modal",
+   "sources": [
+    "web"
+   ],
+   "variants": [],
+   "states": [],
+   "kit": null,
+   "native": null,
+   "status": "avoid",
+   "note": "push a screen with BackButton"
+  },
+  "grid": {
+   "group": "tables",
+   "title": "Catalogue grid",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "2 columns to 559 px",
+    "3 from 560 px"
+   ],
+   "states": [
+    "D",
+    "S",
+    "0"
+   ],
+   "kit": ".tma-grid",
+   "native": null,
+   "status": "kit",
+   "note": "L09"
+  },
+  "tile": {
+   "group": "display",
+   "title": "Tile / media card",
+   "sources": [
+    "skill",
+    "ios27"
+   ],
+   "variants": [
+    "grid tile",
+    "wide media card",
+    "card surface"
+   ],
+   "states": [
+    "D",
+    "P",
+    "X",
+    "S"
+   ],
+   "kit": ".tma-tile",
+   "native": null,
+   "status": "kit",
+   "note": "image on top, title clamped to 2 lines (L04, L05)"
+  },
+  "price": {
+   "group": "display",
+   "title": "Price",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "plain",
+    "old price struck",
+    "from",
+    "period",
+    "large"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-price",
+   "native": null,
+   "status": "kit",
+   "note": "L06"
+  },
+  "meta-line": {
+   "group": "display",
+   "title": "Meta line",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "dot-separated"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-meta",
+   "native": null,
+   "status": "kit",
+   "note": "one line, hint colour"
+  },
+  "rating-inline": {
+   "group": "display",
+   "title": "Inline rating",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "star icon + 4.8 (120)"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-rating-inline",
+   "native": null,
+   "status": "kit",
+   "note": "L07"
+  },
+  "availability": {
+   "group": "display",
+   "title": "Availability text",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "in stock",
+    "low",
+    "out"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-avail",
+   "native": null,
+   "status": "kit",
+   "note": "L08: text, not colour only"
+  },
+  "media-tag": {
+   "group": "display",
+   "title": "Tag on media",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "top start"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-media__tag",
+   "native": null,
+   "status": "kit",
+   "note": "one per card (L18)"
+  },
+  "row-thumb": {
+   "group": "media",
+   "title": "Row thumbnail",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "square 56",
+    "cover 48 x 72",
+    "wide 96 x 54",
+    "round"
+   ],
+   "states": [
+    "D",
+    "S"
+   ],
+   "kit": ".tma-row-thumb",
+   "native": null,
+   "status": "kit",
+   "note": "by content type (L02)"
+  },
+  "favourite": {
+   "group": "actions",
+   "title": "Favourite on media",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "on",
+    "off"
+   ],
+   "states": [
+    "D",
+    "pressed"
+   ],
+   "kit": ".tma-fav",
+   "native": null,
+   "status": "kit",
+   "note": "the one card control (L19)"
+  },
+  "day-strip": {
+   "group": "input",
+   "title": "Day strip",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "7-14 days"
+   ],
+   "states": [
+    "D",
+    "selected",
+    "X"
+   ],
+   "kit": ".tma-days",
+   "native": null,
+   "status": "kit",
+   "note": "L16"
+  },
+  "slot-grid": {
+   "group": "input",
+   "title": "Time slot grid",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "3-4 columns"
+   ],
+   "states": [
+    "D",
+    "selected",
+    "X taken"
+   ],
+   "kit": ".tma-slots",
+   "native": null,
+   "status": "kit",
+   "note": "taken slots disabled, not hidden (L16)"
+  },
+  "booking-summary": {
+   "group": "display",
+   "title": "Choice summary",
+   "sources": [
+    "skill"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-summary",
+   "native": null,
+   "status": "kit",
+   "note": "one line before the MainButton"
+  },
+  "plan-card": {
+   "group": "display",
+   "title": "Plan card",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "recommended",
+    "selected"
+   ],
+   "states": [
+    "D",
+    "selected"
+   ],
+   "kit": ".tma-plan",
+   "native": null,
+   "status": "kit",
+   "note": "stacked on phones (L25)"
+  },
+  "check-list": {
+   "group": "display",
+   "title": "Feature list with checks",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "included",
+    "not included"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-checks",
+   "native": null,
+   "status": "kit",
+   "note": "icon and text, never colour only"
+  },
+  "photo-viewer": {
+   "group": "media",
+   "title": "Photo viewer screen",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "counter",
+    "previous / next"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-viewer",
+   "native": null,
+   "status": "kit",
+   "note": "pushed screen with BackButton (L12)"
+  },
+  "content-cap": {
+   "group": "structure",
+   "title": "Content width cap",
+   "sources": [
+    "skill"
+   ],
+   "variants": [
+    "600 px"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-content-cap",
+   "native": null,
+   "status": "kit",
+   "note": "tablets and desktop (L24)"
+  },
+  "stars-amount": {
+   "group": "telegram",
+   "title": "Telegram Stars amount",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "price",
+    "balance with nanostars",
+    "subscription period",
+    "MainButton text"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-amount.is-stars .tma-star",
+   "native": null,
+   "status": "kit",
+   "note": "own gold glyph before a whole number; plain text '⭐ 250' where no markup; never 'XTR' (T1)"
+  },
+  "stars-pill": {
+   "group": "telegram",
+   "title": "Stars price pill",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "gift price",
+    "paid item",
+    "static (reduced motion)"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-stars-pill .tma-sparkles",
+   "native": null,
+   "status": "kit",
+   "note": "translucent gold pill, gold star, gold amount, drifting sparkles that stop under reduced motion (T1)"
+  },
+  "gram-amount": {
+   "group": "telegram",
+   "title": "Gram amount (formerly Toncoin)",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "balance",
+    "incoming / outgoing transfer"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-amount .tma-amount__unit .is-negative .is-positive",
+   "native": null,
+   "status": "kit",
+   "note": "from nanograms with formatGrams(); ticker GRAM after the number; no drawn coin logo (T2)"
+  },
+  "gift-card": {
+   "group": "telegram",
+   "title": "Gift card (regular)",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "price",
+    "limited",
+    "Premium only",
+    "upgradable"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-gifts .tma-gift .tma-gift__art .tma-gift__title .tma-stars-pill .tma-gift__flag",
+   "native": null,
+   "status": "kit",
+   "note": "plain surface tile as in Telegram's gift catalogue; Gift.background colours via giftVars() when present; price in a Stars pill (T4)"
+  },
+  "unique-gift": {
+   "group": "telegram",
+   "title": "Unique (collectible) gift",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "tile",
+    "large detail"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-gift.is-unique .tma-gift__pattern .tma-gift__number .is-lg",
+   "native": null,
+   "status": "kit",
+   "note": "backdrop centre to edge, symbol pattern, model; 'Name #1234' (T5)"
+  },
+  "rarity-chip": {
+   "group": "telegram",
+   "title": "Rarity chip",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "per mille as %",
+    "crafted tier"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-rarity",
+   "native": null,
+   "status": "kit",
+   "note": "rarityPercent() / rarityTier(); text, no invented tier colours (T5)"
+  },
+  "limited-counter": {
+   "group": "telegram",
+   "title": "Limited counter",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "left of total",
+    "sold out"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": ".tma-limited .tma-progress",
+   "native": null,
+   "status": "kit",
+   "note": "limitedLeft(); only for gifts that are limited (T4)"
+  },
+  "paid-content": {
+   "group": "telegram",
+   "title": "Paid content lock",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "blurred preview + price"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": "sendPaidMedia in chats",
+   "status": "pattern",
+   "note": "in a Mini App: a preview + an invoice (payments.md); the blur-and-star lock in chats is Telegram's (T6)"
+  },
+  "premium-perk": {
+   "group": "telegram",
+   "title": "Telegram Premium perk",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "row text",
+    "plan comparison"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": null,
+   "status": "pattern",
+   "note": "initData user.is_premium; say it in words, never draw Telegram's Premium badge (T7)"
+  },
+  "verification-mark": {
+   "group": "telegram",
+   "title": "Verified / Scam / Fake marks",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": "Telegram profile and chat header",
+   "status": "avoid",
+   "note": "Telegram and verifying organisations draw these; an own check mark next to a name is lint MA29 (T8)"
+  },
+  "emoji-status": {
+   "group": "telegram",
+   "title": "Emoji status",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "set from the app"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": "WebApp.setEmojiStatus (8.0)",
+   "status": "native",
+   "note": "Telegram shows the confirmation and the status (T9)"
+  },
+  "rating-level": {
+   "group": "telegram",
+   "title": "User rating level",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "level + progress"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": null,
+   "status": "pattern",
+   "note": "ChatFullInfo.rating (9.3) read by the bot; 'Level 5' text + .tma-progress (T10)"
+  },
+  "boost-row": {
+   "group": "telegram",
+   "title": "Boost row",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [
+    "boost link",
+    "boost count"
+   ],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": "t.me/boost/<channel>",
+   "status": "pattern",
+   "note": "icon bolt + openTelegramLink (T11)"
+  },
+  "wallet-card": {
+   "group": "telegram",
+   "title": "TON wallet card",
+   "sources": [
+    "telegram"
+   ],
+   "variants": [],
+   "states": [
+    "D"
+   ],
+   "kit": null,
+   "native": "the profile page",
+   "status": "native",
+   "note": "ChatFullInfo.ton_wallet_card (10.4); show amounts with formatGrams() only when the user shared them (T12)"
+  }
+ }
+}

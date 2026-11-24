@@ -127,13 +127,14 @@ One of them is a **partner tool**: `read_inbox` (the notes DC Hub leaves for a p
 
 ## Guided prompts & resources
 
-Beyond the tools, DC Hub ships **14 guided prompts** — they surface as slash-commands in Claude Desktop, Cursor, and other MCP clients (every invocation is telemetry-tracked as `recipe:<name>`):
+Beyond the tools, DC Hub ships **15 guided prompts** — they surface as slash-commands in Claude Desktop, Cursor, and other MCP clients (every invocation is telemetry-tracked as `recipe:<name>`):
 
 - `/dchub:analyze-site` — full buildability read for an address or lat,lon
-- `/dchub:pick-a-market` — where to build N MW (DCPI-ranked, with time-to-power)
-- `/dchub:power-availability` — power availability + time-to-power for an ISO
+- `/dchub:pick-a-market` — Rank markets for a 200 MW AI campus (one `execute_plan` call)
+- `/dchub:power-availability` — How much power is available in ERCOT for a 100 MW data center (one `execute_plan` call)
 - `/dchub:site-report` — premium one-page site brief (power · gas · fiber · market · risk)
-- `/dchub:compare-markets` — 2–4 markets head-to-head
+- `/dchub:compare-markets` — Compare Dallas vs Phoenix for a GPU cluster (one `execute_plan` call)
+- `/dchub:dcpi-verdict` — Data Center Power Index (DCPI) verdict for my market (one `execute_plan` call)
 - `/dchub:fiber-plan` — diverse fibre lead-in routes to a carrier hotel
 - `/dchub:market_selection` — DCPI shortlist → per-finalist verdict → grid reality-check
 - `/dchub:grid_and_queue` — power availability + interconnection queue for an ISO

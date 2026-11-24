@@ -1793,6 +1793,239 @@
       "check": "tests/test_journey_library.py::test_queue_identity_and_staff_advancement"
     },
     {
+      "id": "R90",
+      "title": "Bot or Mini App: deciding the surface and building the hybrid",
+      "doc": "recipes/90-mini-app-or-bot.md",
+      "registry": [],
+      "symbols": [
+        "web_app",
+        "setChatMenuButton",
+        "MenuButtonWebApp"
+      ],
+      "versions": [
+        "6.7",
+        "7.8"
+      ],
+      "contexts": "any client; web_app buttons in private chats, t.me links anywhere",
+      "payload": "examples/payloads/r90-decide-and-hybrid.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Our café bot works with buttons, but people want to browse the whole menu. Should we build a Mini App?"
+      ]
+    },
+    {
+      "id": "R91",
+      "title": "A minimal Mini App: menu button, startapp, theme, BackButton, MainButton",
+      "doc": "recipes/91-minimal-mini-app.md",
+      "registry": [],
+      "symbols": [
+        "setChatMenuButton",
+        "MenuButtonWebApp",
+        "WebAppInfo",
+        "web_app"
+      ],
+      "versions": [
+        "6.1",
+        "7.10",
+        "8.0",
+        "9.5"
+      ],
+      "contexts": "Bot API ≥ 6.1 for the kit; newer members gated",
+      "payload": "examples/payloads/r91-minimal-mini-app.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": "examples/mini-apps/react/src/App.tsx",
+      "tasks": [
+        "Give our coffee bot an app for ordering ahead."
+      ]
+    },
+    {
+      "id": "R92",
+      "title": "Verify initData on the server and keep a session",
+      "doc": "recipes/92-init-data-session.md",
+      "registry": [],
+      "symbols": [
+        "answerWebAppQuery",
+        "web_app_query_id",
+        "InlineQueryResultArticle"
+      ],
+      "versions": [
+        "6.0",
+        "8.0"
+      ],
+      "contexts": "any launch that carries initData; Ed25519 since 8.0",
+      "payload": "examples/payloads/r92-init-data-session.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": "examples/mini-apps/server/ts/verifyInitData.ts",
+      "tasks": [
+        "Make sure only real Telegram users can place orders from our Mini App, and that nobody can post on someone else's behalf."
+      ]
+    },
+    {
+      "id": "R93",
+      "title": "Mini App shop: catalogue, product, cart, checkout",
+      "doc": "recipes/93-mini-app-shop.md",
+      "registry": [],
+      "symbols": [
+        "createInvoiceLink",
+        "successful_payment",
+        "pre_checkout_query",
+        "LabeledPrice"
+      ],
+      "versions": [
+        "6.1",
+        "10.5"
+      ],
+      "contexts": "private chat for the receipt; physical goods through a provider, digital goods in Stars",
+      "payload": "examples/payloads/r93-mini-app-shop.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Turn our coffee shop bot into a proper store with photos and a cart."
+      ]
+    },
+    {
+      "id": "R94",
+      "title": "Form and booking in a Mini App, result back to the chat",
+      "doc": "recipes/94-mini-app-form-booking.md",
+      "registry": [],
+      "symbols": [
+        "web_app_data",
+        "KeyboardButton",
+        "remove_keyboard"
+      ],
+      "versions": [
+        "6.0",
+        "6.2",
+        "6.9"
+      ],
+      "contexts": "private chat; sendData from reply-keyboard launches only",
+      "payload": "examples/payloads/r94-form-booking.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Let people book a table or a trainer from the bot: pick a time, how many people, a name."
+      ]
+    },
+    {
+      "id": "R95",
+      "title": "Dashboard and portfolio Mini App (dark-fintech style)",
+      "doc": "recipes/95-mini-app-dashboard.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "InlineKeyboardButton"
+      ],
+      "versions": [
+        "7.10",
+        "8.0"
+      ],
+      "contexts": "SecondaryButton 7.10, activated/deactivated 8.0; any theme",
+      "payload": "examples/payloads/r95-dashboard-portfolio.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Show customers their points like a banking app: balance, history, bonuses."
+      ]
+    },
+    {
+      "id": "R96",
+      "title": "Profile and settings in a Mini App, with permission to message",
+      "doc": "recipes/96-mini-app-profile-settings.md",
+      "registry": [],
+      "symbols": [
+        "write_access_allowed",
+        "WriteAccessAllowed",
+        "setChatMenuButton"
+      ],
+      "versions": [
+        "6.9",
+        "7.0"
+      ],
+      "contexts": "private chat; write access before the first bot message",
+      "payload": "examples/payloads/r96-profile-settings.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Users should manage notifications, language and their plan in the app, and get order updates from the bot."
+      ]
+    },
+    {
+      "id": "R97",
+      "title": "Fullscreen game or leaderboard, shared to chats",
+      "doc": "recipes/97-mini-app-game-fullscreen.md",
+      "registry": [],
+      "symbols": [
+        "savePreparedInlineMessage",
+        "PreparedInlineMessage"
+      ],
+      "versions": [
+        "8.0"
+      ],
+      "contexts": "Bot API ≥ 8.0 for fullscreen, safe areas and shareMessage",
+      "payload": "examples/payloads/r97-game-fullscreen.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "A latte-art mini game with a weekly leaderboard that people share with friends."
+      ]
+    },
+    {
+      "id": "R98",
+      "title": "Share a result from a Mini App to a chat",
+      "doc": "recipes/98-mini-app-share-result.md",
+      "registry": [],
+      "symbols": [
+        "savePreparedInlineMessage",
+        "answerWebAppQuery",
+        "savePreparedKeyboardButton"
+      ],
+      "versions": [
+        "8.0",
+        "9.6"
+      ],
+      "contexts": "shareMessage 8.0, requestChat 9.6",
+      "payload": "examples/payloads/r98-share-result.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Let users send their favourite drink to friends, and post the order to the chat they opened the app from."
+      ]
+    },
+    {
+      "id": "R99",
+      "title": "Editor in a Mini App: autosave, conflicts, publish through the bot",
+      "doc": "recipes/99-mini-app-editor.md",
+      "registry": [],
+      "symbols": [
+        "callback_data",
+        "style",
+        "web_app"
+      ],
+      "versions": [
+        "6.2",
+        "6.9",
+        "9.4"
+      ],
+      "contexts": "private chat for the publish confirmation",
+      "payload": "examples/payloads/r99-editor.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r90_99_mini_apps.py",
+      "typescript": null,
+      "tasks": [
+        "Our staff edit the café's menu board from Telegram, sometimes from two devices."
+      ]
+    },
+    {
       "id": "MINI",
       "title": "Specialized modules",
       "doc": "recipes/mini-recipes.md",

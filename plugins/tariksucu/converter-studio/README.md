@@ -63,6 +63,8 @@ bearer_token_env_var = "CONVERTER_STUDIO_API_KEY"
 
 The same is available as a REST API: [converter.studio/developers](https://converter.studio/developers#rest).
 
+The MCP server is also listed on [Glama](https://glama.ai/mcp/connectors/studio.converter/converter-studio).
+
 ## Privacy
 
 Files are used only to convert them. Uploads are deleted after the conversion and results after 6 hours. See the [privacy policy](https://converter.studio/privacy). Questions: support@converter.studio.

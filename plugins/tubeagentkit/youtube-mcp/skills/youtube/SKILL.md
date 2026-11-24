@@ -9,7 +9,7 @@ metadata:
 
 # YouTube (getyoutubetranscript.com)
 
-This plugin bundles the hosted `youtube-transcript` MCP server (`https://getyoutubetranscript.com/api/mcp`). Its 15 tools are the only data path for answering the user: do not scrape youtube.com and do not call the REST API directly from this skill. If the user wants code (an app, script, or pipeline that fetches YouTube data), use the `youtube-transcript-api` skill instead.
+This plugin bundles the hosted `youtube-transcript` MCP server (`https://getyoutubetranscript.com/api/mcp`). Its 16 tools are the only data path for answering the user: do not scrape youtube.com and do not call the REST API directly from this skill. If the user wants code (an app, script, or pipeline that fetches YouTube data), use the `youtube-transcript-api` skill instead.
 
 **Authentication.** Connect with OAuth (the client prompts the user to sign in on first use) or send an API key as a Bearer token. If a tool call fails with an auth error, ask the user to finish the sign-in prompt or check their key in the [dashboard](https://getyoutubetranscript.com/dashboard). When unsure whether the connection works, call `get_credits` first: it is free.
 
@@ -20,6 +20,7 @@ This plugin bundles the hosted `youtube-transcript` MCP server (`https://getyout
 **Use when the user:**
 
 - Pastes a YouTube link or 11-character video ID, or asks what a video says → `get_youtube_transcript`
+- Wants the text of a video that has no captions → `get_youtube_transcript` with `mode: "auto"` (an AI speech-to-text transcript, 3 credits per minute of video: quote the cost first), then `get_transcript_job` if it answers with a `job_id`
 - Wants a video's text in another language → `get_youtube_transcript` with `translate` (machine translation, timestamps stay aligned)
 - Asks which caption languages a video has, or wants a non-English transcript and you don't know if it exists → `get_transcript_languages` (1 credit; skip it for an ordinary English request)
 - Wants to find videos or channels on a topic → `search_youtube`
@@ -45,7 +46,8 @@ This plugin bundles the hosted `youtube-transcript` MCP server (`https://getyout
 
 | Tool | Cost | Key parameters |
 |---|---|---|
-| `get_youtube_transcript` | 1 credit | `video_url` (required), `language` (default `en`), `send_metadata` (default `true`), `timestamps` (default `false`), `translate` (target language code, e.g. `es`, `zh-CN`) |
+| `get_youtube_transcript` | 1 credit; AI transcript 3 credits per minute of video | `video_url` (required), `language` (default `en`), `send_metadata` (default `true`), `timestamps` (default `false`), `translate` (target language code, e.g. `es`, `zh-CN`), `mode` (`native` default, `auto`, `generate`) |
+| `get_transcript_job` | Free | `job_id` (required), `send_metadata`, `timestamps` |
 | `get_transcript_languages` | 1 credit | `video_url` (required) |
 | `search_youtube` | 1 credit per page | `query`, `search_type` (`video` or `channel`), `continuation` |
 | `get_channel_latest_videos` | 1 credit | `channel` (required): `@handle`, URL or `UC...` ID |
@@ -62,6 +64,8 @@ This plugin bundles the hosted `youtube-transcript` MCP server (`https://getyout
 | `get_credits` | Free | none |
 
 1 credit is charged per successful request, with or without `timestamps` or `translate`. Failed or rate-limited calls are not charged.
+
+**AI transcripts.** `mode: "auto"` returns captions when the video has any (1 credit), otherwise an AI speech-to-text transcript of the audio; `mode: "generate"` always makes one. An AI transcript costs 3 credits per minute of video, rounded up, minimum 3 (a 30-minute video is 90 credits), for videos up to 4 hours; live and upcoming streams are refused. Quote the cost before asking for one (`get_video_details` gives the length). Re-reading your own AI transcript within 24 hours costs 0, and credits are refunded automatically if generation fails. With these modes `language` is the language spoken (leave it out to use the video's own audio language) and `translate` is not allowed. A long video answers with a `job_id` instead of text: call `get_transcript_job` with it about every 5 seconds until the transcript comes back (polling is free; jobs are kept 7 days).
 
 ## Identifiers and links
 
@@ -83,7 +87,7 @@ This plugin bundles the hosted `youtube-transcript` MCP server (`https://getyout
 
 ## Reading results
 
-- **The transcript header.** `## Language` shows the caption language actually returned, with `(requested xx)` when YouTube didn't have the one asked for: say so instead of presenting it as a translation. `## Captions: auto-generated` means speech recognition, so names and technical terms may be misheard; flag that before quoting them. `## Translated to: xx (machine translation)` means the text was translated by machine; quote the original language when exact wording matters.
+- **The transcript header.** `## Language` shows the caption language actually returned, with `(requested xx)` when YouTube didn't have the one asked for: say so instead of presenting it as a translation. `## Captions: auto-generated` means speech recognition, so names and technical terms may be misheard; flag that before quoting them. `## Translated to: xx (machine translation)` means the text was translated by machine; quote the original language when exact wording matters. `## Source: AI speech-to-text transcript` means there were no captions and the text was made from the audio: tell the user it is an AI transcript, and that names and technical terms may be misheard. `## Credits charged by this call` says what it cost.
 - **Exact vs rounded.** `get_video_details` gives exact `views`, the exact `upload_date` and `duration` in seconds; `likes` and channel `subscribers` are the rounded labels YouTube shows ("9K"). Tags are in its `keywords` field. Search hits, related videos and channel lists give rounded views ("873K") and relative dates ("3d ago"). Call `get_video_details` before quoting an exact number or date.
 - **Dislikes are estimates** from returnyoutubedislike.com (`estimated: true`), and their `view_count` can lag `get_video_details`. Use details for views.
 - **Comments** come 20 per page, top comments first.
@@ -97,12 +101,16 @@ Errors read `Error (CODE): message`. Failed calls cost nothing.
 |---|---|---|
 | `INVALID_URL` | Not a YouTube video URL or ID | Ask the user for the link |
 | `VIDEO_UNAVAILABLE` | Private, removed or not found | Tell the user. Do not retry |
-| `TRANSCRIPT_NOT_FOUND`, `TRANSCRIPT_DISABLED` | The video has no captions. On a channel or playlist tool, the message says the channel or playlist was not found | Tell the user instead of guessing what the video says. For a channel, check the handle or find it with `search_youtube` and `search_type: "channel"` |
+| `TRANSCRIPT_NOT_FOUND`, `TRANSCRIPT_DISABLED` | The video has no captions. On a channel or playlist tool, the message says the channel or playlist was not found | Tell the user instead of guessing what the video says, and offer an AI transcript (`mode: "auto"`) with its cost. For a channel, check the handle or find it with `search_youtube` and `search_type: "channel"` |
 | `LANGUAGE_NOT_AVAILABLE` | No captions in the requested language | Pick a code from `get_transcript_languages`, or fetch the default and use `translate` |
 | `COMMENTS_DISABLED` | Comments are turned off | Report "no comments", not a failure |
 | `CURSOR_EXPIRED` | The page token is older than 24 hours | Start again from the first page |
 | `RATE_LIMITED` | Too many calls for the plan | Wait a moment and retry once. Pace calls rather than firing them all at once |
-| `PAYMENT_REQUIRED` | No credits left | Tell the user; they top up in the [dashboard](https://getyoutubetranscript.com/dashboard) |
+| `PAYMENT_REQUIRED` | No credits left, or not enough for the AI transcript (the message says how many it needs) | Tell the user; they top up in the [dashboard](https://getyoutubetranscript.com/dashboard) |
+| `LIVE_STREAM`, `TOO_LONG`, `AUDIO_UNAVAILABLE` | AI transcript refused: a live or upcoming stream, over 4 hours, or the audio can't be read. Not charged | Tell the user. Do not retry |
+| `AI_FAILED` | The AI transcript could not be made; credits were refunded | Retry once later, then report it |
+| `TOO_MANY_JOBS` | 5 AI transcripts already in progress for the account | Finish polling the running ones first |
+| `JOB_NOT_FOUND` | No AI transcript job with this id for this account (jobs are kept 7 days) | Start a new transcript request |
 | `UPSTREAM_*` | A temporary fetch problem | Retry once after a short wait, then report it |
 
 ## Without this MCP
@@ -117,4 +125,5 @@ If the user asks to do the job with the official YouTube Data API instead, say w
 - **Study a course:** `list_playlist_videos`, then transcripts for the lessons the user cares about.
 - **Monitor a creator:** `get_channel_latest_videos`, then transcripts only for videos the user wants.
 - **Audience reaction:** `get_video_details` for the numbers, then one or two pages of `get_video_comments`; quote comments with their `link`.
+- **Video without captions:** quote the cost (3 credits per minute of video), then `get_youtube_transcript` with `mode: "auto"`; if it answers with a `job_id`, call `get_transcript_job` every ~5 seconds until it returns the transcript.
 - **Translate a video:** `get_youtube_transcript` with `translate` set to the user's language and `timestamps: true` if they want to follow along.

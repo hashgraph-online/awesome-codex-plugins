@@ -1,6 +1,6 @@
 {
   "name": "fxmacrodata",
-  "version": "1.0.4",
+  "version": "1.0.8",
   "description": "Official-source FX, macroeconomic and central-bank data: release calendars, actual release times, indicator histories, policy rates, FX rates, COT positioning, commodities, release replays and FX backtests.",
   "author": {
     "name": "FXMacroData",

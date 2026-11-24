@@ -1,9 +1,9 @@
 # Mini App bridge (bot side only)
 
 How a bot **launches** Mini Apps and **receives data** from them, and how to trust that
-data. Mini App front-end internals (the `Telegram.WebApp` UI API, theming, layout)
-are out of scope; HTML widgets inside a message are a different thing
-(`widgets.md`). Checked on **2026-11-15** against
+data. The Mini App itself (the `Telegram.WebApp` client API, design system, screens,
+security and testing) has its own branch: [mini-apps/README.md](mini-apps/README.md).
+HTML widgets inside a message are a different thing (`widgets.md`). Checked on **2026-11-15** against
 https://core.telegram.org/bots/webapps and the Bot API 10.4 page. Every JSON block
 passes `scripts/validate_payload.py`.
 

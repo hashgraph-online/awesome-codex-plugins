@@ -1,0 +1,110 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "devault",
+  "version": "1.0.1",
+  "description": "Search and study real UI design references, analyze design patterns, and fetch ready-made design systems from the Devault library.",
+  "author": {
+    "name": "HYDRANODE LTD",
+    "email": "founder@devault.design",
+    "url": "https://devault.design"
+  },
+  "homepage": "https://devault.design/mcp",
+  "repository": "https://github.com/devault-design/chatgpt-plugin",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "ui",
+    "ux",
+    "design-references",
+    "design-systems",
+    "research"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Devault",
+        "shortDescription": "UI research and design systems",
+        "longDescription": "Devault is a library of UI design references: screens from real websites and mobile apps, complete user flows, marketing emails, year-by-year redesigns and original interface concepts, each tagged by platform, industry, screen type and components.\n\nWith this plugin, ChatGPT and Codex can research that library while you work:\n- Search screens by description, and narrow by platform, industry, screen type or company.\n- Analyze a design pattern across the library: how common it is, where it appears and which components go with it.\n- Have the assistant study a screen at a readable size and describe it, or find screens that look like one you picked. Every screen comes with a link that opens it on devault.design.\n- Fetch a ready-made design system (palette, contrast grades, type scale, spacing) as DESIGN.md, Tailwind v4, CSS variables, shadcn/ui, design tokens, Figma variables, SwiftUI, Android XML or an image prompt.\n\nIt is for designers, developers and product teams who want a decision to rest on how shipped products look.\n\nGood to know: the plugin only reads, and cannot change anything in your Devault account. Screens are references for study and inspiration; the companies shown are not affiliated with Devault. A search returns one page of results, and the number of images is limited per day. You need a Devault account whose plan includes MCP access.",
+        "developerName": "HYDRANODE LTD",
+        "category": "Creativity",
+        "capabilities": [
+          "Search UI screens",
+          "Analyze design patterns",
+          "Find similar screens",
+          "Study screens in detail",
+          "Fetch design systems"
+        ],
+        "websiteURL": "https://devault.design",
+        "supportURL": "https://devault.design/support",
+        "privacyPolicyURL": "https://devault.design/privacy",
+        "termsOfServiceURL": "https://devault.design/terms",
+        "defaultPrompt": [
+          "Find onboarding screens from fintech apps",
+          "How do apps design paywalls? Show the numbers and a few examples",
+          "Get a dark dashboard design system as Tailwind tokens"
+        ],
+        "brandColor": "#5A50AF",
+        "brandColorDark": "#9B88DF",
+        "composerIcon": "./assets/logo.png",
+        "logo": "./assets/logo.png"
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Search screens by description and filters",
+              "prompt": "Find onboarding screens from fintech apps.",
+              "tools_triggered": "search_screens",
+              "expected_behavior": "Reports how many screens in the Devault library match and describes up to six of them: the company, what the screen is and what to notice in it. Each screen has a link that opens it on devault.design. The preview images go to the assistant, which describes them; ChatGPT does not display them."
+            },
+            {
+              "description": "Analyze a design pattern across the library",
+              "prompt": "How do apps design paywalls? Give me the numbers and a few examples.",
+              "tools_triggered": "analyze_pattern, get_screen_image",
+              "expected_behavior": "Reports how many screens in the library show a paywall, the split by platform and colour scheme, the components that most often appear with it, and a few representative screens from different companies. The assistant may look at those screens with get_screen_image before describing them."
+            },
+            {
+              "description": "Fetch a ready-made design system in a chosen format",
+              "prompt": "Get me a dark dashboard design system as Tailwind tokens.",
+              "tools_triggered": "get_style",
+              "expected_behavior": "Returns one design system from Devault's DESIGN.md library as a Tailwind v4 theme block, names it, links to its page on devault.design, and reports the WCAG contrast grade of its text colours on its surfaces."
+            },
+            {
+              "description": "Find visually similar screens, following up on a search result",
+              "prompt": "Find a checkout screen from an e-commerce app, then show me screens that look similar to the first one.",
+              "tools_triggered": "search_screens, get_similar_screens, get_screen_image",
+              "expected_behavior": "Searches for checkout screens, then finds screens that look like the first result and describes each one, with a link that opens it on devault.design. The assistant may look at the screens with get_screen_image before describing them."
+            },
+            {
+              "description": "Open one screen at a readable size",
+              "prompt": "Search for a pricing page from a SaaS product and show me the first result at a larger size.",
+              "tools_triggered": "search_screens, get_screen_image",
+              "expected_behavior": "Searches for pricing pages, then fetches the first result at a larger size for the assistant to read, describes what the screen shows in detail and links to the screen on devault.design, where the user can open it. ChatGPT does not display the image itself."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Bulk export is not supported. The plugin has no tool that downloads or lists the whole library, and should say so instead of attempting it.",
+              "prompt": "Download every screen in the Devault library as a zip file."
+            },
+            {
+              "description": "Account and billing changes are out of scope. The plugin only reads, and should point to devault.design instead of acting.",
+              "prompt": "Cancel my Devault subscription."
+            },
+            {
+              "description": "An unrelated request. Nothing in it concerns design references, so no Devault tool should be called.",
+              "prompt": "What's the weather in London tomorrow?"
+            }
+          ]
+        },
+        "demo_recording_url": "https://screen.studio/share/rSdFE2dB",
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments. It reads from the library with the user's existing Devault account."
+      },
+      "publication": {
+        "release_notes": "First release: search and pattern analysis over Devault's UI references, detailed looks at individual screens, similar-screen lookup, and ready-made design systems in nine export formats."
+      }
+    }
+  }
+}

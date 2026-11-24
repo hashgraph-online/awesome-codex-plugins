@@ -28,7 +28,7 @@ Count trigger matches before dispatch. If only trigger 1 fires, behavior is iden
 | `safety` | `strongest` | Crash-recovery and partial-commit reasoning is subtle |
 | `implementability` | `balanced` | Reading for ambiguity is comprehension, not deep reasoning |
 
-Resolved via `.praxis/model-tiers.yaml`. No config file → all reviewers use harness default model.
+Resolution order: project `.praxis/model-tiers.yaml` → user `~/.praxis/model-tiers.yaml` → harness default model (reads `tiers.<tier>.model`; no config file → all reviewers use harness default model).
 
 ## Dispatch format
 

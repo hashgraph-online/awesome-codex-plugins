@@ -1,0 +1,391 @@
+{
+ "$comment": "Web pattern -> Telegram-native replacement, used by scripts/miniapp_rework.py plan and references/mini-apps/rework.md. rules: one entry per lint rule (MA01-MA33) with the rework stage it belongs to; patterns: things the lint does not judge but a rework replaces. Stages follow orchestration.md section 3: 1 security, 2 native behaviour, 3 Telegram values and trust, 4 theme and type, 5 slop, 6 accessibility and polish.",
+ "checked": "2026-11-24",
+ "stages": {
+  "1": "Security and payments",
+  "2": "Native behaviour: Telegram's chrome, navigation, dialogs, storage",
+  "3": "Telegram's own values and trust marks",
+  "4": "Theme roles and type scale",
+  "5": "Slop: decoration, motion, copy",
+  "6": "Accessibility and polish"
+ },
+ "rules": {
+  "MA01": {
+   "stage": 1,
+   "telegram": "the bot token lives on the server only, read from the environment",
+   "kit": "examples/mini-apps/server",
+   "ref": "security.md"
+  },
+  "MA02": {
+   "stage": 1,
+   "telegram": "the server verifies raw initData (HMAC or Ed25519) and reads the user from it",
+   "kit": "server/python/verify_init_data.py, server/ts/verifyInitData.ts",
+   "ref": "security.md"
+  },
+  "MA33": {
+   "stage": 1,
+   "telegram": "send the raw initData (Authorization: tma <initData>); never the client's user object",
+   "kit": "server/*",
+   "ref": "security.md"
+  },
+  "MA25": {
+   "stage": 1,
+   "telegram": "no card fields: the server creates an invoice link, the app opens it",
+   "kit": "tma.pay(link)",
+   "ref": "payments.md"
+  },
+  "MA26": {
+   "stage": 1,
+   "telegram": "send item ids and quantities; the server prices the order",
+   "kit": "-",
+   "ref": "payments.md"
+  },
+  "MA27": {
+   "stage": 1,
+   "telegram": "invoiceClosed is a hint: unlock from the server's order after successful_payment",
+   "kit": "tma.watchOrder()",
+   "ref": "payments.md"
+  },
+  "MA20": {
+   "stage": 1,
+   "telegram": "no web login: initData already identifies the user",
+   "kit": "-",
+   "ref": "security.md"
+  },
+  "MA14": {
+   "stage": 2,
+   "telegram": "CloudStorage / DeviceStorage for user data, SecureStorage for secrets",
+   "kit": "tma.store(), tma.deviceStore(), tma.secureStore()",
+   "ref": "webapp-api.md"
+  },
+  "MA03": {
+   "stage": 2,
+   "telegram": "showAlert / showConfirm / showPopup",
+   "kit": "tma.confirm()",
+   "ref": "components.md section 7"
+  },
+  "MA04": {
+   "stage": 2,
+   "telegram": "telegram-web-app.js first in <head>, before any other script",
+   "kit": "-",
+   "ref": "launch-and-lifecycle.md"
+  },
+  "MA07": {
+   "stage": 2,
+   "telegram": "MainButton / SecondaryButton; an own button only as the browser fallback",
+   "kit": "tma.mainButton(), [data-tma-fallback]",
+   "ref": "components.md section 4"
+  },
+  "MA18": {
+   "stage": 2,
+   "telegram": "ready() after the first useful screen",
+   "kit": "tma.ready()",
+   "ref": "launch-and-lifecycle.md"
+  },
+  "MA19": {
+   "stage": 2,
+   "telegram": "Telegram's header and BackButton driven by one navigation stack; no own top bar",
+   "kit": "tma.nav.push/pop",
+   "ref": "components.md section 3"
+  },
+  "MA30": {
+   "stage": 2,
+   "telegram": "a floating tab bar for 2-5 roots, BackButton for depth; no drawer",
+   "kit": ".tma-tabbar",
+   "ref": "components.md section 3"
+  },
+  "MA15": {
+   "stage": 2,
+   "telegram": "gate members newer than 6.0 with isVersionAtLeast",
+   "kit": "tma.has('x.y')",
+   "ref": "webapp-api.md"
+  },
+  "MA06": {
+   "stage": 2,
+   "telegram": "var(--tg-viewport-stable-height) and safe-area variables",
+   "kit": ".tma-page",
+   "ref": "design-system.md"
+  },
+  "MA08": {
+   "stage": 2,
+   "telegram": "--tg-safe-area-inset-* and --tg-content-safe-area-inset-* in fullscreen",
+   "kit": "--tma-safe-top / --tma-safe-bottom",
+   "ref": "design-system.md"
+  },
+  "MA23": {
+   "stage": 2,
+   "telegram": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">",
+   "kit": "-",
+   "ref": "launch-and-lifecycle.md"
+  },
+  "MA28": {
+   "stage": 3,
+   "telegram": "Stars as the sign before a whole number, grams as '12.5 GRAM'",
+   "kit": ".tma-amount.is-stars, formatGrams()",
+   "ref": "telegram-elements.md"
+  },
+  "MA29": {
+   "stage": 3,
+   "telegram": "no own verified or Premium marks; trust in text",
+   "kit": "-",
+   "ref": "telegram-elements.md"
+  },
+  "MA05": {
+   "stage": 4,
+   "telegram": "theme roles (--tma-*) from --tg-theme-*; brand colour on one moment",
+   "kit": "tma.css roles, miniapp_style.py",
+   "ref": "design-system.md"
+  },
+  "MA16": {
+   "stage": 4,
+   "telegram": "the system font",
+   "kit": "--tma-font",
+   "ref": "design-system.md section 4"
+  },
+  "MA22": {
+   "stage": 4,
+   "telegram": "nothing below caption2 (11 px)",
+   "kit": ".tma-text-caption2",
+   "ref": "design-system.md section 4"
+  },
+  "MA09": {
+   "stage": 5,
+   "telegram": "name the animated properties (transform, opacity)",
+   "kit": "--tma-ease, --tma-dur",
+   "ref": "design-system.md section 6"
+  },
+  "MA10": {
+   "stage": 5,
+   "telegram": "infinite motion only on loaders and live data",
+   "kit": ".tma-skeleton, .tma-spinner",
+   "ref": "anti-slop.md"
+  },
+  "MA11": {
+   "stage": 5,
+   "telegram": "emphasis by size and weight, solid colour",
+   "kit": ".tma-text-*",
+   "ref": "anti-slop.md"
+  },
+  "MA12": {
+   "stage": 5,
+   "telegram": "glass only on floating controls, with a solid fallback",
+   "kit": ".tma-glass",
+   "ref": "anti-slop.md section 3"
+  },
+  "MA13": {
+   "stage": 5,
+   "telegram": "no emoji anywhere: kit icons or one open SVG library (Lucide first); the Stars sign as the .tma-star SVG",
+   "kit": "_kit/icons.svg",
+   "ref": "components.md section 6c"
+  },
+  "MA31": {
+   "stage": 5,
+   "telegram": "plain statements: the screen's title, what the thing does, real numbers",
+   "kit": "-",
+   "ref": "anti-slop.md section 4"
+  },
+  "MA32": {
+   "stage": 5,
+   "telegram": "flat grouped surfaces; a pressed state instead of hover effects",
+   "kit": ".tma-section, .tma-list",
+   "ref": "anti-slop.md section 4"
+  },
+  "MA21": {
+   "stage": 5,
+   "telegram": "show the information, or reveal it on tap",
+   "kit": ".tma-cell, .tma-accordion",
+   "ref": "anti-slop.md"
+  },
+  "MA17": {
+   "stage": 6,
+   "telegram": "a prefers-reduced-motion rule",
+   "kit": "tma.css (built in)",
+   "ref": "design-system.md section 6"
+  },
+  "MA24": {
+   "stage": 6,
+   "telegram": "a label for every input, alt for every image",
+   "kit": ".tma-field__label",
+   "ref": "components.md section 5"
+  },
+  "MA34": {
+   "stage": 5,
+   "telegram": "sentence case in the type roles (caption, footnote)",
+   "kit": ".tma-text-caption1, .tma-footnote",
+   "ref": "anti-slop.md section 4"
+  },
+  "MA35": {
+   "stage": 5,
+   "telegram": "one surface level: rows inside one card or list; a second level is a pushed screen or a sheet",
+   "kit": ".tma-section, .tma-list, .tma-kv",
+   "ref": "design-system.md section 3"
+  },
+  "MA36": {
+   "stage": 5,
+   "telegram": "one haptic per user moment, paired with a visible change; never on scroll, typing or timers",
+   "kit": "tma.haptic (burst guard)",
+   "ref": "haptics-and-device.md"
+  },
+  "MA37": {
+   "stage": 2,
+   "telegram": "start sensors on a user action, stop them when the screen closes or the app hides",
+   "kit": "tma.motion() returns stop()",
+   "ref": "haptics-and-device.md"
+  },
+  "MA38": {
+   "stage": 5,
+   "telegram": "every control has a name a screen reader can say; icons are aria-hidden",
+   "kit": "aria-label on the button, .tma-sr-only for glyph amounts",
+   "ref": "accessibility-and-language.md"
+  },
+  "MA39": {
+   "stage": 3,
+   "telegram": "logical properties, so the layout mirrors for Arabic, Hebrew and Persian",
+   "kit": "tma.css uses inline-start / -end; tma.locale() sets dir",
+   "ref": "accessibility-and-language.md"
+  },
+  "MA40": {
+   "stage": 6,
+   "telegram": "amounts and codes as text with inputmode, parsed in the user's locale",
+   "kit": ".tma-input inputmode=\"decimal\"",
+   "ref": "forms-and-data.md"
+  },
+  "MA41": {
+   "stage": 2,
+   "telegram": "the keyboard opens on the user's tap, never on launch",
+   "kit": "tma.hideKeyboard() after submit",
+   "ref": "forms-and-data.md"
+  },
+  "MA42": {
+   "stage": 5,
+   "telegram": "kind and status in a tag, an icon or the section header",
+   "kit": ".tma-tag, section headers",
+   "ref": "anti-slop.md"
+  },
+  "MA43": {
+   "stage": 5,
+   "telegram": "depth from theme surfaces; soft shadow only for floating things",
+   "kit": "--tma-glass-lift",
+   "ref": "anti-slop.md"
+  },
+  "MA44": {
+   "stage": 5,
+   "telegram": "the heading alone, in the type scale",
+   "kit": ".tma-section__header",
+   "ref": "anti-slop.md"
+  }
+ },
+ "patterns": [
+  {
+   "id": "carousel",
+   "detect": "swiper|slick|glide|splide|embla|owl-carousel|class=[\\\"'][^\\\"']*(?<!tma-)\\bcarousel\\b",
+   "web": "a carousel library or auto-playing slider",
+   "telegram": "a horizontal scroll row of tiles, or a gallery opened as a pushed photo viewer",
+   "kit": ".tma-scroll-x, .tma-gallery, .tma-viewer",
+   "ref": "layout-rules.md L12"
+  },
+  {
+   "id": "modal",
+   "detect": "<dialog\\b|class=[\\\"'][^\\\"']*\\b(?:modal|lightbox)\\b",
+   "web": "a centred modal",
+   "telegram": "showPopup for a decision, a bottom sheet for content",
+   "kit": ".tma-sheet, tma.confirm()",
+   "ref": "components.md section 7"
+  },
+  {
+   "id": "toast",
+   "detect": "toastify|notyf|sweetalert|react-hot-toast|class=[\\\"'][^\\\"']*\\btoast\\b",
+   "web": "a toast library",
+   "telegram": "a snackbar plus a haptic; showAlert only when the user must read it",
+   "kit": ".tma-snackbar, tma.haptic",
+   "ref": "components.md section 6"
+  },
+  {
+   "id": "top-tabs",
+   "detect": "class=[\"'][^\"']*\\b(?:tabs|tab-list|nav-tabs)\\b",
+   "web": "tabs across the top",
+   "telegram": "a segmented control inside a screen; a tab bar for app sections",
+   "kit": ".tma-segmented, .tma-tabbar",
+   "ref": "components.md section 3"
+  },
+  {
+   "id": "stat-cards",
+   "detect": "stat-card|kpi-card|metric-card|stats-grid",
+   "web": "a grid of identical stat cards",
+   "telegram": "one hero figure and the rest as a key-value list or rows",
+   "kit": ".tma-figure, .tma-kv, .tma-cell",
+   "ref": "design-system.md section 4"
+  },
+  {
+   "id": "nested-cards",
+   "detect": "card-inner|inner-card|card__inner",
+   "web": "cards inside cards",
+   "telegram": "one grouped section with rows",
+   "kit": ".tma-section, .tma-list",
+   "ref": "anti-slop.md section 4"
+  },
+  {
+   "id": "ribbon",
+   "detect": "ribbon|\\bbadge-new\\b|>\\s*(?:NEW|HOT|POPULAR|BEST)\\s*<",
+   "web": "ribbons and uppercase badges",
+   "telegram": "a quiet tag text, one per card",
+   "kit": ".tma-tag",
+   "ref": "anti-slop.md section 3"
+  },
+  {
+   "id": "price-pill",
+   "detect": "price-pill|price-badge|price-tag",
+   "web": "a price in a coloured pill",
+   "telegram": "the price in headline weight under the meta",
+   "kit": ".tma-price",
+   "ref": "layout-rules.md L06"
+  },
+  {
+   "id": "date-picker",
+   "detect": "flatpickr|datepicker|pikaday|react-datepicker",
+   "web": "a date-picker library",
+   "telegram": "the native date input in a picker pill, or a day strip with slots for booking",
+   "kit": ".tma-pill-select, .tma-days, .tma-slots",
+   "ref": "layout-rules.md L16"
+  },
+  {
+   "id": "custom-select",
+   "detect": "select2|choices\\.js|react-select|custom-select|dropdown-menu",
+   "web": "a custom dropdown",
+   "telegram": "a pop-up menu row or the native select",
+   "kit": ".tma-menu, .tma-pill-select",
+   "ref": "components.md section 6d"
+  },
+  {
+   "id": "sticky-header",
+   "detect": "position\\s*:\\s*sticky[^}]*top\\s*:\\s*0|class=[\"'][^\"']*\\b(?:topbar|navbar|app-header|app-bar)\\b",
+   "web": "an own sticky top bar",
+   "telegram": "Telegram draws the header: set its colour, put the title in a large title",
+   "kit": "tma.chrome({header}), .tma-large-title",
+   "ref": "components.md section 3"
+  },
+  {
+   "id": "tailwind",
+   "detect": "tailwindcss|@tailwind\\b|class=[\"'][^\"']*\\b(?:bg|text)-(?:white|black|gray|slate|zinc|indigo|violet|purple|blue)-?\\d*",
+   "web": "Tailwind palette classes",
+   "telegram": "map Tailwind colours to the --tma-* roles (rework.md section 6)",
+   "kit": "tailwind theme extension",
+   "ref": "rework.md section 6"
+  },
+  {
+   "id": "shadcn",
+   "detect": "@/components/ui|--muted-foreground|--primary-foreground",
+   "web": "shadcn/ui tokens",
+   "telegram": "point the shadcn variables at the --tma-* roles (rework.md section 6)",
+   "kit": "tokens bridge",
+   "ref": "rework.md section 6"
+  }
+ ],
+ "manual": [
+  "States: loading (skeleton), empty, error with retry, disabled and success for every list and action (design-system.md section 8)",
+  "Layout: describe each list and detail screen as a screen JSON and run miniapp_layout.py review (layout-rules.md)",
+  "Copy: the first line of every screen says what it is; buttons say what happens (anti-slop.md section 4)",
+  "Chrome: header, background and bottom bar colours set before ready() (tma.chrome)",
+  "Preview: both themes, iOS and Android, 320-430 px, fullscreen, every style the app ships"
+ ]
+}

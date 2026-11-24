@@ -15,7 +15,10 @@
 | `Message.ton_wallet_transfer` (`TonWalletTransfer`) | service message | amount negative = outgoing; empty `transaction_id` = not sent yet; `comment` omitted if encrypted |
 | `MessageEntity` `ton_address`; `RichTextTonAddress{text,address}` | text / rich text | read `address`, not the possibly shortened `text` |
 
-Amounts are decimal strings in the smallest units (nanotons): never parse as float for money.
+Amounts are decimal strings in the smallest units (nanograms; the API also says "TON grams"): never parse
+as float for money. The coin was renamed from Toncoin to Gram (GRAM) in June 2026; the network and the
+currency code `"TON"` keep their name. Show amounts as `1.25 GRAM`
+([mini-apps/telegram-elements.md](mini-apps/telegram-elements.md) T2).
 
 ## Payment flow
 
@@ -53,7 +56,7 @@ the link, not the signature (`tgkit.wallet.SignChallenge`, `on_sign_data`).
 
 Show a card summary (address shortened `UQAs…0003`, balance, NFT count) only to the user it
 belongs to or where they shared it. `AreaPosition` (renamed from `StoryAreaPosition` in 10.4,
-fields unchanged) positions stickers on the card. Transfers: phrase as "Sent 1.25 TON to …
+fields unchanged) positions stickers on the card. Transfers: phrase as "Sent 1.25 GRAM to …
 (pending)"; don't claim settlement from a service message alone.
 
 ## TON addresses in text

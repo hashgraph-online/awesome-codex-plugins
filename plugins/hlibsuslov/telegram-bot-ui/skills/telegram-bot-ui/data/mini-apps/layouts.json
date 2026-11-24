@@ -1,0 +1,552 @@
+{
+ "$comment": "Layout rules for Mini App screens: where the image goes and in what ratio, the order of title, meta, price, rating and availability, card variants, galleries, filters, forms and booking. Used by scripts/miniapp_layout.py (show / review / rules) and explained in references/mini-apps/layout-rules.md. Rules are this skill's heuristics built on Telegram's design guidelines, the iOS 27 proportions in design-sources.json and common commerce and booking practice; they are checked on mock previews, not on user research.",
+ "version": 1,
+ "checked": "2026-11-24",
+ "rules": {
+  "L01": {
+   "title": "One primary action per screen, in the MainButton",
+   "severity": "error",
+   "check": "primary_action",
+   "fix": "Move the main action (Buy, Book, Subscribe, Start) to the MainButton; cards and rows open a detail screen."
+  },
+  "L02": {
+   "title": "Image ratio follows the content type",
+   "severity": "warn",
+   "check": "image.ratio",
+   "fix": "Use the entity's ratio (book cover 2:3, portrait 4:5, product 1:1, video, course and workout 16:9, listing 4:3, event 3:2) and keep it identical across a list."
+  },
+  "L03": {
+   "title": "Covers, logos and packshots are contained; photos are cropped",
+   "severity": "warn",
+   "check": "image.fit",
+   "fix": "object-fit: contain on a surface for covers, logos, packshots and documents; cover for photos of people, places, food and video frames."
+  },
+  "L04": {
+   "title": "Image position by card variant",
+   "severity": "warn",
+   "check": "image.position",
+   "fix": "Media cards and grid tiles: image on top, full width. Rows: a thumbnail at the start (people round, products square, covers 2:3); food menus may put a square photo at the end. Never an image on both sides."
+  },
+  "L05": {
+   "title": "Title first among the text, clamped",
+   "severity": "warn",
+   "check": "slots.order, title_lines",
+   "fix": "Order the text: title, then meta, then price. Titles take 2 lines at most in cards and 1 in rows, with an ellipsis."
+  },
+  "L06": {
+   "title": "Price under the title, plain and comparable",
+   "severity": "warn",
+   "check": "price",
+   "fix": "Price in headline weight with tabular figures and the user's locale; an old price struck through in hint after it; 'from' for variable prices; the period after it ('/ month'); never in an accent pill or on the image."
+  },
+  "L07": {
+   "title": "Rating is a short meta, not a star row",
+   "severity": "warn",
+   "check": "rating",
+   "fix": "Show a star icon (SVG) with '4.8 (120)' in subhead hint next to or under the title; five-star rows only on the detail screen's reviews section."
+  },
+  "L08": {
+   "title": "Unavailable stays visible",
+   "severity": "warn",
+   "check": "availability",
+   "fix": "Sold out, full or closed items stay in the list, dimmed, with the reason in text ('Sold out', 'Full · join waitlist'); never hidden or shown only by colour."
+  },
+  "L09": {
+   "title": "Grid columns by width",
+   "severity": "warn",
+   "check": "columns",
+   "fix": "2 columns from 320 to 559 px, 3 from 560 px, gaps 8-12 px; equal tile heights from a fixed media ratio and clamped titles."
+  },
+  "L10": {
+   "title": "Horizontal scrollers only for featured or related",
+   "severity": "warn",
+   "check": "carousels",
+   "fix": "At most one horizontal scroller per screen and never as the main catalogue; 10 items at most, the next card peeking."
+  },
+  "L11": {
+   "title": "Detail screens follow one section order",
+   "severity": "warn",
+   "check": "sections",
+   "fix": "Media, title and price, selectors (size, format, date), key facts, description, details list, reviews, related. The primary action in the MainButton."
+  },
+  "L12": {
+   "title": "Galleries by purpose",
+   "severity": "warn",
+   "check": "gallery",
+   "fix": "On a detail screen: one carousel with dots and a counter, tap opens a viewer screen with BackButton. For a collection: a 3-column square grid. For videos and workouts: 16:9 tiles with a duration badge. No masonry, no autoplaying sliders."
+  },
+  "L13": {
+   "title": "Filters and sort sit under the title",
+   "severity": "warn",
+   "check": "filters",
+   "fix": "Up to 5 quick filters as a chip row under the title (sticky on scroll), sort as a pill select; more than 5 filters go in a sheet opened by 'Filters (n)'. Always show the result count."
+  },
+  "L14": {
+   "title": "Search at the top of list screens",
+   "severity": "warn",
+   "check": "search",
+   "fix": "A search field under the large title of a list or catalogue root; placeholder 'Search'; results as you type; an empty result explains and offers to clear filters."
+  },
+  "L15": {
+   "title": "Forms are one column with labels above",
+   "severity": "warn",
+   "check": "form",
+   "fix": "Labels above fields, one column, related fields grouped in a section, inputmode and autocomplete set, the error under the field, submit in the MainButton (disabled with the reason in the content)."
+  },
+  "L16": {
+   "title": "Booking: day strip, slot grid, summary, then the MainButton",
+   "severity": "warn",
+   "check": "booking",
+   "fix": "A horizontal strip of days, a grid of time slots (3-4 columns), unavailable slots disabled not hidden, a one-line summary of the choice, and a MainButton naming the slot and price ('Book Tue 18:00 · €30')."
+  },
+  "L17": {
+   "title": "Card text stays short",
+   "severity": "warn",
+   "check": "description_lines",
+   "fix": "One meta line in cards; descriptions only on the detail screen, 3 lines then 'More'; no paragraphs in lists."
+  },
+  "L18": {
+   "title": "One tag per card, no ribbons",
+   "severity": "warn",
+   "check": "tags",
+   "fix": "At most one quiet tag (top-start on the media or after the title): 'New', 'Ends 30 Nov', '−20 %'. No corner ribbons, no stacks of badges."
+  },
+  "L19": {
+   "title": "One secondary control on a card at most",
+   "severity": "warn",
+   "check": "card_actions",
+   "fix": "The whole card opens the detail screen; at most one icon button on it (favourite at the media's top end, or quick add at the bottom end), 44 px target."
+  },
+  "L20": {
+   "title": "No text on images",
+   "severity": "warn",
+   "check": "text_on_image",
+   "fix": "Put text under the media. If a title must sit on a photo, use a bottom scrim and check 4.5:1 in both themes."
+  },
+  "L21": {
+   "title": "Values align at the end of rows",
+   "severity": "warn",
+   "check": "values",
+   "fix": "Prices, amounts and times right-aligned (start in RTL) in tabular figures; times in schedules form the leading column."
+  },
+  "L22": {
+   "title": "Media carries meaning in alt text",
+   "severity": "warn",
+   "check": "alt",
+   "fix": "alt names what the image shows (product and variant, trainer's name, workout title); decorative images alt=\"\"."
+  },
+  "L23": {
+   "title": "Loading and empty keep the anatomy",
+   "severity": "warn",
+   "check": "states",
+   "fix": "Skeletons in the card's own shape (media ratio, two text lines, price); empty results say why and offer a way out."
+  },
+  "L24": {
+   "title": "Wide screens cap the content",
+   "severity": "warn",
+   "check": "max_width",
+   "fix": "Content up to ~600 px wide and centred on tablets and desktop clients; images capped in height; grids gain a column instead of stretching tiles."
+  },
+  "L25": {
+   "title": "Plans: stacked cards on phones, a table to compare",
+   "severity": "warn",
+   "check": "plans",
+   "fix": "Plans as stacked cards (not side by side) under 600 px with a monthly/yearly segmented control; one quietly recommended plan; 3-5 features each with check icons and text; a comparison table when there are more than 3 plans or 6 features."
+  }
+ },
+ "variants": {
+  "row": {
+   "what": "list row with a thumbnail at the start",
+   "kit": ".tma-cell + .tma-row-thumb",
+   "for": "people, services, menus, search results, history"
+  },
+  "media-card": {
+   "what": "full-width card, media on top",
+   "kit": ".tma-tile (single column)",
+   "for": "events, courses, articles, workouts, listings"
+  },
+  "tile": {
+   "what": "grid tile, media on top",
+   "kit": ".tma-grid > .tma-tile",
+   "for": "products, books, workouts, galleries"
+  },
+  "scroller-card": {
+   "what": "card in a horizontal scroller",
+   "kit": ".tma-carousel > .tma-tile",
+   "for": "featured and related only (L10)"
+  },
+  "plan-card": {
+   "what": "stacked pricing card",
+   "kit": ".tma-card + .tma-price",
+   "for": "SaaS plans, memberships, subscriptions"
+  }
+ },
+ "entities": {
+  "product": {
+   "title": "Physical product",
+   "ratio": "1:1",
+   "fit": "cover (contain for packshots on white)",
+   "list_variant": "tile",
+   "columns": 2,
+   "card": [
+    "image",
+    "title",
+    "meta",
+    "price",
+    "availability"
+   ],
+   "meta": "variant or size",
+   "rating": "optional under the title",
+   "card_action": "favourite or quick add (one)",
+   "primary": "Add to cart · {price}",
+   "detail": [
+    "gallery",
+    "title",
+    "price",
+    "variant selectors",
+    "availability",
+    "description",
+    "details",
+    "reviews",
+    "related"
+   ]
+  },
+  "book": {
+   "title": "Book",
+   "ratio": "2:3",
+   "fit": "contain",
+   "list_variant": "tile",
+   "columns": 2,
+   "card": [
+    "image",
+    "title",
+    "author",
+    "price",
+    "format"
+   ],
+   "meta": "author",
+   "rating": "star icon + 4.6 (2.1k) under the author",
+   "card_action": "none (or favourite)",
+   "primary": "Buy · {price} / Add to cart",
+   "detail": [
+    "cover",
+    "title",
+    "author",
+    "rating",
+    "format and price",
+    "description",
+    "details",
+    "reviews",
+    "similar"
+   ],
+   "row": "2:3 thumbnail 48 x 72 at the start"
+  },
+  "trainer": {
+   "title": "Trainer or specialist",
+   "ratio": "4:5 portrait in cards, round avatar 48-56 in rows",
+   "fit": "cover (face centred)",
+   "list_variant": "row",
+   "columns": 1,
+   "card": [
+    "image",
+    "name",
+    "specialty",
+    "rating",
+    "price",
+    "next slot"
+   ],
+   "meta": "specialty · experience",
+   "card_action": "none",
+   "primary": "Book {day} {time} · {price}",
+   "detail": [
+    "portrait",
+    "name and specialty",
+    "rating",
+    "key facts",
+    "about",
+    "gallery",
+    "schedule",
+    "reviews"
+   ]
+  },
+  "workout": {
+   "title": "Workout or video lesson",
+   "ratio": "16:9",
+   "fit": "cover",
+   "list_variant": "media-card",
+   "columns": 1,
+   "card": [
+    "image",
+    "title",
+    "meta",
+    "duration badge",
+    "lock if members only"
+   ],
+   "meta": "level · minutes · equipment",
+   "card_action": "favourite",
+   "primary": "Start workout",
+   "detail": [
+    "video",
+    "title",
+    "meta chips",
+    "description",
+    "program steps",
+    "gallery",
+    "related"
+   ]
+  },
+  "class": {
+   "title": "Group class in a schedule",
+   "ratio": "none in rows (time leads)",
+   "fit": "-",
+   "list_variant": "row",
+   "columns": 1,
+   "card": [
+    "time",
+    "title",
+    "trainer",
+    "spots left"
+   ],
+   "meta": "trainer · room",
+   "card_action": "none",
+   "primary": "Book {time} class",
+   "detail": [
+    "title",
+    "time and room",
+    "trainer row",
+    "description",
+    "spots",
+    "policy"
+   ]
+  },
+  "event": {
+   "title": "Event or ticket",
+   "ratio": "3:2",
+   "fit": "cover",
+   "list_variant": "media-card",
+   "columns": 1,
+   "card": [
+    "image",
+    "date",
+    "title",
+    "venue",
+    "price from"
+   ],
+   "meta": "venue · city",
+   "card_action": "favourite",
+   "primary": "Buy {n} tickets · {total}",
+   "detail": [
+    "cover",
+    "title",
+    "date and time",
+    "venue with map",
+    "ticket types",
+    "description",
+    "organiser"
+   ]
+  },
+  "course": {
+   "title": "Course",
+   "ratio": "16:9",
+   "fit": "cover",
+   "list_variant": "media-card",
+   "columns": 1,
+   "card": [
+    "image",
+    "title",
+    "meta",
+    "progress if enrolled",
+    "price"
+   ],
+   "meta": "lessons · hours · level",
+   "card_action": "none",
+   "primary": "Enrol · {price} / Continue lesson {n}",
+   "detail": [
+    "cover",
+    "title",
+    "meta",
+    "outcomes",
+    "lessons list",
+    "author",
+    "reviews"
+   ]
+  },
+  "listing": {
+   "title": "Listing (rental, property, car)",
+   "ratio": "4:3",
+   "fit": "cover",
+   "list_variant": "media-card",
+   "columns": 1,
+   "card": [
+    "image carousel",
+    "price",
+    "title",
+    "key facts",
+    "location"
+   ],
+   "meta": "beds · m² · floor",
+   "card_action": "favourite",
+   "primary": "Request a viewing",
+   "detail": [
+    "gallery",
+    "price",
+    "title",
+    "key facts",
+    "map",
+    "description",
+    "amenities",
+    "contact"
+   ]
+  },
+  "service": {
+   "title": "Service (barber, cleaning, repair)",
+   "ratio": "1:1 thumbnail",
+   "fit": "cover",
+   "list_variant": "row",
+   "columns": 1,
+   "card": [
+    "image",
+    "title",
+    "duration · price"
+   ],
+   "meta": "duration",
+   "card_action": "none",
+   "primary": "Book · {price}",
+   "detail": [
+    "title",
+    "price and duration",
+    "description",
+    "specialists",
+    "schedule"
+   ]
+  },
+  "menu-item": {
+   "title": "Food or drink menu item",
+   "ratio": "1:1 photo at the end of the row",
+   "fit": "cover",
+   "list_variant": "row",
+   "columns": 1,
+   "card": [
+    "title",
+    "description (2 lines)",
+    "price",
+    "image"
+   ],
+   "meta": "short description",
+   "card_action": "quick add stepper",
+   "primary": "Add to order · {price}",
+   "detail": [
+    "photo",
+    "title",
+    "price",
+    "size",
+    "options",
+    "quantity"
+   ]
+  },
+  "article": {
+   "title": "Article or news",
+   "ratio": "16:9 in cards, 1:1 72 px thumbnail at the end in rows",
+   "fit": "cover",
+   "list_variant": "row",
+   "columns": 1,
+   "card": [
+    "title (3 lines)",
+    "source · time",
+    "image"
+   ],
+   "meta": "source · time",
+   "card_action": "none",
+   "primary": "none (reading)",
+   "detail": [
+    "title",
+    "byline",
+    "media",
+    "prose",
+    "related"
+   ]
+  },
+  "plan": {
+   "title": "SaaS plan or membership",
+   "ratio": "none",
+   "fit": "-",
+   "list_variant": "plan-card",
+   "columns": 1,
+   "card": [
+    "name",
+    "price and period",
+    "features (3-5)",
+    "recommended tag"
+   ],
+   "meta": "who it is for",
+   "card_action": "select",
+   "primary": "Subscribe · {price} / month",
+   "detail": [
+    "comparison table",
+    "billing period",
+    "terms"
+   ]
+  },
+  "metric": {
+   "title": "SaaS dashboard metric",
+   "ratio": "none",
+   "fit": "-",
+   "list_variant": "row",
+   "columns": 2,
+   "card": [
+    "label",
+    "figure",
+    "delta with period"
+   ],
+   "meta": "period",
+   "card_action": "none",
+   "primary": "none on the dashboard; actions on detail screens",
+   "detail": [
+    "figure",
+    "chart",
+    "breakdown list",
+    "filters"
+   ]
+  },
+  "person": {
+   "title": "Person in a community or CRM",
+   "ratio": "round avatar 40-48",
+   "fit": "cover",
+   "list_variant": "row",
+   "columns": 1,
+   "card": [
+    "avatar",
+    "name",
+    "role or status",
+    "action or value"
+   ],
+   "meta": "role · last seen",
+   "card_action": "none",
+   "primary": "Message / Invite",
+   "detail": [
+    "avatar",
+    "name",
+    "key facts",
+    "activity",
+    "actions"
+   ]
+  },
+  "photo": {
+   "title": "Photo in a gallery (results, workouts, venue)",
+   "ratio": "1:1 in the grid, original in the viewer",
+   "fit": "cover in the grid, contain in the viewer",
+   "list_variant": "tile",
+   "columns": 3,
+   "card": [
+    "image"
+   ],
+   "meta": "-",
+   "card_action": "none",
+   "primary": "none",
+   "detail": [
+    "viewer with counter",
+    "caption"
+   ]
+  }
+ }
+}

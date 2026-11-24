@@ -4493,6 +4493,21 @@
       "icon": "./plugins/jangtrinh/design-os-svg-animation/docs/images/composer-icon.svg"
     },
     {
+      "name": "devault",
+      "displayName": "Devault",
+      "source": {
+        "source": "local",
+        "path": "./plugins/devault-design/chatgpt-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search real UI design references from shipped websites and apps, analyze design patterns across the library, and fetch ready-made design systems as Tailwind, CSS variables, shadcn/ui or DESIGN.md through Devault's hosted MCP server.",
+      "icon": "./plugins/devault-design/chatgpt-plugin/assets/logo.png"
+    },
+    {
       "name": "dex",
       "displayName": "dex",
       "source": {

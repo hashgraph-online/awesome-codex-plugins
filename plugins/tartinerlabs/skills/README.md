@@ -21,6 +21,7 @@ Claude Code only.
 |-------|-------------|
 | [a11y-audit](agents/a11y-audit.md) | Read-only accessibility audit of a whole app or several screens against WCAG 2.2 AA. Use for full-app, multi-screen, or pre-release accessibility reviews — returns an impact-ranked report without editing files. Detects web, Apple platforms, Android, and React Native/Expo. |
 | [ux-audit](agents/ux-audit.md) | Read-only UX psychology audit of a whole app or several screens. Use for full-app or multi-screen UX reviews — returns a severity-ranked report without editing files. Detects web/SaaS, Apple platforms, Android, and React Native/Expo. |
+| [visual-audit](agents/visual-audit.md) | Read-only visual design audit of a whole app or several screens — colour, typography, spacing, surfaces, buttons, icons, and imagery. Use for full-app or multi-screen UI audits, design reviews, or polish passes — returns an impact-ranked report without editing files. Detects web/SaaS, Apple platforms, Android, and React Native/Expo, and reviews screenshots and mockups. |
 
 ## Installation
 

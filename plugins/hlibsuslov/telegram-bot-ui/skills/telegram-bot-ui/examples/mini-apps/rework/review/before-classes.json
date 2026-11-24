@@ -1,0 +1,19 @@
+{
+ "screen": "catalog",
+ "entity": "class",
+ "width": 390,
+ "layout": {"variant": "tile", "columns": 3},
+ "card": {
+  "image": {"ratio": "1:1", "fit": "cover", "position": "top"},
+  "slots": ["image", "title", "price"],
+  "title_lines": 2,
+  "tags": 0,
+  "actions": [],
+  "price": {"style": "pill"},
+  "text_on_image": false,
+  "alt": "missing"
+ },
+ "primary_action": "fixed-button",
+ "carousels": 1,
+ "unavailable": "colour-only"
+}

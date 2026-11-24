@@ -1,0 +1,7 @@
+{
+ "screen": "detail",
+ "entity": "class",
+ "width": 390,
+ "primary_action": "main-button",
+ "sections": ["title", "time and room", "trainer row", "spots", "policy"]
+}

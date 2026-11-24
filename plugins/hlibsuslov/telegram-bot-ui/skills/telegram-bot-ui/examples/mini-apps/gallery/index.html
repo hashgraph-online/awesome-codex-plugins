@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Kit gallery</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
+  <link rel="stylesheet" href="../_kit/tma.css">
+  <script type="module" src="./dist/app.js"></script>
+</head>
+<body>
+<!-- Every component of the kit (data/mini-apps/components.json, status "kit"), grouped. Open it in the preview stand
+     (py -3 scripts/preview_miniapp.py examples/mini-apps/gallery --serve 8790) and switch platform, scheme, width,
+     mode and style to check each element. -->
+<main class="tma-page" id="home">
+  <header class="tma-header">
+    <h1 class="tma-large-title">Kit gallery</h1>
+    <p class="tma-subhead tma-hint" style="margin:var(--tma-s1) 0 0">Every element, in the user's theme</p>
+  </header>
+  <div class="tma-scroll-x" role="tablist" aria-label="Group" id="groups"></div>
+
+  <div class="tma-stack" style="margin-top:var(--tma-gap-section)">
+
+  <!-- ============================== TEXT -->
+  <section class="tma-section" data-group="text" aria-labelledby="g-text">
+    <h2 class="tma-section__header" id="g-text"><strong>Text</strong><span>iOS 27 scale</span></h2>
+    <div class="tma-card" id="type-scale"></div>
+  </section>
+  <section class="tma-section" data-group="text" aria-labelledby="g-prose">
+    <h2 class="tma-section__header" id="g-prose">Long text: headings h1-h6, lists, code, quote</h2>
+    <article class="tma-card tma-prose">
+      <h1>How points work</h1>
+      <p>You earn points for every order and spend them on drinks. Points never expire while you order once a year.</p>
+      <h2>Earning</h2>
+      <ul><li>1 point for every €1</li><li>Double points on Mondays</li></ul>
+      <h3>Levels</h3>
+      <ol><li>Regular: from 0 points</li><li>Gold: from 500 points</li></ol>
+      <h4>Codes</h4>
+      <p>Use <code class="tma-code">BEANS10</code> at checkout.</p>
+      <h5>Small print</h5>
+      <h6>Updated 23 November 2026</h6>
+      <hr>
+      <blockquote class="tma-quote">The flat white is the house favourite.<cite>Barista team</cite></blockquote>
+    </article>
+  </section>
+
+  <!-- ============================== COLOUR ROLES -->
+  <section class="tma-section" data-group="text" aria-labelledby="g-color">
+    <h2 class="tma-section__header" id="g-color">Colour roles from the theme</h2>
+    <ul class="tma-list" id="roles"></ul>
+  </section>
+
+  <!-- ============================== STRUCTURE -->
+  <section class="tma-section" data-group="structure" aria-labelledby="g-structure">
+    <h2 class="tma-section__header" id="g-structure"><strong>Structure</strong><a href="#home">Top</a></h2>
+    <ul class="tma-list">
+      <li><div class="tma-cell"><span class="tma-cell__body"><span class="tma-cell__title">One-line row</span></span><span class="tma-cell__after">Value</span></div></li>
+      <li><button class="tma-cell is-2" type="button"><span class="tma-avatar">OL</span><span class="tma-cell__body"><span class="tma-cell__title">Two-line row with avatar</span><span class="tma-cell__subtitle">Subtitle in the subtitle colour</span></span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li>
+      <li><div class="tma-cell is-2 is-multiline"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-info"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Multiline row</span><span class="tma-cell__subtitle">Long text wraps here instead of being cut, for explanations that matter more than density.</span></span></div></li>
+    </ul>
+    <p class="tma-section__footer">Section footer: a short explanation under the group.</p>
+  </section>
+  <section class="tma-section" data-group="structure" aria-labelledby="g-kv">
+    <h2 class="tma-section__header" id="g-kv">Key-value list</h2>
+    <dl class="tma-kv">
+      <div><dt>Order</dt><dd>1042</dd></div>
+      <div><dt>Pickup</dt><dd class="tma-num">10:30</dd></div>
+      <div><dt>Total</dt><dd>€8.40</dd></div>
+    </dl>
+  </section>
+  <section class="tma-section" data-group="structure" aria-labelledby="g-kv2">
+    <h2 class="tma-section__header is-nested" id="g-kv2">Details, label above value</h2>
+    <dl class="tma-kv is-stacked">
+      <div><dt>Status</dt><dd>Ready for pickup</dd></div>
+      <div><dt>Description</dt><dd>Two flat whites, oat milk, one extra shot. The barista calls your name at the counter.</dd></div>
+    </dl>
+  </section>
+  <section class="tma-section" data-group="structure" aria-labelledby="g-hdr">
+    <h2 class="tma-section__header is-extra" id="g-hdr">Extra prominent header<a href="#home">See all</a></h2>
+    <h3 class="tma-section__header is-prominent">Prominent header<a href="#home">See all</a></h3>
+    <h3 class="tma-section__header is-small">Small caption header, for settings-like lists</h3>
+    <p class="tma-section__footer">iOS 27 list headers: nested by default (above), prominent and extra prominent with an action at the end; the small caption only for settings-like lists.</p>
+  </section>
+  <section class="tma-section" data-group="structure" aria-labelledby="g-card">
+    <h2 class="tma-section__header" id="g-card">Card, steps, accordion, placeholder</h2>
+    <div class="tma-card">
+      <p class="tma-title3">Order 1042</p>
+      <ol class="tma-steps">
+        <li class="is-done"><span>Received<br><span class="tma-footnote">10:12</span></span></li>
+        <li class="is-current"><span>Preparing<br><span class="tma-footnote">about 6 minutes</span></span></li>
+        <li><span>Ready for pickup</span></li>
+      </ol>
+    </div>
+  </section>
+  <section class="tma-section" data-group="structure">
+    <div class="tma-accordion">
+      <details><summary>Can I change my order?</summary><p>Until the barista starts it. Open the order and tap Edit.</p></details>
+      <details><summary>Where do I pick it up?</summary><p>At the counter by the window.</p></details>
+    </div>
+  </section>
+  <section class="tma-section" data-group="structure">
+    <div class="tma-card"><div class="tma-placeholder">
+      <span class="tma-placeholder__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-history"/></svg></span>
+      <p class="tma-placeholder__title">No orders yet</p>
+      <p class="tma-placeholder__text">Your past orders appear here after your first pickup.</p>
+      <button class="tma-btn is-tonal" type="button">Open the menu</button>
+    </div></div>
+  </section>
+
+  <!-- ============================== NAVIGATION -->
+  <section class="tma-section" data-group="navigation" aria-labelledby="g-nav">
+    <h2 class="tma-section__header" id="g-nav"><strong>Navigation</strong></h2>
+    <div class="tma-segmented" role="tablist" aria-label="Period" id="seg"><button type="button" role="tab" aria-selected="false">Day</button><button type="button" role="tab" aria-selected="true">Week</button><button type="button" role="tab" aria-selected="false">Month</button><button type="button" role="tab" aria-selected="false">Year</button></div>
+  </section>
+  <section class="tma-section" data-group="navigation">
+    <label class="tma-search"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-search"/></svg><input type="search" placeholder="Search" aria-label="Search the gallery" id="search"></label>
+  </section>
+  <section class="tma-section" data-group="navigation">
+    <ul class="tma-list">
+      <li><button class="tma-cell" type="button" id="open-screen"><span class="tma-cell__body"><span class="tma-cell__title">Push a screen (BackButton)</span></span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li>
+    </ul>
+    <p class="tma-section__footer">The floating tab bar sits at the bottom; it hides on level-2 screens and while the MainButton shows.</p>
+  </section>
+
+  <!-- ============================== ACTIONS -->
+  <section class="tma-section" data-group="actions" aria-labelledby="g-actions">
+    <h2 class="tma-section__header" id="g-actions"><strong>Actions</strong></h2>
+    <div class="tma-card">
+      <div class="tma-actions" style="--tma-cols:4">
+        <button class="tma-action" type="button"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-plus"/></svg></span>Top up</button>
+        <button class="tma-action" type="button"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-send"/></svg></span>Send</button>
+        <button class="tma-action" type="button"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-swap"/></svg></span>Swap</button>
+        <button class="tma-action" type="button"><span class="tma-action__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-qr"/></svg></span>Show code</button>
+      </div>
+    </div>
+  </section>
+  <section class="tma-section" data-group="actions">
+    <div class="tma-card" style="display:grid;gap:var(--tma-s3)">
+      <button class="tma-btn is-filled is-lg is-wide" type="button">Filled, large</button>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--tma-s2)">
+        <button class="tma-btn is-tonal" type="button">Tonal</button>
+        <button class="tma-btn" type="button">Gray</button>
+        <button class="tma-btn is-plain" type="button">Plain</button>
+        <button class="tma-btn is-danger" type="button">Delete</button>
+        <button class="tma-btn is-sm is-tonal" type="button"><svg class="tma-icon" aria-hidden="true" style="width:16px;height:16px"><use href="../_kit/icons.svg#i-star"/></svg>Small with icon</button>
+        <button class="tma-btn" type="button" disabled>Disabled</button>
+        <button class="tma-icon-btn" type="button" aria-label="More actions"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-more"/></svg></button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--tma-s2)">
+        <button class="tma-chip" type="button" aria-pressed="true"><svg class="tma-icon" aria-hidden="true" style="width:16px;height:16px"><use href="../_kit/icons.svg#i-star"/></svg>Watching</button>
+        <button class="tma-chip" type="button" aria-pressed="false">Filter</button>
+        <button class="tma-chip is-success" type="button">Earn 5% back</button>
+      </div>
+      <p style="margin:0">Links stay in text: <a href="https://telegram.org/tos" id="ext-link">terms of service</a>.</p>
+    </div>
+  </section>
+  <section class="tma-section" data-group="actions">
+    <ul class="tma-list">
+      <li><button class="tma-cell" type="button" id="demo-main"><span class="tma-cell__body"><span class="tma-cell__title">Show the MainButton and SecondaryButton</span></span></button></li>
+      <li><button class="tma-cell" type="button" id="demo-haptics"><span class="tma-cell__body"><span class="tma-cell__title">Haptics: select, tap, success</span></span></button></li>
+    </ul>
+  </section>
+
+  <!-- ============================== SETTINGS -->
+  <section class="tma-section" data-group="settings" aria-labelledby="g-settings">
+    <h2 class="tma-section__header" id="g-settings"><strong>Settings rows</strong><span>every trailing type</span></h2>
+    <ul class="tma-list">
+      <li><div class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-language"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Language</span></span><span class="tma-cell__after">English</span></div></li>
+      <li><button class="tma-cell" type="button"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-card"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Payment methods</span></span><span class="tma-cell__after">2</span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li>
+      <li><label class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-bell"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Order is ready</span></span><input class="tma-switch" type="checkbox" role="switch" checked></label></li>
+      <li><div class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-calendar"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title" id="date-l">Pickup date</span></span><span class="tma-pill-select"><span id="date-v">24 Nov</span><input type="date" aria-labelledby="date-l" id="date-in"></span></div></li>
+      <li><div class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-clock"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title" id="time-l">Pickup time</span></span><span class="tma-pill-select"><span id="time-v">10:30</span><input type="time" aria-labelledby="time-l" id="time-in"></span></div></li>
+      <li><div class="tma-cell" style="position:relative"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-cup"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Default size</span></span>
+        <button class="tma-popup-trigger" type="button" id="size-trigger" aria-haspopup="menu" aria-expanded="false">Medium<svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-down"/></svg></button>
+        <div class="tma-menu" role="menu" id="size-menu" hidden style="inset-inline-end:var(--tma-s3);top:44px"><button role="menuitem" type="button">Small</button><button role="menuitem" type="button">Medium</button><button role="menuitem" type="button">Large</button></div></div></li>
+      <li><div class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-coins"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title" id="shots-l">Extra shots</span></span><span class="tma-stepper" role="group" aria-labelledby="shots-l"><button type="button" aria-label="Fewer" data-step="-1">−</button><output id="shots">1</output><button type="button" aria-label="More" data-step="1">+</button></span></div></li>
+    </ul>
+  </section>
+  <section class="tma-section" data-group="settings" aria-labelledby="g-milk">
+    <h2 class="tma-section__header" id="g-milk">Checkmark rows (single choice)</h2>
+    <ul class="tma-list" role="listbox" aria-labelledby="g-milk" id="milk">
+      <li><button class="tma-cell" type="button" role="option" aria-selected="true"><span class="tma-cell__body"><span class="tma-cell__title">Whole milk</span></span><svg class="tma-cell__check" aria-hidden="true"><use href="../_kit/icons.svg#i-check"/></svg></button></li>
+      <li><button class="tma-cell" type="button" role="option" aria-selected="false"><span class="tma-cell__body"><span class="tma-cell__title">Oat milk</span></span><svg class="tma-cell__check" aria-hidden="true"><use href="../_kit/icons.svg#i-check"/></svg></button></li>
+    </ul>
+  </section>
+  <section class="tma-section" data-group="settings">
+    <ul class="tma-list">
+      <li><button class="tma-cell is-button" type="button">Invite a friend</button></li>
+      <li><button class="tma-cell is-danger" type="button" id="demo-delete">Delete order history</button></li>
+    </ul>
+  </section>
+
+  <!-- ============================== INPUT -->
+  <section class="tma-section" data-group="input" aria-labelledby="g-input">
+    <h2 class="tma-section__header" id="g-input"><strong>Input</strong></h2>
+    <div class="tma-stack">
+      <div class="tma-field"><label class="tma-field__label" for="f1">Name on the cup</label><input class="tma-input" id="f1" autocomplete="given-name" value="Olena"></div>
+      <div class="tma-field"><label class="tma-field__label" for="f2">Email for receipts</label><input class="tma-input" id="f2" type="email" inputmode="email" aria-invalid="true" aria-describedby="f2e" value="olena@"><p class="tma-field__error" id="f2e">Add the part after @, for example olena@example.com</p></div>
+      <div class="tma-field"><label class="tma-field__label" for="f3">Note</label><textarea class="tma-input" id="f3" placeholder="Optional"></textarea></div>
+      <div class="tma-field"><label class="tma-field__label" for="f4">Store</label><select class="tma-input" id="f4"><option>Central</option><option>Riverside</option></select></div>
+      <div class="tma-card" style="display:grid;gap:var(--tma-s3)">
+        <label style="display:flex;gap:var(--tma-s3);align-items:center"><input class="tma-check" type="checkbox" checked>Save as favourite</label>
+        <label style="display:flex;gap:var(--tma-s3);align-items:center"><input class="tma-check" type="radio" name="r" checked>Pickup</label>
+        <label style="display:flex;gap:var(--tma-s3);align-items:center"><input class="tma-check" type="radio" name="r">Delivery</label>
+        <label for="f5">Sweetness <output id="f5o" class="tma-num">2</output></label><input class="tma-slider" id="f5" type="range" min="0" max="4" value="2">
+      </div>
+      <div class="tma-field"><span class="tma-field__label" id="pin-l">Confirmation code</span><div class="tma-pin" role="group" aria-labelledby="pin-l"><input inputmode="numeric" maxlength="1" aria-label="Digit 1" autocomplete="one-time-code"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><input inputmode="numeric" maxlength="1" aria-label="Digit 4"></div></div>
+      <label class="tma-file-drop"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-upload"/></svg><span>Add a receipt photo</span><span class="tma-footnote">JPG or PNG, up to 10 MB</span><input type="file" accept="image/*" aria-label="Receipt photo"></label>
+      <div class="tma-card tma-rate"><p class="tma-rate__title" id="rate-l">How was your flat white?</p><div class="tma-rating" role="radiogroup" aria-labelledby="rate-l" id="rating"></div><p class="tma-rate__value" id="rate-v" aria-live="polite">Tap a star to rate</p></div>
+    </div>
+  </section>
+
+  <!-- ============================== DISPLAY -->
+  <section class="tma-section" data-group="display" aria-labelledby="g-display">
+    <h2 class="tma-section__header" id="g-display"><strong>Display</strong></h2>
+    <div class="tma-card">
+      <span class="tma-subhead tma-hint">Points balance</span>
+      <p class="tma-figure">1,240<span class="tma-figure__minor">.50 pts</span></p>
+      <span class="tma-delta is-up"><svg class="tma-icon" aria-hidden="true" style="width:14px;height:14px"><use href="../_kit/icons.svg#i-arrow-up"/></svg>+120 this week</span>
+      <span class="tma-delta is-down"><svg class="tma-icon" aria-hidden="true" style="width:14px;height:14px"><use href="../_kit/icons.svg#i-arrow-down"/></svg>−2.5 % today</span>
+      <svg class="tma-chart" viewBox="0 0 320 180" role="img" aria-label="Points over the last week, rising from 1,120 to 1,240">
+        <line class="tma-chart__grid" x1="0" y1="45" x2="270" y2="45"/><line class="tma-chart__grid" x1="0" y1="95" x2="270" y2="95"/><line class="tma-chart__grid" x1="0" y1="145" x2="270" y2="145"/>
+        <polyline class="tma-chart__line" points="0,140 45,128 90,132 135,110 180,98 225,84 270,52"/>
+        <text class="tma-chart__label" x="278" y="49">1,240</text><text class="tma-chart__label" x="278" y="149">1,120</text>
+      </svg>
+    </div>
+  </section>
+  <section class="tma-section" data-group="display">
+    <div class="tma-card" style="display:grid;gap:var(--tma-s3)">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--tma-s3);align-items:center"><span class="tma-avatar is-56">OL</span><span class="tma-avatar is-48">MK</span><span class="tma-avatar">AR</span>
+        <span class="tma-avatar-stack" aria-label="3 friends"><span class="tma-avatar">A</span><span class="tma-avatar">B</span><span class="tma-avatar">C</span></span><span class="tma-badge">3</span><span class="tma-tag">Ends 30 Nov</span></div>
+      <div class="tma-progress" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="Level progress"><i style="width:60%"></i></div>
+      <div style="display:flex;gap:var(--tma-s3);align-items:center"><span class="tma-spinner" role="status" aria-label="Loading"></span><span class="tma-skeleton" style="width:60%;height:14px"></span></div>
+      <div class="tma-coachmark">New: pay with points at the counter</div>
+    </div>
+  </section>
+  <section class="tma-section" data-group="display">
+    <div class="tma-banner" id="promo">
+      <div><p class="tma-headline" style="margin:0">Double points on Mondays</p><p class="tma-footnote" style="margin:2px 0 0">Every drink, every store</p></div>
+      <button class="tma-icon-btn tma-banner__close" type="button" aria-label="Hide this offer"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-close"/></svg></button>
+    </div>
+  </section>
+  <section class="tma-section" data-group="display">
+    <div class="tma-hero" style="margin:0;padding:var(--tma-s5) var(--tma-s4) var(--tma-s8);border-radius:var(--tma-r-group)">
+      <p class="tma-subhead tma-hint" style="margin:0">Brand moment (hero)</p>
+      <p class="tma-title2">Gold level</p>
+    </div>
+  </section>
+
+  <!-- ============================== MEDIA -->
+  <section class="tma-section" data-group="media" aria-labelledby="g-media">
+    <h2 class="tma-section__header" id="g-media"><strong>Media</strong></h2>
+    <div class="tma-stack">
+      <figure class="tma-media"><img src="media/cup.svg" alt="A cup of flat white on a saucer" width="400" height="300" loading="lazy"></figure>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--tma-s3);align-items:center">
+        <figure class="tma-media is-square"><img src="media/beans.svg" alt="Roasted coffee beans" width="400" height="400" loading="lazy"></figure>
+        <figure class="tma-media is-portrait"><img src="media/counter.svg" alt="The café counter" width="400" height="500" loading="lazy"></figure>
+        <figure class="tma-media is-circle"><img src="media/cup.svg" alt="Drink of the day" width="400" height="300" loading="lazy"></figure>
+      </div>
+      <figure class="tma-media"><video poster="media/counter.svg" preload="none" playsinline aria-label="How we brew a pour-over, 1 minute 12 seconds"></video>
+        <button class="tma-media__play" type="button" aria-label="Play the video"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-play"/></svg></button><span class="tma-media__badge">1:12</span></figure>
+      <div class="tma-gallery"><img src="media/beans.svg" alt="Beans, light roast" loading="lazy"><img src="media/cup.svg" alt="Cappuccino" loading="lazy"><img src="media/counter.svg" alt="Counter" loading="lazy"><img src="media/cup.svg" alt="Flat white" loading="lazy"><img src="media/beans.svg" alt="Beans, dark roast" loading="lazy"><img src="media/counter.svg" alt="Window seats" loading="lazy"></div>
+      <div><div class="tma-carousel" id="carousel" aria-label="Offers">
+        <div class="tma-card"><p class="tma-headline" style="margin:0">Autumn blend</p><p class="tma-footnote" style="margin:2px 0 0">Spiced, low acidity</p></div>
+        <div class="tma-card"><p class="tma-headline" style="margin:0">Free refill</p><p class="tma-footnote" style="margin:2px 0 0">Filter coffee, in store</p></div>
+        <div class="tma-card"><p class="tma-headline" style="margin:0">Bring a friend</p><p class="tma-footnote" style="margin:2px 0 0">Both get 50 points</p></div>
+      </div><div class="tma-dots" aria-hidden="true"><i aria-current="true"></i><i></i><i></i></div></div>
+      <ul class="tma-list">
+        <li><div class="tma-cell tma-audio"><button class="tma-icon-btn" type="button" aria-label="Play the barista's intro, 0:42"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-play"/></svg></button><span class="tma-audio__track"><i style="width:35%"></i></span><span class="tma-cell__after">0:42</span></div></li>
+        <li><button class="tma-cell is-2" type="button" id="demo-file"><span class="tma-file__icon"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-document"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Receipt 1042.pdf</span><span class="tma-cell__subtitle">84 KB</span></span><svg class="tma-icon" aria-hidden="true" style="color:var(--tma-accent-text)"><use href="../_kit/icons.svg#i-download"/></svg></button></li>
+      </ul>
+      <div class="tma-card"><div class="tma-moment" role="img" aria-label="Celebration sticker placeholder"><svg class="tma-icon" aria-hidden="true" style="stroke-width:1.2"><use href="../_kit/icons.svg#i-sticker"/></svg></div><p class="tma-footnote" style="text-align:center;margin:var(--tma-s2) 0 0">Moment slot: an animated sticker (TGS / WEBM / Lottie), one per screen</p></div>
+      <div class="tma-map" role="img" aria-label="Map: the café is two blocks north of the station">
+        <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="width:100%;height:100%"><g class="tma-chart__grid" style="stroke-width:10;opacity:.6"><path d="M0 60h320M0 140h320M90 0v200M220 0v200"/></g><g class="tma-chart__grid" style="stroke-width:4"><path d="M0 100h320M160 0v200"/></g></svg>
+        <svg class="tma-icon" aria-hidden="true" style="position:absolute;left:calc(50% - 16px);top:calc(50% - 30px);width:32px;height:32px;color:var(--tma-danger)"><use href="../_kit/icons.svg#i-location"/></svg>
+      </div>
+      <div class="tma-qr" role="img" aria-label="Sample pattern in the QR slot, not a scannable code"><svg viewBox="0 0 21 21" aria-hidden="true" shape-rendering="crispEdges"><path id="qr-path" d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" fill="currentColor"/></svg></div>
+    </div>
+  </section>
+
+  <!-- ============================== TABLES -->
+  <section class="tma-section" data-group="tables" aria-labelledby="g-tables">
+    <h2 class="tma-section__header" id="g-tables"><strong>Tables</strong><span>compared data only</span></h2>
+    <div class="tma-table-wrap"><table class="tma-table">
+      <caption>Drinks this month</caption>
+      <thead><tr><th scope="col" aria-sort="none">Drink</th><th scope="col" class="is-num" aria-sort="descending">Orders</th><th scope="col" class="is-num">Revenue</th><th scope="col" class="is-num">Change</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Flat white</th><td class="is-num">412</td><td class="is-num">€1,730</td><td class="is-num">+8 %</td></tr>
+        <tr><th scope="row">Cappuccino</th><td class="is-num">355</td><td class="is-num">€1,385</td><td class="is-num">+2 %</td></tr>
+        <tr><th scope="row">Cold brew</th><td class="is-num">120</td><td class="is-num">€528</td><td class="is-num">−4 %</td></tr>
+      </tbody></table></div>
+  </section>
+  <section class="tma-section" data-group="tables">
+    <div class="tma-table-wrap"><table class="tma-table is-compact">
+      <caption>Leaderboard: points this week</caption>
+      <thead><tr><th scope="col">#</th><th scope="col">Member</th><th scope="col" class="is-num">Points</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tma-rank">1</span></td><td>Mira K.</td><td class="is-num">840</td></tr>
+        <tr><td><span class="tma-rank">2</span></td><td>Andrii R.</td><td class="is-num">790</td></tr>
+        <tr class="is-me"><td><span class="tma-rank">7</span></td><td>You</td><td class="is-num">520</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- ============================== OVERLAYS -->
+  <section class="tma-section" data-group="overlays" aria-labelledby="g-overlays">
+    <h2 class="tma-section__header" id="g-overlays"><strong>Overlays</strong></h2>
+    <ul class="tma-list">
+      <li><button class="tma-cell" type="button" id="demo-popup"><span class="tma-cell__body"><span class="tma-cell__title">Native popup (showPopup)</span></span></button></li>
+      <li><button class="tma-cell" type="button" id="demo-sheet"><span class="tma-cell__body"><span class="tma-cell__title">Bottom sheet</span></span></button></li>
+      <li><button class="tma-cell" type="button" id="demo-actions"><span class="tma-cell__body"><span class="tma-cell__title">Action sheet (more than 3 actions)</span></span></button></li>
+      <li><button class="tma-cell" type="button" id="demo-snack"><span class="tma-cell__body"><span class="tma-cell__title">Snackbar</span></span></button></li>
+    </ul>
+  </section>
+
+  <!-- ============================== TELEGRAM VALUES (references/mini-apps/telegram-elements.md) -->
+  <section class="tma-section" data-group="telegram" aria-labelledby="g-stars">
+    <h2 class="tma-section__header" id="g-stars"><strong>Telegram Stars</strong><span>whole numbers, own glyph</span></h2>
+    <div class="tma-card">
+      <p class="tma-caption" style="margin:0">Stars balance</p>
+      <p class="tma-figure" style="margin:var(--tma-s1) 0 0"><span class="tma-amount is-stars"><svg class="tma-star" aria-hidden="true"><use href="../_kit/icons.svg#i-stars-gold"/></svg><span id="stars-balance">0</span><span class="tma-sr-only"> Stars</span></span></p>
+    </div>
+    <ul class="tma-list" style="margin-top:var(--tma-s3)">
+      <li><div class="tma-cell"><span class="tma-cell__body"><span class="tma-cell__title">Extra recipes pack</span><span class="tma-cell__subtitle">One-time purchase</span></span><span class="tma-cell__after"><span class="tma-amount is-stars"><svg class="tma-star" aria-hidden="true"><use href="../_kit/icons.svg#i-stars-gold"/></svg><span>120</span><span class="tma-sr-only"> Stars</span></span></span></div></li>
+      <li><div class="tma-cell"><span class="tma-cell__body"><span class="tma-cell__title">Club membership</span><span class="tma-cell__subtitle">Renews monthly, cancel any time</span></span><span class="tma-cell__after"><span class="tma-amount is-stars"><svg class="tma-star" aria-hidden="true"><use href="../_kit/icons.svg#i-stars-gold"/></svg><span>250</span><span class="tma-sr-only"> Stars</span></span> / month</span></div></li>
+      <li><button class="tma-cell" type="button" id="demo-stars"><span class="tma-cell__body"><span class="tma-cell__title">Show the Stars price in the MainButton</span></span></button></li>
+    </ul>
+    <p class="tma-section__footer">Users never see "XTR". Markup draws the Stars sign as an SVG; only the MainButton, which takes plain text, uses the character.</p>
+  </section>
+  <section class="tma-section" data-group="telegram" aria-labelledby="g-grams">
+    <h2 class="tma-section__header" id="g-grams"><strong>Grams</strong><span>formerly Toncoin</span></h2>
+    <ul class="tma-list" id="grams">
+      <li><div class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-wallet"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Wallet balance</span></span><span class="tma-cell__after"><span class="tma-amount"><span data-nano="12503400000">0</span><span class="tma-amount__unit">GRAM</span></span></span></div></li>
+      <li><div class="tma-cell is-2"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-arrow-down"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">From Olena</span><span class="tma-cell__subtitle">Today, 09:12</span></span><span class="tma-cell__after"><span class="tma-amount is-positive"><span data-nano="2500000000" data-signed>0</span><span class="tma-amount__unit">GRAM</span></span></span></div></li>
+      <li><div class="tma-cell is-2"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-arrow-up"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Network fee</span><span class="tma-cell__subtitle">Yesterday, 18:40</span></span><span class="tma-cell__after"><span class="tma-amount is-negative"><span data-nano="-41299999">0</span><span class="tma-amount__unit">GRAM</span></span></span></div></li>
+    </ul>
+    <p class="tma-section__footer">Amounts arrive in nanograms as strings; the API's currency code stays "TON", the name of the network.</p>
+  </section>
+  <section class="tma-section" data-group="telegram" aria-labelledby="g-gifts">
+    <h2 class="tma-section__header" id="g-gifts"><strong>Gifts</strong><span>colours from the API</span></h2>
+    <div class="tma-gifts" id="gifts">
+      <button class="tma-gift" type="button" data-gift="cake"><img class="tma-gift__art" src="media/gift-cake.svg" alt="Cake"><span class="tma-gift__title">Cake</span><span class="tma-stars-pill"><span class="tma-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><svg class="tma-star" aria-hidden="true"><use href="../_kit/icons.svg#i-stars-gold"/></svg>25<span class="tma-sr-only"> Stars</span></span><span class="tma-limited"><span class="tma-progress"><i></i></span><span></span></span></button>
+      <button class="tma-gift" type="button" data-gift="plant"><span class="tma-gift__flag">Premium</span><img class="tma-gift__art" src="media/gift-plant.svg" alt="Plant"><span class="tma-gift__title">Plant</span><span class="tma-stars-pill"><span class="tma-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><svg class="tma-star" aria-hidden="true"><use href="../_kit/icons.svg#i-stars-gold"/></svg>50<span class="tma-sr-only"> Stars</span></span></button>
+      <button class="tma-gift" type="button"><img class="tma-gift__art" src="media/gift-mug.svg" alt="Mug"><span class="tma-gift__title">Mug</span><span class="tma-stars-pill"><span class="tma-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><svg class="tma-star" aria-hidden="true"><use href="../_kit/icons.svg#i-stars-gold"/></svg>15<span class="tma-sr-only"> Stars</span></span></button>
+    </div>
+  </section>
+  <section class="tma-section" data-group="telegram" aria-labelledby="g-unique">
+    <h2 class="tma-section__header" id="g-unique">Unique gift: model, backdrop, symbol</h2>
+    <div class="tma-gift is-unique is-lg" id="unique" role="img" aria-labelledby="unique-t">
+      <span class="tma-gift__pattern" aria-hidden="true"></span>
+      <img class="tma-gift__art" src="media/gift-plant.svg" alt="">
+      <span class="tma-gift__title" id="unique-t">Plant #1042</span>
+      <span class="tma-gift__number">Collectible · on Telegram</span>
+    </div>
+    <dl class="tma-kv" id="unique-attrs" style="margin-top:var(--tma-s3)"></dl>
+  </section>
+  <section class="tma-section" data-group="telegram" aria-labelledby="g-marks">
+    <h2 class="tma-section__header" id="g-marks">Premium, boosts, levels: in words</h2>
+    <ul class="tma-list">
+      <li><div class="tma-cell is-2"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-star"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Telegram Premium</span><span class="tma-cell__subtitle" id="premium-perk">Checking your account…</span></span></div></li>
+      <li><button class="tma-cell is-2" type="button" id="demo-boost"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-bolt"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Boost the club channel</span><span class="tma-cell__subtitle">Opens Telegram's boost screen</span></span><svg class="tma-cell__chevron" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-right"/></svg></button></li>
+      <li><div class="tma-cell is-2"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-trophy"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Buyer level 5</span><span class="tma-limited"><span class="tma-progress"><i style="width:64%"></i></span><span>640 of 1,000 to level 6</span></span></span></div></li>
+    </ul>
+    <p class="tma-section__footer">Verified, Premium and Scam marks next to names are Telegram's. The app never draws them.</p>
+  </section>
+
+  <!-- ============================== DEVICE (references/mini-apps/haptics-and-device.md) -->
+  <section class="tma-section" data-group="device" aria-labelledby="g-haptics">
+    <h2 class="tma-section__header" id="g-haptics"><strong>Haptics</strong><span>Taptic Engine on iPhone</span></h2>
+    <div class="tma-card">
+      <p class="tma-footnote tma-hint" style="margin:0">Impact by weight</p>
+      <div id="impacts" style="display:flex;flex-wrap:wrap;gap:var(--tma-s2);margin-top:var(--tma-s2)"></div>
+      <p class="tma-footnote tma-hint" style="margin:var(--tma-s3) 0 0">Outcome and selection</p>
+      <div id="notifies" style="display:flex;flex-wrap:wrap;gap:var(--tma-s2);margin-top:var(--tma-s2)"></div>
+    </div>
+    <ul class="tma-list" style="margin-top:var(--tma-s3)">
+      <li><label class="tma-cell"><span class="tma-cell__body"><span class="tma-cell__title">Vibration in this app</span></span><input class="tma-switch" type="checkbox" role="switch" id="haptic-on" checked aria-describedby="haptic-f"></label></li>
+    </ul>
+    <p class="tma-section__footer" id="haptic-f">Every haptic pairs with a visible change. Repeats of one pattern within 80 ms play once.</p>
+  </section>
+  <section class="tma-section" data-group="device" aria-labelledby="g-motion">
+    <h2 class="tma-section__header" id="g-motion">Motion: tilt the card</h2>
+    <div class="tma-card tma-tilt" id="tilt"><p class="tma-headline" style="margin:0">Points card</p><p class="tma-footnote tma-hint" style="margin:0" id="tilt-v">Motion sensors start on Tilt and stop when you leave</p></div>
+    <ul class="tma-list" style="margin-top:var(--tma-s3)">
+      <li><button class="tma-cell" type="button" id="demo-tilt"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-refresh"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Tilt</span><span class="tma-cell__subtitle">DeviceOrientation, 50 ms</span></span></button></li>
+      <li><button class="tma-cell" type="button" id="demo-location"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-location"/></svg></span><span class="tma-cell__body"><span class="tma-cell__title">Nearest pickup point</span><span class="tma-cell__subtitle" id="loc-v">Uses your location once, after you tap</span></span></button></li>
+    </ul>
+  </section>
+
+  <!-- ============================== ICONS -->
+  <section class="tma-section" data-group="icons" aria-labelledby="g-icons">
+    <h2 class="tma-section__header" id="g-icons"><strong>Icons</strong><span id="icon-count"></span></h2>
+    <div class="tma-card" id="icons" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:var(--tma-s3) var(--tma-s2)"></div>
+    <p class="tma-section__footer">Own line set mapped to SF Symbols and Material names in data/mini-apps/icons.json.</p>
+  </section>
+  </div>
+</main>
+
+<!-- level-2 screen -->
+<main class="tma-page tma-screen" id="detail" hidden>
+  <header class="tma-header"><h1 class="tma-title2">Level-2 screen</h1></header>
+  <p class="tma-hint" style="margin:0">Telegram's BackButton is visible in the header. The tab bar is hidden.</p>
+</main>
+
+<nav class="tma-tabbar tma-glass" role="tablist" aria-label="Sections" id="tabbar">
+  <button type="button" role="tab" aria-selected="true"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-grid"/></svg>Gallery</button>
+  <button type="button" role="tab" aria-selected="false"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-search"/></svg>Search</button>
+  <button type="button" role="tab" aria-selected="false"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-settings"/></svg>Settings</button>
+</nav>
+
+<div class="tma-scrim" id="scrim" hidden></div>
+<section class="tma-sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t" hidden>
+  <div class="tma-sheet__head"><button class="tma-icon-btn" type="button" aria-label="Close" data-close><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-close"/></svg></button><span class="tma-sheet__title" id="sheet-t">Pickup point</span><span></span></div>
+  <ul class="tma-list"><li><div class="tma-cell is-2"><span class="tma-cell__body"><span class="tma-cell__title">Central</span><span class="tma-cell__subtitle">2 Market Street · open until 20:00</span></span></div></li></ul>
+</section>
+<section class="tma-sheet tma-action-sheet" id="actions" role="dialog" aria-modal="true" aria-label="Order actions" hidden>
+  <ul class="tma-list"><li><button class="tma-cell" type="button" data-close>Repeat order</button></li><li><button class="tma-cell" type="button" data-close>Share receipt</button></li><li><button class="tma-cell" type="button" data-close>Report a problem</button></li><li><button class="tma-cell is-danger" type="button" data-close>Cancel order</button></li></ul>
+  <ul class="tma-list"><li><button class="tma-cell" type="button" data-close><strong>Close</strong></button></li></ul>
+</section>
+<div class="tma-snackbar" role="status" id="snackbar" hidden></div>
+<button type="button" class="tma-btn is-filled is-lg" data-tma-fallback="main-button" hidden></button>
+</body>
+</html>
