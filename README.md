@@ -626,6 +626,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [TweetAPI](https://github.com/tweetapi/agent-skill) - Read-only lookups of public Twitter/X profiles, tweets, search results, lists, communities and Spaces through TweetAPI's hosted MCP server, with guidance for server-side API reads.
 - [ultrafast](https://github.com/ultrafastmov/ultrafast) - Make and edit videos as JSON documents rendered on your GPU, through the ultrafast skill and the local `uf mcp` server (20 tools).
 - [Unified AI System](https://github.com/happy520ai/unified-ai-system) - Self-hosted AI gateway for Codex with provider-free prompt enhancement, fifteen governed MCP tools, and a credential-free Docker path.
+- [Unpolish AI Writing](https://github.com/wilu222/unpolish-ai-writing) - Removes common AI writing tells from a draft and can optionally add sparse, hash-seeded typing errors at human-like rates.
 - [unslop](https://github.com/MohamedAbdallah-14/unslop) - Strip AI writing patterns from text output — removes filler phrases, hedging language, and generic constructs to produce cleaner written content. Install: `npm install -g unslop`.
 - [Upwork Autopilot](https://github.com/klajdikkolaj/upwork-autopilot) - Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile.
 - [Val Town](https://github.com/val-town/plugins) - Build and deploy serverless TypeScript on Val Town from Codex — hosted MCP server plus skills for HTTP vals, cron, SQLite, email, OAuth, and React UI.
