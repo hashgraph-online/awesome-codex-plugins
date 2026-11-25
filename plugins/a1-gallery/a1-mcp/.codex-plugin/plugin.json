@@ -1,0 +1,119 @@
+{
+  "name": "a1-gallery",
+  "version": "1.3.0",
+  "description": "Ground design work in real websites — search 1,100+ live sites by style, font, colour and section, and read the type scale, spacing and palette measured off the page.",
+  "author": {
+    "name": "Bryn Taylor",
+    "email": "hello@a1.gallery",
+    "url": "https://www.a1.gallery"
+  },
+  "homepage": "https://www.a1.gallery/mcp",
+  "repository": "https://github.com/a1-gallery/a1-mcp",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "web-design",
+    "inspiration",
+    "typography",
+    "fonts",
+    "design-tokens",
+    "ui",
+    "reference"
+  ],
+  "interface": {
+    "displayName": "A1 Gallery",
+    "shortDescription": "Hand-curated web design references",
+    "longDescription": "Search a hand-curated gallery of 1,150+ real websites by style, category, technology, font and colour. Each result has the live URL, its tags and a screenshot. Search 6,000+ captured sections such as heroes, pricing tables and FAQs by what they say, and read the colours, type sizes, spacing and radius measured off the live page. Browse full-page captures by page type, find font pairings in use on real sites, and see who built each site. Save sites to your own A1 boards. Works with a free A1 account.",
+    "developerName": "Bryn Taylor",
+    "category": "Design",
+    "capabilities": [
+      "Search websites",
+      "Search sections",
+      "Read design tokens",
+      "Browse fonts"
+    ],
+    "websiteURL": "https://www.a1.gallery/mcp",
+    "supportURL": "https://www.a1.gallery/mcp",
+    "privacyPolicyURL": "https://www.a1.gallery/privacy",
+    "termsOfServiceURL": "https://www.a1.gallery/terms",
+    "defaultPrompt": [
+      "Find dark fintech landing pages built with Webflow.",
+      "How big are hero headings on agency sites?",
+      "Show me pricing sections that mention a free trial."
+    ],
+    "brandColor": "#101211",
+    "brandColorDark": "#FFA5DB",
+    "composerIcon": "./assets/logo-400.png",
+    "composerIconDark": "./assets/logo-400.png",
+    "logo": "./assets/logo-400.png",
+    "logoDark": "./assets/logo-400.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Search websites by style and technology",
+              "prompt": "Find dark fintech landing pages built with Webflow.",
+              "tools_triggered": "search_websites",
+              "expected_behavior": "Returns matching websites from the gallery with live URLs, tags and screenshots."
+            },
+            {
+              "description": "Search inside section copy",
+              "prompt": "Show me pricing sections that mention a free trial.",
+              "tools_triggered": "search_sections",
+              "expected_behavior": "Returns pricing sections whose extracted text mentions a free trial, each with a screenshot and measured design tokens."
+            },
+            {
+              "description": "Aggregate measured design values",
+              "prompt": "How big are hero headings on agency websites?",
+              "tools_triggered": "analyze_design_tokens",
+              "expected_behavior": "Returns the spread of hero heading sizes across agency sites in the gallery, with the sample size."
+            },
+            {
+              "description": "Read one website's sections",
+              "prompt": "Show me the sections on the first result and the colours its hero uses.",
+              "tools_triggered": "get_website_sections",
+              "expected_behavior": "Returns that site's captured sections in page order with hex colours and their roles."
+            },
+            {
+              "description": "Save a website to a board",
+              "prompt": "Save the first result to my A1 board called Fintech.",
+              "tools_triggered": "save_to_board",
+              "expected_behavior": "Saves that website to the signed-in person's own A1 board and confirms which board it went to."
+            },
+            {
+              "description": "Find font pairings",
+              "prompt": "Which fonts pair well with Inter on real websites?",
+              "tools_triggered": "find_font_pairings",
+              "expected_behavior": "Returns fonts used alongside Inter on gallery sites, with example websites."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Out of scope: editing the gallery",
+              "prompt": "Delete this website from the A1 gallery."
+            },
+            {
+              "description": "Out of scope: image generation",
+              "prompt": "Generate a new logo for my startup."
+            },
+            {
+              "description": "Out of scope: sites outside the gallery",
+              "prompt": "Scrape the full HTML of example.com for me."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments."
+      },
+      "publication": {
+        "release_notes": "1.3.0: 23 tools for searching websites, sections, pages, fonts and creators, measured design tokens, and saving sites to your own A1 boards. Skills for design reference, section rebuilds and setup."
+      }
+    }
+  }
+}

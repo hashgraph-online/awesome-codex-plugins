@@ -67,7 +67,7 @@
        would be the very lie this step exists to remove. `cause_detail` only refines
        `storage_unavailable` — `embedder_unavailable` never carries one.
 
-       Tell the user (in Russian) which sections were lost and name the class: `storage_unavailable`
+       Tell the user (in Russian) which parts are unavailable and name the class: `storage_unavailable`
        → «хранилище не отвечает», `embedder_unavailable` → «эмбеддер не отвечает». A class this
        table does not list is still presented — quote its `cause` verbatim and pass its `reason`
        through; an unfamiliar class is a reason to say more, never to fall silent. Then present
@@ -78,9 +78,15 @@
        2. «Подниму сам» → **PAUSE HERE** and wait for the user to write «готово», «поднял»,
           «done» or any confirmation. Once confirmed, re-run `prepare_task_context(...)` and
           continue.
-       3. «Продолжить без контекста» → note under **Constraints / open questions** in the brief:
-          «<название класса> не отвечает (`cause: <cause>`[, `cause_detail: <detail>`]); секции
-          <перечислить> собраны не были», and continue.
+       3. «Продолжить с доступным контекстом» → use the available sections. Under
+          **Constraints / open questions**, record the missing operations, their `cause`
+          and any `cause_detail`, and name sections returned with BM25.
+
+       Read the `warnings[].retrieval` entries whose `mode` is `bm25_only`. Say that the
+       named `code` or `test_exemplars` section was retrieved with lexical BM25 and that
+       semantic search was unavailable. A gap in `<section>.semantic_search` concerns only
+       semantic search. Use the available excerpts and read any separate `<section>.bm25`
+       gap to report failure of the lexical search too.
 
        When `remedy` is `null`, option 1 is not shown at all, and what you say depends on `cause`
        and `cause_detail`. For `storage_unavailable`: `auth_failed` → «хранилище отвергло учётные
@@ -99,7 +105,7 @@
 
        **Several classes at once are several problems.** Sources fail independently, so
        `gaps` can carry `storage_unavailable` and `embedder_unavailable` together. Group the
-       entries by `cause`, name every class with its own lost sections and its own
+       entries by `cause`, name every class with its own unavailable parts and its own
        `cause_detail`/`remedy`, and offer option 1 only for the classes that actually carry a
        `remedy` — saying which ones it fixes. Curing one class leaves the others standing: after
        re-running `prepare_task_context(...)`, scan the fresh `gaps` again from the top of this

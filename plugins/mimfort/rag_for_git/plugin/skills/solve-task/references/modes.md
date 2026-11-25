@@ -40,6 +40,13 @@
 5. **Hand off to development.** Show the brief, state the saved file path
    (`docs/superpowers/briefs/…`), then invoke `superpowers:brainstorming` with the brief **file
    path** as the seed/context — so the brief survives compaction, not just the in-context text.
+   **Check saved citations before planning.** When opening the brief (including resuming
+   an old run), run `reviewer brief-provenance <brief> --path <local-clone>`
+   via the same CLI as in Step 4. Use `unchanged` anchors directly. Treat `moved` as an exact
+   candidate at `suggested_line` in the reported target SHA and verify it locally before use.
+   For dirty files, missing or ambiguous lines, missing Git objects and legacy briefs without
+   provenance, read current source before relying on the citation. Add unresolved gaps to the
+   handoff rather than blocking planning. The check never edits the brief.
    **Ask brainstorming to record the brief's provenance in the spec:** one line under the spec
    heading pointing at the brief's path (`docs/superpowers/briefs/…md`), in the spec's own
    language — the path itself is the greppable anchor for the задача→бриф→спека→PR trace, so no

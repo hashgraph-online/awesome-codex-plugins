@@ -48,6 +48,7 @@ npx e2e telemetry [disable|enable] # anonymous usage telemetry: status or switch
 | `--device <name>` | The simulator, emulator, or phone the selected mobile target runs on, over its `device` option: a device name, a simulator UDID, or an emulator serial (`emulator-5554`). It applies to the one selected target that can take a device; the others (`web()`, a provider's devices) still run as configured. With several that can, pick one with `--target` (else `TARGET_REQUIRED`); with none, it is `UNSUPPORTED_CAPABILITY`. |
 | `--agent <names>` | Run unpinned tests as these `agents.<name>` entries (default `agents.default`), comma-separated or repeated; several names run each such test once per agent. |
 | `--workers <n>`, `--retries <n>` | Override the resolved values; retries 0-10, workers 1-1024. A retry replays the cache only in strict mode (`--strict-cache`, `cache.strict`); otherwise it runs every agent step live. |
+| `--fully-parallel` | Run the tests of one file in parallel too, on every target, over `fullyParallel` in the config. |
 | `--action-timeout <ms>`, `--assertion-timeout <ms>` | Override config `actionTimeout` (default 30000) and `assertionTimeout` (default 5000) for this run; a call's own `{ timeout }` still wins. |
 | `--max-failures <n>` | Stop after n failures: the rest skip (cause `failure-limit`), running tests end `interrupted`; exit 1. |
 | `--max-duration <ms>` | Stop after ms of running tests, over config `maxDuration`: the rest skip (cause `time-limit`), running tests end `interrupted`, `RUN_TIMEOUT`; exit 1. |

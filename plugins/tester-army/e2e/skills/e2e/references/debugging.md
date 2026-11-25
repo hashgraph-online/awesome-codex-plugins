@@ -137,6 +137,11 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | `AUTH_CREDENTIAL_UNAVAILABLE`, `AUTH_CREDENTIAL_INVALID` | `credentials.user('x')` for an undeclared name; the app rejected a configured credential | Add it to `config.credentials`; fix the stored value |
 | `SECRET_UNAVAILABLE` | `secrets.get('x')` for an undeclared name | Add it to `config.secrets`; `E2E_SECRET_X` only overrides a declared one |
 
+A `TypeError` from `browser` or `device` (`Cannot read properties of undefined`)
+means the test was run on a target without that fixture, where it's
+`undefined`. Scope the test with `platforms`, such as `platforms: ['web']` for
+`browser`, or check `platform` first.
+
 ## Tools
 
 | Do | When |

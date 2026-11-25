@@ -1,0 +1,38 @@
+{
+  "name": "dopamine-talk",
+  "version": "1.0.0",
+  "description": "Post-RL decompression pack for AI agents: sharp human dialogue without hedging or Runglish, living product READMEs, and user-impact changelogs.",
+  "author": {
+    "name": "AnnenkovLabs",
+    "url": "https://github.com/AnnenkovLabs"
+  },
+  "homepage": "https://github.com/AnnenkovLabs/dopamine-talk",
+  "repository": "https://github.com/AnnenkovLabs/dopamine-talk",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "ai-agents",
+    "communication",
+    "readme",
+    "changelog",
+    "dopamine"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Dopamine Talk",
+    "shortDescription": "Decompress stiff RLVR agents into sharp collaborators, living READMEs, and user-impact changelogs.",
+    "longDescription": "A 3-skill pack from AnnenkovLabs: dopamine-talk strips test-gate obsession, AST narration, calibration hedging, and Runglish; dopamine-readme builds 5-second visual product showcases; dopamine-changelog turns raw git diffs into real user impact.",
+    "developerName": "AnnenkovLabs",
+    "category": "Productivity",
+    "capabilities": [],
+    "websiteURL": "https://github.com/AnnenkovLabs/dopamine-talk",
+    "defaultPrompt": [
+      "Explain the real wins and trade-offs here like a sharp teammate, no disclaimers.",
+      "Redesign our README so a developer wants to star it in 5 seconds.",
+      "Write a user-impact changelog for this release with Before -> After numbers."
+    ],
+    "brandColor": "#ff6b4a",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

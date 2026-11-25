@@ -257,6 +257,49 @@ fanout install-git-hook   # enforce the plan on every commit
 fanout log                # past runs and rehearsals; the last 7 days of claims, refusals and notices, and the hook's cost
 ```
 
+## Partitioned batch jobs
+
+Use `fanout jobs` when the same worker needs to process separate sets of records, such as different sites in a classifier backfill. It runs commands in the invoking directory and keeps a checkpoint for each partition. It works outside a Git checkout.
+
+```json
+{
+  "worker": { "command": "node", "args": ["classifier-worker.mjs"] },
+  "concurrency": 2,
+  "budgetMicros": 55000000,
+  "requestsPerMinute": 30,
+  "partitions": [
+    { "id": "east", "items": ["site-1", "site-4"] },
+    { "id": "west", "items": ["site-2", "site-3"] }
+  ]
+}
+```
+
+Set the request rate to match the quota available to this job. The example has a $55 total budget. Fanout rejects duplicate item IDs before starting. The default concurrency is one. Specify an executable and its argument array. On Windows, use an executable such as `node.exe` or `python.exe` to run a script.
+
+```sh
+fanout jobs run backfill.json
+fanout jobs status job-<id>
+fanout jobs abort job-<id>
+fanout jobs resume job-<id>
+fanout jobs resume job-<id> --budget-micros 65000000
+```
+
+Use the run ID printed at startup. State, partition files, and stdout and stderr for every attempt are saved under `.fanout/jobs/` in the invoking directory. Set `FANOUT_JOBS_DIR` to keep that state elsewhere. Run the control commands from the same directory or point them at the same state directory.
+
+### Worker protocol
+
+The worker reads its `{ id, items }` from the file named by `FANOUT_JOB_PARTITION_FILE`. `FANOUT_JOB_RUN_ID` stays the same across attempts. The worker and supervisor exchange one JSON object per line on stdout and stdin. Send diagnostics to stderr.
+
+| Worker sends on stdout | Worker reads on stdin |
+|---|---|
+| `{"type":"reserve","id":"request-1","maxMicros":100000}` before an API request | `{"type":"permit","id":"request-1"}` once the budget and rate allow it, or `{"type":"denied","id":"request-1","reason":"budget"}` |
+| `{"type":"settle","id":"request-1","actualMicros":73000}` after the request | `{"type":"settled","id":"request-1"}` once the actual cost is recorded |
+| `{"type":"complete"}` after the partition's writes are durable | The worker exits with code 0 to checkpoint successful completion |
+
+Request a permit for each API call, including retries. Use each permit promptly for one request and wait for settlement before requesting another. Reserve a ceiling that covers the maximum charge and use `0` for a free request. Workers must exit on budget denial or a supervisor disconnect. Fanout controls permits for participating workers in this run. API calls outside that protocol and other users of the same provider quota are outside its accounting.
+
+An interrupted permit is charged at its reserved ceiling. Resume keeps those charges and the recent request history, skips completed partitions, and reruns unfinished partitions from the start. Make writes idempotent by item so reruns can safely replay partial work. The worker owns its database transactions and decides when its writes are durable.
+
 ## Does it work?
 
 **Sessions you open yourself** ([results](bench/RESULTS.md#claims-telling-the-same-task-from-different-work-v023)):
@@ -379,10 +422,14 @@ You shouldn't need these to start. `fanout run` options:
 | `--goal-file TASKS.md` | Read the goal from a file. |
 | `--agent claude\|codex\|"<cmd>"` | Which agent runs the sessions (default `claude`). Any command works: it gets the brief on stdin and runs in the session's folder. A session's `agent:` line wins. |
 | `--no-merge` | Stop when everything passes, before merging. |
+| `--base branch` | Build on another local branch in a temporary worktree. Fanout reads the plan from the invoking checkout, leaves that checkout on its branch, and merges into the selected branch. If that branch is checked out elsewhere, use `--no-merge` or run from that checkout. |
+| `--dry-run` | Preview an existing plan's merge order, lane commands, working folders, environment changes, and full briefs without authenticating or creating worktrees. |
+| `--clean-env` | Remove inherited `CLAUDE*` and `ANTHROPIC*` variables from Claude agent processes and from their sign-in probe. |
 | `--model m` / `--session-model m` | The planner's model / the sessions' model. A session's `model:` line wins. |
 | `--mix` | Three sessions in Claude (those others build on first, then plan order), the rest in Codex. Shown with the plan. |
 | `--max-sessions 4` | Most sessions to plan. Above about four, one account's agents slow each other down (six ran at about half speed). |
 | `--budget usd` | Spending cap per Claude agent run. |
+| `--token-budget n` | Stop each lane once it reports at least this many input and output tokens, including retries and fix rounds. Cached input counts toward the limit. Agents can exceed the limit between usage events, and agents that never report usage cannot be capped this way. |
 | `--fixes 2` | Fix rounds per session before the run stops for you. |
 | `--full-tests` | Let sessions write full test suites (by default they keep their own tests short, since rehearse tests the merged result). |
 | `--review` | Have an agent review the whole drafted plan, for goals that may hide dependencies they don't name in backticks. |
@@ -393,11 +440,39 @@ Environment variables:
 | Variable | What it does |
 |---|---|
 | `FANOUT_USER_SETTINGS=1` | Start Claude session agents with your user settings. By default they load only the project's (faster and cheaper: no personal hooks, plugins or global `CLAUDE.md`), and fall back to yours if a start fails. |
+| `FANOUT_CLAUDE_BIN` / `FANOUT_CODEX_BIN` | Set the path to a CLI outside PATH. The Claude desktop app may bundle its own CLI on Windows. |
+| `FANOUT_SCRUB_ENV=1` | Apply `--clean-env` by default. Useful when running from inside another Claude Code session. The clean environment also drops inherited API keys and provider configuration. |
+| `FANOUT_PRICES` | JSON mapping model names to prices per million input, output and cached-input tokens. |
 | `FANOUT_CODEX_EFFORT` | Codex sessions' reasoning effort: `low` by default (2–3× faster than Codex's default on our benchmark, same score), or `minimal`, `medium`, `high`, `default`. |
 | `FANOUT_CODEX_TIER=fast` | Codex's Fast tier: about a fifth quicker in our test, using more of your Codex quota. |
 | `git config fanout.claims true\|false` | Claims on or off for a repo, whatever the number of active sessions (`fanout init` sets `true`). `git config fanout.test "<cmd>"` sets the test `fanout done` runs (default: the plan's, else `npm test`). |
 | `FANOUT_CLAIM_JUDGE=off` | Don't check new claims for the same work (no model call; the agent gets the others listed to compare itself). `FANOUT_CLAIM_JUDGE_AGENT=claude\|codex` picks the CLI (default: Claude if signed in, else Codex). `FANOUT_CLAIM_JUDGE_MODEL` picks the model (Claude default `sonnet`, where `haiku` is cheaper but missed a third of the held-out duplicates; Codex default: your Codex model). `FANOUT_CLAIM_JUDGE_EFFORT` sets Codex's reasoning effort for it (default `low`). |
 | `FANOUT_TRACE_DIR` | Save each Claude agent's full event stream there, to see where its time went. |
+
+### Plans, logs, and recovery
+
+You can commit a shared interface before starting a run and list the file under each consumer's `uses:`. If no other lane exposes it, Fanout checks for the file on the selected base and reports it as frozen. This adds no merge dependency. `fanout check` also warns when the plan shell cannot find the executable at the start of a `check:` command.
+
+Each run prints a lane report and saves it to `.fanout/report.md`. It includes the lane's diff stat, check and test results, token usage, duration, last session ID, and any closing message the agent reports. The run log and `fanout status` show session IDs, and status also shows lane worktree and agent process health.
+
+Fanout saves stdout and stderr for tests, checks, and regeneration commands under `.fanout/logs/`, including successful rehearsals and early tests. For failures it prints an excerpt and the full log path. Use `fanout rehearse --keep` to inspect the rehearsal worktree until the next rehearsal or cleanup.
+
+Use `fanout abort` to stop a run and its agents while keeping the lane worktrees available. `fanout clean` removes lane and rehearsal worktrees and prunes stale registrations. Add `--branches` to delete the associated lane branches or `--force` to discard local worktree changes. On Windows, if cleanup reports a locked path, close any editor, terminal or other process holding it and retry. Base selection and lane paths are relative to the checkout you invoked Fanout from, including linked worktrees.
+
+Run `fanout ask <session-id> "Fix the empty-state message"` to resume a recorded Claude or Codex lane with its original settings. Fanout commits changes that pass the lane's ownership rules. Add `--check` to run that lane's check, and use `fanout rehearse` to test the branches together before merging the follow-up.
+
+On Windows, plan commands use Git Bash when available. Quote paths with spaces or shell metacharacters. For commands such as `wsl.exe -e python3 tools/check.py`, make sure the WSL distribution can start and use WSL paths for arguments interpreted inside it.
+
+Codex and other agents that report usage can show estimated cost using your own prices. Explicitly select a model with `model:` or `--session-model` to use its price. Without an explicit model, use the agent name as the pricing key. The plan's prices override matching entries in the environment.
+
+```markdown
+prices:
+  my-model: {in: 2, out: 8, cached_in: 0.5}
+```
+
+These sample rates are per million tokens. If `cached_in` is omitted, cached tokens use the input rate.
+
+A custom agent can report usage on stdout as JSON Lines. Emit one `{"type":"usage","model":"my-model","usage":{"input_tokens":5,"cached_input_tokens":2,"output_tokens":1}}` event per increment. The input total includes the cached tokens.
 
 ## Development
 

@@ -13,12 +13,13 @@ import { readFileSync, writeFileSync, appendFileSync, mkdirSync, chmodSync, exis
 import { execFileSync, spawnSync, spawn } from "node:child_process";
 import { resolve, relative, isAbsolute, join, dirname, basename } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { checkout, runRoot, validLaneName, laneHealth, dropWorktree, readLive, alive, activeChildren, workspaceLock, commandLogs } from "./workspace.mjs";
 import { createHash } from "node:crypto";
 import { claimsActive, claimsOn, branchOf, liveClaims, claimedByOther, editedByOthers, writeState, autoClaim, refusalText, taskFromTranscript, hookTranscript, recheckClaim, selfCheckText,
   notices, repoInfo, logEvent, readEvents, waitChecked, claimCmd, startCmd, showClaims, releaseCmd, initCmd, cleanTask, precheck, readState } from "./claims.mjs";
 
 const SESSION_KEYS = ["owns", "after", "exposes", "uses", "done", "task", "check", "agent", "model"];
-const PLAN_KEYS = ["test", "regen"];
+const PLAN_KEYS = ["test", "regen", "prices"];
 
 export function parsePlan(text) {
   const sessions = [];
@@ -129,9 +130,10 @@ function overlap(a, b, files) {
   return (!ma || !mb) && prefixClash(a, b) ? ": new paths may overlap" : null;
 }
 
-export function check(sessions, cwd, regen = []) {
-  const problems = [];
-  const files = cwd ? repoFiles(cwd) : null;
+export function check(sessions, cwd, regen = [], base = "HEAD", { baseOnly = false } = {}) {
+  const problems = [], notes = [], names = new Set();
+  let files = cwd && !baseOnly ? repoFiles(cwd) : null;
+  if (cwd && baseOnly) try { files = git(["ls-tree", "-r", "--name-only", "-z", base], cwd).split("\0").filter(Boolean); } catch { /* invalid base */ }
   for (let i = 0; i < sessions.length; i++)
     for (let j = i + 1; j < sessions.length; j++)
       for (const a of sessions[i].owns) for (const b of sessions[j].owns) {
@@ -148,6 +150,10 @@ export function check(sessions, cwd, regen = []) {
   // A session that uses a contract merges after the session exposing it.
   const deps = new Map(sessions.map((s) => [s.name, [...s.after]]));
   for (const s of sessions) {
+    const key = process.platform === "win32" ? s.name.toLowerCase() : s.name;
+    if (!validLaneName(s.name) || names.has(key))
+      problems.push(`PLAN invalid or duplicate session name "${s.name}"`);
+    names.add(key);
     if (!s.owns.length) problems.push(`PLAN ${s.name} has no owns: line`);
     for (const k of s.keys ?? []) {
       if (PLAN_KEYS.includes(k)) problems.push(`PLAN ${k}: goes above the first "##" line, once for the whole plan, not inside ${s.name}`);
@@ -157,7 +163,15 @@ export function check(sessions, cwd, regen = []) {
       if (!ownsFile(s, e)) problems.push(`EXPOSES ${e} (in ${s.name}): not in its owns`);
     for (const u of s.uses ?? []) {
       const owner = contractOwner(sessions.filter((x) => x !== s), u);
-      if (!owner) { problems.push(`USES ${u} (in ${s.name}): no other session exposes it`); continue; }
+      if (!owner) {
+        let frozen = false;
+        if (cwd && !isGlob(u)) try { frozen = git(["cat-file", "-t", `${base}:${norm(u)}`], cwd).trim() === "blob"; } catch { /* absent on base */ }
+        if (frozen && !(s.exposes ?? []).some((e) => e === u || matches(e, u))) {
+          const writer = sessions.find((x) => ownsFile(x, u));
+          notes.push(`USES ${u} (in ${s.name}): frozen on base${writer ? `; ${writer.name} owns that path` : ""}`);
+        } else problems.push(`USES ${u} (in ${s.name}): no other session exposes it and it is not a frozen file on base`);
+        continue;
+      }
       if (!deps.get(s.name).includes(owner.name)) deps.get(s.name).push(owner.name);
     }
   }
@@ -172,7 +186,7 @@ export function check(sessions, cwd, regen = []) {
     seen.add(s.name); order.push(s.name);
   };
   sessions.forEach((s) => visit(s));
-  return { problems, order };
+  return { problems, order, notes };
 }
 
 export const verify = (session, changed) => changed.filter((f) => !ownsFile(session, f));
@@ -206,6 +220,10 @@ function defaultBase(cwd) {
   } catch { /* detached or not a repo */ }
   return "main";
 }
+function checkoutBase(cwd) {
+  const branch = branchOf(runRoot(cwd));
+  return branch && !branch.startsWith(BRANCH_PREFIX) ? branch : defaultBase(cwd);
+}
 // The repo's own default branch, for overlap (no plan): origin/HEAD, else main or master, else the
 // checkout's branch. Not defaultBase: a fan-out builds on whatever branch the main checkout is on, but
 // with no plan the main checkout may just be on a feature branch (seen: docs/caching-findings).
@@ -223,7 +241,7 @@ function repoDefaultBranch(cwd) {
 function defaultPlan(cwd) {
   const main = resolve(mainRoot(cwd), ".fanout", "plan.md");
   let top;
-  try { top = resolve(git(["rev-parse", "--show-toplevel"], cwd).trim()); } catch { return main; }
+  top = checkout(cwd);
   const lanes = dirname(top), fanoutDir = dirname(lanes);
   const near = [...(basename(lanes) === "lanes" && basename(fanoutDir) === ".fanout" ? [join(fanoutDir, "plan.md")] : []), join(top, ".fanout", "plan.md")];
   return near.find((p) => existsSync(p)) ?? main;
@@ -260,8 +278,33 @@ const copyName = (cwd) => {
   const slug = basename(path).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "copy";
   return `${slug}_${createHash("sha1").update(path).digest("hex").slice(0, 6)}`;
 };
-export const runPlanCmd = (cmd, cwd) =>
-  spawnSync(cmd, { cwd, shell: planShell(), encoding: "utf8", env: { ...process.env, FANOUT_COPY: copyName(cwd) } });
+export const runPlanCmd = (cmd, cwd, fd) =>
+  spawnSync(cmd, { cwd, shell: planShell(), encoding: "utf8", stdio: fd == null ? "pipe" : ["ignore", fd, fd],
+    env: { ...process.env, FANOUT_COPY: copyName(cwd) } });
+
+export function checkCommandNotes(sessions, cwd) {
+  const notes = [];
+  for (const { name, check: command } of sessions) {
+    if (!command) continue;
+    if (process.platform === "win32") {
+      const path = command.match(/^(?:!\s+)?((?:[A-Za-z]:[\\/]|\\\\|\.\.?[\\/])[^"'\r\n]+?\.(?:exe|cmd|bat|ps1))(?=\s|$)/i)?.[1];
+      if (path && /[\s&|<>()!^]/.test(path))
+        notes.push(`CHECK ${name}: quote the Windows executable path "${path}" because it contains spaces or shell metacharacters`);
+    }
+    // Inspect the first simple executable without evaluating the plan. Complex shell expressions are valid.
+    const match = command.match(/^(?:!\s+)?(?:"([^"$`]+)"|'([^']+)'|([\w:./\\-]+))(?=\s|$)/);
+    if (!match) continue;
+    const exe = match[1] ?? match[2] ?? match[3];
+    if (/^(?:if|for|while|until|case|function|then|do)$/.test(exe)) continue;
+    const shell = planShell();
+    const posix = shell !== true || process.platform !== "win32";
+    const lookup = posix
+      ? spawnSync(shell === true ? "/bin/sh" : shell, ["-c", 'command -v -- "$1"', "fanout", exe], { cwd, stdio: "ignore", windowsHide: true })
+      : spawnSync("where.exe", [exe], { cwd, stdio: "ignore", windowsHide: true });
+    if (lookup.status !== 0) notes.push(`CHECK ${name}: executable "${exe}" was not found by the plan shell in ${cwd}`);
+  }
+  return notes;
+}
 
 // A fresh worktree has only tracked files, so a project whose tests read a gitignored .env or local database
 // fails there though it passes in the checkout. Claude Code copies the gitignored files listed in
@@ -308,22 +351,24 @@ const listed = (xs) => `${xs.slice(0, 8).join(", ")}${xs.length > 8 ? ` and ${xs
 // Files only: an ignored folder (node_modules/) is still found by walking up, since the copy sits in .fanout/.
 const missingIgnored = (root, wt) => gitZ(root, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory"]).filter((f) => !f.endsWith("/") && !existsSync(join(wt, f)));
 
-export function rehearse(order, { cwd, base = "main", test, regen = [], checks = [], tail = 20, prefix = BRANCH_PREFIX }) {
-  const log = [], root = mainRoot(cwd), wt = join(root, ".fanout", "rehearse");
+export function rehearse(order, { cwd, base = "main", baseLabel = base, test, regen = [], checks = [], tail = 20, prefix = BRANCH_PREFIX, keep = false, source = runRoot(cwd), logs = commandLogs(source, "rehearse") }) {
+  const log = [], root = runRoot(cwd), wt = join(root, ".fanout", "rehearse");
   let testRuns = 0;
-  const sh = (cmd) => { if (cmd === test) testRuns++; return runPlanCmd(cmd, wt); };
-  const tailOf = (r) => failureLines(`${r.stdout ?? ""}${r.stderr ?? ""}`, tail);
+  const sh = (cmd, step) => logs.run(step, (fd) => runPlanCmd(cmd, wt, fd));
+  const tailOf = (r) => [failureLines(r.out, tail), `Full output: ${r.logPath}`].filter(Boolean).join("\n");
   const g = (...a) => execFileSync("git", ["-c", "user.name=fanout", "-c", "user.email=fanout@local", ...a],
     { cwd: wt, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-  const drop = () => { try { git(["worktree", "remove", "--force", wt], root); } catch { /* not there */ } };
-  drop();
+  const drop = () => dropWorktree(root, wt, { force: true });
+  const blocked = drop();
+  if (blocked) return { ok: false, log: [`Cannot clear ${wt}: ${blocked}`, `Logs: ${logs.folder}`], testRuns, logDir: logs.folder, checks: {} };
   git(["worktree", "add", "--detach", wt, base], root);
-  let ok = true;
+  let ok = true, testPassed, probedFailure = false;
+  const checkResults = Object.create(null);
   try {
-    const { copied, failed } = copyIncludes(root, wt);
+    const { copied, failed } = copyIncludes(source, wt);
     if (copied.length) log.push(`COPIED from your checkout (.worktreeinclude): ${listed(copied)}`);
     if (failed.length) log.push(`COULD NOT COPY (.worktreeinclude): ${listed(failed)}`);
-    const merged = [[base, g("rev-parse", "HEAD").trim()]]; // [name, commit]: merged[k] = state after k merges
+    const merged = [[baseLabel, g("rev-parse", "HEAD").trim()]]; // [name, commit]: merged[k] = state after k merges
     for (const name of order) {
       const branch = prefix + name; // fanout/<name>, or any branch with prefix ""
       try { git(["rev-parse", "--verify", "--quiet", branch], root); }
@@ -340,24 +385,29 @@ export function rehearse(order, { cwd, base = "main", test, regen = [], checks =
     const probe = (k) => {
       g("reset", "-q", "--hard", merged[k][1]); g("clean", "-fdq");
       for (const x of regen.filter((x) => x.cmd)) {
-        const r = sh(x.cmd);
+        const r = sh(x.cmd, `regen-${k}`);
         if (r.status !== 0) return { pass: false, lines: [`REGEN FAILED after ${merged[k][0]}: \`${x.cmd}\` exited ${r.status}`, tailOf(r)] };
       }
       if (!test) return { pass: true };
-      const r = sh(test);
+      testRuns++;
+      const r = sh(test, `test-${k}`);
       return { pass: r.status === 0, lines: [`BROKE after ${merged[k][0]}: \`${test}\` exited ${r.status}`, tailOf(r)] };
     };
     const n = merged.length - 1;
     if (ok && n) {
+      const previousRuns = testRuns;
       const full = probe(n);
+      if (testRuns > previousRuns) testPassed = full.pass;
       if (full.pass) {
         log.push(...(test ? [`OK after ${merged[n][0]} (all ${n} merged)`] : merged.slice(1).map(([name]) => `MERGED ${name}`)));
         for (const c of checks.filter((c) => c.check && merged.some(([m]) => m === c.name))) {
-          const r = sh(c.check);
+          const r = sh(c.check, `check-${c.name}`);
+          checkResults[c.name] = { ok: r.status === 0, logPath: r.logPath };
           if (r.status === 0) log.push(`CHECK OK ${c.name}`);
           else { log.push(`CHECK FAILED ${c.name}: \`${c.check}\` exited ${r.status}`, tailOf(r)); ok = false; }
         }
       } else {
+        probedFailure = true;
         // Invariant: state lo passes (the base is assumed to until checked below), state hi fails.
         let lo = 0, hi = n, bad = full;
         while (hi - lo > 1) {
@@ -373,16 +423,22 @@ export function rehearse(order, { cwd, base = "main", test, regen = [], checks =
         } else if (!(b = baseRun()).pass) {
           // A base that passes in the checkout and fails here is usually a gitignored file the copy lacks (.env):
           // name the ones missing, or "fix main" sends the user after code that's fine.
-          const missing = missingIgnored(root, wt);
-          log.push(`BASE FAILS: \`${test}\` already fails on ${base} before any branch is merged, in fanout's scratch copy (${norm(relative(root, wt))}). Fix ${base} first.`
+          const missing = missingIgnored(source, wt);
+          log.push(`BASE FAILS: \`${test}\` already fails on ${baseLabel} before any branch is merged, in fanout's scratch copy (${norm(relative(root, wt))}). Fix ${baseLabel} first.`
             + (missing.length ? ` If it passes in your checkout, the copy may lack gitignored files it needs: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? ", ..." : ""}. List the ones it needs in .worktreeinclude (one per line, .gitignore syntax; Claude Code's worktrees use the same file) and fanout copies them in.` : ""), b.lines[1]);
         } else log.push(...bad.lines);
         ok = false;
       }
     }
-  } finally { drop(); }
+    // Failure attribution probes may move HEAD back to the base or an earlier merge.
+    if (keep && probedFailure) g("reset", "-q", "--hard", merged.at(-1)[1]);
+  } finally {
+    if (keep) log.push(`Kept worktree: ${wt}`);
+    else { const error = drop(); if (error) log.push(`Could not remove ${wt}: ${error}`); }
+  }
   if (ok) log.push(test || checks.some((c) => c.check) ? "All branches merge and pass together." : "All branches merge cleanly (no test command: add `test:` to the plan).");
-  return { ok, log, testRuns };
+  log.push(`Logs: ${logs.folder}`);
+  return { ok, log, testRuns, logDir: logs.folder, checks: checkResults, testPassed };
 }
 
 // The part of a failing run an agent needs. With TAP output (node --test when not on a terminal) the end is
@@ -408,7 +464,7 @@ export function failureLines(out, tail = 20, max = 80) {
 // so real projects produce their own numbers: time, cost, fixes, test runs, result.
 export function appendLog(cwd, rec) {
   try {
-    const dir = join(mainRoot(cwd), ".fanout");
+    const dir = join(runRoot(cwd), ".fanout");
     mkdirSync(dir, { recursive: true });
     appendFileSync(join(dir, "log.jsonl"), JSON.stringify({ at: new Date().toISOString(), ...rec }) + "\n");
   } catch { /* logging must never break a run */ }
@@ -416,12 +472,12 @@ export function appendLog(cwd, rec) {
 
 function showLog(cwd, limit = 20, days = 7) {
   let lines = [];
-  try { lines = readFileSync(join(mainRoot(cwd), ".fanout", "log.jsonl"), "utf8").split("\n").filter(Boolean); } catch { /* none yet */ }
+  try { lines = readFileSync(join(runRoot(cwd), ".fanout", "log.jsonl"), "utf8").split("\n").filter(Boolean); } catch { /* none yet */ }
   const recs = lines.slice(-limit).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   if (recs.length) {
     console.log("when              kind      sessions  time    fixes  test runs  cost     result");
     for (const r of recs) {
-      const cost = r.costUsd == null ? "" : `$${r.costUsd.toFixed(2)}${r.costUnknown ? "+?" : ""}`;
+      const cost = r.costUsd == null ? "" : `${r.estimatedCost ? "~" : ""}$${r.costUsd.toFixed(2)}${r.costUnknown ? "+?" : ""}`;
       console.log([r.at.slice(0, 16).replace("T", " "), (r.kind ?? "").padEnd(8), String(r.sessions ?? "").padEnd(8),
         mins(r.seconds).padEnd(6), String(r.fixes ?? "").padEnd(5), String(r.testRuns ?? "").padEnd(9), cost.padEnd(7), r.result ?? ""].join("  "));
     }
@@ -461,7 +517,7 @@ function showClaimLog(cwd, days) {
 }
 // Reads only existing state (plan, branches, lanes, log); works from the main checkout or any lane worktree.
 function showStatus(cwd, base) {
-  const root = mainRoot(cwd);
+  const root = runRoot(cwd);
   let text;
   // Claims first: they cover sessions fanout didn't start, so they show with or without a plan.
   const claims = liveClaims(root, base);
@@ -473,7 +529,7 @@ function showStatus(cwd, base) {
   let behind = 0; // commits on base that some lane doesn't have
   const rows = [["session", "branch", "ahead", "files", "worktree", "verify"]];
   for (const s of sessions) {
-    const branch = BRANCH_PREFIX + s.name, lane = existsSync(join(root, ".fanout", "lanes", s.name)) ? "yes" : "no";
+    const branch = BRANCH_PREFIX + s.name, lane = laneHealth(join(root, ".fanout", "lanes", s.name), branch, live?.laneBase ?? base, root);
     try { git(["rev-parse", "--verify", "--quiet", "refs/heads/" + branch], root); }
     catch { rows.push([s.name, "not started", "-", "-", lane, "-"]); continue; }
     try {
@@ -489,7 +545,7 @@ function showStatus(cwd, base) {
     } catch { rows.push([s.name, branch, "?", "?", lane, `no base ${base}`]); }
   }
   if (live) {
-    rows[0].push("agent", "cost");
+    rows[0].push("agent", "cost", "process", "session id");
     for (const r of rows.slice(1)) r.push(...liveCells(live.sessions[r[0]], live.running));
     if (live.sessions["(planner)"]) rows.push(["(planner)", "-", "-", "-", "-", "-", ...liveCells({ state: "done", ...live.sessions["(planner)"] }, false)]);
   }
@@ -513,18 +569,13 @@ function showStatus(cwd, base) {
 const mins = (s) => (s == null ? "" : s < 90 ? `${Math.round(s)}s` : `${(s / 60).toFixed(1)}m`);
 // .fanout/live.json, written by `fanout run` as it goes. `running` is false once the run finished or its
 // process is gone (killed, crashed), so a stale file never reads as a run in progress.
-function readLive(root) {
-  let live;
-  try { live = JSON.parse(readFileSync(join(root, ".fanout", "live.json"), "utf8")); } catch { return null; }
-  let alive = false;
-  if (live.pid) try { process.kill(live.pid, 0); alive = true; } catch (e) { alive = e.code === "EPERM"; }
-  return { ...live, running: alive };
-}
 function liveCells(x, running) {
-  if (!x) return ["-", "-"];
+  if (!x) return ["-", "-", "-", "-"];
   let state = x.state ?? "-";
   if (x.since) state = running ? `${state} ${mins((Date.now() - x.since) / 1000)}` : `${state}, stopped`;
-  return [state, x.costUsd === null ? "?" : x.costUsd == null ? "-" : `$${x.costUsd.toFixed(2)}`];
+  const ids = [...new Set([x.sessionId, ...(x.rounds ?? []).map((round) => round.sessionId)].filter(Boolean))];
+  return [state, x.costUsd === null ? "?" : x.costUsd == null ? "-" : `$${x.costUsd.toFixed(2)}`,
+    x.pid ? (alive(x.pid, true) ? "alive" : "stopped") : "-", ids.join(", ") || "-"];
 }
 // Every checkout of the repo (main checkout and worktrees, whoever made them: fanout lanes, the desktop
 // app's sessions, a human), what each has changed against the base, committed or not, and where two
@@ -593,6 +644,12 @@ function showOverlap(cwd, base, all) {
 
 const explicitPlan = (argv) => (argv[1] && !argv[1].startsWith("--") ? argv[1] : null);
 
+async function withRunLock(root, action) {
+  const unlock = workspaceLock(root);
+  if (!unlock) { console.error("fanout: another operation owns this checkout."); return 1; }
+  try { return await action(); } finally { unlock(); }
+}
+
 function main(argv) {
   const cmd = argv[0] ?? "overlap"; // bare `fanout`: every session, claim and overlap at once
   if (cmd === "guard") return guard(argv);
@@ -601,11 +658,19 @@ function main(argv) {
   if (cmd === "prompt") return promptHook();
   if (cmd === "precheck") return precheckCmd(argv[1]);
   if (cmd === "run") return import("./run.mjs").then((m) => m.cli(argv.slice(1)));
+  if (cmd === "jobs") return import("./jobs.mjs").then((m) => m.jobs(argv.slice(1)));
   if (cmd === "demo") return import("./demo.mjs").then((m) => m.demo(argv.slice(1)));
   const cwd = resolve(arg(argv, "--cwd", process.cwd()));
   if (cmd === "precommit") return precommit(cwd);
   if (cmd === "install-git-hook") return installHook(cwd, argv.includes("--force"));
-  if (cmd === "status") return showStatus(cwd, arg(argv, "--base") ?? defaultBase(cwd));
+  if (["abort", "clean", "ask"].includes(cmd)) {
+    const root = runRoot(cwd);
+    return import("./run-controls.mjs").then((m) => {
+      const action = () => m[cmd](root, argv.slice(1));
+      return cmd === "abort" ? action() : withRunLock(root, action);
+    });
+  }
+  if (cmd === "status") return showStatus(cwd, arg(argv, "--base") ?? readLive(runRoot(cwd))?.base ?? checkoutBase(cwd));
   if (cmd === "overlap") return showOverlap(cwd, arg(argv, "--base") ?? repoDefaultBranch(cwd), argv.includes("--all"));
   if (cmd === "log") return showLog(cwd, Number(arg(argv, "--last", "20")), Number(arg(argv, "--days", "7")));
   const SCRIPT = norm(fileURLToPath(import.meta.url));
@@ -625,6 +690,7 @@ function main(argv) {
   inbox                                   changes other sessions committed since you last looked (agents without hooks)
   demo [--yes] [--record f.svg]           claims and notices with real Claude Code sessions in a throwaway repo (~2 min, ~$0.10)
   run ["goal" | --goal-file f] [--yes]   split a job across agents: plan, agents, rehearse, fix, merge (fanout run --help)
+  jobs <run|status|resume|abort>          run and monitor partitioned batch workers (fanout jobs --help)
   overlap [--base <branch>] [--all]       same as no command
   init                                    claims on for good in this repo (they also switch on by themselves with 2+ active sessions)
   claim <name> "<task>" [files...]        claim a task by name; the files named are locked for other sessions
@@ -632,7 +698,10 @@ function main(argv) {
   release <name> [--to <branch>]          end a claim, or hand it over
   check [plan.md]                         is the plan safe? prints the merge order
   verify [--session name] [--base <b>]    anything outside a session's lane?
-  rehearse [--base <branch>] [--test cmd] merge every branch on a scratch copy, test once
+  rehearse [--base <branch>] [--test cmd] [--keep] merge every branch on a scratch copy, test once
+  abort                                   stop the recorded run and its agents
+  clean [--branches] [--force]                      remove lane and scratch worktrees; optionally delete lane branches
+  ask <session-id> "<message>" [--check]  resume a recorded Claude or Codex lane
   status [--base <branch>]                each session's branch, commits, files, flags, agent state and cost
   log [--last 20]                         past runs and rehearsals
   install-git-hook [--force]              enforce the plan on every commit
@@ -643,28 +712,34 @@ function main(argv) {
   let text;
   try { text = readFileSync(planPath, "utf8"); } catch { console.error(`No plan at ${planPath}`); return 2; }
   const sessions = parsePlan(text), regen = parseRegen(text);
+  const baseForPlan = arg(argv, "--base") ?? (cmd === "rehearse" ? readLive(runRoot(cwd))?.base : null) ?? branchOf(runRoot(cwd)) ?? "HEAD";
   if (cmd === "check") {
-    const { problems, order } = check(sessions, cwd, regen);
+    const { problems, order, notes } = check(sessions, cwd, regen, baseForPlan, { baseOnly: argv.includes("--base") });
+    notes.forEach((p) => console.log(p));
+    checkCommandNotes(sessions, runRoot(cwd)).forEach((p) => console.log(p));
     problems.forEach((p) => console.log(p));
     if (!planSetting(text, "test")) console.log('NOTE no "test:" line above the first "##": rehearse can only check that branches merge, not that they work together.');
     if (sessions.length && !sessions.some((s) => s.check)) console.log(`NOTE no session has a "check:" line. A test can pass on code that doesn't do the job (a lint can't see a dead link); give each session a command that proves its done:.`);
-    console.log("Merge order:", order.join(" -> "));
+    if (!problems.length) console.log("Merge order:", order.join(" -> "));
     return problems.length ? 1 : 0;
   }
-  if (cmd === "rehearse") {
-    const { problems, order } = check(sessions, cwd, regen);
+  if (cmd === "rehearse") return withRunLock(runRoot(cwd), () => {
+    const live = readLive(runRoot(cwd));
+    if (live?.running || activeChildren(live)) { console.error("fanout rehearse: a run is active in this checkout."); return 1; }
+    const { problems, order } = check(sessions, cwd, regen, baseForPlan, { baseOnly: argv.includes("--base") });
     if (problems.length) { problems.forEach((p) => console.log(p)); console.log("Fix the plan first (fanout check)."); return 1; }
     const t0 = Date.now();
-    const { ok, log, testRuns } = rehearse(order, { cwd, base: arg(argv, "--base") ?? defaultBase(cwd), test: arg(argv, "--test") ?? planSetting(text, "test"), regen, checks: sessions });
+    const { ok, log, testRuns } = rehearse(order, { cwd, base: baseForPlan, test: arg(argv, "--test") ?? planSetting(text, "test"), regen, checks: sessions, keep: argv.includes("--keep") });
     log.forEach((l) => console.log(l));
     appendLog(cwd, { kind: "rehearse", sessions: order.length, seconds: Math.round((Date.now() - t0) / 1000), testRuns,
       result: ok ? "pass" : (log.find((l) => /^(BROKE|CONFLICT|REGEN FAILED|CHECK FAILED|FLAKY|BASE FAILS)/.test(l)) ?? "fail").split(":")[0] });
     return ok ? 0 : 1;
-  }
+  });
   const name = arg(argv, "--session") ?? currentSession(cwd);
   const s = sessions.find((x) => x.name === name);
   if (!s) { console.error(`No session "${name}" in plan. Pass --session or run from a fanout/<name> branch.`); return 2; }
-  const base = arg(argv, "--base") ?? defaultBase(cwd), head = arg(argv, "--head", "HEAD");
+  const base = arg(argv, "--base") ?? readLive(runRoot(cwd))?.base ?? checkoutBase(cwd);
+  const head = arg(argv, "--head", "HEAD");
   const changed = laneChanged(base, head, cwd);
   const contracts = contractChanges(sessions, changed);
   const frozen = contracts.filter((f) => contractOwner(sessions, f).name !== name), evolved = contracts.filter((f) => !frozen.includes(f));
@@ -972,7 +1047,7 @@ function doneRun(cwd, argv) {
 // (on a fanout/* lane) or the claims (elsewhere, when they're on) too.
 function precommit(cwd) {
   const ctx = loadSession(cwd);
-  const staged = git(["diff", "--cached", "--name-only"], cwd).split("\n").filter(Boolean);
+  const staged = git(["diff", "--cached", "--name-only", "--no-renames", "-z"], cwd).split("\0").filter(Boolean);
   if (!ctx) {
     if (!claimsActive(cwd)) return 0;
     const { block, notes } = claimReason(cwd, staged, { requireClaim: claimsOn(cwd), via: "commit" });
@@ -1012,4 +1087,7 @@ exec node "$script" precommit
 
 // Run when executed directly, including through an npm/npx bin link (argv[1] is then the link).
 const isMain = () => { try { return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href; } catch { return false; } };
-if (isMain()) Promise.resolve(main(process.argv.slice(2))).then((code) => process.exit(code));
+if (isMain()) Promise.resolve().then(() => main(process.argv.slice(2))).then((code) => process.exit(code), (error) => {
+  console.error(`fanout: ${error.message}`);
+  process.exit(1);
+});

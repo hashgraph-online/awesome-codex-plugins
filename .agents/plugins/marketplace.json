@@ -1298,6 +1298,21 @@
       "description": "Stop hook that blocks \"fixed/done\" claims when no test output or exit code appeared in that turn (Claude Code & Codex, MIT)."
     },
     {
+      "name": "dopamine-talk",
+      "displayName": "Dopamine Talk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AnnenkovLabs/dopamine-talk"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Three Markdown skills (EN and RU) for chat, changelogs, and READMEs that drop file-path recaps, hedging, and unasked critic-gates.",
+      "icon": "./plugins/AnnenkovLabs/dopamine-talk/assets/icon.png"
+    },
+    {
       "name": "dryforge",
       "displayName": "Dryforge",
       "source": {
@@ -3423,6 +3438,21 @@
       "category": "Tools & Integrations",
       "description": "Lets Codex agents ring or text your iPhone through a hosted MCP server and read your spoken or typed reply back as text; the iPhone app is a paid subscription.",
       "icon": "./plugins/radres/call-me/assets/icon.png"
+    },
+    {
+      "name": "a1-gallery",
+      "displayName": "A1 Gallery",
+      "source": {
+        "source": "local",
+        "path": "./plugins/a1-gallery/a1-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search a hand-picked gallery of real live websites by style, font, colour and section, and read the type sizes, spacing and palette measured off each page, through A1's hosted MCP server with free-account OAuth sign-in.",
+      "icon": "./plugins/a1-gallery/a1-mcp/assets/logo-400.png"
     },
     {
       "name": "abuzzhive",
@@ -6509,6 +6539,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Install and verify revenue-first website analytics from Codex, connect payment attribution, and identify which traffic sources and customer journeys become revenue."
+    },
+    {
+      "name": "taplio",
+      "displayName": "Taplio for LinkedIn",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TaplioOfficial/taplio-linkedin-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official Taplio plugin: connects Codex to the hosted Taplio MCP server (OAuth) to write, schedule and analyze LinkedIn posts, find inspiration, draft comments and replies, like posts and send connection requests, with 26 LinkedIn skills.",
+      "icon": "./plugins/TaplioOfficial/taplio-linkedin-plugin/assets/icon.png"
     },
     {
       "name": "task-scheduler",

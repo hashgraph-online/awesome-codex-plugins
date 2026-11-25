@@ -566,13 +566,13 @@ first.
 ### Comments and @webly
 
 People leave comment threads on a site's draft in the editor: on an element,
-on words inside it, or on a whole page, and post in the site's Discussion.
+on words inside it, or on a whole page.
 Writing `@webly` in one asks the Webly AI to make the change. You see and
 answer the same threads:
 
 - `list_comments` (open threads by default; `mention: "me"` for ones naming
-  your person, `agent: "waiting"` for @webly requests nobody has taken,
-  `kind: "discussion"` for the Discussion) and `get_comment_thread` for all of
+  your person, `agent: "waiting"` for @webly requests nobody has taken) and
+  `get_comment_thread` for all of
   one thread's comments. `anchor.src` is the element's `file:line:column`, the
   same as `list_elements`' `at`; `anchor.quote` is the words they selected.
 - When the person asks you to work through comments: read the thread, make the
@@ -589,7 +589,7 @@ answer the same threads:
   `failed`, saying why in the reply) with the `claimedAt` your claim returned.
   `release` hands it back.
 - `add_comment` starts a thread (`page`, an optional `anchor` from
-  `list_elements`) or a Discussion post (`kind: "discussion"`). Mention a
+  `list_elements`; something about the whole site goes on `/`). Mention a
   person as `<@userId>`; `list_comment_people` lists who can be mentioned
   (anyone else is `400 invalid_mention`). `wait_for_comments` waits for new ones.
 - To show a screenshot or a short clip, upload it with `begin_asset_upload`

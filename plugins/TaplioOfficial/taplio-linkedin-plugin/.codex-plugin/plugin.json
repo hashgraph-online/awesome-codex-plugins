@@ -1,0 +1,44 @@
+{
+  "name": "taplio",
+  "description": "Run your LinkedIn from your AI agent: 26 skills plus the Taplio MCP server to write, schedule and analyze LinkedIn posts, find inspiration, comment, like and connect through your Taplio account.",
+  "version": "2.1.1",
+  "author": {
+    "name": "Taplio",
+    "url": "https://taplio.com"
+  },
+  "homepage": "https://taplio.com/taplio-linkedin-mcp",
+  "repository": "https://github.com/TaplioOfficial/taplio-linkedin-plugin",
+  "license": "MIT",
+  "keywords": [
+    "linkedin",
+    "taplio",
+    "content-creation",
+    "personal-branding",
+    "social-media",
+    "engagement",
+    "mcp"
+  ],
+  "interface": {
+    "displayName": "Taplio for LinkedIn",
+    "shortDescription": "Write, schedule, analyze posts",
+    "longDescription": "Connects Codex to the official hosted Taplio MCP server and adds 26 LinkedIn skills. Research what performs in your niche, draft posts in your voice, schedule or publish them, read your analytics, find posts worth commenting on, draft comments and replies, like posts and send connection requests. Sign in with OAuth 2.1 in the browser, so no key is stored in the plugin. Requires a Taplio account with LinkedIn connected. Taplio is not affiliated with LinkedIn.",
+    "developerName": "lempire",
+    "category": "Business",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://taplio.com",
+    "supportURL": "https://intercom.help/taplio",
+    "privacyPolicyURL": "https://taplio.com/our-privacy-policy",
+    "termsOfServiceURL": "https://taplio.com/terms-of-service",
+    "defaultPrompt": [
+      "Which of my LinkedIn posts worked best this month, and what should I post next?",
+      "Look at what performs in my niche and draft a LinkedIn post in my voice. Save it as a draft."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

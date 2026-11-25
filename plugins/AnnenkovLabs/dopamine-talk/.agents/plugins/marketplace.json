@@ -1,0 +1,21 @@
+{
+  "name": "dopamine-talk",
+  "interface": {
+    "displayName": "Dopamine Talk"
+  },
+  "plugins": [
+    {
+      "name": "dopamine-talk",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/AnnenkovLabs/dopamine-talk.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-25",
-  "total": 471,
+  "total": 474,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -880,6 +880,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/kuroudo-ai/done-gate/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Dopamine Talk",
+      "url": "https://github.com/AnnenkovLabs/dopamine-talk",
+      "owner": "AnnenkovLabs",
+      "repo": "dopamine-talk",
+      "description": "Three Markdown skills (EN and RU) for chat, changelogs, and READMEs that drop file-path recaps, hedging, and unasked critic-gates.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AnnenkovLabs/dopamine-talk/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Dryforge",
@@ -2323,6 +2333,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/radres/call-me/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "A1 Gallery",
+      "url": "https://github.com/a1-gallery/a1-mcp",
+      "owner": "a1-gallery",
+      "repo": "a1-mcp",
+      "description": "Search a hand-picked gallery of real live websites by style, font, colour and section, and read the type sizes, spacing and palette measured off each page, through A1's hosted MCP server with free-account OAuth sign-in.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/a1-gallery/a1-mcp/HEAD/plugin.json"
     },
     {
       "name": "AbuzzHive",
@@ -4406,6 +4426,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/talivia-group/agent/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Taplio for LinkedIn",
+      "url": "https://github.com/TaplioOfficial/taplio-linkedin-plugin",
+      "owner": "TaplioOfficial",
+      "repo": "taplio-linkedin-plugin",
+      "description": "Official Taplio plugin: connects Codex to the hosted Taplio MCP server (OAuth) to write, schedule and analyze LinkedIn posts, find inspiration, draft comments and replies, like posts and send connection requests, with 26 LinkedIn skills.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TaplioOfficial/taplio-linkedin-plugin/HEAD/plugin.json"
     },
     {
       "name": "Task Scheduler",

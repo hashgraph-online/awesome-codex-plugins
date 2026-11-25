@@ -51,7 +51,7 @@ say-it kubectl
 
 ![say-it CLI demo — kubectl, YAML, TOML, Ghostty](pitch/say-it-cli-demo.gif)
 
-That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --why JSON`, or `say-it quiz` for a 10-question challenge. **Linux** users: install `espeak-ng` (`sudo apt install espeak-ng`) and the CLI just works. **Windows**: same CLI under WSL or git-bash + PowerShell. Or skip install and use the browser at **[pronounce.renlab.ai](https://pronounce.renlab.ai)** — where 49 word pages now link the **🎬 moment the creator says the name** (Knuth on TeX, Lamport on LaTeX, Evan You on Vite, Stallman on GNU — [example: Tcl](https://pronounce.renlab.ai/word/tcl)).
+That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --why JSON`, or `say-it quiz` for a 10-question challenge. **Linux** users: install `espeak-ng` (`sudo apt install espeak-ng`) and the CLI just works. **Windows**: same CLI under WSL or git-bash + PowerShell. Or skip install and use the browser at **[pronounce.renlab.ai](https://pronounce.renlab.ai)** — where 52 word pages now link the **🎬 moment the creator says the name** (Knuth on TeX, Lamport on LaTeX, Evan You on Vite, Stallman on GNU — [example: Tcl](https://pronounce.renlab.ai/word/tcl)).
 
 > ⭐ If `say-it kubectl` saves you one cringey standup moment — **[star the repo](https://github.com/anzy-renlab-ai/pronounce)**. It nudges more devs to contribute their favorite mispronounced project name.
 
@@ -230,7 +230,7 @@ Add a pronunciation glossary to every documentation pull request:
   with:
     fetch-depth: 0
 - id: pronounce
-  uses: anzy-renlab-ai/pronounce@v2.42.0
+  uses: anzy-renlab-ai/pronounce@v2.42.1
 ```
 
 `Pronounce Docs` scans changed Markdown/MDX and writes a table containing each

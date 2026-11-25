@@ -84,16 +84,19 @@
    `verify_task_brief` accepts `references`, the orchestrator calls
    `verify_task_brief(evidence_id=<brief_evidence_id>, references=<ordered list>)` on the same
    reviewer MCP connection used for Step 0. For an inline brief, call the verifier directly on
-   that connection. Send `references` alone as the citation input. For this path, only fully
+   that connection. After a restart, retry with the same ID on the reconnected reviewer under
+   the same local state directory. Send `references` alone as the citation input. Only fully
    visible rows of the corresponding Step 0 section can enter the rendered block. When the
    verification `status` is `ok`, branch on `render_status` below.
 
    - `render_status` of `ok` or `empty`: copy the `markdown` field as one block without changes
      into the brief between Subsystems (or Related work) and Constraints / open questions. Replace
      both citation-section placeholders with this block. `empty` supplies a valid Relevant code
-     section with no citations. The server's block includes its verification marker. For a rejected
-     reference, correct the anchor from the visible Step 0 rows and retry if appropriate, or use the
-     per-reference verdicts to account for omissions in Constraints / open questions.
+     section with no citations. The server's block includes its verification marker. An anchored
+     record with an unusable reason or path receives `invalid_reason` or `invalid_path` and is omitted
+     from the block. Preserve the confirmed rows. To recover an omitted reference, correct its
+     reason or verify its exact anchor as appropriate, then resubmit the full ordered list.
+     Account for outstanding omissions in Constraints / open questions.
    - `invalid_format`: inspect the submitted records, correct the formatting (for example, make a
      multi-line reason a single line), and retry on the same connection. If rendering still fails,
      record the issue in Constraints / open questions and continue without a rendered citation
@@ -112,6 +115,10 @@
    line consisting exactly of `[...truncated]`, exclude the row immediately before
    `[...truncated]` even if it appears numbered. Also exclude the marker and all subsequent rows
    in that section. Omit unmatched anchors.
+   If Step 0 returned `brief_line_checks` with nonzero `mismatched` or `unavailable` for
+   a section, the printed numbers alone do not suffice for that section. In the fallback,
+   confirm the exact text and line using the Git object at `brief_source_sha`. Omit
+   the citation if you cannot read that snapshot or confirm its anchor.
    In both cases, use the usual Relevant code and Test exemplars headings and the one-line
    `path:line — reason` form. Do not add `<!-- reviewer:verified-citations -->`.
 
@@ -145,5 +152,14 @@
      and check that the citation block matches the verifier's `markdown` exactly and appears once.
      If the write changed or omitted the block, replace it with the original response and check
      again before handing off. Treat a remaining mismatch as a failed write.
+   - **Capture Git provenance.** When readback succeeds and Step 0 has an `indexed_sha`, run
+     `reviewer brief-provenance <brief> --path <local-clone> --repo <repo> --branch <branch> --indexed-sha <sha>`.
+     Read `--indexed-sha` from `payload.preflight.indexed_sha` and use the same resolved repo and
+     branch as in Step 0. Prefer the installed reviewer CLI. Use
+     `uvx --from rag-reviewer reviewer brief-provenance ...` when reviewer runs through uvx.
+     The command adds Git blob IDs to the brief without rewriting the verified sections.
+     If it is unavailable or reports missing source paths, report the gap and keep the brief.
+     Run the read-only command from Step 5 before using citations from an existing brief;
+     do not stamp an older brief with the current index SHA to repair missing provenance.
    - **Fail-open:** a failed write (read-only FS, no permission) is non-fatal — note it and still
      hand off with the in-context brief.

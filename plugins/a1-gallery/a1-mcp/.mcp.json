@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "a1": {
+      "type": "http",
+      "url": "https://www.a1.gallery/api/mcp"
+    }
+  }
+}
