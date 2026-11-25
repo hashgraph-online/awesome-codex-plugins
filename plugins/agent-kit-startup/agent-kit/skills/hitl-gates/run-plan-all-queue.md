@@ -92,7 +92,7 @@ This step is delegated to a **Task(explore) subagent** using `.cursor/context/te
 
 3. **Read the worker summary**  -  use it for the queue confirm Ask on a fresh queue, or the 3-way start/resume Ask when a Backlog plan appeared after confirm (see [Start vs resume](#start-vs-resume-stored-queue)). Do not dump raw diffs. If the worker returns `kind: resume` or omits new-since-confirm Backlog, treat as incomplete: re-dispatch once or run PO inline.
 
-**Fallback:** If Task dispatch is unavailable, run the PO synthesis inline.
+**Fallback:** If Task dispatch is unavailable or the worker template is missing, run the PO synthesis inline.
 
 **References:** `.cursor/context/templates/command-worker-prompt.md`; `autogit/plan-routine.md` section 9.
 

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-24",
-  "total": 470,
+  "last_updated": "2026-11-25",
+  "total": 471,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -4526,6 +4526,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/happy520ai/unified-ai-system/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Unpolish AI Writing",
+      "url": "https://github.com/wilu222/unpolish-ai-writing",
+      "owner": "wilu222",
+      "repo": "unpolish-ai-writing",
+      "description": "Removes common AI writing tells from a draft and can optionally add sparse, hash-seeded typing errors at human-like rates.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/wilu222/unpolish-ai-writing/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "unslop",

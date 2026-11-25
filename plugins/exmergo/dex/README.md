@@ -136,8 +136,9 @@ repository-level Dex configuration, and onboarding documentation. The dbt projec
 declares the [Elementary](https://github.com/elementary-data/elementary) package,
 disabled on the dev target, so `dex transform deps` (or the first build) fetches it
 from the dbt package hub; `--no-elementary` leaves it out. Reruns preserve
-authored files. The lower-level `dex demo` command remains available for creating
-just the warehouse and config. The data comes from a pinned seed.
+authored files. The lower-level `dex demo` command creates the warehouse and config
+with a smaller dbt project under `demo_project/` whose seeded last build holds a failing test, so
+`dex maintain incidents` and `dex maintain diagnose` have an incident to read. The data comes from a pinned seed.
 
 `explore map` maps all 7 tables, infers 5 joins, flags 6 columns as personal data,
 and reports 6 data-quality findings. Every command answers with one JSON envelope.

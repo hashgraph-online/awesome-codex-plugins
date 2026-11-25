@@ -1,3 +1,5 @@
+<!-- aipluginindex-verify: aipi-bc3083fb9360b0d3 -->
+
 # Kling AI for Claude · Global
 
 Create and edit images, generate videos, reuse Elements, and check your Kling

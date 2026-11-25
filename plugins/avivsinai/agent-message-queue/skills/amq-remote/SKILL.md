@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.170.3 # x-release-please-version
+version: 0.170.4 # x-release-please-version
 description: "Connect the current session to its owner channel, inspect or disconnect its binding, or change session mirroring. Use for /amq-remote or $amq-remote and their native, off, status and mirror operations."
 metadata:
   short-description: Reach this agent from Buzz

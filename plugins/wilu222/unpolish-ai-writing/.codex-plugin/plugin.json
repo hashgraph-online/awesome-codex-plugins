@@ -1,0 +1,39 @@
+{
+  "name": "unpolish-ai-writing",
+  "version": "1.0.0",
+  "description": "Removes signs of AI-generated writing, and optionally adds sparse typing errors informed by researched human error patterns.",
+  "author": {
+    "name": "wilu222",
+    "url": "https://github.com/wilu222"
+  },
+  "homepage": "https://github.com/wilu222/unpolish-ai-writing",
+  "repository": "https://github.com/wilu222/unpolish-ai-writing",
+  "license": "MIT",
+  "keywords": [
+    "writing",
+    "editing",
+    "ai-writing",
+    "prose",
+    "style"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Unpolish AI Writing",
+    "shortDescription": "Strip AI writing tells, optional sparse typos",
+    "longDescription": "Removes common AI writing tells (assistant residue, Not-X-it's-Y pivots, rule of three, em-dash habit, filler vocabulary) from a draft. Optionally adds sparse typing errors: the count is drawn from a Poisson rate scaled to word count and the type from a weighted mix based on human typing-error research, seeded by a hash of the text.",
+    "developerName": "wilu222",
+    "category": "Productivity",
+    "capabilities": [
+      "AI-tell audit and rewrite",
+      "Optional seeded typing errors",
+      "Imperfections-only mode"
+    ],
+    "websiteURL": "https://github.com/wilu222/unpolish-ai-writing",
+    "defaultPrompt": [
+      "Unpolish this draft.",
+      "Unpolish this and add imperfections."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

@@ -8,7 +8,7 @@ Per-id-shape locate/check/dismiss-eligibility detail for `.cursor/commands/field
      - **worker_contract:** "answered: true|false; subject_resolved: true|false; evidence: none | list of path/plan basenames only"
      - **read_scope:** `["~/.cursor/projects/<project-slug>/agent-transcripts/<id>/<id>.jsonl", ".cursor/HANDOFF.md", ".cursor/plans/*.plan.md", ".cursor/plans/archive/*.plan.md"]`
    - Dispatch the Task. Read the worker summary.
-   - **Fallback:** if Task dispatch is unavailable, run the same locate/check inline.
+   - **Fallback:** if Task dispatch is unavailable or the worker template is missing, run the same locate/check inline.
    - **Check:** use the worker summary to determine eligibility. Dismiss eligible when `answered` **or** `subject_resolved` (and the id is not already in the store). Prefer false negatives: uncertain subject keeps the row.
    - **Update allowed:** none directly in resolve. Strong signals: (1) later user transcript entry after the agent question (`answered`), (2) every exact `*.plan.md` reference terminal from plan+HANDOFF, (3) named subject-resolved evidence per source-contract ADR (HANDOFF fields / plan state / backlog-parked-archive matching the gated action). No plan reference and no matchable named evidence keeps the row.
    - **Dismiss eligible:** if `answered` or `subject_resolved`, or the operator explicitly confirms hide-after-check.
@@ -20,7 +20,7 @@ Per-id-shape locate/check/dismiss-eligibility detail for `.cursor/commands/field
      - **worker_contract:** "triaged: true|false — true only when the report has a triage heading or a follow-up plan names the report slug or the reviewed plan; a terminal lifecycle alone is false; lifecycle: completed|exhausted|parked|active|none — separate field, reported for Review debt only, never a dismiss signal"
      - **read_scope:** `[".cursor/memory/plan-monitor-<slug>.md", "<plan-file>", ".cursor/HANDOFF.md"]`
    - Dispatch the Task. Read the worker summary.
-   - **Fallback:** if Task dispatch is unavailable, read the monitor/plan/HANDOFF inline.
+   - **Fallback:** if Task dispatch is unavailable or the worker template is missing, read the monitor/plan/HANDOFF inline.
    - **Check:** use the worker summary to determine eligibility. If `triaged` (triage heading or follow-up plan) and not already in the store, the report is eligible for dismiss. If the slug is already in the store, skip. Demotion to Review debt (`lifecycle` terminal without a triage heading or follow-up plan) is NOT a dismiss signal.
    - **Update allowed:** none directly in resolve. Prefer `/plan-review-triage` when real triage is needed. Do not invent triage headings from the resolve command.
    - **Dismiss eligible:** only if the report is already triaged (triage heading or follow-up plan) or the operator confirms hide-after-check. Demotion to Review debt is NOT a dismiss signal; the row remains visible.

@@ -1,6 +1,12 @@
 # publicrecords skills: Agent Skills + MCP plugin for public-records data
 
-Nine [Agent Skills](https://agentskills.io) and one hosted MCP server that let your AI assistant pull **official public data** through the [publicrecords](https://apify.com/publicrecords) Actors on Apify: US federal contracts and grants, UK and EU tenders, city council meetings, new job postings from ATS boards, company social links, Etsy market data, competitor Google ads, sports odds, Spotify play counts, forecast track records and Skool community search.
+![A terminal demo: curl calls the Grants.gov Actor on your Apify account and prints three posted opportunities](./assets/demo.gif)
+
+**Try it, tell us, and star it if it helped.** Run any Public Records Actor or skill on your own Apify account, then [leave feedback](https://github.com/GeminiGeorge22/publicrecords-mcp/blob/main/BETA.md). A star is welcome if this repo saved you time. Stars are optional and are never rewarded.
+
+MCP servers and install pins live in [publicrecords-mcp](https://github.com/GeminiGeorge22/publicrecords-mcp).
+
+Ten [Agent Skills](https://agentskills.io) and one hosted MCP server that let your AI assistant pull **official public data** through the [publicrecords](https://apify.com/publicrecords) Actors on Apify: US federal contracts and grants, UK and EU tenders, city council meetings, new job postings from ATS boards, company social links, Etsy market data, competitor Google ads, sports odds, tennis scores, Spotify play counts, forecast track records and Skool community search. The tennis-scores skill calls `publicrecords/tennis-scores-api` through the Apify API with the user's own token (Standby/MCP is not built for that Actor; it is not on the MCP `?tools=` list).
 
 One repo, packaged for every major agent: **Claude Code / Claude, OpenAI Codex / ChatGPT, GitHub Copilot, Cursor, Gemini CLI, Kiro**, and any client that reads the [Agent Plugins](https://agent-plugins.org) format or plain `SKILL.md` folders.
 
@@ -16,6 +22,7 @@ One repo, packaged for every major agent: **Claude Code / Claude, OpenAI Codex /
 | [`etsy-market-research`](skills/etsy-market-research/SKILL.md) | Etsy search listing rows + daily/7-day/28-day shop sales | [`etsy-search-scraper`](https://apify.com/publicrecords/etsy-search-scraper), [`etsy-shop-velocity`](https://apify.com/publicrecords/etsy-shop-velocity) |
 | [`google-ads-transparency`](skills/google-ads-transparency/SKILL.md) | Competitor Google ads: new, running, stopped, with shown dates | [`google-ads-transparency-scraper`](https://apify.com/publicrecords/google-ads-transparency-scraper) |
 | [`sports-odds`](skills/sports-odds/SKILL.md) | Live and pre-game odds from Kambi-powered sportsbooks, best price per outcome | [`sports-odds-api`](https://apify.com/publicrecords/sports-odds-api) |
+| [`tennis-scores`](skills/tennis-scores/SKILL.md) | ATP and WTA match scores, tournament draws and tour rankings | [`tennis-scores-api`](https://apify.com/publicrecords/tennis-scores-api) (Apify API only; no hosted MCP) |
 | [`spotify-play-counts`](skills/spotify-play-counts/SKILL.md) | Play counts per track, monthly listeners, followers | [`spotify-play-count-scraper`](https://apify.com/publicrecords/spotify-play-count-scraper) |
 | [`forecast-track-record`](skills/forecast-track-record/SKILL.md) | Track record of an organization's forecasts (IMF, OECD, Fed, SPF, ECB SPF, issuers), beta | [`calibration-ledger`](https://apify.com/publicrecords/calibration-ledger) |
 | [`skool-communities`](skills/skool-communities/SKILL.md) | Search Skool communities by keyword: members, price, rating, estimated revenue, plus daily growth tracking | [`skool-community-growth-tracker`](https://apify.com/publicrecords/skool-community-growth-tracker) |
@@ -64,7 +71,12 @@ mcp.json                         Agent Plugins MCP config (streamable-http)
 .claude-plugin/marketplace.json  Claude Code marketplace (this repo = 1 plugin)
 .mcp.json                        Claude Code MCP config
 .agents/plugins/marketplace.json Codex / ChatGPT repo marketplace
+.cursor-plugin/plugin.json       Cursor plugin manifest
+.cursor/rules/publicrecords-apify.mdc  Cursor project rule (own Apify account)
+.devin-plugin/plugin.json        Devin Desktop / formerly Windsurf
 gemini-extension.json + GEMINI.md Gemini CLI extension
+docs/OPENCODE.md                 OpenCode install
+docs/CLINE-ROO-KILO.md           Cline, Roo and Kilo install
 skills/<name>/SKILL.md           Agent Skills
 ```
 
@@ -73,6 +85,14 @@ skills/<name>/SKILL.md           Agent Skills
 - Write to any site (no posting, no listing changes, no messages). All Actors read public data.
 - Look up people. The company-social and forecast skills cover organizations only.
 - Give betting, investment or legal advice.
+
+## Beta testers
+
+We are looking for people who will run a skill or Actor on their own Apify account and tell us what broke or what they needed. Useful feedback can be credited here. Stars are optional and are never rewarded.
+
+See the [Public Records beta testers guide](https://github.com/GeminiGeorge22/publicrecords-mcp/blob/main/BETA.md).
+
+_No testers credited yet._
 
 ## License
 

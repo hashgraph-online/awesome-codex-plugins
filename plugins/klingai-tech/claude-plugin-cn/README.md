@@ -1,3 +1,5 @@
+<!-- aipluginindex-verify: aipi-075bc2978ff61277 -->
+
 # 可灵 AI 国内版 Claude 插件（Kling AI CN）
 
 在 Claude 里用自然语言生成或编辑图片、生成视频、复用主体，并查询任务进度和灵感值。本插件使用 `klingai.com` 的国内版账号。若你的账号在 `kling.ai`，请选择 [国际版插件](https://github.com/klingai-tech/claude-plugin)。两区的账号、灵感值和任务各自独立。

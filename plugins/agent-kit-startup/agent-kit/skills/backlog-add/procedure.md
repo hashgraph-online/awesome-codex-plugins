@@ -50,7 +50,7 @@ The actual scanning and triage is delegated to a **Task(explore) subagent** usin
 
 3. **Read the worker summary** — the main window uses the triage findings for conflict triage in Step 2 (vague goals) and Step 3 (propose and confirm write).
 
-**Fallback:** If Task dispatch is unavailable, run the Broad Intake Review inline (same as pre-delegation behavior).
+**Fallback:** If Task dispatch is unavailable or the worker template is missing, run the Broad Intake Review inline (same as pre-delegation behavior).
 
 **Unprocessed inbox Ask (post-default, when non-empty):** after the write Ask, if Unprocessed has rows, **Ask questions** (one question; numbered-list fallback is path 1) with labels exactly:
 - `Analyze inbox now` — start the ingest ritual (analyze → memory WRITE → triage). Notes become plans/memory after HITL, never `plan-monitor-*.md`. Then continue this enqueue.

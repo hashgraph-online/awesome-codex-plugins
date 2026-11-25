@@ -493,7 +493,9 @@ numbers, passwords, ID numbers or health details (submissions are plain text).
 If the owner wants an email per submission, turn it on with
 `set_form_notifications` (off by default). Emails go out on Hobby and Pro;
 on Free the choice is saved: give the owner `upgradeUrl`. Name the email
-field `email` so replying to an alert answers the visitor. Each workspace takes
+field `email` so replying to an alert answers the visitor. An address in
+`optedOut` used the opt-out link in an alert: re-adding it sends nothing, and
+only that person can undo it. Each workspace takes
 1,000 submissions a month on Free (10,000 Hobby, 100,000 Pro); past that they're
 held: hidden, no alerts, and deleted at the monthly reset unless the owner
 upgrades. When `list_forms` shows `quota.held`, tell the owner and give them
@@ -560,6 +562,45 @@ into the branch and keeps the branch's text in the files both changed, listing
 them in `conflicts`; fix those files on the branch, keeping what main changed,
 then merge again. `delete_branch` drops a branch without merging; ask
 first.
+
+### Comments and @webly
+
+People leave comment threads on a site's draft in the editor: on an element,
+on words inside it, or on a whole page, and post in the site's Discussion.
+Writing `@webly` in one asks the Webly AI to make the change. You see and
+answer the same threads:
+
+- `list_comments` (open threads by default; `mention: "me"` for ones naming
+  your person, `agent: "waiting"` for @webly requests nobody has taken,
+  `kind: "discussion"` for the Discussion) and `get_comment_thread` for all of
+  one thread's comments. `anchor.src` is the element's `file:line:column`, the
+  same as `list_elements`' `at`; `anchor.quote` is the words they selected.
+- When the person asks you to work through comments: read the thread, make the
+  change, then `reply_to_comment` with `version` (the head version your write
+  made) and `changeLabel` (one line, e.g. "Shortened the hero headline"). The
+  editor shows "Changed the page · vN" with See change. Its Undo works only for
+  runs from the editor's own AI; to take back yours, the person restores an
+  earlier version from History (or asks you to).
+- A thread whose `agent.state` is `waiting`: `claim_comment_run` with
+  `action: "claim"` **before** you start. `409 already_claimed` means someone
+  else (a browser or another agent) is on it: leave it. Skip a thread whose
+  `agent.state` is already `running`: someone is on it (a claim can take it
+  over once it's been running for 10 minutes). After replying, send `done` (or
+  `failed`, saying why in the reply) with the `claimedAt` your claim returned.
+  `release` hands it back.
+- `add_comment` starts a thread (`page`, an optional `anchor` from
+  `list_elements`) or a Discussion post (`kind: "discussion"`). Mention a
+  person as `<@userId>`; `list_comment_people` lists who can be mentioned
+  (anyone else is `400 invalid_mention`). `wait_for_comments` waits for new ones.
+- To show a screenshot or a short clip, upload it with `begin_asset_upload`
+  and `purpose: "comment"` (an image, or an mp4/webm video), finalize it, and
+  pass its id in `attachments` (up to 4) on `add_comment` or
+  `reply_to_comment`; the body can then be empty. Comment uploads stay out of
+  `list_assets` and are not for use on the site. Deleting a comment hides its
+  attachments from the thread; a copy may stay cached at its URL for a while. `get_comment_thread` returns
+  each comment's `attachments` with a `url` you can open.
+- `resolve_comment` only when the person asks, or when your reply finished
+  what the thread asked for.
 
 ### Turn a static site into a React site (or back)
 

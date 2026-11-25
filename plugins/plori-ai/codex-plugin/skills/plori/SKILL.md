@@ -1,6 +1,6 @@
 ---
 name: plori
-description: Runs tasks on Plori cloud agents that continue after the chat ends, such as background or parallel builds, scheduled automations, long jobs and research saved as files. Not for quick tasks.
+description: Runs tasks on Plori cloud agents that continue after the chat ends, such as background or parallel builds, programs for recurring work, long jobs and research saved as files. Not for quick tasks.
 ---
 
 # Using plori from an agent
@@ -180,8 +180,9 @@ changes and fixes conflicts.
   `run_id`, `session_id`, `agent_id`, `workspace_id`, `url` and `poll_after_seconds`.
   Its `run_id` is the running or paused run, not a result for this message. Use
   `list_runs` to find a later queued turn. No lookup connects `steer_id` to that run.
-- 409 `conversation_busy` still applies to attachments or run options in a busy
-  conversation, and to working-copy conflicts. Send attachments and options when idle.
+- While the conversation is busy, a message with `max_turn_tokens`,
+  `max_advisor_spend_micro_usd` or `max_turn_seconds` gets 409 `conversation_busy`.
+  Send it with those options when idle. Working-copy conflicts also return 409 `conversation_busy`.
 - A retry with the same `idempotency_key` returns the original run or message receipt for 24 hours.
   `max_turn_tokens` sets an optional token ceiling for the turn. `cancel_run` stops a run.
 
@@ -205,7 +206,7 @@ changes and fixes conflicts.
 
 - A run started through MCP or a schedule pauses before each action outside the Workspace
   (connected-account and MCP writes, outbound HTTP writes, git push, publishing, deploys,
-  email, public tunnels, irreversible browser actions, workflow activation) until the
+  email, public tunnels, irreversible browser actions, program activation) until the
   account owner approves that one action in the Plori web app.
 - `awaiting_input` is an approval or a question. Show it to the human, with the approval's
   `approve_url`.
@@ -223,7 +224,8 @@ changes and fixes conflicts.
   secret answers stay owner-only. `list_pending_inputs` includes `assigned_to`,
   `open_to_members_at` and `can_act` for the caller. Credential restrictions still apply.
 - A member's monthly spend cap can refuse a new run with 402. Schedules, previews,
-  workflows, Workspace settings and deletion are owner-only in M1.
+  Workspace settings and deletion are owner-only in M1. Only the account owner can
+  approve a program's activation.
 - Clients with the MCP Tasks extension get a task handle instead. A returned call does not
   report later changes: poll, or keep a subscription.
 
@@ -267,8 +269,9 @@ Accept errors:
   Workspace with `send_workspace_message`; its agent fixes conflicts.
 - 409 `workspace_changeset_busy`: a run or file operation is active. Accept after it ends.
 
-These agents pause before outward actions like other runs. Workflows, usage and disk
-reports, trash and connected accounts are not on MCP; use the web app, REST or the CLI.
+Actions outside the Workspace follow the approval rules above. In the web app, use the
+Workflows panel to review programs that run on a schedule or webhook. The web app and REST
+API also cover usage, disk, trash and connection status. The CLI reports usage and disk.
 
 ### Workspace CLI commands
 
@@ -311,8 +314,13 @@ awaiting human input, 20 run error, 30 cancelled, 40 wait ran out with the run s
 
 ## Costs and limits
 
-Runs spend credits. The plan sets included credits, disk, agent count, workflow limits and
-the length of one run. Registered accounts have no limit on concurrent agent runs.
+Your plan sets the included credits and disk space. It also limits the number of agents,
+the number of active programs and the duration of each run.
+
+Plori charges for a program's compute time and any model use at normal rates. There is no
+per-execution fee.
+
+Registered accounts have no limit on concurrent agent runs.
 Anonymous trials allow at most 2 concurrent agent runs across their agents.
 A third run makes `send_workspace_message` return 429 with advice to register free.
 Registered accounts have no token ceiling per turn unless `max_turn_tokens` sets one.

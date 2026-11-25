@@ -119,7 +119,7 @@ npx @dadado/agent-kit-cli dashboard
 npx @dadado/agent-kit-cli dashboard-broadcast
 ```
 
-`npx` is ephemeral: it never leaves an `agent-kit` bin on your `PATH`. Run `npm i -g @dadado/agent-kit-cli` once if you prefer the bare `agent-kit dashboard` form.
+`npx` is ephemeral: it never leaves an `agent-kit` bin on your `PATH`. Run `npm i -g @dadado/agent-kit-cli` once if you prefer the bare `agent-kit dashboard` form. Using mise with `node = "latest"`? Install it as a mise tool instead, or the next node patch drops it: [Getting started - mise](docs/getting-started.md#how-to-invoke-them).
 
 Open the **printed** URL if the browser did not open (with `PORT` unset, each workspace gets a stable port in `3333–3588`; do not assume `:3333`). In Cursor chat, `/dashboard` starts the same flow.
 

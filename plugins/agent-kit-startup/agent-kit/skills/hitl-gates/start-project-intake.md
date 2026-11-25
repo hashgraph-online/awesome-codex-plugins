@@ -97,7 +97,7 @@ The actual scanning and triage is delegated to a **Task(explore) subagent** usin
 
 3. **Read the worker summary**  -  the main window uses the triage findings for conflict triage in Step 2 (vague goals) and Step 3 (Gate A).
 
-**Fallback:** If Task dispatch is unavailable, run the Broad Intake Review inline (same as pre-delegation behavior).
+**Fallback:** If Task dispatch is unavailable or the worker template is missing, run the Broad Intake Review inline (same as pre-delegation behavior).
 
 ### Step 2: Handle vague goals
 

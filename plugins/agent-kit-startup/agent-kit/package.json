@@ -1,6 +1,6 @@
 {
   "name": "agent-kit",
-  "version": "6.22.1",
+  "version": "6.23.0",
   "description": "HITL framework for AI-assisted IDEs: plan, handoff, staging-to-prod, memory loop; Cursor-first with partial generators for VS Code and Windsurf.",
   "private": true,
   "license": "Apache-2.0",

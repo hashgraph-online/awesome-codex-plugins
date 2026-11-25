@@ -141,6 +141,7 @@ One error shape (`{"error": {"code", "message", "status", "request_id"}}`), `Rat
 - Video walkthrough: [Clickwise for developers and AI agents: API, MCP server and sandbox key](https://youtu.be/tyN8JzoA75w) · [Short](https://youtu.be/Uhl88ZGkfs8)
 - Guía en español: [Conecta tu asistente de IA a ofertas de productos](https://youtu.be/Bk_g05Mytgc)
 - MCP: `https://partners.clickwise.net/api/v1/mcp`
+- MCP directory: [Clickwise on Glama](https://glama.ai/mcp/connectors/net.clickwise/mcp)
 - HasOffers/TUNE-compatible affiliate API: `https://partners.clickwise.net/Apiv3/json`
 
 ## Rules of the road

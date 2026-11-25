@@ -91,18 +91,20 @@ Other tools:
 
 ## GitRanks Learn
 
-In GitRanks Learn you still write all the code, and you also write a short lesson on your fix. The user takes the
-lesson on gitranks.com, answering one question a step, and only then can approve the pull request. Use Learn mode when
-the user asks to learn from the fix, to be taught or quizzed on it, or names something they want to learn (their Learn
-goal); otherwise work as above. When the user asks you to fix an issue URL "with GitRanks Learn" (the prompt
-gitranks.com gives them for the issue they picked), call `claim_issue` with that `url` and `mode: "learn"` (no
-`find_issues` first), then work from its brief and `lessonBrief` through the steps below.
+In GitRanks Learn you still write all the code, and you also write a short lesson on your fix. The user takes the lesson
+on gitranks.com, answering one question a step, and only then can approve the pull request. Use Learn mode when the user
+asks to learn from the fix, to be taught or quizzed on it, or names something they want to learn (the list still follows
+their Learn languages and level, not the topic they name); otherwise work as above. When the user asks you to fix an
+issue URL "with GitRanks Learn" (the prompt gitranks.com gives them for the issue they picked), call `claim_issue` with
+that `url` and `mode: "learn"` (no `find_issues` first), then work from its brief and `lessonBrief` through the steps
+below.
 
-1. **Find and claim in Learn mode.** Pass `mode: "learn"` to `find_issues` (issues that fit the user's Learn goal,
-   masked as above; each item also gives `lesson`, the course lesson the issue teaches or null, and `lessonWhy`:
-   `uses_learned`, `teaches_new` or `no_lesson`) and to `claim_issue`, with the item's `masked.id` as `maskId`. The
-   claim's answer adds `lesson` and `lessonBrief`: who the lesson is for, its shape (3 to 5 steps of typed blocks: text,
-   diagrams, diffs, code), the question rules and an example. Follow it.
+1. **Find and claim in Learn mode.** Pass `mode: "learn"` to `find_issues` (the issues the user's Learn Issues page
+   shows For you, from their Learn languages and level; masked as above; each item also gives `lesson`, the course
+   lesson the issue teaches or null, and `lessonWhy`: `uses_learned`, `teaches_new` or `no_lesson`) and to
+   `claim_issue`, with the item's `masked.id` as `maskId`. The claim's answer adds `lesson` and `lessonBrief`: who the
+   lesson is for, its shape (3 to 5 steps of typed blocks: text, diagrams, diffs, code), the question rules and an
+   example. Follow it.
 2. **Fix in one commit.** Squash your work into one commit (`git reset --soft origin/<baseBranch> && git commit`) and
    call `submit_patch` with `verdict: "done"`. When the checks pass, the claim stays open: the lesson is needed.
 3. **Hand back the lesson.** Call `submit_lesson` with the `attemptId` and the `lesson` the brief describes. When the

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "agent-kit",
-  "version": "6.22.1",
+  "version": "6.23.0",
   "description": "Mission Kit core skills: HITL gates, plan backlog and onboarding, QA, external plan review. The full kit (slash commands, plans, HANDOFF, staging-then-prod git flow) installs with npx @dadado/agent-kit-cli@latest install.",
   "author": {
     "name": "agent-kit-startup"
