@@ -1,4 +1,28 @@
+---
+summary: "Telegram's official Mini App design rules G1-G7 and other design-relevant instructions turned into implementation steps and checks; read before judging a Mini App against Telegram's rules."
+verified: "2026-11-23"
+bot_api: "10.5"
+---
+
 # Telegram Mini App design guidelines, rule by rule
+
+## Contents
+
+- [0. The seven official rules at a glance](#0-the-seven-official-rules-at-a-glance)
+- [1. Theme (G1)](#1-theme-g1)
+- [2. Responsive, mobile-first (G2)](#2-responsive-mobile-first-g2)
+- [3. Native consistency (G3)](#3-native-consistency-g3)
+- [4. Motion, 60 fps (G4)](#4-motion-60-fps-g4)
+- [5. Labels and accessibility (G5)](#5-labels-and-accessibility-g5)
+- [6. Safe area and content safe area (G6)](#6-safe-area-and-content-safe-area-g6)
+- [7. Android performance class (G7)](#7-android-performance-class-g7)
+- [8. Loading and first paint [Official]](#8-loading-and-first-paint-official)
+- [9. Viewport [Official]](#9-viewport-official)
+- [10. Chrome colours [Official]](#10-chrome-colours-official)
+- [11. Native controls and feedback [Official]](#11-native-controls-and-feedback-official)
+- [12. Store presentation and testing [Official]](#12-store-presentation-and-testing-official)
+- [13. CSS variables Telegram sets [Official]](#13-css-variables-telegram-sets-official)
+- [14. Review checklist (every screen)](#14-review-checklist-every-screen)
 
 Telegram's official design rules for Mini Apps and every design-relevant instruction elsewhere on the
 same page, turned into implementation steps and checks. Source:

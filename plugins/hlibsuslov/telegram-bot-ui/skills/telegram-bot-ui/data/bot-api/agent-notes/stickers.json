@@ -1,0 +1,208 @@
+{
+ "$comment": "Agent notes for stickers, sticker sets and custom emoji sets. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite, Official a core.telegram.org page (URL in cite).",
+ "domain": "stickers",
+ "notes": {
+  "sendSticker": {
+   "purpose": "Send one sticker (static .WEBP, animated .TGS or video .WEBM) to a chat.",
+   "use_when": ["re-sending a sticker whose file_id the bot already has (the catalog's recommended way)"],
+   "avoid_when": ["a custom emoji inside text: use a custom_emoji entity, not a separate sticker message"],
+   "pitfalls": [
+    {"text": "An HTTP URL works for .WEBP only; animated and video stickers need a file_id or an upload.", "source": "API", "cite": "sticker: Video and animated stickers can't be sent via an HTTP URL."},
+    {"text": "emoji applies to just uploaded stickers only.", "source": "API", "cite": "emoji: Emoji associated with the sticker; only for just uploaded stickers"}
+   ],
+   "related": ["getStickerSet", "uploadStickerFile", "Sticker", "InputFile", "Message"],
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "getStickerSet": {
+   "purpose": "Read a sticker set by name: its type, title and every Sticker with file_id and custom_emoji_id.",
+   "use_when": ["you need real custom_emoji_id values and each emoji's Unicode fallback", "reading back a set the bot just created or changed"],
+   "avoid_when": ["you hold only some ids: getCustomEmojiStickers resolves up to 200 of them"],
+   "pitfalls": [
+    {"text": "name is the set's short name (the t.me link part), not its title.", "source": "API", "cite": "createNewStickerSet name: Short name of sticker set, to be used in t.me/addstickers/ URLs"},
+    {"text": "custom_emoji_id exists only on custom emoji stickers; the edit methods take a file_id.", "source": "API", "cite": "Sticker custom_emoji_id: For custom emoji stickers, unique identifier of the custom emoji"},
+    {"text": "Use Sticker.emoji as the fallback emoji of a custom emoji in text.", "source": "Official", "cite": "https://core.telegram.org/bots/api#html-style: It is recommended to use the emoji from the emoji field of the custom emoji sticker."},
+    {"text": "Never invent an id: take it from here, a custom_emoji entity or getCustomEmojiStickers.", "source": "Heuristic"}
+   ],
+   "related": ["getCustomEmojiStickers", "createNewStickerSet", "StickerSet", "Sticker", "PhotoSize"],
+   "refs": ["references/custom-emoji.md#getting-a-real-custom_emoji_id--never-invent-one", "references/emoji-packs.md#adding-your-own-or-a-purchased-pack"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "getCustomEmojiStickers": {
+   "purpose": "Resolve custom emoji ids to Sticker objects (emoji, set_name, animated or video flags).",
+   "use_when": ["verifying an id you were given before shipping it", "finding the set of an id captured from a custom_emoji entity"],
+   "avoid_when": ["you know the set name: getStickerSet returns every id of it at once"],
+   "pitfalls": [
+    {"text": "At most 200 ids per call; send longer lists in chunks.", "source": "API", "cite": "custom_emoji_ids: At most 200 custom emoji identifiers can be specified."},
+    {"text": "MessageEntity points here for the full information about a custom emoji.", "source": "API", "cite": "MessageEntity custom_emoji_id: Use getCustomEmojiStickers to get full information about the sticker."},
+    {"text": "What an unknown id returns (an error or a shorter array) is not documented; compare the ids you get back with the ids you sent.", "source": "Unverified"}
+   ],
+   "related": ["getStickerSet", "Sticker", "MessageEntity"],
+   "since": "6.2",
+   "refs": ["references/custom-emoji.md#getting-a-real-custom_emoji_id--never-invent-one"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "uploadStickerFile": {
+   "purpose": "Upload a sticker file once for later use in createNewStickerSet, addStickerToSet or replaceStickerInSet.",
+   "use_when": ["a new file must enter a set and you want a reusable file_id first"],
+   "avoid_when": ["the sticker already has a file_id or, for .WEBP, an HTTP URL: InputSticker.sticker takes those directly"],
+   "pitfalls": [
+    {"text": "sticker_format is required: static, animated or video.", "source": "API", "cite": "sticker_format: Format of the sticker, must be one of “static”, “animated”, “video”"},
+    {"text": "The returned File's file_id goes into InputSticker.sticker; the file can be used several times.", "source": "API", "cite": "uploadStickerFile: Returns the uploaded File on success; InputSticker sticker: Pass a file_id as a String"},
+    {"text": "Size and duration limits are not in the method text: emoji images are exactly 100x100 px (PNG or WEBP), static stickers need one side of exactly 512 px.", "source": "Official", "cite": "https://core.telegram.org/stickers"}
+   ],
+   "related": ["createNewStickerSet", "addStickerToSet", "replaceStickerInSet", "File", "InputFile"],
+   "refs": ["references/media-and-files.md#uploading"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "createNewStickerSet": {
+   "purpose": "Create a sticker set owned by a user; the bot can then edit it. sticker_type picks regular, mask or custom_emoji.",
+   "use_when": ["the bot publishes its own sticker or custom emoji pack for an owner user_id"],
+   "avoid_when": ["the set exists: addStickerToSet", "you only need ids of an existing set: getStickerSet"],
+   "pitfalls": [
+    {"text": "name: letters, digits, underscores; starts with a letter; no double underscore; ends in _by_<bot_username>; 1-64 characters.", "source": "API", "cite": "name: must end in \"_by_<bot_username>\". <bot_username> is case insensitive. 1-64 characters."},
+    {"text": "stickers holds 1-50 InputSticker; each needs format and emoji_list (1-20 emoji).", "source": "API", "cite": "stickers: A JSON-serialized list of 1-50 initial stickers; InputSticker emoji_list: List of 1-20 emoji"},
+    {"text": "Regular by default; needs_repainting applies to custom emoji sets only.", "source": "API", "cite": "sticker_type: By default, a regular sticker set is created.; needs_repainting: ... for custom emoji sticker sets only"},
+    {"text": "It returns True, not the set: call getStickerSet to read file_ids and custom_emoji_ids.", "source": "API", "cite": "createNewStickerSet: Returns True on success."},
+    {"text": "Whether the owner must have started the bot first is not stated.", "source": "Unverified"}
+   ],
+   "related": ["uploadStickerFile", "addStickerToSet", "getStickerSet", "setCustomEmojiStickerSetThumbnail", "deleteStickerSet", "InputSticker", "StickerSet"],
+   "refs": ["recipes/76-own-emoji-pack.md"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "addStickerToSet": {
+   "purpose": "Add one sticker to a set the bot created.",
+   "use_when": ["growing a set after createNewStickerSet, one InputSticker per call"],
+   "avoid_when": ["swapping a sticker: replaceStickerInSet does delete, add and position in one call"],
+   "pitfalls": [
+    {"text": "An emoji set holds up to 200 stickers, any other set up to 120.", "source": "API", "cite": "addStickerToSet: Emoji sticker sets can have up to 200 stickers. Other sticker sets can have up to 120 stickers."},
+    {"text": "An exactly identical sticker leaves the set unchanged.", "source": "API", "cite": "sticker: If exactly the same sticker had already been added to the set, then the set isn't changed."},
+    {"text": "sticker is one InputSticker object, not a list.", "source": "API", "cite": "sticker: A JSON-serialized object with information about the added sticker."}
+   ],
+   "related": ["createNewStickerSet", "uploadStickerFile", "replaceStickerInSet", "setStickerPositionInSet", "InputSticker"],
+   "refs": ["recipes/76-own-emoji-pack.md"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setStickerPositionInSet": {
+   "purpose": "Move a sticker of a bot-created set to a zero-based position.",
+   "use_when": ["reordering a set after reading its current order with getStickerSet"],
+   "pitfalls": [
+    {"text": "sticker is a file_id string; file_unique_id cannot be used to reuse a file.", "source": "API", "cite": "Sticker file_unique_id: Can't be used to download or reuse the file."},
+    {"text": "position is zero-based.", "source": "API", "cite": "position: New sticker position in the set, zero-based"},
+    {"text": "The result for a position past the last sticker is not documented.", "source": "Unverified"}
+   ],
+   "related": ["getStickerSet", "addStickerToSet", "replaceStickerInSet", "Sticker"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "deleteStickerFromSet": {
+   "purpose": "Delete one sticker from a set created by the bot.",
+   "use_when": ["removing a single sticker the owner asked to drop"],
+   "avoid_when": ["replacing it: replaceStickerInSet", "removing the whole set: deleteStickerSet"],
+   "pitfalls": [
+    {"text": "It takes only the sticker's file_id; read it from getStickerSet first.", "source": "API", "cite": "sticker: File identifier of the sticker"},
+    {"text": "replaceStickerInSet is the same as deleting, adding and repositioning.", "source": "API", "cite": "replaceStickerInSet: equivalent to calling deleteStickerFromSet, then addStickerToSet, then setStickerPositionInSet"},
+    {"text": "Destructive: confirm with the owner before the call and do not repeat it in a retry loop.", "source": "Heuristic"},
+    {"text": "Deleting the last sticker of a set is not described.", "source": "Unverified"}
+   ],
+   "related": ["replaceStickerInSet", "addStickerToSet", "deleteStickerSet", "getStickerSet", "Sticker"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "replaceStickerInSet": {
+   "purpose": "Replace one sticker of a set with a new one in a single call (delete, add, set position).",
+   "use_when": ["updating the artwork of a sticker while keeping its place in the set"],
+   "pitfalls": [
+    {"text": "It is equivalent to deleteStickerFromSet, addStickerToSet and setStickerPositionInSet in a row.", "source": "API", "cite": "replaceStickerInSet: equivalent to calling deleteStickerFromSet, then addStickerToSet, then setStickerPositionInSet"},
+    {"text": "old_sticker is a file_id; sticker is an InputSticker object.", "source": "API", "cite": "old_sticker: File identifier of the replaced sticker"},
+    {"text": "An exactly identical new sticker leaves the set unchanged.", "source": "API", "cite": "sticker: If exactly the same sticker had already been added to the set, then the set remains unchanged."},
+    {"text": "Destructive: the old sticker is removed; confirm first.", "source": "Heuristic"}
+   ],
+   "related": ["deleteStickerFromSet", "addStickerToSet", "setStickerPositionInSet", "uploadStickerFile", "InputSticker"],
+   "since": "7.2",
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setStickerEmojiList": {
+   "purpose": "Change the emoji list of a regular or custom emoji sticker in a bot-created set.",
+   "use_when": ["fixing the emoji an emoji pack sticker is found and sent with"],
+   "avoid_when": ["a mask sticker: this method names regular and custom emoji stickers only"],
+   "pitfalls": [
+    {"text": "emoji_list holds 1-20 emoji, so it can never be empty.", "source": "API", "cite": "emoji_list: A JSON-serialized list of 1-20 emoji associated with the sticker"},
+    {"text": "The sticker must belong to a set created by the bot; pass its file_id.", "source": "API", "cite": "setStickerEmojiList: The sticker must belong to a sticker set created by the bot."}
+   ],
+   "related": ["setStickerKeywords", "getStickerSet", "InputSticker", "Sticker"],
+   "since": "6.6",
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setStickerKeywords": {
+   "purpose": "Change the search keywords of a regular or custom emoji sticker in a bot-created set.",
+   "use_when": ["making stickers findable by words, not only by emoji"],
+   "pitfalls": [
+    {"text": "0-20 keywords with 64 characters in total, not 64 each.", "source": "API", "cite": "keywords: A JSON-serialized list of 0-20 search keywords for the sticker with total length of up to 64 characters"},
+    {"text": "Mask stickers take no keywords.", "source": "API", "cite": "InputSticker keywords: For “regular” and “custom_emoji” stickers only."},
+    {"text": "What omitting keywords does is not stated; send an explicit list.", "source": "Unverified"}
+   ],
+   "related": ["setStickerEmojiList", "getStickerSet", "InputSticker", "Sticker"],
+   "since": "6.6",
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setStickerMaskPosition": {
+   "purpose": "Change where a mask sticker sits on a face, or remove its mask position.",
+   "use_when": ["adjusting a mask sticker of a set created by the bot"],
+   "avoid_when": ["regular and custom emoji stickers: they have no mask position"],
+   "pitfalls": [
+    {"text": "Omit mask_position to remove it.", "source": "API", "cite": "mask_position: Omit the parameter to remove the mask position."},
+    {"text": "MaskPosition needs all four fields: point (forehead, eyes, mouth or chin), x_shift, y_shift and scale.", "source": "API", "cite": "MaskPosition point: One of “forehead”, “eyes”, “mouth”, or “chin”."}
+   ],
+   "related": ["MaskPosition", "createNewStickerSet", "InputSticker", "Sticker"],
+   "since": "6.6",
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setStickerSetTitle": {
+   "purpose": "Change the title of a created sticker set; name identifies the set and stays as it is.",
+   "use_when": ["renaming a pack's display title"],
+   "pitfalls": [
+    {"text": "title is 1-64 characters.", "source": "API", "cite": "title: Sticker set title, 1-64 characters"},
+    {"text": "name is the short name that selects the set, not a new title.", "source": "API", "cite": "name: Sticker set name"}
+   ],
+   "related": ["createNewStickerSet", "getStickerSet", "StickerSet"],
+   "since": "6.6",
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setStickerSetThumbnail": {
+   "purpose": "Set or drop the thumbnail of a regular or mask sticker set.",
+   "avoid_when": ["a custom emoji set: use setCustomEmojiStickerSetThumbnail"],
+   "pitfalls": [
+    {"text": "format is required and the file must match the stickers' format: static (.WEBP or .PNG), animated (.TGS), video (.WEBM).", "source": "API", "cite": "thumbnail: The format of the thumbnail file must match the format of the stickers in the set."},
+    {"text": "A static thumbnail is up to 128 KB and exactly 100x100 px; animated and video ones up to 32 KB.", "source": "API", "cite": "thumbnail: must be up to 128 kilobytes in size and have a width and height of exactly 100px"},
+    {"text": "Omit thumbnail to drop it; the first sticker is shown instead.", "source": "API", "cite": "thumbnail: If omitted, then the thumbnail is dropped and the first sticker is used as the thumbnail."}
+   ],
+   "related": ["setCustomEmojiStickerSetThumbnail", "getStickerSet", "StickerSet", "InputFile", "PhotoSize"],
+   "refs": ["references/media-and-files.md#uploading"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "setCustomEmojiStickerSetThumbnail": {
+   "purpose": "Pick one emoji of a custom emoji set as the set's thumbnail, or drop the thumbnail with an empty string.",
+   "use_when": ["finishing a new custom emoji pack: use an id read from getStickerSet"],
+   "avoid_when": ["a regular or mask set: use setStickerSetThumbnail"],
+   "pitfalls": [
+    {"text": "It takes a custom_emoji_id of a sticker in that set, not a file_id or an uploaded image.", "source": "API", "cite": "custom_emoji_id: Custom emoji identifier of a sticker from the sticker set"},
+    {"text": "An empty string drops the thumbnail; the first sticker is used instead.", "source": "API", "cite": "custom_emoji_id: pass an empty string to drop the thumbnail and use the first sticker as the thumbnail"}
+   ],
+   "related": ["setStickerSetThumbnail", "getStickerSet", "createNewStickerSet", "Sticker"],
+   "since": "6.6",
+   "refs": ["recipes/76-own-emoji-pack.md"],
+   "example": "examples/payloads/api-stickers.json"
+  },
+  "deleteStickerSet": {
+   "purpose": "Delete a whole sticker set that the bot created.",
+   "use_when": ["the owner asked to remove the entire pack"],
+   "avoid_when": ["removing one sticker: deleteStickerFromSet"],
+   "pitfalls": [
+    {"text": "Only a set created by the bot can be deleted.", "source": "API", "cite": "deleteStickerSet: delete a sticker set that was created by the bot"},
+    {"text": "Destructive: confirm with the owner first; the examples record this call, they never send it.", "source": "Heuristic"}
+   ],
+   "related": ["deleteStickerFromSet", "createNewStickerSet", "getStickerSet", "StickerSet"],
+   "since": "6.6",
+   "example": "examples/payloads/api-stickers.json"
+  }
+ }
+}

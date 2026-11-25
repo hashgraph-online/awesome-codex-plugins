@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-25",
-  "total": 474,
+  "total": 475,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2463,6 +2463,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/aient-ai/aient-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AllSwap MCP Server",
+      "url": "https://github.com/allswapio/mcp-server",
+      "owner": "allswapio",
+      "repo": "mcp-server",
+      "description": "Read-only local MCP server and skill with tools for AllSwap's public asset catalog, official channels and block-explorer links.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/allswapio/mcp-server/HEAD/plugin.json"
     },
     {
       "name": "Amazon 249-Byte Search Terms Optimizer",

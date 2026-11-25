@@ -1,3 +1,9 @@
+---
+summary: "Personal answers on a shared timeline with ephemeral messages (Bot API 10.2-10.4): choosing the audience, addressing, editing, lifetime, fallback; read for per-user replies in groups."
+verified: "2026-11-12"
+bot_api: "10.4"
+---
+
 # Personal answers on a shared timeline (ephemeral, Bot API 10.2–10.4)
 
 > Verified 2026-11-12: `EphemeralMessageParameters`, "Ephemeral Messages and Commands",

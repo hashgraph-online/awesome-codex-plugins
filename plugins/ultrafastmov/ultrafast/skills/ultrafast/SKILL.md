@@ -194,5 +194,5 @@ from: [examples/](examples/).
 
 - [references/document.md](references/document.md): the document format in full.
 - [references/recipes.md](references/recipes.md): tested patterns (vertical promo, captions over footage, explainer with a chart, beat cuts, voiceover).
-- [references/setup.md](references/setup.md): install `uf` and connect Claude Code, Claude Desktop, Codex, Cursor, Gemini CLI or a remote server.
+- [references/setup.md](references/setup.md): install `uf` and connect Claude Code, Claude Desktop, Codex, Cursor, Antigravity CLI, Gemini CLI or a remote server.
 - The full op list comes from `ultrafast_ops` or `uf ops --markdown`. The JSON Schema comes from `uf schema` and is published at https://ultrafast.mov/schema/v1.json.

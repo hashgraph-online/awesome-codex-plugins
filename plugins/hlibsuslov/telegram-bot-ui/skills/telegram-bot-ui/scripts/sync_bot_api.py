@@ -23,6 +23,8 @@ Output (data/bot-api/):
                   symbols each item links to
   diff.json       added / removed / changed symbols against the previous
                   catalog.json (an "initial" marker on the first run)
+  agent-notes/    not generated: a note whose symbol changed or vanished gets
+                  "review": true, so its card warns until someone re-checks it
 
 Layout guard: if the page no longer looks like the Bot API page this parser
 knows (too few methods/types, missing anchor symbols, tables without the
@@ -587,6 +589,30 @@ def write_json(path: str, obj) -> None:
     os.replace(tmp, path)
 
 
+def mark_notes_for_review(notes_dir: str, diff: dict) -> list[str]:
+    """Set `review: true` on agent notes (agent-notes/*.json) whose symbol this sync changed or removed."""
+    touched: set[str] = set()
+    for group in ("changed", "removed"):
+        for kind in ("methods", "types"):
+            touched.update(diff.get(group, {}).get(kind) or [])
+    marked: list[str] = []
+    if not touched or not os.path.isdir(notes_dir):
+        return marked
+    for name in sorted(os.listdir(notes_dir)):
+        path = os.path.join(notes_dir, name)
+        data = load_json(path) if name.endswith(".json") else None
+        notes = data.get("notes") if isinstance(data, dict) else None
+        if not isinstance(notes, dict):
+            continue
+        hit = [s for s, note in notes.items() if s in touched and isinstance(note, dict) and not note.get("review")]
+        for symbol in hit:
+            notes[symbol]["review"] = True
+        if hit:
+            write_json(path, data)
+            marked += hit
+    return sorted(marked)
+
+
 def load_catalog(data_dir: str = DATA_DIR) -> dict:
     cat = load_json(os.path.join(data_dir, "catalog.json"))
     if cat is None:
@@ -646,6 +672,8 @@ def main(argv=None) -> int:
     print(summarize_diff(diff))
     if args.check:
         return 0
+    # Notes first: if this step fails, the old catalog stays and a retry sees the same diff again.
+    marked = mark_notes_for_review(os.path.join(args.out, "agent-notes"), diff)
     write_json(os.path.join(args.out, "catalog.json"), cat)
     if built["changelog"]:
         write_json(os.path.join(args.out, "changelog.json"), {
@@ -656,6 +684,8 @@ def main(argv=None) -> int:
     if old is None or diff["initial"] or any(diff["added"].values()) or any(diff["removed"].values()) \
             or any(diff["changed"].values()) or not os.path.isfile(os.path.join(args.out, "diff.json")):
         write_json(os.path.join(args.out, "diff.json"), diff)
+    if marked:
+        print(f"agent notes marked review: true (re-check them against the catalog): {', '.join(marked)}")
     print(f"wrote {os.path.relpath(args.out, ROOT)}")
     return 0
 

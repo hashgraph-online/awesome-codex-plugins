@@ -1,0 +1,145 @@
+{
+ "$comment": "Agent notes for inline mode, guest queries, prepared messages, Web App query answers and HTML widgets. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "inline-widgets",
+ "notes": {
+  "answerInlineQuery": {
+   "purpose": "Answer an inline query (@bot text typed in any chat) with up to 50 results the user can pick and send.",
+   "use_when": ["the user types @yourbot in a chat and picks something to send", "paging a search with next_offset"],
+   "avoid_when": ["a reply inside the bot's own chat: send a message"],
+   "pitfalls": [
+    {"text": "At most 50 results; next_offset is at most 64 bytes, an empty string means no more pages.", "source": "API", "cite": "answerInlineQuery: No more than 50 results per query are allowed.; next_offset: Offset length can't exceed 64 bytes."},
+    {"text": "Results are cached 300 s by default and shown to anyone sending the same query; personal results need is_personal.", "source": "API", "cite": "cache_time: Defaults to 300.; is_personal: By default, results may be returned to any user who sends the same query."},
+    {"text": "Attach an inline keyboard to a result you will edit later; only then does the sent message get an inline_message_id.", "source": "API", "cite": "ChosenInlineResult.inline_message_id: Available only if there is an inline keyboard attached to the message."},
+    {"text": "Widget content (InputWidgetMessageContent, InputSharedWidgetMessageContent) is refused in production; test server only.", "source": "API", "cite": "InputWidgetMessageContent: Currently, widgets can't be sent in response to inline queries in the production environment."},
+    {"text": "URLs in results are visible to end users.", "source": "API", "cite": "InlineQueryResult: All URLs passed in inline query results will be available to end users"}
+   ],
+   "related": ["InlineQuery", "InlineQueryResult", "InputMessageContent", "InlineQueryResultsButton", "ChosenInlineResult"],
+   "refs": ["references/inline-mode.md#flow-and-state", "references/inline-mode.md#result-types"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "answerGuestQuery": {
+   "purpose": "Send the bot's one reply to a guest message: a mention or reply that summoned the bot in a chat it isn't a member of.",
+   "use_when": ["Update.guest_message arrives with Message.guest_query_id"],
+   "avoid_when": ["chats the bot is a member of: sendMessage", "follow-up messages: the bot gets one reply per summons"],
+   "pitfalls": [
+    {"text": "The id is Message.guest_query_id from Update.guest_message; the reply is an InlineQueryResult, not plain text.", "source": "API", "cite": "Update.guest_message: The bot can use the field Message.guest_query_id and the method answerGuestQuery to send a message in response."},
+    {"text": "Guest queries must be allowed: setMySettings supports_guest_queries.", "source": "API", "cite": "supports_guest_queries: Pass True to allow guest queries to the bot from chats it isn't a member of"},
+    {"text": "That chat may share its id with another bot chat; keep its state separate.", "source": "API", "cite": "guest_query_id: the message belongs to the chat where the guest bot was summoned, which may not coincide with other existing bot chats sharing the same identifier"},
+    {"text": "One reply per summons; no chat history or member list.", "source": "Official", "cite": "https://core.telegram.org/bots/features"},
+    {"text": "Whether the reply can later be edited by SentGuestMessage.inline_message_id, and how long the query stays valid, is not stated.", "source": "Unverified"}
+   ],
+   "related": ["SentGuestMessage", "InlineQueryResult", "Message", "setMySettings"],
+   "chat_types": ["private", "group", "supergroup"],
+   "since": "10.0",
+   "refs": ["references/updates-and-delivery.md#every-update-type", "references/bot-settings.md#settings-from-code-setmysettings"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "savePreparedInlineMessage": {
+   "purpose": "Store one InlineQueryResult that one user can send from a Mini App through Telegram.WebApp.shareMessage.",
+   "use_when": ["a Share button inside a Mini App that sends a ready message to a chat the user picks"],
+   "avoid_when": ["sharing from a chat message: a switch_inline_query_chosen_chat button"],
+   "pitfalls": [
+    {"text": "Only the given user_id can send it.", "source": "API", "cite": "user_id: Unique identifier of the target user that can use the prepared message"},
+    {"text": "PreparedInlineMessage expires (expiration_date); save one right before each share.", "source": "API", "cite": "PreparedInlineMessage.expiration_date: Expired prepared messages can no longer be used."},
+    {"text": "shareMessage accepts only an id from savePreparedInlineMessage.", "source": "Official", "cite": "https://core.telegram.org/bots/webapps"},
+    {"text": "Which chats the dialog offers when no allow_*_chats flag is set is not stated; set the ones you mean.", "source": "Unverified"}
+   ],
+   "related": ["PreparedInlineMessage", "InlineQueryResult", "answerWebAppQuery"],
+   "since": "8.0",
+   "refs": ["references/inline-mode.md#prepared-inline-messages-mini-apps", "references/mini-apps-bridge.md#mini-app--bot-helpers-in-the-bot-api"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "answerWebAppQuery": {
+   "purpose": "Post a message on the user's behalf to the chat a Mini App was opened from, answering its query_id.",
+   "use_when": ["a Mini App opened from an inline keyboard button, the menu button or the attachment menu posts its result"],
+   "avoid_when": ["reply-keyboard Mini Apps: they use sendData", "Mini Apps opened from inline mode: their initData is empty"],
+   "pitfalls": [
+    {"text": "web_app_query_id is initData.query_id; verify initData on the server first.", "source": "Official", "cite": "https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app"},
+    {"text": "With initData.can_send_after, the message can be sent only after that many seconds.", "source": "Official", "cite": "https://core.telegram.org/bots/webapps#webappinitdata"},
+    {"text": "inline_message_id comes back only if the result has an inline keyboard; attach one to edit later.", "source": "API", "cite": "SentWebAppMessage.inline_message_id: Available only if there is an inline keyboard attached to the message."},
+    {"text": "Whether one query_id accepts a second answer is not stated; answer it once.", "source": "Unverified"}
+   ],
+   "related": ["SentWebAppMessage", "InlineQueryResult", "WebAppInfo", "savePreparedInlineMessage"],
+   "since": "6.0",
+   "refs": ["references/mini-apps-bridge.md#launch-points-and-what-comes-back", "references/mini-apps-bridge.md#trusting-mini-app-data"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "sendWidget": {
+   "purpose": "Send a message with an HTML widget: fixed code plus public_data and chat_data that only the bot changes.",
+   "use_when": ["a card whose state changes in place (order, score, timer)", "is_shared: one live object for many chats"],
+   "avoid_when": ["forms, text input or network data: a Mini App", "a few choices: an inline keyboard"],
+   "pitfalls": [
+    {"text": "Production: private chats only, and the message is protected content.", "source": "API", "cite": "sendWidget: Currently, in the production environment, widgets can be sent only to private chats, and sent widgets automatically have protected content"},
+    {"text": "Groups, inline results and forwards: test server only.", "source": "Official", "cite": "https://core.telegram.org/bots/widgets"},
+    {"text": "html is 1-32768 bytes and at most 4096 after zlib level 9 (scripts/validate_widget.py).", "source": "API", "cite": "html: The code must not exceed 4096 bytes when compressed by zlib with the maximum compression level."},
+    {"text": "HTML can't change after sending; a new layout is a new widget.", "source": "Official", "cite": "https://core.telegram.org/bots/widgets"},
+    {"text": "Without allow_queries the widget can't query the bot.", "source": "API", "cite": "allow_queries: Pass True to allow the widget to send queries to the bot"}
+   ],
+   "related": ["Widget", "Message", "sendSharedWidget", "editMessageWidgetData", "WidgetQuery"],
+   "chat_types": ["private"],
+   "since": "10.4",
+   "refs": ["references/widgets.md#sending-a-widget", "references/widgets.md#availability"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "sendSharedWidget": {
+   "purpose": "Send again, by widget_id, a shared widget the bot created with sendWidget is_shared.",
+   "use_when": ["one live poll or scoreboard shown in many private chats"],
+   "avoid_when": ["copyMessage of a widget message: it is refused, re-send by widget_id"],
+   "pitfalls": [
+    {"text": "widget_id is Message.widget.id from the sendWidget call with is_shared.", "source": "API", "cite": "Widget.id: Unique identifier of the shared widget, which can be used to send the widget again using the method sendSharedWidget"},
+    {"text": "public_data is shared by every copy; chat_data is per message.", "source": "API", "cite": "public_data: If the widget is shared, then all messages with it will have the same public data."},
+    {"text": "Production: private chats only, protected content.", "source": "API", "cite": "sendSharedWidget: Currently, in the production environment, widgets can be sent only to private chats"}
+   ],
+   "related": ["Widget", "sendWidget", "editSharedWidgetData", "SharedWidgetQuery"],
+   "chat_types": ["private"],
+   "since": "10.4",
+   "refs": ["references/widgets.md#shared-widgets"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "answerWidgetQuery": {
+   "purpose": "Answer one query a widget sent (widget_query or shared_widget_query) with up to 1024 bytes for that widget only.",
+   "use_when": ["every widget query, exactly once, also when the action failed"],
+   "avoid_when": ["changing what widgets show: editMessageWidgetData or editSharedWidgetData"],
+   "pitfalls": [
+    {"text": "Answer within 15 seconds.", "source": "API", "cite": "answerWidgetQuery: The query must be answered within 15 seconds."},
+    {"text": "The answer reaches only the asking widget and changes no widget data.", "source": "API", "cite": "answerWidgetQuery: The answer is received only by the widget that sent the query and doesn't change data of the widget"},
+    {"text": "A user can send at most 5 queries per 5 seconds across all the bot's widgets.", "source": "API", "cite": "WidgetQuery: Each user can send at most 5 queries per 5 seconds to the bot from all its widgets."},
+    {"text": "Query data (1-64 bytes) comes from the widget: check it against the bot's own state.", "source": "Heuristic"}
+   ],
+   "related": ["WidgetQuery", "SharedWidgetQuery", "WidgetQueryType", "editMessageWidgetData"],
+   "since": "10.4",
+   "refs": ["references/widgets.md#query-flow", "references/widget-patterns.md#answer-vs-edit-which-one-carries-the-change"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "editMessageWidgetData": {
+   "purpose": "Change public_data and/or chat_data of a widget in a message sent by or via the bot.",
+   "use_when": ["the bot's state behind one widget message changed"],
+   "avoid_when": ["a new layout: send a new widget", "all copies of a shared widget: editSharedWidgetData"],
+   "pitfalls": [
+    {"text": "Address chat_id + message_id, or inline_message_id for inline messages.", "source": "API", "cite": "chat_id: Required if inline_message_id is not specified."},
+    {"text": "An omitted field is kept, an empty string clears it; each is at most 1024 bytes.", "source": "API", "cite": "public_data: pass an empty string to remove the public data. If omitted, then the public data isn't changed."},
+    {"text": "A shared widget's public_data changes at most once per second: coalesce writes.", "source": "API", "cite": "editMessageWidgetData: Public data of a shared widget can be changed at most once per second."},
+    {"text": "Returns True, not the Message.", "source": "API", "cite": "editMessageWidgetData: On success, True is returned."}
+   ],
+   "related": ["Widget", "sendWidget", "editSharedWidgetData", "answerWidgetQuery"],
+   "since": "10.4",
+   "refs": ["references/widgets.md#changing-state"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  },
+  "editSharedWidgetData": {
+   "purpose": "Replace the public data of a shared widget the bot created, in every message that shows it.",
+   "use_when": ["a shared poll or scoreboard changed and every copy should show it"],
+   "avoid_when": ["per-message state: editMessageWidgetData with chat_data"],
+   "pitfalls": [
+    {"text": "At most one edit per second per shared widget: coalesce bursts.", "source": "API", "cite": "editSharedWidgetData: A shared widget can be edited at most once per second."},
+    {"text": "public_data is required and replaces the whole value (0-1024 bytes; empty string removes it).", "source": "API", "cite": "public_data: New public data of the widget, 0-1024 bytes; pass an empty string to remove the public data"},
+    {"text": "cache_time 5-3600 s is how long clients may cache it; omitted keeps the current value (30 by default).", "source": "API", "cite": "cache_time: If omitted, then the current value is kept, which is 30 by default."},
+    {"text": "Put a revision in the data so a widget can ignore an older cached value.", "source": "Heuristic"}
+   ],
+   "related": ["Widget", "sendSharedWidget", "editMessageWidgetData", "SharedWidgetQuery"],
+   "since": "10.4",
+   "refs": ["references/widgets.md#shared-widgets"],
+   "example": "examples/payloads/api-inline-widgets.json"
+  }
+ }
+}

@@ -1,3 +1,9 @@
+---
+summary: "How an agent reads a Figma file through the Figma MCP and turns it into rules, tokens or screens without copying what it must not; read when given a Figma design or kit."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Reading designs through the Figma MCP
 
 How an agent reads a Figma file (a design kit, or the person's own Mini App design) and turns it into rules,

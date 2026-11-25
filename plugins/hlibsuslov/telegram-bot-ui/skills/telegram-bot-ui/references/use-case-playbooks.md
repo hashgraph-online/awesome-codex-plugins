@@ -1,3 +1,9 @@
+---
+summary: "Complete product playbooks for 'build me a bot for X', indexed by product and by user phrase, with shared invariants and a newest-feature chooser; read when a request names a whole product."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Use-case playbooks: complete product models for "build me a bot for X"
 
 > Verified 2026-11-15 against Bot API 10.4 (newest release on that date). Each playbook is a
@@ -5,6 +11,14 @@
 > screen/state map, every message and keyboard, handlers, state, errors, copy in two languages and
 > the 9.4-10.4 features that make it better. Mechanism recipes 01-09 teach single features; these
 > teach whole products. Archetype view: [bot-archetypes.md](bot-archetypes.md).
+
+## Contents
+
+- [How to use a playbook](#how-to-use-a-playbook)
+- [Index by product](#index-by-product)
+- [Index by what the user says](#index-by-what-the-user-says)
+- [Shared invariants (all playbooks)](#shared-invariants-all-playbooks)
+- [Choosing among the newest features (9.4-10.4)](#choosing-among-the-newest-features-94-104)
 
 ## How to use a playbook
 

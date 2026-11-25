@@ -1,0 +1,160 @@
+{
+  "scenario": "api-inline-widgets",
+  "status": "production (widgets in private chats only; inline widget results are test-server only and not used)",
+  "context": "inline query, guest message, Mini App backend, private chats with an HTML widget",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "answerInlineQuery",
+      "_context": "incoming Update.inline_query, from any chat; inline mode enabled (setMySettings supports_inline_queries)",
+      "params": {
+        "inline_query_id": "AAEC77001",
+        "results": [
+          {
+            "type": "article",
+            "id": "napoli",
+            "title": "Napoli, 12:30",
+            "input_message_content": {
+              "message_text": "Lunch on Friday: Napoli, 12:30. Who's in?"
+            },
+            "description": "Pizza, 5 min walk",
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "I'm in",
+                    "callback_data": "join:napoli"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "cache_time": 30,
+        "is_personal": true,
+        "next_offset": "",
+        "button": {
+          "text": "Set your office",
+          "start_parameter": "inline_office"
+        }
+      }
+    },
+    {
+      "method": "answerGuestQuery",
+      "_context": "incoming Update.guest_message with Message.guest_query_id; guest queries allowed (setMySettings supports_guest_queries); one reply",
+      "params": {
+        "guest_query_id": "gq-5150-77",
+        "result": {
+          "type": "article",
+          "id": "guest-5150",
+          "title": "Friday lunch",
+          "input_message_content": {
+            "message_text": "Friday's pick so far: Sushi (3 votes). Vote with @lunchpoll_bot."
+          }
+        }
+      }
+    },
+    {
+      "method": "savePreparedInlineMessage",
+      "_context": "bot backend for a Mini App user; the returned id goes to Telegram.WebApp.shareMessage",
+      "params": {
+        "user_id": 111111111,
+        "result": {
+          "type": "article",
+          "id": "share-8812",
+          "title": "My lunch order",
+          "input_message_content": {
+            "message_text": "I ordered a Margherita for Friday. Join the order?"
+          }
+        },
+        "allow_user_chats": true,
+        "allow_group_chats": true
+      }
+    },
+    {
+      "method": "answerWebAppQuery",
+      "_context": "bot backend; query_id from verified initData of a Mini App opened from an inline keyboard button, the menu button or the attachment menu",
+      "params": {
+        "web_app_query_id": "AAHlunch-order-8812",
+        "result": {
+          "type": "article",
+          "id": "ord-8812",
+          "title": "Order 8812",
+          "input_message_content": {
+            "message_text": "Order 8812: 1 Margherita, Friday 12:30"
+          },
+          "reply_markup": {
+            "inline_keyboard": [
+              [
+                {
+                  "text": "Order the same",
+                  "callback_data": "same:8812"
+                }
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "sendWidget",
+      "_context": "private chat with the bot (production); groups, inline results and forwards only on the test server",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<!-- Shared poll widget. public_data = {\"q\":\"…\",\"opts\":[\"…\"],\"v\":[n…],\"closed\":false,\"r\":N}\n     Sent once with is_shared + allow_queries, re-sent with sendSharedWidget.\n     Request: \"vote:<i>\". The bot keys votes on (widget_id, from.id). -->\n<style>\nbody{margin:0;padding:0}\n.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}\n.q{font-weight:600;margin-bottom:6px}\nbutton.opt{display:block;width:100%;text-align:left;margin:4px 0;position:relative;overflow:hidden}\n.bar{position:absolute;left:0;top:0;bottom:0;background:var(--tg-theme-secondary-bg-color);transition:width .3s}\n.lbl{position:relative;display:flex;justify-content:space-between}\n.mine .lbl{font-weight:600}\n.s{color:var(--tg-theme-hint-color);font-size:.9em;min-height:1.3em}\n.e{color:var(--tg-theme-destructive-text-color)}\n@media (prefers-reduced-motion:reduce){.bar{transition:none}}\n</style>\n<div class=\"c\"><div class=\"q\" id=\"q\"></div><div id=\"o\"></div><div class=\"s\" id=\"s\"></div></div>\n<script>\nvar W=window.TelegramWidget,P=null,R=-1,mine=null,busy=false;\ntry{mine=localStorage.getItem(\"v\")}catch(e){}\nfunction load(){var p=null;try{p=JSON.parse(W?W.publicData:null)}catch(e){}if(p&&p.r>R){P=p;R=p.r}}\nfunction draw(){\n if(!P)return;document.getElementById(\"q\").textContent=P.q;\n var box=document.getElementById(\"o\");box.innerHTML=\"\";\n var total=P.v.reduce(function(a,b){return a+b},0)||1;\n var canAsk=!!(W&&W.viewer)&&!P.closed;\n P.opts.forEach(function(t,i){\n  var b=document.createElement(\"button\");b.className=\"opt\"+(String(i)===mine?\" mine\":\"\");b.disabled=!canAsk||busy;\n  b.innerHTML='<span class=\"bar\" style=\"width:'+Math.round(100*P.v[i]/total)+'%\"></span><span class=\"lbl\"><span></span><span>'+P.v[i]+'</span></span>';\n  b.querySelector(\".lbl span\").textContent=t;\n  b.onclick=function(){vote(i)};box.appendChild(b)});\n var s=document.getElementById(\"s\");s.className=\"s\";\n s.textContent=P.closed?\"Poll closed\":(!W||!W.viewer?\"Open the bot to vote\":\"\");\n}\nfunction vote(i){\n busy=true;draw();\n W.request(\"vote:\"+i).then(function(a){busy=false;var r=null;try{r=JSON.parse(a.result)}catch(e){}\n  if(r&&r.ok){mine=String(i);try{localStorage.setItem(\"v\",mine)}catch(e){}if(r.s&&r.r>R){P=r.s;R=r.r}}\n  draw()},function(e){busy=false;draw();var s=document.getElementById(\"s\");s.className=\"s e\";s.textContent={RATE_LIMITED:\"Too fast. Try again in a few seconds\",BUSY:\"One moment…\",TIMEOUT:\"The bot didn't answer. Vote not counted\",NOT_ALLOWED:\"Open the bot to vote\"}[e.code]||\"Vote not counted. Try again\"})}\nif(W){W.onEvent(\"publicDataChanged\",function(){load();draw()});W.watchPublicData()}\nload();draw();if(W)W.ready();\n</script>\n",
+        "public_data": "{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,0,0],\"closed\":false,\"r\":0}",
+        "chat_data": "{\"u\":111111111}",
+        "caption": "Poll: Lunch on Friday?",
+        "allow_queries": true,
+        "is_shared": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Vote in chat",
+                "callback_data": "poll:vote"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendSharedWidget",
+      "_context": "private chat with the bot (production); a shared widget this bot created",
+      "params": {
+        "chat_id": 222222222,
+        "widget_id": "7770011223344556677",
+        "chat_data": "{\"u\":222222222}",
+        "caption": "Poll: Lunch on Friday? Tap to vote."
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "_context": "widget message sent by the bot (chat_id + message_id) or via the bot (inline_message_id)",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 4301,
+        "chat_data": "{\"u\":222222222,\"my\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "_context": "incoming Update.widget_query or shared_widget_query; exactly once, within 15 seconds",
+      "params": {
+        "widget_query_id": "8123456789012377001",
+        "data": "{\"ok\":true,\"r\":1}"
+      }
+    },
+    {
+      "method": "editSharedWidgetData",
+      "_context": "shared widget this bot created; at most one edit per second",
+      "params": {
+        "widget_id": "7770011223344556677",
+        "public_data": "{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,1,0],\"closed\":false,\"r\":1}",
+        "cache_time": 10
+      }
+    }
+  ]
+}

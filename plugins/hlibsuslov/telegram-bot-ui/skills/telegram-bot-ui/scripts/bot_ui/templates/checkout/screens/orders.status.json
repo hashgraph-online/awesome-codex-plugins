@@ -1,0 +1,71 @@
+{
+  "id": "orders.status",
+  "title": "Статус заказа",
+  "kind": "status",
+  "audience": "private",
+  "message": {
+    "id": "main",
+    "format": "regular.html",
+    "text": {
+      "en": "📦 <b>Order #{order.no}</b>\nNow: {order.status_text}.",
+      "ru": "📦 <b>Заказ #{order.no}</b>\nСейчас: {order.status_text}.",
+      "uk": "📦 <b>Замовлення #{order.no}</b>\nЗараз: {order.status_text}."
+    }
+  },
+  "keyboard": {
+    "type": "inline",
+    "rows": [
+      [
+        "route"
+      ],
+      [
+        "refresh",
+        "back"
+      ]
+    ]
+  },
+  "actions": {
+    "route": {
+      "label": {
+        "en": "How to get it",
+        "ru": "Как получить",
+        "uk": "Як отримати"
+      },
+      "type": "navigate",
+      "rule": {
+        "when": {
+          "field": "delivery.method",
+          "eq": "pickup"
+        },
+        "match": "orders.pickup",
+        "otherwise": "orders.delivery"
+      },
+      "presentation": "send"
+    },
+    "refresh": {
+      "label": {
+        "en": "Refresh",
+        "ru": "Обновить",
+        "uk": "Оновити"
+      },
+      "type": "answer",
+      "text": {
+        "en": "The status is up to date",
+        "ru": "Статус актуален",
+        "uk": "Статус актуальний"
+      }
+    },
+    "back": {
+      "label": {
+        "en": "Menu",
+        "ru": "В меню",
+        "uk": "У меню"
+      },
+      "type": "back",
+      "fallback": "entry.start"
+    }
+  },
+  "widget": {
+    "ref": "order-status"
+  }
+}

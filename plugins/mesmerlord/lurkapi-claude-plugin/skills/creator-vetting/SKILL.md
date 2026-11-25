@@ -10,7 +10,7 @@ A go or no-go on a creator, from public numbers: how many people really see thei
 <!-- lurkapi:access -->
 ## Calling LurkAPI
 
-**With MCP** (the LurkAPI plugin or connector), call the tools by name, like `tiktok_profile`; your client may prefix them (`mcp__plugin_lurkapi_lurkapi__tiktok_profile`). With only `find_endpoints` and `call_endpoint`, run a tool as `call_endpoint` with `endpoint` set to its name and `params` to its arguments. Results come trimmed: no nulls, one URL per image or video. A long result comes in parts: its `_note` gives the `offset` for the next part, which is free.
+**With MCP** (the LurkAPI plugin or connector), each platform is one tool: `tiktok_profile(handle=…)` below is the `tiktok` tool with `endpoint: "profile"` and `handle`, and your client may prefix it (`mcp__plugin_lurkapi_lurkapi__tiktok`). A platform with one endpoint is that endpoint's own tool. With only `find_endpoints` and `call_endpoint`, run one as `call_endpoint` with `endpoint` set to its full name and `params` to its arguments. Results come trimmed: no nulls, one URL per image or video. A long result comes in parts: its `_note` gives the `offset` for the next part, which is free.
 
 **Without MCP** (Codex, Cursor, scripts), every tool is `GET https://api.lurkapi.com` plus its path, with the same params as a query string (URL-encoded) and the key from `LURKAPI_API_KEY` in the `x-api-key` header:
 
@@ -18,7 +18,7 @@ A go or no-go on a creator, from public numbers: how many people really see thei
 curl -s "https://api.lurkapi.com/v1/tiktok/profile?handle=nike" -H "x-api-key: $LURKAPI_API_KEY"
 ```
 
-If `LURKAPI_API_KEY` isn't set but `LURKAPI_KEY` is (the name older docs used), use that. Raw answers are big: pipe them through `jq` to keep the fields you need. No key yet? Ask the user to create one at https://lurkapi.com/dashboard (100 free credits on sign-up, then a balance below 25 tops back up to 25 every day) and to set `LURKAPI_API_KEY` in their shell. Never ask for the key in the chat, and never print it.
+If `LURKAPI_API_KEY` isn't set but `LURKAPI_KEY` is (the name older docs used), use that. Raw answers are big: pipe them through `jq` to keep the fields you need. No key yet? Ask the user to create one at https://lurkapi.com/dashboard (100 free credits on sign-up, then a balance below 20 tops back up to 20 every day) and to set `LURKAPI_API_KEY` in their shell. Never ask for the key in the chat, and never print it.
 
 **Credits.** Each call costs what the table at the end says, `not_found` included; failures on our side (5xx) are free. Every answer carries `credits_remaining`. Before a run of more than 20 calls, check the balance with `account_credit_balance` (free) and tell the user what the run will cost. If a call answers `missing_api_key`, `insufficient_credits` or `signup_required`, stop and pass on what it says.
 <!-- /lurkapi:access -->

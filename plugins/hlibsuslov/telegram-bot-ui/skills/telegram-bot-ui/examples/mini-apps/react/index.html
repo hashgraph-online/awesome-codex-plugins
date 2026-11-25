@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <title>Coffee (React)</title>
-  <!-- @tma.js/sdk talks to Telegram through its own bridge, so telegram-web-app.js is optional here;
-       keep it if other code reads window.Telegram.WebApp. -->
+  <!-- Telegram's instructions: place telegram-web-app.js in <head> before any other scripts. Keep it even
+       though the third-party @tma.js/sdk has its own bridge: window.Telegram.WebApp (and WebApp.Serverless)
+       exist only in this script. -->
   <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
 </head>
 <body>

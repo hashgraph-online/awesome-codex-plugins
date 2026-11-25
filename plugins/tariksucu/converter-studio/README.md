@@ -14,7 +14,7 @@ Give the assistant a link or a file; it gets back a download link, valid for 6 h
 
 ## 1. Get an API key
 
-Create a key on your [account page](https://converter.studio/account#api-keys). Conversions use your account's credits, the same as on the website: free accounts get 13 credits a day, and most files cost 1 credit; audio and video are priced by their length (and video by its frame size and the format made, WebM costing several times more than MP4) once Converter Studio has looked at them. Plans: [converter.studio/pricing](https://converter.studio/pricing).
+Create a key on your [account page](https://converter.studio/account#api-keys). Conversions use your account's credits, the same as on the website: free accounts get 25 credits a day, and most files cost 1 credit; audio and video are priced by their length (and video by its frame size and the format made, WebM costing several times more than MP4) once Converter Studio has looked at them. Plans: [converter.studio/pricing](https://converter.studio/pricing).
 
 ```bash
 export CONVERTER_STUDIO_API_KEY=cvs_live_...

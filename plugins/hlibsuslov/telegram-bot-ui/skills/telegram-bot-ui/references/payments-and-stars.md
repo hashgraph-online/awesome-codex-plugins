@@ -1,14 +1,38 @@
+---
+summary: "Payments and Telegram Stars: lifecycle and server state, subscriptions, paid media, refunds and the Star ledger, provider payments, rights, errors; read when a bot sells anything."
+verified: "2026-11-25"
+bot_api: "10.5"
+---
+
 # Payments and Telegram Stars
+
+## Contents
+
+- [What it is for](#what-it-is-for)
+- [Lifecycle and the state your server must keep](#lifecycle-and-the-state-your-server-must-keep)
+- [Subscriptions (bot features)](#subscriptions-bot-features)
+- [Paid media](#paid-media)
+- [Refunds and the Star ledger](#refunds-and-the-star-ledger)
+- [Physical goods (provider payments)](#physical-goods-provider-payments)
+- [Rights, availability and obligations](#rights-availability-and-obligations)
+- [What the user sees](#what-the-user-sees)
+- [Common mistakes](#common-mistakes)
+- [Error handling](#error-handling)
 
 Selling digital goods and services (Stars, `XTR`), physical goods (a payment
 provider), subscriptions, paid media, refunds and the bot's own Star ledger.
-Checked against Bot API 10.4 on **2026-11-15**: https://core.telegram.org/bots/api#payments
+Checked against Bot API 10.5 on **2026-11-25** (10.5 changed nothing in payments; every type and method named
+here is in the 10.5 catalog): https://core.telegram.org/bots/api#payments
 and https://core.telegram.org/bots/payments-stars. Look up any shape offline with
 `py -3 scripts/tg_api_lookup.py show <name>`; every JSON block below passes
-`scripts/validate_payload.py`.
+`scripts/validate_payload.py`. The whole pipeline across both rails (rail choice, states,
+refunds, reconciliation, screens and microcopy, runtime `tgkit/payments.py`):
+`payments-pipeline.md`.
 
 Labels: **[API]** = stated in the Bot API spec; **[Official]** = Telegram's payments
-guide or terms; **[Heuristic]** = this skill's design advice.
+guide or terms; **[News]** = press or announcements, not an official spec;
+**[Heuristic]** = this skill's design advice; **[API: absence]** = the spec is silent on it;
+**[Unverified]** = not confirmed by any source yet.
 
 ## What it is for
 
@@ -25,6 +49,14 @@ guide or terms; **[Heuristic]** = this skill's design advice.
 - **[Official]** Digital goods and services sold inside Telegram apps must be paid in
   Telegram Stars (`XTR`); third-party providers and crypto are not allowed for them
   (app-store rules). Physical goods may use providers and real currencies.
+- **[News, 2026-11-17]** Telegram reminded bot and Mini App developers: bot subscriptions,
+  paid tools, access to third-party AI models and credits for them are Stars-only; in-app
+  card payments for digital services go away. Exception named: VPN bots in "authoritarian
+  countries". No effective date or sanctions given. When asked for Gram or a card for a
+  digital product, warn first and design the Stars path (`payments-pipeline.md` §1,
+  `check_rail()`).
+- **[API]** Gram (ex-Toncoin) is not an invoice currency: `currency` is `XTR` or an ISO 4217
+  code. Gram payments go through the widget wallet flow (`wallet-and-ton.md`).
 - **[API]** For Stars, `provider_token` is an empty string or omitted, and `prices`
   must contain **exactly one** item. `need_*`, `send_*_to_provider` and `is_flexible`
   are ignored for Stars.
@@ -54,8 +86,9 @@ sendInvoice / createInvoiceLink ──► user taps Pay ──► Update.pre_che
    answering the pre-checkout query does not guarantee a payment. Store
    `telegram_payment_charge_id` (needed for refunds and subscription edits) and mark
    the order `paid` **idempotently**: the same charge id must never deliver twice.
-4. **Refund** — `refundStarPayment(user_id, telegram_payment_charge_id)`; the chat gets
-   a `refunded_payment` service message. Mark the order `refunded`, revoke access.
+4. **Refund** — `refundStarPayment(user_id, telegram_payment_charge_id)` returns `True`: mark the
+   order `refunded`, revoke access. The API defines a `refunded_payment` service message, but does not
+   say this call produces one **[Unverified]**; treat it as a confirmation if it arrives.
 5. **[Official]** A multi-use invoice (sent to a group/channel, forwarded, inline) can be
    paid many times by many users. Your pre-checkout check is the only gate: decide
    per payment whether the order can still be fulfilled.
@@ -133,8 +166,13 @@ sendInvoice / createInvoiceLink ──► user taps Pay ──► Update.pre_che
   payment failed). It is part of the default update set; when you pass an explicit
   `allowed_updates` list, include `"subscription"` in it.
 - **[API]** `editUserStarSubscription(user_id, telegram_payment_charge_id, is_canceled)`:
-  `true` stops renewal (access must last to the end of the paid period); `false`
-  re-enables a subscription the **bot** cancelled.
+  `true` stops renewal (access must last to the end of the paid period); `false` only
+  **allows the user to re-enable** a subscription the **bot** cancelled: the user turns it back on
+  in Telegram, and `Update.subscription` with `state: "active"` confirms it. Until then the
+  subscription is still cancelled; never mark it active on the `false` call. A subscription the
+  user cancelled in Telegram can be re-enabled only by the user. Remember who cancelled.
+- **[API]** `BotSubscriptionUpdated` has only `user`, `invoice_payload` and `state`, no
+  charge id. Put the order id in the subscription's payload and find the subscription by it.
 - **State**: keep `subscription_id = first telegram_payment_charge_id`, `user_id`,
   `expires_at` (from `subscription_expiration_date`), `state`. Grant access by
   `expires_at`, not by the last update you saw. **[Heuristic]**
@@ -204,8 +242,16 @@ plan link. Do not spam on every retry. **[Heuristic]**
   `other`.
 - **[API]** Amounts can have a fractional part: `StarAmount` / `StarTransaction` carry
   `nanostar_amount` (1/10⁹ Star). Store both integers; never floats.
+- **[API]** `refundStarPayment` takes only `user_id` and `telegram_payment_charge_id`: a Stars
+  refund is always the **whole** payment. "Refund half" is impossible; offer the whole
+  refund or a goodwill credit. Gram refunds are outgoing transfers instead (`wallet-and-ton.md`).
+- **[API]** For `invoice_payment` transactions `TransactionPartnerUser` can carry
+  `invoice_payload` (and `subscription_period`), a second key to match against orders.
 - **[API]** Chargebacks at Apple/Google/provider level can debit your balance later; this
-  is outside Telegram's control. Reconcile periodically. **[Official]**
+  is outside Telegram's control. Reconcile periodically. **[API: absence]** The exact shape of
+  a chargeback transaction is not documented on the Bot API or Stars pages; this skill treats an outgoing transaction
+  with a known charge id the bot never refunded as a chargeback **[Heuristic]**
+  (`payments-pipeline.md` §6).
 - `getMyStarBalance` (9.1) returns the bot's `StarAmount`.
 
 ## Physical goods (provider payments)
@@ -239,8 +285,9 @@ plan link. Do not spam on every retry. **[Heuristic]**
   `InputInvoiceMessageContent` (see `inline-mode.md`). Business-account invoice links:
   `createInvoiceLink.business_connection_id` (Stars only). **[API]**
 - Paid broadcasts: `allow_paid_broadcast` on send methods lifts the 30 msg/s limit up
-  to 1000 msg/s for 0.1 Star per message above the free rate; requires ≥10,000 Stars
-  on the bot balance and enabling in @BotFather. **[API]** (broadcast design itself:
+  to 1000 msg/s for 0.1 Star per message above the free rate; it is enabled in @BotFather and
+  needs at least 100,000 Stars on the bot's balance and at least 100,000 monthly active users
+  **[Official, Bots FAQ, checked 2026-11-25]**. (broadcast design itself:
   `channels-and-broadcasting.md`).
 
 ## What the user sees
@@ -272,7 +319,8 @@ plan link. Do not spam on every retry. **[Heuristic]**
   cancelled it. Expect the late call to fail and tell the user to try again.
   **[Heuristic]** (exact error text not verified offline).
 - Check your own order state before `refundStarPayment`; a second refund of the same
-  charge is rejected. Branch on `ok`/`error_code`, never on the `description` text,
+  charge is rejected. After a timeout the outcome is unknown: do not call it again;
+  reconcile (`payments-pipeline.md` §5). Branch on `ok`/`error_code`, never on the `description` text,
   which Telegram may change. **[API]** for "contents of error_code are subject to
   change"; the rest **[Heuristic]**.
 - Flood control (429) carries `parameters.retry_after`; see

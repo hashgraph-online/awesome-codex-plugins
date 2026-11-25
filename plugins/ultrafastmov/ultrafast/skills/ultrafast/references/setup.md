@@ -34,7 +34,15 @@ Codex:
 codex mcp add ultrafast -- uf mcp
 ```
 
-Gemini CLI (`--scope user` adds it for every project):
+Antigravity CLI:
+
+```bash
+agy mcp add ultrafast uf mcp
+```
+
+Gemini CLI (`--scope user` adds it for every project). Since June 2026
+Gemini CLI takes only paid Gemini API keys, Vertex AI and Code Assist
+Standard or Enterprise; personal Google accounts use Antigravity CLI:
 
 ```bash
 gemini mcp add --scope user ultrafast uf mcp
@@ -81,6 +89,15 @@ codex mcp add ultrafast --url https://video.example.com/mcp \
   --bearer-token-env-var ULTRAFAST_API_KEY
 ```
 
+Antigravity CLI (it sends the header as written and doesn't expand
+variables, so the double quotes put the key itself in
+`~/.gemini/config/mcp_config.json`):
+
+```bash
+agy mcp add --header "Authorization: Bearer $ULTRAFAST_API_KEY" ultrafast \
+  https://video.example.com/mcp
+```
+
 Gemini CLI (single quotes keep `$ULTRAFAST_API_KEY` as a reference that
 Gemini CLI reads from the environment when it connects):
 
@@ -117,4 +134,11 @@ with the `uf mcp` server:
 ```bash
 claude plugin marketplace add ultrafastmov/ultrafast
 claude plugin install ultrafast@ultrafast
+```
+
+In Antigravity CLI the repository itself is the plugin, with the same skill
+and server:
+
+```bash
+agy plugin install https://github.com/ultrafastmov/ultrafast
 ```

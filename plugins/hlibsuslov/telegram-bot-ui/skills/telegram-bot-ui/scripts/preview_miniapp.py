@@ -921,7 +921,9 @@ def main(argv=None) -> int:
                                    "with ../_kit or build.mjs); dotfiles are never served")
     ap.add_argument("--serve", type=int, metavar="PORT", help="serve on 127.0.0.1:PORT")
     ap.add_argument("--title", default=None, help="bot name in the mock header")
-    ap.add_argument("--no-build", action="store_true", help="do not run node build.mjs")
+    ap.add_argument("--build", action="store_true",
+                    help="run the folder's node build.mjs first (it is the project's own code: only for a project you trust)")
+    ap.add_argument("--no-build", action="store_true", help=argparse.SUPPRESS)  # the old default; kept so old commands still parse
     ap.add_argument("--check", action="store_true", help="static checks of the entry, no server")
     ap.add_argument("--api", metavar="FILE", help="JSON mock of the app's own API (see the module docstring)")
     args = ap.parse_args(argv)
@@ -949,7 +951,9 @@ def main(argv=None) -> int:
             print("add --serve PORT to open the stand")
         return 1 if problems else 0
 
-    warn = None if args.no_build else build_if_needed(root)
+    warn = build_if_needed(root) if args.build and not args.no_build else (
+        "build.mjs not run (pass --build for a project you trust): dist/ may be stale"
+        if os.path.isfile(os.path.join(root, "build.mjs")) else None)
     if warn:
         print(f"WARN: {warn}")
     try:

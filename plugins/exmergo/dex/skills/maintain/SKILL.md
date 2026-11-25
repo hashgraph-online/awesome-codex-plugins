@@ -1,6 +1,6 @@
 ---
 name: maintain
-description: 'Use this to find out whether an existing dbt project or semantic layer (dbt, Ossie, SLayer or Cube) is correct against its warehouse, and if not, why. `maintain verify` checks the project as it stands; against a .dex/ snapshot, `maintain check` finds schema, volume, grain, and semantic drift and `maintain reconcile` proposes the fix. Reach for it whenever an existing project is suspected wrong, whether or not anything is known to have changed: "this model is wrong, work out why", "the numbers look too high", "some rows are missing", "this column is empty", "duplicates in my fact table", "the project is broken", "diagnose why this test fails", "a test fails and nobody changed the model", "which models have no tests", "how good is our test coverage", "did anything drift", "the metric definition changed". Read-only; fixes come back as reviewable diffs and never overwrite hand-written work. Writing the fix, or repairing a model you just edited, is transform''s; a data question with no project is explore''s.'
+description: 'Use this to find out whether an existing dbt project or semantic layer (dbt, Ossie, SLayer or Cube) is correct against its warehouse, and if not, why. `maintain verify` checks the project as it stands; against a .dex/ snapshot, `maintain check` finds schema, volume, grain, and semantic drift and `maintain reconcile` proposes the fix. Reach for it whenever an existing project is suspected wrong, changed or not: "this model is wrong, work out why", "the numbers look too high", "some rows are missing", "this column is empty", "duplicates in my fact table", "the project is broken", "diagnose why this test fails", "when did this test start failing", "what changed when it broke", "a test fails and nobody changed the model", "which models have no tests", "how good is our test coverage", "did anything drift", "the metric definition changed". Read-only; fixes come back as reviewable diffs. Writing the fix, or repairing a model you just edited, is transform''s; a data question with no project is explore''s.'
 compatibility: 'Needs a local shell and uv. On first use, uv builds the exmergo-dex-core engine from the source bundled with the plugin, or installs it from PyPI at the version scripts/run.py pins when no source is bundled. Runs in Claude Code or another agent that loads Agent Skills and has a shell, not in claude.ai chat.'
 ---
 
@@ -176,7 +176,14 @@ the project edits, migrations and dev builds described below.
    re-drive the model from the child table. A change of driving relation or
    parent is `redriven` in `data.change_scope`, settled only at `request` or
    `contract` tier.
-6. **Maintain.** `dex maintain verify` checks the project as it stands;
+6. **Maintain.** When a test fails or a model is wrong, run
+   `dex maintain incidents` first, then `dex maintain diagnose` for an open
+   incident's cause and `dex maintain verify` on the models whose tests they
+   name. Where its `data.sources` reports Elementary `missing` or `refused`,
+   the run history was not read, which is not a clean history: the source's
+   `reason_code` says why, and for a project without the package
+   `data.next_steps` names the install `dex init` offers, which starts it.
+   `dex maintain verify` checks the project as it stands;
    `dex maintain check` compares it with the last `dex maintain snapshot`;
    `dex maintain reconcile` proposes the fix as a plan for `transform apply`.
 
@@ -419,7 +426,11 @@ fetches the engine's dependencies from PyPI or your configured index.
 
 ## Maintaining, step by step
 
-1. **Pick the entry point.** With a baseline, start at `maintain check`: it
+1. **Pick the entry point.** When a test fails or a model is wrong ("when did
+   this test start failing", "what changed when it broke"), start at
+   `maintain incidents`, then `maintain diagnose` for an open incident's cause
+   (both below), then `maintain verify` on the models whose tests they name.
+   Otherwise, and after them, with a baseline start at `maintain check`: it
    sweeps every axis and ranks findings by blast radius. With no baseline, or on
    a project whose numbers were never right, start at `maintain verify`, the one
    command here that needs no snapshot: it answers "is this right" rather than

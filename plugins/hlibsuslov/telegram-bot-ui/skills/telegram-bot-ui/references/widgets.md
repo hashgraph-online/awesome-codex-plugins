@@ -1,8 +1,30 @@
+---
+summary: "HTML widgets (Bot API 10.4): when to use them, availability, code and state, sending, query flow, shared widgets, runtime limits, design rules, testing; read first for any widget task."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # HTML widgets (Bot API 10.4)
 
 > Verified 2026-11-12 against the [Widgets guide](https://core.telegram.org/bots/widgets) and the
 > Bot API pages for `sendWidget` … `editSharedWidgetData`. Status of each rule: **API** = Bot API
 > requirement, **Guide** = official recommendation, **Heuristic** = this skill's design advice.
+
+## Contents
+
+- [Gallery, kit and tools (re-checked 2026-11-15)](#gallery-kit-and-tools-re-checked-2026-11-15)
+- [When a widget is the right surface](#when-a-widget-is-the-right-surface)
+- [Availability](#availability)
+- [Code and state](#code-and-state)
+- [Sending a widget](#sending-a-widget)
+- [Query flow](#query-flow)
+- [Changing state](#changing-state)
+- [Shared widgets](#shared-widgets)
+- [Groups, inline and forwards (test server)](#groups-inline-and-forwards-test-server)
+- [Runtime limits (design for them)](#runtime-limits-design-for-them)
+- [Design rules](#design-rules)
+- [Testing](#testing)
+- [Writing widgets with an LLM (Telegram's official prompt)](#writing-widgets-with-an-llm-telegrams-official-prompt)
 
 A widget is **one self-contained HTML document drawn inside a message**: fixed code plus
 state that only the bot writes. It runs in Telegram's QuickJS sandbox, **with no network**,
@@ -95,7 +117,7 @@ Incoming messages and `ExternalReplyInfo` can carry `widget` too (a reply to a f
 
 ```
 user taps  ->  widget: request("ship:fast")         (one call per tap, one in flight: BUSY)
-Telegram   ->  bot: Update.widget_query {id, from, chat, message_id, chat_instance, data, widget_id?}
+Telegram   ->  bot: Update.widget_query {id, from, chat, message_id, chat_instance, type, data, widget_id?}
 bot        ->  check data + from against YOUR state  (data is untrusted, like callback_data)
 bot        ->  editMessageWidgetData(...)            (only if state changes; commit after success)
 bot        ->  answerWidgetQuery(id, data≤1024B)     (EXACTLY once, within 15 s, also on failure)
@@ -146,7 +168,7 @@ only after `TelegramWidget.watchPublicData()`.
   arrives only in later queries) or `InputSharedWidgetMessageContent` (an existing widget). Queries
   come with `inline_message_id`, `chat_instance`, `chat_type`. Previews take no taps.
 * Forwards: no chat state ever; only shared widgets with `allow_queries` can ask, via
-  `shared_widget_query` (`id`, `from`, `data`, `widget_id` only).
+  `shared_widget_query` (`id`, `from`, `type`, `data`, `widget_id`): no chat or message.
 
 ## Runtime limits (design for them)
 

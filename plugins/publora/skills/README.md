@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/github/stars/publora/skills?style=social" alt="GitHub stars">
 </p>
 
-**Official skills from the Publora team.** Nine `SKILL.md` files that teach Claude Code, Codex, Cursor, OpenClaw or any skills-aware agent how to publish and schedule posts on LinkedIn, X, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon and Telegram through the [Publora MCP server](https://docs.publora.com/mcp/client-setup).
+**Official skills from the Publora team.** Nine `SKILL.md` files that teach Claude Code, Codex, Cursor, OpenCode, OpenClaw or any skills-aware agent how to publish and schedule posts on LinkedIn, X, Instagram, Threads, TikTok, YouTube, Facebook, Bluesky, Mastodon and Telegram through the [Publora MCP server](https://docs.publora.com/mcp/client-setup).
 
 Create drafts and schedule posts through your agent. One integration instead of ten platform APIs, each with its own auth, media pipeline and rate limits.
 
@@ -33,6 +33,29 @@ For every other agent, connect as below. Clients that cannot sign in through the
 | **Codex** | add `publora/skills` as a marketplace, then install the `publora-skills` plugin |
 | **Cursor** | Settings, MCP, add `https://mcp.publora.com` ([guide](https://docs.publora.com/guides/cursor-ai)) |
 | **OpenClaw** | [docs.publora.com/mcp/openclaw](https://docs.publora.com/mcp/openclaw) |
+| **OpenCode** | add the server to `opencode.json`, run `opencode mcp auth publora`, then `npx skills add publora/skills -a opencode` ([steps](#opencode)) |
+
+### OpenCode
+
+1. Add the Publora server to `opencode.json` in your project:
+
+   ```json
+   {
+     "mcp": {
+       "publora": {
+         "type": "remote",
+         "url": "https://mcp.publora.com"
+       }
+     }
+   }
+   ```
+
+2. Sign in to Publora with OAuth: `opencode mcp auth publora`. No API key needed.
+3. Run `npx skills add publora/skills -a opencode` from the project directory.
+   When prompted, choose **Select All**, then **Project**, and confirm. OpenCode
+   finds all nine skills in `.agents/skills/`.
+
+Restart OpenCode after these steps; it reads its config and skills at startup.
 
 ### Existing Claude Code connections
 

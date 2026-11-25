@@ -1,4 +1,4 @@
-"""Write examples/payloads/r7N-*.json from recipes 70-75 (same format as export_payloads.py).
+"""Write examples/payloads/r7N-*.json from recipes 70-76 (same format as export_payloads.py).
 
 Kept separate so the premium-emoji recipes can be exported and drift-checked on their own;
 the SCENARIOS below can be merged into examples/python/export_payloads.py later.
@@ -24,6 +24,7 @@ import r72_channel_post_series  # noqa: E402
 import r73_mixed_eligibility  # noqa: E402
 import r74_premium_lapse  # noqa: E402
 import r75_migrate_pack  # noqa: E402
+import r76_own_emoji_pack  # noqa: E402
 
 SCENARIOS = {
     "r70-restyle-to-premium": (lambda: r70_restyle_to_premium.run()[0], "production (fixture ids)", "private"),
@@ -32,6 +33,7 @@ SCENARIOS = {
     "r73-mixed-eligibility": (lambda: r73_mixed_eligibility.run()[0], "production (fixture ids)", "private, group, supergroup, channel, business, inline"),
     "r74-premium-lapse": (lambda: r74_premium_lapse.run()[0], "production (fixture ids; illustrative error text)", "private"),
     "r75-migrate-pack": (lambda: r75_migrate_pack.run()[0], "production (fixture ids)", "private"),
+    "r76-own-emoji-pack": (lambda: r76_own_emoji_pack.run()[0], "production (fixture ids)", "private"),
 }
 
 

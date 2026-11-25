@@ -1,4 +1,24 @@
+---
+summary: "The Mini App design system (TMA profile 1): order of authority, colour roles, type, space, platforms, motion, states, named styles, kit usage; read before designing or restyling a screen."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Mini App design system ("TMA profile 1")
+
+## Contents
+
+- [1. Order of authority](#1-order-of-authority)
+- [2. Who draws what](#2-who-draws-what)
+- [3. Colour roles](#3-colour-roles)
+- [4. Type](#4-type)
+- [5. Space, shape, touch](#5-space-shape-touch)
+- [6. Platforms](#6-platforms)
+- [7. Motion and haptics](#7-motion-and-haptics)
+- [8. States every screen draws](#8-states-every-screen-draws)
+- [9. Styles](#9-styles)
+- [10. The kit in use](#10-the-kit-in-use)
+- [11. Checklist](#11-checklist)
 
 The one page an agent reads before designing, building or restyling a Mini App screen. It maps Telegram's
 theme to the kit's roles, sets type, space, platforms, motion, haptics and states, and defines the named

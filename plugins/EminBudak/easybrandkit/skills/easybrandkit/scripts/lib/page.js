@@ -224,8 +224,8 @@ async function waitForPictures(cdp, clip) {
 // A frame that lies on the screen is captured as the screen shows it: drawn
 // again beyond the viewport, videos and some pictures came out as blank
 // boxes. Only a frame that does not fit on the screen (a logo down in the
-// footer) is drawn beyond it.
-async function capture(cdp, x, y, width, height, scale = 1, beyondViewport = true) {
+// footer) is drawn beyond it. The capture is waited for ms at most.
+async function capture(cdp, x, y, width, height, scale = 1, beyondViewport = true, ms = 60_000) {
   await waitForPictures(cdp, { x, y, width, height });
   if (beyondViewport) {
     const m = await metrics(cdp);
@@ -235,7 +235,7 @@ async function capture(cdp, x, y, width, height, scale = 1, beyondViewport = tru
   return cdp.send(
     "Page.captureScreenshot",
     { format: "png", captureBeyondViewport: beyondViewport, clip: { x, y, width, height, scale } },
-    60_000,
+    ms,
   );
 }
 

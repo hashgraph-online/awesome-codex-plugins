@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "allswap-mcp",
+  "version": "1.0.2",
+  "description": "Read-only AllSwap MCP server: public asset catalog, official channels, block-explorer links.",
+  "author": {
+    "name": "AllSwap",
+    "email": "service@allswap.io",
+    "url": "https://allswap.io"
+  },
+  "homepage": "https://allswap.io/docs/mcp",
+  "repository": "https://github.com/allswapio/mcp-server",
+  "license": "MIT",
+  "keywords": ["mcp", "crypto", "asset-catalog", "block-explorer", "read-only"]
+}

@@ -49,6 +49,9 @@ COPY = {
         "toast_trial_used": "The free trial was already used. Subscribe to continue.",
         "toast_canceled": "Renewal is off. Access stays until the end of the period.",
         "toast_resumed": "Renewal is back on.",
+        "toast_resume_allowed": "Done: now turn renewal back on in Telegram, in your Stars subscriptions.",
+        "toast_resume_in_telegram": "You turned renewal off in Telegram; turn it back on there, in your Stars subscriptions.",
+        "sub_failed": "<b>The renewal payment did not go through</b>\nPro stays on until {until}, then ends. Subscribe again to keep it.",
         "pc_active": "You already have an active subscription.",
         "pc_changed": "This invoice is out of date. Open the paywall again.",
         "pay_support": "<b>Payment help</b>\nWrite your question here and add the payment id from the receipt. We answer within a day.",
@@ -76,6 +79,9 @@ COPY = {
         "toast_trial_used": "Пробний період уже використано. Оформіть підписку.",
         "toast_canceled": "Продовження вимкнено. Доступ лишається до кінця періоду.",
         "toast_resumed": "Продовження знову увімкнено.",
+        "toast_resume_allowed": "Готово: тепер увімкніть продовження в Telegram, у підписках на Stars.",
+        "toast_resume_in_telegram": "Ви вимкнули продовження в Telegram; увімкніть його там, у підписках на Stars.",
+        "sub_failed": "<b>Оплата продовження не пройшла</b>\nPro діє до {until}, потім вимкнеться. Оформіть підписку знову, щоб зберегти доступ.",
         "pc_active": "У вас уже є активна підписка.",
         "pc_changed": "Рахунок застарів. Відкрийте екран підписки ще раз.",
         "pay_support": "<b>Допомога з оплатою</b>\nНапишіть питання сюди й додайте номер платежу з чека. Відповімо протягом доби.",
@@ -111,17 +117,18 @@ class Subscriptions:
 
     # ---- state -------------------------------------------------------------------
     def sub(self, uid: int) -> dict:
-        return self.subs.setdefault(uid, {"status": "free", "until": 0, "charge": None, "trial_used": False})
+        return self.subs.setdefault(uid, {"status": "free", "until": 0, "charge": None, "trial_used": False,
+                                          "canceled_by": None, "resume_allowed": False})
 
     def entitled(self, uid: int) -> bool:
         sb = self.sub(uid)
-        return sb["status"] in ("trial", "active", "canceled") and sb["until"] > self.now
+        return sb["status"] in ("trial", "active", "canceled", "failed") and sb["until"] > self.now  # access follows the expiry
 
     def schedule(self, uid: int) -> None:
         """Replace this user's jobs. Reminders only when access will really end (trial / renewal off)."""
         sb = self.sub(uid)
         self.sched.cancel(f"sb:{uid}:")
-        if sb["status"] not in ("trial", "active", "canceled"):
+        if sb["status"] not in ("trial", "active", "canceled", "failed"):
             return
         self.sched.at(sb["until"] + GRACE, f"sb:{uid}:exp", uid=uid, until=sb["until"])
         if sb["status"] in ("trial", "canceled"):
@@ -190,24 +197,59 @@ class Subscriptions:
 
         @fl.action("cancel")
         def a_cancel(fl, s, args, cq):
-            self.set_renewal(s.owner_id, canceled=True)
+            self.cancel_renewal(s.owner_id)
             fl.answer(cq, fl.tr(s, "toast_canceled"))
             fl.refresh(s)
             return "renewal_off"
 
         @fl.action("resume")
         def a_resume(fl, s, args, cq):
-            self.set_renewal(s.owner_id, canceled=False)
-            fl.answer(cq, fl.tr(s, "toast_resumed"))
+            result = self.allow_resume(s.owner_id)
+            fl.answer(cq, fl.tr(s, "toast_" + result))
             fl.refresh(s)
-            return "renewal_on"
+            return result
 
-    def set_renewal(self, uid: int, *, canceled: bool) -> None:
+    def cancel_renewal(self, uid: int) -> None:
+        """The bot stops renewal; access lasts to the end of the paid period."""
         sb = self.sub(uid)
         self.t.call("editUserStarSubscription", {"user_id": uid, "telegram_payment_charge_id": sb["charge"],
-                                                 "is_canceled": canceled})
-        sb["status"] = "canceled" if canceled else "active"      # access stays until `until` either way
+                                                 "is_canceled": True})
+        sb.update(status="canceled", canceled_by="bot", resume_allowed=False)
         self.schedule(uid)
+
+    def allow_resume(self, uid: int) -> str:
+        """is_canceled=false does NOT turn renewal back on: it only lets the user re-enable a subscription
+        the bot cancelled (Bot API). The subscription is active again when Update.subscription says
+        `active`. A subscription the user cancelled in Telegram can only be re-enabled by the user there."""
+        sb = self.sub(uid)
+        if sb["canceled_by"] != "bot":
+            return "resume_in_telegram"
+        if not sb["resume_allowed"]:
+            self.t.call("editUserStarSubscription", {"user_id": uid, "telegram_payment_charge_id": sb["charge"],
+                                                     "is_canceled": False})
+            sb["resume_allowed"] = True
+        return "resume_allowed"
+
+    def on_subscription(self, upd: dict) -> str:
+        """Update.subscription (BotSubscriptionUpdated): the user cancelled or re-enabled renewal in
+        Telegram, or a renewal payment failed. It has no charge id: the payload names the user."""
+        uid = upd["user"]["id"]
+        if upd.get("invoice_payload") != f"sub:{uid}":
+            return "sub_unknown"                         # not this product's subscription
+        sb, state = self.sub(uid), upd.get("state")
+        if state == "canceled":
+            sb.update(status="canceled", canceled_by="user", resume_allowed=False)
+        elif state == "active":
+            sb.update(status="active", canceled_by=None, resume_allowed=False)
+        elif state == "failed":
+            sb.update(status="failed", canceled_by=None, resume_allowed=False)
+            lang = self.flow.session(uid, uid).lang
+            self.t.call("sendMessage", {"chat_id": uid, "parse_mode": "HTML",
+                                        "text": I18N.t(lang, "sub_failed", until=date_text(sb["until"]))})
+        else:
+            return "sub_ignored"
+        self.schedule(uid)
+        return f"sub_{state}"
 
     # ---- payments ------------------------------------------------------------------
     def on_pre_checkout(self, q: dict) -> bool:
@@ -252,7 +294,7 @@ class Subscriptions:
         self.now, sent = now, 0
         for job in self.sched.due(now):
             uid, sb = job.payload["uid"], self.sub(job.payload["uid"])
-            if sb["until"] != job.payload["until"] or sb["status"] not in ("trial", "active", "canceled"):
+            if sb["until"] != job.payload["until"] or sb["status"] not in ("trial", "active", "canceled", "failed"):
                 continue                              # renewed or changed since: nothing to say
             lang = self.flow.session(uid, uid).lang
             if job.key.endswith(":exp"):
@@ -276,9 +318,9 @@ class Subscriptions:
         if f.unpack(cq["data"])[1] != f.b36(sb["until"]) or sb["status"] != "canceled":
             self.t.call("answerCallbackQuery", {"callback_query_id": cq["id"], "text": I18N.t(lang, "sys_stale")})
             return "stale"
-        self.set_renewal(uid, canceled=False)
-        self.t.call("answerCallbackQuery", {"callback_query_id": cq["id"], "text": I18N.t(lang, "toast_resumed")})
-        return "renewal_on"
+        result = self.allow_resume(uid)
+        self.t.call("answerCallbackQuery", {"callback_query_id": cq["id"], "text": I18N.t(lang, "toast_" + result)})
+        return result
 
     def dispatch(self, update: dict) -> str:
         if not self.updates.first_time(update):
@@ -288,7 +330,11 @@ class Subscriptions:
         if "callback_query" in update:
             result = self.flow.handle(update["callback_query"])
             return self.on_reminder_tap(update["callback_query"]) if result == "foreign" else result
-        msg = update["message"]
+        if "subscription" in update:
+            return self.on_subscription(update["subscription"])
+        msg = update.get("message")
+        if msg is None:
+            return "ignored"                              # update types this bot does not use
         if "successful_payment" in msg:
             return self.on_payment(msg)
         lang = I18N.lang_for(msg["from"].get("language_code"))
@@ -352,12 +398,29 @@ def run(t: FakeTransport | None = None):
     out["reminder_canceled"] = bot.tick(NOW + 32 * DAY + 1)         # renewal off: 3 days before the end
     out["resume"] = bot.dispatch({"update_id": 7100, "callback_query": f.callback(
         "cqr", ALICE, remind_data(), chat_id=ALICE["id"], message_id=555)})
+    out["resume_again"] = bot.dispatch({"update_id": 7102, "callback_query": f.callback(
+        "cqr3", ALICE, remind_data(), chat_id=ALICE["id"], message_id=555)})   # second tap: no second API call
+    out["status_after_allow"] = bot.sub(ALICE["id"])["status"]          # still canceled until Telegram says so
+    out["reenabled"] = bot.dispatch({"update_id": 7103, "subscription": {
+        "user": ALICE, "invoice_payload": f"sub:{ALICE['id']}", "state": "active"}})
     out["stale_rem"] = bot.dispatch({"update_id": 7101, "callback_query": f.callback(
         "cqr2", ALICE, remind_data(), chat_id=ALICE["id"], message_id=555)})   # now active: refused
     out["silent"] = bot.tick(NOW + 34 * DAY + 1)                    # resumed: no 1-day reminder
     out["renewal"] = bot.dispatch(c.fixture("usecase_subscription_renewal.json"))
     out["renewed_tick"] = bot.tick(NOW + 35 * DAY + GRACE + 1)      # old expiry job was replaced
     out["alice_until"] = bot.sub(ALICE["id"])["until"]
+    out["user_cancel"] = bot.dispatch({"update_id": 7200, "subscription": {
+        "user": ALICE, "invoice_payload": f"sub:{ALICE['id']}", "state": "canceled"}})
+    edits_before = len(t.params_of("editUserStarSubscription"))
+    out["resume_user_cancel"] = tap(ALICE, "resume")
+    out["no_edit_for_user_cancel"] = len(t.params_of("editUserStarSubscription")) == edits_before
+    out["other_payload"] = bot.dispatch({"update_id": 7201, "subscription": {
+        "user": ALICE, "invoice_payload": "something-else", "state": "active"}})
+    out["failed"] = bot.dispatch({"update_id": 7202, "subscription": {
+        "user": ALICE, "invoice_payload": f"sub:{ALICE['id']}", "state": "failed"}})
+    out["failed_entitled"] = bot.entitled(ALICE["id"])            # still paid for: access follows the expiry
+    out["failed_after_end"] = bot.tick(bot.sub(ALICE["id"])["until"] + GRACE + 1) == 1 and not bot.entitled(ALICE["id"])
+    out["unused_update"] = bot.dispatch({"update_id": 7203, "message_reaction_count": {"chat": {"id": 1}}})
     # Olena (uk): pays, cancels renewal, gets both reminders, then the access expires.
     bot.tick(NOW + 40 * DAY)
     pay = c.fixture("usecase_subscription_first_payment.json")
@@ -392,8 +455,15 @@ def main() -> None:
     edits = t.params_of("editUserStarSubscription")
     c.check(out["cancel"] == "renewal_off" and edits[0]["is_canceled"] is True and edits[0]["telegram_payment_charge_id"] == "stxDEMOsub0001",
             "cancel renewal = editUserStarSubscription(is_canceled=true)")
-    c.check(out["reminder_canceled"] == 1 and out["resume"] == "renewal_on" and edits[1]["is_canceled"] is False
-            and out["stale_rem"] == "stale" and out["silent"] == 0, "resume from the reminder; nothing sent after it")
+    c.check(out["reminder_canceled"] == 1 and out["resume"] == "resume_allowed" and edits[1]["is_canceled"] is False
+            and out["resume_again"] == "resume_allowed" and sum(e["is_canceled"] is False for e in edits) == 1 and out["status_after_allow"] == "canceled"
+            and out["reenabled"] == "sub_active" and out["stale_rem"] == "stale" and out["silent"] == 0,
+            "resume = allow the user to re-enable (one API call); active only after Update.subscription; then no reminder")
+    c.check(out["user_cancel"] == "sub_canceled" and out["resume_user_cancel"] == "resume_in_telegram"
+            and out["no_edit_for_user_cancel"] and out["other_payload"] == "sub_unknown"
+            and out["failed"] == "sub_failed" and out["failed_entitled"] is True and out["failed_after_end"]
+            and out["unused_update"] == "ignored",
+            "a cancel made in Telegram is re-enabled there; a failed renewal ends access at the expiry; other updates do not crash")
     c.check(out["renewal"] == "renewed" and out["renewed_tick"] == 0 and bot.sub(ALICE["id"])["until"] == out["alice_until"] > NOW + 60 * DAY,
             "a renewal moves the expiry; the old expiry job does not fire")
     c.check([out["olena_pay"], out["olena_r3"], out["olena_r1"], out["olena_exp"]] == ["subscribed", 1, 1, 1]

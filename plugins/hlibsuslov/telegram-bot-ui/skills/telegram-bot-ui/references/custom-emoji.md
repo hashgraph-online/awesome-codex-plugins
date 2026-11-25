@@ -1,4 +1,23 @@
+---
+summary: "Custom emoji on buttons and in text: eligibility (Fragment usernames or owner Premium), silent failure, getting real IDs, unicode fallback, checklist; read before using any custom_emoji_id."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Custom emoji — on buttons and in text
+
+## Contents
+
+- [Eligibility — check this first](#eligibility--check-this-first)
+- [Eligibility per send context](#eligibility-per-send-context)
+- [Other surfaces that accept custom emoji (API)](#other-surfaces-that-accept-custom-emoji-api)
+- [An ineligible bot fails silently — verify by reading the message back](#an-ineligible-bot-fails-silently--verify-by-reading-the-message-back)
+- [Automation](#automation)
+- [Getting a real `custom_emoji_id` — never invent one](#getting-a-real-custom_emoji_id--never-invent-one)
+- [Buttons](#buttons)
+- [In message text](#in-message-text)
+- [Unicode emoji vs custom emoji — choosing](#unicode-emoji-vs-custom-emoji--choosing)
+- [Checklist](#checklist)
 
 Two different mechanisms, one eligibility rule:
 
@@ -57,7 +76,7 @@ none, so a message never mixes custom icons and Unicode stand-ins.
 
 ## Other surfaces that accept custom emoji (API)
 
-- **Rich Messages (10.3+):** `RichTextCustomEmoji` = `{"type": "custom_emoji",
+- **Rich Messages (10.1+):** `RichTextCustomEmoji` = `{"type": "custom_emoji",
   "custom_emoji_id", "alternative_text"}` in any RichText field; rich HTML accepts
   `<tg-emoji emoji-id="…">👍</tg-emoji>` and `<img src="tg://emoji?id=…" alt="👍"/>`; rich
   Markdown `![👍](tg://emoji?id=…)`. `RichMessageButton.text` may contain only plain text,
@@ -103,7 +122,9 @@ Consequences:
   Telegram Premium active right now, or does the bot own a Fragment username?* If neither,
   stop debugging markup; ship the Unicode fallback and say why.
 
-**Errors still happen** on other paths. Telegram does not document the error text for a
+### Runtime errors and the kill switch
+
+Errors still happen on other paths. Telegram does not document the error text for a
 refused custom emoji; `IconSystem.send` treats a **400 on a request that carried custom emoji**
 whose description matches `CUSTOM_EMOJI_ERROR_HINTS` as a refusal: kill switch, one log line,
 **one** retry with every custom emoji stripped (Unicode fallbacks on buttons). A second

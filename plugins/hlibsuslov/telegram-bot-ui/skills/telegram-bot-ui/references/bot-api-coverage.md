@@ -1,9 +1,21 @@
+---
+summary: "Generated registry of every Bot API 10.3-10.5 change with its use, availability, teaching section, example, check and status; read to see whether a new API feature is covered and where."
+verified: "2026-11-22"
+bot_api: "10.5"
+---
+
 # Bot API 10.3 / 10.4 / 10.5 coverage registry
 
 > Generated from `recipes/registry.json` by `scripts/render_registry.py` — edit the JSON.
 > Verified 2026-11-22 against https://core.telegram.org/bots/api-changelog. Newest release on that date: 10.5 (2026-11-22).
 > Every bullet of these releases is one row: what changed, why it's useful, where it works, the
 > skill section that teaches it, a concrete example, and the automated check that exercises it.
+
+## Contents
+
+- [Bot API 10.5](#bot-api-105)
+- [Bot API 10.4](#bot-api-104)
+- [Bot API 10.3](#bot-api-103)
 
 Availability is five separate questions — spec, production, Bot API server, installed SDK,
 client rendering. "production" below is about Telegram's servers; SDK support is in
@@ -12,6 +24,8 @@ client rendering. "production" below is about Telegram's servers; SDK support is
 Status: **ready** = explained + example + automated check; **ready-test-server** = same, but the feature exists only on Telegram's test server today; **ready-dry-run** = destructive/rights-changing: the example prints the plan; the call runs only on explicit request
 
 Totals: **63 rows** — 10.3: 21, 10.4: 31, 10.5: 11; ready 58, test-server only 3, dry-run 2; not covered: **0**.
+
+## Bot API 10.5
 
 | ID | Change | Use | Availability | Skill section | Example | Check | Status |
 |---|---|---|---|---|---|---|---|
@@ -26,6 +40,11 @@ Totals: **63 rows** — 10.3: 21, 10.4: 31, 10.5: 11; ready 58, test-server only
 | 10.5-G01 | owners invite up to 10 users at once: https://t.me/botinvite/<bot_username> | invite testers or a team to the bot without a public link | production; the link works for the bot's owner only | `bot-settings.md#owner-invites-botinvite-links` | `examples/payloads/r10-bot-settings.json` | `examples/python/recipes/r10_bot_settings.py::owner_invite` | ready |
 | 10.5-G02 | WriteAccessAllowed.inviter | greet an invited user by the owner's name | production | `bot-settings.md#owner-invites-botinvite-links` | `examples/fixtures/message_write_access_invited.json` | `examples/python/recipes/r10_bot_settings.py::greet_invited` | ready |
 | 10.5-G03 | RichBlockExpandableBlockQuotation / Input...: blocks replace text | collapsed quotes with lists, tables or code inside; migrate text to blocks | production | `telegram-capabilities.md#rich-additions-bot-api-103-105` | `examples/payloads/r02-interactive-document.json` | `examples/python/recipes/r02_interactive_document.py::build_document` | ready |
+
+## Bot API 10.4
+
+| ID | Change | Use | Availability | Skill section | Example | Check | Status |
+|---|---|---|---|---|---|---|---|
 | 10.4-W01 | Widget class; Message.widget and ExternalReplyInfo.widget | read widgets in messages and in replies to forwarded copies | production: private chats with the bot | `widgets.md#sending-a-widget` | `examples/fixtures/message_with_widget.json` | `examples/python/recipes/mini_recipes.py::m14_received_widget` | ready |
 | 10.4-W02 | sendWidget; production: private chats only, protected content | interactive card inside a message | production: private chats with the bot | `widgets.md#sending-a-widget` | `examples/payloads/r05-private-widget.json` | `tests/test_widgets.py::Size` | ready |
 | 10.4-W03 | sendSharedWidget re-sends a shared widget | one live object shown in many chats | production: private chats with the bot | `widgets.md#shared-widgets` | `examples/payloads/r06-shared-widget.json` | `examples/python/recipes/r06_shared_widget.py::main` | ready |
@@ -57,6 +76,11 @@ Totals: **63 rows** — 10.3: 21, 10.4: 31, 10.5: 11; ready 58, test-server only
 | 10.4-X05 | verifyUser/verifyChat custom_description_parse_mode and custom_description_entities (text_link only) | a linked verification description | verification organizations only | `specialized-updates.md#verification-descriptions` | `examples/payloads/mini-recipes.json` | `examples/python/recipes/mini_recipes.py::m08_verification_description` | ready |
 | 10.4-X06 | PaidMessagesWaived service message; Message.paid_messages_waived | know a sender came through a free-message link | production | `specialized-updates.md#paid-messages-waived` | `examples/fixtures/message_paid_messages_waived.json` | `examples/python/recipes/mini_recipes.py::m09_paid_messages_waived` | ready |
 | 10.4-X07 | links to topics in private chats: https://t.me/<bot_username>/<message_thread_id> | jump between conversation topics | production; works only for that user | `topics-and-contexts.md#private-chat-topics-and-topic-links` | `examples/payloads/r08-multi-topic-bot.json` | `examples/python/recipes/r08_multi_topic_bot.py::main` | ready |
+
+## Bot API 10.3
+
+| ID | Change | Use | Availability | Skill section | Example | Check | Status |
+|---|---|---|---|---|---|---|---|
 | 10.3-R01 | RichMessageButton (style link for callbacks; no pay/game/icon) | buttons inside the document | production | `buttons-and-styles.md#three-button-models` | `examples/payloads/r02-interactive-document.json` | `tests/test_keyboard_validator.py::RegressionFixtures` | ready |
 | 10.3-R02 | RichTextButton (button inside a text run) | an inline action next to the sentence it belongs to | production | `telegram-capabilities.md#rich-additions-bot-api-103-105` | `examples/payloads/r02-interactive-document.json` | `tests/test_keyboard_validator.py::RegressionFixtures` | ready |
 | 10.3-R03 | RichBlockButtons / InputRichBlockButtons (<tg-button-row>, 1-8, align) | a row of actions between sections | production | `telegram-capabilities.md#rich-additions-bot-api-103-105` | `examples/payloads/r02-interactive-document.json` | `tests/test_keyboard_validator.py::RegressionFixtures` | ready |

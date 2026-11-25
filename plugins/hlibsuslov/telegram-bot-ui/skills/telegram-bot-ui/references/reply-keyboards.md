@@ -1,3 +1,9 @@
+---
+summary: "ReplyKeyboardMarkup, KeyboardButton request types, the plain-text trap, ForceReply, layout and migration heuristics; read when using or replacing a reply keyboard."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Reply keyboards, ForceReply, and the input field
 
 `ReplyKeyboardMarkup` replaces the user's letter keyboard with your buttons.

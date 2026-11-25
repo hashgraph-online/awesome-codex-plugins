@@ -1,0 +1,21 @@
+{
+  "scenarioId": "orders.status",
+  "title": "Status notification from an external event, courier branch, edit unavailable",
+  "locale": "en",
+  "context": {"chat": "private", "delivery.method": "courier"},
+  "data": {"order.no": "4821", "order.status_text": "cooking"},
+  "steps": [
+    {"event": "order.status_changed", "data": {"order.status_text": "courier on the way"}},
+    {"expect": {"screen": "orders.notification", "contains": "courier on the way"}},
+    {"press": "open"},
+    {"expect": {"screen": "orders.status"}},
+    {"press": "route"},
+    {"expect": {"screen": "orders.delivery"}},
+    {"inaccessible": 3},
+    {"press": "back"},
+    {"expect": {"screen": "orders.status"}},
+    {"context": {"chat": "group"}},
+    {"command": "status"},
+    {"expect": {"screen": "orders.status"}}
+  ]
+}

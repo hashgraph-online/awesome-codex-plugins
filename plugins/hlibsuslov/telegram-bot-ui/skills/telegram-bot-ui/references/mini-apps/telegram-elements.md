@@ -1,4 +1,28 @@
+---
+summary: "Telegram's own visual vocabulary (Stars, grams, gifts, Premium, verification marks, emoji status, boosts, TON card) rendered from API data; read when a screen shows these elements."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Telegram's own elements: Stars, grams, gifts, marks
+
+## Contents
+
+- [Index](#index)
+- [T1. Telegram Stars](#t1-telegram-stars)
+- [T2. Grams (formerly Toncoin)](#t2-grams-formerly-toncoin)
+- [T3. Fiat](#t3-fiat)
+- [T4. Gift cards (regular gifts)](#t4-gift-cards-regular-gifts)
+- [T5. Unique (collectible) gifts](#t5-unique-collectible-gifts)
+- [T6. Paid content](#t6-paid-content)
+- [T7. Telegram Premium](#t7-telegram-premium)
+- [T8. Verified, Scam and Fake marks](#t8-verified-scam-and-fake-marks)
+- [T9. Emoji status](#t9-emoji-status)
+- [T10. User rating level](#t10-user-rating-level)
+- [T11. Boosts](#t11-boosts)
+- [T12. TON wallet card](#t12-ton-wallet-card)
+- [Bot messages](#bot-messages)
+- [Checklist](#checklist)
 
 Telegram has a visual vocabulary users already know from the app itself: the Stars sign, gram amounts, gift
 cards with their backdrops, rarity, Premium, verification. A Mini App (and a bot's messages) should show these

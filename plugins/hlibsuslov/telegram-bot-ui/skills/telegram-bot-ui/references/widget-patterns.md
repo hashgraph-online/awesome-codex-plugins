@@ -1,3 +1,9 @@
+---
+summary: "Widget state, data and interaction patterns: decision guide, state architecture, requests, charts, lists, forms, timers, images, wallet, shared widgets; read when implementing widgets."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Widget patterns: state, data, interaction (Bot API 10.4)
 
 > Checked 2026-11-15 against the [Widgets guide](https://core.telegram.org/bots/widgets) and the
@@ -6,6 +12,25 @@
 > requirement, **Guide** = Widgets guide, **Heuristic** = this skill's advice. Code:
 > `examples/python/widget_gallery/` (handlers), `examples/widgets/_kit/runtime.js` (widget side),
 > gallery `examples/widgets/*.html`. Design: `widget-design-system.md`. Basics: `widgets.md`.
+
+## Contents
+
+- [1. Decision guide: widget, keyboard, Rich Message or Mini App](#1-decision-guide-widget-keyboard-rich-message-or-mini-app)
+- [2. State architecture](#2-state-architecture)
+- [3. Requests from the widget](#3-requests-from-the-widget)
+- [4. Charts and data-viz without libraries](#4-charts-and-data-viz-without-libraries)
+- [5. Lists and pagination](#5-lists-and-pagination)
+- [6. Forms and input constraints](#6-forms-and-input-constraints)
+- [7. Timers that survive re-render and re-creation](#7-timers-that-survive-re-render-and-re-creation)
+- [8. Images and icons within the budget](#8-images-and-icons-within-the-budget)
+- [9. Wallet / TON actions (only what Telegram documents)](#9-wallet--ton-actions-only-what-telegram-documents)
+- [10. Shared widgets at a glance](#10-shared-widgets-at-a-glance)
+- [11. Widget as the front end of a backend](#11-widget-as-the-front-end-of-a-backend)
+- [12. Widget vs Mini App hand-off](#12-widget-vs-mini-app-hand-off)
+- [13. Where widgets can be sent, and channel-safe variants](#13-where-widgets-can-be-sent-and-channel-safe-variants)
+- [14. Long jobs behind a widget: bot-side lifecycle](#14-long-jobs-behind-a-widget-bot-side-lifecycle)
+- [15. Editor with autostart](#15-editor-with-autostart)
+- [16. Games and live apps on one shared widget (field report)](#16-games-and-live-apps-on-one-shared-widget-field-report)
 
 ## 1. Decision guide: widget, keyboard, Rich Message or Mini App
 
@@ -135,7 +160,7 @@ SVG strings (`_kit/chart.js`: `K.spark`, `K.bars`, ~600 compressed bytes) or can
 
 ## 5. Lists and pagination
 
-Nothing scrolls (Guide). Show ≤ 5–7 rows at 320 px, then:
+Nothing scrolls (Guide). Show ≤ 5–7 list rows at 320 px (one-line table rows: up to 8, `data-views.md` §5), then:
 
 * **local paging**: all items are in the state; ‹ › or "Show all 9" re-renders locally (no request);
 * **server paging**: the page index is a request (`pg:2`) whose answer carries the page

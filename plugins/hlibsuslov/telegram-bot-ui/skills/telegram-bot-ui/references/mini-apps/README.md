@@ -1,3 +1,9 @@
+---
+summary: "Start page for Telegram Mini Apps: routing by task, reading order, sources and labels, offline data and tools, what is not covered yet; the agent's route by request is orchestration.md §1."
+verified: "2026-11-23"
+bot_api: "10.5"
+---
+
 # Mini Apps: start here
 
 This folder is the skill's branch for **Telegram Mini Apps** (web apps opened inside Telegram through
@@ -52,6 +58,7 @@ TON wallet: [../wallet-and-ton.md](../wallet-and-ton.md). Widgets inside a messa
 | **[Official]** | core.telegram.org/bots/webapps, including its Design Guidelines |
 | **[API]** | the Bot API page and changelog |
 | **[Heuristic]** | this skill's decision; can change with evidence |
+| **[Third-party]** | a library outside Telegram (`@tma.js/*`, TelegramUI): its behaviour is its own, not Telegram's |
 
 Figma sources read for the design files (2026-11-23): Apple iOS and iPadOS 27 and the Telegram Mini Apps UI
 Kit (Community). Not read: the Telegram UI community kit, Appetite UI (paid, licence forbids

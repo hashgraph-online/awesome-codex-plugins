@@ -1,0 +1,21 @@
+{
+  "scenarioId": "checkout.retry",
+  "title": "Payment fails, the user retries; an old button is stale",
+  "locale": "ru",
+  "context": {"chat": "private", "delivery.method": "courier"},
+  "data": {"order.no": "4822", "order.total": "890 ₽", "order.status_text": "ожидает оплаты"},
+  "handlers": {"checkout.confirm": ["retry", "ok"]},
+  "steps": [
+    {"command": "start"},
+    {"press": "order"},
+    {"press": "cash"},
+    {"text": "Домофон 12"},
+    {"press": "pay"},
+    {"expect": {"screen": "checkout.payment.error"}},
+    {"press": "order", "message": 1},
+    {"press": "retry"},
+    {"expect": {"screen": "checkout.payment.success"}},
+    {"press": "menu"},
+    {"expect": {"screen": "entry.start"}}
+  ]
+}

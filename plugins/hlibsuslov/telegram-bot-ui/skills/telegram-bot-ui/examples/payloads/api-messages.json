@@ -1,0 +1,332 @@
+{
+  "scenario": "api-messages",
+  "status": "production",
+  "context": "private, supergroup and channel chats; a step that needs a chat type, a right or a business account carries _context",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 77,
+        "text": "<b>Deploy finished</b>: https://example.com/r/812",
+        "parse_mode": "HTML",
+        "link_preview_options": {
+          "is_disabled": true
+        },
+        "reply_parameters": {
+          "message_id": 4021
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open run",
+                "url": "https://example.com/r/812"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessageDraft",
+      "_context": "private chat only (chat_id is the target private chat)",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 9001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "text": "Checking the three failing jobs"
+      }
+    },
+    {
+      "method": "sendMessageDraft",
+      "_context": "private chat only (chat_id is the target private chat)",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 9001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "text": "Checking the three failing jobs. Two fail on the same migration"
+      }
+    },
+    {
+      "method": "sendMediaGroup",
+      "_context": "channel; bot admin with can_post_messages",
+      "params": {
+        "chat_id": -1009876543210,
+        "media": [
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBa2Zx0001",
+            "caption": "<b>Kyiv at night</b>",
+            "parse_mode": "HTML"
+          },
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBa2Zx0002"
+          },
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBa2Zx0003"
+          }
+        ],
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "forwardMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "from_chat_id": -1009876543210,
+        "message_id": 5201,
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "forwardMessages",
+      "params": {
+        "chat_id": -1001234567890,
+        "from_chat_id": -1009876543210,
+        "message_ids": [
+          5201,
+          5202,
+          5203
+        ]
+      }
+    },
+    {
+      "method": "copyMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 77,
+        "from_chat_id": -1009876543210,
+        "message_id": 5201,
+        "caption": "Weekly digest #12",
+        "show_caption_above_media": true
+      }
+    },
+    {
+      "method": "copyMessages",
+      "params": {
+        "chat_id": 111111111,
+        "from_chat_id": -1009876543210,
+        "message_ids": [
+          5201,
+          5202,
+          5203
+        ],
+        "remove_caption": true
+      }
+    },
+    {
+      "method": "sendPhoto",
+      "params": {
+        "chat_id": 111111111,
+        "photo": "AgACAgIAAxkBAAIBcGZx0101",
+        "caption": "<b>Build graph</b> for run 812",
+        "parse_mode": "HTML",
+        "show_caption_above_media": true
+      }
+    },
+    {
+      "method": "sendAudio",
+      "params": {
+        "chat_id": 111111111,
+        "audio": "CQACAgIAAxkBAAIBdGZx0201",
+        "caption": "Episode 12",
+        "performer": "Dev Notes",
+        "title": "Episode 12: Migrations",
+        "duration": 1894
+      }
+    },
+    {
+      "method": "sendDocument",
+      "params": {
+        "chat_id": 111111111,
+        "document": "BQACAgIAAxkBAAICdGZx0301",
+        "caption": "Test report, run 812"
+      }
+    },
+    {
+      "method": "sendVideo",
+      "params": {
+        "chat_id": 111111111,
+        "video": "BAACAgIAAxkBAAICeGZx0401",
+        "cover": "AgACAgIAAxkBAAIBcGZx0402",
+        "start_timestamp": 5,
+        "duration": 42,
+        "width": 1280,
+        "height": 720,
+        "caption": "Demo of the new onboarding"
+      }
+    },
+    {
+      "method": "sendAnimation",
+      "params": {
+        "chat_id": -1001234567890,
+        "animation": "CgACAgIAAxkBAAICfGZx0501",
+        "duration": 3,
+        "width": 480,
+        "height": 270,
+        "caption": "Shipped"
+      }
+    },
+    {
+      "method": "sendVoice",
+      "params": {
+        "chat_id": 111111111,
+        "voice": "AwACAgIAAxkBAAICgGZx0601",
+        "duration": 14,
+        "caption": "Short summary"
+      }
+    },
+    {
+      "method": "sendVideoNote",
+      "params": {
+        "chat_id": 111111111,
+        "video_note": "DQACAgIAAxkBAAICimZx0701",
+        "duration": 12,
+        "length": 384
+      }
+    },
+    {
+      "method": "sendLivePhoto",
+      "params": {
+        "chat_id": 111111111,
+        "live_photo": "BAACAgIAAxkBAAICkGZx0801",
+        "photo": "AgACAgIAAxkBAAIBcGZx0802",
+        "caption": "Morning in Kyiv"
+      }
+    },
+    {
+      "method": "sendPaidMedia",
+      "_context": "channel; bot admin with can_post_messages; the Star proceeds are credited to the channel's balance",
+      "params": {
+        "chat_id": -1009876543210,
+        "star_count": 50,
+        "payload": "album:kyiv-night",
+        "media": [
+          {
+            "type": "photo",
+            "media": "AgACAgIAAxkBAAIBcGZx0901"
+          },
+          {
+            "type": "video",
+            "media": "BAACAgIAAxkBAAICeGZx0902",
+            "duration": 42,
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "caption": "Kyiv at night: 1 photo, 1 video"
+      }
+    },
+    {
+      "method": "sendLocation",
+      "params": {
+        "chat_id": 111111111,
+        "latitude": 50.4501,
+        "longitude": 30.5234,
+        "horizontal_accuracy": 25.0,
+        "live_period": 900,
+        "heading": 90,
+        "proximity_alert_radius": 150
+      }
+    },
+    {
+      "method": "sendVenue",
+      "params": {
+        "chat_id": 111111111,
+        "latitude": 50.4476,
+        "longitude": 30.5225,
+        "title": "Pizza Place",
+        "address": "12 Khreshchatyk St, Kyiv"
+      }
+    },
+    {
+      "method": "sendContact",
+      "params": {
+        "chat_id": 111111111,
+        "phone_number": "+15555550123",
+        "first_name": "Ihor",
+        "last_name": "Savchenko",
+        "vcard": "BEGIN:VCARD\nVERSION:3.0\nFN:Ihor Savchenko\nTEL;TYPE=CELL:+15555550123\nEND:VCARD"
+      }
+    },
+    {
+      "method": "sendPoll",
+      "_context": "supergroup; a non-admin member needs can_send_polls (ChatPermissions)",
+      "params": {
+        "chat_id": -1001234567890,
+        "question": "Which of these is prime?",
+        "options": [
+          {
+            "text": "9"
+          },
+          {
+            "text": "11"
+          },
+          {
+            "text": "15"
+          }
+        ],
+        "type": "quiz",
+        "correct_option_ids": [
+          1
+        ],
+        "is_anonymous": false,
+        "explanation": "9 = 3x3 and 15 = 3x5.",
+        "open_period": 600
+      }
+    },
+    {
+      "method": "sendChecklist",
+      "_context": "business chat: business_connection_id of a connected business account; bot right can_reply",
+      "params": {
+        "business_connection_id": "BCxyz",
+        "chat_id": 555555555,
+        "checklist": {
+          "title": "Before your appointment",
+          "others_can_mark_tasks_as_done": true,
+          "tasks": [
+            {
+              "id": 1,
+              "text": "Bring your passport"
+            },
+            {
+              "id": 2,
+              "text": "Arrive 10 minutes early"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendDice",
+      "params": {
+        "chat_id": -1001234567890,
+        "emoji": "🎯",
+        "reply_parameters": {
+          "message_id": 4021
+        }
+      }
+    },
+    {
+      "method": "sendChatAction",
+      "_context": "private chat or supergroup; channel chats and channel direct messages chats aren't supported",
+      "params": {
+        "chat_id": 111111111,
+        "action": "typing"
+      }
+    },
+    {
+      "method": "getFile",
+      "params": {
+        "file_id": "BQACAgIAAxkBAAICdGZx0301"
+      }
+    }
+  ]
+}

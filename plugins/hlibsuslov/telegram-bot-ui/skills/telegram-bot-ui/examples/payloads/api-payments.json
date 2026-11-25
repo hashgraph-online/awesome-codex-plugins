@@ -1,0 +1,146 @@
+{
+  "scenario": "api-payments",
+  "status": "production (refundStarPayment and editUserStarSubscription are recorded requests, never sent; the provider token is a placeholder)",
+  "context": "private chat with the buyer; provider invoice for a physical good, Stars subscription link for a digital plan",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "sendInvoice",
+      "_context": "any chat; physical good through a provider: provider_token from @BotFather (placeholder, kept in the environment), ISO 4217 currency; shipping fields are ignored for Stars",
+      "params": {
+        "chat_id": 111111111,
+        "title": "Photo book A5",
+        "description": "40 pages, hardcover, printed from your album.",
+        "payload": "ord:5b2e91c4d0aa.3f6c0e9a81d2b7c4",
+        "provider_token": "PROVIDER_TOKEN_FROM_ENV",
+        "currency": "EUR",
+        "prices": [
+          {
+            "label": "Photo book A5, 40 pages",
+            "amount": 2490
+          },
+          {
+            "label": "Gift wrap",
+            "amount": 300
+          }
+        ],
+        "start_parameter": "photobook",
+        "need_name": true,
+        "need_shipping_address": true,
+        "is_flexible": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Pay",
+                "pay": true
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerShippingQuery",
+      "_context": "after a shipping_query update; only for invoices with is_flexible and need_shipping_address",
+      "params": {
+        "shipping_query_id": "sq-7711",
+        "ok": true,
+        "shipping_options": [
+          {
+            "id": "nova",
+            "title": "Nova Poshta branch, 1-2 days",
+            "prices": [
+              {
+                "label": "Delivery",
+                "amount": 350
+              }
+            ]
+          },
+          {
+            "id": "courier",
+            "title": "Courier to the door, 1 day",
+            "prices": [
+              {
+                "label": "Courier",
+                "amount": 900
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "answerPreCheckoutQuery",
+      "_context": "after a pre_checkout_query update; answer within 10 seconds",
+      "params": {
+        "pre_checkout_query_id": "pcq-7712",
+        "ok": true
+      }
+    },
+    {
+      "method": "createInvoiceLink",
+      "_context": "no chat; Stars subscription link: XTR, subscription_period 2592000, at most 10000 Stars",
+      "params": {
+        "title": "Pro plan",
+        "description": "Unlimited layouts and a priority print queue. Renews every 30 days.",
+        "payload": "ord:8d1f0a7e6c3b.a90e2d4c7b15f638",
+        "currency": "XTR",
+        "prices": [
+          {
+            "label": "Pro, 30 days",
+            "amount": 300
+          }
+        ],
+        "subscription_period": 2592000
+      }
+    },
+    {
+      "method": "answerPreCheckoutQuery",
+      "_context": "after a pre_checkout_query update; answer within 10 seconds",
+      "params": {
+        "pre_checkout_query_id": "pcq-7713",
+        "ok": true
+      }
+    },
+    {
+      "method": "getMyStarBalance",
+      "_context": "no parameters; the bot's own balance",
+      "params": {}
+    },
+    {
+      "method": "getStarTransactions",
+      "_context": "the bot's statement, chronological; paged with offset and limit (1-100)",
+      "params": {
+        "offset": 0,
+        "limit": 2
+      }
+    },
+    {
+      "method": "getStarTransactions",
+      "_context": "the bot's statement, chronological; paged with offset and limit (1-100)",
+      "params": {
+        "offset": 2,
+        "limit": 2
+      }
+    },
+    {
+      "method": "refundStarPayment",
+      "_context": "a Stars payment of this user, refunded whole; on an admin's confirmation; recorded, not sent",
+      "params": {
+        "user_id": 111111111,
+        "telegram_payment_charge_id": "stxPro7Q2wLm"
+      }
+    },
+    {
+      "method": "editUserStarSubscription",
+      "_context": "an active Stars subscription of this user; stops renewal, access lasts to the period end; recorded, not sent",
+      "params": {
+        "user_id": 111111111,
+        "telegram_payment_charge_id": "stxPro7Q2wLm",
+        "is_canceled": true
+      }
+    }
+  ]
+}

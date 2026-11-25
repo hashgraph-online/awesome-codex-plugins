@@ -64,15 +64,23 @@ function cardHtml(kit, dir) {
   </div></body></html>`;
 }
 
-// Drawn in a new tab of the browser the kit was read with, opened in the
-// background, so the page's own tab, whose claims can still be read, is not
-// told that it is hidden. The tab and the connection to it are waited for
-// 30 s at most, or what the run has left: a kit can do without its card, and
-// the claims still to be read need time.
+// Drawn in a window of its own of the browser the kit was read with, opened
+// in the background: the page's own tab, whose claims can still be read,
+// stays in front of its window and is not told that it is hidden, and the
+// card's tab is the one in front of its window, which the browser draws as
+// any tab in front. In a tab in the background of the page's window, the
+// card's tab was hidden, which the browser draws only for a capture, and on
+// a busy machine its capture now and then got no answer for its whole 60 s,
+// so the run waited that long and the kit had no card: the browser leaves
+// such a capture unanswered, as it does for a hidden tab on about:blank
+// that has stood two seconds with nothing new to draw. The tab, the
+// connection to it and the capture are each waited for 30 s at most, or
+// what the run has left: a kit can do without its card, and the claims
+// still to be read need time.
 const CARD_WAIT = 30_000;
 
 async function renderCard(chrome, kit, dir) {
-  const target = await chrome.newTab(browserWait(CARD_WAIT), { background: true });
+  const target = await chrome.newTab(browserWait(CARD_WAIT), { background: true, window: true });
   try {
     const cdp = await chrome.attach(target, browserWait(CARD_WAIT));
     await cdp.send("Page.enable");
@@ -80,7 +88,7 @@ async function renderCard(chrome, kit, dir) {
     const { frameTree } = await cdp.send("Page.getFrameTree");
     await cdp.send("Page.setDocumentContent", { frameId: frameTree.frame.id, html: cardHtml(kit, dir) });
     resetPictureWait();
-    const shot = await capture(cdp, 0, 0, CARD.width, CARD.height, CARD.scale, false);
+    const shot = await capture(cdp, 0, 0, CARD.width, CARD.height, CARD.scale, false, browserWait(CARD_WAIT));
     const png = Buffer.from(shot.data || "", "base64");
     if (png.length < 24) return null;
     fs.writeFileSync(path.join(dir, "card.png"), png);

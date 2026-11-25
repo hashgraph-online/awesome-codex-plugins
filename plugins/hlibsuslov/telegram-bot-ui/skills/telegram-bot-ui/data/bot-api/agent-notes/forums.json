@@ -1,0 +1,510 @@
+{
+ "$comment": "Agent notes for forum topics: topics in forum supergroups and in private chats with topics, the 'General' topic, topic icons. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "forums",
+ "notes": {
+  "createForumTopic": {
+   "purpose": "Create a topic in a forum supergroup or a private chat with a user; returns a ForumTopic.",
+   "use_when": [
+    "one thread per ticket, order or job",
+    "a private chat with topics split into conversations"
+   ],
+   "avoid_when": [
+    "a supergroup that is not a forum (Chat.is_forum unset)",
+    "changing a topic: editForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "icon_color must be one of six fixed RGB values, e.g. 7322096; name is 1-128 characters.",
+     "source": "API",
+     "cite": "icon_color: Currently, must be one of 7322096 (0x6FB9F0), 16766590 (0xFFD67E), ..."
+    },
+    {
+     "text": "icon_custom_emoji_id must come from getForumTopicIconStickers.",
+     "source": "API",
+     "cite": "icon_custom_emoji_id: Use getForumTopicIconStickers to get all allowed custom emoji identifiers."
+    },
+    {
+     "text": "Private chat: https://t.me/<bot_username>/<message_thread_id> opens the topic only for that user.",
+     "source": "API",
+     "cite": "createForumTopic: the link opens the topic only for the user"
+    },
+    {
+     "text": "Whether a private chat needs has_topics_enabled on is not stated; not tested.",
+     "source": "Unverified"
+    },
+    {
+     "text": "Store message_thread_id with the ticket: later calls address the topic by it.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "ForumTopic",
+    "ForumTopicCreated",
+    "getForumTopicIconStickers",
+    "editForumTopic",
+    "setMySettings"
+   ],
+   "rights": "supergroup: admin with can_manage_topics (method text); private chat: none named",
+   "chat_types": [
+    "private",
+    "supergroup"
+   ],
+   "since": "6.3",
+   "refs": [
+    "references/topics-and-contexts.md#private-chat-topics-and-topic-links"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "editForumTopic": {
+   "purpose": "Rename a topic or change its icon in a forum supergroup or a private chat with a user.",
+   "use_when": [
+    "a ticket's state shown in its topic name",
+    "a topic whose name is implicit (ForumTopic.is_name_implicit)"
+   ],
+   "avoid_when": [
+    "the 'General' topic: editGeneralForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "Omitted or empty name keeps the name; omitted icon_custom_emoji_id keeps the icon, an empty string removes it.",
+     "source": "API",
+     "cite": "icon_custom_emoji_id: Pass an empty string to remove the icon. If not specified, the current icon will be kept."
+    },
+    {
+     "text": "There is no icon_color parameter: the color is set only by createForumTopic.",
+     "source": "API",
+     "cite": "editForumTopic parameters: chat_id, message_thread_id, name, icon_custom_emoji_id"
+    },
+    {
+     "text": "In a supergroup a bot that created the topic needs no can_manage_topics.",
+     "source": "API",
+     "cite": "editForumTopic: must have the can_manage_topics administrator rights, unless it is the creator of the topic"
+    },
+    {
+     "text": "Rename on real state changes, not as a progress bar.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "createForumTopic",
+    "editGeneralForumTopic",
+    "getForumTopicIconStickers",
+    "ForumTopic",
+    "ForumTopicEdited"
+   ],
+   "rights": "supergroup: admin with can_manage_topics unless the bot created the topic (method text); private chat: none named",
+   "chat_types": [
+    "private",
+    "supergroup"
+   ],
+   "since": "6.3",
+   "refs": [
+    "references/topics-and-contexts.md#context-matrix"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "closeForumTopic": {
+   "purpose": "Close an open topic in a forum supergroup.",
+   "use_when": [
+    "a ticket or discussion is resolved and the thread should stop"
+   ],
+   "avoid_when": [
+    "removing the topic and its messages: deleteForumTopic",
+    "the 'General' topic: closeGeneralForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "The method text names forum supergroups only, not private chats.",
+     "source": "API",
+     "cite": "closeForumTopic: close an open topic in a forum supergroup chat"
+    },
+    {
+     "text": "A bot that created the topic needs no can_manage_topics.",
+     "source": "API",
+     "cite": "closeForumTopic: must have the can_manage_topics administrator rights, unless it is the creator of the topic"
+    },
+    {
+     "text": "Who can still post in a closed topic is not stated in the Bot API; not tested.",
+     "source": "Unverified"
+    },
+    {
+     "text": "Send the closing note first, then close.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "reopenForumTopic",
+    "deleteForumTopic",
+    "closeGeneralForumTopic",
+    "ForumTopicClosed"
+   ],
+   "rights": "admin with can_manage_topics unless the bot created the topic (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.3",
+   "refs": [
+    "references/topics-and-contexts.md#context-matrix"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "reopenForumTopic": {
+   "purpose": "Reopen a closed topic in a forum supergroup.",
+   "use_when": [
+    "a resolved ticket comes back",
+    "a paused discussion resumes"
+   ],
+   "avoid_when": [
+    "the 'General' topic: reopenGeneralForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "The method text names forum supergroups only, not private chats.",
+     "source": "API",
+     "cite": "reopenForumTopic: reopen a closed topic in a forum supergroup chat"
+    },
+    {
+     "text": "A bot that created the topic needs no can_manage_topics.",
+     "source": "API",
+     "cite": "reopenForumTopic: must have the can_manage_topics administrator rights, unless it is the creator of the topic"
+    }
+   ],
+   "related": [
+    "closeForumTopic",
+    "reopenGeneralForumTopic",
+    "ForumTopicReopened"
+   ],
+   "rights": "admin with can_manage_topics unless the bot created the topic (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.3",
+   "refs": [
+    "references/topics-and-contexts.md#context-matrix"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "deleteForumTopic": {
+   "purpose": "Delete a topic with all its messages in a forum supergroup or a private chat with a user.",
+   "use_when": [
+    "a topic created by mistake",
+    "a topic whose content must go"
+   ],
+   "avoid_when": [
+    "ending a discussion but keeping its history: closeForumTopic (supergroups only)"
+   ],
+   "pitfalls": [
+    {
+     "text": "Every message of the topic is deleted with it.",
+     "source": "API",
+     "cite": "deleteForumTopic: delete a forum topic along with all its messages"
+    },
+    {
+     "text": "In a supergroup the right is can_delete_messages, not can_manage_topics.",
+     "source": "API",
+     "cite": "deleteForumTopic: must have the can_delete_messages administrator rights"
+    },
+    {
+     "text": "Treat it as irreversible: confirm with a human admin and log who and why.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "closeForumTopic",
+    "createForumTopic",
+    "deleteMessage",
+    "ForumTopic"
+   ],
+   "rights": "supergroup: admin with can_delete_messages (method text); private chat: none named",
+   "chat_types": [
+    "private",
+    "supergroup"
+   ],
+   "since": "6.3",
+   "refs": [
+    "references/topics-and-contexts.md#context-matrix",
+    "references/chat-administration.md#rights-the-bot-needs"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "unpinAllForumTopicMessages": {
+   "purpose": "Clear the pinned messages of one topic in a forum supergroup or a private chat with a user.",
+   "use_when": [
+    "resetting a topic's pins, e.g. an outdated status card"
+   ],
+   "avoid_when": [
+    "the 'General' topic: unpinAllGeneralForumTopicMessages",
+    "the whole chat: unpinAllChatMessages",
+    "one message: unpinChatMessage"
+   ],
+   "pitfalls": [
+    {
+     "text": "In a supergroup the right is can_pin_messages, not can_manage_topics.",
+     "source": "API",
+     "cite": "unpinAllForumTopicMessages: must have the can_pin_messages administrator right in the supergroup"
+    },
+    {
+     "text": "It clears the topic's whole pinned list, not only the bot's pins.",
+     "source": "API",
+     "cite": "unpinAllForumTopicMessages: clear the list of pinned messages in a forum topic"
+    }
+   ],
+   "related": [
+    "unpinAllGeneralForumTopicMessages",
+    "unpinAllChatMessages",
+    "unpinChatMessage",
+    "pinChatMessage"
+   ],
+   "rights": "supergroup: admin with can_pin_messages (method text); private chat: none named",
+   "chat_types": [
+    "private",
+    "supergroup"
+   ],
+   "since": "6.3",
+   "refs": [
+    "references/topics-and-contexts.md#context-matrix",
+    "references/chat-administration.md#rights-the-bot-needs"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "editGeneralForumTopic": {
+   "purpose": "Rename the 'General' topic of a forum supergroup.",
+   "use_when": [
+    "giving General a name that fits the forum, e.g. Lobby"
+   ],
+   "avoid_when": [
+    "any other topic: editForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "name is required, 1-128 characters; there is no icon parameter.",
+     "source": "API",
+     "cite": "editGeneralForumTopic parameters: chat_id, name (New topic name, 1-128 characters)"
+    },
+    {
+     "text": "General is addressed by chat_id alone, with no message_thread_id.",
+     "source": "API",
+     "cite": "editGeneralForumTopic parameters: chat_id, name"
+    }
+   ],
+   "related": [
+    "editForumTopic",
+    "closeGeneralForumTopic",
+    "hideGeneralForumTopic",
+    "ForumTopicEdited"
+   ],
+   "rights": "admin with can_manage_topics (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.4",
+   "example": "examples/payloads/api-forums.json"
+  },
+  "closeGeneralForumTopic": {
+   "purpose": "Close the open 'General' topic of a forum supergroup.",
+   "use_when": [
+    "pausing general chatter while the other topics stay open"
+   ],
+   "avoid_when": [
+    "any other topic: closeForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "General is addressed by chat_id alone, with no message_thread_id.",
+     "source": "API",
+     "cite": "closeGeneralForumTopic parameters: chat_id"
+    },
+    {
+     "text": "hideGeneralForumTopic closes it too.",
+     "source": "API",
+     "cite": "hideGeneralForumTopic: The topic will be automatically closed if it was open."
+    },
+    {
+     "text": "Unlike closeForumTopic, no exception for a bot that created the topic.",
+     "source": "API",
+     "cite": "closeGeneralForumTopic: must have the can_manage_topics administrator rights"
+    }
+   ],
+   "related": [
+    "reopenGeneralForumTopic",
+    "hideGeneralForumTopic",
+    "closeForumTopic",
+    "ForumTopicClosed"
+   ],
+   "rights": "admin with can_manage_topics (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.4",
+   "example": "examples/payloads/api-forums.json"
+  },
+  "reopenGeneralForumTopic": {
+   "purpose": "Reopen the closed 'General' topic of a forum supergroup; a hidden General is unhidden too.",
+   "use_when": [
+    "general chatter may resume",
+    "bringing back a hidden General in one call"
+   ],
+   "avoid_when": [
+    "any other topic: reopenForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "Reopening also unhides General if it was hidden.",
+     "source": "API",
+     "cite": "reopenGeneralForumTopic: The topic will be automatically unhidden if it was hidden."
+    },
+    {
+     "text": "General is addressed by chat_id alone, with no message_thread_id.",
+     "source": "API",
+     "cite": "reopenGeneralForumTopic parameters: chat_id"
+    }
+   ],
+   "related": [
+    "closeGeneralForumTopic",
+    "unhideGeneralForumTopic",
+    "reopenForumTopic",
+    "ForumTopicReopened",
+    "GeneralForumTopicUnhidden"
+   ],
+   "rights": "admin with can_manage_topics (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.4",
+   "example": "examples/payloads/api-forums.json"
+  },
+  "hideGeneralForumTopic": {
+   "purpose": "Hide the 'General' topic of a forum supergroup; an open General is closed too.",
+   "use_when": [
+    "a forum where every message belongs in a named topic"
+   ],
+   "avoid_when": [
+    "only pausing General: closeGeneralForumTopic"
+   ],
+   "pitfalls": [
+    {
+     "text": "Hiding also closes General if it was open.",
+     "source": "API",
+     "cite": "hideGeneralForumTopic: The topic will be automatically closed if it was open."
+    },
+    {
+     "text": "To show and open it again in one call, use reopenGeneralForumTopic (it unhides); unhideGeneralForumTopic's text says nothing about reopening.",
+     "source": "API",
+     "cite": "reopenGeneralForumTopic: The topic will be automatically unhidden if it was hidden."
+    }
+   ],
+   "related": [
+    "unhideGeneralForumTopic",
+    "reopenGeneralForumTopic",
+    "closeGeneralForumTopic",
+    "GeneralForumTopicHidden"
+   ],
+   "rights": "admin with can_manage_topics (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.4",
+   "example": "examples/payloads/api-forums.json"
+  },
+  "unhideGeneralForumTopic": {
+   "purpose": "Unhide the 'General' topic of a forum supergroup.",
+   "use_when": [
+    "General should be visible again"
+   ],
+   "avoid_when": [
+    "General should also be open again: reopenGeneralForumTopic unhides and reopens"
+   ],
+   "pitfalls": [
+    {
+     "text": "Its text does not say it reopens General, which hiding closed; whether it stays closed was not tested.",
+     "source": "Unverified"
+    },
+    {
+     "text": "General is addressed by chat_id alone, with no message_thread_id.",
+     "source": "API",
+     "cite": "unhideGeneralForumTopic parameters: chat_id"
+    }
+   ],
+   "related": [
+    "hideGeneralForumTopic",
+    "reopenGeneralForumTopic",
+    "GeneralForumTopicUnhidden"
+   ],
+   "rights": "admin with can_manage_topics (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.4",
+   "example": "examples/payloads/api-forums.json"
+  },
+  "unpinAllGeneralForumTopicMessages": {
+   "purpose": "Clear the pinned messages of the 'General' topic of a forum supergroup.",
+   "use_when": [
+    "resetting General's pins"
+   ],
+   "avoid_when": [
+    "any other topic: unpinAllForumTopicMessages",
+    "the whole chat: unpinAllChatMessages"
+   ],
+   "pitfalls": [
+    {
+     "text": "The right is can_pin_messages, not can_manage_topics.",
+     "source": "API",
+     "cite": "unpinAllGeneralForumTopicMessages: must have the can_pin_messages administrator right in the supergroup"
+    },
+    {
+     "text": "General is addressed by chat_id alone, with no message_thread_id.",
+     "source": "API",
+     "cite": "unpinAllGeneralForumTopicMessages parameters: chat_id"
+    }
+   ],
+   "related": [
+    "unpinAllForumTopicMessages",
+    "unpinAllChatMessages",
+    "unpinChatMessage"
+   ],
+   "rights": "admin with can_pin_messages (method text)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "6.8",
+   "refs": [
+    "references/chat-administration.md#rights-the-bot-needs"
+   ],
+   "example": "examples/payloads/api-forums.json"
+  },
+  "getForumTopicIconStickers": {
+   "purpose": "List the custom emoji stickers allowed as topic icons; their custom_emoji_id goes to createForumTopic or editForumTopic.",
+   "use_when": [
+    "choosing icon_custom_emoji_id for a topic"
+   ],
+   "avoid_when": [
+    "fetching arbitrary custom emoji by id: getCustomEmojiStickers, but only this list is allowed as topic icons"
+   ],
+   "pitfalls": [
+    {
+     "text": "Takes no parameters and returns an array of Sticker; the icon id is each Sticker's custom_emoji_id.",
+     "source": "API",
+     "cite": "getForumTopicIconStickers: Requires no parameters. Returns an Array of Sticker objects."
+    },
+    {
+     "text": "Only these ids are allowed as topic icons.",
+     "source": "API",
+     "cite": "icon_custom_emoji_id: Use getForumTopicIconStickers to get all allowed custom emoji identifiers."
+    },
+    {
+     "text": "Fetch once and cache the list; don't call it per topic.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "Sticker",
+    "createForumTopic",
+    "editForumTopic",
+    "getCustomEmojiStickers"
+   ],
+   "since": "6.3",
+   "example": "examples/payloads/api-forums.json"
+  }
+ }
+}

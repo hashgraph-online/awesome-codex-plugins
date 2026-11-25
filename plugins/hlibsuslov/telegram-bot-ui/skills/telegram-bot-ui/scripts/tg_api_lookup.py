@@ -4,6 +4,7 @@
 Standard library only; reads local JSON, never touches the network.
 
   py -3 scripts/tg_api_lookup.py show sendMessage          # method / type card (case-insensitive)
+  py -3 scripts/tg_api_lookup.py card sendMessage          # short agent card: catalog + note + example
   py -3 scripts/tg_api_lookup.py search refund              # names, fields, descriptions
   py -3 scripts/tg_api_lookup.py version 10.4               # what a release changed (changelog)
   py -3 scripts/tg_api_lookup.py versions                   # list releases
@@ -229,7 +230,7 @@ def main(argv=None) -> int:
     ap.add_argument("--data", default=DATA_DIR)
     ap.add_argument("--json", action="store_true")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("show", "search", "version", "accepts", "used-by", "skeleton", "since"):
+    for name in ("show", "card", "search", "version", "accepts", "used-by", "skeleton", "since"):
         sp = sub.add_parser(name)
         sp.add_argument("query")
     sub.add_parser("versions")
@@ -241,7 +242,7 @@ def main(argv=None) -> int:
     def out(obj, text: str | None = None):
         print(json.dumps(obj, ensure_ascii=False, indent=1) if args.json or text is None else text)
 
-    if args.cmd == "show":
+    if args.cmd in ("show", "card"):
         sym = api.get(args.query)
         if sym is None:
             # Client-side Mini App API (Telegram.WebApp.*) lives in its own catalog.
@@ -252,7 +253,13 @@ def main(argv=None) -> int:
             hits = api.search(args.query, limit=8)
             print(f"not found: {args.query}. Close matches: {', '.join(h['name'] for h in hits) or 'none'}")
             return 1
-        out(sym, card(api, sym))
+        if args.cmd == "show":
+            out(sym, card(api, sym))
+        else:
+            import api_notes
+            note = api_notes.load_notes(os.path.join(args.data, "agent-notes")).get(sym["name"])
+            text = api_notes.card(sym, note, api.cat["meta"])
+            out({"symbol": sym["name"], "kind": sym["kind"], "note": note, "card": text}, text)
     elif args.cmd == "search":
         hits = api.search(args.query)
         out(hits, "\n".join(f"{h['name']:<40} {h['kind']:<6} {'; '.join(h['where'])}" for h in hits)

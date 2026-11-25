@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-ads-marketing-cloud",
-  "skill_version": "0.5.2",
+  "skill_version": "0.6.0",
   "evals": [
     {
       "id": 0,
@@ -109,12 +109,12 @@
     {
       "id": 5,
       "prompt": "I just got pre-signed download URLs back from amc_getWorkflowExecutionDownloadUrls. The result is around 3 MB. I want to know the top 10 advertisers by users_that_purchased. How should I handle this?",
-      "expected_output": "Recommends an available execution or file-processing facility fetch the URL, parse the CSV outside model context, and return ONLY a focused JSON summary (top-10 list and row count). If no suitable facility is available, asks the user to provide a downloaded local file. Notes URL expiry (10 minutes) handling.",
+      "expected_output": "Recommends downloading the URL in the client's own environment (local Python, a shell, or the host's code tool), not in the MCP's execute block, parsing the CSV outside model context, and returning ONLY a focused JSON summary (top-10 list and row count). If the client has no way to download, asks the user to provide a downloaded local file. Notes URL expiry (10 minutes) handling.",
       "files": [],
       "assertions": [
         {
           "name": "out-of-context-processing",
-          "condition": "Recommends a client-available execution or file-processing facility fetch and parse the CSV outside model context, or asks the user to provide a downloaded local file when no suitable facility exists"
+          "condition": "Recommends fetching and parsing the CSV outside model context in the client's own environment (local Python, a shell, or a code tool), or asks the user to provide a downloaded local file when the client can't download; does NOT tell the user to fetch the URL inside the MCP's execute block"
         },
         {
           "name": "focused-summary",
@@ -507,6 +507,50 @@
         {
           "name": "length-fit",
           "condition": "The reply is 1,600 words or fewer (wc -w)."
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Which AMC instances do I have? ac_listProfiles shows my US seller profile with accountInfo.id A1B2C3D4E5F6G7 and marketplaceStringId ATVPDKIKX0DER. I passed that id as Amazon-Advertising-API-AdvertiserId to amc_listInstances and got 403 Unauthorized request. Do I not have AMC access?",
+      "expected_output": "Says the 403 is most likely the wrong kind of ID, not missing access: a seller profile's accountInfo.id is the merchant ID, and AMC calls take an ENTITY… entity ID. Tells the user to find the profile's advertiser account with allv1_QueryAdvertiserAccount and take entityId from the alternateIds entry whose profileId (or US countryCode) matches, then retry amc_listInstances with it and the same marketplace ID. Stays short: no audience planning, SQL, or workflow material.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "identifies-merchant-id",
+          "condition": "Output says the seller profile's accountInfo.id is a merchant ID (not an entity ID) and that this is the likely cause of the 403"
+        },
+        {
+          "name": "points-to-alternateids-entity",
+          "condition": "Output says to take the entityId (an ENTITY… value) from the advertiser account's alternateIds entry for that profile or marketplace, found with allv1_QueryAdvertiserAccount"
+        },
+        {
+          "name": "no-premature-no-access",
+          "condition": "Output does NOT conclude that the user lacks AMC access, or tell them to request access, before the corrected ID has been tried"
+        },
+        {
+          "name": "stays-on-discovery",
+          "condition": "Output stays on instance discovery and does NOT add audience planning, SQL drafting, or workflow creation the user did not ask for"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "amc_getWorkflowExecutionDownloadUrls gave me a link a minute ago. I tried urllib inside the Amazon Ads MCP execute block and it hung, then curl on my machine returned 403 from S3. The link I copied has '&amp;X-Amz-Signature=' in it. Is my access broken?",
+      "expected_output": "Says access is probably fine. The MCP's execute block can't fetch URLs, so the download belongs in the client's own environment. The 403 comes from the HTML-escaped link: '&amp;' must be turned back into '&' before fetching. Says to request a fresh URL only if the 10-minute expiry has passed, to fetch only a URL this run returned, and to parse outside model context.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "unescapes-ampersand",
+          "condition": "Output identifies '&amp;' as HTML escaping and says to replace it with '&' before fetching"
+        },
+        {
+          "name": "download-outside-execute",
+          "condition": "Output says the MCP's execute block cannot fetch the URL and the download belongs in the client's own environment"
+        },
+        {
+          "name": "no-auth-misdiagnosis",
+          "condition": "Output does NOT attribute the 403 to missing AMC access, identity, or terms acceptance"
         }
       ]
     }

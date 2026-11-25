@@ -28,8 +28,8 @@ curl -fsSL https://ultrafast.mov/install.sh | sh
 ```
 
 Then tell your agent **“Go to ultrafast.mov and make…”**, or connect it yourself
-([Claude Code, Codex, Cursor, Gemini CLI](#wherever-your-agent-runs)). macOS
-(Apple silicon) and Linux; [other ways to install](#install).
+([Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI](#wherever-your-agent-runs)).
+macOS (Apple silicon) and Linux; [other ways to install](#install).
 
 ## How it compares
 
@@ -121,8 +121,8 @@ https://github.com/user-attachments/assets/279b8b3e-051a-412d-b155-2d2e94f7f137
 
 Your agent edits the video, not the pixels. One sentence changed one node: the
 pot's shape, its camera and its shader. The type, light and timing stayed as
-they were. This works today in Claude Code, Codex, Cursor and Gemini CLI with
-`uf mcp`.
+they were. This works today in Claude Code, Codex, Cursor, Antigravity CLI and
+Gemini CLI with `uf mcp`.
 
 ## First draft: eight findings. Second: none.
 
@@ -182,7 +182,7 @@ macOS, Vulkan everywhere else. [How it works in detail](docs/ARCHITECTURE.md).
 | Where | How | |
 |---|---|---|
 | **MCP server** | `uf mcp`, 20 tools, on your machine | available |
-| **Coding agents** | Claude Code, Codex, Cursor, Gemini CLI | available |
+| **Coding agents** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI | available |
 | **Skill and plugin** | `npx skills add ultrafastmov/ultrafast` | available |
 | **Remote MCP** | `/mcp` on your own `uf serve`, one key | available |
 | **SDKs** | `pip install ultrafastmov` · `npm i ultrafastmov` | available |
@@ -194,8 +194,12 @@ macOS, Vulkan everywhere else. [How it works in detail](docs/ARCHITECTURE.md).
 ```sh
 claude mcp add ultrafast -- uf mcp      # Claude Code
 codex mcp add ultrafast -- uf mcp       # Codex
+agy plugin install https://github.com/ultrafastmov/ultrafast          # Antigravity CLI
 gemini extensions install https://github.com/ultrafastmov/ultrafast   # Gemini CLI
 ```
+
+Since June 2026 Gemini CLI takes only paid Gemini API keys, Vertex AI and Code
+Assist Standard or Enterprise; personal Google accounts use Antigravity CLI.
 
 Cursor, Claude Desktop and the rest take `{"command": "uf", "args": ["mcp"]}`;
 the Claude Code plugin is `claude plugin marketplace add ultrafastmov/ultrafast`

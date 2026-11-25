@@ -76,9 +76,34 @@ function rename(from, to) {
 function remove(at) {
   try {
     fs.rmSync(at, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
-  } catch {
+    return;
+  } catch (err) {
     // Held open on Windows: a later run's sweep removes it.
+    if (BUSY.includes(err.code)) return;
   }
+  // No file left to open, as for a run that ended for that: Node.js 24's
+  // rmSync opens each folder it goes down into, an empty one too, and says
+  // so in an error with no code.
+  try {
+    removeTree(at);
+  } catch {
+    // Left for a later run's sweep.
+  }
+}
+
+// Removes at and what is in it, opening one folder at a time to list it,
+// and none for a folder that is empty, so that a run with no file left to
+// open, as one that ended for that, still takes its part folder away.
+function removeTree(at) {
+  try {
+    return fs.rmdirSync(at);
+  } catch (err) {
+    if (err.code === "ENOENT") return;
+    if (err.code === "ENOTDIR") return fs.unlinkSync(at);
+    if (err.code !== "ENOTEMPTY" && err.code !== "EEXIST") throw err;
+  }
+  for (const name of fs.readdirSync(at)) removeTree(path.join(at, name));
+  fs.rmdirSync(at);
 }
 
 // How a path in or above the kit's folder is shown: as the user gave the

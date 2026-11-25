@@ -1,3 +1,9 @@
+---
+summary: "Degradation ladders for content and interface, failure classification, rules, old clients, the can't-parse-entities response, unknown outcomes; read when designing error handling and fallbacks."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Errors, fallbacks, and old clients
 
 ## Degradation ladders (adapt to the project — not a universal mandate)

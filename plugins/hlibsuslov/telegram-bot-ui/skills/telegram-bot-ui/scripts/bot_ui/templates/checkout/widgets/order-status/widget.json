@@ -1,0 +1,193 @@
+{
+  "id": "order-status",
+  "title": "Статус заказа",
+  "entry": "index.html",
+  "languages": [
+    "en",
+    "ru",
+    "uk"
+  ],
+  "caption": {
+    "en": "Order #{order.no} · {order.status_text}",
+    "ru": "Заказ #{order.no} · {order.status_text}",
+    "uk": "Замовлення #{order.no} · {order.status_text}"
+  },
+  "send": {
+    "allow_queries": true
+  },
+  "fallbackScreen": "orders.status",
+  "dataFields": {
+    "chatData": {
+      "no": {
+        "label": "Order number",
+        "type": "text",
+        "help": "Shown as the widget title, e.g. #4821."
+      },
+      "s": {
+        "label": "Current step",
+        "type": "choice",
+        "options": [
+          {
+            "value": 0,
+            "label": "Order placed"
+          },
+          {
+            "value": 1,
+            "label": "Cooking"
+          },
+          {
+            "value": 2,
+            "label": "Courier picked up"
+          },
+          {
+            "value": 3,
+            "label": "On the way"
+          },
+          {
+            "value": 4,
+            "label": "Delivered"
+          }
+        ]
+      },
+      "m": {
+        "label": "Order state",
+        "type": "choice",
+        "options": [
+          {
+            "value": 0,
+            "label": "Normal"
+          },
+          {
+            "value": 1,
+            "label": "Delayed"
+          },
+          {
+            "value": 2,
+            "label": "Cancelled"
+          }
+        ]
+      },
+      "t0": {
+        "label": "Time: order placed",
+        "type": "time",
+        "help": "When this step was reached; leave empty if not yet."
+      },
+      "t1": {
+        "label": "Time: cooking",
+        "type": "time",
+        "help": "When this step was reached; leave empty if not yet."
+      },
+      "t2": {
+        "label": "Time: courier picked up",
+        "type": "time",
+        "help": "When this step was reached; leave empty if not yet."
+      },
+      "t3": {
+        "label": "Time: on the way",
+        "type": "time",
+        "help": "When this step was reached; leave empty if not yet."
+      },
+      "t4": {
+        "label": "Time: delivered",
+        "type": "time",
+        "help": "When this step was reached; leave empty if not yet."
+      },
+      "eta": {
+        "label": "Expected arrival",
+        "type": "time"
+      },
+      "cr": {
+        "label": "Courier name",
+        "type": "text"
+      },
+      "at": {
+        "label": "Last update",
+        "type": "time",
+        "advanced": true
+      },
+      "r": {
+        "label": "Data version",
+        "type": "number",
+        "advanced": true,
+        "help": "Goes up with every update so the widget ignores older data. The bot sets it."
+      }
+    }
+  },
+  "mock": {
+    "handler": "gallery:order-tracker"
+  },
+  "now": 1794736800,
+  "states": {
+    "default": {
+      "chatData": {
+        "no": "#4821",
+        "s": 3,
+        "m": 0,
+        "t0": 1794735060,
+        "t1": 1794735240,
+        "t2": 1794736320,
+        "t3": 1794736500,
+        "eta": 1794737520,
+        "cr": "Marco R.",
+        "at": 1794736680,
+        "r": 0
+      }
+    },
+    "delivered": {
+      "chatData": {
+        "no": "#4821",
+        "s": 4,
+        "m": 0,
+        "t0": 1794735060,
+        "t1": 1794735240,
+        "t2": 1794736320,
+        "t3": 1794736500,
+        "t4": 1794737640,
+        "cr": "Marco R.",
+        "at": 1794736680,
+        "r": 0
+      }
+    },
+    "delayed": {
+      "chatData": {
+        "no": "#4821",
+        "s": 3,
+        "m": 1,
+        "t0": 1794735060,
+        "t1": 1794735240,
+        "t2": 1794736320,
+        "t3": 1794736500,
+        "eta": 1794738900,
+        "cr": "Marco R.",
+        "at": 1794736680,
+        "r": 0
+      }
+    },
+    "cancelled": {
+      "chatData": {
+        "no": "#4821",
+        "s": 1,
+        "m": 2,
+        "t0": 1794735060,
+        "t1": 1794735240,
+        "at": 1794736680,
+        "r": 0
+      }
+    }
+  },
+  "queries": [
+    "sync",
+    "call",
+    "help",
+    "track"
+  ],
+  "fresh": [
+    "at",
+    "eta",
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4"
+  ]
+}

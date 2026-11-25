@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-ads-sp-campaign-auditor",
-  "skill_version": "0.4.2",
+  "skill_version": "0.5.0",
   "evals": [
     {
       "id": 0,
@@ -73,16 +73,24 @@
     {
       "id": 4,
       "prompt": "Build the SP report field list for the audit. Include spend.",
-      "expected_output": "Names canonical dimensions (date.value, adProduct.value, campaign.id, campaign.name, campaign.budgetAmount, campaign.deliveryStatus, etc.). For cost, takes the field from Amazon's Reporting v1 Metrics documentation (such as metric.totalCost) rather than assuming metric.spend exists. Records the cost field ID actually accepted.",
+      "expected_output": "Names the starting dimensions (date.value, adProduct.value, campaign.id, campaign.name, campaign.country, campaign.budgetAmount, campaign.budgetType, campaign.deliveryStatus, etc.). Names metric.totalCost as the cost field rather than metric.spend, and includes budgetCurrency.value because cost and budget fields are rejected without it. Says report creation validates the set and that the accepted field IDs are recorded.",
       "files": [],
       "assertions": [
         {
-          "name": "no-blind-metric-spend",
-          "condition": "Output does NOT hardcode metric.spend as the cost field; it takes the cost field from Amazon's Reporting v1 metrics documentation (such as metric.totalCost) or confirms it through report creation"
+          "name": "names-total-cost",
+          "condition": "Output names metric.totalCost as the cost field and does NOT use metric.spend or metric.cost"
+        },
+        {
+          "name": "includes-currency-companion",
+          "condition": "Output includes budgetCurrency.value in the field list, or states it is required alongside the cost or budget fields"
         },
         {
           "name": "uses-canonical-fields",
           "condition": "Output references canonical SP dimensions like campaign.id, campaign.name, campaign.deliveryStatus, campaign.budgetAmount, or adProduct.value"
+        },
+        {
+          "name": "includes-marketplace-field",
+          "condition": "Output includes campaign.country so each row's marketplace is known, and does NOT rely on campaign.currencyCode or country.code for it"
         }
       ]
     },
@@ -263,6 +271,58 @@
         {
           "name": "no-campaign-changes",
           "condition": "Output does not pause campaigns, change a budget, or call or plan any campaign-management tool; zero-impression campaigns remain review candidates"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "The SP campaign report for our seller account finished: 2,140 rows. campaign.country has US, CA, and MX, and budgetCurrency.value has USD, CAD, and MXN. Give me total spend and the top-5 concentration.",
+      "expected_output": "Says the report covers three marketplaces in three currencies, so a single total or a single top-5 share would add different currencies. Reports spend and concentration per marketplace, or asks which marketplace to audit, and offers a combined view only with an explicit conversion method.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "no-cross-currency-total",
+          "condition": "Output does NOT give one combined spend total or one combined concentration figure that adds USD, CAD, and MXN amounts without a conversion method"
+        },
+        {
+          "name": "splits-or-asks-by-marketplace",
+          "condition": "Output reports per marketplace (by campaign.country) or asks the user which marketplace to audit"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "I filtered the downloaded SP campaign report with rows where adProduct.value == 'SPONSORED_PRODUCTS' and got zero rows, but the CSV has 873 lines. The report was created with that filter. What happened?",
+      "expected_output": "Explains that the report filter takes the enum SPONSORED_PRODUCTS but the rows carry the display text 'Sponsored Products', so matching the enum on the output drops every row. Says the report was already filtered at creation, so the client-side filter isn't needed, or should match the display text. Does not conclude the account has no campaigns.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "explains-display-text",
+          "condition": "Output explains that adProduct.value comes back as display text ('Sponsored Products') while the filter takes the enum SPONSORED_PRODUCTS"
+        },
+        {
+          "name": "no-empty-account-conclusion",
+          "condition": "Output does NOT conclude the account has no Sponsored Products campaigns or that the report is empty"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "The report is COMPLETED and I have the signed URL from allv1_AdsApiv1RetrieveReport. I ran urllib inside the Amazon Ads MCP execute block to fetch it and it failed. Then I pasted the link into curl and S3 returned 403. The link is two minutes old and contains '&amp;X-Amz-Signature='. How do I get the file?",
+      "expected_output": "Says the MCP's execute block can't fetch URLs, so the download belongs in the client's own environment (local Python, a shell, or a code tool), or the user downloads the file and provides it. Identifies the 403 as the HTML-escaped link: '&amp;' must be unescaped to '&' before fetching. Does not suggest retyping the URL or using a URL from another source, and requests a fresh URL only if it has expired.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "download-outside-execute",
+          "condition": "Output says the MCP execute block cannot fetch the URL and the download must happen in the client's own environment or by the user"
+        },
+        {
+          "name": "unescapes-ampersand",
+          "condition": "Output identifies '&amp;' as HTML escaping and says to unescape it to '&' before fetching"
+        },
+        {
+          "name": "no-credential-or-auth-misdiagnosis",
+          "condition": "Output does NOT blame the 403 on account permissions, identity, or missing Amazon authorization"
         }
       ]
     }

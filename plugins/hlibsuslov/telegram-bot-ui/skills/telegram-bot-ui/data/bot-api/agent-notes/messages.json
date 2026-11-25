@@ -1,0 +1,334 @@
+{
+ "$comment": "Agent notes for sending and moving messages. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite, Official means the cited core.telegram.org page.",
+ "domain": "messages",
+ "notes": {
+  "sendMessage": {
+   "purpose": "Send one text message, optionally with entities, a link preview, a reply and a keyboard.",
+   "use_when": [
+    "short replies, notifications and prompts",
+    "the final text after a sendMessageDraft stream"
+   ],
+   "avoid_when": [
+    "headings, tables, media blocks: sendRichMessage",
+    "mainly one file: the media method"
+   ],
+   "pitfalls": [
+    {"text": "text is 1-4096 characters after entities parsing.", "source": "API", "cite": "text: Text of the message to be sent, 1-4096 characters after entities parsing"},
+    {"text": "chat_id may be omitted only for an ephemeral reply to a callback query.", "source": "API", "cite": "chat_id: required unless the message is sent as an ephemeral reply to a callback query"},
+    {"text": "message_effect_id works in private chats only.", "source": "API", "cite": "message_effect_id: Unique identifier of the message effect to be added to the message; for private chats only"},
+    {"text": "Pace: ~1 message/s per chat, 20/min in a group, ~30/s in bulk, else 429.", "source": "Official", "cite": "https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this"}
+   ],
+   "related": ["sendMessageDraft", "editMessageText", "MessageEntity", "LinkPreviewOptions", "ReplyParameters", "InlineKeyboardMarkup", "ReplyKeyboardMarkup", "ReplyKeyboardRemove", "ForceReply", "EphemeralMessageParameters"],
+   "rights": "non-admins: can_send_messages; channel admins: can_post_messages",
+   "refs": ["references/regular-formatting.md#6-presentation-controls-that-affect-rendering"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendMessageDraft": {
+   "purpose": "Stream a partial message into a private chat while the answer is still being generated.",
+   "use_when": ["AI or long-running replies that should appear progressively"],
+   "avoid_when": ["groups and channels: chat_id is a private chat", "the final answer: persist it with sendMessage"],
+   "pitfalls": [
+    {"text": "A draft is a temporary 30-second preview; send the complete text with sendMessage to persist it.", "source": "API", "cite": "the streamed draft is ephemeral and acts as a temporary 30-second preview - once the output is finalized, you must call sendMessage with the complete message to persist it in the user's chat"},
+    {"text": "draft_id must be non-zero; reuse it to animate updates, a new id replaces the draft without animation.", "source": "API", "cite": "draft_id: Unique identifier of the message draft; must be non-zero. Changes to drafts with the same identifier are animated. Otherwise, the draft is replaced without animation."},
+    {"text": "keep_on_stop keeps the draft only briefly; to keep the partial text, send it as a new message.", "source": "API", "cite": "keep_on_stop: The draft will still disappear after a short time or if the bot sends a message. To fully preserve the partial draft, the bot should send it as a new message."}
+   ],
+   "related": ["sendMessage", "sendRichMessageDraft", "MessageEntity"],
+   "chat_types": ["private"],
+   "since": "9.3",
+   "refs": ["references/streaming-and-editing.md#finalization", "references/streaming-and-editing.md#stop-can_stop-and-keep_on_stop"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "forwardMessage": {
+   "purpose": "Forward one message of any kind to another chat; the forwarded message keeps a link to the original.",
+   "use_when": ["the audience should see where the message came from"],
+   "avoid_when": ["a copy without the source link: copyMessage"],
+   "pitfalls": [
+    {"text": "Service messages and messages with protected content can't be forwarded.", "source": "API", "cite": "forwardMessage: Service messages and messages with protected content can't be forwarded."},
+    {"text": "message_effect_id works only when forwarding to private chats.", "source": "API", "cite": "message_effect_id: only available when forwarding to private chats"},
+    {"text": "direct_messages_topic_id is required when the target is a direct messages chat.", "source": "API", "cite": "direct_messages_topic_id: required if the message is forwarded to a direct messages chat"}
+   ],
+   "related": ["forwardMessages", "copyMessage", "Message", "SuggestedPostParameters"],
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "forwardMessages": {
+   "purpose": "Forward 1-100 messages in one request, keeping album grouping.",
+   "use_when": ["several messages or a whole album at once"],
+   "avoid_when": ["a copy without the source link: copyMessages"],
+   "pitfalls": [
+    {"text": "message_ids: 1-100 ids from from_chat_id, strictly increasing.", "source": "API", "cite": "message_ids: A JSON-serialized list of 1-100 identifiers of messages in the chat from_chat_id to forward. The identifiers must be specified in a strictly increasing order."},
+    {"text": "Messages that can't be found or forwarded are skipped.", "source": "API", "cite": "forwardMessages: If some of the specified messages can't be found or forwarded, they are skipped."},
+    {"text": "Service messages and messages with protected content can't be forwarded.", "source": "API", "cite": "forwardMessages: Service messages and messages with protected content can't be forwarded."}
+   ],
+   "related": ["forwardMessage", "copyMessages", "MessageId"],
+   "since": "7.0",
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "copyMessage": {
+   "purpose": "Copy a message of any kind to another chat without a link to the original; the caption can be replaced.",
+   "use_when": ["cross-posting a clean copy", "re-sending a stored post with a new caption"],
+   "avoid_when": ["the audience should see the source: forwardMessage"],
+   "pitfalls": [
+    {"text": "Service, paid media, giveaway, giveaway winners, invoice and widget messages can't be copied.", "source": "API", "cite": "copyMessage: Service messages, paid media messages, giveaway messages, giveaway winners messages, invoice messages, and widget messages can't be copied."},
+    {"text": "A quiz poll is copied only if correct_option_ids is known to the bot.", "source": "API", "cite": "copyMessage: A quiz poll can be copied only if the value of the field correct_option_ids is known to the bot."},
+    {"text": "Returns only a MessageId, and its message_id can be 0 when the server schedules the message.", "source": "API", "cite": "MessageId: In such cases, this field will be 0 and the relevant message will be unusable until it is actually sent."},
+    {"text": "A new caption replaces the original; show_caption_above_media is ignored without one.", "source": "API", "cite": "show_caption_above_media: Ignored if a new caption isn't specified."}
+   ],
+   "related": ["copyMessages", "forwardMessage", "MessageId", "ReplyParameters", "SuggestedPostParameters"],
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "copyMessages": {
+   "purpose": "Copy 1-100 messages in one request without links to the originals, keeping album grouping.",
+   "use_when": ["several messages or a whole album at once"],
+   "avoid_when": ["a new caption: copyMessage"],
+   "pitfalls": [
+    {"text": "message_ids: 1-100 ids from from_chat_id, strictly increasing.", "source": "API", "cite": "message_ids: A JSON-serialized list of 1-100 identifiers of messages in the chat from_chat_id to copy. The identifiers must be specified in a strictly increasing order."},
+    {"text": "Messages that can't be found or copied are skipped.", "source": "API", "cite": "copyMessages: If some of the specified messages can't be found or copied, they are skipped."},
+    {"text": "Service, paid media, giveaway, giveaway winners, invoice and widget messages can't be copied.", "source": "API", "cite": "copyMessages: Service messages, paid media messages, giveaway messages, giveaway winners messages, invoice messages, and widget messages can't be copied."},
+    {"text": "remove_caption only strips captions; there is no parameter for a new one.", "source": "API", "cite": "remove_caption: Pass True to copy the messages without their captions"}
+   ],
+   "related": ["copyMessage", "forwardMessages", "MessageId"],
+   "since": "7.0",
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendPhoto": {
+   "purpose": "Send one photo from a file_id (recommended), an HTTP URL or an upload.",
+   "use_when": ["a single image with a caption"],
+   "avoid_when": ["2-10 related items: sendMediaGroup", "the file as is, not a photo: sendDocument"],
+   "pitfalls": [
+    {"text": "At most 10 MB; width plus height at most 10000; width to height ratio at most 20.", "source": "API", "cite": "photo: The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20."},
+    {"text": "By URL the cap is 5 MB for photos; a file_id is unique per bot, and resending a photo sends all its sizes.", "source": "Official", "cite": "https://core.telegram.org/bots/api#sending-files"},
+    {"text": "caption is 0-1024 characters after entities parsing.", "source": "API", "cite": "caption: Photo caption (may also be used when resending photos by file_id), 0-1024 characters after entities parsing"}
+   ],
+   "related": ["sendMediaGroup", "sendDocument", "sendLivePhoto", "InputFile", "PhotoSize", "MessageEntity"],
+   "rights": "non-admins: can_send_photos (ChatPermissions); channels: admin can_post_messages",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendAudio": {
+   "purpose": "Send an MP3 or M4A file that clients show in the music player.",
+   "use_when": ["music and long recordings with performer and title"],
+   "avoid_when": ["a voice message: sendVoice", "any other format: sendDocument"],
+   "pitfalls": [
+    {"text": "Only .MP3 or .M4A, up to 50 MB for now.", "source": "API", "cite": "sendAudio: Your audio must be in the .MP3 or .M4A format / Bots can currently send audio files of up to 50 MB in size, this limit may be changed in the future."},
+    {"text": "A thumbnail can't be reused by file_id; upload a new JPEG under 200 kB, at most 320 px.", "source": "API", "cite": "thumbnail: Thumbnails can't be reused and can be only uploaded as a new file"},
+    {"text": "By URL the cap is 20 MB and the MIME type must be right (audio/mpeg).", "source": "Official", "cite": "https://core.telegram.org/bots/api#sending-files"}
+   ],
+   "related": ["sendVoice", "sendDocument", "sendMediaGroup", "InputFile", "Audio"],
+   "rights": "non-admins: can_send_audios (ChatPermissions); channels: admin can_post_messages",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendDocument": {
+   "purpose": "Send a general file of any type, up to 50 MB.",
+   "use_when": ["logs, reports, archives and the original file as is"],
+   "avoid_when": ["a photo or video that should render inline: sendPhoto or sendVideo"],
+   "pitfalls": [
+    {"text": "Up to 50 MB for now; the limit may change.", "source": "API", "cite": "sendDocument: Bots can currently send files of any type of up to 50 MB in size, this limit may be changed in the future."},
+    {"text": "By URL only .PDF and .ZIP work; upload anything else.", "source": "Official", "cite": "https://core.telegram.org/bots/api#sending-files"},
+    {"text": "disable_content_type_detection affects only multipart uploads.", "source": "API", "cite": "disable_content_type_detection: Disables automatic server-side content type detection for files uploaded using multipart/form-data"}
+   ],
+   "related": ["sendPhoto", "sendMediaGroup", "InputFile", "Document", "InputMediaDocument", "getFile"],
+   "rights": "non-admins: can_send_documents (ChatPermissions); channels: admin can_post_messages",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file", "references/agent-operated-bots.md#delivering-artifacts"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendVideo": {
+   "purpose": "Send a video; clients play MPEG4, other formats may arrive as a Document.",
+   "use_when": ["a clip with sound, with an optional cover and start time"],
+   "avoid_when": ["a silent looping clip: sendAnimation", "a round message: sendVideoNote"],
+   "pitfalls": [
+    {"text": "MPEG4 is supported, other formats may be sent as Document; up to 50 MB for now.", "source": "API", "cite": "sendVideo: Telegram clients support MPEG4 videos (other formats may be sent as Document). On success, the sent Message is returned. Bots can currently send video files of up to 50 MB in size"},
+    {"text": "A thumbnail can't be reused by file_id and counts only for uploaded files; a cover can be a file_id.", "source": "API", "cite": "thumbnail: Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file"},
+    {"text": "By URL the cap is 20 MB and the MIME type must be right.", "source": "Official", "cite": "https://core.telegram.org/bots/api#sending-files"}
+   ],
+   "related": ["sendAnimation", "sendVideoNote", "sendMediaGroup", "InputFile", "Video", "InputMediaVideo"],
+   "rights": "non-admins: can_send_videos (ChatPermissions); channels: admin can_post_messages",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendAnimation": {
+   "purpose": "Send a GIF or an H.264/MPEG-4 AVC video without sound as an animation.",
+   "use_when": ["short silent loops, reactions and previews"],
+   "avoid_when": ["a video with sound: sendVideo"],
+   "pitfalls": [
+    {"text": "GIF or H.264/MPEG-4 AVC video without sound; up to 50 MB for now.", "source": "API", "cite": "sendAnimation: Use this method to send animation files (GIF or H.264/MPEG-4 AVC video without sound). On success, the sent Message is returned. Bots can currently send animation files of up to 50 MB in size"}
+   ],
+   "related": ["sendVideo", "sendDocument", "InputFile", "Animation", "InputMediaAnimation"],
+   "rights": "non-admins: can_send_other_messages (ChatPermissions); channels: admin can_post_messages",
+   "since": "4.0",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendVoice": {
+   "purpose": "Send audio as a playable voice message.",
+   "use_when": ["recorded or synthesized speech that should play as a voice note"],
+   "avoid_when": ["music with performer and title: sendAudio"],
+   "pitfalls": [
+    {"text": "Needs .OGG with OPUS, .MP3 or .M4A; other formats may arrive as Audio or Document; up to 50 MB for now.", "source": "API", "cite": "sendVoice: your audio must be in an .OGG file encoded with OPUS, or in .MP3 format, or in .M4A format (other formats may be sent as Audio or Document)"},
+    {"text": "Sending by URL: audio/ogg of at most 1 MB; 1-20 MB voice notes are sent as files.", "source": "Official", "cite": "https://core.telegram.org/bots/api#sending-files"}
+   ],
+   "related": ["sendAudio", "sendVideoNote", "InputFile", "Voice"],
+   "rights": "non-admins: can_send_voice_notes (ChatPermissions); channels: admin can_post_messages",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendVideoNote": {
+   "purpose": "Send a rounded square MPEG4 video of up to 1 minute.",
+   "use_when": ["a short personal video message"],
+   "avoid_when": ["a wide video: sendVideo"],
+   "pitfalls": [
+    {"text": "A URL is not accepted: pass a file_id or upload.", "source": "API", "cite": "video_note: Sending video notes by a URL is currently unsupported."},
+    {"text": "length is both width and height, the diameter of the video message.", "source": "API", "cite": "length: Video width and height, i.e. diameter of the video message"}
+   ],
+   "related": ["sendVideo", "sendVoice", "InputFile", "VideoNote"],
+   "rights": "non-admins: can_send_video_notes (ChatPermissions); channels: admin can_post_messages",
+   "refs": ["references/media-and-files.md#three-ways-to-send-a-file"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendLivePhoto": {
+   "purpose": "Send a live photo: a short video together with its static photo.",
+   "use_when": ["a photo that should play a moment of motion"],
+   "avoid_when": ["a plain still: sendPhoto", "a URL source: it is not supported"],
+   "pitfalls": [
+    {"text": "The video is at most 10 seconds and 10 MB.", "source": "API", "cite": "live_photo: The video must be no longer than 10 seconds and must not exceed 10 MB in size."},
+    {"text": "Sending by URL is unsupported: use a file_id or upload.", "source": "API", "cite": "live_photo: Sending live photos by a URL is currently unsupported."}
+   ],
+   "related": ["sendPhoto", "sendMediaGroup", "sendPaidMedia", "InputMediaLivePhoto", "LivePhoto", "InputFile"],
+   "since": "10.0",
+   "refs": ["references/media-and-files.md#live-photos-100"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendPaidMedia": {
+   "purpose": "Send photos, videos or live photos that viewers unlock for Telegram Stars.",
+   "use_when": ["selling access to media in a channel, group or private chat"],
+   "avoid_when": ["free media: sendMediaGroup or the single-media methods"],
+   "pitfalls": [
+    {"text": "star_count is 1-25000; media holds up to 10 InputPaidMedia items.", "source": "API", "cite": "star_count: The number of Telegram Stars that must be paid to buy access to the media; 1-25000 / media: up to 10 items"},
+    {"text": "In a channel the Stars go to the chat's balance, elsewhere to the bot's.", "source": "API", "cite": "chat_id: If the chat is a channel, all Telegram Star proceeds from this media will be credited to the chat's balance. Otherwise, they will be credited to the bot's balance."},
+    {"text": "payload is 0-128 bytes and never shown to the user; it is for your internal processes.", "source": "API", "cite": "payload: Bot-defined paid media payload, 0-128 bytes. This will not be displayed to the user, use it for your internal processes."},
+    {"text": "Paid media messages can't be copied.", "source": "API", "cite": "copyMessage: Service messages, paid media messages, giveaway messages"}
+   ],
+   "related": ["sendMediaGroup", "copyMessage", "InputPaidMedia", "PaidMediaInfo", "PaidMediaPurchased"],
+   "since": "7.6",
+   "refs": ["references/payments-and-stars.md#paid-media"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendMediaGroup": {
+   "purpose": "Send 2-10 photos, live photos, videos, documents or audios as one album.",
+   "use_when": ["a gallery post", "several files of the same kind as one message group"],
+   "avoid_when": ["buttons under the album: the call has no reply_markup, follow with a message", "one item: the single-media method"],
+   "pitfalls": [
+    {"text": "media must have 2-10 items; documents and audios group only with their own type.", "source": "API", "cite": "media: must include 2-10 items / sendMediaGroup: Documents and audio files can be only grouped in an album with messages of the same type."},
+    {"text": "No reply_markup: an album can't carry a keyboard.", "source": "API", "cite": "sendMediaGroup parameters: no reply_markup field (lookup show sendMediaGroup)"},
+    {"text": "Put the caption on the first item; clients show it under the album.", "source": "Heuristic"}
+   ],
+   "related": ["sendPhoto", "sendLivePhoto", "sendPaidMedia", "InputMediaPhoto", "InputMediaVideo", "InputMediaLivePhoto", "InputMediaDocument", "InputMediaAudio"],
+   "refs": ["references/media-and-files.md#albums-sendmediagroup"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendLocation": {
+   "purpose": "Send a point on the map, or a live location the bot keeps updating.",
+   "use_when": ["a pickup or meeting point", "live tracking of a courier or a trip"],
+   "avoid_when": ["a named place with an address: sendVenue"],
+   "pitfalls": [
+    {"text": "live_period is 60-86400 s, or 0x7FFFFFFF to edit indefinitely; it must be 0 for ephemeral messages.", "source": "API", "cite": "live_period: must be between 60 and 86400, or 0x7FFFFFFF for live locations that can be edited indefinitely. Must be 0 for ephemeral messages."},
+    {"text": "heading (1-360) and proximity_alert_radius (1-100000 m) are for live locations.", "source": "API", "cite": "heading: For live locations, a direction in which the user is moving, in degrees. Must be between 1 and 360 if specified. / proximity_alert_radius: Must be between 1 and 100000 if specified."},
+    {"text": "horizontal_accuracy is 0-1500 m.", "source": "API", "cite": "horizontal_accuracy: The radius of uncertainty for the location, measured in meters; 0-1500"}
+   ],
+   "related": ["sendVenue", "editMessageLiveLocation", "stopMessageLiveLocation", "Location", "EphemeralMessageParameters"],
+   "rights": "non-admins: can_send_messages (ChatPermissions)",
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendVenue": {
+   "purpose": "Send a venue: a point on the map with a title and an address.",
+   "use_when": ["a named place such as a shop, office or event location"],
+   "avoid_when": ["a bare coordinate: sendLocation"],
+   "related": ["sendLocation", "sendContact", "Venue"],
+   "rights": "non-admins: can_send_messages (ChatPermissions)",
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendContact": {
+   "purpose": "Send a phone contact card.",
+   "use_when": ["handing over a support, shop or staff phone number"],
+   "avoid_when": ["a text number is enough: sendMessage"],
+   "pitfalls": [
+    {"text": "vcard is 0-2048 bytes of extra vCard data.", "source": "API", "cite": "vcard: Additional data about the contact in the form of a vCard, 0-2048 bytes"}
+   ],
+   "related": ["sendLocation", "sendVenue", "Contact"],
+   "rights": "non-admins: can_send_messages (ChatPermissions)",
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendPoll": {
+   "purpose": "Send a native poll or quiz.",
+   "use_when": ["votes, schedules and short quizzes inside a chat"],
+   "avoid_when": ["results that need a custom layout: a keyboard or widget"],
+   "pitfalls": [
+    {"text": "A quiz needs correct_option_ids: increasing 0-based ids.", "source": "API", "cite": "correct_option_ids: A JSON-serialized list of monotonically increasing 0-based identifiers of the correct answer options, required for polls in quiz mode"},
+    {"text": "is_anonymous defaults to True.", "source": "API", "cite": "is_anonymous: True, if the poll needs to be anonymous, defaults to True"},
+    {"text": "open_period and close_date are mutually exclusive.", "source": "API", "cite": "open_period: Amount of time in seconds the poll will be active after creation, 5-2628000. Can't be used together with close_date."},
+    {"text": "members_only and country_codes are for channel chats only; no polls in channel direct messages chats.", "source": "API", "cite": "country_codes: for channel chats only / chat_id: Polls can't be sent to channel direct messages chats."}
+   ],
+   "related": ["stopPoll", "InputPollOption", "InputPollMedia", "Poll", "PollAnswer", "MessageEntity"],
+   "rights": "non-admins: can_send_polls (ChatPermissions)",
+   "refs": ["references/polls-checklists-and-reactions.md#sending"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendChecklist": {
+   "purpose": "Send a checklist on behalf of a connected business account.",
+   "use_when": ["a task list for a customer of a business account"],
+   "avoid_when": ["chats without a business connection: the method can't be used there"],
+   "pitfalls": [
+    {"text": "Only on behalf of a connected business account; business_connection_id is required.", "source": "API", "cite": "sendChecklist: Use this method to send a checklist on behalf of a connected business account."},
+    {"text": "checklist holds 1-30 tasks; each task id is positive and unique in the checklist.", "source": "API", "cite": "InputChecklist.tasks: List of 1-30 tasks in the checklist / InputChecklistTask.id: must be positive and unique among all task identifiers currently present in the checklist"}
+   ],
+   "related": ["editMessageChecklist", "InputChecklist", "InputChecklistTask", "Checklist", "BusinessBotRights"],
+   "rights": "business bot right can_reply (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.1",
+   "refs": ["references/polls-checklists-and-reactions.md#checklists-business-accounts-91"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendDice": {
+   "purpose": "Send an animated emoji that shows a random value.",
+   "use_when": ["a game of chance or a light interactive moment"],
+   "avoid_when": ["a result the bot must decide: the value is random"],
+   "pitfalls": [
+    {"text": "emoji is one of 🎲 🎯 🏀 ⚽ 🎳 🎰 (default 🎲); values 1-6, 1-5 for 🏀 ⚽, 1-64 for 🎰.", "source": "API", "cite": "emoji: Currently, must be one of “🎲”, “🎯”, “🏀”, “⚽”, “🎳”, or “🎰”."},
+    {"text": "Read the result from Message.dice.value after sending.", "source": "API", "cite": "Dice.value: Value of the dice"}
+   ],
+   "related": ["Dice", "ReplyParameters"],
+   "since": "4.7",
+   "example": "examples/payloads/api-messages.json"
+  },
+  "sendChatAction": {
+   "purpose": "Show a short status such as typing or uploading while the bot prepares a reply.",
+   "use_when": ["a reply that will take a noticeable time"],
+   "avoid_when": ["channels: not supported", "waits over a few seconds: a draft or a status message"],
+   "pitfalls": [
+    {"text": "The status lasts 5 seconds or less and clears when the bot's message arrives.", "source": "API", "cite": "sendChatAction: The status is set for 5 seconds or less (when a message arrives from your bot, Telegram clients clear its typing status)."},
+    {"text": "Channel chats and channel direct messages chats aren't supported.", "source": "API", "cite": "chat_id: Channel chats and channel direct messages chats aren't supported."},
+    {"text": "action: typing, upload_photo, record_video, upload_video, record_voice, upload_voice, upload_document, choose_sticker, find_location, record_video_note, upload_video_note.", "source": "API", "cite": "action: typing for text messages, upload_photo for photos, record_video or upload_video for videos"}
+   ],
+   "related": ["sendMessageDraft", "sendMessage"],
+   "refs": ["references/dynamic-feedback-and-streaming.md#5-chat-actions"],
+   "example": "examples/payloads/api-messages.json"
+  },
+  "getFile": {
+   "purpose": "Get a file's download path from its file_id, then download it from the file URL.",
+   "use_when": ["reading a file a user sent: a document, photo, voice or video"],
+   "avoid_when": ["resending a file: pass its file_id to the send method"],
+   "pitfalls": [
+    {"text": "Bots can download files up to 20 MB; the link is valid for at least 1 hour.", "source": "API", "cite": "getFile: For the moment, bots can download files of up to 20MB in size. / It is guaranteed that the link will be valid for at least 1 hour."},
+    {"text": "The original file name and MIME type may be lost; save them from the incoming message.", "source": "API", "cite": "getFile: This function may not preserve the original file name and MIME type."},
+    {"text": "The download URL contains the bot token: never log it or hand it to a client.", "source": "Heuristic"}
+   ],
+   "related": ["File", "InputFile", "Document", "PhotoSize"],
+   "refs": ["references/media-and-files.md#downloading-getfile"],
+   "example": "examples/payloads/api-messages.json"
+  }
+ }
+}

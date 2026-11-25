@@ -1,4 +1,22 @@
+---
+summary: "Deciding friction for new or risky users: Telegram and own signals, account age from the id, optional anti-spam lists, a tiered policy with appeal, retention; read for anti-abuse or trust scoring."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # User trust and anti-abuse
+
+## Contents
+
+- [0. What trust is for, and what it is not](#0-what-trust-is-for-and-what-it-is-not)
+- [1. What Telegram gives a bot](#1-what-telegram-gives-a-bot)
+- [2. Your own records: the best signals](#2-your-own-records-the-best-signals)
+- [3. Account age from the id](#3-account-age-from-the-id)
+- [4. External anti-spam lists (optional)](#4-external-anti-spam-lists-optional)
+- [5. The policy: tiers and actions](#5-the-policy-tiers-and-actions)
+- [6. What the skill declines](#6-what-the-skill-declines)
+- [7. Storing, logging, expiring](#7-storing-logging-expiring)
+- [8. Checklist and digging deeper](#8-checklist-and-digging-deeper)
 
 How a bot decides how much friction to put in front of a user: new accounts in a group, a first order in a
 shop, a referral payout, a giveaway entry. It covers:

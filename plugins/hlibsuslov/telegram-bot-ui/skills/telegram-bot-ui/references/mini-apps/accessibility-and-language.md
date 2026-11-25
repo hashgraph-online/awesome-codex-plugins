@@ -1,4 +1,25 @@
+---
+summary: "Mini App accessibility and language: screen readers, text size, contrast, motion, touch targets, localization, RTL, testing, checklist; read before building or reviewing any Mini App screen."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Accessibility and language in Mini Apps
+
+## Contents
+
+- [0. Native first](#0-native-first)
+- [1. Who uses what, and what breaks](#1-who-uses-what-and-what-breaks)
+- [2. Screen readers: VoiceOver and TalkBack](#2-screen-readers-voiceover-and-talkback)
+- [3. Text size](#3-text-size)
+- [4. Contrast and colour](#4-contrast-and-colour)
+- [5. Motion and transparency](#5-motion-and-transparency)
+- [6. Touch targets and one-handed use](#6-touch-targets-and-one-handed-use)
+- [7. Language](#7-language)
+- [8. Right to left: Arabic, Hebrew, Persian](#8-right-to-left-arabic-hebrew-persian)
+- [9. Testing](#9-testing)
+- [10. Digging deeper](#10-digging-deeper)
+- [11. Checklist](#11-checklist)
 
 How a Mini App works for everyone who opens it from Telegram. That includes people who use VoiceOver or
 TalkBack, large text, increased contrast or reduced motion, people with one free hand, and people who read

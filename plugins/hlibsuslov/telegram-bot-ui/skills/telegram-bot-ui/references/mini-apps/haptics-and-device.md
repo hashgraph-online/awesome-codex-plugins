@@ -1,4 +1,23 @@
+---
+summary: "Haptics and device features in Mini Apps: Taptic Engine, motion sensors, location, biometrics, fullscreen, QR, clipboard, the permission pattern; read before using any device feature."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Haptics (Taptic Engine) and device features in Mini Apps
+
+## Contents
+
+- [0. Before adding any device feature](#0-before-adding-any-device-feature)
+- [1. Haptics: `Telegram.WebApp.HapticFeedback` (6.1)](#1-haptics-telegramwebapphapticfeedback-61)
+- [2. Motion sensors: Accelerometer, Gyroscope, DeviceOrientation (8.0)](#2-motion-sensors-accelerometer-gyroscope-deviceorientation-80)
+- [3. Location: `LocationManager` (8.0)](#3-location-locationmanager-80)
+- [4. Biometrics: `BiometricManager` (7.2)](#4-biometrics-biometricmanager-72)
+- [5. Screen and system features](#5-screen-and-system-features)
+- [6. The permission pattern (location, biometrics, contact, write access, emoji status)](#6-the-permission-pattern-location-biometrics-contact-write-access-emoji-status)
+- [7. Testing](#7-testing)
+- [8. Digging deeper](#8-digging-deeper)
+- [9. Checklist](#9-checklist)
 
 How a Mini App uses the phone itself: haptic feedback (the Taptic Engine on iPhone, the vibration motor on
 Android), motion sensors, location, biometrics, fullscreen and orientation, home-screen shortcuts, QR scanning,

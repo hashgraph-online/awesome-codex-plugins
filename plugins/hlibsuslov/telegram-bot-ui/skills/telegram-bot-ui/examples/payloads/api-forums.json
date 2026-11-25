@@ -1,0 +1,109 @@
+{
+  "scenario": "api-forums",
+  "status": "production (deleteForumTopic is a recorded request, never sent)",
+  "context": "forum supergroup where the bot is an administrator; createForumTopic, editForumTopic, deleteForumTopic and unpinAllForumTopicMessages also take a private chat with a user",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "getForumTopicIconStickers",
+      "_context": "no chat; no rights; any bot",
+      "params": {}
+    },
+    {
+      "method": "createForumTopic",
+      "_context": "forum supergroup, bot admin with can_manage_topics; or a private chat with a user (no right named)",
+      "params": {
+        "chat_id": -1001234567890,
+        "name": "Ticket #1042: refund for order 318",
+        "icon_color": 7322096,
+        "icon_custom_emoji_id": "0300000000000001"
+      }
+    },
+    {
+      "method": "editForumTopic",
+      "_context": "forum supergroup, bot admin with can_manage_topics unless the bot created the topic; or a private chat with a user (no right named)",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 42,
+        "name": "Ticket #1042: refund sent",
+        "icon_custom_emoji_id": "0300000000000002"
+      }
+    },
+    {
+      "method": "unpinAllForumTopicMessages",
+      "_context": "forum supergroup, bot admin with can_pin_messages; or a private chat with a user (no right named)",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 42
+      }
+    },
+    {
+      "method": "closeForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics unless the bot created the topic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 42
+      }
+    },
+    {
+      "method": "reopenForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics unless the bot created the topic",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 42
+      }
+    },
+    {
+      "method": "deleteForumTopic",
+      "_context": "forum supergroup, bot admin with can_delete_messages; or a private chat with a user (no right named); destructive, recorded not sent",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_thread_id": 42
+      }
+    },
+    {
+      "method": "editGeneralForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics",
+      "params": {
+        "chat_id": -1001234567890,
+        "name": "Lobby"
+      }
+    },
+    {
+      "method": "closeGeneralForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "hideGeneralForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics; also closes General if it was open",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "unhideGeneralForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "reopenGeneralForumTopic",
+      "_context": "forum supergroup; bot admin with can_manage_topics; also unhides General if it was hidden",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "unpinAllGeneralForumTopicMessages",
+      "_context": "forum supergroup; bot admin with can_pin_messages",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    }
+  ]
+}

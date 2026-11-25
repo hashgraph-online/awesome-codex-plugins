@@ -1,4 +1,21 @@
+---
+summary: "Screen patterns by product type (commerce, booking, learning, SaaS, money, social): sections, screens, content types, primary actions, routes, mistakes; read to plan or audit a Mini App."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Screen patterns by product type
+
+## Contents
+
+- [1. Commerce](#1-commerce)
+- [2. Booking and services](#2-booking-and-services)
+- [3. Learning and content](#3-learning-and-content)
+- [4. SaaS and tools](#4-saas-and-tools)
+- [5. Money and loyalty](#5-money-and-loyalty)
+- [6. Social and play](#6-social-and-play)
+- [7. Lessons from the analysed reference (a wallet Mini App, iOS, dark)](#7-lessons-from-the-analysed-reference-a-wallet-mini-app-ios-dark)
+- [8. Auditing an app against a pattern](#8-auditing-an-app-against-a-pattern)
 
 What a Mini App for each common product looks like: its sections (tab roots), level-2 screens, the content
 types it lists (with their layout from [layout-rules.md](layout-rules.md)), the primary action of each

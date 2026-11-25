@@ -1,0 +1,303 @@
+{
+ "$comment": "Agent notes for editing, deleting and reacting to messages. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "editing",
+ "notes": {
+  "editMessageText": {
+   "purpose": "Replace the text or rich content of a message the bot sent, or of an inline message, in place.",
+   "use_when": ["a screen changes inside one flow: navigation, progress, status"],
+   "avoid_when": ["the event is new and must stay in history: send a new message"],
+   "pitfalls": [
+    {"text": "Send text (1-4096 characters after parsing) or rich_message; one of the two is required.", "source": "API", "cite": "text: required if rich_message isn't specified; rich_message: required if text isn't specified"},
+    {"text": "Target is chat_id + message_id, or inline_message_id; an inline message returns True, not a Message.", "source": "API", "cite": "message_id: Required if inline_message_id is not specified."},
+    {"text": "Business messages the bot did not send, without an inline keyboard, are editable only within 48 hours.", "source": "API", "cite": "editMessageText: business messages that were not sent by the bot and do not contain an inline keyboard can only be edited within 48 hours from the time they were sent"},
+    {"text": "Identical content and markup fails with 400 'message is not modified': compare before editing.", "source": "Unverified"}
+   ],
+   "related": ["editMessageCaption", "editMessageMedia", "editMessageReplyMarkup", "InputRichMessage", "InlineKeyboardMarkup", "LinkPreviewOptions", "Message"],
+   "refs": [
+    "references/streaming-and-editing.md#editing-rich-content",
+    "references/inline-keyboards.md#editing-in-place-vs-sending-a-new-message"
+   ],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editMessageCaption": {
+   "purpose": "Change the caption of a media message the bot sent, or of an inline media message.",
+   "use_when": ["the key fact of a photo, video or document post changes"],
+   "avoid_when": ["the message is text or rich: editMessageText", "the media itself changes: editMessageMedia"],
+   "pitfalls": [
+    {"text": "caption is 0-1024 characters after entities parsing.", "source": "API", "cite": "caption: New caption of the message, 0-1024 characters after entities parsing"},
+    {"text": "show_caption_above_media works only for animation, photo and video messages.", "source": "API", "cite": "show_caption_above_media: Supported only for animation, photo and video messages."},
+    {"text": "Target is chat_id + message_id, or inline_message_id; an inline message returns True, not a Message.", "source": "API", "cite": "message_id: Required if inline_message_id is not specified."},
+    {"text": "Business messages the bot did not send, without an inline keyboard, are editable only within 48 hours.", "source": "API", "cite": "editMessageCaption: ... can only be edited within 48 hours from the time they were sent"}
+   ],
+   "related": ["editMessageText", "editMessageMedia", "editMessageReplyMarkup", "InlineKeyboardMarkup", "MessageEntity", "Message"],
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editMessageMedia": {
+   "purpose": "Replace the media of a message, or turn a text or rich message into a media message.",
+   "use_when": ["swap a photo or file in a published post", "a text message becomes a media message"],
+   "avoid_when": ["only the caption changes: editMessageCaption"],
+   "pitfalls": [
+    {"text": "Inside an album: audio only to audio, document only to document, otherwise photo, live photo or video.", "source": "API", "cite": "editMessageMedia: it can be edited only to an audio for audio albums, only to a document for document albums and to a photo, a live photo, or a video otherwise"},
+    {"text": "An inline message takes no new upload: use a file_id or a URL.", "source": "API", "cite": "editMessageMedia: When an inline message is edited, a new file can't be uploaded"},
+    {"text": "media is an InputMedia, and its type picks the member; a file_id is the recommended way to pass a known file.", "source": "API", "cite": "InputMediaPhoto.media: Pass a file_id to send a file that exists on the Telegram servers (recommended)"},
+    {"text": "Business messages the bot did not send, without an inline keyboard, are editable only within 48 hours.", "source": "API", "cite": "editMessageMedia: ... can only be edited within 48 hours from the time they were sent"}
+   ],
+   "related": ["InputMedia", "editMessageCaption", "editMessageText", "editMessageReplyMarkup", "InlineKeyboardMarkup", "Message"],
+   "since": "4.0",
+   "refs": [
+    "references/media-and-files.md#inputmedia-for-albums-and-editmessagemedia",
+    "references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"
+   ],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editMessageLiveLocation": {
+   "purpose": "Move a live location message to new coordinates, or extend how long it can be updated.",
+   "use_when": ["a tracked courier, ride or shift position changes"],
+   "avoid_when": ["the location is a fixed place: send it once with sendLocation"],
+   "pitfalls": [
+    {"text": "Editable until live_period expires or stopMessageLiveLocation is called.", "source": "API", "cite": "editMessageLiveLocation: A location can be edited until its live_period expires or editing is explicitly disabled by a call to stopMessageLiveLocation"},
+    {"text": "A new live_period may exceed the current one by at most a day and must expire within 90 days; 0x7FFFFFFF means forever.", "source": "API", "cite": "live_period: If 0x7FFFFFFF is specified, then the location can be updated forever. Otherwise, the new value must not exceed the current live_period by more than a day"},
+    {"text": "horizontal_accuracy 0-1500 m, heading 1-360, proximity_alert_radius 1-100000 m.", "source": "API", "cite": "heading: Must be between 1 and 360 if specified; proximity_alert_radius: Must be between 1 and 100000 if specified"},
+    {"text": "Throttle position updates; on a flood wait skip the frame instead of retrying in a loop.", "source": "Heuristic"}
+   ],
+   "related": ["stopMessageLiveLocation", "sendLocation", "Location", "InlineKeyboardMarkup", "Message"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "stopMessageLiveLocation": {
+   "purpose": "End a live location message before its live_period expires.",
+   "use_when": ["the journey, shift or session that fed the location is over"],
+   "avoid_when": ["the location should simply run out: it stops updating when live_period expires"],
+   "pitfalls": [
+    {"text": "After the stop, editMessageLiveLocation can no longer move the location.", "source": "API", "cite": "editMessageLiveLocation: editing is explicitly disabled by a call to stopMessageLiveLocation"},
+    {"text": "Target is chat_id + message_id, or inline_message_id; an inline message returns True, not a Message.", "source": "API", "cite": "stopMessageLiveLocation: if the message is not an inline message, the edited Message is returned, otherwise True is returned"},
+    {"text": "Call it when the feeding session ends, not only at expiry.", "source": "Heuristic"}
+   ],
+   "related": ["editMessageLiveLocation", "sendLocation", "Location", "InlineKeyboardMarkup", "Message"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editMessageChecklist": {
+   "purpose": "Replace a checklist the bot sent on behalf of a connected business account.",
+   "use_when": ["the title or tasks of a checklist sent for a business account change"],
+   "avoid_when": ["there is no business connection: business_connection_id is required"],
+   "pitfalls": [
+    {"text": "business_connection_id, chat_id, message_id and checklist are all required; the result is the edited Message.", "source": "API", "cite": "editMessageChecklist: Use this method to edit a checklist on behalf of a connected business account."},
+    {"text": "InputChecklist: title 1-255 characters, 1-30 tasks, task text 1-100, task id positive and unique among current tasks.", "source": "API", "cite": "InputChecklist.tasks: List of 1-30 tasks in the checklist; InputChecklistTask.id: must be positive and unique among all task identifiers currently present in the checklist"},
+    {"text": "Send the whole new checklist: keep the ids of unchanged tasks, give new tasks new ids.", "source": "Heuristic"}
+   ],
+   "related": ["InputChecklist", "InputChecklistTask", "BusinessConnection", "InlineKeyboardMarkup", "Message"],
+   "chat_types": ["business"],
+   "since": "9.1",
+   "refs": ["references/polls-checklists-and-reactions.md#checklists-business-accounts-91"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editMessageReplyMarkup": {
+   "purpose": "Swap the inline keyboard of a message without touching its text or media.",
+   "use_when": ["toggle states, show a confirmation row", "a finished screen must stop accepting taps"],
+   "avoid_when": ["the text or media must change too: editMessageText, editMessageMedia"],
+   "pitfalls": [
+    {"text": "Target is chat_id + message_id, or inline_message_id; an inline message returns True, not a Message.", "source": "API", "cite": "message_id: Required if inline_message_id is not specified."},
+    {"text": "Business messages the bot did not send, without an inline keyboard, are editable only within 48 hours.", "source": "API", "cite": "editMessageReplyMarkup: ... can only be edited within 48 hours from the time they were sent"},
+    {"text": "Omitting reply_markup, or an empty keyboard, removes the keyboard.", "source": "Unverified"},
+    {"text": "A disabled keyboard is not idempotency: re-check state on the server for every stale tap.", "source": "Heuristic"}
+   ],
+   "related": ["editMessageText", "editMessageCaption", "editMessageMedia", "InlineKeyboardMarkup", "Message"],
+   "refs": ["references/inline-keyboards.md#editing-in-place-vs-sending-a-new-message"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "stopPoll": {
+   "purpose": "Close a poll the bot sent and get the final Poll with its results.",
+   "use_when": ["a vote or quiz must end now, before its close time"],
+   "avoid_when": ["the poll has a known end: set open_period or close_date in sendPoll"],
+   "pitfalls": [
+    {"text": "Only a poll the bot itself sent; chat_id and message_id are both required.", "source": "API", "cite": "stopPoll: stop a poll which was sent by the bot"},
+    {"text": "No inline_message_id parameter, so it cannot stop a poll in an inline message.", "source": "API", "cite": "stopPoll parameters: business_connection_id, chat_id, message_id, reply_markup"},
+    {"text": "Returns the stopped Poll, not a Message.", "source": "API", "cite": "stopPoll: On success, the stopped Poll is returned."},
+    {"text": "Keep (chat_id, message_id) for every poll you send; the stop call needs both.", "source": "Heuristic"}
+   ],
+   "related": ["sendPoll", "Poll", "InlineKeyboardMarkup", "Message"],
+   "since": "4.2",
+   "refs": ["references/polls-checklists-and-reactions.md#receiving-results"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "deleteMessage": {
+   "purpose": "Delete one message, within the limits of its age, type and the bot's rights.",
+   "use_when": ["remove the bot's own stale or wrong message", "moderation in a group the bot administers"],
+   "avoid_when": ["the message can be corrected: edit it and keep views and replies"],
+   "pitfalls": [
+    {"text": "Only messages sent less than 48 hours ago; a dice message in a private chat only after 24 hours.", "source": "API", "cite": "deleteMessage: A message can only be deleted if it was sent less than 48 hours ago."},
+    {"text": "Creation service messages of a supergroup, channel or forum topic can't be deleted.", "source": "API", "cite": "deleteMessage: Service messages about a supergroup, channel, or forum topic creation can't be deleted."},
+    {"text": "No inline_message_id, so an inline message can't be deleted: edit it to a closed state.", "source": "API", "cite": "deleteMessage parameters: chat_id, message_id"}
+   ],
+   "related": ["deleteMessages", "editMessageText", "Message"],
+   "rights": "own channel posts: can_post_messages; any message in a supergroup or channel: can_delete_messages; direct messages chat: can_manage_direct_messages",
+   "chat_types": ["private", "group", "supergroup", "channel"],
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "deleteMessages": {
+   "purpose": "Delete 1-100 messages in one request; messages that can't be found are skipped.",
+   "use_when": ["clean up a batch: a finished flow, a moderated thread"],
+   "avoid_when": ["a single message: deleteMessage"],
+   "pitfalls": [
+    {"text": "message_ids holds 1-100 identifiers.", "source": "API", "cite": "message_ids: A JSON-serialized list of 1-100 identifiers of messages to delete."},
+    {"text": "Messages that can't be found are skipped, and the result is plain True with no per-message outcome.", "source": "API", "cite": "deleteMessages: If some of the specified messages can't be found, they are skipped. Returns True on success."},
+    {"text": "The limits of deleteMessage (age, message type, rights) apply to every id.", "source": "API", "cite": "message_ids: See deleteMessage for limitations on which messages can be deleted."}
+   ],
+   "related": ["deleteMessage", "Message"],
+   "rights": "as deleteMessage",
+   "since": "7.0",
+   "refs": ["references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "setMessageReaction": {
+   "purpose": "Set or change the bot's reaction on a message.",
+   "use_when": ["a cheap acknowledgement: seen, done"],
+   "avoid_when": ["the user needs details or a next step: reply with a message"],
+   "pitfalls": [
+    {"text": "A bot sets at most one reaction per message and can't use paid reactions.", "source": "API", "cite": "reaction: Currently, as non-premium users, bots can set up to one reaction per message. Paid reactions can't be used by bots."},
+    {"text": "A custom emoji reaction works only if already on the message or allowed by chat administrators.", "source": "API", "cite": "reaction: A custom emoji reaction can be used if it is either already present on the message or explicitly allowed by chat administrators."},
+    {"text": "In a media group the reaction goes to the first non-deleted message of the group.", "source": "API", "cite": "message_id: If the message belongs to a media group, the reaction is set to the first non-deleted message in the group instead."},
+    {"text": "An empty or omitted reaction clears the bot's reaction.", "source": "Unverified"},
+    {"text": "A failure is cosmetic: log it, never retry in a loop, never block the real reply.", "source": "Heuristic"}
+   ],
+   "related": ["ReactionType", "deleteMessageReaction", "deleteAllMessageReactions", "Message"],
+   "since": "7.0",
+   "refs": ["references/polls-checklists-and-reactions.md#setting"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "deleteMessageReaction": {
+   "purpose": "Remove one user's or chat's reaction from a message in a group or supergroup (moderation).",
+   "use_when": ["a single abusive reaction on one message"],
+   "avoid_when": ["many reactions by one actor: deleteAllMessageReactions"],
+   "pitfalls": [
+    {"text": "Group and supergroup chats only; the bot needs the can_delete_messages administrator right.", "source": "API", "cite": "deleteMessageReaction: remove a reaction from a message in a group or a supergroup chat. The bot must have the 'can_delete_messages' administrator right"},
+    {"text": "Name the actor: user_id for a user's reaction, actor_chat_id for a chat's.", "source": "API", "cite": "user_id: ... if the reaction was added by a user; actor_chat_id: ... if the reaction was added by a chat"}
+   ],
+   "related": ["deleteAllMessageReactions", "setMessageReaction", "ReactionType", "Message"],
+   "rights": "can_delete_messages",
+   "chat_types": ["group", "supergroup"],
+   "since": "10.0",
+   "refs": ["references/polls-checklists-and-reactions.md#deleting-others-reactions-100-moderation"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "deleteAllMessageReactions": {
+   "purpose": "Remove up to 10000 recent reactions added by one user or chat in a group or supergroup.",
+   "use_when": ["a spammer or a reaction-bombing account is moderated"],
+   "avoid_when": ["one message only: deleteMessageReaction"],
+   "pitfalls": [
+    {"text": "No message_id: it clears that actor's recent reactions across the chat, up to 10000.", "source": "API", "cite": "deleteAllMessageReactions: remove up to 10000 recent reactions in a group or a supergroup chat added by a given user or chat"},
+    {"text": "Group and supergroup chats only; the bot needs the can_delete_messages administrator right.", "source": "API", "cite": "deleteAllMessageReactions: The bot must have the 'can_delete_messages' administrator right in the chat."},
+    {"text": "Name the actor: user_id for a user, actor_chat_id for a chat.", "source": "API", "cite": "user_id: ... if the reactions were added by a user; actor_chat_id: ... if added by a chat"},
+    {"text": "There is no undo: log who was cleared and why.", "source": "Heuristic"}
+   ],
+   "related": ["deleteMessageReaction", "setMessageReaction", "ReactionType"],
+   "rights": "can_delete_messages",
+   "chat_types": ["group", "supergroup"],
+   "since": "10.0",
+   "refs": ["references/polls-checklists-and-reactions.md#deleting-others-reactions-100-moderation"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editEphemeralMessageText": {
+   "purpose": "Edit the text or rich content of an ephemeral message that only one user sees.",
+   "use_when": ["a personal panel in a group changes after the user's tap"],
+   "avoid_when": ["the message is a regular one: editMessageText"],
+   "pitfalls": [
+    {"text": "The user may not receive the edit, especially when offline.", "source": "API", "cite": "editEphemeralMessageText: it is not guaranteed that the user will receive the message edit event, especially if they are offline"},
+    {"text": "Needs chat_id, receiver_user_id and ephemeral_message_id from the sent Message (its message_id is 0); the id may be reused after delete or expiry.", "source": "API", "cite": "Message.ephemeral_message_id: The identifier may be reused for another ephemeral message after the message is deleted or expires."},
+    {"text": "Send text (1-4096 characters) or rich_message; the result is True, not a Message.", "source": "API", "cite": "text: required if rich_message isn't specified; rich_message: required if text isn't specified"},
+    {"text": "Never make correctness depend on the edit landing; re-check state on the next tap.", "source": "Heuristic"}
+   ],
+   "related": ["editEphemeralMessageCaption", "editEphemeralMessageMedia", "editEphemeralMessageReplyMarkup", "deleteEphemeralMessage", "EphemeralMessageParameters", "InputRichMessage", "InlineKeyboardMarkup", "Message"],
+   "since": "10.2",
+   "refs": ["references/ephemeral-and-personal.md#editing-and-lifetime"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editEphemeralMessageCaption": {
+   "purpose": "Edit the caption of an ephemeral media message that only one user sees.",
+   "use_when": ["a personal media card needs a new caption"],
+   "avoid_when": ["the message is a regular one: editMessageCaption"],
+   "pitfalls": [
+    {"text": "The user may not receive the edit, especially when offline.", "source": "API", "cite": "editEphemeralMessageCaption: it is not guaranteed that the user will receive the message edit event, especially if they are offline"},
+    {"text": "caption is 0-1024 characters; show_caption_above_media works only for animation, photo and video.", "source": "API", "cite": "show_caption_above_media: Supported only for animation, photo and video messages."},
+    {"text": "Needs chat_id, receiver_user_id and ephemeral_message_id; the result is True, not a Message.", "source": "API", "cite": "editEphemeralMessageCaption: On success, True is returned."}
+   ],
+   "related": ["editEphemeralMessageText", "editEphemeralMessageMedia", "editEphemeralMessageReplyMarkup", "deleteEphemeralMessage", "EphemeralMessageParameters", "InlineKeyboardMarkup", "Message"],
+   "since": "10.2",
+   "refs": ["references/ephemeral-and-personal.md#editing-and-lifetime"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editEphemeralMessageMedia": {
+   "purpose": "Replace the media of an ephemeral message that only one user sees.",
+   "use_when": ["a personal media card swaps its picture or file"],
+   "avoid_when": ["the message is a regular one: editMessageMedia"],
+   "pitfalls": [
+    {"text": "The user may not receive the edit, especially when offline.", "source": "API", "cite": "editEphemeralMessageMedia: it is not guaranteed that the user will receive the message edit event, especially if they are offline"},
+    {"text": "New files can be uploaded since 10.3; a file_id still avoids the upload.", "source": "API", "cite": "changelog 10.3: Supported upload of new files in editEphemeralMessageMedia."},
+    {"text": "media is an InputMedia; the result is True, not a Message.", "source": "API", "cite": "editEphemeralMessageMedia: On success, True is returned."}
+   ],
+   "related": ["InputMedia", "editEphemeralMessageText", "editEphemeralMessageCaption", "editEphemeralMessageReplyMarkup", "deleteEphemeralMessage", "InlineKeyboardMarkup", "Message"],
+   "since": "10.2",
+   "refs": ["references/ephemeral-and-personal.md#editing-and-lifetime"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "editEphemeralMessageReplyMarkup": {
+   "purpose": "Swap only the inline keyboard of an ephemeral message that only one user sees.",
+   "use_when": ["a personal panel moves to its next step or disables a used button"],
+   "avoid_when": ["the text changes too: editEphemeralMessageText"],
+   "pitfalls": [
+    {"text": "The user may not receive the edit, especially when offline.", "source": "API", "cite": "editEphemeralMessageReplyMarkup: it is not guaranteed that the user will receive the message edit event, especially if they are offline"},
+    {"text": "Needs chat_id, receiver_user_id and ephemeral_message_id; the result is True, not a Message.", "source": "API", "cite": "editEphemeralMessageReplyMarkup: On success, True is returned."},
+    {"text": "Treat buttons of an old panel as stale: re-check state on the tap and answer 'expired'.", "source": "Heuristic"}
+   ],
+   "related": ["editEphemeralMessageText", "editEphemeralMessageCaption", "editEphemeralMessageMedia", "deleteEphemeralMessage", "InlineKeyboardMarkup", "Message"],
+   "since": "10.2",
+   "refs": ["references/ephemeral-and-personal.md#editing-and-lifetime"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "deleteEphemeralMessage": {
+   "purpose": "Delete an ephemeral message that only one user sees.",
+   "use_when": ["a personal panel is finished or superseded"],
+   "avoid_when": ["the message is a regular one: deleteMessage"],
+   "pitfalls": [
+    {"text": "The user may not receive the deletion, especially when offline.", "source": "API", "cite": "deleteEphemeralMessage: it is not guaranteed that the user will receive the message deletion event, especially if they are offline"},
+    {"text": "Needs chat_id, receiver_user_id and ephemeral_message_id; all three are required.", "source": "API", "cite": "deleteEphemeralMessage parameters: chat_id, receiver_user_id, ephemeral_message_id (all required)"},
+    {"text": "The id may be reused for a new ephemeral message after deletion: drop your stored id.", "source": "API", "cite": "Message.ephemeral_message_id: The identifier may be reused for another ephemeral message after the message is deleted or expires."}
+   ],
+   "related": ["editEphemeralMessageText", "editEphemeralMessageCaption", "editEphemeralMessageMedia", "editEphemeralMessageReplyMarkup", "EphemeralMessageParameters", "Message"],
+   "since": "10.2",
+   "refs": ["references/ephemeral-and-personal.md#editing-and-lifetime"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "approveSuggestedPost": {
+   "purpose": "Approve a suggested post in a channel's direct messages chat, optionally setting its publish time.",
+   "use_when": ["the editor accepts a post a user or bot suggested to the channel"],
+   "avoid_when": ["the post should be refused: declineSuggestedPost"],
+   "pitfalls": [
+    {"text": "The bot needs can_post_messages in the corresponding channel; chat_id is the direct messages chat, an Integer.", "source": "API", "cite": "approveSuggestedPost: The bot must have the 'can_post_messages' administrator right in the corresponding channel chat."},
+    {"text": "send_date: omit it if a date was set when the post was suggested; at most 2678400 seconds (30 days) ahead.", "source": "API", "cite": "send_date: omit if the date has already been specified when the suggested post was created ... not more than 2678400 seconds (30 days) in the future"},
+    {"text": "An approved or declined suggested post can't be edited.", "source": "API", "cite": "Message.suggested_post_info: If the message is an approved or declined suggested post, then it can't be edited."}
+   ],
+   "related": ["declineSuggestedPost", "SuggestedPostParameters", "SuggestedPostInfo", "Message"],
+   "rights": "can_post_messages in the channel",
+   "since": "9.2",
+   "refs": ["references/channel-post-design.md#channel-direct-messages-and-suggested-posts"],
+   "example": "examples/payloads/api-editing.json"
+  },
+  "declineSuggestedPost": {
+   "purpose": "Decline a suggested post in a channel's direct messages chat, with an optional comment for its creator.",
+   "use_when": ["the editor refuses a suggested post and wants to say why"],
+   "avoid_when": ["the post should go out: approveSuggestedPost"],
+   "pitfalls": [
+    {"text": "The bot needs can_manage_direct_messages in the channel, not can_post_messages as for approving.", "source": "API", "cite": "declineSuggestedPost: The bot must have the 'can_manage_direct_messages' administrator right in the corresponding channel chat."},
+    {"text": "comment is 0-128 characters and goes to the creator of the post.", "source": "API", "cite": "comment: Comment for the creator of the suggested post; 0-128 characters"},
+    {"text": "An approved or declined suggested post can't be edited.", "source": "API", "cite": "Message.suggested_post_info: If the message is an approved or declined suggested post, then it can't be edited."}
+   ],
+   "related": ["approveSuggestedPost", "SuggestedPostParameters", "SuggestedPostInfo", "Message"],
+   "rights": "can_manage_direct_messages in the channel",
+   "since": "9.2",
+   "refs": ["references/channel-post-design.md#channel-direct-messages-and-suggested-posts"],
+   "example": "examples/payloads/api-editing.json"
+  }
+ }
+}

@@ -1,0 +1,16 @@
+<!-- Order status (private chat, production). Split from the skill gallery's order-tracker; build with bot-ui build.
+  chat_data: {"no":"#4821","s":0-4 current step (4 = delivered),"m":0 normal|1 delayed|2 cancelled,
+              "t0".."t4": unix time each step was reached (absent when not reached),"eta":unix,"cr":"courier name","at":unix,"r":N}
+  Requests: "sync" (background; the bot moves the step), "call" (ask the courier to call), "help" (open a support thread). -->
+<!--@file style.css-->
+<div class="k">
+  <div class="hd"><span class="tt el" id="ti"></span><span class="pl" id="pl"></span></div>
+  <div class="mt" id="eta"></div>
+  <div class="tl" id="tl"></div>
+  <div class="sf rw cr" id="cr"><span class="gr el" id="cn"></span><span class="mt" id="cl"></span></div>
+  <div class="rw ac" id="ac"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<!--@file widget.js-->

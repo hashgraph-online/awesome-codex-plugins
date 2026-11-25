@@ -5,7 +5,7 @@ compatibility: Requires an Amazon Ads MCP exposing list_identities, allv1_QueryA
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
   display-name: "Amazon Ads Accounts"
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # Amazon Ads Accounts
@@ -34,7 +34,7 @@ Load only the reference needed for the request. A conceptual question may be ans
 | Identity | `id` from `list_identities` | What the login connects with. It carries a provider and a region, and its ID is not an Amazon identifier. |
 | Advertiser account | `advertiserAccountId` | Unified advertiser identity across products and regions. Global IDs start with `amzn1.ads-account.g.`. Non-global IDs carry a regional segment, such as `amzn1.ads1.aa1.us.`. |
 | Profile | `profileId` | Numeric marketplace-specific alternate scope used by APIs that still require a profile. One advertiser may have several, and some have none. |
-| Entity | `entityId` | Alternate or legacy reference, often beginning with `ENTITY`. |
+| Entity | `entityId` | Alternate or legacy reference, often beginning with `ENTITY`. Found on the account's `alternateIds`; a seller profile's `accountInfo.id` is a merchant ID, not this. |
 | DSP advertiser | `dspAdvertiserId` | An alternate DSP identifier. Use it only when a tool explicitly requests it. |
 | Manager account | `managerAccountId` | Access/grouping node beginning with `amzn1.ads1.ma1.`. |
 
@@ -73,5 +73,6 @@ For “Which profile should I use for our UK ads?”, resolve the advertiser acc
 - Searching only global accounts when the account may be legacy or regional.
 - Treating a 400, a 404, or a short profile list as proof that an account or profile does not exist, when the cause may be the filter or the identity's region.
 - Treating a manager account as campaign or reporting scope.
-- Treating the profiles inside `list_identities` as an inventory.
+- Treating the profiles inside `list_identities` as an inventory. One identity showed 7 there and 16 in `ac_listProfiles`.
+- Sending a seller profile's `accountInfo.id`, a merchant ID, where a tool asks for an entity ID.
 - Reporting a count or "not found" as if it covered every identity on the login.

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "allswap": {
+      "command": "npx",
+      "args": ["-y", "@allswapio/mcp-server@1.0.2"]
+    }
+  }
+}

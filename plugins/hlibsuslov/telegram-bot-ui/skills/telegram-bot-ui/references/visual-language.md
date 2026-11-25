@@ -1,9 +1,25 @@
+---
+summary: "Icon systems, emoji discipline, screen anatomy, button label, color and icon rules, audit checklist and the premium pass; read when giving a bot a consistent visual identity."
+verified: "2026-11-12"
+bot_api: "10.4"
+---
+
 # Visual language: icons, emoji and text structure
 
 > Status: **Heuristic** (this skill's design system) unless marked **API**. Verified against
 > Bot API 10.4 on 2026-11-12; §7 added 2026-11-22 (Bot API 10.5). Tools: `scripts/audit_icons.py`, `scripts/audit_copy.py`,
 > `examples/python/icons/build_icon_map.py`, `examples/python/tgkit/icons.py`.
 > Worked example: `case-study-btc-tracker.md`.
+
+## Contents
+
+- [1. Choose one icon system per bot](#1-choose-one-icon-system-per-bot)
+- [2. Picking premium icons (process)](#2-picking-premium-icons-process)
+- [3. Unicode emoji discipline (applies to fallbacks too)](#3-unicode-emoji-discipline-applies-to-fallbacks-too)
+- [4. Screen anatomy (regular messages)](#4-screen-anatomy-regular-messages)
+- [5. Buttons: label, color, icon](#5-buttons-label-color-icon)
+- [6. Audit checklist](#6-audit-checklist)
+- [7. Premium pass: what a person sees and can do](#7-premium-pass-what-a-person-sees-and-can-do)
 
 A professional bot looks like **one product**: the same symbol always means the same thing, icons
 come from one drawing style, every screen has the same anatomy, and decoration never competes

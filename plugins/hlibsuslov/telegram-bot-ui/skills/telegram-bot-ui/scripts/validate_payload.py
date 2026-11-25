@@ -20,6 +20,10 @@ What it checks (errors -> exit 1)
   * unions ("one of" types such as InputMedia, ReactionType, BotCommandScope,
     InlineQueryResult): the discriminator (`type` / `source` / `status`) must
     select exactly one member, and the object must fit that member
+  * a few rules the API states in prose, read from the catalog text itself:
+    setMessageReaction (the fixed ReactionTypeEmoji list, at most one reaction
+    from a bot, no paid reactions) and setMyCommands (BotCommand name pattern and
+    lengths, at most 100 commands, unique names)
 
 What it does NOT check - this is a structural check, not semantic validation:
   string lengths and byte limits, enum values written only in prose, mutually
@@ -80,6 +84,9 @@ class Validator:
             rep.errors.append(f"{method}: params must be an object, got {type(params).__name__}")
             return rep
         self._check_fields(params, m["parameters"], method, rep, 0, what="parameter")
+        rule = getattr(self, "_rules_" + method, None)
+        if rule is not None:
+            rule(params, rep)
         for name, hint in DEFER.items():
             if name in params and not (name == "html" and method not in ("sendWidget",)):
                 rep.notes.append(hint)
@@ -90,6 +97,55 @@ class Validator:
         if missing_cond:
             rep.notes.append("conditionally required, check the description: " + ", ".join(missing_cond))
         return rep
+
+    # ---------------------------------------------------------------- rules stated in prose
+    def _prose_values(self, type_name: str, field_name: str) -> set[str]:
+        """Quoted values of 'can be one of "a", "b"' in a field description of the snapshot."""
+        f = next((x for x in self.types.get(type_name, {}).get("fields", []) if x["name"] == field_name), None)
+        text = (f or {}).get("description", "")
+        tail = text.split("one of", 1)[1] if "one of" in text else ""
+        return set(re.findall(r'"([^"]+)"', tail.replace("“", '"').replace("”", '"')))
+
+    def _rules_setMessageReaction(self, params: dict, rep: Report) -> None:
+        reactions = params.get("reaction")
+        if not isinstance(reactions, list):
+            return
+        if len(reactions) > 1:
+            rep.errors.append("setMessageReaction.reaction: bots can set at most one reaction per message")
+        allowed = self._prose_values("ReactionTypeEmoji", "emoji")
+        for i, r in enumerate(reactions):
+            if not isinstance(r, dict):
+                continue
+            if r.get("type") == "paid":
+                rep.errors.append(f"setMessageReaction.reaction[{i}]: bots can't use paid reactions")
+            # a value that is not a string is reported by the field check; only a string is looked up
+            if r.get("type") == "emoji" and isinstance(r.get("emoji"), str) and allowed and r["emoji"] not in allowed:
+                rep.errors.append(f"setMessageReaction.reaction[{i}]: {r['emoji']!r} is not a reaction emoji "
+                                  f"(ReactionTypeEmoji lists {len(allowed)}, e.g. 👍 👀 🔥 🎉 ✍)")
+
+    def _rules_setMyCommands(self, params: dict, rep: Report) -> None:
+        cmds = params.get("commands")
+        if not isinstance(cmds, list):
+            return
+        if len(cmds) > 100:
+            rep.errors.append(f"setMyCommands.commands: at most 100 commands, got {len(cmds)}")
+        seen = set()
+        for i, c in enumerate(cmds):
+            if not isinstance(c, dict):
+                continue
+            name, desc = c.get("command"), c.get("description")
+            if isinstance(name, str):
+                if not re.fullmatch(r"[a-z0-9_]{1,32}", name):
+                    rep.errors.append(f"setMyCommands.commands[{i}].command: 1-32 lowercase English letters, digits "
+                                      f"and underscores, got {name!r}")
+                if name in seen:
+                    rep.errors.append(f"setMyCommands.commands[{i}].command: {name!r} is listed twice")
+                seen.add(name)
+            if isinstance(desc, str) and not 1 <= len(desc) <= 256:
+                rep.errors.append(f"setMyCommands.commands[{i}].description: 1-256 characters, got {len(desc)}")
+        lang = params.get("language_code")
+        if isinstance(lang, str) and lang and not re.fullmatch(r"[a-z]{2}", lang):
+            rep.errors.append(f"setMyCommands.language_code: a two-letter ISO 639-1 code or empty, got {lang!r}")
 
     def check_object(self, type_name: str, value) -> Report:
         rep = Report()

@@ -1,4 +1,20 @@
+---
+summary: "The baseline per-user record: identity, origin, accepted terms, language, time zone, notification choices, how the profile shapes the interface, storage; read when designing user storage."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # The baseline user profile
+
+## Contents
+
+- [0. Principles](#0-principles)
+- [1. The record](#1-the-record)
+- [2. When to write and refresh](#2-when-to-write-and-refresh)
+- [3. How the profile changes the interface](#3-how-the-profile-changes-the-interface)
+- [4. Optional modules](#4-optional-modules)
+- [5. Storage](#5-storage)
+- [6. Checklist](#6-checklist)
 
 Every bot built with the skill keeps one record per user from the first contact. The record holds:
 - who they are, as Telegram shows them;

@@ -447,7 +447,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args or args[0] not in ("presets", "check", "css"):
         print(__doc__.split("\n\n")[0])
         print("usage: widget_design.py presets | check FILE | css FILE [SRC]")
-        return 2
+        return 0 if args[:1] in (["-h"], ["--help"]) else 2
     if args[0] == "presets":
         for k, v in PRESETS.items():
             print(f"{k:10} {v['label']}: {v['note']}")

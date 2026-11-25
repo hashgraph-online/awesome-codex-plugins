@@ -1,3 +1,9 @@
+---
+summary: "What to assert when testing bot UI offline: keyboards, formatting, rich markdown, html and blocks, streaming, localization, regression cases, manual pass, done checklist; read before writing UI tests."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Testing playbook
 
 > Use the **project's existing test infrastructure**. Do not add a new test
@@ -22,7 +28,7 @@
 - **Payload stability:** a golden/snapshot test asserting the set of
   `callback_data` values a screen emits — this is what catches an accidental
   scheme change during a redesign.
-- **`style`:** only `primary` / `success` / `danger`; at most one `primary` per
+- **`style`:** only `primary` / `success` / `danger` on keyboard buttons (`link` exists only on Rich callback buttons); at most one `primary` per
   screen; `danger` reachable only through a confirmation screen.
 - **Degraded render:** the keyboard with `style` and `icon_custom_emoji_id`
   stripped is still unambiguous (assert on labels alone).

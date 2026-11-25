@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.5.0] - 2026-11-25
+
+From a client session on 2026-11-25 with the plugin and the Kuudo Amazon Ads
+server connected.
+
+### Added
+
+- "Already connected": when the tools are present and the user only asks to
+  connect or to see what they can reach, confirm it read-only (identities,
+  then the server's own listing tool) and ask which account or marketplace to
+  work in. On Selling Partner the check selects the identity and a marketplace
+  in the same `execute` block as the read, because that server keeps a
+  selection for one block and routes to North America by default. The setup
+  steps are now under "Not connected".
+- Duplicates: when a task is covered twice (a skill under several prefixes, an
+  older upload under another name, a second Amazon MCP server), use the
+  `kuudo-skills:` skill and Kuudo's servers unless the user names another, and
+  mention the duplicates once.
+- The `list_identities` warning carries the measured counts: 7 profiles in the
+  identity listing against 16 in `ac_listProfiles`. The agent in that session
+  had shown the 7 as the full list.
+- "Hosts" covers chat in the Claude Desktop app, claude.ai, and the mobile
+  apps, where no hook runs, and Cowork and Gemini CLI.
+- Downloads: Kuudo's `execute` block can't fetch URLs, so a signed link is
+  downloaded in the client's own environment, and a link that arrives
+  HTML-escaped needs `&amp;` turned back into `&`. One line here covers every
+  skill that downloads a report or result.
+
+### Changed
+
+- The skill loaded twice in that session: once from the session hook and again
+  from a Skill call. The top of the skill and the hook's preamble now say it
+  is already loaded. The host notes moved from `references/claude-code.md` and
+  `references/codex.md` into "Hosts", because the hook injects this file
+  without its directory, so the injected text could not lead to a reference.
+
+### Removed
+
+- The "1% chance" block, the "Common rationalizations" table, and the examples
+  list. They cost tokens on every Amazon request and did not change routing.
+- The exact `Using [skill] to [purpose].` announcement. The agent did not
+  print it in that session. The skill now asks only that the user be told
+  which skill is in use.
+
 ## [0.4.0] - 2026-11-21
 
 ### Added

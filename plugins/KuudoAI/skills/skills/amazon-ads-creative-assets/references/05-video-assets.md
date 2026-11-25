@@ -1,8 +1,10 @@
 # Video creative assets
 
 This skill is image-first; video is here so a mixed brief doesn't have to
-leave. For generating the footage itself, the `veo-video` skill covers prompt
-craft and model constraints — this file covers what Amazon Ads will accept.
+leave. For generating the footage itself, the `amazon-video` skill on Amazon
+Agent Iris, Kuudo's image and video generation server
+(`skill://amazon-video/SKILL.md`), covers prompt craft and model constraints —
+this file covers what Amazon Ads will accept.
 
 ## Sponsored Brands video
 
@@ -56,12 +58,20 @@ craft and model constraints — this file covers what Amazon Ads will accept.
 
 ## Generating video for these slots
 
-Veo produces 4–8 second clips, and Sponsored Brands video needs at least 6
-seconds, ideally 15–30. So a compliant ad is either a single 6–8 second
-generation, or several clips assembled in an editor. The 16:9-only rule means
-no portrait generations, and the "product in the first two seconds" rule means
-the opening shot has to be the product — plan the shot order around that
-rather than opening on atmosphere.
+Iris generates video with Gemini Omni, and its limits change with the model,
+so read the live `generate_video` schema before planning a clip. On Omni 1.2,
+checked 2026-11-25, one generation runs 3–15 seconds (3–10 with first and last
+frames), and an Iris clip can be extended 3–10 seconds at a time, up to 30
+seconds in total. Sponsored Brands video needs at least 6 seconds, ideally
+15–30. So a compliant ad is a single 6–15 second generation, an Iris clip
+extended toward 30 seconds, or several clips assembled in an editor. Each
+extension is another paid generation that may rework the last frames to blend
+the join, so inspect it before delivery.
+
+Omni also generates 9:16, but these slots take 16:9 only, so request 16:9. The
+"product in the first two seconds" rule means the opening shot has to be the
+product — plan the shot order around that rather than opening on atmosphere.
+Extension only appends, so a product-first opening survives it.
 
 Product fidelity applies exactly as it does to images: generate product shots
 from the seller's real photos as references, and check the render before it
@@ -71,4 +81,5 @@ ships.
 
 **Provenance:** Amazon Ads `resources/ad-specs/sponsored-brands-video` and the
 video sections of `library/guides/sponsored-brands-display-ads-moderation`,
-captured 2026-09-03.
+captured 2026-09-03. Generation limits: the live Amazon Agent Iris
+`generate_video` schema and its `amazon-video` skill, checked 2026-11-25.

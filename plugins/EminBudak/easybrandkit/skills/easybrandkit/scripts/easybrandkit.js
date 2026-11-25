@@ -1,11 +1,23 @@
 #!/usr/bin/env node
 "use strict";
 
+// The kit looks names up with the system's lookup (see lib/address.js), on
+// libuv's threads, at most half of them at once, and its proxy looks up the
+// name of every request the browser makes. A name whose DNS gives no answer
+// holds a thread for as long as the system waits, 10 s with glibc's own
+// settings: with the 4 threads Node starts with, two such names on a page
+// held up every name asked after them past its 5 s, and the requests for
+// those were refused as names that could not be looked up. 32 threads look
+// up 16 names at once. Set before any of them starts; a number the caller
+// set is kept.
+if (!process.env.UV_THREADPOOL_SIZE) process.env.UV_THREADPOOL_SIZE = "32";
+
 const fs = require("fs");
 const os = require("os");
-const { makeKit } = require("./lib/kit");
+const { makeKit, normalizeUrl } = require("./lib/kit");
 const { discardRuns, savedRuns } = require("./lib/run");
 const { killBrowsers } = require("./lib/chrome");
+const { refusedAddresses } = require("./lib/address");
 const { noControls } = require("./lib/text");
 const version = require("./lib/version");
 
@@ -28,6 +40,9 @@ Options:
   --json           print brand.json instead of a summary
   --timeout <s>    give up after this many seconds (default: 120, or 240
                    with --facts)
+  --named-by <url> the site was named by the page at this address, as a
+                   store listing names its maker's website, and not given
+                   by you: it is read as a page easybrandkit chose itself
   -h, --help       show this help
   -v, --version    show the version
 
@@ -40,11 +55,52 @@ has and says so in the kit's notes. It fails instead when it has used up its
 --timeout on that page, or when none of a listing's pictures could be
 downloaded either.
 
-A page on this machine or a private network is read only when the address
-given is on that host and port, localhost and 127.0.0.1 counting as one
-host. One a site leads to there is not read. One the kit would choose there
-is not opened when the kit's own lookup finds it there; when only the
-browser finds it there, it is opened, and not read.
+The address given is opened whatever its host and port, and so are the pages
+on its scheme, host and port, and https on the host and port of an http
+address given. The host given is its own name: on its port, localhost,
+127.0.0.1 and [::1] are the host given where it is one of them and they
+reach an address of it, and no other name is, though it lead to the same
+address, a name under localhost included. A site that moves on to another of
+its names that the kit does not open, as below, stops the run there, and is
+read when given that name. An http address is asked for over http, unless
+the browser takes its name only over https, as every .dev and .app name,
+and the page read for the brand, when it is one on port 80 that gives no
+answer, is read over https on port 443 in its place, as an address the kit
+was not given. Any other address the kit opens, as a page it chose, each hop
+of a redirect, a page's own move, a frame or a window it opens and
+robots.txt with --facts, is opened only on port 80 or 443, and only when
+every address the kit's own lookup finds for its name is on the public
+internet and none is this machine's own, as its system lists them, or on
+the IPv6 network of one: a name it cannot look up is not opened, nor a name
+under .local or of one label, which it does not look up, nor an address it
+cannot read itself, as one whose host has a label of broken punycode
+(xn--a), which the browser reads.
+With --named-by, the site given is such an address too. Every request the
+browser makes as the kit starts it, a page's pictures, scripts and data and
+the browser's own among them, goes through a proxy of the kit's own on
+127.0.0.1, which holds it to the same rule, so the browser needs to connect
+to 127.0.0.1. Before any page is opened, a browser that sends the kit's test
+requests past that proxy, or whose WebRTC sends UDP, is not used. The README
+names what that check does not tell: a Chrome policy for a DNS over HTTPS
+server at 127.0.0.1, a managed one for WebRTC on some sites alone, and a
+program that starts the browser with switches that send some hosts past the
+proxy. A proxy the system or a setting such as HTTPS_PROXY names is not
+used.
+MAKERSMCP_REFUSE_ADDRESSES, a comma list of IP addresses and ranges such as
+10.0.0.0/8, refuses those for every address opened and every request the kit
+or its proxy makes, the one given included.
+A host whose name answers both with an address on the public internet and
+with one the kit does not open away from the address given is not opened
+wherever the kit meets it, the address given included, which stops the run
+before any work, with "on a host whose name answers with an address on the
+public internet, <address>, and with one ...": to read such a site, have the
+machine answer its name with the address you mean alone, as a line in its
+hosts file does. A store listing whose host the kit reads it from,
+play.google.com, or itunes.apple.com for the App Store, answers so is not
+read, with "host <host> answers with an address on the public internet,
+<address>, and with one ...": in the last line for a listing given, and in
+the kit's notes for one the site links, as the run goes on. The same line in
+the hosts file is the way out there.
 
 A page's own move to an address that is not a web address, such as mailto:,
 is cancelled before the browser hands it to a program of this machine. On
@@ -78,14 +134,18 @@ function parse(argv) {
     else if (arg === "--no-stores") options.stores = false;
     else if (arg === "--facts") options.facts = true;
     else if (arg === "--json") options.json = true;
-    else if (arg === "--out" || arg === "--timeout") {
+    else if (arg === "--out" || arg === "--timeout" || arg === "--named-by") {
       const value = argv[++i];
       if (!value || value.startsWith("-")) throw new Error(`${arg} needs a value`);
       if (arg === "--out") options.out = value;
+      else if (arg === "--named-by") options.namedBy = value;
       else options.timeout = Number(value);
     } else if (arg.startsWith("--out=")) {
       if (arg === "--out=") throw new Error("--out needs a value");
       options.out = arg.slice(6);
+    } else if (arg.startsWith("--named-by=")) {
+      if (arg === "--named-by=") throw new Error("--named-by needs a value");
+      options.namedBy = arg.slice(11);
     } else if (arg.startsWith("--timeout=")) options.timeout = Number(arg.slice(10));
     else if (arg.startsWith("-")) throw new Error(`Unknown option: ${arg}`);
     else rest.push(arg);
@@ -93,6 +153,13 @@ function parse(argv) {
   if (options.timeout === undefined) options.timeout = options.facts ? 240 : 120;
   if (!(options.timeout >= 30 && options.timeout <= 600)) throw new Error("--timeout takes 30 to 600 seconds");
   if (!options.help && !options.version && rest.length !== 1) throw new Error("Give one website address, for example: easybrandkit acme.com");
+  if (options.namedBy !== undefined) {
+    try {
+      normalizeUrl(options.namedBy);
+    } catch {
+      throw new Error(`--named-by takes the web address that named the site, as a store listing's: ${options.namedBy} is not one`);
+    }
+  }
   return { ...options, url: rest[0] };
 }
 
@@ -221,12 +288,22 @@ async function main() {
   printing = options.help ? "the help" : options.version ? "the version" : options.json ? "brand.json" : "the summary";
   if (options.help) return void process.stdout.write(`${USAGE}\n`);
   if (options.version) return void process.stdout.write(`${version}\n`);
+  // A MAKERSMCP_REFUSE_ADDRESSES that does not parse is refused as an option
+  // that does not is, before any work: no address could be judged by it.
+  try {
+    refusedAddresses();
+  } catch (err) {
+    if (options.json) process.stdout.write(JSON.stringify({ ok: false, error: err.message }) + "\n");
+    process.stderr.write(`easybrandkit: ${noControls(err.message)}\n`);
+    process.exit(2);
+  }
   stopOnSignals(options.json);
   try {
     const result = await makeKit(options.url, {
       dir: options.out,
       stores: options.stores,
       facts: options.facts,
+      namedBy: options.namedBy || "",
       timeLimit: options.timeout * 1000,
       log: options.json ? () => {} : (line) => process.stderr.write(`${line}...\n`),
     });

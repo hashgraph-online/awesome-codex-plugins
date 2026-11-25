@@ -1,3 +1,9 @@
+---
+summary: "Complete map of regular (non-Rich) formatting: HTML and MarkdownV2 parse modes, MessageEntity, nesting, captions, presentation controls, quick chooser; read when formatting regular messages."
+verified: "2026-07-15"
+bot_api: "10.5"
+---
+
 # Regular formatting — complete reference
 
 > Exhaustive map of **every regular (non-Rich) Telegram text-formatting feature**:
@@ -30,6 +36,7 @@ Supported tags (whitelist — nothing else is allowed):
 | Inline link | `<a href="https://example.com/">text</a>` |
 | User mention | `<a href="tg://user?id=123456789">name</a>` |
 | Custom emoji | `<tg-emoji emoji-id="5368324170671202286">👍</tg-emoji>` |
+| Date and time (9.5) | `<tg-time unix="1647531900" format="wDT">22:45 tomorrow</tg-time>` (shown in the reader's time zone and language) |
 | Inline code | `<code>code</code>` |
 | Code block | `<pre>block</pre>` |
 | Code block + language | `<pre><code class="language-python">…</code></pre>` |
@@ -84,7 +91,9 @@ against the exact text. Full type list:
   `language`), `text_link` (with `url`), `text_mention` (with `user`),
   `custom_emoji` (with `custom_emoji_id`).
 - Auto-detected/semantic: `mention` (`@user`), `hashtag`, `cashtag` (`$USD`),
-  `bot_command`, `url`, `email`, `phone_number`.
+  `bot_command`, `url`, `email`, `phone_number`, `bank_card_number`, `ton_address`.
+- Date and time: `date_time` (9.5; with `unix_time` and `date_time_format`), the entity form of
+  `<tg-time>` and of MarkdownV2 `![22:45 tomorrow](tg://time?unix=1647531900&format=wDT)`.
 
 Use entities when you need exact offsets, want no parse_mode, or must interleave
 untrusted text safely. A 4-byte emoji is **length 2** (surrogate pair). Entities
@@ -122,7 +131,8 @@ essential for notifications/broadcasts:
 | `message_effect_id` | animated effect (private chats) |
 | `reply_parameters` | reply/quote context (can quote a substring with its own entities) |
 | `reply_markup` | inline/reply keyboards attached to the message |
-| `message_thread_id` | forum topic / direct-message topic |
+| `message_thread_id` | forum topic (and a bot's private-chat topic) |
+| `direct_messages_topic_id` | a channel's direct-messages topic |
 | `business_connection_id` | send on behalf of a business account |
 
 Keep `link_preview_options` in mind whenever a message contains URLs — an

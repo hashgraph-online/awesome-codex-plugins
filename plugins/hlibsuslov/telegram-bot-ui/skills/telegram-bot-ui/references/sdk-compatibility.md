@@ -1,4 +1,23 @@
+---
+summary: "Checking what the project's SDK really supports: common SDKs, 9.4 field checks, escalation, raw payloads, verified SDK status for Bot API 10.4 and 10.5; read before promising a Bot API feature."
+verified: "2026-11-22"
+bot_api: "10.5"
+---
+
 # SDK compatibility
+
+## Contents
+
+- [Determine actual capability](#determine-actual-capability)
+- [Common SDKs (illustrative — verify versions, don't hardcode assumptions)](#common-sdks-illustrative--verify-versions-dont-hardcode-assumptions)
+- [Checking for the 9.4 button fields (run one, don't assume)](#checking-for-the-94-button-fields-run-one-dont-assume)
+- [Escalation when the SDK lacks a needed feature](#escalation-when-the-sdk-lacks-a-needed-feature)
+- [Raw payload pattern for keyboards](#raw-payload-pattern-for-keyboards)
+- [Don'ts](#donts)
+- [Update delivery and new update types](#update-delivery-and-new-update-types)
+- [Verified SDK status (2026-11-12)](#verified-sdk-status-2026-11-12)
+- [Bot API 10.5 status (2026-11-22)](#bot-api-105-status-2026-11-22)
+- [Release-note check (2026-11-15)](#release-note-check-2026-11-15)
 
 The project's SDK — not your memory — decides which UI and formatting features
 are reachable. Establish the SDK, its version, and the Bot API version it

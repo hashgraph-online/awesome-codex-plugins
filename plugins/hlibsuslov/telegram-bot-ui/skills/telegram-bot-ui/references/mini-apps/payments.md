@@ -1,4 +1,21 @@
+---
+summary: "Payments inside a Mini App: which rail, the Stars purchase flow, invoiceClosed statuses, subscriptions, card payments, the Serverless variant; read for the app side of taking money."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Payments inside a Mini App
+
+## Contents
+
+- [1. Which rail](#1-which-rail)
+- [2. The flow (one-off Stars purchase)](#2-the-flow-one-off-stars-purchase)
+- [3. Each status on screen](#3-each-status-on-screen)
+- [4. Before and around the button](#4-before-and-around-the-button)
+- [5. Subscriptions: the "My plan" screen](#5-subscriptions-the-my-plan-screen)
+- [6. Card payments for physical goods](#6-card-payments-for-physical-goods)
+- [7. Telegram Serverless variant](#7-telegram-serverless-variant)
+- [8. Checklist](#8-checklist)
 
 How a Mini App takes money: which rail for which goods, the end-to-end flow from cart to receipt, what each
 `invoiceClosed` status means on screen, subscriptions, card payments for physical goods, and where TON

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "projectId": "demo-shop",
+  "title": "Demo shop",
+  "defaultLocale": "en",
+  "locales": [
+    "en",
+    "ru",
+    "uk"
+  ],
+  "entryPoints": [
+    {
+      "id": "start",
+      "type": "command",
+      "command": "start",
+      "screen": "entry.start"
+    },
+    {
+      "id": "status",
+      "type": "command",
+      "command": "status",
+      "screen": "orders.status"
+    },
+    {
+      "id": "order-status-changed",
+      "type": "event",
+      "eventKey": "order.status_changed",
+      "screen": "orders.notification"
+    }
+  ],
+  "contexts": [
+    "private"
+  ],
+  "fields": {
+    "order.no": {
+      "type": "string",
+      "source": "data",
+      "example": "4821"
+    },
+    "order.total": {
+      "type": "string",
+      "source": "data",
+      "example": "$12.90"
+    },
+    "order.status_text": {
+      "type": "string",
+      "source": "data",
+      "example": "being packed"
+    },
+    "payment.method": {
+      "type": "enum",
+      "values": [
+        "card",
+        "cash"
+      ],
+      "source": "state"
+    },
+    "delivery.method": {
+      "type": "enum",
+      "values": [
+        "pickup",
+        "courier"
+      ],
+      "source": "context"
+    },
+    "order.note": {
+      "type": "string",
+      "source": "input",
+      "maxLength": 200
+    }
+  },
+  "handlers": {
+    "checkout.confirm": {
+      "outcomes": [
+        "ok",
+        "retry"
+      ],
+      "description": "Charges the order on the server; the demo returns a scripted outcome."
+    }
+  },
+  "messages": {
+    "stale": {
+      "en": "This button is out of date - use the latest message.",
+      "ru": "Эта кнопка устарела — откройте последнее сообщение.",
+      "uk": "Ця кнопка застаріла — відкрийте останнє повідомлення."
+    },
+    "disabled": {
+      "en": "Not available right now.",
+      "ru": "Сейчас недоступно.",
+      "uk": "Зараз недоступно."
+    }
+  },
+  "capabilities": {
+    "widgets": true,
+    "richMessages": false
+  },
+  "adapter": {
+    "sdk": "aiogram",
+    "sdkVersion": "3.31.0",
+    "source": "read on start and on change"
+  }
+}

@@ -1,3 +1,9 @@
+---
+summary: "Premium custom emoji in channel posts, long texts and rich messages: channel eligibility, placement, accents, accessibility, decorating a post model; read when styling posts with premium emoji."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Premium emoji in posts, long texts and rich messages
 
 > Status labels: **API**, **Official**, **Heuristic** (as in `emoji-packs.md`). Checked

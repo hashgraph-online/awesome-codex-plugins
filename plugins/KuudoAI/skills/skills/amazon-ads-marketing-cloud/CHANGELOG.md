@@ -4,6 +4,26 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [0.6.0] - 2026-11-25
+
+Measured on the Kuudo Amazon Ads MCP on 2026-11-25, after a client run reported a 403 from the pre-flight steps.
+
+### Fixed
+
+- Pre-flight sent the wrong ID to AMC for sellers. Step 4 called `accountInfo.id` from `ac_listProfiles` the entity ID that AMC calls take as a header. On a seller profile that field is the merchant ID, and `amc_listInstances` answers it with 403 `Unauthorized request.` Step 4b now takes `entityId` from the advertiser account's `alternateIds` entry for the profile, which is right for sellers and vendors alike (4 of 4 seller profiles differed from their `entityId`; 11 of 11 vendor profiles matched). The header pattern in `references/02-mcp-tool-behaviors.md`, the 403 rows in Troubleshooting and `references/10-errors-and-fixes.md`, and the fan-out flows are corrected to match, so this skill and `amazon-ads-accounts` agree.
+- The header pattern read `ac_listProfiles` as `profiles["result"][0]`. Inside `execute` the tool returns a plain list, and `allv1_QueryAdvertiserAccount` returns `advertiserAccounts` at the top level.
+- The download step told agents to fetch the pre-signed URL in "an available execution facility", and `references/02-mcp-tool-behaviors.md` showed the fetch inside the MCP's `execute` block, which can't fetch URLs. Both now say to return the URL from `execute` and download in the client's own environment.
+
+### Added
+
+- A pre-signed URL can reach the conversation HTML-escaped (`&amp;` for `&`), which S3 answers with 403. Step 5, `references/02-mcp-tool-behaviors.md`, and the preamble in `references/09-result-processing.md` unescape it before fetching.
+- `compatibility` frontmatter: the `amc_*` tools, account discovery, and a client that can download a file; Atlas is optional.
+- Evals 17 and 18: a seller's merchant ID sent as the advertiser header, and a download attempted in `execute` with an escaped link. Eval 5 no longer accepts a fetch inside `execute`.
+
+### Changed
+
+- SKILL.md is about a quarter shorter (6,438 to 4,781 words), so a discovery request such as "which instances do I have" loads less. The six-step audience workflow moved unchanged to `references/12-audience-workflow.md`, and SKILL.md keeps its order and its three standing rules. Step 5 points to `references/09-result-processing.md` for the fetch-and-parse snippet instead of repeating it, and Steps 2 and 4 point to `references/02-mcp-tool-behaviors.md` for wrong kwargs and `CUSTOM_PARAMETER` declarations. Guardrails, the reply shapes, pre-flight, SQL essentials, and troubleshooting are unchanged.
+
 ## [0.5.2] - 2026-11-02
 
 ### Fixed

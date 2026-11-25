@@ -138,6 +138,7 @@ test('slow sync', async () => { test.slow(); }); // triples the timeout in force
 test.fail('known gap', async () => {}); // expected to fail: a test failure passes it, a pass fails it with UNEXPECTED_PASS
 test('gap on web', async ({ platform }) => { test.fail(platform === 'web', 'known gap'); }); // marks, does not throw; the body runs on
 describe.fail('legacy', () => {}); // every test inside expected to fail; a reason: describe('legacy', { fail: 'reason' }, fn)
+describe.only('checkout', () => { test('pays', async () => {}); }); // local only: every test inside focused; CI fails with ONLY_IN_CI
 test.setup('sign in', { sessions: ['admin'] }, async ({ app, screen, session }) => {}); // see Sign-in sessions
 const wsTest = test.extend<{ ws: Ws }>({ ws: async ({ browser }, use) => { await use(await seed()); await drop(); } });
 wsTest('uses the workspace', async ({ ws }) => {}); // code after use() is teardown, runs after failures too
@@ -167,7 +168,7 @@ or a blocked agent verdict still fails the test.
 
 Serial members cannot set `retries`, `trace`, `video`, `session`,
 `platforms`, `skip`, `fail`, or `only`, nor can a nested `describe` set
-`trace` or `video`; nesting serial groups is a `COLLECTION_ERROR`.
+`trace`, `video`, `fail`, or `only`; nesting serial groups is a `COLLECTION_ERROR`.
 
 Hooks nest: outer `beforeEach` first, inner `afterEach` first. `beforeAll`
 reruns per retry and per serial group (each a fresh module realm) on the
@@ -205,8 +206,8 @@ with `device` set to `undefined`.
 
 To type fixtures across targets:
 
-1. Use `as const satisfies E2EConfig` on the config object, not a type
-   annotation, to keep the inferred engine types.
+1. Use `as const satisfies E2EConfig` or `defineConfig` on the config
+   object, not a type annotation, to keep the inferred engine types.
 2. Import the config type with `import type config from '../e2e.config.ts'`.
 3. Pass `typeof config` as the third type argument of `test.extend`:
    `base.extend<{}, {}, typeof config>()`.
@@ -583,8 +584,8 @@ test as close to its screen as the app allows:
 - Create the data the screen needs through the app's API in a `test.extend`
   fixture. Click through a creation flow only in the test that covers it.
   A declared session is restored before fixtures run, so when the app signs
-  in with a cookie, its session cookie from `browser.cookies()` signs the
-  fixture's requests in. Send only that cookie: the list holds every site's.
+  in with a cookie, `browser.cookies(url)` signs the fixture's requests in:
+  it returns only the cookies the browser would send to that URL.
   Check the response in the fixture: a
   failed seed then fails there, not 30 s later on a locator. While exploring
   over MCP, a project tool that seeds data (topic `agent`) gets there in one
@@ -597,11 +598,9 @@ import { z } from 'zod';
 
 const projectTest = test.extend<{ project: { id: string } }>({
   project: async ({ app, browser, request }, use) => {
-    // The domain the app sets the cookie on: its host, or `.example.com` for `Domain=example.com`.
-    const domain = new URL(app.baseUrl).hostname;
-    const session = (await browser.cookies()).find((c) => c.name === 'session' && c.domain === domain);
-    if (session === undefined) throw new Error('not signed in: no session cookie for the app');
-    const headers = { cookie: `session=${session.value}` };
+    const cookies = await browser.cookies(`${app.baseUrl}/api/projects`);
+    if (cookies.length === 0) throw new Error('not signed in: the app has no cookies');
+    const headers = { cookie: cookies.map((c) => `${c.name}=${c.value}`).join('; ') };
     const created = await request.post(`${app.baseUrl}/api/projects`, { json: { name: `Project ${Date.now()}` }, headers });
     expect(created.status).toBe(201);
     const project = expect(await created.json()).toMatchSchema(z.object({ id: z.string() }));
@@ -692,13 +691,20 @@ the opener is gone. `tabs()`, `newTab()`, `tab.activate()`, and
   readers wait for the body (up to the action timeout) and reject with
   `ACTION_FAILED` when it could not be read. Start the wait before the
   request, including the first `browser.goto` or `app.open`.
-- `cookies()`, `setCookies([...])`: a target is an http(s) URL or a domain.
+- `cookies(urls?)`: every cookie, or only those a request to one URL or a
+  list would carry; a relative URL resolves against the app URL.
+- `setCookies([...])`: a target is an http(s) URL or a domain.
 - `clearCookies({ name?, domain?, path? })`: remove cookies matching every
   string or RegExp filter; no options removes all cookies, other storage stays.
 - `setViewport({ width, height })`: resize.
 - `emulateMedia({ colorScheme?, reducedMotion? })`: what the page's `@media`
   rules and `matchMedia` read, for the rest of the test. Call it before
   `app.open` to load the page with it; a feature left out keeps its value.
+- `setNetwork('offline' | 'online')`: cuts or restores the network of every
+  tab and service worker for the rest of the test. A request that reaches
+  the network fails, and a navigation to a page no cache holds is
+  `ACTION_FAILED`; a page its service worker cached still loads. Every test
+  starts online.
 - `onDialog('accept' | 'dismiss' | handler)`: awaited; resolves to an async
   unsubscribe. Register it before the tap that opens the dialog. A handler
   gets `{ type, message, accept(text?), dismiss() }`, where `type` is
@@ -743,9 +749,9 @@ URL-matching them. A predicate function is `INVALID_ARGUMENT`.
   cleanup, so replays and retries never trip over leftovers.
 - APIs live in the same suite: `request.get('/api/users')` (each call a
   step, a path against the app URL) and the value matchers on
-  `response.status` and `await response.json()`. `request` sends no browser cookies: pass the app's
-  session cookie from `browser.cookies()` in a `cookie` header when the API
-  needs the session.
+  `response.status` and `await response.json()`. `request` sends no browser cookies: pass the ones from
+  `browser.cookies(url)` in a `cookie` header when the API needs the
+  session.
 - No sleeps, fixed delays, or polling loops. Wait for the state, not a
   duration: `agent.waitFor('the import finished')` with a `timeout` long
   enough for the slowest case (topic `agent` lists its model and budget

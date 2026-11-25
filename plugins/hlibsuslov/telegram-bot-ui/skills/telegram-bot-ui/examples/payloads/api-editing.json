@@ -1,0 +1,345 @@
+{
+  "scenario": "api-editing",
+  "status": "production (deletions are recorded requests only)",
+  "context": "private; group and supergroup with bot admin; channel; business chat; channel direct messages chat",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "editMessageText",
+      "_context": "any chat the bot sent to, or an inline message (inline_message_id, result True); business messages need business_connection_id",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 4021,
+        "text": "<b>Order #8812</b>\nStatus: out for delivery",
+        "parse_mode": "HTML",
+        "link_preview_options": {
+          "is_disabled": true
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "callback_data": "trk:8812"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "_context": "any chat the bot sent to, or an inline message (inline_message_id, result True); business messages need business_connection_id",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 4022,
+        "rich_message": {
+          "html": "<h2>Order #8812</h2><p>Out for delivery, arriving by 18:00.</p>"
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "_context": "any chat the bot sent to, or an inline message (inline_message_id, result True); business messages need business_connection_id",
+      "params": {
+        "inline_message_id": "BAAAAJw0AAA8e2Kx",
+        "text": "Margherita: ordered by Taras",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "callback_data": "trk:8812"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageCaption",
+      "_context": "media message the bot sent, or an inline message (inline_message_id, result True)",
+      "params": {
+        "chat_id": -1001987654321,
+        "message_id": 312,
+        "caption": "<b>Margherita</b>: now 8.90 EUR",
+        "parse_mode": "HTML",
+        "show_caption_above_media": true
+      }
+    },
+    {
+      "method": "editMessageMedia",
+      "_context": "message the bot sent, or an inline message (file_id or URL only); inside an album the media type is restricted",
+      "params": {
+        "chat_id": -1001987654321,
+        "message_id": 312,
+        "media": {
+          "type": "photo",
+          "media": "AgACAgIAAxkBAAID",
+          "caption": "Updated price: 8.90 EUR"
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Order",
+                "callback_data": "ord:margherita"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageLiveLocation",
+      "_context": "live location message the bot sent, while its live_period has not expired",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 4180,
+        "latitude": 50.4501,
+        "longitude": 30.5234,
+        "live_period": 7200,
+        "horizontal_accuracy": 25.5,
+        "heading": 90,
+        "proximity_alert_radius": 100
+      }
+    },
+    {
+      "method": "stopMessageLiveLocation",
+      "_context": "live location message the bot sent, before its live_period expires",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 4180
+      }
+    },
+    {
+      "method": "editMessageChecklist",
+      "_context": "private chat of a connected business account; business_connection_id required",
+      "params": {
+        "business_connection_id": "BCxyz",
+        "chat_id": 555555555,
+        "message_id": 77,
+        "checklist": {
+          "title": "Before your appointment",
+          "others_can_mark_tasks_as_done": true,
+          "tasks": [
+            {
+              "id": 1,
+              "text": "Bring your passport"
+            },
+            {
+              "id": 2,
+              "text": "Arrive 10 minutes early"
+            },
+            {
+              "id": 3,
+              "text": "Sign the consent form"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "_context": "any chat the bot sent to, or an inline message (inline_message_id, result True)",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 905,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approved by Dan",
+                "callback_data": "noop"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "stopPoll",
+      "_context": "poll the bot sent; not available for inline messages",
+      "params": {
+        "chat_id": -1001987654321,
+        "message_id": 640
+      }
+    },
+    {
+      "method": "deleteMessage",
+      "_context": "supergroup; bot admin with can_delete_messages for others' messages; message younger than 48 hours",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 905
+      }
+    },
+    {
+      "method": "deleteMessages",
+      "_context": "supergroup; bot admin with can_delete_messages for others' messages; ids younger than 48 hours",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_ids": [
+          906,
+          907,
+          908
+        ]
+      }
+    },
+    {
+      "method": "setMessageReaction",
+      "_context": "group or supergroup; the reaction must be allowed in the chat; one reaction per message",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 910,
+        "reaction": [
+          {
+            "type": "emoji",
+            "emoji": "👍"
+          }
+        ]
+      }
+    },
+    {
+      "method": "deleteMessageReaction",
+      "_context": "supergroup; bot admin with can_delete_messages",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 910,
+        "user_id": 666666666
+      }
+    },
+    {
+      "method": "deleteAllMessageReactions",
+      "_context": "supergroup; bot admin with can_delete_messages",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 666666666
+      }
+    },
+    {
+      "method": "sendMessage",
+      "_context": "supergroup; bot admin pushing an ephemeral message to a member (setup for the ephemeral edits)",
+      "params": {
+        "chat_id": -1001234567890,
+        "ephemeral_message_parameters": {
+          "receiver_user_id": 222222222
+        },
+        "text": "Your open orders: 2",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open",
+                "callback_data": "orders:open"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendPhoto",
+      "_context": "supergroup; bot admin pushing an ephemeral photo to a member (setup for the ephemeral media edits)",
+      "params": {
+        "chat_id": -1001234567890,
+        "ephemeral_message_parameters": {
+          "receiver_user_id": 222222222
+        },
+        "photo": "AgACAgIAAxkBAAID",
+        "caption": "Your order #8812"
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "_context": "group or supergroup; ephemeral message the bot sent to receiver_user_id",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 41,
+        "text": "Your open orders: 1",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open",
+                "callback_data": "orders:open"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageCaption",
+      "_context": "group or supergroup; ephemeral media message the bot sent to receiver_user_id",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 42,
+        "caption": "Your order #8812: out for delivery",
+        "show_caption_above_media": true
+      }
+    },
+    {
+      "method": "editEphemeralMessageMedia",
+      "_context": "group or supergroup; ephemeral media message the bot sent to receiver_user_id",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 42,
+        "media": {
+          "type": "photo",
+          "media": "AgACAgIAAxkBAAID",
+          "caption": "Your order #8812"
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageReplyMarkup",
+      "_context": "group or supergroup; ephemeral message the bot sent to receiver_user_id",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 41,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "callback_data": "trk:8812"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "deleteEphemeralMessage",
+      "_context": "group or supergroup; ephemeral message the bot sent to receiver_user_id",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 41
+      }
+    },
+    {
+      "method": "approveSuggestedPost",
+      "_context": "channel direct messages chat; bot admin with can_post_messages in the channel",
+      "params": {
+        "chat_id": -1001122334455,
+        "message_id": 52,
+        "send_date": 1790086400
+      }
+    },
+    {
+      "method": "declineSuggestedPost",
+      "_context": "channel direct messages chat; bot admin with can_manage_direct_messages in the channel",
+      "params": {
+        "chat_id": -1001122334455,
+        "message_id": 53,
+        "comment": "Duplicates Monday's post"
+      }
+    }
+  ]
+}

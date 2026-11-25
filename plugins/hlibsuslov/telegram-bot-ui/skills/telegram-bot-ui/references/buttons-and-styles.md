@@ -1,4 +1,25 @@
+---
+summary: "Inline and reply button rules: one field per type, colored style, custom emoji icons, ordering, anti-patterns, disabled buttons, force_reply; read when labelling or coloring buttons."
+verified: "2026-11-25"
+bot_api: "10.5"
+---
+
 # Buttons, emphasis, and `style` colors
+
+## Contents
+
+- [The one structural rule](#the-one-structural-rule)
+- [`style` — colored buttons (Bot API 9.4, 2026-02-09)](#style--colored-buttons-bot-api-94-2026-02-09)
+- [Custom emoji icons](#custom-emoji-icons)
+- [Ordering and grouping](#ordering-and-grouping)
+- [Inline vs reply — which one is a "button" here](#inline-vs-reply--which-one-is-a-button-here)
+- [Anti-patterns](#anti-patterns)
+- [Before/after](#beforeafter)
+- [Three button models](#three-button-models)
+  - [Choosing the mechanism](#choosing-the-mechanism)
+  - [Buttons inside a rich message: the lifecycle](#buttons-inside-a-rich-message-the-lifecycle)
+- [Disabled buttons](#disabled-buttons)
+- [force_reply on keyboards](#force_reply-on-keyboards)
 
 Everything here applies to both `InlineKeyboardButton` and `KeyboardButton`
 unless stated otherwise. Layout specifics: `inline-keyboards.md`,
@@ -187,6 +208,48 @@ rejects cross-model fields.
 | `style` | primary/success/danger | primary/success/danger | + **`link`** (callback buttons only) |
 | `icon_custom_emoji_id` | yes | yes | no (put custom emoji in the text) |
 | Placement | under the message | replaces the user's keyboard | in a `<tg-button-row>` block (1–8) or inline in text (`RichTextButton`) |
+
+### Choosing the mechanism
+
+Choose by what the reader is doing; never one habit for every screen. **[Heuristic]**, built on the
+API facts above.
+
+| The action… | Use | Why not the others |
+|---|---|---|
+| belongs to one section of a long answer ("Details" next to a figure, "Pay" under the receipt table) | rich button in text or a `<tg-button-row>` after that section | an inline keyboard sits under the whole message, far from what it refers to |
+| moves through the bot's screens (Back, Menu, page 2) | inline keyboard | stays in one place on every screen; editing it alone is cheap (`editMessageReplyMarkup`) |
+| is a quiet secondary link inside a sentence | rich button with `style: "link"` (callback only) | a filled button competes with the primary action |
+| is the user's own reply or a fixed set of answers typed often | reply keyboard | inline and rich buttons belong to one message and scroll away |
+| needs a form, a long list with search, a map or drag and drop | Mini App (`web_app`) | buttons can't hold input |
+| shares the user's contact, location, a chat or a user | reply keyboard `request_*` | only `KeyboardButton` has these |
+| pays, starts a game | inline keyboard (`pay`, `callback_game`) | rich buttons have neither |
+
+One action lives in one place: the same action in the document and in the keyboard is a decision the
+user has to make twice (bot-ui reports `RICH_BUTTON_ON_KEYBOARD`). Navigation in the keyboard,
+content actions in the document is the usual split.
+
+### Buttons inside a rich message: the lifecycle
+
+- **Press.** A `callback_data` button sends a `callback_query` like an inline button:
+  `message` is the rich message, `data` the button's data. Answer every query
+  (`answerCallbackQuery`), with a toast only when it adds information. **[API]**
+- **Route.** Use one callback scheme for both kinds of buttons, for example `<screen>:<action>`, so
+  one router serves the document and the keyboard; bot-ui does this with
+  `<tg-button action="pay">` bound to the screen's `actions` (`bot-ui-projects.md`). **[Heuristic]**
+- **Update.** There is no method that edits one button inside a document: re-render the whole
+  `rich_message` with `editMessageText` (the keyboard under it is a separate `reply_markup`). To
+  show progress, swap the pressed button for `type="disabled"` with a status label in that edit,
+  then the result. **[API]** (methods), **[Heuristic]** (pattern)
+- **Remove.** Drop the button from the HTML in the next edit; an action that is finished becomes a
+  disabled status label or plain text, never a dead button.
+- **Repeat presses.** The edit takes a round trip; the user can press again or press an old copy.
+  Make the handler idempotent (operation id in your state, not in the callback data) and treat a
+  press on a superseded message as stale: answer "This card is out of date" and send the current one.
+  Disabled is presentation: check state and rights on the server for every press.
+- **Errors.** If the edit fails (message too old, deleted, `message is not modified`), answer the
+  query anyway and send the current screen as a new message; never leave the press unanswered.
+- **Check.** `py -3 <skill>/scripts/tgui.py check rich <payload>` and the MCP tool `check_rich_html`
+  validate rows (1-8 buttons), types, `link` only on callback buttons and 1-64 byte data.
 
 ## Disabled buttons
 

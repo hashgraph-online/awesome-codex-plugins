@@ -1,0 +1,34 @@
+{
+  "id": "orders.pickup",
+  "title": "Самовывоз",
+  "kind": "result",
+  "audience": "private",
+  "message": {
+    "id": "main",
+    "format": "regular.html",
+    "text": {
+      "en": "🏬 <b>Pickup</b>\nCollect order #{order.no} at 5 Garden St, 10:00-21:00.",
+      "ru": "🏬 <b>Самовывоз</b>\nЗаберите заказ #{order.no} на Садовой, 5, с 10:00 до 21:00.",
+      "uk": "🏬 <b>Самовивіз</b>\nЗаберіть замовлення #{order.no} на Садовій, 5, з 10:00 до 21:00."
+    }
+  },
+  "keyboard": {
+    "type": "inline",
+    "rows": [
+      [
+        "back"
+      ]
+    ]
+  },
+  "actions": {
+    "back": {
+      "label": {
+        "en": "← Status",
+        "ru": "← К статусу",
+        "uk": "← До статусу"
+      },
+      "type": "back",
+      "fallback": "orders.status"
+    }
+  }
+}

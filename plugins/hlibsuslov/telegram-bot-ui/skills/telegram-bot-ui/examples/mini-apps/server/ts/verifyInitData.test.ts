@@ -81,6 +81,14 @@ test('Authorization header helper', () => {
   assert.throws(() => fromAuthorization(undefined, V.bot_token), /Authorization/);
 });
 
+test('Authorization header in the official Serverless form: TMA + base64(initData)', () => {
+  const b64 = Buffer.from(V.init_data, 'utf8').toString('base64');
+  assert.ok(fromAuthorization(`TMA ${b64}`, V.bot_token, { now: V.now }));
+  assert.ok(fromAuthorization(`TMA ${V.init_data}`, V.bot_token, { now: V.now }));
+  assert.throws(() => fromAuthorization(`TMA ${Buffer.from('user=x', 'utf8').toString('base64')}`, V.bot_token,
+    { now: V.now }), InitDataError);
+});
+
 test('a newline inside a value cannot fold the next field into it (same signed text)', () => {
   const p = new URLSearchParams(V.init_data);
   const user = p.get('user')!;

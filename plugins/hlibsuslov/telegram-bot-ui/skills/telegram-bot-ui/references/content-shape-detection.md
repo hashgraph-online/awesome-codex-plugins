@@ -1,4 +1,20 @@
+---
+summary: "How to spot that bot text is secretly a table, checklist, heading tree or collapsible block, and whether to act, offer or ask; read when writing, reviewing or migrating any user-visible text."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Content-shape detection — recognizing what the text wants to be
+
+## Contents
+
+- [The rule](#the-rule)
+- [Step 1 — Read the content for shape signals](#step-1--read-the-content-for-shape-signals)
+- [Step 2 — Apply the escape hatch honestly](#step-2--apply-the-escape-hatch-honestly)
+- [Step 3 — Decide: act, offer, or ask](#step-3--decide-act-offer-or-ask)
+- [Step 4 — Proactively surface the *other* wins too](#step-4--proactively-surface-the-other-wins-too)
+- [Worked detection examples](#worked-detection-examples)
+- [Anti-patterns](#anti-patterns)
 
 Heuristics of this skill (first written 2026-08-05, reviewed 2026-11-15). Surface choice
 (message, rich document, keyboard, widget, Mini App): `format-selection.md`.

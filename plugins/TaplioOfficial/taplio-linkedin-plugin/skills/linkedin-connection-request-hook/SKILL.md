@@ -9,7 +9,7 @@ A connection request without a note gets accepted 30 to 40% of the time. With th
 
 ## When to trigger
 
-The user says "write me a connection request to X", "I want to connect with Y", "what should I say in my invite", "invite the people who commented on my post", or the Warm Lead Finder skill hands over a lead.
+The user says "write me a connection request to X", "I want to connect with Y", "what should I say in my invite", "invite the people who commented on my post", or the Warm Lead Finder or Lead List Builder skill hands over a lead.
 
 ## Inputs to ask for (only if missing)
 

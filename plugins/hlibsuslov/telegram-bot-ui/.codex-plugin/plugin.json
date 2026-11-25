@@ -1,6 +1,6 @@
 {
   "name": "telegram-bot-ui",
-  "version": "3.1.0",
+  "version": "3.3.0",
   "description": "The whole interface of a Telegram bot on the newest Bot API: screens, texts and keyboards, navigation and states, streaming AI replies, HTML widgets, premium emoji, product flows, channel publishing, agent-operated bots and Bot API lookups, plus the local bot-ui Studio to map and edit it. Bundles the telegram-bot-ui skill and five subagents.",
   "author": {
     "name": "hlibsuslov"

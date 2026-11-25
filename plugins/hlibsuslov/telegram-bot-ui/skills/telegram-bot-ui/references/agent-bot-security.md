@@ -1,3 +1,9 @@
+---
+summary: "Threat model and rules for a bot that remote-controls an agent's machine: operator allowlist, untrusted inbound text, approval binding, token redaction, rate limits; read before exposing an agent bot."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Security for agent-operated bots
 
 > Verified 2026-11-15 (Bot API 10.4). Tags: **[API]** Bot API requirement,

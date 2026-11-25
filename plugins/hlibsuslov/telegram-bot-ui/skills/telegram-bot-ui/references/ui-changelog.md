@@ -1,3 +1,9 @@
+---
+summary: "Interface-relevant Bot API history by version: what 9.4 changed, the 9.3-10.2 run for AI bots, version gates to check, keeping the file honest; read to know which version a UI feature needs."
+verified: "2026-11-22"
+bot_api: "10.5"
+---
+
 # UI-relevant Bot API history and version gates
 
 Only the entries that change what a bot's **interface** can do. Every line below
@@ -15,6 +21,14 @@ newer version — re-read the changelog; (2) the project's SDK actually exposes
 the field (`sdk-compatibility.md`). A feature existing in the Bot API is not the
 same as a feature you can call.
 
+## Contents
+
+- [The current UI toolbox by version](#the-current-ui-toolbox-by-version)
+- [What 9.4 actually changed for UI work](#what-94-actually-changed-for-ui-work)
+- [What the 9.3 → 10.2 run changed for AI-bot interfaces](#what-the-93--102-run-changed-for-ai-bot-interfaces)
+- [Version gates to check before designing](#version-gates-to-check-before-designing)
+- [Keeping this file honest](#keeping-this-file-honest)
+
 ## The current UI toolbox by version
 
 | Version | Date | UI-relevant additions |
@@ -27,7 +41,7 @@ same as a feature you can call.
 | **10.0** | 2026-05-08 | Guest mode (`answerGuestQuery`, `Update.guest_message`). Reaction management (`deleteMessageReaction`, `deleteAllMessageReactions`, `can_react_to_messages`). Poll media (`sendPoll` `media`, option media), live photos. |
 | **9.6** | 2026-04-03 | `PreparedKeyboardButton` + `savePreparedKeyboardButton` (Mini App can trigger `request_users` / `request_chat` / `request_managed_bot`), `KeyboardButton.request_managed_bot`, `WebApp.requestChat`. Poll UX: multi-answer quizzes, `shuffle_options`, `allows_revoting`, `allow_adding_options`, `hide_results_until_closes`, poll `description`. |
 | **9.5** | 2026-03-01 | **`date_time` `MessageEntity`** (client-side localized dates/times), `sendMessageDraft` opened to all bots, member tags, `BottomButton.iconCustomEmojiId` (Mini App side). |
-| **9.4** | **2026-02-09** | **`style` on `KeyboardButton` and `InlineKeyboardButton`** (colored buttons). **`icon_custom_emoji_id` on both button classes.** **Custom emoji allowed in messages sent directly by the bot to private/group/supergroup chats when the bot owner has Telegram Premium.** Topics in private chats (`createForumTopic`, `User.allows_users_to_create_topics`). `setMyProfilePhoto` / `removeMyProfilePhoto`. |
+| **9.4** | **2026-02-09** | **`style` on `KeyboardButton` and `InlineKeyboardButton`** (colored buttons). **`icon_custom_emoji_id` on both button classes.** **Custom emoji allowed in messages sent directly by the bot to private/group/supergroup chats when the bot owner has Telegram Premium.** Topics in private chats (`createForumTopic`, `User.allows_users_to_create_topics` — `BotFullInfo` since 10.5). `setMyProfilePhoto` / `removeMyProfilePhoto`. |
 | **9.3** | 2025-12-31 | `sendMessageDraft` (streamed partial messages), topics in private chats (`message_thread_id` in private chats, `User.has_topics_enabled` — `BotFullInfo` since 10.5). |
 | **6.2** | 2022-08-12 | Custom emoji foundation: `MessageEntity` type `custom_emoji`, `MessageEntity.custom_emoji_id`, `getCustomEmojiStickers`, `Sticker.type` + `Sticker.custom_emoji_id`. |
 
@@ -91,7 +105,7 @@ Design rules for all of it: `dynamic-feedback-and-streaming.md`.
 | Custom emoji on buttons | 9.4 | Eligibility route; ID obtained, not invented |
 | Custom emoji in text via owner Premium | 9.4 | Owner's Premium is current; chat type is private/group/supergroup |
 | Custom emoji in text via Fragment usernames | 6.2 | Fragment purchase exists |
-| Localized dates in text (`date_time`) | 9.5 | MarkdownV2/entities path (HTML cannot express it) |
+| Localized dates in text (`date_time`) | 9.5 | HTML `<tg-time unix format>`, MarkdownV2 `tg://time?unix=…&format=…` or a `date_time` entity |
 | Streaming a reply before it's final | 9.3 (all bots 9.5) | Private chats only; final `sendMessage` still required |
 | Streaming a *structured* reply / `<tg-thinking>` | 10.1 | Thinking block is draft-only; final send must stay rich |
 | Per-user menus inside a group (ephemeral) | 10.2 | Edit delivery is not guaranteed |

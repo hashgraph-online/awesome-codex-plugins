@@ -1,3 +1,9 @@
+---
+summary: "Consistency inventory (actions, states, cross-surface) and the final review checklist to run before reporting a redesign done; read at the end of any interface change."
+verified: "2026-11-23"
+bot_api: "10.5"
+---
+
 # Consistency between screens and states, and the final review
 
 A bot feels "designed" when the same thing looks and is named the same
@@ -79,7 +85,7 @@ The Telegram-side chrome must agree with the in-message UI:
 - [ ] Exactly one action field per inline button; ≤1 non-text field on reply
       buttons.
 - [ ] `callback_data` ≤ 64 bytes.
-- [ ] `style` only `primary` / `success` / `danger`, assigned by meaning.
+- [ ] `style` only `primary` / `success` / `danger` on keyboard buttons (plus `link` on a Rich `<tg-button>` callback button), assigned by meaning.
 - [ ] ≤1 `primary` per screen; `danger` only for real destruction, with a
       confirmation step.
 - [ ] Every label readable and unambiguous with no color and no emoji (strip test:

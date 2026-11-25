@@ -1,3 +1,9 @@
+---
+summary: "Message, caption and rich-message limits and a format-aware splitting algorithm: safe boundaries, what never to split, what to preserve; read before sending long or large content."
+verified: "2026-11-12"
+bot_api: "10.5"
+---
+
 # Limits and splitting
 
 > **Pull current limits from official docs — do not hardcode remembered numbers.**

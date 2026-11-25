@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-ads-accounts",
-  "skill_version": "1.2.0",
+  "skill_version": "1.2.1",
   "description": "Checks to run on a real Kuudo Amazon Ads MCP connection, because a simulator cannot show that the skill works on the server. This file holds no account data. Before running: use direct read-only queries to choose real values for each {placeholder} from the 'pick' note, and write the expected values into the checks. Keep filled-in prompts, answer keys, and replies out of the repo. During the run: compare with a no-skill run on the same prompt, forbid writes and every set_active_* and clear_selection call in the run prompt, and confirm the selection is unchanged afterward. Afterward: audit calls from the session logs rather than the agent's own account, and have a separate grader score shuffled replies without knowing which run had the skill. Skip a case when the connection has no matching account, and report the skip.",
   "cases": [
     {

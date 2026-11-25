@@ -1,0 +1,519 @@
+{
+  "scenario": "api-rich",
+  "status": "production",
+  "context": "private chat with the user who started the deploy (drafts are private-only); the final message and its edit work in any chat where the bot may send messages",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "sendRichMessageDraft",
+      "_context": "private chat only; no new uploads or URLs in a draft, media by file_id",
+      "params": {
+        "chat_id": 7001001,
+        "draft_id": 4242,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Collecting metrics"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "_context": "private chat only; no new uploads or URLs in a draft, media by file_id",
+      "params": {
+        "chat_id": 7001001,
+        "draft_id": 4242,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Deploy 2026-11-25: payments-api 4.12",
+              "size": 1
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Rolled out to ",
+                {
+                  "type": "bold",
+                  "text": "3 of 3"
+                },
+                " regions. p95 latency of ",
+                {
+                  "type": "code",
+                  "text": "payments-api"
+                },
+                " fell by ",
+                {
+                  "type": "bold",
+                  "text": "15%"
+                },
+                "; see the ",
+                {
+                  "type": "url",
+                  "text": "runbook",
+                  "url": "https://example.com/runbooks/payments-api"
+                },
+                "."
+              ]
+            },
+            {
+              "type": "thinking",
+              "text": "Building the latency table"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "_context": "any chat where the bot may send messages; a media block also needs the right to send it",
+      "params": {
+        "chat_id": 7001001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Deploy 2026-11-25: payments-api 4.12",
+              "size": 1
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Rolled out to ",
+                {
+                  "type": "bold",
+                  "text": "3 of 3"
+                },
+                " regions. p95 latency of ",
+                {
+                  "type": "code",
+                  "text": "payments-api"
+                },
+                " fell by ",
+                {
+                  "type": "bold",
+                  "text": "15%"
+                },
+                "; see the ",
+                {
+                  "type": "url",
+                  "text": "runbook",
+                  "url": "https://example.com/runbooks/payments-api"
+                },
+                "."
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "Checklist",
+              "size": 2
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Migrate the refunds table"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Switch traffic to the new pool"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Remove the old pool"
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Service",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "p95 before, ms",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "p95 after, ms",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "payments-api",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "212",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "180",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "ledger",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "95",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "97",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "notifier",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "40",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "38",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Latency, 24 h before and after"
+            },
+            {
+              "type": "photo",
+              "photo": {
+                "type": "photo",
+                "media": "AgACAgIAAxkBAAEBdeployChart0042"
+              },
+              "caption": {
+                "text": "p95 latency, last 48 h",
+                "credit": "Grafana, eu-west"
+              }
+            },
+            {
+              "type": "details",
+              "summary": "Migration log",
+              "blocks": [
+                {
+                  "type": "pre",
+                  "text": "ALTER TABLE refunds ADD COLUMN refund_id uuid;\n-- 1 204 311 rows, 41 s",
+                  "language": "sql"
+                }
+              ]
+            },
+            {
+              "type": "expandable_blockquote",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Error rate stayed under 0.1% during the switch."
+                }
+              ],
+              "credit": "On-call notes"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Roll back",
+                  "callback_data": "deploy:4.12:rollback",
+                  "style": "danger"
+                },
+                {
+                  "text": "Runbook",
+                  "url": "https://example.com/runbooks/payments-api"
+                }
+              ],
+              "align": "center"
+            },
+            {
+              "type": "footer",
+              "text": [
+                "Started from ",
+                {
+                  "type": "code",
+                  "text": "/deploy payments-api 4.12"
+                },
+                " by the on-call engineer."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "_context": "a message the bot sent; rich_message replaces the whole document",
+      "params": {
+        "chat_id": 7001001,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Deploy 2026-11-25: payments-api 4.12",
+              "size": 1
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Rolled out to ",
+                {
+                  "type": "bold",
+                  "text": "3 of 3"
+                },
+                " regions. p95 latency of ",
+                {
+                  "type": "code",
+                  "text": "payments-api"
+                },
+                " fell by ",
+                {
+                  "type": "bold",
+                  "text": "15%"
+                },
+                "; see the ",
+                {
+                  "type": "url",
+                  "text": "runbook",
+                  "url": "https://example.com/runbooks/payments-api"
+                },
+                "."
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "Checklist",
+              "size": 2
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Migrate the refunds table"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Switch traffic to the new pool"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Remove the old pool"
+                    }
+                  ],
+                  "has_checkbox": true,
+                  "is_checked": true
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Service",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "p95 before, ms",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "p95 after, ms",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "payments-api",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "212",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "180",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "ledger",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "95",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "97",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "notifier",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "40",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "38",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Latency, 24 h before and after"
+            },
+            {
+              "type": "photo",
+              "photo": {
+                "type": "photo",
+                "media": "AgACAgIAAxkBAAEBdeployChart0042"
+              },
+              "caption": {
+                "text": "p95 latency, last 48 h",
+                "credit": "Grafana, eu-west"
+              }
+            },
+            {
+              "type": "details",
+              "summary": "Migration log",
+              "blocks": [
+                {
+                  "type": "pre",
+                  "text": "ALTER TABLE refunds ADD COLUMN refund_id uuid;\n-- 1 204 311 rows, 41 s",
+                  "language": "sql"
+                }
+              ]
+            },
+            {
+              "type": "expandable_blockquote",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Error rate stayed under 0.1% during the switch."
+                }
+              ],
+              "credit": "On-call notes"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Roll back",
+                  "callback_data": "deploy:4.12:rollback",
+                  "style": "danger"
+                },
+                {
+                  "text": "Runbook",
+                  "url": "https://example.com/runbooks/payments-api"
+                }
+              ],
+              "align": "center"
+            },
+            {
+              "type": "footer",
+              "text": [
+                "Started from ",
+                {
+                  "type": "code",
+                  "text": "/deploy payments-api 4.12"
+                },
+                " by the on-call engineer."
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

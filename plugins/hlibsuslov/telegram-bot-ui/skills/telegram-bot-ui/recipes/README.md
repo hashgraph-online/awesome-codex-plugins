@@ -61,9 +61,9 @@ All recipes run offline: `py -3 examples/python/recipes/<file>.py`; TypeScript t
 | [10 Bot settings from code](10-bot-settings.md) | "stop clicking BotFather", "topics in a sidebar", "invite our testers", "buttons stopped working on old messages" | `setMySettings`, `BotFullInfo`, `callback_query_mode`, `has_topic_sidebar`, `active_usernames`, `t.me/botinvite`, `WriteAccessAllowed.inviter` | 10.5 | private; settings apply bot-wide |
 | [Mini-recipes](mini-recipes.md) | welcome, community joins, gift notes, `getUniqueGift`, `deleteBusinessAccountGift`, share themes, managed bot usernames, verification, paid messages waived, card masking, renames | see table | 10.3, 10.4 | mixed |
 
-## Products, publishing, agents, widgets, premium emoji (20-75)
+## Products, publishing, agents, widgets, premium emoji (20-76)
 
-Whole products (20-29, 60-64; index by product type: `references/use-case-playbooks.md`), channel publishing (30-39, `references/publishing-pipeline.md`), an agent that works through its own bot (40-49, `references/agent-operated-bots.md`), HTML widgets (50-56, `references/widget-patterns.md`) and premium emoji packs (70-75, `references/emoji-packs.md`). Same 10-part format, all offline.
+Whole products (20-29, 60-64; index by product type: `references/use-case-playbooks.md`), channel publishing (30-39, `references/publishing-pipeline.md`), an agent that works through its own bot (40-49, `references/agent-operated-bots.md`), HTML widgets (50-56, `references/widget-patterns.md`) and premium emoji packs (70-76, `references/emoji-packs.md`). Same 10-part format, all offline.
 
 ### Product use cases
 
@@ -137,6 +137,7 @@ Whole products (20-29, 60-64; index by product type: `references/use-case-playbo
 | [73 Mixed eligibility: icons in private chats, Unicode in the channel](73-mixed-eligibility.md) | "Same order update goes to customers, a group, our news channel and business replies." | `business_connection_id` | 9.4, 10.4 |
 | [74 Recover after the owner's Premium lapses](74-premium-lapse.md) | "Messages started failing after the owner's Premium expired." | — | 10.4 |
 | [75 Migrate from one pack to another without touching handlers](75-migrate-pack.md) | "Switch our icons to the new solid set." | `getCustomEmojiStickers` | 10.4 |
+| [76 The bot builds its own custom emoji pack and uses it](76-own-emoji-pack.md) | "Make an emoji pack of our own for the bot's icons, from the PNGs our designer sent." | `createNewStickerSet`, `uploadStickerFile`, `addStickerToSet`, `setCustomEmojiStickerSetThumbnail`, `getStickerSet` | 6.2, 6.6 |
 
 Combining features is normal: a group lunch bot = 04 (personal panel) + 03 (form for the order)
 + 06 (poll in private chats); a support assistant = 01 + 08 + 02 (quote the policy line); a news channel = 30 + 35 (approval) + 72 (accents);

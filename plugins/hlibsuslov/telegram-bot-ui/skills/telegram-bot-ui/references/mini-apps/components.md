@@ -1,4 +1,27 @@
+---
+summary: "Every Mini App component: anatomy, states, kit class, the native Telegram control to use instead, platform differences, TelegramUI mapping; read when choosing or building a component."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Mini App components: anatomy, states, native or own
+
+## Contents
+
+- [1. Native first](#1-native-first)
+- [2. Structure](#2-structure)
+- [3. Navigation](#3-navigation)
+- [4. Actions](#4-actions)
+- [5. Input](#5-input)
+- [6. Display](#6-display)
+- [6a. Media](#6a-media)
+- [6b. Tables](#6b-tables)
+- [6c. Icons](#6c-icons)
+- [6d. Settings rows (iOS 27 trailing types)](#6d-settings-rows-ios-27-trailing-types)
+- [6e. Telegram's own values](#6e-telegrams-own-values)
+- [7. Overlays](#7-overlays)
+- [8. iOS and Android differences](#8-ios-and-android-differences)
+- [9. Mapping to TelegramUI (`@telegram-apps/telegram-ui`)](#9-mapping-to-telegramui-telegram-appstelegram-ui)
 
 Every component a Mini App screen needs, with its anatomy, kit class, states, the native Telegram control
 that replaces it when one exists, platform differences and the matching TelegramUI component for projects

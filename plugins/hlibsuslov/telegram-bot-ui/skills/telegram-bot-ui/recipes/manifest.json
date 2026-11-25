@@ -1601,6 +1601,31 @@
       ]
     },
     {
+      "id": "R76",
+      "title": "The bot builds its own custom emoji pack and uses it",
+      "doc": "recipes/76-own-emoji-pack.md",
+      "registry": [],
+      "symbols": [
+        "createNewStickerSet",
+        "uploadStickerFile",
+        "addStickerToSet",
+        "setCustomEmojiStickerSetThumbnail",
+        "getStickerSet"
+      ],
+      "versions": [
+        "6.2",
+        "6.6"
+      ],
+      "contexts": "The owner's user_id; a set name ending in _by_<bot_username>; 100x100 px PNG or WEBP icons; custom emoji in text still need Fragment usernames or owner Premium",
+      "payload": "examples/payloads/r76-own-emoji-pack.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r76_own_emoji_pack.py",
+      "typescript": null,
+      "tasks": [
+        "Make an emoji pack of our own for the bot's icons, from the PNGs our designer sent."
+      ]
+    },
+    {
       "id": "R80",
       "title": "Lead intake with review and contact consent",
       "doc": "recipes/80-lead-intake.md",

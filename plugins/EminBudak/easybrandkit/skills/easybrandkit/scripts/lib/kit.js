@@ -12,8 +12,8 @@
 //                  real background (no transparency, short side >= 240 px),
 //                  header marks first
 //   logo-01.svg …  the same logo as a vector, when the page draws it as SVG
-//   screen-01.png  the first screen as a visitor sees it, at 2x, without
-//                  cookie bars and chat bubbles
+//   screen-01.png  the first screen at 2x, with what floats over it hidden
+//                  (see page.js hideOverlays)
 //   card.png       the kit on one picture: logos, colors, fonts, first screen
 //   appstore-icon.png, appstore-shot-01.png, x-profile.jpg …
 //                  the app icon and screenshots from the app store listings
@@ -28,7 +28,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { launch, openPage, navigate, triedSoFar, triedNotes, seenOf, pageFailed, noKit } = require("./chrome");
+const { launch, openPage, navigate, triedSoFar, triedNotes, refusedNotes, proxyNotes, takeMove, pageFailed, noKit } = require("./chrome");
 const { metrics, walk, waitForContent, hideOverlays, resetPictureWait, capture } = require("./page");
 const { findLogos, captureLogos, readWords } = require("./logos");
 const { renderCard } = require("./card");
@@ -38,7 +38,8 @@ const { classify, readSource } = require("./stores");
 const { setTimeLimit, timeLeft, outOfTime, sleep } = require("./time");
 const { SaveError, toldPlainly, removedFrom, startRun, discardRun, saveRun } = require("./run");
 const { checkDir } = require("./folder");
-const { mayOpen, LOCAL } = require("./address");
+const { guardFor, refusedAddresses, readUrl, notPublicByForm, interfacesUnread } = require("./address");
+const { moreFiles } = require("./program");
 const { plainText } = require("./text");
 const version = require("./version");
 
@@ -53,17 +54,14 @@ const MAX_SOURCES = 6;
 const SOURCE_ORDER = ["appstore", "googleplay", "x", "youtube", "linkedin", "threads", "pinterest"];
 
 // "acme.com", "www.acme.com/pricing" and "https://acme.com" all mean a web
-// address; anything that is not http(s) is refused.
+// address; anything that is not http(s) is refused, and so is one the URL
+// parser here cannot read, as one whose host has a label of broken punycode
+// (see address.js readUrl).
 function normalizeUrl(raw) {
   const text = String(raw || "").trim();
   if (!text) throw new Error("Give a website address, for example: easybrandkit acme.com");
-  let url;
-  try {
-    url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`);
-  } catch {
-    throw new Error(`Not a web address: ${text}`);
-  }
-  if (!/^https?:$/.test(url.protocol) || !url.hostname) throw new Error(`Not a web address: ${text}`);
+  const url = readUrl(/^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+  if (!url || !/^https?:$/.test(url.protocol) || !url.hostname) throw new Error(`Not a web address: ${text}`);
   return url.href;
 }
 
@@ -187,8 +185,8 @@ function withLogoColor(colors, logos) {
   return list.slice(0, 8);
 }
 
-// The first screen as a visitor sees it, at 2x, without the cookie bar, chat
-// bubble or promo box floating over it.
+// The first screen at 2x, without what hideOverlays tells floats over it,
+// as a cookie bar, a chat bubble or a promo box.
 async function captureFirstScreen(cdp, dir) {
   await cdp.send("Runtime.evaluate", { expression: "window.scrollTo({ top: 0, left: 0, behavior: 'instant' })" }).catch(() => {});
   await sleep(600);
@@ -211,6 +209,7 @@ const errorPage = ({ status, unreachable, blank }) => status >= 400 || Boolean(u
 // a site's own 404 has a logo, colors and fonts of its own, and a kit made
 // from them would pass for the brand's.
 function refuseOtherPage(cdp, url, pageUrl, challenge) {
+  refuseMove(cdp, url);
   if (challenge) {
     throw pageFailed(`${pageUrl} answered with a bot check ("${challenge}") instead of its page, so no kit was made. Get the logo and colors from the site in a normal browser.`, `answered with a bot check ("${challenge}")`);
   }
@@ -220,36 +219,61 @@ function refuseOtherPage(cdp, url, pageUrl, challenge) {
   if (what) throw pageFailed(`${url} ${what}, so no kit was made.`, what);
 }
 
-// Throws when the tab has gone on to a page on a local or private network
-// that is not on the host and port of the address the user gave (given): a
-// site's redirect or its script can lead there, and what such a page shows
-// is not read. Where the browser says it got the page counts too, so a name
-// that the kit's own lookup does not find there, or finds elsewhere, is
-// still told by where the browser found it: then the page opened, url, can
-// be there itself, which it is told as.
-async function refuseLocal(cdp, url, pageUrl, given) {
-  for (const at of new Set([pageUrl, cdp.answer.url].filter(Boolean))) {
-    if (await mayOpen(at, given, seenOf(cdp, at))) continue;
-    if (at.split("#")[0] === url.split("#")[0]) throw pageFailed(`${url} ${LOCAL}, so no kit was made.`, LOCAL);
-    throw pageFailed(`${url} led to ${at}, which ${LOCAL}, so no kit was made.`, `led to ${at}, which ${LOCAL}`);
-  }
+// Throws when the tab's page has tried to move on to an address the run's
+// rule refused, which the browser did not open (see chrome.js takeMove):
+// the tab shows the browser's error page in its place.
+function refuseMove(cdp, url) {
+  const moved = takeMove(cdp);
+  if (moved) throw pageFailed(`${url} led to ${moved.url}, which ${moved.why}, so no kit was made.`, `led to ${moved.url}, which ${moved.why}`);
+}
+
+// The https address read in the place of an http address on port 80 that
+// gave no answer (see readPage): the same host and path on port 443. "" for
+// any other address.
+function httpsInPlace(raw) {
+  const url = new URL(raw);
+  if (url.protocol !== "http:" || url.port) return "";
+  url.protocol = "https:";
+  return url.href;
 }
 
 // alsoNamed: more names the brand goes by. deeper: the page is one past the
-// home page, read as given when the home page could not be read. given: the
-// address the user gave. browser: one started for it, which it closes as it
-// would its own.
-async function readPage(url, dir, log, { alsoNamed = "", facts = false, deeper = false, given = url, browser = null } = {}) {
-  const chrome = browser || (await launch(SCREEN));
+// home page, read as given when the home page could not be read. guard: the
+// run's rule for the addresses it opens (see address.js), which a page the
+// browser is to open is held to as well. browser: one started for it with
+// that rule, which it closes as it would its own.
+//
+// An http address on port 80 that gives no answer in its time, or to which
+// the browser makes no connection, is read over https on port 443 in its
+// place, as Chrome's own move to https did before the kit turned it off
+// (see chrome.js launch): a site that serves only https, with nothing on
+// port 80, was told as down. That address is not the one asked for, so the
+// run's rule holds it to port 443 and the public internet, and one the rule
+// refuses is not tried. What it gives is told by both addresses (inPlace).
+async function readPage(url, dir, log, { alsoNamed = "", facts = false, deeper = false, guard = guardFor(url), browser = null } = {}) {
+  const chrome = browser || (await launch(SCREEN, { guard }));
   // A browser that has just not answered is not waited for again as it is
   // asked to quit.
   let unanswered = false;
+  // The address asked for and what it did, once another is read in its
+  // place.
+  let inPlace = null;
   try {
     const cdp = await openPage(chrome, SCREEN);
     resetPictureWait();
     log(`Opening ${url}`);
-    const pageUrl = await navigate(cdp, url);
-    await refuseLocal(cdp, url, pageUrl, given);
+    let pageUrl;
+    try {
+      pageUrl = await navigate(cdp, url);
+    } catch (err) {
+      const other = err.silent ? httpsInPlace(url) : "";
+      if (!other || (await guard.judge(other))) throw err;
+      inPlace = { url, said: err.silent };
+      url = other;
+      log(`Opening ${url}`);
+      pageUrl = await navigate(cdp, url);
+    }
+    refuseMove(cdp, url);
     // An error page is not waited for or walked. A bot check can come with
     // an error status too, and is read like any page: it may let the browser
     // through to the site.
@@ -282,7 +306,6 @@ async function readPage(url, dir, log, { alsoNamed = "", facts = false, deeper =
     }
     // Also a page that has moved on to such a page since it loaded.
     refuseOtherPage(cdp, url, pageUrl, found.challenge);
-    await refuseLocal(cdp, url, pageUrl, given);
     // The words first, while the page is as the snapshot saw it.
     const { headings, ctas, unread } = await readWords(cdp, found.wordTargets);
     const text = { title: found.title, description: found.description, headings, ctas };
@@ -299,7 +322,6 @@ async function readPage(url, dir, log, { alsoNamed = "", facts = false, deeper =
     log("Taking the first screen");
     const screenshots = await captureFirstScreen(cdp, dir);
     refuseOtherPage(cdp, url, pageUrl, "");
-    await refuseLocal(cdp, url, pageUrl, given);
     const name = brandName(found.siteName, found.title, pageUrl, { deeper, logo: (logos.find((logo) => logo.alt) || {}).alt });
     const colors = withLogoColor(found.brand.colors, logos);
     log("Drawing the card");
@@ -322,16 +344,29 @@ async function readPage(url, dir, log, { alsoNamed = "", facts = false, deeper =
     // links to: the kit is made the same way with or without them. A page
     // read as given is not filed as the home page.
     const role = deeper ? "given" : "home";
-    const factPages = facts ? await readFactPages(cdp, pageUrl, log, { role, given }).catch((err) => ({ pages: [], skipped: [{ role, url: pageUrl, reason: plainText(String(err.message || err)) }] })) : null;
+    const factPages = facts ? await readFactPages(cdp, pageUrl, log, { role, guard }).catch((err) => ({ pages: [], skipped: [{ role, url: pageUrl, reason: plainText(String(err.message || err)) }] })) : null;
     // A browser that was killed or crashed on the way has left the kit
     // without its card or its claims: the run fails, so that an earlier kit
     // in the folder stays as it was.
     if (!(await chrome.alive())) throw new Error(BROWSER_GONE);
     // The addresses that are not web addresses the pages tried to open, and
-    // whether the browser runs in a sandbox of its own (see triedNotes).
+    // whether the browser runs in a sandbox of its own (see triedNotes),
+    // those the run's rule did not let them open (see refusedNotes), and
+    // the requests the kit's proxy refused while the kit read its pages
+    // (see proxyNotes).
     const tried = await triedSoFar(cdp);
-    return { pageUrl, found, name, colors, text, wordsUnread: unread, logos, screenshots, card, cardError: card ? "" : cardError, factPages, tried, sandboxed: Boolean(chrome.sandboxed) };
+    const proxy = chrome.proxy || { refused: [], refusedMore: false };
+    return { pageUrl, found, name, colors, text, wordsUnread: unread, logos, screenshots, card, cardError: card ? "" : cardError, factPages, tried, refused: cdp.refused || [], refusedMore: Boolean(cdp.refusedMore), asked: [...proxy.refused], askedMore: Boolean(proxy.refusedMore), sandboxed: Boolean(chrome.sandboxed), inPlace: inPlace && { ...inPlace, read: url } };
   } catch (err) {
+    // A page read in the place of the address asked for that fails is told
+    // with what that address did. A tab that stopped answering is told as
+    // the tab's, in its own line's words and with its advice.
+    const bothTold = (failed, { tab = false } = {}) => {
+      if (!inPlace || !failed.pageFailed) return failed;
+      const what = tab ? `${inPlace.said}, and the browser tab stopped answering while it read ${url}, tried in its place` : `${inPlace.said}, and ${url}, tried in its place, ${failed.pageFailed}`;
+      const advice = failed.outOfTime ? " Try again, or give it more time with --timeout." : tab ? " Try again." : "";
+      return pageFailed(`${inPlace.url} ${what}, so no kit was made.${advice}`, what, failed.outOfTime);
+    };
     // A browser that ended on the way is told as that, whichever call was
     // waiting for it; a call it never answered is not told by its name in
     // the DevTools protocol. One that did not answer a wait for its tab has
@@ -343,19 +378,19 @@ async function readPage(url, dir, log, { alsoNamed = "", facts = false, deeper =
     if (err.browserSaid) throw noKit(err);
     if (err.timedOut) {
       const spent = outOfTime();
-      throw pageFailed(`The browser tab stopped answering while it read ${url}, so no kit was made. ${spent ? "Try again, or give it more time with --timeout." : "Try again."}`, "stopped answering", spent);
+      throw bothTold(pageFailed(`The browser tab stopped answering while it read ${url}, so no kit was made. ${spent ? "Try again, or give it more time with --timeout." : "Try again."}`, "stopped answering", spent), { tab: true });
     }
     // An answer larger than the kit takes, as a very large page's snapshot.
-    if (err.tooLarge) throw pageFailed(`${url} is too large to read, so no kit was made.`, "is too large to read");
+    if (err.tooLarge) throw bothTold(pageFailed(`${url} is too large to read, so no kit was made.`, "is too large to read"));
     // The tab closed while the browser runs.
     if (err.closed) throw new Error(`The kit's connection to the browser tab closed while it read ${url}, so no kit was made. Try again.`);
-    throw err;
+    throw bothTold(err);
   } finally {
     await chrome.close({ hurry: unanswered });
   }
 }
 
-async function readSources(links, dir, log, skip = []) {
+async function readSources(links, dir, log, skip = [], guard = null) {
   const picked = [];
   for (const type of SOURCE_ORDER.filter((kind) => !skip.includes(kind))) {
     const link = links.find((one) => one.type === type && classify(one.url));
@@ -363,7 +398,7 @@ async function readSources(links, dir, log, skip = []) {
   }
   if (!picked.length) return [];
   log(`Reading ${picked.length === 1 ? "1 store listing or profile" : `${Math.min(picked.length, MAX_SOURCES)} store listings and profiles`}`);
-  return Promise.all(picked.slice(0, MAX_SOURCES).map((source) => readSource(source, dir)));
+  return Promise.all(picked.slice(0, MAX_SOURCES).map((source) => readSource(source, dir, guard)));
 }
 
 function writeMarkdown(kit, dir) {
@@ -462,13 +497,87 @@ function siteOfListing(raw) {
   }
 }
 
-async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 120_000, log = () => {} } = {}) {
+// The settings that name a proxy for programs to reach the web through, as
+// a network that reaches the web only through one gives them, which the
+// kit does not use: its browser goes through the kit's own proxy, which
+// connects to each site itself, as the kit's own requests do (see proxy.js
+// and address.js guardFor).
+const PROXY_SETTINGS = ["https_proxy", "HTTPS_PROXY", "http_proxy", "HTTP_PROXY", "all_proxy", "ALL_PROXY"];
+
+// What the address given did that such a network makes it do: no name is
+// found, no connection is made, or no answer comes.
+const UNREACHED = /^(could not be opened \(net::ERR_(NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILED|CONNECTION_[A-Z_]+|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED|TIMED_OUT|EMPTY_RESPONSE)\)|did not answer|is on a host whose name could not be looked up)/;
+const STORE_UNREACHED = /could not be looked up|did not answer in|connect E(CONNREFUSED|TIMEDOUT|HOSTUNREACH|NETUNREACH)/;
+
+// A last line that says the address given could not be reached, with the
+// word, when one of those settings is given, that the kit does not use the
+// proxy it names; the setting's value is not said, as it can hold a
+// password. An address of this machine or of a private network by its form,
+// a name under .local or of one label among them, as a server under
+// development that is not running, gets no such word.
+function notThroughProxy(message, unreached) {
+  const name = PROXY_SETTINGS.find((one) => process.env[one]);
+  if (!name || !unreached) return message;
+  const text = String(message).trim();
+  return `${text}${/[.!?]$/.test(text) ? "" : "."} easybrandkit does not use the proxy ${name} names: its browser and its own requests connect to each site themselves, so on a network that reaches the web only through that proxy, no site can be read.`;
+}
+
+// What an https address read for one given with no scheme does when the
+// site speaks plain http, as a server under development on a port of its
+// own does: Chrome reads its http answer to the browser's TLS hello as a
+// TLS error, and some servers close the connection.
+const NOT_TLS = /^could not be opened \(net::ERR_(SSL_PROTOCOL_ERROR|SSL_VERSION_OR_CIPHER_MISMATCH|CONNECTION_REFUSED|CONNECTION_RESET|CONNECTION_CLOSED|EMPTY_RESPONSE)\)$/;
+
+// A last line about the address given that was written with no scheme,
+// which was read as https://, with the word to give it as http:// when the
+// site speaks plain http.
+function readAsHttps(message, asked) {
+  const text = String(message).trim();
+  return `${text}${/[.!?]$/.test(text) ? "" : "."} It was given with no http:// or https://, so it was read as https://: if the site speaks plain http, as a server under development often does, give it as ${asked.replace(/^https:/, "http:")}.`;
+}
+
+// namedBy: when another source named the site, as a store listing names its
+// maker's website, and not the user, the address of that source. The site
+// is then read as a page easybrandkit chose itself, as the website a
+// listing names is, held to the rule for one (see address.js); refused
+// there, it ends the run before anything is opened. The source is not
+// opened, so the run has no address of its own: every address it opens is
+// held to the rule, one on the source's scheme, host and port included.
+async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 120_000, namedBy = "", log = () => {} } = {}) {
   setTimeLimit(timeLimit);
+  // MAKERSMCP_REFUSE_ADDRESSES, a value of which that does not parse ends
+  // the run here, before any work.
+  const refused = refusedAddresses();
+  // This machine's network interfaces, whose addresses and IPv6 networks
+  // the rule refuses away from the address given (see address.js ownIp):
+  // a system that does not let them be read ends the run here too, as no
+  // address could be told from one of this machine's.
+  const unread = interfacesUnread();
+  if (unread) {
+    throw new Error(`This machine's network interfaces could not be read: ${unread.words}. Without them easybrandkit cannot tell this machine's own addresses from those on the public internet, so no kit was made.${moreFiles(unread) || " Run it where the system lets a program read them: on Linux, a service needs AF_NETLINK among its RestrictAddressFamilies."}`);
+  }
   const asked = normalizeUrl(rawUrl);
+  // Written with no scheme, which reads as https:// (see normalizeUrl).
+  const bare = !/^[a-z][a-z0-9+.-]*:\/\//i.test(String(rawUrl || "").trim());
+  // On this machine or a private network by its form, a name under .local
+  // or of one label among them, which no proxy of the system's stands in
+  // front of (see notThroughProxy).
+  const local = notPublicByForm(new URL(asked));
+  const source = namedBy ? normalizeUrl(namedBy) : "";
   const host = new URL(asked).hostname.toLowerCase();
   const listing = PLATFORM_HOST.test(host) ? classify(asked) : null;
   if (PLATFORM_HOST.test(host) && !(listing && (listing.type === "appstore" || listing.type === "googleplay"))) {
     throw new Error(`${asked} is a page on ${host.replace(/^(www|m|mobile)\./, "")}, not the brand's own site. Give the brand's website, or its App Store or Google Play listing.`);
+  }
+  // The rule for every address the run opens. The address given is opened
+  // whatever its host and port, unless the setting refuses where it is; a
+  // site another source named is not the address given, and with it the
+  // run has none. A store listing is read from its store's own hosts (see
+  // stores.js).
+  const guard = guardFor(source ? null : asked, { refused });
+  if (!listing) {
+    const why = await guard.judge(asked);
+    if (why) throw new Error(notThroughProxy(`${asked}${source ? `, named by ${source},` : ""} ${why}, so no kit was made.`, UNREACHED.test(why) && !local));
   }
   const notes = [];
   const target = dir || (listing ? `easybrandkit-${listing.type}-${listing.id}` : `easybrandkit-${host.replace(/^www\./, "")}`);
@@ -494,14 +603,14 @@ async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 
     return one;
   };
   try {
-    browser = await launch(SCREEN);
+    browser = await launch(SCREEN, { guard });
     let given = null;
     let read = null;
     let page = "";
     if (listing) {
       log(`Reading the ${listing.type === "appstore" ? "App Store" : "Google Play"} listing`);
-      given = await readSource(listing, work);
-      if (!given.ok) throw new Error(`${asked} could not be read: ${given.error}.`);
+      given = await readSource(listing, work, guard);
+      if (!given.ok) throw new Error(notThroughProxy(`${asked} could not be read: ${given.error}.`, STORE_UNREACHED.test(given.error)));
       page = siteOfListing(given.site || "");
     } else {
       page = homePageOf(asked) || asked;
@@ -518,17 +627,16 @@ async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 
     if (page) {
       const had = fs.readdirSync(work);
       try {
-        // A page the kit chose that its own lookup finds on a local or
-        // private network is not opened; one only the browser finds there
-        // is opened and then refused (refuseLocal).
-        if (page !== asked && !(await mayOpen(page, asked))) throw pageFailed(`${page} ${LOCAL}, so no kit was made.`, `${LOCAL}, which easybrandkit does not open on its own`);
-        read = await readPage(page, work, log, { alsoNamed: appName, facts, given: asked, browser: take() });
+        // A page the kit chose that the run's rule refuses is not asked for:
+        // the browser holds every document to the rule (see chrome.js
+        // holdDocuments), and its proxy every request (see proxy.js).
+        read = await readPage(page, work, log, { alsoNamed: appName, facts, guard, browser: take() });
       } catch (err) {
         if (!err.pageFailed || page === asked || err.outOfTime) throw err;
         failed = err.pageFailed;
         for (const name of fs.readdirSync(work)) if (!had.includes(name)) fs.rmSync(path.join(work, name), { recursive: true, force: true });
       }
-      if (failed && !listing) read = await readPage(asked, work, log, { alsoNamed: appName, facts, deeper: true, given: asked, browser: take() });
+      if (failed && !listing) read = await readPage(asked, work, log, { alsoNamed: appName, facts, deeper: true, guard, browser: take() });
     }
     // A listing none of whose pictures came, and no website to read: a name
     // alone is no kit to put in the place of an earlier one.
@@ -543,6 +651,7 @@ async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 
     else if (listing) notes.push(`${asked} is a store listing that names no website, ${onlyListing} Give the product's website for those.`);
     else if (failed) notes.push(`The home page, ${page}, could not be read: it ${failed}. ${asked} was read as given, and its name, header and colors can differ from the home page's.`);
     else if (page !== asked) notes.push(`${asked} is not the home page, so ${page} was read instead: the home page carries the brand's own header and colors.`);
+    if (read && read.inPlace) notes.push(`${read.inPlace.url} ${read.inPlace.said}, so ${read.inPlace.read} was read in its place.`);
     const found = read ? read.found : { brand: { fonts: {} }, icons: [], images: [], manifest: "", links: [] };
     if (read && !read.logos.length) notes.push("No logo was found on the page itself.");
     if (read && read.wordsUnread) {
@@ -550,9 +659,9 @@ async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 
       notes.push(`${some} not read: ${read.wordsUnread === "time" ? "the run's time ran out. Give it more time with --timeout." : "the browser tab stopped answering."}`);
     }
     if (read && !read.card) notes.push(`The card could not be drawn: ${read.cardError.split(work).join(path.resolve(target)).replace(/[.\s]+$/, "")}.`);
-    if (read) notes.push(...triedNotes(read.tried, read));
+    if (read) notes.push(...triedNotes(read.tried, read), ...refusedNotes(read.refused, read.refusedMore), ...proxyNotes(read.asked, read.askedMore));
     if (facts && !read) notes.push(failed ? "No facts were read: the website it names could not be read." : "No facts were read: the listing names no website.");
-    const others = stores && read ? await readSources(found.links, work, log, given ? [given.type] : []) : [];
+    const others = stores && read ? await readSources(found.links, work, log, given ? [given.type] : [], guard) : [];
     const sources = [...(given ? [given] : []), ...others];
     for (const source of others) {
       if (!source.ok) notes.push(`${source.url} could not be read: ${source.error}.`);
@@ -597,6 +706,10 @@ async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 
     // still there.
     const removed = removedFrom(run);
     const plain = removed && err.syscall ? new Error(removed.said) : toldPlainly(err, run);
+    // The address given, or the page read in its place, that could not be
+    // reached, as on a network that reaches the web only through a proxy.
+    if (plain === err && err.pageFailed && bare && NOT_TLS.test(err.pageFailed)) plain.message = readAsHttps(plain.message, asked);
+    if (plain === err && err.pageFailed && UNREACHED.test(err.pageFailed) && !local) plain.message = notThroughProxy(plain.message, true);
     // For the CLI, which says that an earlier kit is as it was. saveRun's
     // own errors say what the folder holds.
     if (removed ? removed.earlier : run.earlier) plain.earlierKit = target;

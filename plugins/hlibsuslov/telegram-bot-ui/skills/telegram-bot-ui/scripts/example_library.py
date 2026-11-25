@@ -73,6 +73,14 @@ def validate(catalog, manifest):
         for source in row.get("sources", []):
             if source not in catalog["sources"]:
                 errors.append(f"{rid}: unknown source {source}")
+        guides = row.get("guides", [])
+        if not isinstance(guides, list) or any(not isinstance(g, str) for g in guides):
+            errors.append(f"{rid}: guides must be a list of paths")
+            guides = []
+        for guide in guides:
+            path = (ROOT / guide).resolve()
+            if not path.is_relative_to(ROOT) or not path.is_file():
+                errors.append(f"{rid}: missing/outside guide: {guide}")
         for recipe_id in row.get("recipes", []):
             rec = manifest.get(recipe_id)
             if rec is None:
@@ -140,6 +148,8 @@ def main(argv=None):
     else:
         for hit in hits:
             print(f"{hit['id']}: {hit['title']} [{hit['coverage']}]")
+            if hit.get("guides"):
+                print(f"  Read first: {', '.join(hit['guides'])}")
             for example in hit["examples"]:
                 print(f"  {example['id']}: {example['doc']} -> {example['python']}")
             print(f"  Gap: {hit['gap']}")

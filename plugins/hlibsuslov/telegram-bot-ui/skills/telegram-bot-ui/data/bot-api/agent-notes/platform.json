@@ -1,0 +1,171 @@
+{
+ "$comment": "Agent notes for the platform: getting updates and webhooks, managed bots, games, Telegram Passport errors. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite. Server setup (TLS, certificates, hosting) is out of scope.",
+ "domain": "platform",
+ "notes": {
+  "getUpdates": {
+   "purpose": "Receive updates by long polling: ask Telegram for new updates and confirm them with offset.",
+   "use_when": ["development, one process, or a host without a public HTTPS URL", "an agent process behind NAT"],
+   "avoid_when": ["a webhook is set: getUpdates does not work until deleteWebhook", "two processes on one token"],
+   "pitfalls": [
+    {"text": "offset = highest update_id received + 1; an update is confirmed once getUpdates is called with a higher offset. Recalculate it after every response.", "source": "API", "cite": "offset: An update is considered confirmed as soon as getUpdates is called with an offset higher than its update_id."},
+    {"text": "timeout defaults to 0, short polling for tests only; pass a positive long-poll timeout.", "source": "API", "cite": "timeout: Defaults to 0, i.e. usual short polling. Should be positive, short polling should be used for testing purposes only."},
+    {"text": "allowed_updates is sticky: omitted keeps the previous list; an empty list means all types except chat_member, message_reaction, message_reaction_count.", "source": "API", "cite": "allowed_updates: If not specified, the previous setting will be used."},
+    {"text": "Incoming updates are kept on the server until received, at most 24 hours.", "source": "Official", "cite": "https://core.telegram.org/bots/api#getting-updates"},
+    {"text": "Save the offset after the batch is handled and make handlers idempotent.", "source": "Heuristic"}
+   ],
+   "related": ["Update", "setWebhook", "deleteWebhook", "getWebhookInfo"],
+   "refs": ["references/updates-and-delivery.md#long-polling", "references/updates-and-delivery.md#allowed_updates-is-sticky"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "setWebhook": {
+   "purpose": "Have Telegram POST every Update as JSON to your HTTPS URL instead of polling.",
+   "use_when": ["an always-on HTTPS service in production", "several workers sharing the load (max_connections)"],
+   "avoid_when": ["no public HTTPS URL: use getUpdates"],
+   "pitfalls": [
+    {"text": "secret_token (1-256 chars of A-Z, a-z, 0-9, _ and -) comes back in the X-Telegram-Bot-Api-Secret-Token header of every request; check it to know the request is yours.", "source": "API", "cite": "secret_token: A secret token to be sent in a header ... in every webhook request, 1-256 characters. Only characters A-Z, a-z, 0-9, _ and - are allowed."},
+    {"text": "A non-2XX answer makes Telegram repeat the request until it gives up after a reasonable number of attempts.", "source": "API", "cite": "setWebhook: In case of an unsuccessful request (a request with response HTTP status code different from 2XY), we will repeat the request and give up after a reasonable amount of attempts."},
+    {"text": "Updates can repeat or arrive out of order: dedupe and reorder by update_id.", "source": "API", "cite": "Update.update_id: allows you to ignore repeated updates or to restore the correct update sequence, should they get out of order"},
+    {"text": "allowed_updates is sticky; ports 443, 80, 88 and 8443 only.", "source": "API", "cite": "allowed_updates: If not specified, the previous setting will be used.; Ports currently supported for webhooks: 443, 80, 88, 8443."},
+    {"text": "Answer 2XX fast and process from a queue; keep secret_token in the environment, never in code.", "source": "Heuristic"},
+    {"text": "The number of retries and their timing are not stated.", "source": "Unverified"}
+   ],
+   "related": ["Update", "WebhookInfo", "getWebhookInfo", "deleteWebhook", "getUpdates"],
+   "refs": ["references/updates-and-delivery.md#webhook", "references/updates-and-delivery.md#ordering-duplicates-gaps"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "deleteWebhook": {
+   "purpose": "Remove the webhook so the bot can receive updates with getUpdates again.",
+   "use_when": ["switching a bot from webhook to long polling", "before close when moving between local Bot API servers"],
+   "avoid_when": ["only the URL changes: call setWebhook with the new URL"],
+   "pitfalls": [
+    {"text": "drop_pending_updates: true drops all pending updates.", "source": "API", "cite": "drop_pending_updates: Pass True to drop all pending updates"},
+    {"text": "Without it, pending updates stay on the server until received, at most 24 hours.", "source": "Official", "cite": "https://core.telegram.org/bots/api#getting-updates"},
+    {"text": "setWebhook with an empty url also removes the webhook.", "source": "API", "cite": "url: Use an empty string to remove webhook integration."},
+    {"text": "Drop pending updates only when losing them is intended, from the deploy step.", "source": "Heuristic"}
+   ],
+   "related": ["setWebhook", "getUpdates", "getWebhookInfo", "close"],
+   "refs": ["references/updates-and-delivery.md#two-mutually-exclusive-intake-modes"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "getWebhookInfo": {
+   "purpose": "Read the webhook status: URL, pending update count, last delivery error, allowed_updates.",
+   "use_when": ["the bot receives nothing: check it first", "verifying after setWebhook"],
+   "pitfalls": [
+    {"text": "An empty url means the bot uses getUpdates.", "source": "API", "cite": "getWebhookInfo: If the bot is using getUpdates, will return an object with the url field empty."},
+    {"text": "last_error_date and last_error_message describe the latest delivery error; last_synchronization_error_date a Telegram-side sync error.", "source": "API", "cite": "WebhookInfo.last_error_message: Error message in human-readable format for the most recent error that happened when trying to deliver an update via webhook"},
+    {"text": "secret_token is not returned and can't be read back.", "source": "API", "cite": "WebhookInfo fields: none for secret_token"},
+    {"text": "Alert when pending_update_count keeps growing or last_error_date is recent.", "source": "Heuristic"}
+   ],
+   "related": ["WebhookInfo", "setWebhook", "deleteWebhook", "getUpdates"],
+   "refs": ["references/updates-and-delivery.md#two-mutually-exclusive-intake-modes"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "getManagedBotToken": {
+   "purpose": "Fetch the token of a bot your bot manages, after the managed_bot update names it.",
+   "use_when": ["a managed_bot update or managed_bot_created message names a new bot", "a managed_bot update says its token changed"],
+   "avoid_when": ["per request: fetch once and keep it in a secret store"],
+   "pitfalls": [
+    {"text": "Returns the managed bot's token as a plain String.", "source": "API", "cite": "getManagedBotToken: Returns the token as String on success."},
+    {"text": "The token is a secret: never log, echo or send it to a chat or URL; keep it in a secret store.", "source": "Heuristic"},
+    {"text": "user_id is the managed bot's id (ManagedBotUpdated.bot), not the user who created it.", "source": "API", "cite": "user_id: User identifier of the managed bot whose token will be returned"},
+    {"text": "managed_bot also arrives when the token or owner changes: fetch it again then.", "source": "API", "cite": "Update.managed_bot: A new bot was created to be managed by the bot, or token or owner of a managed bot was changed"},
+    {"text": "The error for a bot you no longer manage is not stated.", "source": "Unverified"}
+   ],
+   "related": ["replaceManagedBotToken", "ManagedBotUpdated", "ManagedBotCreated", "KeyboardButtonRequestManagedBot", "getManagedBotAccessSettings"],
+   "since": "9.6",
+   "refs": ["references/agent-bot-security.md#token-handling-and-redaction", "references/specialized-updates.md#managed-bot-usernames"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "replaceManagedBotToken": {
+   "purpose": "Revoke a managed bot's current token and get a new one.",
+   "use_when": ["the managed bot's token leaked", "a rotation the owner approved"],
+   "avoid_when": ["reading the token: getManagedBotToken", "an automatic retry: every call revokes the token in use"],
+   "pitfalls": [
+    {"text": "The current token is revoked; whatever still uses it must switch to the returned one.", "source": "API", "cite": "replaceManagedBotToken: revoke the current token of a managed bot and generate a new one. Returns the new token as String on success."},
+    {"text": "The new token is a secret: write it straight to the secret store, never log, echo or send it.", "source": "Heuristic"},
+    {"text": "After a timeout, read the token with getManagedBotToken instead of replacing again.", "source": "Heuristic"},
+    {"text": "Whether a managed_bot update follows a replacement the manager bot made itself is not stated.", "source": "Unverified"}
+   ],
+   "related": ["getManagedBotToken", "ManagedBotUpdated", "Update"],
+   "since": "9.6",
+   "refs": ["references/agent-bot-security.md#token-handling-and-redaction"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "getManagedBotAccessSettings": {
+   "purpose": "Read who may use a managed bot: everyone, or only its owner plus listed users.",
+   "use_when": ["showing the owner the current access before a change", "verifying after setManagedBotAccessSettings"],
+   "pitfalls": [
+    {"text": "Returns BotAccessSettings; added_users lists the other users only when access is restricted.", "source": "API", "cite": "BotAccessSettings.added_users: The list of other users who have access to the bot if the access is restricted"},
+    {"text": "The owner always has access.", "source": "API", "cite": "BotAccessSettings.is_access_restricted: The bot's owner can always access it."}
+   ],
+   "related": ["setManagedBotAccessSettings", "BotAccessSettings", "ManagedBotUpdated", "getManagedBotToken"],
+   "since": "10.0",
+   "example": "examples/payloads/api-platform.json"
+  },
+  "setManagedBotAccessSettings": {
+   "purpose": "Restrict a managed bot to its owner plus up to 10 users, or open it to everyone.",
+   "use_when": ["the owner wants a private or team-only bot", "keeping a bot private until launch"],
+   "avoid_when": ["without the owner's decision: it changes who can use their bot"],
+   "pitfalls": [
+    {"text": "added_user_ids holds up to 10 users besides the owner and is ignored when is_access_restricted is false.", "source": "API", "cite": "added_user_ids: A JSON-serialized list of up to 10 identifiers of users ... Ignored if is_access_restricted is False."},
+    {"text": "Whether added_user_ids replaces or extends the current list is not stated: send the full list.", "source": "Unverified"}
+   ],
+   "related": ["getManagedBotAccessSettings", "BotAccessSettings", "ManagedBotUpdated"],
+   "since": "10.0",
+   "example": "examples/payloads/api-platform.json"
+  },
+  "sendGame": {
+   "purpose": "Send an HTML5 game created in @BotFather (/newgame) as a message with a Play button.",
+   "use_when": ["a game registered in @BotFather with a game_short_name", "a high-score table in the chat"],
+   "avoid_when": ["channels and channel direct messages chats: not supported", "a small in-chat board without @BotFather setup: a widget"],
+   "pitfalls": [
+    {"text": "Without reply_markup one 'Play game_title' button is shown; with a keyboard the first button must launch the game (callback_game).", "source": "API", "cite": "reply_markup: If empty, one 'Play game_title' button will be shown. If not empty, the first button must launch the game."},
+    {"text": "Play sends a CallbackQuery with game_short_name; answer with answerCallbackQuery url = the game URL for this user.", "source": "API", "cite": "answerCallbackQuery.url: If you have created a Game and accepted the conditions via @BotFather, specify the URL that opens your game"},
+    {"text": "Put a signed session (user, chat, message) in the game URL so scores can't be forged.", "source": "Heuristic"}
+   ],
+   "related": ["Game", "CallbackGame", "CallbackQuery", "answerCallbackQuery", "setGameScore", "InlineQueryResultGame"],
+   "chat_types": ["private", "group", "supergroup", "business"],
+   "refs": ["references/inline-keyboards.md#button-types-exactly-one-per-button"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "setGameScore": {
+   "purpose": "Record a user's score in a game message; by default the message is edited to show the scoreboard.",
+   "use_when": ["your server accepted a finished round"],
+   "avoid_when": ["a score the browser reports unchecked"],
+   "pitfalls": [
+    {"text": "Errors when the score is not above the current one unless force; force also lowers a score (mistakes, cheaters).", "source": "API", "cite": "setGameScore: Returns an error, if the new score is not greater than the user's current score in the chat and force is False."},
+    {"text": "Pass chat_id + message_id or inline_message_id; returns the Message, or True for an inline message.", "source": "API", "cite": "setGameScore: if the message is not an inline message, the Message is returned, otherwise True is returned."},
+    {"text": "disable_edit_message keeps the message text unchanged.", "source": "API", "cite": "disable_edit_message: Pass True if the game message should not be automatically edited to include the current scoreboard"},
+    {"text": "The error code and text for a score that is not higher are not stated.", "source": "Unverified"}
+   ],
+   "related": ["getGameHighScores", "sendGame", "Game", "GameHighScore", "Message"],
+   "refs": ["references/inline-mode.md#editing-inline-messages"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "getGameHighScores": {
+   "purpose": "Read the high-score rows around a user in a game message.",
+   "use_when": ["a leaderboard screen inside the game", "showing a user's rank after setGameScore"],
+   "avoid_when": ["a complete ranking: keep your own table"],
+   "pitfalls": [
+    {"text": "Returns the user and two neighbours on each side, plus the top three if they are not among them; Telegram says this may change.", "source": "API", "cite": "getGameHighScores: This method will currently return scores for the target user, plus two of their closest neighbors on each side. ... Please note that this behavior is subject to change."},
+    {"text": "Returns an Array of GameHighScore (position, user, score), also for inline_message_id.", "source": "API", "cite": "getGameHighScores: Returns an Array of GameHighScore objects."}
+   ],
+   "related": ["GameHighScore", "setGameScore", "sendGame", "Game"],
+   "example": "examples/payloads/api-platform.json"
+  },
+  "setPassportDataErrors": {
+   "purpose": "Tell a user which Telegram Passport elements they sent are wrong, so they fix and resend them.",
+   "use_when": ["a decrypted element fails your checks: invalid birth date, blurry scan, signs of tampering"],
+   "avoid_when": ["data your service accepts: each flagged element blocks a resubmission until it changes"],
+   "pitfalls": [
+    {"text": "The user can't resubmit until every error is fixed: the flagged field or file must change.", "source": "API", "cite": "setPassportDataErrors: The user will not be able to re-submit their Passport to you until the errors are fixed (the contents of the field for which you returned the error must change)."},
+    {"text": "Each error is a PassportElementError picked by source; unspecified takes element_hash = EncryptedPassportElement.hash.", "source": "API", "cite": "EncryptedPassportElement.hash: Base64-encoded element hash for using in PassportElementErrorUnspecified"},
+    {"text": "data_hash and file_hash come from the decrypted DataCredentials and FileCredentials.", "source": "Official", "cite": "https://core.telegram.org/passport"},
+    {"text": "Say in message what to fix; never quote the user's document data in it.", "source": "Heuristic"}
+   ],
+   "related": ["PassportElementError", "PassportData", "EncryptedPassportElement", "EncryptedCredentials"],
+   "refs": ["references/user-data.md#13-on-request"],
+   "example": "examples/payloads/api-platform.json"
+  }
+ }
+}

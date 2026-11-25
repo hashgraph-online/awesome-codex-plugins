@@ -1,4 +1,25 @@
+---
+summary: "Mini App forms and server talk: fields, on-screen keyboard, validation, drafts, tma.api(), errors, once-only actions, sending the result to the chat; read for any screen with input or API calls."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Forms, the keyboard and the app's own server
+
+## Contents
+
+- [0. Ask less](#0-ask-less)
+- [1. Fields](#1-fields)
+- [2. The keyboard inside Telegram](#2-the-keyboard-inside-telegram)
+- [3. Validation](#3-validation)
+- [4. Drafts and closing](#4-drafts-and-closing)
+- [5. Talking to the server: `tma.api()`](#5-talking-to-the-server-tmaapi)
+- [6. Errors: what to say and what to do](#6-errors-what-to-say-and-what-to-do)
+- [7. Doing an action once](#7-doing-an-action-once)
+- [8. Sending the result to the chat](#8-sending-the-result-to-the-chat)
+- [9. Testing](#9-testing)
+- [10. Digging deeper](#10-digging-deeper)
+- [11. Checklist](#11-checklist)
 
 This file covers how a Mini App asks for input and talks to its server:
 - which fields to use, and which to skip because Telegram already knows the answer;

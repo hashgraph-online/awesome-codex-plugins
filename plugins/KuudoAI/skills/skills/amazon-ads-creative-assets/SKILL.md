@@ -19,7 +19,7 @@ compatibility: Creative specs and policy work standalone. Registering assets req
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
   display-name: "Amazon Ads Creative Assets"
-  version: "0.4.2"
+  version: "0.4.3"
 ---
 
 # Amazon Ads creative assets

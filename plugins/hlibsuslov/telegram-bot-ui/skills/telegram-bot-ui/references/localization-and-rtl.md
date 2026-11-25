@@ -1,3 +1,9 @@
+---
+summary: "Localizing the whole interface: button labels, command descriptions, templates, RTL and mixed text direction, escaping localized strings, testing; read when a bot has or adds languages."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Localization and RTL
 
 The whole interface — message text, button labels, command descriptions — must

@@ -1,0 +1,670 @@
+{
+ "$comment": "Agent notes for chat administration: members, rights, invite links, join requests. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "chat-admin",
+ "notes": {
+  "banChatMember": {
+   "purpose": "Ban a user from a group, supergroup or channel, for good or until a date.",
+   "use_when": [
+    "removing a user permanently or for a limited time"
+   ],
+   "avoid_when": [
+    "a channel posting under its own name: banChatSenderChat",
+    "removing a member who may rejoin: unbanChatMember"
+   ],
+   "pitfalls": [
+    {
+     "text": "until_date is a Unix timestamp, not a duration, and applies to supergroups and channels only; under 30 s or over 366 days from now means forever.",
+     "source": "API",
+     "cite": "until_date: If user is banned for more than 366 days or less than 30 seconds from the current time they are considered to be banned forever."
+    },
+    {
+     "text": "In supergroups and channels the user cannot return via invite links until unbanned.",
+     "source": "API",
+     "cite": "banChatMember: the user will not be able to return to the chat on their own using invite links, etc., unless unbanned first"
+    },
+    {
+     "text": "A ban is public and hard to undo socially: log who and why, confirm with a human admin.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "unbanChatMember",
+    "banChatSenderChat",
+    "restrictChatMember",
+    "ChatMember",
+    "ChatMemberUpdated"
+   ],
+   "rights": "admin with can_restrict_members (ChatAdministratorRights: restrict, ban or unban members)",
+   "chat_types": [
+    "group",
+    "supergroup",
+    "channel"
+   ],
+   "refs": [
+    "references/chat-administration.md#moderation"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "unbanChatMember": {
+   "purpose": "Lift a ban, or remove a member so the user can rejoin; only_if_banned makes it a no-op for non-banned users.",
+   "use_when": [
+    "a ban should end early",
+    "removing a member without keeping them banned"
+   ],
+   "pitfalls": [
+    {
+     "text": "Without only_if_banned a current member is removed from the chat.",
+     "source": "API",
+     "cite": "unbanChatMember: if the user is a member of the chat they will also be removed from the chat. If you don't want this, use the parameter only_if_banned."
+    },
+    {
+     "text": "The user does not return automatically; they can join via a link.",
+     "source": "API",
+     "cite": "unbanChatMember: The user will not return to the group or channel automatically, but will be able to join via link, etc."
+    }
+   ],
+   "related": [
+    "banChatMember",
+    "unbanChatSenderChat",
+    "restrictChatMember",
+    "ChatMember"
+   ],
+   "rights": "admin with can_restrict_members (ChatAdministratorRights: restrict, ban or unban members)",
+   "chat_types": [
+    "supergroup",
+    "channel"
+   ],
+   "refs": [
+    "references/chat-administration.md#moderation"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "banChatSenderChat": {
+   "purpose": "Ban a channel identity in a supergroup or channel so its owner cannot send as any of their channels.",
+   "use_when": [
+    "messages arrive on behalf of a channel (Message.sender_chat) and must stop"
+   ],
+   "avoid_when": [
+    "banning a person: banChatMember"
+   ],
+   "pitfalls": [
+    {
+     "text": "The ban covers the owner: no sending on behalf of any of their channels until unbanChatSenderChat.",
+     "source": "API",
+     "cite": "banChatSenderChat: the owner of the banned chat won't be able to send messages on behalf of any of their channels"
+    }
+   ],
+   "related": [
+    "unbanChatSenderChat",
+    "banChatMember",
+    "Message",
+    "Chat"
+   ],
+   "rights": "admin with can_restrict_members (ChatAdministratorRights: restrict, ban or unban members)",
+   "chat_types": [
+    "supergroup",
+    "channel"
+   ],
+   "since": "5.5",
+   "refs": [
+    "references/chat-administration.md#moderation"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "unbanChatSenderChat": {
+   "purpose": "Lift the ban of a channel identity in a supergroup or channel.",
+   "use_when": [
+    "a banned channel may send as itself again"
+   ],
+   "avoid_when": [
+    "unbanning a person: unbanChatMember"
+   ],
+   "related": [
+    "banChatSenderChat",
+    "unbanChatMember",
+    "Chat"
+   ],
+   "rights": "admin with can_restrict_members (ChatAdministratorRights: restrict, ban or unban members)",
+   "chat_types": [
+    "supergroup",
+    "channel"
+   ],
+   "since": "5.5",
+   "refs": [
+    "references/chat-administration.md#moderation"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "restrictChatMember": {
+   "purpose": "Set what one user may do in a supergroup; all permissions True lifts the restriction.",
+   "use_when": [
+    "mute or limit a member, e.g. no media for a day",
+    "lift a restriction"
+   ],
+   "avoid_when": [
+    "defaults for everyone: setChatPermissions",
+    "removing the user: banChatMember"
+   ],
+   "pitfalls": [
+    {
+     "text": "Without use_independent_chat_permissions, can_send_other_messages and can_add_web_page_previews imply can_send_messages and the media rights; can_send_polls implies can_send_messages.",
+     "source": "API",
+     "cite": "use_independent_chat_permissions: Pass True if chat permissions are set independently. Otherwise, the can_send_other_messages and can_add_web_page_previews permissions will imply..."
+    },
+    {
+     "text": "until_date is a Unix timestamp; under 30 s or over 366 days from now means forever.",
+     "source": "API",
+     "cite": "until_date: ...restricted for more than 366 days or less than 30 seconds from the current time, they are considered to be restricted forever."
+    }
+   ],
+   "related": [
+    "setChatPermissions",
+    "banChatMember",
+    "ChatPermissions",
+    "ChatMember",
+    "ChatMemberUpdated"
+   ],
+   "rights": "admin with can_restrict_members (ChatAdministratorRights: restrict, ban or unban members)",
+   "chat_types": [
+    "supergroup"
+   ],
+   "refs": [
+    "references/chat-administration.md#moderation"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "promoteChatMember": {
+   "purpose": "Promote a user to administrator with chosen rights, or demote with False for every right.",
+   "use_when": [
+    "giving a moderator a limited set of rights",
+    "demoting: False for all boolean parameters"
+   ],
+   "avoid_when": [
+    "only a title change: setChatAdministratorCustomTitle"
+   ],
+   "pitfalls": [
+    {
+     "text": "Some rights are channel-only (can_post_messages, can_edit_messages, can_manage_direct_messages), supergroup-only (can_pin_messages, can_manage_topics) or group/supergroup-only (can_manage_tags).",
+     "source": "API",
+     "cite": "can_pin_messages: ...for supergroups only; can_post_messages: ...for channels only"
+    },
+    {
+     "text": "can_restrict_members defaults to True for channel administrators.",
+     "source": "API",
+     "cite": "can_restrict_members: For backward compatibility, defaults to True for promotions of channel administrators."
+    },
+    {
+     "text": "Grant only rights the bot holds itself; read its own ChatMemberAdministrator flags first.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "setChatAdministratorCustomTitle",
+    "ChatAdministratorRights",
+    "ChatMember",
+    "ChatMemberUpdated"
+   ],
+   "rights": "admin with can_promote_members (grants a subset of its own rights)",
+   "chat_types": [
+    "supergroup",
+    "channel"
+   ],
+   "refs": [
+    "references/chat-administration.md#promotion"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "setChatAdministratorCustomTitle": {
+   "purpose": "Set the custom title of an administrator the bot promoted in a supergroup.",
+   "use_when": [
+    "a visible role label for a promoted moderator"
+   ],
+   "pitfalls": [
+    {
+     "text": "Works only for administrators promoted by the bot.",
+     "source": "API",
+     "cite": "setChatAdministratorCustomTitle: an administrator in a supergroup promoted by the bot"
+    },
+    {
+     "text": "custom_title is 0-16 characters, emoji are not allowed.",
+     "source": "API",
+     "cite": "custom_title: New custom title for the administrator; 0-16 characters, emoji are not allowed"
+    }
+   ],
+   "related": [
+    "promoteChatMember",
+    "ChatMemberAdministrator",
+    "setChatMemberTag"
+   ],
+   "chat_types": [
+    "supergroup"
+   ],
+   "since": "4.5",
+   "refs": [
+    "references/chat-administration.md#promotion"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "setChatMemberTag": {
+   "purpose": "Set the tag of a regular member in a group or supergroup.",
+   "use_when": [
+    "a visible role label for a regular member"
+   ],
+   "avoid_when": [
+    "administrators: setChatAdministratorCustomTitle"
+   ],
+   "pitfalls": [
+    {
+     "text": "tag is 0-16 characters, emoji are not allowed; regular members only.",
+     "source": "API",
+     "cite": "tag: New tag for the member; 0-16 characters, emoji are not allowed"
+    },
+    {
+     "text": "Members edit their own tag only with can_edit_tag, which defaults to can_pin_messages.",
+     "source": "API",
+     "cite": "ChatPermissions.can_edit_tag: allowed to edit their own tag. If omitted, defaults to the value of can_pin_messages."
+    }
+   ],
+   "related": [
+    "promoteChatMember",
+    "setChatAdministratorCustomTitle",
+    "ChatPermissions",
+    "ChatMember"
+   ],
+   "rights": "administrator with can_manage_tags",
+   "chat_types": [
+    "group",
+    "supergroup"
+   ],
+   "since": "9.5",
+   "refs": [
+    "references/chat-administration.md#tags-95-and-chat-settings"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "setChatPermissions": {
+   "purpose": "Set the default permissions of all non-administrator members of a group or supergroup.",
+   "use_when": [
+    "the same limits for every member, e.g. text only"
+   ],
+   "avoid_when": [
+    "one user: restrictChatMember"
+   ],
+   "pitfalls": [
+    {
+     "text": "Without use_independent_chat_permissions, can_send_other_messages and can_add_web_page_previews imply can_send_messages and the media rights.",
+     "source": "API",
+     "cite": "use_independent_chat_permissions: Pass True if chat permissions are set independently. Otherwise, the can_send_other_messages and can_add_web_page_previews permissions will imply..."
+    },
+    {
+     "text": "can_change_info and can_pin_messages are ignored in public supergroups.",
+     "source": "API",
+     "cite": "ChatPermissions.can_change_info: Ignored in public supergroups."
+    }
+   ],
+   "related": [
+    "restrictChatMember",
+    "ChatPermissions",
+    "ChatFullInfo"
+   ],
+   "rights": "administrator with can_restrict_members",
+   "chat_types": [
+    "group",
+    "supergroup"
+   ],
+   "since": "4.4",
+   "refs": [
+    "references/chat-administration.md#moderation"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "createChatInviteLink": {
+   "purpose": "Create an additional invite link for a chat, optionally named, expiring, limited or approval-gated.",
+   "use_when": [
+    "one link per campaign or source",
+    "joins that need approval: creates_join_request"
+   ],
+   "avoid_when": [
+    "the chat's primary link: exportChatInviteLink",
+    "paid channel access: createChatSubscriptionInviteLink"
+   ],
+   "pitfalls": [
+    {
+     "text": "creates_join_request and member_limit cannot be combined.",
+     "source": "API",
+     "cite": "creates_join_request: If True, member_limit can't be specified."
+    },
+    {
+     "text": "name 0-32 characters, member_limit 1-99999.",
+     "source": "API",
+     "cite": "name: Invite link name; 0-32 characters; member_limit: ...1-99999"
+    },
+    {
+     "text": "Each administrator has their own links; the bot can use only links it generated.",
+     "source": "API",
+     "cite": "exportChatInviteLink: Bots can't use invite links generated by other administrators."
+    }
+   ],
+   "related": [
+    "editChatInviteLink",
+    "revokeChatInviteLink",
+    "exportChatInviteLink",
+    "ChatInviteLink",
+    "ChatJoinRequest"
+   ],
+   "rights": "admin; can_invite_users is the inviting right (the method says only 'appropriate rights')",
+   "since": "5.1",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "editChatInviteLink": {
+   "purpose": "Change the name, expiry, member limit or approval mode of a non-primary link the bot created.",
+   "use_when": [
+    "a campaign link needs a new limit or name"
+   ],
+   "avoid_when": [
+    "the primary link: exportChatInviteLink",
+    "a subscription link: editChatSubscriptionInviteLink"
+   ],
+   "pitfalls": [
+    {
+     "text": "Only non-primary links created by the bot can be edited.",
+     "source": "API",
+     "cite": "editChatInviteLink: edit a non-primary invite link created by the bot"
+    },
+    {
+     "text": "creates_join_request and member_limit cannot be combined.",
+     "source": "API",
+     "cite": "creates_join_request: If True, member_limit can't be specified."
+    },
+    {
+     "text": "name 0-32 characters; member_limit 1-99999.",
+     "source": "API",
+     "cite": "name: 0-32 characters; member_limit: 1-99999"
+    }
+   ],
+   "related": [
+    "createChatInviteLink",
+    "revokeChatInviteLink",
+    "editChatSubscriptionInviteLink",
+    "ChatInviteLink"
+   ],
+   "rights": "admin; can_invite_users is the inviting right (the method says only 'appropriate rights')",
+   "since": "5.1",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "createChatSubscriptionInviteLink": {
+   "purpose": "Create a paid subscription invite link for a channel, charged in Telegram Stars each period.",
+   "use_when": [
+    "monthly paid access to a channel"
+   ],
+   "avoid_when": [
+    "free links: createChatInviteLink"
+   ],
+   "pitfalls": [
+    {
+     "text": "subscription_period must always be 2592000 (30 days).",
+     "source": "API",
+     "cite": "subscription_period: Currently, it must always be 2592000 (30 days)."
+    },
+    {
+     "text": "subscription_price is 1-10000 Stars, paid initially and after each period.",
+     "source": "API",
+     "cite": "subscription_price: The amount of Telegram Stars a user must pay initially and after each subsequent subscription period...; 1-10000"
+    },
+    {
+     "text": "Later: rename with editChatSubscriptionInviteLink, revoke with revokeChatInviteLink.",
+     "source": "API",
+     "cite": "createChatSubscriptionInviteLink: can be edited using the method editChatSubscriptionInviteLink or revoked using the method revokeChatInviteLink"
+    }
+   ],
+   "related": [
+    "editChatSubscriptionInviteLink",
+    "revokeChatInviteLink",
+    "createChatInviteLink",
+    "ChatInviteLink"
+   ],
+   "rights": "administrator with can_invite_users",
+   "chat_types": [
+    "channel"
+   ],
+   "since": "7.9",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "editChatSubscriptionInviteLink": {
+   "purpose": "Rename a subscription invite link the bot created.",
+   "use_when": [
+    "relabelling a paid channel link"
+   ],
+   "avoid_when": [
+    "a free link: editChatInviteLink"
+   ],
+   "pitfalls": [
+    {
+     "text": "Only name is editable; the method takes no period or price.",
+     "source": "API",
+     "cite": "editChatSubscriptionInviteLink parameters: chat_id, invite_link, name"
+    }
+   ],
+   "related": [
+    "createChatSubscriptionInviteLink",
+    "editChatInviteLink",
+    "revokeChatInviteLink",
+    "ChatInviteLink"
+   ],
+   "rights": "administrator with can_invite_users",
+   "since": "7.9",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "revokeChatInviteLink": {
+   "purpose": "Revoke an invite link the bot created.",
+   "use_when": [
+    "a link was leaked or its campaign ended"
+   ],
+   "pitfalls": [
+    {
+     "text": "Revoking the primary link generates a new one automatically.",
+     "source": "API",
+     "cite": "revokeChatInviteLink: If the primary link is revoked, a new link is automatically generated."
+    },
+    {
+     "text": "Only links the bot created; other administrators' links are off limits.",
+     "source": "API",
+     "cite": "revokeChatInviteLink: revoke an invite link created by the bot"
+    },
+    {
+     "text": "A revoked link is dead for everyone who already got it; record who held it.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "createChatInviteLink",
+    "editChatInviteLink",
+    "exportChatInviteLink",
+    "createChatSubscriptionInviteLink",
+    "ChatInviteLink"
+   ],
+   "rights": "admin; can_invite_users is the inviting right (the method says only 'appropriate rights')",
+   "since": "5.1",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "exportChatInviteLink": {
+   "purpose": "Generate a new primary invite link for a chat; the previous primary link is revoked.",
+   "use_when": [
+    "the bot needs its own working link",
+    "replacing the bot's earlier primary link"
+   ],
+   "avoid_when": [
+    "extra links per source or campaign: createChatInviteLink"
+   ],
+   "pitfalls": [
+    {
+     "text": "Returns the link as a plain String, not a ChatInviteLink.",
+     "source": "API",
+     "cite": "exportChatInviteLink: Returns the new invite link as String on success."
+    },
+    {
+     "text": "Any previously generated primary link is revoked.",
+     "source": "API",
+     "cite": "exportChatInviteLink: any previously generated primary link is revoked"
+    },
+    {
+     "text": "Each administrator generates their own links; the bot needs its own, from this method or getChat.",
+     "source": "API",
+     "cite": "exportChatInviteLink: Bots can't use invite links generated by other administrators."
+    }
+   ],
+   "related": [
+    "createChatInviteLink",
+    "revokeChatInviteLink",
+    "ChatInviteLink"
+   ],
+   "rights": "admin; can_invite_users is the inviting right (the method says only 'appropriate rights')",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "approveChatJoinRequest": {
+   "purpose": "Approve a pending chat join request.",
+   "use_when": [
+    "the applicant passed your checks, e.g. accepted the rules"
+   ],
+   "avoid_when": [
+    "ChatJoinRequest.query_id is present: the bot must answer that query (answerChatJoinRequestQuery)"
+   ],
+   "pitfalls": [
+    {
+     "text": "The bot can message the applicant via user_chat_id for 5 minutes until the request is processed, if no other administrator contacted them.",
+     "source": "API",
+     "cite": "ChatJoinRequest.user_chat_id: The bot can use this identifier for 5 minutes to send messages until the join request is processed"
+    }
+   ],
+   "related": [
+    "declineChatJoinRequest",
+    "answerChatJoinRequestQuery",
+    "createChatInviteLink",
+    "ChatJoinRequest",
+    "ChatMemberUpdated"
+   ],
+   "rights": "administrator with can_invite_users",
+   "since": "5.4",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests",
+    "recipes/29-community.md"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "declineChatJoinRequest": {
+   "purpose": "Decline a pending chat join request.",
+   "use_when": [
+    "the applicant failed your checks"
+   ],
+   "avoid_when": [
+    "ChatJoinRequest.query_id is present: the bot must answer that query (answerChatJoinRequestQuery)"
+   ],
+   "pitfalls": [
+    {
+     "text": "user_chat_id messaging lasts 5 minutes and ends once the request is processed, so send any reason before declining.",
+     "source": "API",
+     "cite": "ChatJoinRequest.user_chat_id: The bot can use this identifier for 5 minutes to send messages until the join request is processed"
+    }
+   ],
+   "related": [
+    "approveChatJoinRequest",
+    "answerChatJoinRequestQuery",
+    "ChatJoinRequest"
+   ],
+   "rights": "administrator with can_invite_users",
+   "since": "5.4",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests",
+    "recipes/29-community.md"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "sendChatJoinRequestWebApp": {
+   "purpose": "Show a Mini App to the applicant of a join request query before deciding the outcome.",
+   "use_when": [
+    "verifying the applicant in a Mini App first"
+   ],
+   "avoid_when": [
+    "the decision needs no interaction: answerChatJoinRequestQuery directly"
+   ],
+   "pitfalls": [
+    {
+     "text": "Only for bots assigned to process join requests; call within 10 seconds of ChatJoinRequest.query_id arriving.",
+     "source": "API",
+     "cite": "ChatJoinRequest.query_id: for bots assigned to process join requests only... must call sendChatJoinRequestWebApp or directly call answerChatJoinRequestQuery within 10 seconds."
+    },
+    {
+     "text": "Resolve afterwards with answerChatJoinRequestQuery; Telegram's docs state no deadline for that final answer.",
+     "source": "Unverified"
+    },
+    {
+     "text": "web_app_url must be an HTTPS URL.",
+     "source": "API",
+     "cite": "web_app_url: An HTTPS URL of a Web App"
+    }
+   ],
+   "related": [
+    "answerChatJoinRequestQuery",
+    "approveChatJoinRequest",
+    "ChatJoinRequest",
+    "ChatFullInfo"
+   ],
+   "since": "10.1",
+   "refs": [
+    "references/mini-apps-bridge.md#launch-points-and-what-comes-back"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  },
+  "answerChatJoinRequestQuery": {
+   "purpose": "Resolve a join request query: approve, decline or queue it for other administrators.",
+   "use_when": [
+    "a bot assigned to process join requests decides at once or after a Mini App"
+   ],
+   "avoid_when": [
+    "a request without query_id: approveChatJoinRequest or declineChatJoinRequest"
+   ],
+   "pitfalls": [
+    {
+     "text": "result is exactly approve, decline or queue; queue leaves the decision to other administrators.",
+     "source": "API",
+     "cite": "result: Must be either “approve” to allow the user to join the chat, “decline” to disallow the user to join the chat, or “queue” to leave the decision to other administrators."
+    },
+    {
+     "text": "The id is ChatJoinRequest.query_id (a string), not a user id; answer, or show the Mini App, within 10 seconds.",
+     "source": "API",
+     "cite": "ChatJoinRequest.query_id: the bot must call sendChatJoinRequestWebApp or directly call answerChatJoinRequestQuery within 10 seconds"
+    }
+   ],
+   "related": [
+    "sendChatJoinRequestWebApp",
+    "approveChatJoinRequest",
+    "declineChatJoinRequest",
+    "ChatJoinRequest",
+    "BotFullInfo"
+   ],
+   "since": "10.1",
+   "refs": [
+    "references/chat-administration.md#invite-links-and-join-requests"
+   ],
+   "example": "examples/payloads/api-chat-admin.json"
+  }
+ }
+}

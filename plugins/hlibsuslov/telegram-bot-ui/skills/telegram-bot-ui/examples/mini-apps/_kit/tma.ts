@@ -4,7 +4,8 @@
    What it does: saves launch params before a router can erase them; mirrors scheme, platform and the
    Android performance class onto <html>; gates every call by version; drives the MainButton,
    SecondaryButton and BackButton from a screen stack; haptics by meaning; storage with fallbacks;
-   events with unsubscribe. Reference: references/mini-apps/design-system.md, webapp-api.md. */
+   typed events gated by the version that added them, with unsubscribe; a state snapshot.
+   Reference: references/mini-apps/design-system.md, webapp-api.md (§5 Events and state). */
 
 export type Scheme = 'light' | 'dark';
 export type PlatformClass = 'ios' | 'android' | 'desktop' | 'web' | 'unknown';
@@ -19,7 +20,27 @@ export interface BottomButtonLike {
   offClick(cb: () => void): unknown;
   showProgress(leaveActive?: boolean): unknown;
   hideProgress(): unknown;
+  /** Sets the button text; the kit passes text through setParams together with the other fields. */
+  setText?(text: string): unknown;
   isVisible?: boolean;
+  /** Read-only: the loading indicator is showing. The kit tracks its own busy state per button. */
+  readonly isProgressVisible?: boolean;
+}
+
+/** WebAppUser fields the kit reads; display only, never for decisions (initData is verified on the server). */
+export interface WebAppUserLike {
+  allows_write_to_pm?: true;
+  language_code?: string;
+  /** .jpeg or .svg; absent when privacy settings hide it. */
+  photo_url?: string;
+  /** 6.9: the user added the bot to the attachment menu. */
+  added_to_attachment_menu?: true;
+}
+
+/** shareToStory params (7.8): a caption, and a link widget that only Premium users can post. */
+export interface StoryShareParams {
+  text?: string;
+  widget_link?: { url: string; name?: string };
 }
 
 export interface WebAppLike {
@@ -43,8 +64,20 @@ export interface WebAppLike {
   showPopup?(p: Record<string, unknown>, cb: (id: string) => void): void;
   openInvoice?(url: string, cb: (status: string) => void): void;
   requestWriteAccess?(cb: (allowed: boolean) => void): void;
+  /** 9.6: reqId is a PreparedKeyboardButton id from the bot's savePreparedKeyboardButton. */
+  requestChat?(reqId: string, cb?: (ok: boolean) => void): void;
+  shareToStory?(mediaUrl: string, params?: StoryShareParams): void;
   hideKeyboard?(): void;
-  initDataUnsafe?: { user?: { allows_write_to_pm?: boolean; language_code?: string } };
+  /** Current state, read through state(): versions in MEMBER_SINCE. Colours are #RRGGBB. */
+  isFullscreen?: boolean;
+  isOrientationLocked?: boolean;
+  isVerticalSwipesEnabled?: boolean;
+  isClosingConfirmationEnabled?: boolean;
+  headerColor?: string;
+  backgroundColor?: string;
+  bottomBarColor?: string;
+  /** chat.photo_url: only for launches from the attachment menu. */
+  initDataUnsafe?: { user?: WebAppUserLike; chat?: { photo_url?: string } };
   MainButton?: BottomButtonLike;
   SecondaryButton?: BottomButtonLike;
   BackButton?: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void };
@@ -63,9 +96,9 @@ export interface WebAppLike {
     getLocation(cb: (data: LocationData | null) => void): void;
     openSettings(): void;
   };
-  CloudStorage?: StorageLike;
+  CloudStorage?: CloudStorageLike;
   DeviceStorage?: StorageLike;
-  SecureStorage?: StorageLike;
+  SecureStorage?: SecureStorageLike;
 }
 
 interface MotionSensorLike {
@@ -80,6 +113,8 @@ interface MotionSensorLike {
 export interface LocationData {
   latitude: number; longitude: number; altitude: number | null; course: number | null; speed: number | null;
   horizontal_accuracy: number | null; vertical_accuracy: number | null;
+  /** Degrees and m/s. */
+  course_accuracy: number | null; speed_accuracy: number | null;
 }
 
 export type ImpactStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
@@ -90,8 +125,126 @@ export type MotionReading = { x?: number; y?: number; z?: number; alpha?: number
 
 interface StorageLike {
   setItem(k: string, v: string, cb?: (err: unknown, ok?: unknown) => void): void;
-  getItem(k: string, cb: (err: unknown, v?: string | null) => void): void;
+  /** SecureStorage passes a third argument for a missing key: whether restoreItem can bring it back. */
+  getItem(k: string, cb: (err: unknown, v?: string | null, canBeRestored?: boolean) => void): void;
   removeItem(k: string, cb?: (err: unknown, ok?: unknown) => void): void;
+}
+
+/** CloudStorage batch methods (6.9). The page calls getItems' result only "the values": the kit reads it as
+ *  an object keyed by key, like getItem's ('' for a missing key). */
+interface CloudStorageLike extends StorageLike {
+  getItems?(keys: string[], cb: (err: unknown, values?: Record<string, string>) => void): void;
+  getKeys?(cb: (err: unknown, keys?: string[]) => void): void;
+  removeItems?(keys: string[], cb?: (err: unknown, removed?: boolean) => void): void;
+}
+
+/** restoreItem (9.0) asks the user before it restores a key this device had. */
+interface SecureStorageLike extends StorageLike {
+  restoreItem?(k: string, cb?: (err: unknown, v?: string | null) => void): void;
+}
+
+/* ------------------------------------------------------------ events and versions (webapp-api.md §5) */
+
+type StatusOf<A extends string> = { status: A };
+type SensorFailure = { error: 'UNSUPPORTED' };
+
+/** What each Telegram.WebApp event hands its handler (void: no parameters; read the WebApp object instead).
+ *  Fields and values from data/mini-apps/webapp-catalog.json. */
+export interface TmaEventMap {
+  themeChanged: void;
+  viewportChanged: { isStateStable: boolean };
+  mainButtonClicked: void;
+  secondaryButtonClicked: void;
+  backButtonClicked: void;
+  settingsButtonClicked: void;
+  invoiceClosed: { url: string; status: 'paid' | 'cancelled' | 'failed' | 'pending' };
+  popupClosed: { button_id: string | null };
+  qrTextReceived: { data: string };
+  scanQrPopupClosed: void;
+  /** '' when the clipboard holds no text, null when the app has no access. */
+  clipboardTextReceived: { data: string | null };
+  writeAccessRequested: StatusOf<'allowed' | 'cancelled'>;
+  contactRequested: StatusOf<'sent' | 'cancelled'>;
+  biometricManagerUpdated: void;
+  /** biometricToken only when isAuthenticated is true. */
+  biometricAuthRequested: { isAuthenticated: boolean; biometricToken?: string };
+  biometricTokenUpdated: { isUpdated: boolean };
+  activated: void;
+  deactivated: void;
+  safeAreaChanged: void;
+  contentSafeAreaChanged: void;
+  fullscreenChanged: void;
+  fullscreenFailed: { error: 'UNSUPPORTED' | 'ALREADY_FULLSCREEN' };
+  homeScreenAdded: void;
+  homeScreenChecked: StatusOf<'unsupported' | 'unknown' | 'added' | 'missed'>;
+  accelerometerStarted: void;
+  accelerometerStopped: void;
+  accelerometerChanged: void;
+  accelerometerFailed: SensorFailure;
+  deviceOrientationStarted: void;
+  deviceOrientationStopped: void;
+  deviceOrientationChanged: void;
+  deviceOrientationFailed: SensorFailure;
+  gyroscopeStarted: void;
+  gyroscopeStopped: void;
+  gyroscopeChanged: void;
+  gyroscopeFailed: SensorFailure;
+  locationManagerUpdated: void;
+  locationRequested: { locationData: LocationData };
+  shareMessageSent: void;
+  shareMessageFailed: { error: 'UNSUPPORTED' | 'MESSAGE_EXPIRED' | 'MESSAGE_SEND_FAILED' | 'USER_DECLINED' | 'UNKNOWN_ERROR' };
+  emojiStatusSet: void;
+  emojiStatusFailed: {
+    error: 'UNSUPPORTED' | 'SUGGESTED_EMOJI_INVALID' | 'DURATION_INVALID' | 'USER_DECLINED' | 'SERVER_ERROR' | 'UNKNOWN_ERROR';
+  };
+  emojiStatusAccessRequested: StatusOf<'allowed' | 'cancelled'>;
+  fileDownloadRequested: StatusOf<'downloading' | 'cancelled'>;
+}
+export type TmaEventName = keyof TmaEventMap;
+
+/** The Bot API version that added each event (the catalog's; a test keeps them equal). An older client never
+ *  fires it, so listen() refuses it there and the app takes the method's callback or its fallback. */
+export const EVENT_SINCE: Readonly<Record<TmaEventName, string>> = {
+  themeChanged: '6.0', viewportChanged: '6.0', mainButtonClicked: '6.0', secondaryButtonClicked: '7.10',
+  backButtonClicked: '6.1', settingsButtonClicked: '6.1', invoiceClosed: '6.1', popupClosed: '6.2',
+  qrTextReceived: '6.4', scanQrPopupClosed: '7.7', clipboardTextReceived: '6.4',
+  writeAccessRequested: '6.9', contactRequested: '6.9',
+  biometricManagerUpdated: '7.2', biometricAuthRequested: '7.2', biometricTokenUpdated: '7.2',
+  activated: '8.0', deactivated: '8.0', safeAreaChanged: '8.0', contentSafeAreaChanged: '8.0',
+  fullscreenChanged: '8.0', fullscreenFailed: '8.0', homeScreenAdded: '8.0', homeScreenChecked: '8.0',
+  accelerometerStarted: '8.0', accelerometerStopped: '8.0', accelerometerChanged: '8.0', accelerometerFailed: '8.0',
+  deviceOrientationStarted: '8.0', deviceOrientationStopped: '8.0', deviceOrientationChanged: '8.0',
+  deviceOrientationFailed: '8.0',
+  gyroscopeStarted: '8.0', gyroscopeStopped: '8.0', gyroscopeChanged: '8.0', gyroscopeFailed: '8.0',
+  locationManagerUpdated: '8.0', locationRequested: '8.0', shareMessageSent: '8.0', shareMessageFailed: '8.0',
+  emojiStatusSet: '8.0', emojiStatusFailed: '8.0', emojiStatusAccessRequested: '8.0', fileDownloadRequested: '8.0',
+};
+
+/** Catalog versions of the other members the kit gates by name (checked against the catalog in a test). */
+export const MEMBER_SINCE = {
+  'WebApp.headerColor': '6.1',
+  'WebApp.backgroundColor': '6.1',
+  'WebApp.isClosingConfirmationEnabled': '6.2',
+  'WebApp.isVerticalSwipesEnabled': '7.7',
+  'WebApp.bottomBarColor': '7.10',
+  'WebApp.isFullscreen': '8.0',
+  'WebApp.isOrientationLocked': '8.0',
+  'WebApp.requestChat': '9.6',
+  'CloudStorage.getItems': '6.9',
+  'CloudStorage.getKeys': '6.9',
+  'CloudStorage.removeItems': '6.9',
+  'SecureStorage.restoreItem': '9.0',
+} as const;
+
+/** WebApp's current state; null where the client is older than the field or does not report it. */
+export interface TmaState {
+  isFullscreen: boolean | null;
+  isOrientationLocked: boolean | null;
+  isVerticalSwipesEnabled: boolean | null;
+  isClosingConfirmationEnabled: boolean | null;
+  headerColor: string | null;
+  backgroundColor: string | null;
+  bottomBarColor: string | null;
 }
 
 export interface RootLike {
@@ -294,12 +447,40 @@ export function createTma(env: Env = {}) {
   const has = (v: string): boolean => !!tg && typeof tg.isVersionAtLeast === 'function' && tg.isVersionAtLeast(v);
   const subs: Array<() => void> = [];
 
+  /** Raw onEvent for any name, no version gate; a no-op outside Telegram or without onEvent / offEvent. */
   function on(name: string, cb: (...a: unknown[]) => void): () => void {
-    if (!tg) return () => {};
+    if (!tg || typeof tg.onEvent !== 'function' || typeof tg.offEvent !== 'function') return () => {};
     tg.onEvent(name, cb);
     const off = () => tg.offEvent(name, cb);
     subs.push(off);
     return off;
+  }
+
+  /** Typed onEvent gated by the event's version (6.0 events need no gate). Returns the unsubscribe, or null when
+   *  the event will never come here (older client, outside Telegram, no onEvent): take the fallback path.
+   *  Subscribe before calling the method that triggers the event. */
+  function listen<E extends TmaEventName>(name: E, cb: (payload: TmaEventMap[E]) => void): (() => void) | null {
+    if (!tg || typeof tg.onEvent !== 'function' || typeof tg.offEvent !== 'function') return null;
+    const since = EVENT_SINCE[name];
+    if (since !== '6.0' && !has(since)) return null;
+    return on(name, cb as (...a: unknown[]) => void);
+  }
+
+  /** A snapshot of the WebApp state fields; re-read it after fullscreenChanged, themeChanged or your own setter call. */
+  function state(): TmaState {
+    const read = <T>(key: keyof TmaState, type: 'boolean' | 'string'): T | null => {
+      const v = tg?.[key];
+      return typeof v === type && has(MEMBER_SINCE[`WebApp.${key}`]) ? (v as T) : null;
+    };
+    return {
+      isFullscreen: read<boolean>('isFullscreen', 'boolean'),
+      isOrientationLocked: read<boolean>('isOrientationLocked', 'boolean'),
+      isVerticalSwipesEnabled: read<boolean>('isVerticalSwipesEnabled', 'boolean'),
+      isClosingConfirmationEnabled: read<boolean>('isClosingConfirmationEnabled', 'boolean'),
+      headerColor: read<string>('headerColor', 'string'),
+      backgroundColor: read<string>('backgroundColor', 'string'),
+      bottomBarColor: read<string>('bottomBarColor', 'string'),
+    };
   }
 
   /* -- scheme, platform, performance class on <html> */
@@ -538,6 +719,16 @@ export function createTma(env: Env = {}) {
     return new Promise((resolve) => tg.requestWriteAccess!((ok) => resolve(!!ok)));
   }
 
+  /** Telegram's dialog to pick or create a chat for a PreparedKeyboardButton the bot saved (9.6). Resolves the
+   *  client's boolean, or null below 9.6: then the bot sends a request_chat reply keyboard instead. */
+  function requestChat(reqId: string): Promise<boolean | null> {
+    const ask = tg?.requestChat;
+    if (!ask || !has(MEMBER_SINCE['WebApp.requestChat'])) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      try { ask.call(tg, reqId, (ok) => resolve(!!ok)); } catch { resolve(false); } // e.g. an unknown or expired id
+    });
+  }
+
   /* -- storage: promise wrappers; null when the client has no such storage */
   function wrap(s: StorageLike | undefined, since: string) {
     if (!s || !has(since)) return null;
@@ -548,20 +739,80 @@ export function createTma(env: Env = {}) {
       remove: (k: string) => new Promise<void>((res, rej) => s.removeItem(k, (e) => (e ? rej(e) : res()))),
     };
   }
+  /* Several keys at once: getMany -> { key: value | null }, removeMany -> removed, keys -> every key or null
+     when the storage cannot list them. Without a batch method the kit makes one call per key. */
+  type Single = NonNullable<ReturnType<typeof wrap>>;
+  const pick = (keys: readonly string[], values: Record<string, unknown> | null | undefined) =>
+    Object.fromEntries(keys.map((k) => {
+      const v = values?.[k];
+      return [k, typeof v === 'string' && v ? v : null];
+    })) as Record<string, string | null>;
+  const getEach = async (one: Single, keys: readonly string[]) =>
+    pick(keys, Object.fromEntries(await Promise.all(keys.map(async (k) => [k, await one.get(k)] as const))));
+  const removeEach = async (one: Single, keys: readonly string[]) => {
+    await Promise.all(keys.map((k) => one.remove(k)));
+    return true;
+  };
+  function batch(s: CloudStorageLike, one: Single) {
+    const getItems = s.getItems && has(MEMBER_SINCE['CloudStorage.getItems']) ? s.getItems.bind(s) : null;
+    const getKeys = s.getKeys && has(MEMBER_SINCE['CloudStorage.getKeys']) ? s.getKeys.bind(s) : null;
+    const removeItems = s.removeItems && has(MEMBER_SINCE['CloudStorage.removeItems']) ? s.removeItems.bind(s) : null;
+    return {
+      getMany: (keys: string[]): Promise<Record<string, string | null>> => {
+        if (!keys.length) return Promise.resolve({});
+        if (!getItems) return getEach(one, keys);
+        return new Promise((res, rej) => getItems(keys, (e, v) => (e ? rej(e) : res(pick(keys, v)))));
+      },
+      removeMany: (keys: string[]): Promise<boolean> => {
+        if (!keys.length) return Promise.resolve(true);
+        if (!removeItems) return removeEach(one, keys);
+        // false only when the client says so: the page gives the boolean, a missing one is not a refusal
+        return new Promise((res, rej) => removeItems(keys, (e, removed) => (e ? rej(e) : res(removed !== false))));
+      },
+      keys: (): Promise<string[] | null> => {
+        if (!getKeys) return Promise.resolve(null);
+        return new Promise((res, rej) => getKeys((e, k) => (e ? rej(e) : res(Array.isArray(k) ? k : []))));
+      },
+    };
+  }
+
   /** Non-secret data synced across the user's devices: CloudStorage (6.9); in memory outside Telegram.
       Never localStorage. DeviceStorage (9.0) and SecureStorage (9.0) are below. */
   const mem = new Map<string, string>();
   function store() {
-    const native = wrap(tg?.CloudStorage, '6.9');
-    if (native) return native;
-    return {
-      get: async (k: string) => mem.get(k) ?? null,
+    const cloud = tg?.CloudStorage;
+    const native = wrap(cloud, '6.9');
+    if (cloud && native) return { ...native, ...batch(cloud, native) };
+    const local: Single = {
+      get: async (k: string) => mem.get(k) || null, // '' reads as missing, as CloudStorage returns it
       set: async (k: string, v: string) => { mem.set(k, v); },
       remove: async (k: string) => { mem.delete(k); },
     };
+    return {
+      ...local,
+      getMany: async (keys: string[]) => getEach(local, keys),
+      removeMany: async (keys: string[]) => removeEach(local, keys),
+      keys: async (): Promise<string[] | null> => [...mem.keys()],
+    };
   }
   const deviceStore = () => wrap(tg?.DeviceStorage, '9.0');
-  const secureStore = () => wrap(tg?.SecureStorage, '9.0');
+  /** Secrets in the Keychain / Keystore (9.0). lookup() tells a missing key that restore() can bring back; restore()
+   *  asks the user and rejects when they decline, resolves null when the client has no restoreItem. */
+  function secureStore() {
+    const s = tg?.SecureStorage;
+    const one = wrap(s, '9.0');
+    if (!s || !one) return null;
+    const restoreItem = s.restoreItem && has(MEMBER_SINCE['SecureStorage.restoreItem']) ? s.restoreItem.bind(s) : null;
+    return {
+      ...one,
+      lookup: (k: string) => new Promise<{ value: string | null; canRestore: boolean }>((res, rej) =>
+        s.getItem(k, (e, v, canBeRestored) => (e ? rej(e) : res({ value: v ? v : null, canRestore: !v && canBeRestored === true })))),
+      restore: (k: string): Promise<string | null> => {
+        if (!restoreItem) return Promise.resolve(null);
+        return new Promise((res, rej) => restoreItem(k, (e, v) => (e ? rej(e) : res(v ? v : null))));
+      },
+    };
+  }
 
   /* -- payments (references/mini-apps/payments.md): open the server's invoice link, then ask the server */
   /** Opens an invoice link from a tap. Resolves with Telegram's status, which is only a hint: never unlock
@@ -674,9 +925,9 @@ export function createTma(env: Env = {}) {
   }
 
   return {
-    tg, inTelegram, launch, has, on, chrome, haptic, mainButton, secondaryButton, nav, settings,
-    closingConfirmation, confirm, store, deviceStore, secureStore, pay, watchOrder, writeAccess, motion, location, locale, api, hideKeyboard,
-    ready, dispose,
+    tg, inTelegram, launch, has, on, listen, state, chrome, haptic, mainButton, secondaryButton, nav, settings,
+    closingConfirmation, confirm, store, deviceStore, secureStore, pay, watchOrder, writeAccess, requestChat, motion, location,
+    locale, api, hideKeyboard, ready, dispose,
     get initData(): string { return tg?.initData ?? ''; },
   };
 }

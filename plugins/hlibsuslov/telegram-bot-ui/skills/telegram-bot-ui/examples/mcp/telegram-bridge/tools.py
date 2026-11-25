@@ -7,7 +7,9 @@ back, and that human answers are untrusted data.
 from __future__ import annotations
 
 import argparse
+import math
 import os
+import re
 import sys
 from typing import Any
 
@@ -72,14 +74,64 @@ TOOLS: list[dict[str, Any]] = [
 ]
 
 
+_TYPES: dict[str, type | tuple[type, ...]] = {
+    "string": str, "boolean": bool, "integer": int, "number": (int, float), "array": list}
+
+
+def check_arguments(name: str, args: Any) -> None:
+    """Enforce the tool's inputSchema before it runs: required keys, no unknown keys, JSON
+    types (a "false" string is not a boolean, true is not a number), enum, pattern, lengths,
+    item counts and numeric bounds, so telegram_ask cannot block past its maximum. A null
+    optional argument counts as absent: server_sdk.py passes None for what the model left out."""
+    schema = next(t["inputSchema"] for t in TOOLS if t["name"] == name)
+    if not isinstance(args, dict):
+        raise ValueError("arguments must be an object")
+    for key in schema.get("required", []):
+        if args.get(key) is None:
+            raise ValueError(f"missing argument: {key}")
+    for key, value in args.items():
+        spec = schema["properties"].get(key)
+        if spec is None:
+            raise ValueError(f"unknown argument: {key}")
+        if value is not None:
+            _check_value(key, value, spec)
+
+
+def _check_value(key: str, value: Any, spec: dict[str, Any]) -> None:
+    kind = spec["type"]
+    if not isinstance(value, _TYPES[kind]) or (kind != "boolean" and isinstance(value, bool)):
+        raise ValueError(f"{key} must be {kind}")
+    if kind == "number" and not math.isfinite(value):
+        raise ValueError(f"{key} must be a finite number")
+    if "enum" in spec and value not in spec["enum"]:
+        raise ValueError(f"{key} must be one of {spec['enum']}")
+    if "pattern" in spec and not re.search(spec["pattern"], value):
+        raise ValueError(f"{key} must match {spec['pattern']}")
+    if kind in ("string", "array"):
+        low = spec.get("minLength", spec.get("minItems", 0))
+        high = spec.get("maxLength", spec.get("maxItems", math.inf))
+        if not low <= len(value) <= high:
+            raise ValueError(f"{key} must have {low}..{high} {'characters' if kind == 'string' else 'items'}")
+    if kind in ("number", "integer"):
+        if not spec.get("minimum", -math.inf) <= value <= spec.get("maximum", math.inf):
+            raise ValueError(f"{key} must be between {spec.get('minimum')} and {spec.get('maximum')}")
+    if kind == "array":
+        for i, item in enumerate(value):
+            _check_value(f"{key}[{i}]", item, spec["items"])
+
+
 class ToolHost:
     def __init__(self, bridge: AgentBridge, files_root: str):
         self.b = bridge
         self.root = os.path.realpath(files_root)
 
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        """Every tool result is redacted before it reaches the MCP host."""
-        return self.b.redactor.obj(self._call(name, args))
+        """Arguments are checked against the tool's inputSchema first; every tool result is
+        redacted before it reaches the MCP host."""
+        check_arguments(name, args)
+        # A null optional argument passed the check as absent: drop it so every default applies.
+        present = {k: v for k, v in args.items() if v is not None}
+        return self.b.redactor.obj(self._call(name, present))
 
     def _call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         a = args or {}
@@ -113,11 +165,13 @@ def host_from_argv(argv: list[str] | None = None, transport: Any = None,
     plus --files-root (default: AGENT_BRIDGE_FILES_ROOT or the current directory)."""
     parser = argparse.ArgumentParser(parents=[cli._common(False)], add_help=False)
     parser.add_argument("--files-root", default=os.environ.get("AGENT_BRIDGE_FILES_ROOT", os.getcwd()))
-    args, _ = parser.parse_known_args(argv)
+    args, unknown = parser.parse_known_args(argv)
+    if unknown:  # a mistyped --files-root must not silently widen what may be sent to the cwd
+        raise SystemExit(f"telegram-bridge: unknown arguments {unknown}")
     args.quiet = True                       # stdout is the protocol channel; logs go to stderr only
     bridge, _ = cli.build(args, environ, transport)
     bridge.log = lambda e: print({"log": e}, file=sys.stderr)
     return ToolHost(bridge, args.files_root)
 
 
-__all__ = ["TOOLS", "ToolHost", "host_from_argv", "UNTRUSTED"]
+__all__ = ["TOOLS", "ToolHost", "check_arguments", "host_from_argv", "UNTRUSTED"]

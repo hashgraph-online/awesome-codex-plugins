@@ -1,4 +1,21 @@
+---
+summary: "Procedure to rework a web-style Mini App into classic Telegram design: loop, stages, translation table, colours, copy, framework bridge, acceptance, report; read when asked to make an app native."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Rework a Mini App into classic Telegram design
+
+## Contents
+
+- [1. The loop](#1-the-loop)
+- [2. Stages](#2-stages)
+- [3. Translation table: web pattern → Telegram](#3-translation-table-web-pattern--telegram)
+- [4. Colours and type](#4-colours-and-type)
+- [5. Copy](#5-copy)
+- [6. React, Vue, Tailwind, shadcn/ui](#6-react-vue-tailwind-shadcnui)
+- [7. Acceptance: is it classic Telegram?](#7-acceptance-is-it-classic-telegram)
+- [8. Report](#8-report)
 
 The procedure for "make our Mini App look and work like Telegram": a web-style app (own header, drawer,
 gradients, a fixed CTA, emoji labels, its own palette) becomes a Telegram-native one without breaking its
@@ -139,7 +156,7 @@ Keep the stack and swap the tokens:
 - **Tailwind classes.** Replace palette classes with the bridge names: `bg-white` → `bg-tg-surface`,
   `text-gray-500` → `text-tg-hint`, `bg-indigo-600` on a button → the MainButton, or `bg-tg-accent` inside
   content. Same for radius (`rounded-tg-group`) and the font (`font-sans` is the system font).
-- **React.** Use the React example's `kit.tsx` hooks or `@tma.js/sdk-react` for the MainButton, BackButton
+- **React.** Use the React example's `kit.tsx` hooks or `@tma.js/sdk-react` **[Third-party]** for the MainButton, BackButton
   and theme; keep components, replace their markup with the kit classes or the bridged tokens.
 - **Native first.** A component library's dialog, toast, drawer or date picker is still a web pattern: replace
   it per §3 even when it is themed.

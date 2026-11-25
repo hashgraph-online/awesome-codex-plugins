@@ -1,3 +1,9 @@
+---
+summary: "Rewriting message texts, titles, captions and button labels safely: keep facts and placeholders, body rules, tone, emoji, errors, empty states; read before editing any bot copy."
+verified: "2026-11-23"
+bot_api: "10.5"
+---
+
 # Microcopy: message texts, titles, captions, button labels
 
 Text is the bot's primary interface. This is the first layer to fix and the one

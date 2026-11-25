@@ -1,11 +1,18 @@
+---
+summary: "The bot side of Mini Apps: launch points, what comes back (web_app_data, answerWebAppQuery), trusting Mini App data, prepared messages and buttons; read when a bot opens a Mini App."
+verified: "2026-11-25"
+bot_api: "10.5"
+---
+
 # Mini App bridge (bot side only)
 
 How a bot **launches** Mini Apps and **receives data** from them, and how to trust that
 data. The Mini App itself (the `Telegram.WebApp` client API, design system, screens,
 security and testing) has its own branch: [mini-apps/README.md](mini-apps/README.md).
 HTML widgets inside a message are a different thing (`widgets.md`). Checked on **2026-11-15** against
-https://core.telegram.org/bots/webapps and the Bot API 10.4 page. Every JSON block
-passes `scripts/validate_payload.py`.
+https://core.telegram.org/bots/webapps and the Bot API 10.4 page; re-checked against Bot API 10.5 on **2026-11-25**
+(every type and method named here is in the 10.5 catalog; 10.5 added `WriteAccessAllowed.inviter`). Every JSON
+block passes `scripts/validate_payload.py`.
 
 Labels: **[API]** Bot API spec; **[Official]** Mini Apps page; **[Heuristic]** this skill's advice.
 
@@ -73,7 +80,10 @@ import hashlib, hmac, time, urllib.parse
 
 def verify_init_data(init_data: str, bot_token: str, max_age: int = 3600) -> dict:
     """Return the parsed initData fields or raise ValueError. Stdlib only."""
-    fields = dict(urllib.parse.parse_qsl(init_data, keep_blank_values=True))
+    pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True, strict_parsing=True)
+    fields = dict(pairs)
+    if len(fields) != len(pairs) or any("\n" in v for v in fields.values()):
+        raise ValueError("repeated key or newline in initData")   # see mini-apps/security.md
     received = fields.pop("hash", "")
     check = "\n".join(f"{k}={v}" for k, v in sorted(fields.items()))
     secret = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
@@ -99,8 +109,10 @@ environment; never send it to the front-end. **[Heuristic]**
   `request_chat` or `request_managed_bot`; results come back as `users_shared`,
   `chat_shared` or `managed_bot_created` service messages.
 - **[API]** `WriteAccessAllowed` service message (`from_request`, `web_app_name`,
-  `from_attachment_menu`): the user allowed the bot to message them from a Mini App
-  (`requestWriteAccess`) — only after this may the bot start the conversation.
+  `from_attachment_menu`, and since 10.5 `inviter`): the user allowed the bot to message them from a
+  Mini App (`requestWriteAccess`), or the bot's owner invited them with `t.me/botinvite/<bot_username>`
+  (`inviter` is the owner; `bot-settings.md#owner-invites-botinvite-links`) — only after this may the bot
+  start the conversation.
 - **[API]** Payments from a Mini App: create a link with `createInvoiceLink` and open it
   with `WebApp.openInvoice` (`payments-and-stars.md`).
 - **[API]** 10.2 hardened Mini Apps: Mini App methods are refused from origins other than

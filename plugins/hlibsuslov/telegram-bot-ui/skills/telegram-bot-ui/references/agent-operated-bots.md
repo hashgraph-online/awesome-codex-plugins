@@ -1,9 +1,33 @@
+---
+summary: "An AI agent working through its own Telegram bot: notifications, status cards, streaming, approvals, ask-and-wait, artifacts, topics, update intake, hooks; read when the bot is the agent's interface."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Agent-operated bots: an AI agent working through its own Telegram bot
 
 > Verified 2026-11-15 against Bot API **10.4** (2026-11-09; still the newest version in
 > the official changelog on that date), the Claude Code hooks reference and the Codex
 > hooks/config reference. Tags: **[API]** = Bot API requirement, **[Official]** =
 > official recommendation, **[Heuristic]** = design heuristic of this skill.
+
+## Contents
+
+- [Pick the pattern](#pick-the-pattern)
+- [One-way notification](#one-way-notification)
+- [Status card for a long task](#status-card-for-a-long-task)
+- [Streamed answer with Stop](#streamed-answer-with-stop)
+- [Approval request](#approval-request)
+- [Ask and wait for an answer](#ask-and-wait-for-an-answer)
+- [Choices and forms](#choices-and-forms)
+- [Delivering artifacts](#delivering-artifacts)
+- [Live dashboard widget](#live-dashboard-widget)
+- [Parallel jobs in private-chat topics](#parallel-jobs-in-private-chat-topics)
+- [Working in a team group](#working-in-a-team-group)
+- [Receiving commands and free text](#receiving-commands-and-free-text)
+- [Update intake: polling, webhook, restart](#update-intake-polling-webhook-restart)
+- [Coding-agent hooks](#coding-agent-hooks)
+- [Recipes](#recipes)
 
 This file is for the case where **the bot is the agent's interface**: a coding agent,
 CI job or autonomous worker reports to its human operator, asks, waits, requests approval

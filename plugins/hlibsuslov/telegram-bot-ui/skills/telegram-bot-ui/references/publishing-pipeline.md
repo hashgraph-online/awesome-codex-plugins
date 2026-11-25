@@ -1,4 +1,25 @@
+---
+summary: "Pipeline from source material to a channel post exactly once: content model, rendering, validation, preview, approval, idempotent publish, edits, rate limits, fan-out; read when a bot publishes."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Publishing pipeline: from source material to a channel post, exactly once
+
+## Contents
+
+- [1. Content model: structured blocks, never raw HTML](#1-content-model-structured-blocks-never-raw-html)
+- [2. Render per format](#2-render-per-format)
+- [3. Validate before anything leaves](#3-validate-before-anything-leaves)
+- [4. Preview in a private chat](#4-preview-in-a-private-chat)
+- [5. Approval step (human in the loop)](#5-approval-step-human-in-the-loop)
+- [6. Publish exactly once (idempotency and unknown outcomes)](#6-publish-exactly-once-idempotency-and-unknown-outcomes)
+- [7. After publishing: edit, pin, delete, copy, forward](#7-after-publishing-edit-pin-delete-copy-forward)
+- [8. Scheduling is the caller's job](#8-scheduling-is-the-callers-job)
+- [9. Rate limits and failures](#9-rate-limits-and-failures)
+- [10. Mailing to many recipients (FanOut)](#10-mailing-to-many-recipients-fanout)
+- [11. Multi-channel and multi-language fan-out](#11-multi-channel-and-multi-language-fan-out)
+- [12. Operating checklist for an agent](#12-operating-checklist-for-an-agent)
 
 How an agent operates a bot as a **publisher**: turn source material (a feed item, a CMS
 entry, an AI summary) into a channel post and deliver it safely and repeatably. Design of the
@@ -147,7 +168,7 @@ code keeps the same records in its database, keyed uniquely.
 | Need | Call | Facts |
 |---|---|---|
 | Fix text | `editMessageText` (`text`/`entities` or `rich_message`) | rich edits since 10.1 **[API]**; edits keep views, reactions and comments **[Heuristic]** |
-| Fix caption | `editMessageCaption` | album: edit the first item's caption **[API]** |
+| Fix caption | `editMessageCaption` | album: edit the first item's caption **[Heuristic]** |
 | Swap media | `editMessageMedia` | albums: same family only (audio→audio, document→document, photo/live photo/video otherwise) **[API]** |
 | Buttons only | `editMessageReplyMarkup` | **[API]** |
 | Close a poll | `stopPoll` | a sent poll can't be edited otherwise **[API]** |

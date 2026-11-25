@@ -22,6 +22,8 @@
       "Check my models against the warehouse.",
       "There are duplicates in my fact table and I do not know where they come from.",
       "Diagnose why the accepted_values test on order_status fails.",
+      "When did the unique test on stg_orders.order_id start failing?",
+      "The not_null test on fct_orders.customer_id is red. What changed when it broke?",
       "Did my SLayer models drift from the warehouse?",
       "A SLayer join started fanning out and the revenue measure doubled. Why?",
       "We upgraded SLayer and maintain says every model was removed. What happened?"

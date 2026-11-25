@@ -3,7 +3,8 @@
 Product recipe (combines mechanisms; no registry row of its own). Uses `createInvoiceLink` with
 `subscription_period`, `editUserStarSubscription`, `successful_payment` recurring fields, regular-HTML
 `<tg-time>`, 9.4 button `style`, `10.3` disabled buttons. Verified 2026-11-15 against Bot API 10.4
-(newest release on that date, 2026-11-09). Payments depth: `references/payments-and-stars.md`
+(newest release on that date, 2026-11-09); re-checked against Bot API 10.5 on 2026-11-25 (10.5 changed nothing
+in payments; every type and method named here is in the 10.5 catalog). Payments depth: `references/payments-and-stars.md`
 (payments stream); one-off purchases: [recipe 20](20-shop.md); index of all product recipes:
 `references/use-case-playbooks.md`. Tags: **[API]** = API requirement, **[official]** = official
 recommendation, **[heuristic]** = design heuristic of this skill.
@@ -14,7 +15,8 @@ recommendation, **[heuristic]** = design heuristic of this skill.
    paywall: what Pro includes, the price, a primary `Start 7-day trial` and `Subscribe ⭐ 150/month`.
    The trial starts once. `Subscribe` is a URL button to an invoice link. After paying, the status
    screen says “Renews on <date>” with `Cancel renewal`; cancelling keeps access until the period
-   ends and shows `Resume renewal`. Reminders go out 3 and 1 days before the end of a trial or of a
+   ends and shows `Resume renewal`, which lets the user turn renewal back on in Telegram (the bot
+   cannot switch it on by itself). Reminders go out 3 and 1 days before the end of a trial or of a
    cancelled subscription; after the end the user sees an expired screen with `Subscribe ⭐ …`.
 2. **Why these features.**
    - Subscription link: `createInvoiceLink` with `subscription_period: 2592000` (30 days is the only
@@ -23,8 +25,11 @@ recommendation, **[heuristic]** = design heuristic of this skill.
    - `successful_payment` carries `is_recurring`, `is_first_recurring` and
      `subscription_expiration_date` **[API]**: take the expiry from the update, never compute it.
    - `editUserStarSubscription(user_id, telegram_payment_charge_id, is_canceled)`: `true` stops the
-     next extension (the subscription stays active to the period end), `false` re-enables one the bot
-     cancelled **[API]**. This is the in-bot “Cancel renewal” people expect **[heuristic]**.
+     next extension (the subscription stays active to the period end); `false` only allows the user
+     to re-enable one the **bot** cancelled **[API]**: it becomes active again when
+     `Update.subscription` arrives with `state: "active"`. A subscription the user cancelled in
+     Telegram is re-enabled by the user there, so the bot answers `Resume` with that instruction and
+     makes no call. This is the in-bot “Cancel renewal” people expect **[heuristic]**.
    - `/paysupport` must be answered by any bot that takes payments **[official,
      https://core.telegram.org/bots/payments-stars]**.
    - Digital goods and services are sold for Stars **[official, same page]**.
@@ -35,7 +40,8 @@ recommendation, **[heuristic]** = design heuristic of this skill.
      user”* **[API]** — so pre-checkout refuses a second one.
 3. **Requirements.** Bot API ≥ 10.3 for the disabled button (subscriptions and `<tg-time>` are older).
    Production. Private chat. `allowed_updates` must include `pre_checkout_query`, `message` (the
-   payment arrives as a service message) and `callback_query`. A job queue that survives restarts
+   payment arrives as a service message), `callback_query` and `subscription` (cancel, re-enable and
+   failed renewal made in Telegram, `BotSubscriptionUpdated`, 10.2). A job queue that survives restarts
    (here an in-memory `Scheduler`). Store the latest `telegram_payment_charge_id` per user: both
    cancelling and refunds (`refundStarPayment`) need it.
 4. **Payload.** Full request sequence: `examples/payloads/r25-subscription.json`. Incoming fixtures:
@@ -48,7 +54,7 @@ recommendation, **[heuristic]** = design heuristic of this skill.
    | paywall | “Pro — what is included, ⭐ 150 per month” | `Start 7-day trial` primary (disabled `Trial used` after) · `Subscribe ⭐ 150/month` (URL) | status / invoice |
    | status (trial) | “Pro trial — full access until <date>” | `Subscribe ⭐ 150/month` (URL) primary | invoice |
    | status (active) | “Pro is active — renews on <date>” | `Cancel renewal` danger | status (canceled) |
-   | status (canceled) | “Renewal is off: access ends <date>” | `Resume renewal` primary | status (active) |
+   | status (canceled) | “Renewal is off: access ends <date>” | `Resume renewal` primary | toast “turn renewal back on in Telegram”; active after `Update.subscription` |
    | reminder | “Your trial ends in 3 d” / “Pro ends in 3 d” | URL subscribe / `Resume renewal` | invoice / status |
    | expired | “Pro has ended — your access ended <date>” | `Subscribe ⭐ …` (URL) | invoice |
 
@@ -77,12 +83,16 @@ recommendation, **[heuristic]** = design heuristic of this skill.
      trial --> expired: until + grace
      active --> active: renewal (is_recurring, new expiry)
      active --> canceled: Cancel renewal
-     canceled --> active: Resume (screen or reminder)
+     canceled --> canceled: Resume (bot-cancelled: is_canceled=false lets the user re-enable)
+     canceled --> active: Update.subscription state=active (the user re-enabled in Telegram)
+     active --> canceled: Update.subscription state=canceled (cancelled in Telegram)
+     active --> failed: Update.subscription state=failed
+     failed --> expired: until + grace (access follows the expiry)
      canceled --> expired: until + grace
      active --> expired: no renewal by until + grace
      expired --> active: payment
    ```
-   Subscription record: `{status, until, charge, trial_used}`. Jobs per user, replaced by key on every
+   Subscription record: `{status, until, charge, trial_used, canceled_by, resume_allowed}`. Jobs per user, replaced by key on every
    change: `sb:<uid>:exp` at `until + 6 h` (a renewal can arrive a little after the period ends),
    `sb:<uid>:r3` / `r1` only for `trial` and `canceled` (an auto-renewing user is not warned). Every
    job carries the `until` it was made for; at run time a changed `until` or status means it is

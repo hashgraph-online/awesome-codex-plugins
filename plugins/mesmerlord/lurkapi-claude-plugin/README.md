@@ -18,6 +18,8 @@ Then run `/mcp`, pick `plugin:lurkapi:lurkapi` and choose **Authenticate**. A Lu
 
 **Claude and Cowork**: add **LurkAPI** from the directory in [Customize → Plugins](https://claude.ai/customize/plugins). It reaches Claude Code too.
 
+Since 1.5.0 the MCP server lists one tool per platform (`tiktok`, with `endpoint: "profile"`) instead of one per endpoint, so Claude holds 17 tools instead of 89. A permission rule that names an old tool (`mcp__plugin_lurkapi_lurkapi__tiktok_profile`) now needs the platform's (`mcp__plugin_lurkapi_lurkapi__tiktok`).
+
 **Gemini CLI**: the extension, with the skills and the MCP server. Run `/mcp auth lurkapi` in Gemini CLI to sign in.
 
 ```bash
@@ -55,7 +57,7 @@ export LURKAPI_API_KEY=...   # from https://lurkapi.com/dashboard
 
 ## Cost
 
-Most calls cost 1 credit; each skill's table gives the price of every call it makes, and every answer shows your balance. A call that reaches the platform is charged even when the thing isn't found; failures on our side are free. New accounts get 100 free credits, a balance below 25 tops back up to 25 every day, and packs start at $9 for 10,000 credits that never expire. See [pricing](https://lurkapi.com/pricing).
+Most calls cost 1 credit; each skill's table gives the price of every call it makes, and every answer shows your balance. A call that reaches the platform is charged even when the thing isn't found; failures on our side are free. New accounts get 100 free credits, a balance below 20 tops back up to 20 every day, and packs start at $39 for 42,000 credits that never expire. See [pricing](https://lurkapi.com/pricing).
 
 ## Data
 

@@ -140,6 +140,8 @@ Before invoking any skill, **proactively recall** relevant knowledge from the me
 4. **After resolution**: Record via `epic mem add` with type `resolution` (auto-importance=0.8) or `decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
 5. **Fallback**: If `epic mem recall` is unavailable, use `epic mem search` (keyword FTS) or `epic mem context` (project-scoped smart recall).
 
+When a block starting with `[epic] Context for this prompt` is present, its memory lines already came from a task-scoped recall; run `epic mem recall` only for a different angle. The hook writes its own dispatch log line; log only skills you actually invoke.
+
 Memory scoring: recency(25%) + importance(35%) + access_freq(15%) + FTS_match(25%). Frequently accessed and important memories naturally float to the top; unused noise decays over time.
 
 This enables cross-session learning: the agent remembers past mistakes, decisions, and solutions — and retrieves the most relevant ones for the current context.

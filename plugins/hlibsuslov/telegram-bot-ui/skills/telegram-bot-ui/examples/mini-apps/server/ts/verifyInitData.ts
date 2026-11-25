@@ -98,9 +98,14 @@ export function verifyEd25519(raw: string, opts: Options & { botId: number; publ
   return decode(fields);
 }
 
-/** Express/Fastify-style helper: read `Authorization: tma <initData>` and verify it. */
+/**
+ * Express/Fastify-style helper: read `Authorization: tma <initData>` and verify it. The scheme is
+ * case-insensitive, and the value may also be base64, the form telegram-web-app.js sends for
+ * `WebApp.Serverless.call` (`'TMA ' + btoa(initData)`). Raw initData always holds `hash=`; base64 never does.
+ */
 export function fromAuthorization(header: string | undefined, botToken: string, opts: Options = {}): Record<string, unknown> {
-  const m = /^tma (.+)$/.exec(header ?? '');
+  const m = /^tma (.+)$/i.exec(header ?? '');
   if (!m) throw new InitDataError('missing Authorization: tma <initData>');
-  return verifyHmac(m[1], { ...opts, botToken });
+  const raw = m[1].includes('hash=') ? m[1] : Buffer.from(m[1], 'base64').toString('utf8');
+  return verifyHmac(raw, { ...opts, botToken });
 }

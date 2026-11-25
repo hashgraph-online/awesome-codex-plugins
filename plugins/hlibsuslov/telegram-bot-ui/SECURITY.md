@@ -29,7 +29,9 @@ the repository's own tooling.
   --live`, the agent bridge `--live`) or `TELEGRAM_LIVE=1` with a test-bot token; without it
   the tools do a dry run. Live emoji lookups call read-only Bot API methods only.
 - **Other network use**, all explicit: `skill/scripts/sync_bot_api.py` downloads the public
-  Bot API pages from `core.telegram.org` (no token); `skill/scripts/preview_widget.py
+  Bot API pages from `core.telegram.org` (no token); `tgui.py emoji library`, the MCP emoji tools
+  and Studio pack import ask the project website's emoji resolver (search words, pack names, the
+  custom emoji ids being looked up; no token; `BOT_UI_EMOJI_RESOLVER=off` disables it); `skill/scripts/preview_widget.py
   --serve` binds to `127.0.0.1` only; `scripts/run_evals.py --execute` runs the agent CLI you
   name, in a temporary project. `scripts/install.py` writes only into the skill folders it prints, and
   `--dry-run` changes nothing.

@@ -1,3 +1,9 @@
+---
+summary: "Sending gifts and Premium from Stars, reading owned and unique gifts, gift service messages, stories for business accounts; read when a bot deals with gifts or stories."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Gifts and stories
 
 Sending gifts and Telegram Premium paid from the bot's Stars, reading gifts users and
@@ -28,8 +34,9 @@ Labels: **[API]** spec; **[Heuristic]** this skill's advice.
   `remaining_count` plus the bot's own `personal_total_count` /
   `personal_remaining_count` (9.3). `is_premium` gifts can be bought only by Premium
   users. Never hard-code gift ids — they rotate; fetch the list. **[Heuristic]**
-- **[API]** `sendGift`: exactly one of `user_id` or `chat_id` (channels by `@username`);
-  limited gifts can't go to channels. Paid from the **bot's** Star balance. The
+- **[API]** `sendGift`: `user_id` or `chat_id`, each required when the other is missing (channels by
+  `@username`); limited gifts can't go to channels. The Stars come from the **bot's** balance: the
+  catalog shows it through `TransactionPartnerUser` (`gift_purchase`), not in `sendGift` itself. The
   receiver **can't convert** a bot-sent gift to Stars. `text` 0-128 chars, entities
   only bold/italic/underline/strikethrough/spoiler/custom_emoji (and `date_time`,
   9.6). `pay_for_upgrade: true` prepays the upgrade for the receiver.

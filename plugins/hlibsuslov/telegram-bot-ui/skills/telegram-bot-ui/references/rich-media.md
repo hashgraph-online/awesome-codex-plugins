@@ -1,3 +1,9 @@
+---
+summary: "Media inside Rich Messages: referencing files, binding to InputRichMessageMedia, media blocks, captions, ordering, rights, embed versus separate methods, fallback; read when a rich message has media."
+verified: "2026-11-25"
+bot_api: "10.5"
+---
+
 # Rich media
 
 Covers media inside Rich Messages (`InputRichMessageMedia` + media blocks) and
@@ -10,8 +16,9 @@ the choice between embedding media vs. separate media methods.
 
 - **Existing Telegram file** by `file_id` — cheapest, reuse whenever possible.
 - **Telegram media reference** `tg://photo?id=`, `tg://video?id=`,
-  `tg://audio?id=` — used to bind media referenced from markdown/html to a
-  concrete item declared in `InputRichMessage.media`.
+  `tg://document?id=`, `tg://audio?id=` [API: `InputRichMessage.media`] — used to bind
+  media referenced from markdown/html to a concrete item declared in
+  `InputRichMessage.media`.
 - **HTTP(S) URL** — Telegram fetches it; subject to size/type limits.
 - **New upload** — attach and upload the file with the request.
 
@@ -21,25 +28,31 @@ Reuse a Telegram `file_id` instead of re-uploading the same asset.
 
 When sending Rich Markdown or Rich HTML that references media (e.g. an image tag
 or a `tg://…?id=` link), declare each referenced item in
-`InputRichMessage.media` as an `InputRichMessageMedia` so Telegram knows the
-source (file_id / URL / upload), caption, and options. Confirm the exact field
-names for `InputRichMessageMedia` in the official object before use.
+`InputRichMessage.media` as an `InputRichMessageMedia` (`id`, `media`) so Telegram knows the
+source (file_id / URL / upload). Only the media and its own properties count: "everything except
+the media itself and its properties is ignored", so captions belong in the markdown/HTML
+(`<figcaption>`, the Markdown title), not in `media`.
 
 ## Media block types (explicit blocks)
 
 `InputRichBlockPhoto`, `InputRichBlockVideo`, `InputRichBlockAnimation`,
-`InputRichBlockAudio`, `InputRichBlockVoiceNote`, plus grouped media
-`InputRichBlockCollage` and `InputRichBlockSlideshow`, and `InputRichBlockMap`.
-Each carries its media reference and optional caption/credit.
+`InputRichBlockAudio`, `InputRichBlockDocument` (10.3, `<tg-document>`),
+`InputRichBlockVoiceNote`, plus grouped media `InputRichBlockCollage` and
+`InputRichBlockSlideshow` (each holds `blocks`), and `InputRichBlockMap` (a
+`location`, no file). A file block carries the file as an `InputMedia*` object
+(`photo: InputMediaPhoto`, `document: InputMediaDocument`, …) and an optional
+`caption: RichBlockCaption` [API].
 
 ## Captions, credits, spoilers
 
-- **Caption** — per-media descriptive text (respect caption limits; may itself be
-  formatted).
-- **Credit** — attribution text where supported.
-- **Spoiler** — mark media as spoiler where supported.
-Verify which of these fields your Bot API version exposes for each block/media
-type.
+- **Caption** — `RichBlockCaption.text` (`RichText`, so it may be formatted) on the
+  block. The `caption` of the `InputMedia*` object inside the block is ignored
+  ("Caption is ignored") [API].
+- **Credit** — `RichBlockCaption.credit` (`RichText`, the HTML `<cite>`) [API].
+- **Spoiler** — set `has_spoiler: true` on the `InputMedia*` object itself:
+  `InputMediaPhoto`, `InputMediaVideo` and `InputMediaAnimation` have it;
+  `InputMediaAudio`, `InputMediaDocument` and `InputMediaVoiceNote` do not, and the
+  block types have no spoiler field [API].
 
 ## Ordering and structure
 

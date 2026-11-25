@@ -1,0 +1,324 @@
+{
+ "$comment": "Agent notes for chat info: chat settings, pins, member read-out, boosts, verification, user profile reads. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "chat-info",
+ "notes": {
+  "setChatPhoto": {
+   "purpose": "Upload a new photo for a group, supergroup or channel.",
+   "use_when": ["branding a chat the bot administers, e.g. a seasonal avatar"],
+   "avoid_when": ["private chats: their photos can't be changed", "removing the photo: deleteChatPhoto"],
+   "pitfalls": [
+    {"text": "photo is InputFile only: a new multipart upload, never a file_id or URL.", "source": "API", "cite": "photo: New chat photo, uploaded using multipart/form-data"},
+    {"text": "The method names no right; can_change_info covers the chat photo.", "source": "API", "cite": "ChatAdministratorRights.can_change_info: allowed to change the chat title, photo and other settings"},
+    {"text": "Earlier ChatPhoto file ids stop working once the photo changes; re-read getChat.", "source": "API", "cite": "ChatPhoto.small_file_id: can be used only for photo download and only for as long as the photo is not changed"}
+   ],
+   "related": ["deleteChatPhoto", "getChat", "ChatPhoto", "InputFile", "ChatFullInfo"],
+   "rights": "admin with can_change_info (ChatAdministratorRights: title, photo and other settings)",
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "deleteChatPhoto": {
+   "purpose": "Remove the photo of a group, supergroup or channel.",
+   "use_when": ["going back to the default chat avatar"],
+   "avoid_when": ["replacing the photo: setChatPhoto does it in one call"],
+   "pitfalls": [
+    {"text": "Photos can't be changed for private chats.", "source": "API", "cite": "deleteChatPhoto: Photos can't be changed for private chats."},
+    {"text": "The method names no right; can_change_info covers the chat photo.", "source": "API", "cite": "ChatAdministratorRights.can_change_info: allowed to change the chat title, photo and other settings"},
+    {"text": "To allow an undo, download ChatPhoto.big_file_id first; the id dies with the photo.", "source": "Heuristic"}
+   ],
+   "related": ["setChatPhoto", "getChat", "ChatPhoto", "ChatFullInfo"],
+   "rights": "admin with can_change_info (ChatAdministratorRights: title, photo and other settings)",
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "setChatTitle": {
+   "purpose": "Rename a group, supergroup or channel; 1-128 characters.",
+   "use_when": ["an event or season renames a chat the bot runs"],
+   "pitfalls": [
+    {"text": "title is 1-128 characters; private chats can't be renamed.", "source": "API", "cite": "title: New chat title, 1-128 characters; setChatTitle: Titles can't be changed for private chats."},
+    {"text": "The method names no right; can_change_info covers the title.", "source": "API", "cite": "ChatAdministratorRights.can_change_info: allowed to change the chat title, photo and other settings"},
+    {"text": "A rename shows up as a service message with Message.new_chat_title.", "source": "API", "cite": "Message.new_chat_title: A chat title was changed to this value"}
+   ],
+   "related": ["setChatDescription", "setChatPhoto", "getChat", "ChatFullInfo", "Message"],
+   "rights": "admin with can_change_info (ChatAdministratorRights: title, photo and other settings)",
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "setChatDescription": {
+   "purpose": "Change the description of a group, supergroup or channel; 0-255 characters.",
+   "use_when": ["keeping the chat's About text in sync with the bot's rules or schedule"],
+   "pitfalls": [
+    {"text": "description is optional and 0-255 characters.", "source": "API", "cite": "description: New chat description, 0-255 characters"},
+    {"text": "That omitting description or sending \"\" clears it is implied by the 0 minimum, not stated.", "source": "Unverified"},
+    {"text": "The method names no right; can_change_info covers 'other settings' (the description is not named there).", "source": "API", "cite": "ChatAdministratorRights.can_change_info: allowed to change the chat title, photo and other settings"}
+   ],
+   "related": ["setChatTitle", "getChat", "ChatFullInfo"],
+   "rights": "admin with can_change_info (ChatAdministratorRights: 'other settings'; the method says only 'appropriate rights')",
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "pinChatMessage": {
+   "purpose": "Add a message to a chat's pinned list.",
+   "use_when": ["a rules post, digest or live status that should stay on top"],
+   "avoid_when": ["a message sent via inline mode: the method takes chat_id and message_id only"],
+   "pitfalls": [
+    {"text": "Groups need can_pin_messages, channels can_edit_messages; private and channel direct messages chats need none.", "source": "API", "cite": "pinChatMessage: the bot must be an administrator with the 'can_pin_messages' right or the 'can_edit_messages' right to pin messages in groups and channels respectively"},
+    {"text": "disable_notification only matters in groups: channels and private chats never notify.", "source": "API", "cite": "disable_notification: Notifications are always disabled in channels and private chats."},
+    {"text": "A group pin notifies every member; pass disable_notification unless it is urgent.", "source": "Heuristic"}
+   ],
+   "related": ["unpinChatMessage", "unpinAllChatMessages", "getChat", "ChatFullInfo", "Message"],
+   "rights": "groups: can_pin_messages; channels: can_edit_messages; private chats: none",
+   "chat_types": ["private", "group", "supergroup", "channel", "business"],
+   "refs": ["references/chat-administration.md#rights-the-bot-needs", "references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "unpinChatMessage": {
+   "purpose": "Remove one message from a chat's pinned list.",
+   "use_when": ["a pinned post is out of date"],
+   "avoid_when": ["clearing every pin: unpinAllChatMessages"],
+   "pitfalls": [
+    {"text": "Without message_id the most recent pin by sending date goes, maybe not the one meant; pass it.", "source": "API", "cite": "message_id: If not specified, the most recent pinned message (by sending date) will be unpinned."},
+    {"text": "message_id is required with business_connection_id.", "source": "API", "cite": "message_id: Required if business_connection_id is specified."},
+    {"text": "Groups need can_pin_messages, channels can_edit_messages; private chats need none.", "source": "API", "cite": "unpinChatMessage: the bot must be an administrator with the 'can_pin_messages' right or the 'can_edit_messages' right"}
+   ],
+   "related": ["pinChatMessage", "unpinAllChatMessages", "getChat", "ChatFullInfo"],
+   "rights": "groups: can_pin_messages; channels: can_edit_messages; private chats: none",
+   "chat_types": ["private", "group", "supergroup", "channel", "business"],
+   "refs": ["references/chat-administration.md#rights-the-bot-needs", "references/publishing-pipeline.md#7-after-publishing-edit-pin-delete-copy-forward"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "unpinAllChatMessages": {
+   "purpose": "Clear the whole pinned list of a chat.",
+   "use_when": ["a reset of a private chat's pinned status messages"],
+   "avoid_when": ["one pin should go: unpinChatMessage with message_id"],
+   "pitfalls": [
+    {"text": "Groups need can_pin_messages, channels can_edit_messages; private and channel direct messages chats need none.", "source": "API", "cite": "unpinAllChatMessages: In private chats and channel direct messages chats, no additional rights are required"},
+    {"text": "It clears pins set by everyone, not just the bot; ask a human admin first in groups.", "source": "Heuristic"}
+   ],
+   "related": ["unpinChatMessage", "pinChatMessage", "ChatFullInfo"],
+   "rights": "groups: can_pin_messages; channels: can_edit_messages; private chats: none",
+   "chat_types": ["private", "group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "leaveChat": {
+   "purpose": "Make the bot leave a group, supergroup or channel.",
+   "use_when": ["the bot was added to a chat that isn't allowlisted"],
+   "avoid_when": ["a channel direct messages chat: leave the corresponding channel"],
+   "pitfalls": [
+    {"text": "Channel direct messages chats aren't supported; leave the channel instead.", "source": "API", "cite": "chat_id: Channel direct messages chats aren't supported; leave the corresponding channel instead."},
+    {"text": "Treat it as final: log the chat id, who added the bot and why, then tell the operator.", "source": "Heuristic"}
+   ],
+   "related": ["getChatMember", "ChatMemberUpdated", "ChatMember"],
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/agent-bot-security.md#unknown-chats"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getChat": {
+   "purpose": "Read up-to-date ChatFullInfo for a user, group, supergroup or channel.",
+   "use_when": ["a feature needs one field now (bio, linked_chat_id, permissions, pinned_message)", "checking can_set_sticker_set before setChatStickerSet"],
+   "avoid_when": ["reading every user in bulk 'to have the data'"],
+   "pitfalls": [
+    {"text": "Returns ChatFullInfo, not Chat.", "source": "API", "cite": "getChat: Returns a ChatFullInfo object on success."},
+    {"text": "@username works only for supergroups and channels; users and groups need the numeric id.", "source": "API", "cite": "chat_id: Unique identifier for the target chat or username of the target supergroup or channel in the format @username"},
+    {"text": "Many fields are per chat type or admin-only; a missing field is an answer, not an error.", "source": "API", "cite": "ChatFullInfo.has_visible_history: available only to chat administrators"}
+   ],
+   "related": ["ChatFullInfo", "Chat", "ChatPhoto", "ChatPermissions", "getChatMember"],
+   "chat_types": ["private", "group", "supergroup", "channel"],
+   "refs": ["references/user-data.md#12-readable-by-api", "references/user-profile.md#2-when-to-write-and-refresh"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getChatAdministrators": {
+   "purpose": "List a chat's administrators as ChatMember objects.",
+   "use_when": ["showing or checking the whole admin team at once"],
+   "avoid_when": ["one user or the bot itself: getChatMember"],
+   "pitfalls": [
+    {"text": "Other bots are omitted unless return_bots is True (10.0).", "source": "API", "cite": "return_bots: By default, bots other than the current bot are omitted."},
+    {"text": "A creator item (ChatMemberOwner) has no can_* flags yet holds every right; don't read missing flags as False.", "source": "API", "cite": "ChatMemberOwner: Represents a chat member that owns the chat and has all administrator privileges."},
+    {"text": "Cache briefly and refresh on chat_member updates; rights change without notice to the bot otherwise.", "source": "Heuristic"}
+   ],
+   "related": ["getChatMember", "ChatMember", "ChatAdministratorRights", "ChatMemberUpdated"],
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#the-member-model", "references/channels-and-broadcasting.md#rights-the-bot-needs-in-a-channel"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getChatMemberCount": {
+   "purpose": "Read the number of members in a chat.",
+   "use_when": ["a member counter or a size threshold"],
+   "pitfalls": [
+    {"text": "Returns a plain Integer.", "source": "API", "cite": "getChatMemberCount: Returns Integer on success."},
+    {"text": "Old code may call getChatMembersCount: renamed in 5.3, the old name still works.", "source": "Official", "cite": "https://core.telegram.org/bots/api-changelog#june-25-2021"},
+    {"text": "A count, not a list: no method lists ordinary members; track joins via chat_member.", "source": "Heuristic"}
+   ],
+   "related": ["getChatAdministrators", "getChatMember", "ChatMemberUpdated"],
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#the-member-model"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getChatMember": {
+   "purpose": "Read one user's status and rights in a chat as a ChatMember.",
+   "use_when": ["a membership gate: join the channel to continue", "the bot checks its own rights before acting (user_id = the bot's id)"],
+   "avoid_when": ["listing the admin team: getChatAdministrators"],
+   "pitfalls": [
+    {"text": "Only guaranteed for other users when the bot is an administrator in the chat.", "source": "API", "cite": "getChatMember: The method is only guaranteed to work for other users if the bot is an administrator in the chat."},
+    {"text": "Branch on status: creator, administrator, member, restricted, left, kicked.", "source": "API", "cite": "ChatMemberBanned.status: always “kicked”"},
+    {"text": "restricted may still be in the chat: check is_member.", "source": "API", "cite": "ChatMemberRestricted.is_member: True, if the user is a member of the chat at the moment of the request"}
+   ],
+   "related": ["getChatAdministrators", "ChatMember", "ChatMemberUpdated", "ChatAdministratorRights"],
+   "chat_types": ["group", "supergroup", "channel"],
+   "refs": ["references/chat-administration.md#the-member-model", "references/user-data.md#12-readable-by-api"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "setChatStickerSet": {
+   "purpose": "Set the group sticker set of a supergroup.",
+   "use_when": ["a community's own stickers for every member"],
+   "avoid_when": ["groups and channels: supergroups only"],
+   "pitfalls": [
+    {"text": "Check ChatFullInfo.can_set_sticker_set from getChat first.", "source": "API", "cite": "setChatStickerSet: Use the field can_set_sticker_set optionally returned in getChat requests to check if the bot can use this method."},
+    {"text": "sticker_set_name is StickerSet.name (the short name), not its title.", "source": "API", "cite": "StickerSet.name: Sticker set name; StickerSet.title: Sticker set title"}
+   ],
+   "related": ["deleteChatStickerSet", "getChat", "getStickerSet", "ChatFullInfo", "StickerSet"],
+   "rights": "admin; the method names no right and points to can_set_sticker_set (can_change_info covers 'other settings')",
+   "chat_types": ["supergroup"],
+   "since": "3.4",
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "deleteChatStickerSet": {
+   "purpose": "Remove the group sticker set from a supergroup.",
+   "use_when": ["the group should stop offering its sticker set"],
+   "avoid_when": ["deleting a sticker set itself: deleteStickerSet (sets the bot created)"],
+   "pitfalls": [
+    {"text": "Check ChatFullInfo.can_set_sticker_set from getChat first.", "source": "API", "cite": "deleteChatStickerSet: Use the field can_set_sticker_set optionally returned in getChat requests to check if the bot can use this method."}
+   ],
+   "related": ["setChatStickerSet", "deleteStickerSet", "getChat", "ChatFullInfo"],
+   "rights": "admin; the method names no right and points to can_set_sticker_set (can_change_info covers 'other settings')",
+   "chat_types": ["supergroup"],
+   "since": "3.4",
+   "refs": ["references/chat-administration.md#tags-95-and-chat-settings"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getUserChatBoosts": {
+   "purpose": "List the boosts one user added to a chat.",
+   "use_when": ["a perk for a user while their boost lasts"],
+   "avoid_when": ["tracking every booster: chat_boost and removed_chat_boost updates"],
+   "pitfalls": [
+    {"text": "Needs admin rights; can_manage_chat ('get boost list') is implied by any admin right.", "source": "API", "cite": "ChatAdministratorRights.can_manage_chat: ...get boost list... Implied by any other administrator privilege."},
+    {"text": "Boosts expire at ChatBoost.expiration_date unless Premium is prolonged; re-check before a perk.", "source": "API", "cite": "ChatBoost.expiration_date: when the boost will automatically expire, unless the booster's Telegram Premium subscription is prolonged"}
+   ],
+   "related": ["UserChatBoosts", "ChatBoost", "ChatBoostSource", "ChatBoostUpdated", "ChatBoostRemoved"],
+   "rights": "admin; can_manage_chat covers 'get boost list' (ChatAdministratorRights)",
+   "since": "7.0",
+   "refs": ["references/user-data.md#12-readable-by-api"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "verifyChat": {
+   "purpose": "Verify a bot, supergroup or channel on behalf of the organization the bot represents.",
+   "use_when": ["the bot represents a verification organization and the chat passed its checks"],
+   "avoid_when": ["an ordinary bot: it represents no organization", "verifying a person: verifyUser"],
+   "pitfalls": [
+    {"text": "custom_description is 0-70 characters and must be empty if the organization may not set one.", "source": "API", "cite": "custom_description: 0-70 characters. Must be empty if the organization isn't allowed to provide a custom verification description."},
+    {"text": "Only text_link entities, via parse mode or entities (10.4).", "source": "API", "cite": "custom_description_entities: Only “text_link” entities are supported."},
+    {"text": "Channel direct messages chats can't be verified.", "source": "API", "cite": "chat_id: Channel direct messages chats can't be verified."}
+   ],
+   "related": ["removeChatVerification", "verifyUser", "MessageEntity"],
+   "chat_types": ["supergroup", "channel"],
+   "since": "8.2",
+   "refs": ["references/specialized-updates.md#verification-descriptions", "references/bot-archetypes.md#bot-factories-and-verification-organizations"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "verifyUser": {
+   "purpose": "Verify a user on behalf of the organization the bot represents.",
+   "use_when": ["the bot represents a verification organization and the person passed its checks"],
+   "avoid_when": ["an ordinary bot: it represents no organization", "verifying a chat or bot: verifyChat"],
+   "pitfalls": [
+    {"text": "custom_description is 0-70 characters and must be empty if the organization may not set one.", "source": "API", "cite": "custom_description: 0-70 characters. Must be empty if the organization isn't allowed to provide a custom verification description."},
+    {"text": "Only text_link entities, via parse mode or entities (10.4).", "source": "API", "cite": "custom_description_entities: Only “text_link” entities are supported."},
+    {"text": "Log who approved each verification and why; removal is removeUserVerification.", "source": "Heuristic"}
+   ],
+   "related": ["removeUserVerification", "verifyChat", "MessageEntity"],
+   "since": "8.2",
+   "refs": ["references/specialized-updates.md#verification-descriptions", "references/bot-archetypes.md#bot-factories-and-verification-organizations"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "removeChatVerification": {
+   "purpose": "Remove the verification the bot's organization gave a chat.",
+   "use_when": ["a verified chat no longer meets the organization's checks"],
+   "pitfalls": [
+    {"text": "Only verification made on behalf of the bot's organization can be removed.", "source": "API", "cite": "removeChatVerification: a chat that is currently verified on behalf of the organization represented by the bot"},
+    {"text": "The @username form names a bot or channel only (verifyChat also lists supergroups); removing a supergroup's verification by numeric id is untested.", "source": "Unverified"},
+    {"text": "Public and hard to undo socially: confirm with a human, log the reason.", "source": "Heuristic"}
+   ],
+   "related": ["verifyChat", "removeUserVerification"],
+   "since": "8.2",
+   "refs": ["references/bot-archetypes.md#bot-factories-and-verification-organizations"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "removeUserVerification": {
+   "purpose": "Remove the verification the bot's organization gave a user.",
+   "use_when": ["a verified person no longer meets the organization's checks"],
+   "pitfalls": [
+    {"text": "Only verification made on behalf of the bot's organization can be removed.", "source": "API", "cite": "removeUserVerification: a user who is currently verified on behalf of the organization represented by the bot"},
+    {"text": "Public and hard to undo socially: confirm with a human, log the reason.", "source": "Heuristic"}
+   ],
+   "related": ["verifyUser", "removeChatVerification"],
+   "since": "8.2",
+   "refs": ["references/bot-archetypes.md#bot-factories-and-verification-organizations"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getUserProfilePhotos": {
+   "purpose": "Read a user's profile pictures, paged with offset and limit.",
+   "use_when": ["showing the avatar a feature needs, e.g. a profile card"],
+   "avoid_when": ["a trust or identity check on its own"],
+   "pitfalls": [
+    {"text": "limit is 1-100 (default 100); page with offset against total_count.", "source": "API", "cite": "limit: Values between 1-100 are accepted. Defaults to 100."},
+    {"text": "Each photo is an array of up to 4 PhotoSize; pick the size, then getFile.", "source": "API", "cite": "UserProfilePhotos.photos: Requested profile pictures (in up to 4 sizes each)"}
+   ],
+   "related": ["UserProfilePhotos", "PhotoSize", "getFile", "getUserProfileAudios", "getChat"],
+   "refs": ["references/user-data.md#12-readable-by-api", "references/user-trust.md#1-what-telegram-gives-a-bot"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getUserProfileAudios": {
+   "purpose": "Read the audios a user added to their profile, paged with offset and limit.",
+   "use_when": ["a profile feature shows the user's chosen tracks"],
+   "avoid_when": ["only the first audio is needed: getChat returns first_profile_audio"],
+   "pitfalls": [
+    {"text": "limit is 1-100 (default 100); page with offset against total_count.", "source": "API", "cite": "limit: Values between 1-100 are accepted. Defaults to 100."},
+    {"text": "For one audio, ChatFullInfo.first_profile_audio of the private chat already has it.", "source": "API", "cite": "ChatFullInfo.first_profile_audio: For private chats, the first audio added to the profile of the user"}
+   ],
+   "related": ["UserProfileAudios", "Audio", "getChat", "getUserProfilePhotos"],
+   "since": "9.4",
+   "refs": ["references/user-data.md#12-readable-by-api"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getUserPersonalChatMessages": {
+   "purpose": "Read the last 1-20 messages of the chat a user added to their profile.",
+   "use_when": ["a profile feature previews the user's personal channel"],
+   "pitfalls": [
+    {"text": "limit is required, 1-20.", "source": "API", "cite": "limit: The maximum number of messages to return; 1-20"},
+    {"text": "It reads the chat currently on the profile, which the user can swap; getChat shows it as personal_chat.", "source": "API", "cite": "getUserPersonalChatMessages: the personal chat (i.e., the chat currently added to their profile)"},
+    {"text": "The answer for a user with no personal chat (empty array or error) is not stated.", "source": "Unverified"}
+   ],
+   "related": ["Message", "ChatFullInfo", "getChat"],
+   "since": "10.0",
+   "refs": ["references/user-data.md#12-readable-by-api"],
+   "example": "examples/payloads/api-chat-info.json"
+  },
+  "getChatShareThemeBackdrops": {
+   "purpose": "Read the backdrops share themes use as their background.",
+   "use_when": ["resolving ChatShareThemeEmoji.background_backdrop_id to a name and colors"],
+   "avoid_when": ["on every render: the list takes no chat, cache it"],
+   "pitfalls": [
+    {"text": "Takes no parameters: one list for every chat.", "source": "API", "cite": "getChatShareThemeBackdrops: Requires no parameters."},
+    {"text": "Colors are RGB integers (center, edge, symbol, text).", "source": "API", "cite": "UniqueGiftBackdropColors.center_color: The color in the center of the backdrop in RGB format"}
+   ],
+   "related": ["ChatShareThemeBackdrops", "ChatShareThemeBackdrop", "ChatShareThemeEmoji", "ChatShareTheme", "ChatFullInfo"],
+   "since": "10.4",
+   "refs": ["references/specialized-updates.md#chat-share-themes", "references/user-profile.md#31-personal-accent-from-the-users-own-theme"],
+   "example": "examples/payloads/api-chat-info.json"
+  }
+ }
+}

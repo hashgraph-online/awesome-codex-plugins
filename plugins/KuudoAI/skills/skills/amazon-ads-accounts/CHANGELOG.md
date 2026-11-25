@@ -13,6 +13,20 @@ Bump rules:
 
 Every bump also updates the `evals/evals.json` `skill_version`.
 
+## [1.2.1] - 2026-11-25
+
+### Fixed
+
+- A seller profile's `accountInfo.id` is a merchant ID, not an entity ID, and
+  the skill now says where the entity ID is: `entityId` on the account's
+  `alternateIds` entry for the profile. Measured on 2026-11-25: 4 seller
+  profiles differed from their `entityId`, 11 vendor profiles matched it, and
+  Amazon Marketing Cloud answered a seller's merchant ID with 403. The quick
+  reference, Common Mistakes, and `references/identifiers-and-scopes.md` carry
+  it, so this skill and `amazon-ads-marketing-cloud` agree.
+- The warning against reading `list_identities` as an inventory gives the
+  measured counts: 7 profiles there, 16 in `ac_listProfiles`.
+
 ## [1.2.0] - 2026-11-02
 
 ### Fixed

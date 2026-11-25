@@ -1,0 +1,193 @@
+{
+  "scenario": "api-chat-admin",
+  "status": "production (moderation calls are recorded requests, never sent)",
+  "context": "supergroup, group and channel where the bot is an administrator",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "banChatMember",
+      "_context": "group, supergroup or channel; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 222222222,
+        "until_date": 1763277400
+      }
+    },
+    {
+      "method": "unbanChatMember",
+      "_context": "supergroup or channel; bot is an administrator (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 222222222,
+        "only_if_banned": true
+      }
+    },
+    {
+      "method": "banChatSenderChat",
+      "_context": "supergroup or channel; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "sender_chat_id": -1001112223334
+      }
+    },
+    {
+      "method": "unbanChatSenderChat",
+      "_context": "supergroup or channel; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "sender_chat_id": -1001112223334
+      }
+    },
+    {
+      "method": "restrictChatMember",
+      "_context": "supergroup; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 444444444,
+        "permissions": {
+          "can_send_messages": true,
+          "can_send_photos": false,
+          "can_send_videos": false,
+          "can_send_other_messages": false,
+          "can_add_web_page_previews": false
+        },
+        "use_independent_chat_permissions": true,
+        "until_date": 1763277400
+      }
+    },
+    {
+      "method": "promoteChatMember",
+      "_context": "supergroup or channel; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 555555555,
+        "can_delete_messages": true,
+        "can_pin_messages": true,
+        "can_manage_topics": true,
+        "can_restrict_members": false
+      }
+    },
+    {
+      "method": "setChatAdministratorCustomTitle",
+      "_context": "supergroup; the administrator was promoted by the bot",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 555555555,
+        "custom_title": "Moderator"
+      }
+    },
+    {
+      "method": "setChatMemberTag",
+      "_context": "group or supergroup; bot admin with can_manage_tags",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 666666666,
+        "tag": "Mentor"
+      }
+    },
+    {
+      "method": "setChatPermissions",
+      "_context": "group or supergroup; bot admin with can_restrict_members",
+      "params": {
+        "chat_id": -1001234567890,
+        "permissions": {
+          "can_send_messages": true,
+          "can_send_photos": true,
+          "can_send_polls": false,
+          "can_send_other_messages": false,
+          "can_add_web_page_previews": true,
+          "can_invite_users": true,
+          "can_pin_messages": false
+        },
+        "use_independent_chat_permissions": true
+      }
+    },
+    {
+      "method": "createChatInviteLink",
+      "_context": "chat; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "name": "Spring promo",
+        "expire_date": 1763795800,
+        "member_limit": 100
+      }
+    },
+    {
+      "method": "editChatInviteLink",
+      "_context": "chat; non-primary link created by the bot; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "invite_link": "https://t.me/+AbCdEfGh1234",
+        "name": "Spring promo (extended)",
+        "member_limit": 250
+      }
+    },
+    {
+      "method": "revokeChatInviteLink",
+      "_context": "chat; link created by the bot; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890,
+        "invite_link": "https://t.me/+AbCdEfGh1234"
+      }
+    },
+    {
+      "method": "exportChatInviteLink",
+      "_context": "chat; bot admin with the appropriate administrator rights (the method text names no right)",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "createChatSubscriptionInviteLink",
+      "_context": "channel; bot with can_invite_users",
+      "params": {
+        "chat_id": -1009876543210,
+        "name": "Premium digest",
+        "subscription_period": 2592000,
+        "subscription_price": 250
+      }
+    },
+    {
+      "method": "editChatSubscriptionInviteLink",
+      "_context": "subscription link created by the bot; bot with can_invite_users",
+      "params": {
+        "chat_id": -1009876543210,
+        "invite_link": "https://t.me/+SuBsCrIbEr5678",
+        "name": "Premium digest (monthly)"
+      }
+    },
+    {
+      "method": "approveChatJoinRequest",
+      "_context": "chat; request without query_id; bot admin with can_invite_users",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 333000111
+      }
+    },
+    {
+      "method": "declineChatJoinRequest",
+      "_context": "chat; request without query_id; bot admin with can_invite_users",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 333000222
+      }
+    },
+    {
+      "method": "sendChatJoinRequestWebApp",
+      "_context": "bot assigned to process join requests; the request carries query_id; within 10 seconds",
+      "params": {
+        "chat_join_request_query_id": "jrq-7781",
+        "web_app_url": "https://example.com/verify?lang=uk"
+      }
+    },
+    {
+      "method": "answerChatJoinRequestQuery",
+      "_context": "bot assigned to process join requests; the request carries query_id; within 10 seconds",
+      "params": {
+        "chat_join_request_query_id": "jrq-7781",
+        "result": "approve"
+      }
+    }
+  ]
+}

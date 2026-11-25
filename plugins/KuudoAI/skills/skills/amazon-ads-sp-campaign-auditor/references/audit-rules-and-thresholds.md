@@ -9,6 +9,7 @@ Use `campaign.id` as the grouping key and retain `campaign.name` as its label.
 - Sum additive metrics such as cost, sales, impressions, and clicks across the selected window.
 - Do not sum a daily budget repeated on every campaign-day row as though it were spend.
 - Preserve currency boundaries. Do not combine monetary values across currencies without an explicit conversion method.
+- Preserve marketplace boundaries. When rows span more than one `campaign.country`, audit each marketplace on its own unless the user asks for a combined view.
 - State how campaigns with missing IDs, duplicate IDs, or changing names were handled.
 
 ## Spend concentration

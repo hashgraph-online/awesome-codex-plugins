@@ -1,0 +1,716 @@
+{
+ "$comment": "Agent notes for bot settings: commands, menu button, bot profile, callback answers. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "bot-settings",
+ "notes": {
+  "getMe": {
+   "purpose": "Test the bot's token and read the bot's own profile and switches as BotFullInfo.",
+   "use_when": [
+    "a start-up check that the token works",
+    "reading back what setMySettings wrote (privacy mode, topics, inline mode)"
+   ],
+   "avoid_when": [
+    "per update or per message: read it once at start and cache it"
+   ],
+   "pitfalls": [
+    {
+     "text": "Returns BotFullInfo, not User.",
+     "source": "API",
+     "cite": "getMe: Returns information about the bot in form of a BotFullInfo object."
+    },
+    {
+     "text": "Three settings can't be read back: inline_feedback_share_denominator, can_communicate_with_bots, callback_query_mode.",
+     "source": "API",
+     "cite": "BotFullInfo fields: none for these three settings"
+    },
+    {
+     "text": "Typed SDKs written before 10.5 may still model the result as User and drop fields; read the raw result.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "BotFullInfo",
+    "User",
+    "setMySettings"
+   ],
+   "refs": [
+    "references/bot-settings.md#reading-settings-back-getme-returns-botfullinfo"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "logOut": {
+   "purpose": "Log the bot out of the cloud Bot API server before running it on a local Bot API server.",
+   "use_when": [
+    "moving the bot to a self-hosted Bot API server"
+   ],
+   "avoid_when": [
+    "a restart or redeploy that stays on the cloud server",
+    "as a test call"
+   ],
+   "pitfalls": [
+    {
+     "text": "After success the bot can't log back in to the cloud server for 10 minutes.",
+     "source": "API",
+     "cite": "logOut: will not be able to log in back to the cloud Bot API server for 10 minutes"
+    },
+    {
+     "text": "Log out before running locally, or updates may be missed.",
+     "source": "API",
+     "cite": "logOut: otherwise there is no guarantee that the bot will receive updates"
+    },
+    {
+     "text": "A one-off migration step, not part of start-up code.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "close",
+    "deleteWebhook"
+   ],
+   "refs": [
+    "references/media-and-files.md#local-bot-api-server"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "close": {
+   "purpose": "Close the bot instance before moving it from one local Bot API server to another.",
+   "use_when": [
+    "migrating a bot between self-hosted Bot API servers"
+   ],
+   "avoid_when": [
+    "a routine restart",
+    "leaving the cloud server: that is logOut"
+   ],
+   "pitfalls": [
+    {
+     "text": "Delete the webhook first, or the bot may be launched again after a server restart.",
+     "source": "API",
+     "cite": "close: You need to delete the webhook before calling this method"
+    },
+    {
+     "text": "Returns error 429 in the first 10 minutes after the bot is launched.",
+     "source": "API",
+     "cite": "close: The method will return error 429 in the first 10 minutes after the bot is launched."
+    }
+   ],
+   "related": [
+    "logOut",
+    "deleteWebhook"
+   ],
+   "refs": [
+    "references/media-and-files.md#local-bot-api-server"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMyCommands": {
+   "purpose": "Replace the bot's command list for one scope and language.",
+   "use_when": [
+    "publishing the planned menu from the deploy step",
+    "a different list per language or per chat"
+   ],
+   "avoid_when": [
+    "every start with a changing order: send one planned list from deploy",
+    "flow steps like /confirm: use buttons"
+   ],
+   "pitfalls": [
+    {
+     "text": "At most 100 commands; command is 1-32 lowercase English letters, digits or underscores; description 1-256 characters.",
+     "source": "API",
+     "cite": "commands: At most 100 commands can be specified.; BotCommand.command: 1-32 characters"
+    },
+    {
+     "text": "Only the first list that is set for the user's chat type, scope and language is shown, so a narrower list must repeat the commands users there still need.",
+     "source": "Official",
+     "cite": "https://core.telegram.org/bots/api#determining-list-of-commands"
+    },
+    {
+     "text": "Whether every client shows scoped lists, and how soon after the call, was not tested.",
+     "source": "Unverified"
+    }
+   ],
+   "related": [
+    "getMyCommands",
+    "deleteMyCommands",
+    "BotCommand",
+    "BotCommandScope",
+    "setChatMenuButton"
+   ],
+   "chat_types": [
+    "private",
+    "group",
+    "supergroup"
+   ],
+   "since": "4.7",
+   "refs": [
+    "references/bot-commands.md#scopes-and-languages",
+    "references/bot-commands.md#the-lifecycle-audit-plan-apply-verify"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "getMyCommands": {
+   "purpose": "Read the command list set for one scope and language.",
+   "use_when": [
+    "verifying after setMyCommands",
+    "diffing the live menu against the declared one"
+   ],
+   "avoid_when": [
+    "working out what a given user sees: it answers for the scope you ask about"
+   ],
+   "pitfalls": [
+    {
+     "text": "An unset scope answers with an empty list.",
+     "source": "API",
+     "cite": "getMyCommands: If commands aren't set, an empty list is returned."
+    },
+    {
+     "text": "Whether an empty answer means a broader scope's list applies to those users is not stated; compare per scope you set.",
+     "source": "Unverified"
+    }
+   ],
+   "related": [
+    "setMyCommands",
+    "deleteMyCommands",
+    "BotCommand",
+    "BotCommandScope"
+   ],
+   "chat_types": [
+    "private",
+    "group",
+    "supergroup"
+   ],
+   "since": "4.7",
+   "refs": [
+    "references/bot-commands.md#the-lifecycle-audit-plan-apply-verify"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "deleteMyCommands": {
+   "purpose": "Delete the command list of one scope and language so broader lists apply again.",
+   "use_when": [
+    "retiring a per-chat or per-language list",
+    "undoing a scope created by mistake"
+   ],
+   "avoid_when": [
+    "clearing the menu by accident: without scope it targets the default list"
+   ],
+   "pitfalls": [
+    {
+     "text": "scope defaults to BotCommandScopeDefault, the list the other scopes end at.",
+     "source": "API",
+     "cite": "scope: Defaults to BotCommandScopeDefault."
+    },
+    {
+     "text": "Affected users see the higher-level commands afterwards.",
+     "source": "API",
+     "cite": "deleteMyCommands: After deletion, higher level commands will be shown to affected users."
+    },
+    {
+     "text": "Run it from the planned deploy step, never to tidy up by hand.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "setMyCommands",
+    "getMyCommands",
+    "BotCommandScope"
+   ],
+   "chat_types": [
+    "private",
+    "group",
+    "supergroup"
+   ],
+   "since": "5.3",
+   "refs": [
+    "references/bot-commands.md#the-lifecycle-audit-plan-apply-verify"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMyName": {
+   "purpose": "Set the bot's display name for all users or for one language.",
+   "use_when": [
+    "per-language names kept in a reviewed profile file"
+   ],
+   "avoid_when": [
+    "a temporary or test name: users see it in the chat list and profile"
+   ],
+   "pitfalls": [
+    {
+     "text": "name is 0-64 characters; an empty string removes the dedicated name for that language.",
+     "source": "API",
+     "cite": "name: New bot name; 0-64 characters. Pass an empty string to remove the dedicated name"
+    },
+    {
+     "text": "An empty language_code is the name for all users whose language has no dedicated name.",
+     "source": "API",
+     "cite": "language_code: If empty, the name will be shown to all users for whose language there is no dedicated name."
+    }
+   ],
+   "related": [
+    "getMyName",
+    "BotName",
+    "setMyDescription",
+    "setMyShortDescription"
+   ],
+   "refs": [
+    "references/bot-style-profile.md#profile_texts--the-bots-own-profile-per-language-api"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "getMyName": {
+   "purpose": "Read the bot's name for one user language.",
+   "use_when": [
+    "checking a per-language name after setMyName"
+   ],
+   "pitfalls": [
+    {
+     "text": "language_code is two letters (ISO 639-1) or an empty string.",
+     "source": "API",
+     "cite": "language_code: A two-letter ISO 639-1 language code or an empty string"
+    },
+    {
+     "text": "What it returns for a language without a dedicated name is not stated.",
+     "source": "Unverified"
+    }
+   ],
+   "related": [
+    "setMyName",
+    "BotName",
+    "getMyDescription",
+    "getMyShortDescription"
+   ],
+   "refs": [
+    "references/bot-style-profile.md#profile_texts--the-bots-own-profile-per-language-api"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMyDescription": {
+   "purpose": "Set the text shown in an empty chat with the bot, for all users or for one language.",
+   "use_when": [
+    "the first thing a new user reads: value in one sentence, how to start in the next"
+   ],
+   "avoid_when": [
+    "the short text on the profile and in shared links: that is setMyShortDescription"
+   ],
+   "pitfalls": [
+    {
+     "text": "description is 0-512 characters; an empty string removes the dedicated description for that language.",
+     "source": "API",
+     "cite": "description: New bot description; 0-512 characters."
+    },
+    {
+     "text": "It is shown only while the chat is empty.",
+     "source": "API",
+     "cite": "setMyDescription: shown in the chat with the bot if the chat is empty"
+    },
+    {
+     "text": "Set it once per deploy and per language, not inside the /start handler.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "getMyDescription",
+    "BotDescription",
+    "setMyShortDescription",
+    "setMyName"
+   ],
+   "refs": [
+    "references/onboarding-and-first-run.md#before-the-user-presses-start"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "getMyDescription": {
+   "purpose": "Read the bot's empty-chat description for one user language.",
+   "use_when": [
+    "checking a per-language description after setMyDescription"
+   ],
+   "pitfalls": [
+    {
+     "text": "language_code is two letters (ISO 639-1) or an empty string.",
+     "source": "API",
+     "cite": "language_code: A two-letter ISO 639-1 language code or an empty string"
+    },
+    {
+     "text": "What it returns for a language without a dedicated description is not stated.",
+     "source": "Unverified"
+    }
+   ],
+   "related": [
+    "setMyDescription",
+    "BotDescription",
+    "getMyName",
+    "getMyShortDescription"
+   ],
+   "refs": [
+    "references/onboarding-and-first-run.md#before-the-user-presses-start"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMyShortDescription": {
+   "purpose": "Set the short text on the bot's profile page and in shared links, for all users or for one language.",
+   "use_when": [
+    "the one-line promise people see before they open the chat"
+   ],
+   "avoid_when": [
+    "the empty-chat text: that is setMyDescription"
+   ],
+   "pitfalls": [
+    {
+     "text": "short_description is 0-120 characters; an empty string removes the dedicated one for that language.",
+     "source": "API",
+     "cite": "short_description: New short description for the bot; 0-120 characters."
+    },
+    {
+     "text": "It is sent together with the link when users share the bot.",
+     "source": "API",
+     "cite": "setMyShortDescription: shown on the bot's profile page and is sent together with the link when users share the bot"
+    }
+   ],
+   "related": [
+    "getMyShortDescription",
+    "BotShortDescription",
+    "setMyDescription",
+    "setMyName"
+   ],
+   "refs": [
+    "references/onboarding-and-first-run.md#before-the-user-presses-start"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "getMyShortDescription": {
+   "purpose": "Read the bot's short description for one user language.",
+   "use_when": [
+    "checking a per-language short description after setMyShortDescription"
+   ],
+   "pitfalls": [
+    {
+     "text": "language_code is two letters (ISO 639-1) or an empty string.",
+     "source": "API",
+     "cite": "language_code: A two-letter ISO 639-1 language code or an empty string"
+    },
+    {
+     "text": "What it returns for a language without a dedicated short description is not stated.",
+     "source": "Unverified"
+    }
+   ],
+   "related": [
+    "setMyShortDescription",
+    "BotShortDescription",
+    "getMyName",
+    "getMyDescription"
+   ],
+   "refs": [
+    "references/onboarding-and-first-run.md#before-the-user-presses-start"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setChatMenuButton": {
+   "purpose": "Set the menu button of one private chat, or the bot's default menu button.",
+   "use_when": [
+    "opening a Mini App from the menu button (MenuButtonWebApp)",
+    "restoring the command list (MenuButtonCommands)"
+   ],
+   "avoid_when": [
+    "filling the command list: setMyCommands does that"
+   ],
+   "pitfalls": [
+    {
+     "text": "Without chat_id it changes the default menu button; with it, one private chat's.",
+     "source": "API",
+     "cite": "chat_id: If not specified, the bot's default menu button will be changed."
+    },
+    {
+     "text": "A chat's own button other than MenuButtonDefault wins; otherwise the default applies, and by default the button opens the command list.",
+     "source": "API",
+     "cite": "MenuButton: By default, the menu button opens the list of bot commands."
+    },
+    {
+     "text": "Pick one per bot: Mini App launcher or command list; a Mini App bot keeps /start and /help as commands.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "getChatMenuButton",
+    "setMyCommands",
+    "MenuButton",
+    "WebAppInfo"
+   ],
+   "chat_types": [
+    "private"
+   ],
+   "since": "6.0",
+   "refs": [
+    "references/navigation-and-flows.md#chat-level-chrome",
+    "references/mini-apps-bridge.md#launch-points-and-what-comes-back"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "getChatMenuButton": {
+   "purpose": "Read the menu button of one private chat, or the bot's default menu button.",
+   "use_when": [
+    "verifying the button after setChatMenuButton"
+   ],
+   "pitfalls": [
+    {
+     "text": "Without chat_id it returns the default menu button.",
+     "source": "API",
+     "cite": "chat_id: If not specified, the bot's default menu button will be returned."
+    },
+    {
+     "text": "Returns a MenuButton, one of MenuButtonCommands, MenuButtonWebApp or MenuButtonDefault; branch on its type.",
+     "source": "API",
+     "cite": "getChatMenuButton: Returns MenuButton on success."
+    }
+   ],
+   "related": [
+    "setChatMenuButton",
+    "MenuButton"
+   ],
+   "chat_types": [
+    "private"
+   ],
+   "since": "6.0",
+   "refs": [
+    "references/navigation-and-flows.md#chat-level-chrome"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMyDefaultAdministratorRights": {
+   "purpose": "Set the administrator rights suggested when a user adds the bot to a group, supergroup or channel.",
+   "use_when": [
+    "a moderation or posting bot that should be added with the right rights in one step"
+   ],
+   "avoid_when": [
+    "changing an existing admin's rights: that is promoteChatMember"
+   ],
+   "pitfalls": [
+    {
+     "text": "The rights are only suggested; users may change the list before adding the bot.",
+     "source": "API",
+     "cite": "setMyDefaultAdministratorRights: they are free to modify the list before adding the bot"
+    },
+    {
+     "text": "for_channels true sets the channel defaults, otherwise groups and supergroups; omitting rights clears them.",
+     "source": "API",
+     "cite": "for_channels: Pass True to change the default administrator rights of the bot in channels."
+    },
+    {
+     "text": "Request the minimum and check the granted rights at runtime.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "getMyDefaultAdministratorRights",
+    "ChatAdministratorRights",
+    "promoteChatMember",
+    "getChatMember"
+   ],
+   "chat_types": [
+    "group",
+    "supergroup",
+    "channel"
+   ],
+   "since": "6.0",
+   "refs": [
+    "references/chat-administration.md#rights-the-bot-needs"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "getMyDefaultAdministratorRights": {
+   "purpose": "Read the administrator rights the bot suggests when added to groups, supergroups or channels.",
+   "use_when": [
+    "verifying the defaults after setMyDefaultAdministratorRights"
+   ],
+   "pitfalls": [
+    {
+     "text": "for_channels true reads the channel defaults, otherwise groups and supergroups.",
+     "source": "API",
+     "cite": "for_channels: Pass True to get default administrator rights of the bot in channels."
+    },
+    {
+     "text": "These are the suggestion, not the rights the bot holds in a chat; read those with getChatMember.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "setMyDefaultAdministratorRights",
+    "ChatAdministratorRights",
+    "getChatMember"
+   ],
+   "chat_types": [
+    "group",
+    "supergroup",
+    "channel"
+   ],
+   "since": "6.0",
+   "refs": [
+    "references/chat-administration.md#rights-the-bot-needs"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMySettings": {
+   "purpose": "Change the bot's switches (inline mode, privacy mode, groups, topics, callback query mode); unspecified settings stay unchanged.",
+   "use_when": [
+    "the switches live in code and are applied at start-up or deploy"
+   ],
+   "avoid_when": [
+    "widening what the bot receives (privacy, location, bots) without a human yes"
+   ],
+   "pitfalls": [
+    {
+     "text": "can_read_all_group_messages true turns privacy mode OFF.",
+     "source": "API",
+     "cite": "can_read_all_group_messages: Pass True to disable privacy mode for the bot or False to enable it"
+    },
+    {
+     "text": "inline_feedback_share_denominator must be 1, 10, 100 or 1000; 0 stops chosen inline results.",
+     "source": "API",
+     "cite": "inline_feedback_share_denominator: Must be one of 1, 10, 100, or 1000. Pass 0 to stop receiving chosen inline results."
+    },
+    {
+     "text": "callback_query_mode is default, auto or inline; in auto and inline a callback can arrive with inline_message_id instead of message.",
+     "source": "API",
+     "cite": "callback_query_mode: Must be one of default, auto, or inline"
+    }
+   ],
+   "related": [
+    "getMe",
+    "BotFullInfo",
+    "CallbackQuery",
+    "answerCallbackQuery"
+   ],
+   "since": "10.5",
+   "refs": [
+    "references/bot-settings.md#settings-from-code-setmysettings",
+    "references/bot-settings.md#callback-query-mode"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "setMyProfilePhoto": {
+   "purpose": "Set the bot's profile photo from a new static (.JPG) or animated (MPEG4) upload.",
+   "use_when": [
+    "applying a brand avatar kept in the repository"
+   ],
+   "pitfalls": [
+    {
+     "text": "The photo can only be a new upload (no file_id, no URL), referenced as attach://<name> from multipart/form-data.",
+     "source": "API",
+     "cite": "InputProfilePhotoStatic.photo: Profile photos can't be reused and can only be uploaded as a new file"
+    },
+    {
+     "text": "photo is InputProfilePhoto: type static (.JPG) or animated (MPEG4, optional main_frame_timestamp for the still).",
+     "source": "API",
+     "cite": "InputProfilePhoto: InputProfilePhotoStatic, InputProfilePhotoAnimated"
+    }
+   ],
+   "related": [
+    "removeMyProfilePhoto",
+    "InputProfilePhoto",
+    "setMyName"
+   ],
+   "since": "9.4",
+   "refs": [
+    "references/media-and-files.md#uploading"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "removeMyProfilePhoto": {
+   "purpose": "Remove the bot's profile photo.",
+   "use_when": [
+    "resetting the bot to no photo before a rebrand"
+   ],
+   "avoid_when": [
+    "replacing the photo: setMyProfilePhoto alone does it"
+   ],
+   "pitfalls": [
+    {
+     "text": "Takes no parameters.",
+     "source": "API",
+     "cite": "removeMyProfilePhoto: Requires no parameters."
+    },
+    {
+     "text": "Keep the source image in the repository so the photo can be set again.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "setMyProfilePhoto"
+   ],
+   "since": "9.4",
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "answerCallbackQuery": {
+   "purpose": "Answer a button tap from an inline keyboard or rich message: stop the client's progress bar, optionally with a toast, alert or URL.",
+   "use_when": [
+    "every callback_query, before slow work",
+    "a short confirmation or refusal for the presser"
+   ],
+   "avoid_when": [
+    "results longer than the 200-character text: edit the message or send a new one"
+   ],
+   "pitfalls": [
+    {
+     "text": "Clients show a progress bar until it is answered, so answer even when there is nothing to say.",
+     "source": "API",
+     "cite": "CallbackQuery: it is, therefore, necessary to react by calling answerCallbackQuery even if no notification to the user is needed"
+    },
+    {
+     "text": "text is 0-200 characters and nothing is shown without it; show_alert true shows an alert instead of a notification.",
+     "source": "API",
+     "cite": "text: If not specified, nothing will be shown to the user, 0-200 characters."
+    },
+    {
+     "text": "An ephemeral reply to the query doesn't replace the answer.",
+     "source": "API",
+     "cite": "EphemeralMessageParameters.callback_query_id: The bot must still answer the callback query using answerCallbackQuery."
+    },
+    {
+     "text": "Answer first, then do the work; keep cache_time at 0 for state-dependent buttons.",
+     "source": "Heuristic"
+    }
+   ],
+   "related": [
+    "CallbackQuery",
+    "InlineKeyboardMarkup",
+    "editMessageText",
+    "setMySettings"
+   ],
+   "refs": [
+    "references/inline-keyboards.md#always-answer-the-callback",
+    "references/dynamic-feedback-and-streaming.md#4-the-native-button-loader"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  },
+  "savePreparedKeyboardButton": {
+   "purpose": "Store a request_users, request_chat or request_managed_bot button that a Mini App can trigger for a user.",
+   "use_when": [
+    "a Mini App needs the user to pick users, a chat or a managed bot"
+   ],
+   "avoid_when": [
+    "a button shown in the chat: put it in a reply keyboard instead"
+   ],
+   "pitfalls": [
+    {
+     "text": "The button must be of type request_users, request_chat or request_managed_bot.",
+     "source": "API",
+     "cite": "button: The button must be of the type request_users, request_chat, or request_managed_bot."
+    },
+    {
+     "text": "Inside the Mini App call WebApp.requestChat(id) with the returned id; where the pick arrives is not stated (in a reply keyboard it is users_shared / chat_shared).",
+     "source": "Official",
+     "cite": "https://core.telegram.org/bots/webapps#initializing-mini-apps (requestChat: id of a PreparedKeyboardButton from savePreparedKeyboardButton)"
+    }
+   ],
+   "related": [
+    "KeyboardButton",
+    "PreparedKeyboardButton",
+    "KeyboardButtonRequestUsers",
+    "KeyboardButtonRequestChat",
+    "KeyboardButtonRequestManagedBot"
+   ],
+   "since": "9.6",
+   "refs": [
+    "references/mini-apps-bridge.md#mini-app--bot-helpers-in-the-bot-api"
+   ],
+   "example": "examples/payloads/api-bot-settings.json"
+  }
+ }
+}

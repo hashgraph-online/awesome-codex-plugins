@@ -1,3 +1,9 @@
+---
+summary: "Bot API 10.5 setMySettings and the BotFullInfo that getMe returns: callback query mode, topics, usernames, inline settings, owner invites; read to configure a bot's switches from code."
+verified: "2026-11-22"
+bot_api: "10.5"
+---
+
 # Bot settings from code (Bot API 10.5)
 
 Bot API 10.5 (2026-11-22) moved the bot's own switches into the API: one method writes them,

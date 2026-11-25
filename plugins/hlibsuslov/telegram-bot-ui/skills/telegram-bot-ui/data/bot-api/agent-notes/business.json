@@ -1,0 +1,419 @@
+{
+ "$comment": "Agent notes for business accounts, gifts, stories and emoji status. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "business",
+ "notes": {
+  "getBusinessConnection": {
+   "purpose": "Read a business connection by id: owner, user_chat_id, is_enabled and the rights granted now.",
+   "use_when": ["a business call failed and the stored rights may be stale", "a business_message names a connection id the bot has no record of"],
+   "avoid_when": ["before every call: keep the latest business_connection update, refresh on errors"],
+   "pitfalls": [
+    {"text": "rights is optional and every BusinessBotRights field is an optional True: a missing field means the right is not granted.", "source": "API", "cite": "BusinessConnection.rights: BusinessBotRights optional; BusinessBotRights.can_reply: True optional"},
+    {"text": "is_enabled false means the connection is not active: stop acting for that account.", "source": "API", "cite": "BusinessConnection.is_enabled: True, if the connection is active"},
+    {"text": "user_chat_id can exceed 32 bits; store it as a 64-bit integer.", "source": "API", "cite": "user_chat_id: it has at most 52 significant bits, so a 64-bit integer or double-precision float type are safe for storing this identifier"}
+   ],
+   "related": ["BusinessConnection", "BusinessBotRights", "readBusinessMessage", "deleteBusinessMessages"],
+   "chat_types": ["business"],
+   "since": "7.2",
+   "refs": ["references/business-accounts.md#state-the-server-must-keep", "references/business-accounts.md#rights-businessbotrights"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "readBusinessMessage": {
+   "purpose": "Mark an incoming message in a managed chat as read on behalf of the business account.",
+   "use_when": ["the bot handled a customer message and the owner wants it shown as read"],
+   "avoid_when": ["the connection lacks can_read_messages", "chats with no activity in the last 24 hours"],
+   "pitfalls": [
+    {"text": "The chat must have been active in the last 24 hours.", "source": "API", "cite": "readBusinessMessage.chat_id: The chat must have been active in the last 24 hours."},
+    {"text": "chat_id is an Integer: the managed chat's id, no @username.", "source": "API", "cite": "readBusinessMessage.chat_id: Integer required"},
+    {"text": "The owner sees the message as read in their own app; mark only what the bot really handled.", "source": "Heuristic"}
+   ],
+   "related": ["BusinessConnection", "BusinessBotRights", "getBusinessConnection", "Message"],
+   "rights": "business bot right can_read_messages (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#sending-and-reading-on-behalf-of-the-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "deleteBusinessMessages": {
+   "purpose": "Delete 1-100 messages of one managed chat on behalf of the business account.",
+   "use_when": ["removing the bot's own wrong auto-reply", "the owner asked to clean up a chat"],
+   "avoid_when": ["ids from different chats in one call", "without the owner's decision: run it as a confirmed, logged action"],
+   "pitfalls": [
+    {"text": "can_delete_sent_messages covers only messages the bot sent; any other message needs can_delete_all_messages.", "source": "API", "cite": "deleteBusinessMessages: Requires the can_delete_sent_messages business bot right to delete messages sent by the bot itself, or the can_delete_all_messages business bot right to delete any message."},
+    {"text": "1-100 ids, all from the same chat; deleteMessage's limitations apply.", "source": "API", "cite": "message_ids: 1-100 identifiers of messages to delete. All messages must be from the same chat. See deleteMessage for limitations"},
+    {"text": "There is no chat_id parameter: the ids alone pick the chat.", "source": "API", "cite": "deleteBusinessMessages parameters: business_connection_id, message_ids"}
+   ],
+   "related": ["BusinessConnection", "BusinessBotRights", "BusinessMessagesDeleted", "deleteMessage"],
+   "rights": "can_delete_sent_messages (bot's own messages) or can_delete_all_messages (any message), BusinessBotRights",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#sending-and-reading-on-behalf-of-the-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "setBusinessAccountName": {
+   "purpose": "Change the first and last name of a managed business account.",
+   "use_when": ["the owner approved the exact new name in the bot's private chat"],
+   "avoid_when": ["automatic, test or guessed names: it is the owner's own account name"],
+   "pitfalls": [
+    {"text": "first_name is 1-64 characters, last_name 0-64.", "source": "API", "cite": "first_name: 1-64 characters; last_name: 0-64 characters"},
+    {"text": "The method text names can_change_name, which BusinessBotRights doesn't define; the connection carries can_edit_name.", "source": "API", "cite": "setBusinessAccountName: Requires the can_change_name business bot right.; BusinessBotRights.can_edit_name: True, if the bot can edit the first and last name of the business account"},
+    {"text": "Show the owner the exact value and wait for a confirmation before calling.", "source": "Heuristic"}
+   ],
+   "related": ["BusinessBotRights", "BusinessConnection", "setBusinessAccountUsername", "setBusinessAccountBio"],
+   "rights": "business bot right can_edit_name (BusinessBotRights; the method text says can_change_name)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#managing-the-account-profile", "references/business-accounts.md#rights-businessbotrights"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "setBusinessAccountUsername": {
+   "purpose": "Change the username of a managed business account.",
+   "use_when": ["the owner approved the exact new username"],
+   "avoid_when": ["a username the owner did not choose word for word"],
+   "pitfalls": [
+    {"text": "username is optional, 0-32 characters.", "source": "API", "cite": "username: String optional; 0-32 characters"},
+    {"text": "The method text names can_change_username, which BusinessBotRights doesn't define; the connection carries can_edit_username.", "source": "API", "cite": "setBusinessAccountUsername: Requires the can_change_username business bot right.; BusinessBotRights.can_edit_username"},
+    {"text": "That an empty or omitted username removes the current one is not stated.", "source": "Unverified"}
+   ],
+   "related": ["BusinessBotRights", "BusinessConnection", "setBusinessAccountName", "setBusinessAccountBio"],
+   "rights": "business bot right can_edit_username (BusinessBotRights; the method text says can_change_username)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#managing-the-account-profile", "references/business-accounts.md#rights-businessbotrights"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "setBusinessAccountBio": {
+   "purpose": "Change the bio of a managed business account.",
+   "use_when": ["opening hours or an offer line the owner approved"],
+   "avoid_when": ["rotating promotional text automatically: it is the owner's profile"],
+   "pitfalls": [
+    {"text": "bio is optional, 0-140 characters.", "source": "API", "cite": "bio: String optional; 0-140 characters"},
+    {"text": "The method text names can_change_bio, which BusinessBotRights doesn't define; the connection carries can_edit_bio.", "source": "API", "cite": "setBusinessAccountBio: Requires the can_change_bio business bot right.; BusinessBotRights.can_edit_bio"},
+    {"text": "That an empty or omitted bio clears the current one is not stated.", "source": "Unverified"}
+   ],
+   "related": ["BusinessBotRights", "BusinessConnection", "setBusinessAccountName", "setBusinessAccountUsername"],
+   "rights": "business bot right can_edit_bio (BusinessBotRights; the method text says can_change_bio)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#managing-the-account-profile", "references/business-accounts.md#rights-businessbotrights"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "setBusinessAccountProfilePhoto": {
+   "purpose": "Set the main or the public profile photo of a managed business account from a new upload.",
+   "use_when": ["the owner sent a photo and approved it as the account's avatar"],
+   "avoid_when": ["reusing a file_id or URL: profile photos are new uploads only"],
+   "pitfalls": [
+    {"text": "photo is InputProfilePhoto: static (.JPG) or animated (MPEG4), sent as attach://<name> in multipart; it can't be reused.", "source": "API", "cite": "InputProfilePhotoStatic.photo: Profile photos can't be reused and can only be uploaded as a new file"},
+    {"text": "is_public: True sets the public photo, visible even when privacy settings hide the main one; an account has only one.", "source": "API", "cite": "is_public: Pass True to set the public photo, which will be visible even if the main photo is hidden by the business account's privacy settings. An account can have only one public photo."},
+    {"text": "Confirm the exact image with the owner first; every contact sees it.", "source": "Heuristic"}
+   ],
+   "related": ["InputProfilePhoto", "removeBusinessAccountProfilePhoto", "BusinessBotRights", "setMyProfilePhoto"],
+   "rights": "business bot right can_edit_profile_photo (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#managing-the-account-profile"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "removeBusinessAccountProfilePhoto": {
+   "purpose": "Remove the current main or public profile photo of a managed business account.",
+   "use_when": ["the owner asked to take a photo down"],
+   "avoid_when": ["replacing a photo: setBusinessAccountProfilePhoto sets the new one directly"],
+   "pitfalls": [
+    {"text": "After the main photo is removed, the previous profile photo, if any, becomes the main one.", "source": "API", "cite": "is_public: After the main photo is removed, the previous profile photo (if present) becomes the main photo."},
+    {"text": "is_public: True removes the public photo instead of the main one.", "source": "API", "cite": "is_public: Pass True to remove the public photo"}
+   ],
+   "related": ["setBusinessAccountProfilePhoto", "InputProfilePhoto", "BusinessBotRights"],
+   "rights": "business bot right can_edit_profile_photo (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#managing-the-account-profile"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "setBusinessAccountGiftSettings": {
+   "purpose": "Set which gift types a managed business account accepts and whether the gift button is always shown.",
+   "use_when": ["the owner chose which kinds of gifts the account takes"],
+   "avoid_when": ["changing one type on a guess: the call sends the whole set"],
+   "pitfalls": [
+    {"text": "accepted_gift_types needs all five AcceptedGiftTypes booleans (unlimited, limited, unique, premium_subscription, gifts_from_channels).", "source": "API", "cite": "AcceptedGiftTypes: unlimited_gifts, limited_gifts, unique_gifts, premium_subscription, gifts_from_channels: Boolean required"},
+    {"text": "show_gift_button True keeps the gift button always shown in the input field.", "source": "API", "cite": "show_gift_button: Pass True if a button for sending a gift to the user or by the business account must always be shown in the input field"},
+    {"text": "These are the owner's privacy settings: apply only what they chose.", "source": "Heuristic"}
+   ],
+   "related": ["AcceptedGiftTypes", "BusinessBotRights", "getBusinessAccountGifts", "ChatFullInfo"],
+   "rights": "business bot right can_change_gift_settings (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "getBusinessAccountStarBalance": {
+   "purpose": "Read the Telegram Star balance of a managed business account.",
+   "use_when": ["before transferBusinessAccountStars or a paid upgradeGift or transferGift", "reconciling after a Star call timed out"],
+   "avoid_when": ["the bot's own balance: getMyStarBalance"],
+   "pitfalls": [
+    {"text": "Returns StarAmount: amount is whole Stars and can be negative; nanostar_amount carries the fraction.", "source": "API", "cite": "StarAmount.amount: Integer amount of Telegram Stars, rounded to 0; can be negative"},
+    {"text": "It is the business account's balance, not the bot's.", "source": "API", "cite": "getBusinessAccountStarBalance: Returns the amount of Telegram Stars owned by a managed business account."}
+   ],
+   "related": ["StarAmount", "transferBusinessAccountStars", "getMyStarBalance", "BusinessBotRights"],
+   "rights": "business bot right can_view_gifts_and_stars (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "transferBusinessAccountStars": {
+   "purpose": "Move 1-10000 Stars from a managed business account's balance to the bot's balance.",
+   "use_when": ["the owner asked to move an exact amount of Stars to the bot"],
+   "avoid_when": ["automatic or repeated transfers: it moves the owner's Stars", "retrying after a timeout before reading the balance again"],
+   "pitfalls": [
+    {"text": "star_count is 1-10000.", "source": "API", "cite": "star_count: Number of Telegram Stars to transfer; 1-10000"},
+    {"text": "It lands in the bot's Star transactions as business_account_transfer.", "source": "API", "cite": "TransactionPartnerUser.transaction_type: “business_account_transfer” for direct transfers from managed business accounts"},
+    {"text": "On a timeout the outcome is unknown: compare getBusinessAccountStarBalance before any retry.", "source": "Heuristic"}
+   ],
+   "related": ["getBusinessAccountStarBalance", "StarAmount", "TransactionPartnerUser", "getMyStarBalance", "BusinessBotRights"],
+   "rights": "business bot right can_transfer_stars (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account", "references/business-accounts.md#error-handling"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "getBusinessAccountGifts": {
+   "purpose": "List the gifts a managed business account received and owns, with filters and a cursor.",
+   "use_when": ["finding owned_gift_id before convert, upgrade, transfer or delete", "showing the owner what the account holds"],
+   "avoid_when": ["gifts of another user or chat: getUserGifts, getChatGifts"],
+   "pitfalls": [
+    {"text": "Page with offset until next_offset is empty; limit is 1-100, default 100.", "source": "API", "cite": "OwnedGifts.next_offset: If empty, then there are no more results.; limit: 1-100. Defaults to 100."},
+    {"text": "Entries are OwnedGiftRegular or OwnedGiftUnique: read type before the gift fields.", "source": "API", "cite": "OwnedGift: it can be one of OwnedGiftRegular, OwnedGiftUnique"},
+    {"text": "9.3 replaced exclude_limited with exclude_limited_upgradable and exclude_limited_non_upgradable.", "source": "Official", "cite": "https://core.telegram.org/bots/api-changelog"}
+   ],
+   "related": ["OwnedGifts", "OwnedGift", "Gift", "UniqueGift", "convertGiftToStars", "upgradeGift", "transferGift", "deleteBusinessAccountGift"],
+   "rights": "business bot right can_view_gifts_and_stars (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "deleteBusinessAccountGift": {
+   "purpose": "Delete a regular gift of a managed business account without receiving Stars for it.",
+   "use_when": ["the owner chose to remove a regular gift and take no Stars for it"],
+   "avoid_when": ["the owner would rather have Stars: convertGiftToStars", "limited or refunded gifts: they can't be deleted", "without a confirmation naming the gift"],
+   "pitfalls": [
+    {"text": "Only gifts that aren't limited (Gift.total_count omitted) and weren't refunded.", "source": "API", "cite": "deleteBusinessAccountGift: The gift can be deleted only if it isn't limited (the field total_count of the Gift is omitted) and wasn't refunded."},
+    {"text": "It needs can_convert_gifts_to_stars, not a delete right, and gives no Stars back.", "source": "API", "cite": "deleteBusinessAccountGift: without receiving Telegram Stars for it. Requires the can_convert_gifts_to_stars business bot right."}
+   ],
+   "related": ["getBusinessAccountGifts", "convertGiftToStars", "OwnedGiftRegular", "Gift", "BusinessBotRights"],
+   "rights": "business bot right can_convert_gifts_to_stars (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "10.4",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account", "references/specialized-updates.md#deletebusinessaccountgift"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "convertGiftToStars": {
+   "purpose": "Convert a regular gift owned by a managed business account to Telegram Stars.",
+   "use_when": ["the owner chose Stars instead of keeping a regular gift"],
+   "avoid_when": ["unique gifts: only regular gifts convert", "an entry without convert_star_count", "without a confirmation naming the gift: the gift is given up"],
+   "pitfalls": [
+    {"text": "convert_star_count is omitted when the gift can't be converted.", "source": "API", "cite": "OwnedGiftRegular.convert_star_count: omitted if the gift cannot be converted to Telegram Stars"},
+    {"text": "A gift a bot sent with sendGift can't be converted by its receiver.", "source": "API", "cite": "sendGift: The gift can't be converted to Telegram Stars by the receiver."},
+    {"text": "After a timeout read getBusinessAccountGifts before any retry.", "source": "Heuristic"}
+   ],
+   "related": ["getBusinessAccountGifts", "deleteBusinessAccountGift", "OwnedGiftRegular", "getBusinessAccountStarBalance", "BusinessBotRights"],
+   "rights": "business bot right can_convert_gifts_to_stars (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "upgradeGift": {
+   "purpose": "Upgrade a regular gift of a managed business account to a unique gift.",
+   "use_when": ["the owner chose to upgrade a gift whose entry has can_be_upgraded"],
+   "avoid_when": ["a paid upgrade without can_transfer_stars", "a paid upgrade the owner did not confirm: it spends the account's Stars"],
+   "pitfalls": [
+    {"text": "star_count: 0 when gift.prepaid_upgrade_star_count > 0, otherwise gift.upgrade_star_count, paid from the business account balance.", "source": "API", "cite": "star_count: If gift.prepaid_upgrade_star_count > 0, then pass 0, otherwise, the can_transfer_stars business bot right is required and gift.upgrade_star_count must be passed."},
+    {"text": "keep_original_details keeps the original text, sender and receiver.", "source": "API", "cite": "keep_original_details: Pass True to keep the original gift text, sender and receiver in the upgraded gift"}
+   ],
+   "related": ["OwnedGiftRegular", "Gift", "UniqueGift", "getBusinessAccountGifts", "transferGift", "BusinessBotRights"],
+   "rights": "can_transfer_and_upgrade_gifts; plus can_transfer_stars for a paid upgrade (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "transferGift": {
+   "purpose": "Transfer a unique gift owned by a managed business account to a new owner.",
+   "use_when": ["the owner named the receiver and confirmed the transfer price"],
+   "avoid_when": ["a receiving chat silent for over 24 hours", "a paid transfer without can_transfer_stars or the owner's confirmation: it spends the account's Stars and moves the gift"],
+   "pitfalls": [
+    {"text": "new_owner_chat_id must have been active in the last 24 hours.", "source": "API", "cite": "new_owner_chat_id: The chat must be active in the last 24 hours."},
+    {"text": "A positive star_count is paid from the business account and needs can_transfer_stars; the price is OwnedGiftUnique.transfer_star_count.", "source": "API", "cite": "star_count: If positive, then the can_transfer_stars business bot right is required.; transfer_star_count: Number of Telegram Stars that must be paid to transfer the gift"},
+    {"text": "Check can_be_transferred and next_transfer_date (past means now) first.", "source": "API", "cite": "OwnedGiftUnique.next_transfer_date: If it is in the past, then the gift can be transferred now."}
+   ],
+   "related": ["OwnedGiftUnique", "UniqueGift", "getBusinessAccountGifts", "upgradeGift", "BusinessBotRights"],
+   "rights": "can_transfer_and_upgrade_gifts; plus can_transfer_stars for a paid transfer (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/business-accounts.md#gifts-and-stars-of-the-business-account"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "getAvailableGifts": {
+   "purpose": "List the gifts the bot can send now, with their Star prices and limits.",
+   "use_when": ["before sendGift: pick the gift id and check its price"],
+   "avoid_when": ["gifts someone owns: getUserGifts, getChatGifts"],
+   "pitfalls": [
+    {"text": "Gift.star_count is the price to send; upgrade_star_count is the price of the upgrade that pay_for_upgrade prepays.", "source": "API", "cite": "Gift.star_count: The number of Telegram Stars that must be paid to send the sticker; upgrade_star_count: must be paid to upgrade the gift to a unique one"},
+    {"text": "Limited gifts carry total_count and remaining_count plus the bot's own personal_remaining_count, and can't be sent to channels.", "source": "API", "cite": "Gift.personal_remaining_count: can be sent by the bot; for limited gifts only; sendGift.gift_id: limited gifts can't be sent to channel chats"},
+    {"text": "Fetch the list right before sending instead of hard-coding gift ids.", "source": "Heuristic"}
+   ],
+   "related": ["Gifts", "Gift", "sendGift", "getMyStarBalance"],
+   "since": "8.0",
+   "refs": ["references/gifts-and-stories.md#sending-gifts"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "sendGift": {
+   "purpose": "Send a gift from the bot to a user or a channel chat.",
+   "use_when": ["a reward the user earned, with the gift and its price confirmed"],
+   "avoid_when": ["the bot's Star balance can't cover Gift.star_count", "unconfirmed or repeated sends: every gift spends the bot's Stars"],
+   "pitfalls": [
+    {"text": "Pass user_id or chat_id; limited gifts can't go to channel chats.", "source": "API", "cite": "user_id: Required if chat_id is not specified.; gift_id: limited gifts can't be sent to channel chats"},
+    {"text": "Each send is a gift_purchase in the bot's Star transactions; pay_for_upgrade adds the upgrade price from the bot's balance.", "source": "API", "cite": "TransactionPartnerUser.transaction_type: “gift_purchase” for gifts sent by the bot; pay_for_upgrade: pay for the gift upgrade from the bot's balance"},
+    {"text": "text is 0-128 characters; only bold, italic, underline, strikethrough, spoiler, custom_emoji and date_time entities stay.", "source": "API", "cite": "text: 0-128 characters; text_entities: Entities other than “bold”, “italic”, “underline”, “strikethrough”, “spoiler”, “custom_emoji”, and “date_time” are ignored."}
+   ],
+   "related": ["getAvailableGifts", "Gift", "giftPremiumSubscription", "getMyStarBalance", "TransactionPartnerUser", "AcceptedGiftTypes"],
+   "since": "8.0",
+   "refs": ["references/gifts-and-stories.md#sending-gifts"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "giftPremiumSubscription": {
+   "purpose": "Gift a Telegram Premium subscription to a user, paid with the bot's Stars.",
+   "use_when": ["a confirmed reward of 3, 6 or 12 months of Premium"],
+   "avoid_when": ["unconfirmed or repeated calls: each spends 1000-2500 of the bot's Stars"],
+   "pitfalls": [
+    {"text": "Exact pairs only: 3 months = 1000 Stars, 6 = 1500, 12 = 2500.", "source": "API", "cite": "star_count: must be 1000 for 3 months, 1500 for 6 months, and 2500 for 12 months"},
+    {"text": "It lands in the bot's Star transactions as premium_purchase.", "source": "API", "cite": "TransactionPartnerUser.transaction_type: “premium_purchase” for Telegram Premium subscriptions gifted by the bot"},
+    {"text": "text is 0-128 characters with the same entity limits as sendGift.", "source": "API", "cite": "text: 0-128 characters; text_entities: Entities other than “bold”, “italic”, “underline”, “strikethrough”, “spoiler”, “custom_emoji”, and “date_time” are ignored."}
+   ],
+   "related": ["sendGift", "getMyStarBalance", "TransactionPartnerUser", "AcceptedGiftTypes"],
+   "since": "9.0",
+   "refs": ["references/gifts-and-stories.md#sending-gifts"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "getUserGifts": {
+   "purpose": "List the gifts a user owns and hosts, with filters and a cursor.",
+   "use_when": ["showing a user's collection", "checking what a user holds before a reward"],
+   "avoid_when": ["a managed business account's own gifts: getBusinessAccountGifts returns owned_gift_id"],
+   "pitfalls": [
+    {"text": "Page with offset until next_offset is empty; limit is 1-100, default 100.", "source": "API", "cite": "OwnedGifts.next_offset: If empty, then there are no more results.; limit: 1-100. Defaults to 100."},
+    {"text": "owned_gift_id, is_saved and convert_star_count are for business-account gifts only; don't expect them here.", "source": "API", "cite": "OwnedGiftRegular.owned_gift_id: for gifts received on behalf of business accounts only"}
+   ],
+   "related": ["OwnedGifts", "OwnedGift", "getChatGifts", "getBusinessAccountGifts", "getUniqueGift"],
+   "since": "9.3",
+   "refs": ["references/gifts-and-stories.md#reading-gifts"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "getChatGifts": {
+   "purpose": "List the gifts a chat, such as a channel, owns, with filters and a cursor.",
+   "use_when": ["showing a channel's gifts"],
+   "avoid_when": ["a user's gifts: getUserGifts"],
+   "pitfalls": [
+    {"text": "Without can_post_messages in the channel, exclude_unsaved is always True and exclude_saved always False: only saved gifts come back.", "source": "API", "cite": "exclude_unsaved: Always True, unless the bot has the can_post_messages administrator right in the channel."},
+    {"text": "Page with offset until next_offset is empty; limit is 1-100, default 100.", "source": "API", "cite": "OwnedGifts.next_offset: If empty, then there are no more results.; limit: 1-100. Defaults to 100."}
+   ],
+   "related": ["OwnedGifts", "OwnedGift", "getUserGifts", "ChatAdministratorRights"],
+   "rights": "none required; can_post_messages in the channel unlocks the saved and unsaved filters",
+   "since": "9.3",
+   "refs": ["references/gifts-and-stories.md#reading-gifts"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "getUniqueGift": {
+   "purpose": "Read a unique (collectible) gift by its unique name.",
+   "use_when": ["a t.me/nft/ link or a unique_gift story area names a gift and the bot needs its model, symbol and backdrop"],
+   "avoid_when": ["gift ids from getAvailableGifts: those are regular gifts"],
+   "pitfalls": [
+    {"text": "name is UniqueGift.name, the one used in t.me/nft/ links and story areas, not base_name or gift_id.", "source": "API", "cite": "UniqueGift.name: Unique name of the gift. This name can be used in https://t.me/nft/... links and story areas."},
+    {"text": "is_burned: used to craft another gift and gone; is_from_blockchain: can't be resold or transferred in Telegram.", "source": "API", "cite": "UniqueGift.is_burned: isn't available anymore; is_from_blockchain: can't be resold or transferred in Telegram"},
+    {"text": "The error for an unknown name is not stated.", "source": "Unverified"}
+   ],
+   "related": ["UniqueGift", "OwnedGiftUnique", "StoryAreaTypeUniqueGift", "getUserGifts"],
+   "since": "10.4",
+   "refs": ["references/gifts-and-stories.md#reading-gifts", "references/specialized-updates.md#getuniquegift"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "postStory": {
+   "purpose": "Post a photo or video story on behalf of a managed business account.",
+   "use_when": ["the owner approved the exact media, caption and lifetime"],
+   "avoid_when": ["media the bot already has as a file_id: stories take new uploads only"],
+   "pitfalls": [
+    {"text": "active_period must be 21600, 43200, 86400 or 172800 seconds.", "source": "API", "cite": "active_period: must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400"},
+    {"text": "content is a new attach:// upload: photo 1080x1920 up to 10 MB, or video 720x1280 H.265 MPEG4 up to 30 MB.", "source": "API", "cite": "InputStoryContentPhoto.photo: must be of the size 1080x1920 and must not exceed 10 MB. The photo can't be reused"},
+    {"text": "Area limits per story: 3 link, 10 location, 5 suggested reaction, 3 weather, 1 unique gift.", "source": "API", "cite": "StoryAreaTypeLink: Currently, a story can have up to 3 link areas."},
+    {"text": "Keep the returned Story (chat.id, id) for editStory, deleteStory and repostStory.", "source": "API", "cite": "postStory: Returns Story on success.; Story fields: chat, id"}
+   ],
+   "related": ["InputStoryContent", "StoryArea", "Story", "editStory", "deleteStory", "repostStory", "BusinessBotRights"],
+   "rights": "business bot right can_manage_stories (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/gifts-and-stories.md#stories-business-accounts-90"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "editStory": {
+   "purpose": "Replace the content, caption and areas of a story the bot posted for a business account.",
+   "use_when": ["the owner approved a corrected story"],
+   "avoid_when": ["stories the owner posted: only the bot's own can be edited"],
+   "pitfalls": [
+    {"text": "Only stories the bot itself posted on behalf of the account.", "source": "API", "cite": "editStory: Edits a story previously posted by the bot on behalf of a managed business account."},
+    {"text": "content is required even for a caption change, and it is a new upload again.", "source": "API", "cite": "editStory.content: InputStoryContent required; InputStoryContentPhoto.photo: The photo can't be reused"},
+    {"text": "There is no active_period: the lifetime stays as posted.", "source": "API", "cite": "editStory parameters: business_connection_id, story_id, content, caption, parse_mode, caption_entities, areas"}
+   ],
+   "related": ["postStory", "deleteStory", "Story", "InputStoryContent", "StoryArea"],
+   "rights": "business bot right can_manage_stories (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/gifts-and-stories.md#stories-business-accounts-90"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "deleteStory": {
+   "purpose": "Delete a story the bot posted on behalf of a managed business account.",
+   "use_when": ["the owner asked to take the bot's story down"],
+   "avoid_when": ["stories the owner posted: only the bot's own", "without the owner's confirmation"],
+   "pitfalls": [
+    {"text": "Only stories the bot itself posted.", "source": "API", "cite": "deleteStory: Deletes a story previously posted by the bot on behalf of a managed business account."},
+    {"text": "story_id is Story.id as postStory or editStory returned it.", "source": "API", "cite": "Story.id: Unique identifier for the story in the chat"}
+   ],
+   "related": ["postStory", "editStory", "Story", "BusinessBotRights"],
+   "rights": "business bot right can_manage_stories (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.0",
+   "refs": ["references/gifts-and-stories.md#stories-business-accounts-90"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "repostStory": {
+   "purpose": "Repost a story from one managed business account to another one the same bot manages.",
+   "use_when": ["one owner runs several accounts connected to this bot and approved the repost"],
+   "avoid_when": ["stories the bot didn't post or repost", "accounts connected to a different bot"],
+   "pitfalls": [
+    {"text": "Both accounts must be managed by the same bot, and the source story posted (or reposted) by the bot.", "source": "API", "cite": "repostStory: Both business accounts must be managed by the same bot, and the story on the source account must have been posted (or reposted) by the bot."},
+    {"text": "can_manage_stories is needed on both connections.", "source": "API", "cite": "repostStory: Requires the can_manage_stories business bot right for both business accounts."},
+    {"text": "from_chat_id is the source chat (Story.chat.id), not a connection id; active_period takes the postStory values.", "source": "API", "cite": "from_chat_id: Unique identifier of the chat which posted the story that should be reposted"}
+   ],
+   "related": ["postStory", "Story", "BusinessConnection", "BusinessBotRights"],
+   "rights": "business bot right can_manage_stories on both accounts (BusinessBotRights)",
+   "chat_types": ["business"],
+   "since": "9.3",
+   "refs": ["references/gifts-and-stories.md#stories-business-accounts-90"],
+   "example": "examples/payloads/api-business.json"
+  },
+  "setUserEmojiStatus": {
+   "purpose": "Set or clear the emoji status of a user who allowed the bot to manage it through the Mini App.",
+   "use_when": ["a reward or membership badge after the user granted access with requestEmojiStatusAccess"],
+   "avoid_when": ["users who never granted access", "a one-off status the user picks: WebApp.setEmojiStatus asks in a native dialog"],
+   "pitfalls": [
+    {"text": "Works only for users who allowed it via the Mini App method requestEmojiStatusAccess.", "source": "API", "cite": "setUserEmojiStatus: for a given user that previously allowed the bot to manage their emoji status via the Mini App method requestEmojiStatusAccess"},
+    {"text": "An empty emoji_status_custom_emoji_id removes the status.", "source": "API", "cite": "emoji_status_custom_emoji_id: Pass an empty string to remove the status."},
+    {"text": "emoji_status_expiration_date is a date, not a duration (ChatFullInfo gives it in Unix time).", "source": "API", "cite": "ChatFullInfo.emoji_status_expiration_date: Expiration date of the emoji status, in Unix time"},
+    {"text": "The error after the user revoked access, or never gave it, is not stated.", "source": "Unverified"}
+   ],
+   "related": ["ChatFullInfo", "getCustomEmojiStickers"],
+   "since": "8.0",
+   "refs": ["references/mini-apps/telegram-elements.md#t9-emoji-status", "references/mini-apps/webapp-api.md#leaving-the-app-and-talking-to-telegram"],
+   "example": "examples/payloads/api-business.json"
+  }
+ }
+}

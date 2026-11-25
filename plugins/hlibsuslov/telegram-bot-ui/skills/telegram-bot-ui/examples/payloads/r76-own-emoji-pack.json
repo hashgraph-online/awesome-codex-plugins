@@ -1,0 +1,101 @@
+{
+  "scenario": "r76-own-emoji-pack",
+  "status": "production (fixture ids)",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "uploadStickerFile",
+      "params": {
+        "user_id": 111111111,
+        "sticker": "attach://home_png",
+        "sticker_format": "static"
+      }
+    },
+    {
+      "method": "uploadStickerFile",
+      "params": {
+        "user_id": 111111111,
+        "sticker": "attach://cart_png",
+        "sticker_format": "static"
+      }
+    },
+    {
+      "method": "uploadStickerFile",
+      "params": {
+        "user_id": 111111111,
+        "sticker": "attach://done_png",
+        "sticker_format": "static"
+      }
+    },
+    {
+      "method": "createNewStickerSet",
+      "params": {
+        "user_id": 111111111,
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "title": "Pizza place icons",
+        "sticker_type": "custom_emoji",
+        "needs_repainting": true,
+        "stickers": [
+          {
+            "sticker": "BQACAgIAAxkBAAEBpizzaUp001",
+            "format": "static",
+            "emoji_list": [
+              "🏠"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "addStickerToSet",
+      "params": {
+        "user_id": 111111111,
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "sticker": {
+          "sticker": "BQACAgIAAxkBAAEBpizzaUp002",
+          "format": "static",
+          "emoji_list": [
+            "🛒"
+          ]
+        }
+      }
+    },
+    {
+      "method": "addStickerToSet",
+      "params": {
+        "user_id": 111111111,
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "sticker": {
+          "sticker": "BQACAgIAAxkBAAEBpizzaUp003",
+          "format": "static",
+          "emoji_list": [
+            "✅"
+          ]
+        }
+      }
+    },
+    {
+      "method": "getStickerSet",
+      "params": {
+        "name": "pizza_icons_by_pizzaplace_bot"
+      }
+    },
+    {
+      "method": "setCustomEmojiStickerSetThumbnail",
+      "params": {
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "custom_emoji_id": "0300000000000001"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0300000000000001\">🏠</tg-emoji> Pizza place</b>\n<tg-emoji emoji-id=\"0300000000000002\">🛒</tg-emoji> Cart: 2 pizzas\n<tg-emoji emoji-id=\"0300000000000003\">✅</tg-emoji> Order confirmed"
+      }
+    }
+  ]
+}

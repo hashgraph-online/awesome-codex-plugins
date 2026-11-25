@@ -1,0 +1,182 @@
+{
+  "scenario": "api-stickers",
+  "status": "production (destructive calls are recorded requests, never sent)",
+  "context": "any chat for sendSticker; sticker-set methods take no chat, only the set owner's user_id",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "uploadStickerFile",
+      "_context": "owner user_id; sticker_format is static, animated or video",
+      "params": {
+        "user_id": 111111111,
+        "sticker": "attach://sticker",
+        "sticker_format": "static"
+      }
+    },
+    {
+      "method": "createNewStickerSet",
+      "_context": "owner user_id; name ends in _by_<bot_username>; 1-50 initial stickers; sticker_type custom_emoji; needs_repainting only for custom emoji sets",
+      "params": {
+        "user_id": 111111111,
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "title": "Pizza place icons",
+        "sticker_type": "custom_emoji",
+        "needs_repainting": true,
+        "stickers": [
+          {
+            "sticker": "BQACAgIAAxkBAAEBpizzaUpload01",
+            "format": "static",
+            "emoji_list": [
+              "🏠"
+            ],
+            "keywords": [
+              "home",
+              "pizza"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "addStickerToSet",
+      "_context": "set created by the bot; an emoji set holds up to 200 stickers, other sets up to 120",
+      "params": {
+        "user_id": 111111111,
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "sticker": {
+          "sticker": "attach://cart_icon",
+          "format": "static",
+          "emoji_list": [
+            "🛒"
+          ]
+        }
+      }
+    },
+    {
+      "method": "getStickerSet",
+      "_context": "name is the set's short name, not its title",
+      "params": {
+        "name": "pizza_icons_by_pizzaplace_bot"
+      }
+    },
+    {
+      "method": "getCustomEmojiStickers",
+      "_context": "at most 200 custom emoji ids per call",
+      "params": {
+        "custom_emoji_ids": [
+          "0200000000000001",
+          "0200000000000002"
+        ]
+      }
+    },
+    {
+      "method": "setStickerPositionInSet",
+      "_context": "sticker of a set created by the bot; position is zero-based",
+      "params": {
+        "sticker": "CAACAgIAAxkBAAEBpizzaIcon0002",
+        "position": 0
+      }
+    },
+    {
+      "method": "setStickerEmojiList",
+      "_context": "regular or custom emoji sticker of a set created by the bot; 1-20 emoji",
+      "params": {
+        "sticker": "CAACAgIAAxkBAAEBpizzaIcon0001",
+        "emoji_list": [
+          "🏠",
+          "🍕"
+        ]
+      }
+    },
+    {
+      "method": "setStickerKeywords",
+      "_context": "regular or custom emoji sticker of a set created by the bot; 0-20 keywords, 64 characters in total",
+      "params": {
+        "sticker": "CAACAgIAAxkBAAEBpizzaIcon0001",
+        "keywords": [
+          "home",
+          "pizza",
+          "menu"
+        ]
+      }
+    },
+    {
+      "method": "setStickerSetTitle",
+      "_context": "title is 1-64 characters",
+      "params": {
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "title": "Pizza place icons v2"
+      }
+    },
+    {
+      "method": "setCustomEmojiStickerSetThumbnail",
+      "_context": "custom emoji set; custom_emoji_id of a sticker in that set",
+      "params": {
+        "name": "pizza_icons_by_pizzaplace_bot",
+        "custom_emoji_id": "0200000000000001"
+      }
+    },
+    {
+      "method": "sendSticker",
+      "_context": "any chat the bot can send to; the sticker is a file_id the bot already has",
+      "params": {
+        "chat_id": 111111111,
+        "sticker": "CAACAgIAAxkBAAEBpizzaSticker01"
+      }
+    },
+    {
+      "method": "replaceStickerInSet",
+      "_context": "owner user_id; old_sticker is a file_id read from getStickerSet; destructive, recorded not sent",
+      "params": {
+        "user_id": 111111111,
+        "name": "pizza_stickers_by_pizzaplace_bot",
+        "old_sticker": "CAACAgIAAxkBAAEBpizzaSticker01",
+        "sticker": {
+          "sticker": "attach://pizza_slice",
+          "format": "static",
+          "emoji_list": [
+            "🍕"
+          ]
+        }
+      }
+    },
+    {
+      "method": "deleteStickerFromSet",
+      "_context": "sticker of a set created by the bot; destructive, recorded not sent",
+      "params": {
+        "sticker": "CAACAgIAAxkBAAEBpizzaSticker02"
+      }
+    },
+    {
+      "method": "setStickerMaskPosition",
+      "_context": "mask sticker of a set created by the bot",
+      "params": {
+        "sticker": "CAACAgIAAxkBAAEBpizzaMask0001",
+        "mask_position": {
+          "point": "forehead",
+          "x_shift": 0.0,
+          "y_shift": -0.2,
+          "scale": 1.5
+        }
+      }
+    },
+    {
+      "method": "setStickerSetThumbnail",
+      "_context": "regular or mask set; owner user_id; format matches the stickers' format",
+      "params": {
+        "name": "pizza_stickers_by_pizzaplace_bot",
+        "user_id": 111111111,
+        "thumbnail": "attach://thumbnail",
+        "format": "static"
+      }
+    },
+    {
+      "method": "deleteStickerSet",
+      "_context": "set created by the bot; destructive, recorded not sent",
+      "params": {
+        "name": "pizza_stickers_by_pizzaplace_bot"
+      }
+    }
+  ]
+}

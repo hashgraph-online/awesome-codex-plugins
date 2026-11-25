@@ -46,4 +46,4 @@ Background: `references/case-study-btc-tracker.md`, `references/visual-language.
 10. **Adapt.** Copy `TxCard` (keep the replay guard and the sound rule) and `IconSystem`;
     rebuild the icon map from one family with `examples/python/icons/build_icon_map.py`; map your
     i18n keys onto the widget's built-in texts or pass labels in `chat_data`. Related: 05, 06,
-    03, `references/bot-archetypes.md#monitoring--alerts-uptime-orders-status-price-alerts`.
+    03, `references/bot-archetypes.md#monitoring--alerts-wallet-tracker-uptime-orders-status-price-alerts`.

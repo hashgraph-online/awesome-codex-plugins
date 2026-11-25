@@ -1,0 +1,286 @@
+{
+  "scenario": "api-business",
+  "status": "production (Star spending, gift moves and deletions are recorded requests, never sent)",
+  "context": "business connection with the right each step names; bot-level gift and emoji status calls need none",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "getBusinessConnection",
+      "_context": "business connection id from a business_connection or business_message update; no right named",
+      "params": {
+        "business_connection_id": "BCbakery7Qx"
+      }
+    },
+    {
+      "method": "readBusinessMessage",
+      "_context": "business connection with can_read_messages; the chat was active in the last 24 hours",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "chat_id": 555555555,
+        "message_id": 5012
+      }
+    },
+    {
+      "method": "deleteBusinessMessages",
+      "_context": "business connection with can_delete_sent_messages (bot's own messages) or can_delete_all_messages (any); 1-100 ids from one chat; recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "message_ids": [
+          5013,
+          5014
+        ]
+      }
+    },
+    {
+      "method": "setBusinessAccountName",
+      "_context": "business connection with can_edit_name (the method text says can_change_name)",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "first_name": "Dana",
+        "last_name": "Bakery"
+      }
+    },
+    {
+      "method": "setBusinessAccountUsername",
+      "_context": "business connection with can_edit_username (the method text says can_change_username)",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "username": "dana_bakery"
+      }
+    },
+    {
+      "method": "setBusinessAccountBio",
+      "_context": "business connection with can_edit_bio (the method text says can_change_bio)",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "bio": "Sourdough and cardamom buns · daily 8:00-19:00"
+      }
+    },
+    {
+      "method": "setBusinessAccountProfilePhoto",
+      "_context": "business connection with can_edit_profile_photo; photo is a new upload",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "photo": {
+          "type": "static",
+          "photo": "attach://avatar"
+        }
+      }
+    },
+    {
+      "method": "removeBusinessAccountProfilePhoto",
+      "_context": "business connection with can_edit_profile_photo",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "is_public": true
+      }
+    },
+    {
+      "method": "setBusinessAccountGiftSettings",
+      "_context": "business connection with can_change_gift_settings",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "show_gift_button": true,
+        "accepted_gift_types": {
+          "unlimited_gifts": true,
+          "limited_gifts": true,
+          "unique_gifts": true,
+          "premium_subscription": false,
+          "gifts_from_channels": false
+        }
+      }
+    },
+    {
+      "method": "getBusinessAccountStarBalance",
+      "_context": "business connection with can_view_gifts_and_stars",
+      "params": {
+        "business_connection_id": "BCbakery7Qx"
+      }
+    },
+    {
+      "method": "transferBusinessAccountStars",
+      "_context": "business connection with can_transfer_stars; 1-10000 Stars to the bot; recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "star_count": 400
+      }
+    },
+    {
+      "method": "getBusinessAccountGifts",
+      "_context": "business connection with can_view_gifts_and_stars",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "exclude_from_blockchain": true,
+        "sort_by_price": true,
+        "offset": "",
+        "limit": 50
+      }
+    },
+    {
+      "method": "deleteBusinessAccountGift",
+      "_context": "business connection with can_convert_gifts_to_stars; regular, not limited, not refunded; recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "owned_gift_id": "og_1181"
+      }
+    },
+    {
+      "method": "convertGiftToStars",
+      "_context": "business connection with can_convert_gifts_to_stars; regular gift; recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "owned_gift_id": "og_1182"
+      }
+    },
+    {
+      "method": "upgradeGift",
+      "_context": "business connection with can_transfer_and_upgrade_gifts (+ can_transfer_stars if paid); recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "owned_gift_id": "og_1190",
+        "keep_original_details": true,
+        "star_count": 0
+      }
+    },
+    {
+      "method": "transferGift",
+      "_context": "business connection with can_transfer_and_upgrade_gifts (+ can_transfer_stars if paid); new owner chat active in the last 24 hours; recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "owned_gift_id": "og_1201",
+        "new_owner_chat_id": 555555555,
+        "star_count": 25
+      }
+    },
+    {
+      "method": "getAvailableGifts",
+      "_context": "no business connection; any bot",
+      "params": {}
+    },
+    {
+      "method": "sendGift",
+      "_context": "no business connection; spends the bot's Stars (Gift.star_count); recorded, not sent",
+      "params": {
+        "user_id": 222222222,
+        "gift_id": "5168103777563050263",
+        "pay_for_upgrade": false,
+        "text": "Thank you for a year with us!",
+        "text_entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 9
+          }
+        ]
+      }
+    },
+    {
+      "method": "giftPremiumSubscription",
+      "_context": "no business connection; spends 1000, 1500 or 2500 of the bot's Stars; recorded, not sent",
+      "params": {
+        "user_id": 222222222,
+        "month_count": 3,
+        "star_count": 1000,
+        "text": "Three months of Premium from the bakery"
+      }
+    },
+    {
+      "method": "getUserGifts",
+      "_context": "no business connection; any user",
+      "params": {
+        "user_id": 222222222,
+        "exclude_unlimited": true,
+        "sort_by_price": true,
+        "limit": 20
+      }
+    },
+    {
+      "method": "getChatGifts",
+      "_context": "no business connection; channel (saved and unsaved filters need can_post_messages)",
+      "params": {
+        "chat_id": "@bakery_news",
+        "exclude_unique": false,
+        "offset": "",
+        "limit": 20
+      }
+    },
+    {
+      "method": "getUniqueGift",
+      "_context": "no business connection; name of a unique gift",
+      "params": {
+        "name": "PlushPepe-1234"
+      }
+    },
+    {
+      "method": "postStory",
+      "_context": "business connection with can_manage_stories; content is a new upload",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "content": {
+          "type": "photo",
+          "photo": "attach://story1"
+        },
+        "active_period": 86400,
+        "caption": "New autumn menu is here",
+        "areas": [
+          {
+            "position": {
+              "x_percentage": 50,
+              "y_percentage": 85,
+              "width_percentage": 60,
+              "height_percentage": 8,
+              "rotation_angle": 0,
+              "corner_radius_percentage": 4
+            },
+            "type": {
+              "type": "link",
+              "url": "https://example.com/menu"
+            }
+          }
+        ],
+        "post_to_chat_page": true
+      }
+    },
+    {
+      "method": "editStory",
+      "_context": "business connection with can_manage_stories; a story the bot posted; content is a new upload",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "story_id": 41,
+        "content": {
+          "type": "photo",
+          "photo": "attach://story1v2"
+        },
+        "caption": "New autumn menu: now with pumpkin buns"
+      }
+    },
+    {
+      "method": "repostStory",
+      "_context": "two business connections of this bot, both with can_manage_stories; source story posted by the bot",
+      "params": {
+        "business_connection_id": "BCcafe2Rk",
+        "from_chat_id": 444444444,
+        "from_story_id": 41,
+        "active_period": 43200
+      }
+    },
+    {
+      "method": "deleteStory",
+      "_context": "business connection with can_manage_stories; a story the bot posted; recorded, not sent",
+      "params": {
+        "business_connection_id": "BCbakery7Qx",
+        "story_id": 41
+      }
+    },
+    {
+      "method": "setUserEmojiStatus",
+      "_context": "no business connection; the user granted access via WebApp.requestEmojiStatusAccess",
+      "params": {
+        "user_id": 222222222,
+        "emoji_status_custom_emoji_id": "5368324170671202286",
+        "emoji_status_expiration_date": 1765783000
+      }
+    }
+  ]
+}

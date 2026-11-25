@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "e2e",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "Write, run, and debug end-to-end tests for web and mobile apps with e2e, the open source agentic test runner.",
   "author": {
     "name": "e2e",

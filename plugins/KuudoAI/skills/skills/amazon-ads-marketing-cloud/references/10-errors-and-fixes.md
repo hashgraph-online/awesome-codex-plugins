@@ -83,9 +83,9 @@ These are upstream — Amazon returned 401 / 403. `upstream_status` will be set.
 
 | `upstream_message` (or substring) | Root cause | Action |
 |---|---|---|
-| 403 `Unauthorized request.` | The identity has no access to this instance or entity | Use an instance from this identity's own `amc_listInstances`, or ask the user for access. |
+| 403 `Unauthorized request.` | The advertiser header carries the wrong kind of ID (a seller's merchant ID from `accountInfo.id`), or the identity has no access to this instance or entity | Check the ID first: send the `ENTITY…` `entityId` from the advertiser account's `alternateIds` entry for the profile (`02-mcp-tool-behaviors.md` → Entity / marketplace headers). If it was already an entity ID, use an instance from this identity's own `amc_listInstances`, or ask the user for access. |
 | "Terms and conditions must be accepted to continue" | Per-instance terms not accepted by this advertiser/entity | Run the terms acceptance flow (SKILL.md → Troubleshooting → Terms acceptance flow). Don't auto-accept. |
-| "Access denied" / "Unauthorized advertiser" | Entity ID on the request doesn't match the entity that owns the instance | Re-run preflight: confirm `ac_listProfiles` returned the entity that actually owns the instance. Vendor and seller entities are distinct even under the same merchant account. |
+| "Access denied" / "Unauthorized advertiser" | Entity ID on the request doesn't match the entity that owns the instance | Re-run preflight: confirm the `entityId` came from the `alternateIds` entry of the advertiser account that owns the instance, for the right marketplace. Vendor and seller entities are distinct even under the same merchant account. |
 | "Token expired" / 401 | Refresh token cycled mid-session | Re-call `set_active_identity` to mint a fresh access token. If the MCP refresh middleware is doing this automatically, this error indicates the upstream rejected the new token — check the refresh token in env. |
 
 ## Aggregation / privacy failures

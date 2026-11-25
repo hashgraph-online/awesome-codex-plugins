@@ -265,6 +265,16 @@ const SHORT = {
   ENOMEM: "the system had no memory left to start it (not enough memory). Close some programs and run it again",
 };
 
+// What to do, after the system's own words, for a file the kit could not
+// make or open as the system or this process had as many files open as
+// they may, which another browser or temp folder would not help with; ""
+// for any other error.
+const MORE_FILES = {
+  EMFILE: " This process has as many files open as it may: raise that limit, as ulimit -n does, and run it again.",
+  ENFILE: " The system has as many files open as it may: close some programs and run it again.",
+};
+const moreFiles = (err) => MORE_FILES[err && err.code] || "";
+
 // The message for a browser the system could not start at all, as it gave
 // `err` for it.
 function couldNotStart(place, err) {
@@ -379,4 +389,4 @@ function ownSandbox(file) {
   return [...linksFrom(file), realOf(file, file)].some((at) => at === "/usr/bin/snap" || at === snap || at.startsWith("/snap/") || /\/flatpak\/(exports|app)\//.test(at));
 }
 
-module.exports = { browserPlace, wrongWith, lookOnPath, noexecMount, couldNotStart, endedEarly, closedEarly, firstLine, systemWords, ownSandbox, NONE };
+module.exports = { browserPlace, wrongWith, lookOnPath, noexecMount, couldNotStart, endedEarly, closedEarly, firstLine, systemWords, moreFiles, ownSandbox, NONE };

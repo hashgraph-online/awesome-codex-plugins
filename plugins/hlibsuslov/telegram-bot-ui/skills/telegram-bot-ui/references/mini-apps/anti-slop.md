@@ -1,4 +1,20 @@
+---
+summary: "How a Mini App ends up looking generated and what to do instead: Telegram-specific tells, conflicts and decisions, general AI-UI tells, polish pass, checklist; read when polishing or reviewing."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Anti-slop for Mini Apps
+
+## Contents
+
+- [1. The two principles](#1-the-two-principles)
+- [2. Telegram-specific tells](#2-telegram-specific-tells)
+- [3. Conflicts and decisions [Heuristic]](#3-conflicts-and-decisions-heuristic)
+- [4. General tells, adapted (unslop, impeccable)](#4-general-tells-adapted-unslop-impeccable)
+- [5. The polish pass ("make it premium / cleaner / nicer")](#5-the-polish-pass-make-it-premium--cleaner--nicer)
+- [6. Checklist](#6-checklist)
+- [Linter rules](#linter-rules)
 
 How a Mini App ends up looking generated or "like a website in a sheet", and what to do instead. It joins
 three sources: Telegram's Design Guidelines (always first), the craft floor of the impeccable skill
@@ -160,7 +176,7 @@ not proof of how real clients render.
 | MA12 glass-fallback | warning | `backdrop-filter` without a solid fallback | §3 |
 | MA13 emoji-ui | warning | any Unicode emoji in visible markup or a UI string (including ★ and ⭐ in markup); `⭐ <amount>` only in MainButton / popup text | §3 |
 | MA14 local-storage | warning | `localStorage`, `sessionStorage` | security §6 |
-| MA15 version-gate | warning | a member newer than 6.0 used with no gate in the file (`isVersionAtLeast`, the kit's `has()`, or `@tma.js/sdk` `isAvailable()` / `ifAvailable()`) | webapp-api §2 |
+| MA15 version-gate | warning | a member newer than 6.0 used with no gate in the file (`isVersionAtLeast`, the kit's `has()`, or the third-party `@tma.js/sdk` `isAvailable()` / `ifAvailable()`) | webapp-api §2 |
 | MA16 web-font | warning | `@font-face`, web-font CDNs | §3 |
 | MA17 reduced-motion | warning | motion with no `prefers-reduced-motion` rule | G4 |
 | MA18 ready | warning | `ready()` never called | Official |

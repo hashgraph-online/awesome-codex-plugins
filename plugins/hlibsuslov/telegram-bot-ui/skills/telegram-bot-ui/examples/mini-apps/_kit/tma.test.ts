@@ -1,8 +1,9 @@
 // Kit behaviour against a fake Telegram.WebApp. node --test (Node >= 22.18 strips the types).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
-  ApiError, createTma, idempotencyKey, parseStartParam, perfClass, pickLanguage, platformClass, readLaunchParams, textDirection, versionAtLeast,
+  ApiError, EVENT_SINCE, MEMBER_SINCE, createTma, idempotencyKey, parseStartParam, perfClass, pickLanguage, platformClass, readLaunchParams, textDirection, versionAtLeast,
   type WebAppLike, type RootLike, type FallbackButtonLike,
 } from './tma.ts';
 
@@ -61,7 +62,7 @@ function fakeWebApp(version: string, extra: Partial<WebAppLike> = {}) {
     SecureStorage: storage,
     ...extra,
   };
-  const emit = (n: string) => { for (const cb of events.get(n) ?? []) cb(); };
+  const emit = (n: string, ...payload: unknown[]) => { for (const cb of events.get(n) ?? []) cb(...payload); };
   return { tg, calls, events, emit };
 }
 
@@ -348,7 +349,8 @@ test('motion(): clamps the rate, reads values on each event, pauses while hidden
 });
 
 test('location(): initialises once, resolves the data, or null when unavailable', async () => {
-  const data = { latitude: 52.37, longitude: 4.9, altitude: null, course: null, speed: null, horizontal_accuracy: 15, vertical_accuracy: null };
+  const data = { latitude: 52.37, longitude: 4.9, altitude: null, course: null, speed: null, horizontal_accuracy: 15,
+    vertical_accuracy: null, course_accuracy: null, speed_accuracy: null };
   let inits = 0;
   const lm = {
     isInited: false, isLocationAvailable: true, isAccessGranted: true,
@@ -458,4 +460,166 @@ test('hideKeyboard uses the client from 9.1', () => {
   const a = fakeWebApp('9.1', { hideKeyboard() { a.calls.push(['hideKeyboard']); } } as Partial<WebAppLike>);
   createTma(env(a.tg)).hideKeyboard();
   assert.deepEqual(a.calls.filter((c) => c[0] === 'hideKeyboard').length, 1);
+});
+
+/* -- events, state, batch storage: versions come from the offline catalog, never from memory */
+
+type CatalogMember = { name: string; kind: string; version: string | null };
+const catalog = JSON.parse(readFileSync(new URL('../../../data/mini-apps/webapp-catalog.json', import.meta.url), 'utf8')) as
+  { members: Record<string, CatalogMember> };
+
+test('EVENT_SINCE and MEMBER_SINCE match data/mini-apps/webapp-catalog.json', () => {
+  const events = Object.fromEntries(Object.values(catalog.members).filter((m) => m.kind === 'event').map((m) => [m.name, m.version]));
+  assert.deepEqual({ ...EVENT_SINCE }, events);
+  for (const [key, version] of Object.entries(MEMBER_SINCE)) assert.equal(version, catalog.members[key]?.version, key);
+});
+
+test('listen(): passes the payload, the disposer unsubscribes, dispose() removes the rest', () => {
+  const f = fakeWebApp('8.0');
+  const tma = createTma(env(f.tg));
+  const seen: Array<string | null> = [];
+  const off = tma.listen('popupClosed', (p) => { seen.push(p.button_id); });
+  assert.equal(typeof off, 'function');
+  f.emit('popupClosed', { button_id: 'discard' });
+  f.emit('popupClosed', { button_id: null });
+  off!();
+  off!();
+  f.emit('popupClosed', { button_id: 'late' });
+  assert.deepEqual(seen, ['discard', null]);
+  const errors: string[] = [];
+  tma.listen('accelerometerFailed', (p) => { errors.push(p.error); });
+  f.emit('accelerometerFailed', { error: 'UNSUPPORTED' });
+  assert.deepEqual(errors, ['UNSUPPORTED']);
+  tma.dispose();
+  for (const set of f.events.values()) assert.equal(set.size, 0);
+});
+
+test('listen(): null on a client older than the event, outside Telegram, or with no onEvent; never throws', () => {
+  const old = fakeWebApp('7.9');
+  assert.equal(createTma(env(old.tg)).listen('secondaryButtonClicked', () => {}), null);
+  assert.equal(old.events.get('secondaryButtonClicked')?.size ?? 0, 0);
+  assert.equal(createTma(env(fakeWebApp('7.6').tg)).listen('scanQrPopupClosed', () => {}), null);
+  assert.equal(typeof createTma(env(fakeWebApp('7.7').tg)).listen('scanQrPopupClosed', () => {}), 'function');
+  assert.equal(createTma(env(null)).listen('mainButtonClicked', () => {}), null);
+  const bare = { initData: 'query_id=q', version: '8.0', isVersionAtLeast: () => true, ready() {} } as unknown as WebAppLike;
+  const tma = createTma(env(bare));
+  assert.equal(tma.listen('shareMessageSent', () => {}), null);
+  assert.equal(typeof tma.on('activated', () => {}), 'function'); // the raw on() degrades to a no-op too
+  // a 6.0 event needs no gate: it works even where isVersionAtLeast is missing
+  const noGate = fakeWebApp('6.0', { isVersionAtLeast: undefined } as unknown as Partial<WebAppLike>);
+  assert.equal(typeof createTma(env(noGate.tg)).listen('mainButtonClicked', () => {}), 'function');
+});
+
+test('state(): current values from each field\'s version, null when older or not reported', () => {
+  const fields = {
+    isFullscreen: true, isOrientationLocked: false, isVerticalSwipesEnabled: true, isClosingConfirmationEnabled: false,
+    headerColor: '#112233', backgroundColor: '#ffffff', bottomBarColor: '#000000',
+  };
+  assert.deepEqual(createTma(env(fakeWebApp('8.0', fields).tg)).state(), fields);
+  assert.deepEqual(createTma(env(fakeWebApp('7.2', fields).tg)).state(), {
+    isFullscreen: null, isOrientationLocked: null, isVerticalSwipesEnabled: null, isClosingConfirmationEnabled: false,
+    headerColor: '#112233', backgroundColor: '#ffffff', bottomBarColor: null,
+  });
+  const none = {
+    isFullscreen: null, isOrientationLocked: null, isVerticalSwipesEnabled: null, isClosingConfirmationEnabled: null,
+    headerColor: null, backgroundColor: null, bottomBarColor: null,
+  };
+  assert.deepEqual(createTma(env(fakeWebApp('9.6').tg)).state(), none);
+  assert.deepEqual(createTma(env(null)).state(), none);
+});
+
+function fakeCloud(log: Call[], fail = false) {
+  const mem = new Map([['a', '1'], ['b', '2']]);
+  return {
+    setItem(k: string, v: string, cb?: (e: unknown) => void) { mem.set(k, v); cb?.(null); },
+    getItem(k: string, cb: (e: unknown, v?: string | null) => void) { cb(null, mem.get(k) ?? ''); },
+    removeItem(k: string, cb?: (e: unknown) => void) { mem.delete(k); cb?.(null); },
+    getItems(keys: string[], cb: (e: unknown, v?: Record<string, string>) => void) {
+      log.push(['getItems', keys]);
+      if (fail) { cb(new Error('storage error')); return; }
+      cb(null, Object.fromEntries(keys.map((k) => [k, mem.get(k) ?? ''])));
+    },
+    getKeys(cb: (e: unknown, keys?: string[]) => void) { log.push(['getKeys']); cb(null, [...mem.keys()]); },
+    removeItems(keys: string[], cb?: (e: unknown, ok?: boolean) => void) {
+      log.push(['removeItems', keys]);
+      for (const k of keys) mem.delete(k);
+      cb?.(null, true);
+    },
+  };
+}
+
+test('store(): getItems, getKeys and removeItems in one call each; a missing key is null', async () => {
+  const log: Call[] = [];
+  const tma = createTma(env(fakeWebApp('6.9', { CloudStorage: fakeCloud(log) } as Partial<WebAppLike>).tg));
+  assert.deepEqual(await tma.store().getMany(['a', 'zz']), { a: '1', zz: null });
+  assert.deepEqual(await tma.store().getMany([]), {});
+  assert.deepEqual(await tma.store().keys(), ['a', 'b']);
+  assert.equal(await tma.store().removeMany(['a', 'b']), true);
+  assert.deepEqual(await tma.store().keys(), []);
+  assert.deepEqual(log, [['getItems', ['a', 'zz']], ['getKeys'], ['removeItems', ['a', 'b']], ['getKeys']]);
+  const failing = createTma(env(fakeWebApp('6.9', { CloudStorage: fakeCloud([], true) } as Partial<WebAppLike>).tg));
+  await assert.rejects(failing.store().getMany(['a']), /storage error/);
+});
+
+test('store(): without the batch methods one call per key, keys() null; outside Telegram in memory', async () => {
+  const plain = createTma(env(fakeWebApp('6.9').tg)); // the fake CloudStorage has only getItem / setItem / removeItem
+  await plain.store().set('a', 'x');
+  assert.deepEqual(await plain.store().getMany(['a', 'b']), { a: 'x', b: null });
+  assert.equal(await plain.store().removeMany(['a']), true);
+  assert.equal(await plain.store().get('a'), null);
+  assert.equal(await plain.store().keys(), null);
+  const outside = createTma(env(null));
+  await outside.store().set('k', 'v');
+  assert.deepEqual(await outside.store().getMany(['k', 'q']), { k: 'v', q: null });
+  assert.deepEqual(await outside.store().keys(), ['k']);
+  assert.equal(await outside.store().removeMany(['k']), true);
+  assert.deepEqual(await outside.store().keys(), []);
+});
+
+test('store(): get and getMany agree on a stored empty string, inside and outside Telegram', async () => {
+  const kits = {
+    batch: createTma(env(fakeWebApp('6.9', { CloudStorage: fakeCloud([]) } as Partial<WebAppLike>).tg)),
+    plain: createTma(env(fakeWebApp('6.9').tg)),
+    outside: createTma(env(null)),
+  };
+  for (const [name, tma] of Object.entries(kits)) {
+    await tma.store().set('empty', '');
+    const one = await tma.store().get('empty');
+    assert.equal(one, null, `${name}: '' reads as missing, as CloudStorage returns it`);
+    assert.deepEqual(await tma.store().getMany(['empty']), { empty: one }, name);
+  }
+});
+
+test('secureStore(): lookup says when a missing key can be restored; restore() asks restoreItem', async () => {
+  const log: Call[] = [];
+  let decline = false;
+  const secure = {
+    setItem(_k: string, _v: string, cb?: (e: unknown) => void) { cb?.(null); },
+    getItem(k: string, cb: (e: unknown, v?: string | null, canBeRestored?: boolean) => void) { cb(null, null, k === 'token'); },
+    removeItem(_k: string, cb?: (e: unknown) => void) { cb?.(null); },
+    restoreItem(k: string, cb?: (e: unknown, v?: string | null) => void) {
+      log.push(['restoreItem', k]);
+      if (decline) cb?.(new Error('declined')); else cb?.(null, 'secret-1');
+    },
+  };
+  const tma = createTma(env(fakeWebApp('9.0', { SecureStorage: secure } as Partial<WebAppLike>).tg));
+  assert.deepEqual(await tma.secureStore()!.lookup('token'), { value: null, canRestore: true });
+  assert.deepEqual(await tma.secureStore()!.lookup('other'), { value: null, canRestore: false });
+  assert.equal(await tma.secureStore()!.restore('token'), 'secret-1');
+  decline = true;
+  await assert.rejects(tma.secureStore()!.restore('token'), /declined/);
+  assert.deepEqual(log, [['restoreItem', 'token'], ['restoreItem', 'token']]);
+  const noRestore = createTma(env(fakeWebApp('9.0').tg)); // the fake SecureStorage has no restoreItem
+  assert.equal(await noRestore.secureStore()!.restore('token'), null);
+});
+
+test('requestChat(): null below 9.6 or without the method, the client\'s boolean from 9.6', async () => {
+  const old = fakeWebApp('9.5', { requestChat: () => { throw new Error('must not be called'); } } as Partial<WebAppLike>);
+  assert.equal(await createTma(env(old.tg)).requestChat('req-1'), null);
+  assert.equal(await createTma(env(fakeWebApp('9.6').tg)).requestChat('req-1'), null);
+  const f = fakeWebApp('9.6', {
+    requestChat(id: string, cb?: (ok: boolean) => void) { f.calls.push(['requestChat', id]); cb?.(false); },
+  } as Partial<WebAppLike>);
+  assert.equal(await createTma(env(f.tg)).requestChat('req-1'), false);
+  assert.deepEqual(f.calls.filter((c) => c[0] === 'requestChat'), [['requestChat', 'req-1']]);
 });

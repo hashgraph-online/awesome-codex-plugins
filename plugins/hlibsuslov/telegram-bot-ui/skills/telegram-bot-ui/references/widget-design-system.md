@@ -1,3 +1,9 @@
+---
+summary: "Design rules for HTML widgets: canvas, tokens, type, spacing, kit primitives, states, motion, RTL, accessibility, localization, icons, design profiles; read when designing a widget."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Widget design system (Bot API 10.4, widget profile 1)
 
 > Checked 2026-11-15 against the [Widgets guide](https://core.telegram.org/bots/widgets)
@@ -6,6 +12,23 @@
 > requirement, **Guide** = official recommendation or runtime fact from the Widgets guide,
 > **Heuristic** = this skill's design advice. Implementation: `examples/widgets/_kit/`
 > (inlined by `scripts/build_widget.py`), checked by `scripts/widget_lint.py`.
+
+## Contents
+
+- [1. The canvas](#1-the-canvas)
+- [2. Tokens](#2-tokens)
+- [3. Type](#3-type)
+- [4. Spacing, shape, touch](#4-spacing-shape-touch)
+- [5. Layout primitives (kit classes)](#5-layout-primitives-kit-classes)
+- [6. States every widget draws](#6-states-every-widget-draws)
+- [7. Motion](#7-motion)
+- [8. Right-to-left](#8-right-to-left)
+- [9. Accessibility](#9-accessibility)
+- [10. Localization inside one document](#10-localization-inside-one-document)
+- [11. The caption and the fallback mirror the widget](#11-the-caption-and-the-fallback-mirror-the-widget)
+- [12. Icons and custom emoji](#12-icons-and-custom-emoji)
+- [13. Checklist](#13-checklist)
+- [14. Design profiles (`design.json`)](#14-design-profiles-designjson)
 
 A widget is part of a message, not a web page. It should read like Telegram drew it: the
 chat's palette and text size, the client's own buttons, no frame, no brand chrome, quiet

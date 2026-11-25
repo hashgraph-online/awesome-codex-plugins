@@ -48,7 +48,7 @@ Claude Code 2.1.292 及以上版本也可以用 `claude plugin install kling-ai-
 
 同一个 AI 助手选择一种可灵接入方式即可。安装插件会自动配置 `https://klingai.com/mcp/plugin`。
 
-- **手动接入 MCP** · 在 Claude 网页端或桌面端打开 **Plugins**（或 **Customize → Connectors**），添加自定义连接器 `https://klingai.com/mcp`，再点击 **Connect**，登录国内版账号并授权。
+- **手动接入 MCP** · 在 Claude 网页端或桌面端打开 **Plugins**（或 **Customize → Connectors**），添加自定义连接器 `https://klingai.com/mcp/plugin`，再点击 **Connect**，登录国内版账号并授权。
 - **终端 CLI** · 运行 `npm i -g @klingai/cli-cn --registry=https://registry.npmjs.org`，再运行 `kling login` 登录和 `kling --help` 查看命令。
 
 [其他客户端的 MCP 配置和 CLI 命令](https://klingai.com/app/mcp/guide)
@@ -157,6 +157,32 @@ Claude supports plugins in chat, Claude Desktop, and Cowork, with component
 support varying by surface; see [Use plugins in Claude](https://support.claude.com/en/articles/13837440-use-plugins-in-claude).
 Use the native plugin and connector controls on those surfaces. This
 repository's validation covers the Claude Code package.
+
+## Install in Kiro
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=Kling+AI+China&config=%7B%22url%22%3A%22https%3A%2F%2Fklingai.com%2Fmcp%2Fplugin%22%2C%22disabled%22%3Afalse%2C%22autoApprove%22%3A%5B%5D%7D)
+
+This one-click link adds the China remote MCP server. Kiro handles OAuth
+for this endpoint. Image and video generation consumes credits in the signed-in
+China Kling account.
+
+To install the full Agent Plugin with its bundled Skills, open **Powers** →
+**Add Custom Power** → **Import power from GitHub** and enter
+`https://github.com/klingai-tech/claude-plugin-cn`. Kiro reads the root
+`plugin.json` and `mcp.json`; see the [Kiro install guide](https://kiro.dev/docs/powers/installation/).
+
+### Antigravity CLI
+
+Antigravity CLI can import plugins from an existing Claude Code installation. Install Kling AI CN, then import it into Antigravity:
+
+```bash
+claude plugin marketplace add klingai-tech/claude-plugin-cn
+claude plugin install kling-ai-cn@klingai-cn
+agy plugin import claude
+agy plugin list
+```
+
+If Kling AI CN is already installed in Claude Code, run `agy plugin import claude` and `agy plugin list`. Antigravity imports plugins from your Claude Code profile, so review the imported plugins. Complete OAuth in Antigravity with your China Kling account. Image and video generation uses China Kling credits.
 
 ## China service policies and data flow
 

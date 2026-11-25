@@ -1,3 +1,9 @@
+---
+summary: "One escaping function per format, golden rules, per-format escaping, URL scheme whitelist, unicode, AI-generated content, checklist; read when putting dynamic data into any message format."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Security and escaping
 
 > **One escaping function per format.** A single universal escaper is a bug: the

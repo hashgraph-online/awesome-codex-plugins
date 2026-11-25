@@ -1,4 +1,19 @@
+---
+summary: "Update intake: getUpdates versus webhook, allowed_updates, offsets, secret token, ordering, duplicates, and every update type; read when wiring or debugging how updates reach a bot."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Update intake and delivery
+
+## Contents
+
+- [Two mutually exclusive intake modes](#two-mutually-exclusive-intake-modes)
+- [`allowed_updates` is sticky](#allowed_updates-is-sticky)
+- [Ordering, duplicates, gaps](#ordering-duplicates-gaps)
+- [Every update type](#every-update-type)
+- [Requests and responses](#requests-and-responses)
+- [Common mistakes](#common-mistakes)
 
 How updates reach the bot (`getUpdates` vs webhook), what `allowed_updates` really
 does, offsets, the secret token, ordering and duplicates, and **every update type**

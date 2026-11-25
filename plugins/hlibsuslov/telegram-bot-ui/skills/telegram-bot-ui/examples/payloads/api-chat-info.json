@@ -1,0 +1,193 @@
+{
+  "scenario": "api-chat-info",
+  "status": "production (leaveChat and verification removals are recorded requests, never sent)",
+  "context": "supergroup, group and channel where the bot is an administrator; user reads by user_id; verification calls only for a bot that represents an organization",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "getChat",
+      "_context": "any chat the bot can see; @username only for supergroups and channels",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "getChatMember",
+      "_context": "group, supergroup or channel; other users guaranteed only when the bot is an administrator",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 777000111
+      }
+    },
+    {
+      "method": "getChatAdministrators",
+      "_context": "group, supergroup or channel; return_bots lists other bot admins too",
+      "params": {
+        "chat_id": -1001234567890,
+        "return_bots": true
+      }
+    },
+    {
+      "method": "getChatMemberCount",
+      "_context": "group, supergroup or channel",
+      "params": {
+        "chat_id": -1001234567890
+      }
+    },
+    {
+      "method": "setChatTitle",
+      "_context": "group, supergroup or channel (not private); bot admin with can_change_info (the method says only 'appropriate administrator rights')",
+      "params": {
+        "chat_id": -1001234567890,
+        "title": "Foodies of Kyiv: Spring Fest"
+      }
+    },
+    {
+      "method": "setChatDescription",
+      "_context": "group, supergroup or channel; bot admin with can_change_info (the method says only 'appropriate administrator rights')",
+      "params": {
+        "chat_id": -1001234567890,
+        "description": "Recipes, restaurant tips and the Spring Fest schedule"
+      }
+    },
+    {
+      "method": "setChatPhoto",
+      "_context": "group, supergroup or channel (not private); bot admin with can_change_info (the method says only 'appropriate administrator rights'); multipart/form-data upload",
+      "params": {
+        "chat_id": -1001234567890,
+        "photo": "attach://chat_photo"
+      }
+    },
+    {
+      "method": "deleteChatPhoto",
+      "_context": "group, supergroup or channel (not private); bot admin with can_change_info (the method says only 'appropriate administrator rights')",
+      "params": {
+        "chat_id": -1009876543210
+      }
+    },
+    {
+      "method": "setChatStickerSet",
+      "_context": "supergroup; bot admin, ChatFullInfo.can_set_sticker_set is true",
+      "params": {
+        "chat_id": -1001234567890,
+        "sticker_set_name": "foodies_of_kyiv_by_community_guard_bot"
+      }
+    },
+    {
+      "method": "deleteChatStickerSet",
+      "_context": "supergroup; bot admin, ChatFullInfo.can_set_sticker_set is true",
+      "params": {
+        "chat_id": -1001555666777
+      }
+    },
+    {
+      "method": "pinChatMessage",
+      "_context": "groups: bot admin with can_pin_messages; channels: can_edit_messages; private chats: no rights",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 4210,
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "unpinChatMessage",
+      "_context": "groups: bot admin with can_pin_messages; channels: can_edit_messages; private chats: no rights",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 4100
+      }
+    },
+    {
+      "method": "unpinAllChatMessages",
+      "_context": "groups: bot admin with can_pin_messages; channels: can_edit_messages; private chats: no rights; clears every pin in the chat",
+      "params": {
+        "chat_id": 222222222
+      }
+    },
+    {
+      "method": "getUserChatBoosts",
+      "_context": "chat where the bot is an administrator (can_manage_chat: get boost list)",
+      "params": {
+        "chat_id": -1009876543210,
+        "user_id": 222222222
+      }
+    },
+    {
+      "method": "getUserProfilePhotos",
+      "_context": "any user_id; limit 1-100",
+      "params": {
+        "user_id": 222222222,
+        "offset": 0,
+        "limit": 1
+      }
+    },
+    {
+      "method": "getUserProfileAudios",
+      "_context": "any user_id; limit 1-100",
+      "params": {
+        "user_id": 222222222,
+        "offset": 0,
+        "limit": 5
+      }
+    },
+    {
+      "method": "getUserPersonalChatMessages",
+      "_context": "user with a personal chat on their profile; limit 1-20",
+      "params": {
+        "user_id": 222222222,
+        "limit": 3
+      }
+    },
+    {
+      "method": "getChatShareThemeBackdrops",
+      "_context": "no parameters; one list for every chat",
+      "params": {}
+    },
+    {
+      "method": "verifyChat",
+      "_context": "bot, supergroup or channel (not a channel direct messages chat); bot that represents a verifying organization",
+      "params": {
+        "chat_id": -1009876543210,
+        "custom_description": "Official channel of Kyiv Food Fest",
+        "custom_description_entities": [
+          {
+            "type": "text_link",
+            "offset": 20,
+            "length": 14,
+            "url": "https://example.com/food-fest"
+          }
+        ]
+      }
+    },
+    {
+      "method": "verifyUser",
+      "_context": "bot that represents a verifying organization",
+      "params": {
+        "user_id": 555555555,
+        "custom_description": "Accredited food guide, Kyiv Food Fest 2026"
+      }
+    },
+    {
+      "method": "removeChatVerification",
+      "_context": "chat verified by this organization; bot that represents a verifying organization; recorded, not sent",
+      "params": {
+        "chat_id": -1009876543210
+      }
+    },
+    {
+      "method": "removeUserVerification",
+      "_context": "user verified by this organization; bot that represents a verifying organization; recorded, not sent",
+      "params": {
+        "user_id": 555555555
+      }
+    },
+    {
+      "method": "leaveChat",
+      "_context": "group, supergroup or channel (not a channel direct messages chat); recorded, not sent",
+      "params": {
+        "chat_id": -1001999888777
+      }
+    }
+  ]
+}

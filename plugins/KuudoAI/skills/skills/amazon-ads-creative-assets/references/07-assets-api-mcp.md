@@ -305,6 +305,6 @@ not permissions.
 ---
 
 **Provenance:** Amazon Ads MCP tool schemas and Amazon's creative asset
-registration guide, as captured in this repository's `amazon-ads-create`
-operational notes (2026-09-03). Verify tool names and parameter shapes against
+registration guide, captured 2026-09-03; tool names rechecked against the live
+server 2026-10-18. Verify tool names and parameter shapes against
 `get_schema` on the live server before the first call.

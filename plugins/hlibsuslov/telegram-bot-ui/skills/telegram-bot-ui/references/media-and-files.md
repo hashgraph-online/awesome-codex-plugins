@@ -1,3 +1,9 @@
+---
+summary: "Sending files (upload, file_id, URL), size limits, albums, InputMedia, thumbnails, live photos, getFile downloads, local Bot API server; read when a bot sends or receives media."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Media and files
 
 Sending files (upload vs `file_id` vs URL), size limits, albums, `InputMedia*`,

@@ -1012,14 +1012,34 @@ async function saveVector(cdp, mark, dir, file) {
   }
 }
 
+// Whether an <img> mark shows its picture: one whose picture did not load,
+// as one the kit's proxy refused or a server did not have, shows the
+// browser's own broken picture and its alt text instead, which is no logo.
+// Asked in the kit's own world, whose image properties are the browser's
+// own; a mark that cannot be asked about is taken as it stands.
+const LOADED = "function () { return !(this.complete && this.naturalWidth === 0); }";
+async function pictureShown(cdp, mark) {
+  if (mark.kind !== "img") return true;
+  try {
+    const { object } = await inOwnWorld(cdp, (executionContextId) => cdp.send("DOM.resolveNode", { backendNodeId: mark.backendNodeId, executionContextId }));
+    if (!object || !object.objectId) return true;
+    const { result } = await cdp.send("Runtime.callFunctionOn", { objectId: object.objectId, functionDeclaration: LOADED, returnByValue: true });
+    return !(result && result.value === false);
+  } catch {
+    return true;
+  }
+}
+
 // Each mark with a margin of its real background, scaled so the short side
 // reaches 240 px and the long side about 1000 px (at most 8x). The files are
 // logo-01.png, logo-02.png … in dir, in the order of the marks, with
-// logo-01.svg next to a mark the page draws as SVG.
+// logo-01.svg next to a mark the page draws as SVG. An <img> whose picture
+// did not load is no mark.
 async function captureLogos(cdp, marks, dir, pageWidth, pageHeight) {
   const written = [];
   await cdp.send("DOM.getDocument", { depth: 0 });
   for (const mark of marks) {
+    if (!(await pictureShown(cdp, mark))) continue;
     const scrollY = await bringIntoView(cdp, mark);
     const box = await restingBox(cdp, mark, scrollY);
     if (!box) continue;
@@ -1188,4 +1208,4 @@ function groundOf(png, band, sides = { top: true, right: true, bottom: true, lef
   return { hex: "#" + middle.map((v) => v.toString(16).padStart(2, "0")).join(""), solid: near >= samples.length * 0.9 };
 }
 
-module.exports = { findLogos, readSnapshot, captureLogos, saveVector, readWords, brandLink, brandTokens, tagPng, logoInk, groundOf, CHALLENGE_TITLE };
+module.exports = { findLogos, readSnapshot, captureLogos, saveVector, readWords, brandLink, brandTokens, tagPng, logoInk, groundOf, CHALLENGE_TITLE, LOADED };

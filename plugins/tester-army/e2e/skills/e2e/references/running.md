@@ -228,7 +228,7 @@ third kills the app process groups and exits 130 at once.
 ## Continuous integration
 
 CI mode is on when `CI` is set (not `0` or `false`): `retries` 1,
-`workers` 1, `test.only` rejected with
+`workers` 1, `test.only` and `describe.only` rejected with
 `ONLY_IN_CI`, the replay cache `read-only` unless the config sets a mode explicitly
 (`cache: 'read-write'` or `cache.mode`), `reuseExisting` ignored.
 

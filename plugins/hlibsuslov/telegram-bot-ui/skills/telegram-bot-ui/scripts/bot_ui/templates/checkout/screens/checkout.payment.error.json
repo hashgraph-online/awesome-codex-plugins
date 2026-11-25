@@ -1,0 +1,55 @@
+{
+  "id": "checkout.payment.error",
+  "title": "Ошибка оплаты",
+  "kind": "error",
+  "audience": "private",
+  "message": {
+    "id": "main",
+    "format": "regular.html",
+    "text": {
+      "en": "⚠️ <b>The payment failed</b>\nNo money was taken. Try again or choose another method.",
+      "ru": "⚠️ <b>Оплата не прошла</b>\nДеньги не списаны. Попробуйте ещё раз или выберите другой способ.",
+      "uk": "⚠️ <b>Оплата не пройшла</b>\nГроші не списано. Спробуйте ще раз або оберіть інший спосіб."
+    }
+  },
+  "keyboard": {
+    "type": "inline",
+    "rows": [
+      [
+        "retry"
+      ],
+      [
+        "methods"
+      ]
+    ]
+  },
+  "actions": {
+    "retry": {
+      "label": {
+        "en": "Try again",
+        "ru": "Повторить",
+        "uk": "Повторити"
+      },
+      "type": "handler",
+      "handlerId": "checkout.confirm",
+      "outcomes": {
+        "ok": "checkout.payment.success",
+        "retry": "checkout.payment.error"
+      },
+      "pending": {
+        "en": "Checking the payment…",
+        "ru": "Проверяем оплату…",
+        "uk": "Перевіряємо оплату…"
+      }
+    },
+    "methods": {
+      "label": {
+        "en": "Payment options",
+        "ru": "К выбору оплаты",
+        "uk": "До вибору оплати"
+      },
+      "type": "navigate",
+      "to": "checkout.payment.choose"
+    }
+  }
+}

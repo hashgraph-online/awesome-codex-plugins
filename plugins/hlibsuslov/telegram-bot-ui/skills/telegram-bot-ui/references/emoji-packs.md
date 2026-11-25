@@ -1,3 +1,9 @@
+---
+summary: "Choosing, resolving and applying a premium emoji pack: decision path, catalog, own packs, capture path, migration, widgets, licensing; read when restyling a bot or post with an icon family."
+verified: "2026-11-25"
+bot_api: "10.4"
+---
+
 # Emoji packs: choosing, resolving and applying a premium icon family
 
 > Status labels: **API** = Bot API requirement, **Official** = recommendation in Telegram's
@@ -6,6 +12,19 @@
 > `scripts/audit_icons.py`, `examples/python/tgkit/icons.py`. Data: `data/emoji/slots.json`
 > (240 slots), `data/emoji/packs.json` (curated public sets, metadata only).
 > Recipes: 70–75 (`recipes/70-restyle-to-premium.md` … `recipes/75-migrate-pack.md`).
+
+## Contents
+
+- [The agent's decision path (follow it unprompted)](#the-agents-decision-path-follow-it-unprompted)
+- [Choosing a pack](#choosing-a-pack)
+- [The catalog](#the-catalog)
+- [The library contract, offline export and profile picking](#the-library-contract-offline-export-and-profile-picking)
+- [Adding your own or a purchased pack](#adding-your-own-or-a-purchased-pack)
+- [Capture path (no token, or the owner picks emoji by hand)](#capture-path-no-token-or-the-owner-picks-emoji-by-hand)
+- [Migrating to another pack](#migrating-to-another-pack)
+- [Widgets and custom emoji](#widgets-and-custom-emoji)
+- [Licensing](#licensing)
+- [Checklist](#checklist)
 
 ## The agent's decision path (follow it unprompted)
 
@@ -27,11 +46,35 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
    `py -3 scripts/emoji_packs.py suggest --from <payload-or-texts>` (it maps every Unicode
    emoji to a slot of `data/emoji/slots.json`), or list them by meaning for a new bot. Keep
    8–15 button slots (**Heuristic**).
-4. **Propose ONE family by archetype and tone.** `suggest --archetype monitoring --tone
-   native` ranks `data/emoji/packs.json`. Without saved `getStickerSet` results the ranking
-   is metadata-only and says so. Present the top pick with its link and one alternative;
-   the user looks at both in a chat (light and dark theme) before you resolve.
-5. **Resolve real ids.** `TELEGRAM_LIVE=1 TELEGRAM_TEST_BOT_TOKEN=… py -3 scripts/emoji_packs.py
+4. **Propose ONE family with real coverage.** First choice, when the network is allowed:
+   `py -3 scripts/emoji_packs.py library pick --needs home,back,settings,… --out pick.json`
+   (MCP: `emoji_pick_family`). It searches the telegram-bot-ui emoji library
+   (telegram-bot-ui.hlixli.com/emoji, ~490 packs with real ids; only the slot emoji and pack
+   names are sent, no token), fetches the top candidates in full and ranks whole packs by
+   slots covered by their own fallback emoji, then theme-adaptive share (`--theme both`),
+   then static share (`--motion static` on buttons). Its `map` is an icon map from ONE pack
+   with `missing` slots listed: keep those label-only. `library search <words or emoji>`
+   finds a single icon or a pack by meaning. Offline or `BOT_UI_EMOJI_RESOLVER=off`:
+   `suggest --archetype monitoring --tone native` ranks the small curated
+   `data/emoji/packs.json` by metadata only and says so. Present the top pick with its link
+   and one alternative; the user looks at both in a chat (light and dark theme) before you
+   apply them.
+   **Pick by tags** when the look matters as much as coverage: every pack and emoji of the
+   library carries faceted tags with a confidence (style, colour, palette, theme fit, motion,
+   topic, mood, interface role, bot category, compatible packs), built from Telegram data,
+   pixel measurement and the pictures' descriptions (taxonomy: `/api/emoji-facets`).
+   `emoji_packs.py library facets --use support --style outline --theme both` ranks packs by
+   tags; `library pick --needs … --profile <style profile>` (or `--style/--color/--mood/--topic/
+   --use`) adds the brief to coverage; `--require motion:static` is a hard filter, while `--motion
+   static` and `--theme` are preferences; `library pick --profile <style profile>` without `--needs`
+   ranks whole packs for the bot and explains each in one line (next section). MCP:
+   `emoji_rank_by_tags`, `emoji_pick_family`. Measured
+   accuracy (blind gold set, held-out half, 2026-11-25): topic 0.95, theme fit 0.80, interface role
+   0.89, colour 0.86 hit rate; **style is the weakest tag (about 0.35 recall)**, so show the user
+   the pack before relying on a style tag. Library search takes the same filters:
+   `settings style:outline fit:adaptive`.
+5. **Resolve real ids** (when the library pick was not used, or to re-check its map against
+   Telegram). `TELEGRAM_LIVE=1 TELEGRAM_TEST_BOT_TOKEN=… py -3 scripts/emoji_packs.py
    resolve --set <primary> --set <sibling> --slots a,b,c --out icon-map.json` (read-only
    `getStickerSet`). Offline: `--sticker-set saved.json`. No token available → give the user
    the capture path (below) and ship with fallbacks only. **Never invent an id.**
@@ -70,6 +113,30 @@ not mix; an uncovered slot is label-only, never a look-alike from another family
 ids, and `animation` / `adaptive` stay `null` until a resolve reads the stickers; style words
 come from the set titles. Re-check before relying on a set — authors can rename or remove
 sets, which `emoji_packs.py verify` detects.
+
+## The library contract, offline export and profile picking
+
+- **Contract.** `data/emoji/library-contract.json` is a dated copy of the component schemas of
+  the library's OpenAPI 3.1 document (`/api/emoji-openapi.json`), the tag taxonomy version the
+  skill understands and the pack threshold. `LibraryClient` (`emoji_packs.py`) checks every
+  answer (search, pack, facets) and every export line against it before reading a field: a
+  changed shape fails with `CONTRACT_MISMATCH` naming the field, a taxonomy the skill does not
+  know with `TAXONOMY_UNSUPPORTED` (facet values may be renamed between versions). An error
+  answer keeps its own `error.code` (`PACK_NOT_FOUND`, `RATE_LIMITED`, ...). `library contract`
+  shows the copy; `library contract --openapi saved.json --facets-file facets.json` refreshes it.
+- **Offline.** `--library-file emoji-library.ndjson.gz` (the site's `/emoji-library.ndjson.gz`,
+  one line per pack: tags, look, description in en/ru/uk, compatible packs, emoji ids with tag
+  codes) replaces the network for `library facets` and `library pick --profile`, with the same
+  result as online. The export has no fallback emoji and no search, so `pick --needs` (an icon
+  map with real coverage) and `library search` stay online.
+- **Profile picking.** `library pick --profile <style-profile.json> [--library-file …]` reads
+  `brand.icon_style`, `traits` and `bot.archetype` as tags and compares `brand.accent` with each
+  pack's measured colours and palette (same family, a neighbour on the colour wheel, a neutral
+  colour; an adaptive pack takes the text colour and suits any accent). It prints one line per
+  pack: coverage (emoji, meanings, interface roles), style, topic, colour and what the pack is
+  for; the JSON adds the description (what, for, not_for) in the profile's primary locale
+  (`--lang` overrides). An explicit `--color`/`--palette` replaces the accent comparison. Then
+  run `pick --needs …` online with the chosen style to get the icon map.
 
 ## Adding your own or a purchased pack
 

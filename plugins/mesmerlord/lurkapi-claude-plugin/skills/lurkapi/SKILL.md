@@ -11,7 +11,7 @@ For a whole job, use the workflow skill instead: `lurk`, `ad-research`, `video-t
 
 ## Calling LurkAPI
 
-**With MCP** (the LurkAPI plugin or connector), call the tools by name, like `tiktok_profile`; your client may prefix them (`mcp__plugin_lurkapi_lurkapi__tiktok_profile`). With only `find_endpoints` and `call_endpoint`, run a tool as `call_endpoint` with `endpoint` set to its name and `params` to its arguments. Results come trimmed: no nulls, one URL per image or video. A long result comes in parts: its `_note` gives the `offset` for the next part, which is free.
+**With MCP** (the LurkAPI plugin or connector), each platform is one tool: `tiktok_profile(handle=…)` below is the `tiktok` tool with `endpoint: "profile"` and `handle`, and your client may prefix it (`mcp__plugin_lurkapi_lurkapi__tiktok`). A platform with one endpoint is that endpoint's own tool. With only `find_endpoints` and `call_endpoint`, run one as `call_endpoint` with `endpoint` set to its full name and `params` to its arguments. Results come trimmed: no nulls, one URL per image or video. A long result comes in parts: its `_note` gives the `offset` for the next part, which is free.
 
 **Without MCP** (Codex, Cursor, scripts), every tool is `GET https://api.lurkapi.com` plus its path, with the same params as a query string (URL-encoded) and the key from `LURKAPI_API_KEY` in the `x-api-key` header:
 
@@ -19,7 +19,7 @@ For a whole job, use the workflow skill instead: `lurk`, `ad-research`, `video-t
 curl -s "https://api.lurkapi.com/v1/tiktok/profile?handle=nike" -H "x-api-key: $LURKAPI_API_KEY"
 ```
 
-If `LURKAPI_API_KEY` isn't set but `LURKAPI_KEY` is (the name older docs used), use that. Raw answers are big: pipe them through `jq` to keep the fields you need. No key yet? Ask the user to create one at https://lurkapi.com/dashboard (100 free credits on sign-up, then a balance below 25 tops back up to 25 every day) and to set `LURKAPI_API_KEY` in their shell. Never ask for the key in the chat, and never print it.
+If `LURKAPI_API_KEY` isn't set but `LURKAPI_KEY` is (the name older docs used), use that. Raw answers are big: pipe them through `jq` to keep the fields you need. No key yet? Ask the user to create one at https://lurkapi.com/dashboard (100 free credits on sign-up, then a balance below 20 tops back up to 20 every day) and to set `LURKAPI_API_KEY` in their shell. Never ask for the key in the chat, and never print it.
 
 **Credits.** Each call costs what its line below says (1 credit when it says nothing), `not_found` included; failures on our side (5xx) are free. Every answer carries `credits_remaining`. Before a run of more than 20 calls, check the balance with `account_credit_balance` (free) and tell the user what the run will cost. If a call answers `missing_api_key`, `insufficient_credits` or `signup_required`, stop and pass on what it says.
 
@@ -69,7 +69,7 @@ Each line: the call (`?` marks an optional param), its REST path, its price when
 - `tiktok_hashtag_videos(hashtag, cursor?)` · `/v1/tiktok/search/hashtag`. Videos posted with a hashtag, plus how big the hashtag is: total posts and views.
 - `tiktok_song(clipId)` · `/v1/tiktok/song`. A TikTok sound: title, artist, album, length, cover, audio URL and how many videos use it.
 - `tiktok_song_videos(clipId, cursor?)` · `/v1/tiktok/song/videos`. Videos that use a sound, 30 per page, with stats and creators.
-- `tiktok_ad_library_search(query?, advertiser_name?, region?, cursor?)` · `/v1/tiktok/ad-library/search`. Ads shown in the EU, the UK, Switzerland and Turkey that match a keyword or an advertiser, 12 per page.
+- `tiktok_ad_library_search(query?, advertiser_name?, region?, cursor?)` · `/v1/tiktok/ad-library/search`. Ads shown in the EU, the UK, Switzerland, Turkey and Brazil that match a keyword or an advertiser, 12 per page.
 - `tiktok_ad_library_ad(ad_id)` · `/v1/tiktok/ad-library/ad`. One ad from TikTok's EU Ad Library: creative, landing page, advertiser, who paid, targeting and reach by country, age and gender.
 - `tiktok_live(handle)` · `/v1/tiktok/user/live`. Whether a public creator is live, with the current room title, viewers and start time.
 - `tiktok_stories(handle)` · `/v1/tiktok/user/stories`. A creator's active public stories, with captions, media and expiration times.
@@ -158,7 +158,7 @@ Each line: the call (`?` marks an optional param), its REST path, its price when
 - `web_scrape(url, format?, main?, render?, proxy?, country?, captcha?, wait_for?, wait?, max_credits?)` · `/v1/web/scrape` · 1 credit; +3 if a browser on separate IPs gets it, +4 if it needs a residential IP, +13 if a browser renders it on a residential IP, +10 if a captcha is solved. Any public page, trying the cheapest step first and stepping up only if the site blocks it. 1–24 credits.
 - `web_fetch(url, format?, main?)` · `/v1/web/fetch`. A page from one plain request, without running JavaScript. The cheapest step. 1 credit.
 - `web_render(url, format?, main?, captcha?, wait_for?, wait?, max_credits?)` · `/v1/web/render` · 1 credit; 11 if a captcha is solved. The page as a real Chrome browser shows it, after its JavaScript runs. Gets past JavaScript challenges. 1 credit.
-- `web_unblock(url, format?, main?)` · `/v1/web/unblock` · 4 credits. Pages from sites that block our usual IPs (DataDome and the like), fetched by a browser on separate IPs. 4 credits.
+- `web_unblock(url, format?, main?)` · `/v1/web/unblock` · 4 credits. Pages from sites that block our usual IPs, fetched by a browser on separate IPs. 4 credits.
 - `web_residential(url, format?, main?, country?)` · `/v1/web/residential` · 5 credits. A page from a residential IP in the country you pick, without running JavaScript. 5 credits.
 - `web_render_residential(url, format?, main?, country?, captcha?, wait_for?, wait?, max_credits?)` · `/v1/web/render-residential` · 14 credits; 24 if a captcha is solved. The page as a real Chrome browser on a residential IP shows it, for sites that block every other step. 14 credits.
 - `web_custom(url, steps, format?, main?, country?, captcha?, wait_for?, wait?, max_credits?)` · `/v1/web/custom` · 1 credit; +3 if a browser on separate IPs gets it, +4 if it needs a residential IP, +13 if a browser renders it on a residential IP, +10 if a captcha is solved. A page from the steps you choose, tried in your order. You pay only for the one that got the page.

@@ -1,4 +1,21 @@
+---
+summary: "Procedure for improving a bot that already exists: scope, text inventory, diagnosis, ranking by reader gain, report then proposals, the rework pipeline; read before touching an existing bot."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Auditing an existing bot (analyze → diagnose → propose)
+
+## Contents
+
+- [Pass 0 — Establish scope and constraints](#pass-0--establish-scope-and-constraints)
+- [Pass 1 — Build the text inventory](#pass-1--build-the-text-inventory)
+- [Pass 2 — Diagnose each entry](#pass-2--diagnose-each-entry)
+- [Pass 3 — Rank by reader gain](#pass-3--rank-by-reader-gain)
+- [Pass 4 — Report, then propose](#pass-4--report-then-propose)
+- [The "rework it" pipeline](#the-rework-it-pipeline)
+- [Auditing a pasted snippet (the small case)](#auditing-a-pasted-snippet-the-small-case)
+- [Anti-patterns](#anti-patterns)
 
 Heuristics of this skill (first written 2026-08-05, reviewed against Bot API 10.4 on
 2026-11-15). Version gates: `ui-changelog.md`; every 10.3-10.5 item: `bot-api-coverage.md`.
@@ -115,7 +132,7 @@ Apply `content-shape-detection.md` in full. The recurring finds in real bots:
 ---
 
 ### 6. Newer capabilities — what would the current Bot API do better?
-Apply the initiative rule from `SKILL.md` to what you found, within the version ceiling
+Apply the capability check (`commands/build.md` step 2) to what you found, within the version ceiling
 from Pass 0: a long AI wait with no Stop (`streaming-and-editing.md`); a form without
 disabled Submit or `force_reply` (recipe 03); personal data answered publicly in a group
 (`ephemeral-and-personal.md`); a status that is re-sent instead of one live card

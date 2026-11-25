@@ -1,0 +1,162 @@
+{
+ "$comment": "Agent notes for invoices, shipping, pre-checkout, the bot's Star balance and statement, refunds and subscriptions. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite.",
+ "domain": "payments",
+ "notes": {
+  "sendInvoice": {
+   "purpose": "Send an invoice with a Pay button: Stars (XTR) for digital goods, a provider and real currency for physical ones.",
+   "use_when": ["one purchase in the current chat", "physical goods with shipping (a provider invoice)"],
+   "avoid_when": ["subscriptions and invoice links: createInvoiceLink"],
+   "pitfalls": [
+    {"text": "Digital goods and services are sold only for Stars.", "source": "Official", "cite": "https://core.telegram.org/bots/payments-stars"},
+    {"text": "Stars: XTR, empty provider_token, one prices item, no tips; need_* and is_flexible are ignored.", "source": "API", "cite": "provider_token: Pass an empty string for payments in Telegram Stars.; prices: Must contain exactly one item for payments in Telegram Stars.; max_tip_amount: Not supported for payments in Telegram Stars.; need_shipping_address, is_flexible: Ignored for payments in Telegram Stars."},
+    {"text": "payload: 1-128 bytes, never shown; it returns as invoice_payload.", "source": "API", "cite": "payload: Bot-defined invoice payload, 1-128 bytes. This will not be displayed to the user; PreCheckoutQuery.invoice_payload: Bot-specified invoice payload"},
+    {"text": "An empty start_parameter lets anyone pay a forwarded copy of the same invoice.", "source": "API", "cite": "start_parameter: If left empty, forwarded copies of the sent message will have a Pay button, allowing multiple users to pay directly from the forwarded message, using the same invoice."},
+    {"text": "A custom reply_markup must start with a Pay button.", "source": "API", "cite": "reply_markup: If not empty, the first button must be a Pay button."}
+   ],
+   "related": ["LabeledPrice", "Invoice", "ShippingQuery", "PreCheckoutQuery", "SuccessfulPayment", "createInvoiceLink"],
+   "refs": ["references/payments-and-stars.md#lifecycle-and-the-state-your-server-must-keep", "references/payments-pipeline.md#10-shipping-path-provider-invoices"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "createInvoiceLink": {
+   "purpose": "Create an invoice link to put in a button or open from a Mini App; the only way to sell a Stars subscription.",
+   "use_when": ["a 30-day plan: subscription_period with XTR", "an invoice on behalf of a business account (Stars only)"],
+   "avoid_when": ["a one-off purchase in the current chat: sendInvoice shows the Pay button itself"],
+   "pitfalls": [
+    {"text": "subscription_period needs XTR and is always 2592000 (30 days) for now; the price is at most 10000 Stars.", "source": "API", "cite": "subscription_period: The currency must be set to “XTR” (Telegram Stars) if the parameter is used. Currently, it must always be 2592000 (30 days) if specified. ... Subscription price must no exceed 10000 Telegram Stars."},
+    {"text": "Any number of subscriptions can be active at once, several from one user too.", "source": "API", "cite": "subscription_period: Any number of subscriptions can be active for a given bot at the same time, including multiple concurrent subscriptions from the same user."},
+    {"text": "business_connection_id works for Stars payments only.", "source": "API", "cite": "business_connection_id: For payments in Telegram Stars only."},
+    {"text": "Returns the link as a String; nothing is sent to a chat.", "source": "API", "cite": "createInvoiceLink: Returns the created invoice link as String on success."}
+   ],
+   "related": ["LabeledPrice", "sendInvoice", "PreCheckoutQuery", "SuccessfulPayment", "editUserStarSubscription"],
+   "since": "6.1",
+   "refs": ["references/payments-and-stars.md#subscriptions-bot-features"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "answerShippingQuery": {
+   "purpose": "Answer a shipping_query with the shipping options for the user's address, or say why delivery there is impossible.",
+   "use_when": ["a provider invoice with is_flexible and need_shipping_address got a shipping_query"],
+   "avoid_when": ["Stars invoices: their shipping fields are ignored"],
+   "pitfalls": [
+    {"text": "shipping_query comes only for flexible-price invoices that asked for a shipping address.", "source": "API", "cite": "answerShippingQuery: If you sent an invoice requesting a shipping address and the parameter is_flexible was specified, the Bot API will send an Update with a shipping_query field; Update.shipping_query: Only for invoices with flexible price."},
+    {"text": "ok true needs shipping_options; ok false needs error_message, which Telegram shows the user.", "source": "API", "cite": "shipping_options: Required if ok is True.; error_message: Required if ok is False. ... Telegram will display this message to the user."},
+    {"text": "The chosen option's id returns as shipping_option_id at pre-checkout and in the payment.", "source": "API", "cite": "PreCheckoutQuery.shipping_option_id, SuccessfulPayment.shipping_option_id: Identifier of the shipping option chosen by the user"},
+    {"text": "Price options from your own table by address; recompute the total from it at pre-checkout.", "source": "Heuristic"}
+   ],
+   "related": ["ShippingQuery", "ShippingAddress", "ShippingOption", "LabeledPrice", "answerPreCheckoutQuery"],
+   "refs": ["references/payments-pipeline.md#10-shipping-path-provider-invoices"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "answerPreCheckoutQuery": {
+   "purpose": "Approve or decline the final checkout the user confirmed, for Stars and provider invoices alike.",
+   "use_when": ["every pre_checkout_query"],
+   "avoid_when": ["delivering the goods: wait for successful_payment"],
+   "pitfalls": [
+    {"text": "The Bot API must get the answer within 10 seconds of the query.", "source": "API", "cite": "answerPreCheckoutQuery: Note: The Bot API must receive an answer within 10 seconds after the pre-checkout query was sent."},
+    {"text": "ok false needs error_message; Telegram shows it to the user.", "source": "API", "cite": "error_message: Required if ok is False. ... Telegram will display this message to the user."},
+    {"text": "Check invoice_payload, payer and total_amount against your order with local reads only; do slow work after the answer.", "source": "Heuristic"}
+   ],
+   "related": ["PreCheckoutQuery", "OrderInfo", "SuccessfulPayment", "answerShippingQuery", "sendInvoice"],
+   "refs": ["references/payments-and-stars.md#lifecycle-and-the-state-your-server-must-keep", "references/payments-pipeline.md#4-payload-and-security"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "getMyStarBalance": {
+   "purpose": "Read the bot's own Telegram Star balance.",
+   "use_when": ["the balance line on the owner's statement screen", "a sanity check after reconciliation"],
+   "avoid_when": ["proving one payment: match its getStarTransactions row by charge id", "a business account's balance: getBusinessAccountStarBalance"],
+   "pitfalls": [
+    {"text": "Returns StarAmount: amount is whole Stars, rounded to 0, and can be negative; nanostar_amount is the fraction.", "source": "API", "cite": "StarAmount.amount: Integer amount of Telegram Stars, rounded to 0; can be negative; nanostar_amount: from -999999999 to 999999999"}
+   ],
+   "related": ["StarAmount", "getStarTransactions", "getBusinessAccountStarBalance"],
+   "since": "9.1",
+   "refs": ["references/payments-and-stars.md#refunds-and-the-star-ledger"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "getStarTransactions": {
+   "purpose": "Page the bot's Star statement, oldest first: payments, refunds, withdrawals, ads and paid broadcasts.",
+   "use_when": ["daily reconciliation of payments and refunds against your ledger", "settling a refund whose answer timed out"],
+   "avoid_when": ["the balance alone: getMyStarBalance"],
+   "pitfalls": [
+    {"text": "Chronological; offset skips rows, limit is 1-100 (default 100).", "source": "API", "cite": "getStarTransactions: Returns the bot's Telegram Star transactions in chronological order.; offset: Number of transactions to skip; limit: Values between 1-100 are accepted. Defaults to 100."},
+    {"text": "Page until a page is shorter than limit; store the offset and start the next run there.", "source": "Heuristic"},
+    {"text": "Withdrawals (fragment, with RevenueWithdrawalState), ads and paid broadcasts are rows too: list them apart from payments.", "source": "API", "cite": "TransactionPartnerFragment: Describes a withdrawal transaction with Fragment.; withdrawal_state: State of the transaction if the transaction is outgoing"}
+   ],
+   "related": ["StarTransactions", "StarTransaction", "TransactionPartner", "RevenueWithdrawalState", "AffiliateInfo", "getMyStarBalance", "refundStarPayment"],
+   "since": "7.5",
+   "refs": ["references/payments-pipeline.md#6-reconciliation", "references/payments-pipeline.md#11-ledger-audit"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "refundStarPayment": {
+   "purpose": "Refund one whole Stars payment to the user who made it.",
+   "use_when": ["an admin confirmed the refund of that exact charge"],
+   "avoid_when": ["a partial refund: there is no amount parameter", "card or other provider payments: it refunds Stars payments only"],
+   "pitfalls": [
+    {"text": "Only user_id and telegram_payment_charge_id: the whole payment goes back.", "source": "API", "cite": "refundStarPayment: Refunds a successful payment in Telegram Stars.; parameters: user_id, telegram_payment_charge_id"},
+    {"text": "user_id is the payer of that charge.", "source": "API", "cite": "user_id: Identifier of the user whose payment will be refunded"},
+    {"text": "After a timeout, don't call again: look for the outgoing row with that id in getStarTransactions first.", "source": "Heuristic"},
+    {"text": "Run it as a confirmed, logged admin action; the user sees the money come back.", "source": "Heuristic"}
+   ],
+   "related": ["SuccessfulPayment", "RefundedPayment", "StarTransaction", "getStarTransactions", "editUserStarSubscription"],
+   "since": "7.4",
+   "refs": ["references/payments-pipeline.md#5-refunds"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "editUserStarSubscription": {
+   "purpose": "Cancel the renewal of a user's Stars subscription, or allow the user to turn back on one the bot cancelled.",
+   "use_when": ["a refund or a ban must stop the next renewal", "undoing a cancellation the bot made"],
+   "avoid_when": ["a subscription the user cancelled: false only re-allows the bot's own cancellations"],
+   "pitfalls": [
+    {"text": "is_canceled true stops renewal; access must last to the end of the paid period.", "source": "API", "cite": "is_canceled: Pass True to cancel extension of the user subscription; the subscription must be active up to the end of the current subscription period."},
+    {"text": "is_canceled false only allows the user to re-enable a subscription the bot cancelled.", "source": "API", "cite": "is_canceled: Pass False to allow the user to re-enable a subscription that was previously canceled by the bot."},
+    {"text": "Which telegram_payment_charge_id names a renewed subscription, the first payment's or the latest renewal's, is not stated: store both.", "source": "Unverified"}
+   ],
+   "related": ["SuccessfulPayment", "BotSubscriptionUpdated", "createInvoiceLink", "refundStarPayment"],
+   "since": "8.0",
+   "refs": ["references/payments-and-stars.md#subscriptions-bot-features"],
+   "example": "examples/payloads/api-payments.json"
+  },
+  "SuccessfulPayment": {
+   "purpose": "The successful_payment service message: the proof of a payment and the charge id refunds and the statement use.",
+   "pitfalls": [
+    {"text": "telegram_payment_charge_id is the key: refundStarPayment takes it and the incoming StarTransaction.id equals it.", "source": "API", "cite": "refundStarPayment.telegram_payment_charge_id; StarTransaction.id: Coincides with SuccessfulPayment.telegram_payment_charge_id for successful incoming payments from users."},
+    {"text": "Subscription payments carry is_recurring (is_first_recurring on the first) and subscription_expiration_date.", "source": "API", "cite": "subscription_expiration_date: for recurring payments only; is_first_recurring: True, if the payment is the first payment for a subscription"},
+    {"text": "A chargeback at the provider can debit the funds later; it is outside Telegram's control.", "source": "API", "cite": "SuccessfulPayment: Note that if the buyer initiates a chargeback with the relevant payment provider following this transaction, the funds may be debited from your balance."},
+    {"text": "Deliver once per charge id: a re-delivered update must not deliver twice.", "source": "Heuristic"}
+   ],
+   "related": ["Message", "OrderInfo", "RefundedPayment", "refundStarPayment", "editUserStarSubscription"],
+   "refs": ["references/payments-and-stars.md#lifecycle-and-the-state-your-server-must-keep"]
+  },
+  "RefundedPayment": {
+   "purpose": "The refunded_payment service message: which Stars payment went back, with its payload and amount.",
+   "pitfalls": [
+    {"text": "currency is currently always XTR; total_amount is the refunded price.", "source": "API", "cite": "currency: Currently, always “XTR”.; total_amount: Total refunded price"},
+    {"text": "In getStarTransactions the refund row reuses the refunded payment's id.", "source": "API", "cite": "StarTransaction.id: Coincides with the identifier of the original transaction for refund transactions."},
+    {"text": "The message and the statement row are two views of one refund: post it once per charge id.", "source": "Heuristic"}
+   ],
+   "related": ["Message", "SuccessfulPayment", "StarTransaction", "refundStarPayment"],
+   "since": "7.7",
+   "refs": ["references/payments-pipeline.md#5-refunds"]
+  },
+  "StarTransaction": {
+   "purpose": "One row of the bot's Star statement: amount with nanostars, date, and source (incoming) or receiver (outgoing).",
+   "pitfalls": [
+    {"text": "A refund row has the same id as the payment it refunds: key rows by id and direction.", "source": "API", "cite": "id: Coincides with the identifier of the original transaction for refund transactions."},
+    {"text": "source is set only on incoming rows, receiver only on outgoing ones.", "source": "API", "cite": "source: Only for incoming transactions.; receiver: Only for outgoing transactions."},
+    {"text": "nanostar_amount (0-999999999) is the fraction: compare amount * 10^9 + nanostar_amount, never floats.", "source": "API", "cite": "nanostar_amount: The number of 1/1000000000 shares of Telegram Stars transferred by the transaction; from 0 to 999999999"},
+    {"text": "A buyer's chargeback at the Stars seller (Apple, Google) is deducted from the bot's balance.", "source": "API", "cite": "StarTransaction: if the buyer initiates a chargeback with the payment provider from whom they acquired Stars (e.g., Apple, Google) following this transaction, the refunded Stars will be deducted from the bot's balance."}
+   ],
+   "related": ["StarTransactions", "TransactionPartner", "SuccessfulPayment", "getStarTransactions"],
+   "since": "7.5",
+   "refs": ["references/payments-pipeline.md#6-reconciliation"]
+  },
+  "TransactionPartnerUser": {
+   "purpose": "The user side of a Star transaction; transaction_type says which flow the row belongs to.",
+   "pitfalls": [
+    {"text": "Only invoice_payment rows are invoice payments; paid_media_payment, gift_purchase, premium_purchase and business_account_transfer are other flows.", "source": "API", "cite": "transaction_type: currently one of “invoice_payment”, “paid_media_payment”, “gift_purchase”, “premium_purchase”, “business_account_transfer”"},
+    {"text": "invoice_payload and subscription_period appear only on invoice_payment rows: a second key to the order.", "source": "API", "cite": "invoice_payload: Can be available only for “invoice_payment” transactions."},
+    {"text": "affiliate (AffiliateInfo) amounts can be negative for refunds.", "source": "API", "cite": "AffiliateInfo.amount: can be negative for refunds"}
+   ],
+   "related": ["TransactionPartner", "AffiliateInfo", "PaidMediaPurchased", "StarTransaction"],
+   "refs": ["references/payments-and-stars.md#refunds-and-the-star-ledger"]
+  }
+ }
+}

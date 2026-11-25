@@ -80,6 +80,11 @@
         "R20",
         "R25"
       ],
+      "guides": [
+        "references/payments-pipeline.md",
+        "examples/python/tgkit/payments.py",
+        "references/payments-and-stars.md"
+      ],
       "contexts": [
         "private"
       ],
@@ -87,7 +92,7 @@
       "coverage": "existing-example",
       "priority": "P0",
       "priority_reason": "Correct entitlement handling is reusable across paid bots.",
-      "gap": "Persistent paid entitlement and refund reconciliation.",
+      "gap": "Paid media recipe (sendPaidMedia, purchased_paid_media) and the Gram rail are planned; entitlement, refunds and reconciliation are in tgkit.payments.",
       "sources": [
         "stars"
       ]
@@ -102,6 +107,10 @@
         "R25",
         "R29"
       ],
+      "guides": [
+        "references/payments-pipeline.md",
+        "examples/python/tgkit/payments.py"
+      ],
       "contexts": [
         "private",
         "group"
@@ -110,7 +119,7 @@
       "coverage": "composition",
       "priority": "P1",
       "priority_reason": "Payment and access must have separate lifecycles.",
-      "gap": "Join/leave entitlement synchronization and reconciliation.",
+      "gap": "Join/leave synchronization for channel subscriptions; bot subscriptions, renewals and failed states are in tgkit.payments.",
       "sources": [
         "stars",
         "api"
@@ -947,11 +956,13 @@
       "id": "stickers",
       "title": "Sticker, emoji and media creation tools",
       "intent": [
-        "sticker emoji media creation стикер эмодзи пак медиа"
+        "sticker emoji media creation стикер эмодзи пак медиа",
+        "own custom emoji pack create sticker set createNewStickerSet свой пак эмодзи создать набор"
       ],
       "recipes": [
         "R71",
         "R75",
+        "R76",
         "R83"
       ],
       "contexts": [
@@ -961,7 +972,7 @@
       "coverage": "composition",
       "priority": "P2",
       "priority_reason": "Pack styling differs from creating user media.",
-      "gap": "Media pipeline, ownership, pack management and moderation.",
+      "gap": "Media pipeline for user uploads, ownership across users and moderation; a bot's own custom emoji pack is R76.",
       "sources": [
         "features",
         "api"
@@ -978,6 +989,10 @@
         "R21",
         "R64"
       ],
+      "guides": [
+        "references/payments-pipeline.md",
+        "examples/python/tgkit/payments.py"
+      ],
       "contexts": [
         "private"
       ],
@@ -985,7 +1000,7 @@
       "coverage": "composition",
       "priority": "P1",
       "priority_reason": "Post-purchase state must remain linked to the original order.",
-      "gap": "Refund reconciliation and provider-specific return workflow.",
+      "gap": "Provider-specific physical returns; Stars refunds per charge and reconciliation are in tgkit.payments.",
       "sources": [
         "stars",
         "business"

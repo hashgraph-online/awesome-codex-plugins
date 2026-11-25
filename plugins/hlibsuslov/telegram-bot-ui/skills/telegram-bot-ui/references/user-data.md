@@ -1,4 +1,21 @@
+---
+summary: "What Telegram gives a bot or Mini App about a user, how to ask for more, and the duties that follow: tiers, data inventory, consent, storage, deletion, review; read before collecting user data."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # User data: what a bot or Mini App gets, and how to handle it
+
+## Contents
+
+- [0. The rules that come with the data](#0-the-rules-that-come-with-the-data)
+- [1. Four tiers of data](#1-four-tiers-of-data)
+- [2. Turning "collect everything" into a data inventory](#2-turning-collect-everything-into-a-data-inventory)
+- [3. Asking for data the user gives](#3-asking-for-data-the-user-gives)
+- [4. Storing, using and deleting](#4-storing-using-and-deleting)
+- [5. What the skill does not build](#5-what-the-skill-does-not-build)
+- [6. Review checklist](#6-review-checklist)
+- [7. Digging deeper](#7-digging-deeper)
 
 What Telegram gives a bot or a Mini App about the person using it, how each piece arrives, how to ask for
 more, and what the developer must then do with it. Read it when an operator asks the bot to "collect" or

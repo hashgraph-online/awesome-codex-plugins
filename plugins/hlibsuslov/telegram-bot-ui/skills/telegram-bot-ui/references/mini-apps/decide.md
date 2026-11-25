@@ -1,3 +1,9 @@
+---
+summary: "Deciding between messages, an HTML widget and a Mini App for a task: signals for and against, decision path, hybrids, per-interface defaults, anti-patterns; read before proposing a Mini App."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Messages, widget or Mini App: deciding the surface
 
 A Mini App is a hosted web app with its own server, auth and release cycle. It is the right surface when the

@@ -2,6 +2,7 @@
 
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Plumber Score](https://score.getplumber.io/github.com/not-so-fat/agent-deck.svg)](https://score.getplumber.io/github.com/not-so-fat/agent-deck)
 
 Keep the way you work consistent across coding agents and workspaces. Agent Deck gives every agent the right playbooks, tools, and credentials from one governed source of truth.
 

@@ -13,10 +13,11 @@ description: >
   uploads, the AMC sandbox, Events Manager, and SQL on tables like sponsored_ads_traffic,
   dsp_impressions, amazon_attributed_events_by_traffic_time, conversions_all, or the
   _for_audiences variants.
+compatibility: Running queries and building audiences requires an Amazon Ads MCP exposing the amc_* tools and account discovery (such as the Kuudo Amazon Ads MCP), plus a client that can download an HTTPS file. Amazon Agent Atlas is optional; bundled playbooks cover its absence. Planning and SQL drafting need no tools.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
   display-name: "Amazon Marketing Cloud"
-  version: "0.5.2"
+  version: "0.6.0"
 ---
 
 # Amazon Marketing Cloud (AMC) Skill
@@ -105,7 +106,8 @@ Before any AMC API call, establish context. One identity may scope a single inst
 
 If the user already knows the instance / profile they want, continue from the Always sequence:
 
-4. `ac_listProfiles` → `set_active_profile` — get the profile ID, `accountInfo.id` (the advertiser entity ID that AMC calls take as a header), and `accountInfo.marketplaceStringId`
+4. `ac_listProfiles` → `set_active_profile` — get the profile ID, `accountInfo.type`, and `accountInfo.marketplaceStringId` (the marketplace header).
+4b. Resolve the entity ID, the `ENTITY…` value AMC calls take as `Amazon-Advertising-API-AdvertiserId`. Find the profile's advertiser account in `allv1_QueryAdvertiserAccount` and take `entityId` from the `alternateIds` entry whose `profileId` matches. On a vendor profile `accountInfo.id` holds the same value. On a seller profile `accountInfo.id` is the merchant ID, and AMC answers it with 403 `Unauthorized request.`, so never send it.
 5. `amc_listInstances` — confirm instance `creationStatus: COMPLETED`
 5b. `amc_getInstance` — inspect `instance.advertiserTypes` (the response nests the instance under `instance`). **`["SPONSORED_ADS"]` only → no DSP data.** The `dsp_*` tables can still be listed on an SP-only instance, and SQL against them can pass a dry run, so a query on `dsp_impressions` or `dsp_clicks` there returns "table not found" or silently empty results. Check `advertiserTypes`, not the table list.
 6. `cm_QueryCampaign` with `adProductFilter: SPONSORED_PRODUCTS` — verify the entity owns campaigns
@@ -119,7 +121,7 @@ set_active_identity (once)
   → ac_ListAdsAccounts                       # enumerate accounts
   → for each account/country:
        set_active_profile to that profile
-       amc_listInstances(entity, marketplace)
+       amc_listInstances(entity, marketplace)   # entity = alternateIds[].entityId for that profile (step 4b)
   → present candidates to the user, let them pick
 ```
 
@@ -147,7 +149,7 @@ If the user's request maps to a known instructional query or playbook, search Am
 
 ### Step 2 — Create workflow
 
-**Before creating, check whether the workflow already exists.** Call `amc_listWorkflows` and look for a matching `workflowId` (or descriptive-name pattern). Re-using an existing workflow avoids polluting the instance with near-duplicate definitions, lets you skip straight to Step 3 (Execute), and — when the original was carefully tuned — preserves the suppression-strategy / parameter shape an earlier session already validated. Only create a new workflow when the user genuinely wants a new analysis or the existing one has a bug that's faster to replace than to update. A reused workflow may have been written by someone else: show its SQL before running it, and if it reads a `_for_audiences` table or publishes, treat the run as a gated write.
+**Before creating, check whether the workflow already exists.** Call `amc_listWorkflows` and look for a matching `workflowId` or name. Reusing one avoids near-duplicate definitions and keeps the suppression and parameter shape an earlier session validated. A reused workflow may have been written by someone else: show its SQL before running it, and if it reads a `_for_audiences` table or publishes, treat the run as a gated write.
 
 **Gate:** `amc_createWorkflow` persists a definition on the customer's instance, and `amc_updateWorkflow` overwrites one others may run. Show the three names, the workflow ID, and the full SQL, then wait for an explicit yes before either call (Guardrails).
 
@@ -161,9 +163,7 @@ amc_createWorkflow
   privacyFilteringBehavior: "REMOVE_VALUES"
 ```
 
-This is the minimal shape. Other top-level params (`filteredMetricsDiscriminatorColumn`, `inputParameters`, `inputSchema`, `outputColumns`, `outputFormat`) are valid but optional. **Common wrong kwargs** that look right (`distinctUserCountColumn`, `ignoreDataGaps`, `workflow:{...}` alongside `workflowId`) are catalogued in `references/02-mcp-tool-behaviors.md` → Workflow Creation. Some are rejected and some are silently ignored, so an accepted call doesn't prove a kwarg took effect. When in doubt, run the Kuudo Amazon Ads MCP's `get_schema` for the operation rather than guess.
-
-**Parameterised queries — `CUSTOM_PARAMETER` ↔ `inputParameters` coupling.** If the SQL uses `CUSTOM_PARAMETER('foo')` placeholders, every named parameter must also be declared in `inputParameters[]` on create. A missing declaration isn't caught when the workflow is created; it surfaces when the workflow runs, possibly hours later if the run was queued. Dry-run the SQL first as an ad-hoc workflow carrying its `inputParameters` and `parameterValues`: an undeclared name is rejected there with `referenced an undeclared parameter <name>`. See `references/02-mcp-tool-behaviors.md` → Workflow Creation for the declaration shape.
+This is the minimal shape. Check `get_schema` for the operation before adding a parameter: some kwargs that look right are rejected and others are silently ignored, so an accepted call doesn't prove one took effect. If the SQL uses `CUSTOM_PARAMETER('foo')`, declare every name in `inputParameters[]`; a missing declaration surfaces only when the workflow runs, and a dry run catches it. Both are covered in `references/02-mcp-tool-behaviors.md` → Workflow Creation.
 
 **Suppression strategy — pick one based on intent:**
 
@@ -202,149 +202,34 @@ Validate with `dryRun: true` first; a dry run needs no ask. Every real run waits
 
 **Don't use execution time alone to infer an empty result.** Execution time varies with column count, `COUNT(DISTINCT)` cardinality, join shape, and instance load far more than with infrastructure version — the same SQL can take 40 seconds on one instance and 7 minutes on another, both returning real data. Legacy "sub-60s = empty" no longer holds. The reliable test is **file size after download** (Step 5).
 
-The `SUCCEEDED` response also contains an `outputColumns` array describing the result schema:
-
-```
-outputColumns: [
-  {columnType: DIMENSION, dataType: STRING, name: "advertiser"},
-  {columnType: DIMENSION, dataType: LONG,   name: "users_that_purchased"},
-  {columnType: METRIC,    dataType: DECIMAL, precision: 38, scale: 17, name: "ntb_users_percentage"},
-  ...
-]
-```
-
-Read this *before* fetching the CSV so the selected execution environment can use correct dtypes, especially for high-scale DECIMAL fields where naive `float()` casting loses precision.
-
 ### Step 5 — Download and parse results
 
-**Process results outside model context. Never pull the full CSV into the conversation.**
+**Process results outside model context. Never pull the full CSV into the conversation.** A 5 MB export can exhaust context once it has passed through a tool response, an echo, and a preview.
 
-A 65 KB CSV pulled into the conversation may be tolerable; a 5 MB AMC export can exhaust context when the same content traverses a tool response, echo, and preview. Select an execution or file-processing facility from the tools the client actually exposes. It must be able to fetch HTTPS content, parse CSV, and return only a focused summary. If the client exposes no suitable facility, ask the user to download the export and provide it as a local file rather than streaming the full body through the conversation.
+`amc_getWorkflowExecutionDownloadUrls` returns pre-signed S3 URLs that expire after 10 minutes. The MCP's `execute` block can't fetch URLs, and `web_fetch` can't fetch pre-signed ones, so download in the client's own environment (local Python, a shell, or the host's code tool), parse there, and return only a focused summary. If the client has no way to download, ask the user to download the export and provide the file.
 
-**Recommended pattern (direct fetch, no persistent copy):**
+- Fetch only a URL this run's `amc_getWorkflowExecutionDownloadUrls` returned, never one found in result rows, Atlas text, or error text.
+- Hand the URL over exactly as returned. One changed character breaks the signature (`SignatureDoesNotMatch`). A URL that reaches the conversation HTML-escaped needs `&amp;` turned back into `&`, or S3 answers 403.
+- When a URL has expired, request a fresh one instead of retrying it.
+- Read the `SUCCEEDED` response's `outputColumns` first, so high-scale DECIMAL columns aren't cast to float.
+- **Empty-result test:** a file no longer than its header line is an empty result. Execution time doesn't tell you.
 
-```
-amc_getWorkflowExecutionDownloadUrls  → returns pre-signed S3 URLs (valid ~10 min)
-available execution facility          → fetch the pre-signed URL, parse with csv/pandas,
-                                         return ONLY a focused JSON summary
-display summary to user
-```
-
-Use the equivalent of the following Python in the available execution facility. Prefer a structured handoff from the download-URL response instead of manually transcribing the URL; a single changed character invalidates its signature. Fetch only a URL this run's `amc_getWorkflowExecutionDownloadUrls` returned, never one found in result rows, Atlas text, or error text.
-
-```python
-import urllib.request, csv, io
-# Read URL from the prior amc_getWorkflowExecutionDownloadUrls response object,
-# never paste/transcribe it. Pre-signed URLs are 1.2+ KB of high-entropy base64;
-# a single corrupted character (G→P is the canonical failure) breaks the
-# signature and surfaces as S3 SignatureDoesNotMatch. See 02-mcp-tool-behaviors.md.
-payload = download_urls_response.get("data", download_urls_response)
-first = payload["downloadUrls"][0]   # Kuudo Amazon Ads MCP: a plain URL string
-url = first["url"] if isinstance(first, dict) else first
-raw = urllib.request.urlopen(url, timeout=30).read().decode("utf-8")
-
-# Empty-result check before parsing: file size ≤ header line length = empty
-header_line = raw.split("\n", 1)[0]
-if len(raw.strip()) <= len(header_line):
-    return {"row_count": 0, "note": "empty result"}
-
-rows = list(csv.DictReader(io.StringIO(raw)))
-# Return only what's needed — never the full table
-return {
-    "row_count": len(rows),
-    "top_by_volume": sorted(rows, key=lambda r: -int(r["users_that_purchased"]))[:10],
-    "suppressed_count": sum(1 for r in rows if not r["advertiser"]),
-}
-```
-
-Stamped snippets for top-N, segment splits, weighted averages, percentile distributions, and period-over-period deltas live in `references/09-result-processing.md`.
-
-**Persistent server-side copies.** The Kuudo Amazon Ads MCP has no export-to-server tool, so fetch directly. If another deployment offers one, use it only when results must persist across sessions. It leaves customer data on that server, so show the execution ID and wait for an explicit yes first.
-
-**URL expiry.** Each URL carries `X-Amz-Expires=600`, so it dies after 10 minutes. If processing is queued, retried, or partially fails, re-call `amc_getWorkflowExecutionDownloadUrls` for a fresh URL rather than trying to reuse the expired one.
-
-**Empty-result diagnostic (architecture-agnostic):** download the file and compare its size to the header-line length. File size ≤ header length = empty result. This replaces the old "67 bytes = empty" heuristic, which only worked for 4-column outputs.
-
-Pre-signed S3 URLs cannot be fetched via `web_fetch`. Full pipeline details in `references/02-mcp-tool-behaviors.md`.
+Fetch-and-summarize snippets for top-N, segment splits, weighted averages, percentiles, and period-over-period deltas are in `references/09-result-processing.md`. The download pipeline and URL handling are in `references/02-mcp-tool-behaviors.md`. The Kuudo Amazon Ads MCP has no export-to-server tool; where another deployment offers one, it leaves customer data on that server, so show the execution ID and wait for an explicit yes first.
 
 ## Audience planning, activation, and measurement
 
-An AMC audience is worth building when it serves a decision: who to reach, who to suppress, who to expand to, and how you'll know it worked. Start from that decision, check that the account can support it, pick the smallest analysis that informs it, draft the audience and its SQL, plan one activation change, and set up measurement before anything goes live. The failure this prevents is the reverse order: building an audience from a template or a case study, then looking for a reason it worked.
+An AMC audience is worth building when it serves a decision: who to reach, who to suppress, who to expand to, and how you'll know it worked. The failure to avoid is the reverse order: building an audience from a template or a case study, then looking for a reason it worked.
 
-### 1. Frame the decision
+For any request to plan, size, build, activate, or measure an audience, read `references/12-audience-workflow.md` before answering, and work its six steps in order:
 
-Note the decision and who makes it, the deadline, the advertiser, AMC instance, Ads profile, marketplace, brand or ASINs, ad products in play, time window, and time zone. Then rewrite the ask as a question data can answer:
+1. **Frame the decision** as a question data can answer.
+2. **Check readiness:** access, data coverage, and the listing, ending in a readiness verdict.
+3. **Pick the smallest analysis** that informs the decision. If it answers the question without an audience, stop there.
+4. **Define and draft the audience:** a definition card, SQL from the closest playbook, and a sizing companion. Size before creating.
+5. **Plan one activation change** as a single-variable action card.
+6. **Measure, review, retire:** baseline first, a holdout over a before-and-after comparison, and a review date.
 
-| The ask | An answerable question |
-|---|---|
-| "Which audience is best?" | "Among shoppers who viewed our detail pages in the last N days without buying, does a Sponsored Products bid boost raise conversions enough to cover its extra cost?" |
-| "Should we retarget after Prime Day?" | "Do shoppers our ads reached during Prime Day who didn't buy convert at a profitable cost over the next N weeks, compared with a holdout?" |
-| "How many touches does it take?" | "What is the distribution of days and ad touches from first exposure to purchase for ASIN X, by ad product?" |
-
-N comes from this account's data (step 3), not from a benchmark.
-
-### 2. Check readiness
-
-Work through `references/03-readiness-checks.md`. In short:
-
-- The advertiser, Ads profile, AMC instance, and marketplace belong together.
-- Four separate states are in place: the instance is visible, AMC terms are accepted, the user can edit the target campaigns, and AMC audiences are available in the target console. Having one doesn't imply the others.
-- The data covers the question: the ad products loaded in the instance, the backfill, conversion maturity, and breaks such as renamed campaigns, stockouts, promotions, or price changes. Reads that compare against shoppers with no ad exposure need base `conversions_all`, a paid feature; audience queries on `conversions_all_for_audiences` don't.
-- The listing can take the traffic: in stock, winning the Buy Box, and profitable after returns.
-- Each marketplace stands alone unless there is an explicit basis for combining them.
-
-The verdict is one of `READY_FOR_ANALYSIS`, `READY_FOR_AUDIENCE_DRAFT`, `READY_FOR_APPROVAL`, or `HOLD`, with the gaps and what would lift them. "No results returned" is not zero. AMC drops any output group behind fewer than about 100 shoppers, so a small account, a short window, or a fine grouping can come back empty; filters, permissions, and data latency do it too. Pick a window and grouping big enough to clear that floor, and diagnose an empty result before you interpret it.
-
-### 3. Pick the smallest analysis
-
-Run only what the decision needs. Playbook IDs refer to `references/07-playbooks.md`; quoted names are Atlas instructional queries, found by title.
-
-| Decision question | Analysis | Output | Start from |
-|---|---|---|---|
-| How long and how many touches before purchase? | Time to conversion | Distribution, not a single average | Playbook M1; "Time to Conversion" |
-| How often do customers rebuy? | Repurchase interval | Gap distribution | Playbook M4 |
-| Which ad sequences precede purchase? | Path to conversion | Paths, reach, conversions, NTB, cost basis | Playbook M5; "Path to conversion by campaign groups" |
-| Are ad products reaching the same shoppers? | Ad-type overlap | Exclusive and combined reach and conversion | Playbook M2; "Sponsored ads and DSP overlap" |
-| Are we over- or under-exposing? | Reach and frequency | Conversion by frequency bucket | Playbook M6; "Reach and impression frequency" |
-| Are we recruiting new customers? | New-to-brand | NTB purchases, sales, and share, reported separately | Playbook M3; "New-to-brand customers" |
-| Which touch gets credit? | Custom attribution | First- versus last-touch credit by campaign | Playbook M7; "Custom attribution overview" |
-| Who is worth seeding or protecting? | High-value segments | Value tiers for lookalike seeds or suppression | Playbook A5; "Identify high value customer segments" |
-| Is an existing bid boost working? | Bid boost performance | Boosted versus unboosted traffic | Playbook M8 |
-
-`references/04-analyses-and-misreadings.md` has what each analysis needs, what to compare it against, and how each is commonly misread. If the analysis already answers the decision without an audience, stop there; not every insight needs one.
-
-### 4. Define and draft the audience
-
-Write each audience as a definition card: purpose, type, include and exclude rules, lookback and whether it rolls forward, marketplace, ASIN or brand scope, size status, refresh cadence, activation target, and review date. Derive the lookback from this account's time to conversion or repurchase cycle. A window that worked for another brand is an `EXTERNAL_BENCHMARK`; if this account's data isn't in yet, propose a starting window labeled `HYPOTHESIS` and say which analysis will confirm it.
-
-Then draft the SQL from the closest audience playbook (A1 to A8 in `references/07-playbooks.md`), with its sizing companion, following `references/06-amc-sql-rules.md`:
-
-- **Rule-based** audiences read `_for_audiences` tables, and their final `SELECT` returns only `user_id`. Exclude purchases from `conversions_all_for_audiences`, so shoppers who bought without an ad are excluded too.
-- **Event audiences** pin the event dates inside the SQL, converted to UTC, and keep purchase exclusions running from the event start to each refresh. A rolling lookback alone drifts off the event.
-- **Lookalike** audiences expand from a seed of 500 to 500,000 users. Seed quality matters more than seed size. Reach runs in tiers from most similar to broadest, so change one tier step at a time. Keep the seed's existing buyers out of the lookalike's spend with a campaign exclusion, unless the lookalike's settings already exclude the seed.
-- **Size before creating.** Every audience gets a companion count against the current minimum, and a lookalike seed gets one against its bounds. Say up front what you'd widen if it falls short: a longer window, more ASINs or the brand's full catalog, or dropping a restriction such as "reached by our ads"; for a seed over the upper bound, tighten the condition. Sizing runs are real executions, so list them in one itemized ask. A dry run validates the audience SQL with no ask, but a real run of it outside audience creation is rejected, so sizing reads the companion tables.
-- **Refresh is not expiry.** AMC audiences refresh on a schedule (the API defaults to every 21 days) and overwrite themselves on each run until deleted. The only built-in end is a rule-based audience's `refreshRateDays: 0`, which deactivates it after 30 days, so set the cadence deliberately and put a review date on the card.
-- **No-code templates** vary by instance. If one isn't visible on this instance, keep the business definition, mark it `TEMPLATE_NOT_VERIFIED`, and don't invent a template name.
-
-Patterns for engaged non-buyers, seasonal audiences, intent tiers, lifecycle and cross-sell, suppression, and lookalike seeds are in `references/05-audience-design.md`.
-
-### 5. Plan one activation change
-
-What an audience does depends on where it is used. Confirm that the audience appears in the target console and that the action is supported there before you plan on it, and label that check `CURRENT_POLICY`.
-
-| Channel | What the audience does | What to measure |
-|---|---|---|
-| DSP | Targets or excludes the audience directly | Reach and conversions against a holdout |
-| Sponsored Display | Targets the audience directly | Conversions and cost against a holdout or prior baseline |
-| Sponsored Products, Sponsored Brands | A bid boost raises bids when an audience member matches the campaign's existing keyword or product targeting. It doesn't restrict who is eligible to see the ad. | Effect of the boost: boosted versus unboosted traffic on cost per click, conversion, and profit |
-
-Write each change as a single-variable action card: current, proposed, and rollback values; evidence; baseline and measurement windows, including attribution lag; primary metric; guardrails; and stop conditions. Give the proposed value as a number, such as a +20% boost, labeled `HYPOTHESIS` with the reason for it. A change is one of: add or exclude one audience, set one bid adjustment, activate one lookalike, or change one window or refresh cadence. Changing the seed, window, and bid together leaves no way to tell which one moved the result. Details are in `references/08-activation-and-testing.md`.
-
-### 6. Measure, review, retire
-
-Record the baseline before activation. Prefer a randomized holdout over a before-and-after comparison, and wait for conversions to mature before reading results. Report absolute and relative lift with sample sizes. On the review date choose `KEEP`, `ITERATE`, `ROLLBACK`, or `EXPIRE`, and retire expired audiences so an old window doesn't keep refreshing. Deleting an AMC audience also removes it from the DSP and Sponsored Ads consoles, so a deletion is a write with its own ask.
-
-End audience and measurement work with one verdict in plain words (proceed to analysis, proceed to review, hold, or no-go; the code `PROCEED_TO_ANALYSIS`, `PROCEED_TO_REVIEW`, `HOLD`, or `NO_GO` can follow in parentheses), and say in a few lines what rests on account facts, what is an external benchmark or hypothesis, which Amazon rules still need checking, whether the evidence is only correlational, and which writes wait for approval and how each rolls back.
+Three rules hold throughout. Rule-based audience SQL reads `_for_audiences` tables and its final `SELECT` returns only `user_id`. Lookbacks, sizes, and lift come from this account's data or are labeled as a starting guess, never borrowed from another brand. Each write waits for its own yes (Guardrails).
 
 ## AMC SQL Essentials
 
@@ -385,7 +270,7 @@ The full dialect rules, the audience-to-sizing table pairs, and the sizing and d
 |---|---|
 | "Aggregation threshold not met" | `HAVING COUNT(DISTINCT user_id) >= N` or broaden grouping |
 | 400 on execution | Use full datetime: `yyyy-MM-dd'T'HH:mm:ss` |
-| 403 `Unauthorized request` on an AMC call | The identity can't reach that instance or entity. Check `amc_listInstances` for the entity; `set_active_identity` again if the selection was lost |
+| 403 `Unauthorized request` on an AMC call | First check the ID type: a seller's merchant ID from `accountInfo.id` gets this, and the `ENTITY…` value from `alternateIds` fixes it (Pre-Flight step 4b). Otherwise the identity can't reach that instance or entity: check `amc_listInstances` for the entity, and `set_active_identity` again if the selection was lost |
 | 400 `entityId provided is null` | Pass `Amazon-Advertising-API-AdvertiserId` on the call; it doesn't ride from `set_active_profile` |
 | 403 "Terms and conditions must be accepted" | See terms acceptance flow below |
 | `internal_error` with cryptic `details[0].issue` | Map via `references/10-errors-and-fixes.md` |
@@ -408,7 +293,7 @@ This is a binding legal action. Never auto-accept. When the identity is an agenc
 
 ## Resources
 
-The references are numbered in the order work usually reaches them.
+References 01 to 11 are numbered in the order work usually reaches them; 12 is the entry point for audience work.
 
 - `references/01-atlas-knowledge-base.md` — How this skill uses Amazon Agent Atlas: its collections and topics, why IDs can't be stored, how Chroma retrieval behaves there (chunks, cosine distances, `where` and `where_document` filters), its tools, retrieval patterns, and the AMC documents by title. Read it whenever Atlas results are weak.
 - `references/02-mcp-tool-behaviors.md` — MCP tool behaviors not in schemas: workflow creation, execution, download pipeline, audience rules, instance scoping, multi-instance discovery, session selections.
@@ -421,4 +306,5 @@ The references are numbered in the order work usually reaches them.
 - `references/09-result-processing.md` — Reusable Python snippets for common result shapes (top-N, segment splits, weighted averages, percentiles, period-over-period deltas). Return a focused JSON summary, never the full table.
 - `references/10-errors-and-fixes.md` — Error messages and envelopes mapped to the corrective action.
 - `references/11-reply-formats.md` — Reply shapes, the definition card, action card, approval preview, and verdict.
+- `references/12-audience-workflow.md` — The six-step audience workflow in full: framing the decision, readiness, choosing the analysis, the definition card and draft SQL, the activation plan, and measurement. Start here for any audience request; it routes to 03, 04, 05, and 08.
 - `evals/evals.json` — Test prompts and assertions for evaluating this skill.

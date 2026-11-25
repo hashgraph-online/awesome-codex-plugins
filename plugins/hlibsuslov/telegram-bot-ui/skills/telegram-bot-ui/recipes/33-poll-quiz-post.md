@@ -3,11 +3,12 @@
 Registry rows: none (channel publishing combines existing methods; see `references/publishing-pipeline.md`). Verified 2026-11-15, Bot API 10.4 (newest on that date).
 
 1. **Request and visible result.** “Run a quiz about the report, only for our subscribers from Ukraine and Poland; and a survey that closes in three days.” — A quiz with the right answer and an explanation, limited to channel members and countries; a silent multiple-choice survey that closes itself; the survey can be stopped early.
-2. **Why these features.** 10.0 added `members_only` and `country_codes` (channel chats only), media in polls and one-option polls; `correct_option_ids` (array) for quizzes; `description`; `close_date` / `open_period` close the poll without a scheduler.
+2. **Why these features.** 10.0 added `members_only` and `country_codes` (channel chats only), media in polls and one-option polls; `correct_option_ids` (array, 9.6) for quizzes; `description` (9.6); `close_date` / `open_period` close the poll without a scheduler.
 3. **Requirements.** Bot API ≥ 10.0 for the channel-only fields. Production. Channel (polls can't be sent to channel DM chats). Question 1–300, 1–12 options of 1–100 chars, explanation 0–200 with ≤ 2 line feeds, description 0–1024, `open_period` 5–2628000 s xor `close_date`.
 4. **Payload.** `examples/payloads/r33-poll-quiz-post.json`. Key part:
    ```json
-   {"chat_id": -1001500000001, "question": "Which district fixed potholes fastest in Q3?", "options": [{"text": "Old Town"}, {"text": "Riverside"}],
+   {"chat_id": -1001500000001, "question": "Which district fixed potholes fastest in Q3?",
+    "options": [{"text": "Old Town"}, {"text": "Riverside"}, {"text": "Harbour"}, {"text": "Northgate"}],
     "type": "quiz", "correct_option_ids": [1], "explanation": "Riverside: median 3.1 days…",
     "members_only": true, "country_codes": ["UA", "PL", "FT"], "open_period": 86400}
    ```

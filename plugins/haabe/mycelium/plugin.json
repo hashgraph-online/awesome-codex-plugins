@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mycelium",
-  "version": "0.337.1",
+  "version": "0.337.3",
   "description": "I realized I let the agent start coding before I was sure it was working on the right thing, so I built this. Now it doesn't get to write code before there's a reason. The agent asks who this is for. It asks what you're assuming, and what would show you wrong. The rules run as hooks, so once you have started it in a repo the build stays shut until the answers are there. Purpose, strategy, opportunities, then delivery and market feedback. It adds skills and hooks, keeps its own state in a .claude/ folder, and won't edit the files already in your repo unless you ask it to.",
   "author": {
     "name": "H\u00e5vard Bartnes",

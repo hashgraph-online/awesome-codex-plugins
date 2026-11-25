@@ -1,3 +1,9 @@
+---
+summary: "What the skill takes from each Mini App design source (Telegram guidelines, iOS 27 kit, UI kit, dark-fintech direction): colour, type, shape, Liquid Glass; read to see where design values come from."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Mini App design sources: what to take from each
 
 How the skill turns its design references into one Mini App design system: Telegram for structure and

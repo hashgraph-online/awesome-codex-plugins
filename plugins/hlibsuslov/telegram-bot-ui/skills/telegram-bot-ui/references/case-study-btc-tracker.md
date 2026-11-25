@@ -1,3 +1,9 @@
+---
+summary: "Worked review of a real aiogram bitcoin-tracker bot: what it already does well, what to improve, SDK notes and a before/after screen; read as a concrete example of an upgrade pass."
+verified: "2026-11-12"
+bot_api: "10.5"
+---
+
 # Case study: btc-tracker (aiogram 3.31, built for Bot API 9.4–10.2)
 
 > Source: github.com/hlibsuslov/btc-tracker at commit `857b8bd` (read 2026-11-12). The owner
@@ -54,8 +60,8 @@ confirmation alerts, shows balances and statistics, in Ukrainian, Russian and En
 
 ## SDK note
 
-aiogram 3.31.0 implements Bot API 10.3: `disabled`, `force_reply`, `stopped_message_generation`
-work natively. Widgets (10.4) need `examples/python/sdk_aiogram/adapter.py` — without it
+**[Third-party]** aiogram 3.31.0 implements Bot API 10.3: `disabled`, `force_reply`, `stopped_message_generation`
+work natively (checked against the installed package by `tests/test_sdk_aiogram.py`; `sdk-compatibility.md`). Widgets (10.4) need `examples/python/sdk_aiogram/adapter.py` — without it
 `widget_query` is dropped. This bot's widgets need no queries (state is pushed), so only the
 `SendWidget` method class is required; `editMessageWidgetData` likewise.
 

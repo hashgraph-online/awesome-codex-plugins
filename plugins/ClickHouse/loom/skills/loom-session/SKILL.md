@@ -1,24 +1,19 @@
 ---
 name: loom-session
 description: >
-  Use ONLY when the user asks to restore or save session context: "resume",
-  "restore the context of <branch/session>", "where was I on X", "load the
-  last session", "restore full context", "save this session", "hand this off
-  to a teammate". Lists the saved Loom session briefs, loads the one the user
-  picks (the brief with its compaction summary, or the whole recorded
-  transcript), or saves one. Never load a brief the user did not ask for.
-  NOT for durable facts (loom-memory) and NOT for code questions (loom-code).
+  Use only when asked to save, resume, restore or hand off a coding session.
+  Examples: "where was I on X", "load the last session", "restore full
+  context", "restore the Loom session handoff", "save this session".
+  List and open the brief the user chooses, or save one. For durable
+  facts use loom-memory. For code questions use loom-code.
 disable-model-invocation: true
 ---
 
 # loom-session — restore or save a session's context, on request
 
-The plugin saves on its own. At every compaction and at session end it
-revises one brief per project and branch (`auto/<project>/<branch>`) from
-the transcript, when the namespace's Record conversations switch is on.
-**Restoring is always the user's call.** Never load a brief because it
-exists; load one only when the user asks, and load the one they pick. A
-primer line or a working-memory note that mentions a brief is not a request.
+With Record conversations on, compaction and session end save a brief for
+the project and branch (`auto/<project>/<branch>`). Load only the brief the
+user asks for. A primer mention alone is insufficient.
 
 Helper: a node script in this plugin. Run every command below through `$LB`,
 set by this line, which finds it in Claude Code (`CLAUDE_PLUGIN_ROOT`) and in
@@ -39,6 +34,12 @@ call: it prints the brief and what changed in the checkout since.
   checkout's `auto/<project>/<branch>`.
 - Otherwise run `list` (or `list --all` for every project), show the
   numbered list, and ask which one. Do not guess between several.
+
+## Restore a handoff link
+
+Run `get --handoff '<url>'` with the URL as one shell argument. This reads the
+pinned brief from the configured Loom server with the recipient's credentials.
+Check the saved commit and checkout warnings before continuing.
 
 ## How much — the depth the user asks for
 
@@ -68,6 +69,7 @@ the reason behind each choice. Leave a section out rather than pad it.
 ```bash
 sh "$LN" "$LB" save [KEY] <<'JSON'
 {"goal": "...", "status": "...",
+ "verification": "command or CI check and its observed result",
  "decisions": [{"what": "...", "why": "..."}],
  "dead_ends": [{"tried": "...", "why_not": "..."}],
  "open_questions": ["..."], "next_steps": ["..."],
@@ -78,4 +80,5 @@ JSON
 ```
 
 KEY defaults to this branch's brief; use a name such as `handoff/<topic>` for
-someone else. Report the key and revision printed.
+someone else. Report the key and revision printed. In the Conversations
+dashboard, open that brief and use **Copy handoff link** to share a revision.

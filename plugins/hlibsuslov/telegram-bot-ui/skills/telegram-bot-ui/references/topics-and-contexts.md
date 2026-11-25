@@ -1,3 +1,9 @@
+---
+summary: "Context matrix of address fields per chat context, private-chat topics and topic links, channel direct messages; read to decide chat_id and thread fields for a method in a given context."
+verified: "2026-11-12"
+bot_api: "10.5"
+---
+
 # Contexts and addressing
 
 > Verified 2026-11-12. Decide fields from the **method and the context**, never by copying a

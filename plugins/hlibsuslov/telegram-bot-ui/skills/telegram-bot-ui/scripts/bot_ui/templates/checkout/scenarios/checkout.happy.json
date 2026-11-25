@@ -1,0 +1,25 @@
+{
+  "scenarioId": "checkout.happy",
+  "title": "Order paid on the first try, pickup",
+  "locale": "ru",
+  "context": {"chat": "private", "delivery.method": "pickup"},
+  "data": {"order.no": "4821", "order.total": "1 290 ₽", "order.status_text": "заказ собирают"},
+  "handlers": {"checkout.confirm": ["ok"]},
+  "steps": [
+    {"command": "start"},
+    {"expect": {"screen": "entry.start"}},
+    {"press": "order"},
+    {"press": "card"},
+    {"expect": {"screen": "checkout.note"}},
+    {"text": "Позвоните за 5 минут"},
+    {"expect": {"screen": "checkout.payment.confirm", "contains": "Позвоните за 5 минут"}},
+    {"press": "pay"},
+    {"expect": {"screen": "checkout.payment.success"}},
+    {"press": "status"},
+    {"expect": {"screen": "orders.status"}},
+    {"press": "route"},
+    {"expect": {"screen": "orders.pickup"}},
+    {"press": "back"},
+    {"expect": {"screen": "orders.status"}}
+  ]
+}

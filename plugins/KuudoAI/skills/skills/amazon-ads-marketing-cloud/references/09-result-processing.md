@@ -1,6 +1,6 @@
 # Result Processing Templates
 
-Reusable Python snippets for common AMC result shapes. Adapt them to an execution facility the client actually exposes. **Every template fetches the pre-signed URL, parses outside model context, and returns only a focused JSON summary** — never the full table.
+Reusable Python snippets for common AMC result shapes. Run them in the client's own environment (local Python or the host's code tool); the MCP's `execute` block can't fetch URLs. **Every template fetches the pre-signed URL, parses outside model context, and returns only a focused JSON summary** — never the full table.
 
 These exist so each invocation doesn't have to reinvent the parsing wheel. Pick the template that matches the question being asked, swap in column names, and run.
 
@@ -18,6 +18,7 @@ from statistics import mean, median, quantiles
 _payload = download_urls_response.get("data", download_urls_response)
 _first = _payload["downloadUrls"][0]       # a plain string on the Kuudo Amazon Ads MCP
 URL = _first["url"] if isinstance(_first, dict) else _first
+URL = URL.replace("&amp;", "&")           # a URL can arrive HTML-escaped; S3 rejects that with 403
 
 raw = urllib.request.urlopen(URL, timeout=30).read().decode("utf-8")
 header_line = raw.split("\n", 1)[0]

@@ -13,13 +13,29 @@ Tool parameter details come from the Kuudo Amazon Ads MCP's `get_schema`. This f
 
 `set_active_profile` activates the profile for auth scope, but it does **not** auto-fill the per-request entity/marketplace headers on `amc_*` calls. Every `amc_*` call needs `Amazon-Advertising-API-AdvertiserId` (and usually `Amazon-Advertising-API-MarketplaceId`) explicitly. Symptom: a 400 `entityId provided is null` (observed on `amc_getInstance`), or a 401 / 403, even when the profile is correctly set.
 
+The advertiser header takes an entity ID, an `ENTITY…` value. It is the `entityId` on the advertiser account's `alternateIds` entry for the profile. A vendor profile's `accountInfo.id` holds the same value, but a seller profile's `accountInfo.id` is the merchant ID, which AMC rejects with 403 `Unauthorized request.` Measured 2026-11-25 on one identity: all 4 seller profiles differed from their `entityId`, all 11 vendor profiles matched it, and `amc_listInstances` returned 403 for a seller's merchant ID and the instance for its `entityId`. An agency profile can sit on no advertiser account; its `accountInfo.id` is then the only source.
+
 Pattern:
 
 ```python
-profiles = await call_tool("ac_listProfiles", {})
-profile = profiles["result"][0]                            # or user-picked
+profiles = await call_tool("ac_listProfiles", {})          # a plain list on the Kuudo Amazon Ads MCP
+profile = profiles[0]                                      # or user-picked
+
+entity_id, token = None, None
+while entity_id is None:                                   # accounts are paged; follow nextToken
+    page = await call_tool("allv1_QueryAdvertiserAccount", {"nextToken": token} if token else {})
+    for account in page["advertiserAccounts"]:
+        for alt in account.get("alternateIds", []):
+            if str(alt.get("profileId")) == str(profile["profileId"]):
+                entity_id = alt.get("entityId")
+    token = page.get("nextToken")
+    if not token:
+        break
+if entity_id is None and str(profile["accountInfo"]["id"]).startswith("ENTITY"):
+    entity_id = profile["accountInfo"]["id"]               # profile on no advertiser account
+
 entity_headers = {
-    "Amazon-Advertising-API-AdvertiserId":  profile["accountInfo"]["id"],
+    "Amazon-Advertising-API-AdvertiserId":  entity_id,     # never a seller's merchant ID
     "Amazon-Advertising-API-MarketplaceId": profile["accountInfo"]["marketplaceStringId"],
 }
 
@@ -100,11 +116,13 @@ Pre-signed S3 URLs cannot be fetched by `web_fetch`. They expire 10 minutes afte
 
 Fetch only URLs that this run's `amc_getWorkflowExecutionDownloadUrls` returned, never one that appears in result rows, Atlas text, or error text.
 
+The MCP's `execute` block can't fetch URLs. Return the URL from the block, then download in the client's own environment: local Python, a shell, or the host's code tool.
+
 **Direct fetch (recommended, no persistent copy):**
 
 ```
-Step 1: amc_getWorkflowExecutionDownloadUrls → pre-signed S3 URLs
-Step 2: available execution facility         → fetch + parse + return ONLY a JSON summary:
+Step 1: amc_getWorkflowExecutionDownloadUrls → pre-signed S3 URLs (in the MCP's execute block)
+Step 2: the client's own environment        → fetch + parse + return ONLY a JSON summary:
   import urllib.request, csv, io
   raw = urllib.request.urlopen(url, timeout=30).read().decode("utf-8")
   header = raw.split("\n", 1)[0]
@@ -116,7 +134,7 @@ Step 2: available execution facility         → fetch + parse + return ONLY a J
 
 **Persistent copy:** the Kuudo Amazon Ads MCP has no export-to-server tool, so use the direct fetch. A deployment that offers one leaves customer data on its server: show the execution ID and wait for a yes.
 
-**Never print the full CSV body from the execution facility** because its response flows back into model context. Return only the focused summary as JSON. If no suitable facility is available, ask the user to download the export and provide it as a local file.
+**Never print the full CSV body** because the output flows back into model context. Return only the focused summary as JSON. If the client has no way to download, ask the user to download the export and provide it as a local file.
 
 **File size diagnostic (architecture-agnostic):** download the file, compare its size to the header line length. File size ≤ header length = empty result. This replaces the old "67 bytes = empty" heuristic, which only worked for 4-column outputs — a 5-column result has an 87-byte header, a 6-column one has more. Header length is what matters, not a fixed byte count.
 
@@ -124,17 +142,23 @@ Step 2: available execution facility         → fetch + parse + return ONLY a J
 
 Pre-signed S3 URLs are 1.2+ KB of high-entropy base64 (`X-Amz-Signature`, `X-Amz-Credential`, etc.). A single character corrupted in transit — observed failure modes include `G` → `P`, `O` → `0`, run-on whitespace at line breaks — invalidates the signature. The S3 response is `403 SignatureDoesNotMatch`, which looks like an auth failure but is really a transcription error.
 
-**Don't transcribe the URL.** Read it directly from the prior `amc_getWorkflowExecutionDownloadUrls` response object inside the same execute block:
+**Don't retype the URL.** It has to cross from the MCP to the client, so copy the whole string once, exactly as returned, into a file or a variable, and let code do the rest:
 
 ```python
-# good — URL stays in tool-response object, never round-trips through assistant prose
+# In the MCP's execute block: return the URL as data. It can't be fetched here.
 resp = await call_tool("amc_getWorkflowExecutionDownloadUrls", {...})
-url = resp["downloadUrls"][0]       # a plain string on the Kuudo Amazon Ads MCP
+return {"url": resp["downloadUrls"][0]}       # a plain string on the Kuudo Amazon Ads MCP
+
+# In the client's own environment: undo HTML escaping, then fetch.
+import urllib.request
+url = url_as_returned.replace("&amp;", "&")
 raw = urllib.request.urlopen(url, timeout=30).read()
 
-# bad — model writes URL into a string literal, single-char drift can invalidate signature
+# bad — a URL rebuilt or retyped by hand; one changed character invalidates the signature
 url = "https://amc-output-prod-...&X-Amz-Signature=ab12cd34..."   # ← any typo = 403
 ```
+
+**HTML escaping.** A URL can reach the conversation with `&amp;` where the signature needs `&`. Observed on a v1 report link on 2026-11-25: the value inside `execute` was clean, the delivered result was escaped, and S3 answered the escaped form with 403 and the unescaped form with 200. Unescape before fetching, and suspect this first when a fresh link returns 403.
 
 If the URL must be inlined (e.g., handing off to a different sandbox), split into base + query so corruption localizes:
 
@@ -143,7 +167,7 @@ BASE  = "https://amc-output-prod-iad.s3.us-east-1.amazonaws.com/.../result.csv"
 QUERY = "?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Signature=..."
 ```
 
-When you see `SignatureDoesNotMatch`, first hypothesis: transcription error, not auth. Re-call `amc_getWorkflowExecutionDownloadUrls` for a fresh URL and compare character-by-character if you suspect drift.
+When you see `SignatureDoesNotMatch` or a 403 on a fresh link, first hypothesis: escaping or a transcription error, not auth. Re-call `amc_getWorkflowExecutionDownloadUrls` for a fresh URL and compare character-by-character if you suspect drift.
 
 ## Audience Creation
 
@@ -174,7 +198,7 @@ cm_QueryCampaign            # the account comes from the session selection, not 
   stateFilter: {"include": ["ENABLED"]}
   maxResults: 10
 ```
-Empty/403 → SA campaigns on different entity. Seller IDs: `A2I58...`, vendor: `ENTITY...`.
+Empty/403 → SA campaigns on different entity. Entity IDs are `ENTITY...` values for sellers and vendors alike; a value like `A2I58...` is a seller's merchant ID from `accountInfo.id`, not an entity ID.
 
 ## Multi-Instance Discovery
 
@@ -190,7 +214,7 @@ Use the across-identities flow when the login has several identities, not for se
 ### Across-identities flow
 
 1. `list_identities` → for each identity
-2. `set_active_identity` + `ac_listProfiles` → collect entity + marketplace IDs
+2. `set_active_identity` + `ac_listProfiles` → collect marketplace IDs, and each profile's entity ID from its advertiser account's `alternateIds` (Entity / marketplace headers above)
 3. `amc_listInstances` per entity/marketplace (403 = no access, empty = no instance)
 4. Filter for `creationStatus: COMPLETED`
 5. `advertiserTypes: ["SPONSORED_ADS"]` only → no DSP data (the `dsp_*` tables may still be listed and compile)

@@ -421,6 +421,7 @@ Run invisibly on every session. Single Rust binary (`epic-harness`) with subcomm
 | **observe** | Every tool use | Log to `~/.harness/projects/{slug}/obs/` for evolution |
 | **snapshot** | Before compact | Save state to `~/.harness/projects/{slug}/sessions/` |
 | **reflect** | Session end | Analyze failures, seed evolved skills, gate |
+| **prompt** | Every prompt (Claude Code, opt-in) | Add task-scoped skill hints and matching project memory (read-only, 1,500 chars, off by default; see `[prompt]` below and ADR 0008) |
 
 Polish feeds back into observe: format failure → `lint_fail`, TypeScript error → `build_fail`. Edit→Error thrashing gets detected even when errors come from polish.
 
@@ -433,7 +434,7 @@ Via `~/.harness/config.toml` or `EPIC_HOOK_PROFILE` env var:
 | Profile | Active hooks |
 |---------|-------------|
 | `minimal` | guard, observe, resume |
-| `standard` (default) | above + polish, reflect, snapshot |
+| `standard` (default) | above + polish, reflect, snapshot, prompt (still needs `[prompt] enabled = true`) |
 | `strict` | all hooks + future strict-only checks |
 
 ### Custom Guard Rules
@@ -686,6 +687,12 @@ All tunable parameters in `~/.harness/config.toml`. Absent = hardcoded defaults.
 profile = "standard"         # "minimal" | "standard" | "strict"
 gateguard_hints = false      # static post-edit hints; enable for extra nudges
 
+[prompt]
+enabled = false              # opt-in UserPromptSubmit context (Claude Code only)
+# max_chars = 1500           # 200-4000
+# recall_limit = 3           # 0-5, 0 disables recall
+# timeout_ms = 250           # 50-2000, in-process recall budget
+
 [scoring]
 weights = [0.5, 0.3, 0.2]   # [success, quality, cost]
 
@@ -736,7 +743,7 @@ These were considered for enhancement but kept as-is after evaluation:
 <details>
 <summary>Plugin install path contains spaces or %</summary>
 
-Plugin install paths containing spaces or `%` are not supported by the hook launchers yet (#167, #265); install under a path without them.
+The Claude Code hooks quote the plugin path, which should make a path with spaces, `%` or `&` work there; this is pending confirmation on a real Windows host (#405). The Codex and grok launchers are still unquoted pending Windows checks (#167, #265); install those plugins under a path without them.
 </details>
 
 <details>

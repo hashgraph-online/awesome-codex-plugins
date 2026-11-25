@@ -1,3 +1,9 @@
+---
+summary: "Onboarding and first run: before Start, reading /start, first-run steps, empty states, returning users, groups; read when designing a bot's first minute."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Onboarding and first run
 
 > Verified 2026-11-15 against Bot API 10.4 (newest release on that date) and

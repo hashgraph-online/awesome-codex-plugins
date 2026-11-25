@@ -1,0 +1,1288 @@
+{
+ "_about": "Vendored copy of the telegram-bot-ui emoji library contract: the component schemas of its OpenAPI 3.1 document, the tag taxonomy this skill understands and the pack threshold. LibraryClient (scripts/emoji_packs.py) validates every library answer and every line of the offline export against these schemas. Refresh from a saved document: py -3 scripts/emoji_packs.py library contract --openapi emoji-openapi.json --facets emoji-facets.json",
+ "source": "https://telegram-bot-ui.hlixli.com/api/emoji-openapi.json",
+ "sourceCode": "telegram-bot-ui-site: src/lib/emoji-openapi.ts, src/lib/emoji-api-contract.ts",
+ "vendored": "2026-11-25",
+ "openapi": "3.1.0",
+ "apiVersion": "1.0.0",
+ "catalog": {
+  "taxonomy": 2,
+  "generated": "2026-11-25"
+ },
+ "taxonomy": {
+  "understood": [
+   2
+  ],
+  "version": 2,
+  "generated": "2026-11-25",
+  "facets": {
+   "motion": {
+    "label": {
+     "en": "Motion",
+     "ru": "Движение"
+    },
+    "measured": true,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "static": {
+      "en": "Static",
+      "ru": "Статичные"
+     },
+     "animated": {
+      "en": "Animated",
+      "ru": "Анимированные"
+     },
+     "video": {
+      "en": "Video",
+      "ru": "Видео"
+     }
+    }
+   },
+   "fit": {
+    "label": {
+     "en": "Theme fit",
+     "ru": "Темы"
+    },
+    "measured": true,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "adaptive": {
+      "en": "Adaptive (repainted in the text colour)",
+      "ru": "Адаптивные (цвет текста)"
+     },
+     "both": {
+      "en": "Light and dark themes",
+      "ru": "Светлая и тёмная темы"
+     },
+     "light": {
+      "en": "Light theme only",
+      "ru": "Только светлая тема"
+     },
+     "dark": {
+      "en": "Dark theme only",
+      "ru": "Только тёмная тема"
+     }
+    }
+   },
+   "color": {
+    "label": {
+     "en": "Colour",
+     "ru": "Цвет"
+    },
+    "measured": true,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "red": {
+      "en": "Red",
+      "ru": "Красный"
+     },
+     "orange": {
+      "en": "Orange",
+      "ru": "Оранжевый"
+     },
+     "yellow": {
+      "en": "Yellow",
+      "ru": "Жёлтый"
+     },
+     "gold": {
+      "en": "Gold",
+      "ru": "Золотой"
+     },
+     "green": {
+      "en": "Green",
+      "ru": "Зелёный"
+     },
+     "teal": {
+      "en": "Teal",
+      "ru": "Бирюзовый"
+     },
+     "blue": {
+      "en": "Blue",
+      "ru": "Синий"
+     },
+     "purple": {
+      "en": "Purple",
+      "ru": "Фиолетовый"
+     },
+     "pink": {
+      "en": "Pink",
+      "ru": "Розовый"
+     },
+     "brown": {
+      "en": "Brown",
+      "ru": "Коричневый"
+     },
+     "black": {
+      "en": "Black",
+      "ru": "Чёрный"
+     },
+     "white": {
+      "en": "White",
+      "ru": "Белый"
+     },
+     "gray": {
+      "en": "Grey",
+      "ru": "Серый"
+     }
+    }
+   },
+   "palette": {
+    "label": {
+     "en": "Palette",
+     "ru": "Палитра"
+    },
+    "measured": true,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "monochrome": {
+      "en": "Monochrome",
+      "ru": "Монохром"
+     },
+     "muted": {
+      "en": "Muted",
+      "ru": "Приглушённая"
+     },
+     "vivid": {
+      "en": "Vivid",
+      "ru": "Яркая"
+     },
+     "multicolor": {
+      "en": "Multicolour",
+      "ru": "Разноцветная"
+     }
+    }
+   },
+   "style": {
+    "label": {
+     "en": "Style",
+     "ru": "Стиль"
+    },
+    "measured": false,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "outline": {
+      "en": "Outline",
+      "ru": "Контурный"
+     },
+     "glyph": {
+      "en": "Solid glyph",
+      "ru": "Заливка, глиф"
+     },
+     "flat": {
+      "en": "Flat",
+      "ru": "Плоский"
+     },
+     "3d": {
+      "en": "3D",
+      "ru": "3D"
+     },
+     "glossy": {
+      "en": "Glossy",
+      "ru": "Глянцевый"
+     },
+     "gradient": {
+      "en": "Gradient",
+      "ru": "Градиент"
+     },
+     "neon": {
+      "en": "Neon",
+      "ru": "Неон"
+     },
+     "pixel": {
+      "en": "Pixel art",
+      "ru": "Пиксель-арт"
+     },
+     "hand-drawn": {
+      "en": "Hand-drawn",
+      "ru": "Рисованный"
+     },
+     "cartoon": {
+      "en": "Cartoon",
+      "ru": "Мультяшный"
+     },
+     "realistic": {
+      "en": "Realistic",
+      "ru": "Реалистичный"
+     },
+     "native-ui": {
+      "en": "Native app icons",
+      "ru": "Как в приложении"
+     },
+     "lettering": {
+      "en": "Letters and fonts",
+      "ru": "Буквы и шрифты"
+     },
+     "emoji-like": {
+      "en": "Emoji style",
+      "ru": "Как эмодзи"
+     },
+     "mosaic": {
+      "en": "Mosaic tiles",
+      "ru": "Мозаика"
+     }
+    }
+   },
+   "topic": {
+    "label": {
+     "en": "Topic",
+     "ru": "Тематика"
+    },
+    "measured": false,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "interface": {
+      "en": "Interface",
+      "ru": "Интерфейс"
+     },
+     "status": {
+      "en": "Status and signs",
+      "ru": "Статусы и знаки"
+     },
+     "brands": {
+      "en": "Brands and logos",
+      "ru": "Бренды и логотипы"
+     },
+     "finance": {
+      "en": "Money and crypto",
+      "ru": "Деньги и крипта"
+     },
+     "letters": {
+      "en": "Letters and numbers",
+      "ru": "Буквы и цифры"
+     },
+     "faces": {
+      "en": "Faces and emotions",
+      "ru": "Лица и эмоции"
+     },
+     "characters": {
+      "en": "Characters and memes",
+      "ru": "Персонажи и мемы"
+     },
+     "animals": {
+      "en": "Animals",
+      "ru": "Животные"
+     },
+     "food": {
+      "en": "Food and drink",
+      "ru": "Еда и напитки"
+     },
+     "nature": {
+      "en": "Nature and weather",
+      "ru": "Природа и погода"
+     },
+     "holidays": {
+      "en": "Holidays",
+      "ru": "Праздники"
+     },
+     "love": {
+      "en": "Love",
+      "ru": "Любовь"
+     },
+     "flags": {
+      "en": "Flags and places",
+      "ru": "Флаги и места"
+     },
+     "games": {
+      "en": "Games",
+      "ru": "Игры"
+     },
+     "tech": {
+      "en": "Tech and AI",
+      "ru": "Техника и ИИ"
+     },
+     "travel": {
+      "en": "Travel and transport",
+      "ru": "Путешествия и транспорт"
+     },
+     "music": {
+      "en": "Music and media",
+      "ru": "Музыка и медиа"
+     },
+     "sport": {
+      "en": "Sport",
+      "ru": "Спорт"
+     },
+     "office": {
+      "en": "Office and work",
+      "ru": "Офис и работа"
+     },
+     "people": {
+      "en": "People and gestures",
+      "ru": "Люди и жесты"
+     },
+     "symbols": {
+      "en": "Symbols and shapes",
+      "ru": "Символы и фигуры"
+     },
+     "decor": {
+      "en": "Effects and decor",
+      "ru": "Эффекты и декор"
+     }
+    }
+   },
+   "mood": {
+    "label": {
+     "en": "Mood",
+     "ru": "Настроение"
+    },
+    "measured": false,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "joyful": {
+      "en": "Joyful",
+      "ru": "Радостное"
+     },
+     "playful": {
+      "en": "Playful",
+      "ru": "Игривое"
+     },
+     "loving": {
+      "en": "Loving",
+      "ru": "Нежное"
+     },
+     "sad": {
+      "en": "Sad",
+      "ru": "Грустное"
+     },
+     "angry": {
+      "en": "Angry",
+      "ru": "Злое"
+     },
+     "surprised": {
+      "en": "Surprised",
+      "ru": "Удивлённое"
+     },
+     "scary": {
+      "en": "Spooky",
+      "ru": "Жуткое"
+     },
+     "calm": {
+      "en": "Calm",
+      "ru": "Спокойное"
+     },
+     "serious": {
+      "en": "Neutral and business-like",
+      "ru": "Нейтральное, деловое"
+     }
+    }
+   },
+   "role": {
+    "label": {
+     "en": "Role in an interface",
+     "ru": "Роль в интерфейсе"
+    },
+    "measured": false,
+    "scope": [
+     "pack",
+     "emoji"
+    ],
+    "values": {
+     "navigation": {
+      "en": "Navigation",
+      "ru": "Навигация"
+     },
+     "action": {
+      "en": "Actions",
+      "ru": "Действия"
+     },
+     "status": {
+      "en": "Status and feedback",
+      "ru": "Статус и отклик"
+     },
+     "commerce": {
+      "en": "Shop and money",
+      "ru": "Магазин и деньги"
+     },
+     "communication": {
+      "en": "Chat and people",
+      "ru": "Общение и люди"
+     },
+     "settings": {
+      "en": "Settings and data",
+      "ru": "Настройки и данные"
+     },
+     "content": {
+      "en": "Content marks",
+      "ru": "Метки в тексте"
+     },
+     "decoration": {
+      "en": "Decoration",
+      "ru": "Украшение"
+     }
+    }
+   },
+   "use": {
+    "label": {
+     "en": "Fits bots for",
+     "ru": "Подходит ботам"
+    },
+    "measured": false,
+    "scope": [
+     "pack"
+    ],
+    "values": {
+     "utility": {
+      "en": "Tools and monitoring",
+      "ru": "Утилиты и мониторинг"
+     },
+     "shop": {
+      "en": "Shops and payments",
+      "ru": "Магазины и оплата"
+     },
+     "finance": {
+      "en": "Finance and crypto",
+      "ru": "Финансы и крипта"
+     },
+     "support": {
+      "en": "Support and AI assistants",
+      "ru": "Поддержка и ИИ-ассистенты"
+     },
+     "content": {
+      "en": "Channels and media",
+      "ru": "Каналы и медиа"
+     },
+     "community": {
+      "en": "Communities and fun",
+      "ru": "Сообщества и развлечения"
+     },
+     "games": {
+      "en": "Games",
+      "ru": "Игры"
+     },
+     "education": {
+      "en": "Learning",
+      "ru": "Обучение"
+     }
+    }
+   }
+  }
+ },
+ "thresholds": {
+  "emoji": 0.5,
+  "pack": 0.3,
+  "show": 0.55
+ },
+ "schemas": {
+  "TaxonomyVersion": {
+   "type": "integer",
+   "minimum": 1,
+   "description": "Version of the tag taxonomy (facets and their values). A new version can rename or drop values."
+  },
+  "Generated": {
+   "type": "string",
+   "description": "Day the catalog's tags were built (YYYY-MM-DD).",
+   "format": "date"
+  },
+  "PackName": {
+   "type": "string",
+   "description": "Short name of a Telegram emoji pack, as in t.me/addemoji/<name>.",
+   "pattern": "^[A-Za-z0-9_]{1,64}$"
+  },
+  "EmojiId": {
+   "type": "string",
+   "description": "Telegram custom_emoji_id. Keep it a string: it does not fit a double.",
+   "pattern": "^\\d{1,20}$"
+  },
+  "Format": {
+   "type": "string",
+   "enum": [
+    "static",
+    "animated",
+    "video"
+   ],
+   "description": "static: WEBP; animated: TGS (gzip Lottie); video: WEBM."
+  },
+  "FacetName": {
+   "type": "string",
+   "enum": [
+    "motion",
+    "fit",
+    "color",
+    "palette",
+    "style",
+    "topic",
+    "mood",
+    "role",
+    "use"
+   ],
+   "description": "A facet of the taxonomy (GET /api/emoji-facets lists its values)."
+  },
+  "Confidence": {
+   "type": "number",
+   "minimum": 0,
+   "maximum": 1,
+   "description": "How sure the tag is, 0 to 1."
+  },
+  "Tag": {
+   "type": "array",
+   "description": "[value, confidence]",
+   "prefixItems": [
+    {
+     "type": "string",
+     "description": "Value id of the facet."
+    },
+    {
+     "$ref": "#/components/schemas/Confidence"
+    }
+   ],
+   "minItems": 2,
+   "items": false
+  },
+  "FacetMap": {
+   "type": "object",
+   "description": "Tags by facet, most confident first.",
+   "propertyNames": {
+    "$ref": "#/components/schemas/FacetName"
+   },
+   "additionalProperties": {
+    "type": "array",
+    "items": {
+     "$ref": "#/components/schemas/Tag"
+    }
+   }
+  },
+  "Compatible": {
+   "type": "array",
+   "description": "Packs drawn alike (style, palette, colours, motion, theme fit), most similar first; similarity 0.75 and up.",
+   "items": {
+    "type": "array",
+    "description": "[pack name, similarity]",
+    "prefixItems": [
+     {
+      "$ref": "#/components/schemas/PackName"
+     },
+     {
+      "$ref": "#/components/schemas/Confidence"
+     }
+    ],
+    "minItems": 2,
+    "items": false
+   }
+  },
+  "Look": {
+   "type": "object",
+   "description": "How the pack is drawn, from a vision pass over its contact sheet.",
+   "properties": {
+    "line_weight": {
+     "type": "string",
+     "description": "Stroke weight: bold, hairline, medium, none, thin."
+    },
+    "fill": {
+     "type": "string",
+     "description": "Fill: flat, gradient, none, photo, textured."
+    },
+    "perspective": {
+     "type": "string",
+     "description": "Perspective: front, mixed, three-quarter."
+    },
+    "shadows": {
+     "type": "string",
+     "description": "Shadows: glow, hard, none, soft."
+    },
+    "characters": {
+     "type": "string",
+     "description": "Share of emoji with characters (faces, figures): all, none, some."
+    },
+    "drawn": {
+     "type": "string",
+     "description": "One line on how the pack is drawn."
+    }
+   },
+   "required": [
+    "line_weight",
+    "fill",
+    "perspective",
+    "shadows",
+    "characters",
+    "drawn"
+   ]
+  },
+  "DescriptionText": {
+   "type": "object",
+   "properties": {
+    "what": {
+     "type": "string",
+     "description": "What the pack shows."
+    },
+    "for": {
+     "type": "string",
+     "description": "What a bot uses it for."
+    },
+    "not_for": {
+     "type": "string",
+     "description": "What it does not suit."
+    }
+   },
+   "required": [
+    "what",
+    "for",
+    "not_for"
+   ]
+  },
+  "Description": {
+   "type": "object",
+   "description": "What the pack is and is for, per language. Optional: present only when the catalog has it.",
+   "properties": {
+    "en": {
+     "$ref": "#/components/schemas/DescriptionText"
+    },
+    "ru": {
+     "$ref": "#/components/schemas/DescriptionText"
+    },
+    "uk": {
+     "$ref": "#/components/schemas/DescriptionText"
+    }
+   },
+   "required": []
+  },
+  "ErrorCode": {
+   "type": "string",
+   "enum": [
+    "BAD_REQUEST",
+    "PACK_NAME",
+    "PACK_NOT_FOUND",
+    "NO_PREVIEW",
+    "NO_ANIMATION",
+    "TOO_LARGE",
+    "NOT_EMOJI_PACK",
+    "RATE_LIMITED",
+    "INTERNAL",
+    "TELEGRAM_ERROR",
+    "TELEGRAM_UNREACHABLE",
+    "BUSY",
+    "RESOLVER_OFF"
+   ],
+   "description": "BAD_REQUEST (400): Malformed parameters: an invalid id list, pack name or emoji id, or a query string on a media URL. PACK_NAME (400): A pack name is 1-64 ASCII letters, digits or underscores. PACK_NOT_FOUND (404): Telegram has no pack with this name. NO_PREVIEW (404): This emoji has no picture (or no still thumbnail), or it is not in this pack. NO_ANIMATION (404): This emoji is not an animated (TGS) emoji, or it is not in this pack. TOO_LARGE (413): Telegram's answer or file is larger than the resolver accepts. NOT_EMOJI_PACK (422): The set exists but is a sticker set, not a custom emoji pack. RATE_LIMITED (429): Too many requests from this client, or Telegram asked the resolver to slow down. Wait for Retry-After when present, else a minute. INTERNAL (500): Unexpected server error. TELEGRAM_ERROR (502): Telegram answered with an error. TELEGRAM_UNREACHABLE (502): Telegram did not answer in time. BUSY (503): The resolver's queue is full; retry after Retry-After seconds. RESOLVER_OFF (503): The resolver has no working bot token in this deployment."
+  },
+  "PackEmoji": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "$ref": "#/components/schemas/EmojiId"
+    },
+    "fallback": {
+     "type": "string",
+     "description": "The ordinary emoji Telegram shows where custom emoji cannot be drawn; may be empty."
+    },
+    "format": {
+     "$ref": "#/components/schemas/Format"
+    },
+    "adaptive": {
+     "type": "boolean",
+     "description": "needs_repainting: Telegram draws it in the text colour, so it fits light and dark themes."
+    },
+    "preview": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Path of the picture (WEBP, the WEBM of a video emoji, the thumbnail of a TGS), relative to the site."
+    },
+    "animation": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Path of the TGS file of an animated emoji, relative to the site."
+    },
+    "still": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Path of a video emoji's still thumbnail, relative to the site."
+    },
+    "facets": {
+     "$ref": "#/components/schemas/FacetMap"
+    }
+   },
+   "required": [
+    "id",
+    "fallback",
+    "format",
+    "adaptive",
+    "preview",
+    "animation",
+    "still"
+   ]
+  },
+  "EmojiHit": {
+   "type": "object",
+   "properties": {
+    "pack": {
+     "$ref": "#/components/schemas/PackName"
+    },
+    "id": {
+     "$ref": "#/components/schemas/EmojiId"
+    },
+    "fallback": {
+     "type": "string",
+     "description": "Ordinary emoji it stands for; may be empty."
+    },
+    "format": {
+     "$ref": "#/components/schemas/Format"
+    },
+    "adaptive": {
+     "type": "boolean"
+    },
+    "preview": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Picture path, relative to the site."
+    },
+    "animation": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "TGS path, relative to the site."
+    },
+    "still": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Still thumbnail path, relative to the site."
+    },
+    "score": {
+     "type": "number",
+     "description": "Relevance; higher is better."
+    },
+    "facets": {
+     "$ref": "#/components/schemas/FacetMap"
+    },
+    "pageUrl": {
+     "type": "string",
+     "description": "Library page of the emoji, relative to the site."
+    }
+   },
+   "required": [
+    "pack",
+    "id",
+    "fallback",
+    "format",
+    "adaptive",
+    "preview",
+    "animation",
+    "still",
+    "score",
+    "facets",
+    "pageUrl"
+   ]
+  },
+  "SearchResponse": {
+   "type": "object",
+   "properties": {
+    "ok": {
+     "const": true
+    },
+    "taxonomy": {
+     "$ref": "#/components/schemas/TaxonomyVersion"
+    },
+    "generated": {
+     "$ref": "#/components/schemas/Generated"
+    },
+    "query": {
+     "type": "string",
+     "description": "The words searched, after facet filters were taken out."
+    },
+    "filters": {
+     "type": "array",
+     "description": "Facet filters applied, as facet:value-id.",
+     "items": {
+      "type": "string",
+      "description": "facet:value"
+     }
+    },
+    "unknownFilters": {
+     "type": "array",
+     "description": "facet:value tokens with a known facet but an unknown value; ignored.",
+     "items": {
+      "type": "string",
+      "description": "facet:value"
+     }
+    },
+    "emoji": {
+     "type": "array",
+     "description": "Best matches first: up to 60, or 200 with a pack filter.",
+     "items": {
+      "$ref": "#/components/schemas/EmojiHit"
+     }
+    },
+    "packs": {
+     "type": "array",
+     "description": "Packs with matches, best first.",
+     "items": {
+      "type": "object",
+      "properties": {
+       "name": {
+        "$ref": "#/components/schemas/PackName"
+       },
+       "score": {
+        "type": "number"
+       },
+       "hits": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Matching emoji in the pack."
+       },
+       "facets": {
+        "$ref": "#/components/schemas/FacetMap"
+       },
+       "pageUrl": {
+        "type": "string",
+        "description": "Library page of the pack, relative to the site."
+       }
+      },
+      "required": [
+       "name",
+       "score",
+       "hits",
+       "facets",
+       "pageUrl"
+      ]
+     }
+    },
+    "suggest": {
+     "type": "object",
+     "properties": {
+      "complete": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "description": "A completed query."
+       }
+      },
+      "related": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "description": "A tag that comes up often in the results."
+       }
+      },
+      "categories": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "description": "A matching library category."
+       }
+      },
+      "didYouMean": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "description": "A corrected query when nothing matched."
+      }
+     },
+     "required": [
+      "complete",
+      "related",
+      "categories",
+      "didYouMean"
+     ]
+    },
+    "total": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "Emoji matches before truncation."
+    }
+   },
+   "required": [
+    "ok",
+    "taxonomy",
+    "generated",
+    "query",
+    "filters",
+    "unknownFilters",
+    "emoji",
+    "packs",
+    "suggest",
+    "total"
+   ]
+  },
+  "PackResponse": {
+   "type": "object",
+   "properties": {
+    "ok": {
+     "const": true
+    },
+    "taxonomy": {
+     "$ref": "#/components/schemas/TaxonomyVersion"
+    },
+    "generated": {
+     "$ref": "#/components/schemas/Generated"
+    },
+    "name": {
+     "$ref": "#/components/schemas/PackName"
+    },
+    "title": {
+     "type": "string",
+     "description": "Pack title in Telegram."
+    },
+    "emoji": {
+     "type": "array",
+     "description": "Up to 200 emoji, in pack order. facets on each only for a catalog pack.",
+     "items": {
+      "$ref": "#/components/schemas/PackEmoji"
+     }
+    },
+    "facets": {
+     "oneOf": [
+      {
+       "$ref": "#/components/schemas/FacetMap"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "description": "Pack tags; null for a pack outside the catalog."
+    },
+    "compatible": {
+     "$ref": "#/components/schemas/Compatible"
+    },
+    "look": {
+     "$ref": "#/components/schemas/Look"
+    },
+    "description": {
+     "$ref": "#/components/schemas/Description"
+    },
+    "pageUrl": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Library page, relative to the site; null for a pack outside the catalog."
+    },
+    "telegramUrl": {
+     "type": "string",
+     "description": "The pack's t.me/addemoji link.",
+     "format": "uri"
+    }
+   },
+   "required": [
+    "ok",
+    "taxonomy",
+    "generated",
+    "name",
+    "title",
+    "emoji",
+    "facets",
+    "compatible",
+    "pageUrl",
+    "telegramUrl"
+   ]
+  },
+  "ByIdResponse": {
+   "type": "object",
+   "properties": {
+    "ok": {
+     "const": true
+    },
+    "taxonomy": {
+     "$ref": "#/components/schemas/TaxonomyVersion"
+    },
+    "generated": {
+     "$ref": "#/components/schemas/Generated"
+    },
+    "emoji": {
+     "type": "array",
+     "description": "One entry per id Telegram knows; unknown ids are left out.",
+     "items": {
+      "type": "object",
+      "properties": {
+       "id": {
+        "$ref": "#/components/schemas/EmojiId"
+       },
+       "set": {
+        "$ref": "#/components/schemas/PackName"
+       },
+       "pageUrl": {
+        "type": [
+         "string",
+         "null"
+        ],
+        "description": "Library page of the emoji, relative to the site; null when its pack is not in the catalog."
+       },
+       "telegramUrl": {
+        "type": "string",
+        "description": "The pack's t.me/addemoji link.",
+        "format": "uri"
+       }
+      },
+      "required": [
+       "id",
+       "set",
+       "pageUrl",
+       "telegramUrl"
+      ]
+     }
+    }
+   },
+   "required": [
+    "ok",
+    "taxonomy",
+    "generated",
+    "emoji"
+   ]
+  },
+  "FacetsResponse": {
+   "type": "object",
+   "properties": {
+    "ok": {
+     "const": true
+    },
+    "generated": {
+     "$ref": "#/components/schemas/Generated"
+    },
+    "taxonomy": {
+     "type": "object",
+     "description": "The taxonomy. Its version is the `taxonomy` number of the other answers.",
+     "properties": {
+      "version": {
+       "$ref": "#/components/schemas/TaxonomyVersion"
+      },
+      "facets": {
+       "type": "object",
+       "propertyNames": {
+        "$ref": "#/components/schemas/FacetName"
+       },
+       "additionalProperties": {
+        "type": "object",
+        "properties": {
+         "label": {
+          "$ref": "#/components/schemas/Label"
+         },
+         "measured": {
+          "type": "boolean",
+          "description": "Measured from Telegram data or pixels rather than read from words."
+         },
+         "scope": {
+          "type": "array",
+          "description": "Whether packs, emoji or both carry this facet.",
+          "items": {
+           "type": "string",
+           "enum": [
+            "pack",
+            "emoji"
+           ]
+          }
+         },
+         "values": {
+          "type": "object",
+          "description": "Values by id.",
+          "additionalProperties": {
+           "$ref": "#/components/schemas/Label"
+          }
+         }
+        },
+        "required": [
+         "label",
+         "measured",
+         "scope",
+         "values"
+        ]
+       }
+      }
+     },
+     "required": [
+      "version",
+      "facets"
+     ]
+    },
+    "thresholds": {
+     "type": "object",
+     "description": "Confidence from which a tag counts for an emoji filter, a pack filter, and display.",
+     "properties": {
+      "emoji": {
+       "$ref": "#/components/schemas/Confidence"
+      },
+      "pack": {
+       "$ref": "#/components/schemas/Confidence"
+      },
+      "show": {
+       "$ref": "#/components/schemas/Confidence"
+      }
+     },
+     "required": [
+      "emoji",
+      "pack",
+      "show"
+     ]
+    },
+    "packs": {
+     "type": "array",
+     "description": "Every catalog pack.",
+     "items": {
+      "type": "object",
+      "properties": {
+       "name": {
+        "$ref": "#/components/schemas/PackName"
+       },
+       "category": {
+        "type": "string",
+        "description": "Library category."
+       },
+       "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Emoji in the pack."
+       },
+       "meanings": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Distinct ordinary emoji the pack stands for."
+       },
+       "facets": {
+        "$ref": "#/components/schemas/FacetMap"
+       },
+       "compatible": {
+        "$ref": "#/components/schemas/Compatible"
+       },
+       "look": {
+        "$ref": "#/components/schemas/Look"
+       },
+       "description": {
+        "$ref": "#/components/schemas/Description"
+       }
+      },
+      "required": [
+       "name",
+       "category",
+       "count",
+       "meanings",
+       "facets",
+       "compatible"
+      ]
+     }
+    }
+   },
+   "required": [
+    "ok",
+    "generated",
+    "taxonomy",
+    "thresholds",
+    "packs"
+   ]
+  },
+  "Label": {
+   "type": "object",
+   "properties": {
+    "en": {
+     "type": "string",
+     "description": "English label."
+    },
+    "ru": {
+     "type": "string",
+     "description": "Russian label."
+    }
+   },
+   "required": [
+    "en",
+    "ru"
+   ]
+  },
+  "CatalogLine": {
+   "type": "object",
+   "description": "One line of /emoji-library.ndjson.gz: one pack.",
+   "properties": {
+    "name": {
+     "$ref": "#/components/schemas/PackName"
+    },
+    "title": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Pack title, when the catalog data carries it; GET /api/emoji-pack/{name} always returns Telegram's title."
+    },
+    "category": {
+     "type": "string",
+     "description": "Library category."
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "meanings": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "facets": {
+     "$ref": "#/components/schemas/FacetMap"
+    },
+    "look": {
+     "$ref": "#/components/schemas/Look"
+    },
+    "description": {
+     "$ref": "#/components/schemas/Description"
+    },
+    "compatible": {
+     "$ref": "#/components/schemas/Compatible"
+    },
+    "emoji": {
+     "type": "array",
+     "description": "Every emoji of the pack.",
+     "items": {
+      "type": "object",
+      "properties": {
+       "id": {
+        "$ref": "#/components/schemas/EmojiId"
+       },
+       "codes": {
+        "type": "string",
+        "description": "The emoji's own tags: facet code, value and confidence x10, e.g. \"c:blue@9,white@6;s:outline@6\". Codes: c=color, f=fit, m=mood, p=palette, r=role, s=style, t=topic. An emoji without its own style or topic takes its pack's; motion and adaptivity come from Telegram (GET /api/emoji-pack/{name}).",
+        "pattern": "^(?:[a-z]:[^;@,]+@\\d+(?:,[^;@,]+@\\d+)*(?:;[a-z]:[^;@,]+@\\d+(?:,[^;@,]+@\\d+)*)*)?$"
+       }
+      },
+      "required": [
+       "id",
+       "codes"
+      ]
+     }
+    },
+    "taxonomy": {
+     "$ref": "#/components/schemas/TaxonomyVersion"
+    },
+    "generated": {
+     "$ref": "#/components/schemas/Generated"
+    }
+   },
+   "required": [
+    "name",
+    "title",
+    "category",
+    "count",
+    "meanings",
+    "facets",
+    "compatible",
+    "emoji",
+    "taxonomy",
+    "generated"
+   ]
+  }
+ }
+}

@@ -1,4 +1,23 @@
+---
+summary: "Measured anatomy of iOS 27 and Telegram screens (layout, lists, buttons, tab bar, sheets, alerts, empty states, fields) turned into rules; read to make a screen sit next to Telegram's own chrome."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # How iOS 27 and Telegram build screens: measured anatomy
+
+## Contents
+
+- [1. Layout: margins, safe areas, widths](#1-layout-margins-safe-areas-widths)
+- [2. Lists: rows, headers, footers](#2-lists-rows-headers-footers)
+- [3. Buttons](#3-buttons)
+- [4. Tab bar](#4-tab-bar)
+- [5. Sheets](#5-sheets)
+- [6. Alerts and dialogs](#6-alerts-and-dialogs)
+- [7. Empty states](#7-empty-states)
+- [8. Text fields](#8-text-fields)
+- [9. How Telegram composes Mini App screens (TgKit templates)](#9-how-telegram-composes-mini-app-screens-tgkit-templates)
+- [10. Checklist for a screen](#10-checklist-for-a-screen)
 
 What the two design sources actually do, measured component by component through the Figma MCP on
 **2026-11-24**, and the rule each measurement becomes in this skill. Use it to build a screen that sits next to

@@ -7,17 +7,17 @@ Skills for AI coding agents covering image optimization and media APIs.
 Any agent (Claude Code, Codex, Cursor, OpenCode, and others):
 
 ```bash
-npx skills add https://github.com/igorvaryvoda/image-optimization-skill
+npx skills add https://github.com/sirv/image-optimization-skill
 ```
 
 Claude Code plugin (all 8 skills, with updates):
 
 ```bash
-claude plugin marketplace add igorvaryvoda/image-optimization-skill
+claude plugin marketplace add sirv/image-optimization-skill
 claude plugin install sirv-media-skills@imageguide
 ```
 
-Or inside a session: `/plugin install sirv-media-skills --marketplace igorvaryvoda/image-optimization-skill`
+Or inside a session: `/plugin install sirv-media-skills --marketplace sirv/image-optimization-skill`
 
 Each skill includes `agents/openai.yaml` metadata for skill pickers. Core workflows also include `evals/evals.json` prompts that can be used to regression-test agent behavior.
 

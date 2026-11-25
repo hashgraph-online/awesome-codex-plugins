@@ -1,4 +1,21 @@
+---
+summary: "Keeping a Mini App current: materials as tokens, trend radar, web platform features in Telegram WebViews, handling platform redesigns; read when asked for glass, 'modern' or new CSS."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Materials, trends and platform change
+
+## Contents
+
+- [0. Taste over trend](#0-taste-over-trend)
+- [1. Three layers, three update speeds](#1-three-layers-three-update-speeds)
+- [2. Glass as a material system](#2-glass-as-a-material-system)
+- [3. Trend radar](#3-trend-radar)
+- [4. Web platform features inside Telegram's WebViews](#4-web-platform-features-inside-telegrams-webviews)
+- [5. When a platform ships something new](#5-when-a-platform-ships-something-new)
+- [6. Digging deeper](#6-digging-deeper)
+- [7. Checklist](#7-checklist)
 
 How to keep a Mini App current when Apple, Google and Telegram redesign their interfaces without chasing every
 fashion. It covers:

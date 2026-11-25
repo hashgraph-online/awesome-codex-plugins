@@ -1,8 +1,33 @@
+---
+summary: "Telegram side of TON wallet features: wallet card and sign_data queries, payment flow, signing verification, cards and transfers, TON addresses; read for wallet actions in widgets."
+verified: "2026-11-12"
+bot_api: "10.4"
+---
+
 # Wallet and TON features (Bot API 10.4)
 
 > Verified 2026-11-12 (Widgets guide "Payments with the wallet", `WidgetQueryType*`,
-> `TonWalletCard`, `TonWalletTransfer`, `MessageEntity`, `RichTextTonAddress`). This is the
-> Telegram side only — not a blockchain tutorial. Recipe: [07 wallet](../recipes/07-wallet.md).
+> `TonWalletCard`, `TonWalletTransfer`, `MessageEntity`, `RichTextTonAddress`); Gram and the
+> digital-goods rule re-checked 2026-11-23 (Bot API 10.5). This is the Telegram side only — not
+> a blockchain tutorial. Recipe: [07 wallet](../recipes/07-wallet.md). The whole pipeline for
+> both rails (states, refunds, reconciliation, screens): `payments-pipeline.md`.
+
+## Gram, and what it may be used for
+
+- **[News]** Toncoin was renamed **Gram** (announced 2026-06-02); the blockchain is still TON.
+  **[API]** The Bot API text says "TON grams" and **nanograms** (10⁻⁹): e.g.
+  `SuggestedPostPrice.currency` is `XTR` or `TON`, `amount` in Stars or nanograms. Older
+  material says "nanotons": the same unit. Label amounts for people with the unit their
+  wallet shows.
+- **[Official]** Digital goods and services inside Telegram are Stars-only; crypto is not
+  allowed for them. **[News, 2026-11-17]** Telegram reminded developers that subscriptions,
+  paid tools, AI model access and credits are Stars-only. So Gram is for physical goods,
+  donations and tips, payments between people and suggested posts; for a digital product
+  warn first and propose Stars (`payments-and-stars.md`, `check_rail()` in
+  `tgkit/payments.py`). Gram for a digital product only as the owner's explicit choice,
+  with the warning kept.
+- **[Official]** In production the wallet flow works in the private chat with the bot;
+  groups, inline and forwarded widgets are test-server only.
 
 ## What Telegram provides
 
@@ -41,6 +66,18 @@ currency code `"TON"` keep their name. Show amounts as `1.25 GRAM`
    answer or a state push says otherwise; never offer to pay again blindly.
 
 Telegram ↔ your bot ↔ the chain are three trust boundaries; only the chain proves a payment.
+
+## Refunds
+
+Telegram does not refund Gram: there is no `refundStarPayment` equivalent. A refund is an
+**outgoing transfer** from the bot's wallet **[H]**:
+- to the **sender address of the confirmed incoming transaction**, never to the profile wallet
+  card (the device wallet that paid may differ);
+- any amount up to the payment: partial refunds are possible, unlike Stars;
+- with a text comment `refund:<order>`, and confirmed on chain the same way as a payment
+  (`refund_sent` → `refund_confirmed`);
+- admin-only, with a confirmation that states the amount, the address (shortened) and that
+  the transfer cannot be recalled; journal who asked and who approved.
 
 ## Signing
 

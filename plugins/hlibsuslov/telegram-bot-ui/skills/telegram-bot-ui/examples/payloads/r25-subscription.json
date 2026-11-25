@@ -282,7 +282,14 @@
       "method": "answerCallbackQuery",
       "params": {
         "callback_query_id": "cqr",
-        "text": "Renewal is back on."
+        "text": "Done: now turn renewal back on in Telegram, in your Stars subscriptions."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqr3",
+        "text": "Done: now turn renewal back on in Telegram, in your Stars subscriptions."
       }
     },
     {
@@ -298,6 +305,60 @@
         "chat_id": 111111111,
         "parse_mode": "HTML",
         "text": "Pro renewed. Next payment <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8",
+        "text": "You turned renewal off in Telegram; turn it back on there, in your Stars subscriptions."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1006,
+        "text": "<b>Pro is active</b>\nRenewal is off: access ends <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Resume renewal",
+                "callback_data": "sb:6:resume",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>The renewal payment did not go through</b>\nPro stays on until <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>, then ends. Subscribe again to keep it."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Pro has ended</b>\nYour access ended <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>. Subscribe again to continue.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Subscribe ⭐ 150/month",
+                "url": "https://t.me/$sub111111111",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
       }
     },
     {
@@ -330,7 +391,7 @@
     {
       "method": "answerCallbackQuery",
       "params": {
-        "callback_query_id": "cq8",
+        "callback_query_id": "cq9",
         "text": "Продовження вимкнено. Доступ лишається до кінця періоду."
       }
     },
@@ -338,7 +399,7 @@
       "method": "editMessageText",
       "params": {
         "chat_id": 333333333,
-        "message_id": 1009,
+        "message_id": 1011,
         "text": "<b>Pro активний</b>\nПродовження вимкнено: доступ до <tg-time unix=\"1800878400\" format=\"d\">25.01.2027</tg-time>.",
         "reply_markup": {
           "inline_keyboard": [
@@ -346,25 +407,6 @@
               {
                 "text": "Відновити продовження",
                 "callback_data": "sb:3:resume",
-                "style": "primary"
-              }
-            ]
-          ]
-        },
-        "parse_mode": "HTML"
-      }
-    },
-    {
-      "method": "sendMessage",
-      "params": {
-        "chat_id": 111111111,
-        "text": "<b>Pro has ended</b>\nYour access ended <tg-time unix=\"1800446400\" format=\"d\">20.01.2027</tg-time>. Subscribe again to continue.",
-        "reply_markup": {
-          "inline_keyboard": [
-            [
-              {
-                "text": "Subscribe ⭐ 150/month",
-                "url": "https://t.me/$sub111111111",
                 "style": "primary"
               }
             ]

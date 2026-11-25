@@ -1,4 +1,23 @@
+---
+summary: "How a channel post should look and which Bot API format carries it: anatomy, format per post type, buttons, custom emoji, widgets, comments, DMs, reactions; read before designing channel posts."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Channel post design
+
+## Contents
+
+- [Anatomy of a good post](#anatomy-of-a-good-post)
+- [Choosing the format per post type](#choosing-the-format-per-post-type)
+- [Buttons in a channel post](#buttons-in-a-channel-post)
+- [Custom emoji in channel text](#custom-emoji-in-channel-text)
+- [When channels get widgets](#when-channels-get-widgets)
+- [Comments: the linked discussion group](#comments-the-linked-discussion-group)
+- [Channel direct messages and suggested posts](#channel-direct-messages-and-suggested-posts)
+- [Reactions](#reactions)
+- [Accessibility and localization](#accessibility-and-localization)
+- [Pre-publish checklist](#pre-publish-checklist)
 
 How a channel post should look and which Bot API format carries it. Pipeline (render,
 validate, publish once, edit, fan-out): `publishing-pipeline.md`. Channel rights, updates and

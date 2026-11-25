@@ -1,4 +1,24 @@
+---
+summary: "Mini App security contract: what the client controls, initData verification (token and Ed25519), freshness, sessions, storage, inputs, hosting, logging; read before writing a Mini App backend."
+verified: "2026-11-23"
+bot_api: "10.5"
+---
+
 # Mini App security: initData, sessions, inputs, hosting
+
+## Contents
+
+- [1. What the client controls](#1-what-the-client-controls)
+- [2. Verifying initData on your own server (bot token) [Official]](#2-verifying-initdata-on-your-own-server-bot-token-official)
+- [3. Verifying without the token (Ed25519, since 8.0) [Official]](#3-verifying-without-the-token-ed25519-since-80-official)
+- [4. Freshness: `auth_date`](#4-freshness-auth_date)
+- [5. After verification: the session](#5-after-verification-the-session)
+- [6. Where data lives on the device](#6-where-data-lives-on-the-device)
+- [7. Inputs that look harmless](#7-inputs-that-look-harmless)
+- [8. Hosting, headers and origins](#8-hosting-headers-and-origins)
+- [9. Telegram Serverless](#9-telegram-serverless)
+- [10. Logging and errors](#10-logging-and-errors)
+- [11. Checklist](#11-checklist)
 
 A Mini App is a public web page running on the user's device. Everything it sends to your server can be
 forged except the signature Telegram puts on `initData`. This page is the server's contract. Checked on
@@ -44,7 +64,9 @@ Rules on top **[Heuristic]**:
 
 ## 3. Verifying without the token (Ed25519, since 8.0) [Official]
 
-For a third party (a builder, an analytics or auth service) that knows only the `bot_id`:
+For a third party (a builder, an analytics or auth service) that knows only the `bot_id`. The version comes from
+the page's changelog (Bot API 8.0, November 17, 2024: third parties "are now able to validate it without knowing
+the App's bot token"); the `signature` row and the validation section carry no version mark of their own.
 
 - data-check-string = `"<bot_id>:WebAppData\n"` + every field **except `hash` and `signature`**, sorted,
   `key=value`, joined with `\n`.
@@ -57,13 +79,16 @@ For a third party (a builder, an analytics or auth service) that knows only the 
 
 Reference implementations without dependencies (Python stdlib with an RFC 8032 verifier, and
 `node:crypto`), with HMAC and Ed25519 test vectors, expiry and tampering tests, live in
-`examples/mini-apps/server/`. Library alternative for Node: `@tma.js/init-data` (the 4.x name of
-`@tma.js/init-data-node`; `validate`, `validate3rd`, `expiresIn`). **[Heuristic]**
+`examples/mini-apps/server/`. The vectors are self-made (a test token and a test Ed25519 seed): the code follows
+the official algorithm and the Ed25519 part passes the RFC 8032 vectors, but no Telegram-signed `initData` is in the
+repo, so agreement with a real one is **[Unverified]** until a test-environment capture is added. Library
+alternative for Node: `@tma.js/init-data` (the 4.x name of `@tma.js/init-data-node`; `validate`, `validate3rd`,
+`expiresIn`). **[Third-party]**
 
 ## 4. Freshness: `auth_date`
 
 Telegram sets no lifetime; it only says to check the field "to prevent the use of outdated data".
-**[Official]** `@tma.js/init-data` defaults to 24 hours. This skill's rule **[Heuristic]**:
+**[Third-party]** `@tma.js/init-data` defaults to 24 hours. This skill's rule **[Heuristic]**:
 
 | Action | Maximum age of `initData` |
 |---|---|
@@ -75,7 +100,11 @@ Telegram sets no lifetime; it only says to check the field "to prevent the use o
 ## 5. After verification: the session
 
 - Transport: send the raw string on every request as `Authorization: tma <initData>`, the convention of the
-  Mini Apps ecosystem (docs.telegram-mini-apps.com), not a Telegram requirement. **[Heuristic]**
+  Mini Apps ecosystem (docs.telegram-mini-apps.com), not a Telegram requirement. **[Third-party]** Telegram's own
+  script sends a different form for `WebApp.Serverless.call`: `'Authorization': 'TMA ' + window.btoa(webAppInitData)`
+  (uppercase scheme, base64 value; telegram-web-app.js, read 2026-11-25) **[Official]**. A server that may see
+  both reads the scheme case-insensitively and decodes a value without `hash=` as base64
+  (`fromAuthorization` in `server/ts/verifyInitData.ts`). **[Heuristic]**
 - Simplest correct model: verify `initData` on every request (it is one HMAC) and apply §4. **[Heuristic]**
 - For long sessions or step-up actions, exchange verified `initData` for your own short-lived token
   (15-60 min), bound to `user.id`, kept in memory (or `SecureStorage` on 9.0+ clients), never in

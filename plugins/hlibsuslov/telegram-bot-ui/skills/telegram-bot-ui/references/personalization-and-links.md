@@ -1,3 +1,9 @@
+---
+summary: "What the API gives about a user, safe display names, functional personalization, link surfaces and previews, mentions, deep links, in-message navigation; read when personalizing or linking."
+verified: "2026-11-22"
+bot_api: "10.5"
+---
+
 # Personalization and links
 
 Two adjacent surfaces that decide whether a bot feels *addressed to me* and

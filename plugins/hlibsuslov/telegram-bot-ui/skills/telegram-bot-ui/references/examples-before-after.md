@@ -1,4 +1,30 @@
+---
+summary: "Twenty worked before/after scenarios: text fixes, overloaded keyboards, colors and emoji, SDK gaps, product-playbook fixes, a premium pass; read for model answers to common UI requests."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Worked scenarios (before → after)
+
+## Contents
+
+- [1. Improve only the text — change no logic](#1-improve-only-the-text--change-no-logic)
+- [2. Rebuild an overloaded inline keyboard](#2-rebuild-an-overloaded-inline-keyboard)
+- [3. Add `primary`, `success`, and `danger`](#3-add-primary-success-and-danger)
+- [4. Custom emoji and color together](#4-custom-emoji-and-color-together)
+- [5. The `custom_emoji_id` is unknown](#5-the-custom_emoji_id-is-unknown)
+- [6. The SDK doesn't support Bot API 9.4 yet](#6-the-sdk-doesnt-support-bot-api-94-yet)
+- [7. When color and emoji should NOT be added](#7-when-color-and-emoji-should-not-be-added)
+- [8. Hidden sold-out items → disabled, with the reason (shop, recipe 20)](#8-hidden-sold-out-items--disabled-with-the-reason-shop-recipe-20)
+- [9. "Pay" sends a new invoice every tap → one invoice per cart revision (shop, recipe 20)](#9-pay-sends-a-new-invoice-every-tap--one-invoice-per-cart-revision-shop-recipe-20)
+- [10. Four onboarding messages → three skippable steps and a useful empty state (recipe 23)](#10-four-onboarding-messages--three-skippable-steps-and-a-useful-empty-state-recipe-23)
+- [11. A delete button on the settings root → confirm + undo window (recipe 24)](#11-a-delete-button-on-the-settings-root--confirm--undo-window-recipe-24)
+- [12. Toggle labels that state the action → labels that state the state (recipe 24)](#12-toggle-labels-that-state-the-action--labels-that-state-the-state-recipe-24)
+- [13. A typed date → date and slot pickers with taken slots disabled (booking, recipe 22)](#13-a-typed-date--date-and-slot-pickers-with-taken-slots-disabled-booking-recipe-22)
+- [14. Personal balances posted in the group → shared card + ephemeral panels (recipe 28)](#14-personal-balances-posted-in-the-group--shared-card--ephemeral-panels-recipe-28)
+- [15. A silent 20-second wait → a streamed answer with Stop, then feedback (AI, recipe 27)](#15-a-silent-20-second-wait--a-streamed-answer-with-stop-then-feedback-ai-recipe-27)
+- [16. "No results." → why, and the one tap that fixes it (search, recipe 63)](#16-no-results--why-and-the-one-tap-that-fixes-it-search-recipe-63)
+- [17-20. Premium pass on one bot (same data before and after)](#17-20-premium-pass-on-one-bot-same-data-before-and-after)
 
 Twenty situations that cover most real UI requests: 1-7 are single-screen fixes, 8-16 come
 from the product playbooks (recipes 20-29 and 60-69, `use-case-playbooks.md`, verified 2026-11-15

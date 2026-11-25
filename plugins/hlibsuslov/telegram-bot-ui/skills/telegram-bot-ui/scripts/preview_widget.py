@@ -116,7 +116,7 @@ var W = window.TelegramWidget = {
   __push: function(field, text){ if(cfg.place==="forward" && field==="chatData") return; W[field] = text; fire(field+"Changed"); },
   __answer: function(id, m){ var f = W.__pending[id]; delete W.__pending[id]; if(f) f(m); }
 };
-addEventListener("message", function(e){ var m = e.data||{}; if(m.k==="ans") W.__answer(m.id, m); if(m.k==="push") W.__push(m.field, m.text); if(m.k==="theme") fire("themeChanged"); });
+addEventListener("message", function(e){ if(e.source !== P) return; var m = e.data||{}; if(m.k==="ans") W.__answer(m.id, m); if(m.k==="push") W.__push(m.field, m.text); if(m.k==="theme") fire("themeChanged"); });
 setInterval(function(){ P.postMessage({k:"size", f:cfg.f, h:document.documentElement.scrollHeight, n:document.getElementsByTagName("*").length},"*"); }, 500);
 })();
 """
@@ -222,11 +222,12 @@ function answer(fr, m){
     (res.pushes||[]).forEach(function(p){ log("push", p.field+" r="+(JSON.parse(p.text||"{}").r)); fr.ifr.contentWindow.postMessage({k:"push", field:p.field, text:p.text}, "*"); });
     log("ans", (res.result||"null").slice(0,160)); send({result: res.result});
   };
-  if(SERVE){ fetch("/q", {method:"POST", body:JSON.stringify({widget:cur.name, data:m.data, frame:m.f, state:$("state").value})}).then(function(r){return r.json();}).then(function(res){ setTimeout(function(){ done(res); }, 250); }, function(){ send({code:"FAILED"}); }); return; }
+  if(SERVE){ fetch("/q", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({widget:cur.name, data:m.data, frame:m.f, state:$("state").value})}).then(function(r){return r.json();}).then(function(res){ setTimeout(function(){ done(res); }, 250); }, function(){ send({code:"FAILED"}); }); return; }
   var pre = (cur.answers[$("state").value]||{})[m.data];
   setTimeout(function(){ done(pre || {result: JSON.stringify({ok:false, err:"bad_request", msg:"(mock) no precomputed answer: run with --serve"})}); }, 250);
 }
-addEventListener("message", function(e){ var m = e.data||{}, fr = frames[m.f]; if(!fr) return;
+// Any window may postMessage here: act only on the iframe registered under m.f.
+addEventListener("message", function(e){ var m = e.data||{}, fr = frames[m.f]; if(!fr || e.source !== fr.ifr.contentWindow) return;
   if(m.k==="req") answer(fr, m);
   else if(m.k==="size"){ fr.nodes = m.n; setH(fr, m.h); }
   else if(m.k==="ready"){ setH(fr, m.h); }
@@ -337,6 +338,10 @@ def rebased(demo: dict, state: str, field: str) -> dict | None:
     return st
 
 
+MAX_BODY = 1 << 20  # one widget query is a few hundred bytes
+MAX_LIVE_BOTS = 256  # (widget, frame, state) bots kept; the oldest is dropped first
+
+
 class _Live:
     """Per-widget live bots for --serve: real handler, real state transitions."""
 
@@ -362,6 +367,8 @@ class _Live:
                 msg = bot.send(name, 111111111, state=state,
                                state_override=rebased(spec.demo, state, spec.field))
                 self.bots[key] = (t, bot, msg)
+                while len(self.bots) > MAX_LIVE_BOTS:  # frame and state come from the page
+                    del self.bots[next(iter(self.bots))]
             t, bot, msg = self.bots[key]
             self.n += 1
             mark = len(t.calls)
@@ -373,29 +380,66 @@ class _Live:
             return _result(sub)
 
 
-def serve(entries: list[dict], port: int) -> None:
+def make_server(entries: list[dict], port: int) -> ThreadingHTTPServer:
+    """The --serve server, same guards as the Studio: Host must be the loopback name and port
+    it is bound to (DNS rebinding), a POST must come from that origin with a JSON body of at
+    most MAX_BODY bytes, so another page in the browser can neither read nor drive it."""
     live = _Live(entries)
     html = page(entries, serve=True).encode("utf-8")
 
     class H(BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+        def _own(self) -> tuple[str, str]:
+            port = self.server.server_address[1]
+            return f"127.0.0.1:{port}", f"localhost:{port}"
+
+        def _send(self, status: int, body: bytes, ctype: str) -> None:
+            self.send_response(status)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
-            self.wfile.write(html)
+            self.wfile.write(body)
+
+        def _refuse(self, status: int, message: str) -> None:
+            self.close_connection = True  # the unread body must not be parsed as the next request
+            self._send(status, json.dumps({"error": message}).encode("utf-8"), "application/json")
+
+        def do_GET(self):
+            if self.headers.get("Host") not in self._own():
+                return self._refuse(421, "unexpected Host")
+            self._send(200, html, "text/html; charset=utf-8")
 
         def do_POST(self):
-            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
-            data = json.dumps(live.ask(body)).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(data)
+            if self.headers.get("Host") not in self._own():
+                return self._refuse(421, "unexpected Host")
+            if self.headers.get("Origin") not in tuple(f"http://{h}" for h in self._own()):
+                return self._refuse(403, "cross-origin request")
+            if not (self.headers.get("Content-Type") or "").startswith("application/json"):
+                return self._refuse(415, "Content-Type must be application/json")
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                return self._refuse(400, "bad Content-Length")
+            if not 0 <= n <= MAX_BODY:
+                return self._refuse(413, f"body over {MAX_BODY} bytes")
+            try:
+                body = json.loads(self.rfile.read(n) or b"{}")
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return self._refuse(400, "body is not JSON")
+            if not (isinstance(body, dict) and isinstance(body.get("widget"), str)
+                    and isinstance(body.get("data"), str)
+                    and all(isinstance(body.get(k, ""), str) for k in ("frame", "state"))):
+                return self._refuse(400, "expected {widget, data, frame?, state?} strings")
+            self._send(200, json.dumps(live.ask(body)).encode("utf-8"), "application/json")
 
         def log_message(self, *args):
             pass
 
-    srv = ThreadingHTTPServer(("127.0.0.1", port), H)
+    return ThreadingHTTPServer(("127.0.0.1", port), H)
+
+
+def serve(entries: list[dict], port: int) -> None:
+    srv = make_server(entries, port)
     print(f"preview (MOCK runtime) on http://127.0.0.1:{port}/  - Ctrl+C to stop")
     try:
         srv.serve_forever()

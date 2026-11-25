@@ -1,0 +1,2 @@
+# bot-ui writes LF; keep it LF in every checkout (the revision ignores CRLF either way).
+* text=auto eol=lf

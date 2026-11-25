@@ -75,7 +75,9 @@
    **Prepare one ordered list of references.** Keep the retrieval order within each section.
    Each record has `section` (`code` for Relevant code, `test_exemplars` for Test exemplars),
    the exact relative `path`, a positive integer `line` from the visible numbered snippet, and a
-   single-line `reason` explaining why it directly informs the task. Include the blast radius for
+   single-line `reason` explaining why it directly informs the task. Copy the path from the
+   parenthesized `(path:first-last)` range in the fragment header. The preceding `path#symbol`
+   is the node identifier. Include the blast radius for
    code or the useful test pattern where relevant. An optional `role` (`edit` or `read`) adds
    context to the reason. Apply the same relevance test and grounding to every reference,
    regardless of role.

@@ -1,3 +1,9 @@
+---
+summary: "What animation means in a bot: draft streaming and Stop, edit-based progress bars, the native button loader, chat actions, operation lifecycle; read when a bot feels frozen or streams answers."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Dynamic feedback: streaming, progress, and loaders
 
 A bot cannot animate arbitrary UI frame by frame. What "animation" actually

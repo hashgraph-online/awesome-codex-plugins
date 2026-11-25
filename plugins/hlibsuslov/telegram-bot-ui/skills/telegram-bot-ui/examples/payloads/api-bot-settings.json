@@ -1,0 +1,203 @@
+{
+  "scenario": "api-bot-settings",
+  "status": "production (destructive and one-off calls are recorded requests, never sent)",
+  "context": "bot-wide settings (no chat needed); menu button per private chat; callback answers from any chat with an inline keyboard",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "getMe",
+      "params": {}
+    },
+    {
+      "method": "setMyCommands",
+      "_context": "private, group or supergroup scopes; scope chat and chat_member need such a chat_id (channels and channel direct messages chats aren't supported)",
+      "params": {
+        "commands": [
+          {
+            "command": "start",
+            "description": "Open the main menu"
+          },
+          {
+            "command": "orders",
+            "description": "Your orders"
+          },
+          {
+            "command": "help",
+            "description": "How it works"
+          }
+        ],
+        "scope": {
+          "type": "all_private_chats"
+        },
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "getMyCommands",
+      "_context": "same scopes as setMyCommands; an unset scope answers with an empty list",
+      "params": {
+        "scope": {
+          "type": "all_private_chats"
+        },
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "deleteMyCommands",
+      "_context": "same scopes as setMyCommands; broader lists apply to the affected users afterwards",
+      "params": {
+        "scope": {
+          "type": "all_group_chats"
+        },
+        "language_code": "de"
+      }
+    },
+    {
+      "method": "setMyName",
+      "params": {
+        "name": "Pizza Place Orders",
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "getMyName",
+      "params": {
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "setMyDescription",
+      "params": {
+        "description": "I take pizza orders and tell you where they are. Send /start to begin.",
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "getMyDescription",
+      "params": {
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "setMyShortDescription",
+      "params": {
+        "short_description": "Order pizza and follow it to your door",
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "getMyShortDescription",
+      "params": {
+        "language_code": "en"
+      }
+    },
+    {
+      "method": "setChatMenuButton",
+      "_context": "chat_id of a private chat; without it the default menu button changes",
+      "params": {
+        "chat_id": 111111111,
+        "menu_button": {
+          "type": "web_app",
+          "text": "Open shop",
+          "web_app": {
+            "url": "https://example.com/shop"
+          }
+        }
+      }
+    },
+    {
+      "method": "getChatMenuButton",
+      "_context": "chat_id of a private chat; without it the default menu button is returned",
+      "params": {
+        "chat_id": 111111111
+      }
+    },
+    {
+      "method": "setMyDefaultAdministratorRights",
+      "_context": "suggestion for groups and supergroups (for_channels true: channels); users may change the rights before adding the bot",
+      "params": {
+        "rights": {
+          "is_anonymous": false,
+          "can_manage_chat": true,
+          "can_delete_messages": true,
+          "can_manage_video_chats": false,
+          "can_restrict_members": true,
+          "can_promote_members": false,
+          "can_change_info": false,
+          "can_invite_users": false,
+          "can_post_stories": false,
+          "can_edit_stories": false,
+          "can_delete_stories": false,
+          "can_send_welcome_messages": false,
+          "can_pin_messages": true
+        },
+        "for_channels": false
+      }
+    },
+    {
+      "method": "getMyDefaultAdministratorRights",
+      "_context": "for_channels true reads the channel rights, otherwise groups and supergroups",
+      "params": {
+        "for_channels": false
+      }
+    },
+    {
+      "method": "setMySettings",
+      "params": {
+        "supports_inline_queries": true,
+        "inline_query_placeholder": "Search orders...",
+        "has_topics_enabled": true,
+        "has_topic_sidebar": true,
+        "callback_query_mode": "auto"
+      }
+    },
+    {
+      "method": "setMyProfilePhoto",
+      "_context": "multipart/form-data upload: the file travels in the form field named in attach://; a profile photo can't be reused by id or URL",
+      "params": {
+        "photo": {
+          "type": "static",
+          "photo": "attach://bot_avatar"
+        }
+      }
+    },
+    {
+      "method": "removeMyProfilePhoto",
+      "params": {}
+    },
+    {
+      "method": "answerCallbackQuery",
+      "_context": "any chat where the bot sent an inline keyboard or rich message with a callback button",
+      "params": {
+        "callback_query_id": "4382000000000000101",
+        "text": "Order confirmed"
+      }
+    },
+    {
+      "method": "savePreparedKeyboardButton",
+      "_context": "for a Mini App user; the button must be request_users, request_chat or request_managed_bot",
+      "params": {
+        "user_id": 111111111,
+        "button": {
+          "text": "Choose a group",
+          "request_chat": {
+            "request_id": 7,
+            "chat_is_channel": false,
+            "bot_is_member": true
+          }
+        }
+      }
+    },
+    {
+      "method": "logOut",
+      "_context": "one-off, cloud Bot API server only: run once before moving the bot to a local server; no login back to the cloud server for 10 minutes",
+      "params": {}
+    },
+    {
+      "method": "close",
+      "_context": "one-off, local Bot API server: run once before moving the bot to another local server; delete the webhook first; error 429 in the first 10 minutes after launch",
+      "params": {}
+    }
+  ]
+}

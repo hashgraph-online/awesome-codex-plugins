@@ -1,3 +1,9 @@
+---
+summary: "Verification log: primary sources, facts verified per date, stable historical facts, guidance that is not an API rule, sections to re-review on each release; read to check whether a fact is current."
+verified: "2026-11-25"
+bot_api: "10.5"
+---
+
 # Official sources and verification log
 
 > **Last verification: 2026-11-22.** Verified against **Bot API 10.5 (released
@@ -6,6 +12,22 @@
 > snapshotted in `data/bot-api/` (see `api-catalog.md`). Before version-dependent work, re-check the changelog for a newer
 > version and update this file. Updating these references is part of maintaining the skill —
 > no separate permission step is needed when the task is to update the skill.
+
+## Contents
+
+- [How to keep this current](#how-to-keep-this-current)
+- [Machine-readable snapshot (2026-11-22)](#machine-readable-snapshot-2026-11-22)
+- [Primary sources (source of truth)](#primary-sources-source-of-truth)
+- [Facts verified on 2026-08-05 (UI surface)](#facts-verified-on-2026-08-05-ui-surface)
+- [Facts verified on 2026-07-15](#facts-verified-on-2026-07-15)
+- [Source priority and what is not a source](#source-priority-and-what-is-not-a-source)
+- [Facts verified on 2026-11-25](#facts-verified-on-2026-11-25)
+- [Facts verified on 2026-11-22 (Bot API 10.5)](#facts-verified-on-2026-11-22-bot-api-105)
+- [Facts verified on 2026-11-12 (Bot API 10.3 and 10.4)](#facts-verified-on-2026-11-12-bot-api-103-and-104)
+- [Stable historical facts (pre-2026, unchanged)](#stable-historical-facts-pre-2026-unchanged)
+- [Design guidance that is NOT an API constraint](#design-guidance-that-is-not-an-api-constraint)
+- [Community skills reviewed (2026-11-22)](#community-skills-reviewed-2026-11-22)
+- [Sections to re-review on each Telegram release](#sections-to-re-review-on-each-telegram-release)
 
 ## How to keep this current
 
@@ -45,7 +67,7 @@ defines `can_edit_name` / `can_edit_username` / `can_edit_bio`
 
 | Source | URL | Purpose | Last checked |
 |---|---|---|---|
-| Telegram Bot API | https://core.telegram.org/bots/api | Object/method specs, formatting options | 2026-11-15 |
+| Telegram Bot API | https://core.telegram.org/bots/api | Object/method specs, formatting options | 2026-11-25 |
 | Bot API changelog | https://core.telegram.org/bots/api-changelog | Version history, what changed when | 2026-11-15 |
 | `InlineKeyboardButton` | https://core.telegram.org/bots/api#inlinekeyboardbutton | Button fields, one-action rule, `style`, icon | 2026-08-05 |
 | `KeyboardButton` | https://core.telegram.org/bots/api#keyboardbutton | Reply-button fields, `style`, icon | 2026-08-05 |
@@ -59,7 +81,7 @@ defines `can_edit_name` / `can_edit_username` / `can_edit_bio`
 | Bot API formatting options | https://core.telegram.org/bots/api#formatting-options | HTML / MarkdownV2 / entity escaping rules | 2026-07-15 |
 | Styled text with entities | https://core.telegram.org/api/entities | Entity types, nesting rules | 2026-07-15 |
 | Rich Messages section | https://core.telegram.org/bots/api#rich-messages | Rich objects/methods | 2026-07-15 |
-| Rich message formatting options | https://core.telegram.org/bots/api#rich-message-formatting-options | Rich Markdown / Rich HTML / block syntax spec (linked from official blog) | 2026-07-15 |
+| Rich message formatting options | https://core.telegram.org/bots/api#rich-message-formatting-options | Rich Markdown / Rich HTML / block syntax spec (linked from official blog) | 2026-11-25 |
 | Official blog: Rich Text for Bots | https://telegram.org/blog/watch-apps-and-more#obscenely-rich-text-formatting-for-bots | Feature announcement, 32,768-char limit | 2026-07-15 |
 
 ## Facts verified on 2026-08-05 (UI surface)
@@ -77,7 +99,7 @@ Read directly from the pages listed above on 2026-08-05.
   private, group and supergroup chats if the owner of the bot has a Telegram
   Premium subscription."*
 - Same release, non-UI-critical but related: topics in private chats
-  (`createForumTopic`, `User.allows_users_to_create_topics`),
+  (`createForumTopic`, `User.allows_users_to_create_topics`, in `BotFullInfo` since 10.5),
   `setMyProfilePhoto` / `removeMyProfilePhoto`.
 
 **Field definitions** (object pages, verbatim):
@@ -147,7 +169,7 @@ Read directly from the pages listed above on 2026-08-05.
 Confirmed against official changelog / blog:
 
 - Rich Messages were introduced in **Bot API 10.1 (2026-06-11)**:
-  `RichMessage`, `RichText` (+23 `RichText*`), `RichBlock` (+`RichBlock*`),
+  `RichMessage`, `RichText` (+25 `RichText*`), `RichBlock` (+`RichBlock*`),
   `InputRichMessage`, `InputRichMessageContent`, `sendRichMessage`,
   `sendRichMessageDraft`, `editMessageText` `rich_message` param,
   `Message.rich_message`.
@@ -170,7 +192,45 @@ Confirmed against official changelog / blog:
   language, blockquote, and expandable blockquote. Blockquote/expandable cannot
   be nested; `code`/`pre` cannot contain other entities.
 - `link_preview_options` fields: `is_disabled`, `url`, `prefer_small_media`,
-  `show_above_text`.
+  `prefer_large_media`, `show_above_text`.
+
+## Source priority and what is not a source
+
+When two sources disagree, the higher one wins; say which one a fact came from.
+
+1. Current official Telegram documentation: core.telegram.org/bots/api, /bots/api-changelog,
+   /bots/webapps, /api/bots/webapps, /bots/features, telegram.org/js/telegram-web-app.js.
+2. Official source code and specifications: tdlib/telegram-bot-api, the open clients
+   (Telegram Android, Telegram iOS, Telegram Desktop, Telegram Web A/K).
+3. Observed behaviour of current native clients (label **Observed**, with client and date).
+4. Official working bots and demos: @BotFather, @DurgerKingBot, @Stickers, @RichTextDemoBot.
+5. Current, maintained third-party libraries (TelegramUI, the telegram-mini-apps ecosystem, SDKs),
+   checked for licence, activity and the Bot API version they target; their behaviour is
+   **theirs**, not Telegram's.
+6. This skill's own conclusions, verified by its tests (label **Heuristic**).
+
+Not used as a reference corpus: the archive of the Telegram Mini App Contest 2023
+(`contest.com/mini-apps`). Those apps target WebApp versions before 7.x (no fullscreen, safe areas,
+`BottomButton`, `SecondaryButton`, device storage, emoji status), and the design advice drawn from
+them is out of date; never cite them as current practice. A live official demo beats an old
+screenshot of it; a client's source beats a blog post about it.
+
+## Facts verified on 2026-11-25
+
+| Source | URL | Used for |
+|---|---|---|
+| Bot API (live page, structural diff against the 2026-11-22 snapshot) | https://core.telegram.org/bots/api | still 10.5; only wording edits, no new methods, types or fields |
+| Rich HTML style, `<tg-button>` / `<tg-button-row>` | https://core.telegram.org/bots/api#rich-html-style | `bot_ui/rich.py`, `buttons-and-styles.md#buttons-inside-a-rich-message-the-lifecycle` |
+| Rich Markdown style (HTML tags allowed) | https://core.telegram.org/bots/api#rich-markdown-style | `telegram-capabilities.md` matrix: buttons and compact tables in Rich Markdown via HTML tags |
+| setMessageReaction, ReactionTypeEmoji | https://core.telegram.org/bots/api#setmessagereaction | `validate_payload.py` rules: the 73-emoji list, one reaction per bot, no paid reactions |
+| BotCommand, setMyCommands | https://core.telegram.org/bots/api#setmycommands | `validate_payload.py` command rules, `bot-commands.md` |
+
+Facts: Rich Markdown "can contain arbitrary HTML" and parses the Rich HTML tags, so in-document
+buttons and `<table compact>` work in Rich Markdown too (the earlier matrix said they did not). A
+button inside a document is changed only by re-sending the whole `rich_message`
+(`editMessageText`); there is no per-button edit. Unverified: whether `editMessageText` may turn a
+regular text message into a rich one and back (the docs don't forbid it; the bot-ui engine allows
+it and labels the result simulated).
 
 ## Facts verified on 2026-11-22 (Bot API 10.5)
 
@@ -240,7 +300,8 @@ Official Telegram open source / tooling for the newest API (checked 2026-11-12):
 - No official open-source example bot for 10.3-10.5 was found; SDK support is tracked in
   `sdk-compatibility.md`.
 
-SDK status verified 2026-11-12 (re-checked 2026-11-15: aiogram 3.32.0 and
+**[Third-party]** SDK status (from the SDK packages and their registry metadata, not a Telegram fact; evidence per
+row in `sdk-compatibility.md`) verified 2026-11-12 (re-checked 2026-11-15: aiogram 3.32.0 and
 node-telegram-bot-api 2.4.0 implement 10.4): aiogram 3.31.0 (Bot API 10.3), grammY 1.46.0 /
 @grammyjs/types 5.0.0 (10.3), python-telegram-bot 22.8 (10.0 per its README).
 `sdk-compatibility.md#verified-sdk-status-2026-11-12`.

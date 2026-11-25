@@ -1,3 +1,9 @@
+---
+summary: "Steps to map how an unknown project builds its interface before changing anything: instructions, stack, UI touchpoints, classification, defects, UI map; read first in any existing repository."
+verified: "2026-11-15"
+bot_api: "10.5"
+---
+
 # Project adaptation (investigate before you change)
 
 This skill is project-agnostic. Before touching anything, build an accurate map

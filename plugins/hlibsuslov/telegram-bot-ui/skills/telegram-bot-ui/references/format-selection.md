@@ -1,3 +1,9 @@
+---
+summary: "Choosing the surface and format by what the reader must do: messages, rich messages, keyboards, widgets, Mini Apps, per-format guidance, anti-patterns; read before deciding how to send content."
+verified: "2026-11-12"
+bot_api: "10.4"
+---
+
 # Format and surface selection
 
 > Core rule: **pick the format by what the reader has to do with the content** — compare,

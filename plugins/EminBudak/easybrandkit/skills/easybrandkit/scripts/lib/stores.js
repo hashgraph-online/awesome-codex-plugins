@@ -5,22 +5,35 @@
 // listing's name, maker and description. The site links to them; these are
 // the pictures a mockup or a video of the app should use.
 //
-// It fetches only HTTPS URLs on the listed store, social and image hosts,
-// re-checks every redirect, refuses non-public addresses and caps each file
-// at 15 MB.
+// It fetches only HTTPS URLs on port 443 of the listed store, social and
+// image hosts, re-checks every redirect, refuses addresses that are not on
+// the public internet and those MAKERSMCP_REFUSE_ADDRESSES names (see
+// address.js), looks each host up once a run, by the run's own lookup,
+// connects only to the addresses it judged, through no proxy (see
+// dial.js), and caps each file at 15 MB.
 
 const fs = require("fs");
+const https = require("https");
 const path = require("path");
-const net = require("net");
-const { promises: dns } = require("dns");
+const zlib = require("zlib");
 const { timeLeft } = require("./time");
 const { noControls, plainText, noEndSlashes } = require("./text");
-const { ipv4Within } = require("./address");
+const { isPublicAddress, atRefused, awayWhy, mixedAnswers, guardFor } = require("./address");
+const { judgedRequest } = require("./dial");
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_SCREENSHOTS = 5;
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 
+// Pinterest's own hosts: pinterest.com with its country sites, as
+// uk.pinterest.com, and a list of the country domains that send their
+// visitors there with the path kept, as pinterest.co.uk and pinterest.be
+// do, each checked on 2026-11-20. A host such as pinterest.acme.example is
+// not one.
+const PINTEREST = [
+  /^([a-z]{2}\.|www\.)?pinterest\.com$/,
+  /^(www\.)?pinterest\.(at|be|ca|ch|cl|co|co\.in|co\.kr|co\.nz|co\.uk|com\.au|com\.bo|com\.ec|com\.mx|com\.pe|com\.py|com\.uy|com\.vn|de|dk|ec|es|fr|hu|id|ie|in|it|jp|kr|mx|nl|nz|pe|ph|pt|ru|se|th|tw|vn)$/,
+];
 const FETCH_HOSTS = [
   /^itunes\.apple\.com$/, /^apps\.apple\.com$/, /^[a-z0-9-]+\.mzstatic\.com$/,
   /^play\.google\.com$/, /^play-lh\.googleusercontent\.com$/, /^lh\d\.googleusercontent\.com$/,
@@ -29,7 +42,8 @@ const FETCH_HOSTS = [
   /^(www\.|m\.)?facebook\.com$/, /^(www\.)?linkedin\.com$/, /^media\.licdn\.com$/,
   /^(www\.)?(x|twitter)\.com$/, /^pbs\.twimg\.com$/,
   /^(www\.)?tiktok\.com$/, /^[a-z0-9.-]+\.tiktokcdn(-[a-z]+)?\.com$/,
-  /^(www\.)?threads\.(net|com)$/, /^(www\.)?pinterest\.[a-z.]+$/, /^i\.pinimg\.com$/,
+  /^(www\.)?threads\.(net|com)$/, /^i\.pinimg\.com$/,
+  ...PINTEREST,
 ];
 const PROFILE_HOSTS = [
   [/^(www\.)?instagram\.com$/, "instagram"],
@@ -39,7 +53,7 @@ const PROFILE_HOSTS = [
   [/^(www\.)?(x|twitter)\.com$/, "x"],
   [/^(www\.)?tiktok\.com$/, "tiktok"],
   [/^(www\.)?threads\.(net|com)$/, "threads"],
-  [/^(www\.)?pinterest\.[a-z.]+$/, "pinterest"],
+  ...PINTEREST.map((pattern) => [pattern, "pinterest"]),
 ];
 
 // What a link is: an App Store app, a Google Play app or a social profile.
@@ -79,82 +93,108 @@ function classify(raw) {
   return null;
 }
 
-// Whether an address is on the public internet. An IPv4 address in IPv6
-// form, mapped or reached through NAT64 as on a network with IPv6 only, is
-// as public as the IPv4 address it stands for.
-function isPublicAddress(address) {
-  const family = net.isIP(address);
-  const v4 = ipv4Within(address);
-  if (v4) return isPublicAddress(v4);
-  if (family === 4) {
-    const [a, b, c] = address.split(".").map(Number);
-    return !(
-      a === 0 || a === 10 || a === 127 || a >= 224 ||
-      (a === 100 && b >= 64 && b <= 127) ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 192 && b === 0 && (c === 0 || c === 2)) ||
-      (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
-      (a === 203 && b === 0 && c === 113)
-    );
-  }
-  if (family === 6) {
-    const normalized = address.toLowerCase();
-    const first = Number.parseInt(normalized.split(":")[0], 16);
-    return Number.isFinite(first) && first >= 0x2000 && first <= 0x3fff && !normalized.startsWith("2001:db8:");
-  }
-  return false;
-}
-
-async function checkFetchUrl(raw) {
+// The address of a store's page or picture, refused unless it is a plain
+// HTTPS address on a listed host, at addresses that are all on the public
+// internet, none of them this machine's own or one the run's rule refuses
+// (guard, see address.js), with the addresses its host was found at, which
+// its request connects to
+// (see get). The host is looked up by the run's own lookup, which asks the
+// DNS once a run for each name (guard.found): a name a page, a listing's
+// picture or a redirect names again is not looked up again.
+async function judgedFetch(raw, guard = null) {
   const url = new URL(raw);
   const host = url.hostname.toLowerCase();
   if (url.protocol !== "https:") throw new Error(`not HTTPS: ${raw}`);
   if (url.username || url.password || (url.port && url.port !== "443")) throw new Error(`not a plain URL: ${raw}`);
   if (!FETCH_HOSTS.some((pattern) => pattern.test(host))) throw new Error(`host not allowed: ${host}`);
-  const records = await dns.lookup(host, { all: true, verbatim: true });
-  if (!records.length || !records.every((record) => isPublicAddress(record.address))) {
-    throw new Error(`host does not resolve to a public address: ${host}`);
-  }
-  return url;
+  const rule = guard || guardFor(null);
+  const addresses = await rule.found(host);
+  if (!addresses.length) throw new Error(`host ${host} could not be looked up`);
+  const refused = addresses.map((address) => rule.refused.match(address)).find(Boolean);
+  if (refused) throw new Error(`host ${host} ${atRefused(refused)}`);
+  // Each address is on the public internet and none is this machine's own,
+  // as for any address the run was not given (see address.js awayWhy). A
+  // name whose answers mix is said to answer so, as in "host
+  // play.google.com answers with an address on the public internet, ...",
+  // where "host play.google.com is on a host whose name answers ..." said
+  // that the host is on a host.
+  const mixed = mixedAnswers(addresses);
+  if (mixed) throw new Error(`host ${host} ${mixed}`);
+  const away = awayWhy(addresses);
+  if (away) throw new Error(`host ${host} ${away}`);
+  return { url, addresses };
 }
 
-// GET with every redirect re-checked against the host list, a size cap and
+// The address alone, judged as above.
+async function checkFetchUrl(raw, guard = null) {
+  return (await judgedFetch(raw, guard)).url;
+}
+
+// The answer to a GET of url, connected to one of the addresses its host
+// was found and judged at, and to no other: the DNS is asked nothing again,
+// so a name whose next answer is another address still reaches none of
+// those, and no proxy the environment names is used (see dial.js).
+function answerOf(url, { headers, signal, addresses }) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers, signal, ...judgedRequest(url, () => addresses, { signal }) }, resolve);
+    req.on("error", reject);
+  });
+}
+
+// An answer's body, decompressed, failed past 15 MB.
+async function bodyOf(res, host) {
+  const coding = String(res.headers["content-encoding"] || "").trim().toLowerCase();
+  const decoder = coding === "gzip" || coding === "x-gzip" ? zlib.createGunzip() : coding === "deflate" ? zlib.createInflate() : coding === "br" ? zlib.createBrotliDecompress() : null;
+  if (!decoder && coding && coding !== "identity") throw new Error(`answered in an encoding the kit does not read (${coding.slice(0, 40)}): ${host}`);
+  const stream = decoder ? res.pipe(decoder) : res;
+  if (decoder) res.on("error", (err) => decoder.destroy(err));
+  const chunks = [];
+  let size = 0;
+  try {
+    for await (const chunk of stream) {
+      size += chunk.length;
+      if (size > MAX_BYTES) throw new Error(`larger than 15 MB: ${host}`);
+      chunks.push(chunk);
+    }
+  } finally {
+    res.destroy();
+    if (decoder) decoder.destroy();
+  }
+  return Buffer.concat(chunks);
+}
+
+// GET with every redirect re-checked against the host list and the run's
+// rule (guard), connected only to the addresses judged, with a size cap and
 // a timeout inside the run's deadline.
-async function get(raw, { binary = false, accept = "*/*" } = {}) {
+async function get(raw, { binary = false, accept = "*/*", guard = null } = {}) {
   let current = raw;
   for (let hop = 0; hop < 5; hop++) {
-    const url = await checkFetchUrl(current);
+    const { url, addresses } = await judgedFetch(current, guard);
     const left = timeLeft();
     if (left < 2_000) throw new Error("out of time");
     const wait = Math.min(25_000, left - 1_000);
+    const signal = AbortSignal.timeout(wait);
     try {
-      const res = await fetch(url, {
-        redirect: "manual",
-        headers: { "user-agent": UA, accept, "accept-language": "en-US,en;q=0.8" },
-        signal: AbortSignal.timeout(wait),
-      });
-      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
-        current = new URL(res.headers.get("location"), url).href;
+      const res = await answerOf(url, { headers: { "user-agent": UA, accept, "accept-language": "en-US,en;q=0.8", "accept-encoding": "gzip, deflate, br" }, signal, addresses });
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.destroy();
+        current = new URL(res.headers.location, url).href;
         continue;
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status} from ${url.hostname}`);
-      const declared = Number(res.headers.get("content-length") || 0);
-      if (declared > MAX_BYTES) throw new Error(`larger than 15 MB: ${url.hostname}`);
-      const chunks = [];
-      let size = 0;
-      for await (const chunk of res.body) {
-        size += chunk.length;
-        if (size > MAX_BYTES) throw new Error(`larger than 15 MB: ${url.hostname}`);
-        chunks.push(chunk);
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        res.destroy();
+        throw new Error(`HTTP ${res.statusCode} from ${url.hostname}`);
       }
-      const body = Buffer.concat(chunks);
-      return { body: binary ? body : body.toString("utf8"), type: res.headers.get("content-type") || "", url: url.href };
+      if (Number(res.headers["content-length"] || 0) > MAX_BYTES) {
+        res.destroy();
+        throw new Error(`larger than 15 MB: ${url.hostname}`);
+      }
+      const body = await bodyOf(res, url.hostname);
+      return { body: binary ? body : body.toString("utf8"), type: String(res.headers["content-type"] || ""), url: url.href };
     } catch (err) {
       // Told by the server that did not answer, not in the words of Node's
       // timer, which name nothing.
-      if (err.name === "TimeoutError") throw new Error(`${url.hostname} did not answer in ${Math.round(wait / 1_000)} s`);
+      if (signal.aborted) throw new Error(`${url.hostname} did not answer in ${Math.round(wait / 1_000)} s`);
       throw err;
     }
   }
@@ -310,21 +350,24 @@ function profilePlan(html) {
 // <type>-shot-01.png … <type>-profile.jpg. A source that cannot be read (a
 // login wall, a removed app) comes back with ok:false and the reason. A
 // picture that cannot be written, as on a full disk, fails the run instead:
-// what it has of the file would otherwise go into the kit.
-async function readSource(link, dir) {
+// what it has of the file would otherwise go into the kit. guard: the run's
+// rule for the addresses it opens, whose refused addresses are refused here
+// too, and whose lookup each host is found by; without one, the listing
+// gets a lookup of its own.
+async function readSource(link, dir, guard = guardFor(null)) {
   const source = { type: link.type, url: link.url, ok: false, assets: [] };
   let notWritten = null;
   try {
     let plan = null;
     if (link.type === "appstore") {
-      const lookup = async (country, lang) => appStorePlan(JSON.parse((await get(appStoreLookupUrl(link.id, country, lang), { accept: "application/json" })).body));
+      const lookup = async (country, lang) => appStorePlan(JSON.parse((await get(appStoreLookupUrl(link.id, country, lang), { accept: "application/json", guard })).body));
       plan = await lookup(link.country, link.lang);
       if (!plan && link.lang) plan = await lookup(link.country, "");
       if (!plan && link.country !== "us") plan = await lookup("us", "");
     } else if (link.type === "googleplay") {
-      plan = playPlan((await get(link.url, { accept: "text/html" })).body);
+      plan = playPlan((await get(link.url, { accept: "text/html", guard })).body);
     } else {
-      plan = profilePlan((await get(link.url, { accept: "text/html" })).body);
+      plan = profilePlan((await get(link.url, { accept: "text/html", guard })).body);
     }
     if (!plan) throw new Error("the page has no listing or profile data (removed, private or behind a login)");
     const { images, ...facts } = plan;
@@ -334,7 +377,7 @@ async function readSource(link, dir) {
       let body;
       let info;
       try {
-        ({ body } = await get(image.url, { binary: true, accept: "image/png,image/jpeg,image/webp,*/*;q=0.5" }));
+        ({ body } = await get(image.url, { binary: true, accept: "image/png,image/jpeg,image/webp,*/*;q=0.5", guard }));
         info = imageInfo(body);
       } catch {
         // One image that will not come is skipped; the rest still count.

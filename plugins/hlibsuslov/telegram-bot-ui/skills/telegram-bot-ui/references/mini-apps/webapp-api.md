@@ -1,4 +1,20 @@
+---
+summary: "The Telegram.WebApp client API grouped by task, with the version each member appeared in, events and launch parameters; read when calling any WebApp member or gating by version."
+verified: "2026-11-23"
+bot_api: "10.5"
+---
+
 # Telegram.WebApp: the client API by task
+
+## Contents
+
+- [1. Load the script and read the version](#1-load-the-script-and-read-the-version)
+- [2. Gate by version, degrade on purpose](#2-gate-by-version-degrade-on-purpose)
+- [3. Members by task](#3-members-by-task)
+- [4. Events worth handling](#4-events-worth-handling)
+- [5. Events and state](#5-events-and-state)
+- [6. Launch parameters](#6-launch-parameters)
+- [7. Not in this skill](#7-not-in-this-skill)
 
 A human-readable cut of `window.Telegram.WebApp`, grouped by what a screen needs, with the Bot API
 version each member appeared in and what to do on an older client. The full member list (286 fields,
@@ -15,7 +31,8 @@ py -3 scripts/webapp_lookup.py gates                           # everything that
 py -3 scripts/tg_api_lookup.py show WebApp.shareMessage        # the Bot API lookup falls back to it
 ```
 
-Labels: **[Official]** the Mini Apps page; **[API]** the Bot API page; **[Heuristic]** this skill's advice.
+Labels: **[Official]** the Mini Apps page; **[API]** the Bot API page; **[Heuristic]** this skill's advice;
+**[Unverified]** the page does not say: do not build on it.
 
 ## 1. Load the script and read the version
 
@@ -128,7 +145,9 @@ Prefer the colour keywords: they follow theme changes by themselves. A literal c
 | `WebApp.MainButton` | 6.0 | the screen's primary action |
 | `WebApp.SecondaryButton` | 7.10 | a second action next to it |
 | `BottomButton.setParams(params)` | 6.0 | `text`, `color`, `text_color`, `has_shine_effect`, `position`, `is_active`, `is_visible`; `icon_custom_emoji_id` since 9.5 |
+| `BottomButton.setText(text)` | 6.0 | the text alone; `setParams` sets it together with the rest |
 | `BottomButton.showProgress(leaveActive)` | 6.0 | for any action over ~300 ms |
+| `BottomButton.isProgressVisible` | 6.0 | read-only: the loading indicator is showing |
 | `BottomButton.hasShineEffect` | 7.10 | a shine animation; at most on one paid or final action |
 | `BottomButton.position` | 7.10 | `left`, `right`, `top`, `bottom`; secondary only, when both are visible |
 | `BottomButton.iconCustomEmojiId` | 9.5 | custom emoji before the text; there is **no** `style` field |
@@ -152,8 +171,16 @@ bottom buttons have only `color`, `textColor` and, since 9.5, `iconCustomEmojiId
 | `WebApp.CloudStorage` | 6.9 | per user, synced across devices: 1024 keys (1-128 chars `[A-Za-z0-9_-]`), value ≤ 4096 chars |
 | `WebApp.DeviceStorage` | 9.0 | per device, 5 MB per user per bot, like `localStorage` |
 | `WebApp.SecureStorage` | 9.0 | iOS Keychain / Android Keystore, 10 items: secrets and session tokens; `restoreItem` asks the user |
+| `CloudStorage.getItems(keys, callback)` | 6.9 | several values in one call: `callback(error, values)` |
+| `CloudStorage.removeItems(keys[, callback])` | 6.9 | several keys in one call: `callback(error, removed)`, `removed` a boolean |
+| `CloudStorage.getKeys(callback)` | 6.9 | every stored key: `callback(error, keys)` |
+| `SecureStorage.restoreItem(key[, callback])` | 9.0 | brings back a key this device had, after the user agrees: `callback(error, value)`; a refusal arrives as `error` |
 
-All three are asynchronous (callbacks). Which one for what: [security.md](security.md) §6.
+All three are asynchronous (callbacks): `error` is `null` on success. Which one for what:
+[security.md](security.md) §6. **[Official]** `SecureStorage.getItem` passes a third argument when the key is
+missing: whether `restoreItem` can bring it back on this device; offer the restore only then. **[Official]**/**[Heuristic]**
+The page calls `getItems`' result only "the values"; the kit (`store().getMany`) reads it as an object keyed
+by key and treats `''` as missing, like `getItem`. **[Unverified]**
 
 ### Device
 
@@ -214,7 +241,7 @@ How and when to use haptics, sensors, location, biometrics and the screen featur
 | `backButtonClicked` | 6.1 | pop the top layer: sheet first, then screen |
 | `settingsButtonClicked` | 6.1 | open the settings screen |
 | `invoiceClosed` | 6.1 | update the UI; the order is paid only when the bot gets `successful_payment` |
-| `popupClosed` | 6.2 | `button_id` or empty when dismissed |
+| `popupClosed` | 6.2 | `button_id`; `null` when closed without a button |
 | `activated`, `deactivated` | 8.0 | resume or pause timers, polling, video |
 | `safeAreaChanged`, `contentSafeAreaChanged` | 8.0 | CSS variables update; re-measure only JS layouts |
 | `fullscreenChanged`, `fullscreenFailed` | 8.0 | adjust layout; explain an `UNSUPPORTED` failure, never loop |
@@ -222,9 +249,83 @@ How and when to use haptics, sensors, location, biometrics and the screen featur
 | `writeAccessRequested`, `contactRequested` | 6.9 | `allowed` / `sent` or `cancelled`; no nagging after a cancel |
 | `fileDownloadRequested` | 8.0 | `downloading` or `cancelled` |
 
-All 44 events: `py -3 scripts/webapp_lookup.py show events`.
+All 44 events: `py -3 scripts/webapp_lookup.py show events`. What starts each one, its payload and the
+fallback: §5.
 
-## 5. Launch parameters
+## 5. Events and state
+
+Every handler gets the payload as its first argument; an event "with no parameters" means: read the object
+after it fires (`WebApp.isFullscreen` after `fullscreenChanged`, `Accelerometer.x` after
+`accelerometerChanged`). **[Official]** The kit's `tma.listen(name, handler)` types the payload, checks
+`isVersionAtLeast` against the event's version and returns the unsubscribe, or `null` where the event cannot
+arrive (older client, outside Telegram); `tma.dispose()` removes what is left. **[Heuristic]**
+
+- A client older than the event never sends it. Do not wait for it: take the method's callback where there is
+  one, else the fallback in the last column. **[Heuristic]**
+- Subscribe before calling the method that starts the event, unsubscribe when the screen goes. **[Heuristic]**
+- Where a method has both a callback and an event (`showPopup` and `popupClosed`, `requestWriteAccess` and
+  `writeAccessRequested`, `downloadFile` and `fileDownloadRequested`…), the page does not say which runs
+  first **[Unverified]**. Handle the outcome in one of them, not both. **[Heuristic]**
+- `requestChat` (9.6) has only its callback: the catalog lists no event for it. Below 9.6 the bot sends a
+  `request_chat` reply keyboard instead. **[Official]**/**[Heuristic]**
+
+### Events a method starts
+
+| Event | Since | Fires when | Payload | Older client **[Heuristic]** |
+|---|---|---|---|---|
+| `popupClosed` | 6.2 | the `showPopup` popup closes, after a button or a dismiss | `button_id`: the pressed button's `id`, `null` when none was pressed | `showPopup` throws: an in-content confirmation step |
+| `qrTextReceived` | 6.4 | the `showScanQrPopup` scanner reads a code with text, once per code | `data` | a field to type the code |
+| `scanQrPopupClosed` | 7.7 | the user closes the scanner (codes read before arrive first as `qrTextReceived`) | none | 6.4-7.6: no close signal; keep the typed fallback on screen |
+| `clipboardTextReceived` | 6.4 | `readTextFromClipboard` answers (attachment-menu apps, from a user action) | `data`: the text; `''` when the clipboard holds no text; `null` without access | a paste-friendly input |
+| `writeAccessRequested` | 6.9 | the `requestWriteAccess` popup is answered | `status`: `allowed` or `cancelled` | the bot writes only after the user has started it |
+| `contactRequested` | 6.9 | the `requestContact` popup is answered | `status`: `sent` or `cancelled` | the bot's `request_contact` keyboard button |
+| `emojiStatusAccessRequested` | 8.0 | the `requestEmojiStatusAccess` popup is answered (the page's text says "write permission", copied from `writeAccessRequested`) | `status`: `allowed` or `cancelled` | hide the action |
+| `emojiStatusSet` | 8.0 | `setEmojiStatus` set the status in its dialog | none | hide the action |
+| `emojiStatusFailed` | 8.0 | `setEmojiStatus` did not | `error`: `UNSUPPORTED`, `SUGGESTED_EMOJI_INVALID`, `DURATION_INVALID`, `USER_DECLINED`, `SERVER_ERROR`, `UNKNOWN_ERROR` | hide the action |
+| `fileDownloadRequested` | 8.0 | the user answers the `downloadFile` prompt | `status`: `downloading` or `cancelled` | the bot sends the file (`sendDocument`) |
+| `shareMessageSent` | 8.0 | the user shared the prepared message from `shareMessage` | none | `switchInlineQuery` (6.7) when the bot has inline mode |
+| `shareMessageFailed` | 8.0 | sharing failed or was declined | `error`: `UNSUPPORTED`, `MESSAGE_EXPIRED`, `MESSAGE_SEND_FAILED`, `USER_DECLINED`, `UNKNOWN_ERROR` | as above; `MESSAGE_EXPIRED`: ask the bot for a new id |
+| `mainButtonClicked` | 6.0 | a MainButton tap; `BottomButton.onClick(cb)` is an alias for `onEvent('mainButtonClicked', cb)`, one handler list | none | always present |
+| `secondaryButtonClicked` | 7.10 | a SecondaryButton tap | none | no SecondaryButton: a button in the content |
+
+### Device events
+
+| Event | Since | Fires when | Payload | Older client **[Heuristic]** |
+|---|---|---|---|---|
+| `biometricManagerUpdated` | 7.2 | the `BiometricManager` object changed: re-read its fields | none | the app's own sign-in |
+| `biometricAuthRequested` | 7.2 | `BiometricManager.authenticate` finishes | `isAuthenticated`; `biometricToken` when it is `true` | as above |
+| `biometricTokenUpdated` | 7.2 | `BiometricManager.updateBiometricToken` finishes (`''` removes the token) | `isUpdated` | as above |
+| `locationManagerUpdated` | 8.0 | the `LocationManager` object changed: re-read `isInited`, `isLocationAvailable`, `isAccessGranted` | none | a manual choice, or the bot's `request_location` button |
+| `locationRequested` | 8.0 | location data is requested (`LocationManager.getLocation`) | `locationData`: a `LocationData` | as above |
+| `accelerometerStarted`, `gyroscopeStarted`, `deviceOrientationStarted` | 8.0 | the sensor's `start(params)` succeeded; `*Changed` then fires at `refresh_rate` (20-1000 ms, default 1000; platforms may differ) | none | touch or buttons instead of motion |
+| `accelerometerStopped`, `gyroscopeStopped`, `deviceOrientationStopped` | 8.0 | the sensor's `stop()` finished | none | as above |
+| `accelerometerFailed`, `gyroscopeFailed`, `deviceOrientationFailed` | 8.0 | `start` failed | `error`: `UNSUPPORTED` | as above |
+
+**[Official]** for the triggers and payloads above. `LocationData` has `latitude` and `longitude`; `altitude`,
+`course`, `speed`, `horizontal_accuracy`, `vertical_accuracy`, `course_accuracy` (degrees) and
+`speed_accuracy` (m/s) are `null` when the device does not report them. **[Official]** The page does not say
+whether `locationRequested` fires when access is refused (the `getLocation` callback then gets `null`), nor
+which comes first for a sensor, the `start` callback's boolean or `*Started` / `*Failed` **[Unverified]**:
+take the result from the callback.
+
+### State fields
+
+| Field | Since | Changed by | Older client |
+|---|---|---|---|
+| `WebApp.isFullscreen` | 8.0 | `requestFullscreen`, `exitFullscreen`; re-read in `fullscreenChanged` | no fullscreen mode |
+| `WebApp.isOrientationLocked` | 8.0 | `lockOrientation`, `unlockOrientation`; no event | no lock |
+| `WebApp.isVerticalSwipesEnabled` | 7.7 | `enableVerticalSwipes`, `disableVerticalSwipes`; no event; the header swipe always works | swipes cannot be turned off |
+| `WebApp.isClosingConfirmationEnabled` | 6.2 | `enableClosingConfirmation`, `disableClosingConfirmation`; no event | no confirmation: save drafts as the user types |
+| `WebApp.headerColor` | 6.1 | `setHeaderColor`; `#RRGGBB` | `themeParams` |
+| `WebApp.backgroundColor` | 6.1 | `setBackgroundColor`; `#RRGGBB` | `themeParams.bg_color` |
+| `WebApp.bottomBarColor` | 7.10 | `setBottomBarColor`; `#RRGGBB` | `themeParams` |
+
+The fields and setters are **[Official]**; the fallbacks are **[Heuristic]**. The kit's `tma.state()` returns
+all seven, `null` for a field the client is older than or does not report. Whether a colour set by keyword
+(`bg_color`) changes its current value on `themeChanged` the page does not say **[Unverified]**: re-read it in
+that handler.
+
+## 6. Launch parameters
 
 Telegram passes launch parameters in `location.hash` (`tgWebAppData`, `tgWebAppVersion`, `tgWebAppPlatform`,
 `tgWebAppThemeParams`, `tgWebAppFullscreen`…) and `start_param` also as the `tgWebAppStartParam` query
@@ -232,7 +333,7 @@ parameter. **[Official]** A hash router can erase the hash before your code read
 line of your entry script. **[Heuristic]** Details and per-launch contents:
 [launch-and-lifecycle.md](launch-and-lifecycle.md).
 
-## 6. Not in this skill
+## 7. Not in this skill
 
 `telegram-web-app.js` also contains an undocumented camera and microphone bridge for iframe hosts
 (`web_app_request_media_access`). It is not on the official page; do not build on it. Use the standard

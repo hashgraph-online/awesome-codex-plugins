@@ -1,0 +1,363 @@
+{
+ "$comment": "Agent notes for update payloads, service messages and the remaining available types: what a bot receives in Update and Message fields and the objects nested in them. A union note covers its members; each event note lists its siblings in related. Shape and rules: scripts/api_notes.py. Every pitfall carries its source label; API means the catalog text quoted in cite, Official means the cited core.telegram.org page.",
+ "domain": "updates",
+ "notes": {
+  "MessageOrigin": {
+   "purpose": "Where a forwarded or externally replied message came from: a known user, a hidden user, a chat or a channel.",
+   "pitfalls": [
+    {"text": "Branch on type: only user has a User; hidden_user has just a name; chat and channel carry a Chat.", "source": "API", "cite": "MessageOriginHiddenUser.sender_user_name: Name of the user that sent the message originally"},
+    {"text": "Forwards carry Message.forward_origin; the forward_from* fields were replaced by it in 7.0.", "source": "Official", "cite": "https://core.telegram.org/bots/api-changelog#december-29-2023"},
+    {"text": "reply_to_message is only for the same chat and thread; other replies come as external_reply with their own origin.", "source": "API", "cite": "Message.reply_to_message: For replies in the same chat and message thread, the original message"},
+    {"text": "ExternalReplyInfo.chat and message_id exist only when the original chat is a supergroup or a channel.", "source": "API", "cite": "ExternalReplyInfo.message_id: Available only if the original chat is a supergroup or a channel."}
+   ],
+   "related": ["ExternalReplyInfo", "TextQuote", "ReplyParameters", "forwardMessage", "copyMessage"],
+   "since": "7.0",
+   "refs": ["references/channel-post-design.md#comments-the-linked-discussion-group"]
+  },
+  "MaybeInaccessibleMessage": {
+   "purpose": "A message the bot may no longer access: a full Message, or an InaccessibleMessage with only chat, message_id and date.",
+   "pitfalls": [
+    {"text": "Tell them apart by date: InaccessibleMessage.date is always 0.", "source": "API", "cite": "InaccessibleMessage.date: Always 0. The field can be used to differentiate regular and inaccessible messages."},
+    {"text": "Arrives in CallbackQuery.message, Message.pinned_message and poll option events: check before reading text or reply_markup.", "source": "API", "cite": "CallbackQuery.message: MaybeInaccessibleMessage; Message.pinned_message: MaybeInaccessibleMessage"},
+    {"text": "For an inaccessible callback message, answer the query and send a new message instead of editing.", "source": "Heuristic"}
+   ],
+   "related": ["CallbackQuery", "answerCallbackQuery", "PollOptionAdded"],
+   "since": "7.0",
+   "refs": ["references/bot-settings.md#callback-query-mode"]
+  },
+  "MessageReactionUpdated": {
+   "purpose": "Update.message_reaction: one user's or anonymous chat's reaction change on a message, as old and new lists.",
+   "pitfalls": [
+    {"text": "The bot must be an admin and list \"message_reaction\" in allowed_updates; an empty list leaves it out.", "source": "API", "cite": "Update.message_reaction: The bot must be an administrator in the chat and must explicitly specify \"message_reaction\" in the list of allowed_updates"},
+    {"text": "Not sent for reactions set by bots.", "source": "API", "cite": "Update.message_reaction: The update isn't received for reactions set by bots."},
+    {"text": "user is absent for anonymous reactions; actor_chat is set instead.", "source": "API", "cite": "actor_chat: The chat on behalf of which the reaction was changed, if the user is anonymous"},
+    {"text": "Anonymous-reaction messages send message_reaction_count (totals per ReactionCount): also opt-in, grouped, delayed up to a few minutes.", "source": "API", "cite": "Update.message_reaction_count: must explicitly specify \"message_reaction_count\" ... The updates are grouped and can be sent with delay up to a few minutes."}
+   ],
+   "related": ["MessageReactionCountUpdated", "ReactionCount", "ReactionType", "setMessageReaction", "getUpdates"],
+   "since": "7.0",
+   "refs": ["references/polls-checklists-and-reactions.md#reading", "references/updates-and-delivery.md#allowed_updates-is-sticky"]
+  },
+  "MessageGenerationStopped": {
+   "purpose": "Update.stopped_message_generation: the user pressed Stop on a streamed draft; draft_id says which one.",
+   "pitfalls": [
+    {"text": "Sent only for drafts streamed with can_stop: true.", "source": "API", "cite": "sendMessageDraft.can_stop: Pass True to show the user a button to stop further drafts. The bot will receive an Update “stopped_message_generation” if the user presses the button."},
+    {"text": "Stop generating for that draft_id; to keep the partial text, send it as a new message.", "source": "API", "cite": "sendMessageDraft.keep_on_stop: To fully preserve the partial draft, the bot should send it as a new message."},
+    {"text": "With an explicit allowed_updates list, add \"stopped_message_generation\" or it never arrives.", "source": "API", "cite": "getUpdates.allowed_updates: specify [\"message\", \"edited_channel_post\", \"callback_query\"] to only receive updates of these types"}
+   ],
+   "related": ["sendMessageDraft", "sendRichMessageDraft", "Update"],
+   "chat_types": ["private"],
+   "since": "10.3",
+   "refs": ["references/streaming-and-editing.md#receiving-the-stop-update", "references/streaming-and-editing.md#stop-can_stop-and-keep_on_stop"]
+  },
+  "BotSubscriptionUpdated": {
+   "purpose": "Update.subscription: a user's Stars subscription to the bot was canceled, re-enabled or failed to renew.",
+   "pitfalls": [
+    {"text": "state is canceled (user canceled), active (re-enabled) or failed (payment failed).", "source": "API", "cite": "state: Currently, it can be one of “canceled” if the user canceled the subscription, “active” if the user re-enabled a previously canceled subscription, or “failed” if payment for the subscription failed."},
+    {"text": "No charge id, only user and invoice_payload: make the payload identify the subscription.", "source": "API", "cite": "BotSubscriptionUpdated fields: user, invoice_payload, state"},
+    {"text": "With an explicit allowed_updates list, include \"subscription\".", "source": "API", "cite": "getUpdates.allowed_updates: specify [\"message\", \"edited_channel_post\", \"callback_query\"] to only receive updates of these types"}
+   ],
+   "related": ["createInvoiceLink", "editUserStarSubscription", "SuccessfulPayment"],
+   "since": "10.2",
+   "refs": ["references/payments-and-stars.md#subscriptions-bot-features"]
+  },
+  "VideoChatStarted": {
+   "purpose": "Service message Message.video_chat_started: a video chat began; siblings report scheduling, invites and the end.",
+   "pitfalls": [
+    {"text": "It holds no fields: test the key's presence ({} is falsy in Python).", "source": "API", "cite": "VideoChatStarted: Currently holds no information."},
+    {"text": "VideoChatScheduled.start_date is when an admin is supposed to start it, not a guarantee.", "source": "API", "cite": "start_date: Point in time (Unix timestamp) when the video chat is supposed to be started by a chat administrator"},
+    {"text": "VideoChatEnded.duration is in seconds.", "source": "API", "cite": "VideoChatEnded.duration: Video chat duration in seconds"}
+   ],
+   "related": ["VideoChatScheduled", "VideoChatEnded", "VideoChatParticipantsInvited", "Message"]
+  },
+  "ChatOwnerChanged": {
+   "purpose": "Service message Message.chat_owner_changed: the chat has a new owner; chat-level siblings report the owner leaving and timer changes.",
+   "pitfalls": [
+    {"text": "chat_owner_left (ChatOwnerLeft) is another event: its optional new_owner only takes over if the owner does not return.", "source": "API", "cite": "ChatOwnerLeft.new_owner: The user who will become the new owner of the chat if the previous owner does not return to the chat"},
+    {"text": "MessageAutoDeleteTimerChanged.message_auto_delete_time is in seconds.", "source": "API", "cite": "message_auto_delete_time: New auto-delete time for messages in the chat; in seconds"},
+    {"text": "Re-read the admin list after an ownership event if the bot relies on who the owner is.", "source": "Heuristic"}
+   ],
+   "related": ["ChatOwnerLeft", "MessageAutoDeleteTimerChanged", "getChatAdministrators", "ChatMemberUpdated"],
+   "since": "9.4",
+   "refs": ["references/chat-administration.md#member-updates"]
+  },
+  "BackgroundType": {
+   "purpose": "The kind of chat background in Message.chat_background_set (ChatBackground.type): fill, wallpaper, pattern or chat_theme.",
+   "pitfalls": [
+    {"text": "fill and pattern carry a BackgroundFill: solid (color), gradient (two colors and an angle) or freeform_gradient (3 or 4 colors); colors are RGB24 integers.", "source": "API", "cite": "BackgroundFillFreeformGradient.colors: A list of the 3 or 4 base colors that are used to generate the freeform gradient in the RGB24 format"},
+    {"text": "chat_theme has only theme_name, usually an emoji: no colors to read.", "source": "API", "cite": "BackgroundTypeChatTheme.theme_name: Name of the chat theme, which is usually an emoji"},
+    {"text": "wallpaper and pattern carry a Document: download it with getFile to show it.", "source": "API", "cite": "BackgroundTypeWallpaper.document: Document with the wallpaper"}
+   ],
+   "related": ["ChatBackground", "BackgroundFill", "Document", "getFile"],
+   "since": "7.3"
+  },
+  "Giveaway": {
+   "purpose": "Message.giveaway: a scheduled giveaway post; service messages report its creation and its result.",
+   "pitfalls": [
+    {"text": "Four fields: giveaway_created, giveaway (the post), giveaway_winners (public winners), giveaway_completed (no public winners).", "source": "API", "cite": "Message.giveaway_winners: A giveaway with public winners was completed; Message.giveaway_completed: Service message: a giveaway without public winners was completed"},
+    {"text": "GiveawayWinners.winners lists up to 100 users: use winner_count for the total.", "source": "API", "cite": "winners: List of up to 100 winners of the giveaway"},
+    {"text": "prize_star_count is only for Star giveaways, premium_subscription_month_count only for Premium ones.", "source": "API", "cite": "prize_star_count: for Telegram Star giveaways only; premium_subscription_month_count: for Telegram Premium giveaways only"},
+    {"text": "Message.boost_added (ChatBoostAdded.boost_count) is a separate service message about a user boosting the chat.", "source": "API", "cite": "Message.boost_added: Service message: user boosted the chat"}
+   ],
+   "related": ["GiveawayCreated", "GiveawayWinners", "GiveawayCompleted", "ChatBoostAdded", "ChatBoostSourceGiveaway"],
+   "since": "7.0"
+  },
+  "ChecklistTasksDone": {
+   "purpose": "Service message Message.checklist_tasks_done: checklist tasks were marked done or not done, by task id.",
+   "pitfalls": [
+    {"text": "Only task ids: read the tasks from checklist_message, which may be absent.", "source": "API", "cite": "checklist_message: Message opt | Message containing the checklist whose tasks were marked as done or not done"},
+    {"text": "Added tasks come as checklist_tasks_added with full ChecklistTask objects.", "source": "API", "cite": "ChecklistTasksAdded.tasks: List of tasks added to the checklist"},
+    {"text": "ChecklistTask.completion_date is 0 when not completed; completed_by_user or completed_by_chat says who did it.", "source": "API", "cite": "completion_date: Point in time (Unix timestamp) when the task was completed; 0 if the task wasn't completed"}
+   ],
+   "related": ["ChecklistTasksAdded", "ChecklistTask", "Checklist", "sendChecklist", "editMessageChecklist"],
+   "since": "9.1",
+   "refs": ["references/polls-checklists-and-reactions.md#checklists-business-accounts-91"]
+  },
+  "PollOptionAdded": {
+   "purpose": "Service message Message.poll_option_added: an option was added to a poll; poll_option_deleted reports removals.",
+   "pitfalls": [
+    {"text": "Key options by persistent_id, not by index: it survives additions and deletions.", "source": "API", "cite": "PollOption.persistent_id: Unique identifier of the option, persistent on option addition and deletion"},
+    {"text": "poll_message is optional and may be an InaccessibleMessage: check it before reading the poll.", "source": "API", "cite": "poll_message: MaybeInaccessibleMessage opt | Message containing the poll to which the option was added, if known."},
+    {"text": "PollOption.voter_count may be 0 when unknown.", "source": "API", "cite": "voter_count: Number of users who voted for this option; may be 0 if unknown"}
+   ],
+   "related": ["PollOptionDeleted", "PollOption", "Poll", "MaybeInaccessibleMessage", "sendPoll"],
+   "since": "9.6",
+   "refs": ["references/polls-checklists-and-reactions.md#receiving-results"]
+  },
+  "InputPollOptionMedia": {
+   "purpose": "Media for a poll option you send (InputPollOption.media); received options carry PollMedia.",
+   "pitfalls": [
+    {"text": "No audio or documents: PollMedia says they can't be received in a poll option.", "source": "API", "cite": "PollMedia.audio: currently, can't be received in a poll option"},
+    {"text": "A link is InputMediaLink {type: \"link\", url}; it comes back as PollMedia.link (Link).", "source": "API", "cite": "InputMediaLink.type: Type of the media, must be link"},
+    {"text": "InputMediaSticker: an HTTP URL works only for .WEBP; upload .TGS or .WEBM with attach://.", "source": "API", "cite": "media: pass an HTTP URL for Telegram to get a .WEBP sticker from the Internet, or pass “attach://<file_attach_name>” to upload a new .WEBP, .TGS, or .WEBM sticker"},
+    {"text": "PollMedia holds at most one media field.", "source": "API", "cite": "PollMedia: At most one of the optional fields can be present in any given object."}
+   ],
+   "related": ["InputPollOption", "sendPoll", "PollMedia", "Link"],
+   "since": "10.0",
+   "refs": ["references/polls-checklists-and-reactions.md#sending"]
+  },
+  "SuggestedPostPaid": {
+   "purpose": "Service message Message.suggested_post_paid: the channel was paid for a suggested post; siblings cover approval, decline and refund.",
+   "pitfalls": [
+    {"text": "currency XTR: Stars in star_amount; currency TON: amount in nanograms.", "source": "API", "cite": "amount: The amount of the currency that was received by the channel in nanograms; for payments in TON grams only"},
+    {"text": "SuggestedPostPrice.amount is in Stars (5-100000) or nanograms (10000000-10000000000000).", "source": "API", "cite": "SuggestedPostPrice.amount: price in Telegram Stars must be between 5 and 100000, and price in nanograms must be between 10000000 and 10000000000000"},
+    {"text": "Approval can fail for lack of user funds (suggested_post_approval_failed).", "source": "API", "cite": "SuggestedPostApprovalFailed: Currently, only caused by insufficient user funds at the time of approval."},
+    {"text": "A refund follows as suggested_post_refunded: reason post_deleted or payment_refunded.", "source": "API", "cite": "SuggestedPostRefunded.reason: one of “post_deleted” ... or “payment_refunded”"}
+   ],
+   "related": ["SuggestedPostApproved", "SuggestedPostApprovalFailed", "SuggestedPostDeclined", "SuggestedPostRefunded", "SuggestedPostPrice", "SuggestedPostInfo"],
+   "since": "9.2",
+   "refs": ["references/channel-post-design.md#channel-direct-messages-and-suggested-posts"]
+  },
+  "CommunityChatJoined": {
+   "purpose": "Service message Message.community_chat_joined: a user joined the chat from a community (a group of chats).",
+   "pitfalls": [
+    {"text": "Store Community.id as a 64-bit integer: it can exceed 32 bits.", "source": "API", "cite": "Community.id: This number may have more than 32 significant bits"},
+    {"text": "community_chat_added and community_chat_removed are about the chat or the bot itself; CommunityChatRemoved is empty, so test the key.", "source": "API", "cite": "CommunityChatRemoved: Describes a service message about a chat or a bot being removed from a community. Currently holds no information."}
+   ],
+   "related": ["Community", "CommunityChatAdded", "CommunityChatRemoved", "ChatFullInfo"],
+   "since": "10.3",
+   "refs": ["references/specialized-updates.md#community-joins"]
+  },
+  "GiftInfo": {
+   "purpose": "Service message Message.gift: a regular gift was sent or received; Message.gift_upgrade_sent reuses it for a later upgrade.",
+   "pitfalls": [
+    {"text": "With is_private, sender and text are for the receiver only: never repost them.", "source": "API", "cite": "is_private: True, if the sender and gift text are shown only to the gift receiver"},
+    {"text": "owned_gift_id is present only for gifts received on behalf of business accounts.", "source": "API", "cite": "owned_gift_id: only present for gifts received on behalf of business accounts"},
+    {"text": "convert_star_count is omitted when the gift can't be converted to Stars.", "source": "API", "cite": "convert_star_count: omitted if conversion to Telegram Stars is impossible"}
+   ],
+   "related": ["Gift", "GiftBackground", "UniqueGiftInfo", "convertGiftToStars", "upgradeGift"],
+   "since": "9.0",
+   "refs": ["references/gifts-and-stories.md#gift-service-messages", "references/specialized-updates.md#gift-text-and-privacy"]
+  },
+  "UniqueGiftInfo": {
+   "purpose": "Service message Message.unique_gift: a unique (collectible) gift was sent, received, upgraded or bought.",
+   "pitfalls": [
+    {"text": "origin is upgrade, transfer, resale, gifted_upgrade or offer; expect new values.", "source": "API", "cite": "origin: Currently, either “upgrade” ..., “transfer” ..., “resale” ..., “gifted_upgrade” ..., or “offer”"},
+    {"text": "last_resale_amount is Stars or nanograms, by last_resale_currency (XTR or TON).", "source": "API", "cite": "last_resale_amount: the price paid for the gift in either Telegram Stars or nanograms"},
+    {"text": "is_private: sender and text are for the receiver only.", "source": "API", "cite": "is_private: True, if the sender and gift text are shown only to the gift receiver"},
+    {"text": "transfer_star_count is omitted if the bot can't transfer the gift; a past next_transfer_date means it can now.", "source": "API", "cite": "next_transfer_date: If it is in the past, then the gift can be transferred now."}
+   ],
+   "related": ["UniqueGift", "UniqueGiftModel", "UniqueGiftSymbol", "UniqueGiftBackdrop", "UniqueGiftBackdropColors", "UniqueGiftColors", "transferGift"],
+   "since": "9.0",
+   "refs": ["references/gifts-and-stories.md#gift-service-messages", "references/specialized-updates.md#gift-text-and-privacy"]
+  },
+  "PaidMessagesWaived": {
+   "purpose": "Service message Message.paid_messages_waived: the sender used a link that lets them message the user without paying Stars.",
+   "pitfalls": [
+    {"text": "Empty object: test the key's presence ({} is falsy in Python).", "source": "API", "cite": "PaidMessagesWaived: Currently holds no information."},
+    {"text": "It is not a payment: don't thank the sender or grant paid access.", "source": "Heuristic"},
+    {"text": "Price changes come as paid_message_price_changed: Stars per message from non-admin users of the supergroup.", "source": "API", "cite": "PaidMessagePriceChanged.paid_message_star_count: The new number of Telegram Stars that must be paid by non-administrator users of the supergroup chat for each sent message"}
+   ],
+   "related": ["PaidMessagePriceChanged", "DirectMessagePriceChanged", "Message"],
+   "since": "10.4",
+   "refs": ["references/specialized-updates.md#paid-messages-waived"]
+  },
+  "DirectMessagesTopic": {
+   "purpose": "Message.direct_messages_topic: which topic of a channel's direct messages chat holds the message, and who created it.",
+   "pitfalls": [
+    {"text": "Reply with direct_messages_topic_id = topic_id: it is required when sending to a direct messages chat.", "source": "API", "cite": "sendMessage.direct_messages_topic_id: required if the message is sent to a direct messages chat"},
+    {"text": "topic_id can exceed 32 bits: store it as a 64-bit integer.", "source": "API", "cite": "topic_id: This number may have more than 32 significant bits"},
+    {"text": "The channel's price changes arrive as direct_message_price_changed; direct_message_star_count defaults to 0.", "source": "API", "cite": "DirectMessagePriceChanged.direct_message_star_count: Defaults to 0."}
+   ],
+   "related": ["DirectMessagePriceChanged", "Chat", "sendMessage", "SuggestedPostInfo"],
+   "since": "9.2",
+   "refs": ["references/topics-and-contexts.md#channel-direct-messages", "references/channel-post-design.md#channel-direct-messages-and-suggested-posts"]
+  },
+  "TonWalletCard": {
+   "purpose": "ChatFullInfo.ton_wallet_card: the TON wallet card shown to everyone on a user's profile.",
+   "pitfalls": [
+    {"text": "amount is a decimal string in the smallest units: parse it as a big integer.", "source": "API", "cite": "amount: String | Balance of the wallet, in the smallest units of the cryptocurrency, as a decimal number"},
+    {"text": "Stickers are NFTs placed by AreaPosition percentages; background_nft_address picks one sticker's colors, omitted means default.", "source": "API", "cite": "background_nft_address: Address of the NFT of one of the stickers, whose colors must be used for the card background; omitted if the default background must be used"},
+    {"text": "Message.ton_wallet_transfer (TonWalletTransfer): amount negative for outgoing, transaction_id may be empty, comment omitted if encrypted.", "source": "API", "cite": "TonWalletTransfer.amount: negative for outgoing transfers"},
+    {"text": "WidgetQueryWallet has public_key and state_init both or neither.", "source": "API", "cite": "state_init: omitted if and only if public_key is omitted"}
+   ],
+   "related": ["TonWalletCardSticker", "TonNft", "TonNftAttribute", "AreaPosition", "TonWalletTransfer", "WidgetQueryWallet"],
+   "chat_types": ["private"],
+   "since": "10.4",
+   "refs": ["references/wallet-and-ton.md#wallet-cards-and-transfers", "references/mini-apps/telegram-elements.md#t12-ton-wallet-card"]
+  },
+  "StoryAreaType": {
+   "purpose": "What a clickable area on a story does: location, suggested reaction, link, weather or unique gift.",
+   "pitfalls": [
+    {"text": "Per story: up to 10 location, 5 suggested reaction, 3 link, 3 weather and 1 unique gift area.", "source": "API", "cite": "StoryAreaTypeLocation: Currently, a story can have up to 10 location areas. (5, 3, 3 and at most 1 in the other types)"},
+    {"text": "StoryAreaTypeWeather.background_color is ARGB, not RGB.", "source": "API", "cite": "background_color: A color of the area background in the ARGB format"},
+    {"text": "Each StoryArea pairs a type with an AreaPosition in percentages of the media.", "source": "API", "cite": "AreaPosition.x_percentage: The abscissa of the area's center, as a percentage of the media or the card width"}
+   ],
+   "related": ["StoryArea", "AreaPosition", "LocationAddress", "postStory", "editStory"],
+   "refs": ["references/gifts-and-stories.md#stories-business-accounts-90", "references/specialized-updates.md#renamed-areaposition"]
+  },
+  "UsersShared": {
+   "purpose": "Service message Message.users_shared: users picked with a KeyboardButtonRequestUsers button; chat_shared is the chat version.",
+   "pitfalls": [
+    {"text": "Match request_id to the button: it is your signed 32-bit id, unique within the message.", "source": "API", "cite": "KeyboardButtonRequestUsers.request_id: Signed 32-bit identifier of the request that will be received back in the UsersShared object. Must be unique within the message."},
+    {"text": "A shared user_id or chat_id may be unusable unless the bot already knows that user or chat.", "source": "API", "cite": "SharedUser.user_id: The bot may not have access to the user and could be unable to use this identifier"},
+    {"text": "Names, username and photo come only if the button requested them.", "source": "API", "cite": "first_name: First name of the user, if the name was requested by the bot"},
+    {"text": "request_users, request_chat and request_poll (KeyboardButtonPollType: quiz, regular or any) work in private chats only.", "source": "API", "cite": "KeyboardButton.request_users: Available in private chats only."}
+   ],
+   "related": ["SharedUser", "ChatShared", "KeyboardButtonRequestUsers", "KeyboardButtonRequestChat", "KeyboardButtonPollType"],
+   "chat_types": ["private"],
+   "since": "7.0",
+   "refs": ["references/reply-keyboards.md#button-types-keyboardbutton"]
+  },
+  "WriteAccessAllowed": {
+   "purpose": "Service message Message.write_access_allowed: the user allowed the bot to write to them, and through which path.",
+   "pitfalls": [
+    {"text": "Four origins: from_request (requestWriteAccess), web_app_name (Mini App opened from a link), from_attachment_menu, inviter (owner invite).", "source": "API", "cite": "WriteAccessAllowed: after adding it to the attachment menu, launching a Web App from a link, or accepting an explicit request from a Web App sent by the method requestWriteAccess, or about a user being invited to the private chat with the bot by the owner of the bot"},
+    {"text": "inviter is the bot owner, who invites up to 10 users at once via https://t.me/botinvite/<bot_username>.", "source": "API", "cite": "inviter: Bot owners can invite up to 10 users at once by pressing the link https://t.me/botinvite/<bot_username>."}
+   ],
+   "related": ["LoginUrl", "WebAppData", "Message"],
+   "since": "6.4",
+   "refs": ["references/bot-settings.md#owner-invites-botinvite-links", "references/mini-apps/haptics-and-device.md#6-the-permission-pattern-location-biometrics-contact-write-access-emoji-status"]
+  },
+  "WebAppData": {
+   "purpose": "Service message Message.web_app_data: what a Mini App opened from a reply-keyboard web_app button sent to the bot.",
+   "pitfalls": [
+    {"text": "data and button_text can be forged by a bad client: validate them, never authorize on them.", "source": "API", "cite": "data: Be aware that a bad client can send arbitrary data in this field."},
+    {"text": "Only Mini Apps launched from a KeyboardButton can send it (up to 4096 bytes, then the app closes); inline-button Mini Apps use answerWebAppQuery.", "source": "Official", "cite": "https://core.telegram.org/bots/webapps#initializing-mini-apps"}
+   ],
+   "related": ["KeyboardButton", "WebAppInfo", "answerWebAppQuery", "WriteAccessAllowed"],
+   "chat_types": ["private"],
+   "since": "6.0",
+   "refs": ["references/mini-apps-bridge.md#launch-points-and-what-comes-back", "references/mini-apps-bridge.md#trusting-mini-app-data"]
+  },
+  "InlineKeyboardButton": {
+   "purpose": "One inline keyboard button: a label plus exactly one action field.",
+   "pitfalls": [
+    {"text": "Exactly one field besides text, icon_custom_emoji_id and style.", "source": "API", "cite": "InlineKeyboardButton: Exactly one of the fields other than text, icon_custom_emoji_id, and style must be used to specify the type of the button."},
+    {"text": "callback_data is 1-64 bytes; copy_text (CopyTextButton.text) 1-256 characters.", "source": "API", "cite": "callback_data: 1-64 bytes; CopyTextButton.text: 1-256 characters"},
+    {"text": "web_app: private chats with the bot only, not business or ephemeral messages; login_url: not in ephemeral messages.", "source": "API", "cite": "web_app: Available only in private chats between a user and the bot. Not supported for messages sent on behalf of a business account and ephemeral messages."},
+    {"text": "switch_inline_query* buttons fail in channel direct messages and business-account messages.", "source": "API", "cite": "switch_inline_query: Not supported for messages sent in channel direct messages chats and on behalf of a business account."},
+    {"text": "callback_game and pay must be the first button in the first row.", "source": "API", "cite": "pay: This type of button must always be the first button in the first row"}
+   ],
+   "related": ["InlineKeyboardMarkup", "CopyTextButton", "DisabledButton", "LoginUrl", "SwitchInlineQueryChosenChat", "WebAppInfo", "CallbackGame"],
+   "refs": ["references/inline-keyboards.md#button-types-exactly-one-per-button", "references/buttons-and-styles.md#disabled-buttons"]
+  },
+  "BusinessOpeningHours": {
+   "purpose": "ChatFullInfo.business_opening_hours: a business account's weekly opening hours in its own time zone.",
+   "pitfalls": [
+    {"text": "Intervals are minutes from Monday 00:00: opening_minute 0-7*24*60, closing_minute up to 8*24*60.", "source": "API", "cite": "opening_minute: The minute's sequence number in a week, starting on Monday ... 0 - 7 * 24 * 60; closing_minute: 0 - 8 * 24 * 60"},
+    {"text": "Minutes are in time_zone_name, not UTC.", "source": "API", "cite": "time_zone_name: Unique name of the time zone for which the opening hours are defined"},
+    {"text": "business_intro, business_location and business_opening_hours exist only in private chats with business accounts (getChat).", "source": "API", "cite": "ChatFullInfo.business_opening_hours: For private chats with business accounts, the opening hours of the business"}
+   ],
+   "related": ["BusinessOpeningHoursInterval", "BusinessIntro", "BusinessLocation", "ChatFullInfo", "getChat"],
+   "chat_types": ["private"],
+   "since": "7.2",
+   "refs": ["references/user-data.md#12-readable-by-api"]
+  },
+  "Birthdate": {
+   "purpose": "ChatFullInfo.birthdate: a user's day and month of birth, year optional, read with getChat on a private chat.",
+   "pitfalls": [
+    {"text": "year is optional: don't compute an age without it.", "source": "API", "cite": "Birthdate.year: Integer opt | Year of the user's birth"},
+    {"text": "A missing birthdate means hidden or not set: don't retry.", "source": "Heuristic"},
+    {"text": "getChat profile siblings: rating (UserRating; a negative level is likely reason for concern), location (ChatLocation, supergroups only), unique_gift_colors.", "source": "API", "cite": "UserRating.level: a negative level is likely reason for concern; ChatFullInfo.location: For supergroups, the location to which the supergroup is connected"}
+   ],
+   "related": ["UserRating", "ChatLocation", "UniqueGiftColors", "ChatFullInfo", "getChat"],
+   "chat_types": ["private"],
+   "since": "7.2",
+   "refs": ["references/user-data.md#12-readable-by-api"]
+  },
+  "ResponseParameters": {
+   "purpose": "The parameters of a failed response: retry_after for flood control, migrate_to_chat_id when a group became a supergroup.",
+   "pitfalls": [
+    {"text": "retry_after: wait that many seconds before repeating the request.", "source": "API", "cite": "retry_after: In case of exceeding flood control, the number of seconds left to wait before the request can be repeated"},
+    {"text": "migrate_to_chat_id: store the new supergroup id (64-bit) and retry with it.", "source": "API", "cite": "migrate_to_chat_id: The group has been migrated to a supergroup with the specified identifier."}
+   ],
+   "refs": ["references/updates-and-delivery.md#requests-and-responses", "references/errors-and-fallbacks.md#classify-the-failure-before-reacting"]
+  },
+  "VideoQuality": {
+   "purpose": "Another available encoding of a received video (Video.qualities), with its own file_id, size and codec.",
+   "pitfalls": [
+    {"text": "Each quality has its own file_id: pick by width, height and codec (h264, h265, av01) before getFile.", "source": "API", "cite": "codec: Codec that was used to encode the video, for example, “h264”, “h265”, or “av01”"},
+    {"text": "file_size can exceed 2^31: use a 64-bit integer.", "source": "API", "cite": "file_size: It can be bigger than 2^31"}
+   ],
+   "related": ["Video", "getFile"],
+   "since": "9.4",
+   "refs": ["references/media-and-files.md#downloading-getfile"]
+  },
+  "InputMediaVoiceNote": {
+   "purpose": "A voice message to send inside a Rich message: in InputRichBlockVoiceNote or as InputRichMessageMedia.media.",
+   "pitfalls": [
+    {"text": "type must be voice_note.", "source": "API", "cite": "type: Type of the media, must be voice_note"},
+    {"text": "In InputRichBlockVoiceNote its caption is ignored: caption the block instead.", "source": "API", "cite": "InputRichBlockVoiceNote.voice_note: The voice note. Caption is ignored."}
+   ],
+   "related": ["InputRichBlockVoiceNote", "InputRichMessageMedia", "sendVoice", "Voice"],
+   "since": "10.2",
+   "refs": ["references/rich-media.md#media-block-types-explicit-blocks"]
+  },
+  "PassportFile": {
+   "purpose": "A file of a Telegram Passport element (scans, selfie, translations): download it with getFile, then decrypt it.",
+   "pitfalls": [
+    {"text": "Files are encrypted: decrypt with the credentials from EncryptedCredentials; decrypted they are JPEG up to 10 MB.", "source": "API", "cite": "EncryptedPassportElement.files: Files can be decrypted and verified using the accompanying EncryptedCredentials. PassportFile: all Telegram Passport files are in JPEG format when decrypted and don't exceed 10MB."},
+    {"text": "files exists only for utility_bill, bank_statement, rental_agreement, passport_registration and temporary_registration.", "source": "API", "cite": "EncryptedPassportElement.files: available only for “utility_bill”, “bank_statement”, “rental_agreement”, “passport_registration” and “temporary_registration” types"}
+   ],
+   "related": ["EncryptedPassportElement", "EncryptedCredentials", "PassportData", "getFile", "setPassportDataErrors"]
+  },
+  "EmojiType": {
+   "purpose": "One emoji of a chat share theme (ChatShareThemeEmoji.emojis): a regular emoji or a custom emoji id.",
+   "pitfalls": [
+    {"text": "Branch on type: emoji carries the character, custom_emoji the custom_emoji_id; resolve it with getCustomEmojiStickers.", "source": "API", "cite": "EmojiTypeCustomEmoji.custom_emoji_id: Use getCustomEmojiStickers to get full information about the sticker."},
+    {"text": "A theme has 0-6 of them.", "source": "API", "cite": "ChatShareThemeEmoji.emojis: The emoji; 0-6 regular or custom emoji"}
+   ],
+   "related": ["ChatShareThemeEmoji", "getCustomEmojiStickers", "getChatShareThemeBackdrops"],
+   "since": "10.4",
+   "refs": ["references/specialized-updates.md#chat-share-themes"]
+  },
+  "PaidMedia": {
+   "purpose": "One item of paid media in PaidMediaInfo: a preview before purchase, else the photo, video or live photo.",
+   "pitfalls": [
+    {"text": "Branch on type: preview, photo, video, live_photo.", "source": "API", "cite": "PaidMediaPreview.type: always “preview”; PaidMediaLivePhoto.type: always “live_photo”"},
+    {"text": "A preview has no media, only optional width, height and duration as the sender defined them.", "source": "API", "cite": "PaidMediaPreview: The paid media isn't available before the payment."}
+   ],
+   "related": ["PaidMediaInfo", "sendPaidMedia", "InputPaidMedia", "PaidMediaPurchased", "TransactionPartnerUser"],
+   "since": "7.6",
+   "refs": ["references/payments-and-stars.md#paid-media"]
+  },
+  "ProximityAlertTriggered": {
+   "purpose": "Service message Message.proximity_alert_triggered: a user sharing a live location came within another user's alert distance.",
+   "pitfalls": [
+    {"text": "The alert comes from proximity_alert_radius (1-100000 m) on a live location in sendLocation or editMessageLiveLocation.", "source": "API", "cite": "sendLocation.proximity_alert_radius: For live locations, a maximum distance for proximity alerts about approaching another chat member, in meters. Must be between 1 and 100000 if specified."},
+    {"text": "traveler triggered it, watcher set it.", "source": "API", "cite": "traveler: User that triggered the alert; watcher: User that set the alert"}
+   ],
+   "related": ["sendLocation", "editMessageLiveLocation", "Location"]
+  }
+ }
+}

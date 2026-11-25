@@ -1,4 +1,25 @@
+---
+summary: "Layout rules L01-L25 for Mini App screens: card variants, image ratio, text order, lists, details, forms, booking, plans, dashboards, review; read when laying out or reviewing a screen."
+verified: "2026-11-24"
+bot_api: "10.5"
+---
+
 # Layout rules: where things go on a Mini App screen
+
+## Contents
+
+- [1. Card variants](#1-card-variants)
+- [2. Image ratio and position by content type (L02, L03, L04)](#2-image-ratio-and-position-by-content-type-l02-l03-l04)
+- [3. Text order in cards (L05, L06, L07, L08, L17, L18)](#3-text-order-in-cards-l05-l06-l07-l08-l17-l18)
+- [4. Card controls (L01, L19)](#4-card-controls-l01-l19)
+- [5. Lists and catalogues (L09, L10, L13, L14, L23, L24)](#5-lists-and-catalogues-l09-l10-l13-l14-l23-l24)
+- [6. Detail screens (L11, L12)](#6-detail-screens-l11-l12)
+- [7. Forms (L15)](#7-forms-l15)
+- [8. Booking and scheduling (L16)](#8-booking-and-scheduling-l16)
+- [9. Plans and pricing (L25)](#9-plans-and-pricing-l25)
+- [10. Dashboards (SaaS)](#10-dashboards-saas)
+- [11. Reviewing a screen](#11-reviewing-a-screen)
+- [12. Rule index](#12-rule-index)
 
 Where the image sits and in what ratio, the order of title, meta, price, rating and availability, which card
 variant a content type uses, how galleries, filters, forms, booking and plans are laid out. The rules have

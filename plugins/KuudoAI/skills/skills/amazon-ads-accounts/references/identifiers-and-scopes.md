@@ -118,6 +118,8 @@ The account query already returns `alternateIds`; a second lookup is unnecessary
 
 On a seller profile, `accountInfo.id` is the merchant ID that SP-API tools take as `sellerId`, which is the link between the two servers. This worked for one seller on 2026-11-02. Vendor and agency profiles hold an `ENTITY...` value there.
 
+When a tool asks for an entity ID, such as the `Amazon-Advertising-API-AdvertiserId` header on `amc_*` calls, take `entityId` from the account's `alternateIds` entry for that profile. A seller's `accountInfo.id` is not an entity ID. Measured on one identity on 2026-11-25: all 4 seller profiles differed from their `entityId`, all 11 vendor profiles matched it, and Amazon Marketing Cloud answered a seller's merchant ID with 403 `Unauthorized request.` and its `entityId` with the instance.
+
 ## When a profile looks missing
 
 `ac_listProfiles` covers only the identity's region, while `alternateIds` can list other regions, such as a GB profile on a North America identity. Check the account's `alternateIds` before concluding anything.

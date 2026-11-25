@@ -1,4 +1,23 @@
+---
+summary: "Business bots acting for a connected Telegram account: connection updates, rights, sending and reading, profile, gifts and Stars, state to keep; read when building for Business Mode."
+verified: "2026-11-15"
+bot_api: "10.4"
+---
+
 # Business accounts (business bots)
+
+## Contents
+
+- [Preconditions and availability](#preconditions-and-availability)
+- [Updates](#updates)
+- [State the server must keep](#state-the-server-must-keep)
+- [Rights (`BusinessBotRights`)](#rights-businessbotrights)
+- [Sending and reading on behalf of the account](#sending-and-reading-on-behalf-of-the-account)
+- [Managing the account profile](#managing-the-account-profile)
+- [Gifts and Stars of the business account](#gifts-and-stars-of-the-business-account)
+- [What the user (and the owner) see](#what-the-user-and-the-owner-see)
+- [Common mistakes](#common-mistakes)
+- [Error handling](#error-handling)
 
 A user connects your bot to their Telegram account (Settings → Telegram Business →
 Chatbots). The bot then receives that account's private chats and, within the

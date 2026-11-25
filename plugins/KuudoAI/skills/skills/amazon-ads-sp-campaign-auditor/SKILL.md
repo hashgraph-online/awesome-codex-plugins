@@ -1,11 +1,11 @@
 ---
 name: amazon-ads-sp-campaign-auditor
 description: Use when auditing Sponsored Products campaign portfolio structure through Amazon Ads MCP, including spend concentration, budget utilization, delivery gaps, low-engagement campaigns, targeting-type mix, or campaign naming hygiene.
-compatibility: Requires a configured Amazon Ads MCP connection with reporting access. Account discovery and report creation depend on the tools and schemas exposed by that server.
+compatibility: Requires a configured Amazon Ads MCP connection with reporting access, plus a client that can download an HTTPS file (local Python, a shell, or a code tool). Account discovery and report creation depend on the tools and schemas exposed by that server.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
   display-name: "Amazon Ads Sponsored Products Campaign Auditor"
-  version: "0.4.2"
+  version: "0.5.0"
 ---
 
 # Sponsored Products campaign auditor
@@ -24,9 +24,9 @@ If Amazon account scope, identifier type, marketplace mapping, or account relati
 
 1. **Inspect the connection.** Confirm that the configured Amazon Ads MCP exposes the account-discovery and reporting operations needed for this audit. Use the actual exposed tool names and schemas; do not invent aliases. Read [the live-reporting reference](references/mcp-canonical-fields.md) before requesting data.
 2. **Resolve scope.** Establish the identity, advertiser account/profile, marketplace, and currency (the region comes with the identity). Confirm the date range and the questions the audit should answer. Ask only for choices that materially change extraction or interpretation.
-3. **Define the report.** Choose Sponsored Products campaign dimensions and metrics from Amazon's Reporting API v1 field documentation. Report creation validates the complete field set and rejects a bad one with a 400 before creating anything; fix the set from the error rather than resubmitting it unchanged. Record the exact accepted field IDs.
-4. **Retrieve safely.** Create the report and retain its report ID. Follow the MCP's asynchronous status contract. Avoid tight polling; when the client cannot wait safely, return the report ID and resume retrieval when the user continues.
-5. **Establish grain.** Inspect the returned rows before calculating metrics. Aggregate campaign-day rows to campaigns; sum additive metrics and treat budget according to its type and time grain.
+3. **Define the report.** Start from the field set in the live-reporting reference, which names the cost field and the required currency companion. Report creation validates the complete field set and rejects a bad one with a 400 before creating anything; fix the set from the error rather than resubmitting it unchanged. Record the exact accepted field IDs.
+4. **Retrieve safely.** Create the report and retain its report ID. Follow the MCP's asynchronous status contract. Avoid tight polling; when the client cannot wait safely, return the report ID and resume retrieval when the user continues. Download the finished file in the client's own environment, because the MCP's `execute` block can't fetch URLs.
+5. **Establish grain and scope.** Inspect the returned rows before calculating metrics. A report covers the whole advertiser account, so check which marketplaces and currencies the rows hold, and keep them separate or confirm the scope with the user before reporting totals. Aggregate campaign-day rows to campaigns; sum additive metrics and treat budget according to its type and time grain.
 6. **Apply the audit.** Read [the audit rules](references/audit-rules-and-thresholds.md). Use user-provided targets or operating standards when available. Without them, report distributions and review candidates rather than declaring a universal ideal.
 7. **Deliver the result.** Follow [the report template](references/report-template.md). Mark unsupported sections `N/A` with the missing field or ambiguity, instead of estimating absent values.
 
@@ -53,7 +53,7 @@ If Amazon account scope, identifier type, marketplace mapping, or account relati
 
 The audit is complete when it:
 
-- identifies the account context, date range, currency, report ID, row grain, and exact field set;
+- identifies the account context, marketplaces covered, date range, currency, report ID, row grain, and exact field set;
 - reports each requested section or marks it `N/A` with a reason;
 - states every threshold and classification rule used;
 - distinguishes facts, hypotheses, and recommendations; and

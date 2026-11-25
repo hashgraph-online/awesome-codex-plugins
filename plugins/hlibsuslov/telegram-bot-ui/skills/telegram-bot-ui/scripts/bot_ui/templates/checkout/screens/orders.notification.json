@@ -1,0 +1,35 @@
+{
+  "id": "orders.notification",
+  "title": "Уведомление о статусе",
+  "kind": "notification",
+  "audience": "private",
+  "message": {
+    "id": "main",
+    "format": "regular.html",
+    "text": {
+      "en": "🔔 Order #{order.no}: {order.status_text}",
+      "ru": "🔔 Заказ #{order.no}: {order.status_text}",
+      "uk": "🔔 Замовлення #{order.no}: {order.status_text}"
+    }
+  },
+  "keyboard": {
+    "type": "inline",
+    "rows": [
+      [
+        "open"
+      ]
+    ]
+  },
+  "actions": {
+    "open": {
+      "label": {
+        "en": "Open status",
+        "ru": "Открыть статус",
+        "uk": "Відкрити статус"
+      },
+      "type": "navigate",
+      "to": "orders.status",
+      "presentation": "send"
+    }
+  }
+}

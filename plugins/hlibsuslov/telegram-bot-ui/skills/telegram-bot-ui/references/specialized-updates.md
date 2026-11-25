@@ -1,3 +1,9 @@
+---
+summary: "On-demand modules for 10.3 and 10.4 details: welcome-message right, community joins, gifts, share themes, managed bots, verification, paid messages, widget permission; read only the section needed."
+verified: "2026-11-12"
+bot_api: "10.4"
+---
+
 # Specialized 10.3/10.4 modules (on demand)
 
 > Verified 2026-11-12 against the changelog and each object/method page. Runnable examples:
@@ -26,8 +32,8 @@ for the **receiver only** — never repost them publicly; in business chats answ
 
 ## getUniqueGift
 
-10.4: `getUniqueGift(name)` → `UniqueGift`. Unknown name → 400 (validation): say "gift not found",
-don't retry.
+10.4: `getUniqueGift(name)` → `UniqueGift`. The error for an unknown name is not documented
+**[Unverified]**: treat a 400 as "gift not found", don't retry.
 
 ## deleteBusinessAccountGift
 

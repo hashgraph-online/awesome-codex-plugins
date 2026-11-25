@@ -4,6 +4,23 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [0.5.0] - 2026-11-25
+
+Measured on the Kuudo Amazon Ads MCP on 2026-11-25, after a client run reported the first report request failing.
+
+### Fixed
+
+- The starting field set failed on the first try. It now includes `budgetCurrency.value`, which report creation requires with `campaign.budgetAmount`, `metric.totalCost`, and `metric.sales` (`400006` without it), and it names the cost field, `metric.totalCost`, instead of asking the agent to discover one.
+- `campaign.currencyCode` is out of the starting set. Report creation accepts it, but it came back blank on every row; `budgetCurrency.value` carries the currency.
+- The download step says where to download: in the client's own environment, because the MCP's `execute` block can't fetch URLs, or by handing the link to the user. `compatibility` names that requirement.
+
+### Added
+
+- `campaign.country` in the starting set, so each row says which marketplace it belongs to. A report covers the whole advertiser account, which can span many marketplaces, so the workflow now checks marketplaces and currencies before totaling and keeps them separate (SKILL.md step 5, the completion criteria, and the audit rules).
+- "What the rows look like" in `references/mcp-canonical-fields.md`: `adProduct.value` comes back as display text (`Sponsored Products`) though the filter takes `SPONSORED_PRODUCTS`, each row is one campaign-day but not every campaign-day has a row (873 of 1,350 in one 30-day report), and `country.code` and `country.name` come back blank.
+- A signed link can arrive HTML-escaped (`&amp;` for `&`), which S3 answers with 403. The reference says to unescape it before fetching.
+- Evals 16 to 18 (a report spanning three marketplaces and currencies, an enum filter applied to downloaded rows, and a download attempted inside `execute` with an escaped link). Eval 4 now checks for `metric.totalCost`, `budgetCurrency.value`, and `campaign.country`.
+
 ## [0.4.2] - 2026-10-28
 
 ### Added

@@ -1,0 +1,149 @@
+{
+  "scenario": "api-platform",
+  "status": "production (deleteWebhook and replaceManagedBotToken are recorded requests, never sent; managed bot tokens are stored, never printed)",
+  "context": "bot-wide: update intake and managed bots take no chat; games in private chats, groups and supergroups; Passport errors go to the user who shared the data",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.5 (verified 2026-11-22)",
+  "steps": [
+    {
+      "method": "getUpdates",
+      "_context": "any bot while no webhook is set; offset = highest update_id received + 1",
+      "params": {
+        "offset": 900000401,
+        "limit": 100,
+        "timeout": 50,
+        "allowed_updates": [
+          "message",
+          "callback_query",
+          "my_chat_member",
+          "managed_bot"
+        ]
+      }
+    },
+    {
+      "method": "setWebhook",
+      "_context": "the bot's deploy step; HTTPS url on port 443, 80, 88 or 8443; secret_token is 1-256 characters of A-Z, a-z, 0-9, _ and -, loaded from the environment (here a placeholder)",
+      "params": {
+        "url": "https://bot.example.com/tg/webhook",
+        "secret_token": "FAKE-webhook-secret_replace-from-env",
+        "max_connections": 40,
+        "allowed_updates": [
+          "message",
+          "callback_query",
+          "my_chat_member",
+          "managed_bot"
+        ],
+        "drop_pending_updates": false
+      }
+    },
+    {
+      "method": "getWebhookInfo",
+      "_context": "any bot; url is empty while the bot uses getUpdates; secret_token is never returned",
+      "params": {}
+    },
+    {
+      "method": "deleteWebhook",
+      "_context": "the bot's deploy step, switching back to getUpdates; recorded request, never sent",
+      "params": {
+        "drop_pending_updates": false
+      }
+    },
+    {
+      "method": "getManagedBotToken",
+      "_context": "the manager bot, for a bot it manages (user_id = ManagedBotUpdated.bot.id); the token goes to the secret store, never to logs, chats or URLs",
+      "params": {
+        "user_id": 7000000001
+      }
+    },
+    {
+      "method": "getManagedBotAccessSettings",
+      "_context": "the manager bot, for a bot it manages",
+      "params": {
+        "user_id": 7000000001
+      }
+    },
+    {
+      "method": "setManagedBotAccessSettings",
+      "_context": "the manager bot, on the managed bot owner's decision; up to 10 added_user_ids, ignored unless is_access_restricted is true",
+      "params": {
+        "user_id": 7000000001,
+        "is_access_restricted": true,
+        "added_user_ids": [
+          222222222
+        ]
+      }
+    },
+    {
+      "method": "replaceManagedBotToken",
+      "_context": "the manager bot, on the owner's decision; revokes the current token; recorded request, never sent",
+      "params": {
+        "user_id": 7000000001
+      }
+    },
+    {
+      "method": "sendGame",
+      "_context": "private chat, group or supergroup (not channels or channel direct messages chats); a game created in @BotFather with /newgame",
+      "params": {
+        "chat_id": -1001234567890,
+        "game_short_name": "pizza_runner",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Play Pizza Runner",
+                "callback_game": {}
+              }
+            ],
+            [
+              {
+                "text": "How to play",
+                "callback_data": "game:rules"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "setGameScore",
+      "_context": "a game message the bot sent (chat_id + message_id) or inline_message_id; the score comes from the bot's server",
+      "params": {
+        "user_id": 333333333,
+        "score": 4200,
+        "chat_id": -1001234567890,
+        "message_id": 4101
+      }
+    },
+    {
+      "method": "getGameHighScores",
+      "_context": "a game message the bot sent (chat_id + message_id) or inline_message_id",
+      "params": {
+        "user_id": 333333333,
+        "chat_id": -1001234567890,
+        "message_id": 4101
+      }
+    },
+    {
+      "method": "setPassportDataErrors",
+      "_context": "the user who shared Telegram Passport data with the bot; hashes come from the decrypted credentials (core.telegram.org/passport)",
+      "params": {
+        "user_id": 111111111,
+        "errors": [
+          {
+            "source": "data",
+            "type": "personal_details",
+            "field_name": "birth_date",
+            "data_hash": "rE2DAEJ1IAoM1oR9zmrW2tctp1dfgOF+iTCk4+rUPOE=",
+            "message": "The date of birth is in the future. Enter it as on your passport."
+          },
+          {
+            "source": "front_side",
+            "type": "passport",
+            "file_hash": "VTWs8tNYPRamtorGdTP9NjDMb1WUcGUwdMpvyVFhHF8=",
+            "message": "The photo of the front side is blurry. Take a new one in good light."
+          }
+        ]
+      }
+    }
+  ]
+}
