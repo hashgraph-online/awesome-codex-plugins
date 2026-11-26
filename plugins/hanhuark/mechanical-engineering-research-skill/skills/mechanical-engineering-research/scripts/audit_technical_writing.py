@@ -85,6 +85,50 @@ def sentence_candidates(text: str) -> list[dict[str, object]]:
     }
 
 
+PROSE_RATE_PATTERNS = {
+    "which": r"\bwhich\b",
+    "that": r"\bthat\b",
+    "rather than": r"\brather than\b",
+    "because": r"\bbecause\b",
+    "therefore": r"\btherefore\b",
+    "so as connective": r"[,;]\s+so\b(?!\s+that)",
+    "respectively": r"\brespectively\b",
+    "semicolon": r";",
+    "colon": r":(?!\d)",
+    "inline figure pointer": r"\((?:Figs?|Figure)\.?\s*\d+[a-z]?(?:[,-]\s*\d*[a-z]?)*\)",
+    "negation": r"\b(?:does not|do not|cannot|is not|are not)\b",
+}
+
+
+def prose_metrics(text: str) -> dict[str, object]:
+    """Sentence lengths and construction rates for comparison with the measured prose targets."""
+    body = "\n".join(line for line in text.splitlines() if not is_heading_line(line))
+    normalized = re.sub(r"\s+", " ", body).strip()
+    protected = re.sub(
+        r"\b(Figs?|Eqs?|Refs?|Secs?|al|vs|approx|No|e\.g|i\.e)\.",
+        lambda match: match.group(0).replace(".", "\u0000"),
+        normalized,
+    )
+    sentences = [item.replace("\u0000", ".").strip() for item in re.split(r"(?<=[.!?])\s+", protected)]
+    lengths = sorted(word_count(sentence) for sentence in sentences if word_count(sentence) > 0)
+    total = sum(lengths)
+    counts = {name: count_matches(normalized, pattern) for name, pattern in PROSE_RATE_PATTERNS.items()}
+    if not lengths:
+        return {"sentence_count": 0, "word_count": 0, "counts": counts, "per_10000_words": {}}
+    middle = len(lengths) // 2
+    median = lengths[middle] if len(lengths) % 2 else (lengths[middle - 1] + lengths[middle]) / 2
+    p90 = lengths[min(len(lengths) - 1, int(round(0.9 * (len(lengths) - 1))))]
+    return {
+        "sentence_count": len(lengths),
+        "word_count": total,
+        "mean_sentence_words": round(total / len(lengths), 1),
+        "median_sentence_words": median,
+        "p90_sentence_words": p90,
+        "counts": counts,
+        "per_10000_words": {name: round(10000 * count / total, 1) for name, count in counts.items()},
+    }
+
+
 def heading_candidates(text: str) -> list[dict[str, object]]:
     """Return catalog-like Markdown or LaTeX headings for human review."""
     headings: list[tuple[int, str]] = []
@@ -142,6 +186,7 @@ def build_report(text: str, source: Path, extra_terms: Iterable[str]) -> dict[st
         },
         "hyphenated_compounds": collect_hyphenated_compounds(text),
         "reader_focus": reader_focus,
+        "prose_metrics": prose_metrics(text),
         "editorial_note": (
             "Counts and compound inventories are review candidates, not errors or evidence of AI authorship. "
             "Check whether a term states a specific mechanism or result, whether a compound is standard or defined, "
@@ -167,6 +212,20 @@ def format_report(report: dict[str, object]) -> str:
     lines.extend(["", "Reader-focus candidates:"])
     for category, candidates in report["reader_focus"].items():
         lines.append(f"- {category}: {len(candidates)}")
+    metrics = report["prose_metrics"]
+    lines.extend(["", "Prose metrics (compare with Measured Prose Targets in han-hu-research-style.md):"])
+    if metrics["sentence_count"]:
+        lines.append(
+            f"- sentences: {metrics['sentence_count']}, words: {metrics['word_count']}, "
+            f"mean {metrics['mean_sentence_words']}, median {metrics['median_sentence_words']}, "
+            f"90th percentile {metrics['p90_sentence_words']} words"
+        )
+        lines.extend(
+            f"- {name}: {count} ({metrics['per_10000_words'][name]} per 10,000 words)"
+            for name, count in metrics["counts"].items()
+        )
+    else:
+        lines.append("- no sentences detected")
     lines.extend(["", f"Editorial note: {report['editorial_note']}"])
     return "\n".join(lines)
 

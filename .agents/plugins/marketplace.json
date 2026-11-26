@@ -452,21 +452,6 @@
       "icon": "./plugins/cloudguo123/atomlane/assets/growth/listing-logo.svg"
     },
     {
-      "name": "auto-pilot",
-      "displayName": "Auto Pilot",
-      "source": {
-        "source": "local",
-        "path": "./plugins/minsu0707/auto-pilot"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Intake-first Codex plugin that turns a short project request into a structured, resumable execution workflow with one-question-at-a-time intake, project contract files, blocker triage, and resume support.",
-      "icon": "./plugins/minsu0707/auto-pilot/assets/auto-pilot.png"
-    },
-    {
       "name": "aw1-circuit-breaker",
       "displayName": "AW-1 Circuit Breaker",
       "source": {
@@ -1859,6 +1844,20 @@
       "category": "Development & Workflow",
       "description": "Modular Agent Skills toolkit (Claude Code, Codex, Cursor, Gemini CLI, OpenCode) for LGPD & ECA Digital privacy engineering, automated compliance audits, LINDDUN threat modeling, consent ledgers, and DSAR endpoints.",
       "icon": "./plugins/goul4rt/lgpd-skills/assets/icon.png"
+    },
+    {
+      "name": "lightkeeper",
+      "displayName": "Lightkeeper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Light5566/claude-lightkeeper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A map of your codebase kept as markdown notes outside the repo; hooks point Codex and Claude Code at the note that owns a file when a patch touches it, and name the notes a session left stale before it stops."
     },
     {
       "name": "llm-transpile",
@@ -3557,6 +3556,20 @@
       "category": "Tools & Integrations",
       "description": "Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.",
       "icon": "./plugins/jerryfane/agentgram/assets/agentgram-logo.svg"
+    },
+    {
+      "name": "agentkit",
+      "displayName": "AgentKit by Scalekit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/scalekit-inc/authstack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Scalekit's AI agent integrations platform and MCP gateway in Codex: connect your agent to 1,100+ connectors and 55,000+ tools with per-user credentials, scoped tool calls and audit logs (Scalekit account required; free tier). Website: https://www.scalekit.com"
     },
     {
       "name": "agentmart",

@@ -56,6 +56,7 @@ If the user has no key, set one up in the conversation instead of sending them t
 | `/video/dislikes` | `v` | estimated `likes`, `dislikes`, `rating`, `view_count` (`estimated` is always true) |
 | `/video` | `v` | `title`, `description`, `channel`, `views` (exact), `likes` (rounded label), `upload_date`, `duration`, `thumbnails`, `keywords` |
 | `/video/comments` | `v`, plus `continuation` (with the same `v`) for later pages | `comments` (`text`, `channel.handle`, `likes`, `replies`, `published_date`), `has_more`, `continuation_token`; 1 credit per page; 404 `COMMENTS_DISABLED` when comments are off |
+| `/tiktok/transcript` | `url` (TikTok video URL, short link, or numeric ID) | `video_id`, `author`, `description`, `language`, `auto_generated`, `segments` (`start`, `text`); 404 `TRANSCRIPT_NOT_FOUND` when it has no captions (not charged) |
 | `/channel/search` | `channel` + `q`, or `continuation` | videos inside one channel matching `q` |
 | `/playlist` | `list` (playlist ID or URL) or `continuation` | `videos`, `has_more`, `continuation_token` |
 | `/resolve` | `handle` | channel ID for an @handle or URL |

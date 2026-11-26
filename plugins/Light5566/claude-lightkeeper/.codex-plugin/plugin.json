@@ -1,0 +1,21 @@
+{
+  "name": "lightkeeper",
+  "version": "2.11.1",
+  "description": "Lightkeeper: an Obsidian-compatible knowledge map of your codebase, kept outside the repo and kept honest by hooks: the agent reads the map before it edits and updates it before it stops.",
+  "keywords": [
+    "obsidian",
+    "knowledge-graph",
+    "hooks",
+    "codebase-documentation",
+    "llm-wiki",
+    "agent-skills"
+  ],
+  "skills": "./skills",
+  "hooks": "./codex/hooks.json",
+  "interface": {
+    "displayName": "Lightkeeper",
+    "shortDescription": "A map of your codebase the agent reads before it edits and updates before it stops.",
+    "developerName": "Light5566",
+    "websiteURL": "https://github.com/Light5566/claude-lightkeeper"
+  }
+}

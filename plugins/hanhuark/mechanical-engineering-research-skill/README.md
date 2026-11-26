@@ -219,7 +219,7 @@ focused skills = task-specific guidance
 | [`me-lit-review.md`](commands/me-lit-review.md) | Develop a critical thermal-fluid literature review and gap synthesis. |
 | [`me-proposal.md`](commands/me-proposal.md) | Develop or revise a solicitation-aligned research proposal. |
 | [`me-write-section.md`](commands/me-write-section.md) | Draft or revise manuscript, proposal, report, or thesis sections. |
-| [`me-author-guided-writing.md`](commands/me-author-guided-writing.md) | Use a repeatable author-guided process for AI-assisted technical drafting and revision. |
+| [`me-author-guided-writing.md`](commands/me-author-guided-writing.md) | Interview the author, keep a decision record, and draft or revise AI-assisted technical writing one unit at a time. |
 | [`me-han-hu-draft.md`](commands/me-han-hu-draft.md) | Draft a manuscript section using Han Hu manuscript mode and the private style corpus. |
 | [`me-han-hu-revise.md`](commands/me-han-hu-revise.md) | Revise a manuscript while preserving evidence and applying Han Hu manuscript mode. |
 | [`me-data-analysis.md`](commands/me-data-analysis.md) | Plan baseline-first thermal-fluid data analysis and hypothesis-driven DOE. |
@@ -256,7 +256,7 @@ The examples are synthetic, public-safe artifacts designed to show the plugin's 
 | Citation integrity | Claim-level support, bibliography checks, numeric citation repair | [`citation-integrity.md`](skills/mechanical-engineering-research/references/citation-integrity.md) |
 | Dataset/software reviews | Multi-channel discovery, maturity labels, benchmark and repository synthesis | [`dataset-software-review.md`](skills/mechanical-engineering-research/references/dataset-software-review.md) |
 | Paper writing style | Abstracts, methods, figure-led results, conclusions, AI/ML paper style | [`paper-writing-style.md`](skills/mechanical-engineering-research/references/paper-writing-style.md) |
-| Author-guided AI writing | Author story brief, evidence map, drafting boundaries, and reader-side revision | [`author-guided-ai-writing.md`](skills/mechanical-engineering-research/references/author-guided-ai-writing.md) |
+| Author-guided AI writing | Author interview, decision record, evidence map, unit-by-unit drafting, and reader-side revision | [`author-guided-ai-writing.md`](skills/mechanical-engineering-research/references/author-guided-ai-writing.md), [`author-interview-question-bank.md`](skills/mechanical-engineering-research/references/author-interview-question-bank.md) |
 | Revision and submission | Reviewer responses, highlighted manuscripts, source packages, release audits | [`manuscript-revision-submission.md`](skills/mechanical-engineering-research/references/manuscript-revision-submission.md) |
 | Technical writing | Methodology detail, modeling assumptions, results discussion | [`technical-writing-analysis.md`](skills/mechanical-engineering-research/references/technical-writing-analysis.md) |
 | Experiments and uncertainty | Measurement models, DOE, calibration, synchronization, uncertainty budgets | [`experimental-design-and-uncertainty.md`](skills/mechanical-engineering-research/references/experimental-design-and-uncertainty.md) |

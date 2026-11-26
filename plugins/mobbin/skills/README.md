@@ -1,3 +1,5 @@
+![The design reference your AI agent is missing. Get access to over 600,000 real product screens.](assets/readme-header.png)
+
 # Mobbin Skills
 
 A collection of skills for designing and building UI with [Mobbin](https://mobbin.com), the industry standard in UI &amp; UX design references for mobile apps, web apps, and websites

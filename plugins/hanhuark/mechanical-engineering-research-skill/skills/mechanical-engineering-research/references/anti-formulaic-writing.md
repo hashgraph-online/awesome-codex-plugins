@@ -21,6 +21,7 @@ Read the draft for constructions that make adjacent sentences sound templated or
 - Use **establish**, **establishes**, and **established** only when the evidence genuinely demonstrates a defined result. Replace vague phrases such as `establishes a relationship` with the actual supported finding, for example `shows that increasing cavity density delayed bubble coalescence in the tested range`.
 - Prefer specific physical verbs such as `measured`, `observed`, `showed`, `indicated`, `quantified`, `predicted`, `reduced`, or `increased` when they more accurately state the evidence.
 - Vary sentence openings and transitions. Do not make every paragraph follow claim, contrast word, and conclusion as a fixed pattern.
+- Watch for substitutes that replace a banned construction with an equivalent one. When `, so` is removed, drafts tend to grow trailing clauses such as `, which leaves`, `, which makes`, or `, which means` that carry the same consequence. Make the consequence its own sentence, or state it as the finding.
 
 ## Term Legitimacy
 

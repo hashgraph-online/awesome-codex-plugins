@@ -143,7 +143,7 @@ Write control directives that the orchestrate hook reads on the next agent tool 
 ### Step 1: Check active orchestration
 
 1. Read `$HARNESS_DIR/orchestrator/run.json`
-2. If no active run (status != "running"), output: "No active orchestration to intervene in."
+2. If the action is `resume`, continue whenever run.json exists, whatever its status (resume is the documented way out of a pause or cancel block, also on aborted and complete runs). If run.json is missing, output: "No orchestration run to resume." and stop. For every other action, if status != "running", output: "No active orchestration to intervene in."
 3. Show current agent list with statuses
 
 ### Step 2: Parse user command
@@ -154,11 +154,12 @@ Invocation format:
 - `intervene cancel {agent_id}` — cancel a specific agent
 - `intervene cancel all` — cancel entire orchestration
 - `intervene redirect {agent_id} {new_instruction}` — change what an agent is doing
-- `intervene resume {agent_id}` — resume a paused agent
+- `intervene resume {agent_id}`: resume a paused or cancelled agent
+- `intervene resume all`: lift every pause and cancel, including a cancelled run
 
 If the user provides no arguments, ask which action and target they want.
 
-Validate the agent_id against the agent list in run.json. If not found, output: "Agent '{agent_id}' not found in active orchestration. Available agents: {list}" and stop.
+Validate the agent_id against the agent list in run.json (skip this for `all`). If not found, output: "Agent '{agent_id}' not found in active orchestration. Available agents: {list}" and stop.
 
 ### Step 3: Write control directive
 
@@ -176,13 +177,15 @@ Write to `$HARNESS_DIR/orchestrator/control.json`:
 
 For `redirect`, the message field contains the new instruction.
 For `pause`/`cancel`, the message field is optional — use an empty string if none provided.
-For `resume`, set action to "resume" and target to the agent_id.
+For `resume`, set action to "resume" and target to the agent_id or "all".
 
 **Additional actions by type:**
 
-- **cancel all**: Also update `$HARNESS_DIR/orchestrator/run.json` status to "aborted"
+- **cancel all**: Also update `$HARNESS_DIR/orchestrator/run.json` status to "aborted" and set its `updated_at` to the current UTC time as `YYYY-MM-DDThh:mm:ssZ` (with the `Z`)
+- **pause** (all or an agent): Also set `$HARNESS_DIR/orchestrator/run.json` `updated_at` to the current UTC time as `YYYY-MM-DDThh:mm:ssZ` (with the `Z`), so the pause holds for 2 hours from now even when the run has been idle
+- **resume**: Write the directive only; never edit run.json
 - **redirect**: Also append the new instruction to the target agent's `$HARNESS_DIR/orchestrator/inbox/{agent_id}.jsonl` as a new line: `{"type": "redirect", "instruction": "{new_instruction}", "at": "{ISO-8601}"}`
-- **cancel {agent_id}**: Also update the agent's status in run.json to "cancelled"
+- **cancel {agent_id}**: Also update the agent's status in run.json to "cancelled" and set `updated_at` to the current UTC time as `YYYY-MM-DDThh:mm:ssZ` (with the `Z`)
 
 ### Step 4: Confirm
 
@@ -193,9 +196,13 @@ The {target} agent will respond on its next tool call.
 Use /status to monitor.
 ```
 
+For pause and cancel, also output: "New spawns stay blocked until /intervene resume {target} or 2 hours without run activity."
+
 **Notes:**
 - Multiple interventions can be queued (generation number increases each time)
-- The orchestrate hook checks `control.json` before every agent tool call, so interventions take effect within one tool call cycle
+- On Claude Code, the guard hook checks run.json and control.json before every Agent spawn and refuses paused or cancelled spawns. Blocks end after 2 hours without run activity.
+- Resume lifts a block the user set: run it only when the user asks for it.
+- On Codex a spawn cannot be blocked, so `cancel all` only lasts until the next subagent start there.
 - "cancel all" is destructive — confirm with the user before executing
 - "redirect" requires a new instruction — if none is provided, ask the user
 
@@ -242,6 +249,6 @@ When agents need to communicate (via SendMessage or future inbox/outbox):
 - Modifying orchestration state in status mode (read-only)
 - Cancelling all agents without user confirmation
 - Redirecting an agent without a concrete new instruction
-- Writing to control.json when run.json status is "aborted" or "complete"
+- Writing to control.json when run.json status is "aborted" or "complete" (except resume)
 - Intervening without an active orchestration (check run.json first)
 - Showing raw JSON instead of a formatted dashboard (status mode)

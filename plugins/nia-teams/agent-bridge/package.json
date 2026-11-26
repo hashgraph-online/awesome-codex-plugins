@@ -28,5 +28,5 @@
     "url": "https://github.com/nia-teams/agent-bridge.git"
   },
   "description": "Connect local AI agent runtimes to Nia Teams with shared pairing, messaging, and approvals",
-  "version": "0.3.6"
+  "version": "0.3.7"
 }

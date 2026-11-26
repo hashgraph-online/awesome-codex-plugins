@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-25",
-  "total": 475,
+  "last_updated": "2026-11-26",
+  "total": 476,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -308,16 +308,6 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/cloudguo123/atomlane/HEAD/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "Auto Pilot",
-      "url": "https://github.com/minsu0707/auto-pilot",
-      "owner": "minsu0707",
-      "repo": "auto-pilot",
-      "description": "Intake-first Codex plugin that turns a short project request into a structured, resumable execution workflow with one-question-at-a-time intake, project contract files, blocker triage, and resume support.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/minsu0707/auto-pilot/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "AW-1 Circuit Breaker",
@@ -1261,6 +1251,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/goul4rt/lgpd-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Lightkeeper",
+      "url": "https://github.com/Light5566/claude-lightkeeper",
+      "owner": "Light5566",
+      "repo": "claude-lightkeeper",
+      "description": "A map of your codebase kept as markdown notes outside the repo; hooks point Codex and Claude Code at the note that owns a file when a patch touches it, and name the notes a session left stale before it stops.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Light5566/claude-lightkeeper/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "LLM Transpile",
@@ -2413,6 +2413,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgentKit by Scalekit",
+      "url": "https://github.com/scalekit-inc/authstack",
+      "owner": "scalekit-inc",
+      "repo": "authstack",
+      "description": "Scalekit's AI agent integrations platform and MCP gateway in Codex: connect your agent to 1,100+ connectors and 55,000+ tools with per-user credentials, scoped tool calls and audit logs (Scalekit account required; free tier). Website: https://www.scalekit.com",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/scalekit-inc/authstack/HEAD/kits/agentkit/.codex-plugin/plugin.json"
     },
     {
       "name": "AgentMart",

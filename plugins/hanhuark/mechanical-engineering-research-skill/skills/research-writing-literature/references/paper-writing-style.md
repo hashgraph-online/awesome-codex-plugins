@@ -15,6 +15,18 @@ The preferred style is:
 - Specific: include conditions, geometry, materials, metrics, regimes, uncertainty, and validation where relevant.
 - Careful: separate measured results, model predictions, interpretation, and speculation.
 
+Use professional journal language throughout. Remove conversational expressions, writing advice addressed to the reader, prompt-like commentary, and sentences that discuss how a phrase should be interpreted. State the scientific content directly.
+
+Use short noun phrases for section and subsection titles. Do not write titles as complete sentences or embed a result or conclusion in a heading.
+
+## Paragraph And Sentence Construction
+
+Give each paragraph one central topic that is distinct from the paragraphs around it. State that topic near the beginning, develop it with connected evidence and interpretation, and close with its scientific implication or a transition. Avoid one-sentence paragraphs and repeated very short paragraphs unless the journal format requires them. Merge adjacent material only when it serves the same central topic.
+
+Prefer complete sentences over colon-led explanations or semicolon-linked chains. Use colons and semicolons only when they improve precision and cannot be replaced cleanly by a sentence break. When a sentence must enumerate alternatives, use i), ii), and iii). For a longer sequence, introduce the topic in a complete sentence and develop it with ordered sentences such as "First," "Second," and "Third."
+
+Avoid stock connective words when they do not express a real logical relation. Words such as "consequently," "enable," and "establish" should appear only when their exact meaning is supported. Vary sentence length without creating fragments, repetitive templates, or AI-like prose.
+
 ## Abstract Pattern
 
 Use a dense but logical abstract structure:
@@ -24,11 +36,11 @@ Use a dense but logical abstract structure:
 3. Approach: one or two sentences naming the experimental, numerical, modeling, AI/ML, or diagnostic method.
 4. Validation or analysis scope: one sentence on datasets, surfaces, regimes, operating conditions, benchmark comparisons, or validation approach.
 5. Key findings: two to four concrete findings with metrics, trends, regimes, or mechanisms.
-6. Significance: one final sentence on the specific capability, design implication, or physical understanding supported by the result.
+6. Significance: one final sentence on the strongest physical finding, design implication, or capability supported by the result, with its scope built into the sentence.
 
-Avoid starting the abstract with broad generic statements if a specific research need is available. Avoid ending with only "results are discussed"; end with what is learned, quantified, or made possible in the tested setting.
+Avoid starting the abstract with broad generic statements if a specific research need is available. Avoid ending with only "results are discussed"; end with what is learned, quantified, or made possible in the tested setting. Do not end on a disclaimer, a data or code release statement, a workflow summary, or a count of records.
 
-When data support it, include two to three quantitative findings in the abstract. These values should represent the main comparison, range, uncertainty, or validated performance measure, not incidental experimental detail.
+When the evidence supports it, report two to three primary quantitative findings in the abstract. Choose the main comparison, validated range, uncertainty, or performance metric rather than incidental experimental detail.
 
 ## Introduction Pattern
 
@@ -37,7 +49,7 @@ Build the introduction as a narrowing funnel:
 1. Establish the application importance and technical need.
 2. Define the key thermal-fluid phenomenon or performance metric.
 3. Summarize state of the art by category, not paper by paper.
-4. Identify what existing approaches have established.
+4. Identify the specific mechanisms, capabilities, quantitative relations, and limits supported by existing approaches.
 5. State what remains difficult to measure, predict, isolate, generalize, or design.
 6. Explain why the gap persists, such as coupled physics, limited diagnostics, expensive CFD, uncertain boundary conditions, scale mismatch, or insufficient data.
 7. Introduce the present work as a targeted response to that gap.
@@ -54,7 +66,7 @@ At the end of the introduction, include a contribution paragraph that answers:
 - What comparisons or validation are performed?
 - What physical insight or practical capability is obtained?
 
-Prefer concrete contribution verbs:
+Prefer concrete contribution verbs only when the evidence supports them:
 
 - develops
 - validates
@@ -63,8 +75,11 @@ Prefer concrete contribution verbs:
 - demonstrates
 - reveals
 - identifies
+- resolves
 
 Avoid vague verbs such as "explores" unless the work is explicitly exploratory.
+
+Keep the paragraph a plain preview of what is done and with which analyses. The author's revisions removed result numbers, definitions, and data-release statements from it, and accepted the passive voice ("A model is developed to convert high-speed frames into vapor area fraction, bubble count, and bubble diameter"). For a model paper, state the advance as the physical term added to a named conservation equation.
 
 ## Methods Pattern
 
@@ -102,27 +117,22 @@ For AI/ML papers, include:
 
 Write results as a sequence of figure-led arguments.
 
-For each major figure or table:
+For each major figure or table, develop this logic without forcing stock sentence stems:
 
-1. Orient: "Fig. X shows..." with variables, conditions, cases, and uncertainty representation.
+1. Orient the reader to variables, conditions, cases, and uncertainty representation.
 2. Observe: state the main trend, regime, threshold, error pattern, or comparison.
 3. Quantify: provide key values, relative changes, slopes, errors, or performance metrics when useful.
 4. Explain: connect the observation to physical mechanisms, model structure, measurement effects, or data features.
 5. Compare: relate to literature, baseline cases, simulations, correlations, or other surfaces/regimes.
 6. Imply: state what this means for the research question, design guidance, measurement capability, or next analysis.
 
-Use transition sentences to make the analysis cumulative:
+Use varied transitions that make the analysis cumulative. Avoid repeating canned phrases such as "Figure X shows," "It is observed that," or "Physically, this can be attributed to" in every paragraph.
 
-- "To understand the role of..."
-- "To isolate the effect of..."
-- "To validate the model..."
-- "To examine whether this trend generalizes..."
-- "This observation indicates..."
-- "These results suggest..."
+Refer to a subfigure directly as `Fig. 8b`, not as "panel (b)," "the second panel," or `Fig. 8(b)`. Do not use the word "panel" in manuscript text or captions. A substantive figure discussion should identify the horizontal and vertical variables, the operating conditions or data source, the observed relationship, and the physical interpretation or limitation. That discussion belongs in the text: the caption describes the figure and does not repeat the finding, the interpretation, or the reason a series is drawn the way it is. Do not rely on a brief statement such as "Fig. 8b compares the frequencies."
 
 Do not present plots as isolated results. Each figure should either answer a question, motivate the next analysis, or close a gap from the introduction.
 
-Place a qualification near the finding it bounds. A useful qualification names the affected quantity, unmeasured boundary condition, untested regime, or model-form limitation and explains its consequence. Do not repeat generic disclaimers throughout the results section.
+Place a qualification near the finding it bounds. State the affected quantity, unmeasured boundary condition, untested regime, or model-form limitation and its consequence; avoid repeated generic disclaimers across the results section.
 
 ## Baseline To Generalization
 
@@ -163,6 +173,10 @@ Use literature comparison to establish generality or positioning, not as decorat
 - State whether the present result confirms, extends, or challenges prior understanding.
 - If performance is not better than literature, identify the actual contribution, such as measurement access, transient behavior, multimodal data, model interpretability, uncertainty quantification, or practical implementation.
 
+## Main Manuscript And Supplement
+
+Keep evidence required for a main conclusion in the main manuscript and discuss it there. Use the supplement for derivations, preprocessing, robustness detail, secondary diagnostics, and extensive tables that support but do not carry the central argument. Respect venue page limits while keeping the main paper self-contained.
+
 ## Sentence-Level Preferences
 
 Prefer compact method-result sentences:
@@ -185,7 +199,7 @@ Use "indicates" for evidence-supported interpretation, "suggests" for weaker inf
 
 Use "due to" or "because" only when the mechanism is supported. Otherwise use "may be attributed to" or "is likely associated with."
 
-Avoid casual, self-referential, or manuscript-process language such as "the present work," "the current work," "this study establishes," or reader-directed phrasing. Name the technical subject and make the evidence relationship explicit.
+Avoid casual, manuscript-process, or self-evaluating language such as "this study establishes" or reader-directed phrasing. Name the technical subject and make the evidence relationship explicit. "This work", "this study", and "we" remain appropriate for scope, local definitions, purpose openers, the opening of the conclusion, and the group's own prior work.
 
 Use `Fig. 6a` rather than "panel a" for subfigures unless the journal has a conflicting house style. Apply one consistent publication font, preferably Arial when unconstrained, across related figures.
 
@@ -201,7 +215,7 @@ Use this structure:
 4. State the practical or scientific implication.
 5. Optional: note limitations and future work if important.
 
-For multi-result papers, numbered conclusions are effective. Each numbered item should contain a complete takeaway, not just a topic label.
+The author's revisions wrote the conclusion as one connected paragraph in the present tense, opening with what the paper presents and using "is shown to" for the headline findings, without figure citations or a list of validation needs. Use numbered conclusions only when the venue requires them; each item should then contain a complete takeaway, not just a topic label.
 
 Avoid broad restatement of the introduction. The conclusion should tell the reader what is now known because of this work.
 
@@ -218,7 +232,12 @@ Before finalizing a paper draft, check:
 - Does each figure discussion include observation, mechanism, and implication?
 - Are model or AI results interpreted physically rather than only statistically?
 - Does the conclusion state concrete findings rather than rephrasing the abstract?
-- Does the abstract report the most important quantitative findings when they are available?
-- Do the introduction and literature review distinguish adjacent approaches from the specific remaining gap?
-- Is each caveat specific, locally placed, and necessary for interpreting a claim?
+- Does every paragraph have one developed central topic, with no avoidable one-sentence paragraphs?
+- Are headings short noun phrases rather than sentences or conclusions?
+- Are subfigures cited as `Fig. 8b`, with no use of "panel" in text or captions?
+- Does each caption describe the figure only, with results, interpretation, and plotting-choice justification in the text?
+- Are casual, prompt-like, meta-writing, colon-heavy, semicolon-heavy, and formulaic AI expressions absent?
+- Does the abstract report the principal quantitative findings when the evidence supports them?
+- Does the literature review distinguish adjacent approaches from the specific remaining technical gap?
+- Are caveats specific, locally placed, and necessary to interpret the associated claim?
 - Are all figure fonts, labels, units, uncertainty definitions, subfigure references, and layouts consistent?

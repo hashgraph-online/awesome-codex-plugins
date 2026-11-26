@@ -94,17 +94,32 @@ runtime's task-only dispatch; a forked session, cleared summary or resumed
 author context still carries the history
 ([RPI](../rpi/SKILL.md#delegation-and-handoffs)).
 
-- **Validate the whole batch first.** This list is the one packet contract.
-  Every packet needs its packet identity, caller intent with its accepted
-  examples, applicable constraints, role, selected executor, workspace,
-  starting commit, usable prerequisites, authorized source scope, evidence
-  destination, all transitive effects, the actions it must not take (such as
-  push, merge, history rewrite, tracker or external writes), the checks it must
-  run, who integrates its result, the real remaining bounds, the
-  [per-packet result](#per-packet-result) fields, and a canonical
-  workspace-relative write scope, generated companions and regeneration outputs
-  included, in separate isolation. If any packet is invalid, launch none:
-  starting the valid ones and fixing the rest later is a partial launch.
+- **Validate the whole batch first.** This block is the one packet contract.
+  Every packet fills every field, the
+  [per-packet result](#per-packet-result) fields among them:
+
+  ```text
+  packet_id:             the caller's packet id
+  intent:                caller intent with its accepted examples
+  constraints:           applicable constraints
+  role:                  the worker's role
+  executor:              selected executor
+  workspace:             the worker's workspace
+  starting_commit:       the commit the worker starts from
+  prerequisites:         usable prerequisites
+  source_scope:          authorized source scope
+  evidence_destination:  where its evidence goes
+  transitive_effects:    all transitive effects
+  must_not:              actions it must not take, such as push, merge, history rewrite, tracker or external writes
+  checks:                the checks it must run
+  integrator:            who integrates its result
+  bounds:                the real remaining bounds
+  result_fields:         the per-packet result fields
+  write_scope:           canonical and workspace-relative, generated companions and regeneration outputs included, in separate isolation
+  ```
+
+  If any packet is invalid, launch none: starting the valid ones and fixing
+  the rest later is a partial launch.
 - **Compare canonical scopes.** Resolve symlinks, normalize paths and compare
   case-insensitively so an alias cannot hide a collision. A lexical check alone
   cannot prove symlink or runtime isolation. Disjoint files are not

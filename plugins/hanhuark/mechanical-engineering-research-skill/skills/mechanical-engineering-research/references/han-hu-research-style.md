@@ -160,33 +160,36 @@ Consolidating limitations, reordering sections, or merging paragraphs breaks ref
 When revising a manuscript to match this style, preserve the scientific evidence while strengthening the connection from engineering need to mechanism, method, result, and bounded implication. Revise the section and paragraph structure before making sentence-level edits; generic simplification alone is insufficient.
 
 - Make the abstract evidence-dense. When the data support it, include two to three principal quantitative findings rather than incidental experimental detail, then state the specific capability or implication supported within the tested scope.
-- Build the abstract as a compact story: problem, present method, what the method does with the evidence, principal findings, claim boundary, and practical use. Do not make the abstract a method catalog or a compressed results section.
+- Build the abstract as a compact story: problem, present method, what the method does with the evidence, principal findings, and practical use, with the claim boundary carried inside the finding sentences. Do not make the abstract a method catalog or a compressed results section.
+- End the abstract on the strongest physical finding or design implication, with its scope built into the sentence. Do not end on a disclaimer, a statement of what the work does not establish, a data or code release, a workflow summary, or a count of records and sources.
 - Synthesize the literature by application, architecture, material, diagnostic method, or modeling approach. Distinguish adjacent approaches from the specific remaining gap; do not claim that no prior work exists when relevant neighboring work exists.
 - End an introduction by linking the specific gap and its consequence to the present contribution. Follow with a short road map that tells the reader what the paper examines and why each analysis is needed; do not merely list section contents or variables.
 - Define experimental and model boundaries explicitly: system boundary, coordinate convention, imposed and inferred quantities, calibration, uncertainty, and the distinction between a fitted effective property and an intrinsic constituent property.
 - Treat every principal result as a figure-led argument: orient the reader, report the quantitative observation, relate it to the physical architecture or mechanism, and give the design implication.
 - Place each caveat near the claim it bounds. Identify the relevant unmeasured quantity, uncertain boundary, untested condition, or model-form limitation once, rather than repeating generic defensive qualifications throughout the manuscript.
-- Use two to four numbered conclusions for multi-result papers. Each conclusion should state the finding, physical interpretation, and bounded implication, not merely restate a section heading.
+- Write the conclusion as one connected paragraph in the present tense, unnumbered unless the venue requires a list. Open with what the paper presents, state how it differs from prior work, give the principal findings in section order with one or two numerical anchors, then the mechanism and the design or scientific use. Use "is shown to" for the headline findings. Leave out figure citations and lists of further validation needs.
 - Do not resolve a substantive evidence gap by weakening prose alone. Identify the additional analysis, validation, or measurement required and preserve uncertainty and provenance in the final manuscript.
 
 ## Measured Prose Targets
 
 The author's own edit of an AI-drafted manuscript is the calibration, and the measurements below are the check, in place of a judgment about whether a draft reads naturally. That edit cut the body by 24 percent, from 11,619 to 8,811 words, without removing a finding.
 
-| Quantity | Target, measured from the edited draft |
+| Quantity | Target, measured from the author's own revisions |
 |---|---|
-| Mean sentence length | 15.2 words |
-| Median sentence length | 15 words |
-| 90th-percentile sentence length | 32 words |
+| Mean sentence length, measured on prose only | 19 to 22 words |
+| 90th-percentile sentence length, prose only | 30 to 35 words |
+| Share of sentences longer than 35 words | 6 percent or less |
 | `which` and `that`, per 10,000 words | 75 |
 | `rather than`, per 10,000 words | 8 |
-| `because`, per 10,000 words | 0 |
+| `because`, per 10,000 words | genuine causes only |
 | `therefore`, per 10,000 words | 11 |
 | Semicolons, per 10,000 words | 1 |
 | Inline figure pointers such as `(Fig. 4a)`, per 10,000 words | 12 |
 | `respectively`, per 10,000 words | 9 |
 
-The draft rejected as convoluted ran a mean of 17.3 words per sentence, so a draft above roughly 18 is worse than the text already sent back. Measure before and after a style pass, and watch for trading one tic for another: a first pass that fixed sentence length pushed `therefore` from 17.8 to 26.6 per 10,000 words.
+Sentence lengths are measured on prose only, with equations, headings, tables, and references removed. An earlier version of this table gave a mean of 15.2 words; that figure counted headings and table rows as sentences and does not reproduce on prose alone. Across three manuscripts, the passages the author rewrote himself averaged 19 to 24 words per sentence, whereas the AI-supervised versions of the same passages averaged 25 to 28 and had three to four times as many sentences above 35 words. Connected sentences of about 20 words are the target. A draft cut into strings of 10- to 14-word sentences is a different failure, not an improvement.
+
+`because` appeared in one revision at zero and in another for two genuine causal statements; the qualitative rule in Sentence Construction governs it. Measure before and after a style pass with `scripts/audit_technical_writing.py`, and watch for trading one tic for another: a first pass that fixed sentence length pushed `therefore` from 17.8 to 26.6 per 10,000 words.
 
 **The six moves the edit makes, in order of payoff.**
 
@@ -198,6 +201,32 @@ The draft rejected as convoluted ran a mean of 17.3 words per sentence, so a dra
 6. Lead the abstract with the contribution, and state each result as a finding instead of hanging it on `but`, `although`, or `while`.
 
 The edit cuts none of the findings, negative ones included. A data-leakage result, an accuracy collapse, and a failed transfer across surfaces all survive it. `rather than` survives wherever it marks a real technical contrast; its rate fell with the surrounding meta-commentary, and the construction itself was never hunted.
+
+## Patterns From Author Revisions Of AI Drafts
+
+These patterns come from comparing three of the author's manuscripts across versions: the AI draft, the AI revision after many rounds of the author's comments, and the author's own direct revision. Each pattern below appeared in at least two of the three manuscripts, or is stated as a single-manuscript habit. The examples are synthetic.
+
+**Name things the way the field names them.** Name test conditions by the boiling regime visible in the images, model regimes by the physical limit that governs them, and figures, baselines, and section headings by the field's standard categories. A coined label such as `closure branch` or `high-flux arm` becomes `evaporation-limited regime` or `near CHF`, and "the wall-temperature record" becomes "the boiling curves".
+
+**Use literal verbs.** Do not give instruments, features, or models human actions. "Acoustic emission reaches the vapor dynamics" becomes "acoustic emission sensing characterizes the vapor dynamics without optical access", and "the model receives frames and returns masks" becomes a description of the input images and the output masks. Report prior work in the present perfect or the passive.
+
+**Open an analysis with its purpose and the variable changed.** "To evaluate the effect of temporal context on prediction, we have varied the number of frames per sequence from 1 to 32." The first person and the present perfect are both acceptable here. The form "To examine X, Fig. N plots Y against Z" also works. Name the object directly instead of writing "how X influences Y".
+
+**Build each figure paragraph in four steps.** State what the figure plots, Y against X and under which conditions; give the values as an ordered progression tied to each method or condition, pairing them with `respectively` where that is shorter; close the observation with a `Thus,` takeaway; then give the physical reading with `may` or `could` when the mechanism is inferred. Delete derived ratios and differences that the reader can compute from the stated values.
+
+**State headline findings directly.** "The temporal model is shown to reduce the prediction error by half" states a finding. "It is observed that" is acceptable occasionally, though not as the opener of every paragraph.
+
+**Use "this work", "this study", and "we" for scope and ownership.** They are appropriate for local definitions ("In this work, a case is one nominal mass flux"), purpose openers, the opening of the conclusion, and the group's own prior work ("In our previous work, we proposed..."). Avoid them for self-evaluation, as in "this study establishes".
+
+**Place a limitation once, where it applies, and frame it by its consequence.** Two forms recur. A fitness-for-purpose sentence: "Although the acoustic calibration is less precise than a reference hydrophone, it is sufficient for the steady-state comparison in this work." A validation paragraph placed directly after the comparison figure: name the sources of scatter, state how inputs the literature did not report were treated, then write "Within these limitations, the data follow the predicted trend" and give the mechanism. Delete a stand-alone limitations section, a list of validation needs, and one-line verdicts that deny a claim or announce a limit.
+
+**Keep provenance out of the main text.** Delete narration of how data were transcribed, audited, or reconstructed, and inventories of files, workbooks, and code. State the inputs that were used, with citations.
+
+**End the introduction with a plain preview.** The last paragraph says what is done and with which analyses, in plain terms; the passive voice is acceptable. Leave result numbers, definitions, and data-release statements out of it.
+
+**For model papers, state the advance as physics.** Frame the contribution as the physical term added to a named conservation equation, justify each input by the physical definition of the quantity it feeds, mark model outputs as `predicted` or `modeled`, and number the assumptions and state each one positively. When one dimensionless group carries the result, give it a physical meaning.
+
+**Single-manuscript habits.** `including` introduces the members of a set and `i.e.,` an equivalent. In Word manuscripts, figure and table callouts in running text were set in bold; follow the venue for this.
 
 ## Reviews Of Data, Software, And Benchmarks
 

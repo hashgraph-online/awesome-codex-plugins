@@ -1,131 +1,250 @@
-# Han Hu Research And Writing Style Preferences
+# Han Hu Research-Writing Style
 
-Use this reference when the user asks to match Han Hu's style, infer preferences from a prior workspace, revise a review article, write about open datasets/software/benchmarks, prepare an Overleaf or journal submission package, or make thermal-fluid AI writing feel like the user's own work.
+Use this reference for manuscripts authored or supervised by Han Hu and when the user explicitly asks to match Han Hu's established research-writing style. Apply these preferences after the domain and integrity checks in the main skill. When a private style-calibration corpus is available, also use [han-hu-style-calibration-protocol.md](../../mechanical-engineering-research/references/han-hu-style-calibration-protocol.md); its evidence labels control which exemplars may be treated as accepted-author text.
 
 ## Concise Section Revisions
 
 Use the description-observation-explanation-conclusion sequence in [technical-writing-analysis.md](technical-writing-analysis.md). Combine related plots when they explain one consistent story, and add a short purpose statement when needed to connect a subsection. Prefer essential table notes in the main text over an explanatory paragraph below the table; preserve venue-required footnotes. Apply the same concision to conclusions while retaining the principal finding and its evidence boundary.
 
-## Core Research Posture
+## Stable Style Primitives
 
-Frame work as a useful contribution to a technical community, not as self-promotion.
+- Start from the mechanical or thermal-fluid problem, coupled physics, and multiscale difficulty before introducing AI, software, or data infrastructure.
+- Treat AI/ML as a means to measure, interpret, reconstruct, predict, or organize physical behavior rather than the final scientific point.
+- Frame laboratory resources as case studies or seed efforts within a balanced field-wide ecosystem.
+- Write connected technical paragraphs with one central purpose. Avoid choppy sentence strings, rhetorical self-questioning, excessive colon clauses, and editorial or promotional commentary.
+- State the technical finding, mechanism, limitation, or need directly. Use `indicates` for supported interpretation, `suggests` for weaker inference, and `demonstrates` only for direct evidence.
+- Make figures, tables, and equations carry the argument. Give related figures distinct roles in the prose.
+- Prefer concise final communication, but do not reduce scientific depth for a high-risk audit, review, or revision.
+- Use professional publication language without casual expressions, reader guidance, prompt-like statements, or meta-commentary about wording. State the technical meaning directly.
+- Avoid excessive colons and semicolons. Use complete sentences or an explicit causal or contrast relationship instead of punctuation as a shortcut. Retain colons and semicolons only when they are required in equations, labels, tables, citations, or metadata.
+- Avoid one-sentence paragraphs and strings of very short paragraphs. Each paragraph should develop one central topic through evidence, interpretation, and implication.
+- Use short noun phrases for section titles. Do not place conclusions in headings.
+- Refer to subfigures as `Fig. 6a`, `Fig. 6b`, and so forth. Do not use "panel" in manuscript text or captions.
 
-- Start from an important transport or thermal-management problem.
-- Explain the coupled physics before introducing AI, software, or data infrastructure.
-- Treat AI/ML as a tool for probing, predicting, reconstructing, or organizing thermal-fluid behavior, not as the final point of the work.
-- Separate what is measured, simulated, inferred, proposed, and community-dependent.
-- When the user's lab resources are discussed, present them as case studies or seed efforts within a broader field-wide ecosystem.
+## Sentence Construction And Emphasis
 
-## Preferred Manuscript Logic
+A technical sentence should carry one dominant message. Parallel construction distributes weight evenly across its members, which feels complete but leaves the reader without a signal about which claim matters. This differs from legal drafting, where enumerated parallel clauses exist to close loopholes. In research prose the purpose is to convey a message, so the distinctive claim belongs in the main clause and the supporting requirements belong in subordinate or participial constructions.
 
-Build manuscripts through a narrowing technical story.
+- **Subordinate to emphasize.** When three clause-level actions appear in series, identify the one that is novel and promote it. "The system must read signals the record never held, act within the time the physics allows, and learn from the result" distributes weight across three equal members. "The system must recover signals the written record never contained, acting within the time the physics allows and improving from each outcome" places the novel claim in the main clause and demotes the two ordinary requirements.
+- **Distinguish enumeration from rhetorical parallelism.** A list that names a complete set of real items is legitimate and should be kept, as in "optical, acoustic, electrical, and thermal signatures" or "fabricated, packaged, operated, and driven to failure." The pattern to revise is the series of parallel clauses, each asserting a separate claim.
+- **Give short sentences specific content.** A brief sentence is acceptable when it carries a number, a mechanism, or a named object. A brief sentence that only generalizes, such as "The platform acts on the process," should be absorbed into the sentence that supplies the detail.
+- **Name the object directly.** Replace generic interrogative clauses such as “determine how,” “identify which,” “test whether,” and “state what” with the substantive quantity, method, requirement, decision, or evidence object when that construction is clearer. For example, write “quantify the price,” “identify the required documentation,” “evaluate assignment adequacy,” or “specify the decision criteria.” Retain a question form only when the question itself is the scientific object.
+- **Use evidence-specific vocabulary.** Use `record` only for an actual database entry, archival record, or formal official record. Otherwise name the relevant evidence directly, such as a measurement, observation, dataset, metadata field, permit, contract, plan, drawing, procedure, log, interconnection agreement, or supporting documentation.
+- **Avoid definitional asides.** Constructions such as "X here means," "what this means is," and "in other words" read as spoken instruction. State the definition directly, as in "Embodiment in this platform refers to direct coupling with the process through sensors and actuators."
+- **Lead with the subject.** A pseudo-cleft opener such as "What the random split rewards is the capacity to store the training windows" withholds the subject until the verb has already passed, and it does so in the sentence that usually carries the paragraph's conclusion. Write "The random split rewards the capacity to store the training windows."
+- **Keep the subject short enough to hold.** When three long noun phrases precede the verb, the reader carries all three without yet knowing what is being said about them. "Independent boiling tests, propagation of the label uncertainty through the evaluation, and comparison of the learned representation against bubble-resolved measurements are required before the approach qualifies as a validated measurement technique" reaches its verb at word twenty-five. "Validating the approach as a measurement technique would require independent boiling tests, propagation of the label uncertainty through the evaluation, and comparison of the learned representation against bubble-resolved measurements" reaches it at word seven and is no longer.
+- **Use the author's own test for a convoluted sentence.** The reader understands every word and is still confused by the sentence. The usual causes are a predicate that does not fit its subject, as in "the places where Fig. 4b departs from the ordering of Fig. 4a are the families for which that trade occurs", where places are equated with families; a supporting fact appended with `given that` after the claim; and a clause-level `and` joining two sentences that should be separate.
+- **Diagnose a short sentence by what it omits.** "Table 3 and Fig. 8a report the estimates" is weak because it names two floats without saying what they hold, not because it is seven words. A short sentence that carries a number, a mechanism, or a named object is correct as written.
+- **Prefer formal causal connectives.** Use `since`, `thus`, `therefore`, `as a result`, and `whereas` in place of `because` and `so`. Reserve `because` for a causal claim that carries genuine weight, and avoid `so` as a sentence connective in manuscript prose.
+- **Do not define the subject by what it is not.** Avoid the contrast frames `X is A rather than B`, `X is A, not B`, and `not B but A` as a way to introduce an idea. Each one sets up an alternative that the reader never proposed and then rejects it, and the abstract subject and verb they usually carry, such as "availability is organized as," hide who does what. State the actor, the action, and the object in ordinary language, and let a figure or a later sentence carry the concept. Keep a contrast only when the alternative is a real competing option under discussion, such as a rival hypothesis, an existing method, or a design choice the reader would otherwise assume. A bullet heading, a diagnostic label, or a definition that exists to separate two things a reader confuses is doing contrastive work and is exempt. The rule governs the body prose of a manuscript, a proposal, or a response.
 
-1. Establish the two-phase transport or thermal-management need.
-2. Explain the coupled physical mechanisms.
-3. Explain why the mechanisms span scales and make physics-based modeling difficult.
-4. Motivate multimodal data and data-driven modeling as ways to probe different projections of the same process.
-5. Introduce the organizing framework, taxonomy, benchmark, or method.
-6. Review existing datasets, models, tools, and gaps using that framework.
-7. Close with community infrastructure, limitations, and specific future work.
+  | Avoid | Prefer |
+  |---|---|
+  | Availability in the hub is organized as a lifecycle rather than a download portal (Fig. 4). | The hub makes datasets available through four linked activities that repeat throughout the project (Fig. 4). |
 
-When two figures express related ideas, give each figure a distinct job in the prose. For example, one figure may show many coupled mechanisms, while the next shows the multiscale nature of heat transfer. Do not cite both in one overloaded sentence unless their roles are explicitly separated.
+  A contrast that names a real competing explanation stays. "The model depends on interfacial motion rather than static scene content" is correct as written, since static appearance is the explanation a reader would otherwise assume and the sentence exists to rule it out. The revision above names the actor and the action, uses the phrasing a colleague would use aloud, and removes a straw-man alternative. The cycle itself is shown in the figure and listed in the next sentence, so the opening sentence does not need the abstract label `lifecycle`.
 
-## Review Article Style
+- **Prefer common phrasing over abstract nominal constructions.** When an abstract noun is the subject of an abstract verb, as in "availability is organized as" or "engagement is structured around," rewrite with the actor as the subject and a concrete verb. The plain version is usually shorter and is understood on the first reading.
 
-Write review articles as synthesis and infrastructure guidance, not as annotated bibliographies.
+**Diagnostic pass.** Before final submission, count `rather than`, `, not`, `not … but`, `instead of`, `because`, `so`, and `which is` across the document, and flag any clause-level series of three. Of these, only `rather than` carries a usable rate. The other frames appear in ordinary appositives and in legitimate contrasts, so read each one and rewrite only those that reject an alternative no reader proposed. A rate above roughly one `rather than` per 300 words, or any paragraph containing two clause-level triads, indicates that emphasis has been distributed instead of placed. Use [anti-formulaic-writing.md](anti-formulaic-writing.md) for the surface-prose patterns that accompany these constructions.
 
-- Organize the review around a framework, mechanism, modality, dimensionality, workflow, or benchmark need.
-- Use taxonomies to help readers map their own datasets or methods into the review.
-- Discuss representative papers deeply only when they clarify a method, mechanism, limitation, or benchmark pattern.
-- Group background references by category and discuss key papers selectively.
-- Include tables and figures that do analytical work: taxonomy tables, dataset inventories, benchmark matrices, readiness scorecards, metadata workflows, or roadmap figures.
-- Avoid one-lab dominance. If NED3 resources are included, balance them with third-party resources and explicitly state that NED3 is an implementation case, not the center of the review.
+## Paragraph Openers And The Skeleton Test
 
-## Open Data, Software, And Benchmark Framing
+The first sentence of a paragraph delivers that paragraph's central idea, and the last delivers its message or its handoff to the next. Read the openers and closers in sequence with nothing between them. The argument should survive that reduction, and each opener should connect to the preceding closer. Put the paragraphs in random order and a reader should be able to restore the original one.
 
-For open thermal-fluid datasets and AI tools, emphasize reuse infrastructure.
+Failures the test catches:
 
-- Describe datasets by data object, modality, S+TD class, physics metadata, labels, split strategy, decoders, and benchmark task.
-- Use the S+TD idea when helpful: 0+0D point/tabular data, 0+1D time series, 1+0D/1+1D profiles, 2+0D images, 2+1D videos or fields, 3+0D/3+1D simulation fields, and mixed multimodal records.
-- Connect each data class to plausible AI tasks: regression, sequence learning, segmentation, classification, surrogate modeling, inverse reconstruction, scientific ML, cross-domain transfer, or multimodal fusion.
-- Treat benchmark datasets as staged community efforts unless a complete benchmark already exists. It is acceptable to propose or seed a benchmark, but do not overclaim that a small initial dataset solves the benchmark problem.
-- Emphasize cross-laboratory splits, run-held-out splits, surface-held-out splits, fluid-held-out splits, geometry-held-out splits, and heat-load-path-held-out splits when discussing generalization.
-- Include baseline models, raw-to-processed provenance, uncertainty, failure cases, and rules about external data in benchmark proposals.
+- **An opener that points backward at something buried in the previous paragraph.** "The distinction is consequential here" names a distinction the skeleton cannot supply, so the transition is broken even though the sentence is grammatical.
+- **An opener that announces that a comparison is possible.** "Figure 9e separates which quantity each feature follows" describes the act of looking. State the finding and let the figure pointer follow it in the next sentence.
+- **An opener carrying a leftover number.** A paragraph opening "Pooling the cases weakens every correlation, to 0.55" starts on the residue of the previous analysis. Its central idea is the scope of the result, which an opener such as "These correlations hold within a case and do not transfer across operating condition" states directly.
+- **An opener that forward-references what the paragraph never introduces.** Rewriting an opener creates this failure routinely: one new opening sentence referred to a maximum that the paragraph itself established three sentences later. Re-read the whole paragraph after every opener change.
+- **A closer that delivers a requirement, a list, or a disclaimer.** A closing sentence must deliver a message.
 
-## Physics Metadata And Data Curation
+Open with a purpose statement when a paragraph begins a new analysis, as in "To examine how vapor content and the operating threshold influence segmentation accuracy, Fig. 4 plots ...". One sentence then carries the transition and the description step together.
 
-For thermal-fluid databanks, make physics metadata central.
+## Defensive Qualification
 
-- Go beyond normal catalog fields such as title, author, keywords, file type, and license.
-- Include geometry, fluid, pressure, heater size, surface condition, heat flux, HTC, CHF, operating path, calibration, sensor locations, sampling rate, frame rate, spatial scale, synchronization, uncertainty, and data-reduction equations.
-- Include mechanism-level quantities when useful: Jakob number, Capillary number, Weber number, Bond number, Reynolds number, Boiling number, Rayleigh-Taylor wavelength, vapor fraction, Zuber-scaled heat flux, or other problem-specific dimensionless groups.
-- Describe curation as a workflow: contributor upload, metadata extraction, data cataloging, high-dimensional profiling, consistency checks against existing datasets and physical laws, standardization, and warehouse/archive storage.
-- Support metadata scrapers and registered feature-detection algorithms for legacy spreadsheets, text files, images, videos, waveforms, and simulation outputs.
+State the problem, what was done, and what was found. A manuscript is not a comprehensive book, and a catalog of what the work does not support belongs in neither the results nor the conclusions.
 
-## Citation And Literature Hygiene
+Keep a statement when it changes what a result means and is made once. Cut it when it denies a claim no reader made, or restates a limit the manuscript already states elsewhere. Evidence-class verbs stay on real claims. The trailing "although X does not isolate Y" clause bolted onto "is consistent with" duplicates the verb and goes.
 
-Be strict with citation coherence.
+Nearly always cuttable:
 
-- Use first-author-last-name plus "et al." in prose. Avoid listing many author names in the main text.
-- Avoid author-chain labels such as "Kharangate-Mudawar-Kim-Qiu-Zhou" or similar group strings.
-- Number references by order of first appearance when the manuscript uses numeric citations.
-- Every reference should be cited; every citation should resolve to the intended reference.
-- After moving text, tables, or figure captions, re-run citation and reference consistency checks.
-- In figure captions, verify permission statements and reference numbers semantically, not only mechanically.
-- Disclose preprints, arXiv versions, or prior public versions transparently in cover letters when submitting an expanded journal version.
+- "This result does not imply that ..." and other denials of a claim nobody made.
+- A list of what a quantity is not.
+- The same limitation stated in the methods, again in the results, and again in the conclusions.
+- A result stated negatively. "does not demonstrate incremental information" becomes "adds no predictive accuracy for wall temperature beyond heat flux, mass flux, and inlet subcooling".
 
-## Figure And Table Preferences
+A regular-expression pass over `does not`, `do not`, `cannot`, `is not`, `precludes`, and `unvalidated` collects the candidates, and each one is then judged against the rule rather than deleted wholesale. On one manuscript this reduced 23 flagged sentences to 5 and removed 235 words, and the 5 that survived were load-bearing.
 
-Figures and tables should carry the argument.
+Defensive phrasing also generates reviewer confusion instead of preventing it. Two of four review comments on that manuscript landed on this register: "I do not understand this statement" against a compressed limitation clause, and "We can provide this" against a sentence listing what was unavailable.
 
-- Each figure should have a clear role in the manuscript narrative.
-- Do not use placeholder recommendation figures in a final paper; either include the figure and discuss it, or remove it.
-- Place figures near the text that motivates them when possible.
-- Use `Figure~\ref{...}` and `Table~\ref{...}` rather than hard-coded figure or table numbers.
-- Captions should define the purpose of the figure and enough context to stand alone.
-- For review tables, include columns that help readers act: data modality, S+TD class, AI task, metadata needs, benchmark readiness, availability, and evidence level.
-- Separate dataset/software availability created by the authors from third-party resources reviewed in the article.
+## Reader-First Narrative
 
-## Writing Preferences
+For an abstract, introduction, conclusion, or other high-level passage, make the main story understandable before introducing a dense list of inputs, metrics, or acronyms. An informed reader outside the immediate specialty should be able to identify i) the problem, ii) what the work does, iii) what the main result is, and iv) why the result matters.
 
-Prefer clear, compact, technical prose.
+- State what is developed, measured, modeled, or analyzed in direct language before listing the data sources, variables, or implementation details.
+- Do not treat combining datasets, building a map, or running a model as the innovation by itself. State what that integration is used to estimate, compare, test, reveal, or support.
+- Keep the narrative chain explicit: existing work and its remaining gap; the consequence of that gap; the present response; the principal result; and the bounded practical implication.
+- Do not make a known limitation the paper's main conclusion. Show what the present work quantifies, distinguishes, tests, or makes possible because it addresses that limitation.
+- State the consequence of a methodological gap when evidence supports it. For example, an unsupported national estimate may be mistaken for a local effect, or scarce validation effort may be directed to the wrong cases.
+- Prefer two connected sentences over one sentence that combines a long list of inputs, methods, findings, and implications. Remove repeated restatements of the same purpose or limitation.
+- Use plain terms for the function of a method before introducing specialized terminology. Retain technical precision, but define non-obvious abbreviations and avoid an array of terms that a reader does not need to understand the central message.
 
-- Use paragraph topic sentences and make each paragraph build from context to implication.
-- Build each technical paragraph around one job: establish the engineering context, identify a mechanism or gap, state the method, present the evidence, and give the bounded implication. Do not replace connected exposition with a sequence of short factual sentences.
-- Avoid too many colon-led clauses in the main text.
-- Avoid repeated sentences that say the same idea in two ways.
-- Use "indicates" for evidence-supported interpretation, "suggests" for weaker inference, and "demonstrates" only when the evidence directly supports the claim.
-- Avoid hype. Prefer "seed benchmark," "case study," "representative example," "proposed community mechanism," or "future infrastructure" when the work is preliminary.
-- Keep acknowledgments, availability statements, and cover letters transparent and concise.
+For conclusions, state what the study did, what was learned, and how the finding should be used. Keep numerical detail to the one or two findings that carry the take-home message. Do not cite figures in the conclusion unless the citation is necessary to resolve genuine ambiguity. Do not repeat the detailed methods, a catalog of assumptions, or the figure-by-figure results discussion.
 
-## Calibrated Journal-Manuscript Revision
+## Reader-Side Interrogation
 
-When revising a manuscript to match this style, preserve the science while making the evidence chain more direct. Revise at the section and paragraph level before making sentence-level edits; a generic simplification pass is not enough.
+Before accepting a title, abstract, introduction, conclusion, or other high-level passage, temporarily read it as an informed reader who has not followed the project. Treat the following questions as a required clarity gate rather than an optional copy-editing exercise:
 
-- Use a dense abstract: need, specific gap, compact method, two to three quantitative findings when the underlying data support them, and a scope-bounded implication. Do not use the abstract to repeat background or defer the outcome to the body.
-- Construct the introduction as a narrowing funnel. Synthesize prior work by application, architecture, material, diagnostic method, or modeling approach; then identify a specific unresolved physical, manufacturing, measurement, or design problem. Do not claim that no related work exists when adjacent approaches exist.
-- Make the final introduction paragraph concrete: what was fabricated, measured, modeled, compared, or validated; the operating range and material or geometry scope; and the resulting physical insight or design capability.
-- State experimental and model boundaries explicitly: the system boundary, coordinate convention, imposed and inferred quantities, sensor or image-derived metrics, calibration, uncertainty, and the difference between an effective fitted property and an intrinsic material property.
-- Treat each results figure as an argument. Orient the reader, report the observed and quantitative difference, relate it to the physical architecture or mechanism, then state the design implication. Use a limitation only where it changes interpretation.
-- Put caveats near the affected claim and make them specific. Name the unmeasured quantity, uncertain boundary, untested condition, or model-form limitation once; avoid repeating defensive statements after every result.
-- Write conclusions as two to four numbered, cumulative findings. Each finding should state the result, its physical interpretation, and its bounded implication rather than restating a section heading or the abstract.
-- Avoid casual or meta-writing, including rhetorical questions, reader-directed language, "the current work," "the present work," and generic statements such as "This study establishes" when a direct technical subject is available. Prefer a declarative, evidence-linked statement.
-- Retain meaningful limitations, uncertainty, and provenance. Do not solve a substantive evidence gap by only weakening the prose; identify the analysis, validation, or new measurement needed.
+- **Title:** What is the research object, what was actually done, and what will the reader reasonably expect to find? Does the title imply a direct measurement, prediction, validation, or causal finding that the evidence does not support? Remove geographic, methodological, or descriptive words that merely repeat information already conveyed elsewhere in the title.
+- **Method labels:** What does each central label such as `screening`, `assessment`, `framework`, `scenario`, `priority`, or `validation` mean in this particular study? If an informed reader cannot answer from the first one or two sentences, use a more ordinary term or define the label by its inputs, calculation, and decision purpose.
+- **Specialized terms:** Is the term established in the target field and necessary for the argument? If it is a convenient internal phrase, replace it with the physical quantity, analysis, decision, or uncertainty it denotes. Do not retain a coined label merely because it is grammatically compact.
+- **Scope:** Does the passage distinguish estimated, modeled, screening-level, and measured quantities? If the title is intentionally concise, state the decisive scope limitation and the missing evidence in the abstract and conclusion rather than forcing every qualification into the title.
+- **Usefulness:** Does each sentence tell the reader what the analysis was used to determine, compare, or support? A list of datasets or a statement that information was combined is not a contribution without the resulting analytical purpose.
 
-## Figure And Results Language
+For assumption-based analysis, define an `assumption case` or `scenario` at first use as a specified set of input choices. State whether the cases are sensitivity tests, bounds, probabilities, or projections. Do not let an energy-planning term such as `scenario` imply a forecast or likelihood when the work only varies deterministic inputs.
 
-- Use `Fig. 6a`, not "panel a," when referring to a subfigure, unless the target journal requires another convention.
-- Use Arial consistently in publication figures unless the journal template requires a different font. Keep font size, axis spacing, line weights, legends, and uncertainty notation consistent across related figures.
-- Define symbols, units, coordinate directions, sample states, and statistical quantities in the figure or caption. Make uncertainty graphics meaningful: identify whether bars show standard deviation, confidence interval, propagated uncertainty, or another measure.
-- Describe a plotted effective property by its physical role and fitting basis. For example, distinguish an effective in-plane conductivity used to characterize composite heat spreading from an intrinsic constituent conductivity.
+After this interrogation, ask one final question: could a domain colleague explain the paper's purpose, principal result, and appropriate use after reading only the title, abstract, and conclusion? If not, revise the structure and terminology before adding more detail.
 
-## Overleaf And Submission Habits
+Use [paper-writing-style.md](paper-writing-style.md) for paper structure, [literature-review.md](literature-review.md) for synthesis, and [manuscript-revision-submission.md](../../mechanical-engineering-research/references/manuscript-revision-submission.md) for revision/submission details. Do not duplicate their checklists here.
 
-For LaTeX/Overleaf submission packages:
+## Figure And Caption Preferences
 
-- Identify the true source file and remove stale alternate manuscript files before submission.
-- Keep only files needed for production: the active `.tex`, bibliography/support files if useful, and referenced figures.
-- Use a short README only when it helps production compile the source, such as noting XeLaTeX and the main file.
-- If a journal system rejects a zip, prepare a flat individual-upload package with figure paths adjusted so uploaded figures sit beside the main `.tex` file.
-- Keep the review PDF and source files conceptually separate: the PDF is for review, while the source is for production.
-- For cover letters, state journal fit, contribution, originality/no-parallel-submission, conflicts, author approval, and any preprint relationship.
+- Use Arial for all figure text unless the target journal explicitly requires another typeface. Keep font sizes legible and consistent at final publication dimensions.
+- Italicize variable symbols. Keep units and subscript or superscript descriptors in roman type unless a mathematical convention or journal rule requires otherwise.
+- Place subfigure labels `(a)`, `(b)`, and so forth outside the plotting box near the upper-left corner, aligned just above the y-axis label and level with the top of the axes with a small cushion, when the journal layout permits.
+- Give every subplot a unique sequential label. Remove excessive whitespace and prevent labels, legends, annotations, and data from overlapping.
+- Write descriptive captions as continuous prose. Identify the quantities, conditions, subfigure mapping, visual encodings, uncertainty treatment, and data-reduction choices without using the word "panel."
+- Confine the caption to description. Move results, interpretation, and the justification for a plotting choice into the section that uses them, and do not restate values already printed on the figure. Keep the protocol, calibration, or scope statement that bounds what the figure supports.
+- Discuss figures with enough detail to identify both axes, the experimental or modeled conditions, the principal observation, and the physical interpretation.
+- Use publication-facing operating conditions rather than internal case IDs. Use author-year labels for individual literature datasets.
+- Keep the key that makes the figure readable when shortening a caption. Confining a caption to description does not license removing the definition of a symbol printed on the figure, the mapping from subfigure to model or condition, the identity of each series and marker, or the meaning of a reference line drawn across the axes. These are the first items lost when a caption is trimmed, and the loss is silent. Re-read every shortened caption against the rendered figure before accepting it.
+- Do not use a generic corner uncertainty marker unless it is explicitly requested and its meaning is unambiguous.
+
+
+## One Name Per Thing
+
+A revision that renames a model, a dataset, a metric, or a protocol must propagate the new name through the manuscript, the supplement, the figure captions, the figure scripts, and the reviewer response. Reviewers read these side by side, so a residual variant reads as a second entity.
+
+- Choose one term for each concept and sweep the variants after every structural edit. A single object acquiring three names across a package is the normal failure, not an unusual one: `final-frame CNN` against `residual CNN`, `random split` against `random division`, `predict` against `estimate`, `N_seq` against `L`.
+- Never let one word carry two technical senses in one paper. A ConvLSTM whose head applies global pooling, discussed a few pages from a statement that two run series "are not pooled", gives `pooled` an architectural and a statistical meaning at once. The same trap appears with `residual` for a skip connection and for a recurrent correction term, and with a metric name reused for a proportion. Resolve it by renaming one sense to a term the paper already uses rather than by defining both.
+- Prefer the name the figure, the table, and the methods section already print. A term that exists only in one paragraph of the results is a coined term, whether or not it was intended as one.
+- State an abbreviation at first use in the body, and check that the first use is the earliest one after restructuring moves paragraphs.
+
+## Terms The Reader Cannot Look Up
+
+A manuscript accumulates terms that no one decided to introduce. Sweep for them once the structure is final and classify each one before rewriting, since the right repair differs by class.
+
+- **Terms the whole paper runs on but never defines.** The most frequent words are the most exposed, since familiarity inside the project hides them. One manuscript indexed every result by `case` and `state`, 29 and 36 uses, and defined neither; the reader had to infer both from context, and the paper never explained why the optical count was 37 while the matched count was 36. Define such terms once where the objects are introduced, and let the definition resolve the arithmetic a reader would otherwise stumble over.
+- **One word carrying two unrelated technical senses.** `coverage` meant an area fraction in two sections and the fraction of a signal file that a window spans in a third, and neither sense was defined. Removing all eleven uses was shorter than defining two senses, and every replacement was a term the figures already printed.
+- **A term defined and then never used again.** It exists only to be defined. Delete the definition and name the quantity at its single point of use; one such term introduced in an instrumentation section became `a standard deviation`.
+- **Labels invented to carry a term that is leaving.** Group names such as `the low-area-fraction group` survive only to hold a departing word. Replace them with the grouping rule, as in `the nine images at vapor area fraction below 0.05`.
+- **Compressed nominal coinages.** `split audit`, `convention-limited values`, `experiment-held-out annotations`, `sequence-grouped images`, `onset state`, and `degradation range` each compress a procedure into a noun phrase that appears nowhere in the field's literature. Expand to the procedure itself, as in `the training and holdout images are also checked for shared source frames, by parsing the frame index in each filename`.
+- **Abbreviations expanded only in the nomenclature.** A reader meets the body out of order, so expand each one at its first appearance in the body as well. Check the entire list rather than the entries that look unfamiliar, since the omission is usually the one that felt too standard to verify; `RMSE` was expanded nowhere in one manuscript, the nomenclature included. Retire an abbreviation that is used once, since `critical heat flux` is barely longer than `CHF`.
+- **A named but unstated value.** `within the prescribed electrical-input tolerance` is a definition gap, not a style choice. Recover the value from the released reduction code, the instrument log, or the data-reduction script, confirm that nothing overrides it, state it in the manuscript, and tell the author which source supplied it. Do not invent the number and do not leave the phrase standing.
+
+Run the sweep as a scripted pass with one assertion per replacement, so that a phrase already altered by an earlier pass fails loudly instead of being skipped in silence, and end the pass with a count of each retired term to confirm that none survived.
+
+## Edits That Move Text
+
+Consolidating limitations, reordering sections, or merging paragraphs breaks references that no spell checker reports.
+
+- Re-resolve every demonstrative after a move. A sentence reading "propagation of that label uncertainty" is correct beside the sentence that introduced the uncertainty and meaningless once that sentence has moved to another section.
+- Re-resolve every `Section N`, `Figure N`, and `Table N` after renumbering, in the manuscript, the supplement, and the response. Renumbering is silent: `Section 3.5` continues to resolve to a heading that now covers a different subject.
+- Check that removing a section did not remove content a reviewer was promised. After each revision round, confirm that every passage quoted in the response still exists in the manuscript, verbatim.
+- Keep a machine check on the package: every figure, table, section, and supplementary item cited must exist, and every cited number must match its source.
+
+## Manuscript Revision Calibration
+
+When revising a manuscript to match this style, preserve the scientific evidence while strengthening the connection from engineering need to mechanism, method, result, and bounded implication. Revise the section and paragraph structure before making sentence-level edits; generic simplification alone is insufficient.
+
+- Make the abstract evidence-dense. When the data support it, include two to three principal quantitative findings rather than incidental experimental detail, then state the specific capability or implication supported within the tested scope.
+- Build the abstract as a compact story: problem, present method, what the method does with the evidence, principal findings, and practical use, with the claim boundary carried inside the finding sentences. Do not make the abstract a method catalog or a compressed results section.
+- End the abstract on the strongest physical finding or design implication, with its scope built into the sentence. Do not end on a disclaimer, a statement of what the work does not establish, a data or code release, a workflow summary, or a count of records and sources.
+- Synthesize the literature by application, architecture, material, diagnostic method, or modeling approach. Distinguish adjacent approaches from the specific remaining gap; do not claim that no prior work exists when relevant neighboring work exists.
+- End an introduction by linking the specific gap and its consequence to the present contribution. Follow with a short road map that tells the reader what the paper examines and why each analysis is needed; do not merely list section contents or variables.
+- Define experimental and model boundaries explicitly: system boundary, coordinate convention, imposed and inferred quantities, calibration, uncertainty, and the distinction between a fitted effective property and an intrinsic constituent property.
+- Treat every principal result as a figure-led argument: orient the reader, report the quantitative observation, relate it to the physical architecture or mechanism, and give the design implication.
+- Place each caveat near the claim it bounds. Identify the relevant unmeasured quantity, uncertain boundary, untested condition, or model-form limitation once, rather than repeating generic defensive qualifications throughout the manuscript.
+- Write the conclusion as one connected paragraph in the present tense, unnumbered unless the venue requires a list. Open with what the paper presents, state how it differs from prior work, give the principal findings in section order with one or two numerical anchors, then the mechanism and the design or scientific use. Use "is shown to" for the headline findings. Leave out figure citations and lists of further validation needs.
+- Do not resolve a substantive evidence gap by weakening prose alone. Identify the additional analysis, validation, or measurement required and preserve uncertainty and provenance in the final manuscript.
+
+## Measured Prose Targets
+
+The author's own edit of an AI-drafted manuscript is the calibration, and the measurements below are the check, in place of a judgment about whether a draft reads naturally. That edit cut the body by 24 percent, from 11,619 to 8,811 words, without removing a finding.
+
+| Quantity | Target, measured from the author's own revisions |
+|---|---|
+| Mean sentence length, measured on prose only | 19 to 22 words |
+| 90th-percentile sentence length, prose only | 30 to 35 words |
+| Share of sentences longer than 35 words | 6 percent or less |
+| `which` and `that`, per 10,000 words | 75 |
+| `rather than`, per 10,000 words | 8 |
+| `because`, per 10,000 words | genuine causes only |
+| `therefore`, per 10,000 words | 11 |
+| Semicolons, per 10,000 words | 1 |
+| Inline figure pointers such as `(Fig. 4a)`, per 10,000 words | 12 |
+| `respectively`, per 10,000 words | 9 |
+
+Sentence lengths are measured on prose only, with equations, headings, tables, and references removed. An earlier version of this table gave a mean of 15.2 words; that figure counted headings and table rows as sentences and does not reproduce on prose alone. Across three manuscripts, the passages the author rewrote himself averaged 19 to 24 words per sentence, whereas the AI-supervised versions of the same passages averaged 25 to 28 and had three to four times as many sentences above 35 words. Connected sentences of about 20 words are the target. A draft cut into strings of 10- to 14-word sentences is a different failure, not an improvement.
+
+`because` appeared in one revision at zero and in another for two genuine causal statements; the qualitative rule in Sentence Construction governs it. Measure before and after a style pass with `scripts/audit_technical_writing.py`, and watch for trading one tic for another: a first pass that fixed sentence length pushed `therefore` from 17.8 to 26.6 per 10,000 words.
+
+**The six moves the edit makes, in order of payoff.**
+
+1. Collapse parallel measurements into one comparative sentence. Four sentences each carrying one number become one sentence carrying all four.
+2. Delete the justification sentence that opens a results paragraph, and open on the figure instead.
+3. Halve the relative clauses. A `, which ...` that explains becomes its own short sentence.
+4. Delete apparatus: sentences defending the experimental design instead of reporting a result, and digressions about which version of an analysis produced a number.
+5. Reduce captions to a subject noun phrase, `showing`, and the bare subfigure list.
+6. Lead the abstract with the contribution, and state each result as a finding instead of hanging it on `but`, `although`, or `while`.
+
+The edit cuts none of the findings, negative ones included. A data-leakage result, an accuracy collapse, and a failed transfer across surfaces all survive it. `rather than` survives wherever it marks a real technical contrast; its rate fell with the surrounding meta-commentary, and the construction itself was never hunted.
+
+## Patterns From Author Revisions Of AI Drafts
+
+These patterns come from comparing three of the author's manuscripts across versions: the AI draft, the AI revision after many rounds of the author's comments, and the author's own direct revision. Each pattern below appeared in at least two of the three manuscripts, or is stated as a single-manuscript habit. The examples are synthetic.
+
+**Name things the way the field names them.** Name test conditions by the boiling regime visible in the images, model regimes by the physical limit that governs them, and figures, baselines, and section headings by the field's standard categories. A coined label such as `closure branch` or `high-flux arm` becomes `evaporation-limited regime` or `near CHF`, and "the wall-temperature record" becomes "the boiling curves".
+
+**Use literal verbs.** Do not give instruments, features, or models human actions. "Acoustic emission reaches the vapor dynamics" becomes "acoustic emission sensing characterizes the vapor dynamics without optical access", and "the model receives frames and returns masks" becomes a description of the input images and the output masks. Report prior work in the present perfect or the passive.
+
+**Open an analysis with its purpose and the variable changed.** "To evaluate the effect of temporal context on prediction, we have varied the number of frames per sequence from 1 to 32." The first person and the present perfect are both acceptable here. The form "To examine X, Fig. N plots Y against Z" also works. Name the object directly instead of writing "how X influences Y".
+
+**Build each figure paragraph in four steps.** State what the figure plots, Y against X and under which conditions; give the values as an ordered progression tied to each method or condition, pairing them with `respectively` where that is shorter; close the observation with a `Thus,` takeaway; then give the physical reading with `may` or `could` when the mechanism is inferred. Delete derived ratios and differences that the reader can compute from the stated values.
+
+**State headline findings directly.** "The temporal model is shown to reduce the prediction error by half" states a finding. "It is observed that" is acceptable occasionally, though not as the opener of every paragraph.
+
+**Use "this work", "this study", and "we" for scope and ownership.** They are appropriate for local definitions ("In this work, a case is one nominal mass flux"), purpose openers, the opening of the conclusion, and the group's own prior work ("In our previous work, we proposed..."). Avoid them for self-evaluation, as in "this study establishes".
+
+**Place a limitation once, where it applies, and frame it by its consequence.** Two forms recur. A fitness-for-purpose sentence: "Although the acoustic calibration is less precise than a reference hydrophone, it is sufficient for the steady-state comparison in this work." A validation paragraph placed directly after the comparison figure: name the sources of scatter, state how inputs the literature did not report were treated, then write "Within these limitations, the data follow the predicted trend" and give the mechanism. Delete a stand-alone limitations section, a list of validation needs, and one-line verdicts that deny a claim or announce a limit.
+
+**Keep provenance out of the main text.** Delete narration of how data were transcribed, audited, or reconstructed, and inventories of files, workbooks, and code. State the inputs that were used, with citations.
+
+**End the introduction with a plain preview.** The last paragraph says what is done and with which analyses, in plain terms; the passive voice is acceptable. Leave result numbers, definitions, and data-release statements out of it.
+
+**For model papers, state the advance as physics.** Frame the contribution as the physical term added to a named conservation equation, justify each input by the physical definition of the quantity it feeds, mark model outputs as `predicted` or `modeled`, and number the assumptions and state each one positively. When one dimensionless group carries the result, give it a physical meaning.
+
+**Single-manuscript habits.** `including` introduces the members of a set and `i.e.,` an equivalent. In Word manuscripts, figure and table callouts in running text were set in bold; follow the venue for this.
+
+## Reviews Of Data, Software, And Benchmarks
+
+- Organize by mechanism, modality, dimensionality, task, evidence maturity, and unresolved gap rather than author chronology.
+- Use spatial-plus-temporal dimensionality when it helps organize multimodal data; do not force the taxonomy onto unrelated work.
+- Connect data classes to plausible analysis or ML tasks and the physical quantities they expose.
+- Treat initial benchmark releases as seed benchmarks and collaborative mechanisms unless coverage, governance, baselines, and external validation support a field-standard claim.
+- Make physics metadata central: geometry, fluid/material, operating conditions, calibration, synchronization, uncertainty, data reduction, and useful dimensionless groups.
+- Separate author-generated availability from third-party resources and avoid one-lab dominance.
+
+Use [dataset-software-review.md](../../mechanical-engineering-research/references/dataset-software-review.md) and [data-provenance-and-release.md](../../mechanical-engineering-research/references/data-provenance-and-release.md) for the detailed workflows.
+
+## Citation And Submission Habits
+
+- Use `FirstAuthor et al.` in prose and avoid long author-chain labels.
+- Verify citation intent after structural edits, especially numeric references, permissions, datasets, and software.
+- Highlight only changed phrases, clauses, or sentences in marked manuscripts.
+- Make reviewer responses complete enough to stand alone and include specific changes and locations.
+- Keep one active Overleaf entry point and remove stale alternate source files from production packages.
+
+Use [citation-integrity.md](../../mechanical-engineering-research/references/citation-integrity.md) and [manuscript-revision-submission.md](../../mechanical-engineering-research/references/manuscript-revision-submission.md) for the authoritative procedures.

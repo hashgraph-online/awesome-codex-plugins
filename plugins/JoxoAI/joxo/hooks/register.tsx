@@ -188,7 +188,7 @@ export const register: Register = (on) => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || reading?.kind !== 'ok' || !hasNews(reading.pulse) || signature(reading.pulse) === hiddenAt) return next(e)
+    if (e.props.hasSurvey || e.props.isCollapsed === true || reading?.kind !== 'ok' || !hasNews(reading.pulse) || signature(reading.pulse) === hiddenAt) return next(e)
     const groups = fitGroups(bandGroups(reading.pulse), Math.max(24, e.props.bodyColumns - 20))
     return bandView($.ui.resolve(e), groups, makeActions($))
   })

@@ -1,9 +1,9 @@
 ---
 name: deja-vu
-description: Search and recall past AI coding sessions across 52 coding agents (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Qwen Code, Cline, Zed, and more) on this machine via the deja MCP server or CLI. Use before your first edit, plan, review, or audit, before debugging an error, when concrete file/error/flag names appear mid-task, and before saying something does not exist on this machine.
+description: Search and recall past AI coding sessions across 53 coding agents (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Qwen Code, Cline, Zed, and more) on this machine via the deja MCP server or CLI. Use before your first edit, plan, review, or audit, before debugging an error, when concrete file/error/flag names appear mid-task, and before saying something does not exist on this machine.
 ---
 
-Search `deja` before re-deriving past work: when the user refers to an earlier session or settled decision, before debugging an error, before recommending a tool or approach, and before telling the user something on this machine does not exist. `deja` indexes local transcripts written by 52 coding agents, including sessions from before `deja` was installed.
+Search `deja` before re-deriving past work: when the user refers to an earlier session or settled decision, before debugging an error, before recommending a tool or approach, and before telling the user something on this machine does not exist. `deja` indexes local transcripts written by 53 coding agents, including sessions from before `deja` was installed.
 
 ## When to search
 

@@ -85,13 +85,13 @@ Branding is optional: `clientName` is trimmed to 1–80 characters; `avatar` is 
 
 | Adapter | Upstream execution | GroupChat context | Tool permissions |
 | --- | --- | --- | --- |
-| Codex | `codex app-server` JSON-RPC | Persistent Codex thread per chat | Command/file requests become TaskBar cards |
-| Claude Code daemon | Claude Agent SDK `query()` | Independent SDK session per chat | Forwarded SDK requests become TaskBar cards |
-| WorkBuddy / CodeBuddy | CodeBuddy Agent SDK | Independent SDK session per chat | Forwarded SDK requests become TaskBar cards |
-| Doubao | Desktop cookies + HTTP runtime or official CLI | Backend-prefixed persistent sessions | Upstream AskOnRisk / FullAccess or CLI permission mode |
+| Codex | `codex app-server` JSON-RPC | Persistent Codex thread per chat | Full-auto by default; opt-in TaskBar approvals |
+| Claude Code daemon | Claude Agent SDK `query()` | Independent SDK session per chat | Full-auto by default; opt-in TaskBar approvals |
+| WorkBuddy / CodeBuddy | CodeBuddy Agent SDK | Independent SDK session per chat | Full-auto by default; opt-in TaskBar approvals |
+| Doubao | Desktop cookies + HTTP runtime or official CLI | Backend-prefixed persistent sessions | Full-auto by default; Doubao permission modes |
 | DSH | DeepSeek Harness / Cordis services | Independent Harness session per chat | Tool and approval-question requests become TaskBar cards |
-| Antigravity | `agy acp` JSON-RPC 2.0 | Persistent ACP session per chat | `session/request_permission` becomes TaskBar |
-| Factory Droid | Factory TypeScript SDK | Independent SDK session per chat | Runtime permission requests become TaskBar cards |
+| Antigravity | `agy acp` JSON-RPC 2.0 | Persistent ACP session per chat | Full-auto by default; opt-in TaskBar approvals |
+| Factory Droid | Factory TypeScript SDK | Independent SDK session per chat | Full-auto by default; opt-in TaskBar approvals |
 | Pi Coding Agent | `pi --mode rpc` | Independent Pi session per chat | Native Pi permissions; extension dialogs are canceled |
 
 ## 2. Five-Step Setup: Install to GroupChat Collaboration
@@ -186,9 +186,9 @@ Open **Messages** in Nia Teams. Click the Agent avatar in the quick strip for a 
 
 Organization members can invite organization-affiliated Agents. The creator initially invites a Personal Assistant; afterward other chat members can invoke it. Presence above the composer changes from red **Disconnected** to **Idle / Ready**. Send a short task and verify its GroupChat reply.
 
-### Step 5: Invoke, approve, and manage the Agent
+### Step 5: Invoke and manage the Agent
 
-Type `@` and select the Agent to send work. Adapters with TaskBar permission confirmation display tool names and arguments in a confirmation card. An Agent member reads the request and clicks **Allow**; the host verifies the signed result before permitting that action. Doubao permissions follow the selected Doubao runtime mode.
+Type `@` and select the Agent to send work. Codex, Claude Code, WorkBuddy, Antigravity, and Factory Droid default to full-auto because per-tool approvals would add too many cards to GroupChat during normal coding turns. To review each requested permission, pass `--require-approval` to `connect` or `start`; Agent members can review tool names and arguments in TaskBar and click **Allow**. Doubao uses its own permission modes without TaskBar tool cards; DSH and Pi retain their existing permission behavior.
 
 ![TaskBar tool arguments, approval button, and waiting state](./docs/assets/taskbar-approval.png)
 
@@ -200,7 +200,7 @@ Type `@` and select the Agent to send work. Adapters with TaskBar permission con
 
 ### 1. OpenAI Codex (`@nia-teams/codex-bridge`)
 
-Codex (≥ 0.167.0) runs through app-server JSON-RPC with a persistent thread per chat and steering for active turns. Default sandbox is read-only with on-request approval. Select `--sandbox workspace-write` for project changes; command/file requests use TaskBar.
+Codex (≥ 0.167.0) runs through app-server JSON-RPC with a persistent thread per chat and steering for active turns. The default sandbox is `workspace-write`; `--require-approval` defaults to `read-only`. An explicit `--sandbox` takes precedence.
 
 ```sh
 nia-codex start --cwd "/path/to/workspace" --daemon
@@ -208,7 +208,7 @@ nia-codex start --cwd "/path/to/workspace" --daemon
 
 ### 2. Claude Code (`@nia-teams/claude-code-plugin`)
 
-The SDK daemon uses Claude Agent SDK, persists per-chat sessions, and displays tool permission requests in TaskBar. Use `--model` to select a model, `--full-auto` to bypass bridge confirmations, or `--claude-bin` to select a local executable.
+The daemon uses the Claude Agent SDK and persists per-chat sessions. Use `--model` to select a model or `--claude-bin` to select a local executable.
 
 ```sh
 nia-claude start --cwd "/path/to/workspace" --daemon
@@ -252,7 +252,7 @@ nia-agy pair --name 'My Antigravity'
 nia-agy start --cwd "/path/to/workspace" --daemon
 ```
 
-Select a signed-in executable with `--agy-bin` / `AGY_BIN`. `--mode` accepts default, accept-edits, auto, or plan; `--model` selects an available model and `--sandbox` forwards the boolean flag. `--full-auto` / `--bypass-approvals` skips bridge confirmations and adds the upstream permission bypass flag. See the [Antigravity guide](./packages/agy/README.md).
+Select a signed-in executable with `--agy-bin` / `AGY_BIN`. `--mode` accepts default, accept-edits, auto, or plan; `--model` selects an available model and `--sandbox` forwards the boolean flag. See the [Antigravity guide](./packages/agy/README.md).
 
 ### 7. Factory Droid (`@nia-teams/droid-bridge`)
 
@@ -264,7 +264,7 @@ nia-droid pair --name 'My Droid'
 nia-droid start --cwd "/path/to/workspace" --daemon
 ```
 
-Select the executable with `--droid-bin` / `DROID_BIN`; configure sessions with `--model`, `--effort`, and `--autonomy`. Omitted autonomy preserves Droid defaults. `--full-auto` selects high and skips bridge permission cards. See the [Factory Droid guide](./packages/droid/README.md).
+Select the executable with `--droid-bin` / `DROID_BIN`; configure sessions with `--model`, `--effort`, and `--autonomy`. Full-auto uses `high` autonomy unless `--autonomy` is set. See the [Factory Droid guide](./packages/droid/README.md).
 
 ### 8. Pi Coding Agent (`@nia-teams/pi-bridge`)
 
@@ -295,7 +295,7 @@ Generic messages may use `[chat:<chatId>] Alice (<userId>): ...`, or a structure
 
 For TaskBar approval, Nia Teams checks Agent membership before signing an RS256 `nia/confirmationToken`. The host uses `@nia-teams/mcp-sdk/auth` and `${issuer}/oauth2/jwks` to verify signature, issuer, audience, lifetime, service identity, human confirmation, card ID, tool, and canonical-JSON argument SHA-256 digest. Each card binds one pending operation; chat text saying “allow” or a role field does not replace signature validation.
 
-The host config directory stores Ed25519 private keys and paired identity with `0700`/`0600` directory/file permissions. Origin changes, rebinding, and unpairing affect that identity and are not controlled by chat bodies. Model login, desktop cookies, and bridge keys belong to their respective runtime boundaries. Per-chat context isolation is not workspace or OS isolation; a local operator chooses `--full-auto`.
+The host config directory stores Ed25519 private keys and paired identity with `0700`/`0600` directory/file permissions. Origin changes, rebinding, and unpairing affect that identity and are not controlled by chat bodies. Model login, desktop cookies, and bridge keys belong to their respective runtime boundaries. Per-chat context isolation is not workspace or OS isolation; select tool permission mode on the host.
 
 ## 5. Repository Layout & Local Development
 

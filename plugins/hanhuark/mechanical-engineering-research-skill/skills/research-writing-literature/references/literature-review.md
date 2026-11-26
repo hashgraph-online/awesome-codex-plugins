@@ -50,17 +50,24 @@ If a review only teaches the writer what others have done, it is preliminary. A 
    - Avoid overciting one research group, one theory, or one method when multiple major approaches exist.
    - For mature fields, cite representative and high-impact papers rather than every available paper.
    - Ensure coverage includes major theories, major experimental methods, key materials/geometries, and important contradictory results.
+   - For dataset/software-centered reviews, also read [dataset-software-review.md](../../mechanical-engineering-research/references/dataset-software-review.md).
 
 5. Extract comparable information.
    - Capture geometry, material, working fluid, operating conditions, manufacturing method, diagnostics, performance metrics, correlations, assumptions, and uncertainty.
    - Convert symbols and definitions into a unified notation when comparing equations.
    - Digitize figures when needed and allowed by the task; clearly mark digitized values and likely uncertainty.
+   - Keep a claim-evidence ledger for consequential claims and use [citation-integrity.md](../../mechanical-engineering-research/references/citation-integrity.md) for source and locator checks.
 
-6. Synthesize rather than list.
+6. Build an evidence map before writing the synthesis.
+   - Sort sources into foundational, representative, key-comparison, background, and conflicting-or-limiting roles.
+   - For each major category, record the physical question or mechanism, evidence type, applicability boundary, and limitation that leads to the next question.
+   - Keep the matrix compact. Its purpose is to prevent accidental overemphasis of the easiest papers to find and to make the narrative structure traceable.
+
+7. Synthesize rather than list.
    - Group papers by mechanism, theory, design family, method, metric, material, operating regime, or unresolved challenge.
    - Identify trends, scaling behavior, agreement, disagreement, limitations, and missing diagnostics.
 
-7. Connect review to doing and communicating.
+8. Connect review to doing and communicating.
    - Use the review to decide what calculation, CAD model, code, experiment, manufacturer question, or expert conversation should happen next.
    - Use results from doing and communicating to refine the literature search.
 
@@ -108,6 +115,8 @@ For each cited paper or group of papers, decide whether it is:
 
 Do not give every background reference a full sentence. Doing so makes the review read like an annotated bibliography instead of a synthesis.
 
+Verify citation existence, exact claim support, applicability to the present regime, and placement. A website may document a current dataset, policy, software release, or specification, but it should not replace peer-reviewed synthesis of a scientific mechanism.
+
 ## Background Reference Grouping
 
 Background references should be acknowledged efficiently and accurately.
@@ -141,7 +150,7 @@ Use this logic:
 
 1. Summarize the research category or theory.
 2. Cite representative references in the right categories.
-3. State what the group of studies has established.
+3. State the specific mechanism, relation, capability, or limitation supported by the group.
 4. State what remains unclear, limited, contradictory, difficult to measure, or insufficiently modeled.
 5. Explain how that limitation motivates the present study.
 

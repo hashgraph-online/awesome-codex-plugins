@@ -1,0 +1,20 @@
+{
+  "description": "Lightkeeper for Codex: the same hook scripts Claude Code runs, through codex/adapter.py.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "command -v python3 >/dev/null 2>&1 && python3 \"${PLUGIN_ROOT}/codex/adapter.py\" session_start || cat >/dev/null; exit 0", "timeout": 10 }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "command -v python3 >/dev/null 2>&1 && python3 \"${PLUGIN_ROOT}/codex/adapter.py\" prompt_hint || cat >/dev/null; exit 0", "timeout": 10 }] }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [{ "type": "command", "command": "command -v python3 >/dev/null 2>&1 && python3 \"${PLUGIN_ROOT}/codex/adapter.py\" file_guard || cat >/dev/null; exit 0", "timeout": 20 }]
+      }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "command -v python3 >/dev/null 2>&1 && python3 \"${PLUGIN_ROOT}/codex/adapter.py\" stop_reminder || cat >/dev/null; exit 0", "timeout": 15, "statusMessage": "Checking the knowledge vault" }] }
+    ]
+  }
+}

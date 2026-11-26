@@ -517,7 +517,7 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 | **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 25 | Live³ |
 | **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 25 | — |
 
-¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² SessionStart (resume) only. No guard, observe, polish or reflect yet (#404). A conversation resumed with `-c`/`--conversation` gets no resume context because agy fires SessionStart only for new conversations · ³ via `SubagentStart`/`SubagentStop`
+¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² SessionStart (resume), PreToolUse guard on `run_command`, PostToolUse observe on every tool, and Stop reflect; no polish or snapshot. agy gives hooks no exit code, so a shell command that exits non-zero is recorded as a success; tool errors such as a missing file are recorded as failures. agy fires Stop at the end of every turn, so each turn with at least 3 new observations counts as one session. If epic is missing, outdated or crashes, guard allows the command; if Node cannot start the hook launcher, agy blocks every shell command until the plugin is repaired. Update the epic binary together with the plugin: with an older binary agy tool calls are recorded as `unknown` and guard is inactive. A conversation resumed with `-c`/`--conversation` gets no resume context because agy fires SessionStart only for new conversations · ³ via `SubagentStart`/`SubagentStop`
 
 ### Codex specifics
 

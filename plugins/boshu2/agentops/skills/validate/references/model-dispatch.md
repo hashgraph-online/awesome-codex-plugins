@@ -111,14 +111,15 @@ describe.
 
 Print mode (`claude -p` / `--print`) is an ordinary dispatch option;
 [claude-exec](../../claude-exec/SKILL.md) owns the one-prompt mechanics. A
-judgment leg adds the requirements in this section. For a caller-selected Fable
+judgment leg adds the requirements in this section. For a caller-selected
 profile, the command is:
 
 ```sh
-claude --print --model claude-fable-5-1 --effort xhigh
+claude --print --model "$JUDGE_MODEL" --effort xhigh
 ```
 
-This is one caller-selected profile, not a mandatory model pin. Select another
+`JUDGE_MODEL` holds the exact model ID the caller selected, not an alias. The
+effort shown is one caller-selected profile, not a mandatory pin. Select another
 authorized capable Claude profile when requested. For native model evidence,
 request `--output-format stream-json --verbose`; preserve assistant-envelope
 model/context fields and the terminal result, not just rendered text. Inspect the

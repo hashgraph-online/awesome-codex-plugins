@@ -6,7 +6,7 @@
 
 MCP servers and install pins live in [publicrecords-mcp](https://github.com/GeminiGeorge22/publicrecords-mcp).
 
-Ten [Agent Skills](https://agentskills.io) and one hosted MCP server that let your AI assistant pull **official public data** through the [publicrecords](https://apify.com/publicrecords) Actors on Apify: US federal contracts and grants, UK and EU tenders, city council meetings, new job postings from ATS boards, company social links, Etsy market data, competitor Google ads, sports odds, tennis scores, Spotify play counts, forecast track records and Skool community search. The tennis-scores skill calls `publicrecords/tennis-scores-api` through the Apify API with the user's own token (Standby/MCP is not built for that Actor; it is not on the MCP `?tools=` list).
+Fifteen [Agent Skills](https://agentskills.io) and one hosted MCP server that let your AI assistant pull **official public data** through the [publicrecords](https://apify.com/publicrecords) Actors on Apify: US federal contracts and grants, UK and EU tenders, city council meetings, new job postings from ATS boards, company social links, Etsy market data, competitor Google ads, sports odds, tennis scores, Spotify play counts, forecast track records, Skool community search, PDF and web-page to Markdown, audio transcription, and email domain/MX/disposable checks (not the mailbox). The tennis-scores skill calls `publicrecords/tennis-scores-api` through the Apify API with the user's own token (Standby/MCP is not built for that Actor; it is not on the MCP `?tools=` list).
 
 One repo, packaged for every major agent: **Claude Code / Claude, OpenAI Codex / ChatGPT, GitHub Copilot, Cursor, Gemini CLI, Kiro**, and any client that reads the [Agent Plugins](https://agent-plugins.org) format or plain `SKILL.md` folders.
 
@@ -25,6 +25,11 @@ One repo, packaged for every major agent: **Claude Code / Claude, OpenAI Codex /
 | [`tennis-scores`](skills/tennis-scores/SKILL.md) | ATP and WTA match scores, tournament draws and tour rankings | [`tennis-scores-api`](https://apify.com/publicrecords/tennis-scores-api) (Apify API only; no hosted MCP) |
 | [`spotify-play-counts`](skills/spotify-play-counts/SKILL.md) | Play counts per track, monthly listeners, followers | [`spotify-play-count-scraper`](https://apify.com/publicrecords/spotify-play-count-scraper) |
 | [`forecast-track-record`](skills/forecast-track-record/SKILL.md) | Track record of an organization's forecasts (IMF, OECD, Fed, SPF, ECB SPF, issuers), beta | [`calibration-ledger`](https://apify.com/publicrecords/calibration-ledger) |
+| [`pdf-to-text`](skills/pdf-to-text/SKILL.md) | PDF and Word to Markdown, OCR for scans, RAG-ready chunks | [`pdf-docx-to-markdown`](https://apify.com/publicrecords/pdf-docx-to-markdown) |
+| [`audio-to-text`](skills/audio-to-text/SKILL.md) | Audio and video to transcript, SRT and VTT (Whisper runs inside) | [`audio-file-transcriber`](https://apify.com/publicrecords/audio-file-transcriber) |
+| [`web-page-to-markdown`](skills/web-page-to-markdown/SKILL.md) | Web page URL to LLM-ready Markdown (plain HTTP, no browser) | [`url-to-markdown`](https://apify.com/publicrecords/url-to-markdown) |
+| [`js-page-to-markdown`](skills/js-page-to-markdown/SKILL.md) | JavaScript / SPA pages rendered in Chromium, Markdown plus optional screenshot | [`js-page-to-markdown`](https://apify.com/publicrecords/js-page-to-markdown) |
+| [`email-verifier`](skills/email-verifier/SKILL.md) | Email syntax, domain, MX and disposable checks, not the mailbox | [`email-verifier`](https://apify.com/publicrecords/email-verifier) |
 | [`skool-communities`](skills/skool-communities/SKILL.md) | Search Skool communities by keyword: members, price, rating, estimated revenue, plus daily growth tracking | [`skool-community-growth-tracker`](https://apify.com/publicrecords/skool-community-growth-tracker) |
 
 ## Install
@@ -48,7 +53,7 @@ You need an Apify account. MCP clients sign you in with OAuth; or use your own A
 ```json
 {
   "mcpServers": {
-    "publicrecords": { "type": "http", "url": "https://mcp.apify.com/?tools=publicrecords/company-social-profile-finder,publicrecords/govcon-opportunity-feed,publicrecords/grants-gov-scraper,publicrecords/usaspending-awards-scraper,publicrecords/uk-find-a-tender-scraper,publicrecords/eu-ted-notices-scraper,publicrecords/legistar-meetings-scraper,publicrecords/ashby-jobs-scraper,publicrecords/greenhouse-jobs-scraper,publicrecords/lever-jobs-scraper,publicrecords/smartrecruiters-jobs-scraper,publicrecords/etsy-search-scraper,publicrecords/etsy-shop-velocity,publicrecords/google-ads-transparency-scraper,publicrecords/sports-odds-api,publicrecords/spotify-play-count-scraper,publicrecords/calibration-ledger,publicrecords/skool-community-growth-tracker" }
+    "publicrecords": { "type": "http", "url": "https://mcp.apify.com/?tools=publicrecords/company-social-profile-finder,publicrecords/govcon-opportunity-feed,publicrecords/grants-gov-scraper,publicrecords/usaspending-awards-scraper,publicrecords/uk-find-a-tender-scraper,publicrecords/eu-ted-notices-scraper,publicrecords/legistar-meetings-scraper,publicrecords/ashby-jobs-scraper,publicrecords/greenhouse-jobs-scraper,publicrecords/lever-jobs-scraper,publicrecords/smartrecruiters-jobs-scraper,publicrecords/etsy-search-scraper,publicrecords/etsy-shop-velocity,publicrecords/google-ads-transparency-scraper,publicrecords/sports-odds-api,publicrecords/spotify-play-count-scraper,publicrecords/calibration-ledger,publicrecords/skool-community-growth-tracker,publicrecords/pdf-docx-to-markdown,publicrecords/audio-file-transcriber,publicrecords/url-to-markdown,publicrecords/js-page-to-markdown,publicrecords/email-verifier" }
   }
 }
 ```

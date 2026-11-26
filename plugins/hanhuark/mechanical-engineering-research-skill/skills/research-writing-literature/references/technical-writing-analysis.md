@@ -128,6 +128,10 @@ Develop each figure discussion through four steps:
 
 Combine plots that support one consistent argument in a connected paragraph. Give plots separate discussions when their questions, evidence, or implications differ; do not assign a paragraph mechanically to every subfigure. Use this sequence as reasoning, not mandatory sentence stems. A literature comparison belongs where it helps explain or bound the observation, rather than as an obligatory closing sentence.
 
+Every results paragraph should serve a figure. A results paragraph tied to no figure is suspect, since content that mattered would have earned a figure of its own, and prose that serves none is usually a qualification or a procedural aside that belongs inside a figure discussion or nowhere at all.
+
+Shape the paragraph A-B-A. The opening A carries the transition and the describe step, B carries the observe-explain pairs repeated once per distinct finding, and the closing A carries the take-home message and the handoff to the next figure. A paragraph that opens on a number or on an observation has skipped the opening A, and usually the describe step with it. Keep that step concrete: name the axes, the operating condition, and what the symbols, shaded bands, and dashed lines represent, and define every derived quantity the figure plots before reporting what it does.
+
 Before attributing disagreement with prior work to physics, compare geometry, operating regime, properties, measurement method, uncertainty, and data-reduction definitions.
 
 Avoid claiming novelty only because a trend was not previously reported. State why the new observation matters and what measurement, model, or analysis made it possible.
