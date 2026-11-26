@@ -96,7 +96,8 @@ Rules:
 - A floating Liquid Glass capsule with 25 pt side and bottom insets, tab items 54 pt tall, the selected tab
   a pill in the tertiary vibrant fill with the symbol and label in the accent; labels 10 semibold, symbols
   18 semibold; unselected labels in the primary label colour, not grey **[iOS27]**. Kit: `.tma-tabbar`
-  (labels at our 11 px floor, semibold).
+  (labels at our 11 px floor, semibold; 26 px symbols, the selected one heavier and tinted, so selection never
+  rests on colour alone; Android draws unselected tabs in the hint colour, as Material does).
 - **Search role:** search can be a separate 54 pt round glass button to the right of the bar, 16 pt away
   **[iOS27]**. In a Mini App: a search field at the top of the list it searches (layout rule L14), or a round
   floating button only when search is a whole section.

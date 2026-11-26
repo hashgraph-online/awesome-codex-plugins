@@ -1,6 +1,6 @@
 # Converter Studio for AI assistants
 
-[Converter Studio](https://converter.studio) converts files between **67 formats**: video, audio, images, PDFs, documents, e-books, subtitles, data and archives (HEIC to JPG, MOV to MP4, video to MP3, Word to PDF, PDF to images and 500 more pairs). This repository connects it to AI assistants and coding agents:
+[Converter Studio](https://converter.studio) converts files between **67 formats**: video, audio, images, PDFs, documents, e-books, subtitles, data and archives (HEIC to JPG, MOV to MP4, video to MP3, Word to PDF, PDF to images and hundreds more pairs). This repository connects it to AI assistants and coding agents:
 
 - an **MCP server** at `https://converter.studio/api/mcp` (Streamable HTTP),
 - a **plugin** for Claude Code and Codex, an **extension** for Gemini CLI,

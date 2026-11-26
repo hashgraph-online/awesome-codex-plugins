@@ -31,7 +31,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
-from . import skill
+from . import rich, skill
 from .project import STATE_DIR, PathError, Snapshot, resolve_inside
 
 LIBRARY = "emoji/library.json"
@@ -75,8 +75,11 @@ def empty_library() -> dict:
 
 def load_library(root: str) -> dict:
     path = os.path.join(root, *LIBRARY.split("/"))
-    if not os.path.isfile(path):
-        return empty_library()
+    return read_library(path) if os.path.isfile(path) else empty_library()
+
+
+def read_library(path: str) -> dict:
+    """The library document at `path` (a project's emoji/library.json), sanitized."""
     try:
         with open(path, encoding="utf-8") as fh:
             doc = json.load(fh)
@@ -138,6 +141,184 @@ def emoji_index(lib: dict) -> dict[str, dict]:
                                "format": "animated" if icon.get("animated") else "static",
                                "adaptive": bool(icon.get("adaptive")), "pack": icon.get("set") or ""}
     return out
+
+
+MOVING = ("animated", "video")  # custom emoji formats that move; a button takes a static one only
+
+
+def is_moving(e: dict | None) -> bool:
+    """An index entry whose format is animated or video (an unknown id, or one without a format, is not)."""
+    return bool(e) and e.get("format") in MOVING
+
+
+def moving_ids(lib: dict) -> dict[str, str]:
+    """id -> format of every animated or video custom emoji of a library."""
+    return {i: e["format"] for i, e in emoji_index(lib).items() if is_moving(e)}
+
+
+def static_twin(idx: dict[str, dict], e: dict) -> dict | None:
+    """`e` when it is static, else a static emoji with the same fallback (its own pack first), else None."""
+    if not is_moving(e):
+        return e
+    fb = e.get("fallback") or ""
+    twins = [t for t in idx.values() if fb and t.get("format") == "static" and same_emoji(t.get("fallback") or "", fb)]
+    return next((t for t in twins if t.get("pack") == e.get("pack")), twins[0] if twins else None)
+
+
+# ------------------------------------------------------------------ meaning: does the icon say what the label says
+
+WORD_RE = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)?")
+
+
+def _phrases(entry: dict) -> list[list[str]]:
+    """The label words of a vocabulary slot as token lists: its `words` in every language plus its own label."""
+    out = []
+    for words in (entry.get("words") or {}).values():
+        out += [w.lower().split() for w in words if isinstance(w, str) and w.strip()]
+    if isinstance(entry.get("label"), str) and entry["label"].strip():
+        out.append(entry["label"].lower().split())
+    return out
+
+
+def _says(tokens: list[str], phrase: list[str]) -> bool:
+    """`phrase` occurs in `tokens`; a phrase word ending in * matches any ending."""
+    def one(tok: str, pat: str) -> bool:
+        return tok.startswith(pat[:-1]) if pat.endswith("*") else tok == pat
+    n = len(phrase)
+    return any(all(one(tokens[i + k], phrase[k]) for k in range(n)) for i in range(len(tokens) - n + 1))
+
+
+def label_slots(label: str, vocab: dict[str, dict]) -> set[str]:
+    """Slots whose words the label says ("Мої замовлення" -> {"order"}); only slots that carry `words` count."""
+    tokens = [t.lower() for t in WORD_RE.findall(rich.visible_text(label) if "<" in (label or "") else (label or ""))]
+    if not tokens:
+        return set()
+    return {slot for slot, entry in vocab.items() if entry.get("words") and any(_says(tokens, p) for p in _phrases(entry))}
+
+
+def meaning_mismatch(labels: list[str], slots: list[str], vocab: dict[str, dict]) -> list[str] | None:
+    """The slots the labels say instead, when none of the labels says any of the icon's possible slots; None when
+    the icon fits, when none of its slots has `words`, or when the labels say no known slot at all."""
+    if not any((vocab.get(s) or {}).get("words") for s in slots):
+        return None
+    said: set[str] = set()
+    for label in labels:
+        hit = label_slots(label, vocab)
+        if hit & set(slots):
+            return None
+        said |= hit
+    return sorted(said) or None
+
+
+def slots_of(eid: str, lib: dict, idx: dict[str, dict], vocab: dict[str, dict]) -> list[str]:
+    """What a custom emoji can mean: its slot in the icon map; else every vocabulary slot that accepts its fallback
+    emoji, the slots where it is the first choice first (📦 -> product, then order, archive, delivery)."""
+    for slot, icon in (lib.get("icons") or {}).items():
+        if isinstance(icon, dict) and icon.get("id") == eid:
+            return [slot]
+    fb = (idx.get(eid) or {}).get("fallback") or ""
+    if not fb:
+        return []
+    hits = [(next(i for i, u in enumerate(v.get("unicode") or []) if same_emoji(u, fb)), s) for s, v in vocab.items()
+            if any(same_emoji(u, fb) for u in v.get("unicode") or [])]
+    return [s for _, s in sorted(hits, key=lambda h: h[0])]
+
+
+def button_icons(snap: Snapshot) -> list[dict]:
+    """Every button that carries a custom emoji, with its labels: keyboard actions with `icon` (labels of every
+    locale) and rich `<tg-button>` with a `<tg-emoji>` inside (the button's visible text in that locale).
+    [{screenId, pointer, id, labels: {locale: text}, kind: action|rich}]"""
+    out: list[dict] = []
+    for sid, screen in sorted(snap.screens.items()):
+        for aid, act in (screen.get("actions") or {}).items():
+            icon = act.get("icon") if isinstance(act, dict) else None
+            if isinstance(icon, dict) and isinstance(icon.get("customEmojiId"), str):
+                label = act.get("label")
+                labels = label if isinstance(label, dict) else {"": label or ""}
+                out.append({"screenId": sid, "pointer": f"/actions/{aid}/icon", "id": icon["customEmojiId"],
+                            "labels": {k: str(v) for k, v in labels.items()}, "kind": "action"})
+        msg = screen.get("message")
+        text = msg.get("text") if isinstance(msg, dict) else None
+        texts = text if isinstance(text, dict) else {"": text} if isinstance(text, str) else {}
+        for loc, value in texts.items():
+            if not isinstance(value, str):
+                continue
+            for m in rich.BUTTON_RE.finditer(value):
+                for e in rich.EMOJI_RE.finditer(m.group(2)):
+                    eid = rich.attrs(e.group(1)).get("emoji-id", "")
+                    if re.fullmatch(r"\d{1,20}", eid):
+                        words = rich.visible_text(rich.EMOJI_RE.sub("", m.group(2))).strip()
+                        ptr = "/message/text" + (f"/{loc}" if loc else "")
+                        out.append({"screenId": sid, "pointer": ptr, "id": eid, "labels": {loc: words}, "kind": "rich"})
+    return out
+
+
+def meaning_issues(snap: Snapshot, lib: dict) -> list[dict]:
+    """Buttons whose icon means something else than their label says (the label says another slot's words and
+    none of the icon's). [{screenId, pointer, id, slot, says: [slots], labels}]"""
+    vocab = {v["slot"]: v for v in vocabulary()}
+    if not vocab:
+        return []
+    idx = emoji_index(lib)
+    issues = []
+    for b in button_icons(snap):
+        slots = slots_of(b["id"], lib, idx, vocab)
+        says = meaning_mismatch(list(b["labels"].values()), slots, vocab)
+        if says:
+            issues.append({**{k: b[k] for k in ("screenId", "pointer", "id", "labels")}, "slot": "/".join(slots), "says": says})
+    return issues
+
+
+def review_sheet(snap: Snapshot, lib: dict | None = None) -> str:
+    """One HTML page to look at before shipping: every button icon next to its label, with its slot, pack, format,
+    the meaning check and a FAIL line for an animated icon. Pictures come from the library's preview cache."""
+    from html import escape as esc
+    import base64
+    lib = lib if lib is not None else load_library(snap.root)
+    vocab = {v["slot"]: v for v in vocabulary()}
+    idx = emoji_index(lib)
+    pics = previews(snap.root) if snap.root else {}
+    mime = {"webp": "image/webp", "png": "image/png", "jpg": "image/jpeg", "webm": "video/webm"}
+    rows, fails = [], 0
+    for b in button_icons(snap):
+        e = idx.get(b["id"]) or {}
+        slot = "/".join(slots_of(b["id"], lib, idx, vocab))
+        says = meaning_mismatch(list(b["labels"].values()), slots_of(b["id"], lib, idx, vocab), vocab)
+        problems = []
+        if is_moving(e):
+            problems.append(f"{e.get('format')}: a button takes a static custom emoji only")
+        if says:
+            problems.append(f"the label says {', '.join(says)}, the icon means {slot}")
+        if not e:
+            problems.append("not in the library: nobody has seen this picture")
+        fails += bool(problems)
+        pic = ""
+        name = pics.get(b["id"])
+        path = preview_file(snap.root, name) if name and snap.root else None
+        if path:
+            with open(path, "rb") as fh:
+                data = base64.b64encode(fh.read()).decode()
+            ext = name.rsplit(".", 1)[-1]
+            src = f"data:{mime.get(ext, 'image/webp')};base64,{data}"
+            pic = (f'<video src="{src}" muted loop autoplay></video>' if ext == "webm" else f'<img src="{src}" alt="">')
+        else:
+            pic = f'<span class="fb">{esc(e.get("fallback") or "?")}</span>'
+        labels = "<br>".join(f"<b>{esc(k or '-')}</b> {esc(v)}" for k, v in b["labels"].items())
+        verdict = "<br>".join(esc(p) for p in problems) or "fits: meaning, static, family"
+        rows.append(f'<tr class="{"bad" if problems else "ok"}"><td class="pic">{pic}</td><td>{labels}</td>'
+                    f"<td>{esc(slot or '?')}</td><td>{esc(e.get('pack') or '?')}</td><td>{esc(e.get('format') or '?')}</td>"
+                    f"<td>{esc(b['screenId'])}<br><code>{esc(b['pointer'])}</code></td><td>{verdict}</td></tr>")
+    packs = sorted({(idx.get(b['id']) or {}).get('pack') or '?' for b in button_icons(snap)})
+    head = (f"<p>{len(rows)} button icon(s), {fails} to fix; packs: {esc(', '.join(packs) or '-')}. Look at every row: "
+            "does the picture say what the label says, is it static, does it look like its neighbours "
+            "(outline or filled, weight, colour)?</p>")
+    return ("<!doctype html><meta charset=utf-8><title>Button icon review</title><style>"
+            "body{font:14px system-ui;margin:24px;color:#222}table{border-collapse:collapse;width:100%}"
+            "td,th{border-bottom:1px solid #ddd;padding:8px;text-align:start;vertical-align:middle}"
+            ".pic img,.pic video{width:40px;height:40px}.fb{font-size:32px}.bad{background:#fff1f0}"
+            "</style><h1>Button icon review</h1>" + head +
+            "<table><tr><th>icon</th><th>label</th><th>slot</th><th>pack</th><th>format</th><th>where</th><th>check</th></tr>"
+            + "".join(rows) + "</table>")
 
 
 # ------------------------------------------------------------------ links and packs
@@ -547,20 +728,22 @@ def sets_of(ids: list[str], *, bot: Any = None, resolver: Any = None) -> dict[st
 def adopt_icons(root: str, snap: Snapshot) -> list[dict]:
     """Button icons of the bot become slots of the icon map by their emoji's meaning, so new
     screens reuse them. Only a free slot whose first emoji is the pack emoji's own; never a
-    second meaning for one emoji."""
+    second meaning for one emoji. A button's animated or video emoji enters the map as its static
+    twin (same emoji, same pack first); without one it is left out, buttons take static emoji only."""
     vocab = [v for v in vocabulary() if v.get("unicode")]
     buttons = list(dict.fromkeys(u["id"] for u in usage(snap) if u["where"] == "button"))
 
     def plan(lib: dict) -> list[dict]:
         idx, icons, out = emoji_index({**lib, "icons": {}}), dict(lib["icons"]), []
-        for cid in buttons:
-            e = idx.get(cid)
-            if e is None or not e["fallback"] or any(i.get("id") == cid for i in icons.values()):
+        for used in buttons:
+            e = idx.get(used)
+            e = static_twin(idx, e) if e else None
+            if e is None or not e["fallback"] or any(i.get("id") == e["id"] for i in icons.values()):
                 continue
             slot = next((v["slot"] for v in vocab if v["slot"] not in icons and same_emoji(v["unicode"][0], e["fallback"])), None)
             if slot:
-                icons[slot] = {"id": cid}
-                out.append({"slot": slot, "id": cid, "fallback": e["fallback"], "set": e["pack"]})
+                icons[slot] = {"id": e["id"]}
+                out.append({"slot": slot, "id": e["id"], "fallback": e["fallback"], "set": e["pack"]})
         return out
 
     if not buttons or not vocab or not plan(load_library(root)):
@@ -703,13 +886,15 @@ def _walk(node: Any, pointer: str, visit: Callable[[str, str], None]) -> None:
 
 
 def usage(snap: Snapshot) -> list[dict]:
-    """Every custom emoji in the screens: {screenId, pointer, id, fallback, where: text|button}."""
+    """Every custom emoji in the screens: {screenId, pointer, id, fallback, where: text|button}. One inside
+    a rich `<tg-button>` is a button's."""
     out: list[dict] = []
     for sid, screen in sorted(snap.screens.items()):
         for part in ("message",):
             def text(pointer: str, value: str, sid=sid) -> None:
-                for m in TG_EMOJI.finditer(value):
-                    out.append({"screenId": sid, "pointer": pointer, "id": m.group(1), "fallback": m.group(2), "where": "text"})
+                for eid, fallback, on_button in rich.custom_emoji(value):
+                    out.append({"screenId": sid, "pointer": pointer, "id": eid, "fallback": fallback,
+                                "where": "button" if on_button else "text"})
             _walk(screen.get(part), f"/{part}", text)
         for aid, act in (screen.get("actions") or {}).items():
             icon = act.get("icon") if isinstance(act, dict) else None
@@ -732,7 +917,7 @@ def vocabulary() -> list[dict]:
         vocab = skill.load("tgkit.icons").load_vocabulary()
     except (RuntimeError, OSError, ImportError):
         return []
-    return [{"slot": s, **{k: v.get(k) for k in ("group", "label", "unicode", "use", "note")}} for s, v in vocab.items()]
+    return [{"slot": s, **{k: v.get(k) for k in ("group", "label", "unicode", "use", "note", "words")}} for s, v in vocab.items()]
 
 
 def _icons_mod():
@@ -743,33 +928,44 @@ def _icons_mod():
 
 
 def candidates(snap: Snapshot, lib: dict) -> list[dict]:
-    """Ordinary emoji in texts and labels that an icon of the map could replace."""
+    """Ordinary emoji in texts and labels that an icon of the map could replace. The icon is the slot's
+    static emoji: an animated or video one gives way to its static twin, and on a button (a label) to
+    nothing when it has none."""
     icons = {s: i for s, i in (lib.get("icons") or {}).items() if isinstance(i, dict) and i.get("id")}
     mod = _icons_mod()
     if not icons or mod is None:
         return []
     emap = mod.EmojiMap(icons, mod.load_vocabulary())
+    idx = emoji_index(lib)
     out: list[dict] = []
     seen: set[tuple[str, str, str]] = set()
 
-    def visit(sid: str, pointer: str, value: str) -> None:
+    def visit(sid: str, pointer: str, value: str, button: bool = False) -> None:
         plain = TG_EMOJI.sub("", value)
         for _, _, cl in mod.iter_clusters(plain):
             slot = emap.slot_for(cl)
             if slot and (sid, pointer, slot) not in seen:
                 seen.add((sid, pointer, slot))
-                out.append({"screenId": sid, "pointer": pointer, "emoji": cl, "slot": slot, "id": icons[slot]["id"]})
+                cid, e = icons[slot]["id"], idx.get(icons[slot]["id"])
+                twin = static_twin(idx, e) if e else None
+                if twin:
+                    cid = twin["id"]
+                elif button and is_moving(e):
+                    continue
+                out.append({"screenId": sid, "pointer": pointer, "emoji": cl, "slot": slot, "id": cid})
 
     for sid, screen in sorted(snap.screens.items()):
         _walk(screen.get("message"), "/message", lambda p, v, sid=sid: visit(sid, p, v))
         for aid, act in (screen.get("actions") or {}).items():
             if isinstance(act, dict):
-                _walk(act.get("label"), f"/actions/{aid}/label", lambda p, v, sid=sid: visit(sid, p, v))
+                _walk(act.get("label"), f"/actions/{aid}/label", lambda p, v, sid=sid: visit(sid, p, v, True))
     return out
 
 
 def suggest_icons(snap: Snapshot, lib: dict) -> list[dict]:
-    """Slots the screens imply (their ordinary emoji) matched to emoji of the imported packs."""
+    """Slots the screens imply (their ordinary emoji) matched to emoji of the imported packs. A static
+    emoji wins over an animated or video one of the same meaning; a slot only animated emoji cover is
+    still suggested, with `animated` true (a button cannot take it)."""
     mod = _icons_mod()
     packs = lib.get("packs") or {}
     if mod is None or not packs:
@@ -782,12 +978,18 @@ def suggest_icons(snap: Snapshot, lib: dict) -> list[dict]:
     if not wanted:
         return []
     sets = [{"name": n, "sticker_type": "custom_emoji",
-             "stickers": [{"custom_emoji_id": e["id"], "emoji": e["fallback"]} for e in p.get("emoji") or []]}
+             "stickers": [{"custom_emoji_id": e["id"], "emoji": e["fallback"], "is_animated": e.get("format") == "animated",
+                           "is_video": e.get("format") == "video"} for e in p.get("emoji") or []]}
             for n, p in packs.items()]
+    static_sets = [{**s, "stickers": [x for x in s["stickers"] if not (x["is_animated"] or x["is_video"])]} for s in sets]
+    found = dict(mod.resolve_icon_map(static_sets, vocab, wanted)[0].get("icons") or {})
+    rest = [s for s in wanted if s not in found]
+    if rest:  # no static emoji of that meaning in the packs
+        more = mod.resolve_icon_map(sets, vocab, rest)[0].get("icons") or {}
+        found.update({s: i for s, i in more.items() if i["id"] not in {f["id"] for f in found.values()}})
     used = {i.get("id") for i in (lib.get("icons") or {}).values()}
-    icon_map, _ = mod.resolve_icon_map(sets, vocab, wanted)
-    return [{"slot": s, "id": i["id"], "set": i.get("set"), "fallback": i.get("fallback")}
-            for s, i in (icon_map.get("icons") or {}).items() if i.get("id") and i["id"] not in used]
+    return [{"slot": s, "id": i["id"], "set": i.get("set"), "fallback": i.get("fallback"), "animated": bool(i.get("animated"))}
+            for s, i in found.items() if i.get("id") and i["id"] not in used]
 
 
 ROUTE_TEXT = {
@@ -803,7 +1005,16 @@ RULES = [
     "Choose by meaning (slot), not by look: the same meaning always gets the same icon; one icon never means two things.",
     "Text: `<tg-emoji emoji-id=\"ID\">FALLBACK</tg-emoji>` in regular.html, with the map's fallback (the sticker's own emoji) inside.",
     "Button: `\"icon\": {\"customEmojiId\": \"ID\"}`; do not also start the label with an emoji; the label must read well without the icon.",
-    "One family: keep icons from one pack (a sibling pack only fills gaps); static icons on buttons, animated ones only as a rare accent in text.",
+    "Buttons take STATIC custom emoji only, never an animated or video one: not as `icon`, not inside a rich `<tg-button>` "
+    "(`validate` reports BUTTON_EMOJI_ANIMATED as an error). Text: static is the default; an animated or video emoji is a "
+    "flagged exception (CUSTOM_EMOJI_ANIMATED), only when no static emoji of that meaning exists.",
+    "The icon says what the label says: a button labelled Orders carries the order icon, never a near look-alike "
+    "(ICON_MEANING_MISMATCH). A slot the main pack cannot say well comes from another STATIC pack of the same style "
+    "(outline or filled, weight, colour treatment) or stays label-only; a wrong meaning to stay in one pack is never "
+    "acceptable. Icons the user chose themselves stay as they are.",
+    "One family: prefer one pack for the icons you pick (a same-style sibling only fills gaps).",
+    "Double check before shipping: `bot-ui emoji review --out icon-review.html`, open it, look at every row (meaning, "
+    "static, family) and fix every red row.",
     "Restraint: one accent per title or line, not every button of a keyboard; a keyboard is either all icons or none.",
     "Every locale gets the same icons; only the words change.",
     "Check: `bot-ui validate`, `bot-ui emoji brief` (no unknown ids), and the skill's `scripts/audit_icons.py emoji/library.json`.",
@@ -843,6 +1054,7 @@ def brief(snap: Snapshot, lib: dict | None = None) -> dict:
         "placed": [{**u, "slot": slot_of.get(u["id"])} for u in used],
         "unknown": unknown, "fallbackMismatch": mismatched,
         "candidates": candidates(snap, lib),
+        "meaningMismatch": meaning_issues(snap, lib),
         "rules": RULES,
     }
 
@@ -870,6 +1082,11 @@ def brief_markdown(b: dict) -> str:
     if b["unknown"]:
         out += ["## Ids not in the library (check or replace)", ""]
         out += [f"- {u['screenId']} `{u['pointer']}`: {u['id']}" for u in b["unknown"]]
+        out.append("")
+    if b.get("meaningMismatch"):
+        out += ["## Icons that mean something else than their label", ""]
+        out += [f"- {u['screenId']} `{u['pointer']}`: icon {u['id']} means {u['slot']}, the label says {', '.join(u['says'])}"
+                for u in b["meaningMismatch"]]
         out.append("")
     if b["fallbackMismatch"]:
         out += ["## Fallback differs from the pack's emoji", ""]

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Road Theory</title>
+<!-- Telegram's script first, before any other script (Mini Apps docs). -->
+<script src="https://telegram.org/js/telegram-web-app.js?65"></script>
+<link rel="stylesheet" href="../_kit/tma.css">
+<script type="module" src="./dist/app.js"></script>
+</head>
+<body>
+<!-- Road Theory (fictional driving-theory trainer). The paywall done to references/mini-apps/payments.md section 9
+     (P1-P12) and the surface rules S1-S6 of design-system.md section 5. Tabs: Learn, Tests, Profile; level 2:
+     Premium (the paywall), Confirming, Premium is on. Data and prices come from the server (mock-api.json on the
+     stand: py -3 scripts/preview_miniapp.py examples/mini-apps/paywall --api examples/mini-apps/paywall/mock-api.json). -->
+
+<!-- Tab 1: Learn. The settings screen from the review, rebuilt: settings in ONE inset group with its footnote,
+     progress as its own card 24 px below, numbers in a key-value group. Nothing touches, every inset is 16 px. -->
+<main class="tma-page" id="learn">
+  <header class="tma-header"><h1 class="tma-large-title">Learn</h1></header>
+  <div class="tma-stack">
+    <section class="tma-section" aria-labelledby="practice-h">
+      <h2 class="tma-section__header" id="practice-h">Daily practice</h2>
+      <ul class="tma-list">
+        <li><div class="tma-cell is-stacked">
+          <span class="tma-cell__body"><span class="tma-cell__title" id="per-session">Cards per session</span></span>
+          <div class="tma-segmented" role="tablist" aria-labelledby="per-session" id="session-size"></div>
+        </div></li>
+        <li><label class="tma-cell"><span class="tma-icon-tile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-bell"/></svg></span>
+          <span class="tma-cell__body"><span class="tma-cell__title">Reminders in the bot</span></span>
+          <input class="tma-switch" type="checkbox" role="switch" id="reminders" checked></label></li>
+      </ul>
+      <p class="tma-section__footer">Time zone: Europe/Oslo. The bot reminds you at 18:00.</p>
+    </section>
+    <section class="tma-section" aria-labelledby="progress-h">
+      <h2 class="tma-section__header" id="progress-h">Progress</h2>
+      <div class="tma-card">
+        <p class="tma-headline" style="margin:0" id="learned">Learned 13 of 283 signs</p>
+        <div class="tma-progress" role="progressbar" aria-labelledby="learned" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100"><i style="width:5%"></i></div>
+        <p class="tma-footnote" style="margin:0">5% of the sign base · 2 new today</p>
+      </div>
+      <dl class="tma-kv">
+        <div><dt>In review</dt><dd class="tma-num">44</dd></div>
+        <div><dt>Due now</dt><dd class="tma-num">44</dd></div>
+        <div><dt>Correct this week</dt><dd class="tma-num">81%</dd></div>
+      </dl>
+    </section>
+  </div>
+</main>
+
+<!-- Tab 2: Tests. What is free is usable right here; the locked part is visible and leads to the paywall. -->
+<main class="tma-page" id="tests" hidden>
+  <header class="tma-header"><h1 class="tma-large-title">Tests</h1></header>
+  <div class="tma-stack" id="tests-body"></div>
+</main>
+
+<!-- Tab 3: Profile with "My plan" -->
+<main class="tma-page" id="profile" hidden>
+  <header class="tma-header"><h1 class="tma-large-title">Profile</h1></header>
+  <div class="tma-stack" id="profile-body"></div>
+</main>
+
+<!-- Level 2: the paywall and its states, rendered by app.ts -->
+<main class="tma-page tma-screen" id="premium" hidden></main>
+
+<nav class="tma-tabbar tma-glass" role="tablist" aria-label="Sections" id="tabbar">
+  <button type="button" role="tab" aria-selected="true" data-tab="learn"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-book"/></svg><span>Learn</span></button>
+  <button type="button" role="tab" aria-selected="false" data-tab="tests"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-trophy"/></svg><span>Tests</span></button>
+  <button type="button" role="tab" aria-selected="false" data-tab="profile"><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-person"/></svg><span>Profile</span></button>
+</nav>
+<button type="button" class="tma-glass" data-tma-fallback="back-button" hidden><svg class="tma-icon" aria-hidden="true"><use href="../_kit/icons.svg#i-chevron-left"/></svg>Back</button>
+<div class="tma-snackbar" role="status" id="snackbar" hidden></div>
+<button type="button" class="tma-btn is-filled is-lg" data-tma-fallback="main-button" hidden></button>
+</body>
+</html>

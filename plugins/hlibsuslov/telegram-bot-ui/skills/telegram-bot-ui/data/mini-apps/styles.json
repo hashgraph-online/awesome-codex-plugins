@@ -9,6 +9,7 @@
   "--tma-row-2": {"what": "row with subtitle", "range": [56, 76], "unit": "px"},
   "--tma-avatar": {"what": "avatar and icon tile size in rows", "range": [28, 56], "unit": "px"},
   "--tma-gap-section": {"what": "space between sections", "range": [12, 36], "unit": "px"},
+  "--tma-gap-surface": {"what": "space between two stacked surfaces (cards, groups): never touching", "range": [12, 24], "unit": "px"},
   "--tma-figure-size": {"what": "hero figure (balance, price) size", "range": null, "unit": "css"},
   "--tma-fs-body": {"what": "body size in rem of a 17 px root", "range": null, "unit": "css"}
  },
@@ -35,7 +36,7 @@
    "title": "Soft commerce",
    "intent": "Friendly and roomy: larger radii, generous rows, image-led cards, tonal buttons in content. For browsing and buying.",
    "use_for": ["shop", "food ordering", "events", "learning", "consumer onboarding"],
-   "tokens": {"--tma-r-group": "30px", "--tma-r-inner": "18px", "--tma-row": "56px", "--tma-row-2": "72px", "--tma-avatar": "48px", "--tma-gap-section": "28px"},
+   "tokens": {"--tma-r-group": "30px", "--tma-r-inner": "18px", "--tma-row": "56px", "--tma-row-2": "72px", "--tma-avatar": "48px", "--tma-gap-section": "28px", "--tma-gap-surface": "20px"},
    "components": {"lists": "inset groups with 48 px images", "cards": "product cards with one image, title, price", "secondary_actions": "tonal buttons", "glass": "tab bar only"},
    "do": ["real product photos with alt text", "prices in tabular figures", "empty states that lead back to the catalogue"],
    "dont": ["stock 3D blobs", "several promo banners", "pill shapes on everything including cards"]
@@ -44,7 +45,7 @@
    "title": "Dense tool",
    "intent": "Compact and information-rich: 44 px rows, small radii, full-width lists on Android, solid surfaces. For people who use it every day.",
    "use_for": ["dashboards", "editors", "admin and moderation", "trackers", "long lists"],
-   "tokens": {"--tma-r-group": "12px", "--tma-r-inner": "8px", "--tma-row": "44px", "--tma-row-2": "56px", "--tma-avatar": "32px", "--tma-gap-section": "16px", "--tma-fs-body": ".941rem"},
+   "tokens": {"--tma-r-group": "12px", "--tma-r-inner": "8px", "--tma-row": "44px", "--tma-row-2": "56px", "--tma-avatar": "32px", "--tma-gap-section": "16px", "--tma-gap-surface": "12px", "--tma-fs-body": ".941rem"},
    "components": {"lists": "full-width or tight inset groups", "tables": "only when columns are compared", "glass": "none: solid surfaces"},
    "do": ["44 px touch targets stay", "numbers in tabular figures", "sticky segmented filters"],
    "dont": ["text below 11 px", "hover-only actions", "decorative illustrations"]

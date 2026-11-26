@@ -157,7 +157,9 @@ Document which convention the project uses — mixing them causes real bugs.
 ```
 
 A tap toggles the mark and edits only the keyboard (plus at most a toast): no new message per
-tap. The marked state is in the label; "Select all" becomes "Clear all" once anything is
+tap. Pickers with more than a handful of options (categories, topics, tags; the surface by
+option count, the Rich Message checkbox list, never ⚪/✅ emoji as the state):
+[selection-lists.md](selection-lists.md). The marked state is in the label; "Select all" becomes "Clear all" once anything is
 marked. The apply button says the outcome ("Show 12 places") and is `disabled` with the reason
 in the text while the selection is invalid. Offer "Other…" with `force_reply` when the list
 can't be complete.

@@ -12,7 +12,7 @@ Reddit and Amazon, plus Douyin, Xiaohongshu (RedNote), WeChat, Bilibili, Weibo, 
 <!-- skills-en:start -->
 | Skill | The job | |
 |---|---|---|
-| [`okdata`](skills/okdata/SKILL.md) | 235 endpoints on 23 platforms behind one key, paid per call from $0.0001. No platform account, cookie or QR login is used. | [page](https://okdata.online/skills/?src=skill-okdata) |
+| [`okdata`](skills/okdata/SKILL.md) | 334 endpoints on 36 platforms behind one key, paid per call from $0.0003. No platform account, cookie or QR login is used. | [page](https://okdata.online/skills/?src=skill-okdata) |
 | [`okdata-comments`](skills/okdata-comments/SKILL.md) | What are people praising and complaining about under this post? | [page](https://okdata.online/skills/comments/?src=skill-okdata-comments) |
 | [`okdata-competitors`](skills/okdata-competitors/SKILL.md) | What did competitors post lately, and which post took off? | [page](https://okdata.online/skills/competitors/?src=skill-okdata-competitors) |
 | [`okdata-mentions`](skills/okdata-mentions/SKILL.md) | What are people saying about this brand or keyword on each platform? | [page](https://okdata.online/skills/mentions/?src=skill-okdata-mentions) |
@@ -29,7 +29,7 @@ Reddit and Amazon, plus Douyin, Xiaohongshu (RedNote), WeChat, Bilibili, Weibo, 
 
 | Skill | Platform | |
 |---|---|---|
-| [`okdata-tiktok`](skills/okdata-tiktok/SKILL.md) | **TikTok**: Videos, accounts and comments worldwide. | [page](https://okdata.online/apis/tiktok/?src=skill-okdata-tiktok) |
+| [`okdata-tiktok`](skills/okdata-tiktok/SKILL.md) | **TikTok**: Videos, accounts, comments and LIVE worldwide. | [page](https://okdata.online/apis/tiktok/?src=skill-okdata-tiktok) |
 | [`okdata-youtube`](skills/okdata-youtube/SKILL.md) | **YouTube**: Videos, comments and transcripts. | [page](https://okdata.online/apis/youtube/?src=skill-okdata-youtube) |
 | [`okdata-instagram`](skills/okdata-instagram/SKILL.md) | **Instagram**: Profiles, posts and reels, comments, hashtags and what a reel says. | [page](https://okdata.online/apis/instagram/?src=skill-okdata-instagram) |
 | [`okdata-x`](skills/okdata-x/SKILL.md) | **X (Twitter)**: Posts, accounts, search and trends. | [page](https://okdata.online/apis/x/?src=skill-okdata-x) |
@@ -37,21 +37,34 @@ Reddit and Amazon, plus Douyin, Xiaohongshu (RedNote), WeChat, Bilibili, Weibo, 
 | [`okdata-amazon`](skills/okdata-amazon/SKILL.md) | **Amazon**: Product search, details, reviews and Best Sellers lists, in 22 Amazon stores. | [page](https://okdata.online/apis/amazon/?src=skill-okdata-amazon) |
 | [`okdata-aliexpress`](skills/okdata-aliexpress/SKILL.md) | **AliExpress**: Product search and buyer reviews, priced in US dollars. | [page](https://okdata.online/apis/aliexpress/?src=skill-okdata-aliexpress) |
 | [`okdata-meta`](skills/okdata-meta/SKILL.md) | **Meta Ad Library**: Ads running on Facebook and Instagram, by keyword or advertiser. | [page](https://okdata.online/apis/meta/?src=skill-okdata-meta) |
-| [`okdata-google`](skills/okdata-google/SKILL.md) | **Google Ads Transparency**: Advertisers and their ads on Search, YouTube and Display. | [page](https://okdata.online/apis/google/?src=skill-okdata-google) |
+| [`okdata-google`](skills/okdata-google/SKILL.md) | **Google**: Web search results, News, Images, Shopping and Maps places, and advertisers and their ads in the Ads Transparency Center. | [page](https://okdata.online/apis/google/?src=skill-okdata-google) |
 | [`okdata-telegram`](skills/okdata-telegram/SKILL.md) | **Telegram**: Public channels and their messages. | [page](https://okdata.online/apis/telegram/?src=skill-okdata-telegram) |
-| [`okdata-douyin`](skills/okdata-douyin/SKILL.md) | **Douyin**: China’s TikTok: videos, accounts, comments and the hot search board. | [page](https://okdata.online/apis/douyin/?src=skill-okdata-douyin) |
+| [`okdata-douyin`](skills/okdata-douyin/SKILL.md) | **Douyin**: China’s TikTok: videos, accounts, comments, live rooms and the hot search board. | [page](https://okdata.online/apis/douyin/?src=skill-okdata-douyin) |
 | [`okdata-xiaohongshu`](skills/okdata-xiaohongshu/SKILL.md) | **Xiaohongshu (RedNote)**: Lifestyle notes, creators and what people search for. | [page](https://okdata.online/apis/xiaohongshu/?src=skill-okdata-xiaohongshu) |
 | [`okdata-wechat-mp`](skills/okdata-wechat-mp/SKILL.md) | **WeChat Official Accounts**: Official Account articles and history, without a QR login. | [page](https://okdata.online/apis/wechat_mp/?src=skill-okdata-wechat-mp) |
-| [`okdata-bilibili`](skills/okdata-bilibili/SKILL.md) | **Bilibili**: Videos, comments and the popular board. | [page](https://okdata.online/apis/bilibili/?src=skill-okdata-bilibili) |
+| [`okdata-bilibili`](skills/okdata-bilibili/SKILL.md) | **Bilibili**: Videos, comments, live rooms and the popular board. | [page](https://okdata.online/apis/bilibili/?src=skill-okdata-bilibili) |
 | [`okdata-weibo`](skills/okdata-weibo/SKILL.md) | **Weibo**: Posts, accounts and the hot search list. | [page](https://okdata.online/apis/weibo/?src=skill-okdata-weibo) |
-| [`okdata-kuaishou`](skills/okdata-kuaishou/SKILL.md) | **Kuaishou**: Videos, accounts, comments and the hot list. | [page](https://okdata.online/apis/kuaishou/?src=skill-okdata-kuaishou) |
+| [`okdata-kuaishou`](skills/okdata-kuaishou/SKILL.md) | **Kuaishou**: Videos, accounts, comments, live rooms and the hot list. | [page](https://okdata.online/apis/kuaishou/?src=skill-okdata-kuaishou) |
 | [`okdata-zhihu`](skills/okdata-zhihu/SKILL.md) | **Zhihu**: Questions and answers, articles, columns, people and the hot list. | [page](https://okdata.online/apis/zhihu/?src=skill-okdata-zhihu) |
-| [`okdata-wechat-channels`](skills/okdata-wechat-channels/SKILL.md) | **WeChat Channels**: Channels videos, accounts, comments and live replays, without a QR login. | [page](https://okdata.online/apis/wechat_channels/?src=skill-okdata-wechat-channels) |
+| [`okdata-wechat-channels`](skills/okdata-wechat-channels/SKILL.md) | **WeChat Channels**: Channels videos, accounts, comments, live rooms and replays, without a QR login. | [page](https://okdata.online/apis/wechat_channels/?src=skill-okdata-wechat-channels) |
 | [`okdata-wechat`](skills/okdata-wechat/SKILL.md) | **WeChat Search**: WeChat Search across Official Account articles, Channels videos and mini programs. | [page](https://okdata.online/apis/wechat/?src=skill-okdata-wechat) |
+| [`okdata-facebook`](skills/okdata-facebook/SKILL.md) | **Facebook**: Public posts by keyword, a page's posts, and the comments and replies under a post. | [page](https://okdata.online/apis/facebook/?src=skill-okdata-facebook) |
+| [`okdata-linkedin`](skills/okdata-linkedin/SKILL.md) | **LinkedIn**: Job postings by keyword or company, and company pages. | [page](https://okdata.online/apis/linkedin/?src=skill-okdata-linkedin) |
 | [`okdata-taobao`](skills/okdata-taobao/SKILL.md) | **Taobao & Tmall**: Product search, details with SKUs, buyer reviews and a shop's products. | [page](https://okdata.online/apis/taobao/?src=skill-okdata-taobao) |
 | [`okdata-alibaba-1688`](skills/okdata-alibaba-1688/SKILL.md) | **1688**: China's wholesale marketplace: offers, tiered prices, suppliers and buyer reviews. | [page](https://okdata.online/apis/alibaba_1688/?src=skill-okdata-alibaba-1688) |
 | [`okdata-xianyu`](skills/okdata-xianyu/SKILL.md) | **Xianyu (Goofish)**: Second-hand listings: search, asking prices and sellers. | [page](https://okdata.online/apis/xianyu/?src=skill-okdata-xianyu) |
+| [`okdata-jd`](skills/okdata-jd/SKILL.md) | **JD.com**: Product search, details with variants, description images, prices and a shop's products. | [page](https://okdata.online/apis/jd/?src=skill-okdata-jd) |
 | [`okdata-douyin-shop`](skills/okdata-douyin-shop/SKILL.md) | **Douyin Shop**: Affiliate-marketplace products with commission rates, sales, reviews and shops. | [page](https://okdata.online/apis/douyin_shop/?src=skill-okdata-douyin-shop) |
+| [`okdata-toutiao`](skills/okdata-toutiao/SKILL.md) | **Toutiao**: China’s news-feed app: full article text, videos, comments and creator accounts. | [page](https://okdata.online/apis/toutiao/?src=skill-okdata-toutiao) |
+| [`okdata-xigua`](skills/okdata-xigua/SKILL.md) | **Xigua Video**: Longer videos from China: search, video stats, comments, creators and their uploads. | [page](https://okdata.online/apis/xigua/?src=skill-okdata-xigua) |
+| [`okdata-baidu`](skills/okdata-baidu/SKILL.md) | **Baidu**: Baidu’s hot search: what China is searching for right now, with heat. | [page](https://okdata.online/apis/baidu/?src=skill-okdata-baidu) |
+| [`okdata-bluesky`](skills/okdata-bluesky/SKILL.md) | **Bluesky**: The open social network: profiles, what an account posts, the replies under a post, and account search. | [page](https://okdata.online/apis/bluesky/?src=skill-okdata-bluesky) |
+| [`okdata-app-store`](skills/okdata-app-store/SKILL.md) | **App Store**: Any iPhone, iPad or Mac app in any country's store: price, ratings, version and developer, and its latest written reviews. | [page](https://okdata.online/apis/app_store/?src=skill-okdata-app-store) |
+| [`okdata-twitch`](skills/okdata-twitch/SKILL.md) | **Twitch**: Live streaming: whether a streamer is live now, with viewers, stream title, game and start time. | [page](https://okdata.online/apis/twitch/?src=skill-okdata-twitch) |
+| [`okdata-douban`](skills/okdata-douban/SKILL.md) | **Douban Movie**: Films and series as Chinese audiences rate them: titles, ratings, reviews, short comments and the hot lists. | [page](https://okdata.online/apis/douban/?src=skill-okdata-douban) |
+| [`okdata-imdb`](skills/okdata-imdb/SKILL.md) | **IMDb**: Film and TV titles: ratings, credits, plot, box office, awards, the Top 250 and entertainment news. | [page](https://okdata.online/apis/imdb/?src=skill-okdata-imdb) |
+| [`okdata-youku`](skills/okdata-youku/SKILL.md) | **Youku**: Video search, video details and creator accounts. | [page](https://okdata.online/apis/youku/?src=skill-okdata-youku) |
+| [`okdata-all`](skills/okdata-all/SKILL.md) | **All platforms**: Hot lists from several platforms in one call: Weibo, Zhihu, Baidu, Toutiao, Douyin, Bilibili, Xiaohongshu and Kuaishou. | [page](https://okdata.online/apis/all/?src=skill-okdata-all) |
 <!-- skills-en:end -->
 
 Each skill says which endpoints it uses and what they cost, and asks the agent to state the cost before it spends.
@@ -124,29 +137,42 @@ Instagram、Reddit、亚马逊等 23 个平台的公开数据（230 个接口）
 
 | 技能 | 平台 | |
 |---|---|---|
-| [`okdata-douyin`](skills/okdata-douyin/SKILL.md) | **Douyin**: 抖音：视频、账号、评论和热搜榜。 | [介绍页](https://okdata.online/zh/apis/douyin/?src=skill-okdata-douyin) |
+| [`okdata-douyin`](skills/okdata-douyin/SKILL.md) | **Douyin**: 抖音：视频、账号、评论、直播和热搜榜。 | [介绍页](https://okdata.online/zh/apis/douyin/?src=skill-okdata-douyin) |
 | [`okdata-xiaohongshu`](skills/okdata-xiaohongshu/SKILL.md) | **Xiaohongshu (RedNote)**: 小红书：笔记、博主和大家在搜什么。 | [介绍页](https://okdata.online/zh/apis/xiaohongshu/?src=skill-okdata-xiaohongshu) |
 | [`okdata-wechat-mp`](skills/okdata-wechat-mp/SKILL.md) | **WeChat Official Accounts**: 微信公众号：公众号文章和历史文章，不用扫码。 | [介绍页](https://okdata.online/zh/apis/wechat_mp/?src=skill-okdata-wechat-mp) |
-| [`okdata-bilibili`](skills/okdata-bilibili/SKILL.md) | **Bilibili**: B站：视频、评论和热门榜。 | [介绍页](https://okdata.online/zh/apis/bilibili/?src=skill-okdata-bilibili) |
+| [`okdata-bilibili`](skills/okdata-bilibili/SKILL.md) | **Bilibili**: B站：视频、评论、直播和热门榜。 | [介绍页](https://okdata.online/zh/apis/bilibili/?src=skill-okdata-bilibili) |
 | [`okdata-weibo`](skills/okdata-weibo/SKILL.md) | **Weibo**: 微博：微博、账号和热搜。 | [介绍页](https://okdata.online/zh/apis/weibo/?src=skill-okdata-weibo) |
-| [`okdata-tiktok`](skills/okdata-tiktok/SKILL.md) | **TikTok**: TikTok：全球的视频、账号和评论。 | [介绍页](https://okdata.online/zh/apis/tiktok/?src=skill-okdata-tiktok) |
+| [`okdata-tiktok`](skills/okdata-tiktok/SKILL.md) | **TikTok**: TikTok：全球的视频、账号、评论和直播。 | [介绍页](https://okdata.online/zh/apis/tiktok/?src=skill-okdata-tiktok) |
 | [`okdata-x`](skills/okdata-x/SKILL.md) | **X (Twitter)**: X（推特）：帖子、账号、搜索和趋势。 | [介绍页](https://okdata.online/zh/apis/x/?src=skill-okdata-x) |
 | [`okdata-youtube`](skills/okdata-youtube/SKILL.md) | **YouTube**: YouTube：视频、评论和字幕。 | [介绍页](https://okdata.online/zh/apis/youtube/?src=skill-okdata-youtube) |
 | [`okdata-meta`](skills/okdata-meta/SKILL.md) | **Meta Ad Library**: Meta 广告库：Facebook 和 Instagram 上在投的广告，按关键词或广告主查。 | [介绍页](https://okdata.online/zh/apis/meta/?src=skill-okdata-meta) |
-| [`okdata-google`](skills/okdata-google/SKILL.md) | **Google Ads Transparency**: Google 广告透明中心：广告主和他们在搜索、YouTube、展示广告上的广告。 | [介绍页](https://okdata.online/zh/apis/google/?src=skill-okdata-google) |
+| [`okdata-google`](skills/okdata-google/SKILL.md) | **Google**: Google：网页搜索结果、新闻、图片、购物和地图商户，以及广告透明中心里的广告主和广告。 | [介绍页](https://okdata.online/zh/apis/google/?src=skill-okdata-google) |
 | [`okdata-instagram`](skills/okdata-instagram/SKILL.md) | **Instagram**: Instagram：账号、帖子和 Reels、评论、话题，以及 Reel 里说了什么。 | [介绍页](https://okdata.online/zh/apis/instagram/?src=skill-okdata-instagram) |
 | [`okdata-reddit`](skills/okdata-reddit/SKILL.md) | **Reddit**: Reddit：帖子、评论、社区、用户和正在热的内容。 | [介绍页](https://okdata.online/zh/apis/reddit/?src=skill-okdata-reddit) |
-| [`okdata-kuaishou`](skills/okdata-kuaishou/SKILL.md) | **Kuaishou**: 快手：视频、账号、评论和热榜。 | [介绍页](https://okdata.online/zh/apis/kuaishou/?src=skill-okdata-kuaishou) |
+| [`okdata-kuaishou`](skills/okdata-kuaishou/SKILL.md) | **Kuaishou**: 快手：视频、账号、评论、直播和热榜。 | [介绍页](https://okdata.online/zh/apis/kuaishou/?src=skill-okdata-kuaishou) |
 | [`okdata-zhihu`](skills/okdata-zhihu/SKILL.md) | **Zhihu**: 知乎：问题和回答、文章、专栏、用户和热榜。 | [介绍页](https://okdata.online/zh/apis/zhihu/?src=skill-okdata-zhihu) |
-| [`okdata-wechat-channels`](skills/okdata-wechat-channels/SKILL.md) | **WeChat Channels**: 微信视频号：视频号的视频、账号、评论和直播回放，不用扫码。 | [介绍页](https://okdata.online/zh/apis/wechat_channels/?src=skill-okdata-wechat-channels) |
+| [`okdata-wechat-channels`](skills/okdata-wechat-channels/SKILL.md) | **WeChat Channels**: 微信视频号：视频号的视频、账号、评论、直播和回放，不用扫码。 | [介绍页](https://okdata.online/zh/apis/wechat_channels/?src=skill-okdata-wechat-channels) |
 | [`okdata-wechat`](skills/okdata-wechat/SKILL.md) | **WeChat Search**: 微信搜一搜：微信搜一搜：公众号文章、视频号视频和小程序。 | [介绍页](https://okdata.online/zh/apis/wechat/?src=skill-okdata-wechat) |
+| [`okdata-facebook`](skills/okdata-facebook/SKILL.md) | **Facebook**: Facebook：按关键词搜公开帖子、主页帖子，以及帖子下的评论和回复。 | [介绍页](https://okdata.online/zh/apis/facebook/?src=skill-okdata-facebook) |
+| [`okdata-linkedin`](skills/okdata-linkedin/SKILL.md) | **LinkedIn**: LinkedIn：按关键词或公司查招聘职位，以及公司主页。 | [介绍页](https://okdata.online/zh/apis/linkedin/?src=skill-okdata-linkedin) |
 | [`okdata-telegram`](skills/okdata-telegram/SKILL.md) | **Telegram**: Telegram：公开频道和频道消息。 | [介绍页](https://okdata.online/zh/apis/telegram/?src=skill-okdata-telegram) |
 | [`okdata-amazon`](skills/okdata-amazon/SKILL.md) | **Amazon**: 亚马逊：22 个国家站点的商品搜索、详情、评论和畅销榜。 | [介绍页](https://okdata.online/zh/apis/amazon/?src=skill-okdata-amazon) |
 | [`okdata-aliexpress`](skills/okdata-aliexpress/SKILL.md) | **AliExpress**: 速卖通：商品搜索和买家评价，价格以美元计。 | [介绍页](https://okdata.online/zh/apis/aliexpress/?src=skill-okdata-aliexpress) |
 | [`okdata-taobao`](skills/okdata-taobao/SKILL.md) | **Taobao & Tmall**: 淘宝天猫：商品搜索、带 SKU 的详情、买家评价和店铺商品。 | [介绍页](https://okdata.online/zh/apis/taobao/?src=skill-okdata-taobao) |
 | [`okdata-alibaba-1688`](skills/okdata-alibaba-1688/SKILL.md) | **1688**: 1688：批发货源：商品、阶梯价、供应商和采购商评价。 | [介绍页](https://okdata.online/zh/apis/alibaba_1688/?src=skill-okdata-alibaba-1688) |
 | [`okdata-xianyu`](skills/okdata-xianyu/SKILL.md) | **Xianyu (Goofish)**: 闲鱼：二手商品：搜索、标价和卖家。 | [介绍页](https://okdata.online/zh/apis/xianyu/?src=skill-okdata-xianyu) |
+| [`okdata-jd`](skills/okdata-jd/SKILL.md) | **JD.com**: 京东：商品搜索、带规格的详情、详情图、查价和店铺商品。 | [介绍页](https://okdata.online/zh/apis/jd/?src=skill-okdata-jd) |
 | [`okdata-douyin-shop`](skills/okdata-douyin-shop/SKILL.md) | **Douyin Shop**: 抖音电商：精选联盟商品和佣金比例、销量、评价和店铺。 | [介绍页](https://okdata.online/zh/apis/douyin_shop/?src=skill-okdata-douyin-shop) |
+| [`okdata-toutiao`](skills/okdata-toutiao/SKILL.md) | **Toutiao**: 今日头条：头条文章全文、视频、评论和头条号资料。 | [介绍页](https://okdata.online/zh/apis/toutiao/?src=skill-okdata-toutiao) |
+| [`okdata-xigua`](skills/okdata-xigua/SKILL.md) | **Xigua Video**: 西瓜视频：西瓜视频的搜索、视频数据、评论、创作者资料和作品列表。 | [介绍页](https://okdata.online/zh/apis/xigua/?src=skill-okdata-xigua) |
+| [`okdata-baidu`](skills/okdata-baidu/SKILL.md) | **Baidu**: 百度：百度热搜：全国网民当下在搜什么，带热度。 | [介绍页](https://okdata.online/zh/apis/baidu/?src=skill-okdata-baidu) |
+| [`okdata-bluesky`](skills/okdata-bluesky/SKILL.md) | **Bluesky**: Bluesky：Bluesky 上的公开账号、发帖和帖子下的回复，也能按关键词找人。 | [介绍页](https://okdata.online/zh/apis/bluesky/?src=skill-okdata-bluesky) |
+| [`okdata-app-store`](skills/okdata-app-store/SKILL.md) | **App Store**: 苹果应用商店：各国家/地区 App Store 里的应用：价格、评分、版本、开发者，还有用户最新写下的评论。 | [介绍页](https://okdata.online/zh/apis/app_store/?src=skill-okdata-app-store) |
+| [`okdata-twitch`](skills/okdata-twitch/SKILL.md) | **Twitch**: Twitch：直播平台：主播此刻是否在直播，以及在线人数、直播标题、游戏分类和开播时间。 | [介绍页](https://okdata.online/zh/apis/twitch/?src=skill-okdata-twitch) |
+| [`okdata-douban`](skills/okdata-douban/SKILL.md) | **Douban Movie**: 豆瓣电影：中国观众怎么评价影视：条目、评分、影评、短评和近期热门。 | [介绍页](https://okdata.online/zh/apis/douban/?src=skill-okdata-douban) |
+| [`okdata-imdb`](skills/okdata-imdb/SKILL.md) | **IMDb**: IMDb：影视条目：评分、演职员、剧情、票房、奖项、Top 250 榜单和娱乐新闻。 | [介绍页](https://okdata.online/zh/apis/imdb/?src=skill-okdata-imdb) |
+| [`okdata-youku`](skills/okdata-youku/SKILL.md) | **Youku**: 优酷：视频搜索、视频详情和创作者账号。 | [介绍页](https://okdata.online/zh/apis/youku/?src=skill-okdata-youku) |
+| [`okdata-all`](skills/okdata-all/SKILL.md) | **All platforms**: 全网：一次拿到多个平台的热榜：微博、知乎、百度、头条、抖音、B站、小红书、快手。 | [介绍页](https://okdata.online/zh/apis/all/?src=skill-okdata-all) |
 <!-- skills-zh:end -->
 
 每个技能都写明用哪些接口、各花多少钱，要求智能体先报预算再调用。这些文件由 [okdata.online](https://okdata.online/zh/skills/?src=gh-skills) 按实时接口目录生成，这里是镜像。

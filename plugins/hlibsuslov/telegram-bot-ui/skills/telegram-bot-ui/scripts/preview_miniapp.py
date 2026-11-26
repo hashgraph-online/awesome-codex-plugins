@@ -6,6 +6,9 @@
       open http://127.0.0.1:8790/?view=matrix     iOS/Android x light/dark x 320/390/430 + fullscreen
       open http://127.0.0.1:8790/?platform=android&scheme=dark&width=390&mode=fullscreen&version=8.0
       add &height=1600 for a taller device (long screens in one screenshot)
+      add &audit=1 to measure the layout after ready(): gaps between surfaces, text inset, radii
+      (examples/mini-apps/_kit/tma-audit.mjs, rules LA01-LA05); findings go to the call log, the surfaces get
+      a dashed outline, window.__tmaAudit holds the result and window.tmaAudit() re-runs it on the current screen
   py -3 scripts/preview_miniapp.py examples/mini-apps/vanilla --check   # static checks, no server
 
 The stand serves the app's folder (by default its parent, so `../_kit/tma.css` resolves) on
@@ -55,6 +58,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 SKILL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+AUDIT_JS = os.path.join(SKILL, "examples", "mini-apps", "_kit", "tma-audit.mjs")
 CATALOG = os.path.join(SKILL, "data", "mini-apps", "webapp-catalog.json")
 SCRIPT_TAG = re.compile(r"<script\b[^>]*\bsrc=[\"']https://telegram\.org/js/telegram-web-app\.js[^\"']*[\"'][^>]*>\s*</script>", re.I)
 MOCK_TAG = '<script src="/__tma__/mock.js"></script>'
@@ -141,7 +145,8 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
   }
   var inStand = window.parent && window.parent !== window;
 
-  function post(type, data) { if (inStand) window.parent.postMessage({ __tma: 1, type: type, data: data }, '*'); }
+  // the stand and the app share one origin (both served here): never post to '*'
+  function post(type, data) { if (inStand) window.parent.postMessage({ __tma: 1, type: type, data: data }, location.origin); }
   function log(kind, name, detail) { post('log', { kind: kind, name: name, detail: detail === undefined ? '' : detail }); }
   function cmp(a, b) {
     var x = String(a).split('.'), y = String(b).split('.');
@@ -287,7 +292,10 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
     isVersionAtLeast: function (v) { return cmp(version, v); },
     onEvent: function (n, cb) { (handlers[n] = handlers[n] || []).push(cb); },
     offEvent: function (n, cb) { handlers[n] = (handlers[n] || []).filter(function (f) { return f !== cb; }); },
-    ready: function () { log('call', 'ready', Math.round(performance.now()) + ' ms after navigation start'); post('ready'); },
+    ready: function () {
+      log('call', 'ready', Math.round(performance.now()) + ' ms after navigation start'); post('ready');
+      if (cfg.audit) setTimeout(function () { window.tmaAudit(); }, 800);
+    },
     expand: function () { log('call', 'expand'); post('expand'); },
     close: function () { log('call', 'close'); post('close'); },
     sendData: function (d) { if (String(d).length > 4096) throw Error('WebAppDataInvalid'); log('call', 'sendData', d); post('close'); },
@@ -420,6 +428,16 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
       return realFetch.call(this, input, init);
     };
   }
+  // Layout audit (?audit=1 on the stand): geometry of the screen as drawn, see tma-audit.mjs
+  window.tmaAudit = function () {
+    return import('/__tma__/audit.mjs?v=' + Date.now()).then(function (m) {  // fresh after an edit to the rules
+      var r = m.audit(document, { outline: true });
+      window.__tmaAudit = r;
+      r.findings.forEach(function (f) { log('layout', f.rule + ' ' + f.level, f.msg); });
+      log('layout', 'audit', r.errors + ' error(s), ' + r.warnings + ' warning(s) on ' + r.surfaces + ' surfaces');
+      return r;
+    });
+  };
   post('loaded', { version: version, platform: platform });
 })();
 """
@@ -531,7 +549,7 @@ class Device {
     const p = new URLSearchParams({
       tgWebAppData: demoInitData(this.o.start, this.o.lang), tgWebAppVersion: this.o.version, tgWebAppPlatform: this.o.platform,
       tgWebAppThemeParams: JSON.stringify(this.theme),
-      tgWebAppMock: JSON.stringify({ scheme: this.o.scheme, mode: this.o.mode, fullscreen: this.fullscreen, safe: ins.safe, content: ins.content, perf: this.o.perf, style: this.o.style === 'native' ? '' : this.o.style, invoice: this.o.invoice, network: this.o.network }),
+      tgWebAppMock: JSON.stringify({ scheme: this.o.scheme, mode: this.o.mode, fullscreen: this.fullscreen, safe: ins.safe, content: ins.content, perf: this.o.perf, style: this.o.style === 'native' ? '' : this.o.style, invoice: this.o.invoice, network: this.o.network, audit: qs.get('audit') === '1' }),
     });
     if (this.fullscreen) p.set('tgWebAppFullscreen', '1');
     let url = CONFIG.app;
@@ -624,8 +642,8 @@ class Device {
     this.el.append(bb);
   }
   send(type, name, data) {
-    if (type === 'event') this.frame.contentWindow.postMessage({ __tma: 1, type: 'event', name, data }, '*');
-    else this.frame.contentWindow.postMessage({ __tma: 1, type: 'state', data: name }, '*');
+    if (type === 'event') this.frame.contentWindow.postMessage({ __tma: 1, type: 'event', name, data }, location.origin);
+    else this.frame.contentWindow.postMessage({ __tma: 1, type: 'state', data: name }, location.origin);
   }
   pushInsets() { const ins = this.insets(); this.send('state', ins); }
   onMessage(m) {
@@ -875,12 +893,16 @@ def make_handler(root: str, app_rel: str, title: str, api: list | None = None):
             if not self._host_ok():
                 return self._send(403, b"forbidden host", "text/plain")
             path = urllib.parse.urlsplit(self.path).path
-            if not path.startswith("/app/") and path not in ("/", "/index.html", "/__tma__/mock.js") and self._api("GET", path):
+            if not path.startswith("/app/") and path not in ("/", "/index.html", "/__tma__/mock.js", "/__tma__/audit.mjs") \
+                    and self._api("GET", path):
                 return None
             if path in ("/", "/index.html"):
                 return self._send(200, stand_html(app_url, title).encode(), "text/html; charset=utf-8")
             if path == "/__tma__/mock.js":
                 return self._send(200, mock_js().encode(), "text/javascript; charset=utf-8")
+            if path == "/__tma__/audit.mjs":
+                with open(AUDIT_JS, "rb") as fh:
+                    return self._send(200, fh.read(), "text/javascript; charset=utf-8")
             if path.startswith("/app/"):
                 full = safe_path(root, path[len("/app/"):])
                 if not full or not os.path.isfile(full):

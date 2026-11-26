@@ -147,7 +147,12 @@ $('watch').onclick = () => {
 };
 
 /* ---------------------------------------------------------------- navigation */
+let shown: 'home' | 'bonus' | 'asset' = 'home';
+const tabScroll = tma.scrollMemory(); // Points and Bonus come back where the user left them
 function show(id: 'home' | 'bonus' | 'asset', back = false): void {
+  const prev = shown;
+  if (id !== prev && prev !== 'asset' && id !== 'asset') tabScroll.leave(prev);
+  shown = id;
   for (const s of ['home', 'bonus', 'asset']) $(s).hidden = s !== id;
   $(id).classList.toggle('is-back', back);
   $('tabbar').hidden = id === 'asset';
@@ -155,10 +160,15 @@ function show(id: 'home' | 'bonus' | 'asset', back = false): void {
   // header follows the top of the screen: the brand hero on Bonus, the page elsewhere
   tma.chrome({ header: id === 'bonus' ? (getComputedStyle(document.documentElement).getPropertyValue('--tma-brand').trim() as `#${string}`) || 'secondary_bg_color' : 'secondary_bg_color' });
   if (id === 'bonus') startTimer(); else stopTimer();
-  window.scrollTo(0, 0);
+  if (id === 'asset') window.scrollTo(0, 0); // a new screen starts at the top; nav.pop restores the one under it
+  else if (prev !== 'asset') tabScroll.enter(id);
 }
 for (const b of document.querySelectorAll<HTMLElement>('[data-go]')) {
-  b.addEventListener('click', (e) => { e.preventDefault(); tma.haptic.select(); show(b.dataset.go as 'home' | 'bonus'); });
+  b.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (b.getAttribute('role') === 'tab' && b.dataset.go === shown) { tabScroll.top(); return; }
+    tma.haptic.select(); show(b.dataset.go as 'home' | 'bonus');
+  });
 }
 
 /* ---------------------------------------------------------------- one-time onboarding sheet */
@@ -191,6 +201,7 @@ function toast(text: string): void {
 }
 
 /* ---------------------------------------------------------------- start */
+tma.start(); // fullscreen on iOS / Android (8.0+), the expanded sheet elsewhere
 tma.chrome({ header: 'secondary_bg_color', background: 'secondary_bg_color', bottomBar: 'secondary_bg_color' });
 $('me').textContent = (lang?.first_name || 'You')[0];
 void store.get('hide-balance').then((v) => { if (v === '1') setHidden(true); });

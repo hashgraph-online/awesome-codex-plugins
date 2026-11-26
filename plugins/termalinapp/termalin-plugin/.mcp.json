@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "termalin": {
+      "type": "http",
+      "url": "https://termal.in/mcp"
+    }
+  }
+}

@@ -171,6 +171,14 @@ that ran under it. Removing a handle from the roster can leave it observed; to
 forget it fully, remove the declaration and clean up its mailbox with
 `amq cleanup`.
 
+To add handles to an existing raw queue, run
+`amq init --root <path> --agents <new handles> --add` instead of re-running
+`init --force` with the whole roster. It needs an initialized root (exit `3`
+otherwise), merges the handles into `meta/config.json` under the config lock
+while keeping every other field, and provisions only new or incomplete
+mailboxes, so its cost follows the handles added, not the roster size.
+`--add` and `--force` are mutually exclusive.
+
 For Cursor, setup uses the `agent` command when it is on `PATH`; otherwise it
 falls back to the legacy `cursor-agent` command and the preview says so.
 

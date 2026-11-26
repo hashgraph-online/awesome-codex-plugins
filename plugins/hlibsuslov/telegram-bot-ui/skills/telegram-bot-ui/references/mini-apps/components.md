@@ -68,7 +68,7 @@ Gate each by version (`isVersionAtLeast`, or the kit's `tma.has()`). **[Official
 
 | Component | Anatomy | Kit | States | Rules |
 |---|---|---|---|---|
-| Tab bar | floating glass capsule, 2-5 tabs: icon + label, selected = fill + accent | `.tma-tabbar.tma-glass` | D, selected | sections only, never actions; hidden on level-2 screens and while the MainButton shows; content gets its height plus the bottom inset |
+| Tab bar | floating glass capsule, 2-5 tabs: a 26 px line icon + a short label (`<span>`), selected = pill + accent + heavier tinted icon; unselected = outline icon in the label colour (hint colour on Android) | `.tma-tabbar.tma-glass` | D, selected | sections only, never actions; hidden on level-2 screens and while the MainButton shows; content gets its height plus the bottom inset; every icon from one set and meaning its label (`data/mini-apps/icons.json` → `tab_bar.meanings`, lint MA45); static icons only, never emoji or animated custom emoji; tapping the selected tab scrolls it to the top |
 | Segmented control | 2-5 options in a track | `.tma-segmented` | D, selected | switches views of one dataset (period, active/finished); `selectionChanged` |
 | Tabs / chips row | scrolling chips | `.tma-scroll-x` + `.tma-chip` | D, selected | filters; selected `aria-pressed="true"` |
 | Back | Telegram's BackButton | `tma.nav` | — | one stack: sheet closes before the screen |

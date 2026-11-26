@@ -217,7 +217,7 @@ photos) rather than publish a site:
    doesn't work: the shell expands `$FILE` first), then
    `finalize_object_upload`. To keep a folder's structure, name each file by
    its path inside it (`src/main.cpp`) and include hidden files (`.gitignore`, `.idea/…`); never flatten a folder or drop its hidden files. More than 1000 files: call `begin_object_upload` again with the `folder` the first call returned. Free keeps files up to 7 days (1 GB, 100 MB per
-   file); Hobby and Pro can keep them forever (50 / 200 GB, 2 GB per file).
+   file); Hobby and Pro can keep them forever (50 / 200 GB, 4 GB per file; over 2 GB, videos only).
    Never put file bytes in a tool call.
 
 Only images, video, audio, PDF and plain text open in the browser; anything
@@ -228,7 +228,8 @@ Managing shared files over MCP (the dashboard's Files page does the same):
 - `list_objects` lists files with their `folder`, `folderLabel` and `scan`.
   Files go live at once and Webly scans them shortly after. `scan.status`
   `flagged` (the file's `status` is `quarantined`) means it was blocked as
-  malware or a program named like a document: its link stops working and it is
+  malware, a program named like a document, or a file over 2 GB that isn't a
+  video: its link stops working and it is
   deleted at `scan.deletesAt`. Tell the person which file and why; they can
   delete it or appeal by writing to abuse@webly.ai before that date. A `clean`
   file with reason `executable:*` is an honestly named program: mention it when
@@ -269,7 +270,7 @@ Managing shared files over MCP (the dashboard's Files page does the same):
   cancel or re-upload a file that is finalizing.
 - `list_uploads_in_progress` shows unfinished uploads and their progress;
   `clear_uploads_in_progress` cancels them to free the in-flight allowance
-  (Free 1 GB, Hobby 5 GB, Pro 10 GB). Ask first.
+  (Free 1 GB, Hobby 20 GB, Pro 40 GB). Ask first.
 - Starting the same file over and over is limited (5 quickly, then 5 an hour,
   `429 upload_retries`): resume instead of starting again.
 - `get_billing` shows `storage.used` (finished files, including site assets)

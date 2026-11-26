@@ -1,6 +1,6 @@
 ---
 name: okdata-competitors
-description: "What did competitors post lately, and which post took off? Gets the latest page of posts from each account you name, with every post's likes, comments, shares and views, as one table. Each account is one paid call. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels. 对手最近发了什么，哪条起量了？取你点名的每个账号最新一页作品，连同每条的点赞、评论、转发和播放，排成一张表。每个账号一次计费调用。"
+description: "What did competitors post lately, and which post took off? Gets the latest page of posts from each account you name, with every post's likes, comments, shares and views, as one table. Each account is one paid call. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels, Xigua Video, Bluesky. 对手最近发了什么，哪条起量了？取你点名的每个账号最新一页作品，连同每条的点赞、评论、转发和播放，排成一张表。每个账号一次计费调用。"
 license: MIT
 ---
 
@@ -10,7 +10,7 @@ license: MIT
 
 Gets the latest page of posts from each account you name, with every post's likes, comments, shares and views, as one table. Each account is one paid call.
 
-Runs on 11 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels. Example: 2 calls on Douyin, at most $0.004.
+Runs on 13 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels, Xigua Video, Bluesky. Example: 2 calls on Douyin, at most $0.004.
 
 ## Inputs
 
@@ -42,6 +42,8 @@ Runs on 11 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, B
 | Reddit | accountPosts | `reddit.users.posts.list` | $0.002 per call · about 25 posts per page | `username` |
 | Kuaishou | accountPosts | `kuaishou.users.videos.list` | $0.02 per call · about 20 videos per page | `id` |
 | WeChat Channels | accountPosts | `wechat_channels.users.videos.list` | $0.02 per call · about 15 videos per page | `id` |
+| Xigua Video | accountPosts | `xigua.users.videos.list` | $0.002 per call · about 30 videos per page | `id` or `url` |
+| Bluesky | accountPosts | `bluesky.users.posts.list` | $0.001 per call · about 30 posts per page | `id` or `url` |
 
 ## How to call it
 
@@ -78,7 +80,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap). Ask before going past 10 calls in one run.
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -87,4 +89,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 More: https://okdata.online/skills/competitors/?src=skill-okdata-competitors · 中文：https://okdata.online/zh/skills/competitors/?src=skill-okdata-competitors
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

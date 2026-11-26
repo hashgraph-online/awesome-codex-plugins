@@ -477,9 +477,11 @@ fetches the engine's dependencies from PyPI or your configured index.
    declaration renders, each with its cadence tag, only where the project's
    `declarations.render_tests` turns them on. Never set that switch unasked. Relay
    `data.monitors` where present: the Elementary monitors a declared time column
-   writes when the project sets `monitors.vendor`, filtered to the declared
-   population, or why none was written (the package missing, disabled or
-   unknown on `dbt_prod_target`, or a filter it cannot write); never set that
+   and each small-domain dimension column write when the project sets
+   `monitors.vendor`, filtered to the declared population, or why none was
+   written (the package missing, disabled or unknown on `dbt_prod_target`, a
+   filter it cannot write, a dimension over the bound or flagged as personal
+   data, or one the cache has not profiled, with the profile to run); never set that
    setting unasked either (`${CLAUDE_SKILL_DIR}/references/declarations.md`).
    Relay `data.pii_tags` where present: the same setting tags each
    personal-data column and its model for Elementary. Say what

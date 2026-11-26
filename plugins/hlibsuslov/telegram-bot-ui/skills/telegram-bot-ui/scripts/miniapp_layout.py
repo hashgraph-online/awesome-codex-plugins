@@ -3,7 +3,7 @@
 
   py -3 scripts/miniapp_layout.py entities                 # content types: book, trainer, workout, product, plan...
   py -3 scripts/miniapp_layout.py show book                # recommended card, list variant, detail order, markup skeleton
-  py -3 scripts/miniapp_layout.py rules                    # L01-L25
+  py -3 scripts/miniapp_layout.py rules                    # L01-L26
   py -3 scripts/miniapp_layout.py review screen.json       # findings with rule ids and fixes (--json)
   py -3 scripts/miniapp_layout.py schema                   # every key and value a screen description may use
   py -3 scripts/miniapp_layout.py example catalog          # a screen description to start from
@@ -18,7 +18,7 @@ A screen description is a small JSON an agent writes from a design, a screenshot
    "primary_action": "in-card", "carousels": 1, "filters": {"count": 7, "placement": "top"}, "search": "top",
    "unavailable": "hidden"}
 
-Screens: catalog, detail, booking, form, plans, dashboard, gallery. Every key is optional; only what is described
+Screens: catalog, detail, booking, form, plans, paywall, dashboard, gallery. Every key is optional; only what is described
 is checked, so describe every list and detail screen fully. Unknown keys and values are errors (exit 2): a typo
 must not pass as "0 findings". The rules are this skill's heuristics (data/mini-apps/layouts.json, references/mini-apps/layout-rules.md).
 """
@@ -48,12 +48,20 @@ EXAMPLES = {
                             "reviews", "related"], "gallery": "carousel", "carousels": 1},
     "plans": {"screen": "plans", "entity": "plan", "width": 390, "primary_action": "main-button",
               "plans": {"layout": "stacked", "count": 3, "features_max": 5, "recommended": 1}},
+    # examples/mini-apps/paywall: the reference paywall (payments.md section 9)
+    "paywall": {"screen": "paywall", "primary_action": "main-button",
+                "paywall": {"placement": "level-2", "value": "numbers", "benefits": 4, "comparison": True, "plans": 2,
+                            "plan_control": "radio-list", "preselected": True, "price": "glyph-and-period",
+                            "renewal_terms": "under-plans", "terms_link": True, "faq": True,
+                            "main_button": "verb-price-period", "prices_from": "server", "unlock_from": "server-order",
+                            "states": ["loading", "error", "cancelled", "failed", "pending", "success", "subscriber"],
+                            "subscription_period": 30}},
 }
 
 
 # The screen description: key -> allowed values (a tuple), a type, or a nested schema (dict).
 SCHEMA: dict = {
-    "screen": ("catalog", "detail", "booking", "form", "plans", "dashboard", "gallery"),
+    "screen": ("catalog", "detail", "booking", "form", "plans", "paywall", "dashboard", "gallery"),
     "entity": str, "width": int, "max_width": int,
     "layout": {"variant": ("row", "tile", "media-card", "scroller-card", "plan-card"), "columns": int},
     "card": {
@@ -74,6 +82,16 @@ SCHEMA: dict = {
                 "unavailable": ("disabled", "hidden", "dimmed"), "summary": bool, "main_button_names_slot": bool},
     "plans": {"layout": ("stacked", "side-by-side", "table"), "count": int, "features_max": int,
               "recommended": int, "table": bool},
+    "paywall": {
+        "placement": ("level-2", "sheet", "tab-root", "modal-over-content"),
+        "value": ("numbers", "adjectives", "none"), "benefits": int, "comparison": bool, "plans": int,
+        "plan_control": ("radio-list", "cards", "segmented", "none"), "preselected": bool,
+        "price": ("glyph-and-period", "glyph-only", "emoji", "text-only", "none"),
+        "renewal_terms": ("under-plans", "elsewhere", "none"), "terms_link": bool, "faq": bool,
+        "main_button": ("verb-price-period", "verb-only", "own-button", "none"),
+        "prices_from": ("server", "client"), "unlock_from": ("server-order", "invoice-status", "client"),
+        "states": list, "subscription_period": int, "empty_space": bool,
+    },
     "states": {"skeleton": ("card-shaped", "spinner", "none"), "empty": bool, "error": bool},
 }
 
@@ -266,6 +284,46 @@ def review(spec: dict, data: dict) -> list[dict]:
             add("L25", "many plans or features without a comparison table")
         if (plans.get("recommended") or 0) > 1:
             add("L25", f"{plans['recommended']} recommended plans")
+    pw = spec.get("paywall", {})
+    if pw:
+        def p(rule_text: str) -> None:
+            add("L26", rule_text)
+        if pw.get("placement") in ("tab-root", "modal-over-content"):
+            p(f"the paywall is a {pw['placement']}: a level-2 screen (BackButton) or a sheet the user opened from a locked thing (P8)")
+        if pw.get("value") in ("adjectives", "none"):
+            p("the value is not stated in numbers from the server (40 tests, 283 cards), only adjectives or nothing (P2)")
+        if "benefits" in pw and not 3 <= pw["benefits"] <= 5:
+            p(f"{pw['benefits']} benefit rows: 3-5 concrete rows with an icon, a title and one line (P2)")
+        if pw.get("comparison") is False:
+            p("no Free / Premium comparison: say what stays free (P3)")
+        if "plans" in pw and not 1 <= pw["plans"] <= 3:
+            p(f"{pw['plans']} plans: 1-3 (P5)")
+        if pw.get("plan_control") in ("cards", "segmented") and (pw.get("plans") or 0) > 1:
+            p(f"plans as {pw['plan_control']}: one radio group of rows, the price at the end of each (P5)")
+        if (pw.get("plans") or 0) > 1 and pw.get("preselected") is False:
+            p("no plan is preselected: the MainButton needs one to name its price (P5)")
+        if pw.get("price") in ("emoji", "text-only", "none", "glyph-only"):
+            p(f"price shown as {pw['price']}: the Stars glyph (SVG) and the amount, with the period or 'one payment' next to it (P4)")
+        if pw.get("renewal_terms") in ("elsewhere", "none"):
+            p("renewal and cancellation terms are not under the plans (P7)")
+        if pw.get("terms_link") is False:
+            p("no Terms link before paying (P7)")
+        if pw.get("faq") is False:
+            p("no answers to cancel / progress / renewal questions (P7)")
+        if pw.get("main_button") in ("verb-only", "own-button", "none"):
+            p(f"primary action is {pw['main_button']}: the MainButton with the verb, the price and the period of the selected plan (P6)")
+        if pw.get("prices_from") == "client":
+            p("prices come from the client: the server owns the offer and the invoice amount (P10, lint MA26)")
+        if pw.get("unlock_from") in ("invoice-status", "client"):
+            p(f"Premium unlocks from {pw['unlock_from']}: only the server's order unlocks (P10, lint MA27)")
+        missing = [s for s in ("loading", "error", "cancelled", "failed", "pending", "success", "subscriber")
+                   if "states" in pw and s not in pw["states"]]
+        if missing:
+            p(f"states not designed: {', '.join(missing)} (P9)")
+        if pw.get("subscription_period") not in (None, 30):
+            p(f"a {pw['subscription_period']}-day Stars subscription: Stars subscriptions renew every 30 days; a longer plan is a one-off payment that does not renew (P5, payments.md section 1)")
+        if pw.get("empty_space") is True:
+            p("a lone card in an empty screen: the paywall is the full anatomy, never a card floating in a void (P1, P8)")
     if spec.get("states", {}).get("skeleton") == "spinner":
         add("L23", "a spinner instead of skeletons in the card's shape")
     return out

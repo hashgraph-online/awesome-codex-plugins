@@ -84,10 +84,11 @@
   </main>
 
   <nav class="tma-tabbar tma-glass" role="tablist" aria-label="Sections" id="tabbar">
-    <button type="button" role="tab" aria-selected="true" data-go="menu"><svg class="tma-icon" aria-hidden="true"><use href="#i-cup"/></svg>Menu</button>
+    <button type="button" role="tab" aria-selected="true" data-go="menu"><svg class="tma-icon" aria-hidden="true"><use href="#i-cup"/></svg><span>Menu</span></button>
     <button type="button" role="tab" aria-selected="false" data-go="order"><svg class="tma-icon" aria-hidden="true"><use href="#i-bag"/></svg><span>Order <span class="tma-sr" id="tab-count-sr"></span></span></button>
   </nav>
 
+  <button type="button" class="tma-glass" data-tma-fallback="back-button" hidden><svg class="tma-icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Back</button>
   <div class="tma-snackbar" role="status" id="snackbar" hidden></div>
   <!-- Outside Telegram only (plain browser): tma.ts mirrors the MainButton here. -->
   <button type="button" class="tma-btn is-filled is-lg" data-tma-fallback="main-button" hidden></button>
@@ -96,6 +97,7 @@
     <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 8h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c0 1 1 1 1 2s-1 1-1 2M12 3.5c0 1 1 1 1 2s-1 1-1 2"/></symbol>
     <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 8 13"><path d="m1.5 1.5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   </svg>
 </body>

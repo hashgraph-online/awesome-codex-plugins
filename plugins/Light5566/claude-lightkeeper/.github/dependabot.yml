@@ -1,0 +1,10 @@
+# Keeps the pinned GitHub Actions current. There are no package dependencies:
+# the plugin uses only Python's standard library.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - "/action"
+    schedule:
+      interval: "monthly"

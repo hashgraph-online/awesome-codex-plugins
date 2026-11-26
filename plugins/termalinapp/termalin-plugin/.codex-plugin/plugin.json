@@ -1,0 +1,34 @@
+{
+  "name": "termalin",
+  "version": "1.3.1",
+  "description": "SSH, SFTP, databases and monitoring for your own servers from an AI agent, keyless through the Termalin connector: run commands, read and write files, query databases, read metrics and alerts, run background jobs. Ten skills teach the agent to check server health, triage alerts, run commands safely, verify deployments, query databases, back up, apply security updates, set up a fresh server, open internal sites and work on remote desktops.",
+  "author": {
+    "name": "Termalin",
+    "email": "support@termal.in",
+    "url": "https://termal.in"
+  },
+  "homepage": "https://termal.in/mcp/",
+  "repository": "https://github.com/termalinapp/termalin-plugin",
+  "license": "MIT",
+  "keywords": [
+    "termalin",
+    "ssh",
+    "servers",
+    "vps",
+    "linux",
+    "devops",
+    "sysadmin",
+    "sftp",
+    "monitoring",
+    "alerts",
+    "database",
+    "postgres",
+    "mysql",
+    "docker",
+    "nginx",
+    "logs",
+    "deploy"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

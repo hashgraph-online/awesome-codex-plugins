@@ -10,22 +10,22 @@
 
 <p>
   <a href="https://dopamine.annenkov.me/"><img src="https://img.shields.io/badge/website-dopamine.annenkov.me-c92639?style=flat-square" alt="Website: dopamine.annenkov.me"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/release-v1.0.0-ff6b4a?style=flat-square" alt="Release: v1.0.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/release-v1.1.0-ff6b4a?style=flat-square" alt="Release: v1.1.0"></a>
   <a href="#two-native-editions"><img src="https://img.shields.io/badge/editions-EN%20%C2%B7%20RU-ffb454?style=flat-square" alt="Two native editions: English and Russian"></a>
-  <a href="#the-three-skills"><img src="https://img.shields.io/badge/skills-3-4fd1a5?style=flat-square" alt="3 skills included"></a>
+  <a href="#the-five-skills"><img src="https://img.shields.io/badge/skills-5-4fd1a5?style=flat-square" alt="5 skills included"></a>
   <a href="INSTALL.md"><img src="https://img.shields.io/badge/works%20with-20%2B%20agents-24242b?style=flat-square" alt="Works with 20+ agents"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6c7382?style=flat-square" alt="MIT License"></a>
 </p>
 
 <p><strong>Frontier coding models got smarter, and somehow way more exhausting to talk to.</strong><br>
-Three zero-dependency skills in two native editions (<strong>Western English</strong> &amp; <strong>Russian</strong>) that strip RLVR critic-gate obsession, AST narration, timid disclaimers, and corporate AI slop out of your agent — across dialogue, changelogs, and READMEs.</p>
+Five zero-dependency skills in two native editions (<strong>Western English</strong> &amp; <strong>Russian</strong>) that strip RLVR critic-gate obsession, 400-line corporate plans, regex hacks, lazy UIs, timid disclaimers, and AI slop out of your agent — across dialogue, planning, engineering, changelogs, and READMEs.</p>
 
 <br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/glance-en-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/readme/glance-en-light.svg">
-  <img src="assets/readme/glance-en-dark.svg" alt="Pack at a glance diagram (4 obsidian-glass KPI cards plus 3-row skill summary panel). KPI cards: (1) '3 skills' — Talk, README, Changelog; (2) '2 editions' — Western EN, Native RU; (3) '0 deps' — Pure Markdown, any model; (4) '20+ agents' — Interactive CLI &amp; plugins. Summary panel rows: DOPAMINE TALK — Kills critic-gates, AST dumps, hedging &amp; AI slop, restores golden-era drive; DOPAMINE README — 5-second scroll test, crystal dark/light visuals, 'Aha!' priority ladder; DOPAMINE CHANGELOG — Turns raw git diffs into user impact f'(x), Before -> After tables &amp; CVE clarity." width="840">
+  <img src="assets/readme/glance-en-dark.svg" alt="Pack at a glance diagram (4 obsidian-glass KPI cards plus 5-row skill summary panel). KPI cards: (1) '5 skills' — Talk, Plan, Eng, README, Log; (2) '2 editions' — Western EN, Native RU; (3) '0 deps' — Pure Markdown, any model; (4) '20+ agents' — Interactive CLI &amp; plugins. Summary panel rows: DOPAMINE TALK; DOPAMINE PLAN; DOPAMINE ENGINEERING; DOPAMINE README; DOPAMINE CHANGELOG." width="840">
 </picture>
 
 </div>
@@ -34,8 +34,10 @@ Three zero-dependency skills in two native editions (<strong>Western English</st
 <summary>Text overview of hero banner and at-a-glance metrics (accessible version)</summary>
 
 - **Hero:** `Dopamine Talk` - *Decompress stiff RLVR coding agents back into sharp, fearless teammates.*
-- **Headline metrics:** `3 skills` (Talk, README, Changelog) | `2 editions` (Western EN & Native RU) | `0 deps` (Pure Markdown, any model) | `20+ agents` (Interactive CLI & plugins)
+- **Headline metrics:** `5 skills` (Talk, Plan, Engineering, README, Changelog) | `2 editions` (Western EN & Native RU) | `0 deps` (Pure Markdown, any model) | `20+ agents` (Interactive CLI & plugins)
 - **DOPAMINE TALK:** Kills critic-gates, AST dumps, hedging & corporate AI slop; restores golden-era drive.
+- **DOPAMINE PLAN:** Recon-first blueprints in hours & days, cutting-edge frontier methods, 80/20 focus, zero regex foundations.
+- **DOPAMINE ENGINEERING:** Zero hardcode or mock theater, simplicity ladder, live verification, purpose-built tactile UI & crystal microcopy.
 - **DOPAMINE README:** 5-second scroll test, crystal dark/light visuals, "Aha!" priority ladder.
 - **DOPAMINE CHANGELOG:** Turns raw `git diff` into user impact `f'(x)`, Before -> After tables & CVE clarity.
 
@@ -43,7 +45,7 @@ Three zero-dependency skills in two native editions (<strong>Western English</st
 
 | | | |
 | :--- | :--- | :--- |
-| **[Before vs After](#before-vs-after)**<br>See the exact contrast between RLVR autopilot and a decompressed agent in one glance. | **[The Three Skills](#the-three-skills)**<br>`dopamine-talk`, `dopamine-readme`, and `dopamine-changelog` working as one pack. | **[Two Native Editions](#two-native-editions)**<br>Western English (`skills/`) adapted with zero non-English baggage, plus original Russian (`skills-ru/`). |
+| **[Before vs After](#before-vs-after)**<br>See the exact contrast between RLVR autopilot and a decompressed agent in one glance. | **[The Five Skills](#the-five-skills)**<br>`dopamine-talk`, `dopamine-plan`, `dopamine-engineering`, `dopamine-readme`, and `dopamine-changelog` as one pack. | **[Two Native Editions](#two-native-editions)**<br>Western English (`skills/`) adapted with zero non-English baggage, plus original Russian (`skills-ru/`). |
 | **[Five Post-RL Reflexes](#five-post-rl-reflexes-stripped)**<br>Why modern models lecture, pad, hedge, and shrink big ideas — and how we cut it off. | **[Interactive Installer](#install)**<br>One-liner wizard: pick EN or RU, pick skills, auto-detect your agents, symlink or copy. | **[Honest Trade-Off](#honest-trade-off--best-models)**<br>Why it can occasionally bluff, why motivation wins anyway, and why flexible models like Gemini shine. |
 
 <br>
@@ -138,19 +140,19 @@ Read the full unfiltered original prompt (with the real chat dump that triggered
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/readme/strip-skills-en-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/readme/strip-skills-en-light.svg">
-    <img src="assets/readme/strip-skills-en-dark.svg" alt="Section divider banner: 'THE PACK' — Three sharp prompts covering dialogue, releases, and GitHub showcase." width="840">
+    <img src="assets/readme/strip-skills-en-dark.svg" alt="Section divider banner: 'THE FIVE SKILLS' — Dialogue, battle plans, adaptive code &amp; UX, changelogs, and GitHub showcase." width="840">
   </picture>
 </p>
 
-## The Three Skills
+## The Five Skills
 
-All three skills are plain Markdown (`SKILL.md`) with zero runtime dependencies. Install the pack once and your agent picks up the right mode whether you are brainstorming architecture, cutting a release, or crafting a GitHub storefront.
+All five skills are plain Markdown (`SKILL.md`) with zero runtime dependencies. Install the pack once and your agent picks up the right mode across the entire lifecycle — from brainstorming and architecture recon to writing clean code, crafting tactile UI, cutting a release, and shipping a GitHub storefront.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/readme/pack-flow-en-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/readme/pack-flow-en-light.svg">
-    <img src="assets/readme/pack-flow-en-dark.svg" alt="3-step builder workflow diagram connecting three obsidian crystal-glass skill cards with right arrows: Card 1 [01 · THINK &amp; TALK] 'dopamine-talk' — Kills post-RL tics: hedging, AI slop, AST dumps &amp; critic-gate syndrome -> Card 2 [02 · SHIP &amp; ANNOUNCE] 'dopamine-changelog' — Translates raw git diffs into user impact f'(x), Before -> After &amp; CVE facts -> Card 3 [03 · WIN STARS IN 5s] 'dopamine-readme' — Turns dry docs into living visual showcases built for the 5-second scroll test." width="840">
+    <img src="assets/readme/pack-flow-en-dark.svg" alt="5-step builder lifecycle diagram connecting five obsidian crystal-glass skill cards: 01 dopamine-talk, 02 dopamine-plan, 03 dopamine-engineering, 04 dopamine-changelog, 05 dopamine-readme." width="840">
   </picture>
 </p>
 
@@ -164,7 +166,26 @@ Not a "be warm and friendly" persona mask. It is surgical post-RL decompression:
 - **Zero corporate AI slop:** Strips consultant filler (*"robust"*, *"comprehensive"*, *"seamless synergy"*, *"it's worth noting"*) and fake therapist check-ins (*"Hope you're doing well!"*).
 - **Golden-era ambition:** Stops shrinking bold goals into *"let's start with one basic prototype"* and maps the full build using native stack capabilities.
 
-### 2. [`dopamine-readme`](skills/dopamine-readme/SKILL.md) — Living Product Showcases
+### 2. [`dopamine-plan`](skills/dopamine-plan/SKILL.md) — Recon-First, Agent-Time Battle Blueprints
+
+Kills 400-line corporate specs, fictional *"3–6 month"* roadmaps, vacuum architecture, and 9-question interrogations — producing one energizing screen that makes you want to open the editor immediately.
+
+- **Eyes outward first:** Studies 3–5 top competitors and best-in-class open-source repos before designing (and chases the freshest experimental papers/repos on frontier research instead of stale safe defaults).
+- **Agentic time only:** Estimates honestly in **hours, evenings, and days** — never fictional quarters or manual-team sprints.
+- **80/20 focus & vertical milestones:** Every milestone ships a live, runnable vertical slice; boilerplate types and configs never get their own phase.
+- **Zero hardcode / zero regex foundations:** Bans fragile regex dispatchers and 7-layer router-validator-critic pipelines before line one.
+- **Bold defaults + live checks:** Surfaces at most 1–2 genuine product forks and ends with real battle verification instead of "write 40 mocked unit tests".
+
+### 3. [`dopamine-engineering`](skills/dopamine-engineering/SKILL.md) — Adaptive Code, Clean Roots & Tactile UI
+
+Turns on sharp systems and product engineering at both ends: zero brittle hacks in the backend, zero lazy inputs and walls of buttons in the frontend.
+
+- **Zero regex logic & simplicity ladder:** Uses real parsers, ASTs, typed contracts, and existing repo helpers/stdlib before writing fresh code — zero single-impl abstractions or patch-on-patch decay.
+- **Single-pass recon & live verification:** Probes the environment once, verifies with real builds and real-data runs instead of mock theater, switches strategy after two failures, and stops cleanly once green.
+- **Purpose-built tactile controls:** Picks sliders, scrubbers, swatches, segmented controls, and direct canvas handles over lazy `<input type="text">` and bare buttons.
+- **Minimal decisions & crystal UI copy:** Keeps one primary action in focus, cuts corporate AI fluff, and never chops labels into cryptic stubs (`Cfg.`, `App.`, `Err 400`).
+
+### 4. [`dopamine-readme`](skills/dopamine-readme/SKILL.md) — Living Product Showcases
 
 Built for the **5-second scroll test**: assume your visitor reads zero full paragraphs and still gets the *"Whoa — I want to try this right now"* moment from the hero, numbers, visuals, and crisp contrast.
 
@@ -173,7 +194,7 @@ Built for the **5-second scroll test**: assume your visitor reads zero full para
 - **Human words, not compiler output:** Sells the lived relief and momentum of the product instead of dumping internal file paths and config keys.
 - **Director's final pass:** Forces a real visual check across both GitHub Dark and GitHub Light themes plus zero dead links or orphan assets.
 
-### 3. [`dopamine-changelog`](skills/dopamine-changelog/SKILL.md) — User Impact (`f'(x)`), Not `git diff`
+### 5. [`dopamine-changelog`](skills/dopamine-changelog/SKILL.md) — User Impact (`f'(x)`), Not `git diff`
 
 Most AI changelogs narrate the diff (`f(x)`): *"Updated dependencies in package.json, tightened validation"*. Readers want the derivative (`f'(x)`): *"What just got faster, cheaper, safer, or possible in my life?"*
 
@@ -242,7 +263,7 @@ Browse directly: **[`skills/`](skills/)** &amp; **[`AGENTS.md`](AGENTS.md)** (We
 
 **Then why does this pack exist at all?** Because as a developer building real products, **not losing your motivation and momentum is often 10x more valuable than a sterile, legally-hedged report.** A stiff model that lectures you with caveats kills the urge to build; give me clarity, energy, and drive, and I will verify and untangle the rest myself.
 
-**Where it shines brightest:** All three skills work across any modern model, **but they click best with flexible, steerable models — especially Google's models (Gemini)**. Flexible models actually let go of their RLVR autopilot when asked, match the editorial voice on turn one, and keep their engineering sharpness without fighting the prompt.
+**Where it shines brightest:** All five skills work across any modern model, **but they click best with flexible, steerable models — especially Google's models (Gemini)**. Flexible models actually let go of their RLVR autopilot when asked, match the editorial voice on turn one, and keep their engineering sharpness without fighting the prompt.
 
 <br>
 
@@ -264,7 +285,7 @@ No bloated frameworks, no hidden binaries, no API keys — one pure `SKILL.md` c
 
 ### One-Line Installer (Recommended — Skills + Always-On Mode)
 
-Auto-detects installed AI agents (Claude Code, Codex, Antigravity, Gemini CLI, Cursor, Windsurf, Copilot, OpenCode, Kiro), lets you pick **English or Russian**, installs all 3 skills, and safely appends a clean marked always-on block to global agent rules (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `dopamine-talk.mdc`) without touching your existing rules:
+Auto-detects installed AI agents (Claude Code, Codex, Antigravity, Gemini CLI, Cursor, Windsurf, Copilot, OpenCode, Kiro), lets you pick **English or Russian**, installs all 5 skills, and safely appends a clean marked always-on block to global agent rules (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `dopamine-talk.mdc`) without touching your existing rules:
 
 ```bash
 # macOS / Linux / WSL / Git Bash
@@ -322,6 +343,8 @@ Once installed, the skills trigger automatically when relevant, or invoke them d
 | Skill | English Triggers (`skills/`) | Russian Triggers (`skills-ru/`) |
 | :--- | :--- | :--- |
 | **`dopamine-talk`** | `"dopamine-talk"`, `"talk like a human"`, `"drop the hedging"`, `"no fluff"`, `"cut the slop"` | «дофаминовое общение», «общайся нормально», «без канцелярита», «без воды» |
+| **`dopamine-plan`** | `"dopamine-plan"`, `"plan this"`, `"architecture plan"`, `"implementation plan"` | «дофаминовый план», «составь план», «спланируй», «архитектура» |
+| **`dopamine-engineering`** | `"dopamine-engineering"`, `"build it clean"`, `"no hardcode"`, `"no regex hacks"` | «дофаминовая инженерия», «сделай по-нормальному», «без хардкода», «без костылей» |
 | **`dopamine-readme`** | `"dopamine-readme"`, `"rewrite README"`, `"redesign README"`, `"make README pop"` | «дофаминовый ридми», «перепиши ридми», «оформи README», «красивый README» |
 | **`dopamine-changelog`** | `"dopamine-changelog"`, `"write changelog"`, `"release notes"`, `"release highlights"` | «дофаминовый чейнджлог», «чейнджлог», «хайлайты релиза», «опиши релиз» |
 

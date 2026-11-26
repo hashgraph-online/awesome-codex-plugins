@@ -1,6 +1,6 @@
 ---
 name: okdata-viral
-description: "Why did this post take off? Gets one post's title, text and engagement and, where the platform has transcripts, what the video says, as one row your AI can take apart. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), YouTube, Instagram, Reddit, Kuaishou, Zhihu, WeChat Channels. 这条为什么能火？取一条内容的标题、正文和互动数据；平台有字幕的，再取视频里说了什么，合成一行交给你的 AI 拆解。"
+description: "Why did this post take off? Gets one post's title, text and engagement and, where the platform has transcripts, what the video says, as one row your AI can take apart. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), YouTube, Instagram, Reddit, Kuaishou, Zhihu, WeChat Channels, Toutiao, Xigua Video, Bluesky, Youku. 这条为什么能火？取一条内容的标题、正文和互动数据；平台有字幕的，再取视频里说了什么，合成一行交给你的 AI 拆解。"
 license: MIT
 ---
 
@@ -10,7 +10,7 @@ license: MIT
 
 Gets one post's title, text and engagement and, where the platform has transcripts, what the video says, as one row your AI can take apart.
 
-Runs on 13 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), YouTube, Instagram, Reddit, Kuaishou, Zhihu, WeChat Channels. Example: 2 calls on YouTube, at most $0.006.
+Runs on 17 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), YouTube, Instagram, Reddit, Kuaishou, Zhihu, WeChat Channels, Toutiao, Xigua Video, Bluesky, Youku. Example: 2 calls on YouTube, at most $0.006.
 
 ## Inputs
 
@@ -60,6 +60,13 @@ Runs on 13 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, B
 | Zhihu | post | `zhihu.articles.get` | $0.002 per call | `id` or `url` |
 | WeChat Channels | post | `wechat_channels.videos.get` | $0.02 per call | `id` or `url` |
 | WeChat Channels | comments | `wechat_channels.videos.comments.list` | $0.015 per call · about 25 comments per page | `id` |
+| Toutiao | post | `toutiao.articles.get` | $0.002 per call | `id` or `url` |
+| Toutiao | comments | `toutiao.posts.comments.list` | $0.002 per call · about 20 comments per page | `id` or `url` |
+| Xigua Video | post | `xigua.videos.get` | $0.004 per call | `id` or `url` |
+| Xigua Video | comments | `xigua.videos.comments.list` | $0.002 per call · about 20 comments per page | `id` or `url` |
+| Bluesky | post | `bluesky.posts.get` | $0.001 per call | `id` or `url` |
+| Bluesky | comments | `bluesky.posts.comments.list` | $0.001 per call · about 200 comments per page | `id` or `url` |
+| Youku | post | `youku.videos.get` | $0.022 per call | `id` |
 
 ## How to call it
 
@@ -96,7 +103,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap). Ask before going past 3 calls in one run.
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -105,4 +112,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 More: https://okdata.online/skills/viral/?src=skill-okdata-viral · 中文：https://okdata.online/zh/skills/viral/?src=skill-okdata-viral
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

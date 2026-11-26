@@ -33,13 +33,20 @@ What is checked (errors -> exit 1)
   * --previous FILE: an edited inline keyboard must keep `force_reply`
   * --context: fields not available in that context (ephemeral, channel,
     business, channel_dm, group, private)
+  * --emoji-library FILE (a bot-ui project's emoji/library.json): a button never carries an
+    animated or video custom emoji, so an `icon_custom_emoji_id`, or a custom emoji in a rich
+    button's text, whose format there is not static is an error (BUTTON_EMOJI_ANIMATED);
+    ids the library does not know pass
 
 Warnings (never fail): >1 primary, everything styled, duplicate labels,
 emoji-only labels, wide rows, long labels, destructive labels without style,
 a keyboard where every button is disabled; layout and meaning (design heuristics of
 buttons-and-styles.md): a styled or status-marked navigation button (red Back, "❌ Close"),
 navigation above other actions, `danger` in the main action's row, labels that don't say
-what happens ("OK", "Yes"), more than 8 rows.
+what happens ("OK", "Yes"), more than 8 rows; choosing from a list (selection-lists.md):
+SELECTION_EMOJI (selection drawn with ⚪ / ✅ / 🔘 / 🟢 emoji), LONG_COLUMN (more than 6
+one-button rows of short options), DECORATED_CONTROL (an emoji on Done / Back / Cancel /
+Apply, "🏁 Done").
 
 NOT checked: the full schema of nested objects (WebAppInfo, LoginUrl,
 SwitchInlineQueryChosenChat, KeyboardButtonRequest*), whether URLs resolve,
@@ -47,12 +54,14 @@ whether the bot may use custom emoji, client rendering.
 
 Usage
   python scripts/validate_keyboard.py keyboard.json [--context ephemeral] [--previous old.json]
+                                       [--emoji-library bot-ui/emoji/library.json]
   python scripts/validate_keyboard.py < keyboard.json
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 
@@ -126,6 +135,16 @@ STATUS_GLYPHS = ("✅", "✔", "☑", "❌", "✖", "⚠", "⛔", "🚫", "❗")
 VAGUE_LABELS = {"ok", "okay", "yes", "no", "submit", "send", "click here", "да", "нет", "ок", "окей",
                 "отправить", "нажмите", "так", "ні", "надіслати"}
 MAX_ROWS_WARN = 8
+# Choosing from a list (references/selection-lists.md)
+SELECTION_GLYPHS = ("⚪", "⚫", "🔘", "✅", "☑", "✔", "❌", "❎", "🟢", "🔴", "🟩", "🟥", "⬜", "⬛", "🔲", "🔳",
+                    "◻", "◼", "▫", "▪", "☐", "☒", "⭕", "🔵", "🟡")
+LONG_COLUMN_ROWS = 6        # more consecutive one-button rows of short options than this is a list in a column
+SHORT_OPTION = 40           # characters: an option label, not a sentence (sentences may take a row each)
+CONTROL_WORDS = {"done", "готово", "apply", "применить", "застосувати", "finish", "завершить", "завершити",
+                 "save", "сохранить", "зберегти", "continue", "продолжить", "продовжити", "next", "далее", "далі",
+                 "confirm", "подтвердить", "підтвердити", "ok", "ок"}
+ARROWS = "⬅➡⬆⬇↩↪"  # an arrow on Back or Next is direction, not decoration
+PICTO_RE = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23FF]")
 
 
 def _words(text: str) -> str:
@@ -139,11 +158,43 @@ def is_navigation(text: str) -> bool:
 
 
 class Report:
-    def __init__(self) -> None:
+    def __init__(self, moving_emoji: dict[str, str] | None = None) -> None:
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.kind = "?"
         self.buttons = 0
+        self.moving = moving_emoji or {}  # custom emoji id -> "animated" | "video", from the emoji library
+
+
+LIBRARY_MAX_BYTES = 16_000_000  # a library of ~500 packs is a few MB
+
+
+def load_moving_emoji(path: str) -> dict[str, str]:
+    """id -> "animated" | "video" for the custom emoji of a bot-ui emoji/library.json that are not static.
+    Raises OSError or ValueError when the file is not such a library."""
+    from bot_ui import emoji
+    if not str(path).lower().endswith(".json") or not os.path.isfile(path):
+        raise ValueError("the emoji library is a bot-ui emoji/library.json file")
+    if os.path.getsize(path) > LIBRARY_MAX_BYTES:
+        raise ValueError(f"the emoji library is larger than {LIBRARY_MAX_BYTES // 1_000_000} MB")
+    try:
+        return emoji.moving_ids(emoji.read_library(path))
+    except emoji.EmojiError as exc:
+        raise ValueError(exc.message) from None
+
+
+MOVING_CODE = "BUTTON_EMOJI_ANIMATED"
+
+
+def moving_message(eid: str, fmt: str) -> str:
+    return (f"custom emoji {eid} is {fmt} in the emoji library; a button takes a static custom emoji only - "
+            "use the static one with the same meaning")
+
+
+def moving_in_html(html: str, moving: dict[str, str]) -> list[str]:
+    """moving_message of every animated or video custom emoji inside a <tg-button> of a Rich HTML text."""
+    from bot_ui import rich
+    return [moving_message(eid, moving[eid]) for eid, _, on_button in rich.custom_emoji(html) if on_button and eid in moving]
 
 
 def _plain_rich_text(rt, where: str, rep: Report) -> str:
@@ -156,6 +207,8 @@ def _plain_rich_text(rt, where: str, rep: Report) -> str:
         if t not in ("custom_emoji", "date_time"):
             rep.errors.append(f"{where}: rich button text may contain only plain text, "
                               f"custom emoji and date-time; got {t!r}")
+        elif t == "custom_emoji" and isinstance(rt.get("custom_emoji_id"), str) and rt["custom_emoji_id"] in rep.moving:
+            rep.errors.append(f"{where}: {MOVING_CODE}: {moving_message(rt['custom_emoji_id'], rep.moving[rt['custom_emoji_id']])}")
         return str(rt.get("text", ""))
     rep.errors.append(f"{where}: button text must be RichText")
     return ""
@@ -246,6 +299,8 @@ def check_button(btn, model: str, where: str, rep: Report, context: str | None,
     if icon is not None and model != "rich" and (not isinstance(icon, str) or not CUSTOM_EMOJI_ID_RE.match(icon)):
         rep.errors.append(f"{label}: icon_custom_emoji_id must be the numeric id string of a custom "
                           f"emoji - not a file_id, pack name, URL, or Unicode emoji; got {icon!r}")
+    elif model != "rich" and isinstance(icon, str) and icon in rep.moving:
+        rep.errors.append(f"{label}: {MOVING_CODE}: {moving_message(icon, rep.moving[icon])}")
     if model == "inline":
         for key in ("pay", "callback_game"):
             if key in present and not first_cell:
@@ -297,6 +352,43 @@ def check_rows(rows, model: str, rep: Report, context: str | None, prefix: str =
                 disabled += isinstance(btn.get("disabled"), dict)
     _layout_warnings(rows, rep, prefix)
     _summary_warnings(labels, styles, disabled, rep, prefix)
+    _list_warnings(rows, rep, prefix)
+
+
+def _list_warnings(rows, rep: Report, prefix: str) -> None:
+    """Choosing from many options (references/selection-lists.md)."""
+    rows = [r for r in rows if isinstance(r, list)]
+    texts = [_label(b).strip() for r in rows for b in r]
+    marked = [t for t in texts if t.startswith(SELECTION_GLYPHS) and not is_navigation(t)]
+    if len(marked) >= 2:
+        rep.warnings.append(f"{prefix}SELECTION_EMOJI: {len(marked)} labels draw their state with emoji "
+                            f"({', '.join(sorted({t[:1] for t in marked}))}) - mark the chosen options with a ✓ text "
+                            "mark or a static custom emoji check of the bot's family (icon_custom_emoji_id), say "
+                            "\"3 of 10 selected\" in the message; never coloured circles or squares")
+    run, start, longest = 0, 0, (0, 0)
+    for r, row in enumerate(rows + [[]]):
+        one = len(row) == 1 and len(_label(row[0])) <= SHORT_OPTION and not is_navigation(_label(row[0])) \
+            and not (isinstance(row[0], dict) and row[0].get("style"))
+        if one:
+            run, start = (run + 1, start) if run else (1, r)
+        else:
+            if run > longest[0]:
+                longest = (run, start)
+            run = 0
+    if longest[0] > LONG_COLUMN_ROWS:
+        rep.warnings.append(f"{prefix}LONG_COLUMN: rows {longest[1] + 1}-{longest[1] + longest[0]} are {longest[0]} "
+                            "one-button rows of short options - lay them out two per row, page past ~10, offer "
+                            "inline search (switch_inline_query_current_chat) or a Mini App picker past ~30")
+    for r, row in enumerate(rows):
+        for c, b in enumerate(row):
+            t = _label(b).strip()
+            w = _words(t)
+            if not t or not PICTO_RE.match(t) or t[0] in ARROWS or not (w in CONTROL_WORDS or is_navigation(t)):
+                continue
+            if is_navigation(t) and t.startswith(STATUS_GLYPHS):
+                continue  # reported as a status-marked navigation button
+            rep.warnings.append(f"{prefix}row {r + 1}, button {c + 1}: DECORATED_CONTROL: {t!r} - Done, Back, "
+                                "Cancel and Apply are words; the primary style marks the main one, no emoji")
 
 
 def _label(btn) -> str:
@@ -378,8 +470,8 @@ def check_rich_row(block: dict, rep: Report, context: str | None, where: str) ->
                                           for b in buttons), rep, f"{where}: ")
 
 
-def validate(doc, *, context: str | None = None, previous=None) -> Report:
-    rep = Report()
+def validate(doc, *, context: str | None = None, previous=None, moving_emoji: dict[str, str] | None = None) -> Report:
+    rep = Report(moving_emoji)
     if isinstance(doc, dict) and "reply_markup" in doc:
         doc = doc["reply_markup"]
     if isinstance(doc, list):
@@ -456,14 +548,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("file", nargs="?")
     ap.add_argument("--context", choices=sorted(CONTEXT_BLOCKED))
     ap.add_argument("--previous", help="markup the message had before this edit")
+    ap.add_argument("--emoji-library", help="the bot-ui project's emoji/library.json: an animated or video custom "
+                                            "emoji on a button is an error")
     args = ap.parse_args(argv)
     try:
         doc = _load(args.file)
         prev = _load(args.previous) if args.previous else None
+        moving = load_moving_emoji(args.emoji_library) if args.emoji_library else None
     except (OSError, ValueError) as exc:
         print(f"FAIL: {exc}")
         return 1
-    rep = validate(doc, context=args.context, previous=prev)
+    rep = validate(doc, context=args.context, previous=prev, moving_emoji=moving)
     for w in rep.warnings:
         print(f"WARN: {w}")
     for e in rep.errors:

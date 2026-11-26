@@ -124,6 +124,7 @@ design heuristic of this skill.
     (return ids plus a snapshot/etag from the backend), `FILTERS`, the job fields, the
     in-memory `queries` with a table keyed per user. For cursor-based backends replace page
     numbers by a cursor id stored server-side (callback `page:<cursor id>`). Related:
-    `recipes/20-shop.md` (catalog and cart), `recipes/24-settings.md` (toggle screens),
+    `references/selection-lists.md` (multi-select pickers: grid, marks, Rich checkbox list),
+   `recipes/20-shop.md` (catalog and cart), `recipes/24-settings.md` (toggle screens),
     `references/navigation-and-flows.md`, `references/tables.md#compact-tables`,
     `references/buttons-and-styles.md#disabled-buttons`.

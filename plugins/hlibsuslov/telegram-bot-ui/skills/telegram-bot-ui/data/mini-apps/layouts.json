@@ -151,7 +151,13 @@
    "title": "Plans: stacked cards on phones, a table to compare",
    "severity": "warn",
    "check": "plans",
-   "fix": "Plans as stacked cards (not side by side) under 600 px with a monthly/yearly segmented control; one quietly recommended plan; 3-5 features each with check icons and text; a comparison table when there are more than 3 plans or 6 features."
+   "fix": "Plans as stacked cards or one radio list (not side by side) under 600 px; one quietly recommended plan; 3-5 features each with an icon and text; a comparison table when there are more than 3 plans or 6 features. Stars subscriptions renew every 30 days: no 'yearly' Stars subscription; a longer term is a one-off payment that says it does not renew."
+  },
+  "L26": {
+   "title": "Paywall: the full anatomy, server-owned, every state (payments.md section 9)",
+   "severity": "warn",
+   "check": "paywall",
+   "fix": "A level-2 screen or sheet opened from a locked thing: intro (mark, title, one line) -> what you get in numbers (3-5 rows) -> Free and Premium side by side -> plans as one radio group with the Stars glyph, the amount and the period or 'no renewal' -> renewal and cancel terms with the Terms link under the plans -> questions (cancel, progress, renewal). The MainButton names the verb, the price and the period of the selected plan. Prices and unlocking come from the server; loading, error, cancelled, failed, pending, success and subscriber states are drawn. Reference: examples/mini-apps/paywall."
   }
  },
  "variants": {

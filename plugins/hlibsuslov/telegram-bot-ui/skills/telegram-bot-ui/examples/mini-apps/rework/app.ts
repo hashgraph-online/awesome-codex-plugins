@@ -67,13 +67,16 @@ type Tab = 'classes' | 'trainers' | 'membership' | 'profile';
 let tab: Tab = 'classes';
 const screens: Array<() => void> = []; // render functions of the pushed screens, top last
 
+const tabScroll = tma.scrollMemory(); // each tab comes back where the user left it
 function setTab(t: Tab): void {
+  if (t !== tab) tabScroll.leave(tab);
   tab = t;
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === t));
   renderRoot();
+  tabScroll.enter(t);
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
-  b.onclick = () => { if (b.dataset.tab !== tab) { tma.haptic.select(); setTab(b.dataset.tab as Tab); } };
+  b.onclick = () => { if (b.dataset.tab !== tab) { tma.haptic.select(); setTab(b.dataset.tab as Tab); } else tabScroll.top(); };
 }
 function show(id: 'root' | 'detail', back = false): void {
   $('root').hidden = id !== 'root';
@@ -281,6 +284,7 @@ function toast(text: string): void {
 }
 
 /* ---------------------------------------------------------------- start */
+tma.start(); // fullscreen on iOS / Android (8.0+), the expanded sheet elsewhere
 tma.chrome({ header: 'secondary_bg_color', background: 'secondary_bg_color', bottomBar: 'secondary_bg_color' });
 const start = parseStartParam(tma.launch.tgWebAppStartParam, {
   tab: /^tab-(classes|trainers|membership|profile)$/, cls: /^class-(hiit|yoga|box)$/,

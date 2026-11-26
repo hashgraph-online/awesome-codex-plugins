@@ -273,6 +273,30 @@
    "telegram": "the heading alone, in the type scale",
    "kit": ".tma-section__header",
    "ref": "anti-slop.md"
+  },
+  "MA45": {
+   "stage": 2,
+   "telegram": "a tab bar of 2-5 sections, each a line icon that means its label plus a short label; the selected tab drawn by the kit",
+   "kit": ".tma-tabbar + _kit/icons.svg (icons.json tab_bar.meanings)",
+   "ref": "components.md section 3"
+  },
+  "MA46": {
+   "stage": 2,
+   "telegram": "fullscreen on iOS / Android (8.0+) with safe areas, the expanded sheet elsewhere",
+   "kit": "tma.start()",
+   "ref": "launch-and-lifecycle.md section 9"
+  },
+  "MA47": {
+   "stage": 2,
+   "telegram": "every nested screen and sheet on one stack the BackButton pops; the screen underneath keeps its scroll",
+   "kit": "tma.nav.push/pop, tma.scrollMemory()",
+   "ref": "telegram-design-guidelines.md section 11"
+  },
+  "MA48": {
+   "stage": 4,
+   "telegram": "surfaces 16 px apart, content 16 px from the sides and 12-16 px from top and bottom, one radius scale",
+   "kit": ".tma-card, --tma-gap-surface, _kit/tma-audit.mjs",
+   "ref": "design-system.md section 5"
   }
  },
  "patterns": [

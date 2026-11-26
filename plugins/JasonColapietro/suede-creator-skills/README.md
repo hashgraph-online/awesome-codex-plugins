@@ -55,7 +55,7 @@ Suede Skills gives founders, marketers, and small teams reusable workflows for S
 
 These are **public, broadly reusable, open-source skill folders**, installable from one path. Every `skills/<name>/SKILL.md` is readable on GitHub. The pack also covers campaign planning, code review, app delivery, and music release prep. Original work is MIT licensed; adapted components keep their upstream licenses, listed in [NOTICE.md](NOTICE.md). No binaries, no telemetry, no accounts.
 
-<img src="docs/assets/readme/pack-map.svg" alt="The pack at a glance: 38 marketing and growth skills, 7 design copy and SEO, 7 orchestration and workflows, 4 code quality and shipping, 4 creator rights and release, 3 mobile apps." width="100%">
+<img src="docs/assets/readme/pack-map.svg" alt="The pack at a glance: 67 skills in six specialties. Ship 13, Craft 9, Get found 12, Demand channels 9, Revenue and retention 12, Strategy and rights 12, each broken into lanes with every skill listed." width="100%">
 
 ## Install in 30 seconds
 
@@ -161,6 +161,8 @@ All 34 directories, registries and curated lists: [skills.suedeai.ai/listings.ht
 
 ## Try it right now
 
+<img src="docs/assets/readme/how-it-works.svg" alt="How a request runs: you describe the job in plain words, each skill's NOT FOR clause routes it to exactly one specialist, that skill loads its references on demand, and it returns evidence such as A to F lanes and exact fixes." width="100%">
+
 Install the pack, then give your agent a page to audit:
 
 ```text
@@ -193,75 +195,120 @@ If it hits an instant-F trigger — a hardcoded secret, a permission check bypas
 
 ## The skills
 
-Every link below goes to the skill's folder in this repo; the [skill catalog](https://skills.suedeai.ai/skills/) has the same list with install commands per skill.
+Every skill is a folder with a readable `SKILL.md`. Each name below links to that folder, and the [skill catalog](https://skills.suedeai.ai/skills/) has install commands for each skill. You can also just describe the job: the pack routes it to the right specialist.
 
-### Agent orchestration & workflows
+<!-- skills:start -->
 
-| Skill | What it does |
-|---|---|
-| [`suede-agent-teams`](skills/suede-agent-teams) | Coordinate agent lanes and public contribution programs with collision checks, atomic issue leases, review gates, and a signed handoff |
-| [`suede-graph-flo-xr`](skills/suede-graph-flo-xr) | Suede Thought Graph repo shipping: search competing plans, score and prune, refute and improve, aggregate compatible lanes, then mutate only the selected plan; 55/110/200-call caps; production reads only, never deploys |
-| [`suede-ship-copy`](skills/suede-ship-copy) | Copy-only orchestration DAG for one high-stakes piece: blind research, claim audit, section writers, refutation, publish gate |
-| [`suede-ai-eval`](skills/suede-ai-eval) | AI-SPEC artifacts, failure-mode rubrics, eval cases, and acceptance gates for LLM, RAG, classifier, and agent surfaces |
-| [`suede-workflow-skills`](skills/suede-workflow-skills) | Umbrella router that loads the full pack, picks the specialist, and hands back one scored next move as a runnable prompt |
-| [`suede-ops-assessment`](skills/suede-ops-assessment) | Map how work actually happens before anyone designs a system: interviews with the people doing it, a silo inventory, friction measured in the operation's own numbers |
-| [`suede-ops-architecture`](skills/suede-ops-architecture) | Fix the shape of a system before anyone builds it: entity schema, one write path per entity, each unit of work routed to an automation, an agent, or a human |
+### Ship · 13
 
-### Code quality & shipping
+*Get the change built, reviewed, and merged.*
 
-| Skill | What it does |
-|---|---|
-| [`suede-code`](skills/suede-code) | Review + A–F grade in one pass, 7 lanes, instant-F triggers; findings-only and grade-only modes |
-| [`suede-ci-gate`](skills/suede-ci-gate) | Write CI that gates the merge — stack/lockfile detection, one required check, branch protection |
-| [`suede-parity-contract`](skills/suede-parity-contract) | Hold one domain consistent across web, iOS, Android, and docs with a contract generated from the reference surface |
-| [`suede-clip-to-guide`](skills/suede-clip-to-guide) | Turn a clip, talk moment, or transcript into a clip-to-guide funnel package with rights routing and an evidence gate |
+| Skill | Lane | Try asking |
+|---|---|---|
+| [`suede-agent-teams`](skills/suede-agent-teams) | Orchestration & routing | “split this work across agents” |
+| [`suede-graph-flo-xr`](skills/suede-graph-flo-xr) | Orchestration & routing | “Pressure-test two fixes for duplicate bookings” |
+| [`suede-ops-architecture`](skills/suede-ops-architecture) | Orchestration & routing | “turn this ops assessment into a plan” |
+| [`suede-ops-assessment`](skills/suede-ops-assessment) | Orchestration & routing | “where is our team losing time” |
+| [`suede-ship-copy`](skills/suede-ship-copy) | Orchestration & routing | “research and draft this launch page” |
+| [`suede-workflow-skills`](skills/suede-workflow-skills) | Orchestration & routing | “which Suede skill should I use?” |
+| [`suede-ai-eval`](skills/suede-ai-eval) | Code review & CI | “write evals for this AI feature” |
+| [`suede-ci-gate`](skills/suede-ci-gate) | Code review & CI | “fix a required check stuck pending” |
+| [`suede-code`](skills/suede-code) | Code review & CI | “review this PR” |
+| [`suede-parity-contract`](skills/suede-parity-contract) | Code review & CI | “these app and web thresholds disagree” |
+| [`android-app-factory`](skills/android-app-factory) | Apps: iOS & Android | “build an Android app” |
+| [`site-to-ios-app`](skills/site-to-ios-app) | Apps: iOS & Android | “turn this site into an iOS app” |
+| [`suede-play-release`](skills/suede-play-release) | Apps: iOS & Android | “promote this Android build” |
 
-### Design, copy & SEO
+### Craft · 9
 
-| Skill | What it does |
-|---|---|
-| [`suede-seo-audit`](skills/suede-seo-audit) | SEO/AEO/GEO, metadata, schema, internal-link, and intent audit |
-| [`suede-design`](skills/suede-design) | Read-only whole-flow and UI diff reviews, plus authorized builds with existing brand, tokens, hierarchy, accessibility and rendered visual QA |
-| [`suede-component-lab`](skills/suede-component-lab) | Dev-only workbenches importing real components with synthetic states, stress fixtures and live variants |
-| [`suede-interface-explain`](skills/suede-interface-explain) | Read-only explanations of interface mechanisms, traced to source locations and observed behavior |
-| [`suede-copy`](skills/suede-copy) | Full writing lane: conversion and SEO copy, headline formulas, persuasion frameworks, A/B variants, anti-slop gate, copy score |
-| [`suede-deslop`](skills/suede-deslop) | Context-aware anti-slop cleanup or findings-only audit that preserves facts, voice, house style, and intentional phrasing, with a 50-point score gate |
-| [`suede-visibility-grader`](skills/suede-visibility-grader) | A–F page grades for findability, clarity, CTA pull, proof, and AI citation readiness |
-| [`suede-site-alchemy`](skills/suede-site-alchemy) | Funnel analysis, friction audit, conversion math, ranked quick-wins |
-| [`suede-launch-packaging`](skills/suede-launch-packaging) | Package work as a launch: docs, install commands, proof links, QA |
+*Make the thing look and read like someone built it on purpose.*
 
-### Mobile apps
+| Skill | Lane | Try asking |
+|---|---|---|
+| [`suede-component-lab`](skills/suede-component-lab) | Design & copy | “stress test this component” |
+| [`suede-copy`](skills/suede-copy) | Design & copy | “rewrite this landing page” |
+| [`suede-design`](skills/suede-design) | Design & copy | “review this UI diff” |
+| [`suede-deslop`](skills/suede-deslop) | Design & copy | “deslop this draft” |
+| [`suede-interface-explain`](skills/suede-interface-explain) | Design & copy | “explain this interface” |
+| [`suede-ad-creative`](skills/suede-ad-creative) | Creative assets | “write Google ad variants” |
+| [`suede-clip-to-guide`](skills/suede-clip-to-guide) | Creative assets | “turn this clip into a guide funnel” |
+| [`suede-image`](skills/suede-image) | Creative assets | “create an Open Graph image” |
+| [`suede-video`](skills/suede-video) | Creative assets | “turn this demo into a short video” |
 
-| Skill | What it does |
-|---|---|
-| [`site-to-ios-app`](skills/site-to-ios-app) | Convert any website into an App Store-ready iOS app: audit, 4.2 wrapper-risk gate, shell strategy, release gate |
-| [`android-app-factory`](skills/android-app-factory) | One prompt to a Play Store-ready native Android app: Kotlin + Jetpack Compose scaffold, Play Billing, ASO listing, signed release |
-| [`suede-play-release`](skills/suede-play-release) | Ship an Android release through the Play Developer API: credential preflight, AAB checks, staged rollout, and a track readback |
+### Get found · 12
 
-### Creator rights & release
+*Be discoverable by search, by AI answers, and by an audience.*
 
-Rights and release-prep tooling for working musicians and creators — see the [skill catalog](https://skills.suedeai.ai/skills/) for each one: [`suede-campaign-in-a-box`](skills/suede-campaign-in-a-box), [`suede-sync-packaging`](skills/suede-sync-packaging), [`suede-release-linter`](skills/suede-release-linter), [`suede-rights-passport`](skills/suede-rights-passport) (rights gap audit, then the transfer package).
+| Skill | Lane | Try asking |
+|---|---|---|
+| [`suede-ai-seo`](skills/suede-ai-seo) | Search & AI visibility | “improve our AI citations” |
+| [`suede-aso`](skills/suede-aso) | Search & AI visibility | “improve our App Store listing” |
+| [`suede-directory-submissions`](skills/suede-directory-submissions) | Search & AI visibility | “plan our directory submissions” |
+| [`suede-programmatic-seo`](skills/suede-programmatic-seo) | Search & AI visibility | “build location pages at scale” |
+| [`suede-seo-audit`](skills/suede-seo-audit) | Search & AI visibility | “audit this site for SEO” |
+| [`suede-visibility-grader`](skills/suede-visibility-grader) | Search & AI visibility | “grade this page before promotion” |
+| [`suede-co-marketing`](skills/suede-co-marketing) | Content & audience | “find co-marketing partners” |
+| [`suede-community-marketing`](skills/suede-community-marketing) | Content & audience | “plan our community launch” |
+| [`suede-content-strategy`](skills/suede-content-strategy) | Content & audience | “plan our content strategy” |
+| [`suede-newsroom`](skills/suede-newsroom) | Content & audience | “build an AI content team” |
+| [`suede-public-relations`](skills/suede-public-relations) | Content & audience | “draft a journalist pitch” |
+| [`suede-social`](skills/suede-social) | Content & audience | “audit our Instagram growth” |
 
-### Marketing & growth
+### Demand channels · 9
 
-Thirty-nine skills covering paid acquisition and outbound, monetization, lifecycle and
-retention, and the measurement and operations layer — `suede-ads`, `suede-ad-creative`,
-`suede-cold-email`, `suede-influencer-outreach`, `suede-prospecting`, `suede-public-relations`, `suede-directory-submissions`,
-`suede-pricing`, `suede-offers`, `suede-paywalls`, `suede-onboarding`,
-`suede-churn-prevention`, `suede-emails`, `suede-referrals`, `suede-co-marketing`,
-`suede-community-marketing`, `suede-lead-magnets`, `suede-free-tools`, `suede-sms`,
-`suede-marketing-loops`, `suede-analytics`, `suede-ab-testing`, `suede-revops`,
-`suede-sales-enablement`, `suede-programmatic-seo`, `suede-content-strategy`,
-`suede-marketing-plan`, `suede-marketing-council`, `suede-social`,
-`suede-aso`, `suede-video`, `suede-image`, `suede-product-marketing`, `suede-competitors`,
-`suede-competitor-profiling`, `suede-reverse-engineer-anyone`, `suede-customer-research`,
-`suede-ai-seo`, `suede-attribution`.
+*Reach people who have not heard of you yet.*
 
-The content-production lane adds one more workflow:
+| Skill | Lane | Try asking |
+|---|---|---|
+| [`suede-ads`](skills/suede-ads) | Paid & outbound | “audit our paid campaigns” |
+| [`suede-cold-email`](skills/suede-cold-email) | Paid & outbound | “write a cold email” |
+| [`suede-influencer-outreach`](skills/suede-influencer-outreach) | Paid & outbound | “pitch this creator” |
+| [`suede-prospecting`](skills/suede-prospecting) | Paid & outbound | “find our first design partners” |
+| [`suede-emails`](skills/suede-emails) | Lifecycle messaging | “build a welcome email sequence” |
+| [`suede-sms`](skills/suede-sms) | Lifecycle messaging | “draft our SMS welcome flow” |
+| [`suede-free-tools`](skills/suede-free-tools) | Acquisition assets | “scope a free calculator” |
+| [`suede-lead-magnets`](skills/suede-lead-magnets) | Acquisition assets | “design a lead magnet” |
+| [`suede-referrals`](skills/suede-referrals) | Acquisition assets | “design our referral program” |
 
-| Skill | What it does |
-|---|---|
-| [`suede-newsroom`](skills/suede-newsroom) | Runs one idea through a six-role content pipeline — written role contracts, an inspectable campaign record, seven distribution entryways so no two assets argue the same thing, and a keep/test/stop review |
+### Revenue & retention · 12
+
+*Convert the attention, then keep what it earned.*
+
+| Skill | Lane | Try asking |
+|---|---|---|
+| [`suede-churn-prevention`](skills/suede-churn-prevention) | Money & funnel | “reduce subscription churn” |
+| [`suede-launch-packaging`](skills/suede-launch-packaging) | Money & funnel | “fix this install command” |
+| [`suede-offers`](skills/suede-offers) | Money & funnel | “improve this service offer” |
+| [`suede-onboarding`](skills/suede-onboarding) | Money & funnel | “users sign up but never activate” |
+| [`suede-paywalls`](skills/suede-paywalls) | Money & funnel | “improve this upgrade prompt” |
+| [`suede-pricing`](skills/suede-pricing) | Money & funnel | “restructure our pricing tiers” |
+| [`suede-site-alchemy`](skills/suede-site-alchemy) | Money & funnel | “fix this page that gets no signups” |
+| [`suede-ab-testing`](skills/suede-ab-testing) | Measure & operate | “design an A/B test” |
+| [`suede-analytics`](skills/suede-analytics) | Measure & operate | “fix our analytics events” |
+| [`suede-attribution`](skills/suede-attribution) | Measure & operate | “explain why dashboards disagree” |
+| [`suede-revops`](skills/suede-revops) | Measure & operate | “fix our lead routing” |
+| [`suede-sales-enablement`](skills/suede-sales-enablement) | Measure & operate | “build a competitive battle card” |
+
+### Strategy & rights · 12
+
+*Know the market you are in and own what you make.*
+
+| Skill | Lane | Try asking |
+|---|---|---|
+| [`suede-competitor-profiling`](skills/suede-competitor-profiling) | Strategy & research | “research these competitors” |
+| [`suede-competitors`](skills/suede-competitors) | Strategy & research | “write a comparison page” |
+| [`suede-customer-research`](skills/suede-customer-research) | Strategy & research | “synthesize these interviews” |
+| [`suede-marketing-council`](skills/suede-marketing-council) | Strategy & research | “pressure-test this channel bet” |
+| [`suede-marketing-loops`](skills/suede-marketing-loops) | Strategy & research | “create a weekly ranking watch” |
+| [`suede-marketing-plan`](skills/suede-marketing-plan) | Strategy & research | “what should we try next” |
+| [`suede-product-marketing`](skills/suede-product-marketing) | Strategy & research | “create our product marketing context” |
+| [`suede-reverse-engineer-anyone`](skills/suede-reverse-engineer-anyone) | Strategy & research | “how did X grow” |
+| [`suede-campaign-in-a-box`](skills/suede-campaign-in-a-box) | Creator toolkit | “plan a release campaign” |
+| [`suede-release-linter`](skills/suede-release-linter) | Creator toolkit | “check this release folder” |
+| [`suede-rights-passport`](skills/suede-rights-passport) | Creator toolkit | “prepare a rights handoff” |
+| [`suede-sync-packaging`](skills/suede-sync-packaging) | Creator toolkit | “make a sync one-sheet” |
+
+<!-- skills:end -->
 
 ## From the blog
 
@@ -292,9 +339,9 @@ The repo ships a dependency-free stdio MCP server at [`mcp/`](mcp/). It implemen
 node mcp/suede-skills-mcp.mjs --profile all
 ```
 
-| Tools (9) | Resources (7) | Prompts (5) |
+| Tools (12) | Resources (7) | Prompts (5) |
 |---|---|---|
-| `list_suede_skills`, `list_suede_specialties`, `search_suede_skills`, `get_suede_skill`, `suede_install_options`, `suede_copy_seo_audit`, `suede_visibility_grade`, `suede_code_grade`, `suede_qa_checklist` | catalog, specialties, plugins, copy-seo-audit, visibility-grade, code-grade, qa-checklist | discovery and audit prompts |
+| `list_suede_skills`, `list_suede_specialties`, `search_suede_skills`, `get_suede_skill`, `plan_suede_workflow`, `suede_live_page_audit`, `suede_copy_check`, `suede_install_options`, `suede_copy_seo_audit`, `suede_visibility_grade`, `suede_code_grade`, `suede_qa_checklist` | catalog, specialties, plugins, copy-seo-audit, visibility-grade, code-grade, qa-checklist | discovery and audit prompts |
 
 ## Safety
 

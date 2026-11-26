@@ -14,6 +14,9 @@ Errors
     action, callback_data 1-64 bytes, style "link" only on callback buttons, label text plain,
     custom emoji and date-time only, align left / center / right
   * reply_parameters.quote_rich_texts: <= 32 texts, <= 1024 characters in total
+  * --emoji-library FILE (a bot-ui project's emoji/library.json): a button never carries an animated
+    or video custom emoji; one inside a button's text (<tg-button> in html, RichTextCustomEmoji in a
+    button block) or a reply_markup button icon whose format there is not static is an error
 Blocks are checked against the catalog (data/bot-api/catalog.json), as deeply as HTML:
   * the block and RichText `type` must be an InputRichBlock / RichText member; unknown and missing
     required fields of blocks, texts, list items, table cells and captions are errors
@@ -26,7 +29,7 @@ Blocks are checked against the catalog (data/bot-api/catalog.json), as deeply as
 For markdown/html the character and block counts are approximations from the
 source text (the server parses it); for blocks they are counted exactly.
 
-Usage: python scripts/validate_rich.py payload.json [--draft]
+Usage: python scripts/validate_rich.py payload.json [--draft] [--emoji-library bot-ui/emoji/library.json]
 """
 from __future__ import annotations
 
@@ -317,7 +320,7 @@ def walk(block, depth: int, c: Counter, path: str) -> None:
         _table(block, depth, c, path)
 
 
-def validate(payload: dict, *, draft: bool = False):
+def validate(payload: dict, *, draft: bool = False, moving_emoji: dict[str, str] | None = None):
     errors: list[str] = []
     warnings: list[str] = []
     msg = payload.get("rich_message", payload)
@@ -357,10 +360,13 @@ def validate(payload: dict, *, draft: bool = False):
             warnings.append(f"media id {unused!r} is never referenced")
         c.media = len(media)
         from bot_ui import rich as rich_html  # button rows, button types and styles in the HTML tags
-        for code, sev, message in rich_html.check(_without_markdown_code(src) if "markdown" in msg else src, draft=draft):
+        body = _without_markdown_code(src) if "markdown" in msg else src
+        for code, sev, message in rich_html.check(body, draft=draft):
             if code == "TEXT_TOO_LONG" or (code == "RICH_TAG_UNSUPPORTED" and "markdown" in msg):
                 continue  # length is counted below; Rich Markdown may hold other HTML
             (errors if sev == "error" else warnings).append(f"{code}: {message}")
+        if moving_emoji:
+            errors += [f"{validate_keyboard.MOVING_CODE}: {m}" for m in validate_keyboard.moving_in_html(body, moving_emoji)]
     checks = [("chars", c.chars), ("blocks", c.blocks), ("media", c.media), ("depth", c.max_depth)]
     for name, value in checks:
         if value > LIMITS[name]:
@@ -368,7 +374,7 @@ def validate(payload: dict, *, draft: bool = False):
     errors += c.errors
     warnings += c.warnings
     if "blocks" in msg:
-        kb = validate_keyboard.validate({"blocks": msg["blocks"]})
+        kb = validate_keyboard.validate({"blocks": msg["blocks"]}, moving_emoji=moving_emoji)
         errors += kb.errors
         warnings += [w for w in kb.warnings if w != "rich message has no buttons"]
     rp = payload.get("reply_parameters") or {}
@@ -379,7 +385,7 @@ def validate(payload: dict, *, draft: bool = False):
         elif sum(_text_len(x) for x in q) > 1024:
             errors.append("quote_rich_texts: more than 1024 characters in total")
     if "reply_markup" in payload:
-        kb = validate_keyboard.validate(payload["reply_markup"])
+        kb = validate_keyboard.validate(payload["reply_markup"], moving_emoji=moving_emoji)
         errors += kb.errors
         warnings += kb.warnings
     return errors, warnings, c
@@ -389,10 +395,17 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("file")
     ap.add_argument("--draft", action="store_true", help="payload is for sendRichMessageDraft")
+    ap.add_argument("--emoji-library", help="the bot-ui project's emoji/library.json: an animated or video custom "
+                                            "emoji on a button is an error")
     a = ap.parse_args(argv)
     with open(a.file, encoding="utf-8") as fh:
         payload = json.load(fh)
-    errors, warnings, c = validate(payload, draft=a.draft)
+    try:
+        moving = validate_keyboard.load_moving_emoji(a.emoji_library) if a.emoji_library else None
+    except (OSError, ValueError) as exc:
+        print(f"FAIL: {exc}")
+        return 1
+    errors, warnings, c = validate(payload, draft=a.draft, moving_emoji=moving)
     for w in warnings:
         print(f"WARN: {w}")
     for e in errors:

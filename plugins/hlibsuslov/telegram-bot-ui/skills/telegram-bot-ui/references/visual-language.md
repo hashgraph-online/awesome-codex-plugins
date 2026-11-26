@@ -38,9 +38,22 @@ Rules:
   (outline vs solid), corner radius, color treatment, static vs animated. Packs that imitate
   different platforms (iOS, Android, Unigram, macOS) are different families even when they draw
   the same objects.
-- **Static on buttons.** Animated custom emoji on controls pull the eye from the label; keep
-  animation for one hero moment (a success screen, `<tg-thinking>` with the AIActions set the
-  Bot API recommends).
+- **Static on buttons, always.** A button never carries an animated or video custom emoji:
+  not in `icon_custom_emoji_id`, not inside a rich `<tg-button>`, not as the MainButton's
+  `icon_custom_emoji_id` in a Mini App. Motion on a control pulls the eye from the label and
+  reads as noise. `bot-ui validate` and `validate_keyboard.py` / `validate_rich.py
+  --emoji-library` report `BUTTON_EMOJI_ANIMATED` (error). **[Heuristic, owner decision
+  2026-11-26]**
+- **Static by default everywhere else.** Titles, lists and statuses use static custom emoji;
+  an animated one is a flagged exception (`CUSTOM_EMOJI_ANIMATED`, warning) for one hero moment
+  at most (a success screen, `<tg-thinking>` with the AIActions set the Bot API recommends).
+- **One identity with the Mini App.** The bot's static custom emoji and the Mini App's line
+  icons (`examples/mini-apps/_kit/icons.svg`, stroke 1.8, round caps) are one family: pick a
+  pack whose glyphs are outline, single-colour or adaptive, on a similar grid, from the
+  library at https://telegram-bot-ui.hlixli.com/emoji (filters: style, colour, theme fit, motion = static; `emoji_packs.py
+  library pick --motion static`). The same meaning gets the same picture on both sides (cart,
+  orders, profile, settings). No decorative emoji in labels next to an icon, no mixing of
+  platform styles.
 - **Same id in text and on buttons.** If buttons use custom emoji, screen titles use
   `<tg-emoji emoji-id="…">` with the same id (`IconSystem.title`) — not a Unicode look-alike.
 - **Degrade together.** When eligibility is lost, switch *every* icon to its Unicode fallback (or
@@ -65,7 +78,20 @@ Rules:
 5. **Record the map** (slot → id, set, fallback, animated) in one module; run
    `scripts/audit_icons.py` in CI. Re-resolve after a pack update.
 6. **Check meaning, not just looks:** one id = one meaning; `delete` and `close` must not share
-   an id; the warning symbol is never a decoration.
+   an id; the warning symbol is never a decoration. The icon says what the label says: "Мої
+   замовлення" carries the order icon, not a box, a cart or a home that happens to be in the pack.
+7. **Double check before shipping (required for icons the agent picked):** `bot-ui emoji review
+   --out icon-review.html` renders every button icon next to its label with its slot, pack and
+   format; open it and judge each row on meaning, static, family. `bot-ui validate` flags
+   `ICON_MEANING_MISMATCH` (the label says another slot's words, `data/emoji/slots.json` →
+   `words` in en / ru / uk) and `BUTTON_EMOJI_ANIMATED`. The words catch the obvious; the look
+   is your call.
+
+**Pack policy for icons the agent picks [Heuristic, owner decision 2026-11-26]:** prefer one pack.
+When the main pack has no icon that truly means a slot, take it from another **static** pack of
+the same style (outline or filled, stroke weight, corner radius, colour treatment, adaptive or
+fixed colour), or leave the slot label-only. Never put a wrong-meaning icon on a button to stay
+inside one pack. Icons the user chose themselves are kept as they are.
 
 Automated version of this process (slot vocabulary of 240 meanings, verified pack catalog,
 resolve/suggest/verify/apply CLI, agent decision path): `emoji-packs.md`. Posts and long
@@ -83,7 +109,7 @@ mixes custom icons with Unicode stand-ins.
 
 ### Density and discipline (Heuristic)
 
-- Buttons: one icon per button, a whole group or none; static only.
+- Buttons: one icon per button, a whole group or none; static only (`BUTTON_EMOJI_ANIMATED`).
 - Screen text: ≤ 3 custom emoji, ≤ 1 per line; posts ≤ 8, ≤ 1 per line
   (`density_warnings`, `audit_icons.py --payload`).
 - Adaptive (`needs_repainting`) icons follow the text colour; do not mix them with

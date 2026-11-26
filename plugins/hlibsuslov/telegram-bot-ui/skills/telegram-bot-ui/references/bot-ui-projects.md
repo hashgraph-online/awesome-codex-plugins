@@ -199,8 +199,14 @@ by hand.
   id, fallback, use), what is placed where, ordinary emoji an icon can replace, and ids that are
   not in the library. Use only those ids, by meaning; the fallback inside `<tg-emoji>` is the
   map's. `validate` reports `CUSTOM_EMOJI_UNKNOWN`, `CUSTOM_EMOJI_FALLBACK_MISMATCH` and
-  `CUSTOM_EMOJI_DOUBLE_ICON` (an icon plus an emoji at the start of the label). The library's
-  `icons` has the icon-map shape: `scripts/audit_icons.py <project>/emoji/library.json`.
+  `CUSTOM_EMOJI_DOUBLE_ICON` (an icon plus an emoji at the start of the label). A button takes
+  static custom emoji only: with the library, `validate` reports an animated or video one as the
+  error `BUTTON_EMOJI_ANIMATED` (a button `icon`, or an emoji inside a rich `<tg-button>`), and one
+  in text as the warning `CUSTOM_EMOJI_ANIMATED` (static is the default there; prefer the static
+  emoji of the same meaning). `validate_keyboard.py` and `validate_rich.py` take
+  `--emoji-library <project>/emoji/library.json` for the same error on a payload. The library's
+  `icons` has the icon-map shape: `scripts/audit_icons.py <project>/emoji/library.json` (it warns
+  about a button slot whose emoji is animated).
 - Existing bot with premium emoji already in use: `bot-ui import` records every custom emoji id
   it finds in the code (`<tg-emoji>` in strings and catalogs, `icon_custom_emoji_id=`,
   `custom_emoji_id=`, ids in constants, dicts or classes named like an emoji/icon map) in

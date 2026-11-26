@@ -1,0 +1,8 @@
+# Files Codex has no use for when it works in or packages this repo.
+.github/
+demo/
+check.sh
+launch/
+__pycache__/
+*.pyc
+.DS_Store

@@ -11,7 +11,10 @@ Build the map live with examples/python/icons/build_icon_map.py.
 Errors (exit 1): non-numeric ids; the same id used for two meanings; missing fallback.
 Warnings: icons from more than one set / family; animated mixed with static; a slot whose
 text prefix differs from its button fallback (two visual languages for one meaning);
-a set contributing a single icon (likely a gap-filler from another style).
+a set contributing a single icon (likely a gap-filler from another style); a slot meant for buttons
+(its vocabulary `use` has "button", or the slot is the bot's own) whose emoji is animated or video:
+buttons take static custom emoji only, so the bot-ui validator reports it as BUTTON_EMOJI_ANIMATED
+once such an icon is placed on a button.
 
 These are design rules of this skill (Heuristic), not Bot API requirements.
 Also (v2): fixture ids (leading 0, synthetic) are errors unless --allow-fixture-ids; adaptive
@@ -32,7 +35,7 @@ import sys
 from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples", "python"))
-from tgkit.icons import _leading_cluster, density_warnings  # noqa: E402
+from tgkit.icons import _leading_cluster, density_warnings, load_vocabulary  # noqa: E402
 
 for _s in (sys.stdout, sys.stderr):
     try:
@@ -82,6 +85,11 @@ def audit(doc: dict, max_sets: int = 1, allow_fixture_ids: bool = False):
                         f"they look different on dark themes; choose one kind")
     if animated[True] and animated[False]:
         warnings.append(f"{animated[True]} animated and {animated[False]} static icons mixed - choose one")
+    vocab = load_vocabulary()
+    for slot, icon in icons.items():
+        if icon.get("animated") and "button" in ((vocab.get(slot) or {}).get("use") or ["button"]):
+            warnings.append(f"{slot}: BUTTON_EMOJI_ANIMATED: the icon is animated or video but the slot is for buttons, "
+                            f"which take static custom emoji only - use the static emoji with the same meaning")
     for slot, prefix in (doc.get("text_prefixes") or {}).items():
         fb = (icons.get(slot) or {}).get("fallback")
         if fb is not None and prefix and fb and prefix != fb:

@@ -63,7 +63,7 @@ This skill runs the DataXAPI task `viral` with the `dataxapi` command line. If `
 dataxapi run viral platform=tiktok id=7665840565958872333 --plan
 ```
 
-With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 21, catalog revision e43c3e964bcc3fc3). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 2 calls or $0.04.
+With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 22, catalog revision 0051cce45e9530b9). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 2 calls or $0.04.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

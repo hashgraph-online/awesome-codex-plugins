@@ -1,6 +1,6 @@
 ---
 name: okdata-creators
-description: "Which accounts should we work with in this category? Searches one page of accounts or creators for a keyword on each platform you pick, as one table with a platform column: name, bio, followers and posts. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Weibo, TikTok, X (Twitter), YouTube, Instagram, Kuaishou, Zhihu, WeChat Channels, WeChat Search. 这个品类该找哪些号合作？在你选的每个平台上按关键词搜一页账号或达人，排成一张带平台列的表：名字、简介、粉丝和作品数。"
+description: "Which accounts should we work with in this category? Searches one page of accounts or creators for a keyword on each platform you pick, as one table with a platform column: name, bio, followers and posts. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Weibo, TikTok, X (Twitter), YouTube, Instagram, Kuaishou, Zhihu, WeChat Channels, WeChat Search, Bluesky. 这个品类该找哪些号合作？在你选的每个平台上按关键词搜一页账号或达人，排成一张带平台列的表：名字、简介、粉丝和作品数。"
 license: MIT
 ---
 
@@ -10,7 +10,7 @@ license: MIT
 
 Searches one page of accounts or creators for a keyword on each platform you pick, as one table with a platform column: name, bio, followers and posts.
 
-Runs on 12 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Weibo, TikTok, X (Twitter), YouTube, Instagram, Kuaishou, Zhihu, WeChat Channels, WeChat Search. Example: 2 calls on Douyin, Instagram, at most $0.006.
+Runs on 13 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Weibo, TikTok, X (Twitter), YouTube, Instagram, Kuaishou, Zhihu, WeChat Channels, WeChat Search, Bluesky. Example: 2 calls on Douyin, Instagram, at most $0.006.
 
 ## Inputs
 
@@ -42,6 +42,7 @@ Runs on 12 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, W
 | Zhihu | accountSearch | `zhihu.users.search` | $0.002 per call · about 20 accounts per page | `query` |
 | WeChat Channels | accountSearch | `wechat_channels.users.search` | $0.02 per call · about 1 accounts per page | `query` |
 | WeChat Search | accountSearch | `wechat.accounts.search` | $0.02 per call · about 8 accounts per page | `query` |
+| Bluesky | accountSearch | `bluesky.users.search` | $0.001 per call · about 25 accounts per page | `query` |
 
 ## How to call it
 
@@ -78,7 +79,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap). Ask before going past 6 calls in one run.
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -87,4 +88,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 More: https://okdata.online/skills/creators/?src=skill-okdata-creators · 中文：https://okdata.online/zh/skills/creators/?src=skill-okdata-creators
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

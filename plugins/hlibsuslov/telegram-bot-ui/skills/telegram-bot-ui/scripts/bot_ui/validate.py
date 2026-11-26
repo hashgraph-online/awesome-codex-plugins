@@ -27,7 +27,8 @@ class _Out:
     def __init__(self) -> None:
         self.items: list[Diagnostic] = []
         self.custom_emoji: list[tuple[str, str, str]] = []  # (file, pointer, screenId) of every use
-        self.custom_emoji_ids: list[tuple[str, str, str, str, str | None]] = []  # + (id, fallback or None)
+        # + (id, fallback or None, where: "text" | "button")
+        self.custom_emoji_ids: list[tuple[str, str, str, str, str | None, str]] = []
 
     def add(self, code: str, sev: str, file: str, pointer: str, message: str, sid: str | None = None) -> None:
         self.items.append(Diagnostic(code, sev, file, pointer, message, sid))
@@ -157,6 +158,9 @@ def _text_checks(p: dict, file: str, pointer: str, value: Any, fmt: str, sid: st
             for code, sev, message in rich.check(text):
                 if code != "TEXT_TOO_LONG":  # counted below with the shared rule
                     out.add(code, sev, file, f"{pointer}/{loc}", message, sid)
+            for eid, fallback, on_button in rich.custom_emoji(text):
+                out.custom_emoji.append((file, f"{pointer}/{loc}", sid))
+                out.custom_emoji_ids.append((file, f"{pointer}/{loc}", sid, eid, fallback, "button" if on_button else "text"))
         n = render.utf16_len(render.visible_text(text, fmt))
         cap = limit or (64 if label else render.TEXT_MAX)
         if n > cap:
@@ -190,7 +194,7 @@ def _html_check(text: str, file: str, pointer: str, sid: str, out: _Out) -> None
         if not eid or not CUSTOM_EMOJI_ID.match(eid.group(1)):
             out.add("CUSTOM_EMOJI_INVALID", "error", file, pointer, 'tg-emoji needs emoji-id="<digits>"', sid)
         else:
-            out.custom_emoji_ids.append((file, pointer, sid, eid.group(1), m.group(2)))
+            out.custom_emoji_ids.append((file, pointer, sid, eid.group(1), m.group(2), "text"))
         if not m.group(2).strip() or len(m.group(2)) > 16 or "<" in m.group(2):
             out.add("CUSTOM_EMOJI_FALLBACK", "error", file, pointer,
                     "put one ordinary emoji inside <tg-emoji>: users who cannot see the custom emoji see it", sid)
@@ -276,6 +280,16 @@ def _screen(p: dict, snap: Snapshot, sid: str, s: dict, out: _Out) -> None:
                     f"{aid!r} is both in the document and on the keyboard; keep one place per action", sid)
         elif a.get("type") == "url" and a.get("style") == "link":
             out.add("RICH_BUTTON_STYLE", "warning", f, f"/actions/{aid}/style", 'style "link" is for callback buttons only; it is dropped', sid)
+    # A rich document whose content actions all sit in the keyboard: the buttons are far from what they act on.
+    # Navigation (navigate, back) belongs on the keyboard; the rest can live next to its section.
+    if fmt in render.RICH_FORMATS and ktype == "inline" and not in_text:
+        content = [aid for aid in placed if isinstance(actions.get(aid), dict)
+                   and actions[aid].get("type") in ("handler", "url", "answer")]
+        if content:
+            out.add("RICH_BUTTONS_UNUSED", "info", f, "/keyboard/rows",
+                    f"{', '.join(repr(a) for a in content)} act on the document's content: put each as "
+                    '<tg-button action="..."> next to its section or in a <tg-button-row> after it, and keep the '
+                    "keyboard for navigation (buttons-and-styles.md#choosing-the-mechanism)", sid)
     labels_seen: dict[str, str] = {}
     for aid, a in actions.items():
         ptr = f"/actions/{aid}"
@@ -427,7 +441,7 @@ def _action(p: dict, snap: Snapshot, sid: str, s: dict, aid: str, a: dict, f: st
             out.add("CUSTOM_EMOJI_INVALID", "error", f, ptr + "/icon", 'icon is {"customEmojiId": "<digits>"}', sid)
         else:
             out.custom_emoji.append((f, ptr + "/icon", sid))
-            out.custom_emoji_ids.append((f, ptr + "/icon", sid, eid, None))
+            out.custom_emoji_ids.append((f, ptr + "/icon", sid, eid, None, "button"))
             from .emoji import leading_emoji
             labels = a.get("label") if isinstance(a.get("label"), dict) else {"": a.get("label")}
             for loc, text in labels.items():
@@ -487,20 +501,39 @@ def _emoji_library(snap: Snapshot, out: _Out) -> None:
     if not snap.root or not emoji.has_library(snap.root):
         return
     try:
-        idx = emoji.emoji_index(emoji.load_library(snap.root))
+        lib = emoji.load_library(snap.root)
+        idx = emoji.emoji_index(lib)
     except emoji.EmojiError as err:
         out.add("EMOJI_LIBRARY_INVALID", "error", emoji.LIBRARY, "", err.message)
         return
-    for file, pointer, sid, eid, fallback in out.custom_emoji_ids:
+    for file, pointer, sid, eid, fallback, where in out.custom_emoji_ids:
         e = idx.get(eid)
         if e is None:
             out.add("CUSTOM_EMOJI_UNKNOWN", "info", file, pointer,
                     f"custom emoji {eid} is not in {emoji.LIBRARY}: nobody checked it exists and the preview cannot draw "
                     "it; import its pack or pick one from the library", sid)
-        elif fallback is not None and e["fallback"] and not emoji.same_emoji(fallback, e["fallback"]):
+            continue
+        if fallback is not None and e["fallback"] and not emoji.same_emoji(fallback, e["fallback"]):
             out.add("CUSTOM_EMOJI_FALLBACK_MISMATCH", "info", file, pointer,
                     f"the fallback {fallback} differs from the pack's emoji {e['fallback']}: users without the custom "
                     "emoji see a different picture", sid)
+        if emoji.is_moving(e):
+            twin = emoji.static_twin(idx, e)
+            hint = f"; the static {twin['fallback']} {twin['id']} ({twin['pack']}) has the same meaning" if twin else ""
+            if where == "button":
+                out.add("BUTTON_EMOJI_ANIMATED", "error", file, pointer,
+                        f"the button's custom emoji {eid} is {e['format']} in {emoji.LIBRARY}: a button takes a static "
+                        f"custom emoji only{hint}", sid)
+            else:
+                out.add("CUSTOM_EMOJI_ANIMATED", "warning", file, pointer,
+                        f"custom emoji {eid} is {e['format']}: in text static is the default, an animated or video "
+                        f"emoji is an exception{hint}", sid)
+    for issue in emoji.meaning_issues(snap, lib):
+        label = next((v for v in issue["labels"].values() if v), "")
+        out.add("ICON_MEANING_MISMATCH", "warning", snap.screen_path(issue["screenId"]), issue["pointer"],
+                f"the label {label[:40]!r} says {' / '.join(issue['says'])}, but icon {issue['id']} means "
+                f"{issue['slot']}: pick the icon of that meaning (bot-ui emoji review shows every button next to its "
+                "icon), or leave the button label-only", issue["screenId"])
 
 
 _EFFECT_KEYS = ("type", "to", "rule", "handlerId", "outcomes", "url", "text", "fallback", "set")

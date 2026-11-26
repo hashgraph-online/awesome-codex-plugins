@@ -1,6 +1,6 @@
 ---
 name: okdata-zhihu
-description: "Public Zhihu data through okdata: posts, questions, answers, comment replies, articles, columns, pins, accounts. 15 endpoints, $0.002 a call. Use when a task needs Zhihu data. 通过 okdata 取知乎公开数据：帖子、questions、answers、评论回复、文章、columns、pins、账号。15 个接口，每次 $0.002。"
+description: "Public Zhihu data through okdata: posts, questions, answers, comment replies, articles, columns, pins, trending board, accounts. 16 endpoints, $0.002 a call. Use when a task needs Zhihu data. 通过 okdata 取知乎公开数据：帖子、questions、answers、评论回复、文章、columns、pins、热榜、账号。16 个接口，每次 $0.002。"
 license: MIT
 ---
 
@@ -8,14 +8,14 @@ license: MIT
 
 > Questions and answers, articles, columns, people and the hot list. (知乎：问题和回答、文章、专栏、用户和热榜。)
 
-15 endpoints, $0.002 a call. Nothing here needs a Zhihu account, cookie or QR login.
+16 endpoints, $0.002 a call. Nothing here needs a Zhihu account, cookie or QR login.
 
 ## Which endpoint answers which question
 
 | Question | Endpoint | Needs | Price |
 |---|---|---|---|
 | Zhihu search (知乎内容搜索): Answers and articles matching keywords, by relevance, newest or most upvoted, or answers only or articles only: title (the question, for an answer), full text, author, upvotes, comments and saves. | `zhihu.posts.search` | `query` | $0.002 per call · about 20 posts per page |
-| Zhihu question answers (知乎问题回答): The first 20 answers to a question, by ID or link, in Zhihu's own order: the question as title, full text, author and their followers, upvotes, comments, saves and time posted. One page: there is no next. | `zhihu.questions.answers.list` | `id` or `url` | $0.002 per call · about 20 posts per page |
+| Zhihu question answers (知乎问题回答): The answers to a question, by ID or link, 20 a page in Zhihu's own order: the question as title, full text, author and their followers, upvotes, comments, saves and time posted. Page on with the cursor to read them all. A cursor here lasts 10 minutes, not a day, so page straight through. | `zhihu.questions.answers.list` | `id` or `url` | $0.002 per call · about 20 posts per page |
 | Zhihu question detail (知乎问题详情): One question by ID or link: its title, the details added under it, when it was asked, and how many views it has, with its answer and follower counts under ext. | `zhihu.questions.get` | `id` or `url` | $0.002 per call |
 | Zhihu answer detail (知乎回答详情): One answer by ID or link: the question it answers (as title), the full text, its author and when it was posted. | `zhihu.answers.get` | `id` or `url` | $0.002 per call |
 | Zhihu answer comments (知乎回答评论): The top-level comments on an answer, by the answer's ID, a page at a time in Zhihu's default order: text, commenter, likes, reply count, time posted and IP location. | `zhihu.answers.comments.list` | `id` | $0.002 per call · about 10 comments per page |
@@ -23,6 +23,7 @@ license: MIT
 | Zhihu article detail (知乎文章详情): One column article by ID or link: title, full text, author, upvotes, comment count and the topics it is filed under (as hashtags). | `zhihu.articles.get` | `id` or `url` | $0.002 per call |
 | Zhihu column articles (知乎专栏文章列表): The articles in a column, by the column's ID, 20 a page: title, text, author, time published, upvotes and comment count. | `zhihu.columns.articles.list` | `id` | $0.002 per call · about 20 articles per page |
 | Zhihu pin detail (知乎想法详情): One pin (a short post, 想法) by ID or link: text, pictures, author, likes, comments, saves, reposts and time posted. | `zhihu.pins.get` | `id` or `url` | $0.002 per call |
+| Zhihu hot list (知乎热榜): The Zhihu hot list: the questions everyone is reading now, with rank and heat. | `zhihu.trends.list` | nothing | $0.002 per call · about 30 board entries per page |
 | Zhihu user profile (知乎用户资料): A person's profile by the handle in their link: name, headline and follower count, with answer and article counts, whether it is an organisation and IP location under ext. | `zhihu.users.get` | `username` | $0.002 per call |
 | Zhihu user search (知乎用户搜索): People and organisations matching keywords, 20 a page: name and follower count, with answer and article counts, upvotes received and whether it is an organisation under ext. The headline is in the profile (zhihu.users.get). | `zhihu.users.search` | `query` | $0.002 per call · about 20 accounts per page |
 | Zhihu user followers (知乎用户粉丝列表): The people following an account, by its handle, 20 a page: name, handle, headline, avatar, follower count, and (under ext) answer and article counts and whether it is an organisation. | `zhihu.users.followers.list` | `username` | $0.002 per call · about 20 accounts per page |
@@ -65,7 +66,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -75,9 +76,10 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Task skills that run here
 
 - `okdata-mentions`: What are people saying about this brand or keyword on each platform?
+- `okdata-trends`: What is trending right now?
 - `okdata-viral`: Why did this post take off?
 - `okdata-creators`: Which accounts should we work with in this category?
 
 Every Zhihu endpoint with its full contract: https://okdata.online/apis/zhihu/?src=skill-okdata-zhihu
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

@@ -82,7 +82,11 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
    `icons.title(...)`, `icons.rich(...)`); every request passes `IconSystem.send(transport,
    method, params, SendContext(...))` or `prepare(...)`. For an existing bot that already
    writes Unicode emoji, `prepare` converts them (`apply`); nothing else changes.
-7. **Audit.** `audit_icons.py icon-map.json` (one family, static vs animated, adaptive vs
+7. **Double check, then audit.** In a bot-ui project `bot-ui emoji review --out icon-review.html`:
+   look at each button icon next to its label (meaning, static, family; red rows are
+   `ICON_MEANING_MISMATCH` or animated). A slot the main pack cannot say well takes a static icon of
+   the same style from another pack or stays label-only, never a wrong meaning from the main pack.
+   `audit_icons.py icon-map.json` (one family, static vs animated, adaptive vs
    fixed colour, no shared ids, fallbacks) and `audit_icons.py --payload FILE` (no double
    icons, no mixed keyboards, density).
 8. **Fallback verified.** Run the same screens with `Eligibility()` (nothing) and check they
@@ -94,13 +98,16 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
 |---|---|---|
 | Utility, monitoring, finance, support | static app-style glyphs (`tgmacicons` + `tgiosicons`, `TgAndroidIcons`, `UnigramIcons` + `EmojiStatus`) | animated sets on buttons |
 | AI assistant | the bot's family for UI; `AIActions` only inside `<tg-thinking>` (**Official**: InputRichBlockThinking links it) | AIActions as the general family |
-| Games, playful bots | one animated set for a hero moment (`DMJUnigramAnimationEmoji`, `UI_icons`) | animation on every control |
+| Games, playful bots | a static set for the controls; one animated emoji for a hero moment in text at most (`DMJUnigramAnimationEmoji`, `UI_icons`) | animation on any control |
 | Channel / editorial | a set whose marks fit headlines and sections (`NewsEmoji`) — needs the Fragment route | bot keyboards from an editorial set |
 | Coins next to tickers | `cryptoicons` as inline content marks | logos as UI icons (trademarks) |
 
 Rules (**Heuristic**): one family per bot; siblings (same author or explicitly paired sets)
-may fill gaps; static on buttons; adaptive (`needs_repainting`) and fixed-colour icons do
-not mix; an uncovered slot is label-only, never a look-alike from another family.
+may fill gaps; static only on buttons (an animated or video emoji on any button is the error
+`BUTTON_EMOJI_ANIMATED`; the pick takes a pack's static entry for a slot when it has one) and
+static by default in text (`CUSTOM_EMOJI_ANIMATED` warns); adaptive (`needs_repainting`) and
+fixed-colour icons do not mix; an uncovered slot is label-only, never a look-alike from another
+family; the bot's family matches the Mini App's line icons in weight and fill.
 
 **API facts used for the choice:** `Sticker.is_animated`, `is_video` (animation),
 `needs_repainting` ("must be repainted to a text color in messages" — adaptive), `emoji`

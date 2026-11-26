@@ -1,38 +1,74 @@
 # GitRanks Contribute
 
-Find open-source GitHub issues to contribute to, matched to your skills and checked ready for a pull request. Your
-agent fixes one; you review the change and approve the pull request on
-[gitranks.com](https://gitranks.com/contribute?utm_source=github&utm_campaign=plugin-readme), and it opens under your
-name.
-Every pull request opened from gitranks.com says it was made with GitRanks Contribute and your agent (with its model
-when the agent reports one), and links where maintainers can tell us something is off or opt out.
+Your agent fixes open-source issues picked for you. You read every change and approve each pull request on
+[gitranks.com](https://gitranks.com/contribute?utm_source=github&utm_campaign=plugin-readme), and it opens on GitHub
+in your name. Free.
+
+[![Add to Claude](https://img.shields.io/badge/Claude-Add_GitRanks_Contribute-D97757?style=flat-square&logo=claude&logoColor=white)](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=GitRanks%20Contribute&connectorUrl=https%3A%2F%2Fmcp.gitranks.com%2Fmcp)
+[![Add gitranks MCP server to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=gitranks&config=eyJ1cmwiOiJodHRwczovL21jcC5naXRyYW5rcy5jb20vbWNwIn0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_GitRanks_Contribute-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=gitranks&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.gitranks.com%2Fmcp%22%7D)
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=gitranks&config=%7B%22url%22%3A%22https%3A%2F%2Fmcp.gitranks.com%2Fmcp%22%7D)
 
 [![In Claude Code: install the plugin with one command, sign in once on gitranks.com, then ask for an open-source issue and get your picks](assets/one-command.gif)](#claude-code)
+
+## How it works
+
+1. **Your agent finds issues picked for you**, checked ready: still open, nobody on it, wanted by the maintainers, no
+   ban on AI-assisted pull requests.
+2. **It takes one and fixes it** on a fresh copy of the project, and hands the change back.
+3. **You approve the pull request on gitranks.com.** Nothing reaches GitHub before you do.
+
+## Before your agent takes its first issue
+
+Finish setting up on gitranks.com once, about 2 minutes: it shows how approval works, what your agent may do and the
+daily limits. Your agent gives you the link the first time; it is also here:
+[gitranks.com/contribute/start](https://gitranks.com/contribute/start?utm_source=github&utm_campaign=plugin-readme).
+
+## Learn while you fix
+
+With GitRanks Learn, your agent writes a short lesson on each fix, and you answer its questions before the pull request
+opens. Every lesson is free and open to read:
+[gitranks.com/learn](https://gitranks.com/learn?utm_source=github&utm_campaign=plugin-readme).
+
+## Your GitRanks pages
+
+| Page | What it is |
+| --- | --- |
+| [Contribute](https://gitranks.com/contribute?utm_source=github&utm_campaign=plugin-readme) | The issues picked for you, and what needs you |
+| [Your pull requests](https://gitranks.com/my/pull-requests?utm_source=github&utm_campaign=plugin-readme) | Review and approve, follow each one on GitHub |
+| [Your agent](https://gitranks.com/my/agent?utm_source=github&utm_campaign=plugin-readme) | Connected agents, tokens, runs |
+| [Settings](https://gitranks.com/my/settings?utm_source=github&utm_campaign=plugin-readme) | Your languages, the projects you support, GitHub access |
+| [Learn](https://gitranks.com/learn?utm_source=github&utm_campaign=plugin-readme) | Courses and lessons, your progress |
+| [How it works](https://gitranks.com/contribute/about?utm_source=github&utm_campaign=plugin-readme), [Questions](https://gitranks.com/contribute/faq?utm_source=github&utm_campaign=plugin-readme), [MCP docs](https://gitranks.com/contribute/mcp?utm_source=github&utm_campaign=plugin-readme) | The details, setup for every client, help |
+| [Terms](https://gitranks.com/terms?utm_source=github&utm_campaign=plugin-readme), [Privacy](https://gitranks.com/privacy?utm_source=github&utm_campaign=plugin-readme) | The rules, and what we keep |
+
+## Install
+
+### How you connect
 
 This repository connects your own agent (Claude Code, Codex, Cursor, Gemini CLI and others) to the GitRanks Contribute
 MCP server at `https://mcp.gitranks.com/mcp`, and adds a `contribute` skill that walks it through one issue. It holds
 only configuration and instructions: the server runs on GitRanks.
 
-GitRanks Contribute is free.
-
-## How you connect
-
 Add the server's URL to your agent, then sign in from it. Your agent opens gitranks.com in your browser: sign in with
 GitHub, check what the agent will be able to do, and press **Allow**. Your agent keeps the access it gets and renews it
 by itself while you use it. Nobody copies a token.
 
-Each agent you connect is listed on gitranks.com under **Contribute → Settings → Your own agent (MCP)**, where you can
-disconnect it at any time.
+Each agent you connect is listed on gitranks.com on
+[Your agent](https://gitranks.com/my/agent?utm_source=github&utm_campaign=plugin-readme), where you can disconnect it at
+any time.
 
 A client that can't sign in can still use a personal token: see [Use a token instead](#use-a-token-instead).
 
 **Then ask your agent:** "Find me an open-source issue to work on with GitRanks." It shows you a few issues and you
-choose one. When it hands the change back, it gives you a link: review the change there and approve the pull request.
-Unless you turn autopilot on, nothing reaches GitHub before you approve it; the first time, gitranks.com asks for GitHub
-access to fork the repository and open the pull request in your name. Setup for every client, troubleshooting and help:
+choose one. Before it takes the first one, it gives you the link to the
+[setup](#before-your-agent-takes-its-first-issue). When it hands the change back, it gives you a link: review the change
+there and approve the pull request. Nothing reaches GitHub before you approve it; the first time, gitranks.com asks
+for GitHub access to fork the repository and open the pull request in your name. Setup for every client,
+troubleshooting and help:
 [the MCP docs](https://gitranks.com/contribute/mcp?utm_source=github&utm_campaign=plugin-readme).
 
-## Install
+### One-click install
 
 One click, then confirm in your client and sign in on gitranks.com when it asks:
 
@@ -217,12 +253,11 @@ the server for each plugin format below. Each connects by signing in.
 
 ## Use a token instead
 
-For a client without sign-in, or a script, create a personal token on
-[gitranks.com/contribute](https://gitranks.com/contribute?utm_source=github&utm_campaign=plugin-readme) under
-**Contribute → Settings → Your own agent (MCP)**. It starts with `gr_`. Send it in the `X-GitRanks-Token` header, or
-as `Authorization: Bearer <your token>`. Keep it to yourself: it acts as you until you revoke it there. To move from a
-token to sign-in, clear the token in your client (or remove the header) and sign in. Each setup below keeps the token in
-plain text in your client's config file: keep that file to yourself.
+For a client without sign-in, or a script, create a personal token on gitranks.com, on
+[Your agent](https://gitranks.com/my/agent?utm_source=github&utm_campaign=plugin-readme). It starts with `gr_`. Send it
+in the `X-GitRanks-Token` header, or as `Authorization: Bearer <your token>`. Keep it to yourself: it acts as you until
+you revoke it there. To move from a token to sign-in, clear the token in your client (or remove the header) and sign
+in. Each setup below keeps the token in plain text in your client's config file: keep that file to yourself.
 
 - **Claude Code**, without the plugin (the plugin signs in only):
   `claude mcp add --scope user --transport http gitranks https://mcp.gitranks.com/mcp --header "X-GitRanks-Token: <your GitRanks token>"`.
@@ -269,6 +304,9 @@ The server also offers one prompt, **Find an open-source issue for me**, with an
 Code it is an `/mcp__…find_issue` command.
 
 ## Fair to maintainers
+
+Every pull request opened from gitranks.com says it was made with GitRanks Contribute and your agent (with its model
+when the agent reports one), and links where maintainers can tell us something is off or opt out.
 
 GitRanks opens at most one pull request in a repository at a time and never more than four a month. Two misses in one
 repository within 90 days (a pull request no one answers for 30 days, or one closed as wrong, low quality or harshly)

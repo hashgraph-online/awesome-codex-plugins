@@ -115,6 +115,7 @@
   --tma-target: 44px;
   --tma-avatar: 40px;                /* avatar and icon tile in rows */
   --tma-gap-section: 24px;
+  --tma-gap-surface: 16px;           /* between two stacked surfaces outside a .tma-stack: never touching */
   --tma-figure-size: clamp(2.8rem, 13vw, 3.75rem);
 
   /* motion: one ease-out curve */
@@ -128,6 +129,7 @@
   --tma-safe-left: max(var(--tma-margin), var(--tg-safe-area-inset-left, 0px));
   --tma-safe-right: max(var(--tma-margin), var(--tg-safe-area-inset-right, 0px));
   --tma-tabbar-space: 0px;           /* set when a floating tab bar is shown */
+  --tma-back-space: 0px;             /* set while the BackButton stand-in is shown (plain browser) */
 }
 :root[data-tma-platform="android"] {
   --tma-r-group: 16px;
@@ -193,7 +195,7 @@ img { max-width: 100%; display: block; }
 
 /* ---------------------------------------------------------------- page and screens */
 .tma-page {
-  padding: calc(var(--tma-safe-top) + var(--tma-s2)) var(--tma-safe-right)
+  padding: calc(var(--tma-safe-top) + var(--tma-back-space) + var(--tma-s2)) var(--tma-safe-right)
            calc(var(--tma-safe-bottom) + var(--tma-tabbar-space) + var(--tma-s6)) var(--tma-safe-left);
   min-height: var(--tg-viewport-stable-height, 100svh);
 }
@@ -203,6 +205,11 @@ img { max-width: 100%; display: block; }
 @keyframes tma-push { from { transform: translateX(24px); opacity: 0; } }
 @keyframes tma-pop { from { transform: translateX(-24px); opacity: 0; } }
 .tma-header { padding: var(--tma-s2) 0 var(--tma-s4); }
+/* Two surfaces in a row never touch, even outside a stack (design-system.md section 5, S1; tma-audit LA01).
+   Before the stack rule on purpose: same specificity, so a .tma-stack keeps its 24 px. */
+:is(.tma-card, .tma-list, .tma-kv, .tma-table-wrap, .tma-banner, .tma-coachmark) + :is(.tma-card, .tma-list, .tma-kv, .tma-table-wrap, .tma-banner, .tma-coachmark) {
+  margin-top: var(--tma-gap-surface);
+}
 /* The stack's gap must win over every component's own `margin: 0` (section, list, kv, quote, steps...) and an
    app's resets, whatever their order in the cascade: hence the doubled class (0,2,0). */
 .tma-stack.tma-stack > * + * { margin-top: var(--tma-gap-section); }
@@ -238,6 +245,8 @@ img { max-width: 100%; display: block; }
 }
 .tma-cell:has(.tma-avatar, .tma-icon-tile) { --tma-cell-text: calc(var(--tma-s4) + var(--tma-avatar) + var(--tma-s3)); }
 .tma-cell.is-2 { min-height: var(--tma-row-2); }
+/* a row whose control sits under its label (a segmented choice in a settings group) */
+.tma-cell.is-stacked { flex-direction: column; align-items: stretch; gap: var(--tma-s3); padding-block: var(--tma-s3); }
 .tma-list > li + li > .tma-cell::before, .tma-list > .tma-cell + .tma-cell::before {
   content: ""; position: absolute; top: 0; inset-inline: var(--tma-cell-text) 0;
   border-top: 1px solid var(--tma-separator); transform: scaleY(.5); transform-origin: top;
@@ -300,6 +309,17 @@ button.tma-cell:active, a.tma-cell:active, label.tma-cell:active { background: v
   z-index: 20;
 }
 [data-tma-fallback="main-button"][hidden] { display: none; }
+/* BackButton stand-in: only where Telegram draws none (plain browser, clients before 6.1); tma.ts shows it while a
+   screen or sheet is open, so no screen is a dead end. Inside Telegram the native BackButton is the only back. */
+[data-tma-fallback="back-button"] {
+  position: fixed; z-index: 20; top: calc(var(--tma-safe-top) + var(--tma-s2)); inset-inline-start: var(--tma-safe-left);
+  display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding-block: 0; padding-inline: 6px 14px;
+  border: 0; border-radius: 999px; color: var(--tma-accent-text);
+  font: inherit; font-size: var(--tma-fs-callout); font-weight: 500; cursor: pointer;
+}
+[data-tma-fallback="back-button"] .tma-icon { width: 20px; height: 20px; stroke-width: 2.2; }
+[data-tma-fallback="back-button"][hidden] { display: none; }
+:root:has([data-tma-fallback="back-button"]:not([hidden])) { --tma-back-space: 44px; }
 
 /* ---------------------------------------------------------------- quick actions */
 .tma-actions { display: grid; grid-template-columns: repeat(var(--tma-cols, 4), minmax(0, 1fr)); gap: var(--tma-s2); }
@@ -354,7 +374,10 @@ button.tma-cell:active, a.tma-cell:active, label.tma-cell:active { background: v
 .tma-scroll-x { display: flex; gap: var(--tma-s2); overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--tma-safe-left)); padding-inline: var(--tma-safe-left); }
 .tma-scroll-x::-webkit-scrollbar { display: none; }
 
-/* floating tab bar: a sibling of Telegram's glass chrome; hidden while the MainButton is visible */
+/* floating tab bar: a sibling of Telegram's glass chrome; hidden while the MainButton is visible.
+   Selected: the accent, a filled pill and a heavier, tinted icon. Unselected: an outline icon in the primary label
+   colour on iOS (native-anatomy.md 4), the hint colour on Android (Material). The difference never rests on
+   colour alone. Icons: one line set, 26 px, stroke 1.8 (2.1 selected); labels semibold at the 11 px floor. */
 .tma-tabbar {
   position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
   bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tma-s3));
@@ -362,11 +385,17 @@ button.tma-cell:active, a.tma-cell:active, label.tma-cell:active { background: v
   border-radius: 999px;
 }
 .tma-tabbar > button {
-  flex: 1; display: grid; justify-items: center; align-content: center; gap: 1px; min-height: 48px;
+  flex: 1; display: grid; justify-items: center; align-content: center; gap: 1px; min-height: 48px; min-width: 0;
   border: 0; border-radius: 999px; background: none; color: var(--tma-text);
   font: inherit; font-size: var(--tma-fs-caption2); font-weight: 600; cursor: pointer;
+  transition: color var(--tma-dur-short) var(--tma-ease), background-color var(--tma-dur-short) var(--tma-ease);
 }
+.tma-tabbar > button > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tma-tabbar > button .tma-icon { width: 26px; height: 26px; stroke-width: 1.8; }
+:root[data-tma-platform="android"] .tma-tabbar > button:not([aria-selected="true"]) { color: var(--tma-hint); }
 .tma-tabbar > button[aria-selected="true"] { background: var(--tma-fill); color: var(--tma-accent-text); }
+.tma-tabbar > button[aria-selected="true"] .tma-icon { stroke-width: 2.1; fill: color-mix(in srgb, currentColor 18%, transparent); }
+.tma-tabbar > button:active { background: var(--tma-fill); }
 :root[data-tma-main-button="visible"] .tma-tabbar { display: none; }
 :root:has(.tma-tabbar:not([hidden])):not([data-tma-main-button="visible"]) { --tma-tabbar-space: 80px; }
 
@@ -415,6 +444,13 @@ button.tma-cell:active, a.tma-cell:active, label.tma-cell:active { background: v
   padding: var(--tma-s4); border-radius: var(--tma-r-group); background: var(--tma-surface); overflow: hidden;
 }
 .tma-banner__close { position: absolute; top: var(--tma-s2); inset-inline-end: var(--tma-s2); width: 32px; height: 32px; }
+/* A screen's opening (paywall, success, onboarding): a centred symbol tile, the title, one line. Not a card:
+   it sits on the page, so the surfaces below keep the screen's one radius scale. */
+.tma-intro { display: grid; justify-items: center; gap: var(--tma-s2); padding: var(--tma-s2) var(--tma-s4) var(--tma-s2); text-align: center; }
+.tma-intro__mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 22px; background: var(--tma-tonal); color: var(--tma-accent-text); }
+.tma-intro__mark > .tma-icon { width: 36px; height: 36px; stroke-width: 1.6; }
+.tma-intro > h1 { margin: var(--tma-s2) 0 0; }
+.tma-intro > p { margin: 0; max-width: 34ch; color: var(--tma-hint); }
 .tma-placeholder { display: grid; justify-items: center; gap: var(--tma-s2); padding: var(--tma-s8) var(--tma-s6); text-align: center; }
 .tma-placeholder__title { font-size: var(--tma-fs-title2); font-weight: 600; line-height: 1.273; margin: 0; }
 .tma-placeholder__icon {
@@ -834,8 +870,8 @@ select.tma-input {
    <html data-tma-style="fintech|soft|dense">; "native" is the default above. Shape, density and type only:
    colours stay the user's theme. A custom profile compiles with scripts/miniapp_style.py css. */
 :root[data-tma-style="fintech"] { --tma-r-group: 22px; --tma-row-2: 64px; --tma-avatar: 44px; --tma-figure-size: clamp(3rem, 15vw, 4rem); }
-:root[data-tma-style="soft"] { --tma-r-group: 30px; --tma-r-inner: 18px; --tma-row: 56px; --tma-row-2: 72px; --tma-avatar: 48px; --tma-gap-section: 28px; }
-:root[data-tma-style="dense"] { --tma-r-group: 12px; --tma-r-inner: 8px; --tma-row: 44px; --tma-row-2: 56px; --tma-avatar: 32px; --tma-gap-section: 16px; --tma-fs-body: .941rem; }
+:root[data-tma-style="soft"] { --tma-r-group: 30px; --tma-r-inner: 18px; --tma-row: 56px; --tma-row-2: 72px; --tma-avatar: 48px; --tma-gap-section: 28px; --tma-gap-surface: 20px; }
+:root[data-tma-style="dense"] { --tma-r-group: 12px; --tma-r-inner: 8px; --tma-row: 44px; --tma-row-2: 56px; --tma-avatar: 32px; --tma-gap-section: 16px; --tma-gap-surface: 12px; --tma-fs-body: .941rem; }
 :root[data-tma-style="dense"] .tma-glass { background: var(--tma-surface); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 1px 0 var(--tma-separator); }
 :root[data-tma-platform="android"][data-tma-style="dense"] .tma-list { border-radius: 0; margin-inline: calc(-1 * var(--tma-safe-left)); }
 

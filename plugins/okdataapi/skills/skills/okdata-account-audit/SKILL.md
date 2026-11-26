@@ -1,6 +1,6 @@
 ---
 name: okdata-account-audit
-description: "How is this account doing? Gets one account's profile (followers, posts) and its latest page of posts, as one table: a row per post with the account's figures beside it. Two paid calls. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels. 这个号最近表现怎么样？取一个账号的资料（粉丝、作品数）和最新一页作品，排成一张表：每条作品一行，旁边带上账号本身的数据。两次计费调用。"
+description: "How is this account doing? Gets one account's profile (followers, posts) and its latest page of posts, as one table: a row per post with the account's figures beside it. Two paid calls. Use when the user asks this about Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels, Xigua Video, Bluesky. 这个号最近表现怎么样？取一个账号的资料（粉丝、作品数）和最新一页作品，排成一张表：每条作品一行，旁边带上账号本身的数据。两次计费调用。"
 license: MIT
 ---
 
@@ -10,7 +10,7 @@ license: MIT
 
 Gets one account's profile (followers, posts) and its latest page of posts, as one table: a row per post with the account's figures beside it. Two paid calls.
 
-Runs on 11 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels. Example: 2 calls on Douyin, at most $0.004.
+Runs on 13 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), Instagram, Reddit, Kuaishou, WeChat Channels, Xigua Video, Bluesky. Example: 2 calls on Douyin, at most $0.004.
 
 ## Inputs
 
@@ -53,6 +53,10 @@ Runs on 11 platforms: Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, B
 | Kuaishou | accountPosts | `kuaishou.users.videos.list` | $0.02 per call · about 20 videos per page | `id` |
 | WeChat Channels | account | `wechat_channels.users.get` | $0.02 per call | `id` |
 | WeChat Channels | accountPosts | `wechat_channels.users.videos.list` | $0.02 per call · about 15 videos per page | `id` |
+| Xigua Video | account | `xigua.users.get` | $0.002 per call | `id` or `url` |
+| Xigua Video | accountPosts | `xigua.users.videos.list` | $0.002 per call · about 30 videos per page | `id` or `url` |
+| Bluesky | account | `bluesky.users.get` | $0.001 per call | `id` or `url` |
+| Bluesky | accountPosts | `bluesky.users.posts.list` | $0.001 per call · about 30 posts per page | `id` or `url` |
 
 ## How to call it
 
@@ -89,7 +93,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap). Ask before going past 4 calls in one run.
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -98,4 +102,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 More: https://okdata.online/skills/account-audit/?src=skill-okdata-account-audit · 中文：https://okdata.online/zh/skills/account-audit/?src=skill-okdata-account-audit
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

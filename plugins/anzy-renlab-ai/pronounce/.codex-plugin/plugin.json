@@ -1,7 +1,7 @@
 {
   "name": "pronounce",
-  "version": "2.42.1",
-  "description": "Pronounce developer jargon out loud — 1984+ confidence-tagged entries (kubectl, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
+  "version": "2.43.5",
+  "description": "Pronounce developer jargon out loud — 1988+ confidence-tagged entries (Neon, Carbon, Hydrogen, Argon, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
   "author": {
     "name": "anzy-renlab-ai",
     "url": "https://github.com/anzy-renlab-ai"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Pronounce",
     "shortDescription": "Hear how developer jargon is actually pronounced",
-    "longDescription": "A confidence-tagged pronunciation dictionary for developer jargon — kubectl, nginx, GIF, JSON, Pydantic — with a cited reading, an MP3 you can hear, and a CLI, skill and MCP server so your AI answers with audio instead of a phonetic guess.",
+    "longDescription": "A confidence-tagged pronunciation dictionary for developer jargon — Neon, Carbon, Hydrogen, Argon, nginx, GIF, JSON, Pydantic — with an MP3 you can hear and a source link where one exists, plus a CLI, skill and MCP server so your AI answers with audio instead of a phonetic guess.",
     "developerName": "anzy-renlab-ai",
     "category": "developer-tools",
     "capabilities": [

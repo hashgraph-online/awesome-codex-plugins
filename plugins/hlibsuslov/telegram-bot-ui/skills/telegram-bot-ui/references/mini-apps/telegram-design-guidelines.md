@@ -221,7 +221,8 @@ themselves; a literal colour must be re-applied in `themeChanged`.
 ## 11. Native controls and feedback [Official]
 
 **MainButton / SecondaryButton** (`BottomButton`): text, `color`, `textColor`, `isActive`, `isVisible`,
-`hasShineEffect`, `iconCustomEmojiId` (9.5), `showProgress(leaveActive)` / `hideProgress()`. Secondary
+`hasShineEffect`, `iconCustomEmojiId` (9.5; **[Heuristic]** a static custom emoji only, the bot's family, never
+an animated one), `showProgress(leaveActive)` / `hideProgress()`. Secondary
 `position`: `left`, `right`, `top`, `bottom`; it shows only when both are visible. A button opened from the
 attachment menu stays hidden until the user interacts with the app. **[Heuristic]**: short verb labels
 ("Pay ₴450", "Save"); show progress for every action longer than ~300 ms; disable instead of hiding when a form
@@ -229,6 +230,23 @@ is incomplete, and say what is missing in the content.
 
 **BackButton / SettingsButton**: show the back button on every screen below a tab root; handle
 `backButtonClicked` and `settingsButtonClicked`.
+
+**Back navigation contract [Heuristic]** (the kit's `tma.nav`; lint MA47):
+
+- One stack for screens and sheets. Every level-2 screen and every sheet is pushed with its own `onBack`; the
+  BackButton (and Android's system back, which Telegram routes to it) always closes the top layer only: a
+  sheet before the screen under it.
+- Nothing is a dead end: a screen that hides the tab bar is on the stack; a finished flow (order placed)
+  calls `nav.reset()` and lands on a tab root, never on a screen without a way back. Where Telegram draws no
+  BackButton (a plain browser, clients before 6.1) the kit shows `[data-tma-fallback="back-button"]` instead.
+- Back returns to the same place: the screen underneath keeps its scroll position, filters, search text and
+  selected segment (the kit restores scroll on `nav.pop`; keep the rest in state, do not re-render from
+  defaults). Each tab keeps its own scroll (`tma.scrollMemory()`); a tap on the selected tab scrolls it to the
+  top.
+- Back never closes the app and never loses input silently: on a screen with unsaved input `onBack` asks
+  (`tma.confirm`) and `closingConfirmation(true)` guards the close button and swipe.
+- Deep links (`startapp=order-8812`) open the target screen on top of its tab root, so Back leads to the
+  root, not out of the app.
 
 **Popups**: `showPopup({title ≤ 64, message 1-256, buttons 1-3})`, button types `default`, `ok`, `close`,
 `cancel`, `destructive` (default and destructive need text); `showAlert`, `showConfirm`.
@@ -240,7 +258,8 @@ scroll or on every tap.
 
 **Closing and gestures**: `enableClosingConfirmation()` while there is unsaved input; switch it off when saved.
 Keep vertical swipes enabled; `disableVerticalSwipes()` only when the app's own gestures conflict (games,
-drawing, maps). The header swipe still closes or minimises the app.
+drawing, maps, and an open bottom sheet, whose scroll and drag compete with the swipe: the kit turns swipes
+off while a sheet is on the stack). The header swipe still closes or minimises the app.
 
 **User-gesture-only calls**: `openLink`, `openInvoice` and similar must run inside a tap handler.
 

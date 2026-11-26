@@ -1,6 +1,6 @@
 ---
 name: bkt
-version: 0.41.0
+version: 0.41.1
 description: Operate Bitbucket Cloud or Data Center repositories, pull requests, branches, pipelines, permissions, and webhooks with bkt. Use when a request names Bitbucket or bkt; confirm the platform before platform-specific commands.
 metadata:
   short-description: Bitbucket CLI for repos, PRs, branches

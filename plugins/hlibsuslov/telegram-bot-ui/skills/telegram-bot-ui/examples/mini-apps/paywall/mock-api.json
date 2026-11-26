@@ -1,0 +1,14 @@
+{
+ "$comment": "Stand-only mock of Road Theory's server for preview_miniapp.py --api. The real server verifies initData, owns the offer and the prices, creates the invoice link (a Stars subscription: subscription_period 2592000; the 3-month plan: a one-off invoice) and activates Premium on successful_payment (references/mini-apps/payments.md). The order follows the stand's Invoice control.",
+ "GET /api/premium/offer": {"body": {
+   "free": {"tests": 1, "signs": 50, "review": false},
+   "premium": {"tests": 40, "signs": 283, "review": true},
+   "plans": [
+     {"id": "month", "kind": "subscription", "stars": 50, "days": 30},
+     {"id": "quarter", "kind": "once", "stars": 135, "days": 90, "save_percent": 10}
+   ]}, "delay_ms": 350},
+ "GET /api/premium/status": {"body": {"active": false}, "delay_ms": 200},
+ "POST /api/premium/renewal": {"body": {"active": true, "plan": "month", "until": "2026-12-26", "renews": false}, "delay_ms": 300},
+ "POST /api/premium/invoice": {"body": {"order_id": "p-1042", "link": "https://t.me/$demo-premium-1042"}, "delay_ms": 300},
+ "GET /api/premium/orders/*": {"body": {"id": "p-1042", "status": "$order_status", "plan": "month", "until": "2026-12-26", "renews": true}, "delay_ms": 250}
+}

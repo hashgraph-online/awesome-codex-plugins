@@ -1,5 +1,5 @@
 ---
-summary: "Mini App entry points, startapp and opening mode, main app, startup, running, ending, hosting, test environment; read when wiring how an app is opened and lives through a session."
+summary: "Mini App entry points, startapp, main app, startup, running, ending, hosting, test environment, fullscreen on phones with the sheet as fallback; read when wiring how an app opens and lives."
 verified: "2026-11-23"
 bot_api: "10.5"
 ---
@@ -12,6 +12,18 @@ page and https://core.telegram.org/bots/serverless. The bot-side calls behind ea
 bot receives) are in [../mini-apps-bridge.md](../mini-apps-bridge.md); this page is the app's side.
 
 Labels: **[API]** Bot API; **[Official]** Mini Apps page; **[Heuristic]** this skill's advice.
+
+## Contents
+
+- [1. Entry points](#1-entry-points)
+- [2. `startapp` and opening mode](#2-startapp-and-opening-mode)
+- [3. Main Mini App and the Apps catalogue](#3-main-mini-app-and-the-apps-catalogue)
+- [4. Starting: from tap to first useful screen](#4-starting-from-tap-to-first-useful-screen)
+- [5. Running: visibility, viewport, theme](#5-running-visibility-viewport-theme)
+- [6. Ending and returning to the chat](#6-ending-and-returning-to-the-chat)
+- [7. Hosting: your domain or Telegram Serverless](#7-hosting-your-domain-or-telegram-serverless)
+- [8. Test environment and debugging](#8-test-environment-and-debugging)
+- [9. Opening mode: fullscreen on phones, the sheet elsewhere](#9-opening-mode-fullscreen-on-phones-the-sheet-elsewhere)
 
 ## 1. Entry points
 
@@ -89,8 +101,8 @@ Mini App) until the app calls `ready()`. **[Official]** The order **[Heuristic]*
 4. Call `ready()`. Then fetch data with `Authorization: tma <initData>` ([security.md](security.md)).
 5. Configure native buttons for this screen (MainButton, BackButton) after the screen exists.
 
-No own splash or logo screen after Telegram's, no blank page, no spinner-only screen, no `expand()` unless
-the screen cannot work at half height.
+No own splash or logo screen after Telegram's, no blank page, no spinner-only screen. How the app opens
+(fullscreen on phones, the expanded sheet elsewhere) is one call before `ready()`: §9.
 
 ## 5. Running: visibility, viewport, theme
 
@@ -136,3 +148,42 @@ other sites that call `Telegram.WebApp`, no redirects to another domain mid-sess
   betas have their own debug switches. **[Official]**
 - The local preview stand (`scripts/preview_miniapp.py`) mocks the client for layout work; it proves nothing
   about real clients ([performance-and-testing.md](performance-and-testing.md)).
+
+## 9. Opening mode: fullscreen on phones, the sheet elsewhere
+
+The skill's default for every Mini App it builds or restyles **[Heuristic, owner decision 2026-11-26]**: the
+app fills the phone screen, keeps Telegram's controls readable and degrades to the expanded sheet wherever
+fullscreen does not exist. One call before `ready()`:
+
+```ts
+tma.start();                          // = { fullscreen: 'mobile' }
+tma.start({ fullscreen: 'always' });  // games, video, maps: fullscreen on Desktop too
+tma.start({ fullscreen: 'never' });   // a deliberate sheet (a quick picker over the chat)
+```
+
+| Client | What `tma.start()` does | `<html data-tma-fullscreen>` |
+|---|---|---|
+| iOS, Android, 8.0+ | `expand()`, then `requestFullscreen()`; `fullscreenChanged` confirms | `on` |
+| Desktop, macOS, Web, 8.0+ | `expand()` only: a fullscreen window over the desktop reads as a takeover | `off` |
+| older than 8.0, or no `requestFullscreen` | `expand()` only | `unsupported` |
+| refused (`fullscreenFailed: UNSUPPORTED`) | stays expanded | `unsupported` |
+| outside Telegram (plain browser) | nothing | `unsupported` |
+
+- **[Official]** `requestFullscreen` is 8.0; the result comes as `fullscreenChanged` or `fullscreenFailed`
+  (`UNSUPPORTED`, `ALREADY_FULLSCREEN`). Links can ask too: `t.me/<bot>/<app>?startapp&mode=fullscreen`, and
+  the Main Mini App's launch mode is set in @BotFather; the app still calls `tma.start()`, because a launch
+  from a menu button, an inline button or an older link does not carry the mode.
+- **Safe areas.** In fullscreen Telegram draws its Close and ⋯ controls over the content and the status bar is
+  transparent. Content pads with `--tg-safe-area-inset-*` plus `--tg-content-safe-area-inset-*` (the kit's
+  `--tma-safe-*` add both; [telegram-design-guidelines.md](telegram-design-guidelines.md) §6). Floating own
+  controls (tab bar) sit above the bottom inset. Keep `setHeaderColor` and `setBottomBarColor`: they colour the
+  status bar area and the bottom bar in both modes.
+- **Rotation and the user leaving fullscreen** arrive as `fullscreenChanged`, `safeAreaChanged` and
+  `contentSafeAreaChanged`; CSS variables follow, `tma.fullscreen` and `data-tma-fullscreen` follow.
+- **Accidental closing.** Swipe down still minimises the app in fullscreen. The kit turns vertical swipes off
+  only while a sheet is open (the sheet's own scroll and drag would otherwise close the app) and back on after;
+  `tma.verticalSwipes(false)` for apps whose own gestures are vertical (drawing, maps, games). Unsaved input:
+  `tma.closingConfirmation(true)` until it is saved.
+- **Check:** `scripts/preview_miniapp.py <app> --serve 8790`, then `?platform=ios&version=9.6` (fullscreen,
+  floating Close), `?platform=ios&version=7.10` (expanded sheet with the header), `?platform=tdesktop`
+  (sheet). Lint MA46 flags an app that never decides its opening mode.

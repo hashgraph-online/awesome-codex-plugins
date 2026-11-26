@@ -896,6 +896,9 @@ decision, not the agent's.
 | one column with role `time` | `elementary.volume_anomalies` and `elementary.freshness_anomalies`, each with that column as `timestamp_column` |
 | several columns with role `time` | `elementary.freshness_anomalies` on each; no `volume_anomalies` (`ambiguous_time_column`), since it takes one timestamp column |
 | no column with role `time` | neither (`no_time_column`): `freshness_anomalies` cannot run without one, and `volume_anomalies` without one is a different monitor (one total per run, trained only on run history) |
+| a column with role `dimension` whose cached domain is at most 20 distinct values, on a model with one `time` column | `elementary.dimension_anomalies` with `dimensions: [<column>]` and that `timestamp_column`, one test per such column |
+| a `dimension` column over 20 values, with no cached count, or flagged as personal data | no `dimension_anomalies` (`domain_too_large`, `not_profiled` or `profile_ambiguous`, `pii_flagged`) |
+| a `dimension` column on a model with no `time` column, or several | no `dimension_anomalies` (`no_time_column`, `ambiguous_time_column`), for the same reason as `volume_anomalies` |
 
 ```yaml
 models:
@@ -958,8 +961,55 @@ models:
   connector's rule and none is configured). The monitor's marker gains `filter:
   population.filters`, and its `data.decisions` entry names the
   `where_expression` in `chosen`.
-- **Dex chooses no statistic.** Only `timestamp_column` and the population's
-  `where_expression` are written.
+- **A small-domain dimension is watched per value.** A column declared
+  `role: dimension` becomes the one `dimensions` entry of an
+  `elementary.dimension_anomalies`, which tracks the model's row count per
+  value of the column, where the column's domain is small: at most 20
+  distinct values by the exploration cache's `distinct_count` for the model's
+  built relation. The bound is inclusive and fixed. Each such test is
+  written with `max_distinct: 20` in its marker, and its `data.decisions`
+  entry names the bound, so a reviewer sees why the column was in. A larger
+  domain is that many series, most too thin to train, and a wider scan on
+  every run, so it is `domain_too_large`, with the count. The domain is read,
+  never measured: a column the cache holds no count for is `not_profiled`,
+  and the row and one plan warning name the `explore profile` that would
+  supply one (on a model the plan creates, `transform build --target dev`
+  first). A model name the cache holds several relations for is
+  `profile_ambiguous`. Declare again once it is profiled. A version reads
+  the relation dbt builds it as (its `alias`, else `<model>_v<N>`), and a
+  versioned model's shared entry, whose tests every version inherits, is
+  read on every version: flagged on any is flagged, unread on any is
+  unread, and the count is the largest.
+
+  ```yaml
+      - elementary.dimension_anomalies:
+          arguments:
+            dimensions: [status]
+            timestamp_column: ordered_at
+          config:
+            tags: [dex_monitor]
+            meta:
+              disable_test_samples: true
+              dex:
+                monitor:
+                  vendor: elementary
+                  from: "columns.status.role: dimension"
+                  max_distinct: 20
+  ```
+
+  One test per column, never one listing several: the package joins a
+  `dimensions` list into one combined value
+  (`dimension_monitoring_query.sql`), so `[status, channel, region]` at 20
+  values each is up to 8,000 series. A column flagged as personal data is
+  never a dimension here, at any domain size, since the test groups by its
+  values: one the cached profile flags at any confidence (a `pii_overrides`
+  entry clears that), or one the model's YAML marks (`contains_pii` or any key
+  a reader accepts). Its count is never reported. The time column follows the
+  `volume_anomalies` rule: one `time` column is the `timestamp_column`, and
+  with none or several no dimension monitor is written. The population's
+  `where_expression` is carried as on every monitor.
+- **Dex chooses no statistic.** Only `timestamp_column`, `dimensions` and the
+  population's `where_expression` are written.
   Sensitivity, `days_back`, seasonality and every other training setting stay
   the package's defaults, unless you add them to the test yourself.
 - **Only where the package is installed.** Installed under the packages
@@ -986,14 +1036,22 @@ models:
   (with or without the `elementary.` namespace) is `hand_written` and left
   exactly as written: any `volume_anomalies` on the model, since a second one
   would count its rows twice, and a `freshness_anomalies` on the same
-  `timestamp_column`, whatever `where_expression` it carries. One on another
-  column is another monitor, so Dex adds its own beside it.
+  `timestamp_column`, whatever `where_expression` it carries, and a
+  `dimension_anomalies` whose `dimensions` is the same one column (compared
+  without case), whatever else it sets. One on another column, or a
+  `dimension_anomalies` grouping by several columns at once, is another
+  monitor, so Dex adds its own beside it.
 - **A monitor is never removed.** One Dex wrote whose time column the
   declaration no longer names, or whose `where_expression` the population no
   longer gives, is `stale` (`declaration_changed`), with a note, for a
   reviewer to remove; Dex writes the current one beside it. Where the current
   one is not written (a closed gate), the note says why and asks to keep the
-  stale one until it can be. Unsetting `monitors.vendor` removes nothing.
+  stale one until it can be. A `dimension_anomalies` Dex wrote on a column
+  that no longer qualifies (declared another role, its cached domain now over
+  20, now flagged as personal data, or no longer output) is `stale` with
+  `changed: dimensions` and its `cause`. One whose column the cache no longer
+  counts stays `already_listed`: an empty cache is no evidence the domain
+  changed. Unsetting `monitors.vendor` removes nothing.
 - **Monitors are not generated tests.** `declarations.render_tests` does not
   govern them, they carry no cadence tag, and `data.generated_tests` neither
   lists nor prices them. The tag `dex_monitor` lets an orchestrator select or
@@ -1011,11 +1069,11 @@ renders a declaration:
 | `package` | `status` (`installed`, `added_by_plan`, `not_installed`) and the installed `release` |
 | `production` | `status` (`enabled`, `disabled`, `unknown`), `reason` (see the table above), `prod_target`, and the `expression` read where it was Jinja |
 | `counts` | rows per status |
-| `monitors[]` | `model`, `test`, `column` (the timestamp column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`) |
+| `monitors[]` | `model`, `test`, `column` (the timestamp column, or on a `dimension_anomalies` the dimension column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, `dimensions` with its `cause`, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`). A `dimension_anomalies` row also carries `bound` (20), `distinct_count` and `distinct_count_exact` where the cache counted the column (never for a column flagged as personal data), `profile` (the cached relation's `identifier` and `profiled_at`), and, where the cache could not say, the `command` that would and a `detail` |
 
 `transform declare` writes the monitors an earlier declaration owes: a model
-declared before `monitors.vendor` was set is proposed with a `monitors` field
-listing them.
+declared before `monitors.vendor` was set, or a dimension column profiled
+since it was declared, is proposed with a `monitors` field listing them.
 
 ### Elementary's PII tag on personal-data columns
 

@@ -82,13 +82,16 @@ let tab: 'books' | 'trainers' | 'workouts' = 'books';
 const filter: Record<string, string> = { books: 'All', trainers: 'All', workouts: 'All' };
 let query = '';
 const favs = new Set<string>();
+const tabScroll = tma.scrollMemory(); // each tab comes back where the user left it
 function setTab(t: typeof tab): void {
+  if (t !== tab) tabScroll.leave(tab);
   tab = t;
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === t));
   renderRoot();
+  tabScroll.enter(t);
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
-  b.onclick = () => { if (b.dataset.tab !== tab) { tma.haptic.select(); setTab(b.dataset.tab as typeof tab); } };
+  b.onclick = () => { if (b.dataset.tab !== tab) { tma.haptic.select(); setTab(b.dataset.tab as typeof tab); } else tabScroll.top(); };
 }
 function openScreen(id: 'detail' | 'viewer', render: (el: HTMLElement) => void, onBack: () => void): void {
   const el = $(id);
@@ -291,8 +294,9 @@ function openPlans(): void {
   let chosen = 'club';
   const draw = (el: HTMLElement) => {
     const price = (m: number) => (yearly ? Math.round(m * 10) : m);
-    const period = () => (yearly ? '/ year' : '/ month');
-    const periods: Array<[string, boolean]> = [['Monthly', false], ['Yearly · 2 months free', true]];
+    // Stars subscriptions renew every 30 days: 12 months is a one-off payment that does not renew (payments.md P5)
+    const period = () => (yearly ? 'for 12 months' : '/ month');
+    const periods: Array<[string, boolean]> = [['Monthly', false], ['12 months · 2 free', true]];
     el.replaceChildren(
       h('header', { class: 'tma-header' }, h('h1', { class: 'tma-title2' }, 'Membership'),
         h('p', { class: 'tma-subhead tma-hint', style: 'margin:var(--tma-s1) 0 0' }, 'Cancel any time in Settings')),
@@ -308,9 +312,11 @@ function openPlans(): void {
           h('span', { class: 'tma-price is-lg' }, starsPrice(price(p.month)), h('span', { class: 'tma-price__period' }, period())),
           h('ul', { class: 'tma-checks' }, ...p.features.map((f) => h('li', {}, f)),
             ...p.missing.map((f) => h('li', { class: 'is-no' }, 'No ' + f.toLowerCase())))))),
-      h('p', { class: 'tma-footnote', style: 'padding:0 var(--tma-s4)' }, 'Paid in Telegram Stars and renewed automatically until you cancel.'));
+      h('p', { class: 'tma-footnote', style: 'padding:0 var(--tma-s4)' }, yearly
+        ? 'Paid in Telegram Stars once, for 12 months. It does not renew.'
+        : 'Paid in Telegram Stars and renewed every 30 days until you cancel.'));
     const plan = PLANS.find((p) => p.id === chosen)!;
-    tma.mainButton({ text: `Subscribe · ⭐ ${price(plan.month)} ${period()}`,
+    tma.mainButton({ text: `${yearly ? 'Pay' : 'Subscribe ·'} ⭐ ${price(plan.month)} ${period()}`,
       onClick: () => toast('The bot creates the subscription invoice: see payments-and-stars.md') });
   };
   if (tma.nav.top?.id === 'detail') tma.nav.pop('detail');
@@ -324,6 +330,7 @@ function toast(text: string): void {
   toastTimer = window.setTimeout(() => { s.hidden = true; }, 2400);
 }
 
+tma.start(); // fullscreen on iOS / Android (8.0+), the expanded sheet elsewhere
 tma.chrome({ header: 'secondary_bg_color', background: 'secondary_bg_color', bottomBar: 'secondary_bg_color' });
 const start = parseStartParam(tma.launch.tgWebAppStartParam, { tab: /^tab-(books|trainers|workouts)$/, trainer: /^trainer-([a-z]{2,20})$/ });
 setTab(start?.route === 'tab' ? (start.match[1] as typeof tab) : start?.route === 'trainer' ? 'trainers' : 'books');

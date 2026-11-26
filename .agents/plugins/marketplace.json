@@ -1857,7 +1857,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "A map of your codebase kept as markdown notes outside the repo; hooks point Codex and Claude Code at the note that owns a file when a patch touches it, and name the notes a session left stale before it stops."
+      "description": "A map of your codebase kept as markdown notes outside the repo; hooks point Codex and Claude Code at the note that owns a file when a patch touches it, and name the notes a session left stale before it stops.",
+      "icon": "./plugins/Light5566/claude-lightkeeper/.claude-plugin/icon.png"
     },
     {
       "name": "llm-transpile",
@@ -6640,6 +6641,20 @@
       },
       "category": "Tools & Integrations",
       "description": "Public-records skills plus a hosted MCP server: who owns a US company or home, vendor screening against DoD 1260H, Section 889, FCC Covered List, UFLPA and BIOSECURE, BDC loan marks, and dated LLM API prices."
+    },
+    {
+      "name": "termalin",
+      "displayName": "Termalin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/termalinapp/termalin-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Manage your own Linux servers from Codex through Termalin's hosted MCP server (commands, background jobs, files over SFTP, databases, metrics, alerts) with ten ops skills, without handing the agent an SSH key."
     },
     {
       "name": "textmock",

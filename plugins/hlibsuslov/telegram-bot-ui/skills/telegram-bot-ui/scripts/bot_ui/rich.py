@@ -37,6 +37,7 @@ STYLES = {"primary", "success", "danger", "link"}
 _ATTRS = r"""((?:[^>"']|"[^"]*"|'[^']*')*)"""  # attributes; a quoted value may hold ">"
 BUTTON_RE = re.compile(r"<tg-button(?=[\s>/])" + _ATTRS + r">(.*?)</tg-button\s*>", re.S | re.I)
 ROW_RE = re.compile(r"<tg-button-row(?=[\s>/])" + _ATTRS + r">(.*?)</tg-button-row\s*>", re.S | re.I)
+EMOJI_RE = re.compile(r"<tg-emoji(?=[\s>/])" + _ATTRS + r">(.*?)</tg-emoji\s*>", re.S | re.I)
 ATTR_RE = re.compile(r"""([a-zA-Z_][a-zA-Z0-9_-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?""")
 TAG_RE = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9-]*)" + _ATTRS + r">")
 ENTITY_RE = re.compile(r"&(#[xX][0-9a-fA-F]{1,6}|#\d{1,7}|lt|gt|quot|apos|nbsp|amp);")
@@ -76,6 +77,18 @@ def visible_text(text: str) -> str:
 def action_ids(text: str) -> list[str]:
     """Action ids that `<tg-button action="...">` refers to, in document order."""
     return [a["action"] for a in (attrs(m.group(1)) for m in BUTTON_RE.finditer(text)) if a.get("action")]
+
+
+def custom_emoji(text: str) -> list[tuple[str, str, bool]]:
+    """(id, fallback, on a button) of every `<tg-emoji emoji-id="...">` in a Rich HTML text, in document order.
+    One inside a `<tg-button>` is the button's icon: a button takes a static custom emoji only."""
+    spans = [m.span(2) for m in BUTTON_RE.finditer(text)]
+    out = []
+    for m in EMOJI_RE.finditer(text):
+        eid = attrs(m.group(1)).get("emoji-id", "")
+        if re.fullmatch(r"\d{1,20}", eid):
+            out.append((eid, m.group(2), any(a <= m.start() < b for a, b in spans)))
+    return out
 
 
 def screen_action_ids(screen: dict) -> set[str]:

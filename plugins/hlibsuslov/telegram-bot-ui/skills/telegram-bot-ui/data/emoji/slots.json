@@ -1,5 +1,5 @@
 {
- "_about": "Semantic slot vocabulary for custom emoji icon systems. Each slot is a MEANING. `unicode` lists acceptable Unicode equivalents in order of preference: the first one is the default fallback when no sticker resolves; when a sticker resolves, its own `emoji` field becomes the fallback (official recommendation). `label` is the text-only fallback (empty = the accent is simply dropped). `use` says where the slot belongs: button, title, inline (inside running text), status (reserved state marks), post_accent (channel posts / long texts). Matching ignores U+FE0F, so '⚙' and '⚙️' are the same key. Heuristic content of this skill, checked 2026-11-15.",
+ "_about": "Semantic slot vocabulary for custom emoji icon systems. Each slot is a MEANING. `unicode` lists acceptable Unicode equivalents in order of preference: the first one is the default fallback when no sticker resolves; when a sticker resolves, its own `emoji` field becomes the fallback (official recommendation). `label` is the text-only fallback (empty = the accent is simply dropped). `use` says where the slot belongs: button, title, inline (inside running text), status (reserved state marks), post_accent (channel posts / long texts). Matching ignores U+FE0F, so '⚙' and '⚙️' are the same key. Heuristic content of this skill, checked 2026-11-15. `words` (en, ru, uk) are the label words a button carrying this slot's icon may say; a trailing * matches any ending. bot-ui validate (ICON_MEANING_MISMATCH) and the icon review sheet flag a button whose label says another slot's words and none of its icon's.",
  "version": 1,
  "checked": "2026-11-15",
  "groups": [
@@ -31,7 +31,26 @@
     "button",
     "title"
    ],
-   "note": "Root screen; one per bot."
+   "note": "Root screen; one per bot.",
+   "words": {
+    "en": [
+     "home",
+     "main",
+     "start"
+    ],
+    "ru": [
+     "главн*",
+     "домой",
+     "начало",
+     "старт"
+    ],
+    "uk": [
+     "головн*",
+     "додому",
+     "початок",
+     "старт"
+    ]
+   }
   },
   "menu": {
    "group": "navigation",
@@ -43,7 +62,18 @@
    "use": [
     "button"
    ],
-   "note": "Opens the main menu; prefer words on the menu button itself."
+   "note": "Opens the main menu; prefer words on the menu button itself.",
+   "words": {
+    "en": [
+     "menu"
+    ],
+    "ru": [
+     "меню"
+    ],
+    "uk": [
+     "меню"
+    ]
+   }
   },
   "back": {
    "group": "navigation",
@@ -57,7 +87,21 @@
    "use": [
     "button"
    ],
-   "note": "Pick ONE arrow pair for the whole bot; often clearer as a word only."
+   "note": "Pick ONE arrow pair for the whole bot; often clearer as a word only.",
+   "words": {
+    "en": [
+     "back",
+     "return"
+    ],
+    "ru": [
+     "назад",
+     "вернуться"
+    ],
+    "uk": [
+     "назад",
+     "повернутися"
+    ]
+   }
   },
   "forward": {
    "group": "navigation",
@@ -70,7 +114,26 @@
    "use": [
     "button"
    ],
-   "note": "Pairs with back; same family and weight."
+   "note": "Pairs with back; same family and weight.",
+   "words": {
+    "en": [
+     "next",
+     "continue",
+     "forward"
+    ],
+    "ru": [
+     "далее",
+     "дальше",
+     "продолжить",
+     "вперёд",
+     "вперед"
+    ],
+    "uk": [
+     "далі",
+     "продовжити",
+     "вперед"
+    ]
+   }
   },
   "up": {
    "group": "navigation",
@@ -108,7 +171,19 @@
    "use": [
     "button"
    ],
-   "note": "Pagination; keep the page number in words."
+   "note": "Pagination; keep the page number in words.",
+   "words": {
+    "en": [
+     "previous",
+     "prev"
+    ],
+    "ru": [
+     "предыдущ*"
+    ],
+    "uk": [
+     "попередн*"
+    ]
+   }
   },
   "next_page": {
    "group": "navigation",
@@ -120,7 +195,19 @@
    "use": [
     "button"
    ],
-   "note": "Pagination; keep the page number in words."
+   "note": "Pagination; keep the page number in words.",
+   "words": {
+    "en": [
+     "next page",
+     "more pages"
+    ],
+    "ru": [
+     "следующ*"
+    ],
+    "uk": [
+     "наступн*"
+    ]
+   }
   },
   "first_page": {
    "group": "navigation",
@@ -157,7 +244,18 @@
    "use": [
     "button"
    ],
-   "note": "Dismiss a panel; not the same id as delete or error."
+   "note": "Dismiss a panel; not the same id as delete or error.",
+   "words": {
+    "en": [
+     "close"
+    ],
+    "ru": [
+     "закрыть"
+    ],
+    "uk": [
+     "закрити"
+    ]
+   }
   },
   "expand": {
    "group": "navigation",
@@ -169,7 +267,25 @@
    "use": [
     "button"
    ],
-   "note": "Reveal details."
+   "note": "Reveal details.",
+   "words": {
+    "en": [
+     "show more",
+     "more",
+     "expand"
+    ],
+    "ru": [
+     "ещё",
+     "еще",
+     "подробнее",
+     "развернуть"
+    ],
+    "uk": [
+     "ще",
+     "докладніше",
+     "розгорнути"
+    ]
+   }
   },
   "collapse": {
    "group": "navigation",
@@ -181,7 +297,22 @@
    "use": [
     "button"
    ],
-   "note": "Hide details."
+   "note": "Hide details.",
+   "words": {
+    "en": [
+     "show less",
+     "less",
+     "collapse"
+    ],
+    "ru": [
+     "свернуть",
+     "скрыть"
+    ],
+    "uk": [
+     "згорнути",
+     "сховати"
+    ]
+   }
   },
   "open_link": {
    "group": "navigation",
@@ -194,7 +325,25 @@
     "button",
     "inline"
    ],
-   "note": "External link button; the URL itself carries the action."
+   "note": "External link button; the URL itself carries the action.",
+   "words": {
+    "en": [
+     "open",
+     "website",
+     "site",
+     "link"
+    ],
+    "ru": [
+     "открыть",
+     "сайт",
+     "ссылк*"
+    ],
+    "uk": [
+     "відкрити",
+     "сайт",
+     "посилан*"
+    ]
+   }
   },
   "external": {
    "group": "navigation",
@@ -218,7 +367,20 @@
    "use": [
     "button"
    ],
-   "note": "Mini App launch button."
+   "note": "Mini App launch button.",
+   "words": {
+    "en": [
+     "app",
+     "open app"
+    ],
+    "ru": [
+     "приложени*"
+    ],
+    "uk": [
+     "застосун*",
+     "додаток"
+    ]
+   }
   },
   "refresh": {
    "group": "navigation",
@@ -231,7 +393,19 @@
    "use": [
     "button"
    ],
-   "note": "Re-fetch; not the same id as sync/convert."
+   "note": "Re-fetch; not the same id as sync/convert.",
+   "words": {
+    "en": [
+     "refresh",
+     "update"
+    ],
+    "ru": [
+     "обновить"
+    ],
+    "uk": [
+     "оновити"
+    ]
+   }
   },
   "reload": {
    "group": "navigation",
@@ -280,7 +454,28 @@
    "use": [
     "button"
    ],
-   "note": "Create a new item."
+   "note": "Create a new item.",
+   "words": {
+    "en": [
+     "add",
+     "new",
+     "create"
+    ],
+    "ru": [
+     "добавить",
+     "создать",
+     "новый",
+     "новая",
+     "новое"
+    ],
+    "uk": [
+     "додати",
+     "створити",
+     "новий",
+     "нова",
+     "нове"
+    ]
+   }
   },
   "remove": {
    "group": "actions",
@@ -291,7 +486,18 @@
    "use": [
     "button"
    ],
-   "note": "Remove from a list without deleting data."
+   "note": "Remove from a list without deleting data.",
+   "words": {
+    "en": [
+     "remove"
+    ],
+    "ru": [
+     "убрать"
+    ],
+    "uk": [
+     "прибрати"
+    ]
+   }
   },
   "edit": {
    "group": "actions",
@@ -304,7 +510,23 @@
    "use": [
     "button"
    ],
-   "note": "Change an existing item."
+   "note": "Change an existing item.",
+   "words": {
+    "en": [
+     "edit",
+     "change",
+     "modify"
+    ],
+    "ru": [
+     "изменить",
+     "редактировать",
+     "правка"
+    ],
+    "uk": [
+     "змінити",
+     "редагувати"
+    ]
+   }
   },
   "rename": {
    "group": "actions",
@@ -316,7 +538,18 @@
    "use": [
     "button"
    ],
-   "note": "Often shares the edit glyph; use different ids only if both appear."
+   "note": "Often shares the edit glyph; use different ids only if both appear.",
+   "words": {
+    "en": [
+     "rename"
+    ],
+    "ru": [
+     "переименовать"
+    ],
+    "uk": [
+     "перейменувати"
+    ]
+   }
   },
   "delete": {
    "group": "actions",
@@ -328,7 +561,19 @@
    "use": [
     "button"
    ],
-   "note": "Destructive; pair with style danger and a confirmation."
+   "note": "Destructive; pair with style danger and a confirmation.",
+   "words": {
+    "en": [
+     "delete",
+     "erase"
+    ],
+    "ru": [
+     "удалить"
+    ],
+    "uk": [
+     "видалити"
+    ]
+   }
   },
   "save": {
    "group": "actions",
@@ -340,7 +585,18 @@
    "use": [
     "button"
    ],
-   "note": "Persist changes."
+   "note": "Persist changes.",
+   "words": {
+    "en": [
+     "save"
+    ],
+    "ru": [
+     "сохранить"
+    ],
+    "uk": [
+     "зберегти"
+    ]
+   }
   },
   "copy": {
    "group": "actions",
@@ -352,7 +608,20 @@
    "use": [
     "button"
    ],
-   "note": "Use the copy_text button for one copyable value."
+   "note": "Use the copy_text button for one copyable value.",
+   "words": {
+    "en": [
+     "copy"
+    ],
+    "ru": [
+     "копировать",
+     "скопировать"
+    ],
+    "uk": [
+     "копіювати",
+     "скопіювати"
+    ]
+   }
   },
   "share": {
    "group": "actions",
@@ -365,7 +634,18 @@
    "use": [
     "button"
    ],
-   "note": "Share/forward the result."
+   "note": "Share/forward the result.",
+   "words": {
+    "en": [
+     "share"
+    ],
+    "ru": [
+     "поделиться"
+    ],
+    "uk": [
+     "поділитися"
+    ]
+   }
   },
   "send": {
    "group": "actions",
@@ -378,7 +658,20 @@
    "use": [
     "button"
    ],
-   "note": "Send a message/form."
+   "note": "Send a message/form.",
+   "words": {
+    "en": [
+     "send",
+     "submit"
+    ],
+    "ru": [
+     "отправить"
+    ],
+    "uk": [
+     "надіслати",
+     "відправити"
+    ]
+   }
   },
   "search": {
    "group": "actions",
@@ -391,7 +684,23 @@
     "button",
     "title"
    ],
-   "note": "Pick one magnifier; 🔍 and 🔎 are two symbols."
+   "note": "Pick one magnifier; 🔍 and 🔎 are two symbols.",
+   "words": {
+    "en": [
+     "search",
+     "find"
+    ],
+    "ru": [
+     "поиск",
+     "найти",
+     "искать"
+    ],
+    "uk": [
+     "пошук",
+     "знайти",
+     "шукати"
+    ]
+   }
   },
   "filter": {
    "group": "actions",
@@ -403,7 +712,19 @@
    "use": [
     "button"
    ],
-   "note": "Never the gear: ⚙ means settings."
+   "note": "Never the gear: ⚙ means settings.",
+   "words": {
+    "en": [
+     "filter",
+     "filters"
+    ],
+    "ru": [
+     "фильтр*"
+    ],
+    "uk": [
+     "фільтр*"
+    ]
+   }
   },
   "sort": {
    "group": "actions",
@@ -415,7 +736,21 @@
    "use": [
     "button"
    ],
-   "note": "Sort order."
+   "note": "Sort order.",
+   "words": {
+    "en": [
+     "sort",
+     "order by"
+    ],
+    "ru": [
+     "сортировк*",
+     "сортировать"
+    ],
+    "uk": [
+     "сортуван*",
+     "сортувати"
+    ]
+   }
   },
   "download": {
    "group": "actions",
@@ -427,7 +762,20 @@
    "use": [
     "button"
    ],
-   "note": "Get a file."
+   "note": "Get a file.",
+   "words": {
+    "en": [
+     "download"
+    ],
+    "ru": [
+     "скачать",
+     "загрузить"
+    ],
+    "uk": [
+     "завантажити",
+     "скачати"
+    ]
+   }
   },
   "upload": {
    "group": "actions",
@@ -439,7 +787,18 @@
    "use": [
     "button"
    ],
-   "note": "Send a file."
+   "note": "Send a file.",
+   "words": {
+    "en": [
+     "upload"
+    ],
+    "ru": [
+     "выгрузить"
+    ],
+    "uk": [
+     "вивантажити"
+    ]
+   }
   },
   "attach": {
    "group": "actions",
@@ -450,7 +809,18 @@
    "use": [
     "button"
    ],
-   "note": "Attach a file to a form."
+   "note": "Attach a file to a form.",
+   "words": {
+    "en": [
+     "attach"
+    ],
+    "ru": [
+     "прикрепить"
+    ],
+    "uk": [
+     "прикріпити"
+    ]
+   }
   },
   "scan": {
    "group": "actions",
@@ -486,7 +856,18 @@
    "use": [
     "button"
    ],
-   "note": "Revert the last step."
+   "note": "Revert the last step.",
+   "words": {
+    "en": [
+     "undo"
+    ],
+    "ru": [
+     "отменить действие"
+    ],
+    "uk": [
+     "скасувати дію"
+    ]
+   }
   },
   "redo": {
    "group": "actions",
@@ -510,7 +891,24 @@
    "use": [
     "button"
    ],
-   "note": "Start playback/a process."
+   "note": "Start playback/a process.",
+   "words": {
+    "en": [
+     "play",
+     "start",
+     "listen"
+    ],
+    "ru": [
+     "слушать",
+     "воспроизвести",
+     "играть"
+    ],
+    "uk": [
+     "слухати",
+     "відтворити",
+     "грати"
+    ]
+   }
   },
   "pause": {
    "group": "actions",
@@ -522,7 +920,18 @@
    "use": [
     "button"
    ],
-   "note": "Pause playback/a process."
+   "note": "Pause playback/a process.",
+   "words": {
+    "en": [
+     "pause"
+    ],
+    "ru": [
+     "пауза"
+    ],
+    "uk": [
+     "пауза"
+    ]
+   }
   },
   "stop": {
    "group": "actions",
@@ -534,7 +943,20 @@
    "use": [
     "button"
    ],
-   "note": "Stop a process or a stream."
+   "note": "Stop a process or a stream.",
+   "words": {
+    "en": [
+     "stop"
+    ],
+    "ru": [
+     "стоп",
+     "остановить"
+    ],
+    "uk": [
+     "стоп",
+     "зупинити"
+    ]
+   }
   },
   "record": {
    "group": "actions",
@@ -558,7 +980,20 @@
     "button",
     "inline"
    ],
-   "note": "Feedback; not the same as confirm."
+   "note": "Feedback; not the same as confirm.",
+   "words": {
+    "en": [
+     "like"
+    ],
+    "ru": [
+     "нравится",
+     "лайк"
+    ],
+    "uk": [
+     "подобається",
+     "лайк"
+    ]
+   }
   },
   "dislike": {
    "group": "actions",
@@ -584,7 +1019,22 @@
     "button",
     "inline"
    ],
-   "note": "Saved/starred; reserve ⭐ if Stars prices are shown."
+   "note": "Saved/starred; reserve ⭐ if Stars prices are shown.",
+   "words": {
+    "en": [
+     "favorite",
+     "favourites",
+     "favorites",
+     "starred"
+    ],
+    "ru": [
+     "избранн*"
+    ],
+    "uk": [
+     "обран*",
+     "улюблен*"
+    ]
+   }
   },
   "bookmark": {
    "group": "actions",
@@ -596,7 +1046,23 @@
     "button",
     "inline"
    ],
-   "note": "Saved for later."
+   "note": "Saved for later.",
+   "words": {
+    "en": [
+     "bookmark",
+     "bookmarks",
+     "saved"
+    ],
+    "ru": [
+     "закладк*",
+     "сохранённ*",
+     "сохраненн*"
+    ],
+    "uk": [
+     "закладк*",
+     "збережен*"
+    ]
+   }
   },
   "lock": {
    "group": "actions",
@@ -608,7 +1074,18 @@
     "button",
     "inline"
    ],
-   "note": "Locked/private state."
+   "note": "Locked/private state.",
+   "words": {
+    "en": [
+     "lock"
+    ],
+    "ru": [
+     "заблокировать"
+    ],
+    "uk": [
+     "заблокувати"
+    ]
+   }
   },
   "unlock": {
    "group": "actions",
@@ -619,7 +1096,18 @@
    "use": [
     "button"
    ],
-   "note": "Unlock an item."
+   "note": "Unlock an item.",
+   "words": {
+    "en": [
+     "unlock"
+    ],
+    "ru": [
+     "разблокировать"
+    ],
+    "uk": [
+     "розблокувати"
+    ]
+   }
   },
   "archive": {
    "group": "actions",
@@ -631,7 +1119,18 @@
    "use": [
     "button"
    ],
-   "note": "Hide without deleting."
+   "note": "Hide without deleting.",
+   "words": {
+    "en": [
+     "archive"
+    ],
+    "ru": [
+     "архив*"
+    ],
+    "uk": [
+     "архів*"
+    ]
+   }
   },
   "restore": {
    "group": "actions",
@@ -654,7 +1153,21 @@
    "use": [
     "button"
    ],
-   "note": "Flag content."
+   "note": "Flag content.",
+   "words": {
+    "en": [
+     "report",
+     "complain"
+    ],
+    "ru": [
+     "пожаловаться",
+     "жалоба"
+    ],
+    "uk": [
+     "поскаржитися",
+     "скарга"
+    ]
+   }
   },
   "block": {
    "group": "actions",
@@ -666,7 +1179,21 @@
    "use": [
     "button"
    ],
-   "note": "Block a user/source."
+   "note": "Block a user/source.",
+   "words": {
+    "en": [
+     "block",
+     "ban"
+    ],
+    "ru": [
+     "блок*",
+     "бан"
+    ],
+    "uk": [
+     "блок*",
+     "бан"
+    ]
+   }
   },
   "done": {
    "group": "status",
@@ -681,7 +1208,22 @@
     "title",
     "status"
    ],
-   "note": "Reserved: completed/confirmed. Not a settings icon."
+   "note": "Reserved: completed/confirmed. Not a settings icon.",
+   "words": {
+    "en": [
+     "done",
+     "finish",
+     "ready"
+    ],
+    "ru": [
+     "готово",
+     "завершить"
+    ],
+    "uk": [
+     "готово",
+     "завершити"
+    ]
+   }
   },
   "confirm": {
    "group": "status",
@@ -694,7 +1236,28 @@
    "use": [
     "button"
    ],
-   "note": "Commit button; often shares done's glyph, use one id for both."
+   "note": "Commit button; often shares done's glyph, use one id for both.",
+   "words": {
+    "en": [
+     "confirm",
+     "ok",
+     "yes",
+     "accept",
+     "approve"
+    ],
+    "ru": [
+     "подтвердить",
+     "да",
+     "принять",
+     "одобрить"
+    ],
+    "uk": [
+     "підтвердити",
+     "так",
+     "прийняти",
+     "схвалити"
+    ]
+   }
   },
   "success": {
    "group": "status",
@@ -956,7 +1519,19 @@
     "button",
     "title"
    ],
-   "note": "Shopping cart."
+   "note": "Shopping cart.",
+   "words": {
+    "en": [
+     "cart",
+     "basket"
+    ],
+    "ru": [
+     "корзин*"
+    ],
+    "uk": [
+     "кошик*"
+    ]
+   }
   },
   "bag": {
    "group": "commerce",
@@ -969,7 +1544,21 @@
     "button",
     "title"
    ],
-   "note": "Storefront entry."
+   "note": "Storefront entry.",
+   "words": {
+    "en": [
+     "shop",
+     "shopping"
+    ],
+    "ru": [
+     "магазин",
+     "покупк*"
+    ],
+    "uk": [
+     "магазин",
+     "покупк*"
+    ]
+   }
   },
   "product": {
    "group": "commerce",
@@ -982,7 +1571,22 @@
     "title",
     "inline"
    ],
-   "note": "A catalog item."
+   "note": "A catalog item.",
+   "words": {
+    "en": [
+     "product",
+     "products",
+     "item",
+     "items",
+     "goods"
+    ],
+    "ru": [
+     "товар*"
+    ],
+    "uk": [
+     "товар*"
+    ]
+   }
   },
   "catalog": {
    "group": "commerce",
@@ -995,7 +1599,23 @@
     "button",
     "title"
    ],
-   "note": "Product list."
+   "note": "Product list.",
+   "words": {
+    "en": [
+     "catalog",
+     "catalogue",
+     "categories",
+     "category"
+    ],
+    "ru": [
+     "каталог",
+     "категори*"
+    ],
+    "uk": [
+     "каталог",
+     "категорі*"
+    ]
+   }
   },
   "order": {
    "group": "commerce",
@@ -1008,7 +1628,19 @@
     "button",
     "title"
    ],
-   "note": "Order details."
+   "note": "Order details.",
+   "words": {
+    "en": [
+     "order",
+     "orders"
+    ],
+    "ru": [
+     "заказ*"
+    ],
+    "uk": [
+     "замовлен*"
+    ]
+   }
   },
   "delivery": {
    "group": "commerce",
@@ -1022,7 +1654,22 @@
     "title",
     "inline"
    ],
-   "note": "Shipping state."
+   "note": "Shipping state.",
+   "words": {
+    "en": [
+     "delivery",
+     "shipping",
+     "courier"
+    ],
+    "ru": [
+     "доставк*",
+     "курьер"
+    ],
+    "uk": [
+     "доставк*",
+     "кур'єр"
+    ]
+   }
   },
   "price": {
    "group": "commerce",
@@ -1059,7 +1706,19 @@
     "button",
     "inline"
    ],
-   "note": "Gifts/rewards."
+   "note": "Gifts/rewards.",
+   "words": {
+    "en": [
+     "gift",
+     "gifts"
+    ],
+    "ru": [
+     "подар*"
+    ],
+    "uk": [
+     "подарун*"
+    ]
+   }
   },
   "pay": {
    "group": "commerce",
@@ -1071,7 +1730,24 @@
    "use": [
     "button"
    ],
-   "note": "Payment button; pay buttons must stay first in invoices."
+   "note": "Payment button; pay buttons must stay first in invoices.",
+   "words": {
+    "en": [
+     "pay",
+     "checkout",
+     "payment"
+    ],
+    "ru": [
+     "оплат*",
+     "платить",
+     "заплатить"
+    ],
+    "uk": [
+     "оплат*",
+     "сплатити",
+     "заплатити"
+    ]
+   }
   },
   "receipt": {
    "group": "commerce",
@@ -1083,7 +1759,21 @@
     "button",
     "title"
    ],
-   "note": "Paid order."
+   "note": "Paid order.",
+   "words": {
+    "en": [
+     "receipt",
+     "receipts"
+    ],
+    "ru": [
+     "чек*",
+     "квитанци*"
+    ],
+    "uk": [
+     "чек*",
+     "квитанці*"
+    ]
+   }
   },
   "stars": {
    "group": "commerce",
@@ -1108,7 +1798,23 @@
     "button",
     "title"
    ],
-   "note": "Recurring plan."
+   "note": "Recurring plan.",
+   "words": {
+    "en": [
+     "subscription",
+     "subscribe",
+     "plan",
+     "plans"
+    ],
+    "ru": [
+     "подписк*",
+     "тариф*"
+    ],
+    "uk": [
+     "підписк*",
+     "тариф*"
+    ]
+   }
   },
   "premium": {
    "group": "commerce",
@@ -1122,7 +1828,19 @@
     "title",
     "inline"
    ],
-   "note": "Paid tier; distinct from Telegram Premium branding."
+   "note": "Paid tier; distinct from Telegram Premium branding.",
+   "words": {
+    "en": [
+     "premium",
+     "pro"
+    ],
+    "ru": [
+     "премиум"
+    ],
+    "uk": [
+     "преміум"
+    ]
+   }
   },
   "store": {
    "group": "commerce",
@@ -1147,7 +1865,19 @@
    "use": [
     "button"
    ],
-   "note": "Money back."
+   "note": "Money back.",
+   "words": {
+    "en": [
+     "refund"
+    ],
+    "ru": [
+     "возврат",
+     "вернуть деньги"
+    ],
+    "uk": [
+     "повернення коштів"
+    ]
+   }
   },
   "wallet": {
    "group": "finance",
@@ -1160,7 +1890,21 @@
     "button",
     "title"
    ],
-   "note": "One wallet."
+   "note": "One wallet.",
+   "words": {
+    "en": [
+     "wallet",
+     "balance"
+    ],
+    "ru": [
+     "кошел*",
+     "баланс"
+    ],
+    "uk": [
+     "гаманець",
+     "баланс"
+    ]
+   }
   },
   "wallets": {
    "group": "finance",
@@ -1243,7 +1987,22 @@
    "use": [
     "button"
    ],
-   "note": "Incoming funds."
+   "note": "Incoming funds.",
+   "words": {
+    "en": [
+     "deposit",
+     "top up",
+     "top-up"
+    ],
+    "ru": [
+     "пополнить",
+     "пополнение"
+    ],
+    "uk": [
+     "поповнити",
+     "поповнення"
+    ]
+   }
   },
   "withdraw": {
    "group": "finance",
@@ -1255,7 +2014,21 @@
    "use": [
     "button"
    ],
-   "note": "Outgoing funds."
+   "note": "Outgoing funds.",
+   "words": {
+    "en": [
+     "withdraw",
+     "cash out"
+    ],
+    "ru": [
+     "вывести",
+     "вывод"
+    ],
+    "uk": [
+     "вивести",
+     "виведення"
+    ]
+   }
   },
   "incoming": {
    "group": "finance",
@@ -1293,7 +2066,21 @@
    "use": [
     "button"
    ],
-   "note": "Swap/convert currencies."
+   "note": "Swap/convert currencies.",
+   "words": {
+    "en": [
+     "exchange",
+     "convert"
+    ],
+    "ru": [
+     "обмен*",
+     "обменять"
+    ],
+    "uk": [
+     "обмін*",
+     "обміняти"
+    ]
+   }
   },
   "transfer": {
    "group": "finance",
@@ -1305,7 +2092,20 @@
    "use": [
     "button"
    ],
-   "note": "Move funds."
+   "note": "Move funds.",
+   "words": {
+    "en": [
+     "transfer"
+    ],
+    "ru": [
+     "перевод*",
+     "перевести"
+    ],
+    "uk": [
+     "переказ*",
+     "переказати"
+    ]
+   }
   },
   "bank": {
    "group": "finance",
@@ -1329,7 +2129,19 @@
     "button",
     "inline"
    ],
-   "note": "Payment card."
+   "note": "Payment card.",
+   "words": {
+    "en": [
+     "card",
+     "cards"
+    ],
+    "ru": [
+     "карт*"
+    ],
+    "uk": [
+     "картк*"
+    ]
+   }
   },
   "chart_up": {
    "group": "finance",
@@ -1366,7 +2178,22 @@
     "button",
     "title"
    ],
-   "note": "Bill."
+   "note": "Bill.",
+   "words": {
+    "en": [
+     "invoice",
+     "bill"
+    ],
+    "ru": [
+     "счёт",
+     "счет",
+     "инвойс"
+    ],
+    "uk": [
+     "рахунок",
+     "інвойс"
+    ]
+   }
   },
   "key": {
    "group": "finance",
@@ -1405,7 +2232,20 @@
     "button",
     "inline"
    ],
-   "note": "Image."
+   "note": "Image.",
+   "words": {
+    "en": [
+     "photo",
+     "photos",
+     "picture"
+    ],
+    "ru": [
+     "фото"
+    ],
+    "uk": [
+     "фото"
+    ]
+   }
   },
   "camera": {
    "group": "media",
@@ -1430,7 +2270,22 @@
     "button",
     "inline"
    ],
-   "note": "Video."
+   "note": "Video.",
+   "words": {
+    "en": [
+     "video",
+     "videos",
+     "watch"
+    ],
+    "ru": [
+     "видео",
+     "смотреть"
+    ],
+    "uk": [
+     "відео",
+     "дивитися"
+    ]
+   }
   },
   "music": {
    "group": "media",
@@ -1443,7 +2298,19 @@
     "button",
     "inline"
    ],
-   "note": "Audio track."
+   "note": "Audio track.",
+   "words": {
+    "en": [
+     "music",
+     "songs"
+    ],
+    "ru": [
+     "музык*"
+    ],
+    "uk": [
+     "музик*"
+    ]
+   }
   },
   "audio": {
    "group": "media",
@@ -1541,7 +2408,22 @@
     "title",
     "inline"
    ],
-   "note": "A message/chat."
+   "note": "A message/chat.",
+   "words": {
+    "en": [
+     "message",
+     "messages",
+     "write"
+    ],
+    "ru": [
+     "сообщени*",
+     "написать"
+    ],
+    "uk": [
+     "повідомлен*",
+     "написати"
+    ]
+   }
   },
   "chat": {
    "group": "communication",
@@ -1554,7 +2436,19 @@
     "button",
     "title"
    ],
-   "note": "Conversation."
+   "note": "Conversation.",
+   "words": {
+    "en": [
+     "chat",
+     "chats"
+    ],
+    "ru": [
+     "чат*"
+    ],
+    "uk": [
+     "чат*"
+    ]
+   }
   },
   "reply": {
    "group": "communication",
@@ -1566,7 +2460,19 @@
    "use": [
     "button"
    ],
-   "note": "Reply action."
+   "note": "Reply action.",
+   "words": {
+    "en": [
+     "reply",
+     "answer"
+    ],
+    "ru": [
+     "ответить"
+    ],
+    "uk": [
+     "відповісти"
+    ]
+   }
   },
   "mail": {
    "group": "communication",
@@ -1579,7 +2485,21 @@
     "button",
     "inline"
    ],
-   "note": "Email address."
+   "note": "Email address.",
+   "words": {
+    "en": [
+     "email",
+     "mail"
+    ],
+    "ru": [
+     "почта",
+     "email"
+    ],
+    "uk": [
+     "пошта",
+     "email"
+    ]
+   }
   },
   "phone": {
    "group": "communication",
@@ -1592,7 +2512,21 @@
     "button",
     "inline"
    ],
-   "note": "Phone number."
+   "note": "Phone number.",
+   "words": {
+    "en": [
+     "call",
+     "phone"
+    ],
+    "ru": [
+     "позвонить",
+     "телефон"
+    ],
+    "uk": [
+     "зателефонувати",
+     "телефон"
+    ]
+   }
   },
   "contact": {
    "group": "communication",
@@ -1605,7 +2539,21 @@
     "button",
     "inline"
    ],
-   "note": "Contact card."
+   "note": "Contact card.",
+   "words": {
+    "en": [
+     "contact",
+     "contacts"
+    ],
+    "ru": [
+     "контакт*",
+     "связаться"
+    ],
+    "uk": [
+     "контакт*",
+     "зв'язатися"
+    ]
+   }
   },
   "notifications": {
    "group": "communication",
@@ -1617,7 +2565,21 @@
     "button",
     "title"
    ],
-   "note": "Notification settings/list."
+   "note": "Notification settings/list.",
+   "words": {
+    "en": [
+     "notifications",
+     "alerts",
+     "reminders"
+    ],
+    "ru": [
+     "уведомлени*",
+     "оповещени*"
+    ],
+    "uk": [
+     "сповіщен*"
+    ]
+   }
   },
   "mute": {
    "group": "communication",
@@ -1628,7 +2590,19 @@
    "use": [
     "button"
    ],
-   "note": "Notifications off."
+   "note": "Notifications off.",
+   "words": {
+    "en": [
+     "mute"
+    ],
+    "ru": [
+     "без звука",
+     "заглушить"
+    ],
+    "uk": [
+     "без звуку"
+    ]
+   }
   },
   "announcement": {
    "group": "communication",
@@ -1654,7 +2628,19 @@
     "button",
     "title"
    ],
-   "note": "Help desk."
+   "note": "Help desk.",
+   "words": {
+    "en": [
+     "support",
+     "helpdesk"
+    ],
+    "ru": [
+     "поддержк*"
+    ],
+    "uk": [
+     "підтримк*"
+    ]
+   }
   },
   "feedback": {
    "group": "communication",
@@ -1666,7 +2652,19 @@
    "use": [
     "button"
    ],
-   "note": "Leave feedback."
+   "note": "Leave feedback.",
+   "words": {
+    "en": [
+     "feedback",
+     "review"
+    ],
+    "ru": [
+     "отзыв*"
+    ],
+    "uk": [
+     "відгук*"
+    ]
+   }
   },
   "invite": {
    "group": "communication",
@@ -1678,7 +2676,21 @@
    "use": [
     "button"
    ],
-   "note": "Invite people."
+   "note": "Invite people.",
+   "words": {
+    "en": [
+     "invite",
+     "referral"
+    ],
+    "ru": [
+     "пригласить",
+     "приглашени*"
+    ],
+    "uk": [
+     "запросити",
+     "запрошен*"
+    ]
+   }
   },
   "comment": {
    "group": "communication",
@@ -1690,7 +2702,19 @@
     "button",
     "inline"
    ],
-   "note": "Discussion."
+   "note": "Discussion.",
+   "words": {
+    "en": [
+     "comments",
+     "comment"
+    ],
+    "ru": [
+     "комментари*"
+    ],
+    "uk": [
+     "коментар*"
+    ]
+   }
   },
   "settings": {
    "group": "settings",
@@ -1703,7 +2727,22 @@
     "button",
     "title"
    ],
-   "note": "Bot settings; one gear meaning per bot."
+   "note": "Bot settings; one gear meaning per bot.",
+   "words": {
+    "en": [
+     "settings",
+     "preferences",
+     "options"
+    ],
+    "ru": [
+     "настройк*",
+     "параметры"
+    ],
+    "uk": [
+     "налаштуван*",
+     "параметри"
+    ]
+   }
   },
   "profile": {
    "group": "settings",
@@ -1716,7 +2755,22 @@
     "button",
     "title"
    ],
-   "note": "The user's profile."
+   "note": "The user's profile.",
+   "words": {
+    "en": [
+     "profile",
+     "my account",
+     "me"
+    ],
+    "ru": [
+     "профиль",
+     "кабинет"
+    ],
+    "uk": [
+     "профіль",
+     "кабінет"
+    ]
+   }
   },
   "account": {
    "group": "settings",
@@ -1729,7 +2783,20 @@
     "button",
     "title"
    ],
-   "note": "Account details."
+   "note": "Account details.",
+   "words": {
+    "en": [
+     "account"
+    ],
+    "ru": [
+     "аккаунт",
+     "учётная запись"
+    ],
+    "uk": [
+     "акаунт",
+     "обліковий запис"
+    ]
+   }
   },
   "language": {
    "group": "settings",
@@ -1742,7 +2809,19 @@
     "button",
     "title"
    ],
-   "note": "Show language names, not flags."
+   "note": "Show language names, not flags.",
+   "words": {
+    "en": [
+     "language",
+     "lang"
+    ],
+    "ru": [
+     "язык"
+    ],
+    "uk": [
+     "мова"
+    ]
+   }
   },
   "theme": {
    "group": "settings",
@@ -1754,7 +2833,21 @@
    "use": [
     "button"
    ],
-   "note": "Appearance."
+   "note": "Appearance.",
+   "words": {
+    "en": [
+     "theme",
+     "appearance"
+    ],
+    "ru": [
+     "тема",
+     "оформление"
+    ],
+    "uk": [
+     "тема",
+     "оформлення"
+    ]
+   }
   },
   "privacy": {
    "group": "settings",
@@ -1767,7 +2860,20 @@
     "button",
     "title"
    ],
-   "note": "Privacy settings."
+   "note": "Privacy settings.",
+   "words": {
+    "en": [
+     "privacy"
+    ],
+    "ru": [
+     "конфиденциальност*",
+     "приватност*"
+    ],
+    "uk": [
+     "конфіденційн*",
+     "приватн*"
+    ]
+   }
   },
   "toggle_on": {
    "group": "settings",
@@ -1829,7 +2935,23 @@
    "use": [
     "button"
    ],
-   "note": "Sign out; not the same id as exit/close."
+   "note": "Sign out; not the same id as exit/close.",
+   "words": {
+    "en": [
+     "log out",
+     "logout",
+     "sign out",
+     "exit"
+    ],
+    "ru": [
+     "выйти",
+     "выход"
+    ],
+    "uk": [
+     "вийти",
+     "вихід"
+    ]
+   }
   },
   "login": {
    "group": "settings",
@@ -1841,7 +2963,22 @@
    "use": [
     "button"
    ],
-   "note": "Sign in."
+   "note": "Sign in.",
+   "words": {
+    "en": [
+     "log in",
+     "login",
+     "sign in"
+    ],
+    "ru": [
+     "войти",
+     "вход"
+    ],
+    "uk": [
+     "увійти",
+     "вхід"
+    ]
+   }
   },
   "tools": {
    "group": "settings",
@@ -1868,7 +3005,24 @@
     "title",
     "inline"
    ],
-   "note": "Date picker/schedule."
+   "note": "Date picker/schedule.",
+   "words": {
+    "en": [
+     "calendar",
+     "schedule",
+     "date"
+    ],
+    "ru": [
+     "календар*",
+     "расписани*",
+     "дата"
+    ],
+    "uk": [
+     "календар*",
+     "розклад",
+     "дата"
+    ]
+   }
   },
   "clock": {
    "group": "time",
@@ -1881,7 +3035,18 @@
     "button",
     "inline"
    ],
-   "note": "Time of day."
+   "note": "Time of day.",
+   "words": {
+    "en": [
+     "time"
+    ],
+    "ru": [
+     "время"
+    ],
+    "uk": [
+     "час"
+    ]
+   }
   },
   "timer": {
    "group": "time",
@@ -1894,7 +3059,19 @@
     "button",
     "inline"
    ],
-   "note": "Countdown."
+   "note": "Countdown.",
+   "words": {
+    "en": [
+     "timer",
+     "countdown"
+    ],
+    "ru": [
+     "таймер"
+    ],
+    "uk": [
+     "таймер"
+    ]
+   }
   },
   "alarm": {
    "group": "time",
@@ -1905,7 +3082,23 @@
    "use": [
     "button"
    ],
-   "note": "Reminder."
+   "note": "Reminder.",
+   "words": {
+    "en": [
+     "reminder",
+     "remind",
+     "alarm"
+    ],
+    "ru": [
+     "напомин*",
+     "будильник"
+    ],
+    "uk": [
+     "нагадуван*",
+     "нагадати",
+     "будильник"
+    ]
+   }
   },
   "history": {
    "group": "time",
@@ -1918,7 +3111,22 @@
     "button",
     "title"
    ],
-   "note": "Past items."
+   "note": "Past items.",
+   "words": {
+    "en": [
+     "history",
+     "recent",
+     "log"
+    ],
+    "ru": [
+     "истори*",
+     "недавн*"
+    ],
+    "uk": [
+     "істор*",
+     "нещодавн*"
+    ]
+   }
   },
   "deadline": {
    "group": "time",
@@ -1953,7 +3161,23 @@
    "use": [
     "button"
    ],
-   "note": "Recurring."
+   "note": "Recurring.",
+   "words": {
+    "en": [
+     "repeat",
+     "again",
+     "retry"
+    ],
+    "ru": [
+     "повторить",
+     "ещё раз",
+     "еще раз"
+    ],
+    "uk": [
+     "повторити",
+     "ще раз"
+    ]
+   }
   },
   "user": {
    "group": "people",
@@ -1977,7 +3201,24 @@
     "button",
     "title"
    ],
-   "note": "Group of people/members."
+   "note": "Group of people/members.",
+   "words": {
+    "en": [
+     "users",
+     "members",
+     "people"
+    ],
+    "ru": [
+     "пользовател*",
+     "участник*",
+     "люди"
+    ],
+    "uk": [
+     "користувач*",
+     "учасник*",
+     "люди"
+    ]
+   }
   },
   "team": {
    "group": "people",
@@ -1990,7 +3231,18 @@
     "button",
     "title"
    ],
-   "note": "Team/workspace."
+   "note": "Team/workspace.",
+   "words": {
+    "en": [
+     "team"
+    ],
+    "ru": [
+     "команд*"
+    ],
+    "uk": [
+     "команд*"
+    ]
+   }
   },
   "admin": {
    "group": "people",
@@ -2004,7 +3256,21 @@
     "title",
     "inline"
    ],
-   "note": "Admin role."
+   "note": "Admin role.",
+   "words": {
+    "en": [
+     "admin",
+     "moderation"
+    ],
+    "ru": [
+     "админ*",
+     "модераци*"
+    ],
+    "uk": [
+     "адмін*",
+     "модерац*"
+    ]
+   }
   },
   "add_user": {
    "group": "people",
@@ -2054,7 +3320,21 @@
     "button",
     "title"
    ],
-   "note": "A channel."
+   "note": "A channel.",
+   "words": {
+    "en": [
+     "channel",
+     "news"
+    ],
+    "ru": [
+     "канал",
+     "новост*"
+    ],
+    "uk": [
+     "канал",
+     "новин*"
+    ]
+   }
   },
   "bot": {
    "group": "people",
@@ -2101,7 +3381,25 @@
     "button",
     "title"
    ],
-   "note": "Charts/stats."
+   "note": "Charts/stats.",
+   "words": {
+    "en": [
+     "statistics",
+     "stats",
+     "analytics",
+     "progress"
+    ],
+    "ru": [
+     "статистик*",
+     "аналитик*",
+     "прогресс"
+    ],
+    "uk": [
+     "статистик*",
+     "аналітик*",
+     "прогрес"
+    ]
+   }
   },
   "chart": {
    "group": "analytics",
@@ -2190,7 +3488,25 @@
     "button",
     "title"
    ],
-   "note": "Ranking."
+   "note": "Ranking.",
+   "words": {
+    "en": [
+     "leaderboard",
+     "rating",
+     "ranking",
+     "top"
+    ],
+    "ru": [
+     "рейтинг",
+     "лидеры",
+     "топ"
+    ],
+    "uk": [
+     "рейтинг",
+     "лідери",
+     "топ"
+    ]
+   }
   },
   "trophy": {
    "group": "analytics",
@@ -2249,7 +3565,23 @@
     "title",
     "inline"
    ],
-   "note": "AI feature entry; ✨ is overused, pick one."
+   "note": "AI feature entry; ✨ is overused, pick one.",
+   "words": {
+    "en": [
+     "ai",
+     "assistant"
+    ],
+    "ru": [
+     "ии",
+     "ассистент",
+     "нейросет*"
+    ],
+    "uk": [
+     "ші",
+     "асистент",
+     "нейромереж*"
+    ]
+   }
   },
   "magic": {
    "group": "ai",
@@ -2333,7 +3665,20 @@
    "use": [
     "button"
    ],
-   "note": "Translate text."
+   "note": "Translate text.",
+   "words": {
+    "en": [
+     "translate"
+    ],
+    "ru": [
+     "перевести на",
+     "переводчик"
+    ],
+    "uk": [
+     "перекласти",
+     "перекладач"
+    ]
+   }
   },
   "sparkle": {
    "group": "ai",
@@ -2370,7 +3715,19 @@
     "button",
     "inline"
    ],
-   "note": "A document."
+   "note": "A document.",
+   "words": {
+    "en": [
+     "file",
+     "files"
+    ],
+    "ru": [
+     "файл*"
+    ],
+    "uk": [
+     "файл*"
+    ]
+   }
   },
   "folder": {
    "group": "files",
@@ -2383,7 +3740,20 @@
     "button",
     "title"
    ],
-   "note": "A folder."
+   "note": "A folder.",
+   "words": {
+    "en": [
+     "folder",
+     "folders"
+    ],
+    "ru": [
+     "папк*"
+    ],
+    "uk": [
+     "тек*",
+     "папк*"
+    ]
+   }
   },
   "document": {
    "group": "files",
@@ -2397,7 +3767,20 @@
     "title",
     "inline"
    ],
-   "note": "Document view."
+   "note": "Document view.",
+   "words": {
+    "en": [
+     "document",
+     "documents",
+     "docs"
+    ],
+    "ru": [
+     "документ*"
+    ],
+    "uk": [
+     "документ*"
+    ]
+   }
   },
   "pdf": {
    "group": "files",
@@ -2469,7 +3852,19 @@
     "button",
     "inline"
    ],
-   "note": "A link."
+   "note": "A link.",
+   "words": {
+    "en": [
+     "link",
+     "links"
+    ],
+    "ru": [
+     "ссылк*"
+    ],
+    "uk": [
+     "посилан*"
+    ]
+   }
   },
   "cloud": {
    "group": "files",
@@ -2607,7 +4002,21 @@
     "button",
     "title"
    ],
-   "note": "Help/FAQ."
+   "note": "Help/FAQ.",
+   "words": {
+    "en": [
+     "question",
+     "ask"
+    ],
+    "ru": [
+     "вопрос",
+     "спросить"
+    ],
+    "uk": [
+     "питання",
+     "запитати"
+    ]
+   }
   },
   "help": {
    "group": "warnings",
@@ -2620,7 +4029,24 @@
     "button",
     "title"
    ],
-   "note": "Help screen; pick question or help, not both."
+   "note": "Help screen; pick question or help, not both.",
+   "words": {
+    "en": [
+     "help",
+     "faq",
+     "how"
+    ],
+    "ru": [
+     "помощь",
+     "справк*",
+     "вопрос*"
+    ],
+    "uk": [
+     "допомог*",
+     "довідк*",
+     "питан*"
+    ]
+   }
   },
   "headline": {
    "group": "post",
@@ -2823,7 +4249,27 @@
     "post_accent",
     "inline"
    ],
-   "note": "Place line."
+   "note": "Place line.",
+   "words": {
+    "en": [
+     "location",
+     "address",
+     "map",
+     "where"
+    ],
+    "ru": [
+     "адрес",
+     "карта",
+     "где",
+     "местоположени*"
+    ],
+    "uk": [
+     "адреса",
+     "карта",
+     "де",
+     "розташуван*"
+    ]
+   }
   },
   "price_mark": {
    "group": "post",

@@ -1,29 +1,102 @@
 # NotiBuddy Tool Examples
 
-## Custom Native Screen (Deployment Gate)
+## 1. Custom Native UI Builder Screen (Inline `screen.template`, Local & Hosted MCP)
+Combines status cards, KPI strip, readiness checklist gating the Face ID promote button, and a rollback toggle:
 ```json
 {
-  "title": "Promote v2.4.1 to production",
+  "title": "Promote api-gateway v2.4.1 to production",
+  "sensitive": true,
   "screen": {
     "template": {
       "root": {
         "kind": "vstack",
+        "spacing": "regular",
         "children": [
-          { "kind": "alert", "severity": "success", "title": "Canary healthy", "body": "128/128 checks passed across us-east and eu-central." },
-          { "kind": "kpiStrip", "items": [{ "label": "Canary", "value": "10%" }, { "label": "Errors", "value": "0.00%" }] }
+          {
+            "kind": "card",
+            "header": "Canary Telemetry",
+            "children": [
+              { "kind": "badge", "tone": "success", "label": "Canary Healthy" },
+              {
+                "kind": "kpiStrip",
+                "items": [
+                  { "label": "Success", "value": "99.98%" },
+                  { "label": "Errors", "value": "0.02%" },
+                  { "label": "P95", "value": "41 ms" }
+                ]
+              },
+              {
+                "kind": "keyValueList",
+                "rows": [
+                  { "key": "Commit", "value": "8f3c19a" },
+                  { "key": "Environment", "value": "us-east / eu-central" }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "card",
+            "header": "Pre-Flight Gate",
+            "children": [
+              {
+                "kind": "checklist",
+                "id": "checks",
+                "items": ["Database snapshot verified", "Rollback image pinned"]
+              },
+              {
+                "kind": "formField",
+                "id": "reason",
+                "fieldType": "text",
+                "label": "Release note",
+                "placeholder": "Optional deployment note"
+              }
+            ]
+          }
         ]
       },
       "actions": [
-        { "id": "promote", "label": "Promote to production", "role": "primary", "requireBio": true },
-        { "id": "abort", "label": "Abort deploy", "role": "destructive", "requireBio": false }
+        {
+          "id": "promote",
+          "label": "Promote to production",
+          "role": "primary",
+          "requireBio": true,
+          "enabledWhen": [{ "op": "allChecked", "checklist": "checks" }]
+        },
+        { "id": "abort", "label": "Abort deploy", "role": "decline", "requireBio": false }
       ]
     }
-  },
-  "wait_seconds": 55
+  }
 }
 ```
 
-## Face ID Deployment Approval
+## 2. Certified Built-In Screen (`screen.templateId` + `slots`, Local & Hosted MCP)
+```json
+{
+  "title": "Eval run #142 completed",
+  "screen": {
+    "templateId": "kpi_status_card",
+    "slots": {
+      "sectionTitle": "Evaluation summary",
+      "heading": "Prompt v14 benchmark",
+      "badge": "Pass +4.2%",
+      "kpis": [
+        { "label": "Pass rate", "value": "94.6%" },
+        { "label": "P50 latency", "value": "620 ms" }
+      ],
+      "summary": "Accuracy improved with 18% fewer output tokens.",
+      "detailsHeading": "Run details",
+      "details": [
+        { "key": "Dataset", "value": "agent-eval-500" },
+        { "key": "Duration", "value": "11m 42s" }
+      ],
+      "primaryAction": "Promote v14",
+      "secondaryAction": "Keep v13"
+    }
+  }
+}
+```
+
+## 3. Face ID Binary Approval
 ```json
 {
   "title": "Deploy v2.4.1 to production?",
@@ -33,19 +106,19 @@
   "requires_auth": true,
   "sensitive": true,
   "timeout_seconds": 600,
-  "wait_seconds": 55
+  "wait_seconds": 25
 }
 ```
 
-## Resume Pending Request
+## 4. Resume Pending Request
 ```json
 {
   "resume_id": "req_...",
-  "wait_seconds": 55
+  "wait_seconds": 25
 }
 ```
 
-## Code Diff Review
+## 5. Code Diff Review
 ```json
 {
   "title": "Review auth timeout change",
@@ -59,9 +132,9 @@
   "sensitive": true
 }
 ```
-Approved only when `status === "resolved"` and `answer.action === "approve"` (plus `answer.authenticated === true`).
+Approved only when `status === "resolved"`, `answer.action === "approve"`, and `answer.authenticated === true`.
 
-## Live Activity Progress
+## 6. Live Activity Progress
 ```json
 {
   "id": "build-release",
@@ -73,7 +146,7 @@ Approved only when `status === "resolved"` and `answer.action === "approve"` (pl
 }
 ```
 
-## Collect iPhone Screenshot / File
+## 7. Collect iPhone Screenshot / File
 ```json
 { "action": "list" }
 ```

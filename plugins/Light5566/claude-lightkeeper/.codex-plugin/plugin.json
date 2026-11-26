@@ -2,6 +2,13 @@
   "name": "lightkeeper",
   "version": "2.11.1",
   "description": "Lightkeeper: an Obsidian-compatible knowledge map of your codebase, kept outside the repo and kept honest by hooks: the agent reads the map before it edits and updates it before it stops.",
+  "author": {
+    "name": "Light5566",
+    "url": "https://github.com/Light5566"
+  },
+  "homepage": "https://github.com/Light5566/claude-lightkeeper",
+  "repository": "https://github.com/Light5566/claude-lightkeeper",
+  "license": "MIT",
   "keywords": [
     "obsidian",
     "knowledge-graph",
@@ -14,8 +21,23 @@
   "hooks": "./codex/hooks.json",
   "interface": {
     "displayName": "Lightkeeper",
-    "shortDescription": "A map of your codebase the agent reads before it edits and updates before it stops.",
+    "shortDescription": "A codebase map agents read",
+    "longDescription": "Lightkeeper keeps a map of how your codebase works as plain markdown notes in a folder outside the repo: one note per module, with what it owns, how it works, its gotchas, and a reason on every link to another note. Hooks keep the map in use. At session start the agent is told the map exists and how to search it. When a prompt names a module or a word the codebase uses in its own way, the relevant notes and meanings are listed. When a patch touches a file, the agent is pointed at the note that owns it. Before the agent stops, it is reminded once if code changed and no note did. The hooks only add context and never block. Setup is one command from inside your project: `vault init`. Nothing is written into your repo. The same map also serves Claude Code and Hermes Agent. No model calls, no network calls, no telemetry; Python 3.9 standard library only.",
     "developerName": "Light5566",
-    "websiteURL": "https://github.com/Light5566/claude-lightkeeper"
+    "category": "Developer Tools",
+    "capabilities": [
+      "Point the agent at the note that owns a file when a patch touches it",
+      "List the notes and glossary terms relevant to a prompt",
+      "Remind the agent to update the map when code changed and no note did",
+      "Search the map by topic or by file from the vault command line"
+    ],
+    "websiteURL": "https://github.com/Light5566/claude-lightkeeper",
+    "supportURL": "https://github.com/Light5566/claude-lightkeeper/issues",
+    "defaultPrompt": [
+      "Which notes in the map own the files I am about to change?",
+      "Update the map for what this session changed."
+    ],
+    "composerIcon": "./.claude-plugin/icon.png",
+    "logo": "./.claude-plugin/icon.png"
   }
 }

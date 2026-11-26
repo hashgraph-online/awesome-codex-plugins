@@ -577,7 +577,10 @@ def rank_by_facets(doc: dict, brief: dict, *, require: list[str] | None = None, 
                    theme: str | None = None, top: int = 10, lang: str = "en") -> dict:
     """Packs of the library ordered by how well their tags fit a brief (no slot coverage involved).
     `require` are hard filters ("facet:value": the pack must carry the tag at or above the library's pack
-    threshold). Each row also names the pack's tag-compatible companions."""
+    threshold). Each row also names the pack's tag-compatible companions. `motion="static"` only lowers the
+    score of a pack with animated or video emoji (a preference, never a filter); buttons take static custom
+    emoji only, so for a button set pass `require=["motion:static"]` or pick with `pick_family`, which
+    chooses the static emoji of every slot."""
     th = (doc.get("thresholds") or {}).get("pack", 0.3)
     wanted, problems = normalize_brief(brief, doc)
     must: list[tuple[str, str]] = []
@@ -779,7 +782,9 @@ def pick_family(needed: list[str], vocab: dict, client: LibraryClient, *, candid
        without that tag.
     2. Coverage: fetch each top candidate pack and match every slot by fallback emoji.
     3. Score = coverage, then fit to the brief, then theme safety (adaptive share when both themes
-       matter), then motion (static preferred on buttons), then one format across the pack.
+       matter), then motion (static by default: a button never takes an animated or video emoji), then one
+       format across the pack. Inside a pack a slot gets the static emoji of its meaning when there is one
+       (the same fallback first, then the slot's other emoji); `motion="any"` takes the first match.
     A library without tags ignores the brief; the answer's `notes` say so. Every ranked pack carries its
     description (what it is, what it suits and does not) and `why`, one line on coverage, style, topic, colour.
     """
@@ -829,10 +834,14 @@ def pick_family(needed: list[str], vocab: dict, client: LibraryClient, *, candid
         emoji = [e for e in doc.get("emoji") or [] if isinstance(e, dict) and str(e.get("id", "")).isdigit()]
         by_key: dict[str, dict] = {}
         for e in emoji:
-            by_key.setdefault(emoji_key(e.get("fallback") or ""), e)
+            key = emoji_key(e.get("fallback") or "")
+            if key not in by_key or (motion == "static" and by_key[key].get("format") != "static" and e.get("format") == "static"):
+                by_key[key] = e
         icons, missing = {}, []
         for slot in slots:
-            hit = next((by_key[emoji_key(k)] for k in vocab[slot].get("unicode") or [] if emoji_key(k) in by_key), None)
+            options = [by_key[emoji_key(k)] for k in vocab[slot].get("unicode") or [] if emoji_key(k) in by_key]
+            hit = next((e for e in options if e.get("format") == "static"), None) if motion == "static" else None
+            hit = hit or (options[0] if options else None)
             if hit is None:
                 missing.append(slot)
                 continue
@@ -1067,7 +1076,7 @@ def main(argv=None) -> int:
     lib.add_argument("--pack", help="search inside one pack")
     lib.add_argument("--needs", help="pick: comma-separated slots")
     lib.add_argument("--from", dest="source", help="pick: texts/keyboards/payload JSON or plain text")
-    lib.add_argument("--motion", choices=["static", "any"], default="static", help="static icons are preferred on buttons")
+    lib.add_argument("--motion", choices=["static", "any"], default="static", help="static (default): a button never takes an animated or video emoji; any: no preference")
     lib.add_argument("--theme", choices=["both", "light", "dark"], default="both", help="both: prefer adaptive emoji")
     lib.add_argument("--candidates", type=int, default=6, help="packs fetched in full for real coverage")
     lib.add_argument("--profile", help="pick/facets: the bot's style profile JSON; icon style, traits and archetype become "

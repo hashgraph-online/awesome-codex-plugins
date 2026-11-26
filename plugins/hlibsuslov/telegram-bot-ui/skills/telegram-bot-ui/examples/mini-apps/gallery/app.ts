@@ -281,5 +281,6 @@ for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) {
 $('qr-path').setAttribute('d', 'M0 0h7v7H0zM1 1v5h5V1zM2 2h3v3H2zM14 0h7v7h-7zM15 1v5h5V1zM16 2h3v3h-3zM0 14h7v7H0zM1 15v5h5v-5zM2 16h3v3H2z' + cells.join(''));
 ($('qr-path') as unknown as SVGPathElement).setAttribute('fill-rule', 'evenodd');
 
+tma.start(); // fullscreen on iOS / Android (8.0+), the expanded sheet elsewhere
 tma.chrome({ header: 'secondary_bg_color', background: 'secondary_bg_color', bottomBar: 'secondary_bg_color' });
 tma.ready();

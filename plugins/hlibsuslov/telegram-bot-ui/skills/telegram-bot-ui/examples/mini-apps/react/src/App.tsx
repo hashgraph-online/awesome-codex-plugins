@@ -1,9 +1,10 @@
 // The coffee pickup scenario of examples/mini-apps/vanilla in React: Menu and Order tabs, a drink screen with
 // Telegram's BackButton and MainButton, and an order screen whose MainButton places the order.
 // Native buttons are driven from effects that clean up their listeners when the screen changes.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backButton, mainButton } from '@tma.js/sdk-react';
 import { Cell, List, Placeholder, Section, Segmented } from './kit';
+import ICONS from '../../_kit/icons.svg?url';
 
 type Drink = { id: string; name: string; desc: string; prices: Record<'S' | 'M' | 'L', number> };
 type Line = { drink: Drink; size: 'S' | 'M' | 'L'; qty: number };
@@ -47,6 +48,12 @@ export function App({ haptic }: { haptic: Haptic }) {
   const [placing, setPlacing] = useState(false);
   const select = () => haptic.selectionChanged.isAvailable() && haptic.selectionChanged();
   const total = useMemo(() => cart.reduce((s, l) => s + l.drink.prices[l.size] * l.qty, 0), [cart]);
+
+  // Each tab, and the list under the drink screen, comes back where the user left it; a new screen starts at the top.
+  const view = drink ? 'drink' : tab;
+  const scrolls = useRef<Record<string, number>>({});
+  const remember = () => { scrolls.current[view] = window.scrollY; };
+  useLayoutEffect(() => { window.scrollTo(0, view === 'drink' ? 0 : scrolls.current[view] ?? 0); }, [view]);
 
   const back = useMemo(() => (drink ? () => setDrink(null) : null), [drink]);
   useBackButton(back);
@@ -97,7 +104,7 @@ export function App({ haptic }: { haptic: Haptic }) {
         {tab === 'menu' && (
           <Section title="Drinks">
             <List>{DRINKS.map((d) => (
-              <Cell key={d.id} title={d.name} subtitle={d.desc} after={money.format(d.prices.S)} chevron onClick={() => { setSize('M'); setDrink(d); }} />
+              <Cell key={d.id} title={d.name} subtitle={d.desc} after={money.format(d.prices.S)} chevron onClick={() => { remember(); setSize('M'); setDrink(d); }} />
             ))}</List>
           </Section>
         )}
@@ -109,13 +116,15 @@ export function App({ haptic }: { haptic: Haptic }) {
           </Section>
         ) : (
           <Placeholder title="Nothing here yet" text="Drinks you add from the menu appear here."
-            action={<button type="button" className="tma-btn is-tonal" onClick={() => setTab('menu')}>Open the menu</button>} />
+            action={<button type="button" className="tma-btn is-tonal" onClick={() => { remember(); setTab('menu'); }}>Open the menu</button>} />
         ))}
       </main>
       <nav className="tma-tabbar tma-glass" role="tablist" aria-label="Sections">
         {(['menu', 'order'] as const).map((t) => (
-          <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => { if (t !== tab) { setTab(t); select(); } }}>
-            {t === 'menu' ? 'Menu' : `Order${cart.length ? ` · ${cart.length}` : ''}`}
+          <button key={t} type="button" role="tab" aria-selected={tab === t}
+            onClick={() => { if (t !== tab) { remember(); setTab(t); select(); } else window.scrollTo(0, 0); }}>
+            <svg className="tma-icon" aria-hidden="true"><use href={`${ICONS}#${t === 'menu' ? 'i-cup' : 'i-bag'}`} /></svg>
+            <span>{t === 'menu' ? 'Menu' : `Order${cart.length ? ` · ${cart.length}` : ''}`}</span>
           </button>
         ))}
       </nav>

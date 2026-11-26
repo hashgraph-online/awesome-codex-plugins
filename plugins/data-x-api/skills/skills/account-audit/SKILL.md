@@ -64,7 +64,7 @@ This skill runs the DataXAPI task `account-audit` with the `dataxapi` command li
 dataxapi run account-audit platform=tiktok account=nasa --plan
 ```
 
-With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 21, catalog revision dc959672dd18e2d0). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 2 calls or $0.06.
+With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 22, catalog revision 0051cce45e9530b9). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 2 calls or $0.06.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

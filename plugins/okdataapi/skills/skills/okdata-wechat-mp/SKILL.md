@@ -1,6 +1,6 @@
 ---
 name: okdata-wechat-mp
-description: "Public WeChat Official Accounts data through okdata: accounts, articles, comment replies. 8 endpoints, $0.02–$0.15 a call. Use when a task needs WeChat Official Accounts data. 通过 okdata 取微信公众号公开数据：账号、文章、评论回复。8 个接口，每次 $0.02–$0.15。"
+description: "Public WeChat Official Accounts data through okdata: accounts, articles, comment replies, huxuan. 12 endpoints, $0.02–$0.15 a call. Use when a task needs WeChat Official Accounts data. 通过 okdata 取微信公众号公开数据：账号、文章、评论回复、huxuan。12 个接口，每次 $0.02–$0.15。"
 license: MIT
 ---
 
@@ -8,7 +8,7 @@ license: MIT
 
 > Official Account articles and history, without a QR login. (微信公众号：公众号文章和历史文章，不用扫码。)
 
-8 endpoints, $0.02–$0.15 a call. Nothing here needs a WeChat Official Accounts account, cookie or QR login.
+12 endpoints, $0.02–$0.15 a call. Nothing here needs a WeChat Official Accounts account, cookie or QR login.
 
 ## Which endpoint answers which question
 
@@ -22,6 +22,10 @@ license: MIT
 | Official Account article stats (公众号文章互动数据): The counts of an article right now, by its link: reads, likes, recommends (在看, in ext), shares, saves and comments. Only the counts: title and text come from wechat_mp.articles.get. | `wechat_mp.articles.metrics` | `url` | $0.02 per call |
 | Official Account comment replies (公众号评论回复): The replies under one comment on an article, by the comment's ID and the article's link: text, replier, likes, time posted and IP location. The first batch only, without further pages. | `wechat_mp.comments.replies.list` | `id`, `post_id` | $0.02 per call · about 3 comments per page |
 | Official Account owner (公众号主体信息): Who an Official Account is registered to, by its original ID: the company, body or person, its kind, registration number and country, the verification status, kind and date, when the account was registered, and the third-party services it has authorised. | `wechat_mp.accounts.owner.get` | `id` | $0.15 per call |
+| Huxuan Official Account search (互选公众号达人搜索): Search Official Accounts on Tencent Huxuan (互选) by keyword and follower range: followers band, 30-day average reads, likes and comments, and quoted rates in yuan. | `wechat_mp.huxuan.creators.search` | nothing | $0.108 per call · about 30 creators per page |
+| Huxuan Official Account profile (互选公众号达人详情): An Official Account as Tencent Huxuan shows advertisers: followers, categories, reading figures and rates. | `wechat_mp.huxuan.creators.get` | `id` | $0.065 per call |
+| Huxuan Official Account articles (互选公众号文章): A Huxuan Official Account's articles within dates, all or sponsored (互选订单), optionally by title words: title, link, time, reads, likes and shares. | `wechat_mp.huxuan.creators.articles.list` | `id`, `start_date`, `end_date` | $0.108 per call · about 20 articles per page |
+| Huxuan Official Account article (互选公众号文章详情): One Official Account article on Tencent Huxuan by article ID: title, link, time, reads, likes and shares. | `wechat_mp.huxuan.articles.get` | `id` | $0.065 per call |
 
 ## How to call it
 
@@ -58,7 +62,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -76,4 +80,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 Every WeChat Official Accounts endpoint with its full contract: https://okdata.online/apis/wechat_mp/?src=skill-okdata-wechat-mp
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

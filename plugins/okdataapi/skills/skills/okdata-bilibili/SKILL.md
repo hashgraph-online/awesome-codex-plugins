@@ -1,14 +1,14 @@
 ---
 name: okdata-bilibili
-description: "Public Bilibili data through okdata: videos, trending board, accounts, comment replies, backup. 9 endpoints, $0.002–$0.0025 a call. Use when a task needs Bilibili data. 通过 okdata 取B站公开数据：视频、热榜、账号、评论回复、backup。9 个接口，每次 $0.002–$0.0025。"
+description: "Public Bilibili data through okdata: videos, trending board, accounts, comment replies, backup, live. 12 endpoints, $0.002–$0.043 a call. Use when a task needs Bilibili data. 通过 okdata 取B站公开数据：视频、热榜、账号、评论回复、backup、live。12 个接口，每次 $0.002–$0.043。"
 license: MIT
 ---
 
 # Bilibili data with okdata
 
-> Videos, comments and the popular board. (B站：视频、评论和热门榜。)
+> Videos, comments, live rooms and the popular board. (B站：视频、评论、直播和热门榜。)
 
-9 endpoints, $0.002–$0.0025 a call. Nothing here needs a Bilibili account, cookie or QR login.
+12 endpoints, $0.002–$0.043 a call. Nothing here needs a Bilibili account, cookie or QR login.
 
 ## Which endpoint answers which question
 
@@ -23,6 +23,9 @@ license: MIT
 | Bilibili comment replies (B站评论回复): The replies to a comment, by the comment's ID and its video's BV ID: text, replier, likes, which reply each answers (parent_id), time posted and IP location. | `bilibili.comments.replies.list` | `id`, `post_id` | $0.002 per call · about 20 comments per page |
 | Bilibili popular videos (B站综合热门): Bilibili's popular videos, 20 a page: title, description, uploader, views, likes, coins, saves, danmaku, length, section, IP location and why it is recommended. | `bilibili.videos.trending` | nothing | $0.002 per call · about 20 videos per page |
 | Bilibili account videos (backup) (B站用户投稿（备用版）): The backup of bilibili.users.videos.list, for when it cannot serve: an account's uploads, newest first, 20 a page (its data path pages by 20), at a little more. Title, cover, views, danmaku, length and time published; no description, likes or comment count. A user that does not exist reads like one without uploads: an empty page, not a 404. | `bilibili.backup.users.videos.list` | `id` | $0.0025 per call · about 20 videos per page |
+| Bilibili live room (B站直播间信息): A Bilibili live room by its number or live.bilibili.com link: whether it is live, title, the host's user ID and followers, start time, the room's popularity score, area, tags and cover. A room playing recordings between sessions counts as offline. | `bilibili.live.rooms.get` | `id` or `url` | $0.002 per call |
+| Bilibili account live status (B站用户开播状态): Whether a Bilibili account is live right now, by user ID: its room number and link, the room's title, cover and popularity score, and the host with followers. bilibili.live.rooms.get has the start time, area and tags. | `bilibili.live.users.get` | `id` | $0.002 per call |
+| Bilibili danmaku (B站弹幕): The danmaku (bullet comments) of a Bilibili video by BV ID, a 6-minute stretch of the video a page, in playback order: the text, the second it shows at and when it was sent. No sender. | `bilibili.videos.danmaku.list` | `id` | $0.043 per call · about 20 results per page |
 
 ## How to call it
 
@@ -59,7 +62,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -77,4 +80,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 Every Bilibili endpoint with its full contract: https://okdata.online/apis/bilibili/?src=skill-okdata-bilibili
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

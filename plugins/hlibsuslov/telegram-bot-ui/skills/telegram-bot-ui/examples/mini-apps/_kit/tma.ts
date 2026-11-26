@@ -53,6 +53,12 @@ export interface WebAppLike {
   ready(): void;
   expand?(): void;
   close?(): void;
+  /** 8.0: fullscreen; the result comes as fullscreenChanged or fullscreenFailed. */
+  requestFullscreen?(): void;
+  exitFullscreen?(): void;
+  /** 7.7: swipe down on the content minimises or closes the app unless disabled. */
+  enableVerticalSwipes?(): void;
+  disableVerticalSwipes?(): void;
   onEvent(name: string, cb: (...a: unknown[]) => void): void;
   offEvent(name: string, cb: (...a: unknown[]) => void): void;
   setHeaderColor?(c: string): void;
@@ -261,10 +267,24 @@ export interface FallbackButtonLike {
   onclick: ((ev?: unknown) => unknown) | null;
 }
 
+/** The page's vertical scroll, for keeping each screen and tab where the user left it (tests inject one). */
+export interface ScrollerLike {
+  /** Where the user was: the current position, or the last one a scroll event saw when the app has already
+   *  reset the view in the same tap (hid the list, called scrollTo(0, 0)) before pushing. */
+  y(): number;
+  to(y: number): void;
+  /** Runs after the app has shown the screen it returns to. */
+  frame(cb: () => void): void;
+}
+
 export interface Env {
   webApp?: WebAppLike | null;
   /** Shown instead of the MainButton outside Telegram (plain browser); default: [data-tma-fallback="main-button"]. */
   fallbackButton?: FallbackButtonLike | null;
+  /** Shown instead of Telegram's BackButton where there is none (plain browser, clients before 6.1) while a screen
+   *  or sheet is open; default: [data-tma-fallback="back-button"]. */
+  fallbackBack?: FallbackButtonLike | null;
+  scroller?: ScrollerLike | null;
   root?: RootLike;
   location?: { hash: string; search: string };
   userAgent?: string;
@@ -434,6 +454,19 @@ export interface Layer {
   id: string;
   kind: 'screen' | 'sheet';
   onBack?: () => void;
+  /** Written by nav.push for screens: where the view underneath was scrolled. nav.pop scrolls back there. */
+  scrollY?: number;
+}
+
+/** How the app asks to open (references/mini-apps/launch-and-lifecycle.md):
+ *  'mobile' - fullscreen on iOS and Android (8.0+), the expanded sheet elsewhere; the skill's default;
+ *  'always' - fullscreen on desktop too (games, video, maps); 'never' - the expanded sheet everywhere. */
+export type FullscreenMode = 'mobile' | 'always' | 'never';
+/** <html data-tma-fullscreen>: on, off (asked for the sheet, or the user left fullscreen), unsupported. */
+export type FullscreenState = 'on' | 'off' | 'unsupported';
+
+export interface LaunchOptions {
+  fullscreen?: FullscreenMode;
 }
 
 export function createTma(env: Env = {}) {
@@ -660,31 +693,125 @@ export function createTma(env: Env = {}) {
     return true;
   }
 
-  /* -- one navigation stack: screens and sheets; BackButton mirrors its depth */
+  /* -- scroll positions: a screen or tab comes back where the user left it */
+  let lastY = 0;
+  const win = w as unknown as {
+    scrollY?: number; scrollTo?(x: number, y: number): void; requestAnimationFrame?(cb: () => void): number;
+    addEventListener?(t: string, cb: () => void, o?: unknown): void; removeEventListener?(t: string, cb: () => void): void;
+  } | undefined;
+  const scroller: ScrollerLike | null = env.scroller !== undefined ? env.scroller : win?.scrollTo ? (() => {
+    lastY = win.scrollY ?? 0;
+    const track = () => { lastY = win.scrollY ?? 0; };
+    win.addEventListener?.('scroll', track, { passive: true });
+    subs.push(() => win.removeEventListener?.('scroll', track));
+    return {
+      // Where the page is now; 0 here while the last scroll event saw more means the app already reset the view
+      // in this tap (hid the list, scrollTo(0, 0)) before telling the kit: the position before that counts.
+      y: () => (win.scrollY ?? 0) || lastY,
+      to: (y: number) => win.scrollTo!(0, y),
+      frame: (cb: () => void) => { if (win.requestAnimationFrame) win.requestAnimationFrame(cb); else setTimeout(cb, 0); },
+    };
+  })() : null;
+  /** Per-key positions for tabs: leave(tab) before switching, enter(tab) after showing it; top() for a tap on
+   *  the tab that is already selected (it scrolls that tab to the top, as native tab bars do). */
+  function scrollMemory() {
+    const pos = new Map<string, number>();
+    return {
+      top(): void { scroller?.to(0); },
+      leave(key: string): void { if (scroller) pos.set(key, scroller.y()); },
+      enter(key: string): void {
+        if (!scroller) return;
+        const y = pos.get(key) ?? 0;
+        scroller.frame(() => scroller.to(y));
+      },
+    };
+  }
+
+  /* -- one navigation stack: screens and sheets; BackButton mirrors its depth.
+     Telegram's BackButton (6.1+) also receives Android's system back. Where there is none (plain browser, older
+     clients) the [data-tma-fallback="back-button"] element stands in, so no screen is a dead end. */
   const stack: Layer[] = [];
+  const nativeBack = inTelegram && !!tg?.BackButton && has('6.1');
   const backHandler = () => {
     const top = stack[stack.length - 1];
     if (top) top.onBack?.();
   };
-  if (tg?.BackButton && has('6.1')) tg.BackButton.onClick(backHandler);
-  subs.push(() => { if (tg?.BackButton && has('6.1')) tg.BackButton.offClick(backHandler); });
+  if (nativeBack) tg!.BackButton!.onClick(backHandler); // nativeBack implies both
+  subs.push(() => { if (nativeBack) tg!.BackButton!.offClick(backHandler); });
+  const fallbackBack: FallbackButtonLike | null = nativeBack ? null : env.fallbackBack !== undefined ? env.fallbackBack
+    : ((w?.document?.querySelector('[data-tma-fallback="back-button"]') as unknown as FallbackButtonLike | null) ?? null);
+  if (fallbackBack) fallbackBack.onclick = backHandler;
+
+  /* -- vertical swipes (7.7): a sheet's own drag and scroll must not minimise the app, so swipes are off while a
+     sheet is open; verticalSwipes(false) keeps them off for apps with their own vertical gestures. */
+  let swipesWanted = true;
+  let swipesApplied = true; // Telegram's default
+  function applySwipes(): void {
+    const on = swipesWanted && !stack.some((l) => l.kind === 'sheet');
+    if (on === swipesApplied || !has('7.7')) return;
+    swipesApplied = on;
+    if (on) tg?.enableVerticalSwipes?.(); else tg?.disableVerticalSwipes?.();
+  }
+  function verticalSwipes(on: boolean): boolean {
+    swipesWanted = on;
+    applySwipes();
+    return has('7.7');
+  }
+
   function syncBack(): void {
-    if (!tg?.BackButton || !has('6.1')) return;
-    if (stack.length > 0) tg.BackButton.show();
-    else tg.BackButton.hide();
+    applySwipes();
+    if (fallbackBack) fallbackBack.hidden = stack.length === 0;
+    if (!nativeBack) return;
+    if (stack.length > 0) tg!.BackButton!.show();
+    else tg!.BackButton!.hide();
   }
   const nav = {
-    push(layer: Layer): void { stack.push(layer); syncBack(); },
+    /** Push before switching the view: the kit notes the scroll position of the screen underneath. */
+    push(layer: Layer): void {
+      if (layer.kind === 'screen' && scroller && layer.scrollY === undefined) layer.scrollY = scroller.y();
+      stack.push(layer);
+      syncBack();
+    },
+    /** Removes the layer (the top one without an id). A screen's view underneath scrolls back to where it was. */
     pop(id?: string): Layer | undefined {
       const i = id ? stack.map((l) => l.id).lastIndexOf(id) : stack.length - 1;
       const [removed] = i >= 0 ? stack.splice(i, 1) : [];
       syncBack();
+      const y = removed?.kind === 'screen' ? removed.scrollY : undefined;
+      if (y !== undefined && scroller) scroller.frame(() => scroller.to(y));
       return removed;
     },
+    /** Drops every layer without restoring scroll: a finished flow (order placed) starts its next screen fresh. */
     reset(): void { stack.length = 0; syncBack(); },
+    /** What the BackButton does: the top layer's onBack. */
+    back(): void { backHandler(); },
     get depth(): number { return stack.length; },
     get top(): Layer | undefined { return stack[stack.length - 1]; },
   };
+
+  /* -- launch: fullscreen on phones where the client has it, the expanded sheet everywhere else */
+  let fullscreenState: FullscreenState = 'unsupported';
+  function markFullscreen(s: FullscreenState): void {
+    fullscreenState = s;
+    if (root) root.dataset.tmaFullscreen = s;
+  }
+  /** Call once at start, before ready(). expand() first, so a half-height or compact launch (and every client
+   *  older than 8.0 or without fullscreen) still gets the full height; then requestFullscreen where the mode asks
+   *  for it. Telegram's safe-area variables follow (the kit's --tma-safe-* already add them). */
+  function start(opts: LaunchOptions = {}): void {
+    const mode = opts.fullscreen ?? 'mobile';
+    if (!tg || !inTelegram) { markFullscreen('unsupported'); return; }
+    attempt(() => tg.expand?.());
+    if (!has('8.0') || typeof tg.requestFullscreen !== 'function') { markFullscreen('unsupported'); return; }
+    const sync = () => markFullscreen(tg.isFullscreen ? 'on' : 'off');
+    listen('fullscreenChanged', sync);
+    listen('fullscreenFailed', (e) => { if (e?.error === 'UNSUPPORTED') markFullscreen('unsupported'); else sync(); });
+    const platform = platformClass(tg.platform);
+    const wanted = mode === 'always' || (mode === 'mobile' && (platform === 'ios' || platform === 'android'));
+    sync();
+    if (!wanted || tg.isFullscreen) return;
+    try { tg.requestFullscreen(); } catch { markFullscreen('unsupported'); }
+  }
 
   /* -- settings item in the ⋯ menu (7.0+) */
   let settingsCb: (() => void) | null = null;
@@ -925,10 +1052,12 @@ export function createTma(env: Env = {}) {
   }
 
   return {
-    tg, inTelegram, launch, has, on, listen, state, chrome, haptic, mainButton, secondaryButton, nav, settings,
+    tg, inTelegram, launch, start, has, on, listen, state, chrome, haptic, mainButton, secondaryButton,
+    nav, scrollMemory, verticalSwipes, settings,
     closingConfirmation, confirm, store, deviceStore, secureStore, pay, watchOrder, writeAccess, requestChat, motion, location,
     locale, api, hideKeyboard, ready, dispose,
     get initData(): string { return tg?.initData ?? ''; },
+    get fullscreen(): FullscreenState { return fullscreenState; },
   };
 }
 

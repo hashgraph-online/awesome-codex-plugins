@@ -1,6 +1,6 @@
 ---
 name: okdata-trends
-description: "What is trending right now? Reads the trending board of every platform you pick, one call each, as one table with a platform column: rank, topic and heat. Use when the user asks this about Douyin, Xiaohongshu (RedNote), Bilibili, Weibo, X (Twitter), Reddit, Kuaishou. 此刻各平台在热什么？读你选的每个平台的热榜，每个平台一次调用，排成一张带平台列的表：排名、话题和热度。"
+description: "What is trending right now? Reads the trending board of every platform you pick, one call each, as one table with a platform column: rank, topic and heat. Use when the user asks this about Douyin, Xiaohongshu (RedNote), Bilibili, Weibo, X (Twitter), Reddit, Kuaishou, Zhihu, Toutiao, Baidu, All platforms. 此刻各平台在热什么？读你选的每个平台的热榜，每个平台一次调用，排成一张带平台列的表：排名、话题和热度。"
 license: MIT
 ---
 
@@ -10,7 +10,7 @@ license: MIT
 
 Reads the trending board of every platform you pick, one call each, as one table with a platform column: rank, topic and heat.
 
-Runs on 7 platforms: Douyin, Xiaohongshu (RedNote), Bilibili, Weibo, X (Twitter), Reddit, Kuaishou. Example: 3 calls on Douyin, Weibo, Bilibili, at most $0.006.
+Runs on 11 platforms: Douyin, Xiaohongshu (RedNote), Bilibili, Weibo, X (Twitter), Reddit, Kuaishou, Zhihu, Toutiao, Baidu, All platforms. Example: 3 calls on Douyin, Weibo, Bilibili, at most $0.006.
 
 ## Inputs
 
@@ -37,6 +37,10 @@ Runs on 7 platforms: Douyin, Xiaohongshu (RedNote), Bilibili, Weibo, X (Twitter)
 | X (Twitter) | trends | `x.trends.list` | $0.009 per call · about 30 board entries per page | nothing |
 | Reddit | trends | `reddit.trends.list` | $0.002 per call · about 6 board entries per page | nothing |
 | Kuaishou | trends | `kuaishou.trends.list` | $0.002 per call · about 51 board entries per page | nothing |
+| Zhihu | trends | `zhihu.trends.list` | $0.002 per call · about 30 board entries per page | nothing |
+| Toutiao | trends | `toutiao.trends.list` | $0.002 per call · about 50 board entries per page | nothing |
+| Baidu | trends | `baidu.trends.list` | $0.002 per call · about 50 board entries per page | nothing |
+| All platforms | trends | `all.trends.list` | $0.03 per call · about 400 board entries per page | nothing |
 
 ## How to call it
 
@@ -71,7 +75,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap). Ask before going past 8 calls in one run.
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -80,4 +84,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 More: https://okdata.online/skills/trends/?src=skill-okdata-trends · 中文：https://okdata.online/zh/skills/trends/?src=skill-okdata-trends
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

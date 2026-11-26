@@ -137,6 +137,29 @@ Subheadline semibold, h6 → Footnote semibold in hint colour; lists, code, rule
 | `--tma-r-sheet` | 38 | top corners of a sheet |
 | `--tma-target` | 44 / 48 | minimum touch target |
 | capsules | radius = half the height | buttons 28 / 34 / 50, chips 34, segmented 32, tab bar 56 |
+| `--tma-gap-surface` | 16 (dense 12, soft 20) | between two stacked surfaces outside a `.tma-stack`; the kit applies it |
+
+### Surface rules S1-S6 (hard, every screen) **[Heuristic, owner decision 2026-11-26]**
+
+A surface is any rounded box with its own background or border: card, inset group (list), key-value block,
+table, banner, coachmark, plan card. These are not taste: a screen that breaks one is not done.
+
+| Rule | Must | Never |
+|---|---|---|
+| **S1 gap** | 16 px between stacked surfaces of one section (`--tma-gap-surface`), 24 px between sections (`.tma-stack`, `--tma-gap-section`) | two surfaces touching or 1-11 px apart; a card glued under a list |
+| **S2 inset** | content 16 px from a surface's left and right edges, 12-16 px from its top and bottom (rows of a list: their own 52 / 68 px height) | text, a progress bar or a control closer than 12 px to a side; a title in the corner curve |
+| **S3 radius scale** | one radius for groups and cards (`--tma-r-group` 26 / 16), one for nested surfaces (`--tma-r-inner` 14 / 10), capsules = half the height | a third or fourth card radius on one screen; a one-off 20 px next to 26 px |
+| **S4 nesting** | inner radius = outer radius minus the inset (26 - 12 ≈ 14); one surface level ([MA35](anti-slop.md)) | an inner box rounder than the box around it; a card in a card |
+| **S5 edges** | surfaces 16 px from the screen edge (safe area in landscape) or full-bleed (Android groups) | a card 4-8 px from the edge |
+| **S6 groups** | related settings in ONE inset group with separators (a toggle row, a picker row); unrelated blocks are separate surfaces 16 px apart | the setting and its hint in one surface and the next card touching it; a progress block squeezed under a settings card |
+
+Checks: `scripts/miniapp_lint.py` MA48 (card-like CSS with padding under 12 px) and MA35 (nesting) statically;
+the rendered geometry with `_kit/tma-audit.mjs`: on the stand add `?audit=1` (findings in the call log, surfaces
+outlined, `window.__tmaAudit`; re-run on any screen with `window.tmaAudit()`), in your own dev build
+`import { audit } from './tma-audit.mjs'; console.table(audit(document, { outline: true }).findings)`.
+Rules LA01 gap, LA02 inset, LA03 radius scale, LA04 nesting, LA05 edges; errors are blockers, warnings are
+fixed or written down with the reason. Run it on every screen and state (empty, loading, error, each tab, each
+sheet), not only the first one.
 
 ## 6. Platforms
 
@@ -290,8 +313,11 @@ drift. Colour tokens are not style tokens.
 ```ts
 import { createTma } from '../_kit/tma.ts';             // built to JS by build.mjs, no packages
 const tma = createTma();                                // saves launch params, mirrors theme/platform/perf
+tma.start();                                            // fullscreen on iOS / Android (8.0+), expanded elsewhere
 tma.chrome({ header: 'secondary_bg_color', background: 'secondary_bg_color', bottomBar: 'secondary_bg_color' });
 tma.nav.push({ id: 'detail', kind: 'screen', onBack: closeDetail });   // BackButton follows the stack
+tma.nav.pop('detail');                                  // in closeDetail: the list comes back where it was
+const tabs = tma.scrollMemory();                        // tabs.leave(old); show(new); tabs.enter(new)
 tma.mainButton({ text: 'Add to order · €4.20', onClick: add });        // progress while it runs
 tma.haptic.select();
 tma.ready();                                            // after the first useful screen is drawn
@@ -309,7 +335,9 @@ tables `.tma-table`, `.tma-kv`, `.tma-rank`; settings `.tma-cell__check`, `.tma-
 overlays `.tma-menu`, `.tma-action-sheet`; media `.tma-media`, `.tma-gallery`, `.tma-carousel`, `.tma-dots`,
 `.tma-audio`, `.tma-file__icon`, `.tma-avatar-stack`, `.tma-moment`, `.tma-map`, `.tma-qr`; structure
 `.tma-accordion`, `.tma-steps`; input `.tma-rating`, `.tma-pin`, `.tma-file-drop`. Icons: `_kit/icons.svg`
-(83, mapped to SF Symbols and Material in `data/mini-apps/icons.json`). Anatomy and states:
+(86, mapped to SF Symbols and Material in `data/mini-apps/icons.json`, which also maps tab labels to the icons
+that mean them).
+Browser stand-ins outside Telegram: `[data-tma-fallback="main-button"]`, `[data-tma-fallback="back-button"]`. Anatomy and states:
 [components.md](components.md); every element rendered: `examples/mini-apps/gallery`.
 
 ## 11. Checklist
@@ -320,6 +348,7 @@ overlays `.tma-menu`, `.tma-action-sheet`; media `.tma-media`, `.tma-gallery`, `
 - [ ] Safe area + content safe area in fullscreen; nothing under Telegram's controls.
 - [ ] Type from the scale, nothing below 11 px, figures in tabular numbers.
 - [ ] Radii consistent and nested correctly; targets ≥ 44 (48 on Android).
+- [ ] S1-S6 hold on every screen: `?audit=1` on the stand shows 0 errors (gaps 16 / 24, insets 16, one radius scale).
 - [ ] Every list has empty and error states; every load a skeleton; every action feedback.
 - [ ] Motion transform/opacity only, reduced motion respected; Android `LOW` gets the light variant.
 - [ ] Names, focus, text size, contrast, language and RTL: [accessibility-and-language.md](accessibility-and-language.md) §11.

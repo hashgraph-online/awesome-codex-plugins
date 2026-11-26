@@ -1,6 +1,6 @@
 {
   "name": "manuwright",
-  "version": "1.10.8",
+  "version": "1.10.15",
   "description": "Evidence-bound medical manuscript workflow. Requires the manuwright CLI of the same version.",
   "author": {
     "name": "Sang-Min Park"

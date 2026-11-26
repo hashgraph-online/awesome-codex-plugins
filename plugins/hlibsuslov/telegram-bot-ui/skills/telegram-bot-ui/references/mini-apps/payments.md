@@ -16,6 +16,7 @@ bot_api: "10.5"
 - [6. Card payments for physical goods](#6-card-payments-for-physical-goods)
 - [7. Telegram Serverless variant](#7-telegram-serverless-variant)
 - [8. Checklist](#8-checklist)
+- [9. The paywall: P1-P12](#9-the-paywall-p1-p12)
 
 How a Mini App takes money: which rail for which goods, the end-to-end flow from cart to receipt, what each
 `invoiceClosed` status means on screen, subscriptions, card payments for physical goods, and where TON
@@ -169,3 +170,29 @@ transactions are not documented: make delivery a unique insert keyed by the char
 Not confirmed by official pages (check on the test environment): where the receipt arrives for a Main Mini
 App user who never started the bot; which `invoiceClosed` status follows a refused pre-checkout; how long
 an invoice link lives (rely on the order's `valid_until`).
+
+## 9. The paywall: P1-P12
+
+The screen that sells Premium, Pro or one locked feature. Hard rules **[Heuristic, owner decision 2026-11-26]**
+over the **[API]** facts above; a paywall that breaks one is not done. Reference implementation:
+`examples/mini-apps/paywall` (Road Theory, Stars subscription and a 3-month one-off plan, every state, a mock
+server for the stand). Review a design with `miniapp_layout.py review` on `{"screen": "paywall", "paywall": {...}}`
+(rule L26; `miniapp_layout.py example paywall` is the reference description).
+
+| # | Rule | The failure it prevents |
+|---|---|---|
+| P1 | One order, top to bottom: intro (mark, title, one line) → what you get → Free and Premium → plans → terms → questions; the MainButton closes it | a card and a button in an empty screen |
+| P2 | Value in numbers the server sends (`40 timed tests`, `283 sign cards`): 3-5 rows, each an icon tile, a title and one line | adjectives ("unlimited power"), hype (lint MA31), checkmark bullets crammed in a card |
+| P3 | What stays free, side by side with Premium (a compact table or two columns of rows) | the user cannot tell what they lose by not paying |
+| P4 | Price = the Stars glyph (SVG `.tma-star`) + amount + period (`/ month`) or `No renewal`; the plain-text `⭐ 50` only inside the MainButton | `⭐` emoji in markup, a price without its period, "50 Telegram stars per month" in a bullet list |
+| P5 | 1-3 plans in ONE radio group, one preselected; savings as a plain fact (`10% less than monthly`). Stars subscriptions renew every 30 days **[API]**: a longer term is a one-off invoice that says it does not renew | a "yearly subscription" in Stars; plans as unrelated cards; nothing selected |
+| P6 | The MainButton names the verb, the price and the period of the selected plan and changes with it (`Subscribe · ⭐ 50 / month`, `Pay ⭐ 135 for 3 months`); no own buy button; the tab bar is hidden | a generic "Continue"; a second CTA in the content |
+| P7 | Renewal and cancellation in the footnote under the plans ("renews every 30 days until you turn it off in Profile or in Telegram settings"), the Terms link (`openLink`), and answers to cancel / progress / renewal | terms hidden in a bot command (`/premium`) or missing |
+| P8 | A level-2 screen (BackButton) or a sheet, opened from the locked thing; the tab keeps its free content usable and shows the locked part dimmed with a lock | the whole tab replaced by an upsell card |
+| P9 | Every state drawn: loading (skeleton rows), offer error (reason + Try again), cancelled (nothing changes), failed (reason, "No Stars were taken"), pending / paid (Confirming, "do not pay again"), timeout (we will message you), success (what is unlocked, until when), subscriber (My plan, never the paywall) | a spinner forever; a second charge; a paywall shown to a subscriber |
+| P10 | The server owns the offer and the prices (the client sends the plan id; lint MA26) and unlocks only from its order (`watchOrder`; lint MA27) | a price edited in the client; unlocking on `invoiceClosed: paid` |
+| P11 | Surfaces S1-S6 ([design-system.md](design-system.md) §5): 24 px between sections, 16 px insets, one radius scale; one accent (the MainButton); no gradients, glows or emoji | cramped cards, a glowing "PRO" badge |
+| P12 | Outside Telegram: "Open in Telegram to pay", never a fake payment; Android back / BackButton leaves the paywall without losing the tab's state | a dead end, a payment that never existed |
+
+Check: `?audit=1` on the stand with `--api examples/mini-apps/paywall/mock-api.json` and `invoice=paid|failed|pending|cancelled`; 0 errors
+on every state; the MainButton text matches the selected plan.

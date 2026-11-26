@@ -101,16 +101,29 @@ def webapp_lookup(args: dict) -> dict:
     return {"found": True, "kind": kind, "name": key, "entry": item}
 
 
+def _moving_emoji(args: dict) -> dict[str, str] | None:
+    """Animated and video custom emoji of the bot-ui project's emoji/library.json named in `emoji_library`."""
+    path = args.get("emoji_library")
+    if not path:
+        return None
+    from bot_ui.skill import load
+    try:
+        return load("validate_keyboard").load_moving_emoji(path)
+    except (OSError, ValueError) as err:
+        raise ToolError(f"emoji_library: not a readable bot-ui emoji/library.json ({err})") from None
+
+
 def validate_request(args: dict) -> dict:
     from bot_ui.skill import load
     vp = load("validate_payload")
     method, params = args.get("method"), args.get("params")
     if not isinstance(method, str) or not isinstance(params, dict):
         raise ToolError("method (string) and params (object) are required")
+    moving = _moving_emoji(args)
     rep = vp.Validator(vp.load_catalog(vp.DATA_DIR)).check_request(method, params)
     errors, warnings = list(rep.errors), list(getattr(rep, "warnings", []))
     if isinstance(params.get("reply_markup"), dict):  # Telegram's button rules beyond field types
-        kb = load("validate_keyboard").validate(params["reply_markup"], context=args.get("context"))
+        kb = load("validate_keyboard").validate(params["reply_markup"], context=args.get("context"), moving_emoji=moving)
         errors += [f"reply_markup: {e}" for e in kb.errors]
         warnings += [f"reply_markup: {w}" for w in getattr(kb, "warnings", [])]
     rich_msg = params.get("rich_message")
@@ -118,6 +131,9 @@ def validate_request(args: dict) -> dict:
         from bot_ui import rich
         for code, sev, message in rich.check(rich_msg["html"], draft=method == "sendRichMessageDraft"):
             (errors if sev == "error" else warnings).append(f"rich_message.html: {code}: {message}")
+        if moving:
+            vk = load("validate_keyboard")
+            errors += [f"rich_message.html: {vk.MOVING_CODE}: {m}" for m in vk.moving_in_html(rich_msg["html"], moving)]
     return {"ok": not errors, "errors": errors, "warnings": warnings}
 
 
@@ -127,6 +143,10 @@ def check_rich_html(args: dict) -> dict:
     if not isinstance(html, str):
         raise ToolError("html: the Rich HTML text")
     found = [{"code": c, "severity": s, "message": m} for c, s, m in rich.check(html, draft=bool(args.get("draft")))]
+    if (moving := _moving_emoji(args)):
+        from bot_ui.skill import load
+        vk = load("validate_keyboard")
+        found += [{"code": vk.MOVING_CODE, "severity": "error", "message": m} for m in vk.moving_in_html(html, moving)]
     return {"ok": not any(f["severity"] == "error" for f in found), "findings": found,
             "visible_characters": len(rich.visible_text(html)), "limit": rich.TEXT_MAX}
 
@@ -352,7 +372,7 @@ def emoji_rank_by_tags(args: dict) -> dict:
         brief, accents = profile_request(profile, brief)
         return pick_by_profile(doc, brief, accents, require=args.get("require"), motion=args.get("motion", "static"),
                                theme=args.get("theme", "both"), top=top, lang=lang)
-    return rank_by_facets(doc, brief, require=args.get("require"), motion=args.get("motion"),
+    return rank_by_facets(doc, brief, require=args.get("require"), motion=args.get("motion", "static"),
                           theme=args.get("theme", "both"), top=top, lang=lang)
 
 
@@ -398,11 +418,11 @@ TOOLS: list[dict] = [
      "inputSchema": _obj({"word": S, "limit": {"type": "integer"}}, ["word"]), "annotations": RO},
     {"name": "webapp_lookup", "description": "A Telegram.WebApp member or object (Mini Apps): signature, version gate, events.",
      "inputSchema": _obj({"query": S}, ["query"]), "annotations": RO},
-    {"name": "validate_request", "description": "Check a Bot API request (method + params) against the catalog: unknown fields, types, limits, and Telegram's keyboard rules for reply_markup.",
-     "inputSchema": _obj({"method": S, "params": O, "context": {"type": "string", "enum": ["private", "group", "channel", "channel_dm", "business", "ephemeral"]}},
+    {"name": "validate_request", "description": "Check a Bot API request (method + params) against the catalog: unknown fields, types, limits, and Telegram's keyboard rules for reply_markup. emoji_library: path of the bot-ui project's emoji/library.json; a button's animated or video custom emoji (icon_custom_emoji_id, or inside a rich <tg-button>) is then an error.",
+     "inputSchema": _obj({"method": S, "params": O, "context": {"type": "string", "enum": ["private", "group", "channel", "channel_dm", "business", "ephemeral"]}, "emoji_library": S},
                          ["method", "params"]), "annotations": RO},
-    {"name": "check_rich_html", "description": "Check Rich HTML for sendRichMessage: allowed tags, <tg-button> types, styles, rows of 1-8, callback data, length.",
-     "inputSchema": _obj({"html": S, "draft": {"type": "boolean"}}, ["html"]), "annotations": RO},
+    {"name": "check_rich_html", "description": "Check Rich HTML for sendRichMessage: allowed tags, <tg-button> types, styles, rows of 1-8, callback data, length. emoji_library: path of the bot-ui project's emoji/library.json; an animated or video custom emoji inside a <tg-button> is then an error.",
+     "inputSchema": _obj({"html": S, "draft": {"type": "boolean"}, "emoji_library": S}, ["html"]), "annotations": RO},
     {"name": "knowledge_search", "description": "Which telegram-bot-ui reference sections to read for a task (ranked files and section anchors).",
      "inputSchema": _obj({"query": S, "limit": {"type": "integer"}}, ["query"]), "annotations": RO},
     {"name": "map_validate", "description": "Validate a bot-ui project (screens, actions, keyboards, Rich HTML buttons, locales, custom emoji).",

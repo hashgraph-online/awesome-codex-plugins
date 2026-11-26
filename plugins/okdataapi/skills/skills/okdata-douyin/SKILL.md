@@ -1,14 +1,14 @@
 ---
 name: okdata-douyin
-description: "Public Douyin data through okdata: videos, accounts, trending board, Xingtu creators, comment replies, hashtags, keywords, index, backup. 38 endpoints, $0.002–$0.04 a call. Use when a task needs Douyin data. 通过 okdata 取抖音公开数据：视频、账号、热榜、星图达人、评论回复、话题、keywords、index、backup。38 个接口，每次 $0.002–$0.04。"
+description: "Public Douyin data through okdata: videos, accounts, trending board, Xingtu creators, comment replies, hashtags, keywords, index, backup, live, image posts. 44 endpoints, $0.002–$0.043 a call. Use when a task needs Douyin data. 通过 okdata 取抖音公开数据：视频、账号、热榜、星图达人、评论回复、话题、keywords、index、backup、live、image posts。44 个接口，每次 $0.002–$0.043。"
 license: MIT
 ---
 
 # Douyin data with okdata
 
-> China’s TikTok: videos, accounts, comments and the hot search board. (抖音：视频、账号、评论和热搜榜。)
+> China’s TikTok: videos, accounts, comments, live rooms and the hot search board. (抖音：视频、账号、评论、直播和热搜榜。)
 
-38 endpoints, $0.002–$0.04 a call. Nothing here needs a Douyin account, cookie or QR login.
+44 endpoints, $0.002–$0.043 a call. Nothing here needs a Douyin account, cookie or QR login.
 
 ## Which endpoint answers which question
 
@@ -35,8 +35,8 @@ license: MIT
 | Douyin index: account followers (抖音巨量算数达人粉丝画像): Who follows a Douyin account, from 巨量算数, by its numeric ID: the share of followers by gender, age, province, city (all of them), city tier, phone brand and interest. Any account with enough followers, not only marketplace creators; shares only, no head counts. | `douyin.index.creators.audience.get` | `id` | $0.002 per call |
 | Douyin index: account daily averages (抖音巨量算数达人核心指标): A Douyin account's daily averages from 巨量算数 over the last week and the last month, by its numeric ID: new likes, shares, comments and follows a day, each with its change against the period before. Follows are the tool's own count, larger than the net follower gain. An account the tool has nothing on is not found. | `douyin.index.creators.metrics` | `id` | $0.002 per call |
 | Douyin index: keyword audience (抖音巨量算数关键词人群画像): Who is behind a keyword on Douyin over a date range, from 巨量算数: the share and TGI of each age group, gender, province, city, city tier and interest. | `douyin.index.keywords.audience.get` | `keyword`, `since`, `until` | $0.002 per call |
-| Douyin index: keyword trends (抖音巨量算数关键词热度趋势): The search index and composite index of one keyword, or of up to five at once, day by day on Douyin over a date range, from 巨量算数 (the Douyin index), with the daily averages of the period, the one before and a year earlier. An index is the platform’s score, not a count. One item per keyword the index covers; others are left out. | `douyin.index.keywords.history` | `since`, `until` | $0.006 per call · about 1 results per page |
-| Douyin index: related keywords (抖音巨量算数关联词): Keywords related to one keyword on Douyin in one week, from 巨量算数: those searched together with it and those that appear with it in videos, each with relevance, its place by relevance, search index and composite index. An index is the platform’s score, not a count. | `douyin.index.keywords.related` | `keyword`, `until` | $0.002 per call · about 170 results per page |
+| Douyin index: keyword trends (抖音巨量算数关键词热度趋势): The search index and composite index of one keyword, or of up to five at once, day by day on Douyin over a date range, from 巨量算数 (the Douyin index), with the daily averages of the period, the one before and a year earlier in ext (view=full; null where the index has no figures for that period). Days the index has not published yet (usually the last one or two) are null. An index is the platform’s score, not a count. One item per keyword the index covers; others are left out. | `douyin.index.keywords.history` | `since`, `until` | $0.006 per call · about 1 results per page |
+| Douyin index: related keywords (抖音巨量算数关联词): Keywords related to one keyword on Douyin in one week, from 巨量算数: those searched together with it and those that appear with it in videos, each with relevance, its place by relevance, search index and composite index. About 170 in one answer: the searched-together words first, then the in-video ones, each group by rank (1 is the most related; the platform's ranks can skip numbers). An index is the platform’s score, not a count. | `douyin.index.keywords.related` | `keyword`, `until` | $0.002 per call · about 170 results per page |
 | Douyin index: live hot topics (抖音巨量算数实时热点): 巨量算数's live hot-topic board or its fastest-rising board, about 30 each: place, topic and topic index (the heat). The topic index is the platform's score, not a count. | `douyin.index.trends.list` | nothing | $0.002 per call · about 30 board entries per page |
 | Douyin index: top videos for a keyword (抖音巨量算数关键词热门视频): The 20 videos with the highest video index that 巨量算数 puts forward for a keyword: caption, link, the author's name, avatar and followers, likes, video index and time posted. One page; the author's ID is not given (douyin.videos.get has it). | `douyin.index.videos.search` | `query` | $0.002 per call · about 20 videos per page |
 | Douyin account growth (抖音达人互动与粉丝趋势): How a Douyin account moved over the last 7 or 30 days, by its numeric ID, from 巨量算数: net new followers, new likes, comments, shares and videos, each with its change against the period before, and the totals now. Up to five accounts in one call (one unknown ID fails the whole batch). One period's sum, not a daily series. | `douyin.users.history` | nothing | $0.002 per call |
@@ -52,6 +52,12 @@ license: MIT
 | Douyin Xingtu video report (抖音星图视频数据报告): Xingtu's report on one Douyin video, by ID or link: plays, likes, comments, shares and saves, plus completion rate, engagement rate, length, the author's followers and the author's Xingtu creator ID (for the creator endpoints next). Only videos Xingtu covers, mostly its creators'. | `douyin.xingtu.videos.get` | `id` or `url` | $0.004 per call |
 | Douyin account videos (backup) (抖音用户视频（备用版）): The backup of douyin.users.videos.list, for when it cannot serve: an account's videos, newest first, 20 a page, at a little more. Caption, author, likes, comments, shares, saves and time posted. An account that does not exist reads like one without videos: an empty page, not a 404. | `douyin.backup.users.videos.list` | `id` or `url` | $0.0025 per call · about 20 videos per page |
 | Douyin video search (backup) (抖音视频搜索（备用版）): The backup of douyin.videos.search, for when it cannot serve: videos matching keywords in Douyin's own order, newest or most liked first, optionally only from the last day, week or half year. Caption, author, likes, comments, shares, saves and time posted. | `douyin.backup.videos.search` | `query` | $0.03 per call · about 8 videos per page |
+| Douyin live room (抖音直播间信息): A Douyin live room right now, by its room number or live.douyin.com link: whether it is live, title, host, start time, people in the room now, people who have come in since it started, likes, how many products are in its shopping bag, and the cover. A room that is not live answers with status offline. | `douyin.live.rooms.get` | `id` or `url` | $0.002 per call |
+| Douyin account live status (抖音账号开播状态): Whether a Douyin account is live right now, by its account ID (sec_uid) or profile link. When it is: the room number and link, title, start time, people in the room now and since it started, and the cover; likes and the shopping bag are in douyin.live.rooms.get. When it is not: status offline and the account. | `douyin.live.users.get` | `id` or `url` | $0.004 per call |
+| Douyin live streamer boards (抖音直播达人榜): Douyin's live streamer boards as Xingtu publishes them, the latest daily, weekly or monthly one, 100 streamers each: the live-selling board by product category (sales and GPM bands, products sold), the top entertainment and gaming streamers (sessions, average views, engagement) and the fastest-growing ones (followers gained). Each with rank, name, avatar, followers and the Xingtu creator ID that douyin.live.streamers.metrics takes. | `douyin.live.streamers.trending` | nothing | $0.006 per call · about 100 results per page |
+| Douyin streamer live figures (抖音主播直播数据): How a Douyin streamer's live sessions did over the last 30 or 90 days, by Xingtu creator ID: number of sessions, and per session on average views, people who watched, people watching at once and at the peak, seconds a viewer stayed, engagement and new followers; for live selling the average sales and GPM bands, the average price of what was sold and how many products. type narrows it to live-selling, gaming or other sessions. | `douyin.live.streamers.metrics` | `id` | $0.04 per call |
+| Douyin image post search (抖音图文搜索): Douyin image posts (图文, photo carousels) matching keywords: the text, every picture, likes, comments, shares and saves, the author and hashtags. Video search leaves these out. | `douyin.image_posts.search` | `query` | $0.043 per call · about 10 posts per page |
+| Douyin live search (抖音直播搜索): Find Douyin streamers by name or topic: each matching account with whether it is live now and, while it is, the room title; the account's handle, followers and sec_uid (for douyin.live.users.get). | `douyin.live.rooms.search` | `query` | $0.043 per call · about 10 results per page |
 
 ## How to call it
 
@@ -88,7 +94,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -107,4 +113,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 Every Douyin endpoint with its full contract: https://okdata.online/apis/douyin/?src=skill-okdata-douyin
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

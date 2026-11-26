@@ -228,6 +228,23 @@ One action lives in one place: the same action in the document and in the keyboa
 user has to make twice (bot-ui reports `RICH_BUTTON_ON_KEYBOARD`). Navigation in the keyboard,
 content actions in the document is the usual split.
 
+**Rich first for content actions [Heuristic].** Whenever the screen is a Rich Message, start from
+the document: a single `<tg-button>` inline in the sentence or line it acts on ("Details" next to a
+figure, "Copy" next to a code, a `style="link"` callback for a quiet aside), a `<tg-button-row>` of
+2-4 for the choices that close a section (Pay · Change, Approve · Reject), the row at most 8. Only
+then add an inline keyboard, for moving between screens. A regular-format screen whose buttons act
+on separate parts of a long answer is itself a sign the screen should be a Rich Message
+([format-selection.md](format-selection.md)). Keep the classic keyboards where they win: reply
+keyboards for typed answers and `request_*`, inline `pay` and `callback_game`, channels and inline
+results where rich buttons are not the content. bot-ui reports `RICH_BUTTONS_UNUSED` (info) for a
+rich document whose `handler` / `url` / `answer` actions all sit on the keyboard.
+
+**Icons on any button are static [Heuristic, owner decision 2026-11-26].** `icon_custom_emoji_id`
+on inline and reply buttons and a custom emoji inside a rich button's text take a static custom
+emoji only, never an animated or video one (`BUTTON_EMOJI_ANIMATED` with `--emoji-library` in
+`validate_keyboard.py` / `validate_rich.py`, and in `bot-ui validate`). The label reads without the
+icon; a keyboard is all icons or none ([visual-language.md](visual-language.md)).
+
 ### Buttons inside a rich message: the lifecycle
 
 - **Press.** A `callback_data` button sends a `callback_query` like an inline button:

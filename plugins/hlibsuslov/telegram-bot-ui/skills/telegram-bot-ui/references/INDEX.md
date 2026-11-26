@@ -1,6 +1,6 @@
 ---
 summary: "Every reference file with its one-line summary and the commands that route to it; generated."
-verified: "2026-11-25"
+verified: "2026-11-26"
 bot_api: "10.5"
 ---
 # References index
@@ -63,6 +63,7 @@ Read a file only when its command's playbook points to it; long files open with 
 | `rich-media.md` | Media inside Rich Messages: referencing files, binding to InputRichMessageMedia, media blocks, captions, ordering, rights, embed versus separate methods, fallback; read when a rich message has media. | improve |
 | `sdk-compatibility.md` | Checking what the project's SDK really supports: common SDKs, 9.4 field checks, escalation, raw payloads, verified SDK status for Bot API 10.4 and 10.5; read before promising a Bot API feature. | fix, lookup |
 | `security-and-escaping.md` | One escaping function per format, golden rules, per-format escaping, URL scheme whitelist, unicode, AI-generated content, checklist; read when putting dynamic data into any message format. | fix |
+| `selection-lists.md` | Choosing one or many options from a list in a bot: surface by option count, 2-column grid, native selection marks, summary, paging, inline search, Rich checkbox list, Mini App past ~30. | improve |
 | `specialized-updates.md` | On-demand modules for 10.3 and 10.4 details: welcome-message right, community joins, gifts, share themes, managed bots, verification, paid messages, widget permission; read only the section needed. | build |
 | `streaming-and-editing.md` | Engineering of streamed replies: operation state machine, Stop (can_stop, keep_on_stop), throttling, finalization, addressing drafts, editing rich content; read when implementing streaming. | improve, fix |
 | `tables.md` | Real Telegram tables in Rich Messages: when to use them, three build paths, cross-cutting rules, data recipes, fallback ladder, verification, compact tables; read first for any structured data. | improve |
@@ -90,8 +91,8 @@ Read a file only when its command's playbook points to it; long files open with 
 | `mini-apps/figma-workflow.md` | How an agent reads a Figma file through the Figma MCP and turns it into rules, tokens or screens without copying what it must not; read when given a Figma design or kit. | mini-app |
 | `mini-apps/forms-and-data.md` | Mini App forms and server talk: fields, on-screen keyboard, validation, drafts, tma.api(), errors, once-only actions, sending the result to the chat; read for any screen with input or API calls. | mini-app |
 | `mini-apps/haptics-and-device.md` | Haptics and device features in Mini Apps: Taptic Engine, motion sensors, location, biometrics, fullscreen, QR, clipboard, the permission pattern; read before using any device feature. | mini-app |
-| `mini-apps/launch-and-lifecycle.md` | Mini App entry points, startapp and opening mode, main app, startup, running, ending, hosting, test environment; read when wiring how an app is opened and lives through a session. | mini-app |
-| `mini-apps/layout-rules.md` | Layout rules L01-L25 for Mini App screens: card variants, image ratio, text order, lists, details, forms, booking, plans, dashboards, review; read when laying out or reviewing a screen. | mini-app |
+| `mini-apps/launch-and-lifecycle.md` | Mini App entry points, startapp, main app, startup, running, ending, hosting, test environment, fullscreen on phones with the sheet as fallback; read when wiring how an app opens and lives. | mini-app |
+| `mini-apps/layout-rules.md` | Layout rules L01-L26 for Mini App screens: card variants, image ratio, text order, lists, details, forms, booking, plans, paywall, dashboards, review; read when laying out or reviewing a screen. | mini-app |
 | `mini-apps/materials-and-trends.md` | Keeping a Mini App current: materials as tokens, trend radar, web platform features in Telegram WebViews, handling platform redesigns; read when asked for glass, 'modern' or new CSS. | mini-app |
 | `mini-apps/native-anatomy.md` | Measured anatomy of iOS 27 and Telegram screens (layout, lists, buttons, tab bar, sheets, alerts, empty states, fields) turned into rules; read to make a screen sit next to Telegram's own chrome. | mini-app |
 | `mini-apps/orchestration.md` | The order of work to create or rework a Mini App, the file or tool for each step, and a coverage map of every element; read at the start of any Mini App create or rework task. | mini-app |

@@ -1,5 +1,5 @@
 ---
-summary: "Layout rules L01-L25 for Mini App screens: card variants, image ratio, text order, lists, details, forms, booking, plans, dashboards, review; read when laying out or reviewing a screen."
+summary: "Layout rules L01-L26 for Mini App screens: card variants, image ratio, text order, lists, details, forms, booking, plans, paywall, dashboards, review; read when laying out or reviewing a screen."
 verified: "2026-11-24"
 bot_api: "10.5"
 ---
@@ -23,7 +23,7 @@ bot_api: "10.5"
 
 Where the image sits and in what ratio, the order of title, meta, price, rating and availability, which card
 variant a content type uses, how galleries, filters, forms, booking and plans are laid out. The rules have
-ids (L01-L25) so a review can cite them, and a machine-readable twin:
+ids (L01-L26) so a review can cite them, and a machine-readable twin:
 
 ```bash
 py -3 scripts/miniapp_layout.py entities              # content types and their list variant and image ratio
@@ -145,10 +145,15 @@ reminder.
 
 ## 9. Plans and pricing (L25)
 
-Stacked plan cards on phones (never side by side under 600 px), a monthly/yearly segmented control above
-them, one quietly recommended plan (a tag, not a glow), 3-5 features each with a check icon **and** text;
-more than 3 plans or 6 features → a comparison table. The MainButton subscribes with the price and period
-(`Subscribe · ⭐ 250 / month`); terms in the footnote with `openLink`.
+Stacked plan cards or one radio list on phones (never side by side under 600 px), one quietly recommended
+plan (a tag, not a glow), 3-5 features each with an icon **and** text; more than 3 plans or 6 features → a
+comparison table. The MainButton subscribes with the price and period (`Subscribe · ⭐ 250 / month`); terms in
+the footnote with `openLink`. Stars subscriptions renew every 30 days **[API]**: there is no yearly Stars
+subscription; a longer term is a one-off payment labelled "no renewal".
+
+A paywall (Premium, Pro, unlocking a locked feature) is its own screen with its own rule, **L26**: the full
+anatomy of [payments.md](payments.md) §9 (P1-P12), reviewed with `miniapp_layout.py review` on a
+`"screen": "paywall"` description; reference: `examples/mini-apps/paywall`.
 
 ## 10. Dashboards (SaaS)
 
@@ -196,4 +201,5 @@ Generated from `data/mini-apps/layouts.json` (the test suite keeps them in step)
 | L22 | Media carries meaning in alt text | alt names what the image shows (product and variant, trainer's name, workout title); decorative images alt="". |
 | L23 | Loading and empty keep the anatomy | Skeletons in the card's own shape (media ratio, two text lines, price); empty results say why and offer a way out. |
 | L24 | Wide screens cap the content | Content up to ~600 px wide and centred on tablets and desktop clients; images capped in height; grids gain a column instead of stretching tiles. |
-| L25 | Plans: stacked cards on phones, a table to compare | Plans as stacked cards (not side by side) under 600 px with a monthly/yearly segmented control; one quietly recommended plan; 3-5 features each with check icons and text; a comparison table when there are more than 3 plans or 6 features. |
+| L25 | Plans: stacked cards on phones, a table to compare | Plans as stacked cards or one radio list (not side by side) under 600 px; one quietly recommended plan; 3-5 features each with an icon and text; a comparison table when there are more than 3 plans or 6 features. Stars subscriptions renew every 30 days: no 'yearly' Stars subscription; a longer term is a one-off payment that says it does not renew. |
+| L26 | Paywall: the full anatomy, server-owned, every state (payments.md section 9) | A level-2 screen or sheet opened from a locked thing: intro (mark, title, one line) -> what you get in numbers (3-5 rows) -> Free and Premium side by side -> plans as one radio group with the Stars glyph, the amount and the period or 'no renewal' -> renewal and cancel terms with the Terms link under the plans -> questions (cancel, progress, renewal). The MainButton names the verb, the price and the period of the selected plan. Prices and unlocking come from the server; loading, error, cancelled, failed, pending, success and subscriber states are drawn. Reference: examples/mini-apps/paywall. |

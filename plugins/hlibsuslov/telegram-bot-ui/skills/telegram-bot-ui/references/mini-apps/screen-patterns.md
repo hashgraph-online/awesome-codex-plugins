@@ -145,8 +145,10 @@ fresh `initData` and your own session ([security.md](security.md)).
 Style: usually `dense`; `fintech` when one number leads.
 
 ### Plans, billing, subscription
-Plan cards stacked, monthly/yearly segmented control, one recommended plan, features with check icons and
-text, a comparison table for more than 3 plans; MainButton `Subscribe · ⭐ 250 / month` or a card invoice.
+Plan cards stacked or one radio list, one recommended plan, features with icons and text, a comparison table
+for more than 3 plans; MainButton `Subscribe · ⭐ 250 / month` or a card invoice. Stars subscriptions are
+30-day only: a longer term is a one-off payment. A Premium / Pro paywall: [payments.md](payments.md) §9
+(P1-P12) and `examples/mini-apps/paywall`.
 Show current plan, renewal date and a clear `Cancel subscription` (destructive, confirmed). Recipe 96.
 
 ### Admin and moderation

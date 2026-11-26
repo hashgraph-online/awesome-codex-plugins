@@ -116,7 +116,7 @@ git clone https://github.com/grotyx/Academic_writing_c_claudecode my-paper
 
 ```sh
 uv tool install manuwright
-# or: pip install manuwright  |  a pinned tag: uv tool install git+https://github.com/grotyx/Academic_writing_c_claudecode@v1.10.8
+# or: pip install manuwright  |  a pinned tag: uv tool install git+https://github.com/grotyx/Academic_writing_c_claudecode@v1.10.15
 manuwright agents install --dry-run     # preview, then run without --dry-run
 manuwright setup                        # picks the main model and reviewers for you; updates, Obsidian
 manuwright init my-paper
@@ -153,6 +153,7 @@ manuwright target                      # inside the paper: target journal + Word
 | `manuwright blind-review packet` / `check` | Revision re-review with the response letter withheld until the verdicts are recorded (no persuasion by the letter) |
 | `manuwright journal fit [journal]` / `suggest` | Before submitting: does the paper fit this journal (its PubMed record on the topic, word and reference limits, a review by that journal's editor), or which journals publish similar work; `journal list --build` makes your list of top-half journals in your field (detected from your references, or set with `--preset`/`--category`), on your computer |
 | `manuwright style edits <ai> <edited>` / `--apply` | Learn rules from how you edited AI drafts; only the rules you tick reach `Style/terminology.md` |
+| `manuwright style flow <file>` | Paragraph order of a draft (background, gap, aim; finding, comparison, limitation ...) against the order learned from your papers, or the usual order |
 | `manuwright library term` / `note` / `sync [--pull\|--push]` | Keep a wording rule or a lesson across papers; bring a paper and your library in step (additions only) |
 | `manuwright guide [name ...]` | List the engine guides the rules cite (`docs/<name>.md`), or print them |
 | `manuwright verify --project project.json --profile draft\|revision\|submission` | Run every check for that stage |

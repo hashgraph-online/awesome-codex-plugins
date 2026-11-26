@@ -1,5 +1,9 @@
 # Exploring without a test
 
+A `docs/<path>.mdx` pointer names an e2e docs page: read
+`node_modules/e2e/docs/<path>.mdx` once e2e is installed, else
+https://e2e.com/docs/<path>.
+
 `e2e explore` runs the agent against the app with a goal instead of a test
 file: see what it can do with an app before tests exist, hunt for regressions
 on a branch, or find what is worth turning into a test. It needs a config with
@@ -67,67 +71,41 @@ configured secrets are redacted (topic `writing-tests`).
 
 ## Flags
 
-| Flag | Default | Effect |
-| --- | --- | --- |
-| `[goal]` | `Explore the app and find bugs` | One quoted sentence: the area and the posture. |
-| `--target <id>` | first configured target | The one target to explore. |
-| `--agent <name>` | `default` | Build the explorer from another configured agent (`agents.<name>`). |
-| `--session <name>` | none | Run the setup that saves this session, then explore with it restored. |
-| `--changed-since <ref>` | none | Explore what the branch changed since the merge base of the ref and HEAD. The planner reads the commit messages and the committed diff, and in a GitHub Actions `pull_request` job or a GitLab merge request pipeline the pull request's title and description, and plans charters for the screens the change can affect. Only a defect the change can cause is an `issue`; one elsewhere is a `warning`. With no goal, the goal becomes `Explore what this change affects and find bugs in it`, and the planner may skip a change no user can see, such as docs or tests only. That run ends `skipped` and passes. In CI it needs the base in the checkout (`fetch-depth: 0`), and a clean working tree for the skip. |
-| `--max-steps <n>` | 8 (1 to 100) | Exploration steps at most. |
-| `--timeout <ms>` | 600000 (180000 to 7200000) | Wall clock; the last minute is for the assessment. |
-| `--headed`, `--reporter`, `--output`, `--debug`, `--ai-trace`, `--trace [mode]`, `--video [mode]` | as `run` | Same meaning as for `e2e run`. The exploration is one attempt, so a retry mode (`on-first-retry`, `on-all-retries`) records nothing (the run's notice says to pass `--trace on`); put the goal before a bare `--trace` or `--video`. |
+- `[goal]`: one quoted sentence naming the area and the posture; default
+  `Explore the app and find bugs`.
+- `--target <id>` (default: the first target), `--agent <name>`,
+  `--session <name>`, `--max-steps <n>` (default 8),
+  `--timeout <ms>` (default 600000; the last minute is for the assessment).
+- `--changed-since <ref>` explores what the branch changed since the merge
+  base: only a defect the change can cause is an `issue`, one elsewhere is a
+  `warning`. With no goal, the planner may skip a change no user can see
+  (docs or tests only); that run ends `skipped` and passes. In CI it needs
+  the base in the checkout (`fetch-depth: 0`), and a clean working tree for
+  the skip.
+- `--headed`, `--video`, `--trace`, `--debug`, and `--ai-trace` mean what
+  they mean for `e2e run`. The exploration is one attempt, so a retry mode
+  records nothing: pass `--trace on`.
 
-Per-step action and model-call budgets default to 40 each;
-`agents.<name>.maxSteps` and `agents.<name>.maxModelCalls` in the config
-override them. The replay cache is off and retries are zero for the
-exploration.
+The replay cache is off and retries are zero for the exploration. Per-step
+action and model-call budgets default to 40 each; `agents.<name>.maxSteps`
+and `maxModelCalls` override them.
+Full reference: docs/explore.mdx, docs/reference/cli.mdx.
 
 ## Reading the result
 
-Exit code `0`: steps ran, no `issue` was reported, and not every charter was
-blocked; warnings are allowed. With `--changed-since`, a change the planner
-skipped before the first step (no file a user can see) is also `0`. Exit
-code `1`: at least one `issue`, or no step ran and nothing was found. If every charter was blocked and no `issue` was
-reported, the run is `blocked` even with warnings, and the exit code is the
-first blocker's own, as for `run`: 1 for an automation limit, 2 for a missing
-model, credentials, seed data, or test setup, 3 for an unavailable
-environment. When a charter passes, fails, or exhausts its budget, reported
-issues decide the verdict. Other errors use `2` and `3` as for `run`.
-
-The terminal shows each step by its title with its duration, actions, and
-findings, and each finding the moment it is reported as
-`⚑ high issue  Title (/path)`. At the end a `Findings` section lists every
-finding, issues first and the most severe first, each with where it was seen,
-its screenshot path, expected against actual, and the steps that reach it;
-then the `Assessment` and the `run` summary with `Findings` and `Steps` in
-place of `Test Files` and `Tests`. Severity words: critical 5, high 4,
-medium 3, low 2, trivial 1. `.e2e/report.json` has the record under
-`run.explore`:
-
-```json
-{
-  "goal": "...",
-  "budgets": { "maxSteps": 8, "timeoutMs": 600000 },
-  "ended": "finished | skipped | step-limit | time | stuck | aborted",
-  "summary": "the closing assessment",
-  "change": { "base": "<merge base sha>", "files": 3 },
-  "steps": [{ "index": 1, "title": "...", "instruction": "...", "status": "passed | failed | blocked | exhausted", "summary": "...", "errorCode": "...", "startedAt": "...", "durationMs": 0 }],
-  "findings": [{ "id": "<uuid>", "index": 0, "step": 1, "kind": "issue", "severity": 4, "title": "...", "expected": "...", "actual": "...", "reproduction": ["..."], "path": "/cart", "observationRevision": "...", "artifactId": "<attempt id>:artifact:2", "reportedAt": "..." }]
-}
-```
-
-`change` is there only with `--changed-since`. A step carries `errorCode` only when it did not pass; a finding carries
-`step`, `path`, `observationRevision`, and `artifactId` only when known.
-`artifactId` names the evidence screenshot among the attempt's `artifacts` in
-the result whose `file` is `explore`, where its path, size, and digest are.
-With `--session`, `run.results` also holds the setup's result and the
-project's other tests as skipped (`filtered`). The attempt directory is
-`.e2e/results/explore-<slug>-<id>/attempt-1/`: the slug is the goal's first
-words in lowercase ASCII, capped, and the id keeps distinct goals, targets, and
-agents apart while the same goal on the same target and agent always maps to
-the same directory. For example
-`.e2e/results/explore-check-the-cart-totals-1a2b3c4d5e6f7a8b/attempt-1/finding-1.png`.
+- Exit code `0`: steps ran, no `issue` was reported, and not every charter
+  was blocked; warnings are allowed. With `--changed-since`, a change the
+  planner skipped before the first step is also `0`. `1`: at least one
+  `issue`, or no step ran and nothing was found. A run whose charters were all blocked is `blocked` and exits with
+  the first blocker's code, as for `run` (1 for an automation limit, 2 for a
+  missing model, credentials, or setup; 3 for an unavailable environment).
+- The terminal lists each finding as it is reported, then a `Findings`
+  section (issues first, most severe first) with where it was seen, its
+  screenshot path, expected against actual, and the steps that reach it,
+  then the closing `Assessment`.
+- `.e2e/report.json` holds the record under `run.explore` (goal, steps,
+  findings with `reproduction`, `expected`, `actual`). Screenshots are in
+  `.e2e/results/explore-<slug>-<id>/attempt-1/`.
 
 Turn a finding into a test: its `reproduction` steps are the `agent.act()`
 instructions or `screen.*` actions, and `expected` is the assertion.

@@ -2,7 +2,7 @@
  "$comment": "Kit icon ids (examples/mini-apps/_kit/icons.svg, an own line set) mapped to the SF Symbol, Material Symbols and Lucide names with the same meaning. The names help translate a design that cites those libraries; their artwork is not shipped (Apple and Google licences). Unicode emoji are never UI icons (anti-slop.md).",
  "grid": 24,
  "stroke": 1.8,
- "checked": "2026-11-23",
+ "checked": "2026-11-26",
  "open_libraries": {
   "$comment": "When an icon is missing from the kit, take it from ONE open SVG library per app, never emoji, never SF Symbols artwork (Apple licence). Lucide first: the same 24 px line grid as the kit. Every kit id has its Lucide name below (checked against lucide-static 1.79.0 on 2026-11-24).",
   "order": [
@@ -439,6 +439,18 @@
    "use": "file, document",
    "lucide": "file-text"
   },
+  "book": {
+   "sf_symbol": "book",
+   "material": "menu_book",
+   "use": "tab: books, library, courses, reading; a lesson or guide row",
+   "lucide": "book-open"
+  },
+  "dumbbell": {
+   "sf_symbol": "dumbbell",
+   "material": "fitness_center",
+   "use": "tab: workouts, training, gym; a workout row",
+   "lucide": "dumbbell"
+  },
   "download": {
    "sf_symbol": "square.and.arrow.down",
    "material": "download",
@@ -547,5 +559,309 @@
    "use": "stickers, emoji status",
    "lucide": "sticker"
   }
+ },
+ "tab_bar": {
+  "$comment": "Tab bar rules the kit and scripts/miniapp_lint.py MA45 apply: 2-5 tabs; every tab has one icon from the kit sprite (or ONE open line set, never mixed) and a short text label; the active tab is aria-selected=\"true\", drawn by the kit with the accent, a pill and a heavier tinted icon; inactive tabs in the hint colour with the outline icon; no emoji, no custom emoji, no animated icons. `meanings` maps label words (en, ru, uk) to the icon ids that say the same thing: a label matching a row with another icon is a semantic mismatch.",
+  "min": 2,
+  "max": 5,
+  "meanings": [
+   {
+    "words": [
+     "home",
+     "main",
+     "today",
+     "главная",
+     "главное",
+     "сегодня",
+     "головна",
+     "сьогодні"
+    ],
+    "icons": [
+     "home"
+    ]
+   },
+   {
+    "words": [
+     "search",
+     "find",
+     "explore",
+     "discover",
+     "поиск",
+     "найти",
+     "пошук"
+    ],
+    "icons": [
+     "search"
+    ]
+   },
+   {
+    "words": [
+     "settings",
+     "preferences",
+     "настройки",
+     "налаштування"
+    ],
+    "icons": [
+     "settings"
+    ]
+   },
+   {
+    "words": [
+     "profile",
+     "account",
+     "me",
+     "профиль",
+     "аккаунт",
+     "профіль",
+     "акаунт"
+    ],
+    "icons": [
+     "person"
+    ]
+   },
+   {
+    "words": [
+     "trainers",
+     "coaches",
+     "people",
+     "team",
+     "friends",
+     "members",
+     "contacts",
+     "тренеры",
+     "люди",
+     "команда",
+     "друзья",
+     "тренери",
+     "друзі"
+    ],
+    "icons": [
+     "people"
+    ]
+   },
+   {
+    "words": [
+     "books",
+     "library",
+     "courses",
+     "lessons",
+     "reading",
+     "книги",
+     "библиотека",
+     "курсы",
+     "уроки",
+     "бібліотека",
+     "курси"
+    ],
+    "icons": [
+     "book"
+    ]
+   },
+   {
+    "words": [
+     "workouts",
+     "training",
+     "exercises",
+     "gym",
+     "тренировки",
+     "упражнения",
+     "тренування",
+     "вправи"
+    ],
+    "icons": [
+     "dumbbell"
+    ]
+   },
+   {
+    "words": [
+     "classes",
+     "schedule",
+     "calendar",
+     "bookings",
+     "events",
+     "расписание",
+     "занятия",
+     "календарь",
+     "записи",
+     "розклад",
+     "заняття",
+     "календар"
+    ],
+    "icons": [
+     "calendar"
+    ]
+   },
+   {
+    "words": [
+     "orders",
+     "order",
+     "cart",
+     "basket",
+     "bag",
+     "заказ",
+     "заказы",
+     "корзина",
+     "замовлення",
+     "кошик"
+    ],
+    "icons": [
+     "bag",
+     "cart"
+    ]
+   },
+   {
+    "words": [
+     "wallet",
+     "balance",
+     "points",
+     "кошелёк",
+     "кошелек",
+     "баланс",
+     "баллы",
+     "гаманець",
+     "бали"
+    ],
+    "icons": [
+     "wallet",
+     "coins"
+    ]
+   },
+   {
+    "words": [
+     "membership",
+     "plans",
+     "subscription",
+     "абонемент",
+     "подписка",
+     "тарифы",
+     "підписка",
+     "тарифи"
+    ],
+    "icons": [
+     "card",
+     "ticket"
+    ]
+   },
+   {
+    "words": [
+     "bonus",
+     "rewards",
+     "gifts",
+     "бонусы",
+     "подарки",
+     "бонуси",
+     "подарунки"
+    ],
+    "icons": [
+     "gift"
+    ]
+   },
+   {
+    "words": [
+     "menu",
+     "меню"
+    ],
+    "icons": [
+     "cup",
+     "list",
+     "grid"
+    ]
+   },
+   {
+    "words": [
+     "gallery",
+     "catalog",
+     "catalogue",
+     "галерея",
+     "каталог"
+    ],
+    "icons": [
+     "grid",
+     "image"
+    ]
+   },
+   {
+    "words": [
+     "chats",
+     "messages",
+     "support",
+     "чаты",
+     "сообщения",
+     "поддержка",
+     "чати",
+     "повідомлення",
+     "підтримка"
+    ],
+    "icons": [
+     "chat"
+    ]
+   },
+   {
+    "words": [
+     "notifications",
+     "alerts",
+     "уведомления",
+     "сповіщення"
+    ],
+    "icons": [
+     "bell"
+    ]
+   },
+   {
+    "words": [
+     "history",
+     "activity",
+     "история",
+     "історія"
+    ],
+    "icons": [
+     "history"
+    ]
+   },
+   {
+    "words": [
+     "stats",
+     "statistics",
+     "analytics",
+     "dashboard",
+     "статистика",
+     "аналитика",
+     "аналітика"
+    ],
+    "icons": [
+     "chart-bar",
+     "chart-line"
+    ]
+   },
+   {
+    "words": [
+     "favourites",
+     "favorites",
+     "saved",
+     "избранное",
+     "сохранённое",
+     "обране",
+     "збережене"
+    ],
+    "icons": [
+     "heart",
+     "bookmark"
+    ]
+   },
+   {
+    "words": [
+     "map",
+     "places",
+     "nearby",
+     "карта",
+     "места",
+     "місця"
+    ],
+    "icons": [
+     "map",
+     "location"
+    ]
+   }
+  ]
  }
 }

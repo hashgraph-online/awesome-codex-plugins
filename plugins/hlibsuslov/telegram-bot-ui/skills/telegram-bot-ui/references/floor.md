@@ -33,7 +33,7 @@ and by `tgui.py check changed`; the judgement part is yours.
 - **Custom emoji:** eligibility = Fragment usernames, or owner Premium for messages the bot
   sends to private, group and supergroup chats (so channels need Fragment). An ineligible bot
   gets no error: Telegram strips them, so verify by reading the sent message back. All icons
-  of a message or none; one pack family per bot.
+  of a message or none; one static family per bot; never animated on a button.
 - **Payments:** digital goods and services are Stars-only; create the order before the
   invoice; amount and product only from the server; answer `pre_checkout_query` within 10 s;
   deliver on `successful_payment` once per `telegram_payment_charge_id`; `refundStarPayment`
@@ -44,7 +44,7 @@ and by `tgui.py check changed`; the judgement part is yours.
 - **Context decides fields:** forum `message_thread_id` ≠ channel-DM `direct_messages_topic_id`;
   drafts only in private chats.
 - **Mini Apps:** validate `initData` on the server before trusting any user field; gate every
-  `Telegram.WebApp` call by version (`tgui.py webapp gates`).
+  `Telegram.WebApp` call by version (`tgui.py webapp gates`); `tma.start()`; Back everywhere.
 
 ## Buttons
 
@@ -56,6 +56,7 @@ and by `tgui.py check changed`; the judgement part is yours.
   destructive action; omit it elsewhere. Back, Cancel and Close stay unstyled and last.
 - `force_reply` on keyboards (10.3) = buttons plus a reply field; on inline keyboards it can't
   change in an edit. `validate_keyboard` warnings are design defects to fix.
+- Rich Messages: content actions in the document, navigation on the keyboard.
 
 ## Feedback
 

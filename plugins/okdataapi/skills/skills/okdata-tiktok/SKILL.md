@@ -1,14 +1,14 @@
 ---
 name: okdata-tiktok
-description: "Public TikTok data through okdata: videos, accounts, ads, Creative Center ads, shop products and reviews, comment replies, hashtags. 17 endpoints, $0.002–$0.004 a call. Use when a task needs TikTok data. 通过 okdata 取TikTok公开数据：视频、账号、广告、创意中心广告、店铺商品和评价、评论回复、话题。17 个接口，每次 $0.002–$0.004。"
+description: "Public TikTok data through okdata: videos, accounts, ads, Creative Center ads, shop products and reviews, comment replies, hashtags, live. 20 endpoints, $0.002–$0.004 a call. Use when a task needs TikTok data. 通过 okdata 取TikTok公开数据：视频、账号、广告、创意中心广告、店铺商品和评价、评论回复、话题、live。20 个接口，每次 $0.002–$0.004。"
 license: MIT
 ---
 
 # TikTok data with okdata
 
-> Videos, accounts and comments worldwide. (TikTok：全球的视频、账号和评论。)
+> Videos, accounts, comments and LIVE worldwide. (TikTok：全球的视频、账号、评论和直播。)
 
-17 endpoints, $0.002–$0.004 a call. Nothing here needs a TikTok account, cookie or QR login.
+20 endpoints, $0.002–$0.004 a call. Nothing here needs a TikTok account, cookie or QR login.
 
 ## Which endpoint answers which question
 
@@ -26,11 +26,14 @@ license: MIT
 | TikTok video transcript (TikTok 视频字幕): What is said in a TikTok video, by ID or link: the whole text and timed segments, from the video's captions (TikTok's own, often auto-generated). lang picks the captions' language; a video without captions in it comes back not found and is charged like any lookup. | `tiktok.videos.transcript.get` | `id` or `url` | $0.002 per call |
 | TikTok comment replies (TikTok 评论回复): The replies to a comment, by the comment's ID and its video's ID, 20 a page: text, replier, likes, time posted and which comment each one answers. A comment that does not exist reads like one without replies: an empty page, not a 404. | `tiktok.comments.replies.list` | `id`, `post_id` | $0.002 per call · about 20 comments per page |
 | TikTok account search (TikTok 账号搜索): Find TikTok accounts by keyword, 30 a page: handle, name, avatar, followers, following, video count and likes received. | `tiktok.users.search` | `query` | $0.002 per call · about 30 accounts per page |
-| TikTok account videos (TikTok 账号作品): The videos an account posted, by handle, 10 a page, newest or most popular first: caption, plays, likes, comments, shares, saves and time posted. Pinned videos are marked as such (ext.is_pinned). | `tiktok.users.videos.list` | `username` | $0.002 per call · about 10 videos per page |
+| TikTok account videos (TikTok 账号作品): The videos an account posted, by handle, 10 a page, newest or most popular first: caption, plays, likes, comments, shares, saves and time posted. Pinned videos are marked as such (ext.is_pinned). The list can also hold collabs another account posted with this one, as TikTok's profile shows them: their author is that other account (in nasa's list, a video by @whitehouse). To keep only the account's own videos, keep the items whose author.username is the handle you asked for. | `tiktok.users.videos.list` | `username` | $0.002 per call · about 10 videos per page |
 | TikTok Creative Center top ad (TikTok 创意中心热门广告详情): One Top Ad of TikTok's Creative Center by its ID: the ad's video and cover, caption, brand, landing page, and under ext its likes, comments, shares, length, objective, industry and the countries it ran in. A showcase entry, without run dates. | `tiktok.creative_center.ads.get` | `id` | $0.002 per call |
 | TikTok Shop seller products (TikTok Shop 店铺商品): The products a TikTok Shop seller in the United States has on sale, by the seller's ID, a page at a time (TikTok sets the size, often 10 to 20): title, current and original price, rating, number of reviews, units sold and image. | `tiktok.shop.sellers.products.list` | `id` | $0.002 per call · about 20 products per page |
 | TikTok account followers (TikTok 账号粉丝列表): The accounts following a TikTok account, newest followers first, 20 a page, by handle or account ID: handle, name, bio, avatar, followers, following, video count, likes received, and (under ext) the follower's country or region and language. | `tiktok.users.followers.list` | nothing | $0.002 per call · about 20 accounts per page |
 | TikTok hashtag videos (TikTok 话题作品): The videos under a hashtag, by its name, about 20 a page in TikTok's order: caption, author, plays, likes, comments, shares, saves, hashtags and time posted, with length, cover and music under ext. | `tiktok.hashtags.videos.list` | `id` | $0.002 per call · about 20 videos per page |
+| TikTok account LIVE status (TikTok 账号开播状态): Whether a TikTok account is LIVE right now, by handle: the room ID, title, start time, people in the room now and people who have come in since it started, the cover and the host with followers. An account that is not live answers with status offline and its last room, where TikTok still shows it. | `tiktok.live.users.get` | `username` | $0.002 per call |
+| TikTok LIVE shopping bag (TikTok 直播间商品): What a TikTok LIVE in the US is selling right now, by room ID and host ID (both in tiktok.live.users.get), 15 a page in the order of the room's shopping bag: title, price and list price, units sold, picture and the seller. | `tiktok.live.rooms.products.list` | `id`, `host_id` | $0.002 per call · about 15 products per page |
+| TikTok LIVE shopping ranking (TikTok 直播带货榜): TikTok's LIVE shopping ranking in the US for the current period: the top 99 live sellers with rank, handle, name, followers, TikTok's points and the room they are live in now, and when the period ends. | `tiktok.live.streamers.trending` | nothing | $0.002 per call · about 99 results per page |
 
 ## How to call it
 
@@ -67,7 +70,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -88,4 +91,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 Every TikTok endpoint with its full contract: https://okdata.online/apis/tiktok/?src=skill-okdata-tiktok
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

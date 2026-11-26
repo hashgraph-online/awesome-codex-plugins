@@ -440,6 +440,18 @@ def cmd_emoji(args) -> int:
                   "\n".join(f"{n}: {p.get('title')} · {len(p.get('emoji') or [])} emoji · {p.get('link')}"
                             for n, p in lib["packs"].items()) or "no packs: bot-ui emoji import https://t.me/addemoji/<name>")
             return 0
+        if args.action == "review":
+            out = args.out or "icon-review.html"
+            with open(out, "w", encoding="utf-8") as fh:
+                fh.write(emoji.review_sheet(snap, lib))
+            idx = emoji.emoji_index(lib)
+            issues = emoji.meaning_issues(snap, lib)
+            moving = [b for b in emoji.button_icons(snap) if emoji.is_moving(idx.get(b["id"]))]
+            _emit(args, {"ok": not issues and not moving, "file": out, "meaningMismatch": issues,
+                         "animatedOnButtons": moving},
+                  f"{out}: open it and look at every row; {len(issues)} meaning mismatch(es), "
+                  f"{len(moving)} animated button icon(s)")
+            return 1 if issues or moving else 0
         b = emoji.brief(snap, lib)
         _emit(args, {"ok": True, **b}, emoji.brief_markdown(b))
         return 0
@@ -518,8 +530,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--emoji-library-file", help="embed the emoji library's catalog from this offline export "
                                                 "(default: the one the Studio last loaded, if any)")
     p = add("emoji", cmd_emoji, "premium emoji library: import a pack by link, map icons to meanings, the agent's brief")
-    p.add_argument("action", choices=("import", "import-used", "list", "icon", "remove", "brief"),
-                   help="import-used: import every pack the bot's screens and code already use")
+    p.add_argument("action", choices=("import", "import-used", "list", "icon", "remove", "brief", "review"),
+                   help="import-used: import every pack the bot's screens and code already use; review: an HTML sheet "
+                        "of every button icon next to its label (meaning, static, family) to look at before shipping")
+    p.add_argument("--out", help="review: where to write the HTML sheet (default icon-review.html)")
     p.add_argument("link", nargs="?", help="import: https://t.me/addemoji/<name> or the name; remove: the pack name")
     p.add_argument("--from-json", help="import a saved getStickerSet response (offline, no previews)")
     p.add_argument("--slot", help="icon: the meaning, e.g. home, back, cart")

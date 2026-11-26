@@ -50,6 +50,12 @@ class MiniAppBot:
             query.append(f"mode={mode}")
         return f"{base}?{'&'.join(query)}"
 
+    def app_url_for(self, path: str = "") -> str:
+        """The app URL plus a path, query or fragment. Anything else could change the host (`@evil.example`)."""
+        if path and path[0] not in "/?#":
+            raise ValueError("path starts with /, ? or #")
+        return self.app_url + path
+
     def set_menu_button(self, chat_id: int | None = None, text: str = "Open") -> Any:
         params: dict[str, Any] = {"menu_button": {"type": "web_app", "text": text, "web_app": {"url": self.app_url}}}
         if chat_id is not None:
@@ -59,12 +65,12 @@ class MiniAppBot:
     def send_open_button(self, chat_id: int, text: str, button: str, path: str = "") -> Any:
         """Inline web_app button (private chat with the bot): the app gets a query_id for answerWebAppQuery."""
         return self.t.call("sendMessage", {"chat_id": chat_id, "text": text, "reply_markup": {
-            "inline_keyboard": [[{"text": button, "web_app": {"url": self.app_url + path}}]]}})
+            "inline_keyboard": [[{"text": button, "web_app": {"url": self.app_url_for(path)}}]]}})
 
     def send_keyboard_button(self, chat_id: int, text: str, button: str, path: str = "") -> Any:
         """Reply-keyboard web_app button: the only launch where the app may call sendData."""
         return self.t.call("sendMessage", {"chat_id": chat_id, "text": text, "reply_markup": {
-            "keyboard": [[{"text": button, "web_app": {"url": self.app_url + path}}]],
+            "keyboard": [[{"text": button, "web_app": {"url": self.app_url_for(path)}}]],
             "resize_keyboard": True, "one_time_keyboard": True}})
 
     def send_alert_with_link(self, chat_id: int, text: str, button: str, start_param: str) -> Any:
@@ -103,6 +109,25 @@ class MiniAppBot:
             return None
         return parsed
 
+    def send_order_card(self, chat_id: int, order_no: str, lines: list[tuple[str, str]], total: str,
+                        path: str = "") -> Any:
+        """The result of a Mini App order as a Rich Message whose actions sit in the document, under the receipt
+        they act on: open this order in the app, repeat it (references/buttons-and-styles.md, rich first). No
+        keyboard: nothing here navigates between screens. web_app buttons work in private chats with the bot only.
+        Item names come from the server's order, and are escaped anyway: the message speaks with the bot's name.
+        The "order:repeat:<no>" handler checks that the order belongs to callback_query.from_user.id before it
+        repeats anything: callback data can be forged."""
+        if not re.fullmatch(r"[A-Za-z0-9-]{1,40}", order_no):
+            raise ValueError("order_no: 1-40 of A-Z a-z 0-9 -")
+        rows = "".join(f"<tr><td>{_esc(name)}</td><td>{_esc(price)}</td></tr>" for name, price in lines)
+        html = (f"<p><b>Order {order_no}</b> is being prepared</p>"
+                f"<table compact>{rows}<tr><td><b>Total</b></td><td><b>{_esc(total)}</b></td></tr></table>"
+                "<tg-button-row>"
+                f'<tg-button type="web_app" url="{_esc(self.app_url_for(path))}">Open order</tg-button>'
+                f'<tg-button type="callback_data" data="order:repeat:{order_no}">Repeat</tg-button>'
+                "</tg-button-row>")
+        return self.t.call("sendRichMessage", {"chat_id": chat_id, "rich_message": {"html": html}})
+
     def prepare_share(self, user_id: int, result: dict, *, chats: tuple[str, ...] = ("users", "groups")) -> Any:
         """savePreparedInlineMessage for WebApp.shareMessage(id). One per share: ids expire."""
         params: dict[str, Any] = {"user_id": user_id, "result": result}
@@ -140,6 +165,11 @@ class MiniAppBot:
             return self.t.call("sendChatJoinRequestWebApp", {"chat_join_request_query_id": qid,
                                                               "web_app_url": self.app_url + "/verify"})
         return self.t.call("answerChatJoinRequestQuery", {"chat_join_request_query_id": qid, "result": "queue"})
+
+
+def _esc(text: object) -> str:
+    """Text and attribute values inside Rich HTML."""
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 def parse_start_param(raw: str | None, routes: dict[str, re.Pattern]) -> tuple[str, re.Match] | None:

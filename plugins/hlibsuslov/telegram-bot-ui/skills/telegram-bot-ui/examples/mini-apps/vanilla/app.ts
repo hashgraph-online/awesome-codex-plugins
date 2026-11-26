@@ -271,20 +271,24 @@ function toast(text: string): void {
   (toast as unknown as { t?: number }).t = window.setTimeout(() => { s.hidden = true; }, 2200);
 }
 
+const tabScroll = tma.scrollMemory(); // each tab comes back where the user left it
 function go(t: 'menu' | 'order'): void {
+  if (t !== tab) tabScroll.leave(tab);
   tab = t;
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-go]')) b.setAttribute('aria-selected', String(b.dataset.go === t));
   if (t === 'order') renderOrder();
   show(t);
+  tabScroll.enter(t);
   updateMainButton();
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('[data-go]')) {
-  b.addEventListener('click', () => { if (b.dataset.go !== tab) { tma.haptic.select(); go(b.dataset.go as 'menu' | 'order'); } });
+  b.addEventListener('click', () => { if (b.dataset.go !== tab) { tma.haptic.select(); go(b.dataset.go as 'menu' | 'order'); } else tabScroll.top(); });
 }
 $('qty-dec').addEventListener('click', () => { if (current && current.qty > 1) { current.qty--; tma.haptic.select(); renderDrink(); updateMainButton(); } });
 $('qty-inc').addEventListener('click', () => { if (current && current.qty < 9) { current.qty++; tma.haptic.select(); renderDrink(); updateMainButton(); } });
 
 /* ---------------------------------------------------------------- start: chrome, first screen, ready() */
+tma.start(); // fullscreen on iOS / Android (8.0+), the expanded sheet elsewhere
 tma.chrome({ header: 'secondary_bg_color', background: 'secondary_bg_color', bottomBar: 'secondary_bg_color' });
 renderTabCount();
 const start = parseStartParam(tma.launch.tgWebAppStartParam, { order: /^tab-order$/, drink: /^drink-([a-z0-9-]{1,32})$/ });

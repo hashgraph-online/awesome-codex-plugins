@@ -1,7 +1,7 @@
 {
   "name": "dopamine-talk",
-  "version": "1.0.0",
-  "description": "Post-RL decompression pack for AI agents: sharp human dialogue without hedging or Runglish, living product READMEs, and user-impact changelogs.",
+  "version": "1.1.0",
+  "description": "5-skill post-RL decompression pack for AI agents: sharp dialogue, recon-first plans, adaptive zero-regex code & tactile UI, living READMEs, and user-impact changelogs.",
   "author": {
     "name": "AnnenkovLabs",
     "url": "https://github.com/AnnenkovLabs"
@@ -13,6 +13,8 @@
     "skills",
     "ai-agents",
     "communication",
+    "planning",
+    "engineering",
     "readme",
     "changelog",
     "dopamine"
@@ -20,8 +22,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Dopamine Talk",
-    "shortDescription": "Decompress stiff RLVR agents into sharp collaborators, living READMEs, and user-impact changelogs.",
-    "longDescription": "A 3-skill pack from AnnenkovLabs: dopamine-talk strips test-gate obsession, AST narration, calibration hedging, and Runglish; dopamine-readme builds 5-second visual product showcases; dopamine-changelog turns raw git diffs into real user impact.",
+    "shortDescription": "5 skills: sharp chat, agent-time plans, zero-regex engineering & UX, living READMEs, and user-impact changelogs.",
+    "longDescription": "A 5-skill pack from AnnenkovLabs: dopamine-talk strips test-gate obsession, AST narration, and hedging; dopamine-plan builds recon-backed agent-time blueprints; dopamine-engineering ships adaptive zero-regex code and tactile UI; dopamine-readme builds 5-second visual showcases; dopamine-changelog turns raw git diffs into real user impact.",
     "developerName": "AnnenkovLabs",
     "category": "Productivity",
     "capabilities": [],

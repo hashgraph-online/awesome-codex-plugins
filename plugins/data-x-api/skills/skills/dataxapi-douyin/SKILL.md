@@ -1,14 +1,14 @@
 ---
 name: dataxapi-douyin
-description: "Public Douyin data through DataXAPI: videos, hashtags, users, comments, trends, keywords, trend-index, Xingtu. 41 endpoints, $0.0020 to $0.0400 a call, a failed call is free. Use when the user asks about Douyin content, accounts, comments or trends, or gives a Douyin link, ID or account name. 通过 DataXAPI 取抖音的公开数据：视频、话题、用户、评论、热榜、关键词、巨量算数、星图。41 个接口，一次 $0.0020 到 $0.0400，失败不收费。用户问到抖音的内容、账号、评论或热点，或给出抖音的链接、编号、账号名时使用。"
+description: "Public Douyin data through DataXAPI: videos, hashtags, users, comments, trends, keywords, trend-index, Xingtu. 42 endpoints, $0.0020 to $0.0400 a call, a failed call is free. Use when the user asks about Douyin content, accounts, comments or trends, or gives a Douyin link, ID or account name. 通过 DataXAPI 取抖音的公开数据：视频、话题、用户、评论、热榜、关键词、巨量算数、星图。42 个接口，一次 $0.0020 到 $0.0400，失败不收费。用户问到抖音的内容、账号、评论或热点，或给出抖音的链接、编号、账号名时使用。"
 metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
 # 抖音数据 API · Douyin data API · DataXAPI
 
-**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 41 Douyin endpoints, $0.0020 to $0.0400 a call, each at its own price (listed below). No Douyin account, cookie or login: one DataXAPI key.
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 42 Douyin endpoints, $0.0020 to $0.0400 a call, each at its own price (listed below). No Douyin account, cookie or login: one DataXAPI key.
 
-DataXAPI returns public Douyin data (抖音的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 41 Douyin endpoints with their prices and the questions each one answers. It was generated from catalog revision e43c3e964bcc3fc3.
+DataXAPI returns public Douyin data (抖音的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 42 Douyin endpoints with their prices and the questions each one answers. It was generated from catalog revision 0051cce45e9530b9.
 
 What one call returns: `douyin.trends.list`, a recorded answer (51 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
 
@@ -125,6 +125,7 @@ curl -G "https://api.dataxapi.com/v1/douyin/trends/list" \
 | `douyin.music.get` | Douyin music detail (抖音音乐详情（背景音乐 MP3 和使用人数）) | Get one piece of Douyin music by its ID: name, author, length, the address of its audio file (mostly an MP3), cover, whether Douyin marks it as commercial music (in its commercial music library), whether it is a video's original sound, and how many people have posted with it. The ID is that of a video's background music, or an id of the music chart. | $0.002 per call | one object |
 | `douyin.backup.users.videos.list` | Douyin user videos (backup) (抖音用户视频（备用版）) | The backup of Douyin user videos, to call when the original cannot serve: the same parameters and result, at a higher price. | $0.03 per call | up to 20 |
 | `douyin.backup.videos.search` | Douyin video search (backup) (抖音视频搜索（备用版）) | The backup of Douyin video search, to call when the original cannot serve: the same parameters and result, at a higher price. | $0.03 per call | up to 20 |
+| `douyin.xingtu.backup.creators.audience.get` | Douyin Xingtu creator audience (backup) (抖音星图达人粉丝画像（备用版）) | The backup of Douyin Xingtu creator audience, to call when the original cannot serve: the same parameters and result, at a higher price. | $0.04 per call | one object |
 
 Each endpoint's whole contract (parameters, fields, a recorded response) is its page: https://dataxapi.com/apis/douyin/?ref=skills-dataxapi-douyin, one link per endpoint. To read it here, take its Markdown version, https://dataxapi.com/apis/douyin.md, which links each endpoint's.
 

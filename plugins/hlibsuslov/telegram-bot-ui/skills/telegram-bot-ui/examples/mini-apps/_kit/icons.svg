@@ -55,6 +55,8 @@
   <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 7.7-1.5"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M4 4l16 16M9.9 6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.6 3.4M6.6 7.1A16 16 0 0 0 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1.1M10 10a3 3 0 0 0 4 4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.8C10.2 5.4 7.8 4.8 4 4.8v13.4c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4.8c-3.8 0-6.2.6-8 2Z"/><path d="M12 6.8v13.4"/></symbol>
+  <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M8.5 12h7"/><rect x="5" y="7" width="3.5" height="10" rx="1.2"/><rect x="15.5" y="7" width="3.5" height="10" rx="1.2"/><path d="M2.8 10v4M21.2 10v4"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
   <symbol id="i-location" viewBox="0 0 24 24"><path d="M12 20.5s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0c0 4.9-6.5 10.5-6.5 10.5Z"/><circle cx="12" cy="10" r="2.3"/></symbol>

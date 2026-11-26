@@ -1,0 +1,14 @@
+{
+  "name": "termalin",
+  "version": "1.3.1",
+  "type": "module",
+  "private": true,
+  "description": "Termalin for OpenClaw: SSH, SFTP, databases and monitoring for your own Linux servers through Termalin's hosted MCP server, plus ten skills. Metadata-only bundle, no plugin code.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/termalinapp/termalin-plugin.git"
+  },
+  "homepage": "https://termal.in/mcp/",
+  "keywords": ["openclaw", "mcp", "ssh", "sftp", "servers", "devops"]
+}

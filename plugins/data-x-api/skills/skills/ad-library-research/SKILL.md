@@ -64,7 +64,7 @@ This skill runs the DataXAPI task `ads` with the `dataxapi` command line. If `da
 dataxapi run ads platforms=meta,tiktok 'query=running shoes' pages=1 --plan
 ```
 
-With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 21, catalog revision dc959672dd18e2d0). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 9 calls or $0.05.
+With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 22, catalog revision 0051cce45e9530b9). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 9 calls or $0.05.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

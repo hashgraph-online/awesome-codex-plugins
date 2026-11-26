@@ -1,6 +1,6 @@
 ---
 name: okdata-taobao
-description: "Public Taobao & Tmall data through okdata: products, shops. 4 endpoints, $0.033–$0.043 a call. Use when a task needs Taobao & Tmall data. 通过 okdata 取淘宝天猫公开数据：products、shops。4 个接口，每次 $0.033–$0.043。"
+description: "Public Taobao & Tmall data through okdata: products, shops. 7 endpoints, $0.022–$0.065 a call. Use when a task needs Taobao & Tmall data. 通过 okdata 取淘宝天猫公开数据：products、shops。7 个接口，每次 $0.022–$0.065。"
 license: MIT
 ---
 
@@ -8,16 +8,19 @@ license: MIT
 
 > Product search, details with SKUs, buyer reviews and a shop's products. (淘宝天猫：商品搜索、带 SKU 的详情、买家评价和店铺商品。)
 
-4 endpoints, $0.033–$0.043 a call. Nothing here needs a Taobao & Tmall account, cookie or QR login.
+7 endpoints, $0.022–$0.065 a call. Nothing here needs a Taobao & Tmall account, cookie or QR login.
 
 ## Which endpoint answers which question
 
 | Question | Endpoint | Needs | Price |
 |---|---|---|---|
-| Taobao product search (淘宝商品搜索): Search Taobao and Tmall by keyword: title, price and list price, buyers in the last month, the shop and where it ships from, by sales, price or Taobao's own order, with a price range and a Tmall-only switch. | `taobao.products.search` | `query` | $0.043 per call · about 10 products per page |
-| Taobao product details (淘宝商品详情): One Taobao or Tmall product by ID: title, price, all main images and the video, item properties, the variants (SKUs) with their prices and stock, where it ships from, and the shop. | `taobao.products.get` | `id` | $0.033 per call |
+| Taobao product search (淘宝商品搜索): Search Taobao and Tmall by keyword: title, price and list price, buyers in the last month, the shop and where it ships from, by sales, price or Taobao's own order, with a price range and a Tmall-only switch. The price is the one the result list shows (often after a coupon, or for the default variant), so it can differ from products.get. | `taobao.products.search` | `query` | $0.043 per call · about 10 products per page |
+| Taobao product details (淘宝商品详情): One Taobao or Tmall product by ID: title, price, all main images and the video, item properties, the variants (SKUs) with their prices and stock, where it ships from, and the shop. Stock reads at most 200, so 200 means 200 or more. | `taobao.products.get` | `id` | $0.033 per call |
 | Taobao product reviews (淘宝商品评价): Buyers' reviews of a Taobao or Tmall product: text, date, the variant bought, photos and likes, newest first or in Taobao's order. | `taobao.products.reviews.list` | `id` | $0.043 per call · about 20 reviews per page |
 | Taobao shop products (淘宝店铺商品): The products a Taobao or Tmall shop sells, 60 a page: title, price and list price, buyers in the last 30 days, review count and image, by sales, newest, seller credit or price. Takes the seller ID and the shop ID, both in a product's details. | `taobao.shops.products.list` | `id`, `shop_id` | $0.043 per call · about 60 products per page |
+| Taobao shop profile (淘宝店铺信息): A Taobao or Tmall shop by seller ID and shop ID: name, logo, followers, its ratings (overall, description, service, logistics), badges such as years open, number of products, its categories, hot search words and whether it is live now. | `taobao.shops.get` | `id`, `shop_id` | $0.065 per call |
+| Taobao product Q&A (淘宝商品问大家): Shoppers' questions about a Taobao or Tmall product (问大家) and the answers shown with each, text only, with the date asked and how many answers it has. No names or accounts. | `taobao.products.questions.list` | `id` | $0.033 per call · about 10 results per page |
+| Taobao product detail images (淘宝商品详情图): The pictures of a Taobao or Tmall product's description page, top to bottom. | `taobao.products.detail_images.get` | `id` | $0.022 per call |
 
 ## How to call it
 
@@ -54,7 +57,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -67,4 +70,4 @@ Not connected yet? Follow https://okdata.online/agents.md.
 
 Every Taobao & Tmall endpoint with its full contract: https://okdata.online/apis/taobao/?src=skill-okdata-taobao
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

@@ -26,7 +26,7 @@ TON wallet: [../wallet-and-ton.md](../wallet-and-ton.md). Widgets inside a messa
 | Open a Mini App from a button, link, menu or profile; `startapp`; hosting | [launch-and-lifecycle.md](launch-and-lifecycle.md) | recipe 91 |
 | "Does `Telegram.WebApp` have X, since which version?" | [webapp-api.md](webapp-api.md), `scripts/webapp_lookup.py` | — |
 | Verify `initData`, sessions, what to trust | [security.md](security.md) | recipe 92 |
-| Take payments: Stars, subscriptions, cards for physical goods, every `invoiceClosed` status | [payments.md](payments.md) | recipes 93, 96 |
+| Take payments: Stars, subscriptions, cards for physical goods, every `invoiceClosed` status; a Premium paywall (P1-P12) | [payments.md](payments.md) | recipes 93, 96; `examples/mini-apps/paywall` |
 | Show Telegram's own things: Stars, grams (formerly Toncoin), gifts and rarity, Premium, boosts; what never to draw | [telegram-elements.md](telegram-elements.md) | gallery group Telegram |
 | "How does iOS 27 / Telegram build this?": row, header, button, tab bar, sheet, alert, empty state sizes; how Telegram composes Wallet-, catalogue- and form-like screens | [native-anatomy.md](native-anatomy.md) | `data/mini-apps/design-sources.json` → `ios27.anatomy` |
 | Haptics (the Taptic Engine), motion sensors, location, biometrics, fullscreen, orientation, QR, home screen, sharing | [haptics-and-device.md](haptics-and-device.md) | `tma.haptic`, `tma.motion`, `tma.location`; gallery group Device |

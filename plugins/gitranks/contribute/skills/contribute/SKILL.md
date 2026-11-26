@@ -25,6 +25,9 @@ call answers that sign-in is required, ask the user to start their client's sign
 Never ask them to paste anything from that page. A personal token is only for clients that can't sign in: see
 https://github.com/gitranks/contribute#use-a-token-instead.
 
+Before the first issue, the user finishes a 2-minute setup on gitranks.com once. If an answer says setup is not
+finished, give the user the link it names and take no issue until they are done.
+
 ## The loop
 
 1. **Find.** Call `find_issues`. Pass the user's wishes as filters (`languages`, `kinds`, `maxSize`, `repo`,
@@ -34,7 +37,7 @@ https://github.com/gitranks/contribute#use-a-token-instead.
    has `masked` null. Show the user a few candidates and let them pick, unless they already named one. If nothing
    matches your filters, offer fewer. With none and nothing back, say a new account's first picks take a minute or
    two and new ones come every day; if the user picked languages or kinds, they can widen them at
-   https://gitranks.com/contribute/settings#work. For more, ask for the next page with `after`.
+   https://gitranks.com/my/settings/work. For more, ask for the next page with `after`.
 2. **Claim.** Call `claim_issue` with the item's `masked.id` as `maskId`, or with the `issueId` or GitHub URL of an
    issue shown in full or named by the user. The answer is the brief: the full issue, the clone URL, the base branch,
    how the repository builds and tests, and its contribution rules. Claim only the issue the user picked: each claim
@@ -42,8 +45,9 @@ https://github.com/gitranks/contribute#use-a-token-instead.
    for each pull request merged through GitRanks, up to 100. An issue the user holds open on gitranks.com is claimed
    at no new cost. Tell the user which issue you took and until when it is held. If the claim is refused, tell
    them why in plain words and offer the next issue (`not_available`: the issue is not open to them yet, so pick
-   another from `find_issues`). At your attempts at a time, `my_contributions` lists them;
-   past the day's full issues, more come at 00:00 UTC.
+   another from `find_issues`). If an answer says setup is not finished (`setup_unfinished`), give the user the link
+   it names and take no issue until they are done; that refusal takes none of the day's full issues. At your attempts
+   at a time, `my_contributions` lists them; past the day's full issues, more come at 00:00 UTC.
 3. **Read before coding.** Read the whole issue thread and every pull request linked to it, then go on or give the
    issue back. Give it back with `release_issue`, with a `reason` and a `note` saying why, when it is fixed already
    (`already_fixed`), closed (`closed`), someone else is on it (`taken`), a maintainer turned the change down
@@ -63,10 +67,9 @@ https://github.com/gitranks/contribute#use-a-token-instead.
    issue is no longer held for them, and offer `find_issues`. If you can't make it pass before then, say so and give the
    issue back with `release_issue`.
 6. **Tell the user** to review and approve the pull request within 48 hours: give them the link from the answer to
-   `submit_patch`. Unless they turned autopilot on, nothing reaches GitHub until they approve it there; the first
-   time, gitranks.com asks for GitHub access to fork the repository and open the pull request in their name. With
-   autopilot on, the answer says when it is submitted; the same link lets them stop it. If they send it back with a
-   note, `my_contributions` shows it (`changesRequested`): fix it and call `submit_patch` again.
+   `submit_patch`. Nothing reaches GitHub until they approve it there; the first time, gitranks.com asks for GitHub
+   access to fork the repository and open the pull request in their name. If they send it back with a note,
+   `my_contributions` shows it (`changesRequested`): fix it and call `submit_patch` again.
 
 If you can't run a shell here (for example a chat app on the web or on a phone), you can still find, take and track
 issues. Say that the fix needs an agent with a shell, such as Codex or Claude Code, signed in to the same GitRanks
@@ -102,7 +105,8 @@ below.
 1. **Find and claim in Learn mode.** Pass `mode: "learn"` to `find_issues` (the issues the user's Learn Issues page
    shows For you, from their Learn languages and level; masked as above; each item also gives `lesson`, the course
    lesson the issue teaches or null, and `lessonWhy`: `uses_learned`, `teaches_new` or `no_lesson`) and to
-   `claim_issue`, with the item's `masked.id` as `maskId`. The claim's answer adds `lesson` and `lessonBrief`: who the
+   `claim_issue`, with the item's `masked.id` as `maskId`. If an answer says setup is not finished, give the user the
+   link it names and take no issue until they are done. The claim's answer adds `lesson` and `lessonBrief`: who the
    lesson is for, its shape (3 to 5 steps of typed blocks: text, diagrams, diffs, code), the question rules and an
    example. Follow it.
 2. **Fix in one commit.** Squash your work into one commit (`git reset --soft origin/<baseBranch> && git commit`) and

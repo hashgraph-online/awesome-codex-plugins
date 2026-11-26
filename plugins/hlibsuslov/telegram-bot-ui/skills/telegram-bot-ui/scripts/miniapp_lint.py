@@ -67,6 +67,19 @@ in references/mini-apps/anti-slop.md#linter-rules):
     MA42 side-stripe      A   a coloured border of 2 px or more on one side of a card, row or callout
     MA43 hard-shadow      A   an offset shadow with no blur (4px 4px 0): a costume, not depth
     MA44 eyebrow          A   an eyebrow / kicker / overline label above a heading: the heading alone
+  navigation and launch (N = references/mini-apps/telegram-design-guidelines.md §11 back contract, launch-and-lifecycle.md §9)
+    MA45 tab-bar          N   a tab bar outside 2-5 tabs, a tab with no icon or no text label, icons from mixed
+                              sets, an animated or custom emoji icon, no selected tab, or an icon that means
+                              something else than its label (data/mini-apps/icons.json -> tab_bar.meanings)
+    MA46 launch-mode      N   the app never decides how it opens: tma.start() (fullscreen on phones, the expanded
+                              sheet elsewhere; fullscreen: 'never' is a decision too), a mode=fullscreen link, or
+                              requestFullscreen() that handles a refusal (fullscreenFailed, a rejected promise)
+    MA47 dead-end         N   a nested screen with no way back: the tab bar is hidden with no nav.push / BackButton,
+                              or layers are pushed and never popped
+  surfaces (S = references/mini-apps/design-system.md section 5, rules S1-S6; the rendered geometry is
+  checked by _kit/tma-audit.mjs on the preview stand, ?audit=1)
+    MA48 surface-padding  S   a card-like rule (card, panel, box, banner, callout, notice, promo, plan, paywall) with a
+                              background and a 12 px+ radius whose padding is missing or under 12 px (16 is the rule)
 """
 from __future__ import annotations
 
@@ -99,6 +112,8 @@ RULES = {
     "MA38": ("warn", "icon-name"), "MA39": ("warn", "physical-side"),
     "MA40": ("warn", "number-input"), "MA41": ("warn", "autofocus"),
     "MA42": ("warn", "side-stripe"), "MA43": ("warn", "hard-shadow"), "MA44": ("warn", "eyebrow"),
+    "MA45": ("warn", "tab-bar"), "MA46": ("warn", "launch-mode"), "MA47": ("warn", "dead-end"),
+    "MA48": ("warn", "surface-padding"),
 }
 TOKEN = re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{30,}\b|\bBOT_TOKEN\b|\bTELEGRAM_BOT_TOKEN\b")
 COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\([^)]*\)")
@@ -140,6 +155,113 @@ class Report:
     @property
     def warnings(self) -> list[Finding]:
         return [f for f in self.findings if f.level == "warn"]
+
+
+CARD_LIKE = re.compile(r"card|panel|box|banner|callout|notice|promo|plan|paywall|tile-body|surface", re.I)
+NOT_SURFACE = re.compile(r"btn|button|chip|pill|badge|tag\b|avatar|icon|input|field|search|progress|track|thumb|switch|"
+                         r"dot|skeleton|media|img|image|list|row|cell|seg|tab|bar\b|toggle|checkbox|radio-mark", re.I)
+SPACE_TOKENS = {"--tma-s1": 4, "--tma-s2": 8, "--tma-s3": 12, "--tma-s4": 16, "--tma-s5": 20, "--tma-s6": 24, "--tma-s8": 32,
+                "--tma-margin": 16}
+RADIUS_TOKENS = {"--tma-r-group": 26, "--tma-r-inner": 14, "--tma-r-sheet": 38}
+
+
+def _px(value: str, tokens: dict[str, int]) -> float | None:
+    """One CSS length in px: 12px, 0, var(--tma-s3), var(--x, 8px); None when it cannot be told."""
+    v = value.strip()
+    m = re.fullmatch(r"var\(\s*(--[\w-]+)\s*(?:,\s*([^)]*))?\)", v)
+    if m:
+        if m.group(1) in tokens:
+            return float(tokens[m.group(1)])
+        return _px(m.group(2), tokens) if m.group(2) else None
+    m = re.fullmatch(r"(-?\d*\.?\d+)(px)?", v)
+    if m and (m.group(2) or float(m.group(1)) == 0):
+        return float(m.group(1))
+    m = re.fullmatch(r"(\d*\.?\d+)rem", v)
+    return float(m.group(1)) * 16 if m else None
+
+
+def _box(shorthand: str) -> list[str]:
+    parts = re.findall(r"var\([^()]*(?:\([^()]*\)[^()]*)*\)|calc\([^()]*(?:\([^()]*\)[^()]*)*\)|[^\s]+", shorthand.strip())
+    return parts[:4]
+
+
+def surface_padding_issue(sel: str, body: str) -> str | None:
+    """MA48: a card-like surface (background + radius >= 12 px) with padding missing or under 12 px on a side."""
+    if not CARD_LIKE.search(sel) or NOT_SURFACE.search(sel):
+        return None
+    bg = re.search(r"background(?:-color)?\s*:\s*([^;]+)", body)
+    if not bg or re.match(r"\s*(?:none|transparent)\b", bg.group(1)):
+        return None
+    rad = re.search(r"border-radius\s*:\s*([^;]+)", body)
+    if not rad:
+        return None
+    r = _px(_box(rad.group(1))[0], RADIUS_TOKENS) if _box(rad.group(1)) else None
+    if r is None or r < 12:
+        return None
+    pad = re.search(r"(?<![-\w])padding\s*:\s*([^;]+)", body)
+    if not pad:
+        if re.search(r"padding-(?:block|inline|top|bottom)", body):
+            return None  # split padding: the rendered audit measures it
+        return f"a {r:g} px radius surface with no padding: content touches the edge; 16 px inside (S2)"
+    sides = [_px(x, SPACE_TOKENS) for x in _box(pad.group(1))]
+    known = [x for x in sides if x is not None]
+    if known and min(known) < 12:
+        return f"padding {pad.group(1).strip()} inside a {r:g} px radius surface: 16 px on the sides, 12 px or more top and bottom (S2)"
+    return None
+
+
+def tab_meanings() -> list[tuple[set[str], set[str]]]:
+    """(label words, icon ids) rows from data/mini-apps/icons.json -> tab_bar.meanings."""
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "mini-apps", "icons.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            rows = json.load(fh)["tab_bar"]["meanings"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
+    return [({w.lower() for w in r["words"]}, set(r["icons"])) for r in rows]
+
+
+TABBAR = re.compile(r"<nav\b[^>]*\b(?:class|className)\s*=\s*[\"'{][^>]*\btab-?bar\b", re.I)
+SR_TEXT = re.compile(r"<span\b[^>]*\bclass(?:Name)?=[\"'](?:tma-sr|tma-sr-only)[\"'][^>]*>.*?</span>", re.S | re.I)
+
+
+def tab_bar_findings(text: str, meanings: list[tuple[set[str], set[str]]]) -> list[tuple[int, str]]:
+    """MA45 over every tab bar (<nav class="...tabbar...">) in markup or JSX."""
+    out: list[tuple[int, str]] = []
+    for nav in TABBAR.finditer(text):
+        end = text.find("</nav>", nav.end())
+        block = text[nav.start():end if end > 0 else len(text)]
+        tabs = list(re.finditer(r"<button\b(.*?)>(.*?)</button>", block, re.S | re.I))
+        dynamic = bool(re.search(r"\.map\s*\(", block))  # JSX rendering tabs from a list: one template stands for all
+        if not dynamic and not 2 <= len(tabs) <= 5:
+            out.append((nav.start(), f"{len(tabs)} tab(s): a tab bar holds 2-5 top-level sections; more go in a list or a Search tab"))
+        sprites, selected = set(), False
+        for t in tabs:
+            attrs, inner = t.group(1), t.group(2)
+            pos = nav.start() + t.start()
+            if re.search(r"aria-selected\s*=\s*(?:[\"']true|\{)", attrs):
+                selected = True
+            label = re.sub(r"\{[^{}]*\}|<[^>]+>|&nbsp;|\s+", " ", SR_TEXT.sub("", inner)).strip()
+            if re.search(r"<tg-emoji|\.(?:tgs|webm|gif)\b", inner, re.I):
+                out.append((pos, f"tab {label[:24]!r}: an animated or custom emoji icon; tab icons are static line icons"))
+            if not re.search(r"<(?:svg|img)\b", inner, re.I):
+                out.append((pos, f"tab {label[:24]!r} has no icon: each tab is an icon from one line set and a short label"))
+                continue
+            if not label and not dynamic:
+                out.append((pos, "tab with an icon and no visible label: tab bars show both"))
+            sprites.update(re.findall(r"href\s*=\s*[\"']([^\"'#]*)#", inner))
+            ids = re.findall(r"#i-([a-z0-9-]+)", inner)
+            words = set(re.findall(r"[^\W\d_]+", label.lower()))
+            if ids and words and meanings:
+                rows = [icons for ws, icons in meanings if words & ws]
+                if rows and not any(ids[0] in icons for icons in rows):
+                    want = sorted(set().union(*rows))
+                    out.append((pos, f"tab {label[:24]!r} uses i-{ids[0]}: that label means " + " or ".join(f"i-{w}" for w in want)))
+        if len(sprites) > 1:
+            out.append((nav.start(), f"tab icons come from {len(sprites)} sets ({', '.join(sorted(sprites))[:80]}): one line set, one stroke"))
+        if tabs and not selected:
+            out.append((nav.start(), 'no tab is aria-selected="true": the current section must be visible'))
+    return out
 
 
 def gated_members() -> dict[str, str]:
@@ -259,6 +381,7 @@ def lint_files(paths: list[str], root: str | None = None) -> Report:
         with open(p, encoding="utf-8", errors="replace") as fh:
             files[p] = fh.read()
     gates = gated_members()
+    meanings = tab_meanings()
 
     def add(rule: str, path: str, text: str, pos: int, msg: str) -> None:
         level, name = RULES[rule]
@@ -312,6 +435,9 @@ def lint_files(paths: list[str], root: str | None = None) -> Report:
             for m in re.finditer(r"history\.back\s*\(", code):
                 add("MA19", path, text, m.start(), "history.back(): drive Telegram's BackButton from one navigation stack")
             client_js.append((path, code))
+            if ext in (".tsx", ".jsx"):
+                for pos, msg in tab_bar_findings(text, meanings)[:6]:
+                    add("MA45", path, text, pos, msg)
         if not server and ext in (".html", ".htm", ".js", ".mjs", ".ts", ".tsx", ".jsx"):
             card = re.search(r"autocomplete\s*=\s*[\"']cc-|\b(name|id)\s*=\s*[\"'][^\"']*(card-?number|cardnumber|\bcvv\b|\bcvc\b)", text, re.I)
             if card:
@@ -414,6 +540,8 @@ def lint_files(paths: list[str], root: str | None = None) -> Report:
                 add("MA44", path, text, eyebrow.start(), "eyebrow label above a heading: delete it and let the heading speak")
             for pos, outer, inner in nested_surfaces(text)[:5]:
                 add("MA35", path, text, pos, f"{inner!r} inside {outer!r}: one surface level; rows or plain content inside a card")
+            for pos, msg in tab_bar_findings(text, meanings)[:6]:
+                add("MA45", path, text, pos, msg)
             own_back = re.search(r"history\.back\s*\(|<(?:button|a)\b[^>]*(?:class|id)=[\"'][^\"']*\b(?:back-btn|btn-back|back-button|nav-back)\b", text, re.I)
             if own_back:
                 add("MA19", path, text, own_back.start(), "own back control: Telegram's BackButton, driven by one navigation stack")
@@ -467,6 +595,9 @@ def lint_files(paths: list[str], root: str | None = None) -> Report:
                     hard = re.search(r"box-shadow\s*:[^;]*?(?<![\d.])-?[1-9]\d*px\s+-?\d+px\s+0(?:px)?\s+(?!\d)", body)
                     if hard and "inset" not in hard.group(0):
                         add("MA43", path, text, offset + pos, f"hard offset shadow on {sel.strip()[:40]!r}: theme surfaces, or a soft shadow for floating things")
+                    tight = surface_padding_issue(sel, body)
+                    if tight:
+                        add("MA48", path, text, offset + pos, f"{sel.strip()[:40]!r}: {tight}")
                 for n, m in enumerate(re.finditer(r"(?<![-\w])(?:margin|padding)-(?:left|right)\s*:|\b(?:text-align|float)\s*:\s*(?:left|right)\b", clean)):
                     if n == 3:
                         break
@@ -525,13 +656,39 @@ def lint_files(paths: list[str], root: str | None = None) -> Report:
         path = next((p for p in files if p.endswith(".css")), next(iter(files), ""))
         if path:
             add("MA17", path, files[path], 0, "motion without a prefers-reduced-motion rule")
-    if re.search(r"requestFullscreen\s*\(", js_all) and not re.search(r"--tg-(content-)?safe-area-inset|--tma-safe", css_all):
+    uses_kit_css = any(re.search(r"_kit/tma\.css", t) for t in files.values())
+    if re.search(r"requestFullscreen\s*\(", js_all) and not uses_kit_css \
+            and not re.search(r"--tg-(content-)?safe-area-inset|--tma-safe", css_all):
         path = next(p for p, c in client_js if "requestFullscreen" in c)
         add("MA08", path, files[path], files[path].find("requestFullscreen"), "fullscreen without safe-area and content-safe-area padding")
     if uses_webapp and not calls_ready:
         path = next((p for p, _ in client_js), next(iter(files), ""))
         if path:
             add("MA18", path, files[path], 0, "ready() is never called: Telegram shows its loading screen until the page fully loads")
+    # ---- navigation and launch (telegram-design-guidelines.md §11, launch-and-lifecycle.md §9)
+    def outside_kit(p: str) -> bool:
+        return "_kit" not in re.split(r"[\\/]", os.path.relpath(p, root) if root else p)
+    app_js = [(p, c) for p, c in client_js if outside_kit(p)]
+    # Decided: the kit's start(), a fullscreen link, or requestFullscreen() that also handles a refusal (the
+    # fullscreenFailed event or the SDK's rejected promise); a bare requestFullscreen() leaves no fallback.
+    js_app = "\n".join(c for _, c in app_js)
+    decided = re.search(r"\bmode=fullscreen|\btma\.start\s*\(|\.start\s*\(\s*\{\s*fullscreen\s*:", js_app) or (
+        re.search(r"requestFullscreen\s*\(", js_app)
+        and re.search(r"fullscreenFailed|requestFullscreen\s*\([^;]*\)\s*\.catch\s*\(", js_app))
+    if uses_webapp and app_js and not decided:
+        path = next((p for p, c in app_js if "requestFullscreen" in c), app_js[0][0])
+        add("MA46", path, files[path], max(0, files[path].find("requestFullscreen")),
+            "the launch mode is not decided: tma.start() asks for fullscreen on iOS / Android (8.0+) and expands "
+            "everywhere else (fullscreen: 'never' keeps the sheet on purpose); a bare requestFullscreen() needs "
+            "expand() and a fullscreenFailed fallback")
+    for path, code in app_js:
+        hides_tabs = re.search(r"tabbar['\"]?\)?\.hidden\s*=\s*(?!false\b)", code)
+        if hides_tabs and not re.search(r"nav\.push\s*\(|BackButton|backButton", code):
+            add("MA47", path, files[path], files[path].find("tabbar"),
+                "the tab bar is hidden for a nested screen, but nothing shows the BackButton: tma.nav.push({ onBack })")
+        if re.search(r"nav\.push\s*\(", code) and not re.search(r"nav\.(?:pop|reset)\s*\(", code):
+            add("MA47", path, files[path], files[path].find("nav.push"),
+                "layers are pushed and never popped: every screen's onBack pops it (tma.nav.pop(id))")
     for path, code in client_js:
         # Gates: Telegram.WebApp.isVersionAtLeast, the kit's has('x.y'), @tma.js/sdk's isAvailable()/ifAvailable()
         if not gates or re.search(r"isVersionAtLeast|versionAtLeast|\bhas\(\s*['\"]\d|\.isAvailable\(\)|\.ifAvailable\(", code):

@@ -623,3 +623,120 @@ test('requestChat(): null below 9.6 or without the method, the client\'s boolean
   assert.equal(await createTma(env(f.tg)).requestChat('req-1'), false);
   assert.deepEqual(f.calls.filter((c) => c[0] === 'requestChat'), [['requestChat', 'req-1']]);
 });
+
+/* ---------------------------------------------------------------- launch, back, scroll (G6, navigation) */
+
+function fakeScroller(start = 0) {
+  const frames: Array<() => void> = [];
+  const s = { pos: start, y: () => s.pos, to: (y: number) => { s.pos = y; }, frame: (cb: () => void) => { frames.push(cb); } };
+  const flush = () => { while (frames.length) frames.shift()!(); };
+  return { s, flush };
+}
+
+test('start(): fullscreen on phones from 8.0, expand() first, the sheet on desktop and older clients', () => {
+  for (const [platform, version, wantFs] of [['ios', '8.0', true], ['android', '9.1', true], ['tdesktop', '8.0', false], ['ios', '7.10', false]] as const) {
+    const { tg, calls, emit } = fakeWebApp(version, {
+      platform, isFullscreen: false,
+      expand: () => calls.push(['expand']),
+      requestFullscreen: () => { calls.push(['requestFullscreen']); (tg as { isFullscreen: boolean }).isFullscreen = true; emit('fullscreenChanged'); },
+    });
+    const root = fakeRoot();
+    const tma = createTma(env(tg, { root }));
+    tma.start();
+    assert.equal(calls[0][0], 'expand', `${platform} ${version}: expand first`);
+    assert.equal(calls.some((c) => c[0] === 'requestFullscreen'), wantFs, `${platform} ${version}`);
+    assert.equal(root.dataset.tmaFullscreen, wantFs ? 'on' : version === '7.10' ? 'unsupported' : 'off');
+    assert.equal(tma.fullscreen, root.dataset.tmaFullscreen);
+  }
+});
+
+test('start(): a refused fullscreen keeps the expanded sheet; never asks again when already fullscreen', () => {
+  const { tg, calls, emit } = fakeWebApp('8.0', {
+    isFullscreen: false, expand: () => {},
+    requestFullscreen: () => { calls.push(['requestFullscreen']); emit('fullscreenFailed', { error: 'UNSUPPORTED' }); },
+  });
+  const root = fakeRoot();
+  createTma(env(tg, { root })).start();
+  assert.equal(root.dataset.tmaFullscreen, 'unsupported');
+  const already = fakeWebApp('8.0', { isFullscreen: true, expand: () => {}, requestFullscreen: () => already.calls.push(['requestFullscreen']) });
+  createTma(env(already.tg)).start({ fullscreen: 'always' });
+  assert.equal(already.calls.some((c) => c[0] === 'requestFullscreen'), false);
+  const never = fakeWebApp('8.0', { isFullscreen: false, expand: () => {}, requestFullscreen: () => never.calls.push(['requestFullscreen']) });
+  createTma(env(never.tg)).start({ fullscreen: 'never' });
+  assert.equal(never.calls.some((c) => c[0] === 'requestFullscreen'), false);
+});
+
+test('start() outside Telegram does nothing and marks fullscreen unsupported', () => {
+  const root = fakeRoot();
+  const tma = createTma(env(null, { root }));
+  tma.start();
+  assert.equal(root.dataset.tmaFullscreen, 'unsupported');
+});
+
+test('nav.pop scrolls the screen underneath back to where the user left it; reset() does not', () => {
+  const { tg } = fakeWebApp('8.0');
+  const { s, flush } = fakeScroller(640);
+  const tma = createTma(env(tg, { scroller: s }));
+  tma.nav.push({ id: 'detail', kind: 'screen' });
+  s.to(0); // the app shows the detail screen from the top
+  tma.nav.pop('detail');
+  flush();
+  assert.equal(s.pos, 640);
+  s.to(300);
+  tma.nav.push({ id: 'checkout', kind: 'screen' });
+  s.to(0);
+  tma.nav.reset();
+  flush();
+  assert.equal(s.pos, 0);
+});
+
+test('scrollMemory keeps each tab where it was', () => {
+  const { tg } = fakeWebApp('8.0');
+  const { s, flush } = fakeScroller(420);
+  const tabs = createTma(env(tg, { scroller: s })).scrollMemory();
+  tabs.leave('menu'); s.to(0); tabs.enter('order'); flush();
+  assert.equal(s.pos, 0);
+  s.to(90); tabs.leave('order'); tabs.enter('menu'); flush();
+  assert.equal(s.pos, 420);
+});
+
+test('fallback back control stands in where there is no BackButton, and is never shown in Telegram', () => {
+  const back: FallbackButtonLike = { hidden: true, textContent: '', onclick: null };
+  const tma = createTma(env(null, { fallbackBack: back }));
+  let backed = 0;
+  tma.nav.push({ id: 'detail', kind: 'screen', onBack: () => { backed++; tma.nav.pop('detail'); } });
+  assert.equal(back.hidden, false);
+  back.onclick?.();
+  assert.equal(backed, 1);
+  assert.equal(back.hidden, true);
+  const old = fakeWebApp('6.0');
+  const oldBack: FallbackButtonLike = { hidden: true, textContent: '', onclick: null };
+  createTma(env(old.tg, { fallbackBack: oldBack })).nav.push({ id: 'x', kind: 'screen' });
+  assert.equal(oldBack.hidden, false, 'no BackButton before 6.1');
+  const cur = fakeWebApp('8.0');
+  const unused: FallbackButtonLike = { hidden: true, textContent: '', onclick: null };
+  createTma(env(cur.tg, { fallbackBack: unused })).nav.push({ id: 'x', kind: 'screen' });
+  assert.equal(unused.hidden, true);
+  assert.equal(unused.onclick, null);
+});
+
+test('vertical swipes are off while a sheet is open and follow the app choice otherwise', () => {
+  const { tg, calls } = fakeWebApp('7.7', {
+    enableVerticalSwipes: () => calls.push(['enableVerticalSwipes']),
+    disableVerticalSwipes: () => calls.push(['disableVerticalSwipes']),
+  });
+  const tma = createTma(env(tg));
+  const swipes = () => calls.filter((c) => c[0].endsWith('VerticalSwipes')).map((c) => c[0]);
+  tma.nav.push({ id: 'detail', kind: 'screen' });
+  assert.deepEqual(swipes(), []);
+  tma.nav.push({ id: 'sheet', kind: 'sheet' });
+  tma.nav.pop('sheet');
+  assert.deepEqual(swipes(), ['disableVerticalSwipes', 'enableVerticalSwipes']);
+  tma.verticalSwipes(false);
+  tma.nav.push({ id: 'sheet', kind: 'sheet' });
+  tma.nav.pop('sheet');
+  assert.deepEqual(swipes(), ['disableVerticalSwipes', 'enableVerticalSwipes', 'disableVerticalSwipes']);
+  const old = fakeWebApp('7.6', { disableVerticalSwipes: () => old.calls.push(['disableVerticalSwipes']) });
+  assert.equal(createTma(env(old.tg)).verticalSwipes(false), false);
+  assert.equal(old.calls.length, 0);
+});

@@ -81,9 +81,11 @@ exclude = ["**/__pycache__", "**/*.pyc"]
 ".agents/plugins" = "manuwright/.agents/plugins"
 "gemini-extension.json" = "manuwright/gemini-extension.json"
 "plugin.json" = "manuwright/plugin.json"
+"assets/icon.png" = "manuwright/assets/icon.png"
 
 [tool.hatch.build.targets.sdist]
 only-include = ["pyproject.toml", "README.md", "manuwright", "harness", "scripts",
                 "Style/terminology.md", "Style/style_guide.md", "profile/example_authors.md", "WORKFLOW.md", "THIRD_PARTY_NOTICES.md", "docs", "review/gates/_TEMPLATE.GATE.md",
-                "skills", "hooks", ".claude-plugin", ".codex-plugin", ".agents/plugins", "gemini-extension.json", "plugin.json"]
+                "skills", "hooks", ".claude-plugin", ".codex-plugin", ".agents/plugins", "gemini-extension.json", "plugin.json",
+                "assets/icon.png"]
 exclude = ["**/__pycache__", "**/*.pyc"]

@@ -221,21 +221,24 @@ verify one area after another.
    ```ts
    // tests/bugbash/cart-line-quantity.e2e.ts
    import { describe, test } from '@e2e-dev/web';
-   import { credentials } from 'e2e';
+   import { credentials, expect } from 'e2e';
 
    describe('cart', { tags: ['bugbash'] }, () => {
-     test('a cart line totals its quantity times the unit price', async ({ app, agent }) => {
+     test('a cart line totals its quantity times the unit price', async ({ app, agent, screen }) => {
        const shopper = credentials.user('bb-cart');
+       const dune = screen.getByRole('row').filter({ hasText: 'Dune' });
        await app.open('/');
        await agent.act('sign in with the given credentials', {
          params: { username: shopper.username, password: shopper.password },
        });
+       await agent.act('add "Neuromancer" to the cart');
        await agent.act('add "Dune" to the cart');
-       await agent.waitFor('you are signed in and the cart holds "Dune"');
+       await agent.waitFor('you are signed in and the cart holds "Neuromancer" and "Dune"');
 
-       await agent.act('set the quantity of "Dune" in the cart to 2');
+       await agent.act('set the quantity of "Dune" in the cart to 2'); // the second line shown (lines stay in the order added), not the first
 
-       await agent.assert('the cart line for "Dune" totals twice its unit price');
+       await agent.assert('the cart line for "Dune" totals twice its unit price, and "Neuromancer" still has quantity 1');
+       await expect(dune).toContainText('$25.00'); // Dune is $12.50 a copy
      });
    });
    ```

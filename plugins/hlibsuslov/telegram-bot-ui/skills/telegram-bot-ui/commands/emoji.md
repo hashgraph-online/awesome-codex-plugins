@@ -21,6 +21,10 @@
    `emoji library facets --use <bot kind> --style … --theme both` (tags with confidence; style
    tags are the least reliable, so show the pack before you rely on one).
 3. All icons of a message or none; one pack family per bot (`tgui.py check icons`).
+4. **Double check, required:** `bot-ui emoji review --out icon-review.html` (or `audit_icons.py`
+   without a project), open the sheet and look at every row: the picture says what the label says
+   (`ICON_MEANING_MISMATCH`), it is static (`BUTTON_EMOJI_ANIMATED`), it matches its neighbours
+   in fill, weight and colour. Fix or drop every red row; a slot no pack says well stays label-only.
 
 ## Without scripts
 
@@ -28,7 +32,8 @@ Use only ids from `data/emoji/packs.json`; if the pack isn't there, ask for a st
 
 ## Done
 
-One family, every id resolved, Unicode fallback kept, eligibility stated.
+One family, every id resolved, Unicode fallback kept, eligibility stated, the review sheet
+looked at and clean.
 
 ## Next
 

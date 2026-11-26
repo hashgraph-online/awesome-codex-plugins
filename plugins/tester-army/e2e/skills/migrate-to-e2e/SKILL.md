@@ -127,10 +127,15 @@ once and the progress file says so; later sessions skip this step.
      variables, and `command.env`, not the shell's environment, so pass
      what the server read from the old runner's environment in
      `command.env`.
-   - e2e has no `services` key. Databases, queues, and mock servers start
-     before the run with the command the CI job uses, or `app.command` runs
-     a script that brings them up and then serves the app. Name the command
-     in the progress file.
+   - For each database, queue, or mock server the app needs, decide where
+     to start it:
+     - Keep anything the CI job already starts (like a CI service container
+       or a setup step) in CI.
+     - Define the rest with `defineService` in `services`, and pass their
+       addresses to the app from an `app.command.env` function
+       (https://e2e.com/docs/services).
+
+     List both in `MIGRATION.md`.
    - A reset or seed the source ran per test (`runScript` with `http.post`,
      `cy.task('db:reset')`, an API call in `beforeEach`) becomes `fetch` in a
      `beforeEach` or a fixture, so each test still starts from known data.
@@ -213,9 +218,20 @@ Then each test, one at a time:
   - A source assertion that only guarded a precondition (the dashboard
     showed before the real steps began) becomes the wait that closes the
     arrange block (`locator.waitFor()`, `agent.waitFor`). It still counts
-    toward the assertion count, since it fails on timeout.
-  - Splitting adds tests, never removes a check: the e2e count across the
-    split tests is still at least the source's.
+    toward the assertion count, since it fails on timeout; do not add a
+    redundant `expect` on a saved boolean just to keep the raw count up.
+  - Splitting adds tests, never removes or shifts a check: preserve each
+    distinct source assertion at the same observation point (prior state,
+    action, and check before any reload or navigation). If a source test
+    verifies state before a reload and again after a reload, split those into
+    separate tests (each recreating its real starting state) instead of moving
+    pre-reload assertions after the reload. Never pad counts with duplicate
+    `expect` lines or teardown assertions, and never stash one-shot reads
+    (`isVisible()`, `isEnabled()`, `count()`, `inputValue()`, `textContent()`,
+    `getAttribute()`, `browser.evaluate()`) mid-flow into local variables just
+    to assert them at the end (use retrying matchers directly on the live
+    screen, split earlier phases into their own tests, or use `expect.poll(...)`
+    for computed CSS/DOM checks).
 - A test the source skips is ported in full and stays skipped, with the
   source's reason, so it can be turned back on in either suite. Its row
   says so; when the reason allows, run it unskipped once and note the
@@ -234,17 +250,33 @@ Then each test, one at a time:
   `timeout` when a locator names that state or the config has no model.
   Never port the duration.
 - A per-platform branch becomes `{ platforms: [...] }` on a test, or an `if`
-  on the `platform` fixture inside one.
+  on the `platform` fixture inside one. For same-platform targets (such as
+  Playwright's `projects[].testMatch` splitting desktop, mobile viewport, or
+  timezone targets), tag each group (`{ tags: [...] }`) and run each target
+  with `--target <name> --tag <tag>`. Never route targets by calling
+  `test.skip(...)` on a sniffed viewport width or timezone inside
+  `beforeEach`: that launches every test on every target, still runs
+  `test.extend` fixture teardowns on skipped attempts, and turns a
+  misconfigured target into a green skip instead of a failure.
 - A workaround the source comments explain (a flaky `hideKeyboard`, a
   coordinate tap, a retry loop around a picker) is a workaround for the old
   runner. Try the plain step first; keep a workaround only when e2e needs it
   too, with its own comment saying why.
-- Where the guide lists a step under "What e2e doesn't have yet", use its
-  workaround. When there is none, the test stays in the old
-  runner: mark it `stays` with the reason and offer to send
-  `npx e2e feedback --type feature -m "<the gap>"` once: preview it with
-  `--dry-run` and send it only when the user agrees (the e2e skill,
-  Feedback).
+- Classify each test individually before rolling up its file (if only one
+  check inside a multi-behavior test needs an unportable capability, split the
+  portable behaviors into e2e first and keep only the unportable behavior as
+  `stays`). Where the guide lists a step that the test actually runs under
+  "What e2e doesn't have yet", evaluate its workaround first. Mark a test
+  `stays` only when that test's own steps or assertions require a missing
+  capability with no faithful workaround (cite the source line and guide row;
+  a project option like `hasTouch` that the test never asserts, or a
+  restriction introduced by your own wrapper script, is not an e2e gap). A
+  port you tried that failed without a confirmed missing-capability diagnosis
+  is `blocked`, not `stays`. Keep unported portable tests as `todo`, not
+  `stays`, and give a file with mixed statuses one row per test. Offer to send
+  `npx e2e feedback --type feature -m "<the gap>"` once per genuine gap:
+  preview it with `--dry-run` and send it only when the user agrees (the e2e
+  skill, topic `debugging`, "Feedback").
 - Do not change app code. A test that needs a test id the app lacks gets
   `agent.act` or a different locator; propose the app change to the user
   instead of making it. A defect check's planted bug (step 6) is
@@ -268,12 +300,14 @@ A port is done when it is as strict as the source and passes every time.
 2. When the old suite can run here, run the source test on the same build.
    A failure both runners show is an app or environment bug: report it, do
    not port around it. A failure only e2e shows is the port's.
-3. Check strictness against the source: an e2e assertion for every source
-   assertion, so the count is at least the inventory's, and every end
-   state the source checked is checked. Never
-   weaken an assertion, widen a timeout without a reason, or drop a step to
-   go green. A test that cannot pass honestly stays `blocked` with what
-   failed.
+3. Check strictness against the source: verify every distinct starting state,
+   triggering action, and checked outcome at the same observation point (treat
+   raw assertion counts as a diagnostic check only; a check moved past a
+   reload or navigation, a duplicate `expect` line, a stashed one-shot read,
+   or a fixture teardown assertion does not preserve parity even if the count
+   matches). Never weaken an assertion, widen a timeout without a reason, or
+   drop a step to go green. A test that cannot pass honestly stays `blocked`
+   with what failed.
 4. Read the trace page of any failure before changing the test
    (topic `debugging`).
 
@@ -315,7 +349,10 @@ Until the user retires a source test, both runners keep it.
 ## 8. Keep the progress file
 
 `MIGRATION.md`, beside the e2e config, is the migration's state. Update it
-as you go, not at the end; an interrupted session must leave it true.
+as you go, not at the end; an interrupted session must leave it true. Keep the
+exact header lines (`Source:`, `e2e:`, `Run old:`, `Run new:`, `Harness:`,
+`Defect check:`) and sections (`## Shared helpers`, `## Gaps`, `## Next`) so
+step 1 can resume cleanly in a later session.
 
 ```md
 # Migration to e2e

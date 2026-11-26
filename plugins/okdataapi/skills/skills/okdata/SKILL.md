@@ -1,12 +1,12 @@
 ---
 name: okdata
-description: "Public data from 23 platforms (Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), YouTube, Meta Ad Library, Google Ads Transparency, Instagram, Reddit, Kuaishou, Zhihu, WeChat Channels, WeChat Search, Telegram, Amazon, AliExpress, Taobao & Tmall, 1688, Xianyu (Goofish), Douyin Shop) through okdata, a pay-per-call API with a remote MCP server: find the endpoint for a need, check its price, call it. Use when a task needs posts, comments, accounts, trending boards, transcripts, creators, creator rates, ads, advertisers, products, reviews, related keywords, brand index histories, brand index averages, audience breakdowns, creator index figures, keyword audiences, keyword index histories, account changes, creator figures, creator videos, creator keyword lists, creator scores, content mixes, conversion figures, campaigns, topics, creator figures, creator notes, follower histories, cost summaries, follower summaries, figure histories, notes, share links, collections, acco…"
+description: "Public data from 36 platforms (Douyin, Xiaohongshu (RedNote), WeChat Official Accounts, Bilibili, Weibo, TikTok, X (Twitter), YouTube, Meta Ad Library, Google, Instagram, Reddit, Kuaishou, Zhihu, WeChat Channels, WeChat Search, Facebook, LinkedIn, Telegram, Amazon, AliExpress, Taobao & Tmall, 1688, Xianyu (Goofish), JD.com, Douyin Shop, Toutiao, Xigua Video, Baidu, Bluesky, App Store, Twitch, Douban Movie, IMDb, Youku, All platforms) through okdata, a pay-per-call API with a remote MCP server: find the endpoint for a need, check its price, call it. Use when a task needs posts, comments, accounts, trending boards, transcripts, creators, creator rates, ads, advertisers, products, reviews, related keywords, brand index histories, brand index averages, audience breakdowns, creator index figures, keyword audiences, keyword index histories, account changes, creator figures, creator videos, creator keyword lists, creator scores, content mixes, conversion figures, campaigns, topics, creator figures, creator notes, f…"
 license: MIT
 ---
 
 # okdata: public social data for this agent
 
-> 235 endpoints on 23 platforms behind one key, paid per call from $0.0001. No platform account, cookie or QR login is used.
+> 334 endpoints on 36 platforms behind one key, paid per call from $0.0003. No platform account, cookie or QR login is used.
 
 ## Before the first call
 
@@ -47,7 +47,7 @@ Not connected yet? Follow https://okdata.online/agents.md.
 ## Money and safety
 
 - Before the first paid call, say what you will call and the most it can cost: each endpoint's price × calls (a per-item endpoint at its per-call cap).
-- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid 24 hours, same endpoint and parameters only), and only when the task needs more.
+- One call returns one page. A next page is a new paid call: pass `page.next_cursor` back as `cursor` (opaque, valid until `page.cursor_expires_at`: 24 hours on most endpoints, less on a few; same endpoint and parameters only), and only when the task needs more.
 - A call that reached a data source is charged even when it fails or finds nothing; bad parameters are not. Send an idempotency key with each call and reuse it only to resend that same call, so a result you already got is never charged twice.
 - On an error read `retry`: `not_found` is final; on `rate_limited` wait `retry_after_seconds`; a `timeout` may be retried (it may have been charged: see `charged`); `settlement_unknown` (`charged: null`) is resent with the same idempotency key; on `insufficient_balance` stop and tell the person.
 - Keep the key in `OKDATA_API_KEY` or the client's own config. Never print, log or repeat it, and never put it in a URL.
@@ -103,29 +103,42 @@ Each answers one question with a few calls and one table. Install the one that f
 
 ## Platform skills
 
-- `okdata-douyin`: Douyin, 38 endpoints, $0.002–$0.04 a call. https://okdata.online/.well-known/agent-skills/okdata-douyin/SKILL.md
+- `okdata-douyin`: Douyin, 44 endpoints, $0.002–$0.043 a call. https://okdata.online/.well-known/agent-skills/okdata-douyin/SKILL.md
 - `okdata-xiaohongshu`: Xiaohongshu (RedNote), 30 endpoints, $0.02–$0.04 a call. https://okdata.online/.well-known/agent-skills/okdata-xiaohongshu/SKILL.md
-- `okdata-wechat-mp`: WeChat Official Accounts, 8 endpoints, $0.02–$0.15 a call. https://okdata.online/.well-known/agent-skills/okdata-wechat-mp/SKILL.md
-- `okdata-bilibili`: Bilibili, 9 endpoints, $0.002–$0.0025 a call. https://okdata.online/.well-known/agent-skills/okdata-bilibili/SKILL.md
+- `okdata-wechat-mp`: WeChat Official Accounts, 12 endpoints, $0.02–$0.15 a call. https://okdata.online/.well-known/agent-skills/okdata-wechat-mp/SKILL.md
+- `okdata-bilibili`: Bilibili, 12 endpoints, $0.002–$0.043 a call. https://okdata.online/.well-known/agent-skills/okdata-bilibili/SKILL.md
 - `okdata-weibo`: Weibo, 11 endpoints, $0.002–$0.0025 a call. https://okdata.online/.well-known/agent-skills/okdata-weibo/SKILL.md
-- `okdata-tiktok`: TikTok, 17 endpoints, $0.002–$0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-tiktok/SKILL.md
+- `okdata-tiktok`: TikTok, 20 endpoints, $0.002–$0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-tiktok/SKILL.md
 - `okdata-x`: X (Twitter), 20 endpoints, $0.0001–$0.009 a call. https://okdata.online/.well-known/agent-skills/okdata-x/SKILL.md
 - `okdata-youtube`: YouTube, 10 endpoints, $0.002–$0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-youtube/SKILL.md
 - `okdata-meta`: Meta Ad Library, 3 endpoints, $0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-meta/SKILL.md
-- `okdata-google`: Google Ads Transparency, 2 endpoints, $0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-google/SKILL.md
+- `okdata-google`: Google, 7 endpoints, $0.004–$0.01 a call. https://okdata.online/.well-known/agent-skills/okdata-google/SKILL.md
 - `okdata-instagram`: Instagram, 8 endpoints, $0.002–$0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-instagram/SKILL.md
 - `okdata-reddit`: Reddit, 11 endpoints, $0.002–$0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-reddit/SKILL.md
-- `okdata-kuaishou`: Kuaishou, 8 endpoints, $0.002–$0.02 a call. https://okdata.online/.well-known/agent-skills/okdata-kuaishou/SKILL.md
-- `okdata-zhihu`: Zhihu, 15 endpoints, $0.002 a call. https://okdata.online/.well-known/agent-skills/okdata-zhihu/SKILL.md
-- `okdata-wechat-channels`: WeChat Channels, 15 endpoints, $0.015–$0.15 a call. https://okdata.online/.well-known/agent-skills/okdata-wechat-channels/SKILL.md
+- `okdata-kuaishou`: Kuaishou, 11 endpoints, $0.002–$0.02 a call. https://okdata.online/.well-known/agent-skills/okdata-kuaishou/SKILL.md
+- `okdata-zhihu`: Zhihu, 16 endpoints, $0.002 a call. https://okdata.online/.well-known/agent-skills/okdata-zhihu/SKILL.md
+- `okdata-wechat-channels`: WeChat Channels, 22 endpoints, $0.015–$0.15 a call. https://okdata.online/.well-known/agent-skills/okdata-wechat-channels/SKILL.md
 - `okdata-wechat`: WeChat Search, 6 endpoints, $0.02–$0.15 a call. https://okdata.online/.well-known/agent-skills/okdata-wechat/SKILL.md
+- `okdata-facebook`: Facebook, 5 endpoints, $0.043 a call. https://okdata.online/.well-known/agent-skills/okdata-facebook/SKILL.md
+- `okdata-linkedin`: LinkedIn, 4 endpoints, $0.043 a call. https://okdata.online/.well-known/agent-skills/okdata-linkedin/SKILL.md
 - `okdata-telegram`: Telegram, 3 endpoints, $0.002 a call. https://okdata.online/.well-known/agent-skills/okdata-telegram/SKILL.md
-- `okdata-amazon`: Amazon, 4 endpoints, $0.006 a call. https://okdata.online/.well-known/agent-skills/okdata-amazon/SKILL.md
+- `okdata-amazon`: Amazon, 5 endpoints, $0.006–$0.022 a call. https://okdata.online/.well-known/agent-skills/okdata-amazon/SKILL.md
 - `okdata-aliexpress`: AliExpress, 3 endpoints, $0.002 a call. https://okdata.online/.well-known/agent-skills/okdata-aliexpress/SKILL.md
-- `okdata-taobao`: Taobao & Tmall, 4 endpoints, $0.033–$0.043 a call. https://okdata.online/.well-known/agent-skills/okdata-taobao/SKILL.md
-- `okdata-alibaba-1688`: 1688, 4 endpoints, $0.022 a call. https://okdata.online/.well-known/agent-skills/okdata-alibaba-1688/SKILL.md
+- `okdata-taobao`: Taobao & Tmall, 7 endpoints, $0.022–$0.065 a call. https://okdata.online/.well-known/agent-skills/okdata-taobao/SKILL.md
+- `okdata-alibaba-1688`: 1688, 14 endpoints, $0.022 a call. https://okdata.online/.well-known/agent-skills/okdata-alibaba-1688/SKILL.md
 - `okdata-xianyu`: Xianyu (Goofish), 2 endpoints, $0.022 a call. https://okdata.online/.well-known/agent-skills/okdata-xianyu/SKILL.md
-- `okdata-douyin-shop`: Douyin Shop, 4 endpoints, $0.039–$0.054 a call. https://okdata.online/.well-known/agent-skills/okdata-douyin-shop/SKILL.md
+- `okdata-jd`: JD.com, 5 endpoints, $0.033–$0.322 a call. https://okdata.online/.well-known/agent-skills/okdata-jd/SKILL.md
+- `okdata-douyin-shop`: Douyin Shop, 5 endpoints, $0.039–$0.054 a call. https://okdata.online/.well-known/agent-skills/okdata-douyin-shop/SKILL.md
+- `okdata-toutiao`: Toutiao, 5 endpoints, $0.002 a call. https://okdata.online/.well-known/agent-skills/okdata-toutiao/SKILL.md
+- `okdata-xigua`: Xigua Video, 5 endpoints, $0.002–$0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-xigua/SKILL.md
+- `okdata-baidu`: Baidu, 1 endpoints, $0.002 a call. https://okdata.online/.well-known/agent-skills/okdata-baidu/SKILL.md
+- `okdata-bluesky`: Bluesky, 5 endpoints, $0.001 a call. https://okdata.online/.well-known/agent-skills/okdata-bluesky/SKILL.md
+- `okdata-app-store`: App Store, 2 endpoints, $0.001 a call. https://okdata.online/.well-known/agent-skills/okdata-app-store/SKILL.md
+- `okdata-twitch`: Twitch, 1 endpoints, $0.004 a call. https://okdata.online/.well-known/agent-skills/okdata-twitch/SKILL.md
+- `okdata-douban`: Douban Movie, 6 endpoints, $0.022 a call. https://okdata.online/.well-known/agent-skills/okdata-douban/SKILL.md
+- `okdata-imdb`: IMDb, 18 endpoints, $0.011 a call. https://okdata.online/.well-known/agent-skills/okdata-imdb/SKILL.md
+- `okdata-youku`: Youku, 3 endpoints, $0.022 a call. https://okdata.online/.well-known/agent-skills/okdata-youku/SKILL.md
+- `okdata-all`: All platforms, 1 endpoints, $0.03 a call. https://okdata.online/.well-known/agent-skills/okdata-all/SKILL.md
 
 ## Look things up
 
@@ -134,4 +147,4 @@ Each answers one question with a few calls and one table. Install the one that f
 - The catalog and what is up, no key: https://api.okdata.online/v1/catalog and https://api.okdata.online/v1/catalog/status
 - Every skill: https://okdata.online/.well-known/agent-skills/index.json
 
-Generated from okdata catalog e9187254a76b5946, price book 84f29877acc83a88.
+Generated from okdata catalog f5d16931041d51aa, price book e49cd4acc780f8c6.

@@ -194,6 +194,9 @@ Rules:
   none.
 - **Don't mix** custom emoji icons with Unicode emoji pasted into `text` on the
   same keyboard — pick one convention per bot and record it.
+- **The icon means the label.** A button labelled "Orders" carries the order icon; an icon picked
+  because it was in the pack is a bug (`ICON_MEANING_MISMATCH` in `bot-ui validate`; the visual
+  check is `bot-ui emoji review`). Static only (`BUTTON_EMOJI_ANIMATED`).
 - **Keep icons out of destructive confirmation buttons** unless the icon is
   unmistakably a warning; a friendly icon undercuts a `danger` action.
 - If the field is set but the bot is not eligible, expect Telegram to reject the

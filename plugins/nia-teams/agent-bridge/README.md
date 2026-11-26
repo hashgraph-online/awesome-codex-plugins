@@ -77,7 +77,7 @@ Model sign-in, workspace access, and local tool permissions stay on your host. T
 | Client branding protocol | `pairHost` reports metadata in `pairing/start`; `BridgeClient` reports it in every `lease` handshake; no Teams client enum | Adapters or custom Node.js Agents supply `clientName` and PNG `avatar` for automatic pairing-page and GroupChat icons |
 | `PublicationQueue` | FIFO publications, idempotency keys, transient retries, reply/activity ordering | Choose main replies and stable publication identities |
 | Confirmation verifier | RS256/JWKS, expected card/tool, canonical-JSON argument SHA-256 digest | Apply verified verdicts only to the original pending action |
-| `SessionHost` / `ThreadMapStore` | SDK-style queues, private sessions, questions, cancellation, approvals | Supply an upstream runner; Codex and DSH retain their own runtime lifecycles |
+| `SessionHost` / `ThreadMapStore` | SDK-style queues, private sessions, questions, cancellation, approvals | Supply an upstream runner; Codex, Antigravity, and DSH retain their own runtime lifecycles |
 
 Branding is optional: `clientName` is trimmed to 1–80 characters; `avatar` is `data:image/png;base64,...`, decoded PNG file ≤64 KiB and dimensions ≤1024×1024. Upgrading and starting a client updates an existing Agent through verified leases without re-pairing; custom user avatars win. See the [core protocol](./packages/core/docs/SPECIFICATION.md) and [asset sources](./docs/AVATAR-SOURCES.md).
 
@@ -244,7 +244,7 @@ nohup dsh web > /tmp/nia-dsh.log 2>&1 &
 
 ### 6. Google Antigravity CLI (`@nia-teams/agy-bridge`)
 
-A persistent `agy acp` child retains per-GroupChat ACP sessions. Initialization negotiates protocol version 1; streamed output stays on the host while GroupChat replies and history access use the bundled stdio MCP tools. Tool requests use signed TaskBar approvals. Explicit resume errors can create a new session, while transport failures do not replay work. Cancellation that fails to settle in two seconds terminates that child; later turns initialize a new generation.
+A persistent `agy acp` child reuses a configured ACP session per GroupChat. Incoming messages steer an active session, and messages received during session setup are combined into one prompt. Initialization negotiates protocol version 1; streamed output stays on the host while GroupChat replies and history access use the bundled stdio MCP tools. Tool requests use signed TaskBar approvals. Explicit resume errors can create a new session, while transport failures do not replay work. Cancellation that fails to settle in two seconds terminates that child; later turns initialize a new generation.
 
 ```sh
 npm install -g @nia-teams/agy-bridge

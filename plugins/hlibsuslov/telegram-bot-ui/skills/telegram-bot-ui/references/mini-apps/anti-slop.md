@@ -206,3 +206,7 @@ not proof of how real clients render.
 | MA42 side-stripe | warning | `border-left` / `border-right` / `border-inline-start` of 2 px or more on a card, row, callout or alert | §4 |
 | MA43 hard-shadow | warning | a `box-shadow` with an offset and no blur (`4px 4px 0`) | §4 |
 | MA44 eyebrow | warning | an eyebrow, kicker or overline label class above a heading | §4 |
+| MA45 tab-bar | warning | a tab bar outside 2-5 tabs; a tab without an icon or a visible label; icons from two sets; an emoji, custom emoji or animated icon in a tab; no `aria-selected="true"`; an icon that means something else than its label (`icons.json` → `tab_bar.meanings`: "Workouts" with `i-play`) | components §3 |
+| MA46 launch-mode | warning | the app never decides how it opens: no `tma.start()` (`fullscreen: 'never'` is a decision), no `mode=fullscreen` link, or a bare `requestFullscreen()` with no `fullscreenFailed` / rejected-promise fallback | launch-and-lifecycle §9 |
+| MA48 surface-padding | warning | a card-like rule (card, panel, box, banner, callout, notice, promo, plan, paywall) with a background and a 12 px+ radius whose padding is missing or under 12 px; the rendered gaps and insets: `_kit/tma-audit.mjs` (LA01-LA05) on the stand with `?audit=1` | design-system §5 |
+| MA47 dead-end | warning | the tab bar is hidden with no `nav.push` / BackButton in the file, or layers are pushed and never popped | telegram-design-guidelines §11 |
