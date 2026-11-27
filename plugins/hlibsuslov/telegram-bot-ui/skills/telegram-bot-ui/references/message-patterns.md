@@ -18,8 +18,39 @@ such message, a library of patterns by notification type, and the procedure for 
 bot's existing notifications. Keyboards and labels live in `buttons-and-styles.md`, tables and
 numbers in `data-views.md`, wording in `microcopy-and-labels.md`.
 
+## Do this, in order
+
+Every request that builds or reworks what a bot sends on its own follows these steps, and the
+answer shows each one **[heuristic]**:
+
+1. **List and classify.** Every message the bot sends on its own, with its trigger. Give each a
+   pattern id from §6 written as the id (`report-kpi`, not "periodic report") and say in one line
+   why this pattern and not the nearest other. Put it in a table in the answer: message · pattern
+   id · why · sound · lifecycle.
+2. **Before/after for two types, then stop.** Rework: rewrite two representative types (an alert
+   or an order, and a report) as before/after (§8), with every `{placeholder}`, locale key and
+   `callback_data` copied from the source as is (`{id}`, not "1042"). Then stop and ask for a yes
+   before rewriting the rest: a rework changes what every user receives. Don't ask about style
+   beforehand; the before/after is the question. New bot: one rendered example per pattern, no
+   stop.
+3. **Fill every slot.** Bold header (one icon + 2-5 words), subject, blank line, one or two body
+   blocks, blank line, **italic footer** with the as-of time, the source or the next step. Only a
+   one-fact message ("✅ Saved") goes without body and footer.
+4. **Render with the skill's renderer, not your own.** Python: `tgkit/notify.py` (copy it into
+   the project; `message()` or `payload(spec)` take the slots). Any other stack: write the spec,
+   run `tgui.py patterns render <spec.json>`, and port the output keeping its slot order. Don't
+   write a second formatter.
+5. **Implement sound, lifecycle and grouping; don't leave them as suggestions** (§5).
+   `disable_notification` per type. The callback that handles an ask or an alert edits the
+   message into its outcome line ("Taken: Igor · 14:05") and removes the buttons. Repeats of one
+   event get a cool-down and go into a digest.
+6. **Check and name the evidence.** `tgui.py patterns check <payload.json> --pattern <id>` on
+   every payload until clean, then `tgui.py check changed`. Say "static checks, not seen in a
+   client".
+
 ## Contents
 
+- [Do this, in order](#do-this-in-order)
 - [1. The grammar](#1-the-grammar)
 - [2. The header line](#2-the-header-line)
 - [3. Body blocks](#3-body-blocks)

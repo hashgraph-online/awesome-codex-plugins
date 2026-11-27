@@ -73,7 +73,7 @@ through them, one at a time, in this order:
   lines: what shipped, what did not, what needs a decision.
 - `review parked` — each open decision in the parking lot (`ns path parking-lot`). Show the default
   the shift chose and why, and ask whether it stands. Record the answer by appending
-  ` · answered: <the owner's decision>` to that entry.
+  ` · answered by <name>: <the owner's decision>` to that entry, with the name of whoever answered.
 - `review snag` — each snag with no disposition in the snag log (`ns path snag-log`). Ask what to do:
   the owner's decision becomes its disposition (` · rejected-because: <why>` or
   ` · accepted-tradeoff: <why>`), and a snag to fix becomes an item drafted for the next shift (section
@@ -166,6 +166,16 @@ one entry per plan, below the record's rule, in the shape its header shows:
   name the evidence and the earlier reason together.
 - When the owner sets a plan aside, append ` · dropped: <why>` to the entry's first line.
 
+**On a site that shares its decisions**, `plan-enter` prints `decision threads go in <folder>`.
+There each independent question gets a thread file of its own in that folder, named by the plan's
+key and the topic (the CSV export's separator question is export-csv-separator.md), holding one
+entry in the shape above under the plan record's header, instead of an entry in the plan record. Related questions and their answers stay in one thread; an
+unrelated question opens a new file, so teammates working on separate branches never edit the same
+file for different questions. Save a question to its thread the moment it is raised and an answer
+the moment it arrives, so a teammate who pulls sees it before the plan is approved. `plan-enter`
+lists every open thread from the files themselves (`open thread:`), so no index needs an edit. The
+plan's `Record:` line names its threads.
+
 ## 6. Draft as you go — each write on the owner's yes
 
 Planning is continuous. Draft an item as soon as the discussion settles it, and keep going to the
@@ -176,7 +186,9 @@ with an idea is not. Nothing reaches the plan that the owner has not agreed to.
 
 Keep the plan's notes in a `## Plan` section just above `## Items`, written with its first item and
 kept current as the plan grows. Keep the contract and gates above it as the planning
-conversation settled them, and never touch another plan's file:
+conversation settled them, and never touch another plan's file. The contract's history line says how
+the branch catches up with its base before a pull request: a merge as shipped, or a rebase when the
+owner writes so. Change it only on the owner's word:
 
 ```text
 ## Plan
@@ -237,6 +249,25 @@ Then name the way to build it: leave the plan room by typing `/nightshift:start`
 Claude Code, Codex, and Cursor. With an empty
 punch list, Start offers the waiting plans by name. With open items already in the punch list,
 Start works those, and the plan waits its turn.
+
+## Who proposed it, and who approved it
+
+Each plan keeps a record beside it, written only through
+`"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" plan-record --plan "<name>" --action proposed|approved|reviewed [--by <name>]`.
+The name is the one the person signs records with; with no `--by` it is the work target's Git user
+name. The helper stamps the plan's current revision, so an approval names exactly the content it
+reviewed, whatever edit records it later. `ns plan-record --plan "<name>"` prints the plan's state and
+every line, a line written without a name as `unknown`.
+
+- When the owner says the plan is complete, record `proposed` under their name. A solo owner
+  approves their own plan directly: record `approved` too.
+- In a team (`team.approvers` in the rules file), the proposer records `proposed`, and someone
+  whose role is an approver records `approved` after reviewing it, their own plans included. The
+  helper refuses anyone else and writes nothing.
+- A change to the plan's contract, gates or items returns it to proposed until an approver approves
+  the new revision; the earlier approval stays in the record and in Git.
+- When someone needs proof of a name on a record, check the commit that wrote that line and whether
+  its signature verifies, and report what you find: an unsigned line may not be who it says.
 
 ## 7. Leaving is the owner's
 

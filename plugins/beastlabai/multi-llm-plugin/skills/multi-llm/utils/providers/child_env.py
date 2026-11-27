@@ -430,8 +430,14 @@ ENV_ALLOWLIST_PROFILES: Dict[str, RunnerEnvProfile] = {
         ("CURSOR_",),
         ("AGENT_CLI_CREDENTIAL_STORE", "NODE_COMPILE_CACHE"),
     ),
+    # dsh is a Node CLI; its whole writable state is DSH_HOME (sessions,
+    # storages, profiles), which the adapter points at a private root.
+    "dsh": RunnerEnvProfile(CA_FAMILY_NODE, ("DSH_",), ("DSH_HOME",)),
     # Native TLS label only: fx 0.0.14 uses system trust, not SSL_CERT_FILE.
     "fx": RunnerEnvProfile(CA_FAMILY_NATIVE, ("FX_",), ()),
+    # Hermes is Python (httpx/certifi). The adapter pins HERMES_HOME, HOME and
+    # XDG_* to a private root itself.
+    "hermes": RunnerEnvProfile(CA_FAMILY_NATIVE, ("HERMES_",), ("HERMES_HOME",)),
     "gemini": RunnerEnvProfile(
         CA_FAMILY_NODE, ("GEMINI_",), ("GEMINI_DIR", "GEMINI_CLI_HOME")
     ),
@@ -440,6 +446,10 @@ ENV_ALLOWLIST_PROFILES: Dict[str, RunnerEnvProfile] = {
     # optional there.
     "goose": RunnerEnvProfile(CA_FAMILY_NATIVE, ("GOOSE_",), ()),
     "grok": RunnerEnvProfile(CA_FAMILY_NATIVE, ("GROK_",), ("GROK_HOME",)),
+    # Junie is a JVM launcher with a bundled JRE that uses its own truststore,
+    # so neither CA family is load-bearing; the cell is a label only. The JVM
+    # resolves its home from user.home, hence JAVA_TOOL_OPTIONS beside JUNIE_HOME.
+    "junie": RunnerEnvProfile(CA_FAMILY_NATIVE, ("JUNIE_",), ("JUNIE_HOME", "JAVA_TOOL_OPTIONS")),
     "kilocode": RunnerEnvProfile(CA_FAMILY_NODE, ("KILO_",), ("KILO_CONFIG_DIR",)),
     "kimi": RunnerEnvProfile(CA_FAMILY_NODE, ("KIMI_",), ("KIMI_CODE_HOME",)),
     # muse is XDG-only too, but its launcher reads a MUSE_* family and

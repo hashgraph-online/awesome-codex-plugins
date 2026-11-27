@@ -1,0 +1,2 @@
+# A plan's record is only ever appended to, so teammates' lines merge side by side.
+staging/records/*.md merge=union

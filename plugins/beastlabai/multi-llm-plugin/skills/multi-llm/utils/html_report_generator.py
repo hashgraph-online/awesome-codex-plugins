@@ -134,6 +134,7 @@ _ICON_DEFS: Dict[str, tuple] = {
     "xiaomi":     (None, "M", "#FF6900"),
     "arcee":      (None, "T", "#3B82F6"),
     "vercel":     (None, "V", "#F45B25"),
+    "hermes":     (None, "H", "#B8860B"),
     "deepseek":   (None, "D", "#4D6BFE"),
     "cline":      (None, "C", "#0EA5A4"),
     "aider":      (None, "A", "#14B8A6"),
@@ -143,6 +144,11 @@ _ICON_DEFS: Dict[str, tuple] = {
     # Orca's catalog has no mark for muse either — letter icon is the outcome,
     # not a placeholder waiting on a fetch.
     "muse":       (None, "M", "#7C3AED"),
+    # JetBrains' mark is not redistributed here — letter icon only.
+    "junie":      (None, "J", "#E11D74"),
+    # DeepSeek Harness: no bundled mark, letter icon. Its own key rather than
+    # "deepseek", because dsh fans out across model families too.
+    "dsh":        (None, "D", "#0891B2"),
 }
 
 
@@ -160,6 +166,7 @@ _PROVIDER_ICON_KEYS: Dict[str, str] = {
     "grok":         "xai",
     # Vercel fx is a CLI identity; model-family icons are resolved separately.
     "fx":           "vercel",
+    "hermes":       "hermes",
     "cline":        "cline",
     "goose":        "goose",
     "aider":        "aider",
@@ -174,6 +181,8 @@ _PROVIDER_ICON_KEYS: Dict[str, str] = {
     # across model families, so a borrowed mark would mislabel the CLI as one
     # of them — the same reason "antigravity" above is not "google".
     "omp":          "omp",
+    "junie":        "junie",
+    "dsh":          "dsh",
 }
 
 

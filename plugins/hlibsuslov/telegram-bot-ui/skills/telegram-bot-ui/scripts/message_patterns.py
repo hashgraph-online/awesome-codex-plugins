@@ -49,6 +49,10 @@ DIGIT_GROUP = re.compile(r"(?<=\d)[\s  ](?=\d{3}\b)")
 TEXT_METHODS = {"sendMessage": "text", "editMessageText": "text", "sendPhoto": "caption", "sendVideo": "caption",
                 "sendAnimation": "caption", "sendDocument": "caption", "sendAudio": "caption", "sendLivePhoto": "caption",
                 "editMessageCaption": "caption"}
+# A footer is the last single line after a blank line that carries meta: as-of time, source, update time.
+FOOTER_META = re.compile(r"\bas of\b|\bupdated\b|\bsource\b|данные на|по состоянию|обновлено|источник|дані на|"
+                         r"станом на|оновлено|джерело|<tg-time", re.I)
+CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b")
 HEADER_WORDS_MAX = 7  # without a pattern: only clearly overlong headers are flagged
 
 
@@ -95,6 +99,18 @@ def _bold_first(first: str, entities: list | None) -> bool:
     if m and EMOJI.search(visible(m.group(1))):
         rest = rest[m.end():]
     return rest.startswith(("<b>", "<strong>"))
+
+
+def _footer_italic(last_raw: str, text: str, parse_mode: str | None, entities: list | None) -> bool:
+    mode = (parse_mode or "").lower()
+    if mode.startswith("markdown"):
+        return True  # not parsed here; no claim either way
+    if mode == "html":
+        return last_raw.strip().startswith(("<i>", "<em>"))
+    u16 = lambda t: len(t.encode("utf-16-le")) // 2  # noqa: E731 (entity offsets are UTF-16 units)
+    start = u16(text.rstrip()) - u16(visible(last_raw).strip())
+    return any(isinstance(e, dict) and e.get("type") == "italic" and e.get("offset", -1) <= start
+               and e.get("offset", 0) + e.get("length", 0) >= u16(text.rstrip()) for e in entities or [])
 
 
 def check_text(text: str, *, parse_mode: str | None, entities: list | None, where: str,
@@ -154,6 +170,13 @@ def check_text(text: str, *, parse_mode: str | None, entities: list | None, wher
         add("warning", "BODY_LONG", f"{len(nonempty)} lines: keep the body to 8, move the rest to a button, Rich or a file")
     if any(len(ln) > 160 for ln in shown):
         add("warning", "LINE_LONG", "a line over 160 characters: split it into facts or sentences")
+    groups = [g.strip() for g in re.split(r"\n\s*\n", no_pre.strip()) if g.strip()]
+    if len(groups) >= 3 and "\n" not in groups[-1]:
+        last = groups[-1]
+        meta = FOOTER_META.search(last) or (CLOCK.search(visible(last))
+                                            and not any(rx.match(visible(last)) for rx in SEPS.values()))
+        if meta and not _footer_italic(last, text, parse_mode, entities):
+            add("warning", "FOOTER_NOT_ITALIC", "the last line is the footer (time, source): set it in italic, <i>…</i>")
     if pattern is not None:
         lo, hi = pattern["header"]["words"]
         if not lo <= words <= hi:

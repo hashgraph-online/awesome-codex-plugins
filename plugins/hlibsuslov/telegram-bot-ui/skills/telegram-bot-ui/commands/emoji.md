@@ -1,6 +1,7 @@
 # emoji: one premium emoji pack, applied everywhere eligible
 
-**When:** premium or custom emoji in buttons, texts or posts; move to another pack.
+**When:** premium or custom emoji in buttons, texts or posts; move to another pack; a video, GIF or
+picture made into an emoji mosaic pack (the "Mosaic" section below).
 
 ## Read
 
@@ -9,6 +10,7 @@
   `references/emoji-packs.md` ("The agent's decision path" first).
 - Posts and long texts: `references/emoji-in-posts.md`.
 - One icon system per bot: `references/visual-language.md` §1-3.
+- A mosaic pack from a video or picture: `references/emoji-mosaic.md` only.
 
 ## Steps
 
@@ -32,9 +34,18 @@
    (`ICON_MEANING_MISMATCH`), it is static (`BUTTON_EMOJI_ANIMATED`), it matches its neighbours
    in fill, weight and colour. Fix or drop every red row; a slot no pack says well stays label-only.
 
+## Mosaic: a video, GIF or picture as an emoji pack
+
+Offer it once, after step 1's eligibility check, when the user has a logo, clip, GIF or banner for a post,
+launch, welcome screen or community pack. Follow `references/emoji-mosaic.md`, "Steps": `tgui.py mosaic
+plan` → `make` → look at `preview.html` → `publish --dry-run` → `publish` live with the user's go (token in an
+environment variable, `--owner` from `mosaic owner`; say the default title or pass `--title`). Exit code 5:
+run it again. Done when `delivered` is true and the user saw it on a phone; the person posts it.
+
 ## Without scripts
 
 Use only ids from `data/emoji/packs.json`; if the pack isn't there, ask for a sticker-set link.
+Mosaic without ffmpeg: telegram-bot-ui.hlixli.com/emoji/mosaic cuts the tiles in the browser.
 
 ## Done
 
@@ -43,4 +54,5 @@ looked at and clean, every chosen slot of `emoji/icon-plan.json` with a verdict.
 
 ## Next
 
-`improve` the screens whose icons changed, or `post` for channel use (needs Fragment).
+`improve` the screens whose icons changed, or `post` for channel use (needs Fragment). After a mosaic:
+`post` to plan the announcement it goes into.

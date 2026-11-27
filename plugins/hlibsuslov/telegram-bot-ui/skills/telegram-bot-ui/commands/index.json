@@ -565,20 +565,23 @@
     },
     {
       "verb": "emoji",
-      "short": "one premium emoji pack, applied wherever the bot is eligible",
-      "does": "one premium emoji pack resolved and applied wherever the bot is eligible, all icons of a message or none",
+      "short": "one premium emoji pack where eligible; a mosaic pack from a video",
+      "does": "one premium emoji pack resolved and applied wherever the bot is eligible, all icons of a message or none; or a video, GIF or picture cut into an emoji mosaic pack",
       "sounds_like": {
         "en": [
           "use premium emoji",
           "custom emoji on the buttons",
-          "move to another emoji pack"
+          "move to another emoji pack",
+          "make an emoji pack from this video"
         ],
         "ru": [
           "премиум-эмодзи",
-          "эмодзи на кнопках"
+          "эмодзи на кнопках",
+          "сделай эмодзи-пак из видео"
         ],
         "uk": [
-          "преміум-емодзі на кнопках"
+          "преміум-емодзі на кнопках",
+          "зроби емодзі-пак з відео"
         ]
       },
       "playbook": "commands/emoji.md",
@@ -586,13 +589,15 @@
         "references/custom-emoji.md",
         "references/emoji-packs.md",
         "references/emoji-in-posts.md",
-        "references/visual-language.md"
+        "references/visual-language.md",
+        "references/emoji-mosaic.md"
       ],
       "recipes": "70-76",
       "tools": [
         "emoji library pick|search",
         "emoji resolve|suggest|verify|capture|apply|strip",
-        "check icons"
+        "check icons",
+        "mosaic plan|make|check|message|publish"
       ],
       "smoke": [
         {
@@ -603,6 +608,15 @@
             "home,back",
             "--top",
             "2"
+          ]
+        },
+        {
+          "args": [
+            "mosaic",
+            "plan",
+            "--size",
+            "1280x720",
+            "--json"
           ]
         }
       ]

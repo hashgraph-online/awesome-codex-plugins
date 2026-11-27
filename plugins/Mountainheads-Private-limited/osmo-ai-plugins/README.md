@@ -15,6 +15,10 @@
 <p align="center">
   <a href="https://registry.modelcontextprotocol.io/v0.1/servers/app.getosmo%2Fphone-calls/versions/latest"><img alt="MCP Registry: app.getosmo/phone-calls" src="https://img.shields.io/badge/MCP_Registry-app.getosmo%2Fphone--calls-blue"></a>
   <a href="https://glama.ai/mcp/connectors/app.getosmo/phone-calls"><img alt="OsmO Phone Calls on Glama" src="https://glama.ai/mcp/connectors/app.getosmo/phone-calls/badges/score.svg"></a>
+  <a href="https://glama.ai/mcp/connectors/app.getosmo/ai-receptionist"><img alt="OsmO AI Receptionist on Glama" src="https://glama.ai/mcp/connectors/app.getosmo/ai-receptionist/badges/score.svg"></a>
+  <a href="https://glama.ai/mcp/connectors/app.getosmo/call-screening"><img alt="OsmO Call Screening on Glama" src="https://glama.ai/mcp/connectors/app.getosmo/call-screening/badges/score.svg"></a>
+  <a href="https://glama.ai/mcp/connectors/app.getosmo/customer-service-calls"><img alt="OsmO Customer Service Calls on Glama" src="https://glama.ai/mcp/connectors/app.getosmo/customer-service-calls/badges/score.svg"></a>
+  <a href="https://glama.ai/mcp/connectors/app.getosmo/booking-calls"><img alt="OsmO Booking Calls on Glama" src="https://glama.ai/mcp/connectors/app.getosmo/booking-calls/badges/score.svg"></a>
   <a href="https://chatgpt.com/plugins/plugin_asdk_app_6ad0ed3277688191b90bd9dafe5d6cd9"><img alt="ChatGPT plugin directory" src="https://img.shields.io/badge/ChatGPT-plugin_directory-10a37f"></a>
   <a href="https://clawhub.ai/getosmo/osmo-phone-calls"><img alt="ClawHub: getosmo/osmo-phone-calls" src="https://img.shields.io/badge/ClawHub-osmo--phone--calls-orange"></a>
   <a href="https://aiagentslisting.com/mcp/osmo-ai-plugins"><img alt="Osmo Ai Plugins on AI Agents Listing" src="https://aiagentslisting.com/osmo-ai-plugins/badge.svg?claim=2bc13b0547d015ab02a54ca36da2271b"></a>
@@ -79,6 +83,17 @@ free. With free credits, OsmO calls businesses and toll-free numbers; calling yo
 - [What's in this repo](#whats-in-this-repo)
 - [Authentication and network](#authentication-and-network)
 - [Support, security and license](#support-security-and-license)
+
+## Directory listings
+
+Official listings (same hosted MCP server, honest names for each job):
+
+- [AI Phone Calls & AI Receptionist (OsmO) on Glama](https://glama.ai/mcp/connectors/app.getosmo/phone-calls)
+- [AI Receptionist & Answering Service (OsmO) on Glama](https://glama.ai/mcp/connectors/app.getosmo/ai-receptionist)
+- [AI Call Screening & Spam Call Blocker (OsmO) on Glama](https://glama.ai/mcp/connectors/app.getosmo/call-screening)
+- [AI Customer Service Calls & Hold for Me (OsmO) on Glama](https://glama.ai/mcp/connectors/app.getosmo/customer-service-calls)
+- [AI Booking Calls: Reservations by Phone (OsmO) on Glama](https://glama.ai/mcp/connectors/app.getosmo/booking-calls)
+- Official MCP Registry: [`app.getosmo/phone-calls`](https://registry.modelcontextprotocol.io/v0/servers?search=app.getosmo), [`app.getosmo/ai-receptionist`](https://registry.modelcontextprotocol.io/v0/servers?search=app.getosmo)
 
 ## How it works
 

@@ -15,7 +15,8 @@ a published post.
 
 ## Steps
 
-1. Write the post as content (Markdown or Post JSON), never as raw HTML.
+1. Write the post as content (Markdown or Post JSON), never as raw HTML. A logo, clip or GIF for it: offer an
+   emoji mosaic once, after the eligibility check (`emoji` playbook, "Mosaic").
 2. `tgui.py post validate <file> --context channel`, then `tgui.py post preview <file>`.
 3. Show the exact post to the approver; publish only after an approval bound to that post.
 4. `tgui.py post publish <file> --chat-env TG_CHANNEL_ID --token-env TG_BOT_TOKEN --key <id>`

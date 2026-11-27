@@ -68,6 +68,8 @@ config imports that `package.json` lacks, unless `package.json` declares
 another `e2e` than the one running init (then run the project's own
 `e2e init` after installing). Re-run after upgrading to refresh the skill
 and MCP entries; it keeps the MCP server's environment and client settings.
+`init` can restore a missing `SKILL.md` in an existing copy when pnpm links
+the skill in another directory.
 Codex reads `.codex/config.toml` only in trusted projects; start a new
 session after installing dependencies.
 

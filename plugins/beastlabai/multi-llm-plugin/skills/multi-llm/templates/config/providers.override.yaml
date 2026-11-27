@@ -180,6 +180,18 @@
 #     models:
 #       - openai/gpt-6-luna
 
+#   hermes:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openai/gpt-6-luna
+#       - deepseek/deepseek-v4.1-flash
+
+#   dsh:
+#     default_timeout: 1200
+#     models:
+#       - deepseek/deepseek-v4.1-flash-1017:high
+
 #   opencode:
 #     default_timeout: 1200
 #     max_version_exclusive: 
@@ -316,6 +328,13 @@
 #       - openrouter/z-ai/glm-5.3
 #       - openrouter/moonshotai/kimi-k3.1-pro
 #       - openrouter/openai/gpt-6.2-astra
+
+#   junie:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openai/gpt-6-luna
+#       - deepseek/deepseek-v4.1-flash
 
 ## --- default_provider -------------------------------------------------------
 ## Provider used when a model spec has no `provider:` prefix (e.g. bare `opus`).

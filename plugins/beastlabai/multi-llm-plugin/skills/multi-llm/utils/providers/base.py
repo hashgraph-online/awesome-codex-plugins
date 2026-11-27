@@ -1502,7 +1502,18 @@ class LLMProvider(ABC):
         """
         delta = dict(child_env.git_env(types.PROFILE_GENERATE))
         delta.update({"TERM": "dumb", "COLUMNS": "1000", "NO_COLOR": "1"})
+        delta.update(self.help_probe_env())
         return child_env.build_child_env(self, provider_env=delta) or dict(os.environ)
+
+    def help_probe_env(self) -> Dict[str, str]:
+        """Variables the help probe adds so it writes nothing of the user's.
+
+        Data, not a second gate: :meth:`gate_probe_env` stays the one
+        composition and merges this in. Empty by default. hermes declares its
+        private home here, because ``hermes chat --help`` writes logs and lock
+        files into ``$HERMES_HOME``, ``~/.hermes`` when unset.
+        """
+        return {}
 
     def flag_tokens(self, *, runnable: bool = False) -> FrozenSet[str]:
         """Every long option this CLI's own help documents, or ``frozenset()``."""

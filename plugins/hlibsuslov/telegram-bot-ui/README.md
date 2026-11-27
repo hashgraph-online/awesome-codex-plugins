@@ -165,6 +165,23 @@ python skills/telegram-bot-ui/scripts/miniapp_lint.py path/to/app --strict   # 4
 python skills/telegram-bot-ui/scripts/preview_miniapp.py path/to/app --serve 8790   # iOS/Android, light/dark, 320-669 px
 ```
 
+### 🧪 Preview stand
+
+`preview_miniapp.py` opens your Mini App in a local mock of the Telegram client, with no bot, token or tunnel.
+On the left, how Telegram launches the app (client version, language, `start_param`) and what changes while it
+is open: viewport, theme, network faults, invoice outcome, system back, minimize, close. At the bottom, every
+call to `Telegram.WebApp`, every request of the app and the layout audit of the screen. On the right, what
+Telegram would draw: header and bottom-bar colours, MainButton and SecondaryButton, safe areas, initData and
+storage. Theme and fullscreen reach the running app as events, without a reload; the URL keeps every setting.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mini-apps/stand-dark.png">
+  <img alt="The Mini App preview stand: launch settings on the left, an iOS device running the paywall example in the middle, the Events panel with chrome calls and mocked API requests at the bottom, and the inspector with lifecycle, viewport, safe areas and the MainButton on the right" src="docs/assets/mini-apps/stand-light.png" width="100%">
+</picture>
+
+<sub>The real stand on the <code>paywall</code> example, captured by <code>docs/assets/mini-apps/capture_stand.py</code>. A mock: a check of
+layout, chrome and flows before you open the app in a real client, not a replacement for it.</sub>
+
 Start in [`references/mini-apps/README.md`](skills/telegram-bot-ui/references/mini-apps/README.md); a whole redesign follows
 [`rework.md`](skills/telegram-bot-ui/references/mini-apps/rework.md).
 

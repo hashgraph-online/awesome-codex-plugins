@@ -487,7 +487,12 @@ incident. Relay its `verdict`: with `cause`, name the cause, its owner, the
 `check` and `finding` that confirmed it and its `evidence`; with `no_cause`,
 say no cause was confirmed, list `ruled_out` and the `unseen` windows, and
 never offer the likeliest candidate as the cause. A candidate `not_checked` was
-not ruled out. `snapshots.series: none` means no baseline was committed, so a
+not ruled out. Every owner is answered: the loader (a duplicate delivery, a
+retyped source column), the project (a model the range changed, judged by
+`maintain verify`), a package (a version `package-lock.yml` moved), a seed (its
+file hash) and the schedule (a parent model built after its child, from
+Elementary's build times); relay each `not_checked` reason, such as
+`unpinned` or `no_measured_before`, as what the evidence could not show. `snapshots.series: none` means no baseline was committed, so a
 confirmed cause is present now and when it entered the break is unseen. The
 repair in `next_steps` is a `transform` plan for the transform workflow to
 author; diagnosis writes nothing.

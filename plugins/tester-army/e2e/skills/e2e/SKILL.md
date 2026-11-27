@@ -8,8 +8,9 @@ description: Writes, runs, and debugs web, mobile, and desktop end-to-end tests 
 e2e runs UI and API tests that mix agent instructions (`agent.act`,
 `agent.assert`, `agent.waitFor`, `agent.extract`) with exact actions and
 checks (`screen`, `app`, `browser`, `device`, `request`, `expect`). Engines:
-`@e2e-dev/web` (browsers), `@e2e-dev/mobile` (iOS/Android), and
-`@e2e-dev/desktop` (macOS prototype).
+`@e2e-dev/web` (browsers), `@e2e-dev/mobile` (iOS/Android),
+`@e2e-dev/desktop` (macOS prototype), and `@e2e-dev/electron` (Electron
+apps).
 
 ## Start here: pick the reference for the job
 

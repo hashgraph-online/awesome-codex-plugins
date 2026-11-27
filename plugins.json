@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-27",
-  "total": 482,
+  "total": 483,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -4016,6 +4016,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/publora/skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Pushary",
+      "url": "https://github.com/Pushary/pushary-skill",
+      "owner": "Pushary",
+      "repo": "pushary-skill",
+      "description": "Sends a push to your phone when a Codex task finishes or fails, and lets you answer the agent's questions from your phone.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Pushary/pushary-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Qatom",

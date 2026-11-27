@@ -51,8 +51,8 @@
 
 - **Deletion is not completion** — never remove an item or edit this contract to end the shift. If
   either is ever altered, restore it, then tick only after the item is complete.
-- **History is append-only on shift** — no `reset --hard`, no `rebase`, no `commit --amend`, no
-  force operations. The night's receipts must survive to morning.
+- **History is append-only on shift** — no `reset --hard`, no `commit --amend`, no force
+  operations. Catching up with the base branch is a merge. The night's receipts must survive to morning.
 - **Pushing is the owner's** — commit locally; the owner reviews and pushes. Push only where an
   item explicitly says to.
 

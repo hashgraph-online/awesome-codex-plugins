@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "publicrecords",
-  "version": "1.4.0",
-  "description": "Agent Skills + Apify MCP for public-records data: US federal contracts and grants (SAM.gov, Grants.gov, USAspending), UK and EU tenders, city council meetings, ATS job postings, company social links, Etsy market research, competitor Google ads, sports odds, tennis scores, Spotify play counts, forecast track records, Skool community search, PDF and web-page to Markdown, audio transcription, and email domain/MX/disposable checks (not the mailbox).",
+  "version": "1.5.0",
+  "description": "Agent Skills + Apify MCP for public-records data: US federal contracts and grants (SAM.gov, Grants.gov, USAspending), UK and EU tenders, city council meetings, ATS job postings, company social links, Etsy market research, competitor Google ads, sports odds, tennis scores, Spotify play counts, forecast track records, Skool community search, PDF and web-page to Markdown, audio transcription, and email domain/MX/disposable checks (not the mailbox), website tech-stack detection, phone number validation (not a live carrier lookup), Wikipedia/ECB FX/Treasury lookup, Crossref paper and DOI search, and bulk DNS / SPF / DMARC lookup.",
   "author": {
     "name": "GeminiGeorge22 (publicrecords on Apify)",
     "url": "https://github.com/GeminiGeorge22"

@@ -1,0 +1,45 @@
+{
+  "name": "pushary",
+  "version": "0.1.10",
+  "description": "Push notifications and human-in-the-loop for AI agents. Get a push when a task finishes, and answer the agent from your phone while you are away from the keyboard.",
+  "author": {
+    "name": "Pushary",
+    "email": "business@pushary.com",
+    "url": "https://pushary.com"
+  },
+  "homepage": "https://pushary.com",
+  "repository": "https://github.com/Pushary/pushary-skill",
+  "license": "MIT",
+  "keywords": [
+    "notifications",
+    "push",
+    "human-in-the-loop",
+    "approvals",
+    "mcp"
+  ],
+  "hooks": [],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Pushary",
+    "shortDescription": "Answer your AI agent from your phone.",
+    "longDescription": "Pushary reaches you on your phone while an agent works. It sends a push when a long task finishes or fails, and it can ask you a question, yes or no, multiple choice, or free text, and wait for the answer from the app or supported notification actions. Every question and answer is recorded, so there is a trail of what was asked and what you decided. Works alongside Claude Code, Codex, Cursor and Hermes, so several agents land in one inbox instead of several terminals.",
+    "developerName": "Pushary",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://pushary.com",
+    "privacyPolicyURL": "https://pushary.com/privacy",
+    "termsOfServiceURL": "https://pushary.com/terms",
+    "defaultPrompt": [
+      "Use Pushary to notify me on my phone when this finishes.",
+      "Ask me on my phone whether to deploy this, then wait for my answer.",
+      "Send a test question to my phone with Pushary."
+    ],
+    "brandColor": "#2a6b6b",
+    "composerIcon": "./logo.png",
+    "logo": "./logo.png"
+  }
+}

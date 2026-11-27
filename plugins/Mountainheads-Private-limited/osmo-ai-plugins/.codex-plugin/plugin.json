@@ -23,11 +23,18 @@
     "answering-service",
     "call-screening",
     "spam-calls",
-    "reservations"
+    "reservations",
+    "call",
+    "phone-call",
+    "make-phone-calls",
+    "receptionist",
+    "AI receptionist",
+    "phone call",
+    "ai-phone-call"
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "OsmO Phone Calls",
+    "displayName": "OsmO Phone Calls & AI Receptionist",
     "shortDescription": "Real phone calls made for you",
     "longDescription": "OsmO's voice AI places real phone calls for you to a shop, clinic, restaurant, helpline or toll-free number, and answers calls to your own number as your AI phone receptionist. It finds the business or customer-care number, calls one number or up to 5 at once (now or, with an OsmO app plan, at a set time), asks what you need, gets through phone menus, and brings back the outcome, a summary, the transcript and a recording link. In AI apps that show MCP Apps cards (such as Claude), a live call card shows each call as it happens: Confirm, placed, in call, ended, the summary, a recording player, and Call again or Schedule buttons; up to 5 calls placed together share one card. In Claude and ChatGPT a short call's result comes back in the same turn. After a call that did not get what you needed, OsmO offers to call again now or at a set time with the same words. Scheduled times are read in your own time zone, and a confirmed call is placed only once. Nothing is dialled until you confirm who will be called and what will be said. It connects to the hosted OsmO MCP server at api.getosmo.app; you sign in once in the browser with your phone number and a one-time code, with no API key. New users in the US, Canada, the UK and Australia get 50 free credits (an answered call uses 3; unanswered calls are free). With free credits, OsmO calls businesses and toll-free numbers; calling your contacts, calling back people who called you and scheduling calls need an OsmO app plan. With an OsmO app plan it also runs your AI receptionist: who called and what they wanted, pausing the AI, who is put through live, VIP and block lists, caller rules, which assistant answers and in which language (English or Hindi), bookings callers made, the Facts it answers from, calendar and Drive connection status, and your OsmO app chats. The greeting, assistant names and voice are changed in the OsmO app. Not for emergency services, text messages or email.",
     "developerName": "OsmO AI",

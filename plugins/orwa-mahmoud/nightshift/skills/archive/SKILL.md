@@ -135,7 +135,7 @@ page, which is the only copy. Do not hand-edit it.
  yet. Text written as a paragraph instead of a bullet is never filed; Doctor names it by file and
  line.
 - **Parking lot — the answered entries filed, only the unanswered stay.** Same helper, same pointer rule on
- `$NS/inbox/parking-lot.md`. The owner answers an entry by appending ` · answered: <decision>`; an
+ `$NS/inbox/parking-lot.md`. The owner answers an entry by appending ` · answered by <name>: <decision>`; an
  answered entry is filed, never deleted. Parking-lot questions unanswered stay. Read live entries
  first; when checking whether a finding or decision was already handled, follow the pointer and
  search the linked file by topic or identifier. Historical decisions are evidence, not fresh
@@ -202,6 +202,23 @@ list is a copy whose open items stayed live, so it never holds work back.
 Never call `ns retain-history` from start, hooks, status, Doctor, or recovery. Never call `ns archive-receipts` from start, hooks, status, Doctor, or recovery. Never delete
 the live punch list, drafting table, parking lot, rules, current shift files, or owner-authored
 files.
+
+## Shared records
+
+When `.nightshift/` sits in the project's repository and its `.gitignore` lets the records in, the
+site is shared. Archive files a run exactly as above and never touches the plans in
+`staging/plans/`, their records or the decision threads in `staging/decisions/`: they are the
+team's record, and teammates may have edited them since the run took its copy. Each filed shift's
+folder ends in a tag of its own, so teammates' clones never file into the same folder.
+
+Raw evidence stays private until the owner chooses to share it. After filing a shift whose receipts
+carry evidence folders, list those files and ask the owner which, if any, the team should see. Copy
+each chosen file into an `evidence/` folder beside the filed receipts folder, keeping its
+`<receipt>/<file>` path, and point the filed receipt's link at that copy by relative path. Turn every
+other link into an evidence folder into plain text that names the file as private evidence, so no
+shared page carries a broken link or a path from the runner's machine. Keep the originals where
+they are. The shipped `.gitignore` leaves the history index below out of Git, so each clone keeps its
+own; rebuild it from the archive folders when it is missing.
 
 ## Index
 

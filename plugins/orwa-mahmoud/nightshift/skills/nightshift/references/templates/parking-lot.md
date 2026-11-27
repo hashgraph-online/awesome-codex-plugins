@@ -14,7 +14,7 @@ bullets: text written as a paragraph stays here for good, and Doctor names it.
 
 **Dispositions:** `fixed`, `ignored`, `answered`, `rejected-because`, `accepted-tradeoff`.
 An entry with no disposition is open and waits for the owner; Nightshift Start surfaces open entries
-at the top of the next shift. The owner answers by appending ` · answered: <decision>` to the entry,
+at the top of the next shift. The owner answers by appending ` · answered by <name>: <decision>` to the entry,
 and Archive files it. A runtime `[notice]` closes the same way, with ` · ignored` once read. Never
 delete an answered entry: the answer is the record Archive keeps.
 

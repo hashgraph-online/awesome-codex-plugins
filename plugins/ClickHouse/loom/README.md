@@ -16,7 +16,8 @@ What you get once it is installed:
 - **Ambient capture** — every tool call, every edit, every failed command
   becomes an episodic observation; the session's turns go to the
   conversation plane and, at session end, to `memory.set_from_messages` so
-  the server extracts the durable facts. No model call in the hooks.
+  the server extracts the durable facts (a session with under 40 bytes of
+  user and assistant text is not sent). No model call in the hooks.
 - **loom-code-shunt** — in a loom-indexed repository, a `cat` of a whole file
   or an `rg` over the tree is denied with the `code.*` op to call instead.
 - **Blast radius, file context, test gate, working memory, run ledger** — as

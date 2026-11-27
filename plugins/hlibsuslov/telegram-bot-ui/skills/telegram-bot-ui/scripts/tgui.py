@@ -65,6 +65,7 @@ PASS = {
     "profile": ["style_profile.py"],
     "post": ["tg_post.py"],
     "emoji": ["emoji_packs.py"],
+    "mosaic": ["emoji_mosaic.py"],
     "commands": ["bot_commands.py"],
     "mcp": ["bot_ui_mcp.py"],
     "data": ["data_view.py"],

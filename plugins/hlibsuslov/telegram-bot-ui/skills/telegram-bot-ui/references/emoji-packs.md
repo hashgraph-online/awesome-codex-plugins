@@ -30,6 +30,8 @@ bot_api: "10.4"
 ## The agent's decision path (follow it unprompted)
 
 Use it whenever you build or restyle a bot, or compose a post, and icons/emoji are involved.
+A logo, clip, GIF or banner to show in a post or welcome is a different job: offer an emoji mosaic
+(`references/emoji-mosaic.md`), not an icon family.
 
 1. **Eligibility — one precise question or a config read.** Look for config first
    (`TG_FRAGMENT_USERNAMES`, `TG_OWNER_PREMIUM` or similar). If absent, ask exactly:

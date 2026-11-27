@@ -1,6 +1,6 @@
 ---
 name: telegram-bot-ui
-description: "Designs, audits, builds and operates everything a Telegram bot shows, sends and reacts to, with offline catalogs of the whole Bot API and Telegram.WebApp. Use when a request concerns a Telegram bot's or channel's messages, wording, buttons, keyboards, menus, navigation, forms, streaming AI replies, HTML widgets, Mini Apps, Rich Messages, premium emoji, formatting errors, Stars payments, webhooks, channel posts or mailings, a bot an agent uses to notify or ask for approval, a whole bot product, the bot-ui/ screen map or a Studio task, or whether the Bot API supports something, including the server side of these. Use it even for vague asks like 'make my bot nicer' or a pasted handler or payload. Do not use for other messengers, userbots, Telegram Ads, server setup (nginx, TLS, hosting), or CI, databases and auth that no Telegram feature depends on, or Microsoft .rtf files."
+description: "Designs, audits, builds and operates everything a Telegram bot shows, sends and reacts to, with offline catalogs of the Bot API and Telegram.WebApp. Use when a request concerns a Telegram bot's or channel's messages, wording, buttons, keyboards, menus, navigation, forms, streaming AI replies, HTML widgets, Mini Apps, Rich Messages, premium emoji, emoji packs from video, formatting errors, Stars payments, webhooks, channel posts or mailings, a bot an agent uses to notify or ask for approval, a whole bot product, the bot-ui/ screen map or a Studio task, or whether the Bot API supports something, including the server side of these. Use it even for vague asks like 'make my bot nicer' or a pasted handler or payload. Do not use for other messengers, userbots, Telegram Ads, server setup (nginx, TLS, hosting), or CI, databases and auth no Telegram feature depends on, or Microsoft .rtf files."
 license: MIT
 argument-hint: "[start|audit|improve|fix|build|post|widget|mini-app|emoji|agent-bot|map|lookup] [what]"
 metadata:
@@ -46,13 +46,13 @@ the transitions between states. Only HTML widgets and Mini Apps have a layout of
 | `post` | "post this to our channel"; "a weekly digest"; "опубликуй в канал"; "опублікуй анонс у канал" | channel posts and mailings: preview, approve, publish once |
 | `widget` | "an interactive card in the message"; "make a widget"; "интерактивная карточка в сообщении"; "зроби інтерактивну картку замовлення" | an HTML widget in a message, with its server handler |
 | `mini-app` | "build a Mini App"; "restyle our Mini App"; "сделай мини-апп"; "зроби міні-застосунок" | a Mini App: decide, build or restyle, version gates, initData security |
-| `emoji` | "use premium emoji"; "custom emoji on the buttons"; "премиум-эмодзи"; "преміум-емодзі на кнопках" | one premium emoji pack, applied wherever the bot is eligible |
+| `emoji` | "use premium emoji"; "custom emoji on the buttons"; "премиум-эмодзи"; "преміум-емодзі на кнопках" | one premium emoji pack where eligible; a mosaic pack from a video |
 | `agent-bot` | "message me when the build is done"; "ask me to approve in Telegram"; "напиши мне в Telegram, когда сборка закончится"; "хочу, щоб агент писав мені в Telegram, коли збірка готова" | the agent's own bot: notify, ask, approve, secured |
 | `map` | "bot-ui"; "open the Studio"; "карта экранов"; "карта екранів бота" | the bot-ui/ map and Studio requests, with revision checks |
 | `lookup` | "does the Bot API have"; "what are sendPoll's parameters"; "есть ли в Bot API"; "чи є в Bot API кнопки іншого кольору" | Bot API and Telegram.WebApp answers from the offline catalogs; skill health |
 <!-- commands:end -->
 
-Say in plain language what you are doing ("I'll review the menu first, without changing code").
+Say in plain language what you are doing.
 
 ## Scope
 
@@ -113,7 +113,7 @@ One offline entry point, standard library only, no bot token:
 `py -3 <skill>/scripts/tgui.py <group> ...`; `--help` on every group. Exit codes: 0 ok,
 1 findings, 2 usage, 3 revision conflict, 4 refused. Groups: `context`, `next`, `doctor`,
 `findings`, `requests`, `check`, `lookup`, `webapp`, `examples`, `profile`, `map`, `post`,
-`emoji`, `widget`, `miniapp`, `data`, `patterns`, `commands`, `agent`, `hook`, `mcp`, `sync`.
+`emoji`, `mosaic`, `widget`, `miniapp`, `data`, `patterns`, `commands`, `agent`, `hook`, `mcp`, `sync`.
 Online only: `sync`, `emoji library`, pack import. Run them; don't read their source. Libraries: `examples/`
 (`tgkit` for Python and TS, SDK adapters). No Python: each playbook has a *Without scripts* path.
 

@@ -20,8 +20,11 @@ Wording `microcopy-and-labels.md` · buttons and color `buttons-and-styles.md` �
 Message (the exception; audit every one) `rich-message-buttons.md` · inline keyboards,
 pagination `inline-keyboards.md` · reply keyboards, `ForceReply` `reply-keyboards.md` · screens,
 back, commands, deep links `navigation-and-flows.md` · first run `onboarding-and-first-run.md` ·
-the first message after `/start` `welcome-message.md` · notifications and other messages the bot
-sends on its own `message-patterns.md` (§8 rework procedure, `tgui.py patterns find|show|check`) ·
+the first message after `/start` `welcome-message.md` (a logo, clip or GIF for it: offer an emoji mosaic once,
+`emoji-mosaic.md`) · notifications and other messages the bot
+sends on its own `message-patterns.md` (its "Do this, in order" steps: pattern id and reason per
+message, before/after for two types first, `tgkit/notify.py` or `tgui.py patterns render`, `patterns
+check --pattern`) ·
 body format `format-selection.md`, `tables.md`, `data-views.md`, `telegram-capabilities.md`,
 `regular-formatting.md` · media `media-and-files.md`, `rich-media.md` · limits
 `limits-and-splitting.md` · feedback and Stop `dynamic-feedback-and-streaming.md`,

@@ -309,6 +309,37 @@ synthetic data.
 
 [Dex Semantics](references/dex-semantics.md) · [declarations](skills/transform/references/declarations.md) · [the film](https://www.youtube.com/watch?v=-iYwYuzZFg0)
 
+## Dex Telemetry
+
+**Open-source Datadog for analytics.** You set up analytics to monitor your
+business. But who's monitoring your analytics?
+
+A pipeline can run on time, pass its tests and still deliver the wrong number.
+Dex Telemetry watches the pipeline your reports depend on, built on dbt and
+[Elementary](https://github.com/elementary-data/elementary):
+
+- **Record every run.** `dex init` installs Elementary, so every production run
+  keeps its test results, and the rules you declare on your models become dbt
+  tests and anomaly monitors.
+- **Open incidents.** `maintain incidents` folds the run history into
+  incidents by one rule: a failure opens one, two passes close it, and a run
+  that recorded nothing is never read as a pass.
+- **Find the cause.** `maintain diagnose` takes each incident to its cause and
+  names the metrics that read the broken column. The fix comes back as a plan,
+  and nothing changes until you approve it.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/telemetry-dark.png" />
+  <img width="760" height="340" alt="Dex Telemetry: Dex remembers every run (on 299 nights the Ithaca ship's record arrived by 03:05; tonight, nothing by the 04:00 report run), Dex opens an incident at 04:01 (his rule: every ship booked tonight appears in the report, even if it's late; missing: Ithaca's 40 t), and nothing changes until he says yes: the agent finds the cause, the fix comes back as a plan, he approves" src="assets/readme/telemetry-light.png" />
+</picture>
+
+The image is an illustrated workflow on synthetic data. Telemetry here means
+monitoring your pipelines: the history stays in your warehouse and repository,
+and nothing is sent to Exmergo. Try it offline with `dex demo`, then
+`dex maintain incidents` and `dex maintain diagnose`.
+
+[Dex Telemetry](references/dex-telemetry.md) · [incidents](references/incidents.md) · [the film](https://www.youtube.com/watch?v=RBcf9eyZlaU)
+
 ## See it on a real project
 
 **[github-repo-analytics](https://github.com/exmergo/github-repo-analytics)** is a template that tracks GitHub traffic, stars, downloads and contributors for your open-source projects, free on GitHub Actions.   

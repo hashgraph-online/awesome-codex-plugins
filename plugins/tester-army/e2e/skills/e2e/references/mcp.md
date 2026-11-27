@@ -26,8 +26,12 @@ screen where it failed.
 The server ships with the project's `e2e` dependency. The e2e plugin for
 Codex and Cursor registers it; the Claude Code plugin does not. Otherwise
 `e2e init` offers to register it for Claude Code, Cursor, and Codex. Reuse
-an existing registration, and start the MCP client in the project so `npx`
-uses the installed e2e version (`bunx` in a Bun project). For Claude Code:
+an existing registration, and start the MCP client in the project so the
+command uses the installed e2e version. Use the project's package manager: `pnpm
+exec e2e mcp` in a pnpm project (`npx` fails there with `EBADDEVENGINES`
+when `devEngines` pins pnpm, and the client shows only `Connection
+closed`), `yarn exec e2e mcp` with Yarn (`yarn --silent exec -- e2e mcp` on Yarn 1), `bunx e2e mcp` with Bun.
+For Claude Code:
 
 ```bash
 claude mcp add --scope project e2e -- npx e2e mcp
@@ -73,8 +77,11 @@ Everything a session does is a catalog tool run through
   The reply names the first screen (path, node count) without listing it,
   and action results report changes against it: `observe` when you need
   its nodes.
-- `observe`: one node per line as `#id role "name" ...`, plus the path. Node
-  ids are valid only for the newest observation.
+- `close_session`: frees the session's slot once its cleanup finishes, even
+  while an unrelated app is still stopping.
+- `observe`: one node per line as `#id role "name" ...`, plus the path. Use
+  ids from the newest observation; an older id works only when exactly one
+  node on the newest screen reads like its node.
 - The grammar verbs (`tap`, `type`, `press`, `select`, `check`, `scroll`,
   `drag`, `upload`, `navigate`, `back`, ...): each reports what changed and
   the `Test line:` that repeats it, or `No test line:` and why.
@@ -86,8 +93,10 @@ Everything a session does is a catalog tool run through
 - `test_lines`: every test line printed or passed so far, in order, as a
   draft test body.
 - `screenshot` (masked pixels; secure fields only), the point tools
-  (`tap_at`, `type_at`, ...) after a screenshot, `start_recording` and
-  `stop_recording`, and the project's own tools.
+  (`tap_at`, `type_at`, ...) after a screenshot, each with the test line of
+  the listed control it acted on (or `screen.tapAt` for a bare tap), or
+  `No test line:` and why, `start_recording` and `stop_recording`, and the
+  project's own tools.
 
 Resources: `e2e://guide` and `e2e://guide/<topic>` hold this skill.
 Full reference: docs/reference/mcp.mdx.
@@ -215,7 +224,9 @@ screen looks: `run_code` reads the accessibility tree, not pixels.
 Pass only `attach` to `open_session`, with the ID from the pause header,
 from the test run's directory and the same e2e version:
 `open_session {attach: "k3f9"}`. The session has the normal tools on that
-target, and its `test_lines` belong at the pause point of the held test.
+target, `run_code` with the engine's fixture (`desktop`, `browser`,
+`device`) included, and its `test_lines` belong at the pause point of the
+held test.
 `close_session` detaches and leaves the test held; Enter, or
 `npx e2e run --step next`, resumes the test and ends the attachment.
 

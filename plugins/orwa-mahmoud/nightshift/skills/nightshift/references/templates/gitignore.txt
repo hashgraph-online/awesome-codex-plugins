@@ -1,0 +1,42 @@
+# What Git sees of .nightshift/ when a team keeps its project records in the repository. Edit it
+# like any .gitignore: what it lets in is shared, and Nightshift reads what Git sees.
+#
+# Everything here is private unless a line below lets it in.
+/*
+!/.gitignore
+!/.gitattributes
+!/state-version
+
+# The team's rules, and each member's settings.
+!/rules.json
+!/settings/
+
+# Plans, their records and the planning decisions.
+!/staging/
+/staging/*
+!/staging/plans/
+!/staging/records/
+!/staging/decisions/
+
+# Each run's punch list, rules, receipts, parking lot and snag log. Raw evidence beside a receipt,
+# private messages and the run's runtime folder stay with the runner.
+!/runs/
+/runs/*/*
+!/runs/*/.shift-id
+!/runs/*/punch-list.md
+!/runs/*/rules.json
+!/runs/*/receipts/
+/runs/*/receipts/*/
+!/runs/*/inbox/
+/runs/*/inbox/messages.md
+
+# Filed shifts, with the same parts private. Evidence the team chose to share is filed in each
+# shift's evidence/ folder. The history index stays each clone's own.
+!/archive/
+/archive/history-index.md
+/archive/*/run/
+/archive/*/receipts/*/
+/archive/*/inbox/messages.md
+/archive/*/runs/*/run/
+/archive/*/runs/*/receipts/*/
+/archive/*/runs/*/inbox/messages.md
