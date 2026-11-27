@@ -1180,20 +1180,6 @@
       "icon": "./plugins/PyModel/designer-skill/assets/icon.webp"
     },
     {
-      "name": "devin",
-      "displayName": "Devin Plugin CC",
-      "source": {
-        "source": "local",
-        "path": "./plugins/TheOnlyFusionCube/devin-plugin-cc"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Devin AI code reviews, delegated tasks, Fusion lead/sidekick workflows, and cloud handoffs to app.devin.ai for Codex, Claude Code, and other coding agents."
-    },
-    {
       "name": "dev-skills",
       "displayName": "Dev Skills",
       "source": {
@@ -1222,6 +1208,20 @@
       "category": "Development & Workflow",
       "description": "Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.",
       "icon": "./plugins/reidemeister94/development-skills/assets/icon.svg"
+    },
+    {
+      "name": "devin",
+      "displayName": "Devin Plugin CC",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TheOnlyFusionCube/devin-plugin-cc"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Devin AI code reviews, delegated tasks, Fusion lead/sidekick workflows, and cloud handoffs to app.devin.ai for Codex, Claude Code, and other coding agents."
     },
     {
       "name": "devrecap",
@@ -2792,21 +2792,6 @@
       "icon": "./plugins/sno-ai/sno-station-skills/.claude-plugin/icon.png"
     },
     {
-      "name": "ssh-ops",
-      "displayName": "SSH Ops",
-      "source": {
-        "source": "local",
-        "path": "./plugins/leehom0123/ssh-ops"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.",
-      "icon": "./plugins/leehom0123/ssh-ops/assets/icon.svg"
-    },
-    {
       "name": "spec-driven",
       "displayName": "Spec-Driven Development",
       "source": {
@@ -2850,6 +2835,21 @@
       "category": "Development & Workflow",
       "description": "Practical Claude Code and Codex skills for worktrees, PR/MR automation, review cleanup, YApi lookup, and Java DDD guidance.",
       "icon": "./plugins/yyykf/spellbook-skills/assets/icon.svg"
+    },
+    {
+      "name": "ssh-ops",
+      "displayName": "SSH Ops",
+      "source": {
+        "source": "local",
+        "path": "./plugins/leehom0123/ssh-ops"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.",
+      "icon": "./plugins/leehom0123/ssh-ops/assets/icon.svg"
     },
     {
       "name": "stacked-prs",
@@ -6301,20 +6301,6 @@
       "icon": "./plugins/seltz-ai/seltz-codex-plugin/assets/logo.svg"
     },
     {
-      "name": "legends-seo-dungeon",
-      "displayName": "SEO Dungeon",
-      "source": {
-        "source": "local",
-        "path": "./plugins/avalonreset/seo-dungeon"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows."
-    },
-    {
       "name": "sendpaper",
       "displayName": "Sendpaper",
       "source": {
@@ -6343,6 +6329,20 @@
       "category": "Tools & Integrations",
       "description": "Send cold email from Codex: connect and warm up mailboxes, build and launch outbound sequences, and answer replies through the Sendsets MCP server.",
       "icon": "./plugins/AddisonHoff/sendsets/assets/logo.png"
+    },
+    {
+      "name": "legends-seo-dungeon",
+      "displayName": "SEO Dungeon",
+      "source": {
+        "source": "local",
+        "path": "./plugins/avalonreset/seo-dungeon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows."
     },
     {
       "name": "seonix",
@@ -6390,21 +6390,6 @@
       "icon": "./plugins/flreey/sfxmint-mcp/assets/icon.png"
     },
     {
-      "name": "shots",
-      "displayName": "Shots",
-      "source": {
-        "source": "local",
-        "path": "./plugins/hitSlop/shots"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
-      "icon": "./plugins/hitSlop/shots/assets/icon.png"
-    },
-    {
       "name": "shopify-liquid-ai-seo",
       "displayName": "Shopify AI SEO & Liquid",
       "source": {
@@ -6418,6 +6403,21 @@
       "category": "Tools & Integrations",
       "description": "Audit Shopify robots.txt for AI search crawlers, generate Product Schema JSON-LD, and build shoppable blog product cards.",
       "icon": "./plugins/kuaai/shopify-liquid-ai-seo/assets/icon.svg"
+    },
+    {
+      "name": "shots",
+      "displayName": "Shots",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hitSlop/shots"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
+      "icon": "./plugins/hitSlop/shots/assets/icon.png"
     },
     {
       "name": "svatlas",

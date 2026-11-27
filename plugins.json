@@ -802,16 +802,6 @@
       "install_url": "https://raw.githubusercontent.com/PyModel/designer-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Devin Plugin CC",
-      "url": "https://github.com/TheOnlyFusionCube/devin-plugin-cc",
-      "owner": "TheOnlyFusionCube",
-      "repo": "devin-plugin-cc",
-      "description": "Devin AI code reviews, delegated tasks, Fusion lead/sidekick workflows, and cloud handoffs to app.devin.ai for Codex, Claude Code, and other coding agents.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/TheOnlyFusionCube/devin-plugin-cc/HEAD/plugins/devin/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Dev Skills",
       "url": "https://github.com/Jason-chen-coder/dev-skills",
       "owner": "Jason-chen-coder",
@@ -830,6 +820,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/reidemeister94/development-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Devin Plugin CC",
+      "url": "https://github.com/TheOnlyFusionCube/devin-plugin-cc",
+      "owner": "TheOnlyFusionCube",
+      "repo": "devin-plugin-cc",
+      "description": "Devin AI code reviews, delegated tasks, Fusion lead/sidekick workflows, and cloud handoffs to app.devin.ai for Codex, Claude Code, and other coding agents.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TheOnlyFusionCube/devin-plugin-cc/HEAD/plugins/devin/.codex-plugin/plugin.json"
     },
     {
       "name": "DevRecap",
@@ -1894,16 +1894,6 @@
       "install_url": "https://raw.githubusercontent.com/sno-ai/sno-station-skills/HEAD/plugins/sno-station-standalone/.codex-plugin/plugin.json"
     },
     {
-      "name": "SSH Ops",
-      "url": "https://github.com/leehom0123/ssh-ops",
-      "owner": "leehom0123",
-      "repo": "ssh-ops",
-      "description": "Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/leehom0123/ssh-ops/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Spec-Driven Development",
       "url": "https://github.com/Habib0x0/spec-driven-plugin",
       "owner": "Habib0x0",
@@ -1932,6 +1922,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yyykf/spellbook-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "SSH Ops",
+      "url": "https://github.com/leehom0123/ssh-ops",
+      "owner": "leehom0123",
+      "repo": "ssh-ops",
+      "description": "Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/leehom0123/ssh-ops/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "stacked-prs",
@@ -4268,16 +4268,6 @@
       "install_url": "https://raw.githubusercontent.com/seltz-ai/seltz-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "SEO Dungeon",
-      "url": "https://github.com/avalonreset/seo-dungeon",
-      "owner": "avalonreset",
-      "repo": "seo-dungeon",
-      "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/avalonreset/seo-dungeon/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Sendpaper",
       "url": "https://github.com/ryan-tish/sendpaper-plugin",
       "owner": "ryan-tish",
@@ -4296,6 +4286,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/AddisonHoff/sendsets/HEAD/plugin.json"
+    },
+    {
+      "name": "SEO Dungeon",
+      "url": "https://github.com/avalonreset/seo-dungeon",
+      "owner": "avalonreset",
+      "repo": "seo-dungeon",
+      "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/avalonreset/seo-dungeon/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Seonix",
@@ -4328,16 +4328,6 @@
       "install_url": "https://raw.githubusercontent.com/flreey/sfxmint-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Shots",
-      "url": "https://github.com/hitSlop/shots",
-      "owner": "hitSlop",
-      "repo": "shots",
-      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/hitSlop/shots/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Shopify AI SEO & Liquid",
       "url": "https://github.com/kuaai/shopify-liquid-ai-seo",
       "owner": "kuaai",
@@ -4346,6 +4336,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/kuaai/shopify-liquid-ai-seo/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Shots",
+      "url": "https://github.com/hitSlop/shots",
+      "owner": "hitSlop",
+      "repo": "shots",
+      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hitSlop/shots/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Silicon Valley Atlas",
