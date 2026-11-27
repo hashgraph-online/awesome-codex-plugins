@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-26",
-  "total": 477,
+  "last_updated": "2026-11-27",
+  "total": 481,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2445,6 +2445,16 @@
       "install_url": "https://raw.githubusercontent.com/ahel-technologies/ahel/HEAD/plugins/ahel/plugin.json"
     },
     {
+      "name": "AI Science Tracker",
+      "url": "https://github.com/marcello-pichini/ai-science-tracker",
+      "owner": "marcello-pichini",
+      "repo": "ai-science-tracker",
+      "description": "Search a curated catalog of AI-enabled scientific discoveries and AI-found vulnerabilities through a hosted, read-only MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/marcello-pichini/ai-science-tracker/HEAD/plugins/chatgpt-ai-science-tracker/plugin.json"
+    },
+    {
       "name": "AI SDR Kit",
       "url": "https://github.com/zevarihq/ai-sdr-kit",
       "owner": "zevarihq",
@@ -3007,6 +3017,16 @@
       "install_url": "https://raw.githubusercontent.com/entropy-data/dataproduct-builder-dbt/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Databuddy",
+      "url": "https://github.com/databuddy-analytics/skills",
+      "owner": "databuddy-analytics",
+      "repo": "skills",
+      "description": "Web and product analytics: traffic, funnels, errors, Web Vitals, replays, and why a metric moved, through a hosted MCP server with OAuth sign-in, plus a skill for adding Databuddy tracking to an app.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/databuddy-analytics/skills/HEAD/plugin.json"
+    },
+    {
       "name": "DataXAPI",
       "url": "https://github.com/data-x-api/skills",
       "owner": "data-x-api",
@@ -3317,6 +3337,16 @@
       "install_url": "https://raw.githubusercontent.com/zfifteen/gh-project-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Groundsocial",
+      "url": "https://github.com/shivanshmehendiratta/groundsocial-skills",
+      "owner": "shivanshmehendiratta",
+      "repo": "groundsocial-skills",
+      "description": "Eight read-only social research skills (brand mentions, competitor audits, creator vetting, subreddit research, TikTok trends, YouTube transcripts, comment mining) on public data from Reddit, X, TikTok, YouTube and 70+ more platforms through the hosted Groundsocial MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/shivanshmehendiratta/groundsocial-skills/HEAD/plugin.json"
+    },
+    {
       "name": "Hermes Tweet",
       "url": "https://github.com/Xquik-dev/hermes-tweet",
       "owner": "Xquik-dev",
@@ -3375,6 +3405,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/andreamzhang/jimeng-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "job-agent",
+      "url": "https://github.com/kevin-2023-code/job-agent",
+      "owner": "kevin-2023-code",
+      "repo": "job-agent",
+      "description": "Job-search skills with the TrueInterview MCP: score postings, tailor résumés, fill application forms up to Submit, track applications and prep for interviews.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kevin-2023-code/job-agent/HEAD/plugins/codex/.codex-plugin/plugin.json"
     },
     {
       "name": "Kachilu Browser",

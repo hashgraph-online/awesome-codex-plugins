@@ -3603,6 +3603,21 @@
       "icon": "./plugins/ahel-technologies/ahel/assets/ahel-icon.png"
     },
     {
+      "name": "ai-science-tracker",
+      "displayName": "AI Science Tracker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/marcello-pichini/ai-science-tracker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search a curated catalog of AI-enabled scientific discoveries and AI-found vulnerabilities through a hosted, read-only MCP server.",
+      "icon": "./plugins/marcello-pichini/ai-science-tracker/assets/icon.png"
+    },
+    {
       "name": "ai-sdr-kit",
       "displayName": "AI SDR Kit",
       "source": {
@@ -4431,6 +4446,21 @@
       "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
     },
     {
+      "name": "databuddy",
+      "displayName": "Databuddy",
+      "source": {
+        "source": "local",
+        "path": "./plugins/databuddy-analytics/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Web and product analytics: traffic, funnels, errors, Web Vitals, replays, and why a metric moved, through a hosted MCP server with OAuth sign-in, plus a skill for adding Databuddy tracking to an app.",
+      "icon": "./plugins/databuddy-analytics/skills/assets/logo.png"
+    },
+    {
       "name": "dataxapi",
       "displayName": "DataXAPI",
       "source": {
@@ -4893,6 +4923,20 @@
       "description": "Create GitHub repositories from Codex with inferred defaults, native menus, explicit confirmation, and deterministic local cloning."
     },
     {
+      "name": "groundsocial-skills",
+      "displayName": "Groundsocial",
+      "source": {
+        "source": "local",
+        "path": "./plugins/shivanshmehendiratta/groundsocial-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Eight read-only social research skills (brand mentions, competitor audits, creator vetting, subreddit research, TikTok trends, YouTube transcripts, comment mining) on public data from Reddit, X, TikTok, YouTube and 70+ more platforms through the hosted Groundsocial MCP server."
+    },
+    {
       "name": "hermes-tweet",
       "displayName": "Hermes Tweet",
       "source": {
@@ -4981,6 +5025,21 @@
       "category": "Tools & Integrations",
       "description": "Full short-drama storyboard production workflow for Codex: six role subagents (script intake, dialogue, director, art, storyboard, review) with per-episode checks and derived outputs.",
       "icon": "./plugins/andreamzhang/jimeng-skills/assets/logo.svg"
+    },
+    {
+      "name": "job-agent",
+      "displayName": "job-agent",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kevin-2023-code/job-agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Job-search skills with the TrueInterview MCP: score postings, tailor résumés, fill application forms up to Submit, track applications and prep for interviews.",
+      "icon": "./plugins/kevin-2023-code/job-agent/assets/logo.svg"
     },
     {
       "name": "kachilu-browser",

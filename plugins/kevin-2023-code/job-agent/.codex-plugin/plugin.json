@@ -1,0 +1,44 @@
+{
+  "name": "job-agent",
+  "version": "0.3.0",
+  "description": "Open-source job-search skills: find and score roles, tailor your résumé, fill application forms in your browser up to Submit, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
+  "author": {
+    "name": "job-agent contributors",
+    "url": "https://github.com/kevin-2023-code/job-agent"
+  },
+  "homepage": "https://github.com/kevin-2023-code/job-agent",
+  "repository": "https://github.com/kevin-2023-code/job-agent",
+  "license": "MIT",
+  "keywords": [
+    "job-search",
+    "resume",
+    "career",
+    "interview-prep",
+    "agent-skills",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "job-agent",
+    "shortDescription": "Find, apply, track and prep for jobs",
+    "longDescription": "Open-source job-search skills: find and score roles, tailor your résumé, fill application forms in your browser up to Submit, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
+    "developerName": "job-agent contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/kevin-2023-code/job-agent",
+    "supportURL": "https://github.com/kevin-2023-code/job-agent/issues",
+    "privacyPolicyURL": "https://trueinterview.io/privacy",
+    "termsOfServiceURL": "https://trueinterview.io/terms",
+    "defaultPrompt": [
+      "Set me up: here's my résumé",
+      "Find roles that fit me and are worth applying to",
+      "Apply to this job for me"
+    ],
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.png"
+  }
+}

@@ -1,0 +1,3 @@
+# Files the plugin package does not need
+README.md
+*.zip

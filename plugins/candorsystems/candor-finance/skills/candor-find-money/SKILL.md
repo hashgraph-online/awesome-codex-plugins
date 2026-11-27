@@ -3,7 +3,7 @@ name: candor-find-money
 description: "Finds money the person is losing or is owed, gets it back with their okay, and has Candor watch the records until it lands. Use when they ask \"am I overpaying?\", spot a double charge, a fee, a refund or reimbursement that never came, a charge after cancelling, a bill that went up, a subscription they forgot, a free trial about to bill, or a paycheck that is late, short, or missing. For which charges repeat or how they are categorized, use candor-sort-transactions."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: find-money
@@ -84,9 +84,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

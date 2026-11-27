@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "groundsocial-skills",
+  "version": "1.0.0",
+  "description": "Social media research skills on the Groundsocial API: brand mention scans, competitor social audits, creator vetting, subreddit research, TikTok trend scans, YouTube transcript research and comment mining, on public data from Reddit, X, TikTok, Instagram, YouTube and 70+ more platforms.",
+  "author": {
+    "name": "Groundsocial",
+    "email": "support@groundsocial.dev",
+    "url": "https://groundsocial.dev"
+  },
+  "homepage": "https://groundsocial.dev",
+  "repository": "https://github.com/shivanshmehendiratta/groundsocial-skills",
+  "license": "MIT",
+  "keywords": [
+    "social-media",
+    "research",
+    "reddit",
+    "tiktok",
+    "youtube",
+    "influencer",
+    "social-listening",
+    "groundsocial"
+  ]
+}

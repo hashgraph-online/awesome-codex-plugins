@@ -3,7 +3,7 @@ name: candor-full-checkup
 description: "Runs an adviser-style review of the person's whole financial life from their Candor records, covering spending leaks, debt and credit, cash and reserves, goals and budget, investments and retirement, benefits, and insurance, and ends with the one to three things most worth doing. Use when the person asks to review their finances, for a financial checkup or annual review, what they should focus on or what to fix first, or after a life event. For a weekly what-changed check or a quick how-am-I-doing, use candor-weekly-check-in."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: full-checkup
@@ -83,9 +83,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

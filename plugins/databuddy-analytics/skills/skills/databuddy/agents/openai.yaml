@@ -1,0 +1,4 @@
+interface:
+  display_name: "Databuddy"
+  short_description: "Integrate Databuddy tracking and flags"
+  default_prompt: "Use $databuddy to integrate tracking, feature flags, DevTools, and useful custom events in my app."

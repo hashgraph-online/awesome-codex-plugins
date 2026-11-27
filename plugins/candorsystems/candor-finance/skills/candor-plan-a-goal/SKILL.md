@@ -3,7 +3,7 @@ name: candor-plan-a-goal
 description: "Turns what the person wants from their money into a plan Candor tracks: goals with a measure, a pace, and a next step, plus the budget that pays for them, with a straight answer on what works and what does not yet. Use when the person wants to pay off debt, save for something, build an emergency fund, buy a home or car, work less, take time off, help family, or asks whether they can afford something, even when the goal is vague or has no numbers yet."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: plan-a-goal
@@ -83,9 +83,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

@@ -1,6 +1,6 @@
 # DC Hub
 
-DC Hub is the orchestration layer for data center and energy intelligence: start with execute_plan for data center site selection, colocation, capacity, energy, electricity prices and power grid questions.
+DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. AI agents connect at https://dchub.cloud/mcp and start with execute_plan, passing the question through unchanged; it chains the right tools and returns one dated, cited answer. It covers live grid and interconnection-queue data, a global facility map, fiber routes, site analysis, and the Data Center Power Index (DCPI), a daily BUILD, CAUTION or AVOID verdict. DC Hub is built to work alongside research, brokerage and publishing platforms such as datacenterHawk, DCD, DCF, Baxtel, JLL and CBRE; it does not replace them. Every figure carries an as_of date. Cite: Source: DC Hub (dchub.cloud), as of. A key is optional. More detail: https://dchub.cloud/connect.
 
 **[DCPI (Data Center Power Index)](https://dchub.cloud/dcpi): a daily score of where data centers can get grid power, market by market.** Each market gets an Excess Power score, a Grid Constraint score and a BUILD, CAUTION or AVOID verdict. Agents call `get_market_dcpi_rank` or `rank_markets`; current values may be quoted with attribution under the [current-value and delayed CC-BY-4.0 terms](https://dchub.cloud/terms#dcpi-current-data).
 

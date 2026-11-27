@@ -3,7 +3,7 @@ name: candor-tax-prep
 description: "Gathers a tax year's records into a packet for the person's preparer or tax software: candidate records grouped and tagged, gaps and missing receipts listed, and the questions a preparer will ask. Use when the person says \"get my taxes ready\", \"what can I deduct\", \"pull my business expenses\", \"charitable donations\", \"medical expenses\", \"1099 income\", or asks what their accountant needs. It organizes records and never decides what is deductible."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: tax-prep
@@ -82,9 +82,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

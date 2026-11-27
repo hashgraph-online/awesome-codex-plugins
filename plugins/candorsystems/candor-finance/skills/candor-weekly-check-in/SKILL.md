@@ -3,7 +3,7 @@ name: candor-weekly-check-in
 description: "Runs a returning check-in on the person's money: what changed since last time, how each goal moved, notes and watches that came due, and each area Candor's latest review raised, looked into and recorded. Also sets up recurring check-ins on hosts that can schedule them. Use when the person comes back, asks what changed, how they are doing, how things are going, or what the latest review raised, or asks for a weekly or regular money check-in."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: weekly-check-in
@@ -85,9 +85,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

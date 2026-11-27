@@ -1,0 +1,46 @@
+{
+  "name": "groundsocial-skills",
+  "version": "1.0.0",
+  "description": "Social media research skills on the Groundsocial API: brand mention scans, competitor social audits, creator vetting, subreddit research, TikTok trend scans, YouTube transcript research and comment mining, on public data from Reddit, X, TikTok, Instagram, YouTube and 70+ more platforms.",
+  "author": {
+    "name": "Groundsocial",
+    "email": "support@groundsocial.dev",
+    "url": "https://groundsocial.dev"
+  },
+  "homepage": "https://groundsocial.dev",
+  "repository": "https://github.com/shivanshmehendiratta/groundsocial-skills",
+  "license": "MIT",
+  "keywords": [
+    "social-media",
+    "research",
+    "reddit",
+    "tiktok",
+    "youtube",
+    "influencer",
+    "social-listening",
+    "groundsocial"
+  ],
+  "interface": {
+    "displayName": "Groundsocial",
+    "shortDescription": "Social media research on public data",
+    "longDescription": "Eight research skills on the Groundsocial API: scan brand mentions across Reddit, X, TikTok and YouTube, audit a competitor's social accounts, vet a creator before a sponsorship, research subreddits before posting, scan TikTok trends, research YouTube transcripts and mine comments for pain points. Everything is read-only public data. Calls go to the hosted Groundsocial MCP server or the REST API with your own key (100 free credits on signup).",
+    "developerName": "Groundsocial",
+    "category": "Research",
+    "capabilities": [
+      "Find brand and product mentions across Reddit, X, TikTok and YouTube",
+      "Audit a competitor's posting and engagement on each platform",
+      "Rank subreddits for a topic with their rules and recurring questions",
+      "Pull and search YouTube transcripts and comments"
+    ],
+    "websiteURL": "https://groundsocial.dev",
+    "supportURL": "https://github.com/shivanshmehendiratta/groundsocial-skills/issues",
+    "defaultPrompt": [
+      "Where is my product being mentioned on Reddit, X, TikTok and YouTube this week?",
+      "Which subreddits should I post my tool in, and what are their rules?"
+    ],
+    "composerIcon": "https://storage.googleapis.com/supersend-public-assets/groundsocial/press/logo-mark-512.png",
+    "logo": "https://storage.googleapis.com/supersend-public-assets/groundsocial/press/logo-mark-512.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

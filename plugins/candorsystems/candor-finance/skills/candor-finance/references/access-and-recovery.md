@@ -38,6 +38,15 @@ account numbers in chat.
   `records_through` date in the opening's coverage. When one runs behind, ask
   for its newer statement or export; there is nothing to refresh.
 
+## Sharing a workspace
+
+A Personal workspace owner can invite up to four other people (five seats
+total) from **Settings > People** on `https://app.candor.money/settings`,
+with `Viewer`, `Member`, or `Manager` access. Each person keeps their own
+sign-in and their own AI agents. When a connection covers multiple
+workspaces, pass the target workspace id on every call and ask the person
+which workspace they mean if the request is ambiguous.
+
 ## An outdated package
 
 A package behind the latest release needs no update. Only when the opening

@@ -673,6 +673,12 @@
 | POST | `/auth/admin/revoke-user` |
 | GET | `/auth/app-connections/{request_id}` |
 | POST | `/auth/app-connections/{request_id}` |
+| POST | `/auth/app-frame-signin/code` |
+| POST | `/auth/app-frame-signin/exchange` |
+| POST | `/auth/app-frame-signin/logout` |
+| POST | `/auth/app-frame-signin/refresh` |
+| GET | `/auth/app-frame-signin/settings` |
+| PUT | `/auth/app-frame-signin/settings` |
 | GET | `/auth/authorization` |
 | POST | `/auth/device/authorize` |
 | POST | `/auth/device/code` |

@@ -3,7 +3,7 @@ name: candor-add-records
 description: "Adds financial records to Candor by hand: statements, CSV exports, screenshots of balances or holdings, manual accounts such as cash or an account elsewhere, single transactions, card or loan terms, and property values; brings a large export or a history from another finance app in as an upload Candor reads whole; and keeps accounts with no bank connection current from each new statement. Checks each import against the source before and after it lands, and can undo it. Use when the person shares a statement, file, or screenshot, has dropped a file in Candor, says an account is missing or behind, is moving from Monarch, Copilot, YNAB, Mint, or Quicken, wants to add cash or a manual account, or wants to track a home or rental property."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: add-records
@@ -82,9 +82,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

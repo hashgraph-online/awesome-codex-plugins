@@ -3,7 +3,7 @@ name: candor-sort-transactions
 description: "Makes the person's records read right: fixes categories, splits mixed purchases, writes rules so a merchant always means the same thing, tags money a goal tracks, and curates which charges repeat. Use when the person says a category is wrong, asks to clean up or organize transactions, explains what a merchant is, wants a side business or trip tracked, or asks to tidy subscriptions and bills on the recurring list. For price increases or stopping a charge, use candor-find-money."
 compatibility: Requires Candor CLI 0.3.165 or newer, or the Candor MCP server, and an authenticated Candor workspace.
 metadata:
-  candor-package-version: "1.3.9"
+  candor-package-version: "1.3.10"
   author: Candor
   version: "0.3.0"
   candor-domain-id: sort-transactions
@@ -83,9 +83,10 @@ team who build Candor read every one, and nothing is saved in the workspace.
 A one-line title is a whole report; `about_action_id` points at the request,
 so say what the logs cannot: what you tried, expected, and did instead.
 
-Send the person to the web portal only for bank connections, subscription
-changes, and account deletion. Anything else Candor cannot do, tell them
-plainly it does not do yet, and do not send them looking for it.
+Send the person to the web portal only for bank connections, sharing in
+Settings > People, subscriptions, and account deletion. Anything else Candor
+cannot do, tell them plainly it does not do yet, and do not send them
+looking for it.
 
 With the opening's `product_reports` at `send`, the default, send it once
 the person's task is done and name it in your reply in one line. While

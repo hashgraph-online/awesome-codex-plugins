@@ -899,6 +899,12 @@ decision, not the agent's.
 | a column with role `dimension` whose cached domain is at most 20 distinct values, on a model with one `time` column | `elementary.dimension_anomalies` with `dimensions: [<column>]` and that `timestamp_column`, one test per such column |
 | a `dimension` column over 20 values, with no cached count, or flagged as personal data | no `dimension_anomalies` (`domain_too_large`, `not_profiled` or `profile_ambiguous`, `pii_flagged`) |
 | a `dimension` column on a model with no `time` column, or several | no `dimension_anomalies` (`no_time_column`, `ambiguous_time_column`), for the same reason as `volume_anomalies` |
+| a column with `unit: fraction` or `unit: percent`, on a model with one `time` column | `elementary.column_anomalies` under that column, `column_anomalies: [min, max]` and that `timestamp_column` |
+| a column with role `measure` and `additivity: additive` | `elementary.column_anomalies` with `[zero_count, average, sum]` |
+| a `measure` with `additivity: semi_additive` | `elementary.column_anomalies` with `[min, max, average]`, never `sum` |
+| a `measure` with `additivity: non_additive` | `elementary.column_anomalies` with `[average]`, never `sum` |
+| a column both rows reach (a `fraction` that is an `additive` measure) | one `column_anomalies` whose list is the union, `[min, max, zero_count, average, sum]` |
+| any other unit (`count`, `currency:<code>`, ...), no unit, a `measure` with no `additivity`, or an `additivity` on a column that is not a `measure` | no `column_anomalies`: Dex does not guess |
 
 ```yaml
 models:
@@ -1008,8 +1014,56 @@ models:
   `volume_anomalies` rule: one `time` column is the `timestamp_column`, and
   with none or several no dimension monitor is written. The population's
   `where_expression` is carried as on every monitor.
-- **Dex chooses no statistic.** Only `timestamp_column`, `dimensions` and the
-  population's `where_expression` are written.
+- **A unit or a measure's additivity is watched on its column.** A column
+  declared `unit: fraction` or `unit: percent` gets an
+  `elementary.column_anomalies` listed under the column itself (the package
+  reads it as `column_name`), with the monitors `min` and `max`. The hard
+  bound, 0 to 1 or 0 to 100, is the generated `dex_unit_range` test's; these
+  two watch the column's minimum and maximum shift inside it, a share that
+  sat near 0.3 jumping to 0.9. A column declared `role: measure` gets one
+  with the monitors its `additivity` makes meaningful: `sum`, `average` and
+  `zero_count` for `additive`, since a per-bucket total means something;
+  `min`, `max` and `average` for `semi_additive`, a balance, whose per-bucket
+  sum means nothing; `average` alone for `non_additive`, a ratio or a
+  distinct count. A measure with no `additivity` gets none. The list is
+  always written, since without one the package runs its defaults, some of
+  which mean nothing for some columns. A column both rows reach gets one test
+  whose list is the union, in the package's own monitor order, never two.
+
+  ```yaml
+      columns:
+        - name: discount_share
+          data_tests:
+            - elementary.column_anomalies:
+                arguments:
+                  column_anomalies: [min, max, zero_count, average, sum]
+                  timestamp_column: ordered_at
+                config:
+                  tags: [dex_monitor]
+                  meta:
+                    disable_test_samples: true
+                    dex:
+                      monitor:
+                        vendor: elementary
+                        from: "columns.discount_share.unit: fraction"
+                        sources:
+                          "columns.discount_share.unit: fraction": [min, max]
+                          "columns.discount_share.additivity: additive": [sum, average, zero_count]
+  ```
+
+  `sources` names each declaration field and the monitors it gave, and the
+  `data.decisions` entry names every field (`field` the first, `fields` all of
+  them where there are several). The time column follows the
+  `volume_anomalies` rule: with a `timestamp_column` the package buckets the
+  monitors by time, which a per-bucket `sum` needs, so with no `time` column
+  or several none is written. A column the model does not output, or one
+  flagged as personal data (the YAML mark, the cached profile at any
+  confidence after `pii_overrides`, on any relation the model's name matches
+  where the cache holds several, or an unprofiled name the detector flags
+  outright), gets none (`column_not_output`, `pii_flagged`): the monitors
+  store the column's minimum, maximum and sum.
+- **Dex chooses no statistic.** Only `timestamp_column`, `dimensions`, a
+  column monitor's list and the population's `where_expression` are written.
   Sensitivity, `days_back`, seasonality and every other training setting stay
   the package's defaults, unless you add them to the test yourself.
 - **Only where the package is installed.** Installed under the packages
@@ -1038,8 +1092,11 @@ models:
   would count its rows twice, and a `freshness_anomalies` on the same
   `timestamp_column`, whatever `where_expression` it carries, and a
   `dimension_anomalies` whose `dimensions` is the same one column (compared
-  without case), whatever else it sets. One on another column, or a
-  `dimension_anomalies` grouping by several columns at once, is another
+  without case), whatever else it sets, and a `column_anomalies` under the
+  same column with the same `timestamp_column`, whatever monitor list and
+  `where_expression` it carries. One on another column, a
+  `dimension_anomalies` grouping by several columns at once, or a
+  `column_anomalies` with another `timestamp_column` (or none), is another
   monitor, so Dex adds its own beside it.
 - **A monitor is never removed.** One Dex wrote whose time column the
   declaration no longer names, or whose `where_expression` the population no
@@ -1051,7 +1108,12 @@ models:
   20, now flagged as personal data, or no longer output) is `stale` with
   `changed: dimensions` and its `cause`. One whose column the cache no longer
   counts stays `already_listed`: an empty cache is no evidence the domain
-  changed. Unsetting `monitors.vendor` removes nothing.
+  changed. A `column_anomalies` Dex wrote is `stale` with `changed: column`
+  and its `cause` where the column no longer gives one (`not_declared`: its
+  unit and additivity give no monitor; `pii_flagged`; `column_not_output`),
+  and with `changed: column_anomalies` and the current `monitors` where the
+  unit or the additivity changed the list, beside its `replacement`.
+  Unsetting `monitors.vendor` removes nothing.
 - **Monitors are not generated tests.** `declarations.render_tests` does not
   govern them, they carry no cadence tag, and `data.generated_tests` neither
   lists nor prices them. The tag `dex_monitor` lets an orchestrator select or
@@ -1069,11 +1131,12 @@ renders a declaration:
 | `package` | `status` (`installed`, `added_by_plan`, `not_installed`) and the installed `release` |
 | `production` | `status` (`enabled`, `disabled`, `unknown`), `reason` (see the table above), `prod_target`, and the `expression` read where it was Jinja |
 | `counts` | rows per status |
-| `monitors[]` | `model`, `test`, `column` (the timestamp column, or on a `dimension_anomalies` the dimension column), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, `dimensions` with its `cause`, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`). A `dimension_anomalies` row also carries `bound` (20), `distinct_count` and `distinct_count_exact` where the cache counted the column (never for a column flagged as personal data), `profile` (the cached relation's `identifier` and `profiled_at`), and, where the cache could not say, the `command` that would and a `detail` |
+| `monitors[]` | `model`, `test`, `column` (the timestamp column, on a `dimension_anomalies` the dimension column, on a `column_anomalies` the column it is listed under), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, `dimensions` or `column` with its `cause`, `column_anomalies` with the current `monitors`, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`). A `column_anomalies` row also carries `sources`, each declaration `field` with the `monitors` it gave. A `dimension_anomalies` row also carries `bound` (20), `distinct_count` and `distinct_count_exact` where the cache counted the column (never for a column flagged as personal data), `profile` (the cached relation's `identifier` and `profiled_at`), and, where the cache could not say, the `command` that would and a `detail` |
 
 `transform declare` writes the monitors an earlier declaration owes: a model
-declared before `monitors.vendor` was set, or a dimension column profiled
-since it was declared, is proposed with a `monitors` field listing them.
+declared before `monitors.vendor` was set, a dimension column profiled
+since it was declared, or a column whose unit or additivity was declared
+before, is proposed with a `monitors` field listing them.
 
 ### Elementary's PII tag on personal-data columns
 

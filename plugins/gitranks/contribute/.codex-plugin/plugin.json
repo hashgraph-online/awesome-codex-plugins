@@ -1,6 +1,6 @@
 {
   "name": "gitranks-contribute",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Your agent fixes open-source issues picked for you. You approve every pull request on gitranks.com.",
   "author": {
     "name": "GitRanks",
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "GitRanks Contribute",
     "shortDescription": "Find open-source GitHub issues",
-    "longDescription": "GitRanks Contribute finds open-source GitHub issues to contribute to that fit what you know, and checks each one before you see it: still open, nobody working on it, wanted by the maintainers, and no ban on AI-assisted contributions.\n\nAnywhere you use ChatGPT, on the web, desktop or your phone, ask for an issue and see your picks. Take one to get its brief: the repository, the base branch, how it builds and tests, its contribution rules and what to change. You can also check the issues you took and your pull requests and what each one needs from you, or give an issue back.\n\nMaking the fix needs an agent that can run a shell, such as Codex. It clones the repository, makes the change, runs the tests and hands the commits back. GitRanks runs its checks at once, and you review the change on gitranks.com. Nothing reaches GitHub until you approve it there: the agent never opens a pull request, pushes or posts on its own. When reviewers answer, your agent can work on their feedback in a follow-up.\n\nSign in with your GitHub account. You can disconnect any time in your GitRanks settings.",
+    "longDescription": "GitRanks Contribute finds open-source GitHub issues that fit your skills, and checks each one before you see it: still open, nobody working on it, wanted by the maintainers, and no ban on AI-assisted contributions.\n\nAnywhere you use ChatGPT, on the web, desktop or your phone, ask for an issue and see your picks. Take one to get its brief: the repository, the base branch, how it builds and tests, its contribution rules and what to change. You can also check the issues you took and your pull requests and what each one needs from you, or give an issue back.\n\nMaking the fix needs an agent that can run a shell, such as Codex. It clones the repository, makes the change, runs the tests and hands the commits back. GitRanks runs its checks at once, and you review the change on gitranks.com. Nothing reaches GitHub until you approve it there: the agent never opens a pull request, pushes or posts on its own. When reviewers answer, your agent can work on their feedback in a follow-up.\n\nSign in with your GitHub account. You can disconnect any time in your GitRanks settings.",
     "developerName": "Vitalii Maslianok",
     "category": "Developer Tools",
     "capabilities": [

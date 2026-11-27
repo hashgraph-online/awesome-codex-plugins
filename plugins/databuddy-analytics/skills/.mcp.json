@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "databuddy": {
+      "type": "http",
+      "url": "https://api.databuddy.cc/v1/mcp"
+    }
+  }
+}

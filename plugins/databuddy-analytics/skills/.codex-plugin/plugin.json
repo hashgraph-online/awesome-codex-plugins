@@ -1,0 +1,59 @@
+{
+  "name": "databuddy",
+  "version": "1.0.0",
+  "description": "Cookieless web and product analytics for your agent. Ask about traffic, signups, funnels, errors, Web Vitals and replays, find out why a number changed, and add Databuddy tracking to your app.",
+  "author": {
+    "name": "Databuddy",
+    "email": "support@databuddy.cc",
+    "url": "https://www.databuddy.cc"
+  },
+  "homepage": "https://www.databuddy.cc/docs/api/mcp",
+  "repository": "https://github.com/databuddy-analytics/skills",
+  "license": "MIT",
+  "keywords": [
+    "analytics",
+    "web analytics",
+    "product analytics",
+    "cookieless analytics",
+    "google analytics alternative",
+    "funnels",
+    "conversions",
+    "error tracking",
+    "core web vitals",
+    "session replay",
+    "feature flags",
+    "ai traffic",
+    "mcp"
+  ],
+  "interface": {
+    "displayName": "Databuddy",
+    "shortDescription": "See why your metrics moved",
+    "longDescription": "Databuddy is cookieless web and product analytics. Connect it and ask in plain words about traffic, top pages, referrers, campaigns, visits from AI assistants, goals, funnels, revenue, errors, Core Web Vitals and session replays.\n\nWhen a number moves, Databuddy's investigations check traffic, funnels, errors and replays and show the evidence for what changed, so you get a reason, not just a chart.\n\nYou can also manage goals, funnels, annotations, feature flags and short links. Every change shows a preview first and waits for your yes. At sign-in you choose the organization, websites and permissions; changes stay off until you allow them.\n\nThe plugin also includes a skill for adding Databuddy tracking, custom events and feature flags to your app.",
+    "developerName": "Databuddy",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Answer questions about traffic, pages, referrers, campaigns and AI assistant visits",
+      "Measure goals, funnels and signup conversions",
+      "Explain why a metric changed using saved investigations and evidence",
+      "Find errors, slow pages and Core Web Vitals regressions",
+      "Search session replays",
+      "Manage goals, funnels, annotations, feature flags and short links with a preview first",
+      "Add Databuddy tracking and custom events to an app"
+    ],
+    "websiteURL": "https://www.databuddy.cc",
+    "supportURL": "https://www.databuddy.cc/docs/api/mcp",
+    "privacyPolicyURL": "https://www.databuddy.cc/privacy",
+    "termsOfServiceURL": "https://www.databuddy.cc/terms",
+    "defaultPrompt": [
+      "Why did signups drop last week? Check the funnel, errors and replays.",
+      "Which pages do visitors from ChatGPT and other AI assistants land on?",
+      "What were my top pages and traffic sources last month, compared with the month before?"
+    ],
+    "brandColor": "#111111",
+    "brandColorDark": "#F5F5F5",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}
