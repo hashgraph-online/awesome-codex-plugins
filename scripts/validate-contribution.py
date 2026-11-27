@@ -239,6 +239,7 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
     # Compare only with existing Community Plugins entries. A listing moved
     # here from another README section must still receive a centralized scan.
     base_entries: set[tuple[str, str, str]] = set()
+    base_local_lines: set[str] = set()
     base_section = ""
     for base_line in base_readme.splitlines():
         heading = re.match(r"^##\s+(.+?)\s*$", base_line)
@@ -247,6 +248,8 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
             continue
         if base_section != "Community Plugins":
             continue
+        if base_line.strip().startswith("- "):
+            base_local_lines.add(base_line.strip())
         base_match = README_ENTRY_RE.match(base_line.strip())
         if base_match:
             base_entries.add(
@@ -273,7 +276,12 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
             in_community_plugins = (
                 current_readme_section(readme_lines, added_line_number) == "Community Plugins"
             )
-            if in_community_plugins and content.strip().startswith("- ") and not match:
+            if (
+                in_community_plugins
+                and content.strip().startswith("- ")
+                and not match
+                and content.strip() not in base_local_lines
+            ):
                 invalid_entries.append(f"line {added_line_number}: {content.strip()}")
             if match and in_community_plugins:
                 url = normalize_url(match.group(2))
