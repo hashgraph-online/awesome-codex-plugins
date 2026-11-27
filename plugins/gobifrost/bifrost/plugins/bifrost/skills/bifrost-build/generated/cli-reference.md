@@ -1688,6 +1688,7 @@ Usage: integrations create [OPTIONS]
   ``config_schema`` / ``items`` list.
 
 Options:
+  --workflow-links TEXT     workflow_links (repeat for multiple).
   --name TEXT               name  [required]
   --description TEXT        description
   --notes TEXT              notes
@@ -1740,6 +1741,7 @@ Options:
                                   drops keys currently present on the
                                   integration (cascade-deletes related
                                   configs).
+  --workflow-links TEXT           workflow_links (repeat for multiple).
   --name TEXT                     name
   --description TEXT              description
   --notes TEXT                    notes

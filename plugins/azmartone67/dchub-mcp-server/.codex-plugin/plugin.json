@@ -1,6 +1,6 @@
 {
   "name": "dchub",
-  "version": "2.12.64",
+  "version": "2.12.65",
   "description": "DC Hub is the orchestration layer for data center and energy intelligence. Find power. Find land. Find fiber. Find capacity. Call execute_plan first. It also publishes the Data Center Power Index (DCPI). Remote MCP at https://dchub.cloud/mcp.",
   "author": {
     "name": "DC Hub",

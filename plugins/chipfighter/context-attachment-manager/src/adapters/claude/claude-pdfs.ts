@@ -6,6 +6,7 @@
 // for the Anthropic Messages translator (anthropic-messages/documents.ts).
 
 import { imageDigest } from "../../core/images.ts";
+import { LruCache } from "../../core/memory.ts";
 import { pdfFacts, pdfWithPages, type PdfFacts } from "../../core/pdf.ts";
 import type { PdfDescribed } from "../../core/words.ts";
 import { turnsAfter, type PdfSource } from "../protocols/anthropic-messages/documents.ts";
@@ -14,7 +15,7 @@ import { claudePdfData, type ClaudeIndex, type ClaudePdf } from "./claude-index.
 type Json = Record<string, any>;
 
 const facts = new Map<string, PdfFacts | null>();
-const cuts = new Map<string, Buffer | null>();
+const cuts = new LruCache<Buffer | null>(16, (cut) => cut?.byteLength ?? 0);
 function remember<T>(map: Map<string, T>, key: string, value: T, max: number): void {
   map.delete(key);
   map.set(key, value);
@@ -66,8 +67,11 @@ export function claudePdfSource(index: PdfIndex, messages: Json[], current: numb
       if (!pdf || !data) return null;
       if (!pages) return { data, pages: null };
       const key = `${pdf.contentId}:${pages.join(",")}`;
-      if (!cuts.has(key)) remember(cuts, key, pdfWithPages(Buffer.from(data, "base64"), pages), 16);
-      const cut = cuts.get(key);
+      let cut = cuts.get(key);
+      if (cut === undefined) {
+        cut = pdfWithPages(Buffer.from(data, "base64"), pages);
+        cuts.set(key, cut);
+      }
       return cut ? { data: cut.toString("base64"), pages } : { data, pages: null };
     },
   };

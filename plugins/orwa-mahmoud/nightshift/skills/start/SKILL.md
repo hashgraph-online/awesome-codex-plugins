@@ -86,11 +86,26 @@ Read them (a file that is not there holds nothing), show what they hold in one s
 first by name with their open items, and ask which to work now.
 
 **A plan is cut whole.** A plan file is a complete punch list: its contract, gates, plan notes and
-items. When the owner picks one, it replaces `$NS/punch-list.md` and is removed from
+items. The plan's title line, `# Punch List — <name>`, names the shift, and Archive files it under
+that name.
+
+When the workspace keeps runs (`ns path punch-list` names a file under `runs/`), a plan becomes a run
+of its own. Run `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-run --plan "<name>" --host <host>`: it
+claims the run's folder, writes the plan into that run's punch list, gives the run its own git
+worktree, and prints `ok run <run>`; relay its `warn` and `refuse` lines as the preflight's. Then
+continue this Start for that run, prefixing every `ns` command with `NIGHTSHIFT_RUN=<run>` (native
+Windows: set `$env:NIGHTSHIFT_RUN` first) and working in the worktree its `ok worktree` line names.
+
+When the owner asks for the plan to run **in the background** ("start it in the background", "run it
+on its own"), add `--background` and stop after relaying its lines: it arms the run, starts a
+headless worker on it and the run's watchman, so this conversation stays free. Running `start-run`
+again for the same plan finishes a run that stopped part way, and never starts a second worker while
+one is alive.
+
+In a workspace that keeps one shift, the plan replaces `$NS/punch-list.md` and is removed from
 `$NS/staging/plans/`: move the file over the punch list, never copy it. If the punch list still
 holds ticked items that Archive has not filed, run Archive first so they are filed with their
-shift; nothing in the old list is dropped. The plan's title line, `# Punch List — <name>`, names the
-shift, and Archive files it under that name.
+shift; nothing in the old list is dropped.
 
 For a draft or an order, on the owner's choice, **cut it — move, never copy**: the item goes under `## Items` and is removed from the file it came from, so it never exists in two places. An
 imported draft (`Status: proposed` and a canonical `Source:` GitHub URL) is cut the same way in the

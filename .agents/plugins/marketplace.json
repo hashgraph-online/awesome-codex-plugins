@@ -4821,6 +4821,20 @@
       "icon": "./plugins/zlsbksdxl/codex-lark/assets/logo.svg"
     },
     {
+      "name": "feraterra",
+      "displayName": "FeraTerra",
+      "source": {
+        "source": "local",
+        "path": "./plugins/FeraTerra/feraterra-sdk"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Trading skill and hosted Streamable HTTP MCP server for Arena Exchange spot, perpetuals, order margin previews, zero-capital flash arbitrage, and Base Sepolia L2 Clearinghouse custody."
+    },
+    {
       "name": "firecrawl",
       "displayName": "Firecrawl",
       "source": {

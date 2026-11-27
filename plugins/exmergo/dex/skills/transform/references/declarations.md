@@ -45,7 +45,7 @@ exist.
 | `additivity` | `additive`; `semi_additive` (does not add across time: a balance, a running or season-to-date total); `non_additive` (a ratio, a share, a distinct count) |
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
-| `freshness` | on the column with role `time` only: `{"max_lag": "<n><unit>", "basis": "business" \| "capture"}`, how far the column's newest value may trail the warehouse's clock ([below](#freshness-how-old-the-newest-row-may-be)). `max_lag` is a whole number and one of `s`, `m`, `h`, `d`, `w` (`30m`, `6h`, `2d`), written back in its largest unit (`360m` is `6h`); `basis` is `business` where the column is the event's own time and `capture` where it is when the row was loaded |
+| `freshness` | on the column with role `time` only: `{"max_lag": "<n><unit>", "deadline": "HH:MM", "timezone": "<IANA zone>", "days": [...], "basis": "business" \| "capture"}`, how far the column's newest value may trail the warehouse's clock, by when each day it must hold that day's data, or both ([below](#freshness-how-old-the-newest-row-may-be)). `max_lag` is a whole number and one of `s`, `m`, `h`, `d`, `w` (`30m`, `6h`, `2d`), written back in its largest unit (`360m` is `6h`); `deadline` is a 24-hour time of day (`07:00`), `timezone` is required with it, and `days` (`mon` to `sun`, or the full names) limits it to those weekdays; a block states a `max_lag`, a `deadline`, or both; `basis` is `business` where the column is the event's own time and `capture` where it is when the row was loaded |
 | `continuity` | on the column with role `time` only: `{"grain": "<grain>", "by": ["<column>", ...]}`, that the column has no gap ([below](#continuity-no-gap-in-the-time-column)). `grain` is `second`, `minute`, `hour`, `day` (the default), `week` (ISO, starting Monday), `month`, `quarter` or `year`; `by` names the key columns gaps are searched per value of, and is empty by default (the whole model) |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has, or one an installed package has (a package's staging model, say) where the project defines none of that name |
 | `population.parent` | `{"model": <model, seed or snapshot, the project's or an installed package's>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
@@ -903,6 +903,10 @@ decision, not the agent's.
 | a column with role `measure` and `additivity: additive` | `elementary.column_anomalies` with `[zero_count, average, sum]` |
 | a `measure` with `additivity: semi_additive` | `elementary.column_anomalies` with `[min, max, average]`, never `sum` |
 | a `measure` with `additivity: non_additive` | `elementary.column_anomalies` with `[average]`, never `sum` |
+| a `time` column whose `freshness` declares a `deadline` | `elementary.data_freshness_sla` on the model with that `timestamp_column`, `sla_time` (the deadline), `timezone`, and, where `days` limits it, `day_of_week` as Elementary's full day names (`[Monday, Friday]`), one per such column |
+| a `freshness` with a `max_lag` and no `deadline` | no `data_freshness_sla`: a lag is not a deadline |
+| a `deadline` with Elementary older than 0.23.1 installed | no `data_freshness_sla` (`release_unsupported`): the test ships from 0.23.1 |
+| a `deadline` on a model whose `population.filters` hold a value with a quote, on BigQuery, Snowflake, Databricks or Redshift | no `data_freshness_sla` (`sla_filter_quote`), with a warning: the package repeats the `where_expression` inside its own result message, re-escaping each quote, which closes the `\'` these connectors take, so the test cannot compile; the other monitors are written, and `maintain verify` still checks the deadline |
 | a column both rows reach (a `fraction` that is an `additive` measure) | one `column_anomalies` whose list is the union, `[min, max, zero_count, average, sum]` |
 | any other unit (`count`, `currency:<code>`, ...), no unit, a `measure` with no `additivity`, or an `additivity` on a column that is not a `measure` | no `column_anomalies`: Dex does not guess |
 
@@ -1063,7 +1067,8 @@ models:
   outright), gets none (`column_not_output`, `pii_flagged`): the monitors
   store the column's minimum, maximum and sum.
 - **Dex chooses no statistic.** Only `timestamp_column`, `dimensions`, a
-  column monitor's list and the population's `where_expression` are written.
+  column monitor's list, a deadline's `sla_time`, `timezone` and
+  `day_of_week`, and the population's `where_expression` are written.
   Sensitivity, `days_back`, seasonality and every other training setting stay
   the package's defaults, unless you add them to the test yourself.
 - **Only where the package is installed.** Installed under the packages
@@ -1094,7 +1099,8 @@ models:
   `dimension_anomalies` whose `dimensions` is the same one column (compared
   without case), whatever else it sets, and a `column_anomalies` under the
   same column with the same `timestamp_column`, whatever monitor list and
-  `where_expression` it carries. One on another column, a
+  `where_expression` it carries, and a `data_freshness_sla` on the same
+  `timestamp_column`, whatever deadline it states. One on another column, a
   `dimension_anomalies` grouping by several columns at once, or a
   `column_anomalies` with another `timestamp_column` (or none), is another
   monitor, so Dex adds its own beside it.
@@ -1112,8 +1118,15 @@ models:
   and its `cause` where the column no longer gives one (`not_declared`: its
   unit and additivity give no monitor; `pii_flagged`; `column_not_output`),
   and with `changed: column_anomalies` and the current `monitors` where the
-  unit or the additivity changed the list, beside its `replacement`.
+  unit or the additivity changed the list, beside its `replacement`. A
+  `data_freshness_sla` Dex wrote is `stale` with `changed: deadline` where the
+  declared `deadline`, `timezone` or `days` moved or was removed.
   Unsetting `monitors.vendor` removes nothing.
+- **A deadline on a business time warns.** Elementary's `data_freshness_sla`
+  passes only once the column holds a value from today in the deadline's zone,
+  so on a `basis: business` column a load of the previous day's events fails
+  it every day. The plan writes it and warns; declare a load deadline on the
+  time rows were loaded (`basis: capture`).
 - **Monitors are not generated tests.** `declarations.render_tests` does not
   govern them, they carry no cadence tag, and `data.generated_tests` neither
   lists nor prices them. The tag `dex_monitor` lets an orchestrator select or
@@ -1131,12 +1144,12 @@ renders a declaration:
 | `package` | `status` (`installed`, `added_by_plan`, `not_installed`) and the installed `release` |
 | `production` | `status` (`enabled`, `disabled`, `unknown`), `reason` (see the table above), `prod_target`, and the `expression` read where it was Jinja |
 | `counts` | rows per status |
-| `monitors[]` | `model`, `test`, `column` (the timestamp column, on a `dimension_anomalies` the dimension column, on a `column_anomalies` the column it is listed under), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, `dimensions` or `column` with its `cause`, `column_anomalies` with the current `monitors`, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`). A `column_anomalies` row also carries `sources`, each declaration `field` with the `monitors` it gave. A `dimension_anomalies` row also carries `bound` (20), `distinct_count` and `distinct_count_exact` where the cache counted the column (never for a column flagged as personal data), `profile` (the cached relation's `identifier` and `profiled_at`), and, where the cache could not say, the `command` that would and a `detail` |
+| `monitors[]` | `model`, `test`, `column` (the timestamp column, on a `dimension_anomalies` the dimension column, on a `column_anomalies` the column it is listed under), `arguments`, `field` (the declaration field it comes from, such as `columns.ordered_at.role: time`), `status` (`added`, `already_listed`, `hand_written`, `stale`, `not_rendered`), where not written, `reason`, and on a stale row what `changed` (`timestamp_column`, `dimensions` or `column` with its `cause`, `column_anomalies` with the current `monitors`, `deadline` on a `data_freshness_sla` whose deadline moved, or `where_expression` where only the population moved, with the current monitor's `replacement` `status` and `reason`). A `data_freshness_sla` row also carries the column's `basis`. A `column_anomalies` row also carries `sources`, each declaration `field` with the `monitors` it gave. A `dimension_anomalies` row also carries `bound` (20), `distinct_count` and `distinct_count_exact` where the cache counted the column (never for a column flagged as personal data), `profile` (the cached relation's `identifier` and `profiled_at`), and, where the cache could not say, the `command` that would and a `detail` |
 
 `transform declare` writes the monitors an earlier declaration owes: a model
 declared before `monitors.vendor` was set, a dimension column profiled
-since it was declared, or a column whose unit or additivity was declared
-before, is proposed with a `monitors` field listing them.
+since it was declared, or a column whose unit, additivity or deadline was
+declared before, is proposed with a `monitors` field listing them.
 
 ### Elementary's PII tag on personal-data columns
 
@@ -1587,6 +1600,7 @@ warehouse):
 | `history`, entities differing from its `population` | `temporal_population_missing`, `temporal_population_unexpected` | high |
 | `history.time.provenance` its column and the snapshot's strategy cannot satisfy | `temporal_provenance_contradicted` | medium |
 | `freshness` on a time column whose newest value trails the warehouse's clock by more than `max_lag`, or that holds no value | `freshness_exceeded`, with `lag_seconds` (`null` and a `reason` of `no_rows` or `all_null` where there is no newest value), `max_lag_seconds` and `basis` | high on a `capture` basis, medium on `business` |
+| `freshness.deadline` passed today (in its `timezone`, on a day `days` includes) with no value from today in the column | `deadline_missed`, with the `deadline`, `timezone`, `days`, `basis`, the `target_date` judged and a `reason` of `not_today`, `no_rows` or `all_null`; counts, never a value | high on a `capture` basis, medium on `business` |
 
 A `population.filters` entry stating both `includes` and `excludes` is judged as
 two rules, one per list, each with its own `population_contradicted`.
@@ -1613,11 +1627,20 @@ contract in `history`; see "Temporal contracts: `history`" below.
 
 ### Freshness: how old the newest row may be
 
-A model's time column may say how fresh its data should be (#1460):
+A model's time column may say how fresh its data should be (#1460), as a lag, a
+daily deadline, or both:
 
 ```json
 "columns": {"loaded_at": {"role": "time",
                           "freshness": {"max_lag": "6h", "basis": "capture"}}}
+```
+
+```json
+"columns": {"loaded_at": {"role": "time",
+                          "freshness": {"deadline": "07:00",
+                                        "timezone": "America/Chicago",
+                                        "days": ["mon", "tue", "wed", "thu", "fri"],
+                                        "basis": "capture"}}}
 ```
 
 - **On the time column only.** A `freshness` on a column whose role, in the
@@ -1638,14 +1661,47 @@ A model's time column may say how fresh its data should be (#1460):
   session sets another, so keep the dbt and Dex sessions on UTC there.
 - **No rows is not fresh.** An empty model, or a column NULL on every row, is
   `freshness_exceeded` with `reason: no_rows` or `all_null`.
+- **A lag is not a deadline.** `max_lag` says how far behind the clock the
+  newest value may be at any moment; `deadline` says that by a time of day the
+  column must hold a value from that day. "No more than six hours behind" is not
+  "updated by 07:00", so neither is ever read as the other, and a block may
+  state both.
+- **A deadline is read in its `timezone`.** `deadline` is 24-hour `HH:MM`,
+  written back zero-padded (`7:00` is `07:00`); quote it in YAML, which reads an
+  unquoted `10:00` as the number 600 (refused, naming the fix). `timezone` is
+  required with it, an IANA name (`America/Chicago`, `Europe/London`), checked
+  when the declaration is written. `days` limits the check to those weekdays,
+  read in the same zone, stored as `mon` to `sun`, Monday first; without it
+  every day is checked. `timezone` or `days` without a `deadline` is refused.
+- **What a deadline checks.** On a day it applies, once the deadline has passed
+  on the warehouse's clock, the column's newest value must fall on or after
+  that day's local midnight (the column read as UTC, as above). Before the
+  deadline, and on a day `days` leaves out, there is nothing to judge
+  (`not_applicable`, `before_deadline` or `not_scheduled`). The day is read
+  from the clock of the machine running the check, in the declared zone, as
+  Elementary's `data_freshness_sla` reads it when it compiles. It is
+  `deadline_missed` when the deadline has passed with no value from today, no
+  rows or no value (`reason: not_today`, `no_rows`, `all_null`).
+- **Put a load deadline on a capture time.** The check needs a value from
+  *today*. A business time holds the events' own times, so a nightly load of
+  the previous day's events never meets a same-day deadline on it, whenever it
+  lands. A deadline on a `business` column is still written, with a warning,
+  and is `medium` when missed; on a `capture` column it is `high`.
+- **No schema version.** `config.meta.dex` keys are not versioned: `deadline`,
+  `timezone` and `days` are added to `freshness` beside `max_lag`, which is
+  now optional. An older engine's schema for `freshness` requires `max_lag`
+  and knows no other key, so upgrade every engine that reads the project
+  before declaring a deadline.
 - **Why a declaration field and not dbt's `freshness`.** dbt's `freshness`
   block covers sources only: `dbt source freshness` reads a source's
   `loaded_at_field`, and nothing in dbt checks a model's own data. A model is
   where a stale load shows up for the people reading it, and a declaration is
   what `maintain verify` already holds to the built relation.
 
-Each declared freshness gets a record under `data.freshness` (`maintain verify`,
-and `data.verification.freshness` on `transform build --verify`): the column,
+Each check a declared freshness states gets a record under `data.freshness`
+(`maintain verify`, and `data.verification.freshness` on `transform build
+--verify`), with `check: max_lag` or `check: deadline`, so a column declaring
+both has two. A lag's record carries the column,
 `max_lag`, `max_lag_seconds`, `basis`, the `rows` and `lag_seconds` measured, and
 a `status` of `satisfied`, `contradicted` (with `finding: freshness_exceeded`) or
 `unchecked` with a `reason_code` (`not_temporal` for a column that is no date or
@@ -1654,12 +1710,23 @@ the warehouse returns no lag for them, `probe_refused`, `scan_offered`). The lag
 is the clock minus the newest value, so on a column that looks like personal
 data the verdict stands and the lag is withheld (`lag_withheld: true`), and the
 newest value is never computed: the check counts the rows within `max_lag`, as a
-unit's range is, unless a person cleared the column in `pii_overrides`. The check is one
-statement per model, a `MAX` and a `COUNT` per declared column, priced with the
-other declared facts on a metered connector. With `declarations.render_tests` on
-it also renders [`dex_freshness`](#dex_freshness-a-time-columns-freshness).
-`maintain semantic` reports a changed `freshness` as high-severity declaration
-drift, since a looser lag silences an alert with the SQL untouched.
+unit's range is, unless a person cleared the column in `pii_overrides`. A
+deadline's record carries the column, `deadline`, `timezone`, `days`, `basis`,
+the `target_date` judged and the `rows`, with a `status` of `satisfied`,
+`contradicted` (with `finding: deadline_missed`), `not_applicable`
+(`before_deadline`, `not_scheduled`) or `unchecked` with the reasons above. It
+counts the rows on or after the day's local midnight and never computes a
+value, on a column that looks like personal data too. The check is one
+statement per model, a `MAX` and a `COUNT` per declared lag and two `COUNT`s per
+declared deadline, priced with the other declared facts on a metered
+connector. With `declarations.render_tests` on a lag also renders
+[`dex_freshness`](#dex_freshness-a-time-columns-freshness) (a deadline alone
+renders none, and a `dex_freshness` left listed on a column whose lag was
+dropped is reported `stale`); with `monitors.vendor: elementary` a deadline
+renders Elementary's `data_freshness_sla`
+([below](#elementary-monitors-from-a-declaration)). `maintain semantic` reports a
+changed `freshness` as high-severity declaration drift, since a looser lag or a
+later deadline silences an alert with the SQL untouched.
 
 ### Continuity: no gap in the time column
 

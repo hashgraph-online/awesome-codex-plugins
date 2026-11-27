@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "24.16.0",
+    "zcodeVersion": "3.18.2",
+    "appServerVersion": "0.17.1",
+    "sourceOnly": false,
+    "crossPlatformCertified": false
+  },
+  "source": {
+    "repository": "ZCode",
+    "version": "3.18.2",
+    "commit": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+    "tree": "5e90fec80706b8381f94e4eef48cf821b9868916"
+  },
+  "patches": [
+    {
+      "order": 1,
+      "path": "upstream/zcode-3.18.2/patches/0001-stdio-max-frame-bytes.patch",
+      "bytes": 16482,
+      "sha256": "860CE5CEA55A1C64878663526B194BA93F40EC0DFD31E6BF2242326E3058510F",
+      "purpose": "Pass a fixed 16 MiB raw stdout frame limit through the official ProcessManager and StdioTransport."
+    },
+    {
+      "order": 2,
+      "path": "upstream/zcode-3.18.2/patches/0002-oauth-refresh-coordination.patch",
+      "bytes": 60872,
+      "sha256": "19F7B6BB673F488EC0BDA385B232CB0213A4BDE8333B7AE87ECB3DD49B6180F7",
+      "purpose": "Coordinate official OAuth token refresh with a profile-scoped lock, lock-time reread, one network dispatch, atomic publish and expected-snapshot CAS."
+    },
+    {
+      "order": 3,
+      "path": "upstream/zcode-3.18.2/patches/0003-read-only-official-start-plan-auth.patch",
+      "bytes": 51480,
+      "sha256": "7C00349F636F99E92662C4E5A0E09493AFFEA22FEB77642994E4DC013BFEB1D9",
+      "purpose": "Expose the narrow official Start Plan authentication projection with fail-closed, non-migrating credential reads and cold-process read-only evidence."
+    }
+  ],
+  "toolchain": {
+    "buildNode": "24.16.0",
+    "officialMiseNodePin": "24.14.0",
+    "officialPnpm": "10.33.2",
+    "validationPnpm": "11.25.0",
+    "hostModuleBundler": "esbuild 0.28.2",
+    "runtimeHostToolchain": "UPSTREAM_SIGNED_RELEASE_BINARY"
+  },
+  "build": {
+    "hostModuleCommand": "npm run build:official-host -- --source <fixed-upstream-worktree>",
+    "hostModuleInputs": [
+      "packages/shared/src/credential-security/contract.ts",
+      "packages/shared/src/credential-security/systemCredentialCipher.ts",
+      "packages/shared/src/version.ts",
+      "packages/services/src/credential/credentialService.ts",
+      "packages/services/src/oauth/repo/oauthCredentialRepo.ts",
+      "packages/services/src/official-host/runtimeHostEntry.ts",
+      "packages/services/src/official-host/startPlanAuthentication.ts",
+      "packages/services/src/zcode-agent/zcodeAgentProcessManager.ts",
+      "packages/services/src/zcode-agent/zcodeProtocolClient.ts",
+      "packages/services/src/zcode-agent/zcodeStdioTransport.ts",
+      "packages/services/src/model-provider/oauthProviderRuntimeAuthService.ts",
+      "packages/services/src/oauth/oauthService.ts",
+      "packages/services/src/oauth/providers/providerAdapter.ts",
+      "packages/services/src/telemetry/telemetryCore.ts"
+    ],
+    "runtimeHostCommand": "Adopt the Authenticode-signed zcode-runtime-host.exe from the official ZCode Desktop 3.18.2.10443 distribution",
+    "runtimeHostInputs": [
+      "resources/tools/runtime-host/zcode-runtime-host.exe"
+    ],
+    "runtimeHostProvenance": {
+      "sourceKind": "OFFICIAL_INSTALLED_DISTRIBUTION",
+      "desktopProductVersion": "3.18.2.10443",
+      "zcodeVersion": "3.18.2",
+      "zcodeSourceCommit": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "bytes": 179608,
+      "sha256": "C2C8FF5FF28CBDDC4F177C094AA67C322830889612251BD173BAAABC89379AB4",
+      "architecture": "win32-x64",
+      "peMachine": "0x8664",
+      "authenticode": "Valid",
+      "signerCommonName": "北京智谱华章科技股份有限公司",
+      "signerOrganization": "北京智谱华章科技股份有限公司",
+      "reportedVersion": "zcode-runtime-host 1"
+    },
+    "orderedPatchApplicationRequired": true,
+    "userDesktopInstallationUsedAsInput": true,
+    "sourceAggregateDiffSha256": "A3F5B7BD7A653403B8362ADC121323404FB4F334B1CFFA0DF3C3E617F9F09AB2"
+  },
+  "files": [
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "role": "third-party notices",
+      "bytes": 3465209,
+      "sha256": "C4CC6DC747EB6026E41D2CEFC6679392C33E1192629EA96DC0DC702BCFE7C51C",
+      "license": "third-party terms"
+    },
+    {
+      "path": "LICENSE",
+      "role": "ZCode license",
+      "bytes": 11546,
+      "sha256": "FA36DC312BC4946B1C22DBA3C726AD8D3052B353F81424E7B997DBB3D9B40A49",
+      "license": "ZCode project terms"
+    },
+    {
+      "path": "node_modules/@napi-rs/keyring-win32-x64-msvc/keyring.win32-x64-msvc.node",
+      "role": "Windows x64 Node-API keyring binding",
+      "bytes": 1912832,
+      "sha256": "52B16658275B7848F8081A6542FEE3448F1B1C5D3A36487107AE0E7CEC95AC6F",
+      "license": "MIT"
+    },
+    {
+      "path": "node_modules/@napi-rs/keyring-win32-x64-msvc/LICENSE.third-party.md",
+      "role": "Windows x64 keyring binary license and third-party notices",
+      "bytes": 99518,
+      "sha256": "7BA6D9C1629DFC7CD6312EA17713214D7A7147F2CB673F6A937588C7D1EC2D93",
+      "license": "MIT and bundled third-party terms"
+    },
+    {
+      "path": "node_modules/@napi-rs/keyring-win32-x64-msvc/package.json",
+      "role": "Windows x64 keyring package metadata",
+      "bytes": 641,
+      "sha256": "1552C08589EEAEBC3680642883A8CAFEA8C72F80ED62908DE814177498562121",
+      "license": "MIT"
+    },
+    {
+      "path": "node_modules/@napi-rs/keyring/index.js",
+      "role": "Node-API keyring loader",
+      "bytes": 29176,
+      "sha256": "8A89DB37F981D05B484EB063ADAE3399660AE7734AD38797463E5691382F5036",
+      "license": "MIT"
+    },
+    {
+      "path": "node_modules/@napi-rs/keyring/LICENSE",
+      "role": "keyring package license",
+      "bytes": 1071,
+      "sha256": "02965ED67E29F871A53F7A7AFA593A0DDC8020F86CCCE0FAAF1AA59215B5269E",
+      "license": "MIT"
+    },
+    {
+      "path": "node_modules/@napi-rs/keyring/package.json",
+      "role": "Node-API keyring package metadata",
+      "bytes": 3325,
+      "sha256": "4BA8C90AC72BE27FCB3337ED7BC0159C68747E0824294DF5F2AAAEB03130CD4F",
+      "license": "MIT"
+    },
+    {
+      "path": "NOTICE.md",
+      "role": "ZCode notices and risk disclosure",
+      "bytes": 29012,
+      "sha256": "9225442463AD06327B4149E1FA740981E4E2AB8855B237AF8BE44765CCD08DBC",
+      "license": "ZCode project terms"
+    },
+    {
+      "path": "official-host-runtime.mjs",
+      "role": "self-contained official ProcessManager, protocol client, StdioTransport and narrow Start Plan authentication resolver",
+      "bytes": 1829872,
+      "sha256": "7E2B8B772F1DD83135903B64D569D634C7E7FC6F303460E08C98E27D311B6A91",
+      "license": "ZCode project and third-party terms"
+    },
+    {
+      "path": "zcode-runtime-host.exe",
+      "role": "official Authenticode-signed Windows process-ownership helper from ZCode Desktop 3.18.2.10443",
+      "bytes": 179608,
+      "sha256": "C2C8FF5FF28CBDDC4F177C094AA67C322830889612251BD173BAAABC89379AB4",
+      "license": "ZCode project terms; redistribution approved by the repository owner; LICENSE and NOTICE.md included",
+      "verification": {
+        "architecture": "win32-x64",
+        "peMachine": "0x8664",
+        "authenticode": "Valid",
+        "signerCommonName": "北京智谱华章科技股份有限公司",
+        "signerOrganization": "北京智谱华章科技股份有限公司",
+        "reportedVersion": "zcode-runtime-host 1",
+        "verifiedOn": "2026-11-15"
+      }
+    }
+  ],
+  "closure": {
+    "hostModuleExternalRuntimeImports": [
+      "@napi-rs/keyring",
+      "node:*"
+    ],
+    "installedAppServerOnly": true,
+    "nativeDependencyClosure": "WIN32_X64_KEYRING_INCLUDED",
+    "resourceClosure": "PARTIAL",
+    "redistributionReview": "OWNER_APPROVED_APACHE_2_0_NOTICES_INCLUDED",
+    "artifactReproducibility": "PARTIAL",
+    "knownGaps": [
+      "The installed AppServer optional packages and full resource graph are outside the certified artifact scope.",
+      "Cross-machine and empty-cache rebuild reproducibility is not established."
+    ]
+  }
+}

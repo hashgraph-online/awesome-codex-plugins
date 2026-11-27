@@ -1,6 +1,6 @@
 {
   "name": "lightkeeper",
-  "version": "2.11.1",
+  "version": "2.11.2",
   "description": "Lightkeeper: an Obsidian-compatible knowledge map of your codebase, kept outside the repo and kept honest by hooks: the agent reads the map before it edits and updates it before it stops.",
   "author": {
     "name": "Light5566",

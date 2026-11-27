@@ -49,6 +49,8 @@ export function imageSize(bytes: Buffer): { width: number; height: number } | nu
   return null;
 }
 
+export const rememberImageDigest = (owner: object, digest: ImageDigest) => { digests.set(owner, digest); };
+export const knownImageDigest = (owner: object) => digests.get(owner);
 const digests = new WeakMap<object, ImageDigest>();
 
 // Keyed by the object holding the image (a request part, a record's block), so re-reading the same cached records does

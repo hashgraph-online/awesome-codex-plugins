@@ -13,7 +13,7 @@ import { resolve4, resolveCname } from 'node:dns/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** Skill release. scripts/sync-plugin.sh stamps this into the plugin manifests; bump it to ship. */
-export const VERSION = '0.15.10';
+export const VERSION = '0.15.11';
 // Lets the API tell helper traffic from other REST clients in its product analytics.
 const UA = {
   'User-Agent': `webly-helper/${VERSION}`,

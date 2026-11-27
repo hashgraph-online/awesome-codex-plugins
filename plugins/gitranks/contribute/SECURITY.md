@@ -10,9 +10,9 @@ We reply as soon as we can and keep you updated until it is fixed.
 
 ## What this repository contains
 
-This repository has no server code. It holds manifests that point your agent at the hosted MCP server, a skill and two
-commands. It never stores credentials: you sign in with OAuth in your own client, or paste your own token into your
-client's settings. See "What is sent to GitRanks" in the README for everything the plugin sends.
+This repository has no server code. It holds manifests that point your agent at the hosted MCP server, two skills and
+three commands. It never stores credentials: you sign in with OAuth in your own client, or paste your own token into
+your client's settings. See "What is sent to GitRanks" in the README for everything the plugin sends.
 
 ## Supported versions
 

@@ -297,6 +297,12 @@ decision policy in
 code, API, design, localization, or cleanup judgments into blockers merely because alternatives
 exist.
 
+**Messages from the owner.** The owner can send a running shift a question or an answer; the pulse
+shows it at your next tool call, with the file it came from. Answer each message once, by appending
+a `## Worker · <time>` block with your reply to that file, after checking the file for an answer you
+already gave (after a crash a message can be shown twice). An answer to a parked decision is applied
+as the owner's decision; a question gets a short, direct reply. Then carry on with the item.
+
 ## Snag log discipline
 
 Before reporting findings in a review or walkthrough, read

@@ -26,14 +26,14 @@
 - **Done** — every box in the Items list is `- [x]`, or `- [-]` for an item stopped at its hard
   budget, which is never ticked. The ticks are the truth; no magic phrase ends it.
 - **Stop-work order** — `STOP` exists (the Nightshift Stop skill, or
-  `touch "$NS/STOP"` on POSIX, or
-  `New-Item -ItemType File -Force "$NS\STOP"` in native Windows
+  `touch "$RUN/STOP"` on POSIX, or
+  `New-Item -ItemType File -Force "$RUN\STOP"` in native Windows
   PowerShell). Open boxes stay
   open as the record of where work stopped.
 - **Quitting time** — past `deadline`, the gate clocks the shift out. Belongs to
   open-ended work: start NOTHING new past the whistle, finish the unit in hand, then clock out.
 - **Orderly clock-out** — if a shift must end with work in hand, commit it as a `wip:` commit
-  (repository mode) or mark the item's receipt under `$NS/receipts/` in progress (artifact mode),
+  (repository mode) or mark the item's receipt under `$RUN/receipts/` in progress (artifact mode),
   plus one handover line in `shift-log.md`, then stop.
 
 ## The standard — what "done" means
@@ -45,7 +45,7 @@
   splitting an item for later. Only correctness does.
 - Run the item gate (the `## Gates` block below) right before each commit or artifact receipt; it must be green to tick.
 - No suppression — fix root causes. No lint disables without a written reason next to them.
-- One conventional commit per item in repository mode; one artifact receipt per item in artifact mode under `$NS/receipts/`. Local only. Never fake a tick.
+- One conventional commit per item in repository mode; one artifact receipt per item in artifact mode under `$RUN/receipts/`. Local only. Never fake a tick.
 
 ## Site discipline
 

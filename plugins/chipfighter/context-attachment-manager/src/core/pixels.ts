@@ -7,24 +7,27 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cachedFile, CONTENT_DIGEST } from "./disk-cache.ts";
 import type { ImageDigest } from "./images.ts";
+import { LruCache } from "./memory.ts";
 import { decodePng } from "./png.ts";
 
-const pixelHashes = new Map<string, string | null>();
+const pixelHashes = new LruCache<string | null>(10_000);
 let pixelCacheDir: string | null = null;
 export function setPixelCache(dir: string | null): void { pixelCacheDir = dir; }
-const SHA256 = /^[0-9a-f]{64}$/;
 
 function storedPixelHash(contentId: string): string | null | undefined {
-  if (!pixelCacheDir || !SHA256.test(contentId)) return undefined;
+  if (!pixelCacheDir || !CONTENT_DIGEST.test(contentId)) return undefined;
   try {
-    const text = readFileSync(join(pixelCacheDir, contentId.slice(0, 2), contentId), "utf8").trim();
-    return text === "-" ? null : SHA256.test(text) ? text : undefined;
+    const file = join(pixelCacheDir, contentId.slice(0, 2), contentId);
+    if (!cachedFile(file, 128, true)) return undefined;
+    const text = readFileSync(file, "utf8").trim();
+    return text === "-" ? null : CONTENT_DIGEST.test(text) ? text : undefined;
   } catch { return undefined; }
 }
 
 function storePixelHash(contentId: string, hash: string | null): void {
-  if (!pixelCacheDir || !SHA256.test(contentId)) return;
+  if (!pixelCacheDir || !CONTENT_DIGEST.test(contentId)) return;
   try {
     const folder = join(pixelCacheDir, contentId.slice(0, 2));
     mkdirSync(folder, { recursive: true });

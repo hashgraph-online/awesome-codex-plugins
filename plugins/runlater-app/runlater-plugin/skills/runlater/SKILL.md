@@ -11,6 +11,7 @@ RunLater sends an HTTP request to a public URL at an exact time or on a cron sch
 
 | The person wants | Tool |
 |---|---|
+| To see a schedule before it is created | `preview_schedule` with the same arguments plus `method` (creates nothing, sends nothing) |
 | A GET sent once or repeatedly | `schedule_get_request` with `run_at` (ISO 8601) or `cron` and `timezone` |
 | A POST, PUT, PATCH or DELETE sent once or repeatedly | `schedule_send_request` with `run_at` or `cron` and `timezone` |
 | To see what is scheduled | `list_schedules` |
@@ -23,10 +24,28 @@ RunLater sends an HTTP request to a public URL at an exact time or on a cron sch
 ## Before you schedule or run
 
 1. Use the person's timezone as an IANA name such as `America/Chicago`. Ask if you can't tell, because "9am" depends on it.
-2. Show the URL, the method and the time (or the cron schedule and timezone), then wait for the person's yes before the request is scheduled or run. This applies to `run_now` too.
-3. After it is created, say the schedule back in plain words with the next run time from the result.
-4. If the endpoint needs a secret, pass it as a header. Header values are never returned, only their names.
-5. After creating a request, offer `run_now` so the person sees a real response before the first scheduled run. Ask first, as above.
+2. Call `preview_schedule` with exactly the arguments you plan to create with. It creates nothing and sends nothing.
+3. Show the person what it returned, in this shape, then stop and wait for a yes:
+
+   ```
+   Method:    POST
+   URL:       https://example.com/api/sync
+   When:      At 09:00, on Monday through Friday, America/Chicago time.
+   Next runs: Mon, Nov 30, 2026, 9:00 AM CST
+              Tue, Dec 1, 2026, 9:00 AM CST
+              Wed, Dec 2, 2026, 9:00 AM CST
+   Time zone: America/Chicago
+   Create this schedule? (yes / no)
+   ```
+
+   Use `when` and `next_runs[].local` from the preview as written; don't work out run times yourself. Mention header names and the body size if there are any (header values are never returned).
+4. Create it with `schedule_get_request` or `schedule_send_request` only after a clear yes, with the same arguments. If the person changes anything, preview again and ask again.
+5. `run_now` sends a real request immediately. Show the method and URL of that schedule and wait for a yes first.
+6. After it is created, say the schedule back in plain words with the next run time from the result.
+7. If the endpoint needs a secret, pass it as a header. Header values are never returned, only their names.
+8. After creating a request, offer `run_now` so the person sees a real response before the first scheduled run. Ask first, as above.
+
+If `preview_schedule` isn't in your tool list (an older connection), show the same fields from the person's request and wait for a yes before creating it.
 
 ## What to expect
 

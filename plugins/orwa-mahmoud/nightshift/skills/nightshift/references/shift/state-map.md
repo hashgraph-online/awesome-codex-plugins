@@ -3,9 +3,9 @@
 What each file under `.nightshift/` holds. One copy; every skill that stages, promotes or files
 work points here.
 
-- `punch-list.md` → owner-approved work active in this shift.
+- `runs/<run>/punch-list.md` → owner-approved work active in this shift.
 - `staging/drafting-table.md` → known work the owner stages for a later shift.
-- `inbox/parking-lot.md` → unresolved owner decisions plus the default chosen so work continues.
+- `runs/<run>/inbox/parking-lot.md` → unresolved owner decisions plus the default chosen so work continues.
 - `staging/work-orders.md` → timed catalog work composed only through Hunt.
 - `staging/plan-record.md` → the plan room's notebook: how each plan was reached.
 - `staging/plans/<key>.md` → one plan each: a complete punch list waiting its turn.
@@ -18,22 +18,26 @@ file keeps its own lifecycle; never reclassify one as another.
 
 ## Layout
 
-`state-version` `2` groups `.nightshift/` by purpose, so the top holds only what the owner opens:
-`punch-list.md`, `rules.json`, `state-version`, `STOP` while a stop-work order stands, the receipts
-repository's `.gitignore` and `.git/`, and `support/` after an export. Each folder names what it
-is for:
+`state-version` `3` keeps each shift in its own folder, `runs/<run>/`, and what every shift shares
+at the top of `.nightshift/`: `rules.json`, `state-version`, the receipts repository's `.gitignore`
+and `.git/`, and `support/` after an export. A run folder is named by `runs.layout`, the same
+choices as `archive.layout`; Setup creates the first one. Each folder names what it is for:
 
-- `receipts/` — what the shift delivered.
-- `inbox/` — what waits for the owner's verdict: the parking lot and the snag log.
-- `staging/` — work waiting for a later shift: the drafting table, the work orders and the plan
-  record.
+- `runs/<run>/` — one shift: its `punch-list.md`, `STOP` while a stop-work order stands,
+  `receipts/` (what it delivered), `inbox/` (what waits for the owner's verdict: the parking lot and
+  the snag log) and `run/` (the runtime's files for that shift: markers, the lease and session, the
+  policy snapshot, usage accounting, the ledger and the shift log).
+- `staging/` — work waiting for a later shift: the drafting table, the work orders, the plans and
+  the plan record.
 - `product/` — the product-evolution notebook: the opportunity map and the research notes.
 - `archive/` — filed shifts.
-- `run/` — everything the runtime owns: markers, locks, the lease and session, the policy
-  snapshot, the work target, usage accounting, the ledger and the shift log.
+- `run/` — what the runtime keeps for the whole workspace: the work target and mode, the plan room,
+  the lock, the tooling cache and the scheduled-run log.
 
-A workspace at state-version `1`, or with no marker, keeps every file at the top of `.nightshift/`,
-and the runtime reads and guards it there. `ns migrate-state` previews the move into the current
+A file of one run resolves inside the run its session or command names (`NIGHTSHIFT_RUN`), or inside
+the only run when there is one. A workspace at state-version `2` keeps the shift's files beside the
+shared ones, and one at `1`, or with no marker, keeps every file at the top of `.nightshift/`; the
+runtime reads and guards each where it is. `ns migrate-state` previews the move into the current
 layout and makes it with `--apply` (`-Apply` on native Windows); Doctor and Setup describe it.
 `lib/state-layout.tsv` is the one table both runtimes read, with every path each file has had, and
 `ns path <key>` prints where a file sits in this workspace.
@@ -52,14 +56,14 @@ and refuses deleting or forging the control files: `STOP`, and in `run/` `.shift
 
 | File | Written by | Rebuilt | Changes | Leaves live storage | Governed by |
 |---|---|---|---|---|---|
-| `punch-list.md` | Owner, and the agent through Start, Hunt or Quality. The agent ticks boxes. The runtime adds each item's `<!-- id: … -->` comment when the shift policy is written, before arming. | No | Composed before arming; while armed only boxes tick | Once the shift has ended, `archive-receipts` files the whole list into the shift's folder at the same path, then keeps only the contract and the open items live | The contract above `## Items`; its digests in `run/shift-policy.json` |
+| `runs/<run>/punch-list.md` | Owner, and the agent through Start, Hunt or Quality. The agent ticks boxes. The runtime adds each item's `<!-- id: … -->` comment when the shift policy is written, before arming. | No | Composed before arming; while armed only boxes tick | Once the shift has ended, `archive-receipts` files the whole list into the shift's folder at the same path, then keeps only the contract and the open items live | The contract above `## Items`; its digests in `run/shift-policy.json` |
 | `staging/drafting-table.md` | The owner; the agent only when the owner asks, as Quality's "draft for later" and Import issues do | No | When work is staged, or cut into the punch list | Start moves an item out when it cuts it; never archived | — |
 | `staging/work-orders.md` | Hunt; `ns scaffold work-orders` creates it the first time Hunt stages an order | No | Hunt composes; Start cuts | Archive files an order ticked in place and drops an empty heading | — |
 | `staging/plan-record.md` | The planning conversation, freely: the plan room's own notebook. `ns plan-enter` creates it on first entry | No | Throughout the plan room: decisions, rejected options, open questions, where the discussion stands | Archive files captured and dropped entries into the shift's folder at the same path, then keeps open plans live, with a `Filed:` pointer | One `- ` bullet per plan; ` · captured: <the plan's file>` or ` · dropped: <why>` closes it |
-| `staging/plans/<key>.md` | The planning conversation, each item on the owner's yes. `ns plan-new` creates it from the punch list's contract and gates | No | Throughout the plan room, while that plan is being worked out | Start moves it over `punch-list.md` when the owner picks it; the punch list is then archived with its shift | A complete punch list titled `# Punch List — <name>`, with a `## Plan` notes section above `## Items` |
-| `inbox/parking-lot.md` | The agent parks decisions, including a fix that would change behaviour users rely on. The runtime adds permission gaps (`park-needs`) and watchman revival notices. An ordinary session or another agent may add one for the owner to review. The owner answers. | No | During the shift; answered in the morning | Archive files the whole file into the shift's folder at `inbox/parking-lot.md`, then keeps only unanswered entries live, with a `Filed:` pointer | One `- ` bullet per decision; ` · answered: <decision>` closes it |
-| `inbox/snag-log.md` | The agent, for every bug it finds: fixed on the shift, with the fix as the disposition. The runtime adds a broken archive-pointer entry. An ordinary session or another agent may add one for the owner to review. | No | As findings are made and dispositioned | Archive files the whole file into the shift's folder at `inbox/snag-log.md`, then keeps only open entries live, with a `Filed:` pointer | One `- ` bullet: `finding · evidence · disposition · date` |
-| `run/shift-log.md` | The runtime (gates, watchman, Stop and Reset) and the agent | No | Every cycle and control event | Archive moves it whole into the shift's folder at `run/shift-log.md`; past about 500 KB Start moves it into the last ended shift's folder the same way | — |
+| `staging/plans/<key>.md` | The planning conversation, each item on the owner's yes. `ns plan-new` creates it from the shipped contract and an empty gates block | No | Throughout the plan room, while that plan is being worked out | Start moves it over `punch-list.md` when the owner picks it; the punch list is then archived with its shift | A complete punch list titled `# Punch List — <name>`, with a `## Plan` notes section above `## Items` |
+| `runs/<run>/inbox/parking-lot.md` | The agent parks decisions, including a fix that would change behaviour users rely on. The runtime adds permission gaps (`park-needs`) and watchman revival notices. An ordinary session or another agent may add one for the owner to review. The owner answers. | No | During the shift; answered in the morning | Archive files the whole file into the shift's folder at `inbox/parking-lot.md`, then keeps only unanswered entries live, with a `Filed:` pointer | One `- ` bullet per decision; ` · answered: <decision>` closes it |
+| `runs/<run>/inbox/snag-log.md` | The agent, for every bug it finds: fixed on the shift, with the fix as the disposition. The runtime adds a broken archive-pointer entry. An ordinary session or another agent may add one for the owner to review. | No | As findings are made and dispositioned | Archive files the whole file into the shift's folder at `inbox/snag-log.md`, then keeps only open entries live, with a `Filed:` pointer | One `- ` bullet: `finding · evidence · disposition · date` |
+| `runs/<run>/run/shift-log.md` | The runtime (gates, watchman, Stop and Reset) and the agent | No | Every cycle and control event | Archive moves it whole into the shift's folder at `run/shift-log.md`; past about 500 KB Start moves it into the last ended shift's folder the same way | — |
 | `product/product-research.md` | The agent; `ns scaffold product` creates it when a product-evolution item is cut | No | Product-evolution cycles | Between shifts Archive appends its entries to the archive copy and restores the template | — |
 | `product/opportunity-map.md` | The agent; `ns scaffold product` creates it when a product-evolution item is cut | No | Product-evolution cycles | Archive files `shipped` and `rejected` entries | Statuses in the template |
 | `run/capabilities.json` | The agent, after a tooling commit lands | No; the agent reads the manifests again | After a tooling commit | Never | — |
@@ -73,13 +77,13 @@ read it as empty.
 |---|---|---|---|---|---|
 | `rules.json` | Setup, from the template; then the owner | Setup copies the template only when the file is missing; Start names a new template key and never adds it | Between shifts | Never | `nightshift-rules.schema.json` |
 | `catalogs/<catalog>/` | The owner | No | When the owner adds or edits an entry of a catalog (`shifts`, `evidence`, `gates`, `edge-cases`) for this project | Purge removes it with `.nightshift/`. Reset and Archive leave it. The user folder outside the project is never purged | `docs/knobs.md#catalogs`; `catalogs.<catalog>.paths` names further folders. `evidence/kinds/`, `gates/stacks/` and `edge-cases/packs/`, which an earlier version used, are still read |
-| `run/shift-policy.json` | The runtime: composition (`shift-policy.sh`), or the snapshot Start takes | No | Before arming; frozen while armed | The clock-out gate files it into the shift's folder at `run/shift-policy.json`, or Archive when no gate did; Reset drops it | `schemas/v1/shift-policy.json` |
+| `runs/<run>/run/shift-policy.json` | The runtime: composition (`shift-policy.sh`), or the snapshot Start takes | No | Before arming; frozen while armed | The clock-out gate files it into the shift's folder at `run/shift-policy.json`, or Archive when no gate did; Reset drops it | `schemas/v1/shift-policy.json` |
 | `shift-defaults.json` | Older workspaces only | — | Never written now | `shift-policy migrate` moves its choices into the `shift` block of `rules.json` and keeps `run/shift-defaults.json.bak` | `schemas/v1/shift-defaults.json` |
-| `state-version` | The scaffold, into a `.nightshift/` it creates; `migrate-state`, last | No | On a state migration | Never | Current version `2` |
+| `state-version` | The scaffold, into a `.nightshift/` it creates; `migrate-state`, last | No | On a state migration | Never | Current version `3` |
 | `run/work-target`, `run/work-mode` | Setup | Setup writes them again | When the owner re-points the workspace | Never | — |
 | `run/hook-copies` | Each host's guard, once a minute per plugin copy, while a shift or the plan room is open | No | Appended; cut back to its last day | Never filed | `epoch`, `host`, `session`, `plugin root`, `version`, tab-separated; Start's bind phase refuses and Doctor warns when one session shows two copies |
-| `run/shift-worktree` | Start's worktree phase, for a shift with `shift.isolation` set to `worktree` | Start writes it again for the next such shift | When Start adds the shift's worktree | Archive removes it with the worktree once the branch is merged; never filed | `path=`, `branch=`, `base=`, `checkout=`, `shift=` lines |
-| `run/deadline` | Start, from the composed hours | No | When a shift with hours is cut | Start drops it once it has passed; Reset drops it | UNIX epoch seconds |
+| `runs/<run>/run/shift-worktree` | Start's worktree phase, for a shift with `shift.isolation` set to `worktree` | Start writes it again for the next such shift | When Start adds the shift's worktree | Archive removes it with the worktree once the branch is merged; never filed | `path=`, `branch=`, `base=`, `checkout=`, `shift=` lines |
+| `runs/<run>/run/deadline` | Start, from the composed hours | No | When a shift with hours is cut | Start drops it once it has passed; Reset drops it | UNIX epoch seconds |
 | `.gitignore` | Setup, with the receipts repository; `migrate-state` adds `/run/` | Setup adds `STOP` and `/run/` when missing; Setup and Archive rewrite a bare `run/` as `/run/` | At Setup | Never | — |
 | `.git/` | Setup, only when the owner asks for a receipts repository | No | Commits by the clock-out gate and Archive when `receiptsAutoCommit` is true, else by the owner | Never; never pushed | — |
 
@@ -87,23 +91,23 @@ read it as empty.
 
 | File | Written by | Rebuilt | Changes | Leaves live storage | Governed by |
 |---|---|---|---|---|---|
-| `receipts/<NN>-<slug>-<id>.md` | The agent writes the prose. The runtime keeps its `<!-- item: … -->` comment and a `Renamed from` line current, keeps one section under the heading — the Tokens and Time totals, a Sessions row per span naming its host and model, and the handoffs between hosts — redrawn in place as each span on the item closes. The file name is the item's number, title and id; the runtime finds it by the id and, between shifts, renames it to follow a renumbered or retitled item. | No | From the first substantive work until the tick | `archive-receipts` copies it into the shift's folder at the same path, and retires it from live storage once the shift has ended and its item is ticked; an open item's is copied and stays | `references/receipts/` shapes; `receipts.*` settings |
-| `receipts/README.md` | The runtime | Yes, from the punch list and receipts | Every tick, arming, clock-out, and archive | Archive rebuilds it on both sides of the move | — |
-| `receipts/<NN>-<slug>-<id>/` | The agent: an item's evidence files, linked from its receipt's Evidence section. When `receipts.evidence.check` is report or block, the runtime writes an evidence-check block on the item receipt: each missing name, `present`, or that nothing mechanical applies | No | While the item is worked | Filed beside its receipt and retired with it; a renamed receipt takes it along | `Evidence:` lines, `receipts.evidence.default`, `receipts.evidence.check`, `receipts.evidence.review`, `receipts.evidence.unavailable` |
-| `receipts/architecture.md` | The agent, while `receipts.evidence.architecture` is on: one Mermaid diagram, with a short legend, of the components the shift touched | No | By the item that changes the structure, after its commit and before its tick | Archive copies it; it leaves live storage only when named. Each changed version is also copied into its item's evidence folder at the tick | `receipts.evidence.architecture` |
-| `receipts/shift-map.md` | The runtime, at each tick, from git (artifact mode: the outputs ticked receipts declare) | Yes | Every tick while `receipts.evidence.fileMap` is on | Archive copies it; it leaves live storage only when named | `receipts.evidence.fileMap` |
-| `receipts/morning-<date>-<shiftId>.md` | The clock-out gate, unless the agent already wrote the page the owner's template asks for | Yes, while its records are live | Once, at clock-out | Archive copies it into the shift folder and retires it when it is named with `--retire` | `handoff.*` settings |
-| `receipts/previous-report.md` | `migrate-state`, from the single page an older layout kept beside the punch list | No | Once | Archive copies it; it leaves live storage only when named | — |
+| `runs/<run>/receipts/<NN>-<slug>-<id>.md` | The agent writes the prose. The runtime keeps its `<!-- item: … -->` comment and a `Renamed from` line current, keeps one section under the heading — the Tokens and Time totals, a Sessions row per span naming its host and model, and the handoffs between hosts — redrawn in place as each span on the item closes. The file name is the item's number, title and id; the runtime finds it by the id and, between shifts, renames it to follow a renumbered or retitled item. | No | From the first substantive work until the tick | `archive-receipts` copies it into the shift's folder at the same path, and retires it from live storage once the shift has ended and its item is ticked; an open item's is copied and stays | `references/receipts/` shapes; `receipts.*` settings |
+| `runs/<run>/receipts/README.md` | The runtime | Yes, from the punch list and receipts | Every tick, arming, clock-out, and archive | Archive rebuilds it on both sides of the move | — |
+| `runs/<run>/receipts/<NN>-<slug>-<id>/` | The agent: an item's evidence files, linked from its receipt's Evidence section. When `receipts.evidence.check` is report or block, the runtime writes an evidence-check block on the item receipt: each missing name, `present`, or that nothing mechanical applies | No | While the item is worked | Filed beside its receipt and retired with it; a renamed receipt takes it along | `Evidence:` lines, `receipts.evidence.default`, `receipts.evidence.check`, `receipts.evidence.review`, `receipts.evidence.unavailable` |
+| `runs/<run>/receipts/architecture.md` | The agent, while `receipts.evidence.architecture` is on: one Mermaid diagram, with a short legend, of the components the shift touched | No | By the item that changes the structure, after its commit and before its tick | Archive copies it; it leaves live storage only when named. Each changed version is also copied into its item's evidence folder at the tick | `receipts.evidence.architecture` |
+| `runs/<run>/receipts/shift-map.md` | The runtime, at each tick, from git (artifact mode: the outputs ticked receipts declare) | Yes | Every tick while `receipts.evidence.fileMap` is on | Archive copies it; it leaves live storage only when named | `receipts.evidence.fileMap` |
+| `runs/<run>/receipts/morning-<date>-<shiftId>.md` | The clock-out gate, unless the agent already wrote the page the owner's template asks for | Yes, while its records are live | Once, at clock-out | Archive copies it into the shift folder and retires it when it is named with `--retire` | `handoff.*` settings |
+| `runs/<run>/receipts/previous-report.md` | `migrate-state`, from the single page an older layout kept beside the punch list | No | Once | Archive copies it; it leaves live storage only when named | — |
 | `run/usage/` (`segments.tsv`, `marks.tsv`, `turns.tsv`, `cursor-turn`, `pauses.tsv`, `active`, `window`, `previous-pulse`, `previous-ticked`, `.ticked-now`) | The runtime | No | Every pulse, tick, switch of item, and pause | Archive files it into the ended shift's folder at `run/usage/`; a Start before that renames it `run/usage-<shiftId>/`, and Archive files that into the folder of the shift it belongs to | — |
-| `run/file-map` | Start records the commit the shift starts on; each tick records HEAD | No | At Start and at each tick while `receipts.evidence.fileMap` is on | Stays with the run state; the next shift records its own | `receipts.evidence.fileMap` |
-| `run/architecture` | The runtime, at each tick: the shift and the receipt whose folder holds the diagram's last copy | No | At each tick that copies the diagram | Stays with the run state; the next shift records its own | `receipts.evidence.architecture` |
-| `run/budget.tsv` | The runtime | No | When the item being worked spends its soft or hard budget; the line goes when the item closes | Stays with the run state; a closed item's lines are already gone | `Budget:` lines, `shift.itemBudget` |
+| `runs/<run>/run/file-map` | Start records the commit the shift starts on; each tick records HEAD | No | At Start and at each tick while `receipts.evidence.fileMap` is on | Stays with the run state; the next shift records its own | `receipts.evidence.fileMap` |
+| `runs/<run>/run/architecture` | The runtime, at each tick: the shift and the receipt whose folder holds the diagram's last copy | No | At each tick that copies the diagram | Stays with the run state; the next shift records its own | `receipts.evidence.architecture` |
+| `runs/<run>/run/budget.tsv` | The runtime | No | When the item being worked spends its soft or hard budget; the line goes when the item closes | Stays with the run state; a closed item's lines are already gone | `Budget:` lines, `shift.itemBudget` |
 | `run/plan-room` | `ns plan-enter`; the probe binds it | No — no conversation may touch it | When the plan room opens and when its conversation is bound | Removed when the owner leaves the plan room (`plan-exit`, or the owner's exit command through the prompt hooks), or by the probe when the conversation asking for it is working the shift; never filed | Plan room |
-| `run/evidence/findings.jsonl` | The agent, through the ledger helper, which validates each record | No | Append-only during the shift | The clock-out gate appends it to the shift's folder at `run/evidence/findings.jsonl` and empties the live ledger | `schemas/v1/finding.json` |
+| `runs/<run>/run/evidence/findings.jsonl` | The agent, through the ledger helper, which validates each record | No | Append-only during the shift | The clock-out gate appends it to the shift's folder at `run/evidence/findings.jsonl` and empties the live ledger | `schemas/v1/finding.json` |
 | `archive/` | The clock-out gate, `archive-receipts`, the Archive skill | No | Each clock-out and each Archive | Only `retain-history --apply`, when the owner set `retention.archiveDays` | `archive.root`, `archive.layout` |
 | `archive/history-index.md` | The Archive skill | No | One entry per archived shift, updated when the shift is filed again | Never | The Archive skill's `## Index` |
 | `run/scheduled.log` | Scheduled runs | No | Each scheduled run | Only `retain-history --apply`, when the owner set `retention.runtimeLogDays` | — |
-| `run/watchman.log` | `start-watchman`, from the watchman's own output: why it refused to arm, and any error after | No | Each watchman launch | Never; it holds only the watchman's own messages, not its revival sessions | — |
+| `runs/<run>/run/watchman.log` | `start-watchman`, from the watchman's own output: why it refused to arm, and any error after | No | Each watchman launch | Never; it holds only the watchman's own messages, not its revival sessions | — |
 | `support/` | `export-support`, on request | Yes | On each export | Never automatically; the owner removes it | — |
 | `run/provision-transaction.json`, `run/provision-baseline/`, `run/provision-surface` | `provision` | No | Around a provisioning step | Removed when the step commits or rolls back | — |
 
@@ -114,12 +118,12 @@ receipts repository's `.gitignore` leaves out whole as `/run/`; archived `run/` 
 
 | File | Written by | Means | Removed |
 |---|---|---|---|
-| `run/.shift-armed` | Start | The site is on shift: the clock-out gate and hardhat apply | The clock-out gate, when the shift ends; Start clears a stale one before arming; Reset |
+| `runs/<run>/run/.shift-armed` | Start | The site is on shift: the clock-out gate and hardhat apply | The clock-out gate, when the shift ends; Start clears a stale one before arming; Reset |
 | `run/.shift-session`, `run/.shift-lease` | Hardhat, on the binding probe; the watchman advances the lease | The bound conversation, and the generation that may work | Stop drops the session; the clock-out gate releases the lease; Start and Reset clear both |
-| `run/.shift-worker` | The Cursor watchman | The CLI worker a revival resumes | Start; Reset |
-| `run/.ended` | The clock-out gate | The shift ended, with `shiftId=`, `archiveRoot=`, `archiveLayout=`, `shiftName=` and the `archiveFolder=` clock-out claimed for it | Start; Reset |
-| `STOP` | Stop, or the owner's terminal command; the gate writes `deadline` or `stalled` | A stop-work order and its reason | Start; Reset |
-| `run/.pending-filing` | The clock-out gate, when `archive.automatic` is true | Filing is due for that shift | Archive, once filing is done |
+| `runs/<run>/run/.shift-worker` | The Cursor watchman | The CLI worker a revival resumes | Start; Reset |
+| `runs/<run>/run/.ended` | The clock-out gate | The shift ended, with `shiftId=`, `archiveRoot=`, `archiveLayout=`, `shiftName=` and the `archiveFolder=` clock-out claimed for it | Start; Reset |
+| `runs/<run>/STOP` | Stop, or the owner's terminal command; the gate writes `deadline` or `stalled` | A stop-work order and its reason | Start; Reset |
+| `runs/<run>/run/.pending-filing` | The clock-out gate, when `archive.automatic` is true | Filing is due for that shift | Archive, once filing is done |
 | `.stall`, `.notified`, `.clock-out-reminder`, `.context-reset`, `.receipt-due`, `.report-due` in `run/` | The clock-out gate, the pulse, and the session-start hook | Stall count, whistle sent, the reminder to repeat, a compaction to answer, a progress update due | By the step that consumes each; Start and Reset clear `.stall` and `.notified` |
 | `.shift-pulse`, `.session-end`, `.watchman`, `.watchman-tick`, `.watch-reason`, `.mint-failed`, `.idle-watch` in `run/` | The pulse, the session-end hook and the watchman | Liveness, a clean close, the watchman's pid, its last wake and reason, a failed worker mint, how long the worker has been idle | The watchman removes its pid file when it exits; Start and Reset clear `.shift-pulse`, `.session-end`, `.watchman-tick`, `.mint-failed` and `.idle-watch`; Reset drops `.watch-reason` |
 | `.lock.d/`, `.lease-lock.d/`, `.mutex-scope` in `run/`, and `*.tmp.*` beside a file | The runtime | Locks and atomic-write staging; `.mutex-scope` scopes native Windows mutexes | When the operation finishes; Start and Reset clear a stale lock |

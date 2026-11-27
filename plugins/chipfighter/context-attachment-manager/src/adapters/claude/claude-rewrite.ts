@@ -19,8 +19,17 @@ const sameList = (a: string[], b: string[]) => a.length === b.length && a.every(
 
 // Every image of the request, with the index key it matches (null: not in the index, e.g. pasted in this turn).
 export function findRequestImages(messages: Json[], index: Pick<ClaudeIndex, "uploads">): RequestImage[] {
-  const found = imageBlocks(messages);
-  const pastedBy = new Map<number, RequestImage[]>();
+  return matchUploads(imageBlocks(messages), index);
+}
+
+// Statistics resolve keys when the response ends: a pasted image can reach the transcript after the request.
+// Only the digest, size and position need to survive while the response streams.
+type ImageSizeRef = Pick<RequestImage, "msg" | "sub" | "key" | "contentId" | "base64Chars">;
+export const imageSizeRefs = (messages: Json[]): ImageSizeRef[] =>
+  imageBlocks(messages).map(({ msg, sub, key, contentId, base64Chars }) => ({ msg, sub, key, contentId, base64Chars }));
+
+export function matchUploads<T extends ImageSizeRef>(found: T[], index: Pick<ClaudeIndex, "uploads">): T[] {
+  const pastedBy = new Map<number, T[]>();
   for (const image of found) if (image.sub === null) pastedBy.set(image.msg, [...(pastedBy.get(image.msg) ?? []), image]);
   // Pasted images: each message, in order, to the next record(s) after the last match holding the same images in the
   // same order (Claude Code may join consecutive records into one message). Records before the latest compaction are

@@ -7,12 +7,11 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync } from "node:fs";
 import type { IncomingHttpHeaders } from "node:http";
 import net from "node:net";
-import { join } from "node:path";
 import tls from "node:tls";
 import zlib from "node:zlib";
+import { writeDiagnosticLog } from "../diagnostic-log.ts";
 import { proxyLogDirOf } from "../paths.ts";
 
 type Json = Record<string, any>;
@@ -132,11 +131,7 @@ export function decodeBody(body: Buffer, encoding: string | undefined): Buffer |
 // v0.12: never throws. A log line that cannot be written (a full disk, a file another program holds) is lost; it used
 // to stop the engine, and every request going through it.
 export function log(entry: Json): void {
-  try {
-    const dir = proxyLogDirOf();
-    mkdirSync(dir, { recursive: true });
-    appendFileSync(join(dir, `${new Date().toISOString().slice(0, 10)}.jsonl`), `${JSON.stringify(entry)}\n`);
-  } catch { /* the line is lost */ }
+  writeDiagnosticLog(proxyLogDirOf(), "proxy", entry);
 }
 
 // P2-1 debugging aid for synthetic test threads only: the request with every inline image reduced to its hash and size.

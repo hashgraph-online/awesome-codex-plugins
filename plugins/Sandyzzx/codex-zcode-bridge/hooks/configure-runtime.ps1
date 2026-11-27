@@ -332,6 +332,15 @@ $effectiveBuiltin = if ($BuiltinProviderConfigPath) { Resolve-ExistingFile $Buil
     else { Join-Path (Split-Path (Split-Path $effectiveRuntime -Parent) -Parent) "config\provider\zcode-builtin.json" }
 $effectiveBuiltin = Resolve-ExistingFile $effectiveBuiltin "Builtin provider config"
 Test-ProviderConfig -Path $effectiveBuiltin -Kind Builtin
+# ADR-066: the Built-in provider config that ships with the selected runtime is the
+# default, not a pin. The Bridge resolves the official runtime registry of the same
+# data root, Desktop version and Endpoint on every launch and falls back to this file.
+# Persisting the derived path here would pin the AppServer to the installation's
+# static registry, so only a path outside that default is persisted; null clears a
+# path left behind by older installers.
+$defaultBuiltin = [IO.Path]::GetFullPath((Join-Path (Split-Path (Split-Path $effectiveRuntime -Parent) -Parent) "config\provider\zcode-builtin.json"))
+$builtinPinned = [IO.Path]::GetFullPath($effectiveBuiltin) -ine $defaultBuiltin
+$persistedBuiltin = if ($builtinPinned) { $effectiveBuiltin } else { $null }
 
 $configuredZCodeHome = if ($ZCodeHome) { Resolve-ZCodeHome $ZCodeHome }
     elseif ((Get-ConfiguredEnvironmentValue "ZCODE_HOME")) { Resolve-ZCodeHome (Get-ConfiguredEnvironmentValue "ZCODE_HOME") }
@@ -432,6 +441,11 @@ Write-Host "ZCode runtime and provider configuration were found and validated."
 Write-Host "Runtime: $effectiveRuntime"
 Write-Host "Node.js: $effectiveNode ($nodeVersionText)"
 Write-Host "Builtin provider config: $effectiveBuiltin"
+if ($builtinPinned) {
+    Write-Host "Builtin provider config is explicitly pinned; the official runtime registry is not used."
+} else {
+    Write-Host "Builtin provider config is the installation default; the Bridge prefers the official runtime registry and uses this file as the fallback."
+}
 Write-Host "Personal provider config: $effectivePersonal"
 if ($configuredZCodeHome) { Write-Host "ZCode home: $configuredZCodeHome" }
 Write-Host "ZCode installation directory: $effectiveInstallDir"
@@ -445,7 +459,7 @@ Write-Host "Browser host: $effectiveBrowserUse$(if ($effectiveBrowserExecutable)
 $bridgeRuntimeSettings = [ordered]@{
     ZCODE_BRIDGE_NODE = $effectiveNode
     ZCODE_BRIDGE_ZCODE_CJS = $effectiveRuntime
-    ZCODE_BUILTIN_PROVIDER_CONFIG_FILE = $effectiveBuiltin
+    ZCODE_BUILTIN_PROVIDER_CONFIG_FILE = $persistedBuiltin
     ZCODE_PERSONAL_PROVIDER_CONFIG_FILE = $effectivePersonal
     ZCODE_WINDOWS_APP_INSTALL_DIR = $effectiveInstallDir
     ZCODE_DATA_BASE_DIR = $effectiveDataBaseDir

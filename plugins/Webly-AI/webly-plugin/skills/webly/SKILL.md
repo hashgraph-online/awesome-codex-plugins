@@ -217,7 +217,7 @@ photos) rather than publish a site:
    doesn't work: the shell expands `$FILE` first), then
    `finalize_object_upload`. To keep a folder's structure, name each file by
    its path inside it (`src/main.cpp`) and include hidden files (`.gitignore`, `.idea/…`); never flatten a folder or drop its hidden files. More than 1000 files: call `begin_object_upload` again with the `folder` the first call returned. Free keeps files up to 7 days (1 GB, 100 MB per
-   file); Hobby and Pro can keep them forever (50 / 200 GB, 4 GB per file; over 2 GB, videos only).
+   file); Hobby and Pro can keep them forever (50 / 200 GB, 4.5 GB per file; over 2 GB, videos only).
    Never put file bytes in a tool call.
 
 Only images, video, audio, PDF and plain text open in the browser; anything

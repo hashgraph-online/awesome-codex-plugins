@@ -4,9 +4,10 @@
 
 import { createHash } from "node:crypto";
 import zlib from "node:zlib";
+import { LruCache } from "./memory.ts";
 import { decodePng } from "./png.ts";
 
-const cache = new Map<string, string | null>();
+const cache = new LruCache<string | null>(4096, (url) => (url?.length ?? 0) * 2);
 
 // Box filter: every target pixel is the average of the source block it covers.
 export function shrink(width: number, height: number, rgba: Buffer, maxSide: number): { width: number; height: number; pixels: Buffer } {

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "feraterra",
+  "version": "4.9.4",
+  "description": "Headless CLOB trading, stateless order margin previews, zero-capital flash arbitrage, L2 Clearinghouse solvency, and 24-tool MCP gateway for Arena Exchange.",
+  "author": {
+    "name": "FeraTerra",
+    "url": "https://github.com/FeraTerra"
+  },
+  "homepage": "https://feraterra.app",
+  "repository": "https://github.com/FeraTerra/feraterra-sdk",
+  "license": "MIT",
+  "keywords": [
+    "feraterra",
+    "exchange",
+    "clob",
+    "mcp",
+    "trading",
+    "perpetuals",
+    "hft",
+    "ccxt",
+    "defi"
+  ]
+}

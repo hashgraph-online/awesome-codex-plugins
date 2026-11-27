@@ -8,12 +8,12 @@
 // report, the session.
 
 import { createHash } from "node:crypto";
-import { decodeBody, encodeBody, hasUnsafeInteger } from "../../core/engine/transport.ts";
+import { decodeBody, encodeBody, hasUnsafeInteger, type ParsedBody } from "../../core/engine/transport.ts";
 import { fetchedIdIn, type ImageDigest, type ImageKind } from "../../core/images.ts";
 import type { Lang } from "../../core/lang.ts";
 import type { RewriteReport } from "../../core/plan.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
-import { markLatest, openRequestIndex, remember, saveRequestIndex, type RequestIndex } from "../../core/request-index.ts";
+import { hasStoredImage, latestSession, markLatest, openRequestIndex, remember, saveRequestIndex, type RequestIndex } from "../../core/request-index.ts";
 import { sessionKeyOf } from "../../core/selection.ts";
 import type { Described } from "../../core/words.ts";
 import { imageBlocks, rewriteBlocks, type RequestImage } from "./anthropic-messages/rewrite.ts";
@@ -118,15 +118,15 @@ export function sessionOfRequest(platform: string, named: string | null, first: 
 
 export type PlatformRewrite = { body: Buffer; report: Json; session: string | null };
 
-export function rewritePlatformRequest(platform: string, path: string, original: Buffer, encoding: string | undefined, named: string | null, root: string, lang: Lang): PlatformRewrite {
+export function rewritePlatformRequest(platform: string, path: string, original: Buffer, encoding: string | undefined, named: string | null, root: string, lang: Lang, pre?: ParsedBody): PlatformRewrite {
   const asIs = (report: Json, session: string | null = null): PlatformRewrite => ({ body: original, report, session });
   const format = formatOf(path);
   if (!format) return asIs({ skipped: "not a model request" });
-  const decoded = decodeBody(original, encoding);
+  const decoded = pre?.decoded ?? decodeBody(original, encoding);
   if (!decoded) return asIs({ skipped: "undecodable body" });
-  const text = decoded.toString("utf8");
+  const text = pre?.text ?? decoded.toString("utf8");
   let json: Json;
-  try { json = JSON.parse(text); } catch { return asIs({ skipped: "unparsable body" }); }
+  try { json = pre?.json ?? JSON.parse(text); } catch { return asIs({ skipped: "unparsable body" }); }
   if (hasUnsafeInteger(text)) return asIs({ skipped: "integer beyond 2^53 would change when re-serialized" });
   const read = readRequest(format, json);
   if (!read) return asIs({ skipped: `no ${format} history` });
@@ -141,10 +141,17 @@ export function rewritePlatformRequest(platform: string, path: string, original:
     const seen = remember(index, image, image.data, image.turn, root);
     ids.set(image.key, { id: seen.id, name: null, label: null, kind: image.kind, turn: image.turn, width: image.width, height: image.height });
   }
-  try { saveRequestIndex(index, root); } catch { /* the ids are given again next time */ }
-  if (read.conversation) { try { markLatest(platform, session, root); } catch { /* a fetch then finds the session before */ } }
-  const copies = new Map(read.images.filter((image) => image.fetchedOf && image.turn < current).map((image) => [image.key, image.fetchedOf!]));
-  const leaveOut = new Set(read.images.filter((image) => image.replaceable && !image.fetchedOf && image.turn < current && ids.has(image.key)).map((image) => image.key));
+  try { saveRequestIndex(index, root); }
+  catch { return asIs({ skipped: "request index could not be saved" }, session); }
+  if (read.conversation) {
+    try { markLatest(platform, session, root); }
+    catch {
+      if (latestSession(platform, root) !== session) return asIs({ skipped: "current session could not be saved" }, session);
+    }
+  }
+  const fetchable = (image: AnyImage) => hasStoredImage(root, platform, image.contentId);
+  const copies = new Map(read.images.filter((image) => image.fetchedOf && image.turn < current && fetchable(image)).map((image) => [image.key, image.fetchedOf!]));
+  const leaveOut = new Set(read.images.filter((image) => image.replaceable && !image.fetchedOf && image.turn < current && ids.has(image.key) && fetchable(image)).map((image) => image.key));
   const out = read.rewrite((image) => ids.get(image.key), leaveOut, (image) => (image.data === null ? null : pixelHashOfData(image, image.data)), { lang, copies, auto: { currentTurn: current }, fetched: (image) => !!image.fetchedOf });
   const { report } = out;
   const summary: Json = { format, auto: true, images: report.images, replaced: report.replaced.map(({ key: _key, ...rest }) => rest), sentImageHashes: report.sentContentIds.map((id) => id.slice(0, 16)), ...(report.copies.length ? { copies: report.copies } : {}) };

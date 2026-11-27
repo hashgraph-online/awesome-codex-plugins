@@ -33,6 +33,9 @@ work mode and target, artifact receipts, the completion record, and recent trans
 cannot make safely on its own — process liveness, the lease lines, and every Warning about a path
 that is not a usable file.
 
+With several runs, `ns status` prints a `run <name>` line per run (state, open item, deadline) and,
+with none named, stops there. For one run's facts, run `ns status --run <name>`.
+
 ## 2. Render, never re-derive
 
 Every number and every name above is already computed. Do not count boxes, subtract a deadline from
@@ -54,6 +57,10 @@ action the inspector offers. Never soften a warning into silence.
 
 Do not print a project tool's raw output, credentials, raw evidence, a session id, or a transcript
 path. The inspectors do not emit them; do not go looking.
+
+**Messages.** To ask or answer a running shift, pipe the text to `ns send-message --run <name>`; it
+prints the run's messages file. The worker replies there under `## Worker · <time>` after its next
+tool call; read and relay the reply on the owner's next turn.
 
 The project inventory is a separate optional report the owner asks for by name:
 `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" inventory`. Status never prints it unasked — a table of

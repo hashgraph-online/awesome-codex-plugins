@@ -1,6 +1,6 @@
 {
   "name": "dchub-mcp-server",
-  "version": "2.12.64",
+  "version": "2.12.65",
   "description": "DC Hub is the orchestration layer for data center and energy intelligence. Start with execute_plan. It also publishes the Data Center Power Index (DCPI).",
   "keywords": [
     "mcp",

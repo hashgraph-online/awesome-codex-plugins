@@ -1,5 +1,7 @@
 # RunLater plugin
 
+[![RunLater MCP connector](https://glama.ai/mcp/connectors/app.runlater/runlater/badges/score.svg)](https://glama.ai/mcp/connectors/app.runlater/runlater)
+
 Call any URL at an exact time or on a cron schedule from your coding agent. [RunLater](https://runlater.app) retries failures and keeps a log of each run's status code, timing and response.
 
 This repository holds the plugin config and agent skill. The MCP server is hosted at `https://runlater.app/api/mcp`.
@@ -38,7 +40,9 @@ Then run `/mcp` and sign in. [Setup for claude.ai, Cursor, VS Code, Codex and Wi
 
 ## Tools
 
-`schedule_get_request`, `schedule_send_request`, `list_schedules`, `get_schedule`, `run_now`, `pause_schedule`, `resume_schedule`, `delete_schedule`, `account_status`
+`preview_schedule`, `schedule_get_request`, `schedule_send_request`, `list_schedules`, `get_schedule`, `run_now`, `pause_schedule`, `resume_schedule`, `delete_schedule`, `account_status`
+
+Before anything is created, the skill calls `preview_schedule` and shows you the method, the URL, when it runs in plain words, the next three run times and the time zone, then waits for your yes.
 
 ## Pricing
 

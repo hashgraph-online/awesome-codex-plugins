@@ -480,6 +480,8 @@ fetches the engine's dependencies from PyPI or your configured index.
    and each small-domain dimension column write when the project sets
    `monitors.vendor`, and the column monitors a `fraction` or `percent` unit or
    a measure's additivity write (one per column, its monitor list the union),
+   and the `data_freshness_sla` a time column's declared daily `deadline`
+   writes (a `max_lag` never becomes one; on a `business` time it warns),
    filtered to the declared population, or why none was
    written (the package missing, disabled or unknown on `dbt_prod_target`, a
    filter it cannot write, a dimension over the bound or flagged as personal

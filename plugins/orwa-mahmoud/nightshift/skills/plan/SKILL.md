@@ -101,8 +101,11 @@ hard-checked (`block`), only reported (`report`) or not checked (`off`). The def
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" plan-new --name "<the owner's name for it>"
 ```
 
-It copies the punch list's contract and gates into `$NS/staging/plans/<key>.md` under
-`# Punch List — <name>`, and keeps a plan that already has that key. Everything this plan writes
+It writes the shipped contract and an empty gates block into `$NS/staging/plans/<key>.md` under
+`# Punch List — <name>`, and keeps a plan that already has that key. Write this plan's own
+contract and gates there from the planning conversation: its branch, what it may commit or push,
+and the checks it runs. The last shift's punch list is not this plan's contract; read an archived
+punch list only when the owner asks to reuse a decision from it. Everything this plan writes
 goes into that one file, so plans never mix. When `plan-new` says the workspace keeps plans in its
 drafting table, write the plan there under a `## Plan: <title>` heading instead.
 
@@ -172,8 +175,8 @@ written, edit it in place and say what changed. Agreement with the item itself i
 with an idea is not. Nothing reaches the plan that the owner has not agreed to.
 
 Keep the plan's notes in a `## Plan` section just above `## Items`, written with its first item and
-kept current as the plan grows. Leave the contract and gates above it as `plan-new` copied them,
-unless the owner changes them, and never touch another plan's file:
+kept current as the plan grows. Keep the contract and gates above it as the planning
+conversation settled them, and never touch another plan's file:
 
 ```text
 ## Plan

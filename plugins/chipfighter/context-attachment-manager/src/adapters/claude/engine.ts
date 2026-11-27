@@ -20,7 +20,7 @@ import { fetchCalls, pdfBlocks, rewritePdfs, type PdfReport } from "../protocols
 import { chainOf, fitThinking, type ThinkingRecord } from "../protocols/anthropic-messages/thinking.ts";
 import { claudeHome, claudeImageData, claudeStartedAt, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
 import { claudePdfSource } from "./claude-pdfs.ts";
-import { findRequestImages, rewriteMessages } from "./claude-rewrite.ts";
+import { findRequestImages, imageSizeRefs, matchUploads, rewriteMessages } from "./claude-rewrite.ts";
 
 type Json = Record<string, any>;
 // v0.4: Claude Code's API host.
@@ -70,8 +70,13 @@ function pdfSummary(report: PdfReport): Json {
 
 // The images a Claude Code request carried, by index key, with the base64 characters each took (the panel's
 // baseline); images not in the transcript yet are left out.
+export function prepareClaudeImageSizes(messages: Json[]): (index: ClaudeIndex) => Record<string, number> {
+  const refs = imageSizeRefs(messages);
+  return index => Object.fromEntries(matchUploads(refs, index).filter((ref) => ref.key).map((ref) => [ref.key!, ref.base64Chars]));
+}
+
 export function claudeImageSizes(messages: Json[], index: ClaudeIndex): Record<string, number> {
-  return Object.fromEntries(findRequestImages(messages, index).filter((ref) => ref.key).map((ref) => [ref.key!, ref.base64Chars]));
+  return prepareClaudeImageSizes(messages)(index);
 }
 
 // Anthropic refuses a request whose earlier content changed under the thinking that followed it (accounts created from

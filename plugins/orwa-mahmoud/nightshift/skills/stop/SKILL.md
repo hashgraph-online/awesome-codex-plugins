@@ -33,6 +33,12 @@ agent on the next Start. Open boxes stay open as the record. Hardhat stays until
 orders, receipts, archives, research, opportunities, and shift history stay on disk. Do not wait
 for a later Stop event to write the marker — the helper writes it now.
 
+When the workspace holds several runs, Stop acts on one run: the owner's named run with
+`--run <name>` (native Windows: `-Run`), or the run this conversation works on. With several runs and
+none named it stops nothing and lists them, and an unknown name is refused the same way: ask which
+run the owner means only when the request did not name one, then run Stop for that run. Stopping one
+run leaves every other run working.
+
 Report the helper's `open-items` count and that the deadline was preserved. A second Stop is safe.
 
 Resume later with Start (`/nightshift:start` on Claude Code, or ask Nightshift to start on Codex).

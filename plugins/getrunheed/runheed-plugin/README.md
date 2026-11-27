@@ -1,5 +1,7 @@
 # Runheed
 
+[![Runheed MCP connector](https://glama.ai/mcp/connectors/com.runheed/runheed/badges/score.svg)](https://glama.ai/mcp/connectors/com.runheed/runheed)
+
 Error tracking your coding agent can read. Runheed catches exceptions in your Node.js or Python app and serves them over MCP, so Claude Code, Cursor, Codex or any MCP client can read the stack trace, fix the bug and mark it resolved.
 
 - Website: https://runheed.com

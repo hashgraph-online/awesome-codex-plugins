@@ -7,7 +7,7 @@
 // (core/images.ts). The names and captions it reads are Codex's own; for another client they simply do not match.
 // Input: items as parsed JSON. Output: ImageRef[] in item order (pure, no I/O).
 
-import { baseName, fetchedIdIn, imageDigest, type ImageDigest, type ImageKind, type ImageSource } from "../../../core/images.ts";
+import { baseName, fetchedIdIn, imageDigest, knownImageDigest, type ImageDigest, type ImageKind, type ImageSource } from "../../../core/images.ts";
 
 type Json = Record<string, any>;
 
@@ -44,6 +44,8 @@ const PDF_PATH = /^PDF path: (.+)$/gm;
 function partDigest(part: Json): ImageDigest | null {
   if (part?.type !== "input_image" && part?.type !== "output_image") return null;
   if (typeof part.file_id === "string") return { contentId: `file:${part.file_id}`, mime: null, base64Chars: 0, width: null, height: null };
+  const known = knownImageDigest(part);
+  if (known) return known;
   const inline = typeof part.image_url === "string" ? /^data:([^;,]+);base64,/.exec(part.image_url) : null;
   return inline ? imageDigest(part, part.image_url.slice(inline[0].length), inline[1]) : null;
 }
@@ -172,8 +174,8 @@ export function findImages(items: Json[]): ImageRef[] {
       return `${base}#${seen}`;
     };
 
-    if (item.type === "image_generation_call" && typeof item.result === "string" && item.result) {
-      const found = imageDigest(item, item.result, "image/png");
+    if (item.type === "image_generation_call" && (knownImageDigest(item) || (typeof item.result === "string" && item.result))) {
+      const found = knownImageDigest(item) ?? imageDigest(item, item.result, "image/png");
       refs.push({ ...found, key: keyFor(0, found.contentId), item: index, part: null, openTag: null, closeTag: null, kind: "generated", replaceable: false, name: null, label: null, turnId, source: "generated", pdfPage: null, pdfName: null, fetchedId: null });
       return;
     }

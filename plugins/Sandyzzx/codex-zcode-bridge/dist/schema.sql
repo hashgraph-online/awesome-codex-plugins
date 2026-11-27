@@ -10,6 +10,39 @@ CREATE TABLE tasks (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 ) STRICT;
 
+-- Owner Binding is an admission fact, not part of the model-controlled
+-- TaskPackage. The trusted MCP host context supplies the Codex Thread ID;
+-- a task admitted without trusted host identity is explicitly unavailable.
+CREATE TABLE task_owner_bindings (
+  task_id TEXT PRIMARY KEY,
+  binding_state TEXT NOT NULL CHECK(binding_state IN ('bound','unavailable')),
+  owner_thread_id TEXT CHECK(
+    owner_thread_id IS NULL OR (
+      length(owner_thread_id) BETWEEN 1 AND 128
+      AND owner_thread_id=trim(owner_thread_id)
+      AND instr(owner_thread_id,char(0))=0
+      AND owner_thread_id=owner_thread_id COLLATE BINARY
+    )
+  ),
+  binding_source TEXT NOT NULL CHECK(binding_source IN (
+    'mcp_meta','mcp_meta_missing','mcp_meta_invalid','non_host_admission','legacy_unavailable'
+  )),
+  bound_at TEXT NOT NULL CHECK(length(bound_at) BETWEEN 1 AND 64),
+  FOREIGN KEY(task_id) REFERENCES tasks(task_id),
+  CHECK (
+    (binding_state='bound' AND owner_thread_id IS NOT NULL AND binding_source='mcp_meta')
+    OR (binding_state='unavailable' AND owner_thread_id IS NULL
+      AND binding_source IN ('mcp_meta_missing','mcp_meta_invalid','non_host_admission','legacy_unavailable'))
+  )
+) STRICT;
+
+CREATE INDEX task_owner_bindings_thread ON task_owner_bindings(owner_thread_id)
+  WHERE owner_thread_id IS NOT NULL;
+CREATE TRIGGER task_owner_bindings_no_update BEFORE UPDATE ON task_owner_bindings
+BEGIN SELECT RAISE(ABORT,'task owner binding is immutable'); END;
+CREATE TRIGGER task_owner_bindings_no_delete BEFORE DELETE ON task_owner_bindings
+BEGIN SELECT RAISE(ABORT,'task owner binding is immutable'); END;
+
 CREATE TABLE attempts (
   task_id TEXT NOT NULL,
   attempt INTEGER NOT NULL CHECK(attempt>=1),
@@ -349,14 +382,41 @@ WHEN NEW.event_type='cleanup_reverified' AND NOT EXISTS (
     AND json_extract(NEW.evidence_json,'$.operation_resources_complete')=1
     AND json_extract(NEW.evidence_json,'$.worker_tree_complete')=1
     AND json_extract(NEW.evidence_json,'$.workspace_touched')=0
-    AND json_type(NEW.evidence_json,'$.resolved_recovery_event_digests')='array'
-    AND json_array_length(NEW.evidence_json,'$.resolved_recovery_event_digests')<=8
-    AND json_array_length(NEW.evidence_json,'$.resolved_recovery_event_digests')=(
-      SELECT COUNT(*) FROM manager_operation_events h
-      WHERE h.operation_id=NEW.operation_id AND h.event_type='observation_recorded'
-        AND h.sequence<NEW.sequence AND json_extract(h.evidence_json,'$.reason')='recovery_hold'
-        AND json_extract(h.evidence_json,'$.classification')='hold'
-        AND json_extract(h.evidence_json,'$.reason_code') IN ('cleanup_identity_unknown','cleanup_incomplete'))
+    AND (
+      (
+        json_type(NEW.evidence_json,'$.resolved_recovery_event_digests')='array'
+        AND json_array_length(NEW.evidence_json,'$.resolved_recovery_event_digests')=(
+          SELECT COUNT(*) FROM manager_operation_events h
+          WHERE h.operation_id=NEW.operation_id AND h.event_type='observation_recorded'
+            AND h.sequence>u.sequence AND h.sequence<NEW.sequence
+            AND json_extract(h.evidence_json,'$.reason')='recovery_hold'
+            AND json_extract(h.evidence_json,'$.classification')='hold'
+            AND json_extract(h.evidence_json,'$.reason_code') IN ('cleanup_identity_unknown','cleanup_incomplete'))
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(NEW.evidence_json,'$.resolved_recovery_event_digests') j
+          WHERE NOT EXISTS (
+            SELECT 1 FROM manager_operation_events h
+            WHERE h.operation_id=NEW.operation_id AND h.event_type='observation_recorded'
+              AND h.evidence_digest=j.value AND h.sequence>u.sequence AND h.sequence<NEW.sequence
+              AND json_extract(h.evidence_json,'$.reason')='recovery_hold'
+              AND json_extract(h.evidence_json,'$.classification')='hold'
+              AND json_extract(h.evidence_json,'$.reason_code') IN ('cleanup_identity_unknown','cleanup_incomplete')))
+      )
+      OR (
+        json_type(NEW.evidence_json,'$.resolved_recovery_event_digests') IS NULL
+        AND json_type(NEW.evidence_json,'$.resolved_recovery_event_count')='integer'
+        AND json_extract(NEW.evidence_json,'$.resolved_recovery_event_count')=(
+          SELECT COUNT(*) FROM manager_operation_events h
+          WHERE h.operation_id=NEW.operation_id AND h.event_type='observation_recorded'
+            AND h.sequence>u.sequence AND h.sequence<NEW.sequence
+            AND json_extract(h.evidence_json,'$.reason')='recovery_hold'
+            AND json_extract(h.evidence_json,'$.classification')='hold'
+            AND json_extract(h.evidence_json,'$.reason_code') IN ('cleanup_identity_unknown','cleanup_incomplete'))
+        AND json_type(NEW.evidence_json,'$.resolved_recovery_event_root')='text'
+        AND length(json_extract(NEW.evidence_json,'$.resolved_recovery_event_root'))=64
+        AND json_extract(NEW.evidence_json,'$.resolved_recovery_event_root') NOT GLOB '*[^0-9a-f]*'
+      )
+    )
     AND NOT EXISTS (
       SELECT 1 FROM manager_operation_events h
       WHERE h.operation_id=NEW.operation_id AND h.event_type='observation_recorded'
@@ -364,15 +424,6 @@ WHEN NEW.event_type='cleanup_reverified' AND NOT EXISTS (
         AND (json_extract(h.evidence_json,'$.reason')<>'recovery_hold'
           OR json_extract(h.evidence_json,'$.classification')<>'hold'
           OR json_extract(h.evidence_json,'$.reason_code') NOT IN ('cleanup_identity_unknown','cleanup_incomplete')))
-    AND NOT EXISTS (
-      SELECT 1 FROM json_each(NEW.evidence_json,'$.resolved_recovery_event_digests') j
-      WHERE NOT EXISTS (
-        SELECT 1 FROM manager_operation_events h
-        WHERE h.operation_id=NEW.operation_id AND h.event_type='observation_recorded'
-          AND h.evidence_digest=j.value AND h.sequence<NEW.sequence
-          AND json_extract(h.evidence_json,'$.reason')='recovery_hold'
-          AND json_extract(h.evidence_json,'$.classification')='hold'
-          AND json_extract(h.evidence_json,'$.reason_code') IN ('cleanup_identity_unknown','cleanup_incomplete')))
     AND NOT EXISTS (
       SELECT 1 FROM manager_operation_events x
       WHERE x.operation_id=NEW.operation_id AND x.sequence>u.sequence AND x.sequence<NEW.sequence
@@ -499,3 +550,53 @@ WHEN NEW.event_type='interaction_requested' AND NOT EXISTS (
     AND i.sequence<prep.sequence AND prep.sequence<c.sequence AND c.sequence<NEW.sequence
     AND json_extract(c.evidence_json,'$.commit_digest')=json_extract(NEW.evidence_json,'$.commit_digest'))
 BEGIN SELECT RAISE(ABORT,'interaction event payload binding violation'); END;
+
+-- Runtime observations are public Task events, but they are not lifecycle
+-- transitions. Keep them separate from manager_operation_events while sharing
+-- authority_metadata.next_event_cursor as the single monotonic read domain.
+CREATE TABLE runtime_task_events (
+  event_cursor INTEGER PRIMARY KEY CHECK(event_cursor BETWEEN 1 AND 9007199254740991),
+  operation_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  attempt INTEGER NOT NULL CHECK(attempt>=1),
+  generation INTEGER NOT NULL CHECK(generation>=1),
+  claim_id TEXT NOT NULL CHECK(length(claim_id) BETWEEN 1 AND 512),
+  worker_sequence INTEGER NOT NULL CHECK(worker_sequence>=1),
+  event_type TEXT NOT NULL CHECK(event_type IN (
+    'session_ready','model_selected','turn_started','model_tool_call',
+    'tool_status','model_output','turn_completed','turn_failed','report_ready'
+  )),
+  at TEXT NOT NULL,
+  summary TEXT NOT NULL CHECK(length(cast(summary AS BLOB)) BETWEEN 1 AND 8192),
+  details_json TEXT CHECK(
+    details_json IS NULL OR (
+      json_valid(details_json) AND json_type(details_json)='object'
+      AND length(CAST(details_json AS BLOB))<=8192
+    )
+  ),
+  details_digest TEXT CHECK(details_digest IS NULL OR length(details_digest)=64),
+  UNIQUE(operation_id,worker_sequence),
+  FOREIGN KEY(operation_id) REFERENCES manager_operations(operation_id),
+  FOREIGN KEY(task_id,attempt) REFERENCES attempts(task_id,attempt),
+  CHECK ((details_json IS NULL AND details_digest IS NULL)
+      OR (details_json IS NOT NULL AND details_digest IS NOT NULL))
+) STRICT;
+
+CREATE INDEX runtime_task_events_task_cursor ON runtime_task_events(task_id,event_cursor);
+CREATE TRIGGER runtime_task_events_no_update BEFORE UPDATE ON runtime_task_events
+BEGIN SELECT RAISE(ABORT,'runtime task events are immutable'); END;
+CREATE TRIGGER runtime_task_events_no_delete BEFORE DELETE ON runtime_task_events
+BEGIN SELECT RAISE(ABORT,'runtime task events are immutable'); END;
+CREATE TRIGGER runtime_task_events_identity_guard BEFORE INSERT ON runtime_task_events
+WHEN NOT EXISTS (
+  SELECT 1 FROM manager_operations o
+    JOIN tasks t ON t.task_id=o.task_id
+    JOIN attempts a ON a.task_id=t.task_id AND a.attempt=o.attempt
+  WHERE o.operation_id=NEW.operation_id AND o.operation_kind='attempt_lifecycle'
+    AND o.phase='running' AND o.task_id=NEW.task_id AND o.attempt=NEW.attempt
+    AND o.generation=NEW.generation AND o.claim_id=NEW.claim_id
+    AND o.claim_generation=o.generation
+    AND t.current_attempt=o.attempt AND t.status='running'
+    AND a.status='running' AND a.generation=o.generation
+)
+BEGIN SELECT RAISE(ABORT,'runtime task event identity mismatch'); END;

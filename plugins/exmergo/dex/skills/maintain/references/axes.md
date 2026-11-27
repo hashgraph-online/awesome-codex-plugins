@@ -417,6 +417,18 @@ Needs no baseline. The classes of finding:
     with `not_temporal`, `column_missing`, `probe_refused` or `scan_offered`).
     A `business` time can be legitimately old after a quiet period or a
     backfill, which the finding says; a `capture` time cannot.
+  - `deadline_missed` (high on a `capture` basis, medium on `business`), for a
+    time column whose `freshness` declares a daily `deadline` in a `timezone`
+    (optionally on `days` only): the deadline has passed today on the
+    warehouse's clock and the column holds no value from today's local
+    midnight on (`reason: not_today`, `no_rows` or `all_null`). The day is read
+    from the runner's clock in that zone, as Elementary's `data_freshness_sla`
+    reads it, and the check is counts only. Each deadline has its own record
+    under `data.freshness` (`check: deadline`, beside a lag's `check:
+    max_lag`), `not_applicable` before the deadline (`before_deadline`) or on a
+    day `days` leaves out (`not_scheduled`). On a `business` time a nightly
+    load of the previous day's events misses every day: the deadline belongs on
+    the load time.
 
   `null_rule: never` is not checked here: it renders as a `not_null` test.
   `data.suppressed` names `unit`, `additivity`, `population`,
@@ -585,7 +597,8 @@ one coverage number.
 - **Declarations.** `data.declarations.facts` holds one record per declared fact
   on the selected models: `fact` (`grain`, `key`, `foreign_key`, `references`,
   `null_rule`, `population_filter`, `population_parent`, `population_rule`,
-  `unit`, `additivity`, `history`, `freshness`, `continuity`), `column`, and
+  `unit`, `additivity`, `history`, `freshness` (a lag and a deadline are two
+  records), `continuity`), `column`, and
   `checked_by`: `dbt_test` (the generic `tests` that assert it run on every `dbt build`), `dex_verify` (the
   `verify` finding codes that can judge it on `maintain verify` or
   `transform build --verify`; that verify *can* judge it, not that it ran), `both`, `none`,

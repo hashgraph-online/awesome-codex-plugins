@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 2,
+  "generatedOn": "2026-11-15",
+  "scope": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "24.16.0",
+    "zcodeVersion": "3.18.2",
+    "appServerVersion": "0.17.1",
+    "sourceOnly": false,
+    "crossPlatformCertified": false
+  },
+  "source": {
+    "version": "3.18.2",
+    "commit": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+    "tree": "5e90fec80706b8381f94e4eef48cf821b9868916",
+    "trackedSourceModifiedByBuild": false,
+    "userDesktopInstallationUsedAsInput": true,
+    "aggregateDiffSha256": "A3F5B7BD7A653403B8362ADC121323404FB4F334B1CFFA0DF3C3E617F9F09AB2"
+  },
+  "patches": [
+    {
+      "order": 1,
+      "path": "upstream/zcode-3.18.2/patches/0001-stdio-max-frame-bytes.patch",
+      "bytes": 16482,
+      "sha256": "860CE5CEA55A1C64878663526B194BA93F40EC0DFD31E6BF2242326E3058510F"
+    },
+    {
+      "order": 2,
+      "path": "upstream/zcode-3.18.2/patches/0002-oauth-refresh-coordination.patch",
+      "bytes": 60872,
+      "sha256": "19F7B6BB673F488EC0BDA385B232CB0213A4BDE8333B7AE87ECB3DD49B6180F7"
+    },
+    {
+      "order": 3,
+      "path": "upstream/zcode-3.18.2/patches/0003-read-only-official-start-plan-auth.patch",
+      "bytes": 51480,
+      "sha256": "7C00349F636F99E92662C4E5A0E09493AFFEA22FEB77642994E4DC013BFEB1D9"
+    }
+  ],
+  "toolchain": {
+    "buildNode": "24.16.0",
+    "officialMiseNodePin": "24.14.0",
+    "officialPnpm": "10.33.2",
+    "validationPnpm": "11.25.0",
+    "hostModuleBundler": "esbuild 0.28.2",
+    "runtimeHostToolchain": "UPSTREAM_SIGNED_RELEASE_BINARY"
+  },
+  "build": {
+    "hostModule": {
+      "command": "npm run build:official-host -- --source <fixed-upstream-worktree>",
+      "output": "official-host-runtime.mjs",
+      "entry": {
+        "exports": [
+          "ZCODE_PRODUCT_VERSION",
+          "ZCodeAgentProcessManager",
+          "ZCodeProtocolClient",
+          "ZCodeStdioTransport",
+          "createOAuthProviderRuntimeAuthService",
+          "createOfficialStartPlanAuthenticationResolver"
+        ],
+        "sourceFiles": [
+          "packages/shared/src/credential-security/contract.ts",
+          "packages/shared/src/credential-security/systemCredentialCipher.ts",
+          "packages/shared/src/version.ts",
+          "packages/services/src/credential/credentialService.ts",
+          "packages/services/src/oauth/repo/oauthCredentialRepo.ts",
+          "packages/services/src/official-host/runtimeHostEntry.ts",
+          "packages/services/src/official-host/startPlanAuthentication.ts",
+          "packages/services/src/zcode-agent/zcodeAgentProcessManager.ts",
+          "packages/services/src/zcode-agent/zcodeProtocolClient.ts",
+          "packages/services/src/zcode-agent/zcodeStdioTransport.ts",
+          "packages/services/src/model-provider/oauthProviderRuntimeAuthService.ts",
+          "packages/services/src/oauth/oauthService.ts",
+          "packages/services/src/oauth/providers/providerAdapter.ts",
+          "packages/services/src/telemetry/telemetryCore.ts"
+        ]
+      }
+    },
+    "runtimeHost": {
+      "command": "Adopt the Authenticode-signed zcode-runtime-host.exe from the official ZCode Desktop 3.18.2.10443 distribution",
+      "output": "zcode-runtime-host.exe",
+      "sourceKind": "OFFICIAL_INSTALLED_DISTRIBUTION",
+      "sourceProductVersion": "3.18.2.10443",
+      "zcodeVersion": "3.18.2",
+      "zcodeSourceCommit": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "bytes": 179608,
+      "sha256": "C2C8FF5FF28CBDDC4F177C094AA67C322830889612251BD173BAAABC89379AB4",
+      "architecture": "win32-x64",
+      "peMachine": "0x8664",
+      "authenticode": "Valid",
+      "signerCommonName": "北京智谱华章科技股份有限公司",
+      "signerOrganization": "北京智谱华章科技股份有限公司",
+      "reportedVersion": "zcode-runtime-host 1",
+      "redistribution": "APPROVED_BY_REPOSITORY_OWNER"
+    },
+    "orderedPatchApplicationRequired": true
+  },
+  "bom": {
+    "path": "ARTIFACT_BOM.json",
+    "bytes": 7955,
+    "sha256": "403033C7B5437E6AECB7230306AF41F263C3B9613D7B49DD001928FC2C317EE2"
+  },
+  "output": {
+    "path": "official-host-runtime.mjs",
+    "bytes": 1829872,
+    "sha256": "7E2B8B772F1DD83135903B64D569D634C7E7FC6F303460E08C98E27D311B6A91"
+  },
+  "verification": {
+    "artifactInventory": "ARTIFACT_BOM.json",
+    "validator": "npm run validate:plugin",
+    "nativeDependencyClosure": "PARTIAL",
+    "resourceClosure": "PARTIAL",
+    "redistributionReview": "OWNER_APPROVED_APACHE_2_0_NOTICES_INCLUDED",
+    "artifactReproducibility": "DETERMINISTIC_SAME_SOURCE_TREE"
+  }
+}

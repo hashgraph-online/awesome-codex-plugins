@@ -26,7 +26,6 @@
 // CAM_HOST, CAM_AUTO_UPDATE=0 (no updates). Output: tool results; <data dir>/plugin-server.jsonl (events and counts
 // only, no conversation content).
 
-import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { codexHome } from "./adapters/codex/codexconfig.ts";
@@ -36,6 +35,7 @@ import { DEFAULT_PORT, ensureEngine, versionOf } from "./engine.ts";
 import { changeUpdate, startUpdater, updateView } from "./core/update.ts";
 import { codexPlatform } from "./adapters/codex/update.ts";
 import { claudePlatform } from "./adapters/claude/update.ts";
+import { writeDiagnosticLog } from "./core/diagnostic-log.ts";
 import { isEntryPoint } from "./core/entry.ts";
 import { currentLang, rememberLang } from "./adapters/codex/language.ts";
 import { langOf } from "./core/language.ts";
@@ -169,9 +169,8 @@ function setupState(): { usesEngine: boolean; changed: "enabled" | "disabled" | 
 }
 
 function log(entry: Json): void {
-  const root = dataDir();
-  mkdirSync(root, { recursive: true });
-  appendFileSync(join(root, "plugin-server.jsonl"), `${JSON.stringify({ at: new Date().toISOString(), pid: process.pid, ...entry })}\n`);
+  const now = new Date();
+  writeDiagnosticLog(dataDir(), "plugin-server", { at: now.toISOString(), pid: process.pid, ...entry }, now);
 }
 
 // Codex adds turn metadata to calls the model makes; the panel's own calls carry only the thread id.

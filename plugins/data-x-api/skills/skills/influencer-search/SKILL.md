@@ -57,7 +57,7 @@ This skill runs the DataXAPI task `creators` with the `dataxapi` command line. I
 dataxapi run creators platforms=douyin,tiktok 'query=咖啡' --plan
 ```
 
-With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 22, catalog revision 0051cce45e9530b9). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 5 calls or $0.1.
+With these inputs the plan is 2 calls, at most $0.004, about $0.004 when every call returns a typical page (price book 23, catalog revision 0264e2d6dd4ff743). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 5 calls or $0.1.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

@@ -47,8 +47,8 @@ opens. Every lesson is free and open to read:
 ### How you connect
 
 This repository connects your own agent (Claude Code, Codex, Cursor, Gemini CLI and others) to the GitRanks Contribute
-MCP server at `https://mcp.gitranks.com/mcp`, and adds a `contribute` skill that walks it through one issue. It holds
-only configuration and instructions: the server runs on GitRanks.
+MCP server at `https://mcp.gitranks.com/mcp`, and adds a `contribute` skill that walks it through one issue (and a
+`build` skill for GitRanks Build). It holds only configuration and instructions: the server runs on GitRanks.
 
 Add the server's URL to your agent, then sign in from it. Your agent opens gitranks.com in your browser: sign in with
 GitHub, check what the agent will be able to do, and press **Allow**. Your agent keeps the access it gets and renews it
@@ -238,8 +238,8 @@ A token works too: see [Use a token instead](#use-a-token-instead).
 
 ### Plugin formats in this repository
 
-The skill in `skills/contribute/SKILL.md` works in any agent that reads Agent Skills. The repository packages it with
-the server for each plugin format below. Each connects by signing in.
+The skills in `skills/contribute/SKILL.md` and `skills/build/SKILL.md` work in any agent that reads Agent Skills. The
+repository packages them with the server for each plugin format below. Each connects by signing in.
 
 - `.claude-plugin/` and `.mcp.json`: the Claude Code plugin and its marketplace (`gitranks`);
 - `gemini-extension.json`: the Gemini CLI extension;
@@ -295,9 +295,11 @@ Ask your agent: "Find me an open-source issue to work on with GitRanks." It list
 you choose, fixes it on your machine and hands the change back. Then review it and approve the pull request on
 gitranks.com. Merged pull requests stay on your GitHub profile.
 
-In Claude Code the plugin adds two commands:
+In Claude Code the plugin adds three commands:
 - `/gitranks-contribute:find [language, kind or owner/repo]`: issues picked for you, then work on the one you choose;
-- `/gitranks-contribute:status`: the issues you took and your pull requests, and what each one needs from you.
+- `/gitranks-contribute:status`: the issues you took and your pull requests, and what each one needs from you;
+- `/gitranks-contribute:build [project]`: start or continue a project on GitRanks Build, once GitRanks Build is open
+  to you.
 
 The server also offers one prompt, **Find an open-source issue for me**, with an optional one-word wish such as
 `typescript`, `docs` or `owner/repo`. Clients that list server prompts show it as a command or menu item; in Claude
@@ -339,6 +341,10 @@ With every tool call, the access token (or your personal token, when you use one
 - in GitRanks Learn, the lesson your agent writes on its fix: its steps (text, diagrams, the diff's lines, code excerpts
   from the repository), its questions with their answers, and which course lesson the fix used; it becomes public,
   linked from the pull request, when GitRanks opens it;
+- in GitRanks Build, when you start a build: the project, the language, the command that runs it on your machine and
+  the version it printed, the git version and the email `git config user.email` printed, your operating system and
+  whether you want a question on every step; then for each step, everything its check printed and the letter you
+  picked;
 - for a proof: its outcome, summary, the section or reply it drafts for the pull request, its notes, a list of what
   it removed (for example "2 IP addresses"), and its screenshots, which go to upload links the server gives.
 

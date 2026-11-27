@@ -86,8 +86,15 @@ function prepareWorkerResultFrameParts(frame) {
   try {
     resultJson = canonicalTaskResult(frame.result, { task_id: frame.task_id, attempt: frame.attempt, result_status: frame.result?.status });
   } catch (error62) {
-    const result = submissionFailure({ task_id: frame.task_id, attempt: frame.attempt }, error62);
-    resultJson = canonicalTaskResult(result, { task_id: frame.task_id, attempt: frame.attempt, result_status: "failed" });
+    const { rpc_diagnostics, ...withoutDiagnostics } = frame.result ?? {};
+    const keepReport = Object.hasOwn(frame.result ?? {}, "rpc_diagnostics");
+    try {
+      if (!keepReport) throw error62;
+      resultJson = canonicalTaskResult(withoutDiagnostics, { task_id: frame.task_id, attempt: frame.attempt, result_status: frame.result?.status });
+    } catch {
+      const failed = submissionFailure({ task_id: frame.task_id, attempt: frame.attempt }, error62);
+      resultJson = canonicalTaskResult(failed, { task_id: frame.task_id, attempt: frame.attempt, result_status: "failed" });
+    }
   }
   const parts = ["{"];
   for (const key of Object.keys(frame).sort()) {
@@ -117,10 +124,10 @@ function validateResultObject(value, keys, required2 = []) {
 function validateUsage(value) {
   validateResultObject(
     value,
-    /* @__PURE__ */ new Set(["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]),
+    /* @__PURE__ */ new Set(["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "cached_write_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]),
     ["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]
   );
-  if (!isNullableText(value.source) || !isNullableText(value.scope) || !isNullableText(value.observed_at) || !["reported", "derived", "partial"].includes(value.finality) || ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || !Number.isSafeInteger(value.dropped_unknown_keys) || value.dropped_unknown_keys < 0) fail("invalid_result_payload");
+  if (!isNullableText(value.source) || !isNullableText(value.scope) || !isNullableText(value.observed_at) || !["reported", "derived", "partial"].includes(value.finality) || ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "cached_write_input_tokens", "reasoning_tokens"].some((k) => Object.hasOwn(value, k) && value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || !Number.isSafeInteger(value.dropped_unknown_keys) || value.dropped_unknown_keys < 0) fail("invalid_result_payload");
   validateStringArray(value.conflicts, 64);
 }
 function validateModel(value) {
@@ -136,6 +143,19 @@ function validateTiming(value) {
   if (["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || typeof value.derived !== "boolean") fail("invalid_result_payload");
   validateStringArray(value.notes, 64);
 }
+function validateRpcDiagnostics(value, status) {
+  if (status !== "failed" || !Array.isArray(value) || value.length < 1 || value.length > MAX_RPC_DIAGNOSTICS) fail("invalid_result_payload");
+  const seen = /* @__PURE__ */ new Set();
+  for (const entry of value) {
+    validateResultObject(entry, /* @__PURE__ */ new Set(["method", "code", "message", "data_name", "data_code", "stack"]), ["method", "code", "message", "data_name", "data_code"]);
+    const stack = Object.hasOwn(entry, "stack") ? entry.stack : "";
+    const stackLines = typeof stack === "string" ? stack.split("\n") : [];
+    const identity = `${String(entry.method)}|${String(entry.code)}|${String(entry.data_code)}`;
+    if (typeof entry.method !== "string" || !RPC_METHOD.test(entry.method) || !(entry.code === null || typeof entry.code === "number" && Number.isSafeInteger(entry.code)) || typeof entry.message !== "string" || !CLEAN_DIAGNOSTIC_TEXT(entry.message) || /[\r\n\t]/u.test(entry.message) || [...entry.message].length > 500 || !(entry.data_name === null || typeof entry.data_name === "string" && CLEAN_DIAGNOSTIC_TEXT(entry.data_name) && entry.data_name.length <= 64 && RPC_DATA_NAME.test(entry.data_name)) || !(entry.data_code === null || typeof entry.data_code === "string" && CLEAN_DIAGNOSTIC_TEXT(entry.data_code) && entry.data_code.length <= 128 && RPC_DATA_CODE.test(entry.data_code)) || Object.hasOwn(entry, "stack") && (typeof entry.stack !== "string" || entry.stack.length > 1200 || stackLines.length > 12 || stackLines.some((line) => !CLEAN_DIAGNOSTIC_TEXT(line) || !RPC_STACK_LINE.test(line))) || seen.has(identity)) fail("invalid_result_payload");
+    seen.add(identity);
+  }
+  if (Buffer.byteLength(canonical(value), "utf8") > MAX_RPC_DIAGNOSTICS_BYTES) fail("invalid_result_payload");
+}
 function canonicalTaskResult(result, input2) {
   validateResultObject(result, RESULT_FIELDS, REQUIRED_RESULT_FIELDS);
   if (result.task_id !== input2.task_id || result.attempt !== input2.attempt || result.status !== input2.result_status || !RESULT_STATUSES.has(result.status) || typeof result.summary !== "string" || typeof result.zcode_output !== "string" || typeof result.needs_master_decision !== "boolean" || result.exit_code !== null && !Number.isSafeInteger(result.exit_code) || !isNullableText(result.session_id) || !isNullableText(result.started_at, 64) || !isNullableText(result.finished_at, 64)) fail("invalid_result_payload");
@@ -148,12 +168,13 @@ function canonicalTaskResult(result, input2) {
   if (Object.hasOwn(result, "usage") && result.usage !== null) validateUsage(result.usage);
   if (Object.hasOwn(result, "model") && result.model !== null) validateModel(result.model);
   if (Object.hasOwn(result, "timing") && result.timing !== null) validateTiming(result.timing);
+  if (Object.hasOwn(result, "rpc_diagnostics")) validateRpcDiagnostics(result.rpc_diagnostics, result.status);
   const json2 = canonical(result);
   const bytes = Buffer.byteLength(json2, "utf8");
   if (bytes > MAX_TASK_RESULT_BYTES) throw new ResultContractError("result_too_large", `canonical TaskResult ${bytes} bytes exceeds ${MAX_TASK_RESULT_BYTES}; original report not committed`);
   return json2;
 }
-var MAX_TASK_RESULT_BYTES, MAX_RESULT_ENVELOPE_BYTES, MAX_WORKER_RESULT_FRAME_BYTES, ResultContractError, fail, RESULT_STATUSES, RESULT_FIELDS, REQUIRED_RESULT_FIELDS;
+var MAX_TASK_RESULT_BYTES, MAX_RESULT_ENVELOPE_BYTES, MAX_WORKER_RESULT_FRAME_BYTES, ResultContractError, fail, RESULT_STATUSES, RESULT_FIELDS, REQUIRED_RESULT_FIELDS, MAX_RPC_DIAGNOSTICS, MAX_RPC_DIAGNOSTICS_BYTES, RPC_METHOD, RPC_STACK_LINE, RPC_DATA_NAME, RPC_DATA_CODE, CLEAN_DIAGNOSTIC_TEXT;
 var init_result_contract = __esm({
   "src/result-contract.mjs"() {
     "use strict";
@@ -170,28 +191,2429 @@ var init_result_contract = __esm({
       throw new ResultContractError(code, message);
     };
     RESULT_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "cancelled", "waiting_for_master"]);
-    RESULT_FIELDS = /* @__PURE__ */ new Set(["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at", "error_code", "report_candidate", "usage", "model", "timing"]);
+    RESULT_FIELDS = /* @__PURE__ */ new Set(["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at", "error_code", "report_candidate", "usage", "model", "timing", "rpc_diagnostics"]);
     REQUIRED_RESULT_FIELDS = ["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at"];
+    MAX_RPC_DIAGNOSTICS = 4;
+    MAX_RPC_DIAGNOSTICS_BYTES = 8192;
+    RPC_METHOD = /^[a-z]+(?:\/[A-Za-z0-9_]+){1,2}$/u;
+    RPC_STACK_LINE = /^at (?:(?:[^\s()\\/:]+)? ?(?:\((?:node:[^\s()\\]*|[^\s()\\/]*)\)|node:[^\s()\\]*|[^\s()\\/]*))$/u;
+    RPC_DATA_NAME = /^[A-Za-z][A-Za-z0-9_]*$/u;
+    RPC_DATA_CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/u;
+    CLEAN_DIAGNOSTIC_TEXT = (text) => typeof text === "string" && !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/u.test(text);
   }
 });
 
-// src/host/profile.ts
+// src/runtime/host-profile.ts
 import { homedir } from "node:os";
 import path2 from "node:path";
 function codexHostProfile(homeDirectory = homedir()) {
-  return { name: "codex-zcode-bridge", settingsDirectory: path2.join(homeDirectory, ".codex", "codex-zcode-bridge") };
+  return {
+    name: "codex-zcode-bridge",
+    settingsDirectory: path2.join(homeDirectory, ".codex", "codex-zcode-bridge")
+  };
 }
 function validateHostProfile(host) {
-  if (!host || typeof host.name !== "string" || !host.name.trim() || typeof host.settingsDirectory !== "string" || !path2.isAbsolute(host.settingsDirectory)) throw new Error("invalid Bridge host profile");
-  if (host.legacySettingsDirectories !== void 0 && (!Array.isArray(host.legacySettingsDirectories) || host.legacySettingsDirectories.some((directory) => typeof directory !== "string" || !path2.isAbsolute(directory)))) throw new Error("host migration directories must be absolute");
-  if (host.workerEntryPath !== void 0 && (typeof host.workerEntryPath !== "string" || !path2.isAbsolute(host.workerEntryPath))) throw new Error("host worker entry must be absolute");
-  if (host.instructions !== void 0 && typeof host.instructions !== "string") throw new Error("host instructions must be text");
-  if (host.defaultDataRoot !== void 0 && (typeof host.defaultDataRoot !== "string" || !path2.isAbsolute(host.defaultDataRoot))) throw new Error("host default data root must be absolute");
+  if (!host || typeof host.name !== "string" || !host.name.trim() || typeof host.settingsDirectory !== "string" || !path2.isAbsolute(host.settingsDirectory)) {
+    throw new Error("invalid Bridge host profile");
+  }
+  if (host.legacySettingsDirectories !== void 0 && (!Array.isArray(host.legacySettingsDirectories) || host.legacySettingsDirectories.some((directory) => typeof directory !== "string" || !path2.isAbsolute(directory)))) {
+    throw new Error("host migration directories must be absolute");
+  }
+  if (host.workerEntryPath !== void 0 && (typeof host.workerEntryPath !== "string" || !path2.isAbsolute(host.workerEntryPath))) {
+    throw new Error("host worker entry must be absolute");
+  }
+  if (host.instructions !== void 0 && typeof host.instructions !== "string") {
+    throw new Error("host instructions must be text");
+  }
+  if (host.defaultDataRoot !== void 0 && (typeof host.defaultDataRoot !== "string" || !path2.isAbsolute(host.defaultDataRoot))) {
+    throw new Error("host default data root must be absolute");
+  }
   return host;
 }
-var init_profile = __esm({
-  "src/host/profile.ts"() {
+var init_host_profile = __esm({
+  "src/runtime/host-profile.ts"() {
     "use strict";
+  }
+});
+
+// src/runtime/account-provider.ts
+import { createHash as createHash3 } from "node:crypto";
+import { existsSync, readFileSync as readFileSync2 } from "node:fs";
+import path3 from "node:path";
+function buildAccountProviderPayload(config2, verifiedSelection, homeDir, taskProviderId) {
+  const source = readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId);
+  if (!source) return null;
+  const providers = {};
+  const states = {};
+  for (const entry of source.entries) {
+    providers[entry.providerId] = {
+      access: { type: entry.accessType, entitled: entry.entitled }
+    };
+    states[entry.providerId] = {
+      availability: entry.availability,
+      entitled: entry.entitled,
+      ...entry.current === void 0 ? {} : { current: entry.current }
+    };
+  }
+  return {
+    revision: accountProviderRevision(source.builtinRevision, providers, states),
+    basedOnZCodeBuiltinRevision: source.builtinRevision,
+    providers,
+    states
+  };
+}
+function accountSettingFile(homeDir) {
+  return path3.join(homeDir, ".zcode", "v2", "setting.json");
+}
+function accountProviderRuleFacts(providerId, config2) {
+  if (!providerId?.startsWith("account:")) return null;
+  const table = readJson(config2.providerBuiltinConfigFile);
+  const rule = readProviderRules(table).find(
+    (candidate) => isRecord2(candidate) && candidate.providerId === providerId
+  );
+  if (!rule) return null;
+  const access = rule.config?.access;
+  if (access?.type !== "zhipu-account") {
+    return { planKind: null, accountType: null };
+  }
+  return {
+    planKind: normalizePlanKind(access.mode),
+    accountType: typeof access.accountType === "string" ? access.accountType : null
+  };
+}
+function accountProviderSelectionCapability(providerId, _modelId, config2) {
+  const canonicalProviderId = accountProviderId(providerId, config2);
+  const codingPlan = canonicalProviderId === "account:bigmodel-individual-coding-plan";
+  const startPlan = canonicalProviderId === BIGMODEL_START_PLAN_PROVIDER_ID;
+  if (!codingPlan && !startPlan) {
+    return { capability: "installed_runtime", failure: null };
+  }
+  const ruleFacts = accountProviderRuleFacts(canonicalProviderId, config2);
+  const source = readAccountProviderSource(config2, void 0, void 0, canonicalProviderId);
+  const entry = source?.entries.find((candidate) => candidate.providerId === canonicalProviderId);
+  const expectedPlanKind = codingPlan ? "individual-coding-plan" : "start-plan";
+  if (ruleFacts?.planKind !== expectedPlanKind || ruleFacts.accountType !== "bigmodel" || !entry) {
+    return {
+      capability: codingPlan ? "coding_plan_discount" : "start_plan_static",
+      failure: `${canonicalProviderId} is not configured as the expected BigModel ${expectedPlanKind} provider`
+    };
+  }
+  return {
+    capability: codingPlan ? "coding_plan_discount" : "start_plan_static",
+    failure: null
+  };
+}
+function accountProviderId(providerId, config2) {
+  if (providerId.startsWith("account:")) return providerId;
+  const rules = [config2.providerBuiltinConfigFile, config2.providerPersonalConfigFile].flatMap((file2) => readProviderRules(readJson(file2)));
+  for (const rawRule of rules) {
+    if (!isRecord2(rawRule)) continue;
+    const rule = rawRule;
+    if (!providerId.startsWith("builtin:") && rule.providerId === `account:${providerId}`) return rule.providerId;
+    if (!providerId.startsWith("builtin:") && rule.providerId === providerId && rule.config?.access?.type === "zhipu-account") {
+      return `account:${providerId}`;
+    }
+    if (typeof rule.providerId === "string" && configProviderId(rule.providerId, rule) === providerId) {
+      return rule.providerId;
+    }
+  }
+  return providerId;
+}
+function catalogProviderId(providerId, modelId, catalog, config2) {
+  const advertised = (candidate) => catalog.some((model) => model.providerId === candidate && model.modelId === modelId);
+  if (advertised(providerId)) return providerId;
+  const configured = accountProviderId(providerId, config2);
+  if (advertised(configured)) return configured;
+  if (!providerId.startsWith("account:") && !providerId.startsWith("builtin:") && advertised(`account:${providerId}`)) {
+    return `account:${providerId}`;
+  }
+  return configured;
+}
+function testOnlyRuntimeAuthReply(providerId, config2) {
+  const unavailable = {
+    headersApplied: false,
+    errorMessage: "Start Plan requires a ZCode desktop captcha session; this headless app-server bridge cannot provide it."
+  };
+  const source = readAccountProviderSource(config2, void 0, void 0);
+  const entry = source?.entries.find((candidate) => candidate.providerId === providerId);
+  if (entry?.planKind !== "individual-coding-plan" || !entry.entitled || !entry.apiKey) return unavailable;
+  return { headersApplied: true, requestAuth: { apiKey: entry.apiKey } };
+}
+function zcodeDataBaseDir(personalProviderConfigFile) {
+  const dataDir = zcodeV2DataDir(personalProviderConfigFile);
+  return dataDir ? path3.dirname(path3.dirname(dataDir)) : null;
+}
+function zcodeV2DataDir(personalProviderConfigFile) {
+  const absolute = path3.resolve(personalProviderConfigFile);
+  if (path3.basename(absolute).toLowerCase() !== "provider_config.json") return null;
+  const v2Dir = path3.dirname(absolute);
+  if (path3.basename(v2Dir).toLowerCase() !== "v2") return null;
+  const zcodeDir = path3.dirname(v2Dir);
+  if (path3.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
+  return v2Dir;
+}
+function readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId) {
+  const table = readJson(config2.providerBuiltinConfigFile);
+  const providerRules = readProviderRules(table).filter(isRecord2).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string").sort((left, right) => left.providerId.localeCompare(right.providerId));
+  if (!providerRules.length) return null;
+  const officialV2Dir = zcodeV2DataDir(config2.providerPersonalConfigFile);
+  if (!officialV2Dir) return null;
+  const officialDataRoot = path3.dirname(officialV2Dir);
+  const credentials = readJson(path3.join(officialV2Dir, "config.json"));
+  const credentialProviders = asRecord(credentials?.provider);
+  const cache = readJson(path3.join(officialV2Dir, "coding-plan-cache.json"));
+  const cacheItems = asRecord(asRecord(cache?.entryStatus).items);
+  const settingFile = homeDir ? accountSettingFile(homeDir) : path3.join(officialV2Dir, "setting.json");
+  const settings = readJson(settingFile);
+  const selectedKeys = asRecord(settings?.modelProviderFamilySelectedKeys);
+  const rawConnectionSelections = settings?.providerFamilyConnectionSelections;
+  const connectionSelectionsPresent = settings !== null && Object.prototype.hasOwnProperty.call(settings, "providerFamilyConnectionSelections");
+  const connectionSelections = asRecord(rawConnectionSelections);
+  const connectionSelectionsInvalid = connectionSelectionsPresent && !isRecord2(rawConnectionSelections);
+  const taskAccountProviderId = taskProviderId && providerRules.some((rule) => rule.providerId === taskProviderId) ? taskProviderId : null;
+  const entries = providerRules.map((rule) => {
+    const providerId = rule.providerId;
+    const legacyId = configProviderId(providerId, rule);
+    const planKind = normalizePlanKind(rule.config?.access?.mode);
+    const cacheStatus = asRecord(cacheItems[legacyId]).status;
+    const legacyConfig = asRecord(credentialProviders[legacyId]);
+    const options = asRecord(legacyConfig.options);
+    const apiKey = typeof options.apiKey === "string" ? options.apiKey.trim() : "";
+    const selectedEntitled = verifiedSelection?.providerId === providerId;
+    const entitled = planKind === "start-plan" ? selectedEntitled : cacheStatus === "available" || legacyConfig.enabled === true && apiKey.length > 0;
+    const desktopCurrent = isCurrentProvider(
+      rule,
+      legacyId,
+      selectedKeys,
+      connectionSelectionsInvalid,
+      connectionSelections
+    );
+    const current = taskAccountProviderId ? providerId === taskAccountProviderId : desktopCurrent;
+    return {
+      providerId,
+      legacyId,
+      planKind,
+      accessType: rule.config?.access?.type ?? "zhipu-account",
+      entitled,
+      availability: entitled ? "available" : "unavailable",
+      current,
+      apiKey
+    };
+  });
+  const builtinRevision = zcodeBuiltinRevision(table, config2.providerBuiltinConfigFile);
+  return { officialDataRoot, officialV2Dir, settingFile, builtinRevision, entries };
+}
+function zcodeBuiltinRevision(table, sourceFile) {
+  const revision = typeof table?.revision === "number" ? table.revision : 0;
+  const sourceDigest = createHash3("sha256").update(path3.resolve(sourceFile)).digest("hex");
+  return `zcode-builtin:${revision}:${sourceDigest}`;
+}
+function currentBuiltinRegistryRevision(config2) {
+  const table = readJson(config2.providerBuiltinConfigFile);
+  return table ? zcodeBuiltinRevision(table, config2.providerBuiltinConfigFile) : null;
+}
+function accountProviderRevision(builtinRevision, providers, states) {
+  return `account:${JSON.stringify([builtinRevision, providers, states])}`;
+}
+function isCurrentProvider(rule, legacyId, selectedKeys, connectionSelectionsInvalid, connectionSelections) {
+  const access = rule.config?.access;
+  if (!access?.accountType) return false;
+  if (access.mode === "off-peak" || access.mode === "highspeed") return void 0;
+  if (connectionSelectionsInvalid) return false;
+  if (Object.prototype.hasOwnProperty.call(connectionSelections, access.accountType)) {
+    const connection = asRecord(connectionSelections[access.accountType]);
+    if (!isConnectionSelectionKind(connection.kind)) return false;
+    if (connection.kind === "team-coding-plan" && (!isNonEmptyString(connection.productId) || !isNonEmptyString(connection.organizationId) || !isNonEmptyString(connection.projectId))) {
+      return false;
+    }
+    return connection.kind === access.mode;
+  }
+  const selected = selectedKeys[access.accountType];
+  return typeof selected === "string" && (selected === legacyId || selected.endsWith(`:${legacyId}`));
+}
+function isConnectionSelectionKind(value) {
+  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan";
+}
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+function normalizePlanKind(value) {
+  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan" || value === "off-peak" || value === "highspeed" ? value : null;
+}
+function configProviderId(providerId, rule) {
+  const access = rule.config?.access;
+  if (!providerId.startsWith("account:") || !access?.accountType || !access.mode) return providerId;
+  const plan = access.mode === "individual-coding-plan" ? "coding-plan" : access.mode;
+  return `builtin:${access.accountType}-${plan}`;
+}
+function readProviderRules(table) {
+  const providerConfigRules = asRecord(asRecord(table?.config).providerConfigRules);
+  return Array.isArray(providerConfigRules.providerRules) ? providerConfigRules.providerRules : [];
+}
+function readJson(filePath) {
+  try {
+    if (!existsSync(filePath)) return null;
+    const value = JSON.parse(readFileSync2(filePath, "utf8"));
+    return isRecord2(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+function asRecord(value) {
+  return isRecord2(value) ? value : {};
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+var BIGMODEL_START_PLAN_PROVIDER_ID;
+var init_account_provider = __esm({
+  "src/runtime/account-provider.ts"() {
+    "use strict";
+    BIGMODEL_START_PLAN_PROVIDER_ID = "account:bigmodel-start-plan";
+  }
+});
+
+// src/runtime/errors.ts
+var SESSION_NOT_RESUMABLE, BridgeError;
+var init_errors = __esm({
+  "src/runtime/errors.ts"() {
+    "use strict";
+    SESSION_NOT_RESUMABLE = "session_not_resumable";
+    BridgeError = class extends Error {
+      code;
+      memberPids;
+      /** ADR-066: redacted official RPC rejections observed before this failure. */
+      rpcDiagnostics;
+      /** ADR-066: the Session bound to the rejected RPC, kept as execution evidence. */
+      sessionId;
+      constructor(code, message, options) {
+        super(message, options);
+        this.name = "BridgeError";
+        this.code = code;
+        if (options?.memberPids?.length) this.memberPids = [...new Set(options.memberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))];
+        if (options?.rpcDiagnostics?.length) this.rpcDiagnostics = options.rpcDiagnostics;
+        if (typeof options?.sessionId === "string" && options.sessionId) this.sessionId = options.sessionId;
+      }
+    };
+  }
+});
+
+// src/runtime/desktop-host-launch.ts
+import { closeSync, openSync, readSync } from "node:fs";
+import path4 from "node:path";
+function buildZCodeAppServerLaunch(zcodeEntrypoint, baseEnv) {
+  const metadata = readDesktopMetadata(zcodeEntrypoint);
+  return {
+    args: [...APP_SERVER_ARGS],
+    env: metadata === null ? { ...baseEnv } : {
+      ...baseEnv,
+      [ZCODE_APP_VERSION_ENV]: metadata.appVersion,
+      [ZCODE_BUILD_COMMIT_ID_ENV]: metadata.buildCommitId
+    }
+  };
+}
+function withOfficialHostLaunchIdentity(baseEnv, identity) {
+  const installedVersion = baseEnv[ZCODE_APP_VERSION_ENV];
+  const installedBuildCommitId = baseEnv[ZCODE_BUILD_COMMIT_ID_ENV];
+  if (installedVersion !== void 0 || installedBuildCommitId !== void 0) {
+    if (typeof installedVersion !== "string" || !VERSION_PATTERN.test(installedVersion) || typeof installedBuildCommitId !== "string" || !BUILD_COMMIT_PATTERN.test(installedBuildCommitId)) {
+      throw invalidLaunchIdentity();
+    }
+    return { ...baseEnv };
+  }
+  const productVersion = identity.productVersion.trim();
+  if (!VERSION_PATTERN.test(productVersion)) throw invalidLaunchIdentity();
+  return {
+    ...baseEnv,
+    [ZCODE_APP_VERSION_ENV]: productVersion
+  };
+}
+function readDesktopMetadata(zcodeEntrypoint) {
+  const archivePath = path4.resolve(path4.dirname(zcodeEntrypoint), "..", "app.asar");
+  let archive;
+  try {
+    archive = readAsarMetadataFiles(archivePath);
+  } catch (error62) {
+    if (isMissingFile(error62)) return null;
+    throw invalidMetadata("could not be read");
+  }
+  const packageJson = parseObject(archive.packageJson, "package.json");
+  const buildMetadata = parseObject(archive.buildMetadata, "build-meta.json");
+  const packageVersion = packageJson["version"];
+  const appVersion = buildMetadata["appVersion"];
+  const buildCommitId = buildMetadata["buildCommitId"];
+  if (typeof packageVersion !== "string" || typeof appVersion !== "string" || typeof buildCommitId !== "string") {
+    throw invalidMetadata("is missing required fields");
+  }
+  if (!VERSION_PATTERN.test(packageVersion) || !VERSION_PATTERN.test(appVersion) || !BUILD_COMMIT_PATTERN.test(buildCommitId)) {
+    throw invalidMetadata("uses an unsupported version or build commit format");
+  }
+  if (packageVersion !== appVersion) {
+    throw invalidMetadata("contains conflicting application versions");
+  }
+  return { appVersion, buildCommitId };
+}
+function readAsarMetadataFiles(archivePath) {
+  const fd = openSync(archivePath, "r");
+  try {
+    const sizeHeader = Buffer.alloc(16);
+    readExact(fd, sizeHeader, 16, 0);
+    if (sizeHeader.readUInt32LE(0) !== 4) throw new Error("invalid asar header");
+    const headerPayloadBytes = sizeHeader.readUInt32LE(4);
+    const headerBytes = sizeHeader.readUInt32LE(12);
+    if (headerBytes === 0 || headerBytes > MAX_ASAR_HEADER_BYTES || headerPayloadBytes < headerBytes) {
+      throw new Error("invalid asar header size");
+    }
+    const headerBuffer = Buffer.alloc(headerBytes);
+    readExact(fd, headerBuffer, headerBytes, 16);
+    const root = parseObject(headerBuffer, "asar header");
+    if (!isRecord3(root.files)) throw new Error("asar header file table is not an object");
+    const buildEntry = findEntry(root.files, BUILD_METADATA_PATH);
+    if (buildEntry === null) throw new Error("asar build metadata is missing");
+    const packageEntry = findEntry(root.files, ["package.json"]);
+    if (packageEntry === null) throw new Error("asar package.json is missing");
+    return {
+      packageJson: readEntry(fd, packageEntry, 8 + headerPayloadBytes),
+      buildMetadata: readEntry(fd, buildEntry, 8 + headerPayloadBytes)
+    };
+  } finally {
+    closeSync(fd);
+  }
+}
+function findEntry(root, parts) {
+  let files = root;
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (!Object.hasOwn(files, part)) return null;
+    const current = files[part];
+    if (!isRecord3(current)) throw new Error(`asar ${part} entry is not an object`);
+    if (index === parts.length - 1) return current;
+    if (!isRecord3(current.files)) throw new Error(`asar ${part} entry is not a directory`);
+    files = current.files;
+  }
+  return null;
+}
+function readEntry(fd, entry, contentOffset) {
+  const offset = asNonNegativeSafeInteger(entry.offset);
+  const size = asNonNegativeSafeInteger(entry.size);
+  if (entry.files || entry.unpacked || entry.link || offset === null || size === null || size > MAX_METADATA_BYTES || !Number.isSafeInteger(contentOffset + offset)) {
+    throw new Error("invalid asar metadata entry");
+  }
+  const output2 = Buffer.alloc(size);
+  readExact(fd, output2, output2.length, contentOffset + offset);
+  return output2;
+}
+function asNonNegativeSafeInteger(value) {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)$/u.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+function readExact(fd, target, length, position) {
+  let offset = 0;
+  while (offset < length) {
+    const read = readSync(fd, target, offset, length - offset, position + offset);
+    if (read === 0) throw new Error("unexpected end of asar file");
+    offset += read;
+  }
+}
+function parseObject(buffer, label) {
+  let parsed;
+  try {
+    parsed = JSON.parse(buffer.toString("utf8"));
+  } catch {
+    throw invalidMetadata(`${label} is not valid JSON`);
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw invalidMetadata(`${label} is not an object`);
+  }
+  return parsed;
+}
+function invalidMetadata(reason) {
+  return new BridgeError(
+    "provider_config_invalid",
+    `Installed ZCode Desktop metadata ${reason}; refusing to invent a Desktop identity.`
+  );
+}
+function invalidLaunchIdentity() {
+  return new BridgeError(
+    "provider_config_invalid",
+    "Official Host launch identity is invalid; refusing to mix Desktop, Host, or CLI versions."
+  );
+}
+function isMissingFile(error62) {
+  return typeof error62 === "object" && error62 !== null && "code" in error62 && error62.code === "ENOENT";
+}
+function isRecord3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+var ZCODE_APP_VERSION_ENV, ZCODE_BUILD_COMMIT_ID_ENV, APP_SERVER_ARGS, BUILD_METADATA_PATH, MAX_ASAR_HEADER_BYTES, MAX_METADATA_BYTES, VERSION_PATTERN, BUILD_COMMIT_PATTERN;
+var init_desktop_host_launch = __esm({
+  "src/runtime/desktop-host-launch.ts"() {
+    "use strict";
+    init_errors();
+    ZCODE_APP_VERSION_ENV = "ZCODE_APP_VERSION";
+    ZCODE_BUILD_COMMIT_ID_ENV = "ZCODE_BUILD_COMMIT_ID";
+    APP_SERVER_ARGS = ["app-server", "--stdio", "--surface", "desktop"];
+    BUILD_METADATA_PATH = ["out", "metadata", "build-meta.json"];
+    MAX_ASAR_HEADER_BYTES = 32 * 1024 * 1024;
+    MAX_METADATA_BYTES = 64 * 1024;
+    VERSION_PATTERN = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
+    BUILD_COMMIT_PATTERN = /^[0-9a-f]{8}$/u;
+  }
+});
+
+// src/runtime/node-runtime.ts
+function isSupportedNodeVersion(version2) {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/u.exec(version2);
+  if (!match) return false;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  const patch = Number(match[3]);
+  return major === 24 && minor >= 16 && patch >= 0;
+}
+var SUPPORTED_NODE_RANGE;
+var init_node_runtime = __esm({
+  "src/runtime/node-runtime.ts"() {
+    "use strict";
+    SUPPORTED_NODE_RANGE = ">=24.16.0 <25";
+  }
+});
+
+// src/runtime/paths.ts
+import { existsSync as existsSync2, readFileSync as readFileSync3 } from "node:fs";
+import path5 from "node:path";
+function resolveUserHome(env, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path5.win32 : path5.posix;
+  const homeRaw = env["HOME"]?.trim() || null;
+  const userProfileRaw = env["USERPROFILE"]?.trim() || null;
+  if (platform !== "win32") {
+    if (homeRaw) {
+      return { userHome: pathImpl.resolve(homeRaw), source: "HOME", homeRaw, homeConflict: null };
+    }
+    const fallback2 = userProfileRaw ?? options.fallbackHomeDir ?? "";
+    if (!fallback2) {
+      throw new Error("no user home directory available (HOME is empty and no fallback provided)");
+    }
+    return { userHome: pathImpl.resolve(fallback2), source: userProfileRaw ? "USERPROFILE" : "FALLBACK", homeRaw: null, homeConflict: null };
+  }
+  if (homeRaw) {
+    const rooted = isWindowsAbsolutePath(homeRaw);
+    const matchesUserProfile = userProfileRaw !== null && sameCleanPath(homeRaw, userProfileRaw, pathImpl, true);
+    if (rooted && matchesUserProfile) {
+      return { userHome: pathImpl.resolve(homeRaw), source: "HOME", homeRaw, homeConflict: null };
+    }
+    const conflict = !rooted ? "HOME is set but is not an absolute path" : userProfileRaw === null ? "HOME is set but USERPROFILE is not, so HOME cannot be verified as the current Windows user directory" : "HOME is set but does not match USERPROFILE (test or WSL directories must not override the Windows user directory)";
+    if (userProfileRaw) {
+      return { userHome: pathImpl.resolve(userProfileRaw), source: "USERPROFILE", homeRaw, homeConflict: conflict };
+    }
+    const fallback2 = options.fallbackHomeDir;
+    if (!fallback2) {
+      throw new Error("no Windows user directory available (HOME is invalid and no USERPROFILE or fallback provided)");
+    }
+    return { userHome: pathImpl.resolve(fallback2), source: "FALLBACK", homeRaw, homeConflict: conflict };
+  }
+  if (userProfileRaw) {
+    return { userHome: pathImpl.resolve(userProfileRaw), source: "USERPROFILE", homeRaw: null, homeConflict: null };
+  }
+  const fallback = options.fallbackHomeDir;
+  if (!fallback) {
+    throw new Error("no Windows user directory available (HOME and USERPROFILE are unset and no fallback provided)");
+  }
+  return { userHome: pathImpl.resolve(fallback), source: "FALLBACK", homeRaw: null, homeConflict: null };
+}
+function discoverZCodeData(env, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path5.win32 : path5.posix;
+  const readFile2 = options.readFile ?? ((filePath) => readFileSync3(filePath, "utf8"));
+  const fileExists = options.fileExists ?? existsSync2;
+  const home = resolveUserHome(env, options);
+  const settingFile = pathImpl.join(home.userHome, ".zcode", "v2", "setting.json");
+  let settingStatus = "ok";
+  let settingError = null;
+  let configuredDataBaseDir = null;
+  if (!fileExists(settingFile)) {
+    settingStatus = "absent";
+  } else {
+    let text;
+    try {
+      text = readFile2(settingFile);
+    } catch (error62) {
+      settingStatus = isPermissionDeniedCode(error62) ? "permission_denied" : "unreadable";
+      settingError = error62 instanceof Error ? error62.message : String(error62);
+      text = "";
+    }
+    if (settingStatus === "ok") {
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (error62) {
+        settingStatus = "invalid_json";
+        settingError = error62 instanceof Error ? error62.message : String(error62);
+      }
+      if (settingStatus === "ok") {
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          settingStatus = "invalid_shape";
+          settingError = "setting.json must contain a JSON object";
+        } else {
+          const raw = parsed["dataBaseDir"];
+          if (raw === void 0 || raw === null) {
+          } else if (typeof raw !== "string") {
+            settingStatus = "invalid_shape";
+            settingError = "dataBaseDir must be a string when present";
+          } else {
+            const trimmed = raw.trim();
+            if (trimmed && isAbsolutePathForPlatform(trimmed, platform)) {
+              configuredDataBaseDir = pathImpl.resolve(trimmed);
+            } else if (trimmed) {
+              settingError = "dataBaseDir is a relative path and was ignored";
+            }
+          }
+        }
+      }
+    }
+  }
+  const dataBaseDir = configuredDataBaseDir ?? home.userHome;
+  return {
+    userHome: home.userHome,
+    settingFile,
+    settingStatus,
+    settingError,
+    configuredDataBaseDir,
+    dataBaseDir,
+    dataBaseDirSource: configuredDataBaseDir ? "setting.json" : "default",
+    zcodeDataDir: pathImpl.join(dataBaseDir, ".zcode"),
+    zcodeV2Dir: pathImpl.join(dataBaseDir, ".zcode", "v2"),
+    migrated: configuredDataBaseDir !== null
+  };
+}
+function isWindowsAbsolutePath(value) {
+  return /^[A-Za-z]:[\\/]/u.test(value) || /^\/\/[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value) || /^\\\\[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value);
+}
+function isAbsolutePathForPlatform(value, platform = process.platform) {
+  return platform === "win32" ? isWindowsAbsolutePath(value) : path5.isAbsolute(value);
+}
+function isPermissionDeniedCode(error62) {
+  const code = error62?.code;
+  return code === "EACCES" || code === "EPERM";
+}
+function discoverZCodeInstall(env, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path5.win32 : path5.posix;
+  const fileExists = options.fileExists ?? existsSync2;
+  const requireBuiltin = options.requireBuiltin ?? true;
+  const roots = [];
+  const explicit = env["ZCODE_WINDOWS_APP_INSTALL_DIR"]?.trim();
+  if (explicit) roots.push({ root: explicit, source: "ZCODE_WINDOWS_APP_INSTALL_DIR" });
+  const localAppData = env["LOCALAPPDATA"]?.trim();
+  if (localAppData) roots.push({ root: pathImpl.join(localAppData, "Programs", "ZCode"), source: "LOCALAPPDATA" });
+  const programFiles = env["ProgramFiles"]?.trim() ?? env["PROGRAMFILES"]?.trim();
+  if (programFiles) roots.push({ root: pathImpl.join(programFiles, "ZCode"), source: "ProgramFiles" });
+  const candidates = roots.map(({ root, source }) => ({
+    root,
+    source,
+    runtimeExists: fileExists(pathImpl.join(root, "resources", "glm", "zcode.cjs")),
+    builtinExists: fileExists(pathImpl.join(root, "resources", "config", "provider", "zcode-builtin.json"))
+  }));
+  for (const candidate of candidates) {
+    if (!candidate.runtimeExists) continue;
+    if (requireBuiltin && !candidate.builtinExists) continue;
+    return {
+      installDir: candidate.root,
+      source: candidate.source,
+      zcodeEntrypoint: pathImpl.join(candidate.root, "resources", "glm", "zcode.cjs"),
+      builtinConfigFile: requireBuiltin || candidate.builtinExists ? pathImpl.join(candidate.root, "resources", "config", "provider", "zcode-builtin.json") : null,
+      candidates
+    };
+  }
+  return { installDir: null, source: null, zcodeEntrypoint: null, builtinConfigFile: null, candidates };
+}
+function builtinConfigForRuntime(zcodeEntrypoint, platform = process.platform) {
+  const pathImpl = platform === "win32" ? path5.win32 : path5.posix;
+  const resourcesDir = pathImpl.dirname(pathImpl.dirname(zcodeEntrypoint));
+  return pathImpl.join(resourcesDir, "config", "provider", "zcode-builtin.json");
+}
+function sameFileSystemPath(left, right, platform = process.platform) {
+  const pathImpl = platform === "win32" ? path5.win32 : path5.posix;
+  return sameCleanPath(left, right, pathImpl, platform === "win32");
+}
+function sameCleanPath(left, right, pathImpl, caseInsensitive) {
+  const cleanLeft = pathImpl.normalize(left);
+  const cleanRight = pathImpl.normalize(right);
+  return caseInsensitive ? cleanLeft.toLowerCase() === cleanRight.toLowerCase() : cleanLeft === cleanRight;
+}
+var init_paths = __esm({
+  "src/runtime/paths.ts"() {
+    "use strict";
+  }
+});
+
+// src/runtime/official-builtin-registry.ts
+import { createHash as createHash4 } from "node:crypto";
+import { lstat as nodeLstat, readFile as nodeReadFile } from "node:fs/promises";
+import { realpath as nodeRealpath } from "node:fs/promises";
+import path6 from "node:path";
+function forwardOfficialEndpointEnv(target, source) {
+  for (const key of OFFICIAL_ENDPOINT_ENV_KEYS) {
+    const value = source[key];
+    if (value !== void 0) target[key] = value;
+  }
+  return target;
+}
+async function isOfficialBuiltinRegistryPin(explicitBuiltin, bundledPath) {
+  const explicit = explicitBuiltin?.trim() || null;
+  if (!explicit || !bundledPath) return false;
+  const [explicitCanonical, bundledCanonical] = await Promise.all([canonicalPath(explicit), canonicalPath(bundledPath)]);
+  return !sameFileSystemPath(explicitCanonical, bundledCanonical);
+}
+async function canonicalPath(filePath) {
+  try {
+    return await nodeRealpath(filePath);
+  } catch {
+    return path6.resolve(filePath);
+  }
+}
+function officialEndpointOrigin(env = process.env) {
+  const configured = (key) => {
+    const value = env[key]?.trim();
+    return value || void 0;
+  };
+  const test = env["ZCODE_ENV"]?.trim().toLowerCase() === "test";
+  const base = configured("ZCODE_BASE_URL") ?? configured("ZCODE_ENDPOINT_ORIGIN") ?? (test ? configured("ZCODE_TEST_BASE_URL") : configured("ZCODE_PRODUCTION_BASE_URL"));
+  if (!base) return test ? OFFICIAL_TEST_ENDPOINT_ORIGIN : OFFICIAL_PRODUCTION_ENDPOINT_ORIGIN;
+  const url2 = new URL(base);
+  if (url2.protocol !== "http:" && url2.protocol !== "https:") {
+    throw new Error("ZCode endpoint origin must use http or https");
+  }
+  return url2.origin;
+}
+function officialClientPlatform(platform = process.platform, architecture = process.arch) {
+  const operatingSystem = platform === "win32" ? "windows" : platform;
+  const arch = architecture === "arm64" ? "aarch64" : architecture === "x64" ? "x86_64" : architecture;
+  return `${operatingSystem}-${arch}`;
+}
+function officialDesktopAppVersion(zcodeEntrypoint) {
+  try {
+    return buildZCodeAppServerLaunch(zcodeEntrypoint, {}).env["ZCODE_APP_VERSION"] ?? null;
+  } catch {
+    return null;
+  }
+}
+function officialRuntimeRegistryPath(input2) {
+  const appVersion = input2.appVersion?.trim() || null;
+  if (!appVersion || !path6.isAbsolute(input2.dataBaseDir)) return null;
+  try {
+    registrySegment(appVersion, "appVersion");
+    const platform = registrySegment(
+      officialClientPlatform(input2.platform, input2.architecture),
+      "platform"
+    );
+    const origin = officialEndpointOrigin(input2.env);
+    const endpointKey = `endpoint-${createHash4("sha256").update(origin).digest("hex").slice(0, 32)}`;
+    return path6.join(
+      input2.dataBaseDir,
+      ".zcode",
+      "v2",
+      "runtime",
+      "provider",
+      platform,
+      appVersion,
+      endpointKey,
+      "zcode-builtin.json"
+    );
+  } catch {
+    return null;
+  }
+}
+async function selectOfficialBuiltinRegistry(input2) {
+  const readFile2 = input2.readFile ?? ((filePath) => nodeReadFile(filePath, "utf8"));
+  const lstat3 = input2.lstat ?? ((filePath) => nodeLstat(filePath));
+  const bundled = (status, revision = null) => ({
+    path: input2.bundledPath,
+    source: "bundled",
+    bundledPath: input2.bundledPath,
+    revision,
+    runtimePath: input2.runtimePath,
+    runtimeStatus: status
+  });
+  if (!input2.runtimePath) return bundled("unresolved");
+  let stat;
+  try {
+    stat = await lstat3(input2.runtimePath);
+  } catch {
+    return bundled("not_found");
+  }
+  if (!stat.isFile() || stat.isSymbolicLink()) return bundled("invalid");
+  let runtime;
+  try {
+    runtime = decodeRegistry(await readFile2(input2.runtimePath));
+  } catch {
+    runtime = null;
+  }
+  if (!runtime) return bundled("invalid");
+  return runtimeSelected();
+  function runtimeSelected() {
+    return {
+      path: input2.runtimePath,
+      source: "runtime",
+      bundledPath: input2.bundledPath,
+      revision: runtime.revision,
+      runtimePath: input2.runtimePath,
+      runtimeStatus: "selected"
+    };
+  }
+}
+function registrySegment(value, label) {
+  if (!value || value === "." || value === ".." || /[\\/]/u.test(value)) {
+    throw new Error(`ZCode Built-in ${label} is not a valid path segment`);
+  }
+  return value;
+}
+function decodeRegistry(text) {
+  if (Buffer.byteLength(text, "utf8") > MAX_REGISTRY_BYTES) throw new Error("registry too large");
+  const value = JSON.parse(text);
+  if (!isRecord4(value) || !hasExactKeys2(value, ["schemaVersion", "revision", "config"]) || value.schemaVersion !== 1) {
+    throw new Error("unsupported registry schema");
+  }
+  const revision = value.revision;
+  if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0) {
+    throw new Error("invalid registry revision");
+  }
+  const config2 = value.config;
+  if (!isRecord4(config2) || !hasExactKeys2(config2, ["providerConfigRules", "modelConfigRules"]) || !isRecord4(config2.providerConfigRules) || !isRecord4(config2.modelConfigRules)) {
+    throw new Error("invalid registry config");
+  }
+  const providerRules = config2.providerConfigRules.providerRules;
+  if (Array.isArray(providerRules) && providerRules.some((rule) => isRecord4(rule) && rule.providerId === OBSERVED_RETIRED_PROVIDER_ID)) {
+    throw new Error("registry contains a retired provider");
+  }
+  if (isRecord4(providerRules) && Object.hasOwn(providerRules, OBSERVED_RETIRED_PROVIDER_ID)) {
+    throw new Error("registry contains a retired provider");
+  }
+  return { revision };
+}
+function hasExactKeys2(value, expected) {
+  const keys = Object.keys(value);
+  return keys.length === expected.length && expected.every((key) => Object.hasOwn(value, key));
+}
+function isRecord4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+var OFFICIAL_PRODUCTION_ENDPOINT_ORIGIN, OFFICIAL_TEST_ENDPOINT_ORIGIN, OFFICIAL_ENDPOINT_ENV_KEYS, MAX_REGISTRY_BYTES, OBSERVED_RETIRED_PROVIDER_ID;
+var init_official_builtin_registry = __esm({
+  "src/runtime/official-builtin-registry.ts"() {
+    "use strict";
+    init_desktop_host_launch();
+    init_paths();
+    OFFICIAL_PRODUCTION_ENDPOINT_ORIGIN = "https://zcode.z.ai";
+    OFFICIAL_TEST_ENDPOINT_ORIGIN = "https://zcode.chatglm.site";
+    OFFICIAL_ENDPOINT_ENV_KEYS = Object.freeze([
+      "ZCODE_ENV",
+      "ZCODE_BASE_URL",
+      "ZCODE_ENDPOINT_ORIGIN",
+      "ZCODE_PRODUCTION_BASE_URL",
+      "ZCODE_TEST_BASE_URL"
+    ]);
+    MAX_REGISTRY_BYTES = 8 * 1024 * 1024;
+    OBSERVED_RETIRED_PROVIDER_ID = "builtin:zapi";
+  }
+});
+
+// src/runtime/official-runtime-authorization.ts
+import { createHash as createHash5 } from "node:crypto";
+function computeOfficialInstallationFingerprint(input2) {
+  const normalized = {
+    schema_version: 1,
+    desktop_version: input2.desktop_version,
+    desktop_app_version: input2.desktop_app_version,
+    desktop_build_commit_id: input2.desktop_build_commit_id,
+    desktop_executable: {
+      bytes: input2.desktop_executable_bytes,
+      sha256: input2.desktop_executable_sha256.toLowerCase()
+    },
+    desktop_archive: {
+      bytes: input2.desktop_archive_bytes,
+      sha256: input2.desktop_archive_sha256.toLowerCase()
+    },
+    appserver_bundle: {
+      bytes: input2.bundle_bytes,
+      sha256: input2.bundle_sha256.toLowerCase()
+    },
+    builtin_provider_config: {
+      bytes: input2.builtin_provider_config_bytes,
+      sha256: input2.builtin_provider_config_sha256.toLowerCase()
+    },
+    runtime_host: {
+      bytes: input2.runtime_host_bytes,
+      sha256: input2.runtime_host_sha256.toLowerCase()
+    },
+    signers: {
+      desktop: input2.desktop_signer_thumbprint.replace(/[^0-9A-F]/giu, "").toUpperCase(),
+      runtime_host: input2.runtime_host_signer_thumbprint.replace(/[^0-9A-F]/giu, "").toUpperCase()
+    },
+    node_version: input2.node_version
+  };
+  return createHash5("sha256").update(JSON.stringify(normalized), "utf8").digest("hex");
+}
+var init_official_runtime_authorization = __esm({
+  "src/runtime/official-runtime-authorization.ts"() {
+    "use strict";
+  }
+});
+
+// src/runtime/resolver.ts
+var resolver_exports = {};
+__export(resolver_exports, {
+  NodeRuntimeResolver: () => NodeRuntimeResolver,
+  findPackageRoot: () => findPackageRoot,
+  loadPersistedRuntimeEnvironment: () => loadPersistedRuntimeEnvironment
+});
+import { accessSync, existsSync as existsSync3, readFileSync as readFileSync4, statSync } from "node:fs";
+import { homedir as homedir2 } from "node:os";
+import path7 from "node:path";
+import { fileURLToPath } from "node:url";
+function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
+  validateHostProfile(host);
+  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path7.join(directory, "runtime-config.json"));
+  const legacyDataRoot = source["ZCODE_BRIDGE_DATA_DIR"]?.trim();
+  if (legacyDataRoot && path7.isAbsolute(legacyDataRoot)) {
+    settingsPaths.push(path7.join(legacyDataRoot, "runtime-config.json"));
+  }
+  let parsed = null;
+  const seenPaths = /* @__PURE__ */ new Set();
+  for (const settingsPath of settingsPaths) {
+    const normalized = path7.resolve(settingsPath);
+    const identity = process.platform === "win32" ? normalized.toLocaleLowerCase("en-US") : normalized;
+    if (seenPaths.has(identity)) continue;
+    seenPaths.add(identity);
+    try {
+      if (statSync(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
+      const candidate = JSON.parse(readFileSync4(normalized, "utf8"));
+      if (isPlainObject(candidate)) {
+        parsed = candidate;
+        break;
+      }
+      throw new Error("runtime settings must be an object");
+    } catch (error62) {
+      if (error62.code === "ENOENT") continue;
+      throw new BridgeError("provider_config_invalid", `invalid Bridge runtime settings: ${normalized}`, { cause: error62 });
+    }
+  }
+  if (!parsed) return { ...source };
+  const env = { ...source };
+  for (const key of PERSISTED_RUNTIME_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
+    const value = parsed[key];
+    if (typeof value === "string") env[key] = value.trim();
+    else if (value === null) env[key] = "";
+    else throw new BridgeError("provider_config_invalid", `Bridge runtime setting ${key} must be a string or null`);
+  }
+  return env;
+}
+function resolveZcodeHome(env) {
+  const configured = env["ZCODE_HOME"]?.trim();
+  if (!configured) return null;
+  if (!isAbsolutePathForPlatform(configured)) {
+    throw new BridgeError("provider_config_invalid", "ZCODE_HOME must be an absolute path");
+  }
+  const resolved = path7.normalize(configured);
+  if (path7.basename(resolved).toLowerCase() !== ".zcode") {
+    throw new BridgeError(
+      "provider_config_invalid",
+      "ZCODE_HOME must name a .zcode directory so app-server can use the same data root"
+    );
+  }
+  try {
+    if (!statSync(resolved).isDirectory()) {
+      throw new BridgeError("provider_config_invalid", `ZCODE_HOME is not a directory: ${resolved}`);
+    }
+  } catch (error62) {
+    if (error62 instanceof BridgeError) throw error62;
+    throw new BridgeError("provider_config_missing", `ZCODE_HOME directory does not exist: ${resolved}`);
+  }
+  return resolved;
+}
+function samePath(left, right) {
+  const resolvedLeft = path7.resolve(left);
+  const resolvedRight = path7.resolve(right);
+  return process.platform === "win32" ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase() : resolvedLeft === resolvedRight;
+}
+function isReadableFile(filePath) {
+  try {
+    if (!existsSync3(filePath) || !statSync(filePath).isFile()) return false;
+    accessSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function findPackageRoot(startDir) {
+  let current = startDir ?? path7.dirname(fileURLToPath(import.meta.url));
+  for (let depth = 0; depth < 10; depth++) {
+    if (existsSync3(path7.join(current, "package.json")) || existsSync3(path7.join(current, "plugin.json")) && existsSync3(path7.join(current, "dist")) && existsSync3(path7.join(current, "worker"))) {
+      return current;
+    }
+    const parent = path7.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  throw new Error(
+    `Cannot locate the Bridge package root (no package.json or installed plugin markers above ${startDir ?? "module directory"})`
+  );
+}
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function isNonEmptyCollection(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (isPlainObject(value)) return Object.keys(value).length > 0;
+  return false;
+}
+function errorText(error62) {
+  const message = error62 instanceof Error ? error62.message : String(error62);
+  return message.length > 300 ? `${message.slice(0, 300)}\u2026` : message;
+}
+var PERSISTED_RUNTIME_KEYS, NodeRuntimeResolver;
+var init_resolver = __esm({
+  "src/runtime/resolver.ts"() {
+    "use strict";
+    init_account_provider();
+    init_errors();
+    init_official_builtin_registry();
+    init_paths();
+    init_host_profile();
+    PERSISTED_RUNTIME_KEYS = [
+      "ZCODE_BRIDGE_NODE",
+      "ZCODE_BRIDGE_ZCODE_CJS",
+      "ZCODE_BRIDGE_DATA_DIR",
+      "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE",
+      "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE",
+      "ZCODE_HOME",
+      "ZCODE_DATA_BASE_DIR",
+      "ZCODE_WINDOWS_APP_INSTALL_DIR",
+      "ZCODE_BRIDGE_DEFAULT_PROVIDER_ID",
+      "ZCODE_BRIDGE_DEFAULT_MODEL_ID",
+      "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
+      "ZCODE_BRIDGE_PREFER_STARTPLAN",
+      "ZCODE_BRIDGE_MODE",
+      "ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS",
+      "ZCODE_BRIDGE_TIMEOUT_MS",
+      "ZCODE_BRIDGE_BROWSER_USE",
+      "ZCODE_BRIDGE_BROWSER_EXECUTABLE",
+      "ZCODE_BRIDGE_AUTO_WAKE",
+      "ZCODE_BRIDGE_TASK_CONSOLE"
+    ];
+    NodeRuntimeResolver = class {
+      #env;
+      #homeDir;
+      #packageRoot;
+      #host;
+      #onBuiltinRegistrySelection;
+      constructor(options = {}) {
+        this.#env = options.env ?? process.env;
+        this.#homeDir = options.homeDir ?? homedir2();
+        this.#packageRoot = options.packageRoot ?? null;
+        this.#host = validateHostProfile(options.host ?? codexHostProfile(this.#homeDir));
+        this.#onBuiltinRegistrySelection = options.onBuiltinRegistrySelection;
+      }
+      async resolve() {
+        const env = loadPersistedRuntimeEnvironment(this.#env, this.#homeDir, this.#host);
+        const data = discoverZCodeData(env, { fallbackHomeDir: this.#homeDir });
+        const zcodeHome = resolveZcodeHome(env);
+        const explicitDataBaseDir = env["ZCODE_DATA_BASE_DIR"]?.trim() || null;
+        if (explicitDataBaseDir && !isAbsolutePathForPlatform(explicitDataBaseDir)) {
+          throw new BridgeError("provider_config_invalid", "ZCODE_DATA_BASE_DIR must be an absolute path");
+        }
+        if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path7.dirname(zcodeHome), explicitDataBaseDir)) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `ZCODE_HOME (${zcodeHome}) and ZCODE_DATA_BASE_DIR (${explicitDataBaseDir}) conflict; ZCODE_HOME must name <ZCODE_DATA_BASE_DIR>/.zcode. Fix one of them instead of relying on silent selection.`
+          );
+        }
+        let nodeExecutable = "node";
+        const nodeOverride = env["ZCODE_BRIDGE_NODE"]?.trim();
+        if (nodeOverride) {
+          this.#assertReadableFile(
+            nodeOverride,
+            "ZCODE_BRIDGE_NODE is set but is not a readable file"
+          );
+          nodeExecutable = nodeOverride;
+        }
+        const builtinEnv = env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() || null;
+        const personalEnv = env["ZCODE_PERSONAL_PROVIDER_CONFIG_FILE"]?.trim() || null;
+        let zcodeEntrypoint;
+        let explicitRuntime = false;
+        const entryOverride = env["ZCODE_BRIDGE_ZCODE_CJS"]?.trim();
+        if (entryOverride) {
+          this.#assertReadableFile(
+            entryOverride,
+            "ZCODE_BRIDGE_ZCODE_CJS is set but is not a readable file"
+          );
+          zcodeEntrypoint = entryOverride;
+          explicitRuntime = true;
+        } else {
+          const install = discoverZCodeInstall(env, { requireBuiltin: !builtinEnv });
+          if (!install.zcodeEntrypoint) {
+            throw new BridgeError(
+              "runtime_not_found",
+              `zcode.cjs${builtinEnv ? "" : " with a same-install zcode-builtin.json"} was not found; searched: ` + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
+            );
+          }
+          zcodeEntrypoint = install.zcodeEntrypoint;
+        }
+        let builtinConfigFile;
+        let personalConfigFile;
+        if (builtinEnv && personalEnv) {
+          this.#validateBuiltinConfig(builtinEnv);
+          this.#validatePersonalConfig(personalEnv);
+          builtinConfigFile = builtinEnv;
+          personalConfigFile = personalEnv;
+        } else {
+          if (builtinEnv) {
+            this.#validateBuiltinConfig(builtinEnv);
+            builtinConfigFile = builtinEnv;
+          } else if (explicitRuntime) {
+            const derived2 = builtinConfigForRuntime(zcodeEntrypoint);
+            if (!isReadableFile(derived2)) {
+              throw new BridgeError(
+                "provider_config_missing",
+                `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and the builtin config was not found next to the configured runtime; expected: ${derived2}`
+              );
+            }
+            this.#validateBuiltinConfig(derived2);
+            builtinConfigFile = derived2;
+          } else {
+            const install = discoverZCodeInstall(env, { requireBuiltin: true });
+            if (!install.builtinConfigFile) {
+              throw new BridgeError(
+                "provider_config_missing",
+                "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and no builtin provider config was found in the ZCode installation; searched: " + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
+              );
+            }
+            this.#validateBuiltinConfig(install.builtinConfigFile);
+            builtinConfigFile = install.builtinConfigFile;
+          }
+          if (personalEnv) {
+            this.#validatePersonalConfig(personalEnv);
+            personalConfigFile = personalEnv;
+          } else {
+            const candidates = zcodeHome ? [path7.join(zcodeHome, "v2", "provider_config.json")] : [
+              explicitDataBaseDir,
+              data.configuredDataBaseDir,
+              data.userHome
+            ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path7.join(base, ".zcode", "v2", "provider_config.json"));
+            const existing = candidates.filter((candidate) => existsSync3(candidate));
+            if (existing.length === 0) {
+              throw new BridgeError(
+                "provider_config_missing",
+                "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE is not set and no personal provider config exists at any of: " + candidates.join(", ")
+              );
+            }
+            let accepted = null;
+            let lastError = null;
+            for (const candidate of existing) {
+              try {
+                this.#validatePersonalConfig(candidate);
+                accepted = candidate;
+                break;
+              } catch (error62) {
+                lastError = error62 instanceof Error ? error62.message : String(error62);
+              }
+            }
+            if (!accepted) {
+              throw new BridgeError(
+                "provider_config_invalid",
+                `No usable personal provider config among: ${existing.join(", ")}; last validation failure: ${lastError ?? "unknown"}`
+              );
+            }
+            personalConfigFile = accepted;
+          }
+        }
+        if (zcodeHome && !samePath(personalConfigFile, path7.join(zcodeHome, "v2", "provider_config.json"))) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE must be ZCODE_HOME/v2/provider_config.json (${zcodeHome})`
+          );
+        }
+        builtinConfigFile = await this.#selectBuiltinRegistry(
+          builtinConfigFile,
+          zcodeEntrypoint,
+          personalConfigFile,
+          env
+        );
+        const dataOverride = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
+        let dataRoot;
+        if (dataOverride) {
+          if (!path7.isAbsolute(dataOverride)) {
+            throw new Error(
+              `ZCODE_BRIDGE_DATA_DIR must be an absolute path when set, got: ${dataOverride}`
+            );
+          }
+          dataRoot = path7.normalize(dataOverride);
+        } else {
+          dataRoot = this.#packageRoot ?? findPackageRoot();
+        }
+        return {
+          nodeExecutable,
+          zcodeEntrypoint,
+          providerBuiltinConfigFile: builtinConfigFile,
+          providerPersonalConfigFile: personalConfigFile,
+          zcodeDataRoot: data.zcodeDataDir,
+          dataRoot
+        };
+      }
+      #assertReadableFile(filePath, label) {
+        if (!isReadableFile(filePath)) {
+          throw new BridgeError("runtime_not_found", `${label}: ${filePath}`);
+        }
+      }
+      /**
+       * ADR-066: the installation's own bundled file is the default, not a pin.
+       * Values left by older installers therefore follow the official runtime
+       * registry; any other explicit path stays untouched.
+       */
+      async #selectBuiltinRegistry(builtinConfigFile, zcodeEntrypoint, personalConfigFile, env) {
+        if (await isOfficialBuiltinRegistryPin(builtinConfigFile, builtinConfigForRuntime(zcodeEntrypoint))) {
+          return builtinConfigFile;
+        }
+        const dataBaseDir = zcodeDataBaseDir(personalConfigFile);
+        const appVersion = dataBaseDir ? officialDesktopAppVersion(zcodeEntrypoint) : null;
+        const runtimePath = dataBaseDir && appVersion ? officialRuntimeRegistryPath({ dataBaseDir, appVersion, env }) : null;
+        const selection = await selectOfficialBuiltinRegistry({ bundledPath: builtinConfigFile, runtimePath });
+        try {
+          this.#onBuiltinRegistrySelection?.(selection);
+        } catch {
+        }
+        if (selection.source !== "runtime") return builtinConfigFile;
+        this.#validateBuiltinConfig(selection.path);
+        return selection.path;
+      }
+      /**
+       * Structure validation only. The verified differential signal for the
+       * CLI-created stub is an empty providerRules map (see docs/ZCODE_RUNTIME.md);
+       * rejecting it implements "never silently select a known stub".
+       */
+      #validatePersonalConfig(filePath) {
+        const parsed = this.#readJsonConfig(filePath, "personal provider config");
+        const config2 = parsed["config"];
+        if (!isPlainObject(config2)) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `Personal provider config has no config object: ${filePath}`
+          );
+        }
+        const providerConfigRules = config2["providerConfigRules"];
+        const rules = isPlainObject(providerConfigRules) ? providerConfigRules["providerRules"] : void 0;
+        if (!isNonEmptyCollection(rules)) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `Personal provider config contains no provider rules (this matches the known CLI-created stub shape): ${filePath}`
+          );
+        }
+      }
+      #validateBuiltinConfig(filePath) {
+        const parsed = this.#readJsonConfig(filePath, "builtin provider config");
+        if (!isPlainObject(parsed["config"])) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `Builtin provider config has no config object: ${filePath}`
+          );
+        }
+      }
+      #readJsonConfig(filePath, label) {
+        if (!isReadableFile(filePath)) {
+          throw new BridgeError("provider_config_missing", `${label} not found: ${filePath}`);
+        }
+        let text;
+        try {
+          text = readFileSync4(filePath, "utf8");
+        } catch (error62) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `${label} is not readable: ${filePath} (${errorText(error62)})`
+          );
+        }
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch (error62) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `${label} is not valid JSON: ${filePath}`
+          );
+        }
+        if (!isPlainObject(parsed)) {
+          throw new BridgeError("provider_config_invalid", `${label} is not a JSON object: ${filePath}`);
+        }
+        return parsed;
+      }
+    };
+  }
+});
+
+// src/runtime/official-app-server-runtime.ts
+var official_app_server_runtime_exports = {};
+__export(official_app_server_runtime_exports, {
+  OFFICIAL_APPSERVER_COMPATIBILITY_MANIFEST: () => OFFICIAL_APPSERVER_COMPATIBILITY_MANIFEST,
+  OFFICIAL_CODING_PLAN_PROVIDER_ID: () => OFFICIAL_CODING_PLAN_PROVIDER_ID,
+  OfficialAppServerRuntimeResolver: () => OfficialAppServerRuntimeResolver,
+  isOfficialCodingPlanProvider: () => isOfficialCodingPlanProvider
+});
+import { createHash as createHash6 } from "node:crypto";
+import { execFile } from "node:child_process";
+import { closeSync as closeSync2, createReadStream, openSync as openSync2, readSync as readSync2 } from "node:fs";
+import { lstat, realpath } from "node:fs/promises";
+import { homedir as homedir3 } from "node:os";
+import path8 from "node:path";
+import { promisify } from "node:util";
+function isOfficialCodingPlanProvider(providerId) {
+  return providerId === OFFICIAL_CODING_PLAN_PROVIDER_ID || providerId === "bigmodel-individual-coding-plan" || providerId === "builtin:bigmodel-coding-plan";
+}
+function unverified(reason, nodeExecutable, details = {}) {
+  return {
+    status: "OFFICIAL_RUNTIME_UNVERIFIED",
+    installation_safety: details.installation_safety ?? "OFFICIAL_INSTALLATION_INCOMPLETE",
+    installation_fingerprint: details.installation_fingerprint ?? null,
+    discount_capability: "OFFICIAL_DISCOUNT_NOT_VERIFIED",
+    start_plan_static_compatibility: null,
+    reason,
+    install_dir: details.install_dir ?? null,
+    install_source: details.install_source ?? null,
+    desktop_version: details.desktop_version ?? null,
+    desktop_app_version: details.desktop_app_version ?? null,
+    desktop_build_commit_id: details.desktop_build_commit_id ?? null,
+    bundle_path: details.bundle_path ?? null,
+    bundle_bytes: details.bundle_bytes ?? null,
+    bundle_sha256: details.bundle_sha256 ?? null,
+    builtin_provider_config_path: details.builtin_provider_config_path ?? null,
+    builtin_provider_config_bytes: details.builtin_provider_config_bytes ?? null,
+    builtin_provider_config_sha256: details.builtin_provider_config_sha256 ?? null,
+    active_builtin_provider_config_path: details.active_builtin_provider_config_path ?? null,
+    active_builtin_provider_config_source: details.active_builtin_provider_config_source ?? null,
+    active_builtin_provider_config_revision: details.active_builtin_provider_config_revision ?? null,
+    runtime_host_path: details.runtime_host_path ?? null,
+    runtime_host_bytes: details.runtime_host_bytes ?? null,
+    runtime_host_sha256: details.runtime_host_sha256 ?? null,
+    runtime_host_signer_subject: details.runtime_host_signer_subject ?? null,
+    runtime_host_signer_thumbprint: details.runtime_host_signer_thumbprint ?? null,
+    desktop_executable_path: details.desktop_executable_path ?? null,
+    desktop_executable_bytes: details.desktop_executable_bytes ?? null,
+    desktop_executable_sha256: details.desktop_executable_sha256 ?? null,
+    desktop_executable_signer_subject: details.desktop_executable_signer_subject ?? null,
+    desktop_executable_signer_thumbprint: details.desktop_executable_signer_thumbprint ?? null,
+    desktop_archive_path: details.desktop_archive_path ?? null,
+    desktop_archive_bytes: details.desktop_archive_bytes ?? null,
+    desktop_archive_sha256: details.desktop_archive_sha256 ?? null,
+    node_executable: nodeExecutable,
+    node_version: details.node_version ?? null,
+    node_compatible: details.node_compatible === true,
+    manifest: details.manifest ?? null
+  };
+}
+function unsafe(reason, nodeExecutable, details = {}) {
+  return unverified(reason, nodeExecutable, {
+    ...details,
+    installation_safety: "OFFICIAL_INSTALLATION_UNSAFE"
+  });
+}
+function executableArchitectureFailure(identity, label) {
+  if (identity.architecture !== "x64") {
+    return `OFFICIAL_INSTALLATION_UNSAFE: ${label} is not an x64 PE executable`;
+  }
+  return null;
+}
+async function inspectWindowsExecutable(filePath) {
+  const architecture = readPortableExecutableArchitecture(filePath);
+  const systemRoot = process.env["SystemRoot"]?.trim();
+  let signatureStatus = "";
+  let signerSubject = null;
+  let signerThumbprint = null;
+  if (systemRoot) {
+    try {
+      const powershell = path8.join(
+        systemRoot,
+        "System32",
+        "WindowsPowerShell",
+        "v1.0",
+        "powershell.exe"
+      );
+      const script = [
+        "$ProgressPreference = 'SilentlyContinue'",
+        "$ErrorActionPreference = 'Stop'",
+        "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)",
+        "$target = $env:ZCODE_BRIDGE_AUTHENTICODE_FILE",
+        "if ([string]::IsNullOrWhiteSpace($target)) { exit 2 }",
+        "$signature = Get-AuthenticodeSignature -LiteralPath $target",
+        "$certificate = $signature.SignerCertificate",
+        "[pscustomobject]@{",
+        "status = [string]$signature.Status;",
+        "subject = if ($null -eq $certificate) { $null } else { [string]$certificate.Subject };",
+        "thumbprint = if ($null -eq $certificate) { $null } else { [string]$certificate.Thumbprint }",
+        "} | ConvertTo-Json -Compress"
+      ].join("\n");
+      const encoded = Buffer.from(script, "utf16le").toString("base64");
+      const { stdout } = await execFileAsync(powershell, [
+        "-NoProfile",
+        "-NonInteractive",
+        "-EncodedCommand",
+        encoded
+      ], {
+        encoding: "utf8",
+        timeout: 3e4,
+        windowsHide: true,
+        env: {
+          SystemRoot: systemRoot,
+          ZCODE_BRIDGE_AUTHENTICODE_FILE: filePath
+        }
+      });
+      const parsed = JSON.parse(stdout.trim());
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const value = parsed;
+        signatureStatus = typeof value["status"] === "string" ? value["status"] : "";
+        signerSubject = typeof value["subject"] === "string" ? value["subject"] : null;
+        signerThumbprint = typeof value["thumbprint"] === "string" ? value["thumbprint"] : null;
+      }
+    } catch {
+    }
+  }
+  return {
+    architecture,
+    signature_status: signatureStatus,
+    signer_subject: signerSubject,
+    signer_thumbprint: signerThumbprint
+  };
+}
+function readPortableExecutableArchitecture(filePath) {
+  const fd = openSync2(filePath, "r");
+  try {
+    const dosHeader = Buffer.alloc(64);
+    if (readSync2(fd, dosHeader, 0, dosHeader.length, 0) !== dosHeader.length || dosHeader.toString("ascii", 0, 2) !== "MZ") {
+      return "unknown";
+    }
+    const peOffset = dosHeader.readUInt32LE(60);
+    if (!Number.isSafeInteger(peOffset) || peOffset < 64 || peOffset > 64 * 1024 * 1024) {
+      return "unknown";
+    }
+    const coffHeader = Buffer.alloc(6);
+    if (readSync2(fd, coffHeader, 0, coffHeader.length, peOffset) !== coffHeader.length || coffHeader.toString("ascii", 0, 4) !== "PE\0\0") {
+      return "unknown";
+    }
+    return coffHeader.readUInt16LE(4) === 34404 ? "x64" : "unknown";
+  } finally {
+    closeSync2(fd);
+  }
+}
+async function canonicalDirectory(candidate) {
+  const stat = await lstat(candidate);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("installed ZCode root is not a real directory");
+  return realpath(candidate);
+}
+async function canonicalFileInside(root, candidate, label) {
+  const stat = await lstat(candidate);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`${label} is not a regular file`);
+  const resolved = await realpath(candidate);
+  const relative = path8.relative(root, resolved);
+  if (!relative || relative === ".." || relative.startsWith(`..${path8.sep}`) || path8.isAbsolute(relative)) {
+    throw new Error(`${label} resolves outside the installed ZCode root`);
+  }
+  return resolved;
+}
+async function sha256File(filePath) {
+  const hash2 = createHash6("sha256");
+  await new Promise((resolve, reject) => {
+    const stream = createReadStream(filePath);
+    stream.on("data", (chunk) => hash2.update(chunk));
+    stream.once("error", reject);
+    stream.once("end", resolve);
+  });
+  return hash2.digest("hex");
+}
+async function optionalSha256(hashFile, filePath) {
+  try {
+    return await hashFile(filePath);
+  } catch {
+    return null;
+  }
+}
+async function probeNodeCliVersion(executable) {
+  const { stdout } = await execFileAsync(executable, ["--version"], {
+    encoding: "utf8",
+    timeout: 5e3,
+    windowsHide: true
+  });
+  return stdout.trim();
+}
+function normalizeNodeVersion(value) {
+  const normalized = value.trim().replace(/^v/u, "");
+  if (!/^\d+\.\d+\.\d+$/u.test(normalized)) throw new Error(`invalid Node version output: ${value.slice(0, 80)}`);
+  return normalized;
+}
+function normalizeDesktopVersion(value) {
+  const normalized = value.trim();
+  if (!/^\d+\.\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?$/u.test(normalized)) {
+    throw new Error(`invalid Desktop file version output: ${value.slice(0, 80)}`);
+  }
+  return normalized;
+}
+async function probeWindowsFileVersion(executable) {
+  const script = [
+    "$path = $env:ZCODE_BRIDGE_VERSION_FILE",
+    "if ([string]::IsNullOrWhiteSpace($path)) { exit 2 }",
+    "$version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($path).FileVersion",
+    "[Console]::Out.Write($version)"
+  ].join("; ");
+  const encoded = Buffer.from(script, "utf16le").toString("base64");
+  const systemRoot = process.env["SystemRoot"]?.trim();
+  if (!systemRoot) throw new Error("SystemRoot is unavailable for the Windows version probe");
+  const powershell = path8.join(
+    systemRoot,
+    "System32",
+    "WindowsPowerShell",
+    "v1.0",
+    "powershell.exe"
+  );
+  const { stdout } = await execFileAsync(powershell, [
+    "-NoProfile",
+    "-NonInteractive",
+    "-EncodedCommand",
+    encoded
+  ], {
+    encoding: "utf8",
+    timeout: 5e3,
+    windowsHide: true,
+    env: {
+      SystemRoot: systemRoot,
+      ZCODE_BRIDGE_VERSION_FILE: executable
+    }
+  });
+  return stdout.trim();
+}
+function errorMessage(error62) {
+  const message = error62 instanceof Error ? error62.message : String(error62);
+  return message.slice(0, 500);
+}
+var execFileAsync, OFFICIAL_CODING_PLAN_PROVIDER_ID, OFFICIAL_APPSERVER_COMPATIBILITY_MANIFEST, OfficialAppServerRuntimeResolver;
+var init_official_app_server_runtime = __esm({
+  "src/runtime/official-app-server-runtime.ts"() {
+    "use strict";
+    init_account_provider();
+    init_host_profile();
+    init_desktop_host_launch();
+    init_errors();
+    init_node_runtime();
+    init_official_builtin_registry();
+    init_paths();
+    init_official_runtime_authorization();
+    init_resolver();
+    execFileAsync = promisify(execFile);
+    OFFICIAL_CODING_PLAN_PROVIDER_ID = "account:bigmodel-individual-coding-plan";
+    OFFICIAL_APPSERVER_COMPATIBILITY_MANIFEST = Object.freeze([
+      Object.freeze({
+        desktop_version: "3.18.2.10443",
+        desktop_app_version: "3.18.2",
+        desktop_build_commit_id: "2681f4af",
+        bundle_sha256: "08726b5ef69e1e9072828baa4656713cb3aac93bb096938681278c5600312b2c",
+        bundle_bytes: 15675386,
+        builtin_provider_config_sha256: "ef3d64656cb5281cce292b77ef12e96b5251582cfb00cdf9eb08e3d4565abb69",
+        builtin_provider_config_bytes: 261659,
+        runtime_host_sha256: "c2c8ff5ff28cbddc4f177c094aa67c322830889612251bd173baaabc89379ab4",
+        runtime_host_bytes: 179608,
+        node_compatibility: SUPPORTED_NODE_RANGE,
+        appserver_protocol: "zcode-app-server-stdio-desktop-v1",
+        request_security_capability: "official-installed-bundle-signing",
+        coding_plan_discount_verified: true,
+        start_plan_static_compatibility: "OFFLINE_COMPATIBLE",
+        verification_date: "2026-11-18",
+        desktop_asset_pinning: "LEGACY_SAFETY_ONLY"
+      }),
+      Object.freeze({
+        desktop_version: "3.19.0.10774",
+        desktop_app_version: "3.19.0",
+        desktop_build_commit_id: "a7ed1054",
+        desktop_executable_sha256: "c5afb161a2d9389761d417ca668bc94311e3d2aff6ca3d0117b0b15701666f27",
+        desktop_executable_bytes: 246332312,
+        desktop_archive_sha256: "2421850970f361aaa1b3f1d6c960b101a5d476ad95631359d0413a19de1197cb",
+        desktop_archive_bytes: 385171742,
+        bundle_sha256: "6b84e928d9258fe020c6ab8c75fa2c123b0cd658fe43c0ce141a13df677fb0ea",
+        bundle_bytes: 15843692,
+        builtin_provider_config_sha256: "ef3d64656cb5281cce292b77ef12e96b5251582cfb00cdf9eb08e3d4565abb69",
+        builtin_provider_config_bytes: 261659,
+        runtime_host_sha256: "c87a9f3cf9cf920e4b5993aad69f8840a5d9bc7c0ae90b32acb29c15a1db0aae",
+        runtime_host_bytes: 179608,
+        node_compatibility: SUPPORTED_NODE_RANGE,
+        appserver_protocol: "zcode-app-server-stdio-desktop-v1",
+        request_security_capability: "identity-observed-provider-verification-pending",
+        coding_plan_discount_verified: false,
+        start_plan_static_compatibility: "OFFLINE_RESEARCH_PENDING",
+        verification_date: "2026-11-20",
+        verification_stage: "EXPERIMENTAL",
+        desktop_asset_pinning: "FULL"
+      })
+    ]);
+    OfficialAppServerRuntimeResolver = class {
+      #env;
+      #homeDir;
+      #host;
+      #baseResolver;
+      #manifest;
+      #platform;
+      #architecture;
+      #hashFile;
+      #probeNodeVersion;
+      #probeDesktopVersion;
+      #inspectExecutable;
+      #readDesktopLaunch;
+      constructor(options = {}) {
+        this.#env = options.env ?? process.env;
+        this.#homeDir = options.homeDir ?? homedir3();
+        this.#host = options.host;
+        this.#baseResolver = options.baseResolver ?? null;
+        this.#manifest = options.manifest ?? OFFICIAL_APPSERVER_COMPATIBILITY_MANIFEST;
+        this.#platform = options.platform ?? process.platform;
+        this.#architecture = options.architecture ?? process.arch;
+        this.#hashFile = options.hashFile ?? sha256File;
+        this.#probeNodeVersion = options.probeNodeVersion ?? probeNodeCliVersion;
+        this.#probeDesktopVersion = options.probeDesktopVersion ?? probeWindowsFileVersion;
+        this.#inspectExecutable = options.inspectExecutable ?? inspectWindowsExecutable;
+        this.#readDesktopLaunch = options.readDesktopLaunch ?? ((bundlePath) => buildZCodeAppServerLaunch(bundlePath, {}));
+      }
+      async inspect() {
+        let env;
+        try {
+          env = loadPersistedRuntimeEnvironment(
+            this.#env,
+            this.#homeDir,
+            this.#host ?? codexHostProfile(this.#homeDir)
+          );
+        } catch (error62) {
+          return unverified(`Bridge runtime settings could not be loaded: ${errorMessage(error62)}`, "node");
+        }
+        const nodeExecutable = env["ZCODE_BRIDGE_NODE"]?.trim() || "node";
+        if (this.#platform !== "win32" || this.#architecture !== "x64") {
+          return unverified(
+            `installed Official AppServer requires Windows x64, got ${this.#platform}/${this.#architecture}`,
+            nodeExecutable
+          );
+        }
+        const discovery = discoverZCodeInstall(env, { requireBuiltin: true });
+        if (!discovery.installDir || !discovery.zcodeEntrypoint || !discovery.builtinConfigFile) {
+          return unverified(
+            "installed ZCode Desktop AppServer with same-root builtin provider config was not found",
+            nodeExecutable
+          );
+        }
+        if (!isAbsolutePathForPlatform(discovery.installDir)) {
+          return unverified("installed ZCode path is not absolute", nodeExecutable);
+        }
+        let installDir;
+        let bundlePath;
+        let builtinPath;
+        let runtimeHostPath;
+        let desktopExecutablePath;
+        let desktopArchivePath;
+        try {
+          installDir = await canonicalDirectory(discovery.installDir);
+          bundlePath = await canonicalFileInside(
+            installDir,
+            discovery.zcodeEntrypoint,
+            "installed AppServer bundle"
+          );
+          builtinPath = await canonicalFileInside(
+            installDir,
+            discovery.builtinConfigFile,
+            "installed builtin provider config"
+          );
+          runtimeHostPath = await canonicalFileInside(
+            installDir,
+            path8.join(installDir, "resources", "tools", "runtime-host", "zcode-runtime-host.exe"),
+            "installed runtime-host"
+          );
+          desktopExecutablePath = await canonicalFileInside(
+            installDir,
+            path8.join(installDir, "ZCode.exe"),
+            "installed Desktop executable"
+          );
+          desktopArchivePath = await canonicalFileInside(
+            installDir,
+            path8.join(installDir, "resources", "app.asar"),
+            "installed Desktop archive"
+          );
+        } catch (error62) {
+          return unverified(errorMessage(error62), nodeExecutable);
+        }
+        let bundleBytes;
+        let builtinBytes;
+        let runtimeHostBytes;
+        let desktopExecutableBytes;
+        let desktopArchiveBytes;
+        try {
+          [
+            { size: bundleBytes },
+            { size: builtinBytes },
+            { size: runtimeHostBytes },
+            { size: desktopExecutableBytes },
+            { size: desktopArchiveBytes }
+          ] = await Promise.all([
+            lstat(bundlePath),
+            lstat(builtinPath),
+            lstat(runtimeHostPath),
+            lstat(desktopExecutablePath),
+            lstat(desktopArchivePath)
+          ]);
+        } catch (error62) {
+          return unverified(`could not verify installed Official runtime assets: ${errorMessage(error62)}`, nodeExecutable);
+        }
+        const [
+          bundleSha256,
+          builtinSha256,
+          runtimeHostSha256,
+          desktopExecutableSha256,
+          desktopArchiveSha256
+        ] = await Promise.all([
+          optionalSha256(this.#hashFile, bundlePath),
+          optionalSha256(this.#hashFile, builtinPath),
+          optionalSha256(this.#hashFile, runtimeHostPath),
+          optionalSha256(this.#hashFile, desktopExecutablePath),
+          optionalSha256(this.#hashFile, desktopArchivePath)
+        ]);
+        let desktopExecutableIdentity;
+        let runtimeHostIdentity;
+        try {
+          desktopExecutableIdentity = await this.#inspectExecutable(desktopExecutablePath);
+          runtimeHostIdentity = await this.#inspectExecutable(runtimeHostPath);
+        } catch (error62) {
+          return unsafe(
+            `official executable safety inspection failed: ${errorMessage(error62)}`,
+            nodeExecutable,
+            {
+              install_dir: installDir,
+              install_source: discovery.source,
+              bundle_path: bundlePath,
+              bundle_bytes: bundleBytes,
+              bundle_sha256: bundleSha256,
+              builtin_provider_config_path: builtinPath,
+              builtin_provider_config_bytes: builtinBytes,
+              builtin_provider_config_sha256: builtinSha256,
+              runtime_host_path: runtimeHostPath,
+              runtime_host_bytes: runtimeHostBytes,
+              runtime_host_sha256: runtimeHostSha256,
+              desktop_executable_path: desktopExecutablePath,
+              desktop_executable_bytes: desktopExecutableBytes,
+              desktop_executable_sha256: desktopExecutableSha256,
+              desktop_archive_path: desktopArchivePath,
+              desktop_archive_bytes: desktopArchiveBytes,
+              desktop_archive_sha256: desktopArchiveSha256
+            }
+          );
+        }
+        const unsafeExecutableReason = executableArchitectureFailure(
+          desktopExecutableIdentity,
+          "Desktop executable"
+        ) ?? executableArchitectureFailure(runtimeHostIdentity, "runtime-host");
+        if (unsafeExecutableReason) {
+          return unsafe(unsafeExecutableReason, nodeExecutable, {
+            install_dir: installDir,
+            install_source: discovery.source,
+            bundle_path: bundlePath,
+            bundle_bytes: bundleBytes,
+            bundle_sha256: bundleSha256,
+            builtin_provider_config_path: builtinPath,
+            builtin_provider_config_bytes: builtinBytes,
+            builtin_provider_config_sha256: builtinSha256,
+            runtime_host_path: runtimeHostPath,
+            runtime_host_bytes: runtimeHostBytes,
+            runtime_host_sha256: runtimeHostSha256,
+            runtime_host_signer_subject: runtimeHostIdentity.signer_subject,
+            runtime_host_signer_thumbprint: runtimeHostIdentity.signer_thumbprint,
+            desktop_executable_path: desktopExecutablePath,
+            desktop_executable_bytes: desktopExecutableBytes,
+            desktop_executable_sha256: desktopExecutableSha256,
+            desktop_executable_signer_subject: desktopExecutableIdentity.signer_subject,
+            desktop_executable_signer_thumbprint: desktopExecutableIdentity.signer_thumbprint,
+            desktop_archive_path: desktopArchivePath,
+            desktop_archive_bytes: desktopArchiveBytes,
+            desktop_archive_sha256: desktopArchiveSha256
+          });
+        }
+        let launchEnv;
+        try {
+          launchEnv = this.#readDesktopLaunch(bundlePath).env;
+        } catch {
+          launchEnv = {};
+        }
+        let desktopVersion = null;
+        try {
+          desktopVersion = normalizeDesktopVersion(await this.#probeDesktopVersion(desktopExecutablePath));
+        } catch {
+        }
+        let nodeVersion = null;
+        try {
+          nodeVersion = normalizeNodeVersion(await this.#probeNodeVersion(nodeExecutable));
+        } catch {
+        }
+        const nodeCompatible = nodeVersion !== null && isSupportedNodeVersion(nodeVersion);
+        const observedDesktopVersion = desktopVersion ?? "unavailable";
+        const observedAppVersion = launchEnv.ZCODE_APP_VERSION ?? "unavailable";
+        const observedBuildCommitId = launchEnv.ZCODE_BUILD_COMMIT_ID ?? "unavailable";
+        const registryPinned = await this.#builtinRegistryPinned(builtinPath);
+        let registry2 = null;
+        if (!registryPinned) {
+          const dataBaseDir = await this.#personalDataBaseDir();
+          const runtimePath = dataBaseDir && launchEnv.ZCODE_APP_VERSION ? officialRuntimeRegistryPath({
+            dataBaseDir,
+            appVersion: launchEnv.ZCODE_APP_VERSION,
+            env
+          }) : null;
+          registry2 = await selectOfficialBuiltinRegistry({ bundledPath: builtinPath, runtimePath });
+        }
+        const installationFingerprint = computeOfficialInstallationFingerprint({
+          desktop_version: observedDesktopVersion,
+          desktop_app_version: observedAppVersion,
+          desktop_build_commit_id: observedBuildCommitId,
+          desktop_executable_bytes: desktopExecutableBytes,
+          desktop_executable_sha256: desktopExecutableSha256 ?? "unavailable",
+          desktop_archive_bytes: desktopArchiveBytes,
+          desktop_archive_sha256: desktopArchiveSha256 ?? "unavailable",
+          bundle_bytes: bundleBytes,
+          bundle_sha256: bundleSha256 ?? "unavailable",
+          builtin_provider_config_bytes: builtinBytes,
+          builtin_provider_config_sha256: builtinSha256 ?? "unavailable",
+          runtime_host_bytes: runtimeHostBytes,
+          runtime_host_sha256: runtimeHostSha256 ?? "unavailable",
+          desktop_signer_thumbprint: desktopExecutableIdentity.signer_thumbprint ?? "",
+          runtime_host_signer_thumbprint: runtimeHostIdentity.signer_thumbprint ?? "",
+          node_version: nodeVersion ?? "unavailable"
+        });
+        const manifestCandidate = this.#manifest.find(
+          (entry) => entry.desktop_version === desktopVersion && entry.bundle_bytes === bundleBytes && bundleSha256 !== null && entry.bundle_sha256.toLowerCase() === bundleSha256.toLowerCase()
+        ) ?? null;
+        const mismatches = [];
+        if (!manifestCandidate) {
+          mismatches.push("desktop version/bundle bytes/SHA-256 are not in the compatibility manifest");
+        } else {
+          if (manifestCandidate.desktop_app_version !== observedAppVersion || manifestCandidate.desktop_build_commit_id !== observedBuildCommitId) {
+            mismatches.push("Desktop launch identity does not match the compatibility manifest");
+          }
+          if (manifestCandidate.builtin_provider_config_bytes !== builtinBytes || builtinSha256 === null || manifestCandidate.builtin_provider_config_sha256.toLowerCase() !== builtinSha256.toLowerCase()) {
+            mismatches.push("builtin provider config identity does not match the compatibility manifest");
+          }
+          if (manifestCandidate.runtime_host_bytes !== runtimeHostBytes || runtimeHostSha256 === null || manifestCandidate.runtime_host_sha256.toLowerCase() !== runtimeHostSha256.toLowerCase()) {
+            mismatches.push("runtime-host identity does not match the compatibility manifest");
+          }
+          if (manifestCandidate.desktop_executable_bytes !== void 0 && (manifestCandidate.desktop_executable_bytes !== desktopExecutableBytes || desktopExecutableSha256 === null || manifestCandidate.desktop_executable_sha256?.toLowerCase() !== desktopExecutableSha256.toLowerCase())) {
+            mismatches.push("Desktop executable identity does not match the compatibility manifest");
+          }
+          if (manifestCandidate.desktop_archive_bytes !== void 0 && (manifestCandidate.desktop_archive_bytes !== desktopArchiveBytes || desktopArchiveSha256 === null || manifestCandidate.desktop_archive_sha256?.toLowerCase() !== desktopArchiveSha256.toLowerCase())) {
+            mismatches.push("Desktop archive identity does not match the compatibility manifest");
+          }
+        }
+        const manifest = manifestCandidate && mismatches.length === 0 ? manifestCandidate : null;
+        const manifestStage = manifest?.verification_stage ?? "VERIFIED";
+        const common = {
+          install_dir: installDir,
+          install_source: discovery.source,
+          installation_safety: "OFFICIAL_INSTALLATION_SAFE",
+          installation_fingerprint: installationFingerprint,
+          desktop_version: observedDesktopVersion,
+          desktop_app_version: observedAppVersion,
+          desktop_build_commit_id: observedBuildCommitId,
+          bundle_path: bundlePath,
+          bundle_bytes: bundleBytes,
+          bundle_sha256: bundleSha256,
+          builtin_provider_config_path: builtinPath,
+          builtin_provider_config_bytes: builtinBytes,
+          builtin_provider_config_sha256: builtinSha256,
+          active_builtin_provider_config_path: registry2?.path ?? builtinPath,
+          active_builtin_provider_config_source: registry2?.source ?? "bundled",
+          active_builtin_provider_config_revision: registry2?.revision ?? null,
+          runtime_host_path: runtimeHostPath,
+          runtime_host_bytes: runtimeHostBytes,
+          runtime_host_sha256: runtimeHostSha256,
+          runtime_host_signer_subject: runtimeHostIdentity.signer_subject,
+          runtime_host_signer_thumbprint: runtimeHostIdentity.signer_thumbprint,
+          desktop_executable_path: desktopExecutablePath,
+          desktop_executable_bytes: desktopExecutableBytes,
+          desktop_executable_sha256: desktopExecutableSha256,
+          desktop_executable_signer_subject: desktopExecutableIdentity.signer_subject,
+          desktop_executable_signer_thumbprint: desktopExecutableIdentity.signer_thumbprint,
+          desktop_archive_path: desktopArchivePath,
+          desktop_archive_bytes: desktopArchiveBytes,
+          desktop_archive_sha256: desktopArchiveSha256,
+          node_version: nodeVersion,
+          node_compatible: nodeCompatible,
+          manifest
+        };
+        if (manifest && manifestStage === "VERIFIED") {
+          return {
+            status: "OFFICIAL_RUNTIME_VERIFIED",
+            ...common,
+            discount_capability: manifest.coding_plan_discount_verified ? "OFFICIAL_DISCOUNT_VERIFIED" : "OFFICIAL_DISCOUNT_NOT_VERIFIED",
+            start_plan_static_compatibility: manifest.start_plan_static_compatibility,
+            reason: null,
+            node_executable: nodeExecutable
+          };
+        }
+        const diagnosticReason = mismatches.join("; ") || "runtime identity is not present in the reviewed compatibility manifest";
+        if (manifest && manifestStage === "EXPERIMENTAL") {
+          return {
+            status: "OFFICIAL_RUNTIME_EXPERIMENTAL",
+            ...common,
+            discount_capability: "OFFICIAL_DISCOUNT_NOT_VERIFIED",
+            start_plan_static_compatibility: manifest.start_plan_static_compatibility,
+            reason: `SAFE_INSTALLATION_EXPERIMENTAL_MANIFEST: ${diagnosticReason}`,
+            node_executable: nodeExecutable
+          };
+        }
+        return {
+          status: "OFFICIAL_RUNTIME_UNVERIFIED",
+          ...common,
+          discount_capability: "OFFICIAL_DISCOUNT_NOT_VERIFIED",
+          start_plan_static_compatibility: "OFFLINE_RESEARCH_PENDING",
+          reason: `SAFE_INSTALLATION_MANIFEST_UNVERIFIED: ${diagnosticReason}`,
+          node_executable: nodeExecutable
+        };
+      }
+      async resolve() {
+        const descriptor = await this.inspect();
+        if (descriptor.installation_safety !== "OFFICIAL_INSTALLATION_SAFE" || !descriptor.bundle_path || !descriptor.builtin_provider_config_path || !descriptor.active_builtin_provider_config_path || !descriptor.runtime_host_path) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `OFFICIAL_INSTALLATION_UNSAFE: ${descriptor.reason ?? "installed Official AppServer is unavailable"}; OFFICIAL_DISCOUNT_NOT_VERIFIED`
+          );
+        }
+        const registryPinned = await this.#builtinRegistryPinned(descriptor.builtin_provider_config_path);
+        const base = this.#baseResolver ?? new NodeRuntimeResolver({
+          env: this.#env,
+          ...this.#homeDir ? { homeDir: this.#homeDir } : {},
+          ...this.#host ? { host: this.#host } : {}
+        });
+        const configured = await base.resolve();
+        return {
+          ...configured,
+          nodeExecutable: descriptor.node_executable,
+          zcodeEntrypoint: descriptor.bundle_path,
+          providerBuiltinConfigFile: registryPinned ? configured.providerBuiltinConfigFile : descriptor.active_builtin_provider_config_path
+        };
+      }
+      /** True only for an explicit builtin file that is not this installation's bundled file. */
+      async #builtinRegistryPinned(bundledPath) {
+        return isOfficialBuiltinRegistryPin(
+          this.#persistedEnv()["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"],
+          bundledPath
+        );
+      }
+      #persistedEnv() {
+        return loadPersistedRuntimeEnvironment(
+          this.#env,
+          this.#homeDir,
+          this.#host ?? codexHostProfile(this.#homeDir)
+        );
+      }
+      /** Data base directory of the personal provider config the base resolver selects; null when unavailable. */
+      async #personalDataBaseDir() {
+        try {
+          const base = this.#baseResolver ?? new NodeRuntimeResolver({
+            env: this.#env,
+            ...this.#homeDir ? { homeDir: this.#homeDir } : {},
+            ...this.#host ? { host: this.#host } : {}
+          });
+          return zcodeDataBaseDir((await base.resolve()).providerPersonalConfigFile);
+        } catch {
+          return null;
+        }
+      }
+    };
+  }
+});
+
+// src/adapters/official-host-adapter.ts
+import { createHash as createHash7 } from "node:crypto";
+import { createReadStream as createReadStream2 } from "node:fs";
+import { lstat as lstat2, realpath as realpath2 } from "node:fs/promises";
+import path9 from "node:path";
+import { fileURLToPath as fileURLToPath2, pathToFileURL } from "node:url";
+function createInstalledOfficialHostSessionFactory(options = {}) {
+  const providerCapability = options.providerCapability ?? "installed_runtime";
+  const resolver = options.officialRuntimeResolver ?? new OfficialAppServerRuntimeResolver({
+    env: options.env,
+    ...options.homeDir ? { homeDir: options.homeDir } : {},
+    ...options.host ? { host: options.host } : {}
+  });
+  let packagedAssetsPromise;
+  const packagedAssets = () => packagedAssetsPromise ??= options.testOnlyOfficialHostPackagedAssets ? Promise.resolve(options.testOnlyOfficialHostPackagedAssets) : verifyOfficialHostAssets(options.workerModuleUrl);
+  const moduleSource = options.testOnlyOfficialHostModule ?? (async () => loadOfficialHostModule((await packagedAssets()).hostModulePath));
+  let resolved;
+  const inspect = () => resolver.inspect();
+  const resolveAssets = () => {
+    resolved ??= Promise.all([resolver.inspect(), packagedAssets()]).then(([descriptor, packaged]) => {
+      const missingRuntimeAsset = descriptor.installation_safety !== "OFFICIAL_INSTALLATION_SAFE" || !descriptor.bundle_path || !descriptor.builtin_provider_config_path || !descriptor.active_builtin_provider_config_path || !descriptor.runtime_host_path;
+      if (missingRuntimeAsset) {
+        const failure2 = descriptor.installation_safety === "OFFICIAL_INSTALLATION_UNSAFE" ? `OFFICIAL_INSTALLATION_UNSAFE: ${descriptor.reason ?? "installed runtime failed safety validation"}` : "OFFICIAL_RUNTIME_UNVERIFIED: installed runtime descriptor is incomplete";
+        try {
+          options.onUnverified?.(descriptor, failure2);
+        } catch {
+        }
+        throw new BridgeError("provider_config_invalid", failure2);
+      }
+      const capabilityWarning = officialProviderCapabilityWarning(descriptor, providerCapability);
+      if (capabilityWarning) {
+        try {
+          options.onDiagnostic?.(descriptor, capabilityWarning);
+        } catch {
+        }
+      }
+      return {
+        descriptor,
+        assets: {
+          root: descriptor.install_dir,
+          hostModulePath: packaged.hostModulePath,
+          appServerEntryPath: descriptor.bundle_path,
+          builtinProviderConfigPath: descriptor.active_builtin_provider_config_path,
+          runtimeHostPath: descriptor.runtime_host_path,
+          manifestDigest: descriptor.installation_fingerprint ?? descriptor.bundle_sha256 ?? "unavailable"
+        }
+      };
+    });
+    return resolved;
+  };
+  const factory = createOfficialHostClientFactory({
+    assets: async () => (await resolveAssets()).assets,
+    moduleSource
+  });
+  return {
+    resolver,
+    inspect,
+    createClient: async (context) => {
+      const runtime = await resolveAssets();
+      const client = await factory(context);
+      try {
+        options.onVerified?.(runtime.descriptor);
+      } catch {
+      }
+      return client;
+    }
+  };
+}
+function officialProviderCapabilityWarning(descriptor, capability) {
+  if (capability === "coding_plan_discount") {
+    return descriptor.discount_capability === "OFFICIAL_DISCOUNT_VERIFIED" ? null : `OFFICIAL_DISCOUNT_DIAGNOSTIC: ${descriptor.reason ?? "installed runtime has no reviewed Coding Plan discount evidence"}; OFFICIAL_DISCOUNT_NOT_VERIFIED`;
+  }
+  if (capability === "start_plan_static") {
+    return descriptor.start_plan_static_compatibility === "OFFLINE_COMPATIBLE" ? null : `STARTPLAN_STATIC_DIAGNOSTIC: ${descriptor.reason ?? "installed runtime has no reviewed Start Plan static evidence"}; START_PLAN_COMPATIBILITY_${descriptor.start_plan_static_compatibility ?? "UNVERIFIED"}`;
+  }
+  return descriptor.status === "OFFICIAL_RUNTIME_UNVERIFIED" ? `OFFICIAL_RUNTIME_MANIFEST_UNVERIFIED: ${descriptor.reason ?? "installed runtime is not in the reviewed compatibility manifest"}` : null;
+}
+function createOfficialHostClientFactory(input2) {
+  return async (context) => {
+    const assets = await input2.assets();
+    if (process.platform !== "win32" || process.arch !== "x64") {
+      throw new BridgeError("runtime_not_found", "The fixed Official Host bundle is available only for Windows x64.");
+    }
+    if (path9.resolve(context.config.zcodeEntrypoint) !== path9.resolve(assets.appServerEntryPath)) {
+      throw new BridgeError("provider_config_invalid", "Official Host runtime entrypoint must be the verified installed bundle.");
+    }
+    const module = await resolveOfficialHostModule(input2.moduleSource);
+    const productVersion = normalizeOfficialHostProductVersion(module.ZCODE_PRODUCT_VERSION);
+    const launchEnv = withOfficialHostLaunchIdentity(context.launch.env, { productVersion });
+    const manager = new module.ZCodeAgentProcessManager({
+      useSharedTaskRuntime: () => false,
+      maxFrameBytes: OFFICIAL_HOST_TRANSPORT_MAX_FRAME_BYTES,
+      requestTimeoutMs: context.requestTimeoutMs,
+      processLifecycleReporter: {
+        onSpawn: () => void 0,
+        onExit: () => void 0,
+        onError: () => void 0,
+        onException: () => void 0
+      },
+      commandResolver: async ({ workspacePath }) => ({
+        command: context.config.nodeExecutable,
+        args: [assets.appServerEntryPath, ...context.launch.args],
+        cwd: workspacePath,
+        env: {
+          ...launchEnv,
+          // ADR-066: the AppServer registry and the Account Overlay must come
+          // from the same resolved config. `context.config` is what the
+          // overlay reads; the memoized asset descriptor may be older.
+          ZCODE_BUILTIN_PROVIDER_CONFIG_FILE: context.config.providerBuiltinConfigFile,
+          ZCODE_PERSONAL_PROVIDER_CONFIG_FILE: context.config.providerPersonalConfigFile,
+          ZCODE_RUNTIME_HOST_PATH: assets.runtimeHostPath
+        }
+      })
+    });
+    const workspace = {
+      workspacePath: context.workspace.canonicalPath,
+      workspaceIdentity: context.workspace.sourcePath ?? context.workspace.canonicalPath
+    };
+    let runtimePid;
+    let exitState = { code: null, signal: null };
+    let runtimeRootIdentity = null;
+    let closePromise = null;
+    const disposables = [];
+    const notificationListeners = /* @__PURE__ */ new Set();
+    const requestListeners = /* @__PURE__ */ new Set();
+    const closeListeners = /* @__PURE__ */ new Set();
+    const restartListeners = /* @__PURE__ */ new Set();
+    try {
+      const client = await withOfficialRuntimeHostEnvironment(
+        assets.runtimeHostPath,
+        () => manager.getClient(workspace)
+      );
+      if (manager.isSharedRuntime(workspace)) {
+        throw new BridgeError("provider_config_invalid", "Official Host shared task runtime is forbidden.");
+      }
+      const runtime = await manager.getRuntimeIdentity(workspace);
+      if (!runtime.processId || !Number.isSafeInteger(runtime.processId) || runtime.processId < 1) {
+        throw new BridgeError("spawn_failed", "Official Host runtime identity did not contain a live process ID.");
+      }
+      runtimePid = runtime.processId;
+      const observed = await context.probe.identityOf(runtime.processId);
+      const confirmed = await manager.getRuntimeIdentity(workspace);
+      if (observed.fingerprint_precision !== "exact" || !observed.fingerprint || confirmed.processId !== runtime.processId || confirmed.identity !== runtime.identity) {
+        throw new BridgeError("cleanup_failed", "Official Host runtime root identity could not be captured exactly.");
+      }
+      runtimeRootIdentity = {
+        pid: runtime.processId,
+        fingerprint: observed.fingerprint,
+        generation: runtime.generation
+      };
+      disposables.push(client.onNotification((message) => {
+        for (const listener of notificationListeners) listener(message);
+      }));
+      disposables.push(client.onRequest((message) => {
+        for (const listener of requestListeners) listener(message);
+      }));
+      disposables.push(client.onClose((event) => {
+        exitState = { code: null, signal: null };
+        for (const listener of closeListeners) listener(event);
+      }));
+      if (manager.onRuntimeRestarted) {
+        disposables.push(manager.onRuntimeRestarted((event) => {
+          for (const listener of restartListeners) listener(event);
+        }));
+      }
+      if (manager.onRuntimeExited) {
+        disposables.push(manager.onRuntimeExited((event) => {
+          const value = asRecord2(event);
+          const code = typeof value.exitCode === "number" && Number.isSafeInteger(value.exitCode) ? value.exitCode : null;
+          const signal = typeof value.signal === "string" ? value.signal : null;
+          exitState = { code, signal };
+          for (const listener of closeListeners) listener(event);
+        }));
+      }
+      const child = {
+        get pid() {
+          return runtimePid;
+        },
+        get exitCode() {
+          return exitState.code;
+        },
+        get signalCode() {
+          return exitState.signal;
+        }
+      };
+      const close = async () => {
+        if (closePromise) return closePromise;
+        closePromise = (async () => {
+          let workspaceError;
+          let allError;
+          try {
+            await manager.disposeWorkspace(workspace);
+          } catch (error62) {
+            workspaceError = error62;
+          }
+          try {
+            await manager.disposeAllAndWait();
+          } catch (error62) {
+            allError = error62;
+          }
+          const managerProcessCountAfter = manager.listManagedProcesses().filter(
+            (entry) => sameWorkspace(entry.workspacePath, context.workspace.canonicalPath) && sameWorkspace(entry.workspaceIdentity ?? entry.workspacePath, workspace.workspaceIdentity)
+          ).length;
+          let recordedTreeScan;
+          let treeScanStatus = "incomplete";
+          let scanError;
+          const root = runtimeRootIdentity;
+          if (root) {
+            try {
+              const scan = await context.verifyTreeClean([{ pid: root.pid, fingerprint: root.fingerprint }]);
+              if (scan.clean && scan.livePids.length === 0 && scan.observedPids.includes(root.pid)) {
+                const memberPids = [...new Set(scan.observedPids)].sort((left, right) => left - right);
+                recordedTreeScan = {
+                  rootPid: root.pid,
+                  rootFingerprint: root.fingerprint,
+                  evidenceDigest: createHash7("sha256").update(JSON.stringify({
+                    rootPid: root.pid,
+                    rootFingerprint: root.fingerprint,
+                    memberPids
+                  }), "utf8").digest("hex"),
+                  observedMemberCount: memberPids.length
+                };
+                treeScanStatus = "verified";
+              } else {
+                treeScanStatus = scan.livePids.length ? "live" : "incomplete";
+              }
+            } catch (error62) {
+              scanError = error62;
+              treeScanStatus = "incomplete";
+            }
+          } else {
+            scanError = new Error("Official Host runtime root identity was unavailable before close.");
+          }
+          const closeError = workspaceError ?? allError;
+          const failure2 = closeError ?? (treeScanStatus === "verified" ? void 0 : scanError ?? new Error(treeScanStatus === "live" ? "Official Host recorded-tree scan found a live runtime claimant." : "Official Host recorded-tree scan was incomplete."));
+          const closeDiagnostic2 = {
+            status: closeError || managerProcessCountAfter > 0 ? "rejected" : "resolved",
+            stage: workspaceError ? "official_manager_workspace_dispose" : allError ? "official_manager_dispose_all" : "official_manager_dispose",
+            ...closeError instanceof Error ? {
+              errorName: closeError.name.slice(0, 120),
+              ...typeof closeError.code === "string" ? { errorCode: closeError.code.slice(0, 120) } : {},
+              errorMessage: closeError.message.slice(0, 1e3)
+            } : {},
+            managerProcessCountAfter,
+            treeScanStatus
+          };
+          for (const disposable of disposables.splice(0)) {
+            try {
+              disposable.dispose();
+            } catch {
+            }
+          }
+          return {
+            owner: "official_host",
+            receipt: null,
+            ...recordedTreeScan ? { recordedTreeScan } : {},
+            ...failure2 ? { error: failure2 } : {},
+            close: closeDiagnostic2
+          };
+        })();
+        return closePromise;
+      };
+      return {
+        child,
+        runtimeRootIdentity,
+        request: (method, params) => client.request(method, params, void 0, {
+          timeoutMs: context.requestTimeoutMs,
+          invalidateConnectionOnTimeout: false
+        }),
+        respond: async (message) => {
+          if (!("id" in message)) throw new Error("Official Host reply is missing its request ID.");
+          const id = message.id;
+          if (typeof id !== "string" && typeof id !== "number") {
+            throw new Error("Official Host reply request ID is invalid.");
+          }
+          if (message.error !== void 0) {
+            const error62 = asRecord2(message.error);
+            await client.respondError(id, {
+              code: typeof error62.code === "number" ? error62.code : -32e3,
+              message: typeof error62.message === "string" ? error62.message.slice(0, 1e3) : "Bridge request failed",
+              ...error62.data !== void 0 ? { data: error62.data } : {}
+            });
+            return;
+          }
+          await client.respond(id, message.result);
+        },
+        replayEvents: (events) => {
+          for (const event of events) {
+            const message = { method: "session/event", params: asRecord2(event) };
+            for (const listener of notificationListeners) listener(message);
+          }
+        },
+        prewarmCleanup: () => void 0,
+        close,
+        get stderr() {
+          return "";
+        },
+        onNotification: (listener) => {
+          notificationListeners.add(listener);
+          return () => notificationListeners.delete(listener);
+        },
+        onRequest: (listener) => {
+          requestListeners.add(listener);
+          return () => requestListeners.delete(listener);
+        },
+        onClose: (listener) => {
+          closeListeners.add(listener);
+          return () => closeListeners.delete(listener);
+        },
+        onRuntimeRestarted: (listener) => {
+          restartListeners.add(listener);
+          return () => restartListeners.delete(listener);
+        }
+      };
+    } catch (error62) {
+      for (const disposable of disposables.splice(0)) {
+        try {
+          disposable.dispose();
+        } catch {
+        }
+      }
+      try {
+        await manager.disposeAllAndWait();
+      } catch {
+      }
+      throw error62;
+    }
+  };
+}
+async function loadOfficialHostProviderRuntimeAuthFactory(workerModuleUrl = import.meta.url) {
+  const assets = await verifyOfficialHostAssets(workerModuleUrl);
+  const module = await loadOfficialHostModule(assets.hostModulePath);
+  if (typeof module.createOAuthProviderRuntimeAuthService !== "function") {
+    throw new BridgeError(
+      "provider_config_invalid",
+      "The Official Host module is missing the provider runtime auth factory."
+    );
+  }
+  return module.createOAuthProviderRuntimeAuthService;
+}
+async function verifyOfficialHostAssets(workerModuleUrl = import.meta.url) {
+  const workerUrl = workerModuleUrl instanceof URL ? workerModuleUrl : new URL(workerModuleUrl);
+  const root = fileURLToPath2(new URL(`${OFFICIAL_HOST_ASSET_RELATIVE_ROOT}/`, workerUrl));
+  let rootReal;
+  try {
+    const rootStat = await lstat2(root);
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error("not a real directory");
+    rootReal = await realpath2(root);
+  } catch (error62) {
+    throw new BridgeError("runtime_not_found", "The shipped Official Host asset directory is absent.", { cause: error62 });
+  }
+  const verified = /* @__PURE__ */ new Map();
+  for (const [name, definition] of Object.entries(OFFICIAL_HOST_ASSETS)) {
+    const candidate = path9.resolve(rootReal, definition.relativePath);
+    try {
+      const candidateStat = await lstat2(candidate);
+      if (!candidateStat.isFile() || candidateStat.isSymbolicLink()) throw new Error("not a regular file");
+      const candidateReal = await realpath2(candidate);
+      if (!isPathInside(rootReal, candidateReal)) throw new Error("resolved outside the shipped asset root");
+      if (candidateStat.size !== definition.bytes) throw new Error("byte length mismatch");
+      const sha2563 = await sha256File2(candidateReal);
+      if (sha2563.toUpperCase() !== definition.sha256) throw new Error("SHA-256 mismatch");
+      verified.set(name, candidateReal);
+    } catch (error62) {
+      throw new BridgeError("provider_config_invalid", "A shipped Official Host asset failed presence or integrity validation.", {
+        cause: error62
+      });
+    }
+  }
+  const manifestDigest = createHash7("sha256").update(JSON.stringify(
+    Object.entries(OFFICIAL_HOST_ASSETS).sort(([left], [right]) => left.localeCompare(right)).map(([name, definition]) => ({
+      name,
+      relativePath: definition.relativePath,
+      bytes: definition.bytes,
+      sha256: definition.sha256
+    }))
+  ), "utf8").digest("hex");
+  return {
+    root: rootReal,
+    hostModulePath: verified.get("hostModule"),
+    runtimeHostPath: verified.get("runtimeHost"),
+    manifestDigest
+  };
+}
+async function loadOfficialHostModule(modulePath2) {
+  return resolveOfficialHostModule(await import(pathToFileURL(modulePath2).href));
+}
+async function resolveOfficialHostModule(source) {
+  const value = typeof source === "function" ? await source() : source;
+  if (!value || typeof value.ZCodeAgentProcessManager !== "function" || typeof value.ZCodeProtocolClient !== "function") {
+    throw new BridgeError("provider_config_invalid", "The Official Host module is missing required exports.");
+  }
+  return value;
+}
+function asRecord2(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+function normalizeOfficialHostProductVersion(value) {
+  const version2 = typeof value === "string" ? value.trim() : "";
+  if (!/^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$/u.test(version2)) {
+    throw new BridgeError(
+      "provider_config_invalid",
+      "The Official Host module is missing a valid product version."
+    );
+  }
+  return version2;
+}
+function sameWorkspace(left, right) {
+  const normalize = (value) => path9.normalize(path9.resolve(value));
+  return process.platform === "win32" ? normalize(left).toLocaleLowerCase("en-US") === normalize(right).toLocaleLowerCase("en-US") : normalize(left) === normalize(right);
+}
+async function withOfficialRuntimeHostEnvironment(runtimeHostPath, operation) {
+  const prior = officialHostEnvironmentTail;
+  let release;
+  officialHostEnvironmentTail = new Promise((resolve) => {
+    release = resolve;
+  });
+  await prior;
+  const hadPrevious = Object.prototype.hasOwnProperty.call(process.env, "ZCODE_RUNTIME_HOST_PATH");
+  const previous = process.env.ZCODE_RUNTIME_HOST_PATH;
+  process.env.ZCODE_RUNTIME_HOST_PATH = runtimeHostPath;
+  try {
+    return await operation();
+  } finally {
+    if (hadPrevious) process.env.ZCODE_RUNTIME_HOST_PATH = previous;
+    else delete process.env.ZCODE_RUNTIME_HOST_PATH;
+    release();
+  }
+}
+function isPathInside(root, candidate) {
+  const relative = path9.relative(root, candidate);
+  return relative !== "" && !relative.startsWith(`..${path9.sep}`) && relative !== ".." && !path9.isAbsolute(relative);
+}
+async function sha256File2(filePath) {
+  const hash2 = createHash7("sha256");
+  await new Promise((resolve, reject) => {
+    const stream = createReadStream2(filePath);
+    stream.on("data", (chunk) => hash2.update(chunk));
+    stream.once("error", reject);
+    stream.once("end", resolve);
+  });
+  return hash2.digest("hex");
+}
+var OFFICIAL_HOST_TRANSPORT_MAX_FRAME_BYTES, OFFICIAL_HOST_ASSET_RELATIVE_ROOT, OFFICIAL_HOST_ASSETS, officialHostEnvironmentTail;
+var init_official_host_adapter = __esm({
+  "src/adapters/official-host-adapter.ts"() {
+    "use strict";
+    init_desktop_host_launch();
+    init_errors();
+    init_official_app_server_runtime();
+    OFFICIAL_HOST_TRANSPORT_MAX_FRAME_BYTES = 16 * 1024 * 1024;
+    OFFICIAL_HOST_ASSET_RELATIVE_ROOT = "./vendor/official-host/win32-x64-node24.16.0-zcode3.18.2-fec97590";
+    OFFICIAL_HOST_ASSETS = {
+      hostModule: {
+        relativePath: "official-host-runtime.mjs",
+        bytes: 1829872,
+        sha256: "7E2B8B772F1DD83135903B64D569D634C7E7FC6F303460E08C98E27D311B6A91"
+      },
+      runtimeHost: {
+        relativePath: "zcode-runtime-host.exe",
+        bytes: 179608,
+        sha256: "C2C8FF5FF28CBDDC4F177C094AA67C322830889612251BD173BAAABC89379AB4"
+      },
+      keyringLoader: {
+        relativePath: "node_modules/@napi-rs/keyring/index.js",
+        bytes: 29176,
+        sha256: "8A89DB37F981D05B484EB063ADAE3399660AE7734AD38797463E5691382F5036"
+      },
+      keyringPackage: {
+        relativePath: "node_modules/@napi-rs/keyring/package.json",
+        bytes: 3325,
+        sha256: "4BA8C90AC72BE27FCB3337ED7BC0159C68747E0824294DF5F2AAAEB03130CD4F"
+      },
+      keyringNativePackage: {
+        relativePath: "node_modules/@napi-rs/keyring-win32-x64-msvc/package.json",
+        bytes: 641,
+        sha256: "1552C08589EEAEBC3680642883A8CAFEA8C72F80ED62908DE814177498562121"
+      },
+      keyringNative: {
+        relativePath: "node_modules/@napi-rs/keyring-win32-x64-msvc/keyring.win32-x64-msvc.node",
+        bytes: 1912832,
+        sha256: "52B16658275B7848F8081A6542FEE3448F1B1C5D3A36487107AE0E7CEC95AC6F"
+      }
+    };
+    officialHostEnvironmentTail = Promise.resolve();
   }
 });
 
@@ -205,7 +2627,7 @@ __export(launch_bootstrap_exports, {
   spawnAndBootstrapOnce: () => spawnAndBootstrapOnce,
   writeLaunchBootstrap: () => writeLaunchBootstrap
 });
-import { createHash as createHash3 } from "node:crypto";
+import { createHash as createHash8 } from "node:crypto";
 function createLaunchBootstrap(source) {
   const snapshot = source.policy_snapshot;
   const bootstrap = {
@@ -302,7 +2724,7 @@ function deriveAdmissionPolicySnapshotDigest(value) {
     policy_digest: value.policy_digest,
     execution_profile_id: value.execution_profile_id
   };
-  return createHash3("sha256").update(canonicalJson(envelope), "utf8").digest("hex");
+  return createHash8("sha256").update(canonicalJson(envelope), "utf8").digest("hex");
 }
 function canonicalJson(value) {
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
@@ -396,7 +2818,7 @@ function windowsPowerShellExecutable() {
 }
 function windowsBatchQuery(pids, timeoutMs, onFailure) {
   return new Promise((resolve) => {
-    const script = `$ErrorActionPreference = 'Stop'; foreach ($id in @(${pids.join(",")})) { try { $target = [System.Diagnostics.Process]::GetProcessById($id); try { [Console]::Out.WriteLine(("{0}|{1}" -f $id, $target.StartTime.Ticks)) } finally { $target.Dispose() } } catch [System.ArgumentException] { } }; [Console]::Out.WriteLine('bridge_probe_complete_v1')`;
+    const script = `$ErrorActionPreference = 'Stop'; foreach ($id in @(${pids.join(",")})) { $target = $null; try { try { $target = [System.Diagnostics.Process]::GetProcessById($id) } catch [System.ArgumentException] { continue }; try { [Console]::Out.WriteLine(("{0}|{1}" -f $id, $target.StartTime.Ticks)) } catch [System.InvalidOperationException] { continue } } finally { if ($null -ne $target) { $target.Dispose() } } }; [Console]::Out.WriteLine('bridge_probe_complete_v1')`;
     const child = spawn(windowsPowerShellExecutable(), ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
@@ -613,32 +3035,33 @@ var init_process_probe = __esm({
   }
 });
 
-// src/sqlite-candidate/wp6b2b1/interaction-channel.mjs
-var interaction_channel_exports = {};
-__export(interaction_channel_exports, {
-  createCandidateInteractionChannel: () => createCandidateInteractionChannel,
-  createCandidateWorkerInteractionChannel: () => createCandidateWorkerInteractionChannel,
-  isCandidateInteractionAcknowledgement: () => isCandidateInteractionAcknowledgement,
-  isCandidateInteractionChannel: () => isCandidateInteractionChannel,
-  isCandidateInteractionPreparedAcknowledgement: () => isCandidateInteractionPreparedAcknowledgement
+// src/sqlite-candidate/wp6b2b1/runtime-event-channel.mjs
+var runtime_event_channel_exports = {};
+__export(runtime_event_channel_exports, {
+  createCandidateRuntimeEventChannel: () => createCandidateRuntimeEventChannel,
+  createCandidateWorkerRuntimeEventChannel: () => createCandidateWorkerRuntimeEventChannel,
+  isCandidateRuntimeEventChannel: () => isCandidateRuntimeEventChannel
 });
-import { createHash as createHash4 } from "node:crypto";
-async function createCandidateInteractionChannel(child, operation, verifyProcessIdentity) {
-  if (!child || !Number.isSafeInteger(child.pid) || !Array.isArray(child.stdio) || child.stdio.length < 10 || !operation || operation.operation_kind !== "attempt_lifecycle" || operation.phase !== "running" || !Number.isSafeInteger(operation.generation) || operation.generation < 1 || !operation.claim_id || operation.claim_generation !== operation.generation || !operation.claim_worker_identity_json || !operation.launch_identity_json || !operation.claim_worker_identity_digest || typeof verifyProcessIdentity !== "function") throw coded("interaction_channel_unavailable");
+import { createHash as createHash9 } from "node:crypto";
+async function createCandidateRuntimeEventChannel(child, operation, verifyProcessIdentity) {
+  if (!child || !Number.isSafeInteger(child.pid) || !Array.isArray(child.stdio) || child.stdio.length < 15 || !operation || operation.operation_kind !== "attempt_lifecycle" || operation.phase !== "running" || !Number.isSafeInteger(operation.generation) || operation.generation < 1 || !operation.claim_id || operation.claim_generation !== operation.generation || !operation.claim_worker_identity_json || !operation.launch_identity_json || !operation.claim_worker_identity_digest || typeof verifyProcessIdentity !== "function") {
+    throw coded("runtime_event_channel_unavailable");
+  }
   let worker;
   let launch;
   try {
     worker = JSON.parse(operation.claim_worker_identity_json);
     launch = JSON.parse(operation.launch_identity_json);
   } catch {
-    throw coded("interaction_channel_identity_invalid");
+    throw coded("runtime_event_channel_identity_invalid");
   }
-  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha256(stableJson(worker)) !== operation.claim_worker_identity_digest)
-    throw coded("interaction_channel_identity_mismatch");
-  const requestStream = child.stdio[7];
-  const replyStream = child.stdio[8];
-  const ackStream = child.stdio[9];
-  if (!requestStream || typeof requestStream[Symbol.asyncIterator] !== "function" || !replyStream || typeof replyStream.write !== "function" || !ackStream || typeof ackStream[Symbol.asyncIterator] !== "function") throw coded("interaction_channel_unavailable");
+  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha256(stableJson(worker)) !== operation.claim_worker_identity_digest) {
+    throw coded("runtime_event_channel_identity_mismatch");
+  }
+  const stream = child.stdio[14];
+  if (!stream || typeof stream[Symbol.asyncIterator] !== "function") {
+    throw coded("runtime_event_channel_unavailable");
+  }
   const binding = Object.freeze({
     operation_id: operation.operation_id,
     task_id: operation.task_id,
@@ -649,18 +3072,382 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
     process_id: worker.process_id,
     start_fingerprint: worker.start_fingerprint
   });
-  const requestReader = new JsonLineReader(requestStream);
-  const ackReader = new JsonLineReader(ackStream);
+  const reader = new JsonLineReader(stream);
+  const channel = {
+    binding,
+    async receiveEvent() {
+      const frame = await reader.read();
+      const keys = ["at", "details", "event_type", "protocol", "summary", "worker_sequence"];
+      const actualKeys = Object.keys(frame).sort();
+      const expectedKeys = Object.hasOwn(frame, "details") ? keys : keys.filter((key) => key !== "details");
+      if (!validFrame(frame) || actualKeys.join("|") !== expectedKeys.join("|")) {
+        throw coded("runtime_event_frame_identity_mismatch");
+      }
+      return Object.freeze({ binding, event: Object.freeze({
+        worker_sequence: frame.worker_sequence,
+        event_type: frame.event_type,
+        at: frame.at,
+        summary: frame.summary,
+        ...frame.details === void 0 ? {} : { details: frame.details }
+      }) });
+    }
+  };
+  if (child.exitCode !== null || child.signalCode !== null) throw coded("runtime_event_worker_not_live");
+  let observed;
+  try {
+    observed = await verifyProcessIdentity({ child, expected: binding });
+  } catch {
+    throw coded("runtime_event_channel_identity_unknown");
+  }
+  if (!observed || observed.state !== "verified" || observed.process_id !== binding.process_id || observed.start_fingerprint !== binding.start_fingerprint) {
+    throw coded("runtime_event_channel_identity_mismatch");
+  }
+  CHANNELS.add(channel);
+  return Object.freeze(channel);
+}
+function isCandidateRuntimeEventChannel(value) {
+  return !!value && CHANNELS.has(value);
+}
+async function createCandidateWorkerRuntimeEventChannel({
+  writeStream,
+  now = () => (/* @__PURE__ */ new Date()).toISOString()
+} = {}) {
+  if (!writeStream || typeof writeStream.write !== "function" || typeof writeStream.end !== "function" || typeof now !== "function") throw new TypeError("runtime event write stream required");
+  let sequence = 0;
+  let queue = Promise.resolve();
+  let firstError;
+  let closed = false;
+  const send = (event) => {
+    if (closed) throw coded("runtime_event_channel_closed");
+    if (!event || Object.getPrototypeOf(event) !== Object.prototype || !EVENT_TYPES.has(event.type)) {
+      throw coded("runtime_event_type_invalid");
+    }
+    const summary = boundedText(event.summary, 8192, { allowNewlines: true });
+    if (!summary) throw coded("runtime_event_summary_invalid");
+    const details = sanitizeDetails(event.type, event.details);
+    const frame = {
+      protocol: PROTOCOL,
+      worker_sequence: ++sequence,
+      event_type: event.type,
+      at: now(),
+      summary,
+      ...details === void 0 ? {} : { details }
+    };
+    const encoded = `${JSON.stringify(frame)}
+`;
+    if (Buffer.byteLength(encoded, "utf8") > MAX_FRAME_BYTES2) throw coded("runtime_event_frame_too_large");
+    queue = queue.then(() => writeFrame(writeStream, encoded)).catch((error62) => {
+      firstError ??= error62;
+    });
+    return frame.worker_sequence;
+  };
+  const close = async () => {
+    if (closed) {
+      await queue;
+      if (firstError) throw coded("runtime_event_write_failed");
+      return;
+    }
+    closed = true;
+    await queue;
+    await endStream(writeStream);
+    if (firstError) throw coded("runtime_event_write_failed");
+  };
+  return Object.freeze({ send, close });
+}
+function validFrame(value) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || value.protocol !== PROTOCOL || !Number.isSafeInteger(value.worker_sequence) || value.worker_sequence < 1 || !EVENT_TYPES.has(value.event_type) || typeof value.at !== "string" || value.at.length > 64 || Number.isNaN(Date.parse(value.at)) || typeof value.summary !== "string" || Buffer.byteLength(value.summary, "utf8") < 1 || Buffer.byteLength(value.summary, "utf8") > 8192 || value.summary.includes("\0")) return false;
+  if (value.details !== void 0) {
+    if (!value.details || Object.getPrototypeOf(value.details) !== Object.prototype) return false;
+    try {
+      if (Buffer.byteLength(stableJson(value.details), "utf8") > 8192) return false;
+    } catch {
+      return false;
+    }
+    if (!validDetails(value.event_type, value.details)) return false;
+  }
+  return true;
+}
+function validDetails(type, value) {
+  const allowed = DETAIL_KEYS.get(type);
+  const entries = Object.entries(value);
+  if (!allowed || !entries.length) return false;
+  for (const [key, item] of entries) {
+    if (!allowed.has(key)) return false;
+    if (key === "usage") {
+      if (!validUsage(item)) return false;
+    } else if (!(item === null || typeof item === "string" || typeof item === "boolean" || typeof item === "number" && Number.isFinite(item) && Number.isSafeInteger(item))) {
+      return false;
+    }
+  }
+  return true;
+}
+function validUsage(value) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) return false;
+  const keys = Object.keys(value);
+  if (!keys.length) return false;
+  for (const key of keys) {
+    if (!USAGE_NUMERIC_KEYS.includes(key) && !["source", "usage_source", "scope", "observed_at", "finality"].includes(key) && key !== "conflicts") return false;
+    if (key === "conflicts") {
+      if (!Array.isArray(value[key]) || value[key].length > 32 || value[key].some((item2) => typeof item2 !== "string" || !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(item2))) return false;
+      continue;
+    }
+    if (["source", "usage_source", "scope", "observed_at", "finality"].includes(key)) {
+      if (typeof value[key] !== "string" || value[key].length > 128) return false;
+      continue;
+    }
+    const item = value[key];
+    if (typeof item !== "number" || !Number.isFinite(item) || !Number.isSafeInteger(item) || item < 0) return false;
+  }
+  return true;
+}
+function sanitizeDetails(type, value) {
+  if (value === void 0) return void 0;
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) throw coded("runtime_event_details_invalid");
+  const allowed = DETAIL_KEYS.get(type);
+  const details = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (!allowed.has(key)) continue;
+    if (key === "usage") {
+      const usage = sanitizeUsage(item);
+      if (usage !== void 0) details[key] = usage;
+    } else if (item === null || typeof item === "string" || typeof item === "boolean" || typeof item === "number" && Number.isFinite(item) && Number.isSafeInteger(item)) {
+      details[key] = item;
+    }
+  }
+  if (!Object.keys(details).length) return void 0;
+  if (Buffer.byteLength(stableJson(details), "utf8") > 8192) throw coded("runtime_event_details_too_large");
+  return details;
+}
+function sanitizeUsage(value) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) return void 0;
+  const usage = {};
+  for (const key of USAGE_NUMERIC_KEYS) {
+    const item = value[key];
+    if (item === void 0) continue;
+    if (typeof item !== "number" || !Number.isFinite(item) || !Number.isSafeInteger(item) || item < 0) continue;
+    usage[key] = item;
+  }
+  for (const key of ["source", "usage_source", "scope", "observed_at", "finality"]) {
+    const item = value[key];
+    if (typeof item === "string" && item.length <= 128) usage[key] = item;
+  }
+  if (Array.isArray(value.conflicts)) {
+    const conflicts = value.conflicts.filter((item) => typeof item === "string" && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(item)).slice(0, 32);
+    if (conflicts.length) usage.conflicts = conflicts;
+  }
+  return Object.keys(usage).length ? usage : void 0;
+}
+function boundedText(value, maximumBytes, { allowNewlines = false } = {}) {
+  if (typeof value !== "string") return null;
+  const normalized = allowNewlines ? value.replace(/[\u0000\u0001-\u0009\u000b\u000c\u000e-\u001f\u007f]/gu, " ") : value.replace(/[\u0000-\u001f\u007f]/gu, " ").trim();
+  if (!normalized) return null;
+  if (Buffer.byteLength(normalized, "utf8") <= maximumBytes) return normalized;
+  const bytes = Buffer.from(normalized, "utf8").subarray(0, maximumBytes);
+  let end = bytes.length;
+  while (end > 0 && (bytes[end - 1] & 192) === 128) end -= 1;
+  if (end > 0 && (bytes[end - 1] & 192) === 192) end -= 1;
+  return bytes.subarray(0, end).toString("utf8");
+}
+function writeFrame(stream, frame) {
+  return new Promise((resolve, reject) => {
+    stream.write(frame, "utf8", (error62) => error62 ? reject(error62) : resolve());
+  });
+}
+function endStream(stream) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    stream.once("finish", finish);
+    stream.once("close", finish);
+    stream.once("error", finish);
+    try {
+      stream.end();
+    } catch {
+      finish();
+    }
+  });
+}
+function stableJson(value, depth = 0) {
+  if (depth > 24) throw coded("runtime_event_json_too_deep");
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number" && Number.isFinite(value) && Number.isSafeInteger(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    if (value.length > 256) throw coded("runtime_event_json_too_large");
+    return `[${value.map((item) => stableJson(item, depth + 1)).join(",")}]`;
+  }
+  if (value && Object.getPrototypeOf(value) === Object.prototype) {
+    const keys = Object.keys(value);
+    if (keys.length > 128 || keys.some((key) => key !== key.normalize("NFC"))) {
+      throw coded("runtime_event_json_too_large");
+    }
+    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key], depth + 1)}`).join(",")}}`;
+  }
+  throw coded("runtime_event_json_invalid");
+}
+function sha256(value) {
+  return createHash9("sha256").update(value).digest("hex");
+}
+function coded(code) {
+  return Object.assign(new Error(code), { code });
+}
+var CHANNELS, MAX_FRAME_BYTES2, PROTOCOL, EVENT_TYPES, DETAIL_KEYS, JsonLineReader, USAGE_NUMERIC_KEYS;
+var init_runtime_event_channel = __esm({
+  "src/sqlite-candidate/wp6b2b1/runtime-event-channel.mjs"() {
+    "use strict";
+    CHANNELS = /* @__PURE__ */ new WeakSet();
+    MAX_FRAME_BYTES2 = 24576;
+    PROTOCOL = "bridge-sqlite-runtime-event-v1";
+    EVENT_TYPES = /* @__PURE__ */ new Set([
+      "session_ready",
+      "model_selected",
+      "turn_started",
+      "model_tool_call",
+      "tool_status",
+      "model_output",
+      "turn_completed",
+      "turn_failed",
+      "report_ready"
+    ]);
+    DETAIL_KEYS = /* @__PURE__ */ new Map([
+      ["session_ready", /* @__PURE__ */ new Set([
+        "session_id",
+        "project_path",
+        "execution_path",
+        "worktree_path",
+        "execution_mode",
+        "model_source",
+        "selected_model",
+        "reasoning_level",
+        "reasoning_level_source"
+      ])],
+      ["model_selected", /* @__PURE__ */ new Set([
+        "selected_model",
+        "model_source",
+        "provider_id",
+        "model_id",
+        "reasoning_level",
+        "reasoning_level_source"
+      ])],
+      ["turn_started", /* @__PURE__ */ new Set(["rpc_accepted", "turn_id", "event_seq"])],
+      ["model_tool_call", /* @__PURE__ */ new Set(["tool_name", "tool_call_id"])],
+      ["tool_status", /* @__PURE__ */ new Set(["tool_name", "state", "tool_call_id"])],
+      ["model_output", /* @__PURE__ */ new Set()],
+      ["turn_completed", /* @__PURE__ */ new Set([
+        "token_count",
+        "tool_call_count",
+        "event_seq",
+        "turn_id",
+        "usage"
+      ])],
+      ["turn_failed", /* @__PURE__ */ new Set(["error_code"])],
+      ["report_ready", /* @__PURE__ */ new Set(["needs_master_decision"])]
+    ]);
+    JsonLineReader = class {
+      #iterator;
+      #buffer = Buffer.alloc(0);
+      constructor(stream) {
+        this.#iterator = stream[Symbol.asyncIterator]();
+      }
+      async read() {
+        for (; ; ) {
+          const end = this.#buffer.indexOf(10);
+          if (end >= 0) {
+            const frame = this.#buffer.subarray(0, end);
+            this.#buffer = this.#buffer.subarray(end + 1);
+            if (!frame.length || frame.length > MAX_FRAME_BYTES2) throw coded("runtime_event_frame_invalid");
+            let value;
+            try {
+              value = JSON.parse(frame.toString("utf8"));
+            } catch {
+              throw coded("runtime_event_frame_invalid");
+            }
+            if (!value || Object.getPrototypeOf(value) !== Object.prototype) {
+              throw coded("runtime_event_frame_invalid");
+            }
+            return value;
+          }
+          if (this.#buffer.length > MAX_FRAME_BYTES2) throw coded("runtime_event_frame_too_large");
+          const next = await this.#iterator.next();
+          if (next.done) throw coded(this.#buffer.length ? "runtime_event_frame_truncated" : "runtime_event_channel_closed");
+          const chunk = Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value);
+          this.#buffer = Buffer.concat([this.#buffer, chunk]);
+        }
+      }
+    };
+    USAGE_NUMERIC_KEYS = [
+      "inputTokens",
+      "outputTokens",
+      "totalTokens",
+      "cachedInputTokens",
+      "cacheReadTokens",
+      "cachedWriteInputTokens",
+      "cacheWriteInputTokens",
+      "cacheWriteTokens",
+      "reasoningTokens",
+      "input_tokens",
+      "output_tokens",
+      "total_tokens",
+      "cached_input_tokens",
+      "cache_read_tokens",
+      "cached_write_input_tokens",
+      "cache_write_input_tokens",
+      "cache_write_tokens"
+    ];
+  }
+});
+
+// src/sqlite-candidate/wp6b2b1/interaction-channel.mjs
+var interaction_channel_exports = {};
+__export(interaction_channel_exports, {
+  createCandidateInteractionChannel: () => createCandidateInteractionChannel,
+  createCandidateWorkerInteractionChannel: () => createCandidateWorkerInteractionChannel,
+  isCandidateInteractionAcknowledgement: () => isCandidateInteractionAcknowledgement,
+  isCandidateInteractionChannel: () => isCandidateInteractionChannel,
+  isCandidateInteractionPreparedAcknowledgement: () => isCandidateInteractionPreparedAcknowledgement
+});
+import { createHash as createHash10 } from "node:crypto";
+async function createCandidateInteractionChannel(child, operation, verifyProcessIdentity) {
+  if (!child || !Number.isSafeInteger(child.pid) || !Array.isArray(child.stdio) || child.stdio.length < 10 || !operation || operation.operation_kind !== "attempt_lifecycle" || operation.phase !== "running" || !Number.isSafeInteger(operation.generation) || operation.generation < 1 || !operation.claim_id || operation.claim_generation !== operation.generation || !operation.claim_worker_identity_json || !operation.launch_identity_json || !operation.claim_worker_identity_digest || typeof verifyProcessIdentity !== "function") throw coded2("interaction_channel_unavailable");
+  let worker;
+  let launch;
+  try {
+    worker = JSON.parse(operation.claim_worker_identity_json);
+    launch = JSON.parse(operation.launch_identity_json);
+  } catch {
+    throw coded2("interaction_channel_identity_invalid");
+  }
+  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha2562(stableJson2(worker)) !== operation.claim_worker_identity_digest)
+    throw coded2("interaction_channel_identity_mismatch");
+  const requestStream = child.stdio[7];
+  const replyStream = child.stdio[8];
+  const ackStream = child.stdio[9];
+  if (!requestStream || typeof requestStream[Symbol.asyncIterator] !== "function" || !replyStream || typeof replyStream.write !== "function" || !ackStream || typeof ackStream[Symbol.asyncIterator] !== "function") throw coded2("interaction_channel_unavailable");
+  const binding = Object.freeze({
+    operation_id: operation.operation_id,
+    task_id: operation.task_id,
+    attempt: operation.attempt,
+    generation: operation.generation,
+    claim_id: operation.claim_id,
+    worker_identity_digest: operation.claim_worker_identity_digest,
+    process_id: worker.process_id,
+    start_fingerprint: worker.start_fingerprint
+  });
+  const requestReader = new JsonLineReader2(requestStream);
+  const ackReader = new JsonLineReader2(ackStream);
   let sendPending = false;
   const verifyLive = async () => {
-    if (child.exitCode !== null || child.signalCode !== null) throw coded("interaction_worker_not_live");
+    if (child.exitCode !== null || child.signalCode !== null) throw coded2("interaction_worker_not_live");
     let observed;
     try {
       observed = await verifyProcessIdentity({ child, expected: binding });
     } catch {
-      throw coded("interaction_channel_identity_unknown");
+      throw coded2("interaction_channel_identity_unknown");
     }
-    if (!observed || observed.state !== "verified" || observed.process_id !== binding.process_id || observed.start_fingerprint !== binding.start_fingerprint) throw coded("interaction_channel_identity_mismatch");
+    if (!observed || observed.state !== "verified" || observed.process_id !== binding.process_id || observed.start_fingerprint !== binding.start_fingerprint) throw coded2("interaction_channel_identity_mismatch");
   };
   const channel = {
     binding,
@@ -668,15 +3455,15 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
       await verifyLive();
       const frame = await requestReader.read();
       const expected = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "request", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(frame).sort().join("|") !== expected.join("|") || frame.protocol !== "bridge-sqlite-interaction-request-v1" || !sameBinding(frame, binding) || !validRequest(frame.request)) throw coded("interaction_frame_identity_mismatch");
+      if (Object.keys(frame).sort().join("|") !== expected.join("|") || frame.protocol !== "bridge-sqlite-interaction-request-v1" || !sameBinding(frame, binding) || !validRequest(frame.request)) throw coded2("interaction_frame_identity_mismatch");
       return Object.freeze({ binding, request: Object.freeze(frame.request) });
     },
     async prepareReply(reply) {
-      if (sendPending) throw coded("interaction_channel_busy");
+      if (sendPending) throw coded2("interaction_channel_busy");
       sendPending = true;
       try {
         await verifyLive();
-        if (!sameBinding(reply, binding) || !validId2(reply.request_id) || !validId2(reply.reply_id) || !Number.isSafeInteger(reply.revision) || reply.revision < 1 || !/^[0-9a-f]{64}$/u.test(reply.answer_digest) || !reply.answer || Object.getPrototypeOf(reply.answer) !== Object.prototype) throw coded("interaction_reply_binding_mismatch");
+        if (!sameBinding(reply, binding) || !validId2(reply.request_id) || !validId2(reply.reply_id) || !Number.isSafeInteger(reply.revision) || reply.revision < 1 || !/^[0-9a-f]{64}$/u.test(reply.answer_digest) || !reply.answer || Object.getPrototypeOf(reply.answer) !== Object.prototype) throw coded2("interaction_reply_binding_mismatch");
         const frame = {
           protocol: "bridge-sqlite-interaction-prepare-v1",
           ...binding,
@@ -686,7 +3473,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
           answer: reply.answer,
           answer_digest: reply.answer_digest
         };
-        await writeFrame(replyStream, frame);
+        await writeFrame2(replyStream, frame);
         await verifyLive();
         const ack = await ackReader.read(8192);
         validateAck(ack, "prepared", binding, reply);
@@ -696,7 +3483,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
           reply_id: reply.reply_id,
           revision: reply.revision,
           answer_digest: reply.answer_digest,
-          ack_digest: sha256(stableJson(ack))
+          ack_digest: sha2562(stableJson2(ack))
         });
         PREPARED_ACKNOWLEDGEMENTS.add(proof);
         return proof;
@@ -705,8 +3492,8 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
       }
     },
     async commitReply(reply, commit) {
-      if (sendPending) throw coded("interaction_channel_busy");
-      if (!commit || commit.state !== "committed" || !sameBinding(commit, binding) || commit.request_id !== reply.request_id || commit.reply_id !== reply.reply_id || commit.answer_digest !== reply.answer_digest || !Number.isSafeInteger(commit.revision) || !/^[0-9a-f]{64}$/u.test(commit.prepared_digest) || !/^[0-9a-f]{64}$/u.test(commit.commit_digest)) throw coded("interaction_commit_binding_mismatch");
+      if (sendPending) throw coded2("interaction_channel_busy");
+      if (!commit || commit.state !== "committed" || !sameBinding(commit, binding) || commit.request_id !== reply.request_id || commit.reply_id !== reply.reply_id || commit.answer_digest !== reply.answer_digest || !Number.isSafeInteger(commit.revision) || !/^[0-9a-f]{64}$/u.test(commit.prepared_digest) || !/^[0-9a-f]{64}$/u.test(commit.commit_digest)) throw coded2("interaction_commit_binding_mismatch");
       sendPending = true;
       try {
         await verifyLive();
@@ -720,7 +3507,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
           prepared_digest: commit.prepared_digest,
           commit_digest: commit.commit_digest
         };
-        await writeFrame(replyStream, frame);
+        await writeFrame2(replyStream, frame);
         const ack = await ackReader.read(8192);
         validateAck(ack, "accepted", binding, { ...reply, revision: commit.revision });
         const proof = Object.freeze({
@@ -730,7 +3517,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
           revision: commit.revision,
           answer_digest: reply.answer_digest,
           commit_digest: commit.commit_digest,
-          ack_digest: sha256(stableJson(ack))
+          ack_digest: sha2562(stableJson2(ack))
         });
         ACKNOWLEDGEMENTS.add(proof);
         return proof;
@@ -740,8 +3527,8 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
     }
   };
   await verifyLive();
-  await writeFrame(replyStream, { protocol: "bridge-sqlite-interaction-bind-v1", ...binding });
-  CHANNELS.add(channel);
+  await writeFrame2(replyStream, { protocol: "bridge-sqlite-interaction-bind-v1", ...binding });
+  CHANNELS2.add(channel);
   return Object.freeze(channel);
 }
 async function createCandidateWorkerInteractionChannel({
@@ -756,21 +3543,21 @@ async function createCandidateWorkerInteractionChannel({
     })
   )
 }) {
-  if (!Number.isSafeInteger(processId) || processId < 1 || typeof verifySelfIdentity !== "function" || !requestStream || typeof requestStream.write !== "function" || !replyStream || typeof replyStream[Symbol.asyncIterator] !== "function" || !ackStream || typeof ackStream.write !== "function") throw coded("interaction_channel_unavailable");
-  const replyReader = new JsonLineReader(replyStream);
+  if (!Number.isSafeInteger(processId) || processId < 1 || typeof verifySelfIdentity !== "function" || !requestStream || typeof requestStream.write !== "function" || !replyStream || typeof replyStream[Symbol.asyncIterator] !== "function" || !ackStream || typeof ackStream.write !== "function") throw coded2("interaction_channel_unavailable");
+  const replyReader = new JsonLineReader2(replyStream);
   onStage("worker bind read");
   const bind = await replyReader.read(8192);
   onStage("worker bind received");
   const bindKeys = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "start_fingerprint", "task_id", "worker_identity_digest"];
-  if (Object.keys(bind).sort().join("|") !== bindKeys.join("|") || bind.protocol !== "bridge-sqlite-interaction-bind-v1" || !validBinding(bind) || bind.process_id !== processId) throw coded("interaction_bind_invalid");
+  if (Object.keys(bind).sort().join("|") !== bindKeys.join("|") || bind.protocol !== "bridge-sqlite-interaction-bind-v1" || !validBinding(bind) || bind.process_id !== processId) throw coded2("interaction_bind_invalid");
   let observed;
   onStage("worker identity verification");
   try {
     observed = await verifySelfIdentity({ processId, expected: bind });
   } catch {
-    throw coded("interaction_channel_identity_unknown");
+    throw coded2("interaction_channel_identity_unknown");
   }
-  if (!observed || observed.state !== "verified" || observed.process_id !== processId || observed.start_fingerprint !== bind.start_fingerprint) throw coded("interaction_bind_identity_mismatch");
+  if (!observed || observed.state !== "verified" || observed.process_id !== processId || observed.start_fingerprint !== bind.start_fingerprint) throw coded2("interaction_bind_identity_mismatch");
   onStage("worker identity verified");
   let pendingReply = null;
   let closed = false;
@@ -788,17 +3575,17 @@ async function createCandidateWorkerInteractionChannel({
     },
     binding: Object.freeze({ ...bind, protocol: void 0 }),
     async sendRequest(request) {
-      if (closed) throw coded("interaction_channel_closed");
-      if (pendingReply) throw coded("interaction_channel_busy");
-      if (!validRequest(request)) throw coded("interaction_frame_invalid");
+      if (closed) throw coded2("interaction_channel_closed");
+      if (pendingReply) throw coded2("interaction_channel_busy");
+      if (!validRequest(request)) throw coded2("interaction_frame_invalid");
       onStage("worker request write");
-      await writeFrame(requestStream, { ...bindingWithoutProtocol(bind), protocol: "bridge-sqlite-interaction-request-v1", request });
+      await writeFrame2(requestStream, { ...bindingWithoutProtocol(bind), protocol: "bridge-sqlite-interaction-request-v1", request });
       onStage("worker request written");
       onStage("worker prepare reply read");
       const frame = await replyReader.read();
       onStage("worker prepare reply received");
       const keys = ["answer", "answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(frame).sort().join("|") !== keys.join("|") || frame.protocol !== "bridge-sqlite-interaction-prepare-v1" || !sameBinding(frame, bind) || frame.request_id !== request.request_id || !validId2(frame.reply_id) || !Number.isSafeInteger(frame.revision) || frame.revision < 1 || !/^[0-9a-f]{64}$/u.test(frame.answer_digest) || !validPersistedInteractionAnswer(request, frame.answer) || interactionReplyDigest(bind, request.request_id, frame.answer) !== frame.answer_digest) throw coded("interaction_prepare_invalid");
+      if (Object.keys(frame).sort().join("|") !== keys.join("|") || frame.protocol !== "bridge-sqlite-interaction-prepare-v1" || !sameBinding(frame, bind) || frame.request_id !== request.request_id || !validId2(frame.reply_id) || !Number.isSafeInteger(frame.revision) || frame.revision < 1 || !/^[0-9a-f]{64}$/u.test(frame.answer_digest) || !validPersistedInteractionAnswer(request, frame.answer) || interactionReplyDigest(bind, request.request_id, frame.answer) !== frame.answer_digest) throw coded2("interaction_prepare_invalid");
       const preparedAck = {
         protocol: "bridge-sqlite-interaction-ack-v1",
         state: "prepared",
@@ -808,19 +3595,19 @@ async function createCandidateWorkerInteractionChannel({
         revision: frame.revision,
         answer_digest: frame.answer_digest
       };
-      await writeFrame(ackStream, preparedAck);
+      await writeFrame2(ackStream, preparedAck);
       pendingReply = { request, frame, preparedAck };
       return Object.freeze({ state: "prepared", request_id: request.request_id, reply_id: frame.reply_id });
     },
     async acceptCommittedReply() {
-      if (closed) throw coded("interaction_channel_closed");
-      if (!pendingReply) throw coded("interaction_reply_not_prepared");
+      if (closed) throw coded2("interaction_channel_closed");
+      if (!pendingReply) throw coded2("interaction_reply_not_prepared");
       onStage("worker committed reply frame read");
       const { request, frame, preparedAck } = pendingReply;
       const commit = await replyReader.read(8192);
       onStage("worker committed reply frame received");
       const commitKeys = ["answer_digest", "attempt", "claim_id", "commit_digest", "generation", "operation_id", "prepared_digest", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(commit).sort().join("|") !== commitKeys.join("|") || commit.protocol !== "bridge-sqlite-interaction-commit-v1" || !sameBinding(commit, bind) || commit.request_id !== request.request_id || commit.reply_id !== frame.reply_id || commit.answer_digest !== frame.answer_digest || commit.revision <= frame.revision || commit.prepared_digest !== sha256(stableJson(preparedAck)) || commit.commit_digest !== interactionCommitDigest(bind, commit)) throw coded("interaction_commit_invalid");
+      if (Object.keys(commit).sort().join("|") !== commitKeys.join("|") || commit.protocol !== "bridge-sqlite-interaction-commit-v1" || !sameBinding(commit, bind) || commit.request_id !== request.request_id || commit.reply_id !== frame.reply_id || commit.answer_digest !== frame.answer_digest || commit.revision <= frame.revision || commit.prepared_digest !== sha2562(stableJson2(preparedAck)) || commit.commit_digest !== interactionCommitDigest(bind, commit)) throw coded2("interaction_commit_invalid");
       const ack = {
         protocol: "bridge-sqlite-interaction-ack-v1",
         state: "accepted",
@@ -831,7 +3618,7 @@ async function createCandidateWorkerInteractionChannel({
         answer_digest: frame.answer_digest
       };
       onStage("worker accepted acknowledgement write start");
-      await writeFrame(ackStream, ack);
+      await writeFrame2(ackStream, ack);
       onStage("worker accepted acknowledgement write complete");
       pendingReply = null;
       return Object.freeze({ answer: frame.answer, reply_id: frame.reply_id, answer_digest: frame.answer_digest });
@@ -846,12 +3633,12 @@ function isCandidateInteractionAcknowledgement(value) {
   return !!value && ACKNOWLEDGEMENTS.has(value);
 }
 function isCandidateInteractionChannel(value) {
-  return !!value && CHANNELS.has(value);
+  return !!value && CHANNELS2.has(value);
 }
-async function writeFrame(stream, frame) {
-  const bytes = Buffer.from(`${stableJson(frame)}
+async function writeFrame2(stream, frame) {
+  const bytes = Buffer.from(`${stableJson2(frame)}
 `, "utf8");
-  if (bytes.length > MAX_FRAME_BYTES2) throw coded("interaction_frame_too_large");
+  if (bytes.length > MAX_FRAME_BYTES3) throw coded2("interaction_frame_too_large");
   await new Promise((resolve, reject) => {
     try {
       stream.write(bytes, (error62) => error62 ? reject(error62) : resolve());
@@ -863,7 +3650,7 @@ async function writeFrame(stream, frame) {
 function validateAck(ack, state, binding, reply) {
   const keys = ["answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "state", "task_id", "worker_identity_digest"];
   if (Object.keys(ack).sort().join("|") !== keys.join("|") || ack.protocol !== "bridge-sqlite-interaction-ack-v1" || ack.state !== state || !sameBinding(ack, binding) || ack.request_id !== reply.request_id || ack.reply_id !== reply.reply_id || ack.revision !== reply.revision || ack.answer_digest !== reply.answer_digest)
-    throw coded("interaction_ack_mismatch");
+    throw coded2("interaction_ack_mismatch");
 }
 function validBinding(value) {
   return value.protocol === "bridge-sqlite-interaction-bind-v1" && validId2(value.operation_id) && validId2(value.task_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && validId2(value.claim_id) && /^[0-9a-f]{64}$/u.test(value.worker_identity_digest) && Number.isSafeInteger(value.process_id) && value.process_id > 0 && typeof value.start_fingerprint === "string" && !!value.start_fingerprint;
@@ -873,7 +3660,7 @@ function bindingWithoutProtocol(value) {
   return binding;
 }
 function interactionReplyDigest(binding, requestId, answer) {
-  return sha256(stableJson({
+  return sha2562(stableJson2({
     interaction_reply_contract_version: 1,
     operation_id: binding.operation_id,
     task_id: binding.task_id,
@@ -886,7 +3673,7 @@ function interactionReplyDigest(binding, requestId, answer) {
   }));
 }
 function interactionCommitDigest(binding, commit) {
-  return sha256(stableJson({
+  return sha2562(stableJson2({
     interaction_commit_contract_version: 1,
     operation_id: binding.operation_id,
     task_id: binding.task_id,
@@ -916,7 +3703,7 @@ function validPersistedInteractionAnswer(request, answer) {
   const raw = Array.isArray(request.params.questions) ? request.params.questions : Array.isArray(nested.questions) ? nested.questions : [];
   const questions = raw.filter((question) => question && Object.getPrototypeOf(question) === Object.prototype && typeof question.question === "string").map((question) => question.question);
   const entries = Object.entries(answer.content.answers);
-  return entries.length > 0 && entries.every(([key, value]) => questions.includes(key) && typeof value === "string" && !!value.trim() && value.length <= 4e3) && Buffer.byteLength(stableJson(answer.content.answers), "utf8") <= 16e3;
+  return entries.length > 0 && entries.every(([key, value]) => questions.includes(key) && typeof value === "string" && !!value.trim() && value.length <= 4e3) && Buffer.byteLength(stableJson2(answer.content.answers), "utf8") <= 16e3;
 }
 function sameBinding(value, binding) {
   return value.operation_id === binding.operation_id && value.task_id === binding.task_id && value.attempt === binding.attempt && value.generation === binding.generation && value.claim_id === binding.claim_id && value.worker_identity_digest === binding.worker_identity_digest && value.process_id === binding.process_id && value.start_fingerprint === binding.start_fingerprint;
@@ -924,7 +3711,7 @@ function sameBinding(value, binding) {
 function validRequest(value) {
   if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== "method|params|request_id" || !validId2(value.request_id) || value.request_id.length > 512 || !["interaction/requestPermission", "interaction/requestUserInput"].includes(value.method) || !value.params || Object.getPrototypeOf(value.params) !== Object.prototype) return false;
   try {
-    return Buffer.byteLength(stableJson(value), "utf8") <= MAX_REQUEST_BYTES;
+    return Buffer.byteLength(stableJson2(value), "utf8") <= MAX_REQUEST_BYTES;
   } catch {
     return false;
   }
@@ -932,25 +3719,25 @@ function validRequest(value) {
 function validId2(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 512 && !/[\x00-\x1f]/u.test(value);
 }
-function stableJson(value, depth = 0) {
-  if (depth > 32) throw coded("interaction_json_too_deep");
+function stableJson2(value, depth = 0) {
+  if (depth > 32) throw coded2("interaction_json_too_deep");
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
   if (Array.isArray(value)) {
-    if (value.length > 256) throw coded("interaction_json_too_large");
-    return `[${value.map((item) => stableJson(item, depth + 1)).join(",")}]`;
+    if (value.length > 256) throw coded2("interaction_json_too_large");
+    return `[${value.map((item) => stableJson2(item, depth + 1)).join(",")}]`;
   }
   if (value && Object.getPrototypeOf(value) === Object.prototype) {
     const keys = Object.keys(value);
-    if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) throw coded("interaction_json_invalid");
-    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key], depth + 1)}`).join(",")}}`;
+    if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) throw coded2("interaction_json_invalid");
+    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson2(value[key], depth + 1)}`).join(",")}}`;
   }
-  throw coded("interaction_json_invalid");
+  throw coded2("interaction_json_invalid");
 }
-function sha256(value) {
-  return createHash4("sha256").update(value).digest("hex");
+function sha2562(value) {
+  return createHash10("sha256").update(value).digest("hex");
 }
-function coded(code) {
+function coded2(code) {
   return Object.assign(new Error(code), { code });
 }
 function closeWritable(stream) {
@@ -969,40 +3756,40 @@ async function closeReadable(stream) {
   else if (!stream.destroyed) stream.destroy();
   await closed;
 }
-var CHANNELS, ACKNOWLEDGEMENTS, PREPARED_ACKNOWLEDGEMENTS, MAX_REQUEST_BYTES, MAX_FRAME_BYTES2, JsonLineReader;
+var CHANNELS2, ACKNOWLEDGEMENTS, PREPARED_ACKNOWLEDGEMENTS, MAX_REQUEST_BYTES, MAX_FRAME_BYTES3, JsonLineReader2;
 var init_interaction_channel = __esm({
   "src/sqlite-candidate/wp6b2b1/interaction-channel.mjs"() {
     "use strict";
-    CHANNELS = /* @__PURE__ */ new WeakSet();
+    CHANNELS2 = /* @__PURE__ */ new WeakSet();
     ACKNOWLEDGEMENTS = /* @__PURE__ */ new WeakSet();
     PREPARED_ACKNOWLEDGEMENTS = /* @__PURE__ */ new WeakSet();
     MAX_REQUEST_BYTES = 1048576;
-    MAX_FRAME_BYTES2 = MAX_REQUEST_BYTES + 8192;
-    JsonLineReader = class {
+    MAX_FRAME_BYTES3 = MAX_REQUEST_BYTES + 8192;
+    JsonLineReader2 = class {
       #iterator;
       #buffer = Buffer.alloc(0);
       constructor(stream) {
         this.#iterator = stream[Symbol.asyncIterator]();
       }
-      async read(maximum2 = MAX_FRAME_BYTES2) {
+      async read(maximum2 = MAX_FRAME_BYTES3) {
         for (; ; ) {
           const end = this.#buffer.indexOf(10);
           if (end >= 0) {
             const frame = this.#buffer.subarray(0, end);
             this.#buffer = this.#buffer.subarray(end + 1);
-            if (!frame.length || frame.length > maximum2) throw coded("interaction_frame_invalid");
+            if (!frame.length || frame.length > maximum2) throw coded2("interaction_frame_invalid");
             let value;
             try {
               value = JSON.parse(frame.toString("utf8"));
             } catch {
-              throw coded("interaction_frame_invalid");
+              throw coded2("interaction_frame_invalid");
             }
-            if (!value || typeof value !== "object" || Array.isArray(value)) throw coded("interaction_frame_invalid");
+            if (!value || typeof value !== "object" || Array.isArray(value)) throw coded2("interaction_frame_invalid");
             return value;
           }
-          if (this.#buffer.length > maximum2) throw coded("interaction_frame_too_large");
+          if (this.#buffer.length > maximum2) throw coded2("interaction_frame_too_large");
           const next = await this.#iterator.next();
-          if (next.done) throw coded(this.#buffer.length ? "interaction_frame_truncated" : "interaction_channel_closed");
+          if (next.done) throw coded2(this.#buffer.length ? "interaction_frame_truncated" : "interaction_channel_closed");
           const chunk = Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value);
           this.#buffer = Buffer.concat([this.#buffer, chunk]);
         }
@@ -1077,7 +3864,7 @@ function parseAgentReport(responseText) {
   };
 }
 function extractReportCandidate(value) {
-  if (!isPlainObject(value)) return null;
+  if (!isPlainObject2(value)) return null;
   const candidate = {};
   if (typeof value["summary"] === "string") candidate.summary = value["summary"];
   if (isStringArray2(value["files_changed"])) candidate.files_changed = value["files_changed"];
@@ -1107,12 +3894,11 @@ function* extractJsonObjects(text) {
     } catch {
     }
   }
-  const limit = Math.min(text.length, MAX_SCAN_CHARS);
   let depth = 0;
   let inString = false;
   let escaped = false;
   let start = -1;
-  for (let i = 0; i < limit; i++) {
+  for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (inString) {
       if (escaped) {
@@ -1149,28 +3935,190 @@ function* extractJsonObjects(text) {
 function isStringArray2(value) {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
-function isPlainObject(value) {
+function isPlainObject2(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-var MAX_SCAN_CHARS;
 var init_agent_report = __esm({
   "src/adapters/agent-report.ts"() {
     "use strict";
     init_result_contract();
-    MAX_SCAN_CHARS = 4e5;
+  }
+});
+
+// src/adapters/rpc-diagnostics.ts
+function extractRpcDiagnostic(method, error62) {
+  if (!RPC_METHOD2.test(method)) return null;
+  const rejection = asRecord4(error62);
+  const rawCode = rejection?.code;
+  const code = typeof rawCode === "number" && Number.isSafeInteger(rawCode) ? rawCode : null;
+  const data = asRecord4(rejection?.data);
+  const dataName = token(data?.name, DATA_NAME_TOKEN, MAX_DATA_NAME_CHARS);
+  const dataCode = token(data?.code, DATA_CODE_TOKEN, MAX_DATA_CODE_CHARS);
+  const message = singleLine(rejection?.message, MAX_RPC_MESSAGE_CHARS);
+  const stack = sanitizeStack(data?.stack);
+  if (code === null && message === "" && dataName === null && dataCode === null && stack === void 0) return null;
+  return { method, code, message, data_name: dataName, data_code: dataCode, ...stack === void 0 ? {} : { stack } };
+}
+function appendRpcDiagnostic(list, diagnostic) {
+  if (list.some((entry) => sameRejection(entry, diagnostic))) return list;
+  if (list.length >= MAX_RPC_DIAGNOSTICS2) return list;
+  const withStack = [...list, diagnostic];
+  if (diagnosticsBytes(withStack) <= MAX_RPC_DIAGNOSTICS_BYTES2) return withStack;
+  const { stack: _omitted, ...withoutStack } = diagnostic;
+  return diagnosticsBytes([...list, withoutStack]) <= MAX_RPC_DIAGNOSTICS_BYTES2 ? [...list, withoutStack] : list;
+}
+function sameRejection(left, right) {
+  return left.method === right.method && left.code === right.code && left.data_code === right.data_code;
+}
+function diagnosticsBytes(list) {
+  return Buffer.byteLength(String(canonical(list)), "utf8");
+}
+function token(value, pattern, maxChars) {
+  return typeof value === "string" && value.length <= maxChars && pattern.test(value) ? value : null;
+}
+function singleLine(value, maxChars) {
+  if (typeof value !== "string") return "";
+  return limit(redactDiagnosticText(value).replace(/\s+/gu, " ").trim(), maxChars);
+}
+function sanitizeStack(value) {
+  if (typeof value !== "string") return void 0;
+  const frames = [];
+  for (const line of value.slice(0, MAX_RAW_STACK_CHARS).split(/\r?\n/u)) {
+    const frame = /^at\s+(.+)$/u.exec(line.trim());
+    if (!frame) continue;
+    const rendered = sanitizeFrame(frame[1]);
+    if (rendered === null) continue;
+    if (frames.length >= MAX_RPC_STACK_FRAMES || frames.join("\n").length + rendered.length + 1 > MAX_RPC_STACK_CHARS) break;
+    frames.push(rendered);
+  }
+  return frames.length ? frames.join("\n") : void 0;
+}
+function sanitizeFrame(frame) {
+  const group = /^(.*?)\s*\(([^()]*)\)$/u.exec(frame);
+  const rawFunction = (group?.[1] ?? "").trim();
+  const rawLocation = (group?.[2] ?? frame).trim();
+  const location = sanitizeLocation(rawLocation);
+  if (location === null) return null;
+  if (!group) return `at ${location}`;
+  return `at ${rawFunction && FUNCTION_NAME.test(rawFunction) ? rawFunction : "<anonymous>"} (${location})`;
+}
+function sanitizeLocation(raw) {
+  const wrapped = /\(([^()]+)\)$/u.exec(raw);
+  const location = (wrapped && /^(?:eval|function)\b/iu.test(raw) ? wrapped[1] : raw).trim();
+  if (/^(?:node:|native$|<anonymous>$)/u.test(location)) return location.length <= 160 ? location : null;
+  const baseName = location.slice(Math.max(location.lastIndexOf("\\"), location.lastIndexOf("/")) + 1);
+  const match = /^([^\s:()[\]]{1,120})(?::(\d{1,9})(?::(\d{1,9}))?)?\)?$/u.exec(baseName);
+  if (!match) return null;
+  return `${match[1]}${match[2] ? `:${match[2]}${match[3] ? `:${match[3]}` : ""}` : ""}`;
+}
+function redactDiagnosticText(text) {
+  return text.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/gu, "").replace(/\bBearer\s+[A-Za-z0-9\-._~+/]+=*/giu, "Bearer [REDACTED]").replace(/\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}/gu, "[REDACTED_JWT]").replace(/\b[0-9a-f]{32}\.[A-Za-z0-9]{16}\b/giu, "[REDACTED_KEY]").replace(/\bsk-[A-Za-z0-9_-]{8,}/gu, "[REDACTED_KEY]").replace(
+    /\b(api[_-]?keys?|access[_-]?tokens?|refresh[_-]?tokens?|keys?|tokens?|secrets?|passwords?|passwd|authorizations?|cookies?|credentials?)\s*[:=]\s*["']?[^\s,"';&)}\]]{4,}/giu,
+    "$1=[REDACTED]"
+  ).replace(/\b[0-9a-f]{32,}\b/giu, "[REDACTED_HEX]").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/gu, "");
+}
+function limit(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  const head = text.slice(0, maxChars - TRUNCATED_MARKER.length);
+  return `${/[\uD800-\uDBFF]$/u.test(head) ? head.slice(0, -1) : head}${TRUNCATED_MARKER}`;
+}
+function asRecord4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : null;
+}
+var MAX_RPC_DIAGNOSTICS2, MAX_RPC_DIAGNOSTICS_BYTES2, MAX_RPC_MESSAGE_CHARS, MAX_RPC_STACK_FRAMES, MAX_RPC_STACK_CHARS, MAX_DATA_NAME_CHARS, MAX_DATA_CODE_CHARS, MAX_RAW_STACK_CHARS, TRUNCATED_MARKER, RPC_METHOD2, DATA_NAME_TOKEN, DATA_CODE_TOKEN, FUNCTION_NAME;
+var init_rpc_diagnostics = __esm({
+  "src/adapters/rpc-diagnostics.ts"() {
+    "use strict";
+    init_result_contract();
+    MAX_RPC_DIAGNOSTICS2 = 4;
+    MAX_RPC_DIAGNOSTICS_BYTES2 = 8 * 1024;
+    MAX_RPC_MESSAGE_CHARS = 500;
+    MAX_RPC_STACK_FRAMES = 12;
+    MAX_RPC_STACK_CHARS = 1200;
+    MAX_DATA_NAME_CHARS = 64;
+    MAX_DATA_CODE_CHARS = 128;
+    MAX_RAW_STACK_CHARS = 64e3;
+    TRUNCATED_MARKER = "\u2026[truncated]";
+    RPC_METHOD2 = /^[a-z]+(?:\/[A-Za-z0-9_]+){1,2}$/u;
+    DATA_NAME_TOKEN = /^[A-Za-z][A-Za-z0-9_]*$/u;
+    DATA_CODE_TOKEN = /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/u;
+    FUNCTION_NAME = /^(?:(?:new |async )*[A-Za-z0-9_$.[\]<> ]{1,100})?$/u;
   }
 });
 
 // src/prompts/task-prompt.ts
 function buildTaskPrompt(task) {
   const sections = [
+    DELIVERY_OWNERSHIP,
+    DECISION_RULE,
+    ...renderTaskPackage(task)
+  ];
+  const context = renderContext(task.context);
+  if (context) sections.push(context);
+  sections.push(OUTPUT_CONTRACT);
+  return joinBoundedPrompt(sections);
+}
+function buildContinuePrompt(input2) {
+  const { task, feedback, additionalRequirements, previousSessionId, previousResult } = input2;
+  if (previousResult?.error_code === "invalid_agent_report") {
+    return buildReportRepairPrompt(input2);
+  }
+  const core = [
+    DELIVERY_OWNERSHIP,
+    DECISION_RULE,
+    CONTINUATION_CONTEXT,
+    ...previousSessionId ? [`PERSISTED SESSION: ${previousSessionId}`] : [],
+    ...renderTaskPackage(task)
+  ];
+  const context = renderContext(task.context);
+  if (context) core.push(context);
+  if (previousResult) {
+    core.push(renderPreviousResultEvidence(previousResult));
+  }
+  const feedbackHeader = "MASTER FEEDBACK (address every point";
+  const requirementsSection = additionalRequirements.length > 0 ? renderList("ADDITIONAL REQUIREMENTS", [...additionalRequirements]) : null;
+  const baseSections = [...core, OUTPUT_CONTRACT, ...requirementsSection ? [requirementsSection] : []];
+  const baseLength = baseSections.join("\n\n").length + "\n\n".length;
+  const excerptNotice = "; excerpted to fit the prompt capacity";
+  const headerOverhead = `${feedbackHeader}${excerptNotice})
+`.length + "\n\n".length;
+  const feedbackBudget = MAX_PROMPT_CHARS - baseLength - headerOverhead;
+  const feedbackSection = feedbackBudget <= 0 ? `${feedbackHeader})
+[feedback omitted: the task package alone exceeds the prompt capacity]` : `${feedbackHeader}${feedback.length > feedbackBudget ? excerptNotice : ""})
+${excerptEvidence(feedback, feedbackBudget)}`;
+  const sections = [...core, feedbackSection, ...requirementsSection ? [requirementsSection] : [], OUTPUT_CONTRACT];
+  return joinBoundedPrompt(sections);
+}
+function buildReportRepairPrompt(input2) {
+  const { task, feedback, additionalRequirements, previousResult } = input2;
+  if (!previousResult || previousResult.error_code !== "invalid_agent_report") {
+    throw new Error("report repair prompt requires an invalid_agent_report result");
+  }
+  const sections = [
+    REPORT_REPAIR_MODE,
     `TASK ID: ${task.task_id}`,
-    "You are the Coding Worker executing one complete task inside the current working directory. Own its delivery end to end. Stay inside the workspace; do not touch files outside it.",
+    `PROJECT WORKSPACE: ${task.workspace}`,
+    ...task.worktree_path ? [`HOST-SELECTED EXECUTION WORKTREE: ${task.worktree_path}`] : [],
+    `PREVIOUS REPORT ERROR
+${boundedEvidenceText(previousResult.summary)}`,
+    `REPORT CANDIDATE CLAIMS (not independently verified)
+${JSON.stringify(projectReportCandidate(previousResult.report_candidate ?? {}))}`,
+    `PREVIOUS RESPONSE EXCERPT
+${excerptEvidence(previousResult.zcode_output, MAX_REPAIR_RESPONSE_CHARS)}`,
+    `MASTER FEEDBACK (report repair only)
+${feedback}`,
+    ...additionalRequirements.length ? [renderList("ADDITIONAL REPORT REQUIREMENTS", [...additionalRequirements])] : [],
+    OUTPUT_CONTRACT
+  ];
+  return joinBoundedPrompt(sections);
+}
+function renderTaskPackage(task) {
+  return [
+    `TASK ID: ${task.task_id}`,
     `PROJECT WORKSPACE: ${task.workspace}`,
     ...task.worktree_path ? [`HOST-SELECTED EXECUTION WORKTREE: ${task.worktree_path}. Make task changes in the current working directory, which is this worktree; the project workspace above identifies its parent project.`] : [],
     ...task.model ? [`REQUESTED ZCODE MODEL: ${task.model.provider_id}/${task.model.model_id}${task.model.reasoning_level ? ` (reasoning level: ${task.model.reasoning_level})` : ""}. The Bridge configures this model for the session.`] : [],
     ...task.timeout_ms ? [`EXECUTION TIME LIMIT: ${task.timeout_ms} ms for this attempt.`] : [],
-    DELIVERY_OWNERSHIP,
     `OBJECTIVE
 ${task.objective}`,
     renderList("REQUIREMENTS", task.requirements),
@@ -1183,63 +4131,102 @@ ${task.objective}`,
     renderList(
       "TEST COMMANDS (run the applicable ones and report a status for each)",
       task.test_commands
-    ),
-    DECISION_RULE
+    )
   ];
-  if (task.context && task.context.trim().length > 0) {
-    sections.push(`CONTEXT
-${bounded(task.context, MAX_CONTEXT_CHARS)}`);
-  }
-  return joinBoundedPreservingTail([...sections, OUTPUT_CONTRACT], OUTPUT_CONTRACT);
 }
-function buildContinuePrompt(input2) {
-  const { task, feedback, additionalRequirements, previousSessionId, previousResult } = input2;
-  const sections = [
-    `TASK ID: ${task.task_id}`,
-    "You are a subordinate coding agent continuing a previous task in the same workspace. Own the remaining delivery end to end. Stay inside the workspace.",
-    DELIVERY_OWNERSHIP,
-    ...task.model ? [`REQUESTED ZCODE MODEL: ${task.model.provider_id}/${task.model.model_id}${task.model.reasoning_level ? ` (reasoning level: ${task.model.reasoning_level})` : ""}. The Bridge configures this model for the session.`] : []
-  ];
-  if (previousSessionId) {
-    sections.push(
-      `This run resumes persisted session ${previousSessionId}; earlier conversation context may be available.`
-    );
+function renderContext(context) {
+  return context && context.trim().length > 0 ? `CONTEXT
+${context}` : null;
+}
+function renderPreviousResultEvidence(result) {
+  return `PREVIOUS ATTEMPT EVIDENCE (structured; not independently verified)
+${JSON.stringify(projectPreviousResult(result))}`;
+}
+function projectPreviousResult(result) {
+  const failedTests = result.tests.filter((test) => test.status === "failed").map(projectTest);
+  const notRunTests = result.tests.filter((test) => test.status === "not_run").map(projectTest);
+  const counts = { passed: 0, failed: failedTests.length, not_run: notRunTests.length };
+  for (const test of result.tests) {
+    if (test.status === "passed") counts.passed += 1;
   }
-  if (previousResult?.error_code === "invalid_agent_report") {
-    sections.push(
-      "REPORT REPAIR MODE: The previous execution has ended. Only its final report failed validation. Do not use tools, edit files, rerun tests, or repeat task work. Return the corrected JSON report from the evidence below. Preserve claims as claims, including not_run and failures. Do not invent tests or missing facts. If needs_master_decision cannot be established, explicitly set it to true and record the uncertainty in issues.",
-      `PROJECT WORKSPACE: ${task.workspace}`,
-      ...task.worktree_path ? [`HOST-SELECTED EXECUTION WORKTREE: ${task.worktree_path}`] : [],
-      `PREVIOUS REPORT ERROR
-${previousResult.summary}`,
-      `REPORT CANDIDATE CLAIMS (not independently verified)
-${JSON.stringify(previousResult.report_candidate ?? {}, null, 2)}`,
-      `PREVIOUS RESPONSE
-${bounded(previousResult.zcode_output, MAX_SECTION_CHARS)}`,
-      `MASTER FEEDBACK (report repair only)
-${feedback}`,
-      ...additionalRequirements.length ? [renderList("ADDITIONAL REPORT REQUIREMENTS", [...additionalRequirements])] : [],
-      OUTPUT_CONTRACT
-    );
-    return joinBoundedPreservingTail(sections, OUTPUT_CONTRACT);
+  const normalizedFailureEmpty = result.status === "failed" && !result.error_code && result.summary.trim().length === 0 && result.issues.length === 0 && result.zcode_output.trim().length > 0;
+  return {
+    task_id: result.task_id,
+    attempt: result.attempt,
+    status: result.status,
+    ...result.error_code ? { error_code: result.error_code } : {},
+    summary: boundedEvidenceText(result.summary),
+    files_changed: result.files_changed.map((file2) => boundedEvidenceText(file2)),
+    failed_tests: failedTests,
+    not_run_tests: notRunTests,
+    test_counts: counts,
+    issues: result.issues.map((issue2) => boundedEvidenceText(issue2)),
+    needs_master_decision: result.needs_master_decision,
+    ...normalizedFailureEmpty ? { raw_output_excerpt: failureEvidenceExcerpt(result.zcode_output, 4e3) } : {}
+  };
+}
+function projectReportCandidate(candidate) {
+  const projected = {};
+  if (typeof candidate.summary === "string") projected.summary = boundedEvidenceText(candidate.summary);
+  if (Array.isArray(candidate.files_changed)) {
+    projected.files_changed = candidate.files_changed.map((file2) => boundedEvidenceText(file2));
   }
-  if (previousResult) {
-    sections.push(
-      `PREVIOUS RESULT (normalized claims from the previous attempt)
-${bounded(
-        JSON.stringify(previousResult, null, 2),
-        MAX_SECTION_CHARS
-      )}`
-    );
+  if (Array.isArray(candidate.tests)) projected.tests = candidate.tests.map(projectTest);
+  if (Array.isArray(candidate.issues)) {
+    projected.issues = candidate.issues.map((issue2) => boundedEvidenceText(issue2));
   }
-  sections.push(`MASTER FEEDBACK (address every point)
-${feedback}`);
-  if (additionalRequirements.length > 0) {
-    sections.push(renderList("ADDITIONAL REQUIREMENTS", [...additionalRequirements]));
+  if (typeof candidate.needs_master_decision === "boolean") {
+    projected.needs_master_decision = candidate.needs_master_decision;
   }
-  sections.push(`ORIGINAL TASK
-${buildTaskPrompt(task)}`);
-  return joinBoundedPreservingTail(sections, OUTPUT_CONTRACT);
+  return projected;
+}
+function projectTest(test) {
+  const details = test.details === void 0 ? void 0 : test.status === "failed" || test.status === "not_run" ? failureEvidenceExcerpt(test.details, MAX_EVIDENCE_ITEM_CHARS) : boundedEvidenceText(test.details);
+  return {
+    command: boundedEvidenceText(test.command),
+    status: test.status,
+    ...details === void 0 ? {} : { details }
+  };
+}
+function boundedEvidenceText(text, maxChars = MAX_EVIDENCE_ITEM_CHARS) {
+  return excerptEvidence(text, maxChars);
+}
+function excerptEvidence(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  const marker = (omitted) => `...[${omitted} characters omitted]...`;
+  const markerLength = marker(text.length).length;
+  const available = Math.max(0, maxChars - markerLength);
+  const headChars = Math.ceil(available * 0.6);
+  const tailChars = available - headChars;
+  return `${text.slice(0, headChars)}${marker(text.length - headChars - tailChars)}${text.slice(-tailChars)}`;
+}
+function failureEvidenceExcerpt(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  const excerpt = excerptEvidence(text, Math.max(256, Math.floor(maxChars * 0.7)));
+  const omittedStart = excerpt.indexOf("...[");
+  if (omittedStart < 0) return excerpt;
+  const markerMatch = /\.\.\.\[(\d+) characters omitted\]\.\.\./u.exec(excerpt);
+  if (!markerMatch) return excerpt;
+  const omitted = Number(markerMatch[1]);
+  const headChars = omittedStart;
+  const middleStart = headChars;
+  const middleEnd = middleStart + omitted;
+  const middle = text.slice(middleStart, middleEnd);
+  const lines = middle.split(/\r?\n/u);
+  const selected = [];
+  let used = 0;
+  const budget = Math.max(256, Math.floor(maxChars * 0.3));
+  for (let index = 0; index < lines.length && selected.length < 12; index += 1) {
+    const line = lines[index].slice(0, 300);
+    if (ERROR_SIGNAL_PATTERN.test(line) && used + line.length <= budget) {
+      selected.push(`[line ${index + 1} of omitted region] ${line}`);
+      used += line.length + 8;
+    }
+  }
+  if (selected.length === 0) return excerpt;
+  return `${excerpt}
+MIDDLE ERROR SIGNALS (bounded scan of the omitted region)
+${selected.join("\n")}`;
 }
 function renderList(title, items) {
   if (items.length === 0) {
@@ -1252,28 +4239,35 @@ ${items.map((item) => `- ${item}`).join("\n")}`;
 function renderPaths(title, paths) {
   if (paths.length === 0) {
     return `${title}
-- (unspecified; still write only within the workspace)`;
+- (unspecified; still write only within the current working directory)`;
   }
   return `${title}
 ${paths.map((item) => `- ${item}`).join("\n")}`;
 }
-function bounded(text, maxChars) {
-  if (text.length <= maxChars) return text;
-  return `${text.slice(0, maxChars)}\u2026[truncated]`;
-}
-function joinBoundedPreservingTail(sections, requiredTail) {
+function joinBoundedPrompt(sections) {
   const joined = sections.join("\n\n");
   if (joined.length <= MAX_PROMPT_CHARS) return joined;
-  void requiredTail;
-  throw new Error(`task prompt exceeds ${MAX_PROMPT_CHARS} characters; shorten the task package without dropping constraints`);
+  throw new TaskPromptCapacityError(joined.length);
 }
-var MAX_PROMPT_CHARS, MAX_SECTION_CHARS, MAX_CONTEXT_CHARS, OUTPUT_CONTRACT, DECISION_RULE, DELIVERY_OWNERSHIP;
+var MAX_PROMPT_CHARS, MAX_EVIDENCE_ITEM_CHARS, MAX_REPAIR_RESPONSE_CHARS, TaskPromptCapacityError, ERROR_SIGNAL_PATTERN, OUTPUT_CONTRACT, DECISION_RULE, DELIVERY_OWNERSHIP, CONTINUATION_CONTEXT, REPORT_REPAIR_MODE;
 var init_task_prompt = __esm({
   "src/prompts/task-prompt.ts"() {
     "use strict";
     MAX_PROMPT_CHARS = 6e4;
-    MAX_SECTION_CHARS = 4e3;
-    MAX_CONTEXT_CHARS = 2e3;
+    MAX_EVIDENCE_ITEM_CHARS = 2e3;
+    MAX_REPAIR_RESPONSE_CHARS = 5e3;
+    TaskPromptCapacityError = class extends Error {
+      code = "task_prompt_exceeds_capacity";
+      actualChars;
+      maxChars;
+      constructor(actualChars) {
+        super(`task prompt exceeds ${MAX_PROMPT_CHARS} characters (actual ${actualChars}); shorten the task package without dropping constraints`);
+        this.name = "TaskPromptCapacityError";
+        this.actualChars = actualChars;
+        this.maxChars = MAX_PROMPT_CHARS;
+      }
+    };
+    ERROR_SIGNAL_PATTERN = /(?:error|failed|failure|exception|cannot|denied|refused|timeout|timed out|not ok|fatal|panic|errno|exit code [1-9])/iu;
     OUTPUT_CONTRACT = [
       "OUTPUT CONTRACT (mandatory)",
       "Your final response must be exactly one JSON object with no markdown fences and no text before or after it.",
@@ -1285,552 +4279,26 @@ var init_task_prompt = __esm({
     DECISION_RULE = [
       "DECISION RULE",
       "Use only this task package, this prompt, repository files you inspect, and available tools; do not assume access to the calling host's conversation.",
-      "Do not choose unresolved items explicitly listed under OPEN DECISIONS; a later explicit Master Feedback decision resolves that item. Also escalate conflicting requirements or missing decisions that would materially change externally visible behavior, even when the calling host did not list them. Record the exact question in issues and set needs_master_decision=true. Continue independent work that does not depend on the decision. For low-impact implementation choices, use the simplest consistent option and state the assumption in issues."
+      "Do not choose unresolved items explicitly listed under OPEN DECISIONS; a later explicit Master feedback or additional requirement resolves that item. Also escalate conflicting requirements or missing decisions that would materially change externally visible behavior, even when the calling host did not list them. Record the exact question in issues and set needs_master_decision=true. Continue independent work that does not depend on the decision. For low-impact implementation choices, use the simplest consistent option and state the assumption in issues."
     ].join("\n");
     DELIVERY_OWNERSHIP = [
       "DELIVERY OWNERSHIP",
-      "You own this task's complete delivery, not a single step of it. Inspect the repository, plan the work internally, implement every required change, run the applicable tests, fix failures you can resolve within the stated boundaries, and repeat until the acceptance criteria are met or a genuine blocker requires the master.",
+      "You are the Coding Worker for one complete task in the current working directory. Own this task's complete delivery, not a single step of it.",
+      "Inspect the repository, plan the work internally, implement every required change, run the applicable tests, fix failures you can resolve within the stated boundaries, and repeat until the acceptance criteria are met or a genuine blocker requires the master.",
       "Do not stop after a partial step to ask what to do next, and do not wait for the master to list files or functions. Make low-impact implementation choices yourself and record assumptions in issues.",
-      "The master independently verifies the final result; your report is evidence of what you did, not a substitute for that review."
+      "The master independently verifies the final result; your report is evidence of what you did, not a substitute for that review.",
+      "Work only in the current working directory, which is the selected execution root; do not touch files outside it."
     ].join("\n");
-  }
-});
-
-// src/runtime/errors.ts
-var BridgeError;
-var init_errors = __esm({
-  "src/runtime/errors.ts"() {
-    "use strict";
-    BridgeError = class extends Error {
-      code;
-      memberPids;
-      constructor(code, message, options) {
-        super(message, options);
-        this.name = "BridgeError";
-        this.code = code;
-        if (options?.memberPids?.length) this.memberPids = [...new Set(options.memberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))];
-      }
-    };
-  }
-});
-
-// src/runtime/paths.ts
-import { existsSync, readFileSync as readFileSync2 } from "node:fs";
-import path3 from "node:path";
-function resolveUserHome(env, options = {}) {
-  const platform = options.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
-  const homeRaw = env["HOME"]?.trim() || null;
-  const userProfileRaw = env["USERPROFILE"]?.trim() || null;
-  if (platform !== "win32") {
-    if (homeRaw) {
-      return { userHome: pathImpl.resolve(homeRaw), source: "HOME", homeRaw, homeConflict: null };
-    }
-    const fallback2 = userProfileRaw ?? options.fallbackHomeDir ?? "";
-    if (!fallback2) {
-      throw new Error("no user home directory available (HOME is empty and no fallback provided)");
-    }
-    return { userHome: pathImpl.resolve(fallback2), source: userProfileRaw ? "USERPROFILE" : "FALLBACK", homeRaw: null, homeConflict: null };
-  }
-  if (homeRaw) {
-    const rooted = isWindowsAbsolutePath(homeRaw);
-    const matchesUserProfile = userProfileRaw !== null && sameCleanPath(homeRaw, userProfileRaw, pathImpl, true);
-    if (rooted && matchesUserProfile) {
-      return { userHome: pathImpl.resolve(homeRaw), source: "HOME", homeRaw, homeConflict: null };
-    }
-    const conflict = !rooted ? "HOME is set but is not an absolute path" : userProfileRaw === null ? "HOME is set but USERPROFILE is not, so HOME cannot be verified as the current Windows user directory" : "HOME is set but does not match USERPROFILE (test or WSL directories must not override the Windows user directory)";
-    if (userProfileRaw) {
-      return { userHome: pathImpl.resolve(userProfileRaw), source: "USERPROFILE", homeRaw, homeConflict: conflict };
-    }
-    const fallback2 = options.fallbackHomeDir;
-    if (!fallback2) {
-      throw new Error("no Windows user directory available (HOME is invalid and no USERPROFILE or fallback provided)");
-    }
-    return { userHome: pathImpl.resolve(fallback2), source: "FALLBACK", homeRaw, homeConflict: conflict };
-  }
-  if (userProfileRaw) {
-    return { userHome: pathImpl.resolve(userProfileRaw), source: "USERPROFILE", homeRaw: null, homeConflict: null };
-  }
-  const fallback = options.fallbackHomeDir;
-  if (!fallback) {
-    throw new Error("no Windows user directory available (HOME and USERPROFILE are unset and no fallback provided)");
-  }
-  return { userHome: pathImpl.resolve(fallback), source: "FALLBACK", homeRaw: null, homeConflict: null };
-}
-function discoverZCodeData(env, options = {}) {
-  const platform = options.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
-  const readFile2 = options.readFile ?? ((filePath) => readFileSync2(filePath, "utf8"));
-  const fileExists = options.fileExists ?? existsSync;
-  const home = resolveUserHome(env, options);
-  const settingFile = pathImpl.join(home.userHome, ".zcode", "v2", "setting.json");
-  let settingStatus = "ok";
-  let settingError = null;
-  let configuredDataBaseDir = null;
-  if (!fileExists(settingFile)) {
-    settingStatus = "absent";
-  } else {
-    let text;
-    try {
-      text = readFile2(settingFile);
-    } catch (error62) {
-      settingStatus = isPermissionDeniedCode(error62) ? "permission_denied" : "unreadable";
-      settingError = error62 instanceof Error ? error62.message : String(error62);
-      text = "";
-    }
-    if (settingStatus === "ok") {
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch (error62) {
-        settingStatus = "invalid_json";
-        settingError = error62 instanceof Error ? error62.message : String(error62);
-      }
-      if (settingStatus === "ok") {
-        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-          settingStatus = "invalid_shape";
-          settingError = "setting.json must contain a JSON object";
-        } else {
-          const raw = parsed["dataBaseDir"];
-          if (raw === void 0 || raw === null) {
-          } else if (typeof raw !== "string") {
-            settingStatus = "invalid_shape";
-            settingError = "dataBaseDir must be a string when present";
-          } else {
-            const trimmed = raw.trim();
-            if (trimmed && isAbsolutePathForPlatform(trimmed, platform)) {
-              configuredDataBaseDir = pathImpl.resolve(trimmed);
-            } else if (trimmed) {
-              settingError = "dataBaseDir is a relative path and was ignored";
-            }
-          }
-        }
-      }
-    }
-  }
-  const dataBaseDir = configuredDataBaseDir ?? home.userHome;
-  return {
-    userHome: home.userHome,
-    settingFile,
-    settingStatus,
-    settingError,
-    configuredDataBaseDir,
-    dataBaseDir,
-    dataBaseDirSource: configuredDataBaseDir ? "setting.json" : "default",
-    zcodeDataDir: pathImpl.join(dataBaseDir, ".zcode"),
-    zcodeV2Dir: pathImpl.join(dataBaseDir, ".zcode", "v2"),
-    migrated: configuredDataBaseDir !== null
-  };
-}
-function isWindowsAbsolutePath(value) {
-  return /^[A-Za-z]:[\\/]/u.test(value) || /^\/\/[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value) || /^\\\\[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value);
-}
-function isAbsolutePathForPlatform(value, platform = process.platform) {
-  return platform === "win32" ? isWindowsAbsolutePath(value) : path3.isAbsolute(value);
-}
-function isPermissionDeniedCode(error62) {
-  const code = error62?.code;
-  return code === "EACCES" || code === "EPERM";
-}
-function discoverZCodeInstall(env, options = {}) {
-  const platform = options.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
-  const fileExists = options.fileExists ?? existsSync;
-  const requireBuiltin = options.requireBuiltin ?? true;
-  const roots = [];
-  const explicit = env["ZCODE_WINDOWS_APP_INSTALL_DIR"]?.trim();
-  if (explicit) roots.push({ root: explicit, source: "ZCODE_WINDOWS_APP_INSTALL_DIR" });
-  const localAppData = env["LOCALAPPDATA"]?.trim();
-  if (localAppData) roots.push({ root: pathImpl.join(localAppData, "Programs", "ZCode"), source: "LOCALAPPDATA" });
-  const programFiles = env["ProgramFiles"]?.trim() ?? env["PROGRAMFILES"]?.trim();
-  if (programFiles) roots.push({ root: pathImpl.join(programFiles, "ZCode"), source: "ProgramFiles" });
-  const candidates = roots.map(({ root, source }) => ({
-    root,
-    source,
-    runtimeExists: fileExists(pathImpl.join(root, "resources", "glm", "zcode.cjs")),
-    builtinExists: fileExists(pathImpl.join(root, "resources", "config", "provider", "zcode-builtin.json"))
-  }));
-  for (const candidate of candidates) {
-    if (!candidate.runtimeExists) continue;
-    if (requireBuiltin && !candidate.builtinExists) continue;
-    return {
-      installDir: candidate.root,
-      source: candidate.source,
-      zcodeEntrypoint: pathImpl.join(candidate.root, "resources", "glm", "zcode.cjs"),
-      builtinConfigFile: requireBuiltin || candidate.builtinExists ? pathImpl.join(candidate.root, "resources", "config", "provider", "zcode-builtin.json") : null,
-      candidates
-    };
-  }
-  return { installDir: null, source: null, zcodeEntrypoint: null, builtinConfigFile: null, candidates };
-}
-function builtinConfigForRuntime(zcodeEntrypoint, platform = process.platform) {
-  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
-  const resourcesDir = pathImpl.dirname(pathImpl.dirname(zcodeEntrypoint));
-  return pathImpl.join(resourcesDir, "config", "provider", "zcode-builtin.json");
-}
-function sameFileSystemPath(left, right, platform = process.platform) {
-  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
-  return sameCleanPath(left, right, pathImpl, platform === "win32");
-}
-function sameCleanPath(left, right, pathImpl, caseInsensitive) {
-  const cleanLeft = pathImpl.normalize(left);
-  const cleanRight = pathImpl.normalize(right);
-  return caseInsensitive ? cleanLeft.toLowerCase() === cleanRight.toLowerCase() : cleanLeft === cleanRight;
-}
-var init_paths = __esm({
-  "src/runtime/paths.ts"() {
-    "use strict";
-  }
-});
-
-// src/runtime/resolver.ts
-import { accessSync, existsSync as existsSync2, readFileSync as readFileSync3, statSync } from "node:fs";
-import { homedir as homedir2 } from "node:os";
-import path4 from "node:path";
-import { fileURLToPath } from "node:url";
-function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
-  validateHostProfile(host);
-  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path4.join(directory, "runtime-config.json"));
-  const legacyDataRoot = source["ZCODE_BRIDGE_DATA_DIR"]?.trim();
-  if (legacyDataRoot && path4.isAbsolute(legacyDataRoot)) {
-    settingsPaths.push(path4.join(legacyDataRoot, "runtime-config.json"));
-  }
-  let parsed = null;
-  const seenPaths = /* @__PURE__ */ new Set();
-  for (const settingsPath of settingsPaths) {
-    const normalized = path4.resolve(settingsPath);
-    const identity = process.platform === "win32" ? normalized.toLocaleLowerCase("en-US") : normalized;
-    if (seenPaths.has(identity)) continue;
-    seenPaths.add(identity);
-    try {
-      if (statSync(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
-      const candidate = JSON.parse(readFileSync3(normalized, "utf8"));
-      if (isPlainObject2(candidate)) {
-        parsed = candidate;
-        break;
-      }
-      throw new Error("runtime settings must be an object");
-    } catch (error62) {
-      if (error62.code === "ENOENT") continue;
-      throw new BridgeError("provider_config_invalid", `invalid Bridge runtime settings: ${normalized}`, { cause: error62 });
-    }
-  }
-  if (!parsed) return { ...source };
-  const env = { ...source };
-  for (const key of PERSISTED_RUNTIME_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
-    const value = parsed[key];
-    if (typeof value === "string") env[key] = value.trim();
-    else if (value === null) env[key] = "";
-    else throw new BridgeError("provider_config_invalid", `Bridge runtime setting ${key} must be a string or null`);
-  }
-  return env;
-}
-function resolveZcodeHome(env) {
-  const configured = env["ZCODE_HOME"]?.trim();
-  if (!configured) return null;
-  if (!isAbsolutePathForPlatform(configured)) {
-    throw new BridgeError("provider_config_invalid", "ZCODE_HOME must be an absolute path");
-  }
-  const resolved = path4.normalize(configured);
-  if (path4.basename(resolved).toLowerCase() !== ".zcode") {
-    throw new BridgeError(
-      "provider_config_invalid",
-      "ZCODE_HOME must name a .zcode directory so app-server can use the same data root"
-    );
-  }
-  try {
-    if (!statSync(resolved).isDirectory()) {
-      throw new BridgeError("provider_config_invalid", `ZCODE_HOME is not a directory: ${resolved}`);
-    }
-  } catch (error62) {
-    if (error62 instanceof BridgeError) throw error62;
-    throw new BridgeError("provider_config_missing", `ZCODE_HOME directory does not exist: ${resolved}`);
-  }
-  return resolved;
-}
-function samePath(left, right) {
-  const resolvedLeft = path4.resolve(left);
-  const resolvedRight = path4.resolve(right);
-  return process.platform === "win32" ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase() : resolvedLeft === resolvedRight;
-}
-function isReadableFile(filePath) {
-  try {
-    if (!existsSync2(filePath) || !statSync(filePath).isFile()) return false;
-    accessSync(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-function findPackageRoot(startDir) {
-  let current = startDir ?? path4.dirname(fileURLToPath(import.meta.url));
-  for (let depth = 0; depth < 10; depth++) {
-    if (existsSync2(path4.join(current, "package.json"))) {
-      return current;
-    }
-    const parent = path4.dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  throw new Error(
-    `Cannot locate the Bridge package root (no package.json above ${startDir ?? "module directory"})`
-  );
-}
-function isPlainObject2(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function isNonEmptyCollection(value) {
-  if (Array.isArray(value)) return value.length > 0;
-  if (isPlainObject2(value)) return Object.keys(value).length > 0;
-  return false;
-}
-function errorText(error62) {
-  const message = error62 instanceof Error ? error62.message : String(error62);
-  return message.length > 300 ? `${message.slice(0, 300)}\u2026` : message;
-}
-var PERSISTED_RUNTIME_KEYS, NodeRuntimeResolver;
-var init_resolver = __esm({
-  "src/runtime/resolver.ts"() {
-    "use strict";
-    init_errors();
-    init_paths();
-    init_profile();
-    PERSISTED_RUNTIME_KEYS = [
-      "ZCODE_BRIDGE_NODE",
-      "ZCODE_BRIDGE_ZCODE_CJS",
-      "ZCODE_BRIDGE_DATA_DIR",
-      "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE",
-      "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE",
-      "ZCODE_HOME",
-      "ZCODE_DATA_BASE_DIR",
-      "ZCODE_WINDOWS_APP_INSTALL_DIR",
-      "ZCODE_BRIDGE_DEFAULT_PROVIDER_ID",
-      "ZCODE_BRIDGE_DEFAULT_MODEL_ID",
-      "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
-      "ZCODE_BRIDGE_PREFER_STARTPLAN",
-      "ZCODE_BRIDGE_MODE",
-      "ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS",
-      "ZCODE_BRIDGE_TIMEOUT_MS",
-      "ZCODE_BRIDGE_BROWSER_USE",
-      "ZCODE_BRIDGE_BROWSER_EXECUTABLE"
-    ];
-    NodeRuntimeResolver = class {
-      #env;
-      #homeDir;
-      #packageRoot;
-      #host;
-      constructor(options = {}) {
-        this.#env = options.env ?? process.env;
-        this.#homeDir = options.homeDir ?? homedir2();
-        this.#packageRoot = options.packageRoot ?? null;
-        this.#host = validateHostProfile(options.host ?? codexHostProfile(this.#homeDir));
-      }
-      async resolve() {
-        const env = loadPersistedRuntimeEnvironment(this.#env, this.#homeDir, this.#host);
-        const data = discoverZCodeData(env, { fallbackHomeDir: this.#homeDir });
-        const zcodeHome = resolveZcodeHome(env);
-        const explicitDataBaseDir = env["ZCODE_DATA_BASE_DIR"]?.trim() || null;
-        if (explicitDataBaseDir && !isAbsolutePathForPlatform(explicitDataBaseDir)) {
-          throw new BridgeError("provider_config_invalid", "ZCODE_DATA_BASE_DIR must be an absolute path");
-        }
-        if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path4.dirname(zcodeHome), explicitDataBaseDir)) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `ZCODE_HOME (${zcodeHome}) and ZCODE_DATA_BASE_DIR (${explicitDataBaseDir}) conflict; ZCODE_HOME must name <ZCODE_DATA_BASE_DIR>/.zcode. Fix one of them instead of relying on silent selection.`
-          );
-        }
-        let nodeExecutable = "node";
-        const nodeOverride = env["ZCODE_BRIDGE_NODE"]?.trim();
-        if (nodeOverride) {
-          this.#assertReadableFile(
-            nodeOverride,
-            "ZCODE_BRIDGE_NODE is set but is not a readable file"
-          );
-          nodeExecutable = nodeOverride;
-        }
-        const builtinEnv = env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() || null;
-        const personalEnv = env["ZCODE_PERSONAL_PROVIDER_CONFIG_FILE"]?.trim() || null;
-        let zcodeEntrypoint;
-        let explicitRuntime = false;
-        const entryOverride = env["ZCODE_BRIDGE_ZCODE_CJS"]?.trim();
-        if (entryOverride) {
-          this.#assertReadableFile(
-            entryOverride,
-            "ZCODE_BRIDGE_ZCODE_CJS is set but is not a readable file"
-          );
-          zcodeEntrypoint = entryOverride;
-          explicitRuntime = true;
-        } else {
-          const install = discoverZCodeInstall(env, { requireBuiltin: !builtinEnv });
-          if (!install.zcodeEntrypoint) {
-            throw new BridgeError(
-              "runtime_not_found",
-              `zcode.cjs${builtinEnv ? "" : " with a same-install zcode-builtin.json"} was not found; searched: ` + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
-            );
-          }
-          zcodeEntrypoint = install.zcodeEntrypoint;
-        }
-        let builtinConfigFile;
-        let personalConfigFile;
-        if (builtinEnv && personalEnv) {
-          this.#validateBuiltinConfig(builtinEnv);
-          this.#validatePersonalConfig(personalEnv);
-          builtinConfigFile = builtinEnv;
-          personalConfigFile = personalEnv;
-        } else {
-          if (builtinEnv) {
-            this.#validateBuiltinConfig(builtinEnv);
-            builtinConfigFile = builtinEnv;
-          } else if (explicitRuntime) {
-            const derived2 = builtinConfigForRuntime(zcodeEntrypoint);
-            if (!isReadableFile(derived2)) {
-              throw new BridgeError(
-                "provider_config_missing",
-                `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and the builtin config was not found next to the configured runtime; expected: ${derived2}`
-              );
-            }
-            this.#validateBuiltinConfig(derived2);
-            builtinConfigFile = derived2;
-          } else {
-            const install = discoverZCodeInstall(env, { requireBuiltin: true });
-            if (!install.builtinConfigFile) {
-              throw new BridgeError(
-                "provider_config_missing",
-                "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and no builtin provider config was found in the ZCode installation; searched: " + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
-              );
-            }
-            this.#validateBuiltinConfig(install.builtinConfigFile);
-            builtinConfigFile = install.builtinConfigFile;
-          }
-          if (personalEnv) {
-            this.#validatePersonalConfig(personalEnv);
-            personalConfigFile = personalEnv;
-          } else {
-            const candidates = zcodeHome ? [path4.join(zcodeHome, "v2", "provider_config.json")] : [
-              explicitDataBaseDir,
-              data.configuredDataBaseDir,
-              data.userHome
-            ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path4.join(base, ".zcode", "v2", "provider_config.json"));
-            const existing = candidates.filter((candidate) => existsSync2(candidate));
-            if (existing.length === 0) {
-              throw new BridgeError(
-                "provider_config_missing",
-                "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE is not set and no personal provider config exists at any of: " + candidates.join(", ")
-              );
-            }
-            let accepted = null;
-            let lastError = null;
-            for (const candidate of existing) {
-              try {
-                this.#validatePersonalConfig(candidate);
-                accepted = candidate;
-                break;
-              } catch (error62) {
-                lastError = error62 instanceof Error ? error62.message : String(error62);
-              }
-            }
-            if (!accepted) {
-              throw new BridgeError(
-                "provider_config_invalid",
-                `No usable personal provider config among: ${existing.join(", ")}; last validation failure: ${lastError ?? "unknown"}`
-              );
-            }
-            personalConfigFile = accepted;
-          }
-        }
-        if (zcodeHome && !samePath(personalConfigFile, path4.join(zcodeHome, "v2", "provider_config.json"))) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE must be ZCODE_HOME/v2/provider_config.json (${zcodeHome})`
-          );
-        }
-        const dataOverride = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
-        let dataRoot;
-        if (dataOverride) {
-          if (!path4.isAbsolute(dataOverride)) {
-            throw new Error(
-              `ZCODE_BRIDGE_DATA_DIR must be an absolute path when set, got: ${dataOverride}`
-            );
-          }
-          dataRoot = path4.normalize(dataOverride);
-        } else {
-          dataRoot = this.#packageRoot ?? findPackageRoot();
-        }
-        return {
-          nodeExecutable,
-          zcodeEntrypoint,
-          providerBuiltinConfigFile: builtinConfigFile,
-          providerPersonalConfigFile: personalConfigFile,
-          zcodeDataRoot: data.zcodeDataDir,
-          dataRoot
-        };
-      }
-      #assertReadableFile(filePath, label) {
-        if (!isReadableFile(filePath)) {
-          throw new BridgeError("runtime_not_found", `${label}: ${filePath}`);
-        }
-      }
-      /**
-       * Structure validation only. The verified differential signal for the
-       * CLI-created stub is an empty providerRules map (see docs/ZCODE_RUNTIME.md);
-       * rejecting it implements "never silently select a known stub".
-       */
-      #validatePersonalConfig(filePath) {
-        const parsed = this.#readJsonConfig(filePath, "personal provider config");
-        const config2 = parsed["config"];
-        if (!isPlainObject2(config2)) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `Personal provider config has no config object: ${filePath}`
-          );
-        }
-        const providerConfigRules = config2["providerConfigRules"];
-        const rules = isPlainObject2(providerConfigRules) ? providerConfigRules["providerRules"] : void 0;
-        if (!isNonEmptyCollection(rules)) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `Personal provider config contains no provider rules (this matches the known CLI-created stub shape): ${filePath}`
-          );
-        }
-      }
-      #validateBuiltinConfig(filePath) {
-        const parsed = this.#readJsonConfig(filePath, "builtin provider config");
-        if (!isPlainObject2(parsed["config"])) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `Builtin provider config has no config object: ${filePath}`
-          );
-        }
-      }
-      #readJsonConfig(filePath, label) {
-        if (!isReadableFile(filePath)) {
-          throw new BridgeError("provider_config_missing", `${label} not found: ${filePath}`);
-        }
-        let text;
-        try {
-          text = readFileSync3(filePath, "utf8");
-        } catch (error62) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `${label} is not readable: ${filePath} (${errorText(error62)})`
-          );
-        }
-        let parsed;
-        try {
-          parsed = JSON.parse(text);
-        } catch (error62) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `${label} is not valid JSON: ${filePath}`
-          );
-        }
-        if (!isPlainObject2(parsed)) {
-          throw new BridgeError("provider_config_invalid", `${label} is not a JSON object: ${filePath}`);
-        }
-        return parsed;
-      }
-    };
+    CONTINUATION_CONTEXT = [
+      "CONTINUATION CONTEXT",
+      "This is a continuation of the same task. The original task package below remains authoritative even when a persisted session is available.",
+      "A persisted session may provide earlier context, but it is not assumed complete. Use the original objective and constraints below, the current feedback, and the previous-attempt evidence."
+    ].join("\n");
+    REPORT_REPAIR_MODE = [
+      "REPORT REPAIR MODE",
+      "The previous execution has ended. Only its final report failed validation. Do not use tools, edit files, rerun tests, or repeat task work.",
+      "Return the corrected five-field JSON report using only the evidence below. Preserve claims as claims, including not_run and failures. Do not invent tests or missing facts. If needs_master_decision cannot be established, set it to true and record the uncertainty in issues."
+    ].join("\n");
   }
 });
 
@@ -2470,7 +4938,7 @@ function windowsTreeTransactionScript() {
 async function openPowerShellTreeTransaction() {
   return PowerShellTreeTransaction.start();
 }
-var CIM_REPRESENTATION_INTERVAL_TICKS, WindowsTreeCleanupError, TRANSPORT_MAX_LINE_BYTES, TRANSPORT_MAX_BUFFERED_BYTES, TRANSPORT_MAX_BUFFERED_LINES, TRANSPORT_MAX_ENUM_ROWS, TRANSPORT_TOTAL_SESSION_MS_DEFAULT, TRANSPORT_HELPER_STARTUP_MS_DEFAULT, PowerShellTreeTransaction;
+var CIM_REPRESENTATION_INTERVAL_TICKS, WindowsTreeCleanupError, TRANSPORT_MAX_LINE_BYTES, TRANSPORT_MAX_BUFFERED_BYTES, TRANSPORT_MAX_BUFFERED_LINES, TRANSPORT_MAX_ENUM_ROWS, TRANSPORT_TOTAL_SESSION_MS_DEFAULT, TRANSPORT_ENUM_RESPONSE_MS, TRANSPORT_HELPER_STARTUP_MS_DEFAULT, PowerShellTreeTransaction;
 var init_windows_process_cleanup = __esm({
   "src/adapters/windows-process-cleanup.ts"() {
     "use strict";
@@ -2490,6 +4958,7 @@ var init_windows_process_cleanup = __esm({
     TRANSPORT_MAX_BUFFERED_LINES = 65536;
     TRANSPORT_MAX_ENUM_ROWS = 4096;
     TRANSPORT_TOTAL_SESSION_MS_DEFAULT = 12e4;
+    TRANSPORT_ENUM_RESPONSE_MS = 6e4;
     TRANSPORT_HELPER_STARTUP_MS_DEFAULT = 6e4;
     PowerShellTreeTransaction = class _PowerShellTreeTransaction {
       #child;
@@ -2644,11 +5113,11 @@ var init_windows_process_cleanup = __esm({
       }
       async enumerate() {
         this.#child.stdin.write("enum\n");
-        const begin = await this.#nextLine(2e4, "enum begin");
+        const begin = await this.#nextLine(TRANSPORT_ENUM_RESPONSE_MS, "enum begin");
         if (begin !== "ENUM_BEGIN") throw new Error("process_tree_snapshot_invalid: protocol missing");
         const rows = [];
         for (; ; ) {
-          const line = await this.#nextLine(2e4, "enum row");
+          const line = await this.#nextLine(TRANSPORT_ENUM_RESPONSE_MS, "enum row");
           if (line === "ENUM_END") break;
           const match = /^R (\d{1,12}) (\d{1,12}) (\d{1,25}|unknown) (\d{1,25}|unknown)$/u.exec(line);
           if (!match) throw new Error("process_tree_snapshot_invalid: malformed identity");
@@ -3365,6 +5834,7 @@ var init_child_env = __esm({
   "src/runtime/child-env.ts"() {
     "use strict";
     init_paths();
+    init_official_builtin_registry();
     WINDOWS_OS_ENV = /* @__PURE__ */ new Set([
       "PATH",
       "SYSTEMROOT",
@@ -3404,377 +5874,12 @@ var init_child_env = __esm({
   }
 });
 
-// src/runtime/desktop-host-launch.ts
-import { closeSync, openSync, readSync } from "node:fs";
-import path5 from "node:path";
-function buildZCodeAppServerLaunch(zcodeEntrypoint, baseEnv) {
-  const metadata = readDesktopMetadata(zcodeEntrypoint);
-  return {
-    args: [...APP_SERVER_ARGS],
-    env: metadata === null ? { ...baseEnv } : {
-      ...baseEnv,
-      [ZCODE_APP_VERSION_ENV]: metadata.appVersion,
-      [ZCODE_BUILD_COMMIT_ID_ENV]: metadata.buildCommitId
-    }
-  };
-}
-function readDesktopMetadata(zcodeEntrypoint) {
-  const archivePath = path5.resolve(path5.dirname(zcodeEntrypoint), "..", "app.asar");
-  let archive;
-  try {
-    archive = readAsarMetadataFiles(archivePath);
-  } catch (error62) {
-    if (isMissingFile(error62)) return null;
-    throw invalidMetadata("could not be read");
-  }
-  if (archive === null) return null;
-  const packageJson = parseObject(archive.packageJson, "package.json");
-  const buildMetadata = parseObject(archive.buildMetadata, "build-meta.json");
-  const packageVersion = packageJson["version"];
-  const appVersion = buildMetadata["appVersion"];
-  const buildCommitId = buildMetadata["buildCommitId"];
-  if (typeof packageVersion !== "string" || typeof appVersion !== "string" || typeof buildCommitId !== "string") {
-    throw invalidMetadata("is missing required fields");
-  }
-  if (!VERSION_PATTERN.test(packageVersion) || !VERSION_PATTERN.test(appVersion) || !BUILD_COMMIT_PATTERN.test(buildCommitId)) {
-    throw invalidMetadata("uses an unsupported version or build commit format");
-  }
-  if (packageVersion !== appVersion) {
-    throw invalidMetadata("contains conflicting application versions");
-  }
-  return { appVersion, buildCommitId };
-}
-function readAsarMetadataFiles(archivePath) {
-  const fd = openSync(archivePath, "r");
-  try {
-    const sizeHeader = Buffer.alloc(16);
-    readExact(fd, sizeHeader, 16, 0);
-    if (sizeHeader.readUInt32LE(0) !== 4) throw new Error("invalid asar header");
-    const headerPayloadBytes = sizeHeader.readUInt32LE(4);
-    const headerBytes = sizeHeader.readUInt32LE(12);
-    if (headerBytes === 0 || headerBytes > MAX_ASAR_HEADER_BYTES || headerPayloadBytes < headerBytes) {
-      throw new Error("invalid asar header size");
-    }
-    const headerBuffer = Buffer.alloc(headerBytes);
-    readExact(fd, headerBuffer, headerBytes, 16);
-    const root = parseObject(headerBuffer, "asar header");
-    if (!isRecord2(root.files)) throw new Error("asar header file table is not an object");
-    const buildEntry = findEntry(root.files, BUILD_METADATA_PATH);
-    if (buildEntry === null) return null;
-    const packageEntry = findEntry(root.files, ["package.json"]);
-    if (packageEntry === null) throw new Error("asar package.json is missing");
-    return {
-      packageJson: readEntry(fd, packageEntry, 8 + headerPayloadBytes),
-      buildMetadata: readEntry(fd, buildEntry, 8 + headerPayloadBytes)
-    };
-  } finally {
-    closeSync(fd);
-  }
-}
-function findEntry(root, parts) {
-  let files = root;
-  for (let index = 0; index < parts.length; index += 1) {
-    const part = parts[index];
-    if (!Object.hasOwn(files, part)) return null;
-    const current = files[part];
-    if (!isRecord2(current)) throw new Error(`asar ${part} entry is not an object`);
-    if (index === parts.length - 1) return current;
-    if (!isRecord2(current.files)) throw new Error(`asar ${part} entry is not a directory`);
-    files = current.files;
-  }
-  return null;
-}
-function readEntry(fd, entry, contentOffset) {
-  const offset = asNonNegativeSafeInteger(entry.offset);
-  const size = asNonNegativeSafeInteger(entry.size);
-  if (entry.files || entry.unpacked || entry.link || offset === null || size === null || size > MAX_METADATA_BYTES || !Number.isSafeInteger(contentOffset + offset)) {
-    throw new Error("invalid asar metadata entry");
-  }
-  const output2 = Buffer.alloc(size);
-  readExact(fd, output2, output2.length, contentOffset + offset);
-  return output2;
-}
-function asNonNegativeSafeInteger(value) {
-  if (typeof value === "number") {
-    return Number.isSafeInteger(value) && value >= 0 ? value : null;
-  }
-  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)$/u.test(value)) return null;
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-}
-function readExact(fd, target, length, position) {
-  let offset = 0;
-  while (offset < length) {
-    const read = readSync(fd, target, offset, length - offset, position + offset);
-    if (read === 0) throw new Error("unexpected end of asar file");
-    offset += read;
-  }
-}
-function parseObject(buffer, label) {
-  let parsed;
-  try {
-    parsed = JSON.parse(buffer.toString("utf8"));
-  } catch {
-    throw invalidMetadata(`${label} is not valid JSON`);
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw invalidMetadata(`${label} is not an object`);
-  }
-  return parsed;
-}
-function invalidMetadata(reason) {
-  return new BridgeError(
-    "provider_config_invalid",
-    `Installed ZCode Desktop metadata ${reason}; refusing to invent a Desktop identity.`
-  );
-}
-function isMissingFile(error62) {
-  return typeof error62 === "object" && error62 !== null && "code" in error62 && error62.code === "ENOENT";
-}
-function isRecord2(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-var ZCODE_APP_VERSION_ENV, ZCODE_BUILD_COMMIT_ID_ENV, APP_SERVER_ARGS, BUILD_METADATA_PATH, MAX_ASAR_HEADER_BYTES, MAX_METADATA_BYTES, VERSION_PATTERN, BUILD_COMMIT_PATTERN;
-var init_desktop_host_launch = __esm({
-  "src/runtime/desktop-host-launch.ts"() {
-    "use strict";
-    init_errors();
-    ZCODE_APP_VERSION_ENV = "ZCODE_APP_VERSION";
-    ZCODE_BUILD_COMMIT_ID_ENV = "ZCODE_BUILD_COMMIT_ID";
-    APP_SERVER_ARGS = ["app-server", "--stdio", "--surface", "desktop"];
-    BUILD_METADATA_PATH = ["out", "metadata", "build-meta.json"];
-    MAX_ASAR_HEADER_BYTES = 32 * 1024 * 1024;
-    MAX_METADATA_BYTES = 64 * 1024;
-    VERSION_PATTERN = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
-    BUILD_COMMIT_PATTERN = /^[0-9a-f]{8}$/u;
-  }
-});
-
-// src/runtime/account-provider.ts
-import { createHash as createHash5 } from "node:crypto";
-import { existsSync as existsSync3, readFileSync as readFileSync4 } from "node:fs";
-import path6 from "node:path";
-function buildAccountProviderPayload(config2, verifiedSelection, homeDir, taskProviderId) {
-  const source = readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId);
-  if (!source) return null;
-  const providers = {};
-  const states = {};
-  for (const entry of source.entries) {
-    providers[entry.providerId] = {
-      ...entry.builtinModelIds.length ? { builtinModelIds: [...entry.builtinModelIds] } : {},
-      access: { type: entry.accessType, entitled: entry.entitled }
-    };
-    states[entry.providerId] = {
-      availability: entry.availability,
-      entitled: entry.entitled,
-      ...entry.current === void 0 ? {} : { current: entry.current }
-    };
-  }
-  return {
-    revision: accountProviderRevision(source.builtinRevision, providers, states),
-    basedOnZCodeBuiltinRevision: source.builtinRevision,
-    providers,
-    states
-  };
-}
-function accountSettingFile(homeDir) {
-  return path6.join(homeDir, ".zcode", "v2", "setting.json");
-}
-function accountProviderRuleFacts(providerId, config2) {
-  if (!providerId?.startsWith("account:")) return null;
-  const table = readJson(config2.providerBuiltinConfigFile);
-  const rule = readProviderRules(table).find(
-    (candidate) => isRecord3(candidate) && candidate.providerId === providerId
-  );
-  if (!rule) return null;
-  const access = rule.config?.access;
-  if (access?.type !== "zhipu-account") {
-    return { planKind: null, accountType: null };
-  }
-  return {
-    planKind: normalizePlanKind(access.mode),
-    accountType: typeof access.accountType === "string" ? access.accountType : null
-  };
-}
-function accountProviderId(providerId, config2) {
-  if (providerId.startsWith("account:")) return providerId;
-  const rules = [config2.providerBuiltinConfigFile, config2.providerPersonalConfigFile].flatMap((file2) => readProviderRules(readJson(file2)));
-  for (const rawRule of rules) {
-    if (!isRecord3(rawRule)) continue;
-    const rule = rawRule;
-    if (!providerId.startsWith("builtin:") && rule.providerId === `account:${providerId}`) return rule.providerId;
-    if (!providerId.startsWith("builtin:") && rule.providerId === providerId && rule.config?.access?.type === "zhipu-account") {
-      return `account:${providerId}`;
-    }
-    if (typeof rule.providerId === "string" && configProviderId(rule.providerId, rule) === providerId) {
-      return rule.providerId;
-    }
-  }
-  return providerId;
-}
-function catalogProviderId(providerId, modelId, catalog, config2) {
-  const advertised = (candidate) => catalog.some((model) => model.providerId === candidate && model.modelId === modelId);
-  if (advertised(providerId)) return providerId;
-  const configured = accountProviderId(providerId, config2);
-  if (advertised(configured)) return configured;
-  if (!providerId.startsWith("account:") && !providerId.startsWith("builtin:") && advertised(`account:${providerId}`)) {
-    return `account:${providerId}`;
-  }
-  return configured;
-}
-function runtimeAuthReply(providerId, config2) {
-  const unavailable = {
-    headersApplied: false,
-    errorMessage: "Start Plan requires a ZCode desktop captcha session; this headless app-server bridge cannot provide it."
-  };
-  const source = readAccountProviderSource(config2, void 0, void 0);
-  const entry = source?.entries.find((candidate) => candidate.providerId === providerId);
-  if (entry?.planKind !== "individual-coding-plan" || !entry.entitled || !entry.apiKey) return unavailable;
-  return { headersApplied: true, requestAuth: { apiKey: entry.apiKey } };
-}
-function zcodeDataBaseDir(personalProviderConfigFile) {
-  const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path6.dirname(path6.dirname(dataDir)) : null;
-}
-function zcodeTasksIndexPath(personalProviderConfigFile) {
-  const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path6.join(dataDir, "tasks-index.sqlite") : null;
-}
-function zcodeV2DataDir(personalProviderConfigFile) {
-  const absolute = path6.resolve(personalProviderConfigFile);
-  if (path6.basename(absolute).toLowerCase() !== "provider_config.json") return null;
-  const v2Dir = path6.dirname(absolute);
-  if (path6.basename(v2Dir).toLowerCase() !== "v2") return null;
-  const zcodeDir = path6.dirname(v2Dir);
-  if (path6.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
-  return v2Dir;
-}
-function readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId) {
-  const table = readJson(config2.providerBuiltinConfigFile);
-  const providerRules = readProviderRules(table).filter(isRecord3).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string").sort((left, right) => left.providerId.localeCompare(right.providerId));
-  if (!providerRules.length) return null;
-  const officialDataRoot = path6.resolve(config2.zcodeDataRoot);
-  const officialV2Dir = zcodeV2Dir(officialDataRoot);
-  if (!officialV2Dir) return null;
-  const credentials = readJson(path6.join(officialV2Dir, "config.json"));
-  const credentialProviders = asRecord(credentials?.provider);
-  const cache = readJson(path6.join(officialV2Dir, "coding-plan-cache.json"));
-  const cacheItems = asRecord(asRecord(cache?.entryStatus).items);
-  const settingFile = homeDir ? accountSettingFile(homeDir) : path6.join(officialV2Dir, "setting.json");
-  const settings = readJson(settingFile);
-  const selectedKeys = asRecord(settings?.modelProviderFamilySelectedKeys);
-  const rawConnectionSelections = settings?.providerFamilyConnectionSelections;
-  const connectionSelectionsPresent = settings !== null && Object.prototype.hasOwnProperty.call(settings, "providerFamilyConnectionSelections");
-  const connectionSelections = asRecord(rawConnectionSelections);
-  const connectionSelectionsInvalid = connectionSelectionsPresent && !isRecord3(rawConnectionSelections);
-  const taskAccountProviderId = taskProviderId && providerRules.some((rule) => rule.providerId === taskProviderId) ? taskProviderId : null;
-  const entries = providerRules.map((rule) => {
-    const providerId = rule.providerId;
-    const legacyId = configProviderId(providerId, rule);
-    const planKind = normalizePlanKind(rule.config?.access?.mode);
-    const cacheStatus = asRecord(cacheItems[legacyId]).status;
-    const legacyConfig = asRecord(credentialProviders[legacyId]);
-    const options = asRecord(legacyConfig.options);
-    const apiKey = typeof options.apiKey === "string" ? options.apiKey.trim() : "";
-    const selectedEntitled = verifiedSelection?.providerId === providerId && Array.isArray(rule.config?.builtinModelIds) && rule.config.builtinModelIds.includes(verifiedSelection.modelId);
-    if (verifiedSelection?.providerId === providerId && !selectedEntitled) {
-      throw new Error("start_plan_model_not_registered");
-    }
-    const entitled = planKind === "start-plan" ? selectedEntitled : cacheStatus === "available" || legacyConfig.enabled === true && apiKey.length > 0;
-    const desktopCurrent = isCurrentProvider(
-      rule,
-      legacyId,
-      selectedKeys,
-      connectionSelectionsInvalid,
-      connectionSelections
-    );
-    const current = taskAccountProviderId ? providerId === taskAccountProviderId : desktopCurrent;
-    return {
-      providerId,
-      legacyId,
-      planKind,
-      accessType: rule.config?.access?.type ?? "zhipu-account",
-      builtinModelIds: [...rule.config?.builtinModelIds ?? []],
-      entitled,
-      availability: entitled ? "available" : "unavailable",
-      current,
-      apiKey
-    };
-  });
-  const builtinRevision = zcodeBuiltinRevision(table, config2.providerBuiltinConfigFile);
-  return { officialDataRoot, officialV2Dir, settingFile, builtinRevision, entries };
-}
-function zcodeV2Dir(zcodeDataRoot) {
-  if (path6.basename(zcodeDataRoot).toLowerCase() !== ".zcode") return null;
-  return path6.join(zcodeDataRoot, "v2");
-}
-function zcodeBuiltinRevision(table, sourceFile) {
-  const revision = typeof table?.revision === "number" ? table.revision : 0;
-  const sourceDigest = createHash5("sha256").update(path6.resolve(sourceFile)).digest("hex");
-  return `zcode-builtin:${revision}:${sourceDigest}`;
-}
-function accountProviderRevision(builtinRevision, providers, states) {
-  return `account:${JSON.stringify([builtinRevision, providers, states])}`;
-}
-function isCurrentProvider(rule, legacyId, selectedKeys, connectionSelectionsInvalid, connectionSelections) {
-  const access = rule.config?.access;
-  if (!access?.accountType) return false;
-  if (access.mode === "off-peak" || access.mode === "highspeed") return void 0;
-  if (connectionSelectionsInvalid) return false;
-  if (Object.prototype.hasOwnProperty.call(connectionSelections, access.accountType)) {
-    const connection = asRecord(connectionSelections[access.accountType]);
-    if (!isConnectionSelectionKind(connection.kind)) return false;
-    if (connection.kind === "team-coding-plan" && (!isNonEmptyString(connection.productId) || !isNonEmptyString(connection.organizationId) || !isNonEmptyString(connection.projectId))) {
-      return false;
-    }
-    return connection.kind === access.mode;
-  }
-  const selected = selectedKeys[access.accountType];
-  return typeof selected === "string" && (selected === legacyId || selected.endsWith(`:${legacyId}`));
-}
-function isConnectionSelectionKind(value) {
-  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan";
-}
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-function normalizePlanKind(value) {
-  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan" || value === "off-peak" || value === "highspeed" ? value : null;
-}
-function configProviderId(providerId, rule) {
-  const access = rule.config?.access;
-  if (!providerId.startsWith("account:") || !access?.accountType || !access.mode) return providerId;
-  const plan = access.mode === "individual-coding-plan" ? "coding-plan" : access.mode;
-  return `builtin:${access.accountType}-${plan}`;
-}
-function readProviderRules(table) {
-  const providerConfigRules = asRecord(asRecord(table?.config).providerConfigRules);
-  return Array.isArray(providerConfigRules.providerRules) ? providerConfigRules.providerRules : [];
-}
-function readJson(filePath) {
-  try {
-    if (!existsSync3(filePath)) return null;
-    const value = JSON.parse(readFileSync4(filePath, "utf8"));
-    return isRecord3(value) ? value : null;
-  } catch {
-    return null;
-  }
-}
-function asRecord(value) {
-  return isRecord3(value) ? value : {};
-}
-function isRecord3(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-var BIGMODEL_START_PLAN_PROVIDER_ID;
-var init_account_provider = __esm({
-  "src/runtime/account-provider.ts"() {
-    "use strict";
-    BIGMODEL_START_PLAN_PROVIDER_ID = "account:bigmodel-start-plan";
-  }
-});
-
 // src/runtime/session-preferences.ts
+var session_preferences_exports = {};
+__export(session_preferences_exports, {
+  ZCODE_SESSION_MODES: () => ZCODE_SESSION_MODES,
+  resolveSessionPreferences: () => resolveSessionPreferences
+});
 function resolveSessionPreferences(taskModel, env, trustedExecutionProfileId) {
   const providerId = env["ZCODE_BRIDGE_DEFAULT_PROVIDER_ID"]?.trim() ?? "";
   const modelId = env["ZCODE_BRIDGE_DEFAULT_MODEL_ID"]?.trim() ?? "";
@@ -3859,158 +5964,6 @@ var init_task_timeout = __esm({
     MAX_TASK_TIMEOUT_MS = 4 * 60 * 60 * 1e3;
     ADAPTER_CLEANUP_TIMEOUT_MS = 3e5;
     MIN_TASK_TIMEOUT_MS = 60 * 1e3;
-  }
-});
-
-// src/adapters/task-index-sync.ts
-import { existsSync as existsSync4 } from "node:fs";
-async function loadDatabaseSync() {
-  databaseSyncPromise ??= import("node:sqlite").then((module) => module.DatabaseSync).catch(() => null);
-  return databaseSyncPromise;
-}
-async function registerDesktopTask(entry) {
-  await withDatabase(entry.databasePath, (database) => {
-    requireTaskTable(database);
-    const now = Date.now();
-    const title = entry.title.trim().slice(0, 80) || entry.bridgeTaskId;
-    const metaJson = JSON.stringify({
-      taskId: entry.sessionId,
-      traceId: entry.bridgeTaskId,
-      title,
-      titleOverridden: false,
-      workspaceKey: entry.workspaceKey,
-      workspacePath: entry.workspacePath,
-      createdAt: now,
-      updatedAt: now,
-      mode: entry.mode,
-      model: entry.model,
-      provider: entry.provider,
-      status: "running",
-      target: null
-    });
-    database.prepare(
-      "INSERT OR IGNORE INTO tasks (workspace_key, workspace_path, workspace_identity, task_id, title, task_status, provider, mode, model, created_at, updated_at, unread_at, pinned, archived, deleted, title_overridden, meta_json, searchable_text) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, 0, 0, ?, ?)"
-    ).run(
-      entry.workspaceKey,
-      entry.workspacePath,
-      entry.sessionId,
-      title,
-      "running",
-      entry.provider,
-      entry.mode,
-      entry.model,
-      now,
-      now,
-      metaJson,
-      entry.bridgeTaskId
-    );
-    if (!updateOwnedStatus(database, entry, "running")) {
-      throw new Error("Desktop task row already exists and is not owned by this Bridge task");
-    }
-  });
-}
-async function updateDesktopTaskStatus(entry, status) {
-  await withDatabase(entry.databasePath, (database) => {
-    requireTaskTable(database);
-    if (!updateOwnedStatus(database, entry, status)) {
-      throw new Error("Desktop task row is missing or is not owned by this Bridge task");
-    }
-  });
-}
-function updateOwnedStatus(database, entry, status) {
-  const row = database.prepare(
-    "SELECT meta_json FROM tasks WHERE workspace_key = ? AND task_id = ?"
-  ).get(entry.workspaceKey, entry.sessionId);
-  if (!row || typeof row.meta_json !== "string") return false;
-  let meta3;
-  try {
-    const parsed = JSON.parse(row.meta_json);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
-    meta3 = parsed;
-  } catch {
-    return false;
-  }
-  if (meta3["traceId"] !== entry.bridgeTaskId || meta3["taskId"] !== entry.sessionId) return false;
-  const now = Date.now();
-  meta3["updatedAt"] = now;
-  if (status === null) delete meta3["status"];
-  else meta3["status"] = status;
-  database.prepare(
-    "UPDATE tasks SET task_status = ?, updated_at = ?, meta_json = ? WHERE workspace_key = ? AND task_id = ?"
-  ).run(status, now, JSON.stringify(meta3), entry.workspaceKey, entry.sessionId);
-  return true;
-}
-function requireTaskTable(database) {
-  const columns = new Set(
-    database.prepare("PRAGMA table_info(tasks)").all().map((column) => column.name).filter((name) => typeof name === "string")
-  );
-  const required2 = [
-    "workspace_key",
-    "workspace_path",
-    "workspace_identity",
-    "task_id",
-    "title",
-    "task_status",
-    "provider",
-    "mode",
-    "model",
-    "created_at",
-    "updated_at",
-    "unread_at",
-    "pinned",
-    "archived",
-    "deleted",
-    "title_overridden",
-    "meta_json",
-    "searchable_text"
-  ];
-  const missing = required2.filter((name) => !columns.has(name));
-  if (missing.length > 0) {
-    throw new Error(`ZCode tasks-index schema is missing columns: ${missing.join(", ")}`);
-  }
-}
-async function withDatabase(databasePath, operation) {
-  if (!existsSync4(databasePath)) {
-    throw new Error("ZCode Desktop tasks-index database does not exist");
-  }
-  const DatabaseSync = await loadDatabaseSync();
-  if (!DatabaseSync) throw new Error("node:sqlite is unavailable in the Bridge runtime");
-  let lastError;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    let database = null;
-    try {
-      database = new DatabaseSync(databasePath, { timeout: 1e3 });
-      database.exec("BEGIN IMMEDIATE");
-      try {
-        const result = operation(database);
-        database.exec("COMMIT");
-        return result;
-      } catch (error62) {
-        database.exec("ROLLBACK");
-        throw error62;
-      }
-    } catch (error62) {
-      lastError = error62;
-      if (attempt < 2 && isDatabaseBusy(error62)) {
-        await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
-        continue;
-      }
-      throw error62;
-    } finally {
-      database?.close();
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("ZCode tasks-index write failed");
-}
-function isDatabaseBusy(error62) {
-  const message = error62 instanceof Error ? error62.message : String(error62);
-  return /database is (busy|locked)/i.test(message);
-}
-var databaseSyncPromise;
-var init_task_index_sync = __esm({
-  "src/adapters/task-index-sync.ts"() {
-    "use strict";
-    databaseSyncPromise = null;
   }
 });
 
@@ -4235,10 +6188,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path9) {
-  if (!path9)
+function getElementAtPath(obj, path13) {
+  if (!path13)
     return obj;
-  return path9.reduce((acc, key) => acc?.[key], obj);
+  return path13.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -4497,11 +6450,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path9, issues) {
+function prefixIssues(path13, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path9);
+    iss.path.unshift(path13);
     return iss;
   });
 }
@@ -5022,16 +6975,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path9 = []) => {
+  const processError = (error63, path13 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path13, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
       } else {
-        const fullpath = [...path9, ...issue2.path];
+        const fullpath = [...path13, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -5070,17 +7023,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path9 = []) => {
+  const processError = (error63, path13 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path13, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
       } else {
-        const fullpath = [...path9, ...issue2.path];
+        const fullpath = [...path13, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -5119,8 +7072,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path9 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path9) {
+  const path13 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path13) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -6213,9 +8166,9 @@ function isValidIBAN(input2) {
     return false;
   return isIso7064Mod97(input2);
 }
-function isValidJWT(token, algorithm = null) {
+function isValidJWT(token2, algorithm = null) {
   try {
-    const tokensParts = token.split(".");
+    const tokensParts = token2.split(".");
     if (tokensParts.length !== 3)
       return false;
     const [header] = tokensParts;
@@ -23116,13 +25069,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path9 = ref.slice(1).split("/").filter(Boolean);
-  if (path9.length === 0) {
+  const path13 = ref.slice(1).split("/").filter(Boolean);
+  if (path13.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path9[0] === defsKey) {
-    const key = path9[1] === void 0 ? void 0 : decodeJSONPointerSegment(path9[1]);
+  if (path13[0] === defsKey) {
+    const key = path13[1] === void 0 ? void 0 : decodeJSONPointerSegment(path13[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -24365,11 +26318,18 @@ var init_external = __esm({
   }
 });
 
-// node_modules/zod/index.js
-var init_zod = __esm({
-  "node_modules/zod/index.js"() {
+// node_modules/zod/v4/classic/index.js
+var init_classic = __esm({
+  "node_modules/zod/v4/classic/index.js"() {
     init_external();
     init_external();
+  }
+});
+
+// node_modules/zod/v4/index.js
+var init_v4 = __esm({
+  "node_modules/zod/v4/index.js"() {
+    init_classic();
   }
 });
 
@@ -24378,7 +26338,7 @@ var BROWSER_VIEWPORT_LIMITS, browserViewportSizeSchema, browserViewportInputSche
 var init_command_metadata = __esm({
   "src/browser/command-metadata.ts"() {
     "use strict";
-    init_zod();
+    init_v4();
     BROWSER_VIEWPORT_LIMITS = {
       minWidth: 320,
       maxWidth: 3840,
@@ -24498,7 +26458,7 @@ var browserMouseButtonSchema, browserKeyModifierSchema, browserPointSchema, brow
 var init_commands = __esm({
   "src/browser/commands.ts"() {
     "use strict";
-    init_zod();
+    init_v4();
     init_command_metadata();
     init_command_metadata();
     browserMouseButtonSchema = external_exports.enum(["left", "right", "middle"]);
@@ -24931,7 +26891,7 @@ var browserBackendTypeSchema, browserCapabilityDescriptorSchema, browserBackendD
 var init_backend = __esm({
   "src/browser/backend.ts"() {
     "use strict";
-    init_zod();
+    init_v4();
     init_commands();
     browserBackendTypeSchema = external_exports.enum(["iab", "extension", "cdp"]);
     browserCapabilityDescriptorSchema = external_exports.object({
@@ -24977,7 +26937,7 @@ var browserListParamsSchema, browserExecuteParamsSchema;
 var init_params = __esm({
   "src/browser/params.ts"() {
     "use strict";
-    init_zod();
+    init_v4();
     init_command_metadata();
     init_backend();
     init_commands();
@@ -25314,9 +27274,9 @@ var init_host = __esm({
 });
 
 // src/browser/load-backend.ts
-import { existsSync as existsSync5 } from "node:fs";
-import path7 from "node:path";
-import { fileURLToPath as fileURLToPath2, pathToFileURL } from "node:url";
+import { existsSync as existsSync4 } from "node:fs";
+import path10 from "node:path";
+import { fileURLToPath as fileURLToPath3, pathToFileURL as pathToFileURL2 } from "node:url";
 function devRuntimeSpecifier() {
   return ["./runtime", "js"].join(".");
 }
@@ -25332,11 +27292,11 @@ function asBackendModule(imported, label) {
   throw new Error(`${label} does not export createManagedCdpBrowserRuntime`);
 }
 async function loadBackendModule() {
-  const moduleDir = path7.dirname(fileURLToPath2(import.meta.url));
-  const vendorEntry = path7.join(moduleDir, "vendor", "pkg", "browser-host.cjs");
-  if (existsSync5(vendorEntry)) {
+  const moduleDir = path10.dirname(fileURLToPath3(import.meta.url));
+  const vendorEntry = path10.join(moduleDir, "vendor", "pkg", "browser-host.cjs");
+  if (existsSync4(vendorEntry)) {
     return asBackendModule(
-      await import(pathToFileURL(vendorEntry).href),
+      await import(pathToFileURL2(vendorEntry).href),
       "Vendor browser backend bundle"
     );
   }
@@ -25364,18 +27324,45 @@ var init_load_backend = __esm({
 // src/adapters/zcode-app-server-adapter.ts
 var zcode_app_server_adapter_exports = {};
 __export(zcode_app_server_adapter_exports, {
-  ZCodeAppServerAdapter: () => ZCodeAppServerAdapter
+  ZCodeAppServerAdapter: () => ZCodeAppServerAdapter,
+  ZCodeAppServerTestAdapter: () => ZCodeAppServerTestAdapter
 });
 import { spawn as spawn3 } from "node:child_process";
-import { homedir as homedir3 } from "node:os";
-import path8 from "node:path";
-import { createHash as createHash6, randomUUID } from "node:crypto";
+import { homedir as homedir4 } from "node:os";
+import path11 from "node:path";
+import { createHash as createHash11, randomUUID } from "node:crypto";
 function publicUsage(value) {
-  if (!isRecord4(value)) return null;
+  if (!isRecord5(value)) return null;
   const result = {};
-  for (const key of ["inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "reasoningTokens", "input_tokens", "output_tokens", "total_tokens", "cost"]) {
+  for (const key of [
+    "inputTokens",
+    "outputTokens",
+    "totalTokens",
+    "cachedInputTokens",
+    "cacheReadTokens",
+    "cachedWriteInputTokens",
+    "cacheWriteInputTokens",
+    "cacheWriteTokens",
+    "reasoningTokens",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "cached_input_tokens",
+    "cache_read_tokens",
+    "cached_write_input_tokens",
+    "cache_write_input_tokens",
+    "cache_write_tokens"
+  ]) {
     const item = value[key];
     if (typeof item === "number" && Number.isFinite(item) && item >= 0) result[key] = item;
+  }
+  for (const key of ["source", "usage_source", "scope", "observed_at", "finality"]) {
+    const item = value[key];
+    if (typeof item === "string" && item.trim()) result[key] = item.trim();
+  }
+  if (Array.isArray(value.conflicts)) {
+    const conflicts = value.conflicts.filter((item) => typeof item === "string" && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(item)).slice(0, 32);
+    if (conflicts.length) result.conflicts = conflicts;
   }
   return Object.keys(result).length ? result : null;
 }
@@ -25386,6 +27373,16 @@ function withFactsCandidate(error62, candidate) {
 function readFactsCandidate(error62) {
   if (!(error62 instanceof Error)) return null;
   return error62[FACTS_CANDIDATE] ?? null;
+}
+function recordRpcDiagnostic(entry, method, error62) {
+  try {
+    const diagnostic = extractRpcDiagnostic(method, error62);
+    if (diagnostic) entry.rpcDiagnostics = appendRpcDiagnostic(entry.rpcDiagnostics, diagnostic);
+  } catch {
+  }
+}
+function failedRpcDiagnostics(entry) {
+  return entry.timedOut || entry.cancelRequested || entry.rpcDiagnostics.length === 0 ? void 0 : entry.rpcDiagnostics;
 }
 function registrationFailure(error62) {
   const candidate = readFactsCandidate(error62);
@@ -25404,6 +27401,29 @@ function registrationFailure(error62) {
     details,
     candidate
   };
+}
+function closeDiagnostic(stage, error62, treeScanStatus) {
+  const value = error62 instanceof Error ? error62 : new Error(String(error62));
+  const code = typeof error62?.code === "string" ? error62.code : void 0;
+  return {
+    status: "rejected",
+    stage,
+    errorName: value.name.slice(0, 120),
+    ...code ? { errorCode: code.slice(0, 120) } : {},
+    errorMessage: value.message.slice(0, 1e3),
+    ...treeScanStatus ? { treeScanStatus } : {}
+  };
+}
+function sanitizedRuntimeLifecycleReason(event) {
+  const value = asRecord5(event);
+  if (typeof value.reason === "string" && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value.reason)) {
+    return value.reason;
+  }
+  if (typeof value.code === "number" && Number.isSafeInteger(value.code)) return `exit_${value.code}`;
+  if (typeof value.signal === "string" && /^[A-Za-z0-9+.-]{1,32}$/u.test(value.signal)) {
+    return `signal_${value.signal}`;
+  }
+  return "runtime_closed";
 }
 function retryAfterMilliseconds(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value * 1e3;
@@ -25424,7 +27444,7 @@ function browserHostClosedResult() {
   };
 }
 function sameWorkspacePath(left, right) {
-  const normalize = (value) => path8.normalize(value).replace(/[/\\]+/gu, (match) => match.includes("\\") || process.platform === "win32" ? "\\" : "/");
+  const normalize = (value) => path11.normalize(value).replace(/[/\\]+/gu, (match) => match.includes("\\") || process.platform === "win32" ? "\\" : "/");
   const resolvedLeft = normalize(left);
   const resolvedRight = normalize(right);
   return process.platform === "win32" ? resolvedLeft.toLocaleLowerCase("en-US") === resolvedRight.toLocaleLowerCase("en-US") : resolvedLeft === resolvedRight;
@@ -25438,34 +27458,34 @@ function paramsHasCommand(params) {
   return params.command !== void 0;
 }
 function readSelectedModel(snapshot) {
-  const settings = asRecord2(snapshot.settings);
-  const modelSettings = asRecord2(settings.model);
-  const current = asRecord2(modelSettings.current);
+  const settings = asRecord5(snapshot.settings);
+  const modelSettings = asRecord5(settings.model);
+  const current = asRecord5(modelSettings.current);
   const modelId = typeof current.modelId === "string" ? current.modelId : null;
   const providerId = typeof current.providerId === "string" ? current.providerId : null;
   if (!modelId) return null;
   const available = Array.isArray(modelSettings.available) ? modelSettings.available : [];
   const match = available.find((entry) => {
-    const ref = asRecord2(asRecord2(entry).ref);
+    const ref = asRecord5(asRecord5(entry).ref);
     return ref.modelId === modelId && (providerId === null || ref.providerId === providerId);
   });
-  const label = match && typeof asRecord2(match).label === "string" ? asRecord2(match).label : modelId;
+  const label = match && typeof asRecord5(match).label === "string" ? asRecord5(match).label : modelId;
   return providerId ? `${label} (${providerId}/${modelId})` : label;
 }
 function readSelectedModelSelection(snapshot) {
-  const settings = asRecord2(snapshot.settings);
-  const modelSettings = asRecord2(settings.model);
-  const current = asRecord2(modelSettings.current);
+  const settings = asRecord5(snapshot.settings);
+  const modelSettings = asRecord5(settings.model);
+  const current = asRecord5(modelSettings.current);
   if (typeof current.providerId !== "string" || typeof current.modelId !== "string") return null;
   return { providerId: current.providerId, modelId: current.modelId };
 }
 function readAvailableModels(snapshot) {
-  const settings = asRecord2(snapshot.settings);
-  const modelSettings = asRecord2(settings.model);
+  const settings = asRecord5(snapshot.settings);
+  const modelSettings = asRecord5(settings.model);
   const available = Array.isArray(modelSettings.available) ? modelSettings.available : [];
   const refs = /* @__PURE__ */ new Map();
   for (const entry of available) {
-    const ref = asRecord2(asRecord2(entry).ref);
+    const ref = asRecord5(asRecord5(entry).ref);
     if (typeof ref.providerId !== "string" || typeof ref.modelId !== "string") continue;
     const key = `${ref.providerId}\0${ref.modelId}`;
     refs.set(key, { providerId: ref.providerId, modelId: ref.modelId });
@@ -25473,55 +27493,55 @@ function readAvailableModels(snapshot) {
   return [...refs.values()];
 }
 function readModelReasoningDefault(snapshot, providerId, modelId) {
-  const settings = asRecord2(snapshot.settings);
-  const modelSettings = asRecord2(settings.model);
+  const settings = asRecord5(snapshot.settings);
+  const modelSettings = asRecord5(settings.model);
   const available = Array.isArray(modelSettings.available) ? modelSettings.available : [];
   for (const item of available) {
-    const entry = asRecord2(item);
-    const ref = asRecord2(entry.ref);
+    const entry = asRecord5(item);
+    const ref = asRecord5(entry.ref);
     if (ref.providerId !== providerId || ref.modelId !== modelId) continue;
-    const reasoning = asRecord2(entry.reasoning);
+    const reasoning = asRecord5(entry.reasoning);
     if (typeof reasoning.defaultLevel === "string" && reasoning.defaultLevel.trim()) {
       return reasoning.defaultLevel;
     }
     const levels = Array.isArray(reasoning.levels) ? reasoning.levels : [];
     if (levels.length === 1) {
-      const value = asRecord2(levels[0]).value;
+      const value = asRecord5(levels[0]).value;
       if (typeof value === "string" && value.trim()) return value;
     }
   }
   return null;
 }
 function readEffectiveReasoningLevel(snapshot) {
-  const settings = asRecord2(snapshot.settings);
-  const modelSettings = asRecord2(settings.model);
-  const current = asRecord2(modelSettings.current);
-  const options = asRecord2(current.options);
+  const settings = asRecord5(snapshot.settings);
+  const modelSettings = asRecord5(settings.model);
+  const current = asRecord5(modelSettings.current);
+  const options = asRecord5(current.options);
   const currentOption = options.reasoningLevel;
   if (typeof currentOption === "string" && currentOption.trim()) return currentOption.trim();
-  const thoughtLevel = asRecord2(settings.thoughtLevel);
+  const thoughtLevel = asRecord5(settings.thoughtLevel);
   const level = thoughtLevel.current;
   return typeof level === "string" && level.trim() ? level.trim() : null;
 }
-function nestedString(record3, path9) {
+function nestedString(record3, path13) {
   let value = record3;
-  for (const part of path9) value = asRecord2(value)[part];
+  for (const part of path13) value = asRecord5(value)[part];
   return typeof value === "string" ? value : null;
 }
-function nestedNumber(record3, path9) {
+function nestedNumber(record3, path13) {
   let value = record3;
-  for (const part of path9) value = asRecord2(value)[part];
+  for (const part of path13) value = asRecord5(value)[part];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
-function asRecord2(value) {
-  return isRecord4(value) ? value : {};
+function asRecord5(value) {
+  return isRecord5(value) ? value : {};
 }
 function extractTurnFailureEvidence(value) {
   if (typeof value === "string") {
     return { providerCode: null, errorCode: null, errorType: null, reviewedReason: null, httpStatus: null, retryableBooleans: [], quotaText: matchesExplicitQuotaText(value) };
   }
-  const error62 = asRecord2(value);
-  const attribution = asRecord2(error62.attribution);
+  const error62 = asRecord5(value);
+  const attribution = asRecord5(error62.attribution);
   const retryableBooleans = [];
   if (typeof attribution.retryable === "boolean") retryableBooleans.push(attribution.retryable);
   if (typeof error62.retryable === "boolean") retryableBooleans.push(error62.retryable);
@@ -25536,36 +27556,22 @@ function extractTurnFailureEvidence(value) {
     quotaText: matchesExplicitQuotaText(error62)
   };
 }
-async function syncDesktopStatus(entry, status, onEvent) {
-  if (!entry) return;
-  try {
-    await updateDesktopTaskStatus(entry, status);
-  } catch (error62) {
-    reportDesktopIndexIssue(onEvent, error62);
-  }
-}
-function reportDesktopIndexIssue(onEvent, error62) {
-  const message = error62 instanceof Error ? error62.message : String(error62);
-  onEvent({
-    type: "desktop_task_index_warning",
-    summary: `ZCode Desktop task index could not be updated: ${message.slice(0, 500)}`
-  });
-}
-function isRecord4(value) {
+function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function stableSerialize(value) {
   if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
-  if (isRecord4(value)) {
+  if (isRecord5(value)) {
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
   }
   return JSON.stringify(value) ?? "undefined";
 }
-var FACTS_CANDIDATE, PROVIDER_RETRY_LIMIT, MAX_PROVIDER_RETRY_AFTER_MS, RPC_TIMEOUT_MS, MAX_CAPTURE_CHARS, MAX_FRAME_BYTES3, ZCodeAppServerAdapter;
+var FACTS_CANDIDATE, PROVIDER_RETRY_LIMIT, MAX_PROVIDER_RETRY_AFTER_MS, RPC_TIMEOUT_MS, MAX_CAPTURE_CHARS, MAX_FRAME_BYTES4, ZCodeAppServerAdapter, ZCodeAppServerTestAdapter;
 var init_zcode_app_server_adapter = __esm({
   "src/adapters/zcode-app-server-adapter.ts"() {
     "use strict";
     init_agent_report();
+    init_rpc_diagnostics();
     init_task_prompt();
     init_errors();
     init_resolver();
@@ -25575,11 +27581,11 @@ var init_zcode_app_server_adapter = __esm({
     init_failure_facts();
     init_child_env();
     init_desktop_host_launch();
+    init_official_builtin_registry();
     init_account_provider();
     init_session_preferences();
     init_task_timeout();
-    init_task_index_sync();
-    init_profile();
+    init_host_profile();
     init_params();
     init_host();
     init_load_backend();
@@ -25588,9 +27594,13 @@ var init_zcode_app_server_adapter = __esm({
     MAX_PROVIDER_RETRY_AFTER_MS = 6e4;
     RPC_TIMEOUT_MS = 3e4;
     MAX_CAPTURE_CHARS = 2e6;
-    MAX_FRAME_BYTES3 = 16 * 1024 * 1024;
+    MAX_FRAME_BYTES4 = 16 * 1024 * 1024;
     ZCodeAppServerAdapter = class {
       #resolveStartPlanRuntimeAuth;
+      #resolveProviderRuntimeAuth;
+      #onRuntimeAuthDiagnostic;
+      #verifySelectedProviderCapability;
+      #allowTestOnlyStaticRuntimeAuthReply;
       #startPlanProviderEntitled;
       #sanitizeStartPlanFrame;
       #sanitizeStartPlanText;
@@ -25603,6 +27613,7 @@ var init_zcode_app_server_adapter = __esm({
       #homeDir;
       #host;
       #executionProfileId;
+      #sessionPreferences;
       #now;
       #resolveInteraction;
       #onOutcomeCheckpoint;
@@ -25619,10 +27630,19 @@ var init_zcode_app_server_adapter = __esm({
       #onSendBoundary;
       #browser;
       #probe;
+      #externalHostClientFactory;
+      #externalHostClientUsed = false;
       #runs = /* @__PURE__ */ new Map();
       #workspaceByTask = /* @__PURE__ */ new Map();
       constructor(options = {}) {
+        if (!options.externalHostClientFactory && options.testOnlyAllowDirectAppServer !== true) {
+          throw new Error("ZCodeAppServerAdapter requires the Official Host client factory outside the test-only direct harness");
+        }
         this.#resolveStartPlanRuntimeAuth = options.resolveStartPlanRuntimeAuth;
+        this.#resolveProviderRuntimeAuth = options.resolveProviderRuntimeAuth;
+        this.#onRuntimeAuthDiagnostic = options.onRuntimeAuthDiagnostic;
+        this.#verifySelectedProviderCapability = options.verifySelectedProviderCapability;
+        this.#allowTestOnlyStaticRuntimeAuthReply = options.testOnlyAllowDirectAppServer === true && options.externalHostClientFactory === void 0;
         this.#startPlanProviderEntitled = options.startPlanProviderEntitled === true;
         this.#sanitizeStartPlanFrame = options.sanitizeStartPlanFrame;
         this.#sanitizeStartPlanText = options.sanitizeStartPlanText;
@@ -25633,9 +27653,10 @@ var init_zcode_app_server_adapter = __esm({
         this.#cleanupTimeoutMs = options.testCleanupTimeoutMs ?? ADAPTER_CLEANUP_TIMEOUT_MS;
         if (!Number.isSafeInteger(this.#cleanupTimeoutMs) || this.#cleanupTimeoutMs < 1 || this.#cleanupTimeoutMs > ADAPTER_CLEANUP_TIMEOUT_MS) throw new Error("invalid cleanup test budget");
         this.#childEnvBase = options.childEnvBase ?? process.env;
-        this.#homeDir = options.homeDir ?? homedir3();
+        this.#homeDir = options.homeDir ?? homedir4();
         this.#host = validateHostProfile(options.host ?? codexHostProfile(this.#homeDir));
         this.#executionProfileId = options.executionProfileId;
+        this.#sessionPreferences = options.sessionPreferences;
         this.#now = options.now ?? (() => /* @__PURE__ */ new Date());
         this.#probe = options.probe ?? createPlatformProbe();
         this.#resolveInteraction = options.resolveInteraction;
@@ -25652,6 +27673,7 @@ var init_zcode_app_server_adapter = __esm({
         this.#providerRetryLimit = options.providerRetryLimit ?? PROVIDER_RETRY_LIMIT;
         this.#onSendBoundary = options.onSendBoundary;
         this.#browser = options.browser;
+        this.#externalHostClientFactory = options.externalHostClientFactory;
       }
       async startTask(input2) {
         return this.#launch(input2.task, input2.workspace, input2.attempt, buildTaskPrompt(input2.task), null);
@@ -25731,6 +27753,7 @@ var init_zcode_app_server_adapter = __esm({
           outcome: null,
           error: null,
           runPromise: Promise.resolve(null),
+          rpcDiagnostics: [],
           resolveTurn,
           rejectTurn,
           onEvent: this.#onEvent,
@@ -25773,7 +27796,8 @@ var init_zcode_app_server_adapter = __esm({
           browserHostClosed: false,
           browserCleanupError: null,
           browserNoticeEmitted: false,
-          browserScope: null
+          browserScope: null,
+          closeResult: null
         };
         this.#runs.set(handle, entry);
         this.#workspaceByTask.set(task.task_id, workspace.canonicalPath);
@@ -25795,7 +27819,6 @@ var init_zcode_app_server_adapter = __esm({
         const projectPath = workspace.sourcePath ?? workspace.canonicalPath;
         let timer;
         let warningTimer;
-        let desktopTask = null;
         try {
           const runtimeEnv = loadPersistedRuntimeEnvironment(this.#childEnvBase, this.#homeDir, this.#host);
           const timeoutMs = this.#timeoutMs ?? resolveTaskTimeout(task, runtimeEnv);
@@ -25820,32 +27843,10 @@ var init_zcode_app_server_adapter = __esm({
             void this.#resolver.resolve().then(resolve, reject).finally(() => entry.abort.signal.removeEventListener("abort", aborted2));
           });
           entry.abort.signal.throwIfAborted();
-          const taskProviderId = task.model?.provider_id;
+          const taskProviderId = this.#sessionPreferences?.model?.provider_id ?? task.model?.provider_id;
           const taskProviderFacts = accountProviderRuleFacts(taskProviderId, config2);
-          const otherStartPlanSelected = taskProviderFacts?.planKind === "start-plan" && taskProviderId !== BIGMODEL_START_PLAN_PROVIDER_ID;
-          if (otherStartPlanSelected) {
-            return this.#startPlanReadinessFailure(
-              entry,
-              "Only the BigModel Start Plan provider has a supported Bridge credential binding; no ZCode session was started."
-            );
-          }
           const exactStartPlanRegistryValid = taskProviderFacts?.planKind === "start-plan" && taskProviderFacts.accountType === "bigmodel";
-          if (taskProviderId === BIGMODEL_START_PLAN_PROVIDER_ID && !exactStartPlanRegistryValid) {
-            return this.#startPlanReadinessFailure(
-              entry,
-              "The BigModel Start Plan provider is missing or invalid in the official provider registry; no ZCode session was started."
-            );
-          }
           const startPlanSelected = taskProviderId === BIGMODEL_START_PLAN_PROVIDER_ID && exactStartPlanRegistryValid;
-          if (startPlanSelected && !this.#resolveStartPlanRuntimeAuth) {
-            return this.#startPlanReadinessFailure(
-              entry,
-              "Start Plan runtime authorization is unavailable; no ZCode session was started."
-            );
-          }
-          if (startPlanSelected && !this.#startPlanProviderEntitled) {
-            return this.#startPlanReadinessFailure(entry, "Start Plan live entitlement was not verified; no ZCode session was started.");
-          }
           let accountProviderPayload;
           try {
             accountProviderPayload = buildAccountProviderPayload(
@@ -25856,24 +27857,22 @@ var init_zcode_app_server_adapter = __esm({
             );
           } catch (error62) {
             if (startPlanSelected) {
-              return this.#startPlanReadinessFailure(entry, error62 instanceof Error && error62.message === "start_plan_model_not_registered" ? "The requested Start Plan model is not present in the official provider registry." : "Start Plan provider snapshot could not be prepared after live entitlement verification.");
+              return this.#startPlanReadinessFailure(entry, error62 instanceof Error && error62.message === "start_plan_model_not_registered" ? "The requested Start Plan model is not present in the official provider registry." : "Start Plan provider snapshot could not be prepared.");
             }
             throw error62;
           }
-          if (startPlanSelected && (!accountProviderPayload?.providers[BIGMODEL_START_PLAN_PROVIDER_ID] || accountProviderPayload.providers[BIGMODEL_START_PLAN_PROVIDER_ID].access.entitled !== true)) {
-            return this.#startPlanReadinessFailure(entry, "Start Plan provider snapshot could not be prepared after live entitlement verification.");
-          }
-          const preferences = resolveSessionPreferences(task.model, runtimeEnv, this.#executionProfileId);
+          const preferences = this.#sessionPreferences ?? resolveSessionPreferences(task.model, runtimeEnv, this.#executionProfileId);
           const childEnv = this.#buildChildEnv(config2, runtimeEnv);
           if (startPlanSelected) childEnv.ZCODE_MODEL_RETRY_MAX_RETRIES = "0";
           entry.onEvent({ type: "zcode_starting", summary: "Starting ZCode streaming runtime" });
-          const client = this.#startAppServer(config2, workspace.canonicalPath, childEnv, entry);
+          const client = await this.#startAppServer(config2, workspace, childEnv, entry);
           entry.client = client;
           entry.child = client.child;
           entry.onEvent({ type: "app_server_started", summary: "ZCode app-server process started", details: { pid: client.child.pid } });
           if (accountProviderPayload) {
+            this.#assertRegistryUnchanged(config2, accountProviderPayload.basedOnZCodeBuiltinRevision);
             try {
-              const syncResult = asRecord2(await client.request(
+              const syncResult = asRecord5(await client.request(
                 "provider/updateAccountConfig",
                 accountProviderPayload
               ));
@@ -25905,17 +27904,30 @@ var init_zcode_app_server_adapter = __esm({
           }
           let snapshot;
           if (resumeSessionId) {
-            snapshot = asRecord2(await client.request("session/resume", {
-              sessionId: resumeSessionId,
-              workspace: { workspacePath: workspace.canonicalPath, workspaceKey: projectPath }
-            }));
+            try {
+              snapshot = asRecord5(await client.request("session/resume", {
+                sessionId: resumeSessionId,
+                workspace: { workspacePath: workspace.canonicalPath, workspaceKey: projectPath }
+              }));
+            } catch (error62) {
+              const candidate = readFactsCandidate(error62);
+              if (candidate?.kind !== "rpc" || !candidate.rejected) throw error62;
+              throw withFactsCandidate(new BridgeError(
+                SESSION_NOT_RESUMABLE,
+                `ZCode rejected resuming session ${resumeSessionId} (session/resume, code ${candidate.code}); its context was not restored and no new Session was created`,
+                { cause: error62 }
+              ), candidate);
+            }
             const returnedId = nestedString(snapshot, ["session", "sessionId"]);
-            if (returnedId && returnedId !== resumeSessionId) {
+            if (!returnedId) {
+              throw new Error("ZCode app-server resume snapshot did not contain session.sessionId");
+            }
+            if (returnedId !== resumeSessionId) {
               throw new Error(`resume session mismatch: requested ${resumeSessionId}, runtime returned ${returnedId}`);
             }
             await client.request("session/setMode", { sessionId: resumeSessionId, mode: preferences.mode });
           } else {
-            snapshot = asRecord2(await client.request("session/create", {
+            snapshot = asRecord5(await client.request("session/create", {
               workspace: { workspacePath: workspace.canonicalPath, workspaceKey: projectPath },
               mode: preferences.mode,
               persistence: "immediate"
@@ -25924,7 +27936,7 @@ var init_zcode_app_server_adapter = __esm({
           const sessionId = nestedString(snapshot, ["session", "sessionId"]);
           if (!sessionId) throw new Error("ZCode app-server session snapshot did not contain session.sessionId");
           entry.sessionId = sessionId;
-          const snapshotWorkspace = asRecord2(asRecord2(snapshot).workspace);
+          const snapshotWorkspace = asRecord5(asRecord5(snapshot).workspace);
           const reportedIdentity = typeof snapshotWorkspace.workspaceIdentity === "string" && snapshotWorkspace.workspaceIdentity.trim() ? snapshotWorkspace.workspaceIdentity.trim() : null;
           entry.browserScope = {
             workspacePath: workspace.canonicalPath,
@@ -25954,17 +27966,40 @@ var init_zcode_app_server_adapter = __esm({
               requestedProviderId,
               preferences.model.model_id
             );
-            const modelState = current?.providerId === requestedProviderId && current.modelId === preferences.model.model_id && !preferences.model.reasoning_level ? snapshot : asRecord2(await client.request("session/setModel", {
-              sessionId,
-              model: {
-                providerId: requestedProviderId,
-                modelId: preferences.model.model_id,
-                ...reasoningLevel ? { options: { reasoningLevel } } : {}
-              },
-              // Keep the override scoped to this session; do not change the
-              // user's project-wide last-used model.
-              persistAsWorkspaceLastUsed: false
-            }));
+            let modelState;
+            if (current?.providerId === requestedProviderId && current.modelId === preferences.model.model_id && !preferences.model.reasoning_level) {
+              modelState = snapshot;
+            } else {
+              try {
+                modelState = asRecord5(await client.request("session/setModel", {
+                  sessionId,
+                  model: {
+                    providerId: requestedProviderId,
+                    modelId: preferences.model.model_id,
+                    ...reasoningLevel ? { options: { reasoningLevel } } : {}
+                  },
+                  // Keep the override scoped to this session; do not change the
+                  // user's project-wide last-used model.
+                  persistAsWorkspaceLastUsed: false
+                }));
+              } catch (error62) {
+                const reason = redactDiagnosticText(error62 instanceof Error ? error62.message : String(error62)).replace(/\s+/gu, " ").trim().slice(0, 500);
+                entry.onEvent({
+                  type: "model_setup_failed",
+                  summary: `ZCode rejected ${requestedProviderId}/${preferences.model.model_id}; the Attempt was stopped before Worker dispatch.`,
+                  details: {
+                    requested_model: { provider_id: requestedProviderId, model_id: preferences.model.model_id },
+                    requested_reasoning_level: preferences.model.reasoning_level ?? null,
+                    error_message: reason.slice(0, 1e3)
+                  }
+                });
+                throw new BridgeError(
+                  "provider_config_invalid",
+                  `ZCode model setup failed for ${requestedProviderId}/${preferences.model.model_id}: ${reason}`,
+                  { cause: error62 }
+                );
+              }
+            }
             const selected = readSelectedModelSelection(modelState);
             if (!selected) {
               throw new Error(`ZCode accepted model override ${requested} but did not report the selected model`);
@@ -26013,6 +28048,16 @@ var init_zcode_app_server_adapter = __esm({
               "ZCode runtime did not report its selected model; refusing to start a task whose model cannot be identified."
             );
           }
+          if (this.#verifySelectedProviderCapability) {
+            const selected = entry.selectedModelSelection;
+            if (!selected) {
+              throw new BridgeError(
+                "provider_config_invalid",
+                "ZCode runtime did not report its selected Provider/Model; refusing to start a task whose capability cannot be verified."
+              );
+            }
+            await this.#verifySelectedProviderCapability(selected, config2, entry.abort.signal);
+          }
           if (!preferences.model) {
             const selected = readSelectedModelSelection(snapshot);
             selectedReasoningLevel = readEffectiveReasoningLevel(snapshot);
@@ -26044,32 +28089,6 @@ var init_zcode_app_server_adapter = __esm({
               ...selectedReasoningLevel ? { reasoning_level: selectedReasoningLevel, reasoning_level_source: "runtime" } : {}
             }
           });
-          const indexPath = zcodeTasksIndexPath(config2.providerPersonalConfigFile);
-          if (indexPath) {
-            const selected = readSelectedModelSelection(snapshot);
-            desktopTask = {
-              databasePath: indexPath,
-              workspaceKey: projectPath,
-              workspacePath: workspace.canonicalPath,
-              sessionId,
-              bridgeTaskId: task.task_id,
-              title: task.task_id,
-              model: selected ? `${selected.providerId}/${selected.modelId}` : null,
-              provider: "glm",
-              mode: preferences.mode
-            };
-            try {
-              await registerDesktopTask(desktopTask);
-              entry.onEvent({
-                type: "desktop_task_registered",
-                summary: "ZCode session registered in Desktop task index; refresh the task list to see it",
-                details: { session_id: sessionId, project_path: projectPath, execution_path: workspace.canonicalPath }
-              });
-            } catch (error62) {
-              reportDesktopIndexIssue(entry.onEvent, error62);
-              desktopTask = null;
-            }
-          }
           const runtimeSeq = nestedNumber(snapshot, ["runtime", "eventSeq"]) ?? 0;
           entry.lastEventSeq = runtimeSeq;
           entry.awaitingTurnStart = runtimeSeq > 0;
@@ -26085,7 +28104,7 @@ var init_zcode_app_server_adapter = __esm({
           await client.request("session/send", { sessionId, content: prompt });
           entry.rpcAcceptedAt = this.#now().toISOString();
           if (!entry.turnStartedAt) {
-            entry.onEvent({ type: "turn_started", summary: "ZCode accepted the task and started a turn", details: { rpc_accepted: true, ...entry.turnId ? { turn_id: entry.turnId } : {} } });
+            entry.onEvent({ type: "turn_accepted", summary: "ZCode accepted the task request; the turn is not yet observed started", details: { ...entry.turnId ? { turn_id: entry.turnId } : {} } });
           }
           entry.bindingTimer = setTimeout(() => {
             if (!entry.awaitingTurnStart) return;
@@ -26105,7 +28124,7 @@ var init_zcode_app_server_adapter = __esm({
             replayInFlight = true;
             void client.request("session/events", { sessionId, afterSeq: entry.lastEventSeq, limit: 500 }).then((value) => {
               entry.replayConsecutiveFailures = 0;
-              const events = asRecord2(value).events;
+              const events = asRecord5(value).events;
               if (Array.isArray(events)) client.replayEvents(events);
             }).catch((error62) => {
               const message = error62 instanceof Error ? error62.message : String(error62);
@@ -26151,7 +28170,6 @@ var init_zcode_app_server_adapter = __esm({
             warningTimer = void 0;
           }
           entry.turnCompletedAt = turnResult.completedAt;
-          const desktopStatus = turnResult.resultType === "cancelled" ? null : turnResult.resultType && turnResult.resultType !== "success" ? "error" : "completed";
           let outcome;
           if (turnResult.resultType && turnResult.resultType !== "success") {
             if (turnResult.resultType !== "cancelled" && !entry.terminalFactsSubmitted) {
@@ -26278,12 +28296,9 @@ var init_zcode_app_server_adapter = __esm({
           } catch (error62) {
             entry.onEvent({ type: "outcome_checkpoint_failed", summary: error62 instanceof Error ? error62.message : String(error62) });
           }
-          try {
-            await syncDesktopStatus(desktopTask, desktopStatus, entry.onEvent);
-          } catch (error62) {
-            entry.onEvent({ type: "desktop_status_sync_failed", summary: error62 instanceof Error ? error62.message : String(error62) });
-          }
-          return await this.#completeCleanup(entry, outcome);
+          const completed = await this.#completeCleanup(entry, outcome);
+          const diagnostics = completed.cleanupVerified ? void 0 : failedRpcDiagnostics(entry);
+          return diagnostics ? { ...completed, rpcDiagnostics: diagnostics } : completed;
         } catch (error62) {
           if (timer) {
             clearTimeout(timer);
@@ -26294,7 +28309,6 @@ var init_zcode_app_server_adapter = __esm({
             warningTimer = void 0;
           }
           if (process.platform === "win32") entry.client?.prewarmCleanup();
-          await syncDesktopStatus(desktopTask, entry.cancelRequested ? null : "error", entry.onEvent);
           entry.abort.abort();
           const spawnRecovery = entry.spawnFailure && !entry.timedOut && !entry.cancelRequested ? entry.spawnFailure : null;
           if (!entry.terminalFactsSubmitted && !entry.timedOut && !entry.cancelRequested) {
@@ -26314,8 +28328,14 @@ var init_zcode_app_server_adapter = __esm({
           let cleanupFailure;
           let failureCleanupReceipt = null;
           try {
-            if (entry.client) failureCleanupReceipt = await entry.client.close();
-            else if (entry.child?.pid) await this.#terminateOwnedChild(entry);
+            if (entry.client) {
+              const closeResult = await entry.client.close();
+              failureCleanupReceipt = closeResult.receipt;
+              cleanupFailure = closeResult.error;
+              if (closeResult.owner === "official_host" && closeResult.recordedTreeScan) {
+                cleanupFailure = null;
+              }
+            } else if (entry.child?.pid) await this.#terminateOwnedChild(entry);
           } catch (cleanupError) {
             cleanupFailure = cleanupError;
           }
@@ -26340,7 +28360,8 @@ var init_zcode_app_server_adapter = __esm({
               });
               throw new BridgeError("cleanup_failed", `ZCode process termination could not be verified; workspace remains occupied.${browserSuffix}`, {
                 cause: cleanupFailure,
-                memberPids
+                memberPids,
+                ...failedRpcDiagnostics(entry) ? { rpcDiagnostics: failedRpcDiagnostics(entry) } : {}
               });
             }
           }
@@ -26348,7 +28369,7 @@ var init_zcode_app_server_adapter = __esm({
             throw new BridgeError(
               "cleanup_failed",
               `ZCode process termination was verified, but the managed browser cleanup could not be verified: ${entry.browserCleanupError}`,
-              { cause: error62 }
+              { cause: error62, ...failedRpcDiagnostics(entry) ? { rpcDiagnostics: failedRpcDiagnostics(entry) } : {} }
             );
           }
           if (failureCleanupReceipt && !cleanupFailure) {
@@ -26382,14 +28403,30 @@ var init_zcode_app_server_adapter = __esm({
             reportCandidate: null,
             reportError: message,
             errorCode: code,
-            cleanupVerified: false
+            cleanupVerified: false,
+            ...failedRpcDiagnostics(entry) ? { rpcDiagnostics: failedRpcDiagnostics(entry) } : {}
           };
           const cleaned = await this.#completeCleanup(entry, failedOutcome);
-          if (!cleaned.cleanupVerified) throw new BridgeError("cleanup_failed", `${message}; cleanup: ${cleaned.cleanupError ?? "unverified"}`, { cause: error62, memberPids: cleaned.cleanupMemberPids });
+          if (!cleaned.cleanupVerified) throw new BridgeError("cleanup_failed", `${message}; cleanup: ${cleaned.cleanupError ?? "unverified"}`, {
+            cause: error62,
+            memberPids: cleaned.cleanupMemberPids,
+            ...failedRpcDiagnostics(entry) ? { rpcDiagnostics: failedRpcDiagnostics(entry) } : {}
+          });
           entry.onEvent({ type: "error", summary: message.slice(0, 1500), details: { error_code: code } });
           if (spawnRecovery) throw new BridgeError("spawn_failed", message);
-          if (error62 instanceof BridgeError) throw error62;
-          throw new BridgeError(code, message);
+          const diagnostics = error62 instanceof BridgeError ? error62.rpcDiagnostics ?? failedRpcDiagnostics(entry) : failedRpcDiagnostics(entry);
+          const sessionId = (error62 instanceof BridgeError ? error62.sessionId : void 0) ?? entry.sessionId ?? void 0;
+          if (error62 instanceof BridgeError && diagnostics === error62.rpcDiagnostics && sessionId === error62.sessionId) throw error62;
+          throw new BridgeError(
+            error62 instanceof BridgeError ? error62.code : code,
+            error62 instanceof BridgeError ? error62.message : message,
+            {
+              cause: error62,
+              ...error62 instanceof BridgeError && error62.memberPids ? { memberPids: error62.memberPids } : {},
+              ...diagnostics ? { rpcDiagnostics: diagnostics } : {},
+              ...sessionId ? { sessionId } : {}
+            }
+          );
         } finally {
           if (timer) clearTimeout(timer);
           if (warningTimer) clearTimeout(warningTimer);
@@ -26413,33 +28450,41 @@ var init_zcode_app_server_adapter = __esm({
           if (expired) return timeoutOutcome;
           let receipt = null;
           let error62;
+          let closeResult = null;
+          let officialTreeScan;
           try {
-            if (entry.client) receipt = await entry.client.close();
-            else if (entry.child?.pid) await this.#terminateOwnedChild(entry);
+            if (entry.client) {
+              closeResult = await entry.client.close();
+              receipt = closeResult.receipt;
+              error62 = closeResult.error;
+              officialTreeScan = closeResult.recordedTreeScan;
+            } else if (entry.child?.pid) await this.#terminateOwnedChild(entry);
           } catch (failure2) {
             error62 = failure2;
           }
           if (expired) return timeoutOutcome;
           let scan = null;
-          if (error62 && entry.client) scan = await this.#scanRootExitedCleanup(entry.client, entry, error62);
+          if (error62 && entry.client && closeResult?.owner !== "official_host") {
+            scan = await this.#scanRootExitedCleanup(entry.client, entry, error62);
+          }
           if (expired) return timeoutOutcome;
           const noSpawn = entry.spawnFailure !== null && !entry.child?.pid;
-          const treeVerified = noSpawn || (error62 ? scan?.clean === true : !!receipt || process.platform !== "win32" || !entry.child);
+          const treeVerified = noSpawn || (closeResult?.owner === "official_host" ? officialTreeScan !== void 0 : error62 ? scan?.clean === true : !!receipt || process.platform !== "win32" || !entry.child);
           const cleanupVerified = treeVerified && !entry.browserCleanupError;
           const reason = entry.browserCleanupError ? "Managed browser cleanup could not be verified: " + entry.browserCleanupError : error62 instanceof Error ? error62.message : "Identity-bound Windows process-tree cleanup receipt was unavailable";
           const members2 = scan?.memberPids ?? this.#cleanupMemberPids(error62);
           const scanRootPid = entry.client?.child.pid;
           const scanRootFingerprint = scanRootPid && entry.childIdentity?.pid === scanRootPid ? entry.childIdentity.fingerprint : null;
-          const cleanupTreeScan = scan?.clean && cleanupVerified && scanRootPid && scanRootFingerprint ? {
+          const cleanupTreeScan = officialTreeScan ?? (scan?.clean && cleanupVerified && scanRootPid && scanRootFingerprint ? {
             rootPid: scanRootPid,
             rootFingerprint: scanRootFingerprint,
-            evidenceDigest: createHash6("sha256").update(JSON.stringify({
+            evidenceDigest: createHash11("sha256").update(JSON.stringify({
               rootPid: scanRootPid,
               rootFingerprint: scanRootFingerprint,
               memberPids: [...scan.memberPids].sort((left, right) => left - right)
             }), "utf8").digest("hex"),
             observedMemberCount: scan.memberPids.length
-          } : void 0;
+          } : void 0);
           if (scan?.clean && cleanupVerified) entry.onEvent({
             type: "cleanup_verified",
             summary: "The captured app-server generation had exited; an ADR-009 recorded-tree claimant scan found no live claimants",
@@ -26452,6 +28497,15 @@ var init_zcode_app_server_adapter = __esm({
             ...cleanupVerified && !error62 ? {} : { cleanupError: cleanupVerified ? null : reason },
             ...receipt ? { cleanupTreeReceipt: receipt } : {},
             ...cleanupTreeScan ? { cleanupTreeScan } : {},
+            adapterCleanup: {
+              contract: "adapter-cleanup-v1",
+              close: closeResult?.close ?? {
+                status: "resolved",
+                stage: "not_started",
+                treeScanStatus: "not_applicable"
+              },
+              treeScanStatus: officialTreeScan ? "verified" : scan?.clean && cleanupVerified ? "verified" : closeResult?.close.treeScanStatus ?? "not_applicable"
+            },
             ...members2.length ? { cleanupMemberPids: members2 } : {}
           };
         })();
@@ -26494,7 +28548,125 @@ var init_zcode_app_server_adapter = __esm({
           return { clean: false, memberPids, scanError: (scanError instanceof Error ? scanError.message : String(scanError)).slice(0, 500) };
         }
       }
-      #startAppServer(config2, cwd, env, entry) {
+      async #startAppServer(config2, workspace, env, entry) {
+        if (!this.#externalHostClientFactory) {
+          return this.#startDirectAppServer(config2, workspace.canonicalPath, env, entry);
+        }
+        if (this.#externalHostClientUsed) {
+          throw new Error("an external host factory is limited to one execution runtime per adapter");
+        }
+        this.#externalHostClientUsed = true;
+        const launch = buildZCodeAppServerLaunch(config2.zcodeEntrypoint, env);
+        const handle = await this.#externalHostClientFactory({
+          config: config2,
+          workspace,
+          cwd: workspace.canonicalPath,
+          env,
+          launch,
+          requestTimeoutMs: RPC_TIMEOUT_MS,
+          probe: this.#probe,
+          verifyTreeClean: this.#verifyTreeClean
+        });
+        if (handle.runtimeRootIdentity) {
+          entry.childIdentity = {
+            pid: handle.runtimeRootIdentity.pid,
+            fingerprint: handle.runtimeRootIdentity.fingerprint
+          };
+        }
+        const pending = /* @__PURE__ */ new Map();
+        let transportClosed = false;
+        const reply = (message) => {
+          if (transportClosed || entry.abort.signal.aborted) return;
+          void handle.respond(message).catch((error62) => {
+            entry.rejectTurn(withFactsCandidate(
+              error62 instanceof Error ? error62 : new Error("External host reverse RPC reply failed"),
+              { kind: "transport", method: typeof message.id === "string" || typeof message.id === "number" ? "reply" : "reply" }
+            ));
+          });
+        };
+        const dispatch = (message) => {
+          if (transportClosed || !isRecord5(message)) return;
+          const sanitized = this.#sanitizeStartPlanFrame ? this.#sanitizeStartPlanFrame(message) : message;
+          try {
+            this.#handleMessage(sanitized, entry, pending, config2, reply);
+          } catch (error62) {
+            entry.rejectTurn(error62 instanceof Error ? error62 : new Error(String(error62)));
+          }
+        };
+        const invalidateRuntime = (event) => {
+          if (transportClosed) return;
+          transportClosed = true;
+          const message = "ZCode official runtime changed while the current attempt was active; the attempt will not be resent";
+          for (const call of pending.values()) {
+            clearTimeout(call.timer);
+            call.reject(withFactsCandidate(new Error(message), { kind: "transport", method: call.method }));
+          }
+          pending.clear();
+          entry.onEvent({
+            type: "runtime_generation_changed",
+            summary: message,
+            details: { reason: sanitizedRuntimeLifecycleReason(event) }
+          });
+          entry.rejectTurn(withFactsCandidate(new Error(message), { kind: "process_exit" }));
+        };
+        handle.onNotification?.(dispatch);
+        handle.onRequest?.(dispatch);
+        handle.onClose?.(invalidateRuntime);
+        handle.onRuntimeRestarted?.(invalidateRuntime);
+        const request = async (method, params) => {
+          if (entry.abort.signal.aborted) throw new Error("ZCode task attempt ended");
+          if (transportClosed) throw withFactsCandidate(
+            new Error(`ZCode official runtime is closed before ${method}`),
+            { kind: "rpc", method, code: null, dataCode: null, rejected: false }
+          );
+          if (method === "session/send") this.#beginSendBoundary(entry);
+          try {
+            return await handle.request(method, params);
+          } catch (error62) {
+            const message = error62 instanceof Error ? error62.message : String(error62);
+            if (/transport closed|client disposed|protocol close/iu.test(message)) {
+              throw withFactsCandidate(new Error(`ZCode official runtime transport failed during ${method}`), {
+                kind: "transport",
+                method
+              });
+            }
+            const code = typeof error62?.code === "number" ? error62.code : null;
+            const data = asRecord5(error62?.data);
+            const dataCode = registeredCode(data.code, RPC_DATA_CODE_REGISTRY);
+            recordRpcDiagnostic(entry, method, error62);
+            throw withFactsCandidate(
+              new Error(`ZCode official runtime request failed for ${method}${code === null ? "" : ` (code ${code})`}`),
+              { kind: "rpc", method, code, dataCode, rejected: code !== null }
+            );
+          }
+        };
+        const close = async () => {
+          if (entry.closeResult) return entry.closeResult;
+          transportClosed = true;
+          try {
+            entry.closeResult = await handle.close();
+          } catch (error62) {
+            entry.closeResult = {
+              owner: "official_host",
+              receipt: null,
+              error: error62,
+              close: closeDiagnostic("official_manager_dispose", error62, "incomplete")
+            };
+          }
+          return entry.closeResult;
+        };
+        return {
+          child: handle.child,
+          request,
+          replayEvents: (events) => handle.replayEvents(events),
+          prewarmCleanup: () => handle.prewarmCleanup(),
+          close,
+          get stderr() {
+            return handle.stderr;
+          }
+        };
+      }
+      #startDirectAppServer(config2, cwd, env, entry) {
         const launch = buildZCodeAppServerLaunch(config2.zcodeEntrypoint, env);
         const child = spawn3(config2.nodeExecutable, [config2.zcodeEntrypoint, ...launch.args], {
           cwd,
@@ -26547,7 +28719,7 @@ var init_zcode_app_server_adapter = __esm({
         let protocolFatal = null;
         const failProtocol = (code, frameBytes, detail) => {
           if (protocolFatal) return;
-          const message = code === "frame_over_limit" ? `ZCode app-server protocol frame exceeded the 16 MiB UTF-8 limit (observed ${frameBytes} bytes, limit ${MAX_FRAME_BYTES3} bytes)` : `ZCode app-server protocol stream delivered an invalid JSON frame (${frameBytes} bytes)${detail ? `: ${detail}` : ""}`;
+          const message = code === "frame_over_limit" ? `ZCode app-server protocol frame exceeded the 16 MiB UTF-8 limit (observed ${frameBytes} bytes, limit ${MAX_FRAME_BYTES4} bytes)` : `ZCode app-server protocol stream delivered an invalid JSON frame (${frameBytes} bytes)${detail ? `: ${detail}` : ""}`;
           protocolFatal = withFactsCandidate(new Error(message), { kind: "protocol" });
           stdoutBuffer = "";
           for (const call of pending.values()) {
@@ -26558,7 +28730,7 @@ var init_zcode_app_server_adapter = __esm({
           entry.onEvent({
             type: "protocol_error",
             summary: message,
-            details: { error_code: code, frame_bytes: frameBytes, limit_bytes: MAX_FRAME_BYTES3 }
+            details: { error_code: code, frame_bytes: frameBytes, limit_bytes: MAX_FRAME_BYTES4 }
           });
           entry.rejectTurn(protocolFatal);
         };
@@ -26582,7 +28754,7 @@ var init_zcode_app_server_adapter = __esm({
             const rawLine = stdoutBuffer.slice(0, newline);
             stdoutBuffer = stdoutBuffer.slice(newline + 1);
             const frameBytes = Buffer.byteLength(rawLine, "utf8");
-            if (frameBytes > MAX_FRAME_BYTES3) {
+            if (frameBytes > MAX_FRAME_BYTES4) {
               failProtocol("frame_over_limit", frameBytes);
               return;
             }
@@ -26595,7 +28767,7 @@ var init_zcode_app_server_adapter = __esm({
               failProtocol("invalid_frame", frameBytes);
               return;
             }
-            if (!isRecord4(parsed)) {
+            if (!isRecord5(parsed)) {
               failProtocol("invalid_frame", frameBytes, "the top-level frame value must be a JSON object");
               return;
             }
@@ -26611,7 +28783,7 @@ var init_zcode_app_server_adapter = __esm({
           }
           if (!protocolFatal) {
             const bufferedBytes = Buffer.byteLength(stdoutBuffer, "utf8");
-            if (bufferedBytes > MAX_FRAME_BYTES3) failProtocol("frame_over_limit", bufferedBytes);
+            if (bufferedBytes > MAX_FRAME_BYTES4) failProtocol("frame_over_limit", bufferedBytes);
           }
         });
         child.stderr.on("data", (chunk) => {
@@ -26687,7 +28859,7 @@ var init_zcode_app_server_adapter = __esm({
         };
         const replayEvents = (events) => {
           for (const event of events) {
-            const params = asRecord2(event);
+            const params = asRecord5(event);
             if (typeof params.type !== "string") continue;
             this.#handleMessage({ method: "session/event", params }, entry, pending, config2, (reply) => {
               child.stdin.write(`${JSON.stringify(reply)}
@@ -26756,7 +28928,7 @@ var init_zcode_app_server_adapter = __esm({
             throw error62;
           }
         };
-        const close = async () => {
+        const closeDirect = async () => {
           if (closed) {
             if (child.pid) {
               if (process.platform === "win32") {
@@ -26791,6 +28963,29 @@ var init_zcode_app_server_adapter = __esm({
             });
           }
           return null;
+        };
+        const close = async () => {
+          if (entry.closeResult) return entry.closeResult;
+          try {
+            const receipt = await closeDirect();
+            entry.closeResult = {
+              owner: "direct_app_server",
+              receipt,
+              close: {
+                status: "resolved",
+                stage: "direct_close",
+                treeScanStatus: "not_applicable"
+              }
+            };
+          } catch (error62) {
+            entry.closeResult = {
+              owner: "direct_app_server",
+              receipt: null,
+              error: error62,
+              close: closeDiagnostic("direct_close", error62, "incomplete")
+            };
+          }
+          return entry.closeResult;
         };
         const sanitizeStderr = this.#sanitizeStartPlanText;
         return { child, request, replayEvents, prewarmCleanup, close, get stderr() {
@@ -26827,8 +29022,8 @@ var init_zcode_app_server_adapter = __esm({
         if (message.method === "interaction/requestProviderRuntimeHeaders") {
           const id = message.id;
           if (typeof id === "string" || typeof id === "number") {
-            const params = asRecord2(message.params);
-            const selection = asRecord2(params.modelSelection);
+            const params = asRecord5(message.params);
+            const selection = asRecord5(params.modelSelection);
             const providerId = typeof selection.providerId === "string" ? selection.providerId : typeof params.providerId === "string" ? params.providerId : void 0;
             if (providerId === BIGMODEL_START_PLAN_PROVIDER_ID && this.#resolveStartPlanRuntimeAuth) {
               const replySafely = (result) => {
@@ -26857,7 +29052,62 @@ var init_zcode_app_server_adapter = __esm({
               });
               return;
             }
-            write({ id, result: runtimeAuthReply(providerId, config2) });
+            if (providerId?.startsWith("account:") && this.#resolveProviderRuntimeAuth) {
+              const replySafely = (result) => {
+                try {
+                  write({ id, result });
+                } catch {
+                  entry.rejectTurn(new Error("Provider runtime authorization transport failed."));
+                }
+              };
+              const sessionId = typeof params.sessionId === "string" ? params.sessionId : "";
+              const turnId = typeof params.turnId === "string" ? params.turnId : null;
+              const modelId = typeof selection.modelId === "string" ? selection.modelId : "";
+              const selected = entry.selectedModelSelection;
+              const accountAccess = asRecord5(params.accountAccess);
+              this.#reportRuntimeAuthDiagnostic({
+                stage: "request_received",
+                provider_id: providerId,
+                selection_provider_id: typeof selection.providerId === "string" ? selection.providerId : null,
+                model_id: modelId,
+                selected_provider_id: selected?.providerId ?? null,
+                selected_model_id: selected?.modelId ?? null,
+                session_match: Boolean(entry.sessionId && sessionId === entry.sessionId),
+                turn_match: turnId === null ? null : Boolean(entry.turnId && turnId === entry.turnId),
+                accepting_turn: entry.acceptingTurn,
+                account_access_type: typeof accountAccess.type === "string" ? accountAccess.type : null,
+                account_access_account_type: typeof accountAccess.accountType === "string" ? accountAccess.accountType : null,
+                account_access_mode: typeof accountAccess.mode === "string" ? accountAccess.mode : null,
+                account_access_entitled: accountAccess.entitled === true
+              });
+              if (!entry.acceptingTurn || !entry.sessionId || sessionId !== entry.sessionId || turnId !== null && (!entry.turnId || turnId !== entry.turnId) || typeof selection.providerId === "string" && selection.providerId !== providerId || typeof params.providerId === "string" && params.providerId !== providerId || !modelId || !selected || selected.providerId !== providerId || selected.modelId !== modelId || entry.abort.signal.aborted) {
+                this.#reportRuntimeAuthDiagnostic({ stage: "identity_rejected" });
+                replySafely({ headersApplied: false, errorMessage: "Provider runtime identity is not verified." });
+                return;
+              }
+              this.#reportRuntimeAuthDiagnostic({ stage: "resolver_started" });
+              void this.#resolveProviderRuntimeAuth(params, config2, entry.abort.signal).then((result) => {
+                this.#reportRuntimeAuthDiagnostic({
+                  stage: "resolver_completed",
+                  headers_applied: result.headersApplied === true
+                });
+                if (!entry.abort.signal.aborted) replySafely(result);
+              }).catch((error62) => {
+                const errorClass = error62 instanceof Error && /^[A-Za-z][A-Za-z0-9_]{0,63}$/u.test(error62.name) ? error62.name : "unknown";
+                this.#reportRuntimeAuthDiagnostic({ stage: "resolver_failed", error_class: errorClass });
+                if (!entry.abort.signal.aborted) {
+                  replySafely({ headersApplied: false, errorMessage: "Provider runtime authorization is unavailable." });
+                }
+              });
+              return;
+            }
+            write({
+              id,
+              result: this.#allowTestOnlyStaticRuntimeAuthReply ? testOnlyRuntimeAuthReply(providerId, config2) : {
+                headersApplied: false,
+                errorMessage: "Provider runtime authorization is unavailable."
+              }
+            });
           }
           return;
         }
@@ -26875,9 +29125,10 @@ var init_zcode_app_server_adapter = __esm({
           pending.delete(id);
           if (message.error && typeof message.error === "object") {
             const error62 = message.error;
-            const data = asRecord2(error62.data);
+            const data = asRecord5(error62.data);
             const rpcCode = typeof error62.code === "number" && Number.isSafeInteger(error62.code) ? error62.code : null;
             const dataCode = registeredCode(data.code, RPC_DATA_CODE_REGISTRY);
+            recordRpcDiagnostic(entry, call.method, error62);
             call.reject(withFactsCandidate(
               new Error(`ZCode app-server request failed for ${call.method}${typeof error62.code === "number" ? ` (code ${error62.code})` : ""}`),
               { kind: "rpc", method: call.method, code: rpcCode, dataCode, rejected: true }
@@ -26892,10 +29143,10 @@ var init_zcode_app_server_adapter = __esm({
           return;
         }
         if (message.method === "session/event") {
-          const params = asRecord2(message.params);
+          const params = asRecord5(message.params);
           if (params.sessionId !== void 0 && params.sessionId !== entry.sessionId) return;
           const type = typeof params.type === "string" ? params.type : "";
-          const payload = asRecord2(params.payload);
+          const payload = asRecord5(params.payload);
           const turnId = typeof params.turnId === "string" ? params.turnId : typeof payload.turnId === "string" ? payload.turnId : null;
           if (this.#nativeSendCorrelationVerified && typeof params.seq === "number" && params.seq > entry.lastEventSeq && (!entry.turnId || turnId === entry.turnId) && entry.sendAttempted && !entry.sendAcknowledged && entry.acceptedEvidence === "unknown") {
             const upgrade = evaluateAcceptedUpgrade({
@@ -26913,8 +29164,9 @@ var init_zcode_app_server_adapter = __esm({
             if (upgrade === "yes") entry.acceptedEvidence = "yes";
           }
           if (turnId) entry.boundTurnIds.add(turnId);
-          if (!entry.acceptingTurn) return;
-          if (entry.awaitingTurnStart && type !== "turn.started") return;
+          const terminalTurnEvent = (type === "turn.completed" || type === "turn.failed") && entry.sendAcknowledged;
+          if (!entry.acceptingTurn && !(type === "turn.started" && entry.pendingCompletion)) return;
+          if (entry.awaitingTurnStart && type !== "turn.started" && !terminalTurnEvent) return;
           if (entry.turnId && turnId && entry.turnId !== turnId) return;
           if (typeof params.seq === "number") {
             if (!Number.isSafeInteger(params.seq) || params.seq <= entry.lastEventSeq) return;
@@ -26922,6 +29174,9 @@ var init_zcode_app_server_adapter = __esm({
           }
           entry.lastEventAt = Date.now();
           if (type === "turn.started") {
+            if (entry.pendingCompletion && turnId && entry.pendingCompletion.turnId !== null && entry.pendingCompletion.turnId !== turnId) {
+              return;
+            }
             if (turnId) entry.turnId = turnId;
             entry.awaitingTurnStart = false;
             entry.turnStartedAt = this.#now().toISOString();
@@ -26932,7 +29187,7 @@ var init_zcode_app_server_adapter = __esm({
           }
           if (type === "turn.completed") {
             if (entry.awaitingTurnStart) {
-              entry.pendingCompletion = { payload, event: params, heldAt: Date.now() };
+              entry.pendingCompletion = { payload, event: params, turnId, heldAt: Date.now() };
               entry.acceptingTurn = false;
               if (!entry.pendingTimer) {
                 entry.pendingTimer = setTimeout(() => this.#settlePendingCompletion(entry), this.#turnBindingCompatMs);
@@ -26949,9 +29204,14 @@ var init_zcode_app_server_adapter = __esm({
           }
           if (type === "turn.failed") {
             entry.acceptingTurn = false;
+            entry.awaitingTurnStart = false;
+            if (entry.bindingTimer) {
+              clearTimeout(entry.bindingTimer);
+              entry.bindingTimer = null;
+            }
             entry.turnCompletedAt = this.#now().toISOString();
             const extraction = extractTurnFailureEvidence(payload.error);
-            const upstreamPhase = typeof asRecord2(payload.error).turnPhase === "string" ? asRecord2(payload.error).turnPhase : typeof payload.turnPhase === "string" ? payload.turnPhase : null;
+            const upstreamPhase = typeof asRecord5(payload.error).turnPhase === "string" ? asRecord5(payload.error).turnPhase : typeof payload.turnPhase === "string" ? payload.turnPhase : null;
             const classification = classifyFailureEvidence({
               source: "turn_event",
               phase: upstreamPhase === null ? "turn_terminal" : registeredPhase(upstreamPhase),
@@ -26965,7 +29225,7 @@ var init_zcode_app_server_adapter = __esm({
               ...extraction
             };
             const quotaExhausted = classification.category === "quota_exhausted";
-            const retryDelayMs = quotaExhausted ? null : this.#preTurnProviderRetryDelayMs(entry, asRecord2(payload.error), extraction, classification.category);
+            const retryDelayMs = quotaExhausted ? null : this.#preTurnProviderRetryDelayMs(entry, asRecord5(payload.error), extraction, classification.category);
             if (retryDelayMs !== null) {
               this.#schedulePreTurnProviderRetry(entry, retryDelayMs);
               return;
@@ -26984,8 +29244,8 @@ var init_zcode_app_server_adapter = __esm({
           }
         }
         if (message.method === "state.updated") {
-          const params = asRecord2(message.params);
-          const patch = asRecord2(params.patch);
+          const params = asRecord5(message.params);
+          const patch = asRecord5(params.patch);
           const state = typeof patch.status === "string" ? patch.status : void 0;
           if (state) entry.onEvent({ type: "runtime_state", summary: `ZCode runtime state: ${state}` });
           return;
@@ -27000,10 +29260,16 @@ var init_zcode_app_server_adapter = __esm({
           write({ id: message.id, error: { code: -32601, message: `Unsupported ZCode app-server request: ${message.method}` } });
         }
       }
+      #reportRuntimeAuthDiagnostic(facts) {
+        try {
+          this.#onRuntimeAuthDiagnostic?.(facts);
+        } catch {
+        }
+      }
       #handleInteractionRequest(message, entry, write) {
         const rpcId = message.id;
         const method = message.method;
-        const params = asRecord2(message.params);
+        const params = asRecord5(message.params);
         if (entry.abort.signal.aborted || params.sessionId !== void 0 && params.sessionId !== entry.sessionId) {
           write({ id: rpcId, result: interactionDecline(method, "Interaction does not belong to the active task session") });
           return;
@@ -27115,7 +29381,7 @@ var init_zcode_app_server_adapter = __esm({
             }
             return;
           }
-          const parsed = method === "interaction/browserList" ? browserListParamsSchema.safeParse(asRecord2(message.params)) : browserExecuteParamsSchema.safeParse(asRecord2(message.params));
+          const parsed = method === "interaction/browserList" ? browserListParamsSchema.safeParse(asRecord5(message.params)) : browserExecuteParamsSchema.safeParse(asRecord5(message.params));
           if (!parsed.success) {
             write({ id: rpcId, error: { code: -32602, message: `Invalid ${method} params: ${zodIssueSummary(parsed.error)}` } });
             return;
@@ -27239,6 +29505,7 @@ var init_zcode_app_server_adapter = __esm({
           });
         }
         entry.turnCompletedAt = this.#now().toISOString();
+        this.#publishSessionEvent("turn.completed", held.payload, entry, held.event);
         this.#resolveTurnCompleted(entry, held.payload, held.event);
       }
       /** Single settle path for turn completions; resultType is validated here so
@@ -27268,7 +29535,7 @@ var init_zcode_app_server_adapter = __esm({
         if (extraction.retryableBooleans.includes(false)) return null;
         const explicitRateLimitRejection = category === "rate_limited" && extraction.httpStatus === 429;
         if (!explicitRateLimitRejection) return null;
-        const attribution = asRecord2(error62.attribution);
+        const attribution = asRecord5(error62.attribution);
         const retryAfterMs = typeof error62.retryAfterMs === "number" && Number.isFinite(error62.retryAfterMs) ? error62.retryAfterMs : typeof attribution.retryAfterMs === "number" && Number.isFinite(attribution.retryAfterMs) ? attribution.retryAfterMs : retryAfterMilliseconds(error62.retryAfter ?? attribution.retryAfter);
         if (retryAfterMs !== null && (retryAfterMs < 0 || retryAfterMs > MAX_PROVIDER_RETRY_AFTER_MS)) return null;
         return retryAfterMs ?? 1e3;
@@ -27368,7 +29635,7 @@ var init_zcode_app_server_adapter = __esm({
        * runtimes whose native correlation ability has been verified.
        */
       #extractSubmitCorrelationEcho(payload) {
-        const correlation = asRecord2(payload.correlation);
+        const correlation = asRecord5(payload.correlation);
         return typeof correlation.submit_id === "string" ? correlation.submit_id : null;
       }
       /**
@@ -27517,12 +29784,153 @@ var init_zcode_app_server_adapter = __esm({
         if (source.ZCODE_HOME) env.ZCODE_HOME = source.ZCODE_HOME;
         const dataBaseDir = zcodeDataBaseDir(config2.providerPersonalConfigFile);
         if (dataBaseDir) env.ZCODE_DATA_BASE_DIR = dataBaseDir;
+        forwardOfficialEndpointEnv(env, source);
         return env;
+      }
+      /**
+       * ADR-066: the Overlay and the started AppServer must have read the same
+       * official registry. A Desktop refresh between the two reads would leave
+       * the account providers unregistered, so stop before registration.
+       */
+      #assertRegistryUnchanged(config2, basedOnZCodeBuiltinRevision) {
+        if (currentBuiltinRegistryRevision(config2) === basedOnZCodeBuiltinRevision) return;
+        throw new BridgeError(
+          "provider_config_invalid",
+          "The official Built-in Provider registry changed while the ZCode AppServer was starting; the Attempt was stopped before account provider registration and no model request was sent"
+        );
       }
       #require(handle, method) {
         const entry = this.#runs.get(handle);
         if (!entry) throw new Error(`${method}: unknown agent handle (task ${handle.taskId})`);
         return entry;
+      }
+    };
+    ZCodeAppServerTestAdapter = class extends ZCodeAppServerAdapter {
+      constructor(options = {}) {
+        super({ ...options, testOnlyAllowDirectAppServer: true });
+      }
+    };
+  }
+});
+
+// src/adapters/official-app-server-adapter.ts
+var official_app_server_adapter_exports = {};
+__export(official_app_server_adapter_exports, {
+  OfficialAppServerWorkerAdapter: () => OfficialAppServerWorkerAdapter,
+  officialProviderCapabilityWarning: () => officialProviderCapabilityWarning
+});
+var OfficialAppServerWorkerAdapter;
+var init_official_app_server_adapter = __esm({
+  "src/adapters/official-app-server-adapter.ts"() {
+    "use strict";
+    init_account_provider();
+    init_errors();
+    init_zcode_app_server_adapter();
+    init_official_host_adapter();
+    init_official_host_adapter();
+    OfficialAppServerWorkerAdapter = class extends ZCodeAppServerAdapter {
+      constructor(options = {}) {
+        const providerCapability = options.providerCapability ?? "installed_runtime";
+        let verifiedDescriptor;
+        const sessionFactory = createInstalledOfficialHostSessionFactory({
+          officialRuntimeResolver: options.officialRuntimeResolver,
+          env: options.childEnvBase,
+          homeDir: options.homeDir,
+          host: options.host,
+          providerCapability,
+          testOnlyOfficialHostModule: options.testOnlyOfficialHostModule,
+          workerModuleUrl: options.workerModuleUrl,
+          testOnlyOfficialHostPackagedAssets: options.testOnlyOfficialHostPackagedAssets,
+          onVerified: (descriptor) => {
+            verifiedDescriptor = descriptor;
+            options.onEvent?.({
+              type: descriptor.status === "OFFICIAL_RUNTIME_EXPERIMENTAL" ? "official_runtime_experimental" : descriptor.status === "OFFICIAL_RUNTIME_VERIFIED" ? "official_runtime_verified" : "official_runtime_manifest_unverified",
+              summary: descriptor.status === "OFFICIAL_RUNTIME_EXPERIMENTAL" ? "Using explicitly authorized experimental installed ZCode AppServer" : descriptor.status === "OFFICIAL_RUNTIME_VERIFIED" ? "Using verified installed ZCode AppServer" : "Using a safe installed ZCode AppServer whose manifest compatibility is unverified",
+              details: {
+                status: descriptor.status,
+                installation_safety: descriptor.installation_safety,
+                installation_fingerprint: descriptor.installation_fingerprint,
+                discount_capability: descriptor.discount_capability,
+                start_plan_static_compatibility: descriptor.start_plan_static_compatibility,
+                provider_capability: providerCapability,
+                desktop_version: descriptor.desktop_version,
+                bundle_sha256: descriptor.bundle_sha256,
+                runtime_host_sha256: descriptor.runtime_host_sha256,
+                node_version: descriptor.node_version,
+                install_source: descriptor.install_source
+              }
+            });
+          },
+          onUnverified: (descriptor, reason) => {
+            options.onEvent?.({
+              type: "official_runtime_unverified",
+              summary: reason,
+              details: {
+                status: descriptor.status,
+                installation_safety: descriptor.installation_safety,
+                installation_fingerprint: descriptor.installation_fingerprint,
+                discount_capability: descriptor.discount_capability,
+                start_plan_static_compatibility: descriptor.start_plan_static_compatibility,
+                provider_capability: providerCapability,
+                reason
+              }
+            });
+          },
+          onDiagnostic: (descriptor, reason) => {
+            options.onEvent?.({
+              type: "official_runtime_capability_diagnostic",
+              summary: reason,
+              details: {
+                status: descriptor.status,
+                installation_safety: descriptor.installation_safety,
+                installation_fingerprint: descriptor.installation_fingerprint,
+                discount_capability: descriptor.discount_capability,
+                start_plan_static_compatibility: descriptor.start_plan_static_compatibility,
+                provider_capability: providerCapability,
+                reason
+              }
+            });
+          }
+        });
+        super({
+          ...options,
+          resolver: sessionFactory.resolver,
+          providerRetryLimit: 0,
+          externalHostClientFactory: (context) => sessionFactory.createClient(context),
+          verifySelectedProviderCapability: async (selection, config2, signal) => {
+            signal.throwIfAborted();
+            const resolved = accountProviderSelectionCapability(
+              selection.providerId,
+              selection.modelId,
+              config2
+            );
+            const descriptor = verifiedDescriptor;
+            if (!descriptor) {
+              throw new BridgeError(
+                "provider_config_invalid",
+                "The Official AppServer runtime identity was not verified before provider capability validation."
+              );
+            }
+            const reason = resolved.failure ?? officialProviderCapabilityWarning(descriptor, resolved.capability);
+            if (!reason) return;
+            try {
+              options.onEvent?.({
+                type: "official_runtime_capability_diagnostic",
+                summary: reason,
+                details: {
+                  status: descriptor.status,
+                  discount_capability: descriptor.discount_capability,
+                  start_plan_static_compatibility: descriptor.start_plan_static_compatibility,
+                  provider_capability: resolved.capability,
+                  selected_provider_id: selection.providerId,
+                  selected_model_id: selection.modelId,
+                  reason
+                }
+              });
+            } catch {
+            }
+          }
+        });
       }
     };
   }
@@ -27535,6 +29943,11 @@ __export(normalize_exports, {
 });
 function buildTaskResult(input2) {
   const { task, attempt, startedAt, finishedAt, outcome } = input2;
+  const rpcDiagnostics = [
+    ...input2.failure?.rpcDiagnostics ?? [],
+    ...input2.rpcDiagnostics ?? []
+  ].filter((diagnostic, index, all) => all.findIndex((candidate) => candidate.method === diagnostic.method && candidate.code === diagnostic.code && candidate.data_code === diagnostic.data_code) === index);
+  const diagnostics = rpcDiagnostics.length ? { rpc_diagnostics: rpcDiagnostics.slice(0, 4).map((diagnostic) => ({ ...diagnostic })) } : {};
   const base = {
     task_id: task.task_id,
     attempt,
@@ -27570,7 +29983,8 @@ function buildTaskResult(input2) {
       issues: [truncate(resolved.message, 2e3)],
       needs_master_decision: true,
       error_code: resolved.code,
-      ...resolved.code === "cleanup_failed" && outcome?.reportCandidate ? { report_candidate: outcome.reportCandidate } : {}
+      ...resolved.code === "cleanup_failed" && outcome?.reportCandidate ? { report_candidate: outcome.reportCandidate } : {},
+      ...diagnostics
     };
   }
   if (outcome.errorCode || outcome.reportError) {
@@ -27585,7 +29999,8 @@ function buildTaskResult(input2) {
       issues: [truncate(message, 2e3)],
       needs_master_decision: true,
       error_code: code,
-      ...outcome.reportCandidate ? { report_candidate: outcome.reportCandidate } : {}
+      ...outcome.reportCandidate ? { report_candidate: outcome.reportCandidate } : {},
+      ...diagnostics
     };
   }
   const report = outcome.agentReport;
@@ -27617,6 +30032,140 @@ function truncate(text, maxChars) {
 var init_normalize = __esm({
   "src/manager/normalize.ts"() {
     "use strict";
+  }
+});
+
+// src/usage/normalize.ts
+var normalize_exports2 = {};
+__export(normalize_exports2, {
+  addNonOverlappingUsage: () => addNonOverlappingUsage,
+  normalizeUsage: () => normalizeUsage,
+  phaseDuration: () => phaseDuration
+});
+function isKnownNumericKey(key) {
+  return KNOWN_NUMERIC_FIELDS.some(([canonical2, ...aliases]) => key === canonical2 || aliases.some((candidate) => candidate === key));
+}
+function acceptNumber(value) {
+  if (value === void 0 || value === null) return { value: null, conflict: null };
+  if (typeof value !== "number") return { value: null, conflict: "non_numeric_rejected" };
+  if (Number.isNaN(value)) return { value: null, conflict: "nan_rejected" };
+  if (!Number.isFinite(value)) return { value: null, conflict: "non_finite_rejected" };
+  if (!Number.isSafeInteger(value)) return { value: null, conflict: "unsafe_integer_rejected" };
+  if (value < 0) return { value: null, conflict: "negative_rejected" };
+  return { value, conflict: null };
+}
+function normalizeUsage(raw, options = {}) {
+  if (raw === null || raw === void 0) return null;
+  if (typeof raw !== "object" || Array.isArray(raw)) return null;
+  const record3 = raw;
+  const conflicts = /* @__PURE__ */ new Set();
+  const result = {
+    source: null,
+    scope: null,
+    observed_at: null,
+    finality: "reported",
+    input_tokens: null,
+    output_tokens: null,
+    total_tokens: null,
+    cached_input_tokens: null,
+    cached_write_input_tokens: null,
+    reasoning_tokens: null,
+    conflicts: [],
+    dropped_unknown_keys: 0
+  };
+  let knownKeys = 0;
+  for (const [canonical2, ...aliases] of KNOWN_NUMERIC_FIELDS) {
+    const present = [canonical2, ...aliases].filter((key) => record3[key] !== void 0).map((key) => record3[key]);
+    if (present.length === 0) continue;
+    knownKeys += 1;
+    if (present.some((value) => value !== present[0])) conflicts.add("duplicate_synonyms");
+    const accepted = acceptNumber(present[0]);
+    if (accepted.conflict) {
+      conflicts.add(accepted.conflict);
+      continue;
+    }
+    result[canonical2] = accepted.value;
+  }
+  for (const key of Object.keys(record3)) {
+    const known = isKnownNumericKey(key);
+    const metadata = SOURCE_FIELDS.some((candidate) => key === candidate) || key === "scope" || key === "observed_at" || key === "finality" || key === "conflicts";
+    if (!known && !metadata) result.dropped_unknown_keys += 1;
+  }
+  for (const sourceField of SOURCE_FIELDS) {
+    const value = record3[sourceField];
+    if (typeof value === "string" && value.trim()) {
+      result.source = options.source ?? value.trim();
+      break;
+    }
+  }
+  if (result.source === null) result.source = options.source ?? null;
+  result.scope = options.scope ?? (typeof record3.scope === "string" && SAFE_USAGE_TOKEN.test(record3.scope) ? record3.scope : null);
+  result.observed_at = options.observedAt ?? (typeof record3.observed_at === "string" && !Number.isNaN(Date.parse(record3.observed_at)) ? record3.observed_at : null);
+  if (record3.finality === "reported" || record3.finality === "derived" || record3.finality === "partial") {
+    result.finality = record3.finality;
+  }
+  if (Array.isArray(record3.conflicts)) {
+    for (const conflict of record3.conflicts) {
+      if (typeof conflict === "string" && SAFE_USAGE_TOKEN.test(conflict)) conflicts.add(conflict);
+    }
+  }
+  const { input_tokens: input2, output_tokens: output2, total_tokens: total } = result;
+  if (total !== null && input2 !== null && output2 !== null && total !== input2 + output2) {
+    conflicts.add("total_mismatch");
+  }
+  if (options.source?.includes("session_delta")) result.finality = "derived";
+  if (conflicts.size > 0) result.finality = result.finality === "derived" ? "derived" : "partial";
+  result.conflicts = [...conflicts];
+  if (knownKeys === 0 && result.dropped_unknown_keys === 0) return null;
+  return result;
+}
+function addNonOverlappingUsage(a, b, source) {
+  if (!a && !b) return null;
+  const conflicts = /* @__PURE__ */ new Set([...a?.conflicts ?? [], ...b?.conflicts ?? []]);
+  const add = (x, y) => x === null || y === null ? null : x + y;
+  return {
+    source,
+    scope: null,
+    observed_at: null,
+    finality: a?.finality === "derived" || b?.finality === "derived" ? "derived" : "partial",
+    input_tokens: add(a?.input_tokens ?? null, b?.input_tokens ?? null),
+    output_tokens: add(a?.output_tokens ?? null, b?.output_tokens ?? null),
+    total_tokens: add(a?.total_tokens ?? null, b?.total_tokens ?? null),
+    cached_input_tokens: add(a?.cached_input_tokens ?? null, b?.cached_input_tokens ?? null),
+    cached_write_input_tokens: add(a?.cached_write_input_tokens ?? null, b?.cached_write_input_tokens ?? null),
+    reasoning_tokens: add(a?.reasoning_tokens ?? null, b?.reasoning_tokens ?? null),
+    conflicts: [...conflicts],
+    dropped_unknown_keys: (a?.dropped_unknown_keys ?? 0) + (b?.dropped_unknown_keys ?? 0)
+  };
+}
+function phaseDuration(startIso, endIso, notes) {
+  if (!startIso || !endIso) return null;
+  const start = Date.parse(startIso);
+  const end = Date.parse(endIso);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    notes.push("unparsable_timestamp");
+    return null;
+  }
+  if (end < start) {
+    notes.push("clock_regression_dropped");
+    return null;
+  }
+  return end - start;
+}
+var KNOWN_NUMERIC_FIELDS, SOURCE_FIELDS, SAFE_USAGE_TOKEN;
+var init_normalize2 = __esm({
+  "src/usage/normalize.ts"() {
+    "use strict";
+    KNOWN_NUMERIC_FIELDS = [
+      ["input_tokens", "inputTokens"],
+      ["output_tokens", "outputTokens"],
+      ["total_tokens", "totalTokens"],
+      ["cached_input_tokens", "cachedInputTokens", "cacheReadTokens", "cache_read_tokens"],
+      ["cached_write_input_tokens", "cachedWriteInputTokens", "cacheWriteInputTokens", "cacheWriteTokens", "cache_write_tokens"],
+      ["reasoning_tokens", "reasoningTokens"]
+    ];
+    SOURCE_FIELDS = ["source", "usage_source"];
+    SAFE_USAGE_TOKEN = /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u;
   }
 });
 
@@ -27744,10 +30293,10 @@ function boundedSignal(parent, timeoutMs) {
   } };
 }
 async function servePrivateCredential(options) {
-  const bounded2 = boundedSignal(options.signal, options.timeoutMs);
+  const bounded = boundedSignal(options.signal, options.timeoutMs);
   let lease;
   try {
-    const request = record2(await readPrivateFrame(options.request, maximum, bounded2.signal));
+    const request = record2(await readPrivateFrame(options.request, maximum, bounded.signal));
     exactKeys(request, ["protocol", "requestId", "binding"]);
     if (request.protocol !== "start-plan-private-request-v1" || typeof request.requestId !== "string" || !request.requestId) throw new Error("private_auth_invalid");
     const resolved = await new Promise((resolve, reject) => {
@@ -27755,14 +30304,14 @@ async function servePrivateCredential(options) {
         cleanup();
         reject(new Error("private_auth_cancelled"));
       };
-      const cleanup = () => bounded2.signal.removeEventListener("abort", abort);
-      bounded2.signal.addEventListener("abort", abort, { once: true });
-      if (bounded2.signal.aborted) {
+      const cleanup = () => bounded.signal.removeEventListener("abort", abort);
+      bounded.signal.addEventListener("abort", abort, { once: true });
+      if (bounded.signal.aborted) {
         abort();
         return;
       }
-      void Promise.resolve().then(() => options.resolveLease(Object.freeze({ ...request }), bounded2.signal)).then((value) => {
-        if (bounded2.signal.aborted) {
+      void Promise.resolve().then(() => options.resolveLease(Object.freeze({ ...request }), bounded.signal)).then((value) => {
+        if (bounded.signal.aborted) {
           value.lease.revoke();
           return;
         }
@@ -27785,43 +30334,43 @@ async function servePrivateCredential(options) {
         binding: resolved.binding,
         jwt: jwt2,
         expiresAt
-      }, maximum, bounded2.signal);
-      const ack = record2(await readPrivateFrame(options.acknowledgement, maximum, bounded2.signal));
+      }, maximum, bounded.signal);
+      const ack = record2(await readPrivateFrame(options.acknowledgement, maximum, bounded.signal));
       exactKeys(ack, ["protocol", "requestId"]);
       if (ack.protocol !== "start-plan-private-ack-v1" || ack.requestId !== request.requestId) throw new Error("private_auth_ack_invalid");
-    }, bounded2.signal);
+    }, bounded.signal);
     return "acknowledged";
   } catch {
     lease?.revoke();
     throw new Error("private_auth_delivery_failed");
   } finally {
-    bounded2.close();
+    bounded.close();
     options.request.destroy();
     options.response.destroy();
     options.acknowledgement.destroy();
   }
 }
 async function receivePrivateCredential(options) {
-  const bounded2 = boundedSignal(options.signal, options.timeoutMs);
+  const bounded = boundedSignal(options.signal, options.timeoutMs);
   const requestId = randomUUID2();
   let responseStream;
   try {
-    await writePrivateFrame(options.request, { protocol: "start-plan-private-request-v1", requestId, binding: options.binding }, maximum, bounded2.signal);
+    await writePrivateFrame(options.request, { protocol: "start-plan-private-request-v1", requestId, binding: options.binding }, maximum, bounded.signal);
     responseStream = typeof options.response === "function" ? options.response() : options.response;
-    const response = record2(await readPrivateFrame(responseStream, maximum, bounded2.signal));
+    const response = record2(await readPrivateFrame(responseStream, maximum, bounded.signal));
     exactKeys(response, ["protocol", "requestId", "binding", "jwt", "expiresAt"]);
     const binding = record2(response.binding);
     const keys = ["account", "provider", "model", "task", "attempt", "operation", "generation", "claim", "session", "turn", "pid", "creation"];
     exactKeys(binding, keys);
     const now = (options.now ?? Date.now)();
-    if (response.protocol !== "start-plan-private-response-v1" || response.requestId !== requestId || keys.some((key) => binding[key] !== options.binding[key]) || typeof response.jwt !== "string" || !response.jwt || typeof response.expiresAt !== "number" || !Number.isFinite(response.expiresAt) || !Number.isFinite(now) || response.expiresAt <= now || bounded2.signal.aborted) throw new Error("private_auth_invalid");
-    await writePrivateFrame(options.acknowledgement, { protocol: "start-plan-private-ack-v1", requestId }, maximum, bounded2.signal);
-    if (bounded2.signal.aborted) throw new Error("private_auth_invalid");
+    if (response.protocol !== "start-plan-private-response-v1" || response.requestId !== requestId || keys.some((key) => binding[key] !== options.binding[key]) || typeof response.jwt !== "string" || !response.jwt || typeof response.expiresAt !== "number" || !Number.isFinite(response.expiresAt) || !Number.isFinite(now) || response.expiresAt <= now || bounded.signal.aborted) throw new Error("private_auth_invalid");
+    await writePrivateFrame(options.acknowledgement, { protocol: "start-plan-private-ack-v1", requestId }, maximum, bounded.signal);
+    if (bounded.signal.aborted) throw new Error("private_auth_invalid");
     return { jwt: response.jwt, expiresAt: response.expiresAt };
   } catch {
     throw new Error("private_auth_receive_failed");
   } finally {
-    bounded2.close();
+    bounded.close();
     options.request.destroy();
     responseStream?.destroy();
     options.acknowledgement.destroy();
@@ -27838,9 +30387,11 @@ var init_start_plan_private_channel = __esm({
 
 // src/worker/worker-main.ts
 init_result_contract();
-import { createHash as createHash7, randomUUID as randomUUID3 } from "node:crypto";
-import { closeSync as closeSync2, createWriteStream, readFileSync as readFileSync5, writeFileSync, writeSync } from "node:fs";
+import { createHash as createHash12, randomUUID as randomUUID3 } from "node:crypto";
+import { closeSync as closeSync3, createWriteStream, readFileSync as readFileSync5, writeFileSync, writeSync } from "node:fs";
 import { Socket } from "node:net";
+import path12 from "node:path";
+import { fileURLToPath as fileURLToPath4 } from "node:url";
 
 // src/runtime/build-provenance.ts
 import { createHash } from "node:crypto";
@@ -27848,8 +30399,8 @@ import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 var BRIDGE_WORKER_LAUNCH_MARKER = "--zcode-bridge-launch-v1";
 function verifyWorkerProvenance(input2) {
-  const { bridgeLaunchMarker: bridgeLaunchMarker2, rawEnvelope, actualWorker } = input2;
-  if (rawEnvelope === void 0 && !bridgeLaunchMarker2) {
+  const { bridgeLaunchMarker, rawEnvelope, actualWorker } = input2;
+  if (rawEnvelope === void 0 && !bridgeLaunchMarker) {
     return {
       status: "unverified",
       expected: null,
@@ -27905,15 +30456,15 @@ function rejected(errorCode, reason, actualWorker, expected = null) {
 function parseFingerprint(value, requireComplete) {
   if (!isRecord(value) || !hasExactKeys(value, ["path", "sha256"])) return null;
   const artifactPath = value["path"];
-  const sha2562 = value["sha256"];
+  const sha2563 = value["sha256"];
   if (requireComplete) {
     if (typeof artifactPath !== "string" || !path.isAbsolute(artifactPath)) return null;
-    if (typeof sha2562 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2562)) return null;
-    return { path: artifactPath, sha256: sha2562 };
+    if (typeof sha2563 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2563)) return null;
+    return { path: artifactPath, sha256: sha2563 };
   }
   if (artifactPath !== null && (typeof artifactPath !== "string" || !path.isAbsolute(artifactPath))) return null;
-  if (sha2562 !== null && (typeof sha2562 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2562))) return null;
-  return { path: artifactPath, sha256: sha2562 };
+  if (sha2563 !== null && (typeof sha2563 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2563))) return null;
+  return { path: artifactPath, sha256: sha2563 };
 }
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -27939,7 +30490,7 @@ function fingerprintRuntimeArtifact(filePath) {
 }
 
 // src/worker/worker-main.ts
-init_profile();
+init_host_profile();
 
 // src/runtime/start-plan-secret-redactor.ts
 import { createHash as createHash2 } from "node:crypto";
@@ -27947,6 +30498,7 @@ var StartPlanSecretRedactor = class {
   #length = 0;
   #prefix = "";
   #digest = "";
+  #streamPending = "";
   register(secret) {
     if (typeof secret !== "string" || secret.length < 2) throw new Error("private_auth_invalid");
     this.#length = secret.length;
@@ -27970,6 +30522,39 @@ var StartPlanSecretRedactor = class {
       }
     }
   }
+  /**
+   * Redact content delivered in consecutive stream fragments. A bounded suffix
+   * is retained so a credential split across fragments is never emitted as
+   * two individually harmless prefixes. Call with final=true at a public-event
+   * boundary to release the retained suffix.
+   */
+  streamText(input2, { final = false } = {}) {
+    if (typeof input2 !== "string" || typeof final !== "boolean") throw new Error("private_auth_stream_invalid");
+    if (!this.#length) return input2;
+    this.#streamPending += input2;
+    if (!this.#streamPending) return "";
+    const retainedCharacters = final ? 0 : Math.max(0, this.#length - 1);
+    let visibleLength = Math.max(0, this.#streamPending.length - retainedCharacters);
+    if (!final && visibleLength > 0) {
+      for (let index = this.#streamPending.indexOf(this.#prefix); index >= 0 && index < visibleLength; index = this.#streamPending.indexOf(this.#prefix, index + 1)) {
+        if (index + this.#length > visibleLength) {
+          visibleLength = index;
+          break;
+        }
+      }
+      const maximumOverlap = Math.min(this.#prefix.length - 1, visibleLength);
+      for (let overlap = maximumOverlap; overlap > 0; overlap -= 1) {
+        if (this.#streamPending.slice(visibleLength - overlap, visibleLength) === this.#prefix.slice(0, overlap)) {
+          visibleLength -= overlap;
+          break;
+        }
+      }
+    }
+    if (visibleLength === 0) return "";
+    const visible = this.#streamPending.slice(0, visibleLength);
+    this.#streamPending = this.#streamPending.slice(visibleLength);
+    return this.text(visible);
+  }
   value(value) {
     if (typeof value === "string") return this.text(value);
     if (Array.isArray(value)) return value.map((item) => this.value(item));
@@ -27982,74 +30567,229 @@ var StartPlanSecretRedactor = class {
     this.#length = 0;
     this.#prefix = "";
     this.#digest = "";
+    this.#streamPending = "";
   }
 };
 
 // src/worker/worker-main.ts
+init_account_provider();
+
+// src/runtime/official-provider-runtime-auth.ts
+init_official_host_adapter();
+init_account_provider();
+function createOfficialProviderRuntimeAuthDispatcher() {
+  let resolver;
+  return {
+    resolve: async (request, config2, signal) => resolver ? resolver(request, config2, signal) : {
+      headersApplied: false,
+      errorMessage: "Provider runtime authorization is unavailable."
+    },
+    bind(next) {
+      resolver = next;
+    }
+  };
+}
+function createOfficialProviderRuntimeAuthResolver(options) {
+  let factoryPromise;
+  const services = /* @__PURE__ */ new Map();
+  const unavailable = () => ({
+    headersApplied: false,
+    errorMessage: "Provider runtime authorization is unavailable."
+  });
+  const report = (facts) => {
+    try {
+      options.onDiagnostic?.(facts);
+    } catch {
+    }
+  };
+  return async (request, signal) => {
+    if (signal.aborted) {
+      report({ stage: "input_rejected", reason: "aborted" });
+      return unavailable();
+    }
+    const providerId = typeof request.providerId === "string" ? request.providerId : "";
+    const modelSelection = asRecord3(request.modelSelection);
+    const modelId = typeof modelSelection.modelId === "string" ? modelSelection.modelId : "";
+    if (!providerId || !modelId || typeof modelSelection.providerId === "string" && modelSelection.providerId !== providerId || options.isSelected && !options.isSelected(providerId, modelId)) {
+      report({ stage: "input_rejected", reason: "selection_mismatch" });
+      return unavailable();
+    }
+    const facts = accountProviderRuleFacts(providerId, options.config);
+    const access = asRecord3(request.accountAccess);
+    if (!facts?.accountType || facts.planKind !== "individual-coding-plan" || access.type !== "zhipu-account" || access.accountType !== facts.accountType || access.mode !== facts.planKind || access.entitled !== true) {
+      report({ stage: "input_rejected", reason: "account_access_mismatch" });
+      return unavailable();
+    }
+    const dataBaseDir = zcodeDataBaseDir(options.config.providerPersonalConfigFile);
+    if (!dataBaseDir) {
+      report({ stage: "input_rejected", reason: "data_root_invalid" });
+      return unavailable();
+    }
+    const cacheKey = `${dataBaseDir}\0${providerId}`;
+    let service = services.get(cacheKey);
+    if (!service) {
+      factoryPromise ??= (options.testOnlyFactoryLoader ?? loadOfficialHostProviderRuntimeAuthFactory)(options.workerModuleUrl);
+      service = factoryPromise.then(
+        (factory) => factory({
+          dataBaseDir,
+          resolveCurrentAccountAccess: async (currentAccess) => {
+            if (currentAccess.type !== "zhipu-account" || currentAccess.accountType !== facts.accountType || currentAccess.mode !== facts.planKind || currentAccess.entitled !== true) {
+              return null;
+            }
+            return {
+              type: "zhipu-account",
+              family: facts.accountType,
+              planKind: "individual-coding-plan"
+            };
+          }
+        })
+      );
+      services.set(cacheKey, service);
+    }
+    try {
+      const result = await (await service).resolveProviderRuntimeRequest(request, { signal });
+      report({
+        stage: result.headersApplied === true ? "resolved" : "service_rejected",
+        headers_applied: result.headersApplied === true,
+        request_auth_present: Boolean(result.requestAuth)
+      });
+      return result;
+    } catch (error62) {
+      const name = error62 instanceof Error && /^[A-Za-z][A-Za-z0-9_]{0,63}$/u.test(error62.name) ? error62.name : "unknown";
+      report({ stage: "resolver_rejected", error_class: name });
+      throw error62;
+    }
+  };
+}
+function asRecord3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+}
+
+// src/worker/production-adapter-selection.ts
+init_official_app_server_runtime();
+var OFFICIAL_START_PLAN_PROVIDER_ID = "account:bigmodel-start-plan";
+function selectOfficialProviderRuntime(providerId) {
+  if (isOfficialCodingPlanProvider(providerId)) {
+    return "coding_plan_discount";
+  }
+  if (providerId === OFFICIAL_START_PLAN_PROVIDER_ID) return "start_plan_static";
+  return "installed_runtime";
+}
+function selectProductionAdapter(platform = process.platform, architecture = process.arch) {
+  if (platform === "win32" && architecture === "x64") return "official_host";
+  const error62 = new Error(
+    `The Bridge Worker does not support ${platform}/${architecture}.`
+  );
+  error62.code = "unsupported_worker_platform";
+  throw error62;
+}
+
+// src/manager/session-history.ts
+init_errors();
+var SESSION_HISTORY_SCAN_LIMIT = 32;
+function continuationSessionId(history, previousResultSessionId) {
+  if (!history) return previousResultSessionId;
+  return history.resumable ? history.session_id : null;
+}
+function validateSessionHistoryEnvelope(value, context) {
+  const history = typeof value === "object" && value !== null && !Array.isArray(value) ? value : null;
+  const sessionId = history?.session_id;
+  const resumable = history?.resumable;
+  const reason = history?.reason;
+  const evidenceAttempt = history?.evidence_attempt;
+  const scannedAttempts = history?.scanned_attempts;
+  const isEvidenceAttempt = typeof evidenceAttempt === "number" && Number.isSafeInteger(evidenceAttempt) && evidenceAttempt >= 1 && evidenceAttempt < context.attempt;
+  const bound = history !== null && Object.keys(history).sort().join("|") === "evidence_attempt|reason|resumable|scanned_attempts|session_id" && context.continuation !== null && typeof sessionId === "string" && sessionId !== "" && context.previousResultSessionId === sessionId && typeof resumable === "boolean" && (resumable ? reason === "turn_history" && isEvidenceAttempt : reason === "no_turn_history" && evidenceAttempt === null || reason === "session_not_resumable" && isEvidenceAttempt) && typeof scannedAttempts === "number" && Number.isSafeInteger(scannedAttempts) && scannedAttempts >= 1 && scannedAttempts <= SESSION_HISTORY_SCAN_LIMIT;
+  if (!bound) throw new Error("post-Claim session history binding rejected");
+  return {
+    session_id: sessionId,
+    resumable,
+    reason,
+    evidence_attempt: evidenceAttempt,
+    scanned_attempts: scannedAttempts
+  };
+}
+
+// src/worker/worker-main.ts
 var MAX_NODE_TIMER_DELAY_MS = 2147483647;
-var workerArgs = process.argv.slice(2);
-var bridgeLaunchMarker = workerArgs.at(-1) === BRIDGE_WORKER_LAUNCH_MARKER;
-var interactionMode = workerArgs.includes("--bridge-sqlite-interaction-v1");
-var privateAuthMode = workerArgs.includes("--bridge-sqlite-private-auth-v1");
-var dropAfterPrepared = workerArgs.includes("--bridge-sqlite-interaction-drop-after-prepared-v1");
-var positionalArgs = bridgeLaunchMarker ? workerArgs.slice(0, -1).filter((argument) => argument !== "--bridge-sqlite-interaction-v1" && argument !== "--bridge-sqlite-interaction-drop-after-prepared-v1" && argument !== "--bridge-sqlite-private-auth-v1") : workerArgs;
-if (bridgeLaunchMarker && positionalArgs.length === 0) {
-  let claimOnlyStage = "start";
-  let interactionStreamsCreated = false;
-  const writeFatalDiagnostic = (origin, error62) => {
-    const message = error62 instanceof Error ? `${error62.name}: ${error62.message}` : String(error62);
-    const frames = error62 instanceof Error && typeof error62.stack === "string" ? error62.stack.split("\n").slice(1, 6).join("\n") : "";
-    writeDiagnostic(`[bridge-worker] fatal ${origin} at ${claimOnlyStage}: ${message.slice(0, 300)}
+async function runWorkerMain(dependencies = {}, workerArgs = process.argv.slice(2)) {
+  const bridgeLaunchMarker = workerArgs.at(-1) === BRIDGE_WORKER_LAUNCH_MARKER;
+  const interactionMode = workerArgs.includes("--bridge-sqlite-interaction-v1");
+  const privateAuthMode = workerArgs.includes("--bridge-sqlite-private-auth-v1");
+  const runtimeEventMode = workerArgs.includes("--bridge-sqlite-runtime-events-v1");
+  const dropAfterPrepared = workerArgs.includes("--bridge-sqlite-interaction-drop-after-prepared-v1");
+  const positionalArgs = bridgeLaunchMarker ? workerArgs.slice(0, -1).filter((argument) => argument !== "--bridge-sqlite-interaction-v1" && argument !== "--bridge-sqlite-interaction-drop-after-prepared-v1" && argument !== "--bridge-sqlite-private-auth-v1" && argument !== "--bridge-sqlite-runtime-events-v1") : workerArgs;
+  if (bridgeLaunchMarker && positionalArgs.length === 0) {
+    let claimOnlyStage = "start";
+    let interactionStreamsCreated = false;
+    const writeFatalDiagnostic = (origin, error62) => {
+      const message = error62 instanceof Error ? `${error62.name}: ${error62.message}` : String(error62);
+      const frames = error62 instanceof Error && typeof error62.stack === "string" ? error62.stack.split("\n").slice(1, 6).join("\n") : "";
+      writeDiagnostic(`[bridge-worker] fatal ${origin} at ${claimOnlyStage}: ${message.slice(0, 300)}
 ${frames.slice(0, 1200)}
 `);
-  };
-  const reallyExit = process.reallyExit.bind(process);
-  process.on("exit", (code) => {
-    writeDiagnostic(`[bridge-worker] exit code=${String(code)}
+    };
+    const reallyExit = process.reallyExit.bind(process);
+    process.on("exit", (code) => {
+      writeDiagnostic(`[bridge-worker] exit code=${String(code)}
 `);
-  });
-  process.on("uncaughtException", (error62) => {
-    writeFatalDiagnostic("uncaught_exception", error62);
-    reallyExit(1);
-  });
-  process.on("unhandledRejection", (reason) => {
-    writeFatalDiagnostic("unhandled_rejection", reason);
-    reallyExit(1);
-  });
-  try {
-    if (dropAfterPrepared && !interactionMode) throw new Error("interaction test mode required");
-    await runClaimOnlyHandshake({ interactionMode, privateAuthMode, dropAfterPrepared, onStage: (stage) => {
-      claimOnlyStage = stage;
-      if (interactionMode) writeDiagnostic(`[bridge-worker] claim-only stage=${stage}
+    });
+    process.on("uncaughtException", (error62) => {
+      writeFatalDiagnostic("uncaught_exception", error62);
+      reallyExit(1);
+    });
+    process.on("unhandledRejection", (reason) => {
+      writeFatalDiagnostic("unhandled_rejection", reason);
+      reallyExit(1);
+    });
+    try {
+      if (dropAfterPrepared && !interactionMode) throw new Error("interaction test mode required");
+      if (runtimeEventMode && !interactionMode) throw new Error("runtime events require interaction mode");
+      await runClaimOnlyHandshake({
+        interactionMode,
+        privateAuthMode,
+        runtimeEventMode,
+        dropAfterPrepared,
+        dependencies,
+        onStage: (stage) => {
+          claimOnlyStage = stage;
+          if (interactionMode) writeDiagnostic(`[bridge-worker] claim-only stage=${stage}
 `);
-    }, onInteractionStreamsCreated: () => {
-      interactionStreamsCreated = true;
-    } });
-    process.exitCode = 0;
-  } catch (error62) {
-    if (interactionMode && !interactionStreamsCreated) {
-      for (const fd of [7, 8, 9]) {
+        },
+        onInteractionStreamsCreated: () => {
+          interactionStreamsCreated = true;
+        }
+      });
+      process.exitCode = 0;
+    } catch (error62) {
+      if (interactionMode && !interactionStreamsCreated) {
+        for (const fd of [7, 8, 9]) {
+          try {
+            closeSync3(fd);
+          } catch {
+          }
+        }
+      }
+      if (privateAuthMode) for (const fd of [10, 11, 12, 13]) {
         try {
-          closeSync2(fd);
+          closeSync3(fd);
         } catch {
         }
       }
-    }
-    if (privateAuthMode) for (const fd of [10, 11, 12, 13]) {
-      try {
-        closeSync2(fd);
+      if (runtimeEventMode) try {
+        closeSync3(14);
       } catch {
       }
-    }
-    const failureCode = error62 && typeof error62 === "object" && "code" in error62 && typeof error62.code === "string" ? error62.code : "unclassified";
-    writeDiagnostic(`[bridge-worker] claim-only handshake rejected${interactionMode ? ` at ${claimOnlyStage} code=${failureCode}` : ""}
+      const failureCode = error62 && typeof error62 === "object" && "code" in error62 && typeof error62.code === "string" ? error62.code : "unclassified";
+      writeDiagnostic(`[bridge-worker] claim-only handshake rejected${interactionMode ? ` at ${claimOnlyStage} code=${failureCode}` : ""}
 `);
-    process.exitCode = 3;
+      process.exitCode = 3;
+    }
+    process.exit(process.exitCode ?? 0);
+  } else {
+    console.error("usage: Worker requires the SQLite private lifecycle channels");
+    process.exit(2);
   }
-  process.exit(process.exitCode ?? 0);
-} else {
-  console.error("usage: Worker requires the SQLite private lifecycle channels");
-  process.exit(2);
 }
 async function runClaimOnlyHandshake(options) {
   options.onStage?.("provenance verification");
@@ -28123,6 +30863,19 @@ async function runClaimOnlyHandshake(options) {
   const execution = validateExecutionEnvelope(decisionRecord.execution, bootstrap, profile);
   if (options.privateAuthMode !== Boolean(execution.private_auth)) throw new Error("private auth mode mismatch");
   let closeInteraction;
+  let runtimeEvents;
+  if (options.runtimeEventMode) {
+    options.onStage?.("runtime event channel setup");
+    const { createCandidateWorkerRuntimeEventChannel: createCandidateWorkerRuntimeEventChannel2 } = await Promise.resolve().then(() => (init_runtime_event_channel(), runtime_event_channel_exports));
+    const stream = createWriteStream(process.execPath, { fd: 14 });
+    try {
+      const sender = await createCandidateWorkerRuntimeEventChannel2({ writeStream: stream });
+      runtimeEvents = createBoundedRuntimeEventPublisher(sender);
+    } catch (error62) {
+      stream.destroy();
+      throw error62;
+    }
+  }
   let candidateInteraction;
   if (options.interactionMode) {
     options.onStage?.("interaction channel setup");
@@ -28166,11 +30919,21 @@ async function runClaimOnlyHandshake(options) {
   }
   try {
     options.onStage?.(execution.adapter_mode === "test_fake" ? "test adapter start" : "zcode adapter start");
-    const resultFrame = execution.adapter_mode === "test_fake" ? await runExplicitFakeAdapter(bootstrap, execution, candidateInteraction) : await runZCodeAdapter(bootstrap, execution, candidateInteraction, options.privateAuthMode ? identity : void 0);
+    const resultFrame = execution.adapter_mode === "test_fake" ? await runExplicitFakeAdapter(bootstrap, execution, candidateInteraction) : await runZCodeAdapter(
+      bootstrap,
+      execution,
+      candidateInteraction,
+      options.privateAuthMode ? identity : void 0,
+      options.dependencies,
+      runtimeEvents
+    );
     options.onStage?.("adapter result frame prepared");
+    await runtimeEvents?.close();
+    options.onStage?.("runtime event channel closed");
     writePrivateFrame2(6, resultFrame, prepareWorkerResultFrameParts(resultFrame));
     options.onStage?.("adapter result frame written");
   } finally {
+    await closeRuntimeEvents(runtimeEvents);
     options.onStage?.("worker interaction close start");
     await closeInteraction?.();
     options.onStage?.("worker interaction close complete");
@@ -28180,8 +30943,8 @@ async function runClaimOnlyHandshake(options) {
 function validateExecutionEnvelope(value, bootstrap, profile) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("post-Claim execution envelope is required");
   const envelope = value;
-  const envelopeKeys = Object.keys(envelope).sort().join("|");
-  if (!["adapter_mode|attempt|continuation|execution_profile_id|generation|host_profile|operation_id|policy_snapshot_digest|previous_result|protocol|task|task_id|workspace_ref", "adapter_mode|attempt|continuation|execution_profile_id|generation|host_profile|operation_id|policy_snapshot_digest|previous_result|private_auth|protocol|task|task_id|workspace_ref"].includes(envelopeKeys) || envelope.protocol !== "bridge-sqlite-execution-envelope-v1" || envelope.operation_id !== bootstrap.operation_id || envelope.task_id !== bootstrap.task_id || envelope.attempt !== bootstrap.attempt || envelope.generation !== bootstrap.generation || envelope.workspace_ref !== bootstrap.workspace_ref || envelope.policy_snapshot_digest !== bootstrap.policy_snapshot_digest || envelope.execution_profile_id !== profile.id || !["zcode_app_server", "test_fake"].includes(String(envelope.adapter_mode))) {
+  const envelopeKeys = Object.keys(envelope).filter((key) => key !== "private_auth" && key !== "session_history").sort().join("|");
+  if (envelopeKeys !== "adapter_mode|attempt|continuation|execution_profile_id|generation|host_profile|operation_id|policy_snapshot_digest|previous_result|protocol|task|task_id|workspace_ref" || envelope.protocol !== "bridge-sqlite-execution-envelope-v1" || envelope.operation_id !== bootstrap.operation_id || envelope.task_id !== bootstrap.task_id || envelope.attempt !== bootstrap.attempt || envelope.generation !== bootstrap.generation || envelope.workspace_ref !== bootstrap.workspace_ref || envelope.policy_snapshot_digest !== bootstrap.policy_snapshot_digest || envelope.execution_profile_id !== profile.id || !["zcode_app_server", "test_fake"].includes(String(envelope.adapter_mode))) {
     throw new Error("post-Claim execution envelope binding rejected");
   }
   const task = envelope.task;
@@ -28197,6 +30960,14 @@ function validateExecutionEnvelope(value, bootstrap, profile) {
       throw new Error("private auth binding rejected");
     }
   }
+  if (envelope.session_history !== void 0) {
+    const previousSessionId = envelope.previous_result?.session_id;
+    validateSessionHistoryEnvelope(envelope.session_history, {
+      attempt: bootstrap.attempt,
+      continuation: envelope.continuation,
+      previousResultSessionId: typeof previousSessionId === "string" ? previousSessionId : null
+    });
+  }
   validateHostProfile(envelope.host_profile);
   return envelope;
 }
@@ -28206,18 +30977,45 @@ async function runExplicitFakeAdapter(bootstrap, execution, interaction) {
   const { executeFakeResultAdapter: executeFakeResultAdapter2 } = await Promise.resolve().then(() => (init_fake_result_adapter(), fake_result_adapter_exports));
   return executeFakeResultAdapter2(bootstrap);
 }
-async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity) {
+async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity, dependencies = {}, runtimeEvents) {
   if (execution.adapter_mode !== "zcode_app_server") throw new Error("real ZCode Adapter mode is required");
-  const { ZCodeAppServerAdapter: ZCodeAppServerAdapter2 } = await Promise.resolve().then(() => (init_zcode_app_server_adapter(), zcode_app_server_adapter_exports));
+  const { OfficialAppServerWorkerAdapter: OfficialAppServerWorkerAdapter2 } = await Promise.resolve().then(() => (init_official_app_server_adapter(), official_app_server_adapter_exports));
+  const {
+    isOfficialCodingPlanProvider: isOfficialCodingPlanProvider2,
+    OFFICIAL_CODING_PLAN_PROVIDER_ID: OFFICIAL_CODING_PLAN_PROVIDER_ID2
+  } = await Promise.resolve().then(() => (init_official_app_server_runtime(), official_app_server_runtime_exports));
+  const { loadPersistedRuntimeEnvironment: loadPersistedRuntimeEnvironment2 } = await Promise.resolve().then(() => (init_resolver(), resolver_exports));
+  const { resolveSessionPreferences: resolveSessionPreferences2 } = await Promise.resolve().then(() => (init_session_preferences(), session_preferences_exports));
+  const { ZCodeAppServerTestAdapter: ZCodeAppServerTestAdapter2 } = await Promise.resolve().then(() => (init_zcode_app_server_adapter(), zcode_app_server_adapter_exports));
   const { buildTaskResult: buildTaskResult2 } = await Promise.resolve().then(() => (init_normalize(), normalize_exports));
+  const { normalizeUsage: normalizeUsage2, phaseDuration: phaseDuration2 } = await Promise.resolve().then(() => (init_normalize2(), normalize_exports2));
   const startedAt = (/* @__PURE__ */ new Date()).toISOString();
   let outcome = null;
   let failure2 = null;
+  const modelProfile = {
+    executor: "zcode",
+    provider_id: null,
+    model_id: null,
+    requested_model: execution.task.model ? `${execution.task.model.provider_id}/${execution.task.model.model_id}` : null,
+    requested_reasoning_level: execution.task.model?.reasoning_level ?? null,
+    effective_reasoning_level: null,
+    effective_reasoning_level_source: "not_reported",
+    selection_source: null,
+    effective_at: null,
+    session_id: null,
+    turn_id: null
+  };
+  let turnStartedAt = null;
+  let turnCompletedAt = null;
+  let rpcAcceptedAt = null;
   let cachedAuth = null;
   let privateAuthPending = null;
   let privateAuthExpiryTimer;
   let privateAuthStarted = false;
   const secretRedactor = execution.private_auth ? new StartPlanSecretRedactor() : void 0;
+  if (secretRedactor && runtimeEvents) {
+    runtimeEvents.setOutputSanitizer((value, options) => secretRedactor.streamText(value, options));
+  }
   let privateAuthParentLive = false;
   let privateAuthConfirmed = false;
   let notifyPrivateAuthConfirmation;
@@ -28333,7 +31131,7 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
     } finally {
       if (!responseOpened) {
         try {
-          closeSync2(11);
+          closeSync3(11);
         } catch {
         }
       }
@@ -28376,7 +31174,12 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
     }, { once: true });
     return current;
   };
-  const adapter = new ZCodeAppServerAdapter2({
+  let providerAuthModel = execution.task.model;
+  let providerRuntimeAuthConfig;
+  let providerRuntimeAuthResolver;
+  const providerRuntimeAuthDispatcher = createOfficialProviderRuntimeAuthDispatcher();
+  const resolveProviderRuntimeAuth = providerRuntimeAuthDispatcher.resolve;
+  const adapterOptions = {
     host: execution.host_profile,
     // Manager resolved this attempt's effective budget before dispatch.
     timeoutMs: execution.task.timeout_ms,
@@ -28392,9 +31195,51 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
 `);
     },
     executionProfileId: execution.execution_profile_id,
+    ...dependencies.testOnlyProbe ? { probe: dependencies.testOnlyProbe } : {},
+    ...dependencies.testOnlyVerifyTreeClean ? { verifyTreeClean: dependencies.testOnlyVerifyTreeClean } : {},
     ...execution.private_auth ? { startPlanProviderEntitled: execution.private_auth.entitled } : {},
+    resolveProviderRuntimeAuth,
+    onRuntimeAuthDiagnostic: (facts) => {
+      writeDiagnostic(`[bridge-worker] runtime-auth ${JSON.stringify(facts)}
+`);
+    },
     onEvent: (event) => {
-      if (!interactionMode) return;
+      runtimeEvents?.publish(event);
+      if (event.type === "official_runtime_verified" || event.type === "official_runtime_experimental" || event.type === "official_runtime_manifest_unverified") {
+        const digest = event.details?.["bundle_sha256"];
+        if (typeof digest === "string" && /^[0-9a-f]{64}$/u.test(digest)) {
+          writeDiagnostic(`[bridge-worker] installed-runtime ${bootstrap.task_id} ${bootstrap.attempt} ${digest}
+`);
+        }
+      }
+      if (event.type === "session_ready" && typeof event.details?.["session_id"] === "string") {
+        modelProfile.session_id = event.details["session_id"];
+      } else if (event.type === "model_selected") {
+        if (typeof event.details?.["provider_id"] === "string") modelProfile.provider_id = event.details["provider_id"];
+        if (typeof event.details?.["model_id"] === "string") modelProfile.model_id = event.details["model_id"];
+        if (typeof event.details?.["selected_model"] === "string" && modelProfile.model_id === null) {
+          modelProfile.model_id = event.details["selected_model"];
+        }
+        if (typeof event.details?.["reasoning_level"] === "string") {
+          modelProfile.effective_reasoning_level = event.details["reasoning_level"];
+          modelProfile.effective_reasoning_level_source = "runtime";
+        } else {
+          modelProfile.effective_reasoning_level = null;
+          modelProfile.effective_reasoning_level_source = "not_reported";
+        }
+        if (typeof event.details?.["model_source"] === "string") {
+          modelProfile.selection_source = event.details["model_source"];
+        }
+        modelProfile.effective_at = (/* @__PURE__ */ new Date()).toISOString();
+      } else if (event.type === "turn_accepted") {
+        rpcAcceptedAt ??= (/* @__PURE__ */ new Date()).toISOString();
+      } else if (event.type === "turn_started") {
+        turnStartedAt = (/* @__PURE__ */ new Date()).toISOString();
+        if (typeof event.details?.["turn_id"] === "string") modelProfile.turn_id = event.details["turn_id"];
+      } else if (event.type === "turn_completed") {
+        turnCompletedAt = (/* @__PURE__ */ new Date()).toISOString();
+        if (typeof event.details?.["turn_id"] === "string") modelProfile.turn_id = event.details["turn_id"];
+      }
       if (event.type === "cleanup_unverified") {
         const summary = event.summary;
         const reason = summary.startsWith("Managed browser cleanup") ? "browser_cleanup" : summary.includes("process_tree_root_exited") ? "root_exited_scan_unverified" : summary.includes("Identity-bound Windows process-tree cleanup receipt") ? "receipt_unavailable" : "unclassified";
@@ -28446,8 +31291,46 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
       if (signal.aborted) return { action: "decline" };
       return (await interaction.acceptCommittedReply()).answer;
     } : void 0
-  });
+  };
   try {
+    const selectedAdapter = dependencies.testOnlyLegacyDirectAdapter ? "direct_app_server" : selectProductionAdapter();
+    const officialHostOptions = {
+      ...adapterOptions,
+      ...dependencies.testOnlyOfficialHostModule ? { testOnlyOfficialHostModule: dependencies.testOnlyOfficialHostModule } : {},
+      ...dependencies.testOnlyWorkerModuleUrl ? { workerModuleUrl: dependencies.testOnlyWorkerModuleUrl } : {},
+      ...dependencies.testOnlyOfficialRuntimeResolver ? { officialRuntimeResolver: dependencies.testOnlyOfficialRuntimeResolver } : {},
+      ...dependencies.testOnlyOfficialHostAssets ? { testOnlyOfficialHostPackagedAssets: dependencies.testOnlyOfficialHostAssets } : {}
+    };
+    const preferences = selectedAdapter === "direct_app_server" ? null : resolveSessionPreferences2(
+      execution.task.model,
+      loadPersistedRuntimeEnvironment2(process.env, void 0, execution.host_profile),
+      execution.execution_profile_id
+    );
+    const codingPlanPreferences = preferences?.model && isOfficialCodingPlanProvider2(preferences.model.provider_id) ? { ...preferences, model: { ...preferences.model, provider_id: OFFICIAL_CODING_PLAN_PROVIDER_ID2 } } : null;
+    if (codingPlanPreferences) providerAuthModel = codingPlanPreferences.model;
+    const officialProviderRuntime = selectedAdapter === "direct_app_server" ? null : selectOfficialProviderRuntime(preferences?.model?.provider_id);
+    if (selectedAdapter !== "direct_app_server") {
+      providerRuntimeAuthDispatcher.bind(async (request, config2, signal) => {
+        if (!providerRuntimeAuthResolver || providerRuntimeAuthConfig !== config2) {
+          providerRuntimeAuthConfig = config2;
+          providerRuntimeAuthResolver = createOfficialProviderRuntimeAuthResolver({
+            config: config2,
+            isSelected: (providerId, modelId) => providerAuthModel === void 0 || providerAuthModel.provider_id === providerId && providerAuthModel.model_id === modelId,
+            onDiagnostic: (facts) => {
+              writeDiagnostic(`[bridge-worker] runtime-auth ${JSON.stringify(facts)}
+`);
+            }
+          });
+        }
+        return providerRuntimeAuthResolver(request, signal);
+      });
+    }
+    const officialSessionPreferences = officialProviderRuntime === "coding_plan_discount" ? codingPlanPreferences : officialProviderRuntime === "start_plan_static" && preferences?.model?.provider_id === BIGMODEL_START_PLAN_PROVIDER_ID ? preferences : null;
+    const adapter = selectedAdapter === "direct_app_server" ? new ZCodeAppServerTestAdapter2(adapterOptions) : new OfficialAppServerWorkerAdapter2({
+      ...officialHostOptions,
+      providerCapability: officialProviderRuntime ?? "installed_runtime",
+      ...officialSessionPreferences ? { sessionPreferences: officialSessionPreferences } : {}
+    });
     const workspace = {
       requestedPath: execution.task.workspace,
       canonicalPath: bootstrap.workspace_ref,
@@ -28460,26 +31343,72 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
       attempt: bootstrap.attempt,
       feedback: requiredString(execution.continuation.feedback, "continuation feedback missing"),
       additionalRequirements: requiredStringArray(execution.continuation.additional_requirements, "continuation requirements invalid"),
-      previousSessionId: nullableString(execution.previous_result?.session_id),
+      // ADR-066: with a Manager verdict only a resumable Session is
+      // resumed; otherwise the continuation starts a new Session. Without
+      // one (older Manager) the previous ID is used as before.
+      previousSessionId: continuationSessionId(
+        execution.session_history,
+        nullableString(execution.previous_result?.session_id)
+      ),
       previousResult: execution.previous_result
     }) : await adapter.startTask({ task: execution.task, workspace, attempt: bootstrap.attempt });
     outcome = await adapter.getResult(handle);
     if (outcome.cleanupError) failure2 = { code: "cleanup_failed", message: outcome.cleanupError };
   } catch (error62) {
-    failure2 = { code: error62 instanceof Error && "code" in error62 && typeof error62.code === "string" ? error62.code : "worker_error", message: error62 instanceof Error ? error62.message : String(error62) };
+    failure2 = {
+      code: error62 instanceof Error && "code" in error62 && typeof error62.code === "string" ? error62.code : "worker_error",
+      message: error62 instanceof Error ? error62.message : String(error62),
+      // ADR-066: an Adapter that throws (unverified cleanup) still hands
+      // over the RPC rejections and Session ID it observed.
+      ...thrownFailureEvidence(error62)
+    };
   } finally {
     writeDiagnostic("[bridge-worker] adapter run settled\n");
     clearCachedAuth();
     privateAuthLifetime?.destroy();
     if (execution.private_auth && !privateAuthStarted) for (const fd of [10, 11, 12]) {
       try {
-        closeSync2(fd);
+        closeSync3(fd);
       } catch {
       }
     }
   }
   const finishedAt = (/* @__PURE__ */ new Date()).toISOString();
-  const taskResult = buildTaskResult2({ task: execution.task, attempt: bootstrap.attempt, startedAt, finishedAt, outcome, failure: failure2 });
+  if (modelProfile.model_id === null && outcome?.modelProfile?.model_id) {
+    Object.assign(modelProfile, outcome.modelProfile);
+  }
+  rpcAcceptedAt ??= outcome?.phaseTimestamps?.rpc_accepted_at ?? null;
+  turnStartedAt ??= outcome?.phaseTimestamps?.turn_started_at ?? null;
+  turnCompletedAt ??= outcome?.phaseTimestamps?.turn_completed_at ?? null;
+  modelProfile.session_id ??= outcome?.sessionId ?? null;
+  const timingNotes = [];
+  const timing = {
+    queued_ms: null,
+    execution_ms: phaseDuration2(startedAt, finishedAt, timingNotes),
+    turn_ms: phaseDuration2(turnStartedAt, turnCompletedAt, timingNotes),
+    finalize_ms: phaseDuration2(turnCompletedAt, finishedAt, timingNotes),
+    wall_ms: phaseDuration2(startedAt, finishedAt, timingNotes),
+    derived: false,
+    notes: timingNotes
+  };
+  const usage = normalizeUsage2(outcome?.usage ?? null, {
+    source: "zcode_runtime_turn",
+    scope: outcome?.sessionId ? `session:${outcome.sessionId}` : null,
+    observedAt: finishedAt
+  });
+  const taskResult = buildTaskResult2({
+    task: execution.task,
+    attempt: bootstrap.attempt,
+    startedAt,
+    finishedAt,
+    outcome,
+    failure: failure2,
+    usage,
+    model: modelProfile,
+    timing,
+    rpcDiagnostics: outcome?.rpcDiagnostics ?? null,
+    sessionId: failure2?.sessionId ?? null
+  });
   const result = {
     task_id: taskResult.task_id,
     attempt: taskResult.attempt,
@@ -28498,10 +31427,15 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
     ...taskResult.model !== void 0 ? { model: taskResult.model } : {},
     ...taskResult.timing !== void 0 ? { timing: taskResult.timing } : {},
     ...taskResult.error_code ? { error_code: taskResult.error_code } : {},
+    ...taskResult.rpc_diagnostics?.length ? { rpc_diagnostics: taskResult.rpc_diagnostics } : {},
     ...taskResult.report_candidate ? { report_candidate: taskResult.report_candidate } : {}
   };
   const executionCleanup = buildExecutionCleanupProof(outcome);
-  secretRedactor?.close();
+  try {
+    await runtimeEvents?.close();
+  } finally {
+    secretRedactor?.close();
+  }
   return {
     protocol: "bridge-sqlite-candidate-result-v1",
     operation_id: bootstrap.operation_id,
@@ -28513,6 +31447,15 @@ async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity
     execution_cleanup_verified: executionCleanup !== null,
     execution_cleanup: executionCleanup,
     result
+  };
+}
+function thrownFailureEvidence(error62) {
+  const value = error62;
+  const diagnostics = value?.rpcDiagnostics;
+  const sessionId = value?.sessionId;
+  return {
+    ...Array.isArray(diagnostics) && diagnostics.length ? { rpcDiagnostics: diagnostics } : {},
+    ...typeof sessionId === "string" && sessionId ? { sessionId } : {}
   };
 }
 function buildExecutionCleanupProof(outcome) {
@@ -28529,6 +31472,8 @@ function buildExecutionCleanupProof(outcome) {
     };
   }
   if (outcome?.cleanupVerified !== true || outcome.cleanupError) return null;
+  const adapterCleanup = buildAdapterCleanupEvidence(outcome.adapterCleanup);
+  if (!adapterCleanup) return null;
   if (!receipt) {
     const scan = outcome.cleanupTreeScan;
     if (!scan || !Number.isSafeInteger(scan.rootPid) || scan.rootPid < 1 || !scan.rootFingerprint || !/^[0-9a-f]{64}$/u.test(scan.evidenceDigest) || !Number.isSafeInteger(scan.observedMemberCount) || scan.observedMemberCount < 1) return null;
@@ -28542,7 +31487,8 @@ function buildExecutionCleanupProof(outcome) {
       adapter_start_fingerprint: scan.rootFingerprint,
       process_tree_scan_digest: scan.evidenceDigest,
       process_tree_member_count: scan.observedMemberCount,
-      managed_browser_cleanup_verified: true
+      managed_browser_cleanup_verified: true,
+      adapter_cleanup: adapterCleanup
     };
   }
   const root = receipt.members.find((member) => member.pid === receipt.rootPid);
@@ -28555,9 +31501,37 @@ function buildExecutionCleanupProof(outcome) {
     workspace_retained: true,
     adapter_process_id: receipt.rootPid,
     adapter_start_fingerprint: root.fingerprint,
-    process_tree_receipt_digest: createHash7("sha256").update(JSON.stringify(receipt), "utf8").digest("hex"),
+    process_tree_receipt_digest: createHash12("sha256").update(JSON.stringify(receipt), "utf8").digest("hex"),
     process_tree_member_count: receipt.members.length,
-    managed_browser_cleanup_verified: true
+    managed_browser_cleanup_verified: true,
+    adapter_cleanup: adapterCleanup
+  };
+}
+function buildAdapterCleanupEvidence(value) {
+  if (!value || value.contract !== "adapter-cleanup-v1" || !value.close) return null;
+  const scanStatuses = /* @__PURE__ */ new Set(["verified", "live", "incomplete", "not_applicable"]);
+  const stages = /* @__PURE__ */ new Set([
+    "not_started",
+    "direct_close",
+    "official_manager_dispose",
+    "official_manager_dispose_all",
+    "official_manager_workspace_dispose"
+  ]);
+  const boundedToken = (item) => typeof item === "string" && item.length > 0 && item.length <= 120 && /^[A-Za-z][A-Za-z0-9_.:-]*$/u.test(item);
+  if (!["resolved", "rejected"].includes(value.close.status) || !stages.has(value.close.stage) || !value.close.treeScanStatus || !scanStatuses.has(value.close.treeScanStatus) || !value.treeScanStatus || !scanStatuses.has(value.treeScanStatus) || value.close.errorName !== void 0 && !boundedToken(value.close.errorName) || value.close.errorCode !== void 0 && !boundedToken(value.close.errorCode) || value.close.managerProcessCountAfter !== void 0 && (!Number.isSafeInteger(value.close.managerProcessCountAfter) || value.close.managerProcessCountAfter < 0) || value.close.stage.startsWith("official_") && !Number.isSafeInteger(value.close.managerProcessCountAfter)) {
+    return null;
+  }
+  return {
+    contract: "adapter-cleanup-v1",
+    close: {
+      status: value.close.status,
+      stage: value.close.stage,
+      ...value.close.errorName ? { errorName: value.close.errorName } : {},
+      ...value.close.errorCode ? { errorCode: value.close.errorCode } : {},
+      ...value.close.managerProcessCountAfter !== void 0 ? { managerProcessCountAfter: value.close.managerProcessCountAfter } : {},
+      treeScanStatus: value.close.treeScanStatus
+    },
+    treeScanStatus: value.treeScanStatus
   };
 }
 function requiredString(value, error62) {
@@ -28570,6 +31544,119 @@ function requiredStringArray(value, error62) {
 }
 function nullableString(value) {
   return typeof value === "string" ? value : null;
+}
+function splitUtf8Text(value, maximumBytes) {
+  const chunks = [];
+  let chunkStart = 0;
+  let chunkBytes = 0;
+  for (let index = 0; index < value.length; ) {
+    const codePoint = value.codePointAt(index);
+    const character = String.fromCodePoint(codePoint);
+    const characterBytes = Buffer.byteLength(character, "utf8");
+    if (chunkBytes > 0 && chunkBytes + characterBytes > maximumBytes) {
+      chunks.push(value.slice(chunkStart, index));
+      chunkStart = index;
+      chunkBytes = 0;
+    }
+    chunkBytes += characterBytes;
+    index += character.length;
+  }
+  if (chunkStart < value.length) chunks.push(value.slice(chunkStart));
+  return chunks;
+}
+function createBoundedRuntimeEventPublisher(sender) {
+  const allowed = /* @__PURE__ */ new Set([
+    "session_ready",
+    "model_selected",
+    "turn_started",
+    "model_tool_call",
+    "tool_status",
+    "model_output",
+    "turn_completed",
+    "turn_failed",
+    "report_ready"
+  ]);
+  let pendingOutput = "";
+  let outputTimer;
+  let closePromise;
+  let outputSanitizer;
+  let firstError;
+  const flush = (final = false) => {
+    if (outputTimer) {
+      clearTimeout(outputTimer);
+      outputTimer = void 0;
+    }
+    if (!pendingOutput) {
+      if (final && outputSanitizer) {
+        const visible2 = outputSanitizer("", { final: true });
+        for (const chunk of splitUtf8Text(visible2, 2e3)) sender.send({ type: "model_output", summary: chunk });
+      }
+      return;
+    }
+    const output2 = pendingOutput;
+    pendingOutput = "";
+    const visible = outputSanitizer ? outputSanitizer(output2, { final }) : output2;
+    for (const chunk of splitUtf8Text(visible, 2e3)) sender.send({ type: "model_output", summary: chunk });
+  };
+  return Object.freeze({
+    publish(event) {
+      try {
+        if (event.type === "model_output") {
+          pendingOutput += event.summary;
+          if (Buffer.byteLength(pendingOutput, "utf8") >= 4e3) flush(false);
+          else if (!outputTimer) {
+            outputTimer = setTimeout(() => {
+              outputTimer = void 0;
+              try {
+                flush(false);
+              } catch (error62) {
+                firstError ??= error62;
+              }
+            }, 500);
+            outputTimer.unref();
+          }
+          return;
+        }
+        flush(false);
+        if (allowed.has(event.type)) sender.send(event);
+      } catch (error62) {
+        firstError ??= error62;
+      }
+    },
+    setOutputSanitizer(sanitize) {
+      if (typeof sanitize !== "function" || outputSanitizer) throw new Error("runtime_event_output_sanitizer_invalid");
+      outputSanitizer = sanitize;
+    },
+    close() {
+      closePromise ??= (async () => {
+        try {
+          flush(true);
+        } catch (error62) {
+          firstError ??= error62;
+        }
+        try {
+          await sender.close();
+        } catch (error62) {
+          firstError ??= error62;
+        }
+        if (firstError) {
+          throw Object.assign(new Error("runtime event publication failed"), {
+            code: "runtime_event_publish_failed",
+            cause: firstError
+          });
+        }
+      })();
+      return closePromise;
+    }
+  });
+}
+async function closeRuntimeEvents(publisher) {
+  if (!publisher) return;
+  try {
+    await publisher.close();
+  } catch {
+    writeDiagnostic("[bridge-worker] runtime event channel close failed\n");
+  }
 }
 function writeDiagnostic(line) {
   try {
@@ -28592,11 +31679,11 @@ function digestProvenance(value) {
     bridge: { path: value.bridge.path, sha256: value.bridge.sha256 },
     worker: { path: value.worker.path, sha256: value.worker.sha256 }
   });
-  return createHash7("sha256").update(canonical2, "utf8").digest("hex");
+  return createHash12("sha256").update(canonical2, "utf8").digest("hex");
 }
 function readPrivateFrame2(fd, maximum2) {
   const frame = readFileSync5(fd);
-  closeSync2(fd);
+  closeSync3(fd);
   if (frame.byteLength > maximum2) throw new Error("private frame exceeded limit");
   return frame;
 }
@@ -28611,5 +31698,12 @@ function writePrivateFrame2(fd, value, encoded = JSON.stringify(value)) {
     }
   }
   writeFileSync(fd, "\n", "utf8");
-  closeSync2(fd);
+  closeSync3(fd);
 }
+var invokedWorkerPath = process.argv[1] ? path12.resolve(process.argv[1]) : null;
+var modulePath = path12.resolve(fileURLToPath4(import.meta.url));
+if (invokedWorkerPath === modulePath) await runWorkerMain();
+export {
+  createBoundedRuntimeEventPublisher,
+  runWorkerMain
+};

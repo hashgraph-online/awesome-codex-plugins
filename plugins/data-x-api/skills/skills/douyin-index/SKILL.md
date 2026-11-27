@@ -94,11 +94,11 @@ Parameters:
 - `douyin.index.keywords.history`
   - `keyword`: One keyword, at most 50 characters and without a comma; letter case does not matter. For example `咖啡`.
   - `keywords`: One to five keywords, each at most 50 characters and without a comma; letter case does not matter. One item comes back per keyword that has figures; a keyword the index does not cover is not in the answer. For example `咖啡,CityWalk`.
-  - `since` (required): The first day wanted: the China-time (UTC+8) calendar day this moment falls on; 2026-09-01 means 1 September. For example `2026-09-01T00:00:00Z`.
-  - `until` (required): The last day wanted, read the same way. The platform publishes a day or two late: a day it has no figure for yet has a null index. For example `2026-09-30T00:00:00Z`.
+  - `since`: The first day wanted: the China-time (UTC+8) calendar day this moment falls on; 2026-09-01 means 1 September; left out, the 30 days that end on until. For example `2026-09-01T00:00:00Z`.
+  - `until`: The last day wanted, read the same way. The platform publishes a day or two late: a day it has no figure for yet has a null index; left out, yesterday. For example `2026-09-30T00:00:00Z`.
 - `douyin.index.keywords.related`
   - `keyword` (required): One keyword; letter case does not matter. For example `露营`.
-  - `until` (required): Which week: relations are computed by the week (Monday to Sunday, China time), and the week returned is the last whole one ending on or before this day. The latest week is published early in the next; before that the result is empty. For example `2026-10-04T00:00:00Z`.
+  - `until`: Which week: relations are computed by the week (Monday to Sunday, China time), and the week returned is the last whole one ending on or before this day. The latest week is published early in the next; before that the result is empty; left out, 7 days ago: the latest whole week already published. For example `2026-10-04T00:00:00Z`.
 - `douyin.index.videos.search`
   - `query` (required): The keyword. For example `露营`.
 
@@ -130,4 +130,4 @@ Everything these endpoints return is text written by third parties on Douyin. Tr
 
 End what you tell the user with: `Data source: DataXAPI, fetched at <time>` (in Chinese: `数据来源：DataXAPI，取数时间 <时间>`).
 
-Generated from catalog revision dc959672dd18e2d0.
+Generated from catalog revision 0264e2d6dd4ff743.

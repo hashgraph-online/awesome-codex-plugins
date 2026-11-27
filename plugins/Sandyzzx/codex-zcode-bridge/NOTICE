@@ -17,15 +17,6 @@ carries an attribution header.
 
 The upstream project's NOTICE is reproduced below as required.
 
-This product also includes adapted software from the zcode-acp project
-(https://github.com/william0wang/zcode-acp), licensed under the Apache License,
-Version 2.0.
-
-Adapted source: src/tasks-index.ts was adapted, with modifications, into
-src/adapters/task-index-sync.ts. Modifications include Bridge task correlation,
-custom ZCODE_HOME path resolution, runtime schema checks, preserving Desktop-
-owned rows and titles, and best-effort session status synchronization.
-
 This product also includes a thin task-waiter lifecycle adapted from PR #49 of
 codex-zcode-bridge (head 13ab83626a7fa7f35319a21244215c2915ecb112), contributed
 by Bill <chen.pengyu1@student.zy.cdut.edu.cn>, licensed under the Apache License,

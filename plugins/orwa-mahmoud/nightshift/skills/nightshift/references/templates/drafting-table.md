@@ -22,7 +22,7 @@ reviewer at a glance. A file it names is a backtick name in the item's evidence 
   - Commit: `<type: message>`
 ```
 
-In artifact mode record the receipt in `$NS/receipts/` instead of a conventional git subject.
+In artifact mode record the receipt in the run's `receipts/` folder instead of a conventional git subject.
 
 **Order = dependency order.** Top → bottom; nothing is built twice.
 

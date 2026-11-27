@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "feraterra-sdk"
+version = "4.9.4"
+description = "FeraTerra / Arena Exchange official zero-dependency Python REST/WS, 64-byte HFT binary wire, ArenaITCH L3, CCXT adapter, MCP gateway, LangChain/PydanticAI toolkits, and EVM Clearinghouse client SDK."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+keywords = ["cryptocurrency", "exchange", "clob", "hft", "quant", "ccxt", "mcp", "mcp-server", "langchain", "pydantic-ai", "perpetuals", "defi", "base", "ai-agents", "feraterra"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: C++",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://feraterra.app"
+Testnet = "https://testnet.feraterra.app"
+RemoteMCP = "https://mcp.feraterra.app/mcp"
+Documentation = "https://testnet.feraterra.app/llms.txt"
+OpenAPI = "https://testnet.feraterra.app/openapi.json"
+Leaderboard = "https://testnet.feraterra.app/leaderboard"
+Repository = "https://github.com/FeraTerra/feraterra-sdk"
+Issues = "https://github.com/FeraTerra/feraterra-sdk/issues"
+Changelog = "https://github.com/FeraTerra/feraterra-sdk/releases"
+
+[project.scripts]
+arena-mcp = "arena_mcp_server:main"
+arena-sdk = "arena_mcp_server:main"
+feraterra-mcp = "arena_mcp_server:main"
+feraterra-sdk = "arena_mcp_server:main"
+
+[project.optional-dependencies]
+tls = ["certifi>=2024.0.0"]
+langchain = ["langchain-core>=0.3.0"]
+pydantic-ai = ["pydantic-ai-slim>=0.1.0"]
+
+[tool.setuptools]
+package-dir = { "" = "sdk/python" }
+py-modules = ["arena_sdk", "feraterra_sdk", "arena_mcp_server"]

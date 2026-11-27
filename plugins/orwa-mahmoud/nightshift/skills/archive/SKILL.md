@@ -22,7 +22,10 @@ verbs, and `ns bind` prints the six resolved facts (`TASK_ROOT`, `NIGHTSHIFT_WOR
 directory persists between calls. Each `$NS/...` path below is where the current layout keeps that file;
 `ns path <key>` prints where this workspace keeps it, and `ns path --list` names every key.
 
-Read `$NS/state-version` first. Legacy (missing), `1` and the current `2` may be archived.
+Read `$NS/state-version` first. Legacy (missing), `1`, `2` and the current `3` may be archived.
+In a workspace that holds several runs, Archive files one run: pass `--run <name>` (native Windows:
+`-Run`) for the run the owner means. With several runs and none named, or a name that is not a run,
+it files nothing and lists the runs.
 A newer or malformed marker fails closed — file nothing, rewrite nothing, and never migrate.
 `state-version` itself stays live; it is not an archive record.
 
