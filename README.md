@@ -226,13 +226,13 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [debt-ops](https://github.com/bcanfield/agentic-tech-debt) - Catches AI-introduced tech debt at write-time: hooks log every deferral to a registry in your repo and a review skill ranks paydown by file churn.
 - [DeepSeek Mini-Router](https://github.com/hccccc01333/codex-deepseek-mini-router) - Task-aware spec/react/flash working-contract plugin that fixes DeepSeek weak default reasoning inside Codex, with a measured BigCodeBench harness included.
 - [dejavu](https://github.com/WhiteBite/dejavu-gates) - Cross-session error gates that detect recurring tool-call failures and escalate remind to block, with one shared store across Codex, Claude Code, OpenCode, Gemini CLI, Cursor and more (MIT).
-- [Deps Doctor](./plugins/mturac/deps-doctor) - Multi-ecosystem dependency audit (npm, pip, cargo, go) in one report.
 - [Delx Recovery](https://github.com/davidmosiah/delx-plugins) - Free recovery and continuity plugin for AI agents: resume prior sessions, capture state, process failures into a recovery plan, and remember across sessions through a hosted MCP server (works in Codex, Claude Code, Cursor, and VS Code).
+- [Deps Doctor](./plugins/mturac/deps-doctor) - Multi-ecosystem dependency audit (npm, pip, cargo, go) in one report.
 - [design-helper](https://github.com/Dessert99/design-helper) - Settles CSS values, layout, and motion by eye: draws candidates that differ in one property side by side in the browser, then applies the one you pick to your code.
 - [Designer Skill](https://github.com/PyModel/designer-skill) - Plug-and-play MCP that gives your coding agent UI superpowers: design references, intent routing and a static anti-slop gate, no API key.
-- [Devin Plugin CC](https://github.com/TheOnlyFusionCube/devin-plugin-cc) - Devin AI code reviews, delegated tasks, Fusion lead/sidekick workflows, and cloud handoffs to app.devin.ai for Codex, Claude Code, and other coding agents.
 - [Dev Skills](https://github.com/Jason-chen-coder/dev-skills) - Team workflow skills for specs, plans, TDD, debugging, verification, review, branch finishing, and design context.
 - [Development Skills](https://github.com/reidemeister94/development-skills) - Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.
+- [Devin Plugin CC](https://github.com/TheOnlyFusionCube/devin-plugin-cc) - Devin AI code reviews, delegated tasks, Fusion lead/sidekick workflows, and cloud handoffs to app.devin.ai for Codex, Claude Code, and other coding agents.
 - [DevRecap](https://github.com/jquinteiroo/devrecap) - Reconstruct evidence-backed developer work from authorized Codex and Claude history plus read-only Git, then turn it into daily standups, weekly reviews, sprint recaps, and memory reports.
 - [Docflow](https://github.com/MedAdemBHA/docflow) - Lightweight documentation memory for AI coding agents that scaffolds a 7-category docs tree, runs readiness checks, validates docs before finishing, and keeps a monthly changelog across Claude Code and Codex.
 - [DocSpring Agent Playbook](https://github.com/DocSpring/docspring-agent-playbook) - DocSpring's engineering principles, AGENTS.md templates and six workflow skills (ticket kickoff, PR review, second-opinion review, fix CI, browser QA, session wrap-up) for Claude Code, Codex and other agents.
@@ -286,7 +286,6 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Maestro](https://github.com/mbanderas/maestro) - Opt-in local multi-CLI fusion engine and orchestration doctrine that fans a prompt across model CLIs, then judges and synthesizes one grounded answer.
 - [Magents](https://github.com/abnegate/magents) - Shared session bus MCP + skill so Codex can list, read, hand off, send, and spawn with Claude, Cursor, Grok, and friends without pasting context.
 - [MailAgent](https://github.com/Alex0nder/MailAgent) - Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools).
-- [Maintainer Mode](https://github.com/jacobbabula/maintainer-mode) - Evidence gates for AI-generated pull requests that catch stale issues, overlapping work, and unsupported test claims.
 - [MarginCue](https://github.com/fus3r/margincue) - Shows how Codex will read your prompt before it starts, with names checked against the repo and a control for each open choice, and turns the choices Codex makes on its own into switches while it works.
 - [Markdown Reader](https://github.com/JoseEstevez520/mcp-md-reader) - Navigate Markdown structure and retrieve only the relevant section through a portable Codex MCP plugin.
 - [Masaka for Codex](https://github.com/masakaai/codex-multiple-env) - Keeps each ChatGPT account and workspace in an isolated `CODEX_HOME`, shows official usage windows, and selects the identity used by the next native Codex process.
@@ -345,10 +344,10 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [skill-sync-publisher](https://github.com/liuyewang/skill-sync-publisher) - Safely synchronize this Codex skill across public agent-skill registries.
 - [Smart Glasses Skills](https://github.com/hinty-eu/smart-glasses-skills) - Agent skills for building apps on smart glasses from any brand (Even Realities G2, Meta Ray-Ban Display, Rokid, Vuzix Z100, audio-only and USB-C display glasses): choose a target, get text onto the display, handle input and audio, test without hardware, and check what can be published today.
 - [Sno Station Skills](https://github.com/sno-ai/sno-station-skills) - Peer review, delegation, handoff and self-improvement skills that give Codex and Claude Code the working habits of a real team.
-- [SSH Ops](https://github.com/leehom0123/ssh-ops) - Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.
 - [Spec-Driven Development](https://github.com/Habib0x0/spec-driven-plugin) - Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.
 - [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) - Lean spec workflow with direct or planned execution, optional specifications, one final review, recoverable state, a bundled same-version CLI, Windows-compatible Qoder/WorkBuddy installers, and a CatPaw (妙手) import-package preview.
 - [Spellbook Skills](https://github.com/yyykf/spellbook-skills) - Practical Claude Code and Codex skills for worktrees, PR/MR automation, review cleanup, YApi lookup, and Java DDD guidance.
+- [SSH Ops](https://github.com/leehom0123/ssh-ops) - Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.
 - [stacked-prs](https://github.com/Qabbout/stacked-prs-skill) - Agent skill for Claude Code and Codex to split large changes into reviewable PRs, carry fixes through dependent branches, and land them in dependency order with automated Git checks.
 - [Staff Engineer Mode](https://github.com/sirmarkz/staff-engineer-mode) - Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.
 - [Standup Generator](./plugins/mturac/standup-gen) - Daily standup notes from git activity across repos.
@@ -367,9 +366,9 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Telegram Bot UI](https://github.com/hlibsuslov/telegram-bot-ui) - Design, build and audit Telegram bot interfaces (texts, keyboards, colored buttons, streaming AI replies, Rich Messages, channel posts) with a skill updated for every Bot API release.
 - [Test Gap](./plugins/mturac/test-gap) - Find lines in your diff lacking test coverage (Cobertura, lcov, coverage.json).
 - [Tigang Reminder](https://github.com/TardisBooo/tigang-plugin) - Displays a Kegel break reminder after successful Git commits and pushes, with local counts.
-- [TODO Harvest](./plugins/mturac/todo-harvest) - TODO/FIXME/HACK scan with `git blame` author + age.
 - [TMCRA Local Memory](https://github.com/reshuibuduo/tmcra-plugin-codex) - Owner-local memory for Codex that recalls user and project evidence before each answer and carries source-attributed project context across sessions and supported agent tools.
 - [TNT House Risk-Data API](https://github.com/menantonio83-hue/codex-plugin-tnt-risk-api) - Solana token risk scoring for AI trading agents via MCP: safety score, insider wallet cluster detection, mint/freeze authority, honeypot risk, and LP-lock status in one call.
+- [TODO Harvest](./plugins/mturac/todo-harvest) - TODO/FIXME/HACK scan with `git blame` author + age.
 - [token-optimizer](https://github.com/ooples/token-optimizer-mcp) - Cut token usage 60-90% with caching, compression, and smart file tools — diff-only re-reads, paths-only search, out-of-context stashing, and a per-tool savings report for Codex and Claude Code.
 - [Tool Advisor](https://github.com/dragon1086/claude-skills) - Read-only meta-skill that scans your MCP servers, skills, plugins, and CLI tools, then suggests up to three ranked approaches (Methodical / Fast / Deep) with a copy-paste Quick Action table.
 - [Tree Ring Memory](https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin) - Local-first memory lifecycle guidance for Codex agents with recall, evidence-backed lessons, privacy-safe memory capture, audit, consolidation, and explicit forgetting.
@@ -598,14 +597,14 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [sectionsight](https://github.com/Majny/sectionsight) - Sets up cookieless, privacy-first website analytics (time per page section, consent banner, Slack or e-mail reports, health alerts) and proves the privacy claims with a headless-browser check.
 - [Self-Starter](https://github.com/hyprh/self-starter) - Define custom events in plain language, check them with lightweight probes, and resume your Codex conversation when they fire.
 - [Seltz](https://github.com/seltz-ai/seltz-codex-plugin) - Live web search and page fetch for current, source-backed answers in Codex through Seltz's hosted MCP server, with browser sign-in to a Seltz account and usage drawn from the account's balance.
-- [SEO Dungeon](https://github.com/avalonreset/seo-dungeon) - Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.
 - [Sendpaper](https://github.com/ryan-tish/sendpaper-plugin) - Send real postcards and letters to US addresses from Codex, with an exact print preview, payment only with your approval, and USPS First-Class mailing via a hosted MCP server.
 - [Sendsets](https://github.com/AddisonHoff/sendsets) - Send cold email from Codex: connect and warm up mailboxes, build and launch outbound sequences, and answer replies through the Sendsets MCP server.
+- [SEO Dungeon](https://github.com/avalonreset/seo-dungeon) - Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.
 - [Seonix](https://github.com/seonix-ai/mcp) - Connects Codex to your Seonix SEO project through the hosted Seonix MCP server with OAuth sign-in (Site Health and fix plan, Google Search Console, keyword clusters, draft scoring, eleven SEO playbooks) plus three skills that fix the site in code and ship content; writes run only after you confirm, and the server requires a paid Seonix plan.
 - [Serply](https://github.com/serply-inc/skills) - Live Google web, news, Scholar, and Maps results plus page scraping in Codex through the hosted Serply MCP server, with the API key read from an environment variable.
 - [SFXMint](https://github.com/flreey/sfxmint-mcp) - Free CC0 sound effects for apps and games: find AI-generated sounds by game or app event, as a matching set, or by description, and download the MP3 or WAV files into the project through the hosted SFXMint MCP server and skill, with no API key.
-- [Shots](https://github.com/hitSlop/shots) - Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.
 - [Shopify AI SEO & Liquid](https://github.com/kuaai/shopify-liquid-ai-seo) - Audit Shopify robots.txt for AI search crawlers, generate Product Schema JSON-LD, and build shoppable blog product cards.
+- [Shots](https://github.com/hitSlop/shots) - Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.
 - [Silicon Valley Atlas](https://github.com/phnx-labs/svatlas-mcp) - Search sourced profiles of AI startups, founders and funding, rank the companies most likely to buy a product from its website, and keep outreach lists through a hosted MCP server with OAuth sign-in.
 - [sitemd](https://github.com/sitemd-cc/sitemd) - Build websites from Markdown via MCP — 22 tools for creating pages, generating content, validating, running SEO audits, configuring settings, and deploying static sites to Cloudflare Pages.
 - [Sofya](https://github.com/sofya-co/sofya-mcp) - Web search with page content, URL and document reading (PDF, Office) as markdown, single-fact extraction and cited research reports through Sofya's hosted MCP server with browser sign-in, plus search and research skills.
@@ -735,8 +734,8 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [Codex Plugins, Visually Explained](https://adithyan.io/blog/codex-plugins-visual-explainer) - Visual walkthrough by @adithyan.
 - [Codex Plugins: Slack, Figma, Google Drive](https://arstechnica.com/ai/2026/03/openai-brings-plugins-to-codex-closing-some-of-the-gap-with-claude-code/) - Ars Technica feature deep dive.
 - [Codex v0.117.0 Plugin Walkthrough](https://reddit.com/r/codex/) - Reddit explainer.
-- [OpenAI's Codex Gets Plugins](https://thenewstack.io/openais-codex-gets-plugins/) - The New Stack ecosystem overview.
 - [HostDeFi](https://hostdefi.com) — free token-safety scanner grading tokens A+–F from on-chain checks (mint/freeze authority, liquidity, holder concentration) across Solana + 7 EVM chains. Keyless REST API, hosted MCP, x402 endpoints.
+- [OpenAI's Codex Gets Plugins](https://thenewstack.io/openais-codex-gets-plugins/) - The New Stack ecosystem overview.
 
 ## Related Projects
 
