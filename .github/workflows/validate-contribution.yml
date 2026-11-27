@@ -27,6 +27,7 @@ on:
       - ".github/workflows/claim-notice.yml"
       - ".github/workflows/sweep-open-prs.yml"
       - ".github/workflows/validate-contribution.yml"
+      - ".github/workflows/audit-catalog.yml"
   workflow_dispatch:
 
 permissions:

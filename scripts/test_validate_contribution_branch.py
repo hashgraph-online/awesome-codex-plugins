@@ -178,6 +178,29 @@ class BranchQualifiedContributionTests(unittest.TestCase):
 
         self.assertEqual(VALIDATOR.get_new_readme_entries_from_diff(diff, base, head), [])
 
+    def test_existing_local_listing_can_be_reordered_without_parse_failure(self) -> None:
+        base = (
+            "## Community Plugins\n"
+            "- [Deps Doctor](./plugins/mturac/deps-doctor) - Existing local bundle.\n"
+            "- [Delx Recovery](https://github.com/davidmosiah/delx-plugins) - Existing source.\n"
+        )
+        head = (
+            "## Community Plugins\n"
+            "- [Delx Recovery](https://github.com/davidmosiah/delx-plugins) - Existing source.\n"
+            "- [Deps Doctor](./plugins/mturac/deps-doctor) - Existing local bundle.\n"
+        )
+        diff = "".join(
+            difflib.unified_diff(
+                base.splitlines(keepends=True),
+                head.splitlines(keepends=True),
+                fromfile="README.md",
+                tofile="README.md",
+                n=0,
+            )
+        )
+
+        self.assertEqual(VALIDATOR.get_new_readme_entries_from_diff(diff, base, head), [])
+
     def test_listing_moved_from_other_section_requires_scan(self) -> None:
         base = (
             "## Official Plugins\n"

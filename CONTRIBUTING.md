@@ -403,6 +403,11 @@ All PRs to this repo are automatically validated. The contribution gate runs
 on the PR target event, so fork PRs do not wait for first-time workflow
 approval. It validates the catalog change and public source repository, then queues the source for the catalog-owned centralized scanner. Source-repository scanner CI is optional. The check is re-run on every push, reopen, and daily sweep.
 
+The scheduled `.github/workflows/audit-catalog.yml` workflow rechecks existing
+Community Plugins listings. It validates committed bundles, checks source-only
+listings for reachability, and reports confirmed dead sources or invalid local
+manifests for focused removal or repair pull requests.
+
 The CI will check:
 
 1. **Alphabetical order** - README entries must be sorted within each section
