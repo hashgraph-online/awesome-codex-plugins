@@ -667,9 +667,12 @@ def rich_message(post: "Post") -> dict[str, Any]:
     """InputRichMessage in the post's chosen authoring format (exactly one of
     blocks / markdown / html, plus media for the text formats)."""
     source = post.rich_source
+    # The post's buttons are a keyboard under the message (reply_markup), never rows inside the document:
+    # references/rich-message-buttons.md. to_rich_*(blocks, buttons) still renders rows for a caller that
+    # means a per-element control.
     if source == "blocks":
-        return {"blocks": to_rich_blocks(post.blocks, post.buttons)}
-    text, media = (to_rich_markdown if source == "markdown" else to_rich_html)(post.blocks, post.buttons)
+        return {"blocks": to_rich_blocks(post.blocks)}
+    text, media = (to_rich_markdown if source == "markdown" else to_rich_html)(post.blocks)
     out: dict[str, Any] = {source: text}
     if media:
         out["media"] = media
@@ -817,7 +820,7 @@ def validate(post: Post, *, context: str = "channel", custom_emoji_ok: bool = Fa
             msg = check_media_ref(b.get("ref"), live=live)
             if msg:
                 err("media_ref", msg)
-    issues += _check_buttons(post.buttons, context, custom_emoji_ok=custom_emoji_ok, rich_rows=(kind == "rich"))
+    issues += _check_buttons(post.buttons, context, custom_emoji_ok=custom_emoji_ok, rich_rows=False)  # a keyboard, also for rich posts
 
     if kind in ("text", "photo", "video", "document", "album", "paid_media"):
         try:
@@ -1027,6 +1030,8 @@ def plan(post: Post, chat_id: int | str, *, address: dict[str, Any] | None = Non
         text_messages(post.blocks, preview=True, silent_all=False)
     elif kind == "rich":
         p = {**base, "rich_message": rich_message(post), **common}
+        if markup:
+            p["reply_markup"] = markup
         reqs.append(("sendRichMessage", p))
     elif kind in ("photo", "video", "document"):
         m = post.media[0]
@@ -1322,7 +1327,10 @@ def _edit_requests(method: str, params: dict[str, Any], chat_id: Any, mids: list
                 p[k] = params[k]
         return [("editMessageText", p)]
     if method == "sendRichMessage":
-        return [("editMessageText", {**addr, "rich_message": params["rich_message"]})]
+        p = {**addr, "rich_message": params["rich_message"]}
+        if "reply_markup" in params:
+            p["reply_markup"] = params["reply_markup"]
+        return [("editMessageText", p)]
     if method in ("sendPhoto", "sendVideo", "sendDocument", "sendPaidMedia"):
         p = {**addr, "caption": params.get("caption", "")}
         for k in ("caption_entities", "show_caption_above_media", "reply_markup"):

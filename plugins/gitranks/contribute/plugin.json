@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "gitranks-contribute",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Your agent fixes open-source issues picked for you. You approve every pull request on gitranks.com.",
   "author": {
     "name": "GitRanks",

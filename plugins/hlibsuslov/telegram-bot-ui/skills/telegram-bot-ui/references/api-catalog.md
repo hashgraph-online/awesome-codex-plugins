@@ -98,10 +98,12 @@ agent card when there is a note),
 Rich HTML buttons), `check_rich_html`, `knowledge_search` (which reference sections to read),
 `map_validate`, `map_render`, `map_simulate` (read-only: they never roll back a pending write),
 `map_snapshot` (a single-file Studio page to screenshot; it refuses to replace a file unless
-`overwrite: true`), `commands_audit`, `commands_plan`, and three that use the network:
-`emoji_library_search`, `emoji_pick_family` (slot coverage, then the brief's tags) and
+`overwrite: true`), `commands_audit`, `commands_plan`, and four that use the network:
+`emoji_library_search`, `emoji_pick_family` (slot coverage, then the brief's tags),
 `emoji_rank_by_tags` (packs by style, colour, mood, topic, bot category, or a style `profile`
-whose accent is compared with pack colours; `library_file` reads the offline export instead;
+whose accent is compared with pack colours; `library_file` reads the offline export instead) and
+`emoji_plan_icons` (the icon plan: per slot the best static emoji of one family, alternatives and a
+score breakdown, keyboards all-or-none, locks kept;
 only search words, tag values and pack names are sent; `BOT_UI_EMOJI_RESOLVER=off` turns them
 off). Both pick tools return each pack's description and a one-line `why`; every library
 answer is checked against the vendored contract (`references/emoji-packs.md`). Arguments are

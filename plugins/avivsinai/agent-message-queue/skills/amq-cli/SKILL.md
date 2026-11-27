@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.171.1 # x-release-please-version
+version: 0.172.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -95,8 +95,12 @@ relevant source or digest, checks, failed or pending parts, approaches that
 failed and why, and the next action or actor. Send independent blockers promptly; send a partial result when the
 receiver can act on it before the rest finishes.
 
-Send status when work starts, a state, decision, or result changes, or an agreed
-escalation is due. Avoid file-by-file completion notices and unchanged check-ins.
+Send work the recipient must act on with `--notify wake`. Use
+`--notify passive` for routine status and FYIs that are worth sending.
+Publish availability with `amq presence set`. Passive mail needs no
+acknowledgement and is read on an existing turn. Upgrade live wake and hook
+binaries before sending passive mail. Avoid file-by-file completion notices
+and unchanged check-ins.
 Automated callers own duplicate suppression by item, revision, and event;
 AMQ threads correlate messages, but do not deduplicate repeated sends.
 
@@ -133,9 +137,9 @@ The recipient sees the news deadline as `News by:` in its drain.
 
 When the brief names a reviewer and a candidate is ready, hand it off with one
 command: `amq handoff --id <request> --to <reviewer> --commit <full sha> --body @<file>`.
-The reviewer gets a `review_request` for that commit, and the requester gets a
-status labelled `handed-off` that names the reviewer, the commit and the review
-request. The request stays open: the reviewer answers you, and you close the
+The reviewer gets a wake-eligible `review_request` for that commit, and the
+requester gets a passive status labelled `handed-off` that names the reviewer,
+the commit and the review request. The request stays open: the reviewer answers you, and you close the
 request when the reviewed candidate is ready. When a leg fails, run the same
 command again; a leg already sent is not sent again. When the request asks only
 "send this for review", answer it with an ordinary closing reply instead.
@@ -152,8 +156,8 @@ prove a task is running. Do not create work items from old coordination
 messages without confirming an actual requested outcome and remaining gap.
 
 A request with a `Reply by:` line states when its sender expects an answer.
-If the work takes longer, reply with `--kind status` and your own time
-before that moment; a late answer with no status reads as a stopped seat.
+If the work takes longer, record your updated ETA in the task or send it with
+`--kind status --notify passive` before that moment.
 
 ## Ask the owner without stopping
 

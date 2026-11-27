@@ -86,6 +86,7 @@ The Telegram-side chrome must agree with the in-message UI:
       buttons.
 - [ ] `callback_data` ≤ 64 bytes.
 - [ ] `style` only `primary` / `success` / `danger` on keyboard buttons (plus `link` on a Rich `<tg-button>` callback button), assigned by meaning.
+- [ ] Rich Messages: every action is on the keyboard except a press that changes its own element of the document; no main action, navigation or url inside the document ([rich-message-buttons.md](rich-message-buttons.md)).
 - [ ] ≤1 `primary` per screen; `danger` only for real destruction, with a
       confirmation step.
 - [ ] Every label readable and unambiguous with no color and no emoji (strip test:

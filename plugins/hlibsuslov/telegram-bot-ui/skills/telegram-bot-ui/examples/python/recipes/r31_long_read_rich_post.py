@@ -41,9 +41,10 @@ def long_read() -> Post:
                  "three days from the median."},
         {"type": "document", "ref": PDF_FILE_ID, "caption": "Full data set (PDF, 14 pages)"},
         {"type": "divider"},
-        {"type": "footer", "text": ["Data: city open data portal. ", {"italic": "Next issue in January."}]},
-    ], buttons=[[{"text": "Report a pothole", "url": "https://example.com/report", "style": "primary"},
-                 {"text": "Copy data link", "copy_text": "https://example.com/data/q3-2026"}]])
+        {"type": "footer", "text": ["Data: city open data portal, https://example.com/data/q3-2026. ",
+                                    {"italic": "Next issue in January."}]},
+    ], buttons=[[{"text": "Report a pothole", "url": "https://example.com/report"}]])
+    # The call to action is a keyboard button under the post; the data link is text (references/rich-message-buttons.md)
 
 
 def run(transport: FakeTransport | None = None):
@@ -73,12 +74,12 @@ def main() -> None:
             "<blockquote expandable>" in md["markdown"] and "![](tg://document?id=doc1" in md["markdown"],
             "Rich Markdown: Markdown headings/paragraphs, HTML tags for compact table and expandable quote")
     c.check(html["html"].startswith("<h1>Potholes Q3 2026") and '<tg-document src="tg://document?id=doc1">' in html["html"]
-            and "<tg-button-row>" in html["html"], "Rich HTML: one tag set for everything, buttons included")
+            and "<tg-button" not in html["html"], "Rich HTML: one tag set for everything; no buttons inside the document")
     blocks = sends[1]["rich_message"]["blocks"]
     types = [b["type"] for b in blocks]
     c.check(types[0] == "heading" and blocks[0]["size"] == 1, "first block is the title (largest heading)")
-    c.check({"table", "expandable_blockquote", "document", "buttons", "footer", "divider"} <= set(types),
-            "table, expandable quote, document, divider, footer and a button row are real blocks")
+    c.check({"table", "expandable_blockquote", "document", "footer", "divider"} <= set(types) and "buttons" not in types,
+            "table, expandable quote, document, divider and footer are real blocks; no button row in the document")
     table = next(b for b in blocks if b["type"] == "table")
     c.check(table.get("is_compact") is True and table["cells"][1][2]["align"] == "right",
             "compact table, numbers right-aligned")
@@ -86,8 +87,9 @@ def main() -> None:
     plain_len = len(to_entities([b for b in post.blocks if b["type"] in ("heading", "paragraph")])[0])
     c.check(plain_len > LIMITS["text"] and chars <= LIMITS["rich_chars"] and n <= LIMITS["rich_blocks"],
             f"{plain_len} chars of prose (> 4096): one rich post instead of a split ({chars} chars, {n} blocks)")
-    c.check("link_preview_options" not in sends[1] and "reply_markup" not in sends[1],
-            "sendRichMessage has no link_preview_options; buttons are embedded blocks")
+    c.check("link_preview_options" not in sends[1]
+            and sends[1]["reply_markup"]["inline_keyboard"] == [[{"text": "Report a pothole", "url": "https://example.com/report"}]],
+            "sendRichMessage has no link_preview_options; the call to action is a keyboard button under the post")
     c.check(live.status == "sent" and preview.status == "sent", "both sent once")
     bad = post.with_changes(buttons=[[{"text": "Open app", "web_app": {"url": "https://example.com/app"}}]])
     c.check(any(i.code == "button_context" for i in validate(bad, context="channel")),

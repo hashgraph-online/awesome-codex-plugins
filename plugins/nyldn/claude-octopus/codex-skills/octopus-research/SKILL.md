@@ -98,7 +98,6 @@ provider_status="$(bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-${HOME}/.cla
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status}
-🟡 Antigravity CLI: ${agy_status}
 🧭 Antigravity CLI: ${agy_status}
 🔵 Claude: Available ✓ (Strategic synthesis)
 
@@ -189,14 +188,13 @@ Read the synthesis file and format according to `format_choice`:
 
 ## Task Management Integration
 
-Create tasks to track execution progress:
+Once Step 3 resolves `research_intensity`, create the task before dispatching the probe.
 
 ```javascript
-// At start of skill execution
 TaskCreate({
-  subject: "Execute deep research with multi-AI providers",
-  description: "Run orchestrate.sh probe with available providers for deep research",
-  activeForm: "Running multi-AI deep research"
+  subject: "Research with available AI providers",
+  description: `Run orchestrate.sh probe at ${research_intensity} intensity`,
+  activeForm: "Running multi-AI research"
 })
 
 // Mark in_progress when calling orchestrate.sh

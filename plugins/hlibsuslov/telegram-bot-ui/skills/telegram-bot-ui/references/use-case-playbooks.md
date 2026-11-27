@@ -45,7 +45,7 @@ demos from production integration work; they are not full deployed bot products.
 | [23](../recipes/23-onboarding.md) | Onboarding / first run | "people leave after /start", "referral links", "ask for the phone" | (empty chat) · language · updates · phone · home | per-language commands/descriptions, deep links, `request_contact`, `is_ephemeral` commands (10.2) | private |
 | [24](../recipes/24-settings.md) | Settings / preferences | "settings are a mess", "Back goes to the start", "accidental delete" | root · toggles · pickers · confirm · undo | back stack, disabled selected value (10.3), `danger` (9.4) | private (+ group redirect) |
 | [25](../recipes/25-subscription-paywall.md) | Subscription / paywall / trial | "monthly plan in Stars", "free trial", "remind before it ends" | paywall · trial · invoice link · status · cancel · expired | `createInvoiceLink` + `subscription_period`, `editUserStarSubscription`, `is_recurring`, `/paysupport` | private |
-| [26](../recipes/26-learning-bot.md) | Learning bot | "lesson then quiz", "progress and streaks" | course · lesson · quiz · result · streak · reminder | Rich Messages (headings, expandable quote, button row), disabled answered options (10.3) | private |
+| [26](../recipes/26-learning-bot.md) | Learning bot | "lesson then quiz", "progress and streaks" | course · lesson · quiz · result · streak · reminder | Rich Messages (headings, expandable quote; Start quiz on the keyboard), disabled answered options (10.3) | private |
 | [27](../recipes/27-ai-assistant-product.md) | AI assistant product | "modes", "stream with Stop", "regenerate", "thumbs up/down", "send a PDF" | modes · draft · answer · feedback · history · file | `sendRichMessageDraft` + `can_stop` (10.3), `stopped_message_generation` (10.3), `force_reply` reasons (10.3) | private |
 | [28](../recipes/28-group-expense-split.md) | Group utility (expense split) | "split costs in our group chat", "my balance privately" | shared card · personal panel · add expense · settle up | ephemeral replies to callbacks (10.3/10.4), shared card edited in place | supergroup |
 | [29](../recipes/29-community.md) | Community bot | "approve join requests after rules", "welcome newcomers", "roles" | join request DM · rules · approve · welcome · role picker | `chat_join_request` + `user_chat_id` (5 min), `can_send_welcome_messages` (10.3), `community_chat_joined` (10.3), `setChatMemberTag` | supergroup + private |
@@ -70,12 +70,14 @@ bot for an operator — recipes 40-49; HTML widgets and their design system — 
 | "our operators answer in a group" | 21 |
 | "remind them before the appointment" / "before the trial ends" | 22, 25 |
 | "the bot is confusing for new users" / "deep link to a product" | 23 |
+| "what the bot says after /start" / "the greeting with a picture" / "приветственное сообщение" | `welcome-message.md`, then 23 |
+| "our notifications look messy" / "a template for alerts and reports" / "оформи уведомления" | `message-patterns.md` |
 | "Back takes me to the start" / "settings everywhere" | 24 |
 | "free trial" / "monthly subscription" / "paywall" | 25 |
 | "quiz" / "course" / "streak" | 26 |
 | "like ChatGPT" / "stop button" / "regenerate" / "rate the answer" | 27, 01 |
 | "private answer in the group" / "split the bill" / "lunch order" | 28, 04 |
-| "approve join requests" / "welcome message" / "rules" / "roles" | 29 |
+| "approve join requests" / "welcome message" for group newcomers / "rules" / "roles" | 29 |
 | "@mybot in any chat" / "share a card" | 60 |
 | "answer my customers" / "Telegram Business" | 61 |
 | "alert", "threshold", "mute", "digest" | 62, 09 |

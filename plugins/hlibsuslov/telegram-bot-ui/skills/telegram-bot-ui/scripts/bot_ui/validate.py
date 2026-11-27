@@ -280,16 +280,27 @@ def _screen(p: dict, snap: Snapshot, sid: str, s: dict, out: _Out) -> None:
                     f"{aid!r} is both in the document and on the keyboard; keep one place per action", sid)
         elif a.get("type") == "url" and a.get("style") == "link":
             out.add("RICH_BUTTON_STYLE", "warning", f, f"/actions/{aid}/style", 'style "link" is for callback buttons only; it is dropped', sid)
-    # A rich document whose content actions all sit in the keyboard: the buttons are far from what they act on.
-    # Navigation (navigate, back) belongs on the keyboard; the rest can live next to its section.
-    if fmt in render.RICH_FORMATS and ktype == "inline" and not in_text:
-        content = [aid for aid in placed if isinstance(actions.get(aid), dict)
-                   and actions[aid].get("type") in ("handler", "url", "answer")]
-        if content:
-            out.add("RICH_BUTTONS_UNUSED", "info", f, "/keyboard/rows",
-                    f"{', '.join(repr(a) for a in content)} act on the document's content: put each as "
-                    '<tg-button action="..."> next to its section or in a <tg-button-row> after it, and keep the '
-                    "keyboard for navigation (buttons-and-styles.md#choosing-the-mechanism)", sid)
+    # Buttons inside the document are the exception (references/rich-message-buttons.md): navigation, the main
+    # action, links out and crowded rows belong on the keyboard. A navigate action back to this same screen is an
+    # in-place change (a toggle, a view switch) and is fine.
+    if fmt in render.RICH_FORMATS:
+        texts = msg.get("text") if isinstance(msg.get("text"), dict) else {"": msg.get("text")}
+        for loc, text in texts.items():
+            if not isinstance(text, str) or "<tg-button" not in text:
+                continue
+            buttons, rows = rich.html_buttons(text)
+            for b in buttons:
+                a = actions.get(b["action"]) if b.get("action") else None
+                if not isinstance(a, dict):
+                    continue
+                b["kind"] = "url" if a.get("type") == "url" else "callback_data"
+                b["style"] = a.get("style") or ""
+                b["nav"] = a.get("type") == "back" or (a.get("type") == "navigate" and a.get("to") not in (None, sid))
+                lab = a.get("label")
+                b["label"] = b["label"] or (lab.get(loc) or next(iter(lab.values()), "") if isinstance(lab, dict) else str(lab or ""))
+            for code, message in rich.placement(buttons, rows):
+                out.add(code, "warning", f, "/message/text" + (f"/{loc}" if loc else ""), message, sid)
+            break  # one locale is enough: the buttons are the same in every locale
     labels_seen: dict[str, str] = {}
     for aid, a in actions.items():
         ptr = f"/actions/{aid}"

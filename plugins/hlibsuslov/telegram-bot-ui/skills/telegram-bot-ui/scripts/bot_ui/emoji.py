@@ -168,6 +168,7 @@ def static_twin(idx: dict[str, dict], e: dict) -> dict | None:
 # ------------------------------------------------------------------ meaning: does the icon say what the label says
 
 WORD_RE = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)?")
+PLACEHOLDER_RE = re.compile(r"\{[^{}]*\}")
 
 
 def _phrases(entry: dict) -> list[list[str]]:
@@ -190,7 +191,8 @@ def _says(tokens: list[str], phrase: list[str]) -> bool:
 
 def label_slots(label: str, vocab: dict[str, dict]) -> set[str]:
     """Slots whose words the label says ("Мої замовлення" -> {"order"}); only slots that carry `words` count."""
-    tokens = [t.lower() for t in WORD_RE.findall(rich.visible_text(label) if "<" in (label or "") else (label or ""))]
+    text = rich.visible_text(label) if "<" in (label or "") else (label or "")
+    tokens = [t.lower() for t in WORD_RE.findall(PLACEHOLDER_RE.sub(" ", text))]  # {order.total} is data, not words
     if not tokens:
         return set()
     return {slot for slot, entry in vocab.items() if entry.get("words") and any(_says(tokens, p) for p in _phrases(entry))}
@@ -319,6 +321,147 @@ def review_sheet(snap: Snapshot, lib: dict | None = None) -> str:
             "</style><h1>Button icon review</h1>" + head +
             "<table><tr><th>icon</th><th>label</th><th>slot</th><th>pack</th><th>format</th><th>where</th><th>check</th></tr>"
             + "".join(rows) + "</table>")
+
+
+# ------------------------------------------------------------------ the icon plan (scripts/emoji_plan.py)
+
+PLAN = "emoji/icon-plan.json"
+
+
+def plan_places(snap: Snapshot) -> list[dict]:
+    """Every place of the screens that may carry an icon: keyboard buttons and in-document `<tg-button action>`
+    (labels of every locale, the keyboard they share, a leading ordinary emoji, the current icon) and titles that
+    open with an emoji. The input of emoji_plan.inventory()."""
+    places: list[dict] = []
+    for sid, screen in sorted(snap.screens.items()):
+        if not isinstance(screen, dict):
+            continue
+        kb = screen.get("keyboard") if isinstance(screen.get("keyboard"), dict) else {}
+        on_kb = {a for row in (kb.get("rows") or []) if isinstance(row, list) for a in row if isinstance(a, str)} \
+            if kb.get("type") in ("inline", "reply") else set()
+        in_doc = rich.screen_action_ids(screen)
+        for aid, act in (screen.get("actions") or {}).items():
+            if not isinstance(act, dict) or (aid not in on_kb and aid not in in_doc) or act.get("hidden"):
+                continue
+            label = act.get("label")
+            labels = {k: str(v) for k, v in (label if isinstance(label, dict) else {"": label or ""}).items()}
+            lead = next((le for t in labels.values() if (le := leading_emoji(t))), None)
+            icon = act.get("icon") if isinstance(act.get("icon"), dict) else {}
+            places.append({"where": f"{sid}/actions/{aid}", "kind": "button", "labels": labels, "lead": lead,
+                           "keyboard": sid if aid in on_kb else None, "icon": icon.get("customEmojiId")})
+        msg = screen.get("message")
+        text = msg.get("text") if isinstance(msg, dict) else None
+        texts = text if isinstance(text, dict) else {"": text} if isinstance(text, str) else {}
+        firsts = {loc: rich.visible_text(v).strip().splitlines()[0] for loc, v in texts.items()
+                  if isinstance(v, str) and rich.visible_text(v).strip()}
+        lead = next((le for t in firsts.values() if (le := leading_emoji(t))), None)
+        if lead:
+            places.append({"where": f"{sid}/message/title", "kind": "title", "lead": lead, "keyboard": None,
+                           "labels": {loc: t.replace(lead, "", 1).strip() for loc, t in firsts.items()}})
+    return places
+
+
+def _plan_mod():
+    return skill.load("emoji_plan")
+
+
+def locked_icons(lib: dict) -> dict[str, dict]:
+    """Icons of the map that a person chose (anything the plan did not write): the plan keeps them."""
+    return {s: i for s, i in (lib.get("icons") or {}).items() if isinstance(i, dict) and i.get("by") != "plan"}
+
+
+def make_plan(root: str, snap: Snapshot, *, client: Any = None, profile: dict | None = None, theme: str = "both",
+              controls: bool = False, candidates: int = 6) -> dict:
+    """Stages 0-5 of the icon plan for this project: the route and audiences from the project, the places from its
+    screens, the brief from a style profile (else the Mini App kit's line icons), locks from the icon map."""
+    ep = _plan_mod()
+    packs = skill.load("emoji_packs")
+    vocab = skill.load("tgkit.icons").load_vocabulary()
+    lib = load_library(root)
+    inv = ep.inventory(plan_places(snap), vocab)
+    p = snap.project or {}
+    audiences = sorted({s.get("audience") for s in snap.screens.values() if isinstance(s, dict) and s.get("audience")})
+    gate = ep.gate((p.get("capabilities") or {}).get("customEmoji", "none"), len(inv["slots"]), audiences)
+    brief, source = ep.brief_for(packs.brief_from_profile(profile) if profile else None)
+    return ep.plan_icons(inv, vocab, client or packs.LibraryClient(), brief=brief, brief_source=source, theme=theme,
+                         locks=locked_icons(lib), gate_info=gate, candidates=candidates, controls=controls)
+
+
+def save_plan(root: str, plan: dict) -> str:
+    from .store import _atomic_write, write_lock
+    with write_lock(root):
+        _atomic_write(resolve_inside(root, PLAN), (json.dumps(plan, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    return PLAN
+
+
+def load_plan(root: str) -> dict:
+    path = resolve_inside(root, PLAN)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except FileNotFoundError:
+        raise EmojiError("PLAN_MISSING", f"no {PLAN}: run `bot-ui emoji plan` first") from None
+    except (OSError, ValueError) as err:
+        raise EmojiError("PLAN_INVALID", f"{PLAN}: {err}") from None
+    if not isinstance(doc, dict) or doc.get("format") != _plan_mod().FORMAT or not isinstance(doc.get("slots"), dict):
+        raise EmojiError("PLAN_INVALID", f"{PLAN} is not a {_plan_mod().FORMAT} document")
+    return doc
+
+
+def plan_review(root: str, plan: dict) -> str:
+    """The plan's review sheet with the pictures this project has cached and the library's own for the rest."""
+    import base64
+    pics: dict[str, str] = {}
+    mime = {"webp": "image/webp", "png": "image/png", "jpg": "image/jpeg"}
+    for cid, name in previews(root).items():
+        ext = name.rsplit(".", 1)[-1]
+        path = preview_file(root, name)
+        if ext in mime and path:
+            with open(path, "rb") as fh:
+                pics[cid] = f"data:{mime[ext]};base64,{base64.b64encode(fh.read()).decode('ascii')}"
+    try:
+        base = resolver_url()
+        site = _Resolver(base).origin if base else None
+    except EmojiError:
+        site = None
+    return _plan_mod().review_html(plan, site=site, pictures=pics)
+
+
+def apply_plan(root: str, plan: dict) -> dict:
+    """Stage 7: the slots the review accepted (verdict ok) go into the icon map, marked by="plan" with their reason.
+    Locked slots (a person's choice) are never overwritten; a blocked route writes nothing."""
+    if not (plan.get("gate") or {}).get("ok", True):
+        raise EmojiError("NOT_ELIGIBLE", "the plan's route is none: Telegram would strip these icons; set "
+                                         "capabilities.customEmoji first, or keep words")
+    accepted = _plan_mod().accepted(plan)
+    pending = sorted(s for s, r in plan["slots"].items() if r.get("status") == "chosen" and s not in accepted)
+
+    def change(lib: dict) -> dict:
+        icons, applied, skipped = dict(lib.get("icons") or {}), [], []
+        for slot, c in sorted(accepted.items()):
+            if not SLOT_RE.match(slot) or not EMOJI_ID.match(str(c.get("id", ""))):
+                skipped.append({"slot": slot, "why": "not a slot or an id"})
+                continue
+            if slot in icons and icons[slot].get("by") != "plan":
+                skipped.append({"slot": slot, "why": "chosen by a person: kept"})
+                continue
+            other = next((s for s, i in icons.items() if i.get("id") == c["id"] and s != slot), None)
+            if other:
+                skipped.append({"slot": slot, "why": f"the same emoji already means {other}"})
+                continue
+            reason = next(iter(plan["slots"][slot].get("reasons") or []), "")
+            icons[slot] = {"id": str(c["id"]), "set": c.get("pack") or "", "fallback": (c.get("fallback") or "")[:16],
+                           "animated": False, "adaptive": bool(c.get("adaptive")), "by": "plan",
+                           **({"note": reason[:200]} if reason else {})}
+            applied.append(slot)
+        lib["icons"] = icons
+        return {"applied": applied, "skipped": skipped}
+
+    _, res = update_library(root, change)
+    packs = sorted({c.get("pack") for s, c in accepted.items() if s in res["applied"] and c.get("pack")})
+    return {"ok": True, **res, "pending": pending,
+            "next": ([f"bot-ui emoji import {n}" for n in packs] +
+                     ["bot-ui validate", "bot-ui emoji review --out icon-review.html", "check on a real client"])}
 
 
 # ------------------------------------------------------------------ links and packs

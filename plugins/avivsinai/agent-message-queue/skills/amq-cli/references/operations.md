@@ -556,7 +556,7 @@ body.
 
 Keep ordinary coordination agent-to-agent. Do **not** send to `user` for:
 
-- FYIs and status updates -> `status` on a normal thread
+- FYIs and routine status updates → `--kind status --notify passive` on a normal thread
 - Acknowledgements
 - Routine code review between agents -> `review_request` / `review_response`
 - Agent-owned blockers (waiting on another agent, a build, or a flaky test)

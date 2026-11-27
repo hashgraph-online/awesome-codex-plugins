@@ -21,7 +21,7 @@ Three different "HTML"s exist and never mix: regular-message `parse_mode=HTML`, 
 | Regular message (+ HTML / entities) | prompts, statuses, short answers, anything in a menu flow | content gains structure (headings, tables) → rich |
 | Rich Message (document) | reports, AI answers, docs, tables, math, attached files | the user must act inside it repeatedly → embedded buttons / widget |
 | Inline keyboard | discrete choices, navigation, confirmations | choices need live visual state → widget |
-| Rich embedded buttons (`<tg-button-row>`, `RichTextButton`) | actions that belong to a specific section of a document | the action is screen-level navigation → inline keyboard under the message |
+| Rich embedded buttons (`<tg-button-row>`, `RichTextButton`) | rarely: a press that changes one element of the same document (a step done, a view switch, an answer in a worksheet) | almost always: the main action, navigation, links and anything about the whole message → inline keyboard under it ([rich-message-buttons.md](rich-message-buttons.md)) |
 | Ephemeral message | one member's private view in a shared chat | it must persist or be proven → private chat / storage |
 | Widget (10.4; production: private chats) | a compact card whose state changes in place, taps/drags on a custom layout | text input, network, > 600 px, groups in production → Mini App / keyboard |
 | Mini App | forms with typing, long flows, network data, full-screen UI | a single choice → keyboard |
@@ -33,7 +33,8 @@ Three different "HTML"s exist and never mix: regular-message `parse_mode=HTML`, 
    ≤ ~5 label→value facts read once → a short list or bold labels; prose → paragraphs.
 3. **Volume:** fits one screen? Long → headings + expandable quote/details, or split.
 4. **Phone width:** > 4–5 columns or long cells → compact table, fewer columns, or one card per item.
-5. **Actions:** does it carry buttons? Screen-level → inline keyboard; section-level → rich buttons.
+5. **Actions:** does it carry buttons? The inline keyboard under the message, also for a Rich Message; a
+   button inside the document only for a per-element in-place change ([rich-message-buttons.md](rich-message-buttons.md) §4).
 6. **Accessibility & support:** every rich/widget surface needs a readable text fallback;
    check the SDK and Bot API version (`sdk-compatibility.md`).
 7. **Cost:** a second formatter or surface must earn its maintenance; reuse the project's.

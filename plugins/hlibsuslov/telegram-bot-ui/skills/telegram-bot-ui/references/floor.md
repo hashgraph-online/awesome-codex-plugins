@@ -56,7 +56,7 @@ and by `tgui.py check changed`; the judgement part is yours.
   destructive action; omit it elsewhere. Back, Cancel and Close stay unstyled and last.
 - `force_reply` on keyboards (10.3) = buttons plus a reply field; on inline keyboards it can't
   change in an edit. `validate_keyboard` warnings are design defects to fix.
-- Rich Messages: content actions in the document, navigation on the keyboard.
+- Rich: actions on the keyboard (rich-message-buttons.md).
 
 ## Feedback
 

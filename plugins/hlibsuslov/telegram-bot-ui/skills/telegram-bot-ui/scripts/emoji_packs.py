@@ -16,6 +16,8 @@ Ids are never invented: a slot without a matching sticker stays unset.
   py -3 scripts/emoji_packs.py strip --map icon-map.json --in payload.json
   py -3 scripts/emoji_packs.py library pick --needs home,back,settings --profile style-profile.json
   py -3 scripts/emoji_packs.py library pick --profile style-profile.json --library-file emoji-library.ndjson.gz
+  py -3 scripts/emoji_packs.py library plan --needs home,cart,order,settings --route owner_premium --sheet plan.html
+  py -3 scripts/emoji_packs.py library plan --places places.json --profile style-profile.json --lock home=5368324170671202286
 
 Data: data/emoji/slots.json (slot vocabulary), data/emoji/packs.json (verified public sets,
 metadata only), data/emoji/library-contract.json (the emoji library's schemas and taxonomy,
@@ -940,6 +942,47 @@ def cmd_contract(a) -> int:
     return 0
 
 
+def cmd_plan(a, vocab: dict, client: "LibraryClient", profile: dict) -> int:
+    """The icon plan (scripts/emoji_plan.py) for slots or places, without a bot-ui project."""
+    import emoji_plan as ep
+    if client.offline:
+        print("plan matches each emoji's fallback to a meaning, which the offline export does not carry: run online, "
+              "or with --library-json saved answers", file=sys.stderr)
+        return 2
+    if a.places:
+        doc = _load(a.places)
+        inv = ep.inventory(doc.get("places", doc) if isinstance(doc, dict) else doc, vocab)
+    else:
+        needed = _needed(a, vocab)
+        if not needed:
+            print("pass --needs slot,slot, --from FILE or --places places.json", file=sys.stderr)
+            return 2
+        inv = {"slots": {x: {"use": ["button"], "labels": [vocab[x].get("label") or x], "places": [x],
+                             "control": x in ep.CONTROLS} for x in needed if x in vocab},
+               "unmatched": [{"where": x, "labels": {}} for x in needed if x not in vocab], "keyboards": {}}
+    locks = {}
+    for item in a.lock or []:
+        slot, _, eid = item.partition("=")
+        if not slot or not eid.isdigit():
+            print(f"--lock slot=<custom emoji id>, got {item!r}", file=sys.stderr)
+            return 2
+        locks[slot] = {"id": eid, "by": "user"}
+    gate = ep.gate(a.route, len(inv["slots"])) if a.route else {
+        "ok": True, "route": "unknown", "reasons": ["route not given: check Fragment / owner Premium before placing icons"]}
+    brief, source = ep.brief_for({**(brief_from_profile(profile) if profile else {}), **_flags(a)} or None)
+    plan = ep.plan_icons(inv, vocab, client, brief=brief, brief_source=source, theme=a.theme, locks=locks,
+                         gate_info=gate, candidates=a.candidates, controls=a.controls)
+    _emit(plan, a.out)
+    if a.sheet:
+        with open(a.sheet, "w", encoding="utf-8") as fh:
+            fh.write(ep.review_html(plan, site="https://telegram-bot-ui.hlixli.com"))
+    sm = plan["summary"]
+    print(f"main pack {plan['packs']['main']}; {sm['chosen']} chosen, {sm['locked']} locked, {sm['labelOnly']} label-only "
+          f"of {sm['slots']}; {client.calls} library request(s)" + (f"; review sheet {a.sheet}" if a.sheet else ""),
+          file=sys.stderr)
+    return 0 if plan["packs"]["main"] or sm["locked"] else 1
+
+
 def cmd_library(a) -> int:
     from bot_ui.emoji import EmojiError
     try:
@@ -978,6 +1021,8 @@ def _library(a) -> int:
         for note in res["problems"]:
             print(note, file=sys.stderr)
         return 0 if res["packs"] else 1
+    if a.action == "plan":
+        return cmd_plan(a, vocab, client, profile)
     if a.action == "search":
         if not a.query:
             print("pass the words or emoji to search for", file=sys.stderr)
@@ -1071,7 +1116,7 @@ def main(argv=None) -> int:
         p.add_argument("--fragment", action="store_true", help="bot has Fragment usernames")
         p.add_argument("--owner-premium", action="store_true", help="bot owner has Telegram Premium")
     lib = common(sub.add_parser("library", help="search the emoji library; pick ONE pack that covers the bot's slots"))
-    lib.add_argument("action", choices=["search", "pick", "facets", "contract"])
+    lib.add_argument("action", choices=["search", "pick", "facets", "contract", "plan"])
     lib.add_argument("query", nargs="*", help="search: words or an emoji")
     lib.add_argument("--pack", help="search inside one pack")
     lib.add_argument("--needs", help="pick: comma-separated slots")
@@ -1086,6 +1131,11 @@ def main(argv=None) -> int:
     lib.add_argument("--require", action="append", metavar="FACET:VALUE",
                      help="pick/facets: hard filter, the pack must carry this tag (repeatable)")
     lib.add_argument("--top", type=int, default=5)
+    lib.add_argument("--places", help="plan: places JSON [{where, kind: button|title, labels: {locale: text}, keyboard, lead}]")
+    lib.add_argument("--lock", action="append", metavar="SLOT=ID", help="plan: a slot the user chose (repeatable): kept as is")
+    lib.add_argument("--route", choices=["fragment", "owner_premium", "none"], help="plan: the bot's custom emoji route (stage 0)")
+    lib.add_argument("--controls", action="store_true", help="plan: Back / Forward / Close get icons too (default: words)")
+    lib.add_argument("--sheet", help="plan: write the review sheet (HTML) here")
     lib.add_argument("--library-json", help="saved answers instead of the network (tests)")
     lib.add_argument("--library-file", help="the offline catalog export (emoji-library.ndjson.gz) instead of the network: "
                                             "facets and pick --profile give the same result as online")

@@ -74,6 +74,17 @@
       "_context": "any chat where the bot may send messages; a media block also needs the right to send it",
       "params": {
         "chat_id": 7001001,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Roll back",
+                "callback_data": "deploy:4.12:rollback",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
         "rich_message": {
           "blocks": [
             {
@@ -146,6 +157,20 @@
                   "has_checkbox": true
                 }
               ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "24 h",
+                  "disabled": {}
+                },
+                {
+                  "text": "7 days",
+                  "callback_data": "deploy:4.12:period:7d"
+                }
+              ],
+              "align": "left"
             },
             {
               "type": "table",
@@ -260,21 +285,6 @@
             },
             {
               "type": "divider"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Roll back",
-                  "callback_data": "deploy:4.12:rollback",
-                  "style": "danger"
-                },
-                {
-                  "text": "Runbook",
-                  "url": "https://example.com/runbooks/payments-api"
-                }
-              ],
-              "align": "center"
             },
             {
               "type": "footer",
@@ -372,6 +382,20 @@
               ]
             },
             {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "24 h",
+                  "disabled": {}
+                },
+                {
+                  "text": "7 days",
+                  "callback_data": "deploy:4.12:period:7d"
+                }
+              ],
+              "align": "left"
+            },
+            {
               "type": "table",
               "cells": [
                 [
@@ -484,21 +508,6 @@
             },
             {
               "type": "divider"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Roll back",
-                  "callback_data": "deploy:4.12:rollback",
-                  "style": "danger"
-                },
-                {
-                  "text": "Runbook",
-                  "url": "https://example.com/runbooks/payments-api"
-                }
-              ],
-              "align": "center"
             },
             {
               "type": "footer",

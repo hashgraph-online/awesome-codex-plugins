@@ -6,8 +6,8 @@
 Tools are thin wrappers over the same code the CLI runs, so an agent gets the same answers in
 a tool call that `tgui.py` prints: Bot API and Telegram.WebApp lookups, request and Rich HTML
 checks, a search over the skill's references, the bot-ui map (validate, render, simulate) and a
-single-file Studio snapshot to open in a browser and screenshot. Two tools use the network:
-`emoji_library_search`, `emoji_pick_family` and `emoji_rank_by_tags` ask the telegram-bot-ui emoji
+single-file Studio snapshot to open in a browser and screenshot. Four tools use the network:
+`emoji_library_search`, `emoji_pick_family`, `emoji_rank_by_tags` and `emoji_plan_icons` ask the telegram-bot-ui emoji
 library (only the search words and pack names are sent; BOT_UI_EMOJI_RESOLVER=off switches them
 off; `emoji_rank_by_tags` reads the offline export instead when given `library_file`). Every
 answer is checked against the library's contract (data/emoji/library-contract.json). Nothing
@@ -355,6 +355,39 @@ def emoji_pick_family(args: dict) -> dict:
                        lang=args.get("lang") or profile_lang(profile))
 
 
+def emoji_plan_icons(args: dict) -> dict:
+    """The icon plan (scripts/emoji_plan.py): per slot the best STATIC emoji of one pack family, the alternatives,
+    a score breakdown and the reasons; keyboards all-or-none; the decision record the agent reviews."""
+    import emoji_plan as ep
+    from emoji_packs import LibraryClient, brief_from_profile
+    vocab = _emoji_vocab()
+    places, needs = args.get("places"), args.get("needs")
+    if isinstance(needs, str):
+        needs = [x.strip() for x in needs.split(",") if x.strip()]
+    if isinstance(places, list) and places:
+        if not all(isinstance(p, dict) and isinstance(p.get("where"), str) for p in places):
+            raise ToolError("places: [{where, kind: button|title, labels: {locale: text}, keyboard, lead}]")
+        inv = ep.inventory(places, vocab)
+    elif isinstance(needs, list) and needs:
+        inv = {"slots": {x: {"use": ["button"], "labels": [vocab[x].get("label") or x], "places": [x],
+                             "control": x in ep.CONTROLS} for x in needs if x in vocab},
+               "unmatched": [{"where": x, "labels": {}} for x in needs if x not in vocab], "keyboards": {}}
+    else:
+        raise ToolError("needs (slots, e.g. ['home','cart']) or places (buttons with their labels)")
+    locks = args.get("locks") or {}
+    if not isinstance(locks, dict) or not all(isinstance(v, str) and v.isdigit() for v in locks.values()):
+        raise ToolError("locks: {slot: custom emoji id} the user chose")
+    profile = _profile(args)
+    route = args.get("route")
+    gate = ep.gate(route, len(inv["slots"])) if route else {
+        "ok": True, "route": "unknown", "reasons": ["route not given: check Fragment / owner Premium before placing icons"]}
+    brief, source = ep.brief_for({**(brief_from_profile(profile) if profile else {}),
+                                  **{k: args[k] for k in FACETS if args.get(k)}} or None)
+    return ep.plan_icons(inv, vocab, LibraryClient(), brief=brief, brief_source=source, theme=args.get("theme", "both"),
+                         locks={s: {"id": i, "by": "user"} for s, i in locks.items()}, gate_info=gate,
+                         candidates=int(args.get("candidates") or 6), controls=bool(args.get("controls")))
+
+
 def emoji_rank_by_tags(args: dict) -> dict:
     """Packs ranked by the library's faceted tags alone (style, colour, mood, topic, bot category); with a style
     profile, its brand accent is compared with each pack's colours. Each pack: description and `why`."""
@@ -447,6 +480,11 @@ TOOLS: list[dict] = [
      "inputSchema": _obj({"style": A, "color": A, "mood": A, "topic": A, "use": A, "palette": A, "require": A, "motion": {"type": "string", "enum": ["static", "any"]},
                           "theme": {"type": "string", "enum": ["both", "light", "dark"]}, "top": {"type": "integer"},
                           "profile": S, "library_file": S, "lang": {"type": "string", "enum": ["en", "ru", "uk"]}}, []), "annotations": NET},
+    {"name": "emoji_plan_icons", "description": "The icon plan for a bot's buttons and titles (references/emoji-packs.md, the icon plan): candidate packs ranked by static coverage, meaning, theme safety, legibility and the brief; the main pack and its similar siblings; per slot the best STATIC emoji with a score breakdown (meaning, family, style, theme, legibility), up to 3 alternatives and the reasons; Back/Forward/Close stay words unless controls; a keyboard with a gap goes label-only; locks (slot -> id the user chose) are kept. needs: slots, or places: [{where, kind: button|title, labels: {locale: text}, keyboard, lead}]. route: fragment | owner_premium | none (stage 0). profile: a style profile JSON path; without it the brief is the Mini App kit's line icons. Look at every choice before placing it (bot-ui emoji plan writes the review sheet). Network.",
+     "inputSchema": _obj({"needs": A, "places": {"type": "array", "items": O}, "locks": O, "route": {"type": "string", "enum": ["fragment", "owner_premium", "none"]},
+                          "profile": S, "style": A, "color": A, "mood": A, "topic": A, "use": A, "palette": A,
+                          "theme": {"type": "string", "enum": ["both", "light", "dark"]}, "controls": {"type": "boolean"},
+                          "candidates": {"type": "integer"}}, []), "annotations": NET},
 ]
 HANDLERS: dict[str, Callable[[dict], dict]] = {
     "telegram_api_lookup": api_lookup, "telegram_api_search": api_search, "webapp_lookup": webapp_lookup,
@@ -454,7 +492,7 @@ HANDLERS: dict[str, Callable[[dict], dict]] = {
     "map_validate": map_validate, "map_render": map_render, "map_simulate": map_simulate, "map_snapshot": map_snapshot,
     "commands_audit": commands_audit, "commands_plan": commands_plan,
     "emoji_library_search": emoji_library_search, "emoji_pick_family": emoji_pick_family,
-    "emoji_rank_by_tags": emoji_rank_by_tags,
+    "emoji_rank_by_tags": emoji_rank_by_tags, "emoji_plan_icons": emoji_plan_icons,
 }
 
 

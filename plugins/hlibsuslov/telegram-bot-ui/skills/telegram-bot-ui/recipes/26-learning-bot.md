@@ -1,7 +1,8 @@
 # 26 — Learning bot: course map → lesson → quiz → result → streak → daily reminder
 
 Product recipe (combines mechanisms; no registry row of its own). Uses 10.3 rich blocks (checklist
-items, expandable quotation, button row), 10.3 `disabled` buttons and 9.4 button `style`. Verified
+items, expandable quotation), 10.3 `disabled` buttons and 9.4 button `style`; Start quiz is on the keyboard,
+not a button in the document ([rich-message-buttons.md](../references/rich-message-buttons.md)). Verified
 2026-11-15 against Bot API 10.4 (newest release on that date, 2026-11-09). Index of all product
 recipes: `references/use-case-playbooks.md`. Tags: **[API]** = API requirement, **[official]** =
 official recommendation, **[heuristic]** = design heuristic of this skill.
@@ -36,7 +37,7 @@ official recommendation, **[heuristic]** = design heuristic of this skill.
      only `time_zone_name` in the reference is `BusinessOpeningHours`), so ask once and store it
      **[API, checked in the reference]**; day boundaries, “missed a day” and “once per day” are
      then plain integer arithmetic **[heuristic]**.
-3. **Requirements.** Bot API ≥ 10.3 (button rows, expandable quotation, `disabled`); rich list
+3. **Requirements.** Bot API ≥ 10.3 (expandable quotation, `disabled`); rich list
    items need 10.2. Production. Private chat. A job queue for reminders (the recipe uses the
    in-memory `Scheduler`; use a persistent one) and a stored time zone per user. Telegram does not
    deliver messages to users who blocked the bot, so a failed reminder should mute that user

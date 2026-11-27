@@ -343,8 +343,8 @@ With every tool call, the access token (or your personal token, when you use one
   linked from the pull request, when GitRanks opens it;
 - in GitRanks Build, when you start a build: the project, the language, the command that runs it on your machine and
   the version it printed, the git version and the email `git config user.email` printed, your operating system and
-  whether you want a question on every step; then for each step, everything its check printed and the letter you
-  picked;
+  whether you want a question on every step; then for each step, that you tried it (or asked to go on), everything its
+  check printed and the letter you picked (or "I don't know");
 - for a proof: its outcome, summary, the section or reply it drafts for the pull request, its notes, a list of what
   it removed (for example "2 IP addresses"), and its screenshots, which go to upload links the server gives.
 

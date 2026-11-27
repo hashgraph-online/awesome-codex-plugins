@@ -9,14 +9,14 @@ Website: https://ahel.ai · Catalog: https://ahel.ai/catalog · MCP address: `ht
 **Claude Code**
 
 ```
-/plugin marketplace add ahel-technologies/ahel
+/plugin marketplace add ahel-org/ahel
 /plugin install ahel@ahel
 ```
 
 **Codex**
 
 ```
-codex plugin marketplace add ahel-technologies/ahel
+codex plugin marketplace add ahel-org/ahel
 ```
 
 Then open `/plugins` in Codex and install **ahel**.

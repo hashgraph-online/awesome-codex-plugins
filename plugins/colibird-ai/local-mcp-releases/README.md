@@ -72,7 +72,7 @@ Choose one installation path:
 
 Details for agents and each path: **[llms-install.md](llms-install.md)**. After installing, fully restart your AI client; MCP tools load at startup.
 
-Local desktop/CLI clients and web assistants connect differently. The installer configures the compatible local clients it detects. Web assistants (ChatGPT, Claude.ai, Grok, Perplexity) connect through **`https://www.local-mcp.com/mcp`** as a custom connector with OAuth. They need the local app installed and Cloud Data Forwarding enabled in LMCP (off by default); with forwarding off, the connector exposes only `setup_install`. Follow the **[web AI guide](https://www.local-mcp.com/guides/web-ai)** and the **[current guides](https://www.local-mcp.com/guides)**.
+Local desktop/CLI clients and web assistants connect differently. The installer configures the compatible local clients it detects. Web assistants (ChatGPT, Claude.ai, Grok, Perplexity) connect through **`https://www.local-mcp.com/mcp`** as a custom connector with OAuth. They need the local app installed and Cloud Data Forwarding on in LMCP. It is on by default on Mac and off on Windows, and approving a web AI turns it on; it is turned off with "Cloud access", under "Web AI clients" in the LMCP menu. With forwarding off, the connector exposes only `setup_install`. Follow the **[web AI guide](https://www.local-mcp.com/guides/web-ai)** and the **[current guides](https://www.local-mcp.com/guides)**.
 
 An endpoint alone is not a verified connection: complete authorization and check that tools are available in your client.
 
@@ -125,7 +125,7 @@ Compatible tools execute on your computer. Some read native data, local caches o
 ## Local tools, clear data boundaries
 
 - Local execution does not mean a cloud AI receives no data. Your chosen assistant or connected service may receive content needed for your request, including when a desktop client uses a cloud model.
-- Cloud Data Forwarding is optional, off by default, and lets supported web assistants reach tools on your computer. Review its data flow and provider policies before enabling it.
+- Cloud Data Forwarding lets supported web assistants reach tools on your computer. It is on by default on Mac and off on Windows, and approving a web AI turns it on. Turn it off with "Cloud access", under "Web AI clients" in the LMCP menu. Review its data flow and provider policies before you connect a web assistant.
 - Permissions, preview and confirmation support vary by tool. Review behavior and authorize actions before execution; do not assume a universal confirmation dialog.
 - Locally available read operations may work offline. Cloud models, connected services, sending and remote updates can require a network connection.
 

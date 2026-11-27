@@ -1,0 +1,8 @@
+{
+  "name": "margincue-codex",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npx --yes esbuild@0.25.12 src/widget.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=dist/widget.js --log-level=warning && node build-widget.mjs && npx --yes esbuild@0.25.12 src/cli.ts --bundle --platform=node --format=esm --target=node20 --tsconfig=tsconfig.json --outfile=dist/margincue.mjs --banner:js=\"#!/usr/bin/env node\" --log-level=warning"
+  }
+}

@@ -216,28 +216,24 @@ API facts above.
 
 | The action… | Use | Why not the others |
 |---|---|---|
-| belongs to one section of a long answer ("Details" next to a figure, "Pay" under the receipt table) | rich button in text or a `<tg-button-row>` after that section | an inline keyboard sits under the whole message, far from what it refers to |
+| is the message's main action or a commitment (Pay, Approve, Start, Confirm), also under a Rich document | inline keyboard, `style` by meaning | a filled button inside the document interrupts reading and scrolls away |
 | moves through the bot's screens (Back, Menu, page 2) | inline keyboard | stays in one place on every screen; editing it alone is cheap (`editMessageReplyMarkup`) |
-| is a quiet secondary link inside a sentence | rich button with `style: "link"` (callback only) | a filled button competes with the primary action |
+| changes one element of this same Rich document (a checklist step done, a view switch over one table, an answer inside a worksheet) and a keyboard would have to repeat the element's name | a button inside the document: [rich-message-buttons.md](rich-message-buttons.md) §5 | the exception, not the default |
 | is the user's own reply or a fixed set of answers typed often | reply keyboard | inline and rich buttons belong to one message and scroll away |
 | needs a form, a long list with search, a map or drag and drop | Mini App (`web_app`) | buttons can't hold input |
 | shares the user's contact, location, a chat or a user | reply keyboard `request_*` | only `KeyboardButton` has these |
 | pays, starts a game | inline keyboard (`pay`, `callback_game`) | rich buttons have neither |
 
 One action lives in one place: the same action in the document and in the keyboard is a decision the
-user has to make twice (bot-ui reports `RICH_BUTTON_ON_KEYBOARD`). Navigation in the keyboard,
-content actions in the document is the usual split.
+user has to make twice (bot-ui reports `RICH_BUTTON_ON_KEYBOARD`).
 
-**Rich first for content actions [Heuristic].** Whenever the screen is a Rich Message, start from
-the document: a single `<tg-button>` inline in the sentence or line it acts on ("Details" next to a
-figure, "Copy" next to a code, a `style="link"` callback for a quiet aside), a `<tg-button-row>` of
-2-4 for the choices that close a section (Pay · Change, Approve · Reject), the row at most 8. Only
-then add an inline keyboard, for moving between screens. A regular-format screen whose buttons act
-on separate parts of a long answer is itself a sign the screen should be a Rich Message
-([format-selection.md](format-selection.md)). Keep the classic keyboards where they win: reply
-keyboards for typed answers and `request_*`, inline `pay` and `callback_game`, channels and inline
-results where rich buttons are not the content. bot-ui reports `RICH_BUTTONS_UNUSED` (info) for a
-rich document whose `handler` / `url` / `answer` actions all sit on the keyboard.
+**Buttons inside a Rich document are the exception [Heuristic, owner decision 2026-11-27].** Actions live
+in the inline keyboard under the message, also when the message is a Rich Message. A button goes inside
+the document only when its press changes one element of that same message (or answers about that one
+element in place) and a keyboard would have to repeat the element's name to say which one. The decision
+order, the six patterns, the never-list, the look and the checks (`RICH_BUTTON_NAVIGATION`,
+`RICH_BUTTON_MAIN_ACTION`, `RICH_BUTTON_OUTSIDE`, `RICH_BUTTON_DENSITY`):
+[rich-message-buttons.md](rich-message-buttons.md). This replaces the earlier "rich first" advice.
 
 **Icons on any button are static [Heuristic, owner decision 2026-11-26].** `icon_custom_emoji_id`
 on inline and reply buttons and a custom emoji inside a rich button's text take a static custom
@@ -246,6 +242,8 @@ emoji only, never an animated or video one (`BUTTON_EMOJI_ANIMATED` with `--emoj
 icon; a keyboard is all icons or none ([visual-language.md](visual-language.md)).
 
 ### Buttons inside a rich message: the lifecycle
+
+When to use them at all: [rich-message-buttons.md](rich-message-buttons.md). Once one is justified:
 
 - **Press.** A `callback_data` button sends a `callback_query` like an inline button:
   `message` is the rich message, `data` the button's data. Answer every query

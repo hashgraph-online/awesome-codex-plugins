@@ -5,12 +5,13 @@ description: Make AI videos with the Treza MCP server. Use when the user asks fo
 
 # Treza video
 
-Treza makes AI video over MCP. You get 26 tools, from one call that makes a clip to full pipelines that render and post on a schedule. Two more, `open_library` and `confirm_publish`, belong to Treza's panels and never run from the model.
+Treza makes AI video over MCP. You can call up to 38 tools, from one call that makes a clip to timeline edits and full pipelines that render and post on a schedule. Three more, `open_library`, `confirm_publish` and `quote_status`, belong to Treza's panels and never run from the model.
 
 ## Pick the shortest path
 
-1. **One clip from a description: `make_video`.** It picks a video model (Veo 3.1 Lite unless the user names one), prepares the render and answers with the price, whether the balance covers it, and a `quoteId`. It does not start anything. Tell the user what it will make and what it costs, and once they accept, call `run_pipeline` with the returned `pipelineId` and `quoteId` and no inputs. Use 9:16 for Shorts, Reels and TikTok. To continue a video they already have ("make it longer", "what happens next"), pass its url as `continueFromVideoUrl`, so the new clip opens on its last frame.
+1. **One clip from a description: `make_video`.** It picks a video model (Veo 3.1 Lite unless the user names one), prepares the render and answers with the price, whether the balance covers it, and a `quoteId`. It does not start anything. Tell the user what it will make and what it costs, and once they accept, call `run_pipeline` with the returned `pipelineId` and `quoteId` and no inputs. Use 9:16 for Shorts, Reels and TikTok. To continue a video they already have ("make it longer", "what happens next"), pass its url as `continueFromVideoUrl`, so the new clip opens on its last frame. For one picture, `make_image` works the same way.
 2. **A file they already have: finish it.** `import_media` adds a public link, an attachment, or a local file sent through `create_upload_url`. `list_assets` finds what is in the library. `edit_asset` runs one operation over one file (captions, upscale, trim, crop, overlay, background removal). `assemble_video` joins clips in order over narration and a music bed (`musicPrompt` composes one), with captions if wanted.
+   To cut a video by hand (trim, split, move, fade, re-caption), `create_editor_project` puts the user's media on a timeline, or `open_run_in_timeline` opens a run's output as one; `edit_project` changes it, `undo_project_edit` reverts the last edit, and `render_project` exports it (poll `get_project_render`). `get_transcript` gives the timestamps of what is said.
 3. **More than one clip, or something that repeats: a pipeline.** Start from `list_pipeline_templates`, then `create_pipeline` with `templateId` (captioned Shorts, podcast clipping, dubbing and more). Otherwise `list_node_types` and `get_node_type` describe every node, and `get_node_type` on video-gen, image-gen, tts and ai-model returns the live model catalog with durations, aspect ratios and voices. Pick ids from that list, never guess.
 
 ## Money

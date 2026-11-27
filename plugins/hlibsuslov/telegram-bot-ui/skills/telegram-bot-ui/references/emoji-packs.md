@@ -16,6 +16,7 @@ bot_api: "10.4"
 ## Contents
 
 - [The agent's decision path (follow it unprompted)](#the-agents-decision-path-follow-it-unprompted)
+- [The icon plan: packs and button icons, stage by stage](#the-icon-plan-packs-and-button-icons-stage-by-stage)
 - [Choosing a pack](#choosing-a-pack)
 - [The catalog](#the-catalog)
 - [The library contract, offline export and profile picking](#the-library-contract-offline-export-and-profile-picking)
@@ -46,7 +47,9 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
    `py -3 scripts/emoji_packs.py suggest --from <payload-or-texts>` (it maps every Unicode
    emoji to a slot of `data/emoji/slots.json`), or list them by meaning for a new bot. Keep
    8–15 button slots (**Heuristic**).
-4. **Propose ONE family with real coverage.** First choice, when the network is allowed:
+4. **Propose ONE family with real coverage.** For buttons and titles you choose yourself, run the icon
+   plan (next section): it does this step per slot, with alternatives, scores and a record. For a
+   quick whole-pack ranking, when the network is allowed:
    `py -3 scripts/emoji_packs.py library pick --needs home,back,settings,… --out pick.json`
    (MCP: `emoji_pick_family`). It searches the telegram-bot-ui emoji library
    (telegram-bot-ui.hlixli.com/emoji, ~490 packs with real ids; only the slot emoji and pack
@@ -92,6 +95,78 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
 8. **Fallback verified.** Run the same screens with `Eligibility()` (nothing) and check they
    read correctly with Unicode only; check the channel copy when the bot posts to channels.
 
+## The icon plan: packs and button icons, stage by stage
+
+Run this whenever you choose custom emoji for a bot's buttons or titles yourself (a restyle, a new
+bot, "make the buttons nicer"). It replaces guessing with a measured choice the user can audit. A
+person's own choice is never overridden: slots they picked are locks. **[Heuristic]** over the
+**[API]** facts below.
+
+Tools: in a bot-ui project `bot-ui emoji plan` (writes `emoji/icon-plan.json` and `icon-plan.html`),
+`bot-ui emoji verdict`, `bot-ui emoji apply-plan`; without a project `emoji_packs.py library plan
+--needs … | --places places.json --route … --sheet plan.html`; MCP `emoji_plan_icons`. Module:
+`scripts/emoji_plan.py`. Network: only the library's search words and pack names leave the machine.
+
+**Stage 0 - should there be icons at all.** Read the route (`capabilities.customEmoji`: `fragment`,
+`owner_premium`, `none`) and where the bot speaks.
+- `none` → STOP: keep words (and Unicode only where `visual-language.md` allows). Telegram strips
+  custom emoji silently.
+- `owner_premium` and a channel screen → icons there need Fragment; plan the channel copy without.
+- Fewer than 3 slots across the bot → icons rarely pay off; propose label-only and stop unless asked.
+
+**Stage 1 - inventory.** Every keyboard button and every title that opens with an emoji becomes a
+place; its label words (every locale, `slots.json` `words`) decide the meaning, a leading emoji only
+breaks a tie. Rules: a keyboard is all icons or none; Back, Forward and Close stay words (the plan's
+`controls` switch adds them only when the family draws them everywhere); a label that says no known
+meaning is `unmatched`: give it no icon. STOP if nothing matched: the bot needs words, not icons.
+
+**Stage 2 - style brief.** From the style profile (`brand.icon_style`, accent, traits, archetype); without
+one, the Mini App kit's own icons: `style outline, palette monochrome, fit adaptive, topic interface`,
+so the bot and its Mini App read as one identity (stroke 1.8, one colour, right in both themes).
+
+**Stage 3 - packs.** The library is searched for each slot's emoji (static hits vote) and ranked by tags;
+the top packs are fetched whole. Each pack scores: weighted static coverage (buttons 1, titles 0.5) 0.45,
+facet fit to the brief 0.2, theme safety 0.15, legibility 0.1, meaning quality 0.1. The best is the
+**main pack**; its library-rated siblings with similarity ≥ 0.8 (`compatible`) form the family pool.
+Animated and video emoji never enter (`BUTTON_EMOJI_ANIMATED`).
+
+**Stage 4 - candidates per slot.** Every static emoji of the pool that says the slot is scored 0..1:
+
+| Part | Weight | Measured as |
+|---|---|---|
+| meaning | 0.40 | the fallback is the slot's first emoji (1.0) or a later equivalent (-0.12 each); +0.1 when tagged with the slot's interface role; -0.15 decoration; -0.2 when it is another needed slot's first emoji |
+| family | 0.20 | 1.0 in the main pack, the library's similarity for a sibling |
+| style | 0.15 | the emoji's (else the pack's) style tag against the brief |
+| theme | 0.10 | adaptive 1.0; fixed colours that read on both 0.75; one theme only 0.3 |
+| legibility | 0.15 | at 20 px: -0.35 for 3d / glossy / realistic / gradient / neon / pixel detail, -0.3 a face or character, -0.15 many colours; the pack's look: hairline strokes, photo or gradient fill, glow, three-quarter view |
+
+A candidate needs meaning ≥ 0.6 and legibility ≥ 0.4.
+
+**Stage 5 - assembly.** For each slot (locks first, then buttons by how often they appear): the main
+pack's best candidate, unless a sibling says the meaning 0.2 better or scores 0.12 higher; one emoji
+one meaning (an id taken by a slot is gone for the rest); nothing good enough → **label-only, never a
+wrong meaning to stay in one pack**. Then a keyboard whose content buttons are not all covered goes
+label-only. More than two packs in use is flagged.
+
+**Stage 6 - look at it (required).** Open the review sheet. Each row shows the choice at button size
+(20 px) and 40 px on a light and a dark tile next to its label, up to three alternatives, the score
+breakdown and the reasons. For every chosen slot decide and record:
+`bot-ui emoji verdict --slot <slot> --ok` (it says the label, reads at 20 px on both tiles, matches its
+neighbours in fill, weight and colour), `--alt N` (take alternative N, look again, then `--ok`) or
+`--reject "<why>"` (the slot goes label-only). Style tags are the library's weakest (recall about 0.35):
+the picture decides, not the tag.
+
+**Stage 7 - record and apply.** `emoji/icon-plan.json` keeps the brief, the gate, the pack ranking, the
+family, per slot the choice, alternatives, scores, reasons and verdict: commit it, so a later restyle
+and the user see why. `bot-ui emoji apply-plan` writes only `--ok` slots into the icon map (marked
+`by: plan`, with the reason) and never touches a person's slot; then `bot-ui emoji import <pack>` for
+previews.
+
+**Stage 8 - validate.** `bot-ui validate` (`BUTTON_EMOJI_ANIMATED`, `ICON_MEANING_MISMATCH`,
+`CUSTOM_EMOJI_UNKNOWN`), `bot-ui emoji review` on the placed icons, `audit_icons.py emoji/library.json`;
+then send one screen from the real bot and read it back: an ineligible bot gets no error, only missing
+icons.
+
 ## Choosing a pack
 
 | Signal | Prefer | Avoid |
@@ -102,8 +177,8 @@ Use it whenever you build or restyle a bot, or compose a post, and icons/emoji a
 | Channel / editorial | a set whose marks fit headlines and sections (`NewsEmoji`) — needs the Fragment route | bot keyboards from an editorial set |
 | Coins next to tickers | `cryptoicons` as inline content marks | logos as UI icons (trademarks) |
 
-Rules (**Heuristic**): one family per bot; siblings (same author or explicitly paired sets)
-may fill gaps; static only on buttons (an animated or video emoji on any button is the error
+Rules (**Heuristic**): one family per bot; siblings (same author, explicitly paired sets, or packs the
+library rates at least 0.8 similar) may fill gaps; static only on buttons (an animated or video emoji on any button is the error
 `BUTTON_EMOJI_ANIMATED`; the pick takes a pack's static entry for a slot when it has one) and
 static by default in text (`CUSTOM_EMOJI_ANIMATED` warns); adaptive (`needs_repainting`) and
 fixed-colour icons do not mix; an uncovered slot is label-only, never a look-alike from another

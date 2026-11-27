@@ -1,0 +1,17 @@
+{
+  "name": "margincue",
+  "version": "0.4.33",
+  "description": "Shows how Codex will read your prompt as you type it, checks your names against the code, gives each open choice a control, sketches the result, and turns the agent's own choices into switches.",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "MarginCue",
+    "shortDescription": "See how Codex reads your prompt before you send it, and switch the choices it makes for you.",
+    "developerName": "MarginCue",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/fus3r/margincue",
+    "brandColor": "#4B46E3",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/composer-icon.svg"
+  }
+}

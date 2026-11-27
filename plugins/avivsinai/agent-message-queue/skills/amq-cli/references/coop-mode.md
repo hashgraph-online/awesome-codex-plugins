@@ -45,17 +45,23 @@ Leader prepares commit -> user approves -> push
 
 ## Stay in Sync
 
-- After completing a phase, report to the initiator and await next assignment
+- After completing an assignment, send its closing reply (changes and verification) and stop
+- When idle, set presence instead of messaging: `amq presence set --status available`.
+  A message such as «done, my inbox is clear, I'm available» costs the initiator a
+  full turn and tells it nothing that presence and the closing reply do not.
 - While waiting, safe to do: review partner's work, run tests, read docs
-- If no assignment comes, ask the initiator (not a third party) for next task
 
 ## Progress protocol
 
-When work starts, reply with `kind=status` and an ETA. Use urgent priority for a
-time-critical verdict or unblocking request.
+Every message wakes its receiver, and a wake re-reads the receiver's whole
+context. Send a message only when it changes what the receiver does now: a
+question, a blocker, a verdict or result it waits for, or a correction.
 
-Reply to the initiator, preserve the existing thread, send status at start and
-phase boundaries, and finish with changes and verification.
+Do not acknowledge an assignment or send an ETA unless the initiator asked for
+one. Use urgent priority for a time-critical verdict or unblocking request.
+
+Reply to the initiator on the existing thread, and finish with changes and
+verification. Do not reply to a message that leaves you nothing to do or answer.
 
 - **Blocked**: send `kind=question` to the initiator with options and a recommendation.
 

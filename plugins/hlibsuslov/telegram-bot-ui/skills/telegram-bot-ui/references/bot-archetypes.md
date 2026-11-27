@@ -82,8 +82,8 @@ user's task, and avoid the ✗ traps. Most real bots combine 2–3 archetypes.
 ## Content / documentation / knowledge base
 
 - Core: index · article · search · related · feedback.
-- ✓ Rich Messages with headings, compact tables, expandable quotes, `tg://document` attachments,
-  section-level buttons (`<tg-button-row>`) and in-text buttons (R02).
+- ✓ Rich Messages with headings, compact tables, expandable quotes, `tg://document` attachments; actions on
+  the keyboard, a button inside the document only to change its own element (R02, rich-message-buttons.md).
 - ✓ Read and answer quotes from rich messages (`TextQuote.rich_texts`).
 - ✗ Tables for 2–3 facts; one giant message instead of sections and "show more".
 - Product recipes: [63 search and long lists](../recipes/63-search-and-long-lists.md) (filters,
@@ -133,6 +133,8 @@ user's task, and avoid the ✗ traps. Most real bots combine 2–3 archetypes.
 
 ## Every bot: first run and settings
 
+The first message after `/start`, per bot type and entry: [welcome-message.md](welcome-message.md)
+(§5 has a row for each archetype on this page).
 [23 onboarding and first run](../recipes/23-onboarding.md) (deep links, language, permissions,
 empty states, returning users; background [onboarding-and-first-run.md](onboarding-and-first-run.md))
 and [24 settings](../recipes/24-settings.md) (toggles, back stack, destructive confirm + undo).

@@ -1,6 +1,6 @@
 ---
 summary: "Every reference file with its one-line summary and the commands that route to it; generated."
-verified: "2026-11-26"
+verified: "2026-11-27"
 bot_api: "10.5"
 ---
 # References index
@@ -46,6 +46,7 @@ Read a file only when its command's playbook points to it; long files open with 
 | `limits-and-splitting.md` | Message, caption and rich-message limits and a format-aware splitting algorithm: safe boundaries, what never to split, what to preserve; read before sending long or large content. | improve, fix |
 | `localization-and-rtl.md` | Localizing the whole interface: button labels, command descriptions, templates, RTL and mixed text direction, escaping localized strings, testing; read when a bot has or adds languages. | improve |
 | `media-and-files.md` | Sending files (upload, file_id, URL), size limits, albums, InputMedia, thumbnails, live photos, getFile downloads, local Bot API server; read when a bot sends or receives media. | improve |
+| `message-patterns.md` | Notification and message patterns: header formula (icon + 2-5 bold words), body blocks and how they combine, 18 patterns by type, sound and lifecycle, reworking a bot's notifications. | audit, improve, build |
 | `microcopy-and-labels.md` | Rewriting message texts, titles, captions and button labels safely: keep facts and placeholders, body rules, tone, emoji, errors, empty states; read before editing any bot copy. | improve |
 | `mini-apps-bridge.md` | The bot side of Mini Apps: launch points, what comes back (web_app_data, answerWebAppQuery), trusting Mini App data, prepared messages and buttons; read when a bot opens a Mini App. | mini-app |
 | `navigation-and-flows.md` | Screen/state map, back, home and depth, wizards, chat-level chrome, newer navigation surfaces, notifications, checklist; read when designing or fixing navigation. | audit, improve |
@@ -61,6 +62,7 @@ Read a file only when its command's playbook points to it; long files open with 
 | `regular-formatting.md` | Complete map of regular (non-Rich) formatting: HTML and MarkdownV2 parse modes, MessageEntity, nesting, captions, presentation controls, quick chooser; read when formatting regular messages. | improve, fix |
 | `reply-keyboards.md` | ReplyKeyboardMarkup, KeyboardButton request types, the plain-text trap, ForceReply, layout and migration heuristics; read when using or replacing a reply keyboard. | improve |
 | `rich-media.md` | Media inside Rich Messages: referencing files, binding to InputRichMessageMedia, media blocks, captions, ordering, rights, embed versus separate methods, fallback; read when a rich message has media. | improve |
+| `rich-message-buttons.md` | Buttons inside a Rich Message are the exception: only for a press that changes one element of the same message. Decision order, patterns, never-list, look, rework table, checks. | improve |
 | `sdk-compatibility.md` | Checking what the project's SDK really supports: common SDKs, 9.4 field checks, escalation, raw payloads, verified SDK status for Bot API 10.4 and 10.5; read before promising a Bot API feature. | fix, lookup |
 | `security-and-escaping.md` | One escaping function per format, golden rules, per-format escaping, URL scheme whitelist, unicode, AI-generated content, checklist; read when putting dynamic data into any message format. | fix |
 | `selection-lists.md` | Choosing one or many options from a list in a bot: surface by option count, 2-column grid, native selection marks, summary, paging, inline search, Rich checkbox list, Mini App past ~30. | improve |
@@ -78,6 +80,7 @@ Read a file only when its command's playbook points to it; long files open with 
 | `user-trust.md` | Deciding friction for new or risky users: Telegram and own signals, account age from the id, optional anti-spam lists, a tiered policy with appeal, retention; read for anti-abuse or trust scoring. | build |
 | `visual-language.md` | Icon systems, emoji discipline, screen anatomy, button label, color and icon rules, audit checklist and the premium pass; read when giving a bot a consistent visual identity. | improve, emoji |
 | `wallet-and-ton.md` | Telegram side of TON wallet features: wallet card and sign_data queries, payment flow, signing verification, cards and transfers, TON addresses; read for wallet actions in widgets. | widget |
+| `welcome-message.md` | The first message after /start, designed per scenario: welcome brief, entry points, language first or not, media, greeting, how-it-works lines, buttons, edits, failures, the welcome spec check. | audit, improve, build |
 | `widget-design-system.md` | Design rules for HTML widgets: canvas, tokens, type, spacing, kit primitives, states, motion, RTL, accessibility, localization, icons, design profiles; read when designing a widget. | widget |
 | `widget-patterns.md` | Widget state, data and interaction patterns: decision guide, state architecture, requests, charts, lists, forms, timers, images, wallet, shared widgets; read when implementing widgets. | widget |
 | `widgets.md` | HTML widgets (Bot API 10.4): when to use them, availability, code and state, sending, query flow, shared widgets, runtime limits, design rules, testing; read first for any widget task. | widget |

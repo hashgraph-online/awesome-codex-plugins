@@ -38,6 +38,12 @@ found the way every command finds it, by walking up to the git root.
   in the file is a warning, not a refusal, so a broken file can be repaired one
   key at a time. Per-run flags (`--connector`, `--budget`, `--scope`, ...) are
   refused, because they would change nothing in the file.
+- `set --comment "<text>"` (one pair only) writes `#` lines saying why the value
+  is there, since the file carries its reasoning: above the first item a list
+  gains (a list written on one line becomes a block list to hold it), otherwise
+  above the key. A list the value extends keeps every line it had, comments
+  included. `dex init` proposes the Elementary schema's allowlist entry this
+  way; run it as given, show the diff, and confirm only when the user agrees.
 - `config unset <key> [<key>...]` removes settings with the same edit and the
   same `--confirm` handshake. It takes a key Dex does not read, which is what a
   warning naming an unknown key asks you to remove, and a whole block (`bigqeury`

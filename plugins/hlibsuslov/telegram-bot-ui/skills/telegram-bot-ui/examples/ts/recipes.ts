@@ -50,9 +50,13 @@ export async function interactiveDocument() {
       [{ text: "signing", align: "left", valign: "middle" }, { text: "12", align: "right", valign: "middle" }]] },
     { type: "expandable_blockquote", blocks: [{ type: "paragraph", text: "Auditor note: rotation must be logged…" }], credit: "Audit 2026-10" },
     { type: "document", document: { type: "document", media: "BQACAgIAAxkBAAIBdemoFileId" }, caption: { text: "Full procedure (PDF)" } },
-    { type: "buttons", align: "left", buttons: [{ text: "Approve", callback_data: "doc:approve:v3", style: "success" }, { text: "Copy id", copy_text: { text: "ROT-2026-v3" } }] },
+    // A document button only where the press changes this message: a "Done" link after a checklist step.
+    { type: "list", items: [{ blocks: [{ type: "paragraph", text: ["Generate the new signing key · ",
+      { type: "button", button: { text: "Done", callback_data: "doc:done:gen", style: "link" } }] }] }] },
   ] };
-  await t.call("sendRichMessage", { chat_id: CHAT, rich_message: doc });
+  // The main action is on the keyboard (references/rich-message-buttons.md), not a filled button in the document.
+  const keyboard = { inline_keyboard: [[{ text: "Approve policy", callback_data: "doc:approve:v3", style: "success" }]] };
+  await t.call("sendRichMessage", { chat_id: CHAT, rich_message: doc, reply_markup: keyboard });
   const quote = fixture("message_quote_rich.json").message.quote;
   const plain = (rt: unknown): string => typeof rt === "string" ? rt : Array.isArray(rt) ? rt.map(plain).join("")
     : rt && typeof rt === "object" ? plain((rt as Params).text) : "";

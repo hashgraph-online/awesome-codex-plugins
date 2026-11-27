@@ -110,16 +110,17 @@ claude mcp add --transport http --scope user treza https://www.trezalabs.com/api
 
 ## Tools
 
-Twenty-six tools your agent can call:
+An assistant can call up to 38 tools in Claude and other clients:
 
-- **Make a video:** `make_video` turns a description into one clip in a single call. It picks the model, prepares the render, and returns the price; `run_pipeline` starts it once the person accepts.
-- **Finish media you have:** `list_assets` browses the library, `import_media` adds a file (a public link, or a local file sent through `create_upload_url`), `edit_asset` runs one operation over one file (captions, upscale, trim, crop, overlay, background removal), and `assemble_video` joins clips over narration and a music bed, with captions.
-- **Pipelines:** `list_pipeline_templates`, `list_node_types`, `get_node_type`, `create_pipeline`, `update_pipeline`, `publish_pipeline`, `list_pipelines`, `get_pipeline`, `set_schedule_paused`
+- **Make a video or a picture:** `make_video` turns a description into one clip in a single call. It picks the model, prepares the render, and returns the price; `run_pipeline` starts it once the person accepts. `make_image` does the same for one picture.
+- **Finish media you have:** `list_assets` browses the library, `import_media` adds a file (a public link, or a local file sent through `create_upload_url`), `edit_asset` runs one operation over one file (captions, upscale, trim, crop, overlay, background removal), and `assemble_video` joins clips over narration and a music bed, with captions. `get_transcript` reads what a video or audio file says, with timestamps.
+- **Timeline editing:** `create_editor_project` lays your own media on a new timeline, `open_run_in_timeline` opens a finished run as one, and `list_projects`, `get_project`, `edit_project`, `undo_project_edit`, `render_project` and `get_project_render` read, change, undo and export it
+- **Pipelines:** `list_pipeline_templates`, `list_node_types`, `get_node_type`, `create_pipeline`, `update_pipeline`, `publish_pipeline`, `list_pipelines`, `get_pipeline`, `set_schedule_paused`, `delete_pipelines` (previews first, deletes on a second call), and `copy_reference_style`, which reads a reference short in the library and saves a pipeline that makes more like it
 - **Runs:** `run_pipeline`, `get_run`, `list_runs`, `cancel_run`
 - **Channels and publishing:** `list_connected_channels`, `connect_channel` returns a link that connects a YouTube channel or TikTok account in the person's own browser, and `publish_asset` lays a finished video out for review before it posts
-- **Budget and account:** `estimate_run_cost`, `get_credit_balance`, `get_profile`, `create_api_key` (OAuth connections only)
+- **Budget and account:** `estimate_run_cost`, `get_credit_balance`, `get_profile`, `create_api_key` (needs the `keys:provision` scope; an API key never has it)
 
-Two more, `open_library` and `confirm_publish`, belong to Treza's panels: they run when the person uses the panel, never from the model.
+Three more, `open_library`, `confirm_publish` and `quote_status`, belong to Treza's panels: they run when the person uses the panel, never from the model.
 
 Read-only tools carry `readOnlyHint`. Renders spend prepaid credits, so `make_video` and `estimate_run_cost` quote a price first, and `run_pipeline` starts a quoted run once, at that price. Renders run in the background and return a run to poll with `get_run`.
 

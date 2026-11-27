@@ -13,14 +13,15 @@ devices that static ladders never need.
 out of phase and can't be compared. Put a single `전체 재생` button at the top of the
 row that restarts every specimen in the same frame.
 
-    document.querySelectorAll('.spec').forEach(el => {
-      el.classList.remove('run'); void el.offsetWidth; el.classList.add('run');
-    });
+    const section = document.getElementById('r1-1');
+    const specimens = section.querySelectorAll('.spec');
+    specimens.forEach(el => el.classList.remove('run'));
+    void section.offsetWidth;
+    specimens.forEach(el => el.classList.add('run'));
 
-The `void el.offsetWidth` reflow is what makes the restart take — without it the class
-removal and re-add collapse into nothing.
-
-Put `run` on the specimen and key the CSS off it: `.spec.run .thing { animation: ... }`.
+Remove all run classes, flush layout once, then add them together. Scope the trigger
+and CSS to this section; replaying one comparison must not restart earlier ladders.
+For example, `#r1-1 .spec.run .thing { animation: ... }`.
 
 **2. Replay.** It's over before it's judged. Keep the button reachable, or loop.
 
@@ -28,7 +29,17 @@ Put `run` on the specimen and key the CSS off it: `.spec.run .thing { animation:
 is invisible at real speed** — `ease-out` and `cubic-bezier(.22,1,.36,1)` are
 indistinguishable until slowed down.
 
-    :root.slow * { animation-duration: 4s !important; transition-duration: 4s !important; }
+Write every duration and delay in the specimens through one multiplier, so slowing
+down keeps the differences between rungs:
+
+    #r1-1 { --slow: 1 }
+    #r1-1.slow { --slow: 4 }
+    #r1-1 .spec.run .thing { transition: transform calc(200ms * var(--slow)) ease-out
+                                   calc(40ms * var(--slow)); }
+
+The toggle sets `slow` on this section. Never override durations with one fixed value
+(`* { transition-duration: 4s !important }`): every rung then runs the same length,
+and a duration or stagger ladder disappears.
 
 Offer 1x and 0.25x. **Decide at 1x, distinguish at 0.25x** — a curve that reads
 beautifully in slow motion can be imperceptible at speed, and shipping runs at 1x.
@@ -50,14 +61,17 @@ Stagger only reads with enough items. Six minimum.
 
 ## What can't be settled here
 
-- **Screenshots capture static state only.** Verification step 3 can't see motion at
+- **Screenshots capture static state only.** Screenshot verification cannot see motion at
   all, so a motion unit rests entirely on what the user reports from the browser.
   Say so rather than implying it was checked.
 - **Entry and exit timing around mount/unmount will differ** — the real library sets the
   state attributes, the sheet imitates them (`references/sweeping.md`).
 - **Motion libraries don't take these values directly.** If the project uses Framer
   Motion, GSAP or similar, spring physics has no CSS equivalent — a cubic-bezier is an
-  approximation, not a translation. Mark the specimens `실물과 다름` on the sheet
+  approximation, not a translation. When the motion being compared runs on GSAP or Motion
+  in the code, say in one line that design-motion plays it with the real library
+  (`/design-helper:design-motion`, Codex `$design-motion`); draw the CSS version only if
+  the user still wants it here. Mark the specimens `실물과 다름` on the sheet
   (`references/sweeping.md`), and **put it in the blast radius report**, not
   discovered afterwards:
 

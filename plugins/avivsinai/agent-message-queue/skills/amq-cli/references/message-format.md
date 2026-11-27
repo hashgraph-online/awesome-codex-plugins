@@ -15,6 +15,7 @@ AMQ messages are Markdown files with a JSON frontmatter header:
   "refs": ["<related_msg_id>"],
 
   "priority": "normal",
+  "notify": "wake",
   "kind": "question",
   "labels": ["bug", "parser"],
   "context": {"paths": ["internal/cli/send.go"], "focus": "error handling"},
@@ -37,6 +38,7 @@ Field notes:
 - `created`: RFC3339 timestamp.
 - `refs`: optional list of related message ids (e.g., replies).
 - `priority`: optional (`urgent`, `normal`, `low`).
+- `notify`: optional (`wake` or `passive`). Missing or empty uses normal wake eligibility. Passive mail stays readable and drains normally, but never starts or extends a turn. Sends refuse urgent plus passive, and stored urgent messages remain eligible. A reply chooses its own intent.
 - `kind`: optional; one of the kinds below.
 - `labels`: optional list of tags for filtering.
 - `context`: optional JSON object for structured metadata.

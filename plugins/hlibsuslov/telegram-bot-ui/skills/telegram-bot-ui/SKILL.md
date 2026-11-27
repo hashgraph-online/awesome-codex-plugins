@@ -113,8 +113,8 @@ One offline entry point, standard library only, no bot token:
 `py -3 <skill>/scripts/tgui.py <group> ...`; `--help` on every group. Exit codes: 0 ok,
 1 findings, 2 usage, 3 revision conflict, 4 refused. Groups: `context`, `next`, `doctor`,
 `findings`, `requests`, `check`, `lookup`, `webapp`, `examples`, `profile`, `map`, `post`,
-`emoji`, `widget`, `miniapp`, `data`, `commands`, `agent`, `hook`, `mcp`, `sync`. Online only:
-`sync`, `emoji library`, pack import. Run them; don't read their source. Libraries: `examples/`
+`emoji`, `widget`, `miniapp`, `data`, `patterns`, `commands`, `agent`, `hook`, `mcp`, `sync`.
+Online only: `sync`, `emoji library`, pack import. Run them; don't read their source. Libraries: `examples/`
 (`tgkit` for Python and TS, SDK adapters). No Python: each playbook has a *Without scripts* path.
 
 ## Where knowledge lives

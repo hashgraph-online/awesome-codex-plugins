@@ -1,0 +1,7 @@
+interface:
+  display_name: "design-system"
+  short_description: "Build a design system one seen decision at a time"
+  default_prompt: "Use $design-system to start this project's design system checklist."
+
+policy:
+  allow_implicit_invocation: false

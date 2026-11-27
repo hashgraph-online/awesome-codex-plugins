@@ -108,13 +108,13 @@ python3 "{plugin_root}/scripts/zagrosi_skills.py" provider-status --check-cli --
 
 ## Teams
 
-Share reviewed plans through Git; reserve work across clones, worktrees and hosts.
-Enable collaboration explicitly; commit `.forge/team.json` for teammates.
-Execution records stay private. No extra service.
+Commit `.forge/team.json` to share plans and reserve work across clones and
+hosts. Stale tasks retain ownership. [Team setup and limits](docs/collaboration.md).
 
-All depths and cleanup share reservations and advisory dependency warnings at
-work boundaries. Stale tasks retain ownership; offline status grants no clearance.
-Notes remain in Git history. See [setup, migration and limits](docs/collaboration.md).
+[Section groups](docs/section-groups.md) verify a PR and hand it to another
+worktree. [Delivery status](docs/delivery.md) tracks stacked PRs, checks,
+deployment and acceptance. [Try the runnable handoff](examples/release-handoff/README.md). [Build reports](docs/build-measurements.md) show
+verification time and available usage measurements.
 
 ## Workflows
 

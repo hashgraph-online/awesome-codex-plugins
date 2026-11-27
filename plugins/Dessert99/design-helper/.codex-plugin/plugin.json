@@ -1,7 +1,7 @@
 {
   "name": "design-helper",
-  "version": "0.4.1",
-  "description": "Settle CSS values, layout and motion by eye: draws every candidate side by side in the browser, you pick one, and it applies the choice to your code.",
+  "version": "0.5.0",
+  "description": "Settle design decisions by eye, one at a time: every candidate is drawn on your real screens side by side and you pick. Six skills: values and layouts (applied to code), a design system, syncing it to code, feature UX flows, icon sets and logos, and library motion (GSAP, Motion).",
   "author": {
     "name": "Dessert99",
     "url": "https://github.com/Dessert99"
@@ -14,15 +14,20 @@
     "css",
     "ui",
     "layout",
+    "design-system",
+    "ux",
+    "icons",
+    "logo",
     "motion",
+    "gsap",
     "comparison",
     "frontend"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "design-helper",
-    "shortDescription": "Compare CSS values side by side and pick by eye",
-    "longDescription": "Instead of describing options in prose, design-helper draws every candidate for one property side by side in your browser. You pick a letter in chat, and it applies the chosen value to your code and verifies it. Replies and sheet labels are in Korean by default.",
+    "shortDescription": "Settle design decisions by eye, one at a time",
+    "longDescription": "Instead of describing options in prose or handing over a finished design, these skills draw every candidate for one decision on your real screens, side by side, and you pick a letter in chat. design-helper settles one value or layout and applies it to your code. design-system, design-ux, design-brand and design-motion record decisions about the design system, a feature's flow, icons and logos, and library motion; design-sync brings the record into the code. Replies and sheet labels are in Korean by default.",
     "developerName": "Dessert99",
     "category": "Design",
     "capabilities": [
@@ -32,8 +37,8 @@
     ],
     "defaultPrompt": [
       "Show me 5 versions of the button radius",
-      "Compare the card padding",
-      "Lay out the dashboard"
+      "Use $design-ux to decide how this feature should work",
+      "Use $design-motion to decide how this moment should move"
     ],
     "websiteURL": "https://github.com/Dessert99/design-helper",
     "screenshots": [],

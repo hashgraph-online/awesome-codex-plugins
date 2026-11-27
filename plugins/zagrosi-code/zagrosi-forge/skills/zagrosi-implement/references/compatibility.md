@@ -35,6 +35,14 @@ directories are supported; selected symlinks and special files are rejected.
 Source paths must exist at activation; checks may be added afterward, before
 baseline capture. Explicit ignored check directories are supported. Replace the
 example with inspected facts.
+For an intended file move, add an optional `source_moves` object to the same
+declaration, for example `"source_moves":{"src/old.py":"src/new.py"}`. List
+`src/old.py` in `source_paths`. Its digest is recorded at activation and the
+destination must be absent through the baseline run. The candidate checks
+the new regular file and requires the old path to be absent. Declare the
+stable caller or facade separately when it also changes. Baseline and candidate
+still execute the same command with byte-identical check inputs.
+
 Recursive scans omit known generated/dependency directories (`.git`, `.venv`,
 `venv`, `node_modules`, `__pycache__` and tool caches); explicitly selected regular
 inputs remain bound. Environment and dependencies beyond declared inputs are not pinned.

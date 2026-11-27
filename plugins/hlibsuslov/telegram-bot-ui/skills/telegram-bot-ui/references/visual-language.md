@@ -44,6 +44,10 @@ Rules:
   reads as noise. `bot-ui validate` and `validate_keyboard.py` / `validate_rich.py
   --emoji-library` report `BUTTON_EMOJI_ANIMATED` (error). **[Heuristic, owner decision
   2026-11-26]**
+- **Chosen by the icon plan.** When you pick the icons, follow the staged plan in
+  [emoji-packs.md](emoji-packs.md) ("The icon plan"): meaning from the label words, one family,
+  legibility at 20 px, a verdict per slot after looking at the review sheet, a record in
+  `emoji/icon-plan.json`.
 - **Static by default everywhere else.** Titles, lists and statuses use static custom emoji;
   an animated one is a flagged exception (`CUSTOM_EMOJI_ANIMATED`, warning) for one hero moment
   at most (a success screen, `<tg-thinking>` with the AIActions set the Bot API recommends).
@@ -141,6 +145,8 @@ Body                               ← facts: short lines "Label: <b>value</b>",
 <i>Hint or consequence</i>         ← one sentence; for destructive actions say what is lost
 ```
 + keyboard: one primary forward action, secondary actions neutral, Back last.
+Messages the bot sends on its own (alerts, statuses, reports, reminders) use the same anatomy as
+notification patterns, one per type: `message-patterns.md`.
 
 Patterns:
 - **Steps:** "Step 2 of 3 · Wallet name" in the title; keep earlier answers visible.

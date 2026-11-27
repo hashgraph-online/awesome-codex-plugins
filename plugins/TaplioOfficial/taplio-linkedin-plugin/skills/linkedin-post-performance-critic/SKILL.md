@@ -89,7 +89,7 @@ Once connected, use these tools to ground this skill in real LinkedIn data inste
 
 2. **Locate the draft.** If the post already lives in Taplio, call `get_draft(id)` to read the exact content. Otherwise the user pastes the draft directly. Do not invent a draft.
 
-3. **Benchmark the niche.** Call `search_inspiration(query=the post topic, min_likes=1000, lang=the user's language)` to see what actually wins in this space. Use the returned posts to calibrate the Hook and Structure scores against proven winners, not against generic advice. Pull concrete patterns (hook style, length, formatting) into the audit.
+3. **Benchmark the niche.** Call `search_inspiration(query=the post topic, min_likes=100, lang=the user's language)` to see what actually wins in this space. Check that the returned posts are on the same topic as the draft before using them. If most are off-topic, retry once with a shorter query made of the draft's 2 or 3 core terms ; if they are still off-topic, say in one sentence that no comparable posts were found and score without a benchmark. Use the on-topic posts to calibrate the Hook and Structure scores against proven winners, not against generic advice, and cite 1 or 2 of them (author's hook, likes, comments) where they inform a score. Pull concrete patterns (hook style, length, formatting) into the audit.
 
 4. **Run the 6-dimension audit** as described above, now anchored to the real voice, audience, and niche benchmarks.
 

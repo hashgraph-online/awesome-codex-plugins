@@ -1,0 +1,152 @@
+{
+  "kind": "welcome-spec",
+  "$comment": "The first message after /start for a coffee-to-go bot, one scenario per entry. Design: references/welcome-message.md. Check: py -3 scripts/tgui.py check welcome examples/welcome/coffee-shop.json. Photos are sent by the file_id stored after the first upload; '<file_id: …>' marks where it goes.",
+  "bot": "BrewBot",
+  "archetype": "shop",
+  "languages": ["uk", "en"],
+  "brief": {
+    "arrives": "new user from search or a shared profile; a QR code on the cup (item_<key>); returning customers",
+    "came_for": "order coffee to pick up",
+    "first_result": "a drink in the order: 1 tap from the welcome, 0 from the QR",
+    "knows": "first_name (not used: Ukrainian vocative), language_code, the item key from the QR",
+    "trust_line": "ready in 10 minutes, pay on pickup, no sign-up",
+    "picture": "the counter with today's drinks, 16:9, no text in the image",
+    "second_start": "home with the open order's status, no intro, no picture"
+  },
+  "scenarios": [
+    {
+      "id": "new",
+      "entry": "/start",
+      "user": "new",
+      "language_code": "uk",
+      "steps": [
+        {
+          "method": "sendPhoto",
+          "params": {
+            "chat_id": 222222222,
+            "photo": "<file_id: counter.jpg>",
+            "caption": "<b>BrewBot · кава з собою</b>\nКава з 3 кавʼярень Києва, готова за 10 хвилин.\nНатисніть «Замовити», оберіть напій і точку — напишемо, коли все готово.\nОплата при отриманні, без реєстрації.",
+            "parse_mode": "HTML",
+            "reply_markup": {
+              "inline_keyboard": [
+                [{"text": "Замовити", "callback_data": "v1:order", "style": "primary"}],
+                [{"text": "Адреси й години", "callback_data": "v1:shops"}, {"text": "Допомога", "callback_data": "v1:help"}]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "item-link",
+      "entry": "/start item_flatwhite",
+      "user": "new",
+      "language_code": "uk",
+      "steps": [
+        {
+          "method": "sendPhoto",
+          "params": {
+            "chat_id": 222222222,
+            "photo": "<file_id: flat-white.jpg>",
+            "caption": "<b>BrewBot · кава з собою</b>\nФлет вайт, 350 мл — <b>85 ₴</b>\nГотовий за 10 хвилин у будь-якій із 3 кавʼярень. Оплата при отриманні.",
+            "parse_mode": "HTML",
+            "reply_markup": {
+              "inline_keyboard": [
+                [{"text": "Додати в замовлення", "callback_data": "v1:add:flatwhite", "style": "primary"}],
+                [{"text": "Усе меню", "callback_data": "v1:order"}]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "returning",
+      "entry": "/start",
+      "user": "returning",
+      "language_code": "uk",
+      "steps": [
+        {
+          "method": "sendMessage",
+          "params": {
+            "chat_id": 222222222,
+            "text": "<b>BrewBot</b>\nЗамовлення #1042 готується, буде о 12:40 на Хрещатику, 15.\nБонусна картка: 7 з 10 чашок.",
+            "parse_mode": "HTML",
+            "reply_markup": {
+              "inline_keyboard": [
+                [{"text": "Нове замовлення", "callback_data": "v1:order", "style": "primary"}],
+                [{"text": "Мої замовлення", "callback_data": "v1:orders"}, {"text": "Адреси й години", "callback_data": "v1:shops"}]
+              ]
+            }
+          }
+        },
+        {
+          "$comment": "one live home: the previous home (message 4100) loses its buttons",
+          "method": "editMessageReplyMarkup",
+          "params": {"chat_id": 222222222, "message_id": 4100}
+        }
+      ]
+    },
+    {
+      "id": "unknown-language",
+      "entry": "/start",
+      "user": "new",
+      "language_code": null,
+      "steps": [
+        {
+          "method": "sendMessage",
+          "params": {
+            "chat_id": 333333333,
+            "text": "Choose a language · Оберіть мову",
+            "reply_markup": {
+              "inline_keyboard": [
+                [{"text": "Українська", "callback_data": "lang:uk"}, {"text": "English", "callback_data": "lang:en"}]
+              ]
+            }
+          }
+        },
+        {
+          "on": "tap lang:en",
+          "method": "editMessageMedia",
+          "params": {
+            "chat_id": 333333333,
+            "message_id": 5001,
+            "media": {
+              "type": "photo",
+              "media": "<file_id: counter.jpg>",
+              "caption": "<b>BrewBot · coffee to go</b>\nCoffee from 3 shops in Kyiv, ready in 10 minutes.\nTap <b>Order</b>, pick a drink and a shop — we'll message you when it's ready.\nPay on pickup, no sign-up.",
+              "parse_mode": "HTML"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [{"text": "Order", "callback_data": "v1:order", "style": "primary"}],
+                [{"text": "Shops and hours", "callback_data": "v1:shops"}, {"text": "Help", "callback_data": "v1:help"}]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "group",
+      "entry": "/start@BrewBot in a group",
+      "user": "new",
+      "chat": "group",
+      "steps": [
+        {
+          "method": "sendMessage",
+          "params": {
+            "chat_id": -1001234567890,
+            "text": "Замовлення та бонуси — в особистому чаті з BrewBot.",
+            "reply_parameters": {"message_id": 77},
+            "reply_markup": {
+              "inline_keyboard": [
+                [{"text": "Відкрити BrewBot", "url": "https://t.me/BrewBot?start=from_group"}]
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

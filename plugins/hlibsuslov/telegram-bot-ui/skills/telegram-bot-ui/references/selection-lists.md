@@ -94,8 +94,9 @@ longer document, use a Rich Message (`sendRichMessage`, then `editMessageText` w
   the user taps a button, not the box;
 - each item's line ends with a quiet button in the text (`RichTextButton`, `style: "link"`, callback only
   **[API]**) that says the action: `Додати` / `Прибрати`;
-- one button row at the end (`buttons` block, 1-8 buttons **[API]**): Select all / Clear and `Готово · 3`
-  (`style: "primary"`);
+- Select all / Clear and `Готово · 3` on the keyboard under the message (`reply_markup`), not as a row in the
+  document: they act on the whole picker ([rich-message-buttons.md](rich-message-buttons.md)); Done takes
+  `style: "primary"` there;
 - a heading, then the summary in bold, then the list: the state is visible without counting.
 
 Rich Messages need Bot API 10.3 clients; buttons with `web_app` work only in private chats **[API]**. The example

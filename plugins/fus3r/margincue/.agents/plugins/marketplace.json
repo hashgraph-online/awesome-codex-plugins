@@ -1,0 +1,14 @@
+{
+  "name": "margincue-local",
+  "interface": {
+    "displayName": "MarginCue Local"
+  },
+  "plugins": [
+    {
+      "name": "margincue",
+      "source": {"source": "local", "path": "./"},
+      "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+      "category": "Productivity"
+    }
+  ]
+}

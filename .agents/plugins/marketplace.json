@@ -1966,6 +1966,21 @@
       "icon": "./plugins/Alex0nder/MailAgent/assets/icon.svg"
     },
     {
+      "name": "margincue",
+      "displayName": "MarginCue",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fus3r/margincue"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Shows how Codex will read your prompt before it starts, with names checked against the repo and a control for each open choice, and turns the choices Codex makes on its own into switches while it works.",
+      "icon": "./plugins/fus3r/margincue/assets/composer-icon.svg"
+    },
+    {
       "name": "mcp-md-reader",
       "displayName": "Markdown Reader",
       "source": {
@@ -4819,20 +4834,6 @@
       "category": "Tools & Integrations",
       "description": "Connect Codex to Feishu/Lark workflows for Docs, Messenger, Drive, Sheets, Base, Calendar, Tasks, Meetings, Mail, approvals, and more through the official Lark CLI.",
       "icon": "./plugins/zlsbksdxl/codex-lark/assets/logo.svg"
-    },
-    {
-      "name": "feraterra",
-      "displayName": "FeraTerra",
-      "source": {
-        "source": "local",
-        "path": "./plugins/FeraTerra/feraterra-sdk"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Trading skill and hosted Streamable HTTP MCP server for Arena Exchange spot, perpetuals, order margin previews, zero-capital flash arbitrage, and Base Sepolia L2 Clearinghouse custody."
     },
     {
       "name": "firecrawl",

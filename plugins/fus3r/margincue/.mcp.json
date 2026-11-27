@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "margincue": {
+      "command": "node",
+      "args": ["dist/margincue.mjs", "mcp"],
+      "cwd": ".",
+      "env_vars": ["CODEX_APP_RUNTIME_CLI_PATH", "CODEX_CLI_PATH", "CODEX_HOME", "MARGINCUE_HOME", "MARGINCUE_CODEX", "MARGINCUE_CODEX_MODEL"],
+      "tool_timeout_sec": 15
+    }
+  }
+}

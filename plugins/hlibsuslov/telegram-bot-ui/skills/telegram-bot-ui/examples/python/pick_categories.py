@@ -113,7 +113,9 @@ def inline_screen(lang: str, selected: set[str], page: int = 0, *, options: list
 
 
 def rich_screen(lang: str, selected: set[str], *, options: list | None = None) -> dict:
-    """sendRichMessage params (editMessageText takes the same rich_message on every tap)."""
+    """sendRichMessage params (editMessageText takes the same rich_message and keyboard on every tap). The
+    per-line Add / Remove links change their own line: the one place a button inside the document wins. Select
+    all / Clear and Done act on the whole picker: the keyboard (references/rich-message-buttons.md)."""
     options = _checked(CATEGORIES if options is None else options)
     t = T[lang]
     items = []
@@ -130,9 +132,8 @@ def rich_screen(lang: str, selected: set[str], *, options: list | None = None) -
         {"type": "heading", "size": 3, "text": t["title"]},
         {"type": "paragraph", "text": {"type": "bold", "text": status}},
         {"type": "list", "items": items},
-        {"type": "buttons", "buttons": [bulk, done], "align": "left"},
     ]
-    return {"rich_message": {"blocks": blocks}}
+    return {"rich_message": {"blocks": blocks}, "reply_markup": {"inline_keyboard": [[bulk, done]]}}
 
 
 def toggle(selected: set[str], data: str, options: list | None = None) -> set[str]:

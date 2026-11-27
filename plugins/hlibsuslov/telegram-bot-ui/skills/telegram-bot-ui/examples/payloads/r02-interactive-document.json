@@ -24,8 +24,33 @@
                   "type": "bold",
                   "text": "signing key"
                 },
-                " every 90 days."
+                " every 90 days. Questions: ",
+                {
+                  "type": "url",
+                  "text": "the key owner",
+                  "url": "https://t.me/orders_demo_bot?start=ask_rotation"
+                },
+                ". Checklist id ",
+                {
+                  "type": "code",
+                  "text": "ROT-2026-v3"
+                },
+                "."
               ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Production",
+                  "disabled": {}
+                },
+                {
+                  "text": "Staging",
+                  "callback_data": "doc:view:staging"
+                }
+              ],
+              "align": "left"
             },
             {
               "type": "table",
@@ -104,7 +129,71 @@
               ],
               "is_bordered": true,
               "is_compact": true,
-              "caption": "Status on 12 Nov 2026"
+              "caption": "Production on 12 Nov 2026"
+            },
+            {
+              "type": "heading",
+              "size": 3,
+              "text": "Rotation steps · 0 of 3"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Generate the new signing key · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:gen",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Deploy it next to the old one · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:deploy",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Revoke the old key after 24 hours · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:revoke",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "expandable_blockquote",
@@ -158,38 +247,18 @@
               "caption": {
                 "text": "Full procedure (PDF)"
               }
-            },
-            {
-              "type": "paragraph",
-              "text": [
-                "Questions? ",
-                {
-                  "type": "button",
-                  "button": {
-                    "text": "Ask the owner",
-                    "url": "https://t.me/orders_demo_bot?start=ask_rotation",
-                    "style": "primary"
-                  }
-                }
-              ]
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Approve",
-                  "callback_data": "doc:approve:v3",
-                  "style": "success"
-                },
-                {
-                  "text": "Copy checklist id",
-                  "copy_text": {
-                    "text": "ROT-2026-v3"
-                  }
-                }
-              ],
-              "align": "left"
             }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve policy",
+                "callback_data": "doc:approve:v3",
+                "style": "success"
+              }
+            ]
           ]
         }
       }
@@ -231,8 +300,7 @@
     {
       "method": "answerCallbackQuery",
       "params": {
-        "callback_query_id": "q-approve",
-        "text": "Approved"
+        "callback_query_id": "q-done"
       }
     },
     {
@@ -240,6 +308,17 @@
       "params": {
         "chat_id": 111111111,
         "message_id": 1001,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve policy",
+                "callback_data": "doc:approve:v3",
+                "style": "success"
+              }
+            ]
+          ]
+        },
         "rich_message": {
           "blocks": [
             {
@@ -255,8 +334,33 @@
                   "type": "bold",
                   "text": "signing key"
                 },
-                " every 90 days."
+                " every 90 days. Questions: ",
+                {
+                  "type": "url",
+                  "text": "the key owner",
+                  "url": "https://t.me/orders_demo_bot?start=ask_rotation"
+                },
+                ". Checklist id ",
+                {
+                  "type": "code",
+                  "text": "ROT-2026-v3"
+                },
+                "."
               ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Production",
+                  "disabled": {}
+                },
+                {
+                  "text": "Staging",
+                  "callback_data": "doc:view:staging"
+                }
+              ],
+              "align": "left"
             },
             {
               "type": "table",
@@ -335,7 +439,71 @@
               ],
               "is_bordered": true,
               "is_compact": true,
-              "caption": "Status on 12 Nov 2026"
+              "caption": "Production on 12 Nov 2026"
+            },
+            {
+              "type": "heading",
+              "size": 3,
+              "text": "Rotation steps · 1 of 3"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "✓ Generate the new signing key · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Undo",
+                            "callback_data": "doc:undo:gen",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Deploy it next to the old one · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:deploy",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Revoke the old key after 24 hours · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:revoke",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "expandable_blockquote",
@@ -389,37 +557,279 @@
               "caption": {
                 "text": "Full procedure (PDF)"
               }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-view"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve policy",
+                "callback_data": "doc:approve:v3",
+                "style": "success"
+              }
+            ]
+          ]
+        },
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Key rotation policy v3"
             },
             {
               "type": "paragraph",
               "text": [
-                "Questions? ",
+                "Rotate the ",
                 {
-                  "type": "button",
-                  "button": {
-                    "text": "Ask the owner",
-                    "url": "https://t.me/orders_demo_bot?start=ask_rotation",
-                    "style": "primary"
-                  }
-                }
+                  "type": "bold",
+                  "text": "signing key"
+                },
+                " every 90 days. Questions: ",
+                {
+                  "type": "url",
+                  "text": "the key owner",
+                  "url": "https://t.me/orders_demo_bot?start=ask_rotation"
+                },
+                ". Checklist id ",
+                {
+                  "type": "code",
+                  "text": "ROT-2026-v3"
+                },
+                "."
               ]
             },
             {
               "type": "buttons",
               "buttons": [
                 {
-                  "text": "Approved",
-                  "disabled": {}
+                  "text": "Production",
+                  "callback_data": "doc:view:production"
                 },
                 {
-                  "text": "Copy checklist id",
-                  "copy_text": {
-                    "text": "ROT-2026-v3"
-                  }
+                  "text": "Staging",
+                  "disabled": {}
                 }
               ],
               "align": "left"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Key",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Owner",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Days left",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "signing",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Platform",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "40",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "webhook",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Bots team",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "61",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Staging on 12 Nov 2026"
+            },
+            {
+              "type": "heading",
+              "size": 3,
+              "text": "Rotation steps · 1 of 3"
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "✓ Generate the new signing key · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Undo",
+                            "callback_data": "doc:undo:gen",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Deploy it next to the old one · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:deploy",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": [
+                        "Revoke the old key after 24 hours · ",
+                        {
+                          "type": "button",
+                          "button": {
+                            "text": "Done",
+                            "callback_data": "doc:done:revoke",
+                            "style": "link"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "expandable_blockquote",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "Auditor note: every rotation is logged with"
+                },
+                {
+                  "type": "list",
+                  "items": [
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the operator's id"
+                        }
+                      ]
+                    },
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the old and the new key fingerprint"
+                        }
+                      ]
+                    },
+                    {
+                      "blocks": [
+                        {
+                          "type": "paragraph",
+                          "text": "the time"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "text": "Logs are kept for one year."
+                }
+              ],
+              "credit": "Audit 2026-10"
+            },
+            {
+              "type": "document",
+              "document": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoFileId"
+              },
+              "caption": {
+                "text": "Full procedure (PDF)"
+              }
             }
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-approve",
+        "text": "Approved"
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approved",
+                "disabled": {}
+              }
+            ]
           ]
         }
       }

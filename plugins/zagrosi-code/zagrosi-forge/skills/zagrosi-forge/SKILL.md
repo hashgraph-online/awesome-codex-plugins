@@ -70,5 +70,11 @@ Keep one primary writer and consolidate findings into the existing review.
 Never substitute another provider/model silently or treat reviewer agreement as
 proof that tests pass.
 
+For a PR that delivers part of a larger plan, use [section groups](../../docs/section-groups.md)
+to reserve and verify its sections. For stacked PRs or environment handoffs, use
+[delivery status](../../docs/delivery.md) to identify changed parents and cite each
+outcome. When reporting effort, use [build measurements](../../docs/build-measurements.md)
+and identify any missing observations.
+
 Finish with the result, actual verification, remaining limitations, and the saved
 artifact location. Distinguish code completion, PR/CI state, and deployment.

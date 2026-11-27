@@ -101,7 +101,7 @@ See the cost-controls reference for the shared budget mechanism.
   with this plan left unapplied until it is compared. Read free from the run
   results and manifest already on disk (#1114). `mixed_with_repair` names the
   blocked inputs this plan itself repairs (it edits them, or edits the project,
-  packages or a macro while one is blocked), with a warning: such a plan's
+  packages, the profiles or a macro while one is blocked), with a warning: such a plan's
   comparison can only read the failed build, so the repair has to be split out. If the change should keep the model's results, run it
   before applying: once applied, the plan's baseline is gone. Nothing scans at
   plan time, and nothing refuses: a change meant to alter results needs no
@@ -1051,8 +1051,8 @@ A plan with a `toggle` compiles both sides at its `on_value`, named in
 feature on, the proposal returns today's results". The off value is
 `data.toggle`'s to judge.
 
-A plan that changes a macro or project configuration compiles both sides through
-their ancestors, and is compared when no untouched parent's SQL moved. Refused in
+A plan that changes a macro, the profiles or project configuration compiles both
+sides through their ancestors, and is compared when no untouched parent's SQL moved. Refused in
 values-free mode.
 
 ### An intended change: `--expect`

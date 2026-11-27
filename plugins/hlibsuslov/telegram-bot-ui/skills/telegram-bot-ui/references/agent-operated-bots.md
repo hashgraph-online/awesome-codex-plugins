@@ -64,6 +64,8 @@ Code: `examples/python/agent_bridge/` (library + CLI `py -3 -m agent_bridge …`
   (`tgkit.text.split_text`); more than ~3 parts → send a document instead **[Heuristic]**.
 * Redact before sending (`agent_bridge.redact`): bot tokens, API keys, `password=…`.
 * CLI: `py -3 -m agent_bridge notify "Deploy finished" --silent`.
+* Shape per type (status change, action required, incident, request failed, progress):
+  `references/message-patterns.md`.
 
 ## Status card for a long task
 

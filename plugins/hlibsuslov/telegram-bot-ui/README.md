@@ -365,7 +365,7 @@ All offline, standard library, and none of them needs a bot token.
 | `py -3 skills/telegram-bot-ui/scripts/tgui.py <group>` | one entry point for every tool below, plus `context`, `next`, `doctor` and `check changed` (`python3` outside Windows) |
 | `py -3 skills/telegram-bot-ui/scripts/tgui.py commands audit --root .` | the command menu: handlers in code vs `setMyCommands`, scopes that hide commands, missing languages |
 | `py -3 skills/telegram-bot-ui/scripts/tgui.py emoji library pick --needs home,back,settings` | one premium emoji pack that covers your icons, ranked by real coverage and tags (asks the public emoji library) |
-| `py -3 skills/telegram-bot-ui/scripts/tgui.py mcp` | the same tools as a local MCP server (15 tools; `claude mcp add --transport stdio telegram-bot-ui -- py -3 <skill>/scripts/bot_ui_mcp.py`) |
+| `py -3 skills/telegram-bot-ui/scripts/tgui.py mcp` | the same tools as a local MCP server (16 tools; `claude mcp add --transport stdio telegram-bot-ui -- py -3 <skill>/scripts/bot_ui_mcp.py`) |
 | `python skills/telegram-bot-ui/scripts/validate_keyboard.py keyboard.json` | button and keyboard payload rules |
 | `python skills/telegram-bot-ui/scripts/validate_rich.py message.json` | Rich Message limits and rules |
 | `python skills/telegram-bot-ui/scripts/validate_widget.py widget.html` | widget size (server algorithm) and sandbox gaps |

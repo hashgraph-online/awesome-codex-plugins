@@ -41,3 +41,22 @@ comments and fenced example IDs do not declare requirements. Each mapping holds
 behavior, inputs/outputs/errors, expected acceptance and verification together.
 Keep ownership and rollback explicit. Prefer existing code/native facilities;
 omit repeated background, production implementations, and placeholders.
+
+### Share a Markdown contract across plans
+
+Use ordinary relative Markdown links and anchors in the plan or section.
+For each linked document outside the planning directory, list its exact
+repository-relative path in the compact plan's existing `FORGE_META` object:
+
+```json
+{"artifact_type":"compact_plan","depth_mode":"lean","source":"spec.md","shared_documents":["docs/decisions/import-rules.md"]}
+```
+
+For example, a section at `plans/import/sections/section-01-import.md` can
+link to `../../../docs/decisions/import-rules.md#validation`. Declare any
+other external Markdown file reached by following its links. Linked
+headings and their contents enter the normal context and verification
+snapshot. Shared paths must refer to regular files in the same Git checkout.
+Team preparation captures committed document bytes alongside the plan and
+rejects edited sources or prepared copies. Detached physical plans keep
+their existing self-contained frozen inputs.

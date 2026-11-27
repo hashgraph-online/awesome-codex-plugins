@@ -82,3 +82,24 @@ or `not_required` with a concrete reason. Keep the protected behavior and intend
 changes in the existing Contract; do not create another behavior ledger.
 An undecided draft cannot pass admission. Existing undeclared plans remain legacy;
 the pinned detached protocol retains its own evidence format.
+
+## Acceptance journeys
+
+When a decision depends on actor, starting state or an alternate action, add
+`## Acceptance journeys` to the section that implements it. Give each material
+case its own check. List the requirement in the section's visible prose.
+A prose-only heading remains descriptive. To require captured evidence, use one fenced JSON array under the heading.
+
+```json
+[
+  {"id":"reopen","requirement":"REQ-001","actor":"eligible approver","starting_state":"Rejected invoice, uploader independence off","action":"Reopen","expected":"Invoice returns to review","check":"tests/test_invoice.py::test_reopen_allowed","argv":["python","-m","pytest","tests/test_invoice.py::test_reopen_allowed"]},
+  {"id":"return","requirement":"REQ-001","actor":"eligible approver","starting_state":"Pending invoice, uploader independence off","action":"Return to Finance","expected":"Finance receives the invoice","check":"tests/test_invoice.py::test_return_allowed","argv":["python","-m","pytest","tests/test_invoice.py::test_return_allowed"]}
+]
+```
+
+For each case, pass `--section SECTION --journey ID -- <exact argv>` to
+`implement-verify`. The operator supplies the command. Forge checks it
+against the declaration, captures its outcome, and requires fresh evidence
+for every case before recording the section. `journey-status --planning-dir
+PLAN --section SECTION` lists current outcomes, `traceability` shows planned
+coverage, and the section record retains the digest of each passing receipt.

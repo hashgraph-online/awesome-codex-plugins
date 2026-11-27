@@ -51,6 +51,11 @@ def report_blocks(checked: set[str]) -> list[dict]:
         r.heading_block("Checklist", 2),
         r.list_block([r.list_item([r.paragraph_block(s)], has_checkbox=True, is_checked=s in checked)
                       for s in steps]),
+        # The one document button here: a view switch right above the table it switches (the current period is
+        # disabled). Roll back is the main action and lives on the keyboard; the runbook is a link in the text
+        # (references/rich-message-buttons.md).
+        r.buttons_block([r.message_button("24 h", disabled=True),
+                         r.message_button("7 days", callback_data="deploy:4.12:period:7d")], align="left"),
         r.table(["Service", "p95 before, ms", "p95 after, ms"], [list(row) for row in SERVICES], compact=True,
                 numeric_cols=frozenset({1, 2}), caption="Latency, 24 h before and after"),
         r.photo_block(CHART, r.block_caption("p95 latency, last 48 h", credit="Grafana, eu-west")),
@@ -59,8 +64,6 @@ def report_blocks(checked: set[str]) -> list[dict]:
         r.expandable_blockquote_block([r.paragraph_block("Error rate stayed under 0.1% during the switch.")],
                                       credit="On-call notes"),
         r.divider_block(),
-        r.buttons_block([r.message_button("Roll back", callback_data="deploy:4.12:rollback", style="danger"),
-                         r.message_button("Runbook", url=RUNBOOK)], align="center"),
         r.footer_block(["Started from ", r.code("/deploy payments-api 4.12"), " by the on-call engineer."]),
     ]
 
@@ -72,8 +75,11 @@ def send_rich_message_draft(t: FakeTransport) -> None:
         "blocks": summary_blocks() + [r.thinking_block("Building the latency table")]}})
 
 
+KEYBOARD = {"inline_keyboard": [[{"text": "Roll back", "callback_data": "deploy:4.12:rollback", "style": "danger"}]]}
+
+
 def send_rich_message(t: FakeTransport) -> dict:
-    return t.call("sendRichMessage", {"chat_id": CHAT, "rich_message": {"blocks": report_blocks(
+    return t.call("sendRichMessage", {"chat_id": CHAT, "reply_markup": KEYBOARD, "rich_message": {"blocks": report_blocks(
         {"Migrate the refunds table", "Switch traffic to the new pool"})}})
 
 
@@ -91,8 +97,9 @@ def run_all() -> FakeTransport:
     v = validate_payload.Validator(validate_payload.load_catalog(validate_payload.DATA_DIR))
     for method, params in t.calls:
         c.check(v.check_request(method, params).ok, f"{method}: structurally valid (validate_payload)")
-        errors, _, _ = validate_rich.validate(params, draft=method.endswith("Draft"))  # drafts: no uploads
+        errors, warnings, _ = validate_rich.validate(params, draft=method.endswith("Draft"))  # drafts: no uploads
         c.check(not errors, f"{method}: blocks pass validate_rich {errors or ''}".rstrip())
+        c.check(not [w for w in warnings if w.startswith("RICH_BUTTON_")], f"{method}: no misplaced document buttons")
     c.check(not any(b["type"] == "thinking" for b in t.params_of("sendRichMessage")[0]["rich_message"]["blocks"]),
             "the final message has no thinking block")
     c.check(sorted(t.methods()) == sorted(["sendRichMessageDraft"] * 2 + ["sendRichMessage", "editMessageText"]),

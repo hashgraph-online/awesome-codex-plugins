@@ -27,3 +27,8 @@ bypass the allowance through shell execution, manual evidence or skipped checks.
 Direct shell commands, external CI and detached-frozen execution are outside
 enforcement. Accounting is saved in `implementation/verification/allowance.json`;
 it is local workflow state, not an authenticated billing record.
+
+Use `build-report --planning-dir <plan>` for recorded check durations, repeats,
+review rounds and context usage by section. Add `--group <group-result.json>`
+for PR totals. Supply provider or native usage files explicitly. Missing
+observations stay unknown. See [Build measurements](../../../docs/build-measurements.md).

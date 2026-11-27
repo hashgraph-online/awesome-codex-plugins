@@ -433,8 +433,49 @@ def cmd_emoji(args) -> int:
             res = emoji.set_icon(root, args.slot, None if args.clear else args.id, note=args.note, fallback=args.fallback)
             _emit(args, res, f"{args.slot}: {'cleared' if args.clear else args.id}")
             return 0
+        if args.action == "verdict":
+            if not args.slot or not (args.ok or args.alt or args.reject):
+                return _fail(args, "USAGE", "emoji verdict --slot <slot> --ok | --alt N | --reject REASON", 2)
+            plan = emoji.load_plan(root)
+            row = emoji._plan_mod().set_verdict(plan, args.slot, ok=args.ok, alt=args.alt, reject=args.reject, note=args.note)
+            emoji.save_plan(root, plan)
+            choice = row.get("choice") or {}
+            _emit(args, {"ok": True, "slot": args.slot, "row": row},
+                  f"{args.slot}: {row['status']}" + (f" {choice.get('pack')} {choice.get('id')}" if choice else "")
+                  + (f", verdict {row['verdict']['value']}" if row.get("verdict") else ", look at it again, then --ok"))
+            return 0
+        if args.action == "apply-plan":
+            res = emoji.apply_plan(root, emoji.load_plan(root))
+            _emit(args, res, f"applied {', '.join(res['applied']) or 'nothing'}"
+                             + (f"; skipped {', '.join(s['slot'] for s in res['skipped'])}" if res["skipped"] else "")
+                             + (f"; no verdict yet: {', '.join(res['pending'])}" if res["pending"] else "")
+                             + "\nnext: " + "; ".join(res["next"]))
+            return 0
         snap = open_snapshot(root)
         lib = emoji.load_library(root)
+        if args.action == "plan":
+            client = None
+            if args.library_json:
+                with open(args.library_json, encoding="utf-8") as fh:
+                    client = emoji.skill.load("emoji_packs").LibraryClient(json.load(fh))
+            profile = None
+            if args.profile:
+                with open(args.profile, encoding="utf-8") as fh:
+                    profile = json.load(fh)
+            plan = emoji.make_plan(root, snap, client=client, profile=profile, theme=args.theme, controls=args.controls,
+                                   candidates=args.candidates)
+            emoji.save_plan(root, plan)
+            sheet = args.out or "icon-plan.html"
+            with open(sheet, "w", encoding="utf-8") as fh:
+                fh.write(emoji.plan_review(root, plan))
+            s = plan["summary"]
+            _emit(args, {**plan, "file": emoji.PLAN, "sheet": sheet},
+                  f"{emoji.PLAN}: main pack {plan['packs']['main']}; {s['chosen']} chosen, {s['locked']} locked, "
+                  f"{s['labelOnly']} label-only of {s['slots']} slots"
+                  + ("" if plan["gate"]["ok"] else " - BLOCKED: " + "; ".join(plan["gate"]["reasons"]))
+                  + f"\nopen {sheet}, look at every row, then `bot-ui emoji verdict --slot <slot> --ok|--alt N|--reject`; "
+                    "`bot-ui emoji apply-plan` writes only the accepted ones")
+            return 0
         if args.action == "list":
             _emit(args, {"ok": True, "library": lib, "previews": emoji.previews(root)},
                   "\n".join(f"{n}: {p.get('title')} · {len(p.get('emoji') or [])} emoji · {p.get('link')}"
@@ -530,10 +571,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--emoji-library-file", help="embed the emoji library's catalog from this offline export "
                                                 "(default: the one the Studio last loaded, if any)")
     p = add("emoji", cmd_emoji, "premium emoji library: import a pack by link, map icons to meanings, the agent's brief")
-    p.add_argument("action", choices=("import", "import-used", "list", "icon", "remove", "brief", "review"),
+    p.add_argument("action", choices=("import", "import-used", "list", "icon", "remove", "brief", "review", "plan",
+                                      "verdict", "apply-plan"),
                    help="import-used: import every pack the bot's screens and code already use; review: an HTML sheet "
-                        "of every button icon next to its label (meaning, static, family) to look at before shipping")
-    p.add_argument("--out", help="review: where to write the HTML sheet (default icon-review.html)")
+                        "of every button icon next to its label (meaning, static, family) to look at before shipping; "
+                        "plan: choose packs and the best static emoji per slot (emoji/icon-plan.json + a review sheet); "
+                        "verdict: record what the review of one slot decided; apply-plan: write the accepted icons")
+    p.add_argument("--out", help="review / plan: where to write the HTML sheet (default icon-review.html / icon-plan.html)")
+    p.add_argument("--profile", help="plan: the bot's style profile JSON (default: the Mini App kit's line icons)")
+    p.add_argument("--theme", choices=("both", "light", "dark"), default="both", help="plan: themes the icons must read in")
+    p.add_argument("--controls", action="store_true", help="plan: give Back / Forward / Close icons too (default: words)")
+    p.add_argument("--candidates", type=int, default=6, help="plan: packs fetched in full")
+    p.add_argument("--library-json", help="plan: saved emoji library answers instead of the network (tests)")
+    p.add_argument("--ok", action="store_true", help="verdict: the choice was looked at and fits")
+    p.add_argument("--alt", type=int, help="verdict: take alternative N instead (then look again and --ok)")
+    p.add_argument("--reject", help="verdict: the slot goes label-only, with this reason")
     p.add_argument("link", nargs="?", help="import: https://t.me/addemoji/<name> or the name; remove: the pack name")
     p.add_argument("--from-json", help="import a saved getStickerSet response (offline, no previews)")
     p.add_argument("--slot", help="icon: the meaning, e.g. home, back, cart")

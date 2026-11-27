@@ -48,15 +48,38 @@ Name the level reached in every report. Levels 1-4 never prove how a real Telegr
 ## 4. The preview stand
 
 `scripts/preview_miniapp.py` (with `--api mock.json` for the app's own server routes) serves the app folder on 127.0.0.1, swaps `telegram-web-app.js` for a mock of
-`Telegram.WebApp` and draws Telegram's chrome around it:
+`Telegram.WebApp` and draws Telegram's chrome around it: status bar, header with Close or Back and the menu,
+the bottom bar, native popups, the closing confirmation, the loading placeholder until `ready()`, the
+fullscreen controls and safe areas. The page is a workspace of panels around the device:
 
-- controls: platform (iOS, Android, Desktop), scheme, width (320, 375, 390, 430, desktop 384), mode
-  (compact, full, fullscreen), client version (6.0 … 10.1), Android performance class, `start_param`;
+- toolbar: relaunch; the app's address and its `ready()` status (green with the time, amber when `ready()`
+  never came); platform (iOS, Android, Desktop); width (320, 375, 390, 430, desktop 384, foldable 669);
+  day and night theme; zoom (fit, 50, 75, 100 %);
+- left, launch parameters (they relaunch the app): client version (6.0 … 10.1), the user's `language_code`
+  (RTL included), `start_param` (checked against Telegram's alphabet), Android performance class;
+- left, live settings (the running app sees them at once, nothing reloads): viewport (compact, full,
+  fullscreen), the network for the app's own requests (slow, flaky, offline, 500, 401), the invoice outcome
+  (paid, cancelled, failed, pending, never paid), style preset;
+- left, the user's moves: system back (BackButton when shown, else closing), minimize and restore
+  (`deactivated` / `activated`), close (the closing confirmation asks first when the app turned it on),
+  relaunch;
+- bottom: Events, every call by kind with counts: haptics (the device shakes), popups, chrome colours,
+  buttons, storage, links, payments, the app's own errors and `console.error`, and every member the
+  selected version does not support (methods throw `WebAppMethodUnsupported` like the real script; objects
+  and setters warn); Network, each request while it runs, its status and time; Layout, the audit of the
+  current screen (LA01-LA05) with outlines on the surfaces it flags;
+- right, the inspector: lifecycle (`ready()` and page load times), viewport and safe areas, header,
+  background and bottom bar colours with the key the app set, MainButton and SecondaryButton as drawn,
+  closing confirmation, swipes and orientation, theme parameters; the launch data (`initDataUnsafe`, raw
+  `initData`); CloudStorage, DeviceStorage and SecureStorage, kept across relaunches in the tab like
+  Telegram keeps them, with Clear to test a first launch;
 - the matrix view (`/?view=matrix`): iOS and Android × light and dark × 320/390/430, plus fullscreen iOS
-  dark, fullscreen Android light and compact iOS light;
-- a call log: haptics, popups, chrome colours, BackButton, storage, links, payments (never paid), and every
-  member the selected version does not support (methods throw `WebAppMethodUnsupported` like the real
-  script; objects and setters warn).
+  dark, fullscreen Android light and compact iOS light; click a device to inspect it.
+
+Theme and viewport switches reach the running app as `themeChanged`, `viewportChanged` and
+`fullscreenChanged`, which is how to test that an app follows them without a reload. The URL holds every
+setting: "Copy link" (or `?platform=android&scheme=dark&mode=fullscreen&version=8.0&network=offline`)
+reproduces a view; add `&zoom=100&panels=0` for 1:1 screenshots and `&audit=1` to audit after `ready()`.
 
 What it does **not** prove: real palettes (approximations of Telegram's defaults), real header and bottom
 bar sizes, Liquid Glass, keyboard and viewport behaviour on phones, `initData` signatures, payments, Android

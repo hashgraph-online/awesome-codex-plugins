@@ -1333,6 +1333,16 @@
       "install_url": "https://raw.githubusercontent.com/Alex0nder/MailAgent/HEAD/examples/codex/plugin/.codex-plugin/plugin.json"
     },
     {
+      "name": "MarginCue",
+      "url": "https://github.com/fus3r/margincue",
+      "owner": "fus3r",
+      "repo": "margincue",
+      "description": "Shows how Codex will read your prompt before it starts, with names checked against the repo and a control for each open choice, and turns the choices Codex makes on its own into switches while it works.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/fus3r/margincue/HEAD/mods/codex/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Markdown Reader",
       "url": "https://github.com/JoseEstevez520/mcp-md-reader",
       "owner": "JoseEstevez520",
@@ -3265,17 +3275,6 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/zlsbksdxl/codex-lark/HEAD/plugins/feishu2codex/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "FeraTerra",
-      "url": "https://github.com/FeraTerra/feraterra-sdk/tree/codex-plugin",
-      "owner": "FeraTerra",
-      "repo": "feraterra-sdk",
-      "description": "Trading skill and hosted Streamable HTTP MCP server for Arena Exchange spot, perpetuals, order margin previews, zero-capital flash arbitrage, and Base Sepolia L2 Clearinghouse custody.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/FeraTerra/feraterra-sdk/codex-plugin/plugin.json",
-      "source_ref": "codex-plugin"
     },
     {
       "name": "Firecrawl",

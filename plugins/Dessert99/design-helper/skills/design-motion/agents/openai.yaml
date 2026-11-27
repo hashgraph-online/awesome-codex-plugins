@@ -1,0 +1,7 @@
+interface:
+  display_name: "design-motion"
+  short_description: "Play motion options with the real library and pick"
+  default_prompt: "Use $design-motion to decide how this moment should move."
+
+policy:
+  allow_implicit_invocation: false

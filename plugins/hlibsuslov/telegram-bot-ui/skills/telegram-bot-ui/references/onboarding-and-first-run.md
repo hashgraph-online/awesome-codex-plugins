@@ -13,6 +13,8 @@ bot_api: "10.4"
 
 The first minute decides whether a bot is used again. A good first run answers three questions in
 this order: *what is this*, *what do I do now*, *what will it send me*. Everything else waits.
+The first message itself, designed per entry (brief, media, copy, buttons, variants, edits):
+[welcome-message.md](welcome-message.md).
 
 ## Before the user presses Start
 
@@ -53,8 +55,12 @@ first run: name the inviter, offer one first action **[heuristic]**.
 
 At most three steps, each with a visible way out **[heuristic]**:
 
-1. **Language** — pre-select `from.language_code` (✓ + `style: "primary"`), names in their own
-   language (“Українська”, not “Ukrainian”). Skip this step if you support only one language.
+1. **Language** — only when `from.language_code` is missing or unsupported, or when the language
+   decides content; otherwise answer in it and keep the switch in Settings
+   ([welcome-message.md §3](welcome-message.md#3-language-first-or-straight-to-the-welcome);
+   recipe 23 shows the always-ask variant). When asked: pre-select the detected language (✓ +
+   `style: "primary"`), names in their own language (“Українська”, not “Ukrainian”), and replace
+   the picker with the welcome instead of sending a second message.
 2. **What you'll receive** — say exactly what notifications mean (“when your order ships, no
    ads”), `Notify me` / `Not now`. Users who say no still get transactional messages they caused.
 3. **Optional data** — a phone or location only through a reply keyboard button with
@@ -99,6 +105,8 @@ admins and is in recipe 29.
 
 - [ ] Description, short description and commands set for every supported language.
 - [ ] `/start` parameter validated, mapped, never echoed; unknown values logged.
+- [ ] The welcome designed per entry, one message each, `tgui.py check welcome` clean
+      (welcome-message.md §9).
 - [ ] ≤ 3 first-run steps, each skippable, progress as text.
 - [ ] Contact/location only via reply keyboard; keyboard removed afterwards; own contact checked.
 - [ ] Every empty state names one next action.

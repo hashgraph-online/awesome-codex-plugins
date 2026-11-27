@@ -23,37 +23,13 @@ tokenized project is to find which existing step fits, not to invent a new one.
 Pick distinct steps around the current project value, or the middle when there is none.
 A matrix puts one direction on rows and the other on columns, both labeled.
 
-## Captions — the sheet explains itself
+## Captions
 
-The user reads the screen, not the chat. Everything needed to judge a specimen sits
-next to it. Every sentence follows `references/writing.md`.
-
-Up to four lines per specimen:
-
-```
-A   x1.8                                        토큰 그대로
-    윗변 100% · 그림자 100%
-    그림자가 가장 넓게 번집니다. B와 그림자가 같아 둘이 한 쌍처럼 보입니다.
-```
-
-1. letter · the value being moved · its cost
-2. what that value resolves to, when the value alone doesn't show it
-3. one line on what it does to the eye: the part that changes, then a verb for how
-   (`번짐이 넓어집니다`, `제목이 잘립니다`, `카드가 떠 보입니다`)
-4. **only if there is a real trade-off** — what this option gains and what it gives up,
-   against the others on the sheet, as two labelled lines:
-
-```
-B   안쪽 여백과 칸 사이를 줄임                         layout.css 변수 + phone-md 1곳
-    360 미만: 아이콘 18 · 글자 11 · 칸 사이 8 · 양끝 12
-    칸이 38로 넓어집니다. "타임라인"이 칸 안에 딱 맞습니다.
-    얻는 것  320에서도 글자가 잘리지 않습니다.
-    잃는 것  320에서는 칸 사이가 피그마보다 4px 좁습니다.
-```
-
-Leave line 4 out when nothing is given up — a pure step on a ladder usually has none.
-Name concrete costs (a width that breaks, a token that moves, a state that stops
-reading), never vague ones like `덜 깔끔함`.
+Use the caption structure in `shared/writing.md#the-caption`; do not duplicate its
+rules here. Label the current project value `현재값` when it is one of the rungs, so the
+user can compare a change against the baseline. Costs describe the intended apply scope:
+reusing a token is not the same as changing its shared definition. Include gain and loss
+only for a concrete trade-off, never a fabricated downside for a simple value step.
 
 ### Where to look
 
@@ -65,9 +41,9 @@ When the rungs differ in one spot only (the bottom edge of a shadow, a title cut
 - **The same spot on every rung**, so the eye moves from A to E along one line.
 - **The caption names it.** Line 3 starts from the marked part: `표시한 아래 가장자리에서
   번짐이 넓어집니다.`
-- Skip it when the whole specimen is what changes (a surface color, a layout).
+- Skip it when the whole specimen is what changes (a surface color, a whole-page layout).
 
-Markup → `references/sheet.md`.
+Markup → `shared/sheet.md`.
 
 ### What is not the real thing
 
@@ -98,11 +74,15 @@ name (class names built at runtime, styles set from JavaScript, another package 
 CMS), the count is a floor. Write it as one: `--shadow-md 고침 (23곳 이상)`. What the
 search couldn't reach is reported before applying (`worker.md`, `Blast radius`).
 
-Under the ladder, where the perceptual steps break:
+Under a ladder of one continuous value (blur, spacing, radius, duration), where the
+perceptual steps break:
 
 ```
 경계  B와 C는 이 크기에서 구분되지 않습니다. E부터 카드가 떠 보입니다.
 ```
+
+Leave it out when the options are distinct choices (a position, an order, a layout):
+there is no step to break, and the captions already say how each one differs.
 
 ### The recommendation
 
@@ -136,25 +116,33 @@ the layout or split it into clearly labeled groups.
 
 ## Context
 
-A specimen judged in the wrong context is judged wrong.
+A specimen judged in the wrong context is judged wrong. Draw the contexts the ordered
+axis reacts to, not every context every time: extra copies the axis doesn't react to
+only push rungs out of the first window.
 
-**Backgrounds — at least two.** Shadow, border, opacity and blur all invert with the
-surface behind them. White and gray at minimum; dark too if the project has it.
+**Backgrounds: at least two,** when the axis reacts to the surface behind it. Shadow,
+border, opacity, blur and color all invert with it. White and gray at minimum; dark
+too if the project has it.
 
-**Repeat the element.** One button never reveals a shadow. Lay six in a list and
-"too heavy" becomes obvious. Anything that appears in multiples in the real UI gets
-drawn in multiples here.
+**Repeat the element** when it appears in multiples in the real UI. One button never
+reveals a shadow. Lay six in a list and "too heavy" becomes obvious.
 
-**Two sizes.** The same radius reads completely differently on a 32px chip and a
-400px card. Small and large, always.
+**Two sizes** when the axis reads differently with size. The same radius reads
+completely differently on a 32px chip and a 400px card. Radius, padding, border and
+type size get small and large.
 
-**Real content.** Placeholder boxes hide the problem — a card with lorem ipsum and a
-card with a real headline, avatar and timestamp are different design problems.
+**Real content, always.** Placeholder boxes hide the problem: a card with lorem ipsum
+and a card with a real headline, avatar and timestamp are different design problems.
+Real content is not a toggle; there is no version of this where lorem ipsum is the
+right specimen.
 
-Show background, repetition and size contexts together. Context buttons may isolate one
-condition when that materially helps; they bring no sliders with them. Never open a
-sheet already narrowed because it looks tidier. Real content is not a toggle: there is no version of
-this where lorem ipsum is the right specimen.
+A position, order or layout axis is judged on the real page around it
+(`Structure and layout`, below), not on extra backgrounds and sizes.
+
+Show the contexts that apply together. Never drop one the axis reacts to because the
+sheet looks tidier without it; `shared/sheet.md` says how they fit the first window.
+Context buttons may isolate one condition when that materially helps; they bring no
+sliders with them.
 
 ### When context is a constraint, not a variable
 
@@ -177,7 +165,7 @@ actually leaves alive before laying anything out.
 
 > "버튼 만들어야 하는데 아직 아무것도 없어"
 
-Clarify purpose and use when unknown — `references/clarification.md` — and inspect
+Clarify purpose and use when unknown — `shared/clarification.md` — and inspect
 available content and project conventions yourself. Then show starting points instead
 of asking the user to describe a look.
 
@@ -213,7 +201,7 @@ not come back.
 ### A look exists, but the user wants a different direction
 
 Anchor the exploration in what the code does today — the current value belongs in the
-middle, not thrown away. `references/stylesystems.md` calls this hunting a direction.
+middle, not thrown away. `shared/stylesystems.md` calls this hunting a direction.
 
 ## Stateful parts — two rows
 
@@ -232,17 +220,44 @@ implementation. Shape and transition are decidable; **correctness of behavior is
 Mark these specimens on the sheet: `What is not the real thing`, above.
 Mount/unmount timing is a motion question — `references/motion.md`.
 
-## Wireframes
+## Structure and layout
 
-When the question is structure — layout, column split, sidebar width, content order —
-strip everything else.
+When the question is structure (where a menu item goes, where filters sit, a column
+split, sidebar width, content order), the axis is position. The look is not stripped:
+it is the part held fixed, identical on every rung.
 
-**Achromatic only. No color, no type styling, no shadow, no radius.** Gray blocks on
-white. If a skin is on it, the skin gets judged instead of the structure.
+**Draw it in the real design.** The user judges a layout as it will ship. A filter row
+that looks fine as gray outlines can crowd the real header, and a menu item that reads
+well in a plain list can disappear among the real icons and group labels.
 
-- Block weight carries hierarchy: darker gray = heavier element
-- Label blocks with their role (`네비`, `사이드바`, `본문`, `카드`) — not lorem ipsum
-- Draw the real breakpoints if width is the question, not one arbitrary viewport
-- Keep a real page's worth of content. Three blocks won't show a layout failing
+- **The project's own design** when one exists: its utilities, variables, fonts, icons
+  and component markup, per `shared/stylesystems.md`. Copy the real screen's markup
+  and classes; don't redraw it in generic black and white.
+- **The design the user asked for** when the new part has requirements (a Figma frame,
+  a reference screen, a description). Draw those, on top of the existing design around it.
+- **Neither exists** (a blank slate with no stated look): write plain values directly
+  and say so on the sheet (`임의값 탐색안`). Still real type, spacing and copy, not
+  gray blocks.
 
-Structure is settled first, skin afterwards — a separate order.
+Around the part that moves:
+
+- Draw the real page around it: navigation, header, neighbouring sections, real copy,
+  and a real page's worth of items. Three blocks won't show a layout failing.
+- Draw the real breakpoints if width is the question, not one arbitrary viewport.
+- Mark what moved with a `.dh-look` bracket beside it (`Where to look`). Never a gray fill
+  or dashed box on it: that restyles the very thing being judged.
+- Markup rebuilt by hand instead of the real component gets `실물과 다름`, as anywhere.
+
+### A skeleton only on request
+
+Draw gray blocks only when the user explicitly asks to see positions alone:
+`뼈대만 보자` · `와이어프레임으로` · `위치만 보자` · `디자인 빼고`. A layout question is
+not that request, and neither is an early stage, a rough request, or a large page.
+
+- Achromatic only: no color, no type styling, no shadow, no radius. Gray blocks on white.
+- Block weight carries hierarchy: darker gray = heavier element.
+- Label blocks with their role (`네비`, `사이드바`, `본문`, `카드`), not lorem ipsum.
+- The real breakpoints and a real page's worth of blocks, as above.
+
+The request holds for that order only. The next order is drawn in the real design again
+unless the user asks for a skeleton again.

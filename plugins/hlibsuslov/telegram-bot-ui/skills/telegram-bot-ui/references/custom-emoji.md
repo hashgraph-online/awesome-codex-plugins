@@ -135,7 +135,9 @@ attempt until `reset_kill_switch()` after the owner confirms the route is back (
 
 `scripts/emoji_packs.py` resolves packs to slot maps, suggests packs, verifies stored ids
 (≤ 200 per call), prints the capture steps, and applies or strips custom emoji in payloads.
-The workflow an agent follows is in `emoji-packs.md`; posts in `emoji-in-posts.md`.
+The workflow an agent follows is in `emoji-packs.md`; posts in `emoji-in-posts.md`. Choosing the icons
+for buttons and titles yourself: the staged icon plan there (`bot-ui emoji plan`, `emoji_plan.py`, MCP
+`emoji_plan_icons`): meaning, one family, legibility at 20 px, a verdict per slot, a decision record.
 
 ## Getting a real `custom_emoji_id` — never invent one
 

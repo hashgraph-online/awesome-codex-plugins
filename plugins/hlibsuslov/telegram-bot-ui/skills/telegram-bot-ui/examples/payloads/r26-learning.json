@@ -96,22 +96,18 @@
                 }
               ],
               "credit": "Example"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Start quiz",
-                  "callback_data": "lr:2:start",
-                  "style": "primary"
-                }
-              ],
-              "align": "left"
             }
           ]
         },
         "reply_markup": {
           "inline_keyboard": [
+            [
+              {
+                "text": "Start quiz",
+                "callback_data": "lr:2:start",
+                "style": "primary"
+              }
+            ],
             [
               {
                 "text": "← Back",
@@ -539,22 +535,18 @@
                 }
               ],
               "credit": "Example"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Start quiz",
-                  "callback_data": "lr:a:start",
-                  "style": "primary"
-                }
-              ],
-              "align": "left"
             }
           ]
         },
         "reply_markup": {
           "inline_keyboard": [
+            [
+              {
+                "text": "Start quiz",
+                "callback_data": "lr:a:start",
+                "style": "primary"
+              }
+            ],
             [
               {
                 "text": "← Back",
@@ -1133,22 +1125,18 @@
                 }
               ],
               "credit": "Приклад"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Почати тест",
-                  "callback_data": "lr:2:start",
-                  "style": "primary"
-                }
-              ],
-              "align": "left"
             }
           ]
         },
         "reply_markup": {
           "inline_keyboard": [
+            [
+              {
+                "text": "Почати тест",
+                "callback_data": "lr:2:start",
+                "style": "primary"
+              }
+            ],
             [
               {
                 "text": "← Назад",
@@ -1562,22 +1550,18 @@
                 }
               ],
               "credit": "Приклад"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Почати тест",
-                  "callback_data": "lr:a:start",
-                  "style": "primary"
-                }
-              ],
-              "align": "left"
             }
           ]
         },
         "reply_markup": {
           "inline_keyboard": [
+            [
+              {
+                "text": "Почати тест",
+                "callback_data": "lr:a:start",
+                "style": "primary"
+              }
+            ],
             [
               {
                 "text": "← Назад",
@@ -2055,22 +2039,18 @@
                 }
               ],
               "credit": "Example"
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "Start quiz",
-                  "callback_data": "lr:l:start",
-                  "style": "primary"
-                }
-              ],
-              "align": "left"
             }
           ]
         },
         "reply_markup": {
           "inline_keyboard": [
+            [
+              {
+                "text": "Start quiz",
+                "callback_data": "lr:l:start",
+                "style": "primary"
+              }
+            ],
             [
               {
                 "text": "← Back",

@@ -21,9 +21,9 @@ Follow [team coordination](../zagrosi-forge/references/collaboration.md) when co
 reuse the same task across phases and delegated agents.
 
 Use the least process that preserves correctness. Apply the all-depth
-[engineering standard](references/engineering.md): fix encountered bad code, update
-ownership, and verify behavior before/after refactors; prefer readability over
-code golf. Read the admitted plan's depth;
+[engineering standard](references/engineering.md). Keep control flow readable,
+reuse shared behavior with its caller contracts, and measure performance claims.
+Read the admitted plan's depth;
 use it as `{depth}` throughout. Require `sections/index.md`; its parent is
 `planning_dir`; `target_dir` defaults to the repo. A state-first plan (`status.json`
 beside `plan.md`) follows [state-first](references/state-first.md) instead.
@@ -76,8 +76,8 @@ authorization. Keep fresh evidence reusable and unfinished checks visible.
    result before source edits with `implement-progress --planning-dir "{planning_dir}" --section
    "{section}" --stage red --command "{test command}" --result "{observed failure}"`.
    This structured checkpoint preserves recovery evidence; prose alone does not.
-3. Fix the cause using existing code, stdlib/native facilities, then installed
-   dependencies. Prefer direct functions; reject speculative layers/configuration.
+3. Reuse existing code and native facilities. For dependencies, verify the latest
+   stable and the resolved version. Prefer direct functions and avoid speculative layers.
    Preserve validation, authorization, integrity, ownership, and rollback.
 4. Capture targeted checks with `implement-verify --planning-dir "{planning_dir}"
    --target-dir "{target_dir}" --section "{section}" -- <command argv>`.

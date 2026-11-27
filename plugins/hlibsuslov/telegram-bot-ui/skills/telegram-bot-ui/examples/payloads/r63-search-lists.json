@@ -754,17 +754,17 @@
               ],
               "is_bordered": true,
               "is_compact": true
-            },
-            {
-              "type": "buttons",
-              "buttons": [
-                {
-                  "text": "← List",
-                  "callback_data": "sr:d:back"
-                }
-              ],
-              "align": "left"
             }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← List",
+                "callback_data": "sr:d:back"
+              }
+            ]
           ]
         }
       }

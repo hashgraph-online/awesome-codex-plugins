@@ -22,7 +22,7 @@ import sys
 
 import _common as c
 from tgkit import flows as f
-from tgkit.rich import button_row, rich_button, table
+from tgkit.rich import table
 from tgkit.transport import FakeTransport
 
 PAYLOAD = "r63-search-lists"
@@ -247,8 +247,9 @@ class JobBoard:
                      self.jobs[j]["salary"]] for j in part]
             return {"rich_message": {"blocks": [
                 {"type": "heading", "size": 2, "text": fl.tr(s, "cmp_title", page=page + 1, pages=pages)},
-                table([fl.tr(s, k) for k in ("col_job", "col_city", "col_level", "col_pay")], rows, compact=True),
-                button_row([rich_button(fl.tr(s, "btn_list"), callback_data=fl.cb(s, "back"))])]}}
+                table([fl.tr(s, k) for k in ("col_job", "col_city", "col_level", "col_pay")], rows, compact=True)]},
+                # navigation is the keyboard, not a button in the document (references/rich-message-buttons.md)
+                "reply_markup": f.kb([f.btn(fl.tr(s, "btn_list"), fl.cb(s, "back"))])}
 
         # ---- actions
         @fl.action("new")

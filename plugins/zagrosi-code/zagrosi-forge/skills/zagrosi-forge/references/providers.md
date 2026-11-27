@@ -72,6 +72,9 @@ material permitted to be sent to that provider. Never include credentials. Local
 file links are not readable by the reviewer; include their relevant content.
 For refactors, include the original compatibility wording and before/after
 caller-surface evidence; a plan's claim of preservation is insufficient.
+For dependencies the change uses, include the dated registry or upstream
+release evidence, migration notes when applicable, the actual resolved version
+and affected test results. Explain any older selection or prerelease opt-in.
 When delegating [check derivation](../../zagrosi-implement/references/compatibility.md),
 supply original source and callers before replacement code. Record who derived
 the checks and what they saw; a separate model or captured run alone does not

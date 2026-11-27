@@ -17,6 +17,9 @@ booking, support, onboarding, learning, community, inline mode, a business accou
   `specialized-updates.md`.
 - Users and data: `user-data.md`, `user-trust.md`, `user-profile.md`; first run
   `onboarding-and-first-run.md`; unknown project `project-adaptation.md`.
+- Every new bot: the first message after `/start`, `welcome-message.md` (the brief, one message
+  per entry, `tgui.py check welcome`); every notification it sends, one pattern per type from
+  `message-patterns.md` (`tgui.py patterns find|show|render`, `tgkit/notify.py`).
 
 ## Steps
 

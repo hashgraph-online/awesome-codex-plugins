@@ -91,6 +91,59 @@ def custom_emoji(text: str) -> list[tuple[str, str, bool]]:
     return out
 
 
+# Where a button inside the document does not belong (references/rich-message-buttons.md §6, §10). The keyboard
+# is the default; a document button is for a press that changes one part of the same message.
+OUTSIDE_KINDS = {"url", "web_app", "login_url", "switch_inline_query", "switch_inline_query_current_chat",
+                 "switch_inline_query_chosen_chat"}
+FILLED_STYLES = {"primary", "success", "danger"}
+NAV_LABEL = re.compile(r"^\s*(?:[←‹«]|back\b|menu\b|home\b|назад|меню|головн|главн)", re.I)
+ROW_SOFT_MAX = 4   # the API allows 8 in a row; past 4 a row turns into slivers
+DOC_SOFT_MAX = 8   # bubbles (buttons not styled "link") in one message; past this: a keyboard picker, search, a Mini App
+LINK_SOFT_MAX = 20  # quiet per-line "link" buttons (one per list item) before the list wants paging or a Mini App
+
+
+def placement(buttons: list[dict], rows: list[int]) -> list[tuple[str, str]]:
+    """(code, message) warnings for the buttons of one document. `buttons`: {kind, style, label, nav?} where kind
+    is the button's action field (url, callback_data, ...; "" when unknown) and nav marks a known move to another
+    screen; `rows`: the size of each button row."""
+    out: list[tuple[str, str]] = []
+
+    def labels(pred) -> str:
+        hits = [b.get("label") or b.get("kind") or "?" for b in buttons if pred(b)]
+        return ", ".join(repr(h[:24]) for h in hits[:4]) + (" …" if len(hits) > 4 else "")
+
+    if any(b.get("nav") or NAV_LABEL.match(b.get("label") or "") for b in buttons):
+        out.append(("RICH_BUTTON_NAVIGATION", f"{labels(lambda b: b.get('nav') or NAV_LABEL.match(b.get('label') or ''))} "
+                    "moves to another screen: navigation lives on the keyboard under the message"))
+    if any(b.get("style") in FILLED_STYLES for b in buttons):
+        out.append(("RICH_BUTTON_MAIN_ACTION", f"{labels(lambda b: b.get('style') in FILLED_STYLES)} has a filled style "
+                    "inside the document: the main action and commitments go on the keyboard (its style there); "
+                    "a document button is a quiet per-element control"))
+    if any(b.get("kind") in OUTSIDE_KINDS for b in buttons):
+        out.append(("RICH_BUTTON_OUTSIDE", f"{labels(lambda b: b.get('kind') in OUTSIDE_KINDS)} opens something outside "
+                    "the message: a link in the sentence (<a href>) or a keyboard button"))
+    links = sum(1 for b in buttons if b.get("style") == "link")
+    bubbles = len(buttons) - links
+    if any(n > ROW_SOFT_MAX for n in rows) or bubbles > DOC_SOFT_MAX or links > LINK_SOFT_MAX:
+        shape = f"{bubbles} button(s) and {links} link button(s)" + (f", rows of {', '.join(map(str, rows))}" if rows else "")
+        out.append(("RICH_BUTTON_DENSITY", f"{shape} in the document: at most {ROW_SOFT_MAX} in a row, about "
+                    f"{DOC_SOFT_MAX} buttons and {LINK_SOFT_MAX} per-line links in a message; more is a keyboard "
+                    "picker, inline search or a Mini App"))
+    return out
+
+
+def html_buttons(text: str) -> tuple[list[dict], list[int]]:
+    """The buttons of a Rich HTML text for placement(): official-attribute buttons carry their kind and style;
+    bot-ui `action=` buttons are reported with kind "" (the screen's action types decide those)."""
+    buttons = []
+    for m in BUTTON_RE.finditer(text):
+        a = attrs(m.group(1))
+        buttons.append({"kind": "" if a.get("action") else a.get("type", ""), "style": a.get("style", ""),
+                        "label": visible_text(m.group(2)).strip(), "action": a.get("action")})
+    rows = [len(BUTTON_RE.findall(r.group(2))) for r in ROW_RE.finditer(text)]
+    return buttons, rows
+
+
 def screen_action_ids(screen: dict) -> set[str]:
     """Every action a rich screen's text binds, across locales and state variants."""
     msg = screen.get("message") or {}

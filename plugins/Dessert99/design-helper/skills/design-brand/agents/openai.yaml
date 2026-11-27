@@ -1,0 +1,7 @@
+interface:
+  display_name: "design-brand"
+  short_description: "Pick an icon set and a logo direction where they are used"
+  default_prompt: "Use $design-brand to choose this product's icon set and logo direction."
+
+policy:
+  allow_implicit_invocation: false

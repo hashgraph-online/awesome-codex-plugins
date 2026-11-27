@@ -135,6 +135,7 @@ people check, `<code>` the values they copy, no greeting or sign-off. Silent
 (`disable_notification`) unless someone must act now. When it is handled, **edit the same
 message** into its outcome line and remove the buttons, so old alerts don't keep live actions.
 A failure inside a status card replaces its own line (⚠️ + next step) and keeps the card's shape.
+The header formula, body blocks and one pattern per notification type: `message-patterns.md`.
 
 > **☕ Order #1042 is ready**, pick it up by 13:10
 > Khreshchatyk St 22, counter 2

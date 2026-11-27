@@ -2,12 +2,13 @@
 """Local preview stand for a Telegram Mini App inside a MOCK of the Telegram client.
 
   py -3 scripts/preview_miniapp.py examples/mini-apps/vanilla --serve 8790
-      open http://127.0.0.1:8790/                 one device with Telegram chrome, controls, call log
+      open http://127.0.0.1:8790/                 one device with Telegram chrome, panels around it
       open http://127.0.0.1:8790/?view=matrix     iOS/Android x light/dark x 320/390/430 + fullscreen
       open http://127.0.0.1:8790/?platform=android&scheme=dark&width=390&mode=fullscreen&version=8.0
       add &height=1600 for a taller device (long screens in one screenshot)
+      add &zoom=100 (fit, 50, 75, 100) and &panels=0 (no side or bottom panels) for screenshots at 1:1
       add &audit=1 to measure the layout after ready(): gaps between surfaces, text inset, radii
-      (examples/mini-apps/_kit/tma-audit.mjs, rules LA01-LA05); findings go to the call log, the surfaces get
+      (examples/mini-apps/_kit/tma-audit.mjs, rules LA01-LA05); findings go to the Layout tab, the surfaces get
       a dashed outline, window.__tmaAudit holds the result and window.tmaAudit() re-runs it on the current screen
   py -3 scripts/preview_miniapp.py examples/mini-apps/vanilla --check   # static checks, no server
 
@@ -15,13 +16,25 @@ The stand serves the app's folder (by default its parent, so `../_kit/tma.css` r
 127.0.0.1 only, replaces the `telegram-web-app.js` script tag with a local mock of
 `window.Telegram.WebApp`, and draws what Telegram draws around a Mini App: the status bar, the
 header (Close or Back, title, menu), the bottom bar with MainButton / SecondaryButton, native
-popups, the fullscreen controls and safe areas. Controls: platform, colour scheme, width, mode
-(compact, full, fullscreen), client version, Android performance class, motion sensors and location
-(synthetic readings and demo coordinates), the user's language_code (en, ru, uk, de, ar, he, fa),
-the network for the app's own requests (slow 3 s, flaky, offline, 500, 401: `?network=offline`), style preset (to see any
-app in native / fintech / soft / dense), the invoice outcome (paid, cancelled, failed, pending:
-`?invoice=paid`), start_param. Every call
-(haptics, popups, chrome colours, storage, links, unsupported members) is logged.
+popups, the closing confirmation, the loading placeholder until ready(), the fullscreen controls and
+safe areas. The page (preview_stand/: HTML, CSS, JS, no build, no network) has:
+
+  toolbar     relaunch, the app's address and its ready() status, platform, width, day/night theme, zoom
+  left        launch parameters that relaunch the app: client version, the user's language_code
+              (en, ru, uk, de, ar, he, fa), start_param, Android performance class; live settings the running
+              app sees at once: viewport (compact, full, fullscreen), the network for its own requests
+              (slow 3 s, flaky, offline, 500, 401: `?network=offline`), the invoice outcome (paid, cancelled,
+              failed, pending: `?invoice=paid`), style preset (native / fintech / soft / dense); the user's
+              moves: system back, minimize (deactivated / activated), close, relaunch
+  bottom      Events (every call: haptics, popups, chrome colours, buttons, storage, links, payments,
+              unsupported members, the app's errors), Network (each request, its status and time), Layout
+  right       Inspector: lifecycle, viewport and safe areas, chrome colours, MainButton and SecondaryButton,
+              closing confirmation and swipes, theme parameters, initData, CloudStorage / DeviceStorage /
+              SecureStorage (kept across relaunches in the tab, Clear for a first launch)
+
+The URL holds every setting (Copy link reproduces the view); the day/night switch sends themeChanged
+to the running app instead of reloading it. Motion sensors and location give synthetic readings and
+demo coordinates.
 
 Versions come from data/mini-apps/webapp-catalog.json: a member newer than the selected client
 version behaves like the real script (methods throw `WebAppMethodUnsupported`, objects and setters
@@ -45,7 +58,6 @@ The app itself is served at /app/<path of the entry under the root>, e.g. /app/r
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import mimetypes
 import os
@@ -193,10 +205,32 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
     if (c === 'bg_color' || c === 'secondary_bg_color' || c === 'bottom_bar_bg_color') return themeParams[c] || null;
     return c;
   }
+  // Errors the app throws or prints reach the stand's Events panel (the mock's own warnings are logged as unsupported)
+  window.addEventListener('error', function (e) {
+    if (e.message) log('error', e.message, e.filename ? e.filename.replace(location.origin, '') + ':' + e.lineno : '');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason; log('error', 'unhandled rejection', r && r.message ? r.message : String(r));
+  });
+  var consoleError = console.error;
+  console.error = function () {
+    var a = Array.prototype.slice.call(arguments);
+    if (String(a[0]).indexOf('[Telegram.WebApp]') !== 0) {
+      log('error', 'console.error', a.map(function (x) {
+        if (x && x.message) return x.message;
+        try { return typeof x === 'object' ? JSON.stringify(x) : String(x); } catch (err) { return String(x); }
+      }).join(' ').slice(0, 500));
+    }
+    return consoleError.apply(console, arguments);
+  };
+
   var store = {};
   function storage(name, since, limits) {
     var mem = store[name] = {};
+    var kept = cfg.storage && cfg.storage[name];  // the stand keeps storage across relaunches, like Telegram
+    if (kept && typeof kept === 'object') Object.keys(kept).forEach(function (k) { mem[k] = String(kept[k]); });
     function cb(f, a, b) { setTimeout(function () { f && f(a, b); }, 0); }
+    function changed() { post('storage', { name: name, items: Object.assign({}, mem) }); }
     function guard(key) {
       if (!ok('WebApp.' + name, name)) return false;
       if (limits && !/^[A-Za-z0-9_-]{1,128}$/.test(key)) throw Error('WebAppStorageKeyInvalid');
@@ -206,14 +240,14 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
       setItem: function (k, v, f) {
         if (!guard(k)) return api;
         if (limits && String(v).length > 4096) { cb(f, 'VALUE_TOO_LONG'); return api; }
-        mem[k] = String(v); log('storage', name + '.setItem', k); cb(f, null, true); return api;
+        mem[k] = String(v); log('storage', name + '.setItem', k); changed(); cb(f, null, true); return api;
       },
       getItem: function (k, f) { if (guard(k)) cb(f, null, k in mem ? mem[k] : (limits ? '' : null)); return api; },
       getItems: function (ks, f) { var o = {}; ks.forEach(function (k) { o[k] = mem[k] || ''; }); cb(f, null, o); return api; },
-      removeItem: function (k, f) { if (guard(k)) { delete mem[k]; cb(f, null, true); } return api; },
-      removeItems: function (ks, f) { ks.forEach(function (k) { delete mem[k]; }); cb(f, null, true); return api; },
+      removeItem: function (k, f) { if (guard(k)) { delete mem[k]; log('storage', name + '.removeItem', k); changed(); cb(f, null, true); } return api; },
+      removeItems: function (ks, f) { ks.forEach(function (k) { delete mem[k]; }); log('storage', name + '.removeItems', ks); changed(); cb(f, null, true); return api; },
       getKeys: function (f) { cb(f, null, Object.keys(mem)); return api; },
-      clear: function (f) { Object.keys(mem).forEach(function (k) { delete mem[k]; }); cb(f, null, true); return api; },
+      clear: function (f) { Object.keys(mem).forEach(function (k) { delete mem[k]; }); log('storage', name + '.clear'); changed(); cb(f, null, true); return api; },
       restoreItem: function (k, f) { cb(f, 'RESTORE_DECLINED'); return api; }
     };
     return api;
@@ -293,7 +327,8 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
     onEvent: function (n, cb) { (handlers[n] = handlers[n] || []).push(cb); },
     offEvent: function (n, cb) { handlers[n] = (handlers[n] || []).filter(function (f) { return f !== cb; }); },
     ready: function () {
-      log('call', 'ready', Math.round(performance.now()) + ' ms after navigation start'); post('ready');
+      var ms = Math.round(performance.now());
+      log('call', 'ready', ms + ' ms after navigation start'); post('ready', { ms: ms });
       if (cfg.audit) setTimeout(function () { window.tmaAudit(); }, 800);
     },
     expand: function () { log('call', 'expand'); post('expand'); },
@@ -302,14 +337,14 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
     setHeaderColor: function (c) { if (ok('WebApp.setHeaderColor', 'setHeaderColor')) { headerColor = keyword(c); post('chrome', { header: headerColor, headerKey: c }); log('chrome', 'setHeaderColor', c); } },
     setBackgroundColor: function (c) { if (ok('WebApp.setBackgroundColor', 'Background color')) { bgColor = keyword(c); post('chrome', { background: bgColor, backgroundKey: c }); log('chrome', 'setBackgroundColor', c); } },
     setBottomBarColor: function (c) { if (ok('WebApp.setBottomBarColor', 'Bottom bar color')) { barColor = keyword(c); post('chrome', { bottomBar: barColor, bottomBarKey: c }); log('chrome', 'setBottomBarColor', c); } },
-    enableClosingConfirmation: function () { if (ok('WebApp.enableClosingConfirmation', 'Closing confirmation')) { closingConfirm = true; log('call', 'enableClosingConfirmation'); } },
-    disableClosingConfirmation: function () { if (ok('WebApp.disableClosingConfirmation', 'Closing confirmation')) { closingConfirm = false; log('call', 'disableClosingConfirmation'); } },
-    enableVerticalSwipes: function () { if (ok('WebApp.enableVerticalSwipes', 'Changing swipes behavior')) { swipes = true; log('call', 'enableVerticalSwipes'); } },
-    disableVerticalSwipes: function () { if (ok('WebApp.disableVerticalSwipes', 'Changing swipes behavior')) { swipes = false; log('call', 'disableVerticalSwipes'); } },
-    requestFullscreen: function () { ok('WebApp.requestFullscreen', 'requestFullscreen'); post('fullscreen', true); },
-    exitFullscreen: function () { ok('WebApp.exitFullscreen', 'exitFullscreen'); post('fullscreen', false); },
-    lockOrientation: function () { if (ok('WebApp.lockOrientation', 'lockOrientation')) log('call', 'lockOrientation'); },
-    unlockOrientation: function () { if (ok('WebApp.unlockOrientation', 'unlockOrientation')) log('call', 'unlockOrientation'); },
+    enableClosingConfirmation: function () { if (ok('WebApp.enableClosingConfirmation', 'Closing confirmation')) { closingConfirm = true; log('call', 'enableClosingConfirmation'); post('flags', { closingConfirmation: true }); } },
+    disableClosingConfirmation: function () { if (ok('WebApp.disableClosingConfirmation', 'Closing confirmation')) { closingConfirm = false; log('call', 'disableClosingConfirmation'); post('flags', { closingConfirmation: false }); } },
+    enableVerticalSwipes: function () { if (ok('WebApp.enableVerticalSwipes', 'Changing swipes behavior')) { swipes = true; log('call', 'enableVerticalSwipes'); post('flags', { verticalSwipes: true }); } },
+    disableVerticalSwipes: function () { if (ok('WebApp.disableVerticalSwipes', 'Changing swipes behavior')) { swipes = false; log('call', 'disableVerticalSwipes'); post('flags', { verticalSwipes: false }); } },
+    requestFullscreen: function () { ok('WebApp.requestFullscreen', 'requestFullscreen'); log('call', 'requestFullscreen'); post('fullscreen', true); },
+    exitFullscreen: function () { ok('WebApp.exitFullscreen', 'exitFullscreen'); log('call', 'exitFullscreen'); post('fullscreen', false); },
+    lockOrientation: function () { if (ok('WebApp.lockOrientation', 'lockOrientation')) { log('call', 'lockOrientation'); post('flags', { orientationLocked: true }); } },
+    unlockOrientation: function () { if (ok('WebApp.unlockOrientation', 'unlockOrientation')) { log('call', 'unlockOrientation'); post('flags', { orientationLocked: false }); } },
     hideKeyboard: function () { if (ok('WebApp.hideKeyboard', 'hideKeyboard')) { log('call', 'hideKeyboard'); if (document.activeElement) document.activeElement.blur(); } },
     showPopup: function (p, cb) { ok('WebApp.showPopup', 'showPopup'); popup(p, cb); },
     showAlert: function (m, cb) { ok('WebApp.showAlert', 'showAlert'); popup({ message: m, buttons: [{ type: 'close' }] }, function () { cb && cb(); }); },
@@ -397,46 +432,72 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
       if (m.data.safe) { safe = m.data.safe; content = m.data.content; if (cmp(version, '8.0')) { applyInsets(); emit('safeAreaChanged'); emit('contentSafeAreaChanged'); } }
       if ('fullscreen' in m.data) { fullscreen = m.data.fullscreen; emit('fullscreenChanged'); }
       if ('active' in m.data) { WebApp.isActive = m.data.active; emit(m.data.active ? 'activated' : 'deactivated'); }
+      // settings the stand changes while the app runs: the next request, invoice or read sees them
+      if ('mode' in m.data) cfg.mode = m.data.mode;
+      if ('network' in m.data) cfg.network = m.data.network;
+      if ('invoice' in m.data) cfg.invoice = m.data.invoice;
+      if ('style' in m.data) { cfg.style = m.data.style; if (cfg.style) root.setAttribute('data-tma-style', cfg.style); else root.removeAttribute('data-tma-style'); }
+      if (m.data.storage) Object.keys(m.data.storage).forEach(function (n) {
+        var mem = store[n]; if (!mem) return;
+        Object.keys(mem).forEach(function (k) { delete mem[k]; });
+        Object.assign(mem, m.data.storage[n]);
+      });
     }
   });
   window.Telegram = { WebApp: WebApp, WebView: { isIframe: inStand, initParams: {} }, Utils: {} };
   // the stand's --api mock answers order status from the selected invoice outcome
   if (window.fetch) {
-    var realFetch = window.fetch, netCount = 0;
+    var realFetch = window.fetch, netCount = 0, netId = 0;
     window.fetch = function (input, init) {
       init = init || {};
       var headers = new Headers(init.headers || (input && input.headers) || {});
       headers.set('X-TMA-Mock-Invoice', cfg.invoice || 'cancelled');
       init.headers = headers;
-      var raw = typeof input === 'string' ? input : input.url;
-      log('network', (init.method || 'GET') + ' ' + raw);
-      // the stand's Network control breaks the app's own requests (not its files under /app/)
+      var raw = typeof input === 'string' ? input : (input && input.url) || String(input);
       var url = new URL(raw, location.href);
+      var method = String(init.method || (input && input.method) || 'GET').toUpperCase();
+      var shown = url.origin === location.origin ? url.pathname + url.search : url.href;
+      var id = ++netId, t0 = performance.now(), self = this;
+      // the stand's Network panel shows each request while it runs and how it ended
+      function done(status, note) { post('net', { id: id, phase: 'end', method: method, url: shown, status: status, ms: Math.round(performance.now() - t0), note: note || '' }); }
+      post('net', { id: id, phase: 'start', method: method, url: shown });
+      // the stand's Network control breaks the app's own requests (not its files under /app/)
       var own = url.origin === location.origin && url.pathname.indexOf('/app/') !== 0 && url.pathname.indexOf('/__tma__') !== 0;
       var net = cfg.network || 'normal';
+      function real(note) {
+        return realFetch.call(self, input, init).then(function (r) { done(r.status, note); return r; },
+          function (e) { done('failed', e && e.message); throw e; });
+      }
       if (own && net !== 'normal') {
         netCount++;
         var json = function (code, body) { return new Response(JSON.stringify(body), { status: code, headers: { 'Content-Type': 'application/json' } }); };
         if (net === 'offline' || (net === 'flaky' && netCount % 2 === 1)) {
-          log('network', 'mock ' + net + ': the request fails like a lost connection');
+          done('failed', 'mock ' + net + ': the request fails like a lost connection');
           return Promise.reject(new TypeError('Failed to fetch'));
         }
-        if (net === 'error') { log('network', 'mock 500'); return Promise.resolve(json(500, { reason: 'Mock server error' })); }
-        if (net === 'session') { log('network', 'mock 401: initData too old'); return Promise.resolve(json(401, { reason: 'session-expired' })); }
-        if (net === 'slow') { var self = this; return new Promise(function (r) { setTimeout(r, 3000); }).then(function () { return realFetch.call(self, input, init); }); }
+        if (net === 'error') { done(500, 'mock server error'); return Promise.resolve(json(500, { reason: 'Mock server error' })); }
+        if (net === 'session') { done(401, 'mock: initData too old'); return Promise.resolve(json(401, { reason: 'session-expired' })); }
+        if (net === 'slow') return new Promise(function (r) { setTimeout(r, 3000); }).then(function () { return real('mock slow: held 3 s'); });
       }
-      return realFetch.call(this, input, init);
+      return real('');
     };
   }
   // Layout audit (?audit=1 on the stand): geometry of the screen as drawn, see tma-audit.mjs
-  window.tmaAudit = function () {
+  window.tmaAudit = function (opts) {
+    var outline = !opts || opts.outline !== false;
+    // a second run starts clean: drop the outlines of the first
+    Array.prototype.forEach.call(document.querySelectorAll('[style*="dashed"]'), function (el) {
+      if (/dashed/.test(el.style.outline)) el.style.outline = '';
+    });
     return import('/__tma__/audit.mjs?v=' + Date.now()).then(function (m) {  // fresh after an edit to the rules
-      var r = m.audit(document, { outline: true });
+      var r = m.audit(document, { outline: outline });
       window.__tmaAudit = r;
       r.findings.forEach(function (f) { log('layout', f.rule + ' ' + f.level, f.msg); });
       log('layout', 'audit', r.errors + ' error(s), ' + r.warnings + ' warning(s) on ' + r.surfaces + ' surfaces');
+      post('audit', { surfaces: r.surfaces, errors: r.errors, warnings: r.warnings,
+        findings: r.findings.map(function (f) { return { rule: f.rule, level: f.level, msg: f.msg }; }) });
       return r;
-    });
+    }, function (e) { log('error', 'layout audit', e && e.message); throw e; });
   };
   post('loaded', { version: version, platform: platform });
 })();
@@ -444,302 +505,10 @@ MOCK_JS = r"""/* MOCK of window.Telegram.WebApp for the local preview stand. Not
 
 # --------------------------------------------------------------------------- stand (the "client" page)
 
-STAND_HTML = r"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mini App preview (mock)</title>
-<style>
-  :root { color-scheme: light; --ink: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7; --panel: #ffffff; --page: #e9e9ee; }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--page); color: var(--ink); font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
-  .bar label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
-  .bar select, .bar input, .bar button { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
-  .bar .mock { margin-left: auto; color: #b25000; font-weight: 600; }
-  .stage { display: flex; gap: 24px; align-items: flex-start; padding: 24px; flex-wrap: wrap; }
-  .matrix { display: grid; gap: 28px 24px; padding: 24px; grid-template-columns: repeat(3, max-content); align-items: start; }
-  .cap { margin: 0 0 6px; color: var(--muted); font-weight: 600; }
-  .device { position: relative; overflow: hidden; border-radius: 44px; box-shadow: 0 0 0 10px #111, 0 18px 40px rgb(0 0 0 / .25); background: #000; }
-  .device.android { border-radius: 28px; }
-  .device.tdesktop { border-radius: 10px; box-shadow: 0 0 0 1px #999, 0 10px 30px rgb(0 0 0 / .2); }
-  .status { position: absolute; inset: 0 0 auto 0; display: flex; justify-content: space-between; align-items: center; padding: 0 26px; font: 600 15px system-ui; z-index: 3; pointer-events: none; }
-  .island { position: absolute; top: 11px; left: 50%; width: 120px; height: 34px; margin-left: -60px; border-radius: 20px; background: #000; z-index: 4; }
-  .tgh { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 8px; padding: 0 10px; z-index: 2; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 18px; font: 500 15px system-ui; border: 0; cursor: pointer; }
-  .tgh .title { flex: 1; text-align: center; line-height: 1.1; }
-  .tgh .title b { display: block; font: 600 15px system-ui; } .tgh .title i { font: 12px system-ui; font-style: normal; opacity: .6; }
-  .android .tgh .title { text-align: left; }
-  iframe { position: absolute; left: 0; width: 100%; border: 0; background: transparent; }
-  .bb { position: absolute; left: 0; right: 0; display: flex; gap: 8px; padding: 8px 12px; z-index: 2; }
-  .bb.stack { flex-direction: column; }
-  .bb button { flex: 1; height: 48px; border: 0; border-radius: 14px; font: 600 16px system-ui; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; position: relative; overflow: hidden; }
-  .ios .bb button { border-radius: 24px; }
-  .bb button[disabled] { opacity: .5; cursor: default; }
-  .spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: s .8s linear infinite; }
-  @keyframes s { to { transform: rotate(1turn); } }
-  .home { position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; z-index: 4; pointer-events: none; }
-  .scrim { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; background: rgb(0 0 0 / .35); }
-  .dlg { width: min(280px, 80%); border-radius: 16px; overflow: hidden; text-align: center; font: 15px system-ui; }
-  .dlg h4 { margin: 18px 16px 4px; font: 600 16px system-ui; } .dlg p { margin: 4px 16px 18px; }
-  .dlg button { display: block; width: 100%; padding: 11px; border: 0; border-top: 1px solid rgb(128 128 128 / .3); background: none; font: inherit; cursor: pointer; }
-  .log { width: 380px; max-height: 80vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 12px ui-monospace, Menlo, Consolas, monospace; }
-  .log div { padding: 3px 0; border-bottom: 1px solid #f0f0f2; } .log .unsupported { color: #c62828; } .log .haptic { color: #6a1b9a; } .log .chrome { color: #1565c0; }
-  .note { max-width: 380px; color: var(--muted); }
-</style></head>
-<body>
-<div class="bar" id="bar">
-  <label>Platform <select id="c-platform"><option>ios</option><option>android</option><option>tdesktop</option></select></label>
-  <label>Scheme <select id="c-scheme"><option>light</option><option>dark</option></select></label>
-  <label>Width <select id="c-width"><option>320</option><option>375</option><option selected>390</option><option>430</option><option>384</option><option>669</option></select></label>
-  <label>Mode <select id="c-mode"><option>full</option><option>compact</option><option>fullscreen</option></select></label>
-  <label>Version <select id="c-version"></select></label>
-  <label>Style <select id="c-style"><option value="">app's own</option><option>native</option><option>fintech</option><option>soft</option><option>dense</option></select></label>
-  <label>Invoice <select id="c-invoice"><option>cancelled</option><option>paid</option><option>failed</option><option>pending</option></select></label>
-  <label>Network <select id="c-network"><option>normal</option><option>slow</option><option>flaky</option><option>offline</option><option value="error">500</option><option value="session">401</option></select></label>
-  <label>Language <select id="c-lang"><option>en</option><option>ru</option><option>uk</option><option>de</option><option>ar</option><option>he</option><option>fa</option></select></label>
-  <label>Android class <select id="c-perf"><option>HIGH</option><option>AVERAGE</option><option>LOW</option></select></label>
-  <label>start_param <input id="c-start" size="14" placeholder="none"></label>
-  <button id="c-reload" type="button">Reload</button>
-  <a id="c-matrix" href="?view=matrix">Matrix</a>
-  <span class="mock">MOCK: not a Telegram client</span>
-</div>
-<div id="root"></div>
-<script>
-const CONFIG = __CONFIG__;
-const qs = new URLSearchParams(location.search);
-const $ = (id) => document.getElementById(id);
-const verSel = $('c-version');
-CONFIG.versions.forEach(v => { const o = document.createElement('option'); o.textContent = v; verSel.append(o); });
-verSel.value = CONFIG.versions[CONFIG.versions.length - 1];
-for (const k of ['platform', 'scheme', 'width', 'mode', 'version', 'perf', 'start', 'style', 'invoice', 'lang', 'network']) if (qs.get(k)) $('c-' + k).value = qs.get(k);
-
-function themeFor(platform, scheme) { return CONFIG.themes[(platform === 'android' ? 'android' : 'ios') + '-' + scheme]; }
-function demoInitData(start, lang) {
-  const user = JSON.stringify({ id: 100000001, first_name: 'Demo', language_code: lang || 'en', allows_write_to_pm: true });
-  const p = new URLSearchParams({ query_id: 'MOCK-QUERY', user, auth_date: String(Math.floor(Date.now() / 1000)), hash: 'mock-unsigned' });
-  if (start) { p.set('start_param', start); p.set('chat_type', 'sender'); }
-  return p.toString();
-}
-
-class Device {
-  constructor(host, o) {
-    this.o = o; this.dev = CONFIG.devices[o.platform];
-    this.height = o.height || CONFIG.heights[o.width] || 800;
-    this.fullscreen = o.mode === 'fullscreen';
-    this.theme = themeFor(o.platform, o.scheme);
-    this.chrome = { header: this.theme.header_bg_color, background: this.theme.secondary_bg_color, bottomBar: this.theme.bottom_bar_bg_color };
-    this.buttons = { main: null, secondary: null }; this.back = false; this.settings = false;
-    this.el = document.createElement('div');
-    this.el.className = 'device ' + o.platform;
-    this.el.style.width = o.width + 'px'; this.el.style.height = this.height + 'px';
-    host.append(this.el);
-    this.frame = document.createElement('iframe');
-    this.frame.title = 'Mini App (' + o.platform + ', ' + o.scheme + ', ' + o.width + ' px)';
-    this.el.append(this.frame);
-    this.layout();
-    this.frame.src = this.src();
-    Device.all.push(this);
-  }
-  insets() {
-    const d = this.dev;
-    if (this.fullscreen) return { safe: { top: d.safe_fs.top, bottom: this.barVisible() ? 0 : d.safe_fs.bottom, left: 0, right: 0 }, content: { top: d.content_fs.top, bottom: 0, left: 0, right: 0 } };
-    return { safe: { top: 0, bottom: this.barVisible() ? 0 : d.home, left: 0, right: 0 }, content: { top: 0, bottom: 0, left: 0, right: 0 } };
-  }
-  src() {
-    const ins = this.insets();
-    const p = new URLSearchParams({
-      tgWebAppData: demoInitData(this.o.start, this.o.lang), tgWebAppVersion: this.o.version, tgWebAppPlatform: this.o.platform,
-      tgWebAppThemeParams: JSON.stringify(this.theme),
-      tgWebAppMock: JSON.stringify({ scheme: this.o.scheme, mode: this.o.mode, fullscreen: this.fullscreen, safe: ins.safe, content: ins.content, perf: this.o.perf, style: this.o.style === 'native' ? '' : this.o.style, invoice: this.o.invoice, network: this.o.network, audit: qs.get('audit') === '1' }),
-    });
-    if (this.fullscreen) p.set('tgWebAppFullscreen', '1');
-    let url = CONFIG.app;
-    if (this.o.start) url += (url.includes('?') ? '&' : '?') + 'tgWebAppStartParam=' + encodeURIComponent(this.o.start);
-    return url + '#' + p.toString();
-  }
-  barVisible() { return !!((this.buttons.main && this.buttons.main.isVisible) || (this.buttons.secondary && this.buttons.secondary.isVisible)); }
-  barHeight() {
-    if (!this.barVisible()) return 0;
-    const both = this.buttons.main?.isVisible && this.buttons.secondary?.isVisible;
-    const stacked = both && ['top', 'bottom'].includes(this.buttons.secondary.position);
-    return (stacked ? 120 : this.dev.bar) + this.dev.home;
-  }
-  layout() {
-    const d = this.dev, H = this.height, light = this.o.scheme === 'light';
-    this.el.querySelectorAll('.status,.island,.tgh,.bb,.home').forEach(n => n.remove());
-    const fg = light ? '#000' : '#fff';
-    let top = 0;
-    if (d.status) {
-      const st = document.createElement('div'); st.className = 'status'; st.style.height = d.status + 'px';
-      st.style.color = this.fullscreen ? fg : this.textOn(this.chrome.header);
-      st.innerHTML = '<span>9:41</span><span>' + (this.o.platform === 'ios' ? '5G ▮' : '▾ ▮') + '</span>';
-      this.el.append(st);
-      if (this.o.platform === 'ios') { const isl = document.createElement('div'); isl.className = 'island'; this.el.append(isl); }
-    }
-    const compact = this.o.mode === 'compact';
-    const sheetTop = compact ? Math.round(H * 0.45) : 0;
-    if (!this.fullscreen) {
-      const h = document.createElement('div'); h.className = 'tgh';
-      const headerTop = compact ? sheetTop : d.status;
-      h.style.top = headerTop + 'px'; h.style.height = d.header + 'px'; h.style.background = this.chrome.header;
-      if (!compact) this.el.style.background = this.chrome.header; else this.el.style.background = '#555';
-      const c = this.textOn(this.chrome.header), pill = 'background:rgb(127 127 127 / .16);color:' + c;
-      h.innerHTML = '<button class="pill" style="' + pill + '" data-act="back">' + (this.back ? '‹ Back' : 'Close') + '</button>' +
-        '<div class="title" style="color:' + c + '"><b>' + CONFIG.title + '</b><i>mini app</i></div>' +
-        '<button class="pill" style="' + pill + '" data-act="menu" title="' + (this.settings ? 'Settings is in this menu' : 'Menu') + '">⋯</button>';
-      this.el.append(h);
-      top = headerTop + d.header;
-    } else {
-      this.el.style.background = this.chrome.background;
-      const h = document.createElement('div'); h.className = 'tgh';
-      h.style.top = (d.safe_fs.top + 4) + 'px'; h.style.height = '38px';
-      const glass = 'background:rgb(127 127 127 / .28);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:' + fg;
-      h.innerHTML = '<button class="pill" style="' + glass + '" data-act="back">' + (this.back ? '‹ Back' : 'Close') + '</button><div class="title"></div><button class="pill" style="' + glass + '" data-act="menu">⋯</button>';
-      this.el.append(h);
-      top = 0;
-    }
-    const bar = this.barHeight();
-    this.frame.style.top = top + 'px';
-    this.frame.style.height = (H - top - bar) + 'px';
-    this.frame.style.background = this.chrome.background;
-    if (bar) this.renderBar(H - bar, bar);
-    if (this.dev.home && !this.o.platform.startsWith('t')) {
-      const hm = document.createElement('div'); hm.className = 'home'; hm.style.background = fg; this.el.append(hm);
-    }
-    this.el.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
-      if (b.dataset.act === 'back' && this.back) this.send('event', 'backButtonClicked');
-      else if (b.dataset.act === 'back') Stand.log(this, 'call', 'Close tapped', this.closing ? 'closing confirmation would ask first' : 'app would close');
-      else if (b.dataset.act === 'menu' && this.settings) this.send('event', 'settingsButtonClicked');
-    });
-  }
-  textOn(hex) {
-    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#000';
-    const n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
-    return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#000' : '#fff';
-  }
-  renderBar(y, h) {
-    const bb = document.createElement('div'); bb.className = 'bb';
-    const sec = this.buttons.secondary, main = this.buttons.main;
-    if (sec && sec.isVisible && ['top', 'bottom'].includes(sec.position)) bb.classList.add('stack');
-    bb.style.top = y + 'px'; bb.style.height = h + 'px'; bb.style.paddingBottom = (8 + this.dev.home) + 'px';
-    bb.style.background = this.chrome.bottomBar;
-    const mk = (s, primary) => {
-      const b = document.createElement('button');
-      b.style.background = s.color || (primary ? this.theme.button_color : this.chrome.bottomBar);
-      b.style.color = s.textColor || (primary ? this.theme.button_text_color : this.theme.button_color);
-      if (!primary && !s.color) b.style.boxShadow = 'inset 0 0 0 1.5px ' + this.theme.button_color;
-      b.disabled = !s.isActive;
-      if (s.isProgressVisible) b.innerHTML = '<span class="spin"></span>';
-      else b.textContent = (s.iconCustomEmojiId ? '◆ ' : '') + s.text;
-      if (s.hasShineEffect) b.title = 'has_shine_effect';
-      b.onclick = () => this.send('event', primary ? 'mainButtonClicked' : 'secondaryButtonClicked');
-      return b;
-    };
-    const order = [];
-    if (sec && sec.isVisible) order.push(mk(sec, false));
-    if (main && main.isVisible) order.push(mk(main, true));
-    if (sec && sec.isVisible && main && main.isVisible && ['right', 'bottom'].includes(sec.position)) order.reverse();
-    bb.append(...order);
-    this.el.append(bb);
-  }
-  send(type, name, data) {
-    if (type === 'event') this.frame.contentWindow.postMessage({ __tma: 1, type: 'event', name, data }, location.origin);
-    else this.frame.contentWindow.postMessage({ __tma: 1, type: 'state', data: name }, location.origin);
-  }
-  pushInsets() { const ins = this.insets(); this.send('state', ins); }
-  onMessage(m) {
-    const d = m.data;
-    if (m.type === 'button') {
-      const before = this.barHeight();
-      this.buttons[d.type] = d;
-      this.layout();
-      if (before !== this.barHeight()) this.pushInsets();
-    } else if (m.type === 'header') {
-      if (d.kind === 'BackButton') this.back = d.visible; else this.settings = d.visible;
-      Stand.log(this, 'call', d.kind + (d.visible ? '.show' : '.hide')); this.layout();
-    } else if (m.type === 'chrome') {
-      if (d.header) this.chrome.header = d.header;
-      if (d.background) this.chrome.background = d.background;
-      if (d.bottomBar) this.chrome.bottomBar = d.bottomBar;
-      this.layout();
-    } else if (m.type === 'fullscreen') {
-      if (this.fullscreen !== d) { this.fullscreen = d; this.layout(); this.pushInsets(); this.send('state', { fullscreen: d }); }
-    } else if (m.type === 'popup') {
-      this.popup(d);
-    } else if (m.type === 'log') {
-      Stand.log(this, d.kind, d.name, d.detail);
-    } else if (m.type === 'ready') {
-      this.readyAt = performance.now();
-    } else if (m.type === 'close') {
-      Stand.log(this, 'call', 'app closed');
-    }
-  }
-  popup(d) {
-    const dark = this.o.scheme === 'dark';
-    const s = document.createElement('div'); s.className = 'scrim';
-    const box = document.createElement('div'); box.className = 'dlg';
-    box.style.background = dark ? '#2c2c2e' : '#f2f2f2'; box.style.color = dark ? '#fff' : '#000';
-    if (d.title) { const t = document.createElement('h4'); t.textContent = d.title; box.append(t); }
-    const p = document.createElement('p'); p.textContent = d.message; box.append(p);
-    const label = { ok: 'OK', close: 'Close', cancel: 'Cancel' };
-    d.buttons.forEach(b => {
-      const btn = document.createElement('button');
-      btn.textContent = b.text || label[b.type] || 'OK';
-      btn.style.color = b.type === 'destructive' ? this.theme.destructive_text_color : this.theme.link_color;
-      btn.onclick = () => { s.remove(); this.send('event', 'popupClosed', { button_id: b.id || '' }); };
-      box.append(btn);
-    });
-    s.append(box); this.el.append(s);
-    Stand.log(this, 'call', 'popup', d.message);
-  }
-}
-Device.all = [];
-
-const Stand = {
-  logEl: null,
-  log(dev, kind, name, detail) {
-    if (!this.logEl) return;
-    const row = document.createElement('div'); row.className = kind;
-    row.textContent = kind + '  ' + name + (detail !== undefined && detail !== '' ? '  ' + JSON.stringify(detail) : '');
-    this.logEl.prepend(row);
-  },
-};
-window.addEventListener('message', (ev) => {
-  const m = ev.data; if (!m || m.__tma !== 1) return;
-  const dev = Device.all.find(d => d.frame.contentWindow === ev.source);
-  if (dev) dev.onMessage(m);
-});
-
-function opts(over) {
-  return Object.assign({ platform: $('c-platform').value, scheme: $('c-scheme').value, width: +$('c-width').value,
-    mode: $('c-mode').value, version: verSel.value, start: $('c-start').value.trim(), perf: $('c-perf').value, style: $('c-style').value, invoice: $('c-invoice').value, lang: $('c-lang').value, network: $('c-network').value, height: +qs.get('height') || undefined }, over);
-}
-function render() {
-  const root = $('root'); root.replaceChildren(); Device.all = [];
-  if (qs.get('view') === 'matrix') {
-    const grid = document.createElement('div'); grid.className = 'matrix'; root.append(grid);
-    const cell = (cap, o) => { const w = document.createElement('div'); const c = document.createElement('p'); c.className = 'cap'; c.textContent = cap; w.append(c); grid.append(w); new Device(w, opts(o)); };
-    for (const platform of ['ios', 'android']) for (const scheme of ['light', 'dark']) for (const width of [320, 390, 430])
-      cell(platform + ' · ' + scheme + ' · ' + width, { platform, scheme, width, mode: 'full', height: 700 });
-    cell('ios · dark · 390 · fullscreen', { platform: 'ios', scheme: 'dark', width: 390, mode: 'fullscreen', height: 760 });
-    cell('android · light · 390 · fullscreen', { platform: 'android', scheme: 'light', width: 390, mode: 'fullscreen', height: 760 });
-    cell('ios · light · 390 · compact', { platform: 'ios', scheme: 'light', width: 390, mode: 'compact', height: 760 });
-    return;
-  }
-  const stage = document.createElement('div'); stage.className = 'stage'; root.append(stage);
-  const devHost = document.createElement('div'); stage.append(devHost);
-  const side = document.createElement('div');
-  side.innerHTML = '<p class="note">Mock client. Palettes approximate Telegram defaults; initData is unsigned demo data; ' +
-    'payments never happen. Verify on real iOS, Android and Desktop clients.</p><div class="log" id="log"></div>';
-  stage.append(side);
-  Stand.logEl = side.querySelector('#log');
-  new Device(devHost, opts());
-}
-for (const id of ['c-platform', 'c-scheme', 'c-width', 'c-mode', 'c-version', 'c-perf', 'c-style', 'c-invoice', 'c-lang', 'c-network']) $(id).onchange = render;
-$('c-reload').onclick = render;
-render();
-</script>
-</body></html>
-"""
+# The stand page lives in preview_stand/ (HTML, CSS, JS, no build step, no network); stand_html() fills its config.
+STAND_DIR = os.path.join(SKILL, "scripts", "preview_stand")
+STAND_ASSETS = {"/__tma__/stand.css": ("stand.css", "text/css; charset=utf-8"),
+                "/__tma__/stand.js": ("stand.js", "text/javascript; charset=utf-8")}
 
 
 # --------------------------------------------------------------------------- server
@@ -795,10 +564,14 @@ def stand_html(app_url: str, title: str) -> str:
     with open(CATALOG, encoding="utf-8") as fh:
         meta = json.load(fh)["meta"]
     versions = ["6.0", "6.1", "6.2", "6.9", "7.0", "7.2", "7.10", "8.0", "9.0", "9.5", "9.6", "10.1"]
-    config = {"app": app_url, "title": html.escape(title), "themes": THEMES, "devices": DEVICES,
+    # The title stays raw text: the page only ever sets it as text. Escaping "<" keeps the JSON inside its
+    # <script type="application/json"> block whatever the app's <title> holds.
+    config = {"app": app_url, "title": title, "themes": THEMES, "devices": DEVICES,
               "heights": {str(k): v for k, v in HEIGHTS.items()}, "versions": versions,
               "catalog": {"fetched_at": meta["fetched_at"], "newest": meta["newest_member_version"]}}
-    return STAND_HTML.replace("__CONFIG__", json.dumps(config).replace("<", "\\u003c"))
+    with open(os.path.join(STAND_DIR, "stand.html"), encoding="utf-8") as fh:
+        page = fh.read()
+    return page.replace("__CONFIG__", json.dumps(config).replace("<", "\\u003c"), 1)
 
 
 def mock_js() -> str:
@@ -893,11 +666,15 @@ def make_handler(root: str, app_rel: str, title: str, api: list | None = None):
             if not self._host_ok():
                 return self._send(403, b"forbidden host", "text/plain")
             path = urllib.parse.urlsplit(self.path).path
-            if not path.startswith("/app/") and path not in ("/", "/index.html", "/__tma__/mock.js", "/__tma__/audit.mjs") \
+            if not path.startswith(("/app/", "/__tma__/")) and path not in ("/", "/index.html") \
                     and self._api("GET", path):
                 return None
             if path in ("/", "/index.html"):
                 return self._send(200, stand_html(app_url, title).encode(), "text/html; charset=utf-8")
+            if path in STAND_ASSETS:
+                name, ctype = STAND_ASSETS[path]
+                with open(os.path.join(STAND_DIR, name), "rb") as fh:
+                    return self._send(200, fh.read(), ctype)
             if path == "/__tma__/mock.js":
                 return self._send(200, mock_js().encode(), "text/javascript; charset=utf-8")
             if path == "/__tma__/audit.mjs":

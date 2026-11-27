@@ -76,7 +76,9 @@
         "references/consistency-and-review.md",
         "references/case-study-btc-tracker.md",
         "references/testing-playbook.md",
-        "references/bot-commands.md"
+        "references/bot-commands.md",
+        "references/welcome-message.md",
+        "references/message-patterns.md"
       ],
       "recipes": "",
       "tools": [
@@ -84,7 +86,9 @@
         "check changed",
         "findings add",
         "findings list",
-        "commands audit"
+        "commands audit",
+        "check welcome",
+        "patterns check"
       ],
       "smoke": [
         {
@@ -151,18 +155,24 @@
           "stream the AI reply with a Stop button",
           "fit the bot to our brand",
           "rethink every menu",
-          "use the latest Bot API"
+          "use the latest Bot API",
+          "rework the welcome message",
+          "rework our notifications"
         ],
         "ru": [
           "сделай бота красивее",
           "бот выглядит дёшево",
           "добавь экран настроек",
           "переосмысли меню",
-          "под наш бренд"
+          "под наш бренд",
+          "переделай приветственное сообщение",
+          "переделай уведомления бота"
         ],
         "uk": [
           "зроби меню бота зручнішим",
-          "зроби бота гарнішим"
+          "зроби бота гарнішим",
+          "переробити привітальне повідомлення бота",
+          "переробити сповіщення бота"
         ]
       },
       "playbook": "commands/improve.md",
@@ -173,9 +183,12 @@
         "references/buttons-and-styles.md",
         "references/inline-keyboards.md",
         "references/selection-lists.md",
+        "references/rich-message-buttons.md",
         "references/reply-keyboards.md",
         "references/navigation-and-flows.md",
         "references/onboarding-and-first-run.md",
+        "references/welcome-message.md",
+        "references/message-patterns.md",
         "references/format-selection.md",
         "references/tables.md",
         "references/data-views.md",
@@ -207,7 +220,9 @@
         "check icons",
         "lookup show",
         "profile probe|scaffold|check",
-        "data"
+        "data",
+        "check welcome",
+        "patterns find|show|render|check"
       ],
       "smoke": [
         {
@@ -302,16 +317,19 @@
           "a booking bot",
           "add payments, subscriptions or refunds",
           "add inline mode",
-          "connect a business account"
+          "connect a business account",
+          "design the first message after /start"
         ],
         "ru": [
           "сделай бота для",
           "магазин со Stars",
-          "платная подписка и возвраты"
+          "платная подписка и возвраты",
+          "продумай первое сообщение после /start"
         ],
         "uk": [
           "зроби бота для",
-          "додай оплату зірками"
+          "додай оплату зірками",
+          "продумай перше повідомлення після /start"
         ]
       },
       "playbook": "commands/build.md",
@@ -331,6 +349,8 @@
         "references/user-trust.md",
         "references/user-profile.md",
         "references/onboarding-and-first-run.md",
+        "references/welcome-message.md",
+        "references/message-patterns.md",
         "references/project-adaptation.md",
         "references/bot-commands.md"
       ],
@@ -338,7 +358,9 @@
       "tools": [
         "examples",
         "lookup show",
-        "check payload"
+        "check payload",
+        "check welcome",
+        "patterns find|show|render"
       ],
       "smoke": [
         {

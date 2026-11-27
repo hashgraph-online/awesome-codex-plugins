@@ -20,7 +20,7 @@ import sys
 
 import _common as c
 from tgkit import flows as f
-from tgkit.rich import button_row, expandable_quote, rich_button
+from tgkit.rich import expandable_quote
 from tgkit.transport import FakeTransport
 
 PAYLOAD = "r26-learning"
@@ -226,11 +226,12 @@ class Course:
             les = LESSONS[s.args["id"]]
             title = plain(s.lang, "lesson_label", n=ORDER.index(s.args["id"]) + 1, title=pick(les["title"], s.lang))
             blocks = [head(title), *[para(p) for p in pick(les["text"], s.lang)],
-                      expandable_quote(pick(les["example"], s.lang), plain(s.lang, "example_credit")),
-                      button_row([rich_button(plain(s.lang, "btn_start"), callback_data=fl.cb(s, "start"),
-                                              style="primary")])]
+                      expandable_quote(pick(les["example"], s.lang), plain(s.lang, "example_credit"))]
+            # "Start quiz" is the screen's main action: the keyboard, not a filled button at the end of the
+            # document (references/rich-message-buttons.md §6)
             return {"rich_message": {"blocks": blocks},
-                    "reply_markup": f.kb([f.btn(fl.tr(s, "btn_back"), fl.cb(s, "back"))])}
+                    "reply_markup": f.kb([f.btn(plain(s.lang, "btn_start"), fl.cb(s, "start"), style="primary")],
+                                         [f.btn(fl.tr(s, "btn_back"), fl.cb(s, "back"))])}
 
         @fl.screen("quiz")
         def quiz(fl, s):
@@ -411,8 +412,9 @@ def main() -> None:
             "course map is a checklist (list items with has_checkbox)")
     edits = [p for p in t.params_of("editMessageText") if "rich_message" in p]
     lesson = next(p for p in edits if any(b["type"] == "expandable_blockquote" for b in p["rich_message"]["blocks"]))
-    c.check(any(b["type"] == "buttons" for b in lesson["rich_message"]["blocks"]),
-            "lesson: expandable quote for the long example and a Start quiz button row")
+    c.check(not any(b["type"] == "buttons" for b in lesson["rich_message"]["blocks"])
+            and lesson["reply_markup"]["inline_keyboard"][0][0].get("style") == "primary",
+            "lesson: expandable quote for the long example; Start quiz on the keyboard, not in the document")
     answered = next(p for p in edits if p["reply_markup"]["inline_keyboard"][0][0].get("disabled") is not None)
     labels = [r[0]["text"] for r in answered["reply_markup"]["inline_keyboard"][:3]]
     c.check(labels[0].startswith("✓ ") and all("disabled" in r[0] for r in answered["reply_markup"]["inline_keyboard"][:3]),

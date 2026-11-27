@@ -17,6 +17,14 @@ The bot side (launch buttons, `web_app_data`, `answerWebAppQuery`, prepared mess
 [../mini-apps-bridge.md](../mini-apps-bridge.md). Payments from a Mini App: [../payments-and-stars.md](../payments-and-stars.md).
 TON wallet: [../wallet-and-ton.md](../wallet-and-ton.md). Widgets inside a message: [../widgets.md](../widgets.md).
 
+## Contents
+
+- [Route by task](#route-by-task)
+- [Reading order for a new Mini App](#reading-order-for-a-new-mini-app)
+- [Sources and labels](#sources-and-labels)
+- [Offline data and tools](#offline-data-and-tools)
+- [Not covered yet](#not-covered-yet)
+
 ## Route by task
 
 | The task | Read | Then |
@@ -83,7 +91,7 @@ redistribution). [design-sources.md](design-sources.md) says what was taken from
 | `scripts/fetch_telegram_star.py` | Telegram's original Stars glyph (GPL-3.0, Telegram Web A) into an app that accepts that licence; pinned and hash-checked |
 | `scripts/miniapp_rework.py` | `plan` (staged rework plan with replacements, colour map, type map), `colours`, `type` |
 | `data/mini-apps/rework-map.json` | every lint rule and 13 web patterns → the Telegram replacement, kit part and reference |
-| `scripts/preview_miniapp.py` | local stand with a mock client: platforms, themes, widths, fullscreen, versions, invoice outcomes, haptics log, synthetic motion sensors and location, the user's language (RTL included), the network for the app's own requests (slow, flaky, offline, 500, 401); `--api mock.json` for the app's own server routes |
+| `scripts/preview_miniapp.py` | local stand with a mock client: platforms, themes, widths, fullscreen, versions, invoice outcomes, synthetic motion sensors and location, the user's language (RTL included), the network for the app's own requests (slow, flaky, offline, 500, 401); live theme and viewport changes, system back, minimize, close with its confirmation; Events, Network and Layout panels and a state inspector (buttons, chrome colours, safe areas, initData, storage); `--api mock.json` for the app's own server routes |
 | `examples/mini-apps/_kit` | `tma.css` (roles, scales, primitives, style presets), `tma.ts` (no-dependency kit), `tg-values.ts` (Stars, grams, gift colours, rarity), `tma-bridge.css` (shadcn / Tailwind tokens → roles), `icons.svg` |
 | `examples/mini-apps/gallery` | every kit element on one page: open it in the stand and switch platform, theme, width, style |
 

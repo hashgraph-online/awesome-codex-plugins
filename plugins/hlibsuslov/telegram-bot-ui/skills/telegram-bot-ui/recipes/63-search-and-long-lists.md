@@ -1,7 +1,7 @@
 # 63 — Search and long lists: a job board with filters, paging, detail and compare
 
 Product recipe (combines mechanisms; no registry row of its own). Uses `InlineKeyboardMarkup.force_reply`
-(10.3), disabled buttons (10.3), compact Rich tables (10.3) and rich button rows, 9.4 button
+(10.3), disabled buttons (10.3), compact Rich tables (10.3), 9.4 button
 `style`. Verified 2026-11-15 against Bot API 10.4 (newest release on that date, 2026-11-09).
 Index of all product recipes: `references/use-case-playbooks.md`.
 Tags: **[API]** = API requirement, **[official]** = official recommendation, **[heuristic]** =
@@ -25,8 +25,9 @@ design heuristic of this skill.
      filters screen, the first helpful *Remove filter* on an empty result (9.4)
      **[heuristic]**. A filter toggle shows its state with a leading `✓`: a style is not a
      state **[heuristic]**.
-   - *Compare* is a Rich Message with an `is_compact` table (10.3) and a button row
-     (`InputRichBlockButtons`, 1-8 buttons): a comparison, not a list **[heuristic]**. Plain
+   - *Compare* is a Rich Message with an `is_compact` table (10.3); `← List` is on the keyboard
+     under it: navigation never goes inside the document ([rich-message-buttons.md](../references/rich-message-buttons.md))
+     **[heuristic]**. Plain
      rich text is not HTML: titles are inserted as they are, only clipped.
    - The query text stays on the server: `callback_data` is 1-64 **bytes**, Cyrillic is two
      bytes per letter **[API]**; the callbacks carry an id (`sr:<ver>:recent:q2`).
@@ -46,7 +47,7 @@ design heuristic of this skill.
    | results, > 200 | “Too many to browse”, top 5 | `Remote (116)` `Junior (78)` `Senior (76)` · `New search` | results (filtered) |
    | filters | “Pick what to keep” | `✓ Remote` · `Junior` · `Senior` · `Apply · n` primary (disabled at 0) `Reset` | results |
    | detail | title, company, city, level, salary, summary | `Open vacancy` (url) · `← Back` | results (same page) |
-   | compare | rich: heading, compact table | `← List` (rich button) | results (same page) |
+   | compare | rich: heading, compact table | `← List` (keyboard) | results (same page) |
 
    Key parts:
    ```json

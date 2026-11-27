@@ -14,6 +14,11 @@ mandate A0, see `references/redesign-orchestration.md` §0).
   `references/testing-playbook.md` for the tests the change needs.
 - A worked example of a real audit: `references/case-study-btc-tracker.md`.
 - The command menu: `references/bot-commands.md` "The lifecycle" (`tgui.py commands audit`).
+- The first message after `/start`, per entry (new, deep link, returning, unknown language,
+  group): `references/welcome-message.md` §2 and §9 (`tgui.py check welcome`).
+- Messages the bot sends on its own (alerts, statuses, reports, reminders): classify each by
+  pattern and check its anatomy, `references/message-patterns.md` §7-8 (`tgui.py patterns
+  find|check`). One type in several shapes is a finding.
 
 ## Steps
 

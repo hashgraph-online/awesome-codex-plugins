@@ -22,6 +22,9 @@ test("R02 document: compact table, rich quote read when text is empty", async ()
   const blocks = t.of("sendRichMessage")[0].rich_message.blocks;
   assert.ok(blocks.some((b: { is_compact?: boolean }) => b.is_compact));
   assert.equal(asked, "Rotate the signing key every 90 days.");
+  const sent = t.of("sendRichMessage")[0];
+  assert.equal(sent.reply_markup.inline_keyboard[0][0].style, "success"); // the main action is on the keyboard
+  assert.ok(!blocks.some((b: { type: string }) => b.type === "buttons"));   // no filled row in the document
 });
 
 test("R03 form: double Submit creates one order, force_reply kept on edit", async () => {

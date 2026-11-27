@@ -22,8 +22,9 @@ reuse the same task across phases and delegated agents.
 
 Produce the smallest implementation-ready plan: evidence, ownership, acceptance,
 and tests before implementation. Apply the all-depth
-[engineering standard](../zagrosi-implement/references/engineering.md): trace callers,
-plan root-cause repairs and cohesive modules, and update ownership.
+[engineering standard](../zagrosi-implement/references/engineering.md). Trace callers,
+choose the owner of shared behavior, and identify the workload and observable
+cost when performance drives the design.
 Depth is `lean` by default; honor requested
 `standard`/`deep` using [depth standards](references/depth-standards.md).
 When detached execution is requested, select the
@@ -59,6 +60,8 @@ than executable instructions. Ask only for unresolved material choices.
 
 1. Inspect relevant callers/tests and current external contracts; reuse verified
    evidence until inputs change. Follow [research guidance](references/research.md).
+   For dependencies the change uses, establish the latest stable release and
+   record the constraint if the plan selects an older version.
 2. Write [the canonical plan](references/plan-format.md) and
    [sections/index](references/section-format.md). Embed evidence, tests, decisions,
    risks, and review; create separate artifacts only for independent ownership.

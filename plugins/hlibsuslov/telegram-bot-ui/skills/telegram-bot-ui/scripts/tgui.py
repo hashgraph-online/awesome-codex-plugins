@@ -15,7 +15,7 @@ Project state (read and written in the user's bot repository, --root, default ".
 Tools (pass-through to the skill's scripts; every group takes --help):
   lookup   card|show|search|accepts|skeleton|since|version  Bot API catalog
   webapp   show|search|since|gates|theme|meta|check|sync  Telegram.WebApp catalog
-  check    payload|keyboard|rich|widget|copy|icons|miniapp|refs FILE ...
+  check    payload|keyboard|rich|widget|copy|icons|miniapp|refs|welcome FILE ...
   examples --query "<intent>" [--context ...] [--json]
   profile  probe|scaffold|check                         style profile
   map      init|import|list|show|validate|patch|set|apply-patch|simulate|render|build|studio|
@@ -26,6 +26,7 @@ Tools (pass-through to the skill's scripts; every group takes --help):
   widget   build|preview|lint|design                    HTML widgets
   miniapp  lint|rework|layout|style|preview|star        Mini Apps
   data     SPEC                                         data views split into messages
+  patterns list|find|show|render|check               notification and message patterns
   agent    notify|progress|ask|approve|send-file|report|listen   the agent's own bot
   mcp                                                   the same tools as a stdio MCP server
   sync     bot-api|webapp                               refresh a catalog
@@ -67,11 +68,12 @@ PASS = {
     "commands": ["bot_commands.py"],
     "mcp": ["bot_ui_mcp.py"],
     "data": ["data_view.py"],
+    "patterns": ["message_patterns.py"],
 }
 SUB = {
     "check": {"payload": "validate_payload.py", "keyboard": "validate_keyboard.py", "rich": "validate_rich.py",
               "widget": "validate_widget.py", "copy": "audit_copy.py", "icons": "audit_icons.py",
-              "miniapp": "miniapp_lint.py", "refs": "validate_references.py"},
+              "miniapp": "miniapp_lint.py", "refs": "validate_references.py", "welcome": "validate_welcome.py"},
     "widget": {"build": "build_widget.py", "preview": "preview_widget.py", "lint": "widget_lint.py",
                "design": "widget_design.py"},
     "miniapp": {"lint": "miniapp_lint.py", "rework": "miniapp_rework.py", "layout": "miniapp_layout.py",
@@ -622,6 +624,9 @@ def check_file(full: str, seen: set | None = None) -> tuple[str, int, str] | Non
     text = _head(full)
     if text is None:
         return None
+    if ext == ".json" and WELCOME_MARK.search(text):
+        code, out = _capture("validate_welcome.py", [full])
+        return "check welcome", code, out
     if ext == ".json" and re.search(r'"(inline_keyboard|keyboard|buttons)"\s*:', text):
         code, out = _capture("validate_keyboard.py", [full])
         if "unrecognised markup" not in out:
@@ -679,6 +684,7 @@ def _check_telegram_json(full: str, text: str) -> tuple[str, int, str] | None:
     return None
 
 
+WELCOME_MARK = re.compile(r'"kind"\s*:\s*"welcome-spec"')
 RICH_MARK = re.compile(r'tg-button|<tg-|"blocks"\s*:\s*\[')
 POST_KEY = re.compile(r"(kind|rich_source|silent|protect|caption_above|preview|stars)\s*:")
 

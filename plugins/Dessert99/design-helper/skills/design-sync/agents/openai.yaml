@@ -1,0 +1,7 @@
+interface:
+  display_name: "design-sync"
+  short_description: "Sync settled design decisions into the code"
+  default_prompt: "Use $design-sync to bring this project's code in line with its design decisions."
+
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,265 @@
+<!doctype html>
+<!-- Mini App preview stand (MOCK Telegram client), served by scripts/preview_miniapp.py.
+     Layout after the shadcnblocks block application-shell28 (side panels, a bottom panel and an inspector around a
+     canvas): re-implemented in plain HTML, CSS and JS, no block code. Tokens follow the bot-ui Studio (shadcn
+     new-york, neutral). Icons: Lucide, ISC License, Copyright (c) 2026 Lucide Icons and Contributors; permission to
+     use, copy, modify and distribute with or without fee, provided this notice appears in all copies. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Mini App stand (mock)</title>
+<link rel="stylesheet" href="/__tma__/stand.css">
+<script id="stand-config" type="application/json">__CONFIG__</script>
+<script>
+  // Stand theme before the first paint: saved choice, else the system's.
+  try {
+    var t = JSON.parse(localStorage.getItem('tma-stand-ui') || '{}').theme;
+    document.documentElement.dataset.theme = t || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  } catch (e) { document.documentElement.dataset.theme = 'light'; }
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-panel-left" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-panel-bottom" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 15h18"/></symbol>
+<symbol id="i-panel-right" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="i-rotate-cw" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></symbol>
+<symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></symbol>
+<symbol id="i-layout-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+<symbol id="i-minimize-2" viewBox="0 0 24 24"><path d="m14 10 7-7"/><path d="M20 10h-6V4"/><path d="m3 21 7-7"/><path d="M4 14h6v6"/></symbol>
+<symbol id="i-maximize-2" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/></symbol>
+<symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-vibrate" viewBox="0 0 24 24"><path d="m2 8 2 2-2 2 2 2-2 2"/><path d="m22 8-2 2 2 2-2 2 2 2"/><rect width="8" height="14" x="8" y="5" rx="1"/></symbol>
+<symbol id="i-circle-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></symbol>
+</svg>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-smartphone"/></svg></span>
+      <span class="brand-text">
+        <span class="brand-title" id="app-title">Mini App</span>
+        <span class="brand-sub">Mini App stand</span>
+      </span>
+    </div>
+    <span class="vsep" aria-hidden="true"></span>
+    <div class="pill-tabs" role="tablist" aria-label="View">
+      <button type="button" role="tab" id="view-device" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="#i-smartphone"/></svg>Device</button>
+      <button type="button" role="tab" id="view-matrix" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Matrix</button>
+    </div>
+    <div class="topbar-end">
+      <span class="mock-badge" tabindex="0" aria-describedby="mock-tip">
+        <svg class="icon" aria-hidden="true"><use href="#i-triangle-alert"/></svg>MOCK client
+        <span class="tip" role="tooltip" id="mock-tip">Not a Telegram client. Palettes approximate Telegram's defaults,
+          chrome sizes are typical values, initData is unsigned demo data and payments never happen. Check real iOS,
+          Android and Desktop clients before shipping.</span>
+      </span>
+      <div class="toggle-group" role="group" aria-label="Panels">
+        <button type="button" class="toggle" data-panel="left" aria-label="Launch panel" title="Launch panel"><svg class="icon" aria-hidden="true"><use href="#i-panel-left"/></svg></button>
+        <button type="button" class="toggle" data-panel="bottom" aria-label="Events panel" title="Events panel"><svg class="icon" aria-hidden="true"><use href="#i-panel-bottom"/></svg></button>
+        <button type="button" class="toggle" data-panel="right" aria-label="Inspector" title="Inspector"><svg class="icon" aria-hidden="true"><use href="#i-panel-right"/></svg></button>
+      </div>
+      <span class="vsep" aria-hidden="true"></span>
+      <button type="button" class="btn btn-ghost btn-icon" id="stand-theme" aria-label="Stand theme" title="Stand theme">
+        <svg class="icon only-light" aria-hidden="true"><use href="#i-moon"/></svg><svg class="icon only-dark" aria-hidden="true"><use href="#i-sun"/></svg>
+      </button>
+      <button type="button" class="btn btn-outline btn-sm" id="copy-link" title="The URL keeps every setting of this view">
+        <svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span>Copy link</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <aside class="side side-left" id="panel-left" aria-label="Launch and conditions">
+      <div class="panel-head"><span class="panel-title">Launch</span><span class="muted">· how Telegram opens the app</span></div>
+      <div class="panel-scroll">
+        <section class="group" aria-labelledby="g-launch">
+          <div class="group-head"><h2 id="g-launch">Launch parameters</h2><span class="chip">relaunches</span></div>
+          <div class="field">
+            <label for="c-version">Client version</label>
+            <span class="select"><select id="c-version"></select></span>
+            <p class="help">Members newer than this throw <code>WebAppMethodUnsupported</code> or warn, like the real script.</p>
+          </div>
+          <div class="field">
+            <label for="c-lang">User language</label>
+            <span class="select"><select id="c-lang">
+              <option value="en">en · English</option>
+              <option value="ru">ru · Russian</option>
+              <option value="uk">uk · Ukrainian</option>
+              <option value="de">de · German</option>
+              <option value="ar">ar · Arabic, right to left</option>
+              <option value="he">he · Hebrew, right to left</option>
+              <option value="fa">fa · Persian, right to left</option>
+            </select></span>
+            <p class="help"><code>language_code</code> of the user in initData.</p>
+          </div>
+          <div class="field">
+            <label for="c-start">start_param</label>
+            <span class="input-row">
+              <input id="c-start" class="input" placeholder="none" spellcheck="false" autocomplete="off" maxlength="512">
+              <button type="button" class="btn btn-outline btn-sm" id="c-start-apply">Apply</button>
+            </span>
+            <p class="help">The payload of <code>t.me/bot/app?startapp=…</code>. Enter applies it.</p>
+          </div>
+          <div class="field" id="f-perf">
+            <label for="c-perf">Android performance class</label>
+            <span class="select"><select id="c-perf">
+              <option value="HIGH">HIGH</option><option value="AVERAGE">AVERAGE</option><option value="LOW">LOW</option>
+            </select></span>
+            <p class="help">Telegram Android reports it in the User-Agent.</p>
+          </div>
+        </section>
+
+        <section class="group" aria-labelledby="g-live">
+          <div class="group-head"><h2 id="g-live">While the app is open</h2><span class="chip chip-live">live</span></div>
+          <div class="field">
+            <span class="label" id="l-mode">Viewport</span>
+            <div class="seg seg-fill" role="radiogroup" aria-labelledby="l-mode" id="c-mode">
+              <button type="button" role="radio" data-value="compact">Compact</button>
+              <button type="button" role="radio" data-value="full">Full</button>
+              <button type="button" role="radio" data-value="fullscreen">Fullscreen</button>
+            </div>
+            <p class="help">The user drags the sheet or leaves fullscreen: <code>viewportChanged</code>, <code>fullscreenChanged</code>.</p>
+          </div>
+          <div class="field">
+            <label for="c-network">The app's own requests</label>
+            <span class="select"><select id="c-network">
+              <option value="normal">Normal</option>
+              <option value="slow">slow · every request waits 3 s</option>
+              <option value="flaky">flaky · every other request fails</option>
+              <option value="offline">offline · requests fail</option>
+              <option value="error">500 · server error</option>
+              <option value="session">401 · initData too old</option>
+            </select></span>
+            <p class="help">Files under <code>/app/</code> always load.</p>
+          </div>
+          <div class="field">
+            <label for="c-invoice">Invoice outcome</label>
+            <span class="select"><select id="c-invoice">
+              <option value="cancelled">cancelled</option><option value="paid">paid</option>
+              <option value="failed">failed</option><option value="pending">pending</option>
+            </select></span>
+            <p class="help">What <code>openInvoice</code> reports. No money moves.</p>
+          </div>
+          <div class="field">
+            <label for="c-style">Style preset</label>
+            <span class="select"><select id="c-style">
+              <option value="">The app's own</option><option value="native">native</option><option value="fintech">fintech</option>
+              <option value="soft">soft</option><option value="dense">dense</option>
+            </select></span>
+            <p class="help">Shows a kit app in another preset (<code>data-tma-style</code>).</p>
+          </div>
+        </section>
+
+        <section class="group" aria-labelledby="g-sim">
+          <div class="group-head"><h2 id="g-sim">Simulate the user</h2></div>
+          <div class="action-grid">
+            <button type="button" class="btn btn-outline" id="act-back"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>System back</button>
+            <button type="button" class="btn btn-outline" id="act-minimize"><svg class="icon" aria-hidden="true"><use href="#i-minimize-2"/></svg><span>Minimize</span></button>
+            <button type="button" class="btn btn-outline" id="act-close"><svg class="icon" aria-hidden="true"><use href="#i-power"/></svg>Close</button>
+            <button type="button" class="btn btn-outline" id="act-relaunch"><svg class="icon" aria-hidden="true"><use href="#i-rotate-cw"/></svg>Relaunch</button>
+          </div>
+          <p class="help">System back is Android's back key or the iOS edge swipe: the BackButton when it is shown, else closing.
+            Close asks first when the app turned on closing confirmation.</p>
+        </section>
+      </div>
+    </aside>
+    <div class="resizer resizer-v" data-resize="left" role="separator" aria-orientation="vertical" aria-label="Resize the launch panel" tabindex="0"></div>
+
+    <main class="center">
+      <div class="canvas-bar">
+        <button type="button" class="btn btn-ghost btn-icon" id="relaunch" aria-label="Relaunch the app" title="Relaunch the app"><svg class="icon" aria-hidden="true"><use href="#i-rotate-cw"/></svg></button>
+        <div class="address" id="address" title="">
+          <span class="address-text" id="address-text"></span>
+          <span class="status" id="status" role="status"><span class="dot"></span><span id="status-text">loading</span></span>
+        </div>
+        <div class="seg seg-sm" role="radiogroup" aria-label="Platform" id="c-platform">
+          <button type="button" role="radio" data-value="ios">iOS</button>
+          <button type="button" role="radio" data-value="android">Android</button>
+          <button type="button" role="radio" data-value="tdesktop">Desktop</button>
+        </div>
+        <span class="select select-sm"><select id="c-width" aria-label="Screen width"></select></span>
+        <div class="seg seg-sm seg-icons" role="radiogroup" aria-label="Telegram theme" id="c-scheme">
+          <button type="button" role="radio" data-value="light" aria-label="Day theme" title="Day theme"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+          <button type="button" role="radio" data-value="dark" aria-label="Night theme" title="Night theme"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg></button>
+        </div>
+        <span class="select select-sm"><select id="c-zoom" aria-label="Zoom">
+          <option value="fit">Fit</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option>
+        </select></span>
+      </div>
+      <div class="canvas" id="canvas"><div class="stage" id="stage"></div></div>
+      <div class="resizer resizer-h" data-resize="bottom" role="separator" aria-orientation="horizontal" aria-label="Resize the events panel" tabindex="0"></div>
+      <section class="bottom" id="panel-bottom" aria-label="Events, network and layout">
+        <div class="bottom-head">
+          <div class="line-tabs" role="tablist" aria-label="Bottom panel">
+            <button type="button" role="tab" id="tab-events" aria-controls="pane-events" aria-selected="true">Events <span class="count" id="n-events">0</span><span class="count count-bad" id="n-bad" hidden></span></button>
+            <button type="button" role="tab" id="tab-network" aria-controls="pane-network" aria-selected="false">Network <span class="count" id="n-network">0</span></button>
+            <button type="button" role="tab" id="tab-layout" aria-controls="pane-layout" aria-selected="false">Layout <span class="count" id="n-layout" hidden></span></button>
+          </div>
+          <div class="bottom-tools">
+            <label class="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="log-search" type="search" placeholder="Filter" aria-label="Filter events and requests" spellcheck="false" autocomplete="off"></label>
+            <button type="button" class="btn btn-ghost btn-icon btn-sm" id="log-clear" aria-label="Clear events and requests" title="Clear"><svg class="icon" aria-hidden="true"><use href="#i-ban"/></svg></button>
+            <button type="button" class="btn btn-ghost btn-icon btn-sm" id="bottom-close" aria-label="Hide the panel" title="Hide the panel"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+          </div>
+        </div>
+        <div class="tabpanel" id="pane-events" role="tabpanel" aria-labelledby="tab-events">
+          <div class="chips" id="log-chips" role="radiogroup" aria-label="Kind of event"></div>
+          <div class="log" id="log" role="log" aria-label="Calls the app made"></div>
+          <p class="empty" id="log-empty">The app's calls show here: haptics, popups, chrome colours, buttons, storage, links,
+            payments, and every member this client version does not support.</p>
+        </div>
+        <div class="tabpanel" id="pane-network" role="tabpanel" aria-labelledby="tab-network" hidden>
+          <div class="table-wrap"><table class="net">
+            <thead><tr><th scope="col">Method</th><th scope="col">Path</th><th scope="col">Status</th><th scope="col">Time</th><th scope="col">Note</th></tr></thead>
+            <tbody id="net-rows"></tbody>
+          </table></div>
+          <p class="empty" id="net-empty">Requests the app sends with <code>fetch</code>. Pass <code>--api mock.json</code> to answer
+            its own routes; without it they answer 501. The Network setting breaks them on purpose.</p>
+        </div>
+        <div class="tabpanel" id="pane-layout" role="tabpanel" aria-labelledby="tab-layout" hidden>
+          <div class="audit-bar">
+            <button type="button" class="btn btn-primary btn-sm" id="audit-run"><svg class="icon" aria-hidden="true"><use href="#i-ruler"/></svg>Audit this screen</button>
+            <label class="check"><input type="checkbox" id="audit-outline" checked> Outline the surfaces it flags</label>
+            <span class="muted" id="audit-summary"></span>
+          </div>
+          <ul class="findings" id="audit-findings"></ul>
+          <p class="empty" id="audit-empty">Measures the screen as drawn: gaps between surfaces, the text inset, radii and
+            edges (rules LA01–LA05 in <code>_kit/tma-audit.mjs</code>). Open the screen you want to check, then run it.</p>
+        </div>
+      </section>
+    </main>
+
+    <div class="resizer resizer-v" data-resize="right" role="separator" aria-orientation="vertical" aria-label="Resize the inspector" tabindex="0"></div>
+    <aside class="side side-right" id="panel-right" aria-label="Inspector">
+      <div class="panel-head panel-head-tabs">
+        <div class="line-tabs" role="tablist" aria-label="Inspector">
+          <button type="button" role="tab" data-itab="state" aria-selected="true">State</button>
+          <button type="button" role="tab" data-itab="launch" aria-selected="false">Launch data</button>
+          <button type="button" role="tab" data-itab="storage" aria-selected="false">Storage</button>
+        </div>
+      </div>
+      <div class="panel-scroll" id="inspector" role="tabpanel"></div>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="/__tma__/stand.js"></script>
+</body>
+</html>

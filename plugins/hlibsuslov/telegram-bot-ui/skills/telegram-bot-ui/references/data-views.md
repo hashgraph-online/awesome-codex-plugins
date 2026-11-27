@@ -76,7 +76,8 @@ Every widget keeps a text alternative: a caption that states the main fact and a
 
 ## 3. Catalog: interfaces business and commercial bots need
 
-Each entry: what it answers, the text form, the Rich or widget form, how it overflows.
+Each entry: what it answers, the text form, the Rich or widget form, how it overflows. The
+notification around the data (header, sound, lifecycle) follows `message-patterns.md`.
 
 1. **KPI summary / daily digest.** "How are we doing?" Text: 3-6 `Label: **value** ▲ 8%` lines
    (`kpi_lines`) under a dated title; one line of conclusion first ("Revenue up, refunds normal").

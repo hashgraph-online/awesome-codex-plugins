@@ -1,0 +1,7 @@
+interface:
+  display_name: "design-ux"
+  short_description: "Try one feature's flows side by side and pick"
+  default_prompt: "Use $design-ux to decide how this feature should work."
+
+policy:
+  allow_implicit_invocation: false

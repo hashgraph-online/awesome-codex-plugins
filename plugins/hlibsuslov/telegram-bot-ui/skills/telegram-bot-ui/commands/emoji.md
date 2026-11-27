@@ -14,7 +14,13 @@
 
 1. Check eligibility (Fragment usernames, or owner Premium outside channels). If ineligible, say
    so and keep Unicode fallbacks: Telegram strips the emoji silently and returns no error.
-2. `tgui.py emoji library pick --needs <slots>` (the ~490-pack library: one family ranked by real
+2. **Choosing icons yourself: run the icon plan** (`references/emoji-packs.md`, "The icon plan"):
+   `bot-ui emoji plan [--profile style-profile.json]` (no project: `emoji_packs.py library plan
+   --needs … --route …`, MCP `emoji_plan_icons`). Stop at stage 0 when the route is `none`. Open
+   `icon-plan.html`, look at every chosen slot at 20 px on light and dark, and record
+   `bot-ui emoji verdict --slot <slot> --ok | --alt N | --reject "<why>"`; then
+   `bot-ui emoji apply-plan` (only accepted slots; a person's own icons are never touched).
+   Quick whole-pack ranking instead: `tgui.py emoji library pick --needs <slots>` (the ~490-pack library: one family ranked by real
    coverage, theme-adaptive, static; only slot emoji leave the machine) → `emoji apply`; offline:
    `emoji suggest` → `emoji resolve`. Ids come from a real pack, never invented; `emoji verify`
    against a sent message read back. One icon by meaning: `emoji library search <words>`. By look:
@@ -33,7 +39,7 @@ Use only ids from `data/emoji/packs.json`; if the pack isn't there, ask for a st
 ## Done
 
 One family, every id resolved, Unicode fallback kept, eligibility stated, the review sheet
-looked at and clean.
+looked at and clean, every chosen slot of `emoji/icon-plan.json` with a verdict.
 
 ## Next
 

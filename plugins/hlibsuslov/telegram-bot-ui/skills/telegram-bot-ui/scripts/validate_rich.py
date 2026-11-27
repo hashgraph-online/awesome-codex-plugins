@@ -320,6 +320,41 @@ def walk(block, depth: int, c: Counter, path: str) -> None:
         _table(block, depth, c, path)
 
 
+def _block_buttons(node, buttons: list, rows: list) -> None:
+    """Every RichMessageButton of a blocks message: rows (`buttons` blocks) and buttons inside text (`button`)."""
+    def one(b: dict) -> dict:
+        kind = next((k for k in b if k not in ("text", "style")), "")
+        text = b.get("text")
+        label = text if isinstance(text, str) else " ".join(
+            x if isinstance(x, str) else str(x.get("text", "")) for x in (text if isinstance(text, list) else [text]) if x)
+        return {"kind": kind, "style": b.get("style", ""), "label": label}
+    if isinstance(node, dict):
+        if node.get("type") == "buttons" and isinstance(node.get("buttons"), list):
+            row = [one(b) for b in node["buttons"] if isinstance(b, dict)]
+            buttons += row
+            rows.append(len(row))
+        elif node.get("type") == "button" and isinstance(node.get("button"), dict):
+            buttons.append(one(node["button"]))
+        for v in node.values():
+            _block_buttons(v, buttons, rows)
+    elif isinstance(node, list):
+        for v in node:
+            _block_buttons(v, buttons, rows)
+
+
+def placement_warnings(msg: dict) -> list[str]:
+    """references/rich-message-buttons.md: navigation, the main action, links out and crowded rows go on the keyboard."""
+    from bot_ui import rich as rich_html
+    if "blocks" in msg:
+        buttons: list = []
+        rows: list = []
+        _block_buttons(msg["blocks"], buttons, rows)
+    else:
+        src = msg.get("html") or msg.get("markdown") or ""
+        buttons, rows = rich_html.html_buttons(_without_markdown_code(src) if "markdown" in msg else src)
+    return [f"{code}: {message}" for code, message in rich_html.placement(buttons, rows)]
+
+
 def validate(payload: dict, *, draft: bool = False, moving_emoji: dict[str, str] | None = None):
     errors: list[str] = []
     warnings: list[str] = []
@@ -373,6 +408,7 @@ def validate(payload: dict, *, draft: bool = False, moving_emoji: dict[str, str]
             errors.append(f"{name}: {value} > {LIMITS[name]} (Rich Message Limits)")
     errors += c.errors
     warnings += c.warnings
+    warnings += placement_warnings(msg)
     if "blocks" in msg:
         kb = validate_keyboard.validate({"blocks": msg["blocks"]}, moving_emoji=moving_emoji)
         errors += kb.errors

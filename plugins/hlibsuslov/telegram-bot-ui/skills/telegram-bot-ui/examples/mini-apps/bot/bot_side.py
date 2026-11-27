@@ -111,9 +111,9 @@ class MiniAppBot:
 
     def send_order_card(self, chat_id: int, order_no: str, lines: list[tuple[str, str]], total: str,
                         path: str = "") -> Any:
-        """The result of a Mini App order as a Rich Message whose actions sit in the document, under the receipt
-        they act on: open this order in the app, repeat it (references/buttons-and-styles.md, rich first). No
-        keyboard: nothing here navigates between screens. web_app buttons work in private chats with the bot only.
+        """The result of a Mini App order: a Rich Message receipt (a compact table) with its actions on the
+        keyboard under it. Open order and Repeat act on the whole message, so they are not buttons inside the
+        document (references/rich-message-buttons.md). web_app buttons work in private chats with the bot only.
         Item names come from the server's order, and are escaped anyway: the message speaks with the bot's name.
         The "order:repeat:<no>" handler checks that the order belongs to callback_query.from_user.id before it
         repeats anything: callback data can be forged."""
@@ -121,12 +121,10 @@ class MiniAppBot:
             raise ValueError("order_no: 1-40 of A-Z a-z 0-9 -")
         rows = "".join(f"<tr><td>{_esc(name)}</td><td>{_esc(price)}</td></tr>" for name, price in lines)
         html = (f"<p><b>Order {order_no}</b> is being prepared</p>"
-                f"<table compact>{rows}<tr><td><b>Total</b></td><td><b>{_esc(total)}</b></td></tr></table>"
-                "<tg-button-row>"
-                f'<tg-button type="web_app" url="{_esc(self.app_url_for(path))}">Open order</tg-button>'
-                f'<tg-button type="callback_data" data="order:repeat:{order_no}">Repeat</tg-button>'
-                "</tg-button-row>")
-        return self.t.call("sendRichMessage", {"chat_id": chat_id, "rich_message": {"html": html}})
+                f"<table compact>{rows}<tr><td><b>Total</b></td><td><b>{_esc(total)}</b></td></tr></table>")
+        keyboard = {"inline_keyboard": [[{"text": "Open order", "web_app": {"url": self.app_url_for(path)}},
+                                         {"text": "Repeat", "callback_data": f"order:repeat:{order_no}"}]]}
+        return self.t.call("sendRichMessage", {"chat_id": chat_id, "rich_message": {"html": html}, "reply_markup": keyboard})
 
     def prepare_share(self, user_id: int, result: dict, *, chats: tuple[str, ...] = ("users", "groups")) -> Any:
         """savePreparedInlineMessage for WebApp.shareMessage(id). One per share: ids expire."""
