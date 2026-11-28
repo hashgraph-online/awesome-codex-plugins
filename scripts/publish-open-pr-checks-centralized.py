@@ -71,14 +71,16 @@ def remediation_comment(
     check_title: str,
     summary: str,
     run_url: str,
+    guard_candidates: list[dict[str, object]] | None = None,
 ) -> str:
     if conclusion == "success":
         if result.get("state") == "scan":
             message = "Contribution gate passed. The centralized score threshold of 75/100 was met; finding severities are advisory."
         else:
             message = "Contribution gate passed. No new Community Plugins entries require validation in this pull request."
+        guard_note = PUBLISHER.guard_opportunity_sentence(guard_candidates)
         return PUBLISHER.with_marker(
-            f"{message} No action is required. [Latest sweep]({run_url})."
+            f"{message} {guard_note} No action is required. [Latest sweep]({run_url})."
         )
 
     reasons = result.get("failure_reasons")
@@ -87,11 +89,13 @@ def remediation_comment(
     if result.get("state") == "scan":
         guidance = "Resolve the scan failure and rerun the centralized scan; listing requires a completed score of at least 75/100."
         guidance += f" If the completed score is below 75/100 and your source repository does not already run the scanner, source-repository scanner CI is recommended, not required: use the SHA-pinned workflow in the [scanner guide]({PUBLISHER.SCANNER_GUIDE_URL}), reproduce locally using your project's documented toolchain, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
+        guard_note = PUBLISHER.guard_opportunity_sentence(guard_candidates)
         return PUBLISHER.with_marker(
-            f"{details} {guidance} Source-repository scanner CI is optional. [Latest sweep]({run_url})."
+            f"{details} {guidance} {guard_note} Source-repository scanner CI is optional. [Latest sweep]({run_url})."
         )
+    guard_note = PUBLISHER.guard_opportunity_sentence(guard_candidates)
     return PUBLISHER.with_marker(
-        f"The catalog change could not be validated: {details} Fix the catalog format/source discovery problem and push the correction. [Latest sweep]({run_url})."
+        f"The catalog change could not be validated: {details} Fix the catalog format/source discovery problem and push the correction. {guard_note} [Latest sweep]({run_url})."
     )
 
 
