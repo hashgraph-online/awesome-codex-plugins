@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede SEO Proof Library Skills"
+  short_description: "Tie each published claim to verifiable proof"
+  default_prompt: "Use $suede-seo-proof-kb. Map each important published statement to current permissioned evidence. Return evidence records, stale claims, and affected pages."
+policy:
+  allow_implicit_invocation: true

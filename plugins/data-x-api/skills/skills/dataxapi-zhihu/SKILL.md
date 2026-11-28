@@ -1,14 +1,14 @@
 ---
 name: dataxapi-zhihu
-description: "Public Zhihu data through DataXAPI: posts, articles, pins (想法), questions, answers, users. 16 endpoints, $0.0020 a call, a failed call is free. Use when the user asks about Zhihu content, accounts, comments or trends, or gives a Zhihu link, ID or account name. 通过 DataXAPI 取知乎的公开数据：帖子、文章、想法、问题、回答、用户。16 个接口，一次 $0.0020，失败不收费。用户问到知乎的内容、账号、评论或热点，或给出知乎的链接、编号、账号名时使用。"
+description: "Public Zhihu data through DataXAPI: posts, articles, pins (想法), questions, answers, users. 17 endpoints, $0.0020 a call, a failed call is free. Use when the user asks about Zhihu content, accounts, comments or trends, or gives a Zhihu link, ID or account name. 通过 DataXAPI 取知乎的公开数据：帖子、文章、想法、问题、回答、用户。17 个接口，一次 $0.0020，失败不收费。用户问到知乎的内容、账号、评论或热点，或给出知乎的链接、编号、账号名时使用。"
 metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
 # 知乎数据 API · Zhihu data API · DataXAPI
 
-**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 16 Zhihu endpoints, $0.0020 a call, each at its own price (listed below). No Zhihu account, cookie or login: one DataXAPI key.
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 17 Zhihu endpoints, $0.0020 a call, each at its own price (listed below). No Zhihu account, cookie or login: one DataXAPI key.
 
-DataXAPI returns public Zhihu data (知乎的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 16 Zhihu endpoints with their prices and the questions each one answers. It was generated from catalog revision dc959672dd18e2d0.
+DataXAPI returns public Zhihu data (知乎的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 17 Zhihu endpoints with their prices and the questions each one answers. It was generated from catalog revision ceced48b38f71468.
 
 What one call returns: `zhihu.trends.list`, a recorded answer (30 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
 
@@ -91,6 +91,7 @@ curl -G "https://api.dataxapi.com/v1/zhihu/trends/list" \
 | `zhihu.answers.comments.list` | Zhihu answer comments (知乎回答评论) | Get a page of comments on a Zhihu answer: text, commenter, likes, reply count, time posted, IP location. | $0.002 per call | up to 20 |
 | `zhihu.answers.get` | Zhihu answer detail (知乎回答详情) | Get one Zhihu answer by ID or link: its question, text, author, time posted. | $0.002 per call | one object |
 | `zhihu.articles.get` | Zhihu article detail (知乎文章详情) | Get one Zhihu column article by ID or link: title, text, author, upvotes, comment count, topics. | $0.002 per call | one object |
+| `zhihu.keywords.related` | Zhihu search suggestions (知乎搜索框联想词) | Get the suggestions Zhihu's search box lists as a keyword is typed into it (autocomplete), in the order it lists them, about 10 at a time. The words and their places only, with no index. | $0.002 per call | up to 20 |
 | `zhihu.columns.articles.list` | Zhihu column articles (知乎专栏文章列表) | Get a page of the articles in a Zhihu column by the column's ID: title, text, author, time published, upvotes, comment count. | $0.002 per call | up to 20 |
 | `zhihu.comments.replies.list` | Zhihu comment replies (知乎评论回复) | Get a page of the replies under a top-level Zhihu comment: text, replier, likes, which comment each answers. Each reply also gives its IP location. | $0.002 per call | up to 20 |
 | `zhihu.pins.get` | Zhihu pin detail (知乎想法详情) | Get one Zhihu pin (short post) by ID or link: text, pictures, author, time posted, likes, comments, saves, reposts. | $0.002 per call | one object |

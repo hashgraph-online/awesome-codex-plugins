@@ -68,7 +68,7 @@ This skill runs the DataXAPI task `comments` with the `dataxapi` command line. I
 dataxapi run comments platform=douyin id=7694940173372575014 pages=3 --plan
 ```
 
-With these inputs the plan is 3 calls, at most $0.006, about $0.006 when every call returns a typical page (price book 23, catalog revision 0264e2d6dd4ff743). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 10 calls or $0.05.
+With these inputs the plan is 3 calls, at most $0.006, about $0.006 when every call returns a typical page (price book 30, catalog revision ceced48b38f71468). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 10 calls or $0.05.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

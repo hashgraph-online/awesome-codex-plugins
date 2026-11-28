@@ -82,7 +82,7 @@ amq send --to "<partner>" --kind brainstorm \
   --body "<analysis + open questions>"
 
 # Continue rounds until aligned; drain on each wake doorbell.
-amq drain --include-body
+amq drain --for-turn
 ```
 
 ## Phase 3: Draft (main agent)

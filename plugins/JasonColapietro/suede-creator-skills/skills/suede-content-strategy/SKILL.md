@@ -157,6 +157,10 @@ Worked example, Consideration stage for a project-management tool: "Best Project
 
 ---
 
+## Evidence-to-journey matrix
+
+Map a customer task from noticing a problem through comparing choices and taking the next step. Use actual queries, calls, or search evidence where available and label drafted queries as test prompts. For each row, record buyer stage, question in their language, discovery surface, existing or proposed page, proof needed, and a next action suited to that stage. A social conversation, a product lookup, and an AI answer can share an underlying question without needing identical content. Prioritize rows with a verified answer gap and a relevant next step. When a page already exists, identify whether the gap is an unanswered question or proof the current answer lacks. Record the claim ID or the needed observation; route a reusable proof gap to `suede-seo-proof-kb` without creating a competing page.
+
 ## Content Ideation Sources
 
 ### Research Surface Check
@@ -319,6 +323,12 @@ Decision rule, in order: duplicated intent → Consolidate; else topic still map
 Hand the recurring cadence that keeps this audit running, decay watch, ranking-drop watch, refresh queue, to `suede-marketing-loops`. This skill decides what gets refreshed or killed; that one decides how often the check runs.
 
 ---
+
+### Refresh a single article without losing evidence
+
+When a specific article loses visibility, record its URL, query cluster, date window, device or market, and any comparable historical performance. Check for indexing or canonical changes, shifting search intent, seasonality, and mixed pre/post periods before blaming copy. Sample currently ranking pages for the same query and market; distinguish missing evidence from topics that are simply unrelated.
+
+Prefer the smallest same-URL edit that answers the verified gap. Keep working passages, sources and internal links unless there is an evidence-backed reason to change them. Capture the before state, the intended change, and the equal-length follow-up window. If data or source access was unavailable, do not present a hypothesized refresh as a ranking diagnosis.
 
 ## Reject these defaults
 

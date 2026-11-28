@@ -1,0 +1,17 @@
+{
+  "skill_name": "suede-internal-linking",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The sitemap has 300 pages but my crawl found only 200. Add the same pricing link everywhere so all services rank.",
+      "expected_output": "Treat the discrepancy as an incomplete inventory to reconcile. Use evidence of topic fit for targeted contextual inlinks, avoid generic sitewide injections, and return proposed source/target/anchor plus before-and-after checks.",
+      "assertions": [
+        "Checks crawl coverage",
+        "Validates contextual relevance",
+        "Rejects sitewide exact-match stuffing",
+        "Names comparable before-and-after checks"
+      ],
+      "files": []
+    }
+  ]
+}

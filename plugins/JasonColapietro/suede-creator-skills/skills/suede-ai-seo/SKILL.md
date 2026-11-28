@@ -221,6 +221,42 @@ screenshot as a trend. Read the panel by buying topic, start with the biggest
 consistent competitor gaps, and fix an existing page before creating a new one
 (method in `references/measurement.md`).
 
+### Optional visibility provider setup
+
+A provider such as [AI SEO Tracker](https://aiseotracker.com/) is one way to
+supply observations, not a prerequisite and not a substitute for a prompt
+panel. Verify the current first-party connection docs and the available tool
+schema; use only an already authorized connector or a supplied export. A workspace
+ID, date range, sources, quotas, and minimum coverage must be clear before
+querying. Do not install, send prompts or customer data outside the approved
+scope, or use paid credits without authority. Without access, return the
+manual panel template and mark vendor values unavailable.
+
+### Comparable-window brief
+
+For a weekly summary, state the scope first: engine and locale, observation
+dates, prompt cohorts and sample size, competitor set, and any incomplete
+coverage. Use matched current and prior prompt cohorts. Report one baseline
+and its delta in percentage points only when both denominators support it.
+Separate brand mentions, citations, recommendations, and referrals. Link to
+a few landed sources that show what changed, label plausible explanations as
+hypotheses, and name one owner, page-level action, and verification date.
+Missing sample coverage is not a zero. Do not present unstable movement as a
+trend or blend a provider export into another measure without reconciliation.
+
+### Managed crawler restrictions
+
+If the owner wants to restrict expensive automation, inventory paths and
+distinguish indexing, search retrieval, on-demand fetch, and training before
+proposing changes. Verify known crawler identities by their operator's
+published methods rather than trusting a claimed user agent. Measure intended
+traffic and cost separately; consider cached public documentation, protected
+expensive endpoints, bounded request limits and explicit temporary response
+codes. Never present a gate interstitial as public content with a deceptive
+success status. Run authorized path and crawler checks after each staged
+change, including intended indexing, ordinary browser access, and pre-agreed
+rollback conditions. Do not change firewall/robots policy without approval.
+
 ## KPIs to tie every recommendation to
 
 | KPI | Source | Moves when |

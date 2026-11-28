@@ -50,7 +50,7 @@ What one call returns: `douyin.comments.replies.list` with `id=76556603699266035
 }
 ```
 
-Capability IDs read `platform.resource.action`, for example `douyin.comments.replies.list`. Platforms: douyin (抖音), kuaishou (快手), xiaohongshu (小红书), x (X（推特）), youtube, wechat (微信搜一搜), wechat_mp (微信公众号), wechat_channels (微信视频号), telegram, facebook, linkedin, threads, reddit, zhihu (知乎), tiktok, instagram, bilibili (B站), weibo (微博), pinterest, meta (Meta 广告库), google (Google 广告). This skill was generated from catalog revision 0051cce45e9530b9: 254 capabilities.
+Capability IDs read `platform.resource.action`, for example `douyin.comments.replies.list`. Platforms: douyin (抖音), kuaishou (快手), xiaohongshu (小红书), x (X（推特）), youtube, wechat (微信搜一搜), wechat_mp (微信公众号), wechat_channels (微信视频号), telegram, facebook, linkedin, threads, reddit, zhihu (知乎), tiktok, instagram, bilibili (B站), weibo (微博), pinterest, meta (Meta 广告库), google (Google 广告). This skill was generated from catalog revision ceced48b38f71468: 258 capabilities.
 
 ## The three steps
 

@@ -456,6 +456,7 @@
 | GET | `/api/platform/scheduler/tasks/{task_id}/runs` |
 | GET | `/api/platform/stuck-history` |
 | GET | `/api/platform/workers` |
+| GET | `/api/platform/workers/instances` |
 | GET | `/api/platform/workers/metrics` |
 | GET | `/api/platform/workers/stats` |
 | GET | `/api/platform/workers/{worker_id}` |

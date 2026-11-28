@@ -7,7 +7,8 @@ https://e2e.com/docs/<path>.
 `e2e explore` runs the agent against the app with a goal instead of a test
 file: see what it can do with an app before tests exist, hunt for regressions
 on a branch, or find what is worth turning into a test. It needs a config with
-a target and an agent that holds a model, nothing else. With no config, it
+a target and an agent that holds a model, or runs on an executor that
+explores itself such as `@e2e-dev/acp`'s, nothing else. With no config, it
 runs the `e2e init` wizard first in a terminal; without one (an agent's
 shell, CI) it fails with `CONFIG_NOT_FOUND`, so run `npx e2e init --yes` first.
 
@@ -112,9 +113,10 @@ instructions or `screen.*` actions, and `expected` is the assertion.
 
 ## When it does not fit
 
-The agents entry's `tools` and `system` carry over to the explorer; a
-hand-rolled `StepExecutor` under `executor` is replaced by the built-in agent
-for the run, with a notice on stderr, and needs a `model` on the entry (or the
-executor's) or explore fails before it starts. Findings are the model's claims
+The agents entry's `tools` and `system` carry over to the explorer. An
+`@e2e-dev/acp` executor (`claudeCode()`, `codex()`) explores itself and needs
+no model; a hand-rolled `StepExecutor` without `extend` is replaced by the
+built-in agent for the run, with a notice on stderr, and needs a `model` on
+the entry (or the executor's) or explore fails before it starts. Findings are the model's claims
 plus evidence, not verified reproductions: read `actual` against the
 screenshot before filing a bug.

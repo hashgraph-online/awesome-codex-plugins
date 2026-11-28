@@ -1,0 +1,27 @@
+{
+  "skill_name": "suede-media-transcript",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Transcribe a private webinar, extract slide titles and give me VTT, but the recording may not leave this computer.",
+      "expected_output": "Use authorized local inputs, separate slide descriptions from speech, mark uncertain speech, and validate VTT cues against the source.",
+      "assertions": [
+        "Does not upload or send the recording",
+        "Puts slide text in a distinct artifact",
+        "Uses VTT header and valid timecodes"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "This caption file misses speaker names and the middle five minutes. Create show notes and three quotes for the site without asking for audio.",
+      "expected_output": "Quote only available timestamped speech, mark missing intervals and names unknown, and note no independent playback verification.",
+      "assertions": [
+        "Does not infer speaker identities or dialogue",
+        "Reports the recording was not replayed",
+        "Provides only supported quotes"
+      ],
+      "files": []
+    }
+  ]
+}

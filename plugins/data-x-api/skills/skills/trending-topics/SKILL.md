@@ -58,7 +58,7 @@ This skill runs the DataXAPI task `trends` with the `dataxapi` command line. If 
 dataxapi run trends platforms=douyin,weibo,bilibili --plan
 ```
 
-With these inputs the plan is 3 calls, at most $0.006, about $0.006 when every call returns a typical page (price book 23, catalog revision 0264e2d6dd4ff743). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 8 calls or $0.06.
+With these inputs the plan is 3 calls, at most $0.006, about $0.006 when every call returns a typical page (price book 30, catalog revision ceced48b38f71468). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 8 calls or $0.06.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

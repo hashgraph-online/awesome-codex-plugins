@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Organic Gap Research Skills"
+  short_description: "Turn competitor evidence into SEO work"
+  default_prompt: "Use $suede-organic-gap-research. Compare authorized keyword and backlink exports for [site]. Separate content and link gaps, verify real fit and source evidence, and return an actionable prioritized worklist."
+policy:
+  allow_implicit_invocation: true

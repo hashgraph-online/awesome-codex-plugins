@@ -38,7 +38,7 @@ Field notes:
 - `created`: RFC3339 timestamp.
 - `refs`: optional list of related message ids (e.g., replies).
 - `priority`: optional (`urgent`, `normal`, `low`).
-- `notify`: optional (`wake` or `passive`). Missing or empty uses normal wake eligibility. Passive mail stays readable and drains normally, but never starts or extends a turn. Sends refuse urgent plus passive, and stored urgent messages remain eligible. A reply chooses its own intent.
+- `notify`: optional (`wake` or `passive`). Missing or empty uses normal wake eligibility. Passive mail stays readable and drains normally, but never starts or extends a turn. Sends refuse urgent plus passive, and stored urgent messages remain eligible. A reply chooses its own intent. A follow-up or news notice carries the intent the sender chose with `--reminder-notify`.
 - `kind`: optional; one of the kinds below.
 - `labels`: optional list of tags for filtering.
 - `context`: optional JSON object for structured metadata.
@@ -60,6 +60,7 @@ Notes:
   thread. Set `--thread` explicitly when sending to multiple recipients.
 - `reply_to`, `reply_project`, and `from_project` are transport metadata stamped by the CLI.
 - Delivery outcomes are tracked separately in consumer-local receipt files. `drained` means the consumer ingested the message; `dlq` means ingest failed and the message moved to DLQ.
+- `amq drain --for-turn` writes the same `drained` receipt for a passive message it shows as a digest: the consumer ingested the original, which stays in `inbox/cur`, and received its compact representation. Neither the receipt nor the digest proves that the model read every byte of the body or did the work.
 
 ## Message kinds
 
@@ -79,6 +80,37 @@ Notes:
 Messages emitted by `amq integration ...` commands carry orchestrator metadata
 under `context.orchestrator`; the shape and labels are in
 [integrations](integrations.md#message-shape).
+
+## Decision for the owner
+
+A question to the owner (`user`) may carry its options under
+`context.decision`; the board's Inbox shows it as one card with one answer
+command per option:
+
+```json
+{"decision": {
+  "options": [
+    {"label": "Opt-in", "summary": "Off unless the user turns it on.", "pros": ["no surprise for current users"], "cons": ["few will find it"]},
+    {"label": "On by default", "summary": "On for every wake.", "pros": ["protects everyone"], "cons": ["changes behaviour for current users"]}
+  ],
+  "recommended": "Opt-in",
+  "blocking": false,
+  "if_later": "The guard stays opt-in; nothing waits."
+}}
+```
+
+Send it with `amq send --to user --kind question --subject "..." --body @file
+--context @decision.json`. `send` and `reply` refuse, as a usage error that
+names the field, a decision that is not an object with 2 to 6 options; a
+label that is empty, longer than 40 characters, starts or ends with white
+space, starts with `-` or `@`, repeats another label (ignoring case), or holds
+a control character (C0, DEL, C1, or the Unicode line and paragraph
+separators U+2028 and U+2029); a summary longer than 200 characters; more than 5 pros or 5 cons,
+or one longer than 120 characters; a `recommended` that is not one of the
+labels; a `blocking` that is present and not `true` or `false`; an `if_later` longer than 200
+characters; or an unknown field. A message with no `decision` key is not
+checked. The board reads the decision by the same rule and shows a message
+whose decision breaks it as a plain question.
 
 ## Verified Buzz event
 

@@ -97,6 +97,24 @@ Connector → Custom → `https://callmemcp.com/mcp`. In Grok Build:
 grok plugin install radres/call-me#grok
 ```
 
+**Antigravity** — install the plugin in [`antigravity/`](antigravity/), which
+adds the MCP server and a skill telling the agent when to call and when to text:
+
+```bash
+git clone https://github.com/radres/call-me
+agy plugin install call-me/antigravity
+```
+
+or, for the MCP server alone, add to `~/.gemini/config/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "call-me": { "serverUrl": "https://callmemcp.com/mcp" }
+  }
+}
+```
+
 **Cline** — add to Cline's MCP settings (MCP Servers → Configure; CLI:
 `~/.cline/data/settings/cline_mcp_settings.json`). Full agent-readable steps are
 in [llms-install.md](llms-install.md).

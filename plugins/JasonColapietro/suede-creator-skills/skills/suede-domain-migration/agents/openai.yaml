@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Domain Migration Skills"
+  short_description: "Test redirects, parity and cutover readiness"
+  default_prompt: "Use $suede-domain-migration. Map [old site] to [new site], preserving legitimate destinations. Give a URL-level redirect and retirement list, staging verification, and cutover and rollback criteria without publishing."
+policy:
+  allow_implicit_invocation: true

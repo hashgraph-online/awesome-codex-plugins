@@ -48,7 +48,7 @@ API key setup
 - [ ] 1. Create an ASOScan account + add at least one app
 - [ ] 2. Settings → API access → New key name → Read-only / Read+write → Create key
 - [ ] 3. Copy the key now (asosk_live_… is shown once)
-- [ ] 4. export ASOSCAN_API_KEY="asosk_live_…"
+- [ ] 4. export ASOSCAN_API_KEY="<your-key>"
 - [ ] 5. Verify → expect 200 + your usage
 ```
 
@@ -60,13 +60,13 @@ API key setup
    key**. **Copy it now — `asosk_live_…` is shown only once.**
 3. Set it as an environment variable:
    ```bash
-   export ASOSCAN_API_KEY="asosk_live_…"     # bash/zsh (add to ~/.zshrc to persist)
+   export ASOSCAN_API_KEY="<your-key>"     # bash/zsh (add to ~/.zshrc to persist)
    ```
    ```fish
-   set -Ux ASOSCAN_API_KEY "asosk_live_…"     # fish
+   set -Ux ASOSCAN_API_KEY "<your-key>"     # fish
    ```
    ```powershell
-   setx ASOSCAN_API_KEY "asosk_live_…"        # Windows PowerShell — open a new terminal after
+   setx ASOSCAN_API_KEY "<your-key>"        # Windows PowerShell — open a new terminal after
    ```
 4. Verify — a `200` with your usage means you're set:
    ```bash

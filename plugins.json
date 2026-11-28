@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-28",
-  "total": 484,
+  "total": 485,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2583,6 +2583,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/getaxonflow/axonflow-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "B2B Market & Lead Intelligence",
+      "url": "https://github.com/truonggiang0111/b2b-ai-mcp-skills",
+      "owner": "truonggiang0111",
+      "repo": "b2b-ai-mcp-skills",
+      "description": "15 portable B2B intelligence Agent Skills, zero-key public pipelines (Google News URL decoding, UK Gov Tenders, ClinicalTrials.gov), n8n/Make blueprints, and optional APIFY_TOKEN batch scrapers.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/truonggiang0111/b2b-ai-mcp-skills/HEAD/plugin.json"
     },
     {
       "name": "BabelDOC PDF Translate",

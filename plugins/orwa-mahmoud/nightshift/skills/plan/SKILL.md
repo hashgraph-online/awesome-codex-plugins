@@ -256,16 +256,16 @@ Each plan keeps a record beside it, written only through
 `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" plan-record --plan "<name>" --action proposed|approved|reviewed [--by <name>]`.
 The name is the one the person signs records with; with no `--by` it is the work target's Git user
 name. The helper stamps the plan's current revision, so an approval names exactly the content it
-reviewed, whatever edit records it later. `ns plan-record --plan "<name>"` prints the plan's state and
-every line, a line written without a name as `unknown`.
+reviewed, whatever edit records it later. `ns plan-record --plan "<name>"` prints the plan's revision
+and every line, a line written without a name as `unknown`. A record gates nothing.
 
 - When the owner says the plan is complete, record `proposed` under their name. A solo owner
   approves their own plan directly: record `approved` too.
-- In a team (`team.approvers` in the rules file), the proposer records `proposed`, and someone
-  whose role is an approver records `approved` after reviewing it, their own plans included. The
-  helper refuses anyone else and writes nothing.
-- A change to the plan's contract, gates or items returns it to proposed until an approver approves
-  the new revision; the earlier approval stays in the record and in Git.
+- In a team, approval is a review in Git: the proposer commits and pushes the plan, a teammate
+  reviews it with their own agent and merges it or asks for changes. Record `approved` under the
+  name of whoever approved it, so the record shows who did.
+- A plan changed after an approval shows a new revision in its record and its change in Git; tell
+  the runner when the revision they are about to start is not the one approved.
 - When someone needs proof of a name on a record, check the commit that wrote that line and whether
   its signature verifies, and report what you find: an unsigned line may not be who it says.
 

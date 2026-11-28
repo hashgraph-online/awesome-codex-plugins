@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Release to Marketing Skills"
+  short_description: "Write release copy supported by verified deployments"
+  default_prompt: "Use $suede-release-to-marketing to verify the rollout state of these changes and draft the release notes and channel copy."
+policy:
+  allow_implicit_invocation: true

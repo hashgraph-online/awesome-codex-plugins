@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede SERP Research Skills"
+  short_description: "Compare live result intent and citation gaps"
+  default_prompt: "Use $suede-serp-research. Compare a scoped query list for [site] using current SERPs or an export. Keep device and locale fixed, show landed URL overlap, and map intent and citations to page choices."
+policy:
+  allow_implicit_invocation: true

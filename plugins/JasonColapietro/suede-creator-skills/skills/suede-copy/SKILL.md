@@ -141,6 +141,14 @@ pain, Before-After-Bridge for heroes and launch posts, Jobs to Be Done for
 product and onboarding copy, Customer-as-Hero Arc for homepages and About
 pages. Details and persona notes: `references/frameworks-and-personas.md`.
 
+## Intent-led article openings
+
+When the assignment is only the opening, confirm the audience's task and that the article actually delivers what its title promises. For a how-to, lead with the first decision or result; for a comparison, name the tradeoff; for a list, explain how the options were selected. Give the reader a useful answer or orientation in the first paragraph, then preview the next decision. Avoid repeating the headline, restarting with market size, or promising a result the article does not establish. If the body is unavailable, label assumptions and do not invent examples or coverage.
+
+## Evidence-led hook variants
+
+Build each proposed hook around one audience problem and the same verified offer. Use different doors into that offer: a specific pain for a landing hero, a recognizable moment for a video, or an attributable finding for a social opener. Follow the hook immediately with how the offer helps and one proportionate next action. Keep variant labels, note the proof each needs, and choose one response metric if they will be tested. Do not manufacture a deadline, testimonial, dramatic metric, or buyer emotion to punch up an opening.
+
 ## Variants
 
 Headlines, CTAs, and subject lines ship as three labeled variants by default,
@@ -176,7 +184,10 @@ hold (a DM, a single button) and say what was skipped.
   does a rights audit take?"), each answered in its first sentence.
 - **Quotable facts.** At least one self-contained sentence per section that
   states a number, a named capability, or a definition, with its source or
-  artifact nearby. No pronouns that depend on the previous paragraph.
+  artifact nearby. No pronouns that depend on the previous paragraph. Pull
+  customer outcomes, changing product facts, and benchmark statements from the
+  audience-cleared records in `suede-seo-proof-kb` when available. Keep the source
+  scope in the sentence instead of squeezing it out to make the claim shorter.
 - **Consistent entities.** Use the same product, company, and person names
   everywhere on the page and in metadata. For Suede bylines and quotes, the
   person is Jason Colapietro.

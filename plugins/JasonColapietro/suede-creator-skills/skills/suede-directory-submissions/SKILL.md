@@ -3,7 +3,7 @@ name: suede-directory-submissions
 description: "Use when asked \"plan our directory submissions\" or to select and sequence startup, SaaS, AI, MCP, marketplace or review listings. Suede adapts truthful positioning, maintains entity consistency and tracks submission evidence and verified backlinks. NOT FOR: release packaging (use suede-launch-packaging), scaled destination pages (use suede-programmatic-seo), or AI visibility audits (use suede-ai-seo)."
 metadata:
   display-name: "Suede Directory Submissions Skills"
-  version: 2.0.1
+  version: 2.1.0
 ---
 
 # Suede Directory Submissions Skills
@@ -135,6 +135,17 @@ current form:
 
 Keep facts consistent and approved. Adapt length and emphasis to each verified
 form without inventing features, customers, outcomes, or platform support.
+
+Maintain a reusable, versioned listing manifest separate from destination
+approval. Include canonical product URL, entity facts, supported categories,
+source-backed feature claims, named asset versions, and a business-contact
+reference. Store private intake values separately. Track first submission,
+provider confirmation, and independently verified publication as three
+different events; preserve the destination's ID and evidence at each step.
+
+For a provider-specific Awesome Tools submission or reciprocal-link request,
+read [the provider checks](references/awesome-tools.md). Do not infer new
+permissions from a reusable manifest or a provider validation result.
 
 ### Step 4: Batch submit
 

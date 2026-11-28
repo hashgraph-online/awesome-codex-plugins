@@ -1,0 +1,18 @@
+{
+  "skill_name": "suede-domain-migration",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The migration export maps a retired support article and a high-traffic product page to the homepage. The staging destination has noindex and its locale alternate points back to the old host. Can it go live?",
+      "expected_output": "Mark the mismatched targets and inconsistent indexability/locale signals; provide one-hop equivalent redirects or explicit retirement, check canonical/sitemap/locale parity and recommend a release hold with rollback owner. Do not deploy.",
+      "assertions": [
+        "Rejects unrelated redirects",
+        "Separates retired and migrating URLs",
+        "Tests noindex and alternate parity",
+        "Returns rollback criteria",
+        "Does not deploy"
+      ],
+      "files": []
+    }
+  ]
+}

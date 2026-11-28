@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Search Titles Skills"
+  short_description: "Prioritize and verify clear search titles"
+  default_prompt: "Use $suede-search-titles. Review title tags and H1s on [site]. Separate observed search rewrites from rendered markup, prioritize with comparable GSC data, and give a reversible set of candidates."
+policy:
+  allow_implicit_invocation: true

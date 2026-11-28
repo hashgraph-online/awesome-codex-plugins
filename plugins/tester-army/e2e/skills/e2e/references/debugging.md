@@ -69,7 +69,7 @@ Full reference: docs/debugging.mdx.
 | `STEP_NOT_AWAITED` | A step, `expect.poll`, or `toPass` without `await` | `await` the call the code frame names |
 | `COLLECTION_ERROR` | `async` describe body, `test.setup` inside `describe`, a fixture that does not destructure its first parameter, an option forbidden in a serial group | Restructure per `writing-tests` |
 | `NO_TESTS` | The glob, a file argument, or a tag matched nothing | Check the config `tests`, the `.e2e.ts` suffix, the tag names |
-| `MODEL_UNAVAILABLE` | The built-in agent's entry has no model; the run stops at the first `agent` fixture (a model-less custom executor fails only `waitFor` and `extract`) | Configure one (topic `agent`) |
+| `MODEL_UNAVAILABLE` | The built-in agent's entry has no model; the run stops at the first `agent` fixture (a model-less custom executor fails only `waitFor` and `extract`, unless it answers them itself as `@e2e-dev/acp` does; `e2e explore` on one without `extend` runs the built-in agent, which needs a model) | Configure one (topic `agent`) |
 | `MODEL_PROVIDER_FAILED` | Network, 5xx, rate limit, or no key configured (`AI_GATEWAY_API_KEY is not set`); only steps that call the model fail | Set the variable the message names, or say no key is available; never rewrite tests to get around it |
 | `STEP_TIMEOUT`, `STEP_BUDGET_EXHAUSTED` | Goal too big or ambiguous | Split the goal, use on-screen wording; raise `maxSteps` or `maxModelCalls` |
 | `REPLAY_STALE` | `--strict-cache` or `cache.strict`, and a committed recording no longer replays | Rerun read-write with the knob the message names off, commit the changed entry |

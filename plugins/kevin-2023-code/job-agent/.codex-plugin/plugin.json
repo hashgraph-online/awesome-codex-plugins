@@ -1,7 +1,7 @@
 {
   "name": "job-agent",
-  "version": "0.3.3",
-  "description": "Open-source job-search skills: find and score roles, tailor your résumé, fill application forms in your browser up to Submit, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
+  "version": "0.4.0",
+  "description": "Open-source job-search skills: find and score roles, tailor your résumé, apply on company sites the way you set it (your agent submits, or stops at Submit for you), work a to-apply list on a daily schedule, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
   "author": {
     "name": "job-agent contributors",
     "url": "https://github.com/kevin-2023-code/job-agent"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "job-agent",
     "shortDescription": "Find, apply, track and prep for jobs",
-    "longDescription": "Open-source job-search skills: find and score roles, tailor your résumé, fill application forms in your browser up to Submit, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
+    "longDescription": "Open-source job-search skills: find and score roles, tailor your résumé, apply on company sites the way you set it (your agent submits, or stops at Submit for you), work a to-apply list on a daily schedule, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
     "developerName": "job-agent contributors",
     "category": "Productivity",
     "capabilities": [

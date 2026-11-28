@@ -3,7 +3,7 @@ name: suede-competitors
 description: "Use when asked \"write a comparison page\" or to plan an alternative or versus page from verified competitor evidence. Suede returns evaluator-focused copy, fair comparisons, pricing context, migration guidance and search-ready structure. NOT FOR: gathering competitor evidence (use suede-competitor-profiling), internal battle cards (use suede-sales-enablement), or scaled page systems (use suede-programmatic-seo)."
 metadata:
   display-name: "Suede Competitor Comparison Skills"
-  version: 2.0.1
+  version: 2.1.0
 ---
 
 # Suede Competitor Comparison Skills
@@ -130,6 +130,20 @@ For each category: describe how each handles it, cite the competitor's documente
 
 ### Pricing Comparison
 Include tier-by-tier comparison, what's included, hidden costs, and total cost calculation for sample team size.
+
+Use the same seat count, billing term, currency and required workload for both
+products. Pick team sizes that expose real pricing breakpoints (for example,
+one, five and twenty-five seats). Show the formula, mandatory minimum seats,
+required add-ons, usage overages, and first-year versus renewal where those
+terms differ. If a vendor quotes individually, show the remaining unknown
+rather than extrapolating a public starter price. Date and link the quotes.
+
+A switching trigger is a specific problem the named buyer can recognize, not
+a broad complaint. Record its edition, conditions and date; corroborate it
+with current product documentation or a reproducible test before using it as
+a claim. Give migration guidance with a reversible parallel-run or rollback
+step. Open a separate buyer-focused URL only when its job, evidence and
+recommendation differ from an existing comparison.
 
 ### Who It's For
 Name the reader your product is built for and the outcome they get: the use

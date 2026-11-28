@@ -34,7 +34,7 @@ Global. The skill is a prompt-and-script package that runs locally inside the in
 ## Requirements / Dependencies
 
 - A Claude Code or Codex CLI session with the `suede-skills` plugin installed (install options: <https://skills.suedeai.ai/>).
-- Bundled files loaded relative to this directory: `agents/` (1 file), `references/` (4 files).
+- Bundled files loaded relative to this directory: `agents/` (1 file), `references/` (5 files).
 - Credentials: none are bundled or required by the skill files. Any tool or API credentials come from the host session; never paste credentials into skill files, prompts, or outputs.
 
 ## Known Risks and Mitigations

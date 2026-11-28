@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede SEO Sprint Skills"
+  short_description: "Plan and track a one-page SEO sprint"
+  default_prompt: "Use $suede-seo-sprint. Build a one-page SEO sprint from dated evidence. Return a baseline, weekly actions, and measurement gates; do not promise rank or send outreach."
+policy:
+  allow_implicit_invocation: true

@@ -22,7 +22,8 @@ browser). Homie for studios is in **beta**.
 ## The new-studio checklist
 
 Carry the request through without waiting between setup, planning, building and checking.
-Show brief progress, not a form. Choose the name from the request, otherwise "My Studio".
+Show brief progress, not a form. Choose the name from the request, otherwise "My Studio" (a placeholder: say
+it can be renamed any time, and that the directory will not list the studio while it still has one).
 The demo and small-change lesson below are optional, only for someone who asks for a tutorial.
 Plan from the premise with sensible engineering and design defaults; the person changes them later
 by asking. A business or non-profit may need an app or site: do not force a game or game interview.
@@ -163,7 +164,9 @@ that only says "Connect to Claude". The studio's first-run band says **Connect t
 
 ## 1. The studio
 
-Use the requested name, their business name, or "My Studio"; it can change later.
+Use the requested name, their business name, or "My Studio" as a placeholder; it can change later by editing
+`name` in studio.json. A studio still carrying its placeholder name cannot be listed in the homie.rocks
+directory (the directory refuses it and says so); renaming clears that by itself, with nothing else to set.
 Then say in two or three lines what will happen, and go on: you make the studio folder here (no game
 in it yet: its home page says "First game coming soon" until the first one is made); later, when it goes online, Cloudflare opens in their browser **once** to approve (a free
 account); on their account you will create one Worker, one D1 database and two

@@ -16,14 +16,11 @@ where they stand and the tests on https://gitranks.com/build.
 Each answer of the server is complete in itself and says exactly what to do, in its own words: follow them. Some
 agents keep only the start of the server's instructions, so this skill states the rules once.
 
-## When Build is not open
+## Build's tools
 
-Build's tools on the `gitranks` server are `list_projects`, `open_build`, `next_step` and `reset_step`. Decide by
-the tools you see:
-- **No `gitranks` tools at all, or a call answers that sign-in is required:** the server is not connected. Connect it
-  first (see Connecting in the `contribute` skill), then look again.
-- **Other `gitranks` tools (such as `find_issues` or `my_contributions`) but none of Build's:** GitRanks Build is not
-  open to this person yet. Tell them so, and do nothing more for GitRanks Build.
+Build's tools on the `gitranks` server are `list_projects`, `open_build`, `next_step` and `reset_step`. If you see
+none of them, or a call answers that sign-in is required, the server is not connected: connect it first (see
+Connecting in the `contribute` skill), then look again.
 
 If the person names GitRanks Build or asks to (learn to) build something (even an MCP server) with GitRanks, call
 `list_projects` or `open_build` before any other help, agent or skill. Never teach the project, write its code or
@@ -101,10 +98,10 @@ gives for that. If they ask something else, answer it, then come back to the ste
   with `open_build`, the `buildId` and `part`, one part at a time.
 - **A refusal.** Tell the person in plain words what it says, then do what it says.
 
-To set the folder to a step the person passed, or to the step in hand (the files drifted, a check keeps failing, or
-the person asks to start a step again), call `reset_step` with the `buildId` and the step. It changes no progress and
-hands out no check. Then go on as its answer says: its last line calls `open_build`, which hands out the step again.
-Do that answer whole: the person tries again, then `tried: true`.
+To set the folder to a step the build passed, or to the step in hand (the files drifted, a check keeps failing, or
+the person asks to start a step again), call `reset_step` with the `buildId` and the step. Then go on as its answer
+says: its last line calls `open_build`, which hands out the step again. Do that answer whole: the person tries again,
+then `tried: true`.
 
 ## Rules
 

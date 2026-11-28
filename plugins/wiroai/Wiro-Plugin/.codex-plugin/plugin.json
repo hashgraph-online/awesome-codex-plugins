@@ -1,6 +1,6 @@
 {
   "name": "wiro-ai",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "description": "Run image, video, audio and LLM models, build workflows and manage AI agents on Wiro AI from Codex",
   "author": {
     "name": "Wiro AI",

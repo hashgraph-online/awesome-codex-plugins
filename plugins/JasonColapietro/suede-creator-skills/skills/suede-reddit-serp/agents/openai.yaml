@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Reddit SERP Skills"
+  short_description: "Qualify threads and draft disclosed replies"
+  default_prompt: "Use $suede-reddit-serp. Check dated search evidence, thread state, and community rules. Return useful disclosed drafts or explicit skips; do not post."
+policy:
+  allow_implicit_invocation: true

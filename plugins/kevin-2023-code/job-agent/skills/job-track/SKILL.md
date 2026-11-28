@@ -31,6 +31,14 @@ job-agent track stats
 
 Statuses: `evaluated`, `applied`, `screen`, `interview`, `offer`, `rejected`, `withdrawn`, `skipped`, `ghosted`.
 
+## The to-apply list
+
+Roles waiting to be applied to, and the ones the agent couldn't do. Connected: `get_shortlist` (`items`, each with `approved` and any could-not-apply note); local: `job-agent list` (`--all` shows done and skipped rows).
+
+- **Approving picks** is the candidate's: they approve on TrueInterview (connected) or say so and you run `job-agent list approve <id>` / `--all`.
+- **Couldn't apply** (kinds `sign_in`, `not_a_fit`, `required_question`, `closed`, `other`): list them with the reason when they ask "what's stuck?". A `sign_in` row goes back once they've signed in to that site: `job-agent list back <id>` locally, or put it back on TrueInterview.
+- **Applied from the list**: log it in the tracker too (`report_application` / `job-agent track add … --status applied`), then `job-agent list done <id>` locally; the server takes it off the list on its own.
+
 ## Both
 
 - **Recruiter emails**: if they paste one, offer to file it in `knowledge/` (it often states the level, range and loop, which prep will use).

@@ -14,7 +14,7 @@ names it and does not run it.
 | `auth` | the server rejects the bearer (401/403) | refresh the token; hooks fail open and otherwise lose captures |
 | `namespace` | the token's listed grant cannot write the hook namespace | get a writer grant, or set `LOOM_NAMESPACE` / `namespace` in `~/.loom/config.json` to one it can write |
 | plugin registration | `loom` is not an enabled plugin, or its MCP server is not connected | `claude plugin enable loom` (Codex: `codex plugin add loom`), then restart the session; a failed MCP connection with every check above passing points at the URL the MCP entry uses (Claude Code: the `server_url` option; Codex: the plugin's `.mcp.json`) |
-| `flush` (WARN) | capture jobs older than ten minutes never reached the server (the flusher that owned them died) | fix the lines above, then replay each file with `sh "<root>/bin/loom-node" "<root>/hooks/loom-flush.mjs" <file>`; it deletes the file when done. Conversation turns also retry on the next Stop, deduplicated by message id |
+| `flush` (WARN) | capture jobs older than ten minutes never reached the server (the process that owned them died) | fix the lines above, then replay each file by its name; the replay deletes it when done. `loom-flush-*.json`: `sh "<root>/bin/loom-node" "<root>/hooks/loom-flush.mjs" <file>`. `loom-record-<Event>-*.json` (a hook payload as the host sent it, tool input and output included): `sh "<root>/bin/loom-node" "<root>/hooks/loom-record.mjs" <Event> - <file>`. Conversation turns also retry on the next Stop, deduplicated by message id |
 
 **Claude Code shows "needs authentication" or "SDK auth failed: ZodError" for
 the loom MCP server.** The header helper sent no token the server accepted,

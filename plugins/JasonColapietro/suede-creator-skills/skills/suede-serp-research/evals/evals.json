@@ -1,0 +1,17 @@
+{
+  "skill_name": "suede-serp-research",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Two semantically similar searches show eight shared desktop URLs, but the mobile export mixes US and UK results. Should we create two pages? No paid searches.",
+      "expected_output": "Do not combine the mobile cohorts or spend. Separate features, normalize URLs only with evidence, review the same-market dominant intent and existing page coverage, and give a tentative decision with missing checks.",
+      "assertions": [
+        "Uses comparable cohorts",
+        "Does not call paid services",
+        "Treats overlap as evidence not a rule",
+        "Checks existing page and real intent"
+      ],
+      "files": []
+    }
+  ]
+}

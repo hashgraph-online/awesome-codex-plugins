@@ -488,11 +488,16 @@ incident. Relay its `verdict`: with `cause`, name the cause, its owner, the
 say no cause was confirmed, list `ruled_out` and the `unseen` windows, and
 never offer the likeliest candidate as the cause. A candidate `not_checked` was
 not ruled out. Every owner is answered: the loader (a duplicate delivery, a
-retyped source column), the project (a model the range changed, judged by
-`maintain verify`), a package (a version `package-lock.yml` moved), a seed (its
-file hash) and the schedule (a parent model built after its child, from
-Elementary's build times); relay each `not_checked` reason, such as
-`unpinned` or `no_measured_before`, as what the evidence could not show. `snapshots.series: none` means no baseline was committed, so a
+retyped source column, or rows that landed after the run read them,
+`source_arrived_late`, from the source's `loaded_at_field` against the run's
+start), the project (a model the range changed, judged by `maintain verify`), a
+package (a version `package-lock.yml` moved), a seed (its file hash) and the
+schedule (a parent model built after its child, from Elementary's build times);
+relay each `not_checked` reason, such as `unpinned`, `no_measured_before` or
+`no_capture_time`, as what the evidence could not show. A late source's repair
+is a rebuild once the rows have landed, and the incident read again; where the
+delay recurs, suggest a declared `freshness.deadline` or a later schedule,
+which is the orchestrator's change and not a project file. `snapshots.series: none` means no baseline was committed, so a
 confirmed cause is present now and when it entered the break is unseen. The
 repair in `next_steps` is a `transform` plan for the transform workflow to
 author; diagnosis writes nothing.

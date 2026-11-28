@@ -71,3 +71,7 @@ Each folder carries the complete MIT notice. No upstream executable drawing
 subsystem or assets are included. See the
 [all-skill mapping](docs/interface-quality-adaptation.md).
 Suede's adaptations imply no endorsement by the upstream author.
+
+## SEO workflow research credit
+
+Ilias Ism’s [Illyism/seo-skills](https://github.com/Illyism/seo-skills/tree/88b0052369cecca1bb2edac5d917c598e4e78363) informed the independently written Suede workflows mapped in [the SEO crosswalk](docs/seo-workflow-crosswalk.md). No upstream files, executable code, or templates are included in these additions.

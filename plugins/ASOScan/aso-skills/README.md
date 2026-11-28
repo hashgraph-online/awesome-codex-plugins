@@ -165,7 +165,7 @@ npx skills add ASOScan/aso-skills --skill keyword-intelligence keyword-spy
 3. Export it:
 
    ```bash
-   export ASOSCAN_API_KEY="asosk_live_XXXXXXXX..."
+   export ASOSCAN_API_KEY="<your-key>"
    ```
 
 4. Verify: `bash scripts/asoscan-check.sh`

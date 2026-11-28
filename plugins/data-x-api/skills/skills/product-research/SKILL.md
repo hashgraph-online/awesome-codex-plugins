@@ -61,7 +61,7 @@ This skill runs the DataXAPI task `products` with the `dataxapi` command line. I
 dataxapi run products platform=tiktok 'query=yoga mat' products=3 --plan
 ```
 
-With these inputs the plan is 4 calls, at most $0.008, about $0.008 when every call returns a typical page (price book 23, catalog revision 0264e2d6dd4ff743). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 11 calls or $0.17.
+With these inputs the plan is 4 calls, at most $0.008, about $0.008 when every call returns a typical page (price book 30, catalog revision ceced48b38f71468). Other inputs and other platforms come to other amounts: the plan says. No run of this task is opened above 11 calls or $0.17.
 
 2. **Tell the user** what the plan says it can cost at most, then run it, capped at that amount, with the table written to a file:
 

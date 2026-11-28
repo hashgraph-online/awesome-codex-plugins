@@ -101,21 +101,19 @@ prints that the run works from its own copy; teammates keep reading and editing 
 run works. A teammate's run of the same plan, pulled through Git, is never taken over: each runner's
 run has its own folder.
 
-A team whose rules name approvers runs only an approved revision: `start-run` refuses a proposed
-plan with what changed and who approved the revision before; relay it and stop. When the plan came
-from teammates, show the runner what the run will execute before starting it, and wait for their
-yes: the plan's gate commands, the effective `shift.prepare` and verification profile
+When the plan came from teammates, show the runner what the run will execute before starting it,
+and wait for their yes: the plan's gate commands, the effective `shift.prepare` and verification profile
 (`ns shift-policy resolve --table`), and whether `baselineGates` runs the gates before arming.
 
 The branch is the runner's to name. When the owner has not said, ask which branch the run works on:
-the current one, an existing work branch, or a new one from `branches.base`, and pass it with
-`--branch <name>`. Without `--branch` the run gets a branch of its own. A second run on a branch
-waits until the first has ended, then continues its worktree.
+the current one, an existing work branch, or a new one, and pass it with `--branch <name>`. A new
+branch starts from the remote's default branch. Without `--branch` the run gets a branch of its own.
+Git refuses a branch another worktree already holds; relay its message.
 
 When the owner names their own settings for the run ("with my settings", "use bob's settings"),
 add `--settings <name>`: the run reads `settings/<name>.json` over the team's rules for that run
-alone. A file that changes anything the team keeps is refused with the settings it named; relay
-those lines and stop.
+alone. A file that is missing or cannot be read is refused with the reason; relay those lines and
+stop.
 
 When the owner asks for the plan to run **in the background** ("start it in the background", "run it
 on its own"), add `--background` and stop after relaying its lines: it arms the run, starts a
@@ -167,13 +165,15 @@ One deadline governs the whole shift: finite items first, the walkthrough soaks 
 ## 4. Arm the gate
 
 Every check has passed and the work is known, so the shift begins here. First record tonight's
-snapshot, the contract and items the gate holds this shift to, now that any cut item is in the list:
+snapshot, the contract and items the shift starts with, now that any cut item is in the list; the
+gate records every later change to them:
 
 ```bash
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-preflight --phase snapshot
 ```
 
-Relay a `warn` line once and arm anyway; a composed shift keeps the policy it already has. Then give
+Relay a `warn` line once and arm anyway; a composed shift keeps the policy it already has, and a
+stopped shift started again keeps the one it ran with, which the preflight brought back. Then give
 a shift with `shift.isolation` set to `worktree` its own worktree:
 
 ```bash

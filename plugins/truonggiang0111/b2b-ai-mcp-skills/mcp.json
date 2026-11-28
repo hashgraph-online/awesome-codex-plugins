@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "b2b-market-intel-apify": {
+      "type": "streamable-http",
+      "url": "https://mcp.apify.com?tools=ttyan0111/google-news-ai-article-extractor,ttyan0111/reed-uk-jobs-hiring-signals,ttyan0111/seek-au-nz-jobs-hiring-signals,ttyan0111/app-store-play-reviews-spy,ttyan0111/google-ads-transparency-spy"
+    }
+  }
+}

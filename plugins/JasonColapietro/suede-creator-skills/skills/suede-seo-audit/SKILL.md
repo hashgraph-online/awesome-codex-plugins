@@ -244,6 +244,21 @@ URL, rich result valid items (Enhancements), Core Web Vitals pass rate (CrUX),
 Bing indexed pages and Copilot citations (Bing Webmaster Tools), organic
 conversions on the URL (GA4). Never forecast the size of the change.
 
+### Revenue-path audit mode
+
+For a blunt fix-oriented review, sample the pages that matter most for customer
+intent, including high-value acquisition pages and the actual next step
+such as a booking, checkout or demo. Trace the route from result to rendered
+page to intended conversion; distinguish a broken route, withdrawn access
+or blocked indexation from an aesthetic or wording opinion. Use supplied
+Search Console and conversion data if available; otherwise label business
+impact as an assumption. Prioritize reproducible failures that keep the
+right visitors from reaching the intended destination before low-impact
+warnings. Write a short ranked backlog with one acceptance check per fix,
+and stage a focused change only when repository scope allows. A merged PR
+is not required to make the audit useful, and does not itself prove the
+public effect.
+
 ## 4. Scoring
 
 Grades are mechanical, from finding counts:

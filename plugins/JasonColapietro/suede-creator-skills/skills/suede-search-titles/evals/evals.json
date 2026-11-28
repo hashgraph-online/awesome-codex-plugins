@@ -1,0 +1,17 @@
+{
+  "skill_name": "suede-search-titles",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Rewrite 900 title tags because desktop CTR is down. We have switched to mostly mobile traffic and average ranking has slipped three positions.",
+      "expected_output": "Identify traffic mix and position changes before assigning causality. Inspect page/title/H1 alignment and observed result titles, stage a representative reversible batch, and compare matched cohorts.",
+      "assertions": [
+        "Does not assign causal effect from raw CTR",
+        "Separates displayed and HTML titles",
+        "Uses device and position cohorts",
+        "Limits scope and includes rollback"
+      ],
+      "files": []
+    }
+  ]
+}

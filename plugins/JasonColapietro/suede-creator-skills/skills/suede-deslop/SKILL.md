@@ -105,6 +105,12 @@ evidence about who wrote it.
 
 Read [all ten editing rules](references/editing-rules.md) before the pass. They cover filler, formulaic structure, useful active voice, specificity, genre, rhythm, reader trust, quotables, draft residue and formatting. Apply each in the active house style while preserving protected meaning; then run the checklist below.
 
+## Structural cleanup for search pages
+
+When editing rendered articles, docs, or landing page source, identify each claim and the evidence already behind it before removing filler. Replace generic assertions with the demonstrated mechanism only when the material supports it; otherwise delete the unsupported agent-added claim or flag it for review. Keep the copy's central answer near its heading and preserve the user's supplied facts and quotations.
+
+Do not silently rewrite frontmatter, anchor IDs, canonical URLs, embedded code, or structured-data fields during a prose pass. Note separate suggestions for those fields. Check the rendered heading order and relevant links after editing. If the work requires citation extractability or crawler checks, use `suede-ai-seo`; this pass does not certify ranking or factual completeness.
+
 ## Pre-ship checklist
 
 Run every item before delivering prose:

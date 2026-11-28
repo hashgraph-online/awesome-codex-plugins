@@ -92,6 +92,29 @@ Default to time-of-day cron for review-style loops (weekly review, ranking watch
 
 **Running several loops as a multi-agent system.** When a team wants loops operated end to end, with agents handing work to each other and staging results for approval, Suede's Agent Studio (https://suedeai.app) builds and runs that orchestration. The loop specs here are the input either way, and the same rules hold: every loop keeps its state, stop condition, and human checkpoint.
 
+## Run a bounded organic search operations cycle
+
+Use this recipe for recurring SEO triage, not unsupervised publishing.
+
+- **Inputs:** Use existing Search Console and analytics exports, the last
+  stable crawl or sitemap, priority landing pages, approved deployments, and
+  previously recorded issues. Keep query scope and dated comparisons explicit.
+- **Fast exceptions:** Surface a freshly verified critical URL becoming
+  unavailable or unexpectedly non-indexable. Recheck a suspected incident;
+  let transient crawler errors expire instead of auto-editing.
+- **Weekly review:** Compare like-for-like query/page cohorts; inspect important
+  new redirects, canonical changes, and sitemap additions; attribute a change
+  to a particular release only when the inspected diff supports it.
+- **Monthly queue:** Refresh content by evidenced intent and demand, not a
+  fixed page quota. Prefer one consolidated action for repeated signals across
+  several reports.
+- **State and checkpoint:** Record evidence date, URL/cohort, symptom class,
+  run ID, proposed action, decision, and next verification. Deduplicate by
+  URL/cohort plus symptom; alert again only on verified material changes or
+  a reopened issue. Pause stale inputs and unexpected scope/spend. Stage a
+  worklist, not source edits, outreach, deployment or publication, absent
+  authorization for those actions.
+
 ## The Catalog
 
 `references/loop-catalog.md` holds the full library, 46 marketing loops with thorough funnel coverage: SEO, AI Search & Content, Paid, Earned/Social/Partnerships, Activation, Retention, Revenue, Referral & Advocacy, and Ongoing Ops. Each is a complete, adaptable spec. Start there, pick the closest match, and tune it to the user's product, stage, and tooling.

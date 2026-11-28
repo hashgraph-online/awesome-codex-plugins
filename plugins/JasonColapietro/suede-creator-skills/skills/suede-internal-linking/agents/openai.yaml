@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Internal Linking Skills"
+  short_description: "Connect useful pages and repair crawl paths"
+  default_prompt: "Use $suede-internal-linking. Find true orphans and broken paths on [site]. Rank relevant source-target pairs, explain why each link helps, and show how to compare the live graph before and after."
+policy:
+  allow_implicit_invocation: true

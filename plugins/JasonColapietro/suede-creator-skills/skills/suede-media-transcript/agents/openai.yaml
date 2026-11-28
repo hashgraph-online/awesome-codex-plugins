@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Media Transcript Skills"
+  short_description: "Transcribe media and verify captions and timecodes"
+  default_prompt: "Use $suede-media-transcript to turn this authorized recording into a timestamped transcript and verified captions."
+policy:
+  allow_implicit_invocation: true

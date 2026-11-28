@@ -278,6 +278,12 @@ Logos, icons, and illustrations. AI generation has limits here.
 
 ---
 
+## Editorial proof images
+
+Give each image one job: introduce the subject, substantiate a claim, explain a step, or show a result. Capture the actual interface for product instructions and use a reproducible chart for measured data. Reserve decorative illustration for the cover or a visual break; never pass it off as a product screenshot or an observed result.
+
+Before handoff, compare labels, units, dates, and visible interface states against the source. Check the cover and key proof visuals on a real narrow viewport. Record the shipped file's dimensions and bytes, verify responsive markup and meaningful alt text, and check whether a hero image competes with the page's largest visible content for loading time. Scale a local export to fit the page's existing asset budget rather than claiming a universal size target.
+
 ## Image Optimization
 
 Image bytes and dimensions can affect page performance. Measure the actual page

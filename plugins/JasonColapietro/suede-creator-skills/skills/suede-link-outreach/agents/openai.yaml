@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Link Outreach Skills"
+  short_description: "Qualify editorial links and draft the pitch"
+  default_prompt: "Use $suede-link-outreach. Trace reader value on the exact prospect page. Produce individually sourced drafts and decline reasons, with no sending or purchase."
+policy:
+  allow_implicit_invocation: true

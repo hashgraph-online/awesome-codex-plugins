@@ -1,14 +1,14 @@
 ---
 name: dataxapi-douyin
-description: "Public Douyin data through DataXAPI: videos, hashtags, users, comments, trends, keywords, trend-index, Xingtu. 42 endpoints, $0.0020 to $0.0400 a call, a failed call is free. Use when the user asks about Douyin content, accounts, comments or trends, or gives a Douyin link, ID or account name. 通过 DataXAPI 取抖音的公开数据：视频、话题、用户、评论、热榜、关键词、巨量算数、星图。42 个接口，一次 $0.0020 到 $0.0400，失败不收费。用户问到抖音的内容、账号、评论或热点，或给出抖音的链接、编号、账号名时使用。"
+description: "Public Douyin data through DataXAPI: videos, hashtags, users, comments, trends, keywords, trend-index, Xingtu. 43 endpoints, $0.0020 to $0.0400 a call, a failed call is free. Use when the user asks about Douyin content, accounts, comments or trends, or gives a Douyin link, ID or account name. 通过 DataXAPI 取抖音的公开数据：视频、话题、用户、评论、热榜、关键词、巨量算数、星图。43 个接口，一次 $0.0020 到 $0.0400，失败不收费。用户问到抖音的内容、账号、评论或热点，或给出抖音的链接、编号、账号名时使用。"
 metadata: {"openclaw":{"primaryEnv":"DATAXAPI_API_KEY","envVars":[{"name":"DATAXAPI_API_KEY","required":false,"description":"DataXAPI API key. Needed to make calls; finding endpoints and reading prices work without it."}],"requires":{"anyBins":["dataxapi","npx"]},"homepage":"https://dataxapi.com"}}
 ---
 
 # 抖音数据 API · Douyin data API · DataXAPI
 
-**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 42 Douyin endpoints, $0.0020 to $0.0400 a call, each at its own price (listed below). No Douyin account, cookie or login: one DataXAPI key.
+**Pay per call, no subscription. A call that ends in an error is not charged.** 按次付费，不用订阅；出错不收费。 43 Douyin endpoints, $0.0020 to $0.0400 a call, each at its own price (listed below). No Douyin account, cookie or login: one DataXAPI key.
 
-DataXAPI returns public Douyin data (抖音的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 42 Douyin endpoints with their prices and the questions each one answers. It was generated from catalog revision 0051cce45e9530b9.
+DataXAPI returns public Douyin data (抖音的公开数据) in one response shape, paid per call from a prepaid balance. This skill lists all 43 Douyin endpoints with their prices and the questions each one answers. It was generated from catalog revision ceced48b38f71468.
 
 What one call returns: `douyin.trends.list`, a recorded answer (51 items came back, the first shown; names, text, IDs and links are stand-ins, the figures are as recorded).
 
@@ -121,6 +121,7 @@ curl -G "https://api.dataxapi.com/v1/douyin/trends/list" \
 | `douyin.xingtu.campaigns.list` | Douyin Xingtu marketing calendar (抖音星图营销活动日历) | Get the campaigns on Xingtu's marketing calendar over a span of time: platform events, e-commerce and seasonal moments, creative and industry campaigns, each with its name, description, kind, stage, sign-up period and running period. All at once, no paging. | $0.004 per call | up to 200 |
 | `douyin.xingtu.videos.get` | Douyin Xingtu video report: plays and completion rate (抖音星图视频数据报告（播放量、完播率）) | Get Xingtu's report on one Douyin video by ID or link: plays and engagement counts, plus the completion rate, interaction rate, length, the author's followers and the author's Xingtu creator ID (to look up the creator's rates and metrics next). Only for videos Xingtu covers (mostly its creators'). | $0.004 per call | one object |
 | `douyin.keywords.related` | Douyin search suggestions (抖音搜索框联想词) | Get the suggestions Douyin's search box lists as a keyword is typed into it (autocomplete), in the order it lists them, about 10 at a time. The words and their places only, with no index. | $0.02 per call | up to 20 |
+| `douyin.lives.search` | Douyin live search (抖音直播搜索) | Find Douyin streamers by Douyin ID or nickname and whether they are live right now: account ID, Douyin ID, nickname, avatar, followers, whether live, and while live the room's ID and title. A topic word (games, say) usually finds nothing. | $0.02 per call | up to 10 |
 | `douyin.videos.media.get` | Douyin video downloader, no watermark (抖音无水印视频和图片下载地址) | Give a Douyin video or image post by ID, link or share text and get the address of every file it has: the video without watermark in each quality (with the platform's play address beside it), the cover, the background music, and each picture of an image post as a JPEG with its live photo video. The addresses need no headers; where a signature says when one expires, expires_at says so, and another call gives new ones. | $0.002 per call | one object |
 | `douyin.music.get` | Douyin music detail (抖音音乐详情（背景音乐 MP3 和使用人数）) | Get one piece of Douyin music by its ID: name, author, length, the address of its audio file (mostly an MP3), cover, whether Douyin marks it as commercial music (in its commercial music library), whether it is a video's original sound, and how many people have posted with it. The ID is that of a video's background music, or an id of the music chart. | $0.002 per call | one object |
 | `douyin.backup.users.videos.list` | Douyin user videos (backup) (抖音用户视频（备用版）) | The backup of Douyin user videos, to call when the original cannot serve: the same parameters and result, at a higher price. | $0.03 per call | up to 20 |

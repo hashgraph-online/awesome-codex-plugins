@@ -87,11 +87,12 @@ preserve the user's repository. A non-git project outside that explicit scratch 
 `$NS/punch-list.md` has a contract section, then `## Items`. Read `$NS/punch-list.md` in full
 once, when the shift starts and before the first item; after that, each item reaches you through the
 helper in step 1. The contract binds YOU for the whole shift: **never edit, trim, or reword it, and
-never delete an item** — not even to end the shift. Step 1 of every item is the helper, which gives
+never delete an item** on your own — not even to end the shift. When the owner asks for the list to
+change mid-shift, change exactly what they asked. Step 1 of every item is the helper, which gives
 you that item and the current `## Gates` block, so a mid-shift change to the gates reaches you
 without re-reading the file.
-The gate holds the contract and the items to what they were at arming and blocks with the repair
-named if either moves, so watching for that is not your job.
+The gate records every change to the contract or the items in the shift log, by item, and the
+morning page lists them, so the owner sees how the list moved. It refuses nothing for it.
 
 ## What the owner chose
 

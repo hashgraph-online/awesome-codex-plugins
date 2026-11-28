@@ -196,6 +196,10 @@ After gathering from multiple sources, synthesize into:
 
 ---
 
+## Map the moment of switching
+
+For each meaningful segment, locate a specific account of what made the current workaround stop being acceptable. Record the previous tool or process, triggering event, objection to switching, desired outcome, and the actual words used. Tag entries as observed, paraphrased, or inferred and retain attribution for every direct quote. Separate people who acted from people who merely expressed interest. If source material is sparse, return unanswered questions or an interview prompt instead of filling in a fictional buyer monologue.
+
 ## Persona Generation
 
 ### When there are no reviews yet

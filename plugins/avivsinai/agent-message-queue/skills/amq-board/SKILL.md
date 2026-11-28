@@ -1,6 +1,6 @@
 ---
 name: amq-board
-version: 0.172.0 # x-release-please-version
+version: 0.174.0 # x-release-please-version
 description: "Read the AMQ fleet board when asked for current work, check the floor for stalled seats, measure request history in a retrospective, or classify recent requests on demand."
 metadata:
   short-description: Fleet board and on-demand request labels
@@ -17,6 +17,10 @@ amq-board --json                   # published model, including source coverage
 amq-board --html --out board.html  # one static page
 ```
 
+The page opens on Flow; its other primary views are Inbox (what waits on the
+owner, with a copy command per answer), Floor, and Cost (list-price spend by
+model and seat, and account limits).
+
 Read the source ages and coverage for this project. On first initialization run
 `amq-board sync --init`. When a fresh view is requested, or the last source read
 is over ten minutes old, run `amq-board sync` in this project and read the
@@ -27,7 +31,8 @@ The Requests section lists questions, review requests, and todos. Each
 recipient has an observation: a direct reply (a message whose last ref is
 the request), then later messages in the same thread as secondary context,
 or "not assessed" when the recipient's session is unknown. The headline
-counts only recent requests to the owner with no direct reply observed. The
+counts the Inbox items: open obligations owed by `user` and the cards under
+Needs you, the same number as Needs you. The
 Requests section counts requests to agents with no direct reply as the
 agents' bookkeeping, with its coverage notes.
 
@@ -42,8 +47,10 @@ Never use a working seat as the sender because its unread notice affects
 later stall analysis. Every distinct handle resolves live before sending.
 This is an explicit optional broadcast; plain check output is unchanged.
 
-For a continuously published board, run `amq-board sync --watch --notify lead,alt
---as floor`. The watch goes on after a failed pass, tries again each minute, and
+For a continuously published board, run `amq-board service install --notify
+lead,alt --as floor` once. This installs one service per board store that runs
+`amq-board sync --watch` with the same notices at every login and starts it
+now. See “Login service” in the board README. The watch retries a failed pass each minute and
 ends on Ctrl-C or TERM, or when the project was replaced. Each new floor problem
 is sent once after every pass; a board that stops being published is reported by
 the existing stale notice after the liveness window.

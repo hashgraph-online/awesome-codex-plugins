@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede Syndication Skills"
+  short_description: "Adapt proof-led articles to external channels"
+  default_prompt: "Use $suede-syndication. Build a review-ready channel packet with verified claims, privacy, attribution, canonical decisions, and no changes to public surfaces."
+policy:
+  allow_implicit_invocation: true

@@ -407,6 +407,12 @@ When the video must lead viewers to a written guide, route to
 
 ---
 
+### Verify the final video-search package
+
+For a search-oriented tutorial or demo, return two precise title options, one honest description, and chapter labels describing the questions answered in the final cut. Replay the video at each proposed chapter start: use timecodes from the actual export, not estimated script positions. Confirm the caption file and embed refer to the same cut.
+
+If a relevant owned page exists, draft the embed and validate its visible video and canonical URL against the corresponding `VideoObject`. Mark absent, not checked, and verified separately. Draft a platform-specific launch hook only when requested; do not publish, invent timestamps, or promise enhanced results.
+
 ## Common Mistakes
 
 1. **Starting with tools, not strategy**: decide what video you need before picking tools

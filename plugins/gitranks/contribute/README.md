@@ -298,8 +298,7 @@ gitranks.com. Merged pull requests stay on your GitHub profile.
 In Claude Code the plugin adds three commands:
 - `/gitranks-contribute:find [language, kind or owner/repo]`: issues picked for you, then work on the one you choose;
 - `/gitranks-contribute:status`: the issues you took and your pull requests, and what each one needs from you;
-- `/gitranks-contribute:build [project]`: start or continue a project on GitRanks Build, once GitRanks Build is open
-  to you.
+- `/gitranks-contribute:build [project]`: start or continue a project on GitRanks Build.
 
 The server also offers one prompt, **Find an open-source issue for me**, with an optional one-word wish such as
 `typescript`, `docs` or `owner/repo`. Clients that list server prompts show it as a command or menu item; in Claude

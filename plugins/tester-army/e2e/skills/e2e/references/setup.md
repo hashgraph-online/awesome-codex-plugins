@@ -93,7 +93,7 @@ package. Use API keys in CI.
 
 - There is no implicit default model. Without one, the first test that
   takes the built-in agent's `agent` fixture stops the run with one `MODEL_UNAVAILABLE` (exit 2); a
-  model-less custom executor fails only `waitFor` and `extract` this way; tests with no `agent.*`
+  model-less custom executor fails only `waitFor` and `extract` this way, and not when it answers them itself as `@e2e-dev/acp` does; tests with no `agent.*`
   steps need no model.
 - A model GitHub Copilot does not serve to the account (common on Copilot
   Free, which

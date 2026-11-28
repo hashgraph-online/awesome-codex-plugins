@@ -63,7 +63,7 @@ curl -s -X POST "https://api.wiro.ai/v1/Tool/Detail" \
 ## 2. Work out the cost
 
 - `dynamicprice` (in Tool/List and Tool/Detail) is an array of `{inputs, price, priceMethod}`, with `price` in USD. Use the entry whose `inputs` match the settings you will send; `{}` means one price for every setting. Parse it first if it arrives as a string.
-- `priceMethod`: `cpr` per run, `cpo` per output file, `cps` per second of run time, `cpt` per token, `cp-pixel` per 1024x1024 tier of output, `cp-audiosecondslength` per second of input audio, `cp-promptlength` per prompt character, `cp-outputVideoLength` per second of output video, `cp-realtimeturn` per realtime turn, `cp-readoutput` reported by the model when it ends.
+- `priceMethod`: `per-run` per run, `per-output-file` per output file, `per-run-second` per second of run time, `per-total-token` per input and output token, `per-output-megapixel` per 1024x1024 tier of output (`priceExtra` each further tier, `priceInput` per input image tier), `per-input-audio-second` per second of input audio, `per-input-video-second` per second of input video, `per-input-character` per prompt character, `per-output-video-second` per second of output video, `per-realtime-turn` per conversation turn, `reported-price` reported by the model when it ends. On the two input-length methods `maxSeconds`, when set, caps each input.
 - No `dynamicprice`: the model bills per second, and `approximatelycost` (from its average run time) is a rough estimate.
 - Only successful runs (`pexit: "0"`) are billed. Failed runs, server errors, queue time and tasks cancelled before processing completes are not.
 - Prices are also listed at https://wiro.ai/product/pricing.

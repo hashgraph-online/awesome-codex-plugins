@@ -112,7 +112,7 @@ verification. Do not reply to a message that leaves you nothing to do or answer.
 
 ## Message Handling
 
-- `amq drain --include-body` — process incoming messages
+- `amq drain --for-turn` — process incoming messages
 - `amq send --to <partner>` — send work/findings to partner
 - `amq send --to <partner> --wait-for drained --wait-timeout 60s` — block on a single-recipient handoff
 - `amq receipts list --me <agent> --msg-id <msg_id>` — inspect delivery history

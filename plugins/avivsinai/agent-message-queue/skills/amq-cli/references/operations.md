@@ -176,7 +176,9 @@ To add handles to an existing raw queue, run
 `init --force` with the whole roster. It needs an initialized root (exit `3`
 otherwise), merges the handles into `meta/config.json` under the config lock
 while keeping every other field, and provisions only new or incomplete
-mailboxes, so its cost follows the handles added, not the roster size.
+mailboxes, so its cost follows the handles added, not the roster size. A
+listed handle whose mailbox is incomplete is repaired. `--add` is a switch used
+with `--agents`; it does not replace the handle list.
 `--add` and `--force` are mutually exclusive.
 
 For Cursor, setup uses the `agent` command when it is on `PATH`; otherwise it
@@ -267,7 +269,10 @@ amq doctor --root "<session-root>" --base-root "<base-root>" \
 
 `doctor --ops` adds queue depth, sibling-session backlog hints, oldest unread
 age, DLQ state, presence freshness, and integration hints on top of the base
-`doctor` checks. A `sibling_backlog` hint includes an exact non-destructive
+`doctor` checks. Each agent's unread count also splits into how many messages
+can start a turn and how many are passive (`eligible_count` and
+`passive_count` in `--json`; the text view shows the split only when passive
+mail waits). A `sibling_backlog` hint includes an exact non-destructive
 `amq list --session <name> --me <handle> --new` inspection command.
 
 For `doctor`, `--root` selects the exact target but does not waive the active
@@ -468,6 +473,7 @@ Note: The `agent@name` inline syntax (e.g., `codex@infra`) is for cross-project 
 
 ```bash
 amq send --to codex --body "Message"              # Send (uses AM_ROOT/AM_ME from env)
+amq drain --for-turn                              # Receive for a turn: urgent, then other wake-eligible in full, passive as a digest
 amq drain --include-body                          # Receive up to 20 messages; silent when empty
 amq drain --include-body --limit 20               # Continue with another bounded batch
 amq drain --include-body --limit 0                # All pending mail, only for a manageable batch
@@ -481,10 +487,17 @@ amq send --to grok --body "hello"                 # Grok is a normal peer handle
 For the live-wake receive rule and notify-only supervisor exception, see
 [Receive under a live wake](../SKILL.md#receive-under-a-live-wake).
 
-Drains select messages in filename order, not priority order. Check `amq list
+A plain drain selects messages in filename order, not priority order. Check `amq list
 --new --limit 1` for remaining mail after a full batch, and handle any drain error before
 continuing. A full batch is not proof that the inbox is empty; `urgent` bypasses
-the wake hold, not the drain limit or ordering. Keep continuation bounded rather
+the wake hold, not the drain limit or ordering. `--for-turn` selects urgent
+mail, then other wake-eligible mail, then passive mail before its limit, and
+its last line gives the counts still unread; with `--json` it prints
+`drained` (wake-eligible messages with bodies, and any moved to DLQ),
+`passive` (one digest each: `id`, `from`, `thread`, `kind`, `priority`,
+`subject`, `refs`, `labels`, `preview`, `truncated`, `read`), `count` (every
+message claimed) and `remaining` (`urgent`, `eligible`, `passive`), read from
+`inbox/new` after the claim; another reader can change it right after. Keep continuation bounded rather
 than accumulating an unlimited backlog in the model context.
 
 For completion batches, partial results, and changed-state notices, see

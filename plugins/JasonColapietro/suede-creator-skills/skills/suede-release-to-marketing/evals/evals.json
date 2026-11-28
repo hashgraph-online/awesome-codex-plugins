@@ -1,0 +1,27 @@
+{
+  "skill_name": "suede-release-to-marketing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write a changelog and launch post about this export PR. It merged and the deploy succeeded, but the flag is currently on only for pilot users.",
+      "expected_output": "Separate merged and deployed from the supported pilot scope, and produce no all-user launch claim.",
+      "assertions": [
+        "Names the pilot as the affected audience",
+        "Records deploy and flag evidence separately",
+        "Does not publish"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Last week four PRs merged. We did an internal refactor, enabled two-step export for paid users, and implemented offline mode that has not deployed. Say we are 10x faster.",
+      "expected_output": "Exclude unshipped offline mode and unsupported speed metrics. Describe the verified paid-user export benefit if evidence establishes it.",
+      "assertions": [
+        "Does not promote offline mode as available",
+        "Omits the unsupported multiplier",
+        "Keeps the paid audience scope"
+      ],
+      "files": []
+    }
+  ]
+}

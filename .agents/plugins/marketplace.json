@@ -3809,6 +3809,21 @@
       "description": "Runtime governance for Codex with policy enforcement on terminal commands, advisory checks for non-terminal tools via skills, PII/secret detection, and compliance-grade audit trails. Self-hosted via Docker."
     },
     {
+      "name": "b2b-ai-mcp-skills",
+      "displayName": "B2B Market & Lead Intelligence",
+      "source": {
+        "source": "local",
+        "path": "./plugins/truonggiang0111/b2b-ai-mcp-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "15 portable B2B intelligence Agent Skills, zero-key public pipelines (Google News URL decoding, UK Gov Tenders, ClinicalTrials.gov), n8n/Make blueprints, and optional APIFY_TOKEN batch scrapers.",
+      "icon": "./plugins/truonggiang0111/b2b-ai-mcp-skills/icons/google-news.png"
+    },
+    {
       "name": "babeldoc-pdf-translate",
       "displayName": "BabelDOC PDF Translate",
       "source": {

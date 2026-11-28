@@ -1,0 +1,56 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "b2b-ai-mcp-skills",
+  "version": "1.6.0",
+  "description": "15 portable B2B intelligence Agent Skills, zero-key pipelines (Google News URL decoding, UK Gov Tenders, ClinicalTrials.gov, WordPress/Atlassian APIs), n8n/Make blueprints, and optional Apify batch scrapers.",
+  "author": {
+    "name": "Truong Giang (@truonggiang0111)",
+    "email": "giang12aa3@gmail.com",
+    "url": "https://github.com/truonggiang0111"
+  },
+  "homepage": "https://truonggiang0111.github.io/mcp/",
+  "repository": "https://github.com/truonggiang0111/b2b-ai-mcp-skills",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "b2b-leads",
+    "google-news",
+    "clinical-trials",
+    "uk-tenders",
+    "job-scraping",
+    "apify",
+    "n8n",
+    "sales-intelligence"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "B2B Market & Lead Intelligence",
+        "shortDescription": "Zero-key B2B signals, Google News RAG & optional Apify scrapers",
+        "longDescription": "B2B Market & Lead Intelligence packages 15 portable SKILL.md playbooks, n8n/Make.com automation blueprints, Python AI agent examples, and remote MCP endpoints for market research, RAG ingestion, and outbound lead generation.\n\nZero-Key Pipelines (No API Key Required):\n- Google News CBMi/AU_yqL wrapper URL decoding to canonical publisher URLs (via companion b2b-market-intel-mcp STDIO server and Python examples).\n- UK Contracts Finder OCDS live public tenders and .gov.uk buyer contact previews.\n- ClinicalTrials.gov API v2 recruiting Industry Biotech/Pharma studies and sponsor contacts.\n- Public REST signal workflows for WordPress.org Plugins 1.2 and Atlassian Marketplace REST v2.\n\nOptional APIFY_TOKEN Cloud Batch Scrapers (mcp.apify.com):\n- Connect your own APIFY_TOKEN (new Apify accounts include $5/month free credit) for full-scale batch extraction across Google News RAG full-article text, Reed UK direct-employer jobs (with IR35 & agency filtering), Seek AU/NZ GraphQL hiring signals, unified iOS App Store + Google Play 1-star churn reviews, and Google Ads Transparency Center creatives & EU DSA reach.\n\nAll tools are read-only and designed for structured agent consumption with concise agentSummary outputs.",
+        "developerName": "Truong Giang",
+        "category": "Data & Analytics",
+        "capabilities": [
+          "Read",
+          "B2B lead generation",
+          "Google News URL decoding",
+          "UK public tenders",
+          "Clinical trials research",
+          "Competitor review analysis",
+          "Direct-employer job signals"
+        ],
+        "websiteURL": "https://truonggiang0111.github.io/mcp/",
+        "supportURL": "https://github.com/truonggiang0111/b2b-ai-mcp-skills/issues",
+        "privacyPolicyURL": "https://github.com/truonggiang0111/b2b-ai-mcp-skills/blob/main/SECURITY.md",
+        "termsOfServiceURL": "https://github.com/truonggiang0111/b2b-ai-mcp-skills/blob/main/LICENSE",
+        "defaultPrompt": [
+          "Decode a Google News RSS article link to its real publisher URL and extract clean RAG-ready summary fields.",
+          "Find UK direct-employer software jobs or live UK Gov Contracts Finder tenders with buyer contacts.",
+          "Analyze 1-star and 2-star churn reviews for a competitor iOS, Android, or Shopify app to uncover recurring bugs."
+        ],
+        "composerIcon": "./icons/google-news.png",
+        "logo": "./icons/shopify-apps.png"
+      }
+    }
+  }
+}

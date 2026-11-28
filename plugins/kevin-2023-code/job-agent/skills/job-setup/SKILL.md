@@ -54,6 +54,15 @@ Leave out anything already known.
 - Draft three to five STAR stories in `profile/stories.md` from the résumé and `knowledge/` (hard technical problem, conflict, failure, leading without authority, deadline), tagged and marked `DRAFT`; ask them to fix facts later, not now.
 - Companies they named → `portals.yml` entries where the company uses Greenhouse, Lever, Ashby or SmartRecruiters, with title and location filters from step 4, so `job-agent scan` catches new postings the day they appear.
 
-## 7. First results
+## 7. How their agent works
+
+Ask once, with the default in brackets, and save it (connected: on TrueInterview at https://trueinterview.io/agent/start, where they choose it themselves; local: the `agent:` block in `profile/profile.yml`):
+- Mode [pick for my approval]: find and apply on its own (`auto`), find and add picks for me to approve (`shortlist`), or only the roles I add (`list_only`).
+- Who sends [me]: my agent submits (`agent`) or I press Submit (`me`).
+- Minimum match score [none] and applications per day [none].
+
+On a chat or desktop agent (Muse, Manus, Grok, Qwen, WorkBuddy), `job-agent agent <id>` prints the setup message that teaches it the rules and the run, with a daily schedule.
+
+## 8. First results
 
 `recommend_jobs` and show the top five in a short table (company, role, place, fit). Offer: evaluate one, apply to one, or start practice for a company (`job-practice`). Mention `knowledge/` in one line: past interview notes and brag docs there make every answer better.

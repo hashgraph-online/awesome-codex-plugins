@@ -324,9 +324,10 @@ Dex Telemetry watches the pipeline your reports depend on, built on dbt and
 - **Open incidents.** `maintain incidents` folds the run history into
   incidents by one rule: a failure opens one, two passes close it, and a run
   that recorded nothing is never read as a pass.
-- **Find the cause.** `maintain diagnose` takes each incident to its cause and
-  names the metrics that read the broken column. The fix comes back as a plan,
-  and nothing changes until you approve it.
+- **Find the cause.** `maintain diagnose` takes each incident to its cause,
+  such as a source whose rows landed after the run read them, and names the
+  metrics that read the broken column. The fix comes back as a plan, and
+  nothing changes until you approve it.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/telemetry-dark.png" />
@@ -336,7 +337,9 @@ Dex Telemetry watches the pipeline your reports depend on, built on dbt and
 The image is an illustrated workflow on synthetic data. Telemetry here means
 monitoring your pipelines: the history stays in your warehouse and repository,
 and nothing is sent to Exmergo. Try it offline with `dex demo`, then
-`dex maintain incidents` and `dex maintain diagnose`.
+`dex maintain incidents` and `dex maintain diagnose`: the demo holds two
+incidents, shipments that landed after the run read them and a key the loader
+delivered twice, and diagnosis names the cause of each.
 
 [Dex Telemetry](references/dex-telemetry.md) · [incidents](references/incidents.md) · [the film](https://www.youtube.com/watch?v=RBcf9eyZlaU)
 

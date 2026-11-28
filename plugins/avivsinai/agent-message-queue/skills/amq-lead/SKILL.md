@@ -1,6 +1,6 @@
 ---
 name: amq-lead
-version: 0.172.0 # x-release-please-version
+version: 0.174.0 # x-release-please-version
 description: "Lead an AMQ fleet when assigning work, checking stalled seats, reviewing a worker result, deciding whether to merge, running a retrospective, or escalating a decision to the owner. Not for sending one message (use amq-cli) or for reading the board alone (use amq-board)."
 metadata:
   short-description: The lead's loop for a fleet of agents on AMQ
@@ -86,16 +86,22 @@ When the work takes design, write the design yourself and brief the build.
 
 ## Decide on a clock
 
-The owner's handle is `user`. A question to `user` shows on the board under
-Needs you until it is closed or 14 days old. The exact commands are in the
-amq-cli skill, "Ask the owner without stopping".
+The owner's handle is `user`. A question to `user` shows on the board in the
+Inbox and under Needs you until it is closed or 14 days old. The exact
+commands are in the amq-cli skill, "Ask the owner without stopping".
 
 - **A question** is one decision: the options with the cost of each, the one
-  you recommend, what happens if the answer comes late, and the default.
-  Send it with `--follow-up` of the default time (48 hours for a design
-  choice) and go on with other work. When the notice comes, read the thread
-  first: an answer may have come. No answer: take the default, and close the
-  question with a line that says it was a default, not the owner's decision.
+  you recommend, whether work waits on it, what happens if the answer comes
+  late, and the default. Send it as `--kind question` to `user` with the
+  options in `--context @decision.json` (the `context.decision` shape in the
+  amq-cli message format), so the Inbox shows one card with one answer
+  command per option. Send it with `--follow-up` of the default time (48
+  hours for a design choice) and go on with other work. When the notice
+  comes, read the thread first: an answer may have come. No answer: take the
+  default, and close the question with a line that says it was a default,
+  not the owner's decision.
+- **A decision only the owner can make** is such a question or a bead of
+  type `decision`, never a Backlog task: both wait on the owner in the Inbox.
 - **A ruling** is a question that you answer yourself first. Take it when
   the work would stop and the action can be undone. Label it `ruling`, say
   what you decided, why, and how to undo it, give it 24 hours, and act now.
