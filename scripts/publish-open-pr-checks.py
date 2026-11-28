@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -25,6 +26,50 @@ USER_AGENT = "awesome-codex-plugins-open-pr-sweep"
 REQUEST_TIMEOUT_SECONDS = 30
 SCAN_JOB_RE = re.compile(r"Scan PR (?:#(\d+) source|\((\d+),)")
 GITHUB_LOGIN_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
+GUARD_SIGNAL_PATTERNS = (
+    ("system-of-record", re.compile(r"\bsystem of record\b", re.I)),
+    ("write-verification", re.compile(r"\b(?:verify|verif(?:ies|y|ied|ication))\b.{0,40}\bwrite|\bwrite.{0,40}\bverif", re.I | re.S)),
+    ("receipts", re.compile(r"\b(?:write|audit|signed|proof)\s+receipts?\b|\breceipts?\b", re.I)),
+    ("reconciliation", re.compile(r"\breconcil(?:e|iation|ing|es)\b|\bstate integrity\b", re.I)),
+    ("approval-controls", re.compile(r"\b(?:approval|approvals|approval gate|human[- ]in[- ]the[- ]loop)\b", re.I)),
+    ("drift-detection", re.compile(r"\b(?:drift detection|detect(?:s|ing)? drift|capability drift)\b", re.I)),
+    ("audit-trail", re.compile(r"\baudit trail\b|\bprovenance\b", re.I)),
+)
+
+
+def guard_signals(text: str) -> tuple[str, ...]:
+    """Return advisory signals for a possible Guard integration."""
+
+    return tuple(label for label, pattern in GUARD_SIGNAL_PATTERNS if pattern.search(text))
+
+
+def source_readme(owner: str, repo: str, token: str) -> str:
+    """Read a bounded public source README for advisory signal detection."""
+
+    try:
+        payload = github_api(f"{owner}/{repo}", "/readme", token)
+    except RuntimeError:
+        return ""
+    if not isinstance(payload, dict) or not isinstance(payload.get("content"), str):
+        return ""
+    try:
+        return base64.b64decode(payload["content"], validate=False).decode("utf-8", errors="replace")[:200_000]
+    except (ValueError, UnicodeError):
+        return ""
+
+
+def guard_candidates_for_items(items: list[dict[str, object]], token: str) -> list[dict[str, object]]:
+    """Find advisory Guard signals without affecting the scanner verdict."""
+
+    candidates: list[dict[str, object]] = []
+    for item in items:
+        owner, repo = item.get("owner"), item.get("repo")
+        if not all(isinstance(value, str) and NAME_RE.fullmatch(value) for value in (owner, repo)):
+            continue
+        signals = guard_signals(source_readme(owner, repo, token))
+        if signals:
+            candidates.append({"owner": owner, "repo": repo, "signals": signals})
+    return candidates
 
 
 def github_api(repository: str, path: str, token: str, *, method: str = "GET", payload: object | None = None) -> object:
@@ -208,21 +253,39 @@ def with_handoff(body: str, result: dict[str, object]) -> str:
     return f"{verdict}\n\n{handoff}\n\n{COMMENT_MARKER}"
 
 
+def guard_opportunity_sentence(guard_candidates: list[dict[str, object]] | None) -> str:
+    """Render an advisory Guard opportunity without changing the gate verdict."""
+
+    if not guard_candidates:
+        return ""
+    entries = "; ".join(
+        f"{candidate['owner']}/{candidate['repo']} signals {', '.join(candidate['signals'])}"
+        for candidate in guard_candidates
+    )
+    return (
+        "Optional HOL Guard opportunity. The public source README contains signals that may benefit "
+        "from an optional HOL Guard extension. This advisory does not affect the scanner score or merge decision. "
+        f"Detected {entries}."
+    )
+
+
 def remediation_comment(
     result: dict[str, object],
     conclusion: str,
     check_title: str,
     summary: str,
     run_url: str,
+    guard_candidates: list[dict[str, object]] | None = None,
 ) -> str:
     """Build an idempotent contributor-facing remediation comment."""
 
     author_login = result.get("author_login")
     mention = f"@{author_login}" if isinstance(author_login, str) and GITHUB_LOGIN_RE.fullmatch(author_login) else "the contributor"
     if conclusion == "success":
+        guard_note = guard_opportunity_sentence(guard_candidates)
         return with_marker(
             f"Contribution gate passed. {mention}, all required catalog checks are clear; no action is needed. "
-            f"[Latest sweep]({run_url})."
+            f"{guard_note} [Latest sweep]({run_url})."
         )
 
     failure_reasons = result.get("failure_reasons")
@@ -238,8 +301,9 @@ def remediation_comment(
     else:
         guidance = "Fix the catalog validation findings and rerun the contribution check."
 
+    guard_note = guard_opportunity_sentence(guard_candidates)
     return with_marker(
-        f"{mention}, {summary} {guidance} "
+        f"{mention}, {summary} {guidance} {guard_note} "
         "Source-repository scanner CI is optional; listing requires a completed centralized score of at least 75/100. "
         f"[Contribution requirements](https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/CONTRIBUTING.md) "
         f"[Latest sweep]({run_url})."
@@ -254,6 +318,7 @@ def upsert_remediation_comment(
     summary: str,
     run_url: str,
     token: str,
+    guard_candidates: list[dict[str, object]] | None = None,
 ) -> None:
     """Create or update the single contribution-gate comment for a PR."""
 
@@ -274,7 +339,7 @@ def upsert_remediation_comment(
     if conclusion == "success" and existing is None and result.get("state") != "scan":
         return
 
-    body = with_handoff(remediation_comment(result, conclusion, check_title, summary, run_url), result)
+    body = with_handoff(remediation_comment(result, conclusion, check_title, summary, run_url, guard_candidates), result)
     if existing is not None and isinstance(existing.get("id"), int):
         github_api(
             repository,
@@ -314,6 +379,7 @@ def publish_check(
         raise RuntimeError("validator returned an invalid PR identity")
 
     conclusion, check_title, summary = check_summary(result, scanner_jobs)
+    guard_candidates = guard_candidates_for_items(result.get("contributions", []), token) if result.get("state") == "scan" else []
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     payload = {
         "name": CHECK_NAME,
@@ -353,7 +419,7 @@ def publish_check(
     else:
         github_api(repository, "/check-runs", token, method="POST", payload=payload)
     print(f"Published {CHECK_NAME} for PR #{number}: {conclusion}")
-    upsert_remediation_comment(repository, result, conclusion, check_title, summary, run_url, token)
+    upsert_remediation_comment(repository, result, conclusion, check_title, summary, run_url, token, guard_candidates)
 
 
 def pull_request_still_open(repository: str, result: dict[str, object], token: str) -> bool:

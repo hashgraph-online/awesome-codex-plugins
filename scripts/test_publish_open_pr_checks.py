@@ -54,6 +54,26 @@ class CentralizedPublisherTests(unittest.TestCase):
         self.assertIn("threshold passed", title)
         self.assertIn("severities are advisory", summary)
 
+    def test_scan_comment_surfaces_advisory_guard_opportunity(self) -> None:
+        comment = PUBLISHER.remediation_comment(
+            self.scan_result,
+            "success",
+            "Contribution scan passed",
+            "score passed",
+            "https://example.test/run",
+            guard_candidates=[{"owner": "example", "repo": "plugin", "signals": ("receipts",)}],
+        )
+        self.assertIn("Optional HOL Guard opportunity", comment)
+        self.assertIn("example/plugin signals receipts", comment)
+        self.assertIn("does not affect the scanner score or merge decision", comment)
+
+    def test_guard_detector_reads_only_public_readme_signals(self) -> None:
+        encoded = PUBLISHER.PUBLISHER.base64.b64encode(b"Writes use reconciliation and produce signed receipts.").decode()
+        with patch.object(PUBLISHER.PUBLISHER, "github_api", return_value={"content": encoded}) as api:
+            candidates = PUBLISHER.PUBLISHER.guard_candidates_for_items([{"owner": "example", "repo": "plugin"}], "token")
+        self.assertEqual(candidates[0]["signals"], ("receipts", "reconciliation"))
+        self.assertEqual(api.call_args.args[:2], ("example/plugin", "/readme"))
+
     def test_missing_or_failed_scan_does_not_pass(self) -> None:
         for jobs in ({}, {12: ["failure"]}, {12: ["success", "failure"]}):
             with self.subTest(jobs=jobs):
