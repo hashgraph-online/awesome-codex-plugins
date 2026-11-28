@@ -316,6 +316,10 @@
 | GET | `/api/integrations` |
 | POST | `/api/integrations` |
 | GET | `/api/integrations/by-name/{name}` |
+| GET | `/api/integrations/{definition_id}/instances` |
+| POST | `/api/integrations/{definition_id}/instances` |
+| DELETE | `/api/integrations/{definition_id}/instances/{instance_id}` |
+| PATCH | `/api/integrations/{definition_id}/instances/{instance_id}` |
 | DELETE | `/api/integrations/{integration_id}` |
 | GET | `/api/integrations/{integration_id}` |
 | PUT | `/api/integrations/{integration_id}` |
@@ -527,6 +531,12 @@
 | POST | `/api/sdk/integrations/find_mapping` |
 | POST | `/api/sdk/integrations/get` |
 | POST | `/api/sdk/integrations/get_mapping` |
+| POST | `/api/sdk/integrations/instances/delete_mapping` |
+| POST | `/api/sdk/integrations/instances/find_mapping` |
+| POST | `/api/sdk/integrations/instances/get` |
+| POST | `/api/sdk/integrations/instances/get_mapping` |
+| POST | `/api/sdk/integrations/instances/list_mappings` |
+| POST | `/api/sdk/integrations/instances/upsert_mapping` |
 | POST | `/api/sdk/integrations/list_mappings` |
 | POST | `/api/sdk/integrations/refresh_token` |
 | POST | `/api/sdk/integrations/upsert_mapping` |

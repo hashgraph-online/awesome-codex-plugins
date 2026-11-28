@@ -40,7 +40,8 @@ Offer it once, after step 1's eligibility check, when the user has a logo, clip,
 launch, welcome screen or community pack. Follow `references/emoji-mosaic.md`, "Steps": `tgui.py mosaic
 plan` → `make` → look at `preview.html` → `publish --dry-run` → `publish` live with the user's go (token in an
 environment variable, `--owner` from `mosaic owner`; say the default title or pass `--title`). Exit code 5:
-run it again. Done when `delivered` is true and the user saw it on a phone; the person posts it.
+run it again. Done when `delivered` is true and the user saw it on a phone; the person posts it as a message of
+its own (any text turns it into text mode), choosing a grid whose rows stay whole where it will be shown.
 
 ## Without scripts
 

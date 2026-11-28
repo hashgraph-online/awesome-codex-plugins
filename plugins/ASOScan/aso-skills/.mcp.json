@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "asoscan": {
+      "type": "http",
+      "url": "https://asoscan.com/mcp"
+    }
+  }
+}

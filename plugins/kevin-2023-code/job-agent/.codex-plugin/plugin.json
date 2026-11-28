@@ -1,6 +1,6 @@
 {
   "name": "job-agent",
-  "version": "0.3.0",
+  "version": "0.3.3",
   "description": "Open-source job-search skills: find and score roles, tailor your résumé, fill application forms in your browser up to Submit, track applications and prep for interviews. Uses the TrueInterview MCP for live jobs, real interview data and your saved records when you sign in, and your own local files when you don't.",
   "author": {
     "name": "job-agent contributors",

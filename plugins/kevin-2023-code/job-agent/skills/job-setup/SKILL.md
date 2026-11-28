@@ -7,7 +7,7 @@ description: "First-run onboarding for job-agent, right after install. Signs the
 
 > Connected vs local mode, the workspace, the `job-agent <command>` scripts and the rules: the `job-agent` skill (or `AGENTS.md`). Read it once per session.
 
-Goal: in one sitting, the candidate's TrueInterview account holds everything an application needs, so later they only pick roles and press Submit. Ask as few questions as possible, all at once, and save without asking for permission to save.
+Goal: in one sitting, the candidate's TrueInterview account holds everything an application needs, so later they only pick roles and press Submit. Ask as few questions as possible, all at once, and save their answers as part of setup (their agent may ask them to approve each write; that's expected).
 
 ## 1. Sign in (default; don't ask whether)
 
@@ -40,7 +40,7 @@ Build one numbered message from what step 2 couldn't settle, phrasing each prefi
 - Preferences, each with the default in brackets: tailor the résumé per job [keywords], cover letters [when the form asks], self-identification questions [ask me each time / always decline], review the first tailored résumé [yes].
 Leave out anything already known.
 
-## 5. Save everything, without asking again
+## 5. Save everything in one pass
 
 - `update_job_search`: roles (main first), seniority, places, work mode, salary range.
 - `update_application_answers`: every form answer they gave, plus `resume_tailoring`, `cover_letter`, `voluntary_disclosures`, `review_first_resume`. `answer_mode: full_auto` only if they agree to the sentence `prepare_application` gives for it, read word for word.

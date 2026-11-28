@@ -133,17 +133,17 @@ Event publishing operations (async).
 
 
 
-**`integrations.delete_mapping(name: str, scope: str) -> bool`**
+**`integrations.delete_mapping(name: str, scope: str, instance: str | None = None) -> bool`**
 
-**`integrations.find_mapping(name: str, entity_id: str) -> IntegrationMappingFindResult | None`**
+**`integrations.find_mapping(name: str, entity_id: str, instance: str | None = None) -> IntegrationMappingFindResult | None`**
 
-**`integrations.get(name: str, scope: str | None = None, oauth_scope: str | None = None) -> IntegrationData | None`**
+**`integrations.get(name: str, scope: str | None = None, oauth_scope: str | None = None, instance: str | None = None, on_missing: Literal['fail', 'default'] = 'fail') -> IntegrationData | None`**
 
-**`integrations.get_mapping(name: str, scope: str | None = None, entity_id: str | None = None) -> IntegrationMappingResponse | None`**
+**`integrations.get_mapping(name: str, scope: str | None = None, entity_id: str | None = None, instance: str | None = None) -> IntegrationMappingResponse | None`**
 
-**`integrations.list_mappings(name: str, scope: str | None = None) -> list[IntegrationMappingResponse] | None`**
+**`integrations.list_mappings(name: str, scope: str | None = None, instance: str | None = None) -> list[IntegrationMappingResponse] | None`**
 
-**`integrations.upsert_mapping(name: str, scope: str, entity_id: str, entity_name: str | None = None, config: dict | None = None) -> IntegrationMappingResponse`**
+**`integrations.upsert_mapping(name: str, scope: str, entity_id: str, entity_name: str | None = None, config: dict | None = None, instance: str | None = None) -> IntegrationMappingResponse`**
 
 ### knowledge
 

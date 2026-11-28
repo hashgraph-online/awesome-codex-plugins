@@ -1643,12 +1643,16 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  add-mapping     Create a mapping between an integration and an...
-  create          Create a new integration.
-  get             Get a single integration by UUID or name (with mappings...
-  list            List all integrations (wrapped ``{items, total}``...
-  update          Update an integration.
-  update-mapping  Update an existing integration mapping.
+  add-mapping      Create a mapping between an integration and an...
+  create           Create a new integration.
+  create-instance  Create a named connection instance under an...
+  delete-instance  Delete a non-default connection instance by UUID.
+  get              Get a single integration by UUID or name (with...
+  list             List all integrations (wrapped ``{items, total}``...
+  list-instances   List connection instances for an integration definition.
+  update           Update an integration.
+  update-instance  Update a connection instance by UUID.
+  update-mapping   Update an existing integration mapping.
 ```
 
 ### `integrations add-mapping`
@@ -1688,16 +1692,46 @@ Usage: integrations create [OPTIONS]
   ``config_schema`` / ``items`` list.
 
 Options:
-  --workflow-links TEXT     workflow_links (repeat for multiple).
-  --name TEXT               name  [required]
-  --description TEXT        description
-  --notes TEXT              notes
-  --config-schema TEXT      config_schema (repeat for multiple).
-  --entity-id TEXT          entity_id
-  --entity-id-name TEXT     entity_id_name
-  --default-entity-id TEXT  default_entity_id
-  --json                    Emit JSON instead of human-readable output.
-  --help                    Show this message and exit.
+  --workflow-links TEXT           workflow_links (repeat for multiple).
+  --name TEXT                     name  [required]
+  --description TEXT              description
+  --notes TEXT                    notes
+  --config-schema TEXT            config_schema (repeat for multiple).
+  --entity-id TEXT                entity_id
+  --entity-id-name TEXT           entity_id_name
+  --default-entity-id TEXT        default_entity_id
+  --authentication-method [config|oauth]
+                                  authentication_method
+  --json                          Emit JSON instead of human-readable output.
+  --help                          Show this message and exit.
+```
+
+### `integrations create-instance`
+
+```
+Usage: integrations create-instance [OPTIONS] DEFINITION_REF
+
+  Create a named connection instance under an integration definition.
+
+Options:
+  --name TEXT                     name  [required]
+  --key TEXT                      key  [required]
+  --authentication-method [config|oauth]
+                                  authentication_method
+  --json                          Emit JSON instead of human-readable output.
+  --help                          Show this message and exit.
+```
+
+### `integrations delete-instance`
+
+```
+Usage: integrations delete-instance [OPTIONS] DEFINITION_REF INSTANCE_ID
+
+  Delete a non-default connection instance by UUID.
+
+Options:
+  --json  Emit JSON instead of human-readable output.
+  --help  Show this message and exit.
 ```
 
 ### `integrations get`
@@ -1718,6 +1752,18 @@ Options:
 Usage: integrations list [OPTIONS]
 
   List all integrations (wrapped ``{items, total}`` payload).
+
+Options:
+  --json  Emit JSON instead of human-readable output.
+  --help  Show this message and exit.
+```
+
+### `integrations list-instances`
+
+```
+Usage: integrations list-instances [OPTIONS] DEFINITION_REF
+
+  List connection instances for an integration definition.
 
 Options:
   --json  Emit JSON instead of human-readable output.
@@ -1752,6 +1798,23 @@ Options:
   --entity-id TEXT                entity_id
   --entity-id-name TEXT           entity_id_name
   --default-entity-id TEXT        default_entity_id
+  --authentication-method [config|oauth]
+                                  authentication_method
+  --json                          Emit JSON instead of human-readable output.
+  --help                          Show this message and exit.
+```
+
+### `integrations update-instance`
+
+```
+Usage: integrations update-instance [OPTIONS] DEFINITION_REF INSTANCE_ID
+
+  Update a connection instance by UUID.
+
+Options:
+  --name TEXT                     name
+  --authentication-method [config|oauth]
+                                  authentication_method
   --json                          Emit JSON instead of human-readable output.
   --help                          Show this message and exit.
 ```

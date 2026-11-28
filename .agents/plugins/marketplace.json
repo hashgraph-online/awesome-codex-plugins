@@ -3765,6 +3765,21 @@
       "icon": "./plugins/arcmira/mcp/assets/icon.png"
     },
     {
+      "name": "asoscan",
+      "displayName": "ASOScan",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ASOScan/aso-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Complete App Store Optimization platform for the App Store and Google Play, in your AI assistant through skills and an MCP server and in a web dashboard: keyword research, daily ranks, competitor keywords, a listing audit and review replies for your own apps.",
+      "icon": "./plugins/ASOScan/aso-skills/assets/composer-icon.png"
+    },
+    {
       "name": "autocad-tianzheng-tools",
       "displayName": "AutoCAD Tianzheng Tools",
       "source": {

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-27",
-  "total": 483,
+  "last_updated": "2026-11-28",
+  "total": 484,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2553,6 +2553,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/arcmira/mcp/HEAD/plugins/arcmira/plugin.json"
+    },
+    {
+      "name": "ASOScan",
+      "url": "https://github.com/ASOScan/aso-skills",
+      "owner": "ASOScan",
+      "repo": "aso-skills",
+      "description": "Complete App Store Optimization platform for the App Store and Google Play, in your AI assistant through skills and an MCP server and in a web dashboard: keyword research, daily ranks, competitor keywords, a listing audit and review replies for your own apps.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ASOScan/aso-skills/HEAD/plugin.json"
     },
     {
       "name": "AutoCAD Tianzheng Tools",

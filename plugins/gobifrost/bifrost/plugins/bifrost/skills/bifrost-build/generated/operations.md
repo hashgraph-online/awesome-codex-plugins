@@ -67,6 +67,10 @@ caller's own items.
 | `integrations.create` | `bifrost integrations create` | `bifrost_integration_create` | `integrations.readwrite` |
 | `integrations.update` | `bifrost integrations update` | `bifrost_integration_update` | `integrations.readwrite` |
 | `integrations.delete` | — | — | `integrations.readwrite` |
+| `integrations.instances.list` | `bifrost integrations list-instances` | `bifrost_integration_instance_list` | `integrations.read` |
+| `integrations.instances.create` | `bifrost integrations create-instance` | `bifrost_integration_instance_create` | `integrations.readwrite` |
+| `integrations.instances.update` | `bifrost integrations update-instance` | `bifrost_integration_instance_update` | `integrations.readwrite` |
+| `integrations.instances.delete` | `bifrost integrations delete-instance` | `bifrost_integration_instance_delete` | `integrations.readwrite` |
 | `integrations.mappings.list` | — | — | `integrations.read` |
 | `integrations.mappings.get` | — | — | `integrations.read` |
 | `integrations.mappings.get_by_org` | — | — | `integrations.read` |

@@ -1,0 +1,71 @@
+{
+  "name": "asoscan",
+  "version": "1.3.7",
+  "description": "App Store Optimization for your own iOS and Android apps: keyword research, rank tracking, ASO score, competitor keywords and review replies from your ASOScan account.",
+  "author": {
+    "name": "ASOScan",
+    "email": "support@asoscan.com",
+    "url": "https://asoscan.com"
+  },
+  "homepage": "https://asoscan.com",
+  "repository": "https://github.com/ASOScan/aso-skills",
+  "license": "MIT",
+  "keywords": [
+    "aso skill",
+    "aso skills",
+    "aso skill claude",
+    "aso skills claude",
+    "claude aso",
+    "aso with chatgpt",
+    "ai aso tool",
+    "tools for aso",
+    "aso tools",
+    "app store optimization tools",
+    "app store optimization",
+    "app store ranking",
+    "app store rank tracker",
+    "app store rank tracking",
+    "app store category ranking",
+    "app keywords",
+    "app store keywords",
+    "app store keyword research",
+    "aso keyword research",
+    "google play store aso",
+    "aso audit",
+    "app store optimization checklist",
+    "app competitor analysis"
+  ],
+  "interface": {
+    "displayName": "ASOScan App Store Optimization",
+    "shortDescription": "App Store ranking and keywords",
+    "longDescription": "ASOScan is an ASO skill and plugin for ChatGPT: App Store Optimization (ASO) software for iOS and Android apps. Use ASO with ChatGPT: connect your ASOScan account and ask about your own apps in plain words.\n\nWhat it does:\n- App store ranking and Google Play store ASO. ASOScan reads your ASO score and its recommendations and tells you what to fix first, like an app store optimization checklist for your own listing.\n- App keywords. App store keyword research with search volume and difficulty, keyword opportunities you could rank for, and tracking for the ones you pick.\n- App store rank tracker. See where you rank for each tracked keyword and how the rank moved day by day, so you can see why your app is not showing in search.\n- App store category ranking. See your app's chart position in its category over time.\n- ASO audit. Check your app title and subtitle, keywords and description, see what changed over time, and draft listing text for other languages.\n- App competitor analysis. Add a competitor by its store link and see the keywords it ranks for, its category rank and its rating history.\n- App review analysis. See sentiment, top topics, bugs and feature requests, and get AI drafts of review replies. A reply goes to the store only after you approve the exact text, and only for apps connected to App Store Connect or Google Play Console.\n\nWhy teams use it: one set of app store optimization tools for both stores, with your real numbers right in the chat. Good ASO improves organic rankings, and ASOScan helps you rank better. It does not promise a rank.\n\nWhat it does not do: it does not publish listing text to the stores, and it has no download or revenue data. Drafts stay in your ASOScan account.\n\nYou need an ASOScan account with your app added to see your own numbers. Without an account, the built-in skills still answer general ASO questions.",
+    "developerName": "ASOScan",
+    "category": "Data & Analytics",
+    "capabilities": [
+      "Read",
+      "Write",
+      "ASO score and recommendations",
+      "App store keyword research",
+      "Keyword opportunities",
+      "App store rank tracker",
+      "App store category ranking",
+      "Competitor keywords",
+      "Review insights",
+      "Review reply drafts",
+      "Localized listing drafts"
+    ],
+    "websiteURL": "https://asoscan.com",
+    "supportURL": "https://asoscan.com/resources/guides/asoscan-playbook",
+    "privacyPolicyURL": "https://asoscan.com/legal/privacy",
+    "termsOfServiceURL": "https://asoscan.com/legal/terms",
+    "defaultPrompt": [
+      "How can I improve my app store ranking? Add my app and tell me what to fix first.",
+      "Find app store keywords with search volume my app could rank for.",
+      "Track my app store rankings and show me what changed this week."
+    ],
+    "composerIcon": "./assets/composer-icon.png",
+    "logo": "./assets/logo.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

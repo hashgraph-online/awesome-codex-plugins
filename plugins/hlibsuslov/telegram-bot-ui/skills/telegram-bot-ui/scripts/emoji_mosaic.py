@@ -7,8 +7,8 @@ TELEGRAM_LIVE=1 and a bot token in an environment variable (TELEGRAM_TEST_BOT_TO
 named by --token-env). The token is never printed. The source file never leaves the machine except as
 the finished 100x100 tiles uploaded to the bot the user chose.
 
-  py -3 scripts/emoji_mosaic.py plan clip.mp4                          # grid options for its shape
-  py -3 scripts/emoji_mosaic.py make clip.mp4 --grid 8x4 --start 1.2 --duration 2.9 --out mosaic/
+  py -3 scripts/emoji_mosaic.py plan clip.mp4              # grid options for its shape, where rows wrap
+  py -3 scripts/emoji_mosaic.py make clip.mp4 --grid 7x4 --start 1.2 --duration 2.9 --out mosaic/
   py -3 scripts/emoji_mosaic.py make clip.mp4 --corners 120,40,1800,880 --round 48 --out mosaic/
   py -3 scripts/emoji_mosaic.py make logo.png --grid 6x3 --fit contain --out mosaic/
   py -3 scripts/emoji_mosaic.py check mosaic/            # or the ZIP the website's generator saved
@@ -16,8 +16,10 @@ the finished 100x100 tiles uploaded to the bot the user chose.
   TELEGRAM_LIVE=1 TELEGRAM_TEST_BOT_TOKEN=... py -3 scripts/emoji_mosaic.py publish mosaic/ --owner 123456789
 
 `make` writes mosaic.json (schema tg-emoji-mosaic/v1, the same one the website's generator puts in its
-ZIP), tiles/ (row by row, left to right), canvas.png and preview.html (Telegram's gaps between emoji, light
-and dark). Rules and sources: references/emoji-mosaic.md. Idea and seam preview after tg-emoji-mosaic (MIT, KISA).
+ZIP), tiles/ (row by row, left to right; video tiles share one frame rate, frame count and timestamps),
+canvas.png and preview.html (big emoji at an iPhone's size, rows wrapped where Telegram wraps them, and the
+gaps of text mode). Rules and sources: references/emoji-mosaic.md. Idea and seam preview after tg-emoji-mosaic
+(MIT, KISA).
 """
 from __future__ import annotations
 
@@ -45,12 +47,14 @@ SCHEMA = "tg-emoji-mosaic/v1"
 TILE = 100                      # stickers page: emoji are exactly 100x100 px, static and video
 MAX_SECONDS = 3.0               # stickers page: video duration must not exceed 3 seconds
 MAX_FPS = 30                    # stickers page: frame rate up to 30 FPS
-MAX_VIDEO_BYTES = 256 * 1024    # stickers page: video size should not exceed 256 KB
+MAX_VIDEO_BYTES = 256 * 1024    # stickers page: video size should not exceed 256 KB (stickers and emoji together)
+MAX_EMOJI_VIDEO_BYTES = 64 * 1024   # Observed: the real limit for a video emoji; STICKER_VIDEO_BIG for a set whose
+                                    # largest tile was 74.6 KB. An unofficial requirements list gives 64 KB too.
 MAX_INITIAL = 50                # createNewStickerSet: 1-50 initial stickers
 MAX_SET = 200                   # addStickerToSet: emoji sticker sets can have up to 200 stickers
 DEFAULT_MAX_EMOJI = 100         # appConfig message_animated_emoji_max; 100 observed, not documented as a number
-SAFE_COLUMNS = 8                # Heuristic: a row of 8 fits a narrow phone bubble without wrapping
-WIDE_COLUMNS = 12               # Heuristic: up to 12 fits most phones; check the narrowest one
+AUTO_COLUMNS = 8                # the default grid has 8 columns or fewer (from 9, rows wrap in Android chats)
+LIST_COLUMNS = 12               # plan lists grids up to 12 columns
 DEFAULT_SECONDS = 2.9
 DEFAULT_FPS = 30
 DEFAULT_FALLBACK = "⬜"         # shown where a custom emoji can't be displayed
@@ -58,20 +62,92 @@ DEFAULT_TITLE = "Mosaic image via @hlixli"
 STILL_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff", ".avif", ".heic", ".heif"}
 TARGET_EMOJI = 40                # Heuristic: the default grid stays at or under 40 tiles, larger emoji read better
 EXIT_UNKNOWN = 5                 # the request may have reached Telegram: run publish again, it resumes
-BITRATES = ("400k", "250k", "160k", "100k")
+# Bitrates tried in turn for the tiles still over TARGET_BYTES, all variable rate (VP9 constrained quality): a
+# retry only lowers the bitrate, never the frame rate or the frame count, so every tile keeps the same frames.
+BITRATES = ("160k", "110k", "75k", "50k", "35k", "25k")
+TARGET_BYTES = 56 * 1024         # what each tile aims for, under the 64 KB limit (the website's target too)
+HARD_BYTES = 63 * 1024           # over this after the last bitrate: the whole mosaic drops to half the FPS
 
 
 class MosaicError(Exception):
     """A rule of Telegram or of this tool would be broken; the message says which."""
 
 
+# ---------------------------------------------------------------- how phones lay the message out
+# A message of custom emoji only is drawn as "big emoji", and a row wider than the message wraps: its last tiles
+# drop to a new line and the picture falls apart. The tile size there does not follow the text-size setting; it
+# comes from the grid. Read from the clients' source (Nov 2026), the same model as the website's
+# src/lib/emoji-mosaic.ts (bigEmojiRow, layoutFit, wrapsWhere):
+# - iOS (ChatMessageAnimatedStickerItemNode.fontSizeForEmojiString): font = floor(94 x m), tile = font x 24/17,
+#   m chosen by max(columns, rows), so rows of 5-8 columns are 282-304 pt wide whatever the grid.
+# - Android (Theme.chat_msgTextPaintEmoji, MessageObject.checkEmojiOnly): tile = (120 x k + 4) x 1.2 dp, k by the
+#   total emoji count; about 32 dp from 7 emoji.
+# - Widths on the narrow phones many people have, an iPhone at 375 pt (mini, SE, Display Zoom) and an Android
+#   phone at 360 dp: iOS W-48 pt in chats and channels, W-86 in groups, 45 less again when forwarded; Android
+#   W-80 dp, 14 less for a channel or bot post's share button, 52 less in groups, at most 0.65 W when forwarded.
+IOS_FONT = (94, 78, 64, 49, 43, 35, 30, 25, 22, 19)    # pt, by max(cols, rows) = 1, 2, ... 10 and more
+ANDROID_K = (0.46, 0.46, 0.46, 0.34, 0.28, 0.22, 0.19)  # by the emoji count = 1, 2, ... 7 and more
+NARROW = {
+    "iPhone": {"chats": 375 - 48, "groups": 375 - 86, "forwards": 375 - 48 - 45},
+    "Android": {"chats": 360 - 80 - 14, "groups": 360 - 80 - 52, "forwards": min(360 - 80 - 14, 0.65 * 360)},
+}
+FITS = ("everywhere", "chats", "wraps")
+
+
+def big_emoji_row(cols: int, rows: int) -> dict[str, float]:
+    """Row width in iOS points and Android dp of a cols x rows mosaic shown as big emoji."""
+    dim = max(cols, rows)
+    ios = cols * IOS_FONT[min(dim, len(IOS_FONT)) - 1] * (24 / 17)
+    k = ANDROID_K[min(cols * rows, len(ANDROID_K)) - 1]
+    return {"ios": ios, "android": cols * (120 * k + 4) * 1.2}
+
+
+def wraps_where(cols: int, rows: int) -> list[str]:
+    """The narrow-phone places where the rows wrap: "iPhone chats" (and then everywhere else on that phone), or
+    "iPhone groups" and "iPhone forwards"; the same for Android."""
+    row = big_emoji_row(cols, rows)
+    where = []
+    for phone, key in (("iPhone", "ios"), ("Android", "android")):
+        width, room = row[key], NARROW[phone]
+        if width > room["chats"]:
+            where.append(f"{phone} chats")
+        else:
+            where += [f"{phone} {place}" for place in ("groups", "forwards") if width > room[place]]
+    return where
+
+
+def layout_fit(cols: int, rows: int) -> str:
+    """Where the rows stay whole on narrow phones: "everywhere" (also groups and forwarded messages), "chats"
+    (private chats and channel posts; rows wrap in groups or forwards) or "wraps" (even in a private chat)."""
+    where = wraps_where(cols, rows)
+    if not where:
+        return "everywhere"
+    return "wraps" if any(w.endswith(" chats") for w in where) else "chats"
+
+
+def wrap_places(where: list[str]) -> str:
+    """"iPhone groups and forwards; Android groups" from wraps_where's list."""
+    by: dict[str, list[str]] = {}
+    for item in where:
+        phone, place = item.split(" ", 1)
+        by.setdefault(phone, []).append(place)
+    return "; ".join(f"{phone} {' and '.join(places)}" for phone, places in by.items())
+
+
+def fit_text(cols: int, rows: int) -> str:
+    """One line on where the rows of a cols x rows mosaic stay whole, as the website's grid label says it."""
+    fit, where = layout_fit(cols, rows), wrap_places(wraps_where(cols, rows))
+    if fit == "everywhere":
+        return "rows stay whole on every phone, in chats, groups and forwards"
+    if fit == "chats":
+        return f"rows stay whole in chats and channels; on small phones they wrap in {where}"
+    return f"rows wrap on small phones even in chats ({where}); use fewer columns"
+
+
 # ---------------------------------------------------------------- grid
 
-def grid_options(width: int, height: int, *, max_emoji: int = DEFAULT_MAX_EMOJI, max_cols: int = WIDE_COLUMNS,
-                 limit: int = 8) -> list[dict]:
-    """Grids for a source of width x height: closest shape first, then more emoji.
-
-    `crop` is the share of the picture a cover fit cuts away to match the grid's shape."""
+def _grids(width: int, height: int, max_emoji: int, max_cols: int) -> list[dict]:
+    """Every grid with its exact crop, closest shape first, then more emoji (the website's gridOptions order)."""
     if width <= 0 or height <= 0:
         raise MosaicError("the source has no size")
     want = width / height
@@ -81,28 +157,41 @@ def grid_options(width: int, height: int, *, max_emoji: int = DEFAULT_MAX_EMOJI,
             ratio = cols / rows
             crop = 1 - min(ratio, want) / max(ratio, want)
             found.append({"grid": f"{cols}x{rows}", "cols": cols, "rows": rows, "emoji": cols * rows,
-                          "crop": round(crop, 3), "columns": column_fit(cols)})
+                          "crop": crop, "fit": layout_fit(cols, rows), "wraps": wraps_where(cols, rows)})
     useful = [g for g in found if g["emoji"] >= 4] or found
-    useful.sort(key=lambda g: (round(g["crop"], 2), -g["emoji"]))
-    return useful[:limit]
+    useful.sort(key=lambda g: (math.floor(g["crop"] * 100 + 0.5), -g["emoji"]))
+    return useful
 
 
-def column_fit(cols: int) -> str:
-    """How a row of `cols` custom emoji is likely to fit a chat bubble (Heuristic, check on a real phone)."""
-    if cols <= SAFE_COLUMNS:
-        return "safe"
-    if cols <= WIDE_COLUMNS:
-        return "check-narrow-phone"
-    return "likely-wraps"
+def grid_options(width: int, height: int, *, max_emoji: int = DEFAULT_MAX_EMOJI, max_cols: int = LIST_COLUMNS,
+                 limit: int = 8) -> list[dict]:
+    """Grids for a source of width x height: closest shape first, then more emoji.
+
+    `crop` is the share of the picture a cover fit cuts away to match the grid's shape; `fit` and `wraps` say
+    where its rows stay whole on narrow phones (layout_fit, wraps_where)."""
+    return [{**g, "crop": round(g["crop"], 3)} for g in _grids(width, height, max_emoji, max_cols)[:limit]]
+
+
+def whole_grids(width: int, height: int, fit: str, *, max_emoji: int = DEFAULT_MAX_EMOJI, limit: int = 3) -> list[dict]:
+    """The grids closest to the source's shape whose layout_fit is `fit` ("everywhere" or "chats"), 4 emoji or
+    more, at most AUTO_COLUMNS wide (wider rows wrap in Android chats)."""
+    found = [g for g in _grids(width, height, max_emoji, AUTO_COLUMNS) if g["fit"] == fit and g["emoji"] >= 4]
+    return [{**g, "crop": round(g["crop"], 3)} for g in found[:limit]]
 
 
 def auto_grid(width: int, height: int, max_emoji: int = DEFAULT_MAX_EMOJI) -> tuple[int, int]:
-    """The default grid: a safe column count, the shape within 5% if possible, then the most emoji up to
-    TARGET_EMOJI (fewer, larger tiles read better in a chat)."""
-    options = grid_options(width, height, max_emoji=min(max_emoji, MAX_SET), max_cols=SAFE_COLUMNS, limit=10_000)
+    """The default grid, as the website's autoGrid picks it: at most 8 columns, the shape within 5% when possible,
+    rows that stay whole on narrow phones (everywhere first when that still gives 9 or more emoji, then in chats
+    and channels), then the most emoji up to TARGET_EMOJI (fewer, larger tiles read better)."""
+    options = _grids(width, height, min(max_emoji, MAX_SET), AUTO_COLUMNS)
     close = [g for g in options if g["crop"] <= 0.05] or options
-    modest = [g for g in close if g["emoji"] <= TARGET_EMOJI] or close
-    best = max(modest, key=lambda g: (g["emoji"], -g["crop"]))
+    shaped = ([g for g in close if g["fit"] == "everywhere" and g["emoji"] >= 9]
+              or [g for g in close if g["fit"] != "wraps"] or close)
+    modest = [g for g in shaped if g["emoji"] <= TARGET_EMOJI] or shaped
+    best = modest[0]
+    for g in modest[1:]:
+        if g["emoji"] > best["emoji"] or (g["emoji"] == best["emoji"] and g["crop"] < best["crop"]):
+            best = g
     return best["cols"], best["rows"]
 
 
@@ -187,9 +276,12 @@ def _need(tool: str) -> str:
     return path
 
 
-def probe(path: str) -> dict:
-    out = subprocess.run([_need("ffprobe"), "-v", "error", "-show_streams", "-show_format", "-of", "json", path],
-                         capture_output=True, text=True, encoding="utf-8", errors="replace")
+def probe(path: str, *, packets: bool = False) -> dict:
+    """ffprobe's streams and format; with packets=True also each packet's pts_time and the counted packets
+    (nb_read_packets on the stream)."""
+    extra = ["-count_packets", "-show_entries", "packet=pts_time"] if packets else []
+    out = subprocess.run([_need("ffprobe"), "-v", "error", "-show_streams", "-show_format", *extra, "-of", "json",
+                          path], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if out.returncode != 0:
         raise MosaicError(f"ffprobe can't read {os.path.basename(path)}: {out.stderr.strip()[:200]}")
     return json.loads(out.stdout or "{}")
@@ -251,11 +343,62 @@ def tile_names(cols: int, rows: int, ext: str) -> list[str]:
 
 
 def _vp9_args(bitrate: str, alpha: bool, fps: int) -> list[str]:
+    """libvpx-vp9 in constrained quality (CRF with a bitrate ceiling): variable rate, which never drops frames
+    to hold a rate. Every tile gets the same whole-number -r, so the same timestamps."""
     args = ["-an", "-c:v", "libvpx-vp9", "-b:v", bitrate, "-crf", "30", "-r", str(fps), "-deadline", "good",
             "-cpu-used", "2", "-row-mt", "1", "-pix_fmt", "yuva420p" if alpha else "yuv420p"]
     if alpha:
         args += ["-auto-alt-ref", "0"]
     return args + ["-f", "webm"]
+
+
+def packet_count(path: str) -> int:
+    """Frames (packets) in a video file, counted by ffprobe."""
+    out = subprocess.run([_need("ffprobe"), "-v", "error", "-count_packets", "-select_streams", "v:0",
+                          "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", path],
+                         capture_output=True, text=True, encoding="utf-8", errors="replace")
+    try:
+        return int(out.stdout.strip().split(",")[0])
+    except ValueError:
+        raise MosaicError(f"ffprobe can't count the frames of {os.path.basename(path)}") from None
+
+
+def _render_canvas(src: str, tmp: str, chain: list[str], decoder: list[str], start: float, length: float, fps: int,
+                   pingpong: bool) -> tuple[str, int]:
+    """The whole mosaic at `fps` as lossless frames, and how many frames every tile gets."""
+    canvas = os.path.join(tmp, f"canvas_{fps}.mkv")
+    frames = max(2 if pingpong else 1, round(length * fps))
+    vf = ",".join(chain + [f"fps={fps}"])
+    if pingpong:     # forward, then back without repeating the turn frame or the loop frame
+        vf += (f",split[a][b];[b]reverse,trim=start_frame=1:end_frame={frames - 1},setpts=PTS-STARTPTS[r];"
+               "[a][r]concat=n=2:v=1:a=0")
+    want = frames + (max(frames - 2, 0) if pingpong else 0)
+    seek = ["-ss", f"{start:.3f}"] if start else []
+    _run_ffmpeg([*seek, "-t", f"{length:.3f}", *decoder, "-i", src, "-an", "-filter_complex", vf,
+                 "-frames:v", str(want), "-c:v", "png", "-pix_fmt", "rgba", canvas])
+    return canvas, min(want, packet_count(canvas))
+
+
+def _encode_tiles(canvas: str, tmp: str, out: str, names: list[str], cols: int, frames: int, alpha: bool,
+                  fps: int) -> list[str]:
+    """Every tile at the same frame rate and frame count. Tiles over TARGET_BYTES are encoded again at the next
+    lower bitrate, and the smaller file is kept; returns the tiles still over HARD_BYTES."""
+    paths = [os.path.join(out, *name.split("/")) for name in names]
+    _split_tiles(canvas, list(enumerate(paths)), cols,
+                 lambda: ["-frames:v", str(frames), *_vp9_args(BITRATES[0], alpha, fps)])
+    pending = [i for i, path in enumerate(paths) if os.path.getsize(path) > TARGET_BYTES]
+    retry = os.path.join(tmp, "retry")
+    os.makedirs(retry, exist_ok=True)
+    for bitrate in BITRATES[1:]:
+        if not pending:
+            break
+        tries = [(i, os.path.join(retry, f"{i}.webm")) for i in pending]
+        _split_tiles(canvas, tries, cols, lambda b=bitrate: ["-frames:v", str(frames), *_vp9_args(b, alpha, fps)])
+        for i, path in tries:
+            if os.path.getsize(path) < os.path.getsize(paths[i]):
+                os.replace(path, paths[i])
+        pending = [i for i in pending if os.path.getsize(paths[i]) > TARGET_BYTES]
+    return [names[i] for i, path in enumerate(paths) if os.path.getsize(path) > HARD_BYTES]
 
 
 def make(src: str, out: str, *, grid: str | None = None, crop: str | None = None, corners: str | None = None,
@@ -273,7 +416,7 @@ def make(src: str, out: str, *, grid: str | None = None, crop: str | None = None
     fps = int(fps)
     if not 1 <= fps <= MAX_FPS:
         raise MosaicError(f"--fps must be 1..{MAX_FPS}")
-    if info["fps"] >= 1:     # a 10 FPS GIF stays at 10: more frames would only spend the 256 KB budget
+    if info["fps"] >= 1:     # a 10 FPS GIF stays at 10: more frames would only spend the 64 KB budget
         fps = min(fps, max(1, round(info["fps"])))
     length = 0.0
     if not is_still:
@@ -299,35 +442,32 @@ def make(src: str, out: str, *, grid: str | None = None, crop: str | None = None
 
     total = 0
     with tempfile.TemporaryDirectory(prefix="mosaic_") as tmp:
-        canvas = os.path.join(tmp, "canvas.mkv")
         if is_still:
             seek = ["-ss", f"{start:.3f}"] if start and not info["still"] else []
             _run_ffmpeg([*seek, *decoder, "-i", src, "-vf", ",".join(chain), "-frames:v", "1",
                          os.path.join(out, "canvas.png")])
             names = tile_names(cols, rows, "png")
-            _split_tiles(os.path.join(out, "canvas.png"), out, names, cols, lambda: ["-frames:v", "1"])
+            paths = [os.path.join(out, *name.split("/")) for name in names]
+            _split_tiles(os.path.join(out, "canvas.png"), list(enumerate(paths)), cols, lambda: ["-frames:v", "1"])
         else:
-            frames = max(2 if pingpong else 1, round(length * fps))
-            vf = ",".join(chain + [f"fps={fps}"])
-            if pingpong:     # forward, then back without repeating the turn frame or the loop frame
-                vf += (f",split[a][b];[b]reverse,trim=start_frame=1:end_frame={frames - 1},setpts=PTS-STARTPTS[r];"
-                       "[a][r]concat=n=2:v=1:a=0")
-            seek = ["-ss", f"{start:.3f}"] if start else []
-            _run_ffmpeg([*seek, "-t", f"{length:.3f}", *decoder, "-i", src, "-an", "-filter_complex", vf,
-                         "-c:v", "png", "-pix_fmt", "rgba", canvas])
-            _run_ffmpeg(["-i", canvas, "-frames:v", "1", os.path.join(out, "canvas.png")])
+            # Each client loops every emoji on its own and never realigns them, so the tiles must agree to the
+            # frame: one frame rate, one frame count and the same timestamps for the whole mosaic; only the
+            # bitrate differs from tile to tile. When a tile can't fit 63 KB even at the lowest bitrate, the whole
+            # mosaic drops to half the frame rate together.
             names = tile_names(cols, rows, "webm")
-            total = frames + (max(frames - 2, 0) if pingpong else 0)
-            _split_tiles(canvas, out, names, cols, lambda: ["-frames:v", str(total), *_vp9_args(BITRATES[0], alpha, fps)])
-            for name in names:   # a tile over the size budget is encoded again, lower, on its own
-                path = os.path.join(out, *name.split("/"))
-                for bitrate in BITRATES[1:]:
-                    if os.path.getsize(path) <= MAX_VIDEO_BYTES:
-                        break
-                    index = names.index(name)
-                    r, c = divmod(index, cols)
-                    _run_ffmpeg(["-i", canvas, "-vf", f"crop={TILE}:{TILE}:{c * TILE}:{r * TILE}", "-frames:v",
-                                 str(total), *_vp9_args(bitrate, alpha, fps), path])
+            rates = [fps] + ([(fps + 1) // 2] if fps > 1 else [])
+            for n, rate in enumerate(rates):
+                canvas, total = _render_canvas(src, tmp, chain, decoder, start, length, rate, pingpong)
+                if n == 0:
+                    _run_ffmpeg(["-i", canvas, "-frames:v", "1", os.path.join(out, "canvas.png")])
+                fps = rate
+                if not _encode_tiles(canvas, tmp, out, names, cols, total, alpha, rate):
+                    break    # every tile fits; one still over at half the rate is reported by check (VIDEO_TOO_BIG)
+            for index, name in enumerate(names):   # a tile that lost a frame would loop shorter and drift off
+                got = packet_count(os.path.join(out, *name.split("/")))
+                if got != total:
+                    raise MosaicError(f"tile {index + 1} ({name}) came out with {got} frames instead of {total}, "
+                                      "so it would play out of step; run make again")
     manifest = {
         "schema": SCHEMA, "format": "static" if is_still else "video",
         "grid": {"cols": cols, "rows": rows}, "tile": TILE, "fallback": fallback, "tiles": names,
@@ -349,43 +489,76 @@ def _box_size(crop, corners, info) -> tuple[int, int]:
     return w, h
 
 
-def _split_tiles(canvas: str, out: str, names: list[str], cols: int, codec_args) -> None:
-    """Cut the canvas into tiles, 25 outputs per ffmpeg run (short command lines on Windows)."""
-    for first in range(0, len(names), 25):
-        batch = names[first:first + 25]
+def _split_tiles(canvas: str, jobs: list[tuple[int, str]], cols: int, codec_args) -> None:
+    """Cut the tiles at the given indexes (row by row) out of the canvas into the given paths, 25 outputs per
+    ffmpeg run (short command lines on Windows)."""
+    for first in range(0, len(jobs), 25):
+        batch = jobs[first:first + 25]
         labels = "".join(f"[s{i}]" for i in range(len(batch)))
         graph = [f"[0:v]split={len(batch)}{labels}" if len(batch) > 1 else "[0:v]null[s0]"]
         args = ["-i", canvas]
-        for i, name in enumerate(batch):
-            r, c = divmod(first + i, cols)
+        for i, (index, _) in enumerate(batch):
+            r, c = divmod(index, cols)
             graph.append(f"[s{i}]crop={TILE}:{TILE}:{c * TILE}:{r * TILE}[t{i}]")
         args += ["-filter_complex", ";".join(graph)]
-        for i, name in enumerate(batch):
-            args += ["-map", f"[t{i}]", *codec_args(), os.path.join(out, *name.split("/"))]
+        for i, (_, path) in enumerate(batch):
+            args += ["-map", f"[t{i}]", *codec_args(), path]
         _run_ffmpeg(args)
 
 
 # ---------------------------------------------------------------- preview
 
+def big_emoji_layout(cols: int, rows: int, width: float) -> dict:
+    """Big emoji as an iPhone lays them out in a message `width` pt wide: the tile size from the grid, and the
+    rows wrapped when they are wider than the message (the website's preview does the same)."""
+    tile = big_emoji_row(cols, rows)["ios"] / cols
+    per_row = max(1, math.floor((width + 0.01) / tile))
+    lines = math.ceil(cols / per_row)
+    cells = [((c % per_row) * tile, (r * lines + c // per_row) * tile) for r in range(rows) for c in range(cols)]
+    return {"tile": tile, "cells": cells, "wraps": lines > 1, "w": min(cols, per_row) * tile, "h": rows * lines * tile}
+
+
 def write_preview(out: str, manifest: dict) -> str:
-    """preview.html at 2x: edge to edge (newer clients) on a light and a dark bubble, and with the gaps older
-    clients leave (about 1 px between emoji and 5 px between rows at 22 px)."""
-    cols = manifest["grid"]["cols"]
-    tag = ("<video src='{0}' autoplay loop muted playsinline></video>" if manifest["format"] == "video"
-           else "<img src='{0}' alt=''>")
-    cells = "".join(tag.format(html.escape(n)) for n in manifest["tiles"])
+    """preview.html: big emoji at an iPhone's size (1 pt = 1 CSS px) in a chat or channel on a light and a dark
+    theme and in a group or forward on a small iPhone, with the rows wrapped where Telegram wraps them; then text
+    mode at 2x, with the gaps Web K and text mode leave (about 1 px between emoji and 5 px between rows at 22 px)."""
+    cols, rows = manifest["grid"]["cols"], manifest["grid"]["rows"]
+    tag = ("<video src='{0}' style='{1}' autoplay loop muted playsinline></video>" if manifest["format"] == "video"
+           else "<img src='{0}' style='{1}' alt=''>")
+
+    def placed(width: float) -> tuple[str, dict]:
+        lay = big_emoji_layout(cols, rows, width)
+        side = math.ceil(lay["tile"] * 100) / 100
+        cells = "".join(tag.format(html.escape(n), f"left:{x:.2f}px;top:{y:.2f}px;width:{side}px;height:{side}px")
+                        for n, (x, y) in zip(manifest["tiles"], lay["cells"]))
+        return f"<div class='m' style='width:{lay['w']:.2f}px;height:{lay['h']:.2f}px'>{cells}</div>", lay
+
+    panels = []
+    for title, width, wall in (("Chat or channel, 375 pt iPhone", NARROW["iPhone"]["chats"], "l"),
+                               ("Chat or channel, dark theme", NARROW["iPhone"]["chats"], "d"),
+                               ("Group or forward, 375 pt iPhone", NARROW["iPhone"]["forwards"], "l")):
+        body, lay = placed(width)
+        state = "<span class='bad'>rows wrap</span>" if lay["wraps"] else "<span class='ok'>rows stay whole</span>"
+        panels.append(f"<figure><figcaption>{title} · {state}</figcaption><div class='wall {wall}'>{body}</div></figure>")
+    grid = "".join(tag.format(html.escape(n), "") for n in manifest["tiles"])
+    panels.append("<figure><figcaption>Web K, or any text in the message: gaps, at 2x</figcaption>"
+                  f"<div class='wall w'><div class='g'>{grid}</div></div></figure>")
     page = f"""<!doctype html><meta charset="utf-8"><title>Emoji mosaic preview</title>
-<style>body{{font:14px system-ui,sans-serif;margin:24px;color:#0f172a}}.row{{display:flex;gap:24px;flex-wrap:wrap}}
-.b{{padding:16px;border-radius:16px}}.l{{background:#fff;box-shadow:0 0 0 1px #cad5e2}}.d{{background:#212d3b}}
-.g{{display:grid;grid-template-columns:repeat({cols},44px);gap:0}}.o .g{{column-gap:2px;row-gap:10px}}
-.g>*{{width:44px;height:44px;display:block}}p{{color:#62748e;max-width:60ch}}h2{{font-size:13px;color:#62748e}}</style>
-<h1>{cols}&times;{manifest['grid']['rows']} mosaic, {len(manifest['tiles'])} emoji</h1>
-<p>Shown at 2x. Newer Telegram clients draw a row of custom emoji edge to edge; older ones leave about 1 px between
-emoji and 5 px between rows, which splits text or thin lines on a seam. A preview, not proof: open the sent message on
-the phones you target.</p>
-<div class="row"><div><h2>Edge to edge, light</h2><div class="b l"><div class="g">{cells}</div></div></div>
-<div><h2>Edge to edge, dark</h2><div class="b d"><div class="g">{cells}</div></div></div>
-<div class="o"><h2>Older clients</h2><div class="b l"><div class="g">{cells}</div></div></div></div>
+<style>body{{font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;margin:24px;color:#0F172A;background:#FFFFFF}}
+h1{{font-size:20px;font-weight:600;margin:0 0 8px}}p{{color:#62748E;max-width:72ch;margin:0 0 12px}}
+.row{{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-top:20px}}figure{{margin:0}}
+figcaption{{font-size:13px;color:#62748E;margin-bottom:8px}}.ok{{color:#00A63E}}.bad{{color:#E17100}}
+.wall{{padding:16px;border-radius:16px;border:1px solid #CAD5E2}}.l{{background:#CAD5E2}}.d{{background:#0E1621;border-color:#0E1621}}
+.w{{background:#FFFFFF}}.m{{position:relative}}.m>*{{position:absolute;display:block}}
+.g{{display:grid;grid-template-columns:repeat({cols},44px);column-gap:2px;row-gap:10px}}.g>*{{width:44px;height:44px;display:block}}</style>
+<h1>{cols}&times;{rows} mosaic, {len(manifest['tiles'])} emoji</h1>
+<p>{html.escape(fit_text(cols, rows)[0].upper() + fit_text(cols, rows)[1:])}.</p>
+<p>A message of these emoji alone is drawn as big emoji: the tile size comes from the grid, not the reader's text
+size, and a row wider than the message wraps. Send the mosaic as a message of its own: with any text in it, Telegram
+draws the emoji as text, Android overlaps the rows by about a fifth, and Web K and text mode leave gaps that split
+text or thin lines lying on a seam. Each client starts every tile when it loads and never realigns them, so a tile
+that loads late stays a little behind. A preview, not proof: open the sent message on the phones you target.</p>
+<div class="row">{''.join(panels)}</div>
 """
     path = os.path.join(out, "preview.html")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
@@ -527,16 +700,45 @@ def image_size(data: bytes) -> tuple[str, int, int] | None:
     return None
 
 
+def layout_problems(cols: int, rows: int) -> list[dict]:
+    """Warnings for rows that wrap on narrow phones when the mosaic is shown as big emoji."""
+    fit = layout_fit(cols, rows)
+    if fit == "everywhere":
+        return []
+    return [{"code": "ROWS_WRAP" if fit == "wraps" else "ROWS_WRAP_OUTSIDE_CHATS",
+             "detail": f"{cols}x{rows}: {fit_text(cols, rows)}", "severity": "warning"}]
+
+
+def timing_problems(timing: dict[str, dict]) -> list[dict]:
+    """Tiles whose frame count, frame rate, duration or timestamps differ from the others' (the most common
+    value). Each client loops every emoji on its own, so such a tile drifts further off on every loop."""
+    problems = []
+    if len(timing) < 2:
+        return problems
+    rules = (("frames", "FRAME_COUNT_DIFFERS", lambda v: f"{v} frames"),
+             ("fps", "FPS_DIFFERS", lambda v: f"{v:g} FPS"),
+             ("seconds", "DURATION_DIFFERS", lambda v: f"{v:.3f} s"),
+             ("pts", "TIMESTAMPS_DIFFER", lambda v: "other frame times"))
+    flagged = set()
+    for key, code, say in rules:
+        values = [t[key] for t in timing.values()]
+        usual = max(values, key=values.count)
+        for name, t in timing.items():
+            if t[key] != usual and name not in flagged:
+                flagged.add(name)
+                problems.append({"tile": name, "code": code, "detail": f"{say(t[key])}, the others {say(usual)}"})
+    return problems
+
+
 def check(mosaic: Mosaic, *, max_emoji: int = DEFAULT_MAX_EMOJI) -> list[dict]:
     """Every rule a tile or the grid breaks. Video tiles are probed with ffprobe."""
     problems: list[dict] = []
     m = mosaic.manifest
     if mosaic.cols * mosaic.rows > max_emoji:
         problems.append({"code": "TOO_MANY_EMOJI", "detail": f"{mosaic.cols * mosaic.rows} > {max_emoji} per message"})
-    if mosaic.cols > WIDE_COLUMNS:
-        problems.append({"code": "ROW_MAY_WRAP", "detail": f"{mosaic.cols} columns; rows may wrap on phones",
-                         "severity": "warning"})
+    problems += layout_problems(mosaic.cols, mosaic.rows)
     fmt = m["format"]
+    timing: dict[str, dict] = {}
     with tempfile.TemporaryDirectory(prefix="mosaic_check_") as tmp:
         for name in mosaic.tiles:
             data = mosaic.blobs[name]
@@ -548,12 +750,13 @@ def check(mosaic: Mosaic, *, max_emoji: int = DEFAULT_MAX_EMOJI) -> list[dict]:
                 elif size[1:] != (TILE, TILE):
                     problems.append({**where, "code": "NOT_100X100", "detail": f"{size[1]}x{size[2]}"})
                 continue
-            if len(data) > MAX_VIDEO_BYTES:
-                problems.append({**where, "code": "VIDEO_TOO_BIG", "detail": f"{len(data)} bytes > {MAX_VIDEO_BYTES}"})
+            if len(data) > MAX_EMOJI_VIDEO_BYTES:
+                problems.append({**where, "code": "VIDEO_TOO_BIG", "detail": f"{len(data)} bytes > "
+                                 f"{MAX_EMOJI_VIDEO_BYTES} (a video emoji's real limit)"})
             path = os.path.join(tmp, "t.webm")
             with open(path, "wb") as fh:
                 fh.write(data)
-            info = probe(path)
+            info = probe(path, packets=True)
             streams = info.get("streams", [])
             video = next((s for s in streams if s.get("codec_type") == "video"), {})
             if "webm" not in (info.get("format", {}).get("format_name") or ""):
@@ -570,7 +773,13 @@ def check(mosaic: Mosaic, *, max_emoji: int = DEFAULT_MAX_EMOJI) -> list[dict]:
             fps = _rate(video.get("avg_frame_rate")) or _rate(video.get("r_frame_rate"))
             if fps > MAX_FPS + 0.01:
                 problems.append({**where, "code": "FPS_TOO_HIGH", "detail": f"{fps:g}"})
-    return problems
+            elif fps and abs(fps - round(fps)) > 0.01:    # Android and iOS truncate avg_frame_rate to a whole number
+                problems.append({**where, "code": "FPS_NOT_WHOLE", "detail": f"{fps:g}; use a whole number up to "
+                                 f"{MAX_FPS}", "severity": "warning"})
+            packets = [p.get("pts_time") for p in info.get("packets", [])]
+            timing[name] = {"frames": int(video.get("nb_read_packets") or len(packets)), "fps": round(fps, 3),
+                            "seconds": round(seconds, 3), "pts": tuple(packets)}
+    return problems + timing_problems(timing)
 
 
 # ---------------------------------------------------------------- message
@@ -834,7 +1043,7 @@ def check_light(mosaic: Mosaic) -> list[dict]:
     for name in mosaic.tiles:
         data = mosaic.blobs[name]
         if mosaic.manifest["format"] == "video":
-            if len(data) > MAX_VIDEO_BYTES:
+            if len(data) > MAX_EMOJI_VIDEO_BYTES:
                 problems.append({"tile": name, "code": "VIDEO_TOO_BIG"})
             if data[:4] != b"\x1a\x45\xdf\xa3":
                 problems.append({"tile": name, "code": "NOT_WEBM"})
@@ -875,7 +1084,7 @@ def main(argv: list[str] | None = None) -> int:
     m = sub.add_parser("make", help="tiles, canvas.png, preview.html and mosaic.json; offline")
     m.add_argument("src")
     m.add_argument("--out", default="mosaic")
-    m.add_argument("--grid", help="COLSxROWS, e.g. 8x4; default: picked from the shape")
+    m.add_argument("--grid", help="COLSxROWS, e.g. 7x4; default: picked from the shape and where rows wrap")
     m.add_argument("--crop", help="X,Y,W,H in source pixels: top-left corner and size")
     m.add_argument("--corners", help="X1,Y1,X2,Y2 in source pixels: two opposite corners")
     m.add_argument("--fit", choices=("cover", "contain", "fill"), default="cover")
@@ -883,7 +1092,9 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--round", type=int, default=0, help="round the mosaic's outer corners, radius in canvas px")
     m.add_argument("--start", type=float, default=0.0)
     m.add_argument("--duration", type=float, help=f"seconds, at most {MAX_SECONDS:g} (default {DEFAULT_SECONDS})")
-    m.add_argument("--fps", type=int, default=DEFAULT_FPS)
+    m.add_argument("--fps", type=int, default=DEFAULT_FPS,
+                   help=f"whole frames per second, 1-{MAX_FPS}; never above the source's; halved for the whole "
+                        "mosaic when a tile can't fit 64 KB")
     m.add_argument("--pingpong", action="store_true", help="play forward then back, for a seamless loop")
     m.add_argument("--still", action="store_true", help="use the first frame only: static PNG tiles")
     m.add_argument("--fallback", default=DEFAULT_FALLBACK)
@@ -934,9 +1145,20 @@ def main(argv: list[str] | None = None) -> int:
                 ap.error("plan needs a file or --size")
             options = grid_options(w, h, max_emoji=a.max_emoji)
             cols, rows = auto_grid(w, h, a.max_emoji)
-            lines = [f"{w}x{h}: default {cols}x{rows}"] + [
-                f"  {o['grid']:>6}  {o['emoji']:>3} emoji  crop {o['crop'] * 100:4.1f}%  {o['columns']}" for o in options]
-            _emit({"size": [w, h], "default": f"{cols}x{rows}", "options": options}, a.json, "\n".join(lines))
+            whole = {fit: whole_grids(w, h, fit, max_emoji=a.max_emoji) for fit in ("everywhere", "chats")}
+
+            def short(grids: list[dict]) -> str:
+                return ", ".join(f"{g['grid']} ({g['crop'] * 100:.1f}% crop)" for g in grids) or "none"
+            lines = [f"{w}x{h}: default {cols}x{rows}, {fit_text(cols, rows)}",
+                     f"  closest that stay whole everywhere: {short(whole['everywhere'])}",
+                     f"  closest that stay whole in chats and channels: {short(whole['chats'])}",
+                     "  closest shapes (fit on narrow phones: everywhere, chats = only chats and channels, wraps = even "
+                     "in chats):"] + [
+                f"  {o['grid']:>6}  {o['emoji']:>3} emoji  crop {o['crop'] * 100:4.1f}%  {o['fit']:<10}"
+                + (f"  rows wrap in {wrap_places(o['wraps'])}" if o["wraps"] else "") for o in options]
+            _emit({"size": [w, h], "default": f"{cols}x{rows}", "default_fit": layout_fit(cols, rows),
+                   "default_wraps": wraps_where(cols, rows), "whole_everywhere": whole["everywhere"],
+                   "whole_in_chats": whole["chats"], "options": options}, a.json, "\n".join(lines))
             return 0
         if a.cmd == "make":
             manifest = make(a.src, a.out, grid=a.grid, crop=a.crop, corners=a.corners, fit=a.fit,

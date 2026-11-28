@@ -1,6 +1,6 @@
 ---
 name: job-agent
-description: How job-agent works: connected mode (TrueInterview MCP tools) vs local mode (the candidate's own files), which source to use for each need, the workspace, how to run the job-agent scripts, and the rules every job-search skill follows. Read it once at the start of any job-search, application, tracking or interview-prep task.
+description: "How job-agent works: connected mode (TrueInterview MCP tools) vs local mode (the candidate's own files), which source to use for each need, the workspace, how to run the job-agent scripts, and the rules every job-search skill follows. Read it once at the start of any job-search, application, tracking or interview-prep task."
 ---
 
 <!-- Generated from AGENTS.md by scripts/gen-plugins.mjs. Edit AGENTS.md instead. -->
@@ -59,7 +59,7 @@ When connected, the server is the system of record for the résumé, saved answe
 
 ## Keep TrueInterview up to date: part of every workflow
 
-Every skill ends by uploading what changed. Don't ask permission to save what the candidate told you or changed themselves; do it, then say in one line what you saved.
+Every skill ends by uploading what changed, as part of the task: save what the candidate told you or changed themselves, then say in one line what you saved. Your agent may ask them to approve each write to their account; that's expected, and their answer decides.
 
 | What changed | Upload with |
 | --- | --- |
