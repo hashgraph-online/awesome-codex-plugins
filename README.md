@@ -429,6 +429,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [BountyGuard](https://github.com/doomsday-network/bounty-guard) - Pre-flight GitHub bounty security scanner and on-chain Proof-of-Escrow MCP verifier that classifies open bounties before AI agents invest compute.
 - [Bowmark](https://github.com/bowmark-ai/plugin) - Typed, tested functions for live websites like LinkedIn, YouTube and Amazon, from Codex. Start with a free $10.
 - [BrewPage](https://github.com/kochetkov-ma/brewpage-codex-plugin) - Skill and remote MCP server that publish HTML, Markdown, files and static sites from Codex to an expiring BrewPage HTTPS link with no account or API key.
+- [BrowserControl](https://github.com/adityasasidhar/browsercontrol) - Local MCP server and skill that give Codex a real Chromium browser through Playwright, acting on numbered Set-of-Marks screenshots instead of CSS selectors.
 - [Build Remote Agent](https://github.com/LinespottingOrg/GrokBuildRemote-Agents) - Pair a phone as spectator to a local Codex session via gbr-agent (QR / 8-char) and attach at 127.0.0.1:8788 or gbr-mcp.
 - [Bulk BG Remove](https://github.com/Btike/bulk-bg-remove) - Remove image backgrounds locally and in bulk with BiRefNet or lighter ONNX models, auto-certify clean cut-outs and export shop-ready white square JPEGs.
 - [BulkTranscripts: YouTube Transcripts](https://github.com/pratie/bulktranscripts-mcp) - Remote MCP server and skill for YouTube transcripts of one video, a whole channel or a playlist, plus YouTube search and new-upload tracking.
